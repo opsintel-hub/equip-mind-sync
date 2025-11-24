@@ -22,6 +22,7 @@ const equipmentSchema = z.object({
   name: z.string().min(1, "กรุณากรอกชื่อ อุปกรณ์").max(200, "ชื่ออุปกรณ์ต้องไม่เกิน 200 ตัวอักษร"),
   description: z.string().max(500, "รายละเอียดต้องไม่เกิน 500 ตัวอักษร").optional(),
   category: z.string().min(1, "กรุณาเลือกหมวดหมู่"),
+  department: z.string().optional(),
   unit: z.string().min(1, "กรุณากรอกหน่วยนับ").max(20, "หน่วยนับต้องไม่เกิน 20 ตัวอักษร"),
   quantity_in_stock: z.number().min(0, "จำนวนต้องไม่ติดลบ").int("จำนวนต้องเป็นจำนวนเต็ม"),
   min_stock_level: z.number().min(0, "จำนวนต้องไม่ติดลบ").int("จำนวนต้องเป็นจำนวนเต็ม"),
@@ -47,6 +48,19 @@ const categories = [
   "อื่นๆ",
 ];
 
+const departments = [
+  "Airport",
+  "Digital",
+  "Billboard",
+  "Static",
+  "Bus",
+  "7 Eleven",
+  "Construction",
+  "HR",
+  "Account",
+  "ของขวัญปีใหม่",
+];
+
 export function EquipmentForm({ onSuccess, locations }: EquipmentFormProps) {
   const [open, setOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -58,6 +72,7 @@ export function EquipmentForm({ onSuccess, locations }: EquipmentFormProps) {
       name: "",
       description: "",
       category: "",
+      department: "",
       unit: "",
       quantity_in_stock: 0,
       min_stock_level: 0,
@@ -73,6 +88,7 @@ export function EquipmentForm({ onSuccess, locations }: EquipmentFormProps) {
         name: data.name,
         description: data.description || null,
         category: data.category,
+        department: data.department || null,
         unit: data.unit,
         quantity_in_stock: data.quantity_in_stock,
         min_stock_level: data.min_stock_level,
@@ -147,6 +163,31 @@ export function EquipmentForm({ onSuccess, locations }: EquipmentFormProps) {
                 )}
               />
             </div>
+
+            <FormField
+              control={form.control}
+              name="department"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>ฝ่าย</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isLoading}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="เลือกฝ่าย" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {departments.map((dept) => (
+                        <SelectItem key={dept} value={dept}>
+                          {dept}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
             <FormField
               control={form.control}
