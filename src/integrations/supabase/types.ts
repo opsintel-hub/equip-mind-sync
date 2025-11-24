@@ -130,6 +130,7 @@ export type Database = {
           quantity_in_stock: number
           unit: string
           updated_at: string
+          warranty_expiry_date: string | null
         }
         Insert: {
           category: string
@@ -147,6 +148,7 @@ export type Database = {
           quantity_in_stock?: number
           unit: string
           updated_at?: string
+          warranty_expiry_date?: string | null
         }
         Update: {
           category?: string
@@ -164,6 +166,7 @@ export type Database = {
           quantity_in_stock?: number
           unit?: string
           updated_at?: string
+          warranty_expiry_date?: string | null
         }
         Relationships: [
           {
@@ -350,6 +353,51 @@ export type Database = {
           created_at?: string
           full_name?: string
           id?: string
+          phone?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      suppliers: {
+        Row: {
+          address: string | null
+          code: string
+          contact_person: string | null
+          created_at: string
+          created_by: string | null
+          email: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          notes: string | null
+          phone: string | null
+          updated_at: string
+        }
+        Insert: {
+          address?: string | null
+          code: string
+          contact_person?: string | null
+          created_at?: string
+          created_by?: string | null
+          email?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          notes?: string | null
+          phone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          address?: string | null
+          code?: string
+          contact_person?: string | null
+          created_at?: string
+          created_by?: string | null
+          email?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          notes?: string | null
           phone?: string | null
           updated_at?: string
         }
