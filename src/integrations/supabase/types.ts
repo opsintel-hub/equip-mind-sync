@@ -14,16 +14,383 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      billboard_equipment: {
+        Row: {
+          billboard_id: string
+          created_at: string
+          created_by: string | null
+          equipment_id: string
+          id: string
+          installation_date: string | null
+          notes: string | null
+          quantity: number
+        }
+        Insert: {
+          billboard_id: string
+          created_at?: string
+          created_by?: string | null
+          equipment_id: string
+          id?: string
+          installation_date?: string | null
+          notes?: string | null
+          quantity: number
+        }
+        Update: {
+          billboard_id?: string
+          created_at?: string
+          created_by?: string | null
+          equipment_id?: string
+          id?: string
+          installation_date?: string | null
+          notes?: string | null
+          quantity?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "billboard_equipment_billboard_id_fkey"
+            columns: ["billboard_id"]
+            isOneToOne: false
+            referencedRelation: "billboards"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "billboard_equipment_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "equipment"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      billboards: {
+        Row: {
+          address: string
+          billboard_code: string
+          created_at: string
+          created_by: string | null
+          id: string
+          installation_date: string | null
+          latitude: number | null
+          location_name: string
+          longitude: number | null
+          notes: string | null
+          removal_date: string | null
+          size: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          address: string
+          billboard_code: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          installation_date?: string | null
+          latitude?: number | null
+          location_name: string
+          longitude?: number | null
+          notes?: string | null
+          removal_date?: string | null
+          size: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          address?: string
+          billboard_code?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          installation_date?: string | null
+          latitude?: number | null
+          location_name?: string
+          longitude?: number | null
+          notes?: string | null
+          removal_date?: string | null
+          size?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      equipment: {
+        Row: {
+          category: string
+          code: string
+          created_at: string
+          created_by: string | null
+          description: string | null
+          expiry_date: string | null
+          id: string
+          is_active: boolean | null
+          location_id: string | null
+          min_stock_level: number | null
+          name: string
+          notes: string | null
+          quantity_in_stock: number
+          unit: string
+          updated_at: string
+        }
+        Insert: {
+          category: string
+          code: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          expiry_date?: string | null
+          id?: string
+          is_active?: boolean | null
+          location_id?: string | null
+          min_stock_level?: number | null
+          name: string
+          notes?: string | null
+          quantity_in_stock?: number
+          unit: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          expiry_date?: string | null
+          id?: string
+          is_active?: boolean | null
+          location_id?: string | null
+          min_stock_level?: number | null
+          name?: string
+          notes?: string | null
+          quantity_in_stock?: number
+          unit?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "equipment_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      goods_issue: {
+        Row: {
+          created_at: string
+          created_by: string
+          document_no: string
+          equipment_id: string
+          id: string
+          issue_date: string
+          location_id: string
+          notes: string | null
+          purpose: string | null
+          quantity: number
+          requester: string
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          document_no: string
+          equipment_id: string
+          id?: string
+          issue_date: string
+          location_id: string
+          notes?: string | null
+          purpose?: string | null
+          quantity: number
+          requester: string
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          document_no?: string
+          equipment_id?: string
+          id?: string
+          issue_date?: string
+          location_id?: string
+          notes?: string | null
+          purpose?: string | null
+          quantity?: number
+          requester?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "goods_issue_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "equipment"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "goods_issue_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      goods_receipt: {
+        Row: {
+          created_at: string
+          created_by: string
+          document_no: string
+          equipment_id: string
+          id: string
+          location_id: string
+          notes: string | null
+          quantity: number
+          receipt_date: string
+          status: string
+          supplier: string
+          total_price: number | null
+          unit_price: number | null
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          document_no: string
+          equipment_id: string
+          id?: string
+          location_id: string
+          notes?: string | null
+          quantity: number
+          receipt_date: string
+          status?: string
+          supplier: string
+          total_price?: number | null
+          unit_price?: number | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          document_no?: string
+          equipment_id?: string
+          id?: string
+          location_id?: string
+          notes?: string | null
+          quantity?: number
+          receipt_date?: string
+          status?: string
+          supplier?: string
+          total_price?: number | null
+          unit_price?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "goods_receipt_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "equipment"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "goods_receipt_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      locations: {
+        Row: {
+          code: string
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          full_name: string
+          id: string
+          phone: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          full_name: string
+          id: string
+          phone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          full_name?: string
+          id?: string
+          phone?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "warehouse_staff" | "manager"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +517,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "warehouse_staff", "manager"],
+    },
   },
 } as const
