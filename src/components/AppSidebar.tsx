@@ -21,8 +21,7 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
-import { useNavigate } from "react-router-dom";
-import { toast } from "sonner";
+import { useAuth } from "@/hooks/useAuth";
 
 const menuItems = [
   { title: "แดชบอร์ด", url: "/dashboard", icon: LayoutDashboard },
@@ -34,11 +33,10 @@ const menuItems = [
 
 export function AppSidebar() {
   const { state } = useSidebar();
-  const navigate = useNavigate();
+  const { signOut } = useAuth();
 
   const handleLogout = () => {
-    toast.success("ออกจากระบบสำเร็จ");
-    navigate("/");
+    signOut();
   };
 
   return (
