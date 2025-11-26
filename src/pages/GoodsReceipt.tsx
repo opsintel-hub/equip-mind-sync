@@ -7,11 +7,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Plus, Search } from "lucide-react";
 import { toast } from "sonner";
-import { DepartmentFilter } from "@/components/DepartmentFilter";
 
 const GoodsReceipt = () => {
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedDepartment, setSelectedDepartment] = useState<string>("all");
 
   const mockReceipts = [
     { id: "GR-001", date: "2025-01-15", sku: "SKU-001", name: "อะไหล่ A", quantity: 100, supplier: "Supplier A", status: "รับเข้าแล้ว" },
@@ -27,15 +25,9 @@ const GoodsReceipt = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-semibold text-foreground mb-2">รับสินค้าเข้า (GR)</h1>
-          <p className="text-muted-foreground">บันทึกการรับสินค้าเข้าคลัง</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Label>กรองตามฝ่าย:</Label>
-          <DepartmentFilter value={selectedDepartment} onChange={setSelectedDepartment} />
-        </div>
+      <div>
+        <h1 className="text-3xl font-semibold text-foreground mb-2">รับสินค้าเข้า (GR)</h1>
+        <p className="text-muted-foreground">บันทึกการรับสินค้าเข้าคลัง</p>
       </div>
 
       <Card>

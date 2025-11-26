@@ -10,6 +10,8 @@ export interface DepartmentPermission {
   can_delete: boolean;
 }
 
+const ALL_DEPARTMENTS = ["Airport", "Digital", "Billboard", "Static", "Bus", "7 Eleven", "Construction", "HR", "Account", "ของขวัญปีใหม่"];
+
 export function useDepartmentPermissions() {
   const { user } = useAuth();
   const [permissions, setPermissions] = useState<DepartmentPermission[]>([]);
@@ -19,6 +21,8 @@ export function useDepartmentPermissions() {
   useEffect(() => {
     if (!user) {
       setLoading(false);
+      setPermissions([]);
+      setIsAdmin(false);
       return;
     }
 
@@ -46,6 +50,8 @@ export function useDepartmentPermissions() {
         setPermissions(perms || []);
       } catch (error) {
         console.error("Error fetching permissions:", error);
+        setPermissions([]);
+        setIsAdmin(false);
       } finally {
         setLoading(false);
       }
@@ -70,9 +76,7 @@ export function useDepartmentPermissions() {
   };
 
   const getViewableDepartments = (): string[] => {
-    if (isAdmin) {
-      return ["Airport", "Digital", "Billboard", "Static", "Bus", "7 Eleven", "Construction", "HR", "Account", "ของขวัญปีใหม่"];
-    }
+    if (isAdmin) return ALL_DEPARTMENTS;
     return permissions.filter(p => p.can_view).map(p => p.department);
   };
 

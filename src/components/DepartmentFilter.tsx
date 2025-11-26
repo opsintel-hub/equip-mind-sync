@@ -8,7 +8,18 @@ interface DepartmentFilterProps {
 }
 
 export function DepartmentFilter({ value, onChange, showAll = true }: DepartmentFilterProps) {
-  const { getViewableDepartments, isAdmin } = useDepartmentPermissions();
+  const { getViewableDepartments, isAdmin, loading } = useDepartmentPermissions();
+  
+  if (loading) {
+    return (
+      <Select disabled value={value}>
+        <SelectTrigger className="w-[200px]">
+          <SelectValue placeholder="กำลังโหลด..." />
+        </SelectTrigger>
+      </Select>
+    );
+  }
+
   const viewableDepartments = getViewableDepartments();
 
   return (
