@@ -1,11 +1,8 @@
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Package, PackageOpen, TrendingUp, MapPin } from "lucide-react";
-import { DepartmentFilter } from "@/components/DepartmentFilter";
-import { Label } from "@/components/ui/label";
 
 const Dashboard = () => {
-  const [selectedDepartment, setSelectedDepartment] = useState<string>("all");
   const stats = [
     {
       title: "สินค้าคงคลัง",
@@ -55,15 +52,9 @@ const Dashboard = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-semibold text-foreground mb-2">แดชบอร์ด</h1>
-          <p className="text-muted-foreground">ภาพรวมระบบจัดการคลังสินค้า</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Label>กรองตามฝ่าย:</Label>
-          <DepartmentFilter value={selectedDepartment} onChange={setSelectedDepartment} />
-        </div>
+      <div>
+        <h1 className="text-3xl font-semibold text-foreground mb-2">แดชบอร์ด</h1>
+        <p className="text-muted-foreground">ภาพรวมระบบจัดการคลังสินค้า</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
