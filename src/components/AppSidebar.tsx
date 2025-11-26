@@ -6,6 +6,7 @@ import {
   Database,
   MapPin,
   LogOut,
+  Shield,
 } from "lucide-react";
 import {
   Sidebar,
@@ -29,6 +30,7 @@ const menuItems = [
   { title: "เบิกจ่ายสินค้า (GI)", url: "/goods-issue", icon: PackageOpen },
   { title: "ข้อมูลหลัก", url: "/master-data", icon: Database },
   { title: "ป้ายโฆษณา", url: "/billboards", icon: MapPin },
+  { title: "จัดการผู้ใช้", url: "/admin", icon: Shield },
 ];
 
 export function AppSidebar() {

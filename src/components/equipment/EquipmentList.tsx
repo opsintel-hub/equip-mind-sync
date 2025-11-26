@@ -29,6 +29,7 @@ interface Equipment {
   code: string;
   name: string;
   category: string;
+  department: string | null;
   unit: string;
   quantity_in_stock: number;
   min_stock_level: number;
@@ -119,6 +120,7 @@ export function EquipmentList({ refresh }: EquipmentListProps) {
               <TableHead>รหัส</TableHead>
               <TableHead>ชื่ออุปกรณ์</TableHead>
               <TableHead>หมวดหมู่</TableHead>
+              <TableHead>ฝ่าย</TableHead>
               <TableHead>จำนวน</TableHead>
               <TableHead>หน่วย</TableHead>
               <TableHead>ตำแหน่ง</TableHead>
@@ -142,6 +144,7 @@ export function EquipmentList({ refresh }: EquipmentListProps) {
                   </div>
                 </TableCell>
                 <TableCell>{item.category}</TableCell>
+                <TableCell>{item.department || "-"}</TableCell>
                 <TableCell>
                   <span className={isLowStock(item) ? "text-destructive font-semibold" : ""}>
                     {item.quantity_in_stock}
