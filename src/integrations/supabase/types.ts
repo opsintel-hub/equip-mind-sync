@@ -337,6 +337,56 @@ export type Database = {
         }
         Relationships: []
       }
+      low_stock_alerts: {
+        Row: {
+          alert_date: string
+          created_at: string
+          current_stock: number
+          department: string
+          equipment_code: string
+          equipment_id: string
+          equipment_name: string
+          id: string
+          is_resolved: boolean
+          min_stock_level: number
+          resolved_at: string | null
+        }
+        Insert: {
+          alert_date?: string
+          created_at?: string
+          current_stock: number
+          department: string
+          equipment_code: string
+          equipment_id: string
+          equipment_name: string
+          id?: string
+          is_resolved?: boolean
+          min_stock_level: number
+          resolved_at?: string | null
+        }
+        Update: {
+          alert_date?: string
+          created_at?: string
+          current_stock?: number
+          department?: string
+          equipment_code?: string
+          equipment_id?: string
+          equipment_name?: string
+          id?: string
+          is_resolved?: boolean
+          min_stock_level?: number
+          resolved_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "low_stock_alerts_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "equipment"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           created_at: string
