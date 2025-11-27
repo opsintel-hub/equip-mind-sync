@@ -5,17 +5,33 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Shield, UserPlus } from "lucide-react";
+import { Shield, UserCog } from "lucide-react";
 import { useDepartmentPermissions } from "@/hooks/useDepartmentPermissions";
+import type { Database } from "@/integrations/supabase/types";
+
+type UserRole = Database["public"]["Enums"]["app_role"];
 
 const DEPARTMENTS = ["Airport", "Digital", "Billboard", "Static", "Bus", "7 Eleven", "Construction", "HR", "Account", "ของขวัญปีใหม่"];
+
+const ROLES: { value: UserRole; label: string; description: string }[] = [
+  { value: "admin", label: "Admin", description: "สิทธิ์เต็มทุกอย่าง" },
+  { value: "manager", label: "Manager", description: "จัดการและอนุมัติรายการ" },
+  { value: "warehouse_staff", label: "Warehouse Staff", description: "จัดการคลังสินค้า" },
+];
 
 interface User {
   id: string;
   full_name: string;
   phone: string | null;
+}
+
+interface UserRoleData {
+  id: string;
+  user_id: string;
+  role: UserRole;
 }
 
 interface UserPermission {
@@ -32,8 +48,11 @@ const Admin = () => {
   const [users, setUsers] = useState<User[]>([]);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [userPermissions, setUserPermissions] = useState<UserPermission[]>([]);
+  const [userRoles, setUserRoles] = useState<Record<string, UserRole[]>>({});
+  const [selectedUserRoles, setSelectedUserRoles] = useState<UserRole[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [roleDialogOpen, setRoleDialogOpen] = useState(false);
 
   useEffect(() => {
     if (!permLoading && !isAdmin) {
@@ -54,11 +73,37 @@ const Admin = () => {
 
       if (error) throw error;
       setUsers(data || []);
+      
+      // Fetch all user roles
+      await fetchAllUserRoles();
     } catch (error: any) {
       console.error("Error fetching users:", error);
       toast.error("เกิดข้อผิดพลาดในการโหลดข้อมูล");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchAllUserRoles = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("user_roles")
+        .select("*");
+
+      if (error) throw error;
+
+      // Group roles by user_id
+      const rolesByUser: Record<string, UserRole[]> = {};
+      data?.forEach((roleData) => {
+        if (!rolesByUser[roleData.user_id]) {
+          rolesByUser[roleData.user_id] = [];
+        }
+        rolesByUser[roleData.user_id].push(roleData.role);
+      });
+
+      setUserRoles(rolesByUser);
+    } catch (error: any) {
+      console.error("Error fetching user roles:", error);
     }
   };
 
@@ -95,6 +140,53 @@ const Admin = () => {
     setSelectedUser(user);
     await fetchUserPermissions(user.id);
     setDialogOpen(true);
+  };
+
+  const handleOpenRoleDialog = (user: User) => {
+    setSelectedUser(user);
+    setSelectedUserRoles(userRoles[user.id] || []);
+    setRoleDialogOpen(true);
+  };
+
+  const toggleRole = (role: UserRole) => {
+    setSelectedUserRoles(prev => 
+      prev.includes(role) 
+        ? prev.filter(r => r !== role)
+        : [...prev, role]
+    );
+  };
+
+  const handleSaveRoles = async () => {
+    if (!selectedUser) return;
+
+    try {
+      // Delete existing roles
+      await supabase
+        .from("user_roles")
+        .delete()
+        .eq("user_id", selectedUser.id);
+
+      // Insert new roles
+      if (selectedUserRoles.length > 0) {
+        const rolesToInsert = selectedUserRoles.map(role => ({
+          user_id: selectedUser.id,
+          role: role
+        }));
+
+        const { error } = await supabase
+          .from("user_roles")
+          .insert(rolesToInsert);
+
+        if (error) throw error;
+      }
+
+      toast.success("บันทึกบทบาทสำเร็จ");
+      setRoleDialogOpen(false);
+      await fetchAllUserRoles();
+    } catch (error: any) {
+      console.error("Error saving roles:", error);
+      toast.error("เกิดข้อผิดพลาดในการบันทึก");
+    }
   };
 
   const handlePermissionChange = (department: string, permission: keyof Omit<UserPermission, 'user_id' | 'department'>, value: boolean) => {
@@ -174,7 +266,8 @@ const Admin = () => {
                 <TableRow className="bg-muted/50">
                   <TableHead>ชื่อ-นามสกุล</TableHead>
                   <TableHead>เบอร์โทรศัพท์</TableHead>
-                  <TableHead>จัดการสิทธิ์</TableHead>
+                  <TableHead>บทบาท</TableHead>
+                  <TableHead className="text-right">จัดการ</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -183,14 +276,37 @@ const Admin = () => {
                     <TableCell className="font-medium">{user.full_name}</TableCell>
                     <TableCell>{user.phone || "-"}</TableCell>
                     <TableCell>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleOpenDialog(user)}
-                      >
-                        <Shield className="w-4 h-4 mr-2" />
-                        กำหนดสิทธิ์
-                      </Button>
+                      <div className="flex gap-1 flex-wrap">
+                        {userRoles[user.id]?.length > 0 ? (
+                          userRoles[user.id].map((role) => (
+                            <Badge key={role} variant="secondary">
+                              {ROLES.find(r => r.value === role)?.label}
+                            </Badge>
+                          ))
+                        ) : (
+                          <span className="text-muted-foreground text-sm">ไม่มีบทบาท</span>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex gap-2 justify-end">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleOpenRoleDialog(user)}
+                        >
+                          <UserCog className="w-4 h-4 mr-2" />
+                          บทบาท
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleOpenDialog(user)}
+                        >
+                          <Shield className="w-4 h-4 mr-2" />
+                          สิทธิ์ฝ่าย
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -200,11 +316,47 @@ const Admin = () => {
         </CardContent>
       </Card>
 
+      <Dialog open={roleDialogOpen} onOpenChange={setRoleDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>
+              จัดการบทบาท - {selectedUser?.full_name}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            {ROLES.map((role) => (
+              <div 
+                key={role.value}
+                className="flex items-start space-x-3 p-4 rounded-lg border hover:bg-muted/30 cursor-pointer"
+                onClick={() => toggleRole(role.value)}
+              >
+                <Checkbox
+                  checked={selectedUserRoles.includes(role.value)}
+                  onCheckedChange={() => toggleRole(role.value)}
+                />
+                <div className="flex-1">
+                  <Label className="font-medium cursor-pointer">{role.label}</Label>
+                  <p className="text-sm text-muted-foreground">{role.description}</p>
+                </div>
+              </div>
+            ))}
+            <div className="flex justify-end gap-2 pt-4">
+              <Button variant="outline" onClick={() => setRoleDialogOpen(false)}>
+                ยกเลิก
+              </Button>
+              <Button onClick={handleSaveRoles}>
+                บันทึกบทบาท
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
-              กำหนดสิทธิ์ - {selectedUser?.full_name}
+              กำหนดสิทธิ์ตามฝ่าย - {selectedUser?.full_name}
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
