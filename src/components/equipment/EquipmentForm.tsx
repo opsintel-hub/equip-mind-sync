@@ -6,7 +6,6 @@ import { format } from "date-fns";
 import { CalendarIcon, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Calendar } from "@/components/ui/calendar";
@@ -16,17 +15,20 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { CategorySelect } from "./CategorySelect";
+import { SubcategorySelect } from "./SubcategorySelect";
 
 const equipmentSchema = z.object({
   code: z.string().min(1, "กรุณากรอกรหัสอุปกรณ์").max(50, "รหัสอุปกรณ์ต้องไม่เกิน 50 ตัวอักษร"),
   name: z.string().min(1, "กรุณากรอกชื่อ อุปกรณ์").max(200, "ชื่ออุปกรณ์ต้องไม่เกิน 200 ตัวอักษร"),
   description: z.string().max(500, "รายละเอียดต้องไม่เกิน 500 ตัวอักษร").optional(),
   category: z.string().min(1, "กรุณาเลือกหมวดหมู่"),
+  subcategory_id: z.string().min(1, "กรุณาเลือกหมวดหมู่ย่อย"),
   department: z.string().optional(),
   unit: z.string().min(1, "กรุณากรอกหน่วยนับ").max(20, "หน่วยนับต้องไม่เกิน 20 ตัวอักษร"),
   quantity_in_stock: z.number().min(0, "จำนวนต้องไม่ติดลบ").int("จำนวนต้องเป็นจำนวนเต็ม"),
   min_stock_level: z.number().min(0, "จำนวนต้องไม่ติดลบ").int("จำนวนต้องเป็นจำนวนเต็ม"),
-  location_id: z.string().optional(),
+  location_id: z.string().min(1, "กรุณาเลือกคลังสินค้า"),
   expiry_date: z.date().optional(),
   warranty_expiry_date: z.date().optional(),
   notes: z.string().max(1000, "หมายเหตุต้องไม่เกิน 1000 ตัวอักษร").optional(),
@@ -38,15 +40,6 @@ interface EquipmentFormProps {
   onSuccess?: () => void;
   locations: Array<{ id: string; code: string; name: string }>;
 }
-
-const categories = [
-  "อุปกรณ์ไฟฟ้า",
-  "วัสดุก่อสร้าง",
-  "ป้ายโฆษณา",
-  "อะไหล่",
-  "เครื่องมือ",
-  "อื่นๆ",
-];
 
 const departments = [
   "Airport",
@@ -72,13 +65,17 @@ export function EquipmentForm({ onSuccess, locations }: EquipmentFormProps) {
       name: "",
       description: "",
       category: "",
+      subcategory_id: "",
       department: "",
       unit: "",
       quantity_in_stock: 0,
       min_stock_level: 0,
+      location_id: "",
       notes: "",
     },
   });
+
+  const selectedCategory = form.watch("category");
 
   const onSubmit = async (data: EquipmentFormValues) => {
     setIsLoading(true);
@@ -88,11 +85,12 @@ export function EquipmentForm({ onSuccess, locations }: EquipmentFormProps) {
         name: data.name,
         description: data.description || null,
         category: data.category,
+        subcategory_id: data.subcategory_id,
         department: data.department || null,
         unit: data.unit,
         quantity_in_stock: data.quantity_in_stock,
         min_stock_level: data.min_stock_level,
-        location_id: data.location_id || null,
+        location_id: data.location_id,
         expiry_date: data.expiry_date ? format(data.expiry_date, "yyyy-MM-dd") : null,
         warranty_expiry_date: data.warranty_expiry_date ? format(data.warranty_expiry_date, "yyyy-MM-dd") : null,
         notes: data.notes || null,
@@ -144,25 +142,37 @@ export function EquipmentForm({ onSuccess, locations }: EquipmentFormProps) {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>หมวดหมู่ *</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isLoading}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="เลือกหมวดหมู่" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {categories.map((cat) => (
-                          <SelectItem key={cat} value={cat}>
-                            {cat}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <FormControl>
+                      <CategorySelect
+                        value={field.value}
+                        onChange={field.onChange}
+                        disabled={isLoading}
+                      />
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
             </div>
+
+            <FormField
+              control={form.control}
+              name="subcategory_id"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>หมวดหมู่ย่อย *</FormLabel>
+                  <FormControl>
+                    <SubcategorySelect
+                      categoryName={selectedCategory}
+                      value={field.value}
+                      onChange={field.onChange}
+                      disabled={isLoading}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
             <FormField
               control={form.control}
@@ -176,7 +186,7 @@ export function EquipmentForm({ onSuccess, locations }: EquipmentFormProps) {
                         <SelectValue placeholder="เลือกฝ่าย" />
                       </SelectTrigger>
                     </FormControl>
-                    <SelectContent>
+                    <SelectContent className="bg-background">
                       {departments.map((dept) => (
                         <SelectItem key={dept} value={dept}>
                           {dept}
@@ -278,14 +288,14 @@ export function EquipmentForm({ onSuccess, locations }: EquipmentFormProps) {
               name="location_id"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>ตำแหน่งจัดเก็บ</FormLabel>
+                  <FormLabel>คลังสินค้า *</FormLabel>
                   <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isLoading}>
                     <FormControl>
                       <SelectTrigger>
-                        <SelectValue placeholder="เลือกตำแหน่งจัดเก็บ" />
+                        <SelectValue placeholder="เลือกคลังสินค้า" />
                       </SelectTrigger>
                     </FormControl>
-                    <SelectContent>
+                    <SelectContent className="bg-background">
                       {locations.map((loc) => (
                         <SelectItem key={loc.id} value={loc.id}>
                           {loc.code} - {loc.name}
