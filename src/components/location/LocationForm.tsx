@@ -1,0 +1,187 @@
+import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import { Plus } from "lucide-react";
+
+const formSchema = z.object({
+  code: z.string().min(1, "กรุณาระบุรหัสตำแหน่ง"),
+  name: z.string().min(1, "กรุณาระบุชื่อตำแหน่ง"),
+  description: z.string().optional(),
+});
+
+interface LocationFormProps {
+  onSuccess: () => void;
+  location?: {
+    id: string;
+    code: string;
+    name: string;
+    description: string | null;
+  };
+}
+
+export function LocationForm({ onSuccess, location }: LocationFormProps) {
+  const [open, setOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  const form = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      code: location?.code || "",
+      name: location?.name || "",
+      description: location?.description || "",
+    },
+  });
+
+  const onSubmit = async (values: z.infer<typeof formSchema>) => {
+    try {
+      setLoading(true);
+      const { data: { user } } = await supabase.auth.getUser();
+
+      if (!user) {
+        toast.error("กรุณาเข้าสระบบก่อนทำรายการ");
+        return;
+      }
+
+      if (location) {
+        const { error } = await supabase
+          .from("locations")
+          .update({
+            code: values.code,
+            name: values.name,
+            description: values.description || null,
+          })
+          .eq("id", location.id);
+
+        if (error) throw error;
+        toast.success("อัพเดทตำแหน่งจัดเก็บสำเร็จ");
+      } else {
+        const { error } = await supabase
+          .from("locations")
+          .insert({
+            code: values.code,
+            name: values.name,
+            description: values.description || null,
+            created_by: user.id,
+          });
+
+        if (error) throw error;
+        toast.success("เพิ่มตำแหน่งจัดเก็บสำเร็จ");
+      }
+
+      form.reset();
+      setOpen(false);
+      onSuccess();
+    } catch (error: any) {
+      toast.error("เกิดข้อผิดพลาด: " + error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        {location ? (
+          <Button variant="ghost" size="sm">แก้ไข</Button>
+        ) : (
+          <Button className="gap-2">
+            <Plus className="h-4 w-4" />
+            เพิ่มตำแหน่งจัดเก็บ
+          </Button>
+        )}
+      </DialogTrigger>
+      <DialogContent className="max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>
+            {location ? "แก้ไขตำแหน่งจัดเก็บ" : "เพิ่มตำแหน่งจัดเก็บ"}
+          </DialogTitle>
+          <DialogDescription>
+            กรอกข้อมูลตำแหน่งจัดเก็บสินค้าในคลัง
+          </DialogDescription>
+        </DialogHeader>
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="code"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>รหัสตำแหน่ง *</FormLabel>
+                    <FormControl>
+                      <Input placeholder="เช่น LOC-001" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>ชื่อตำแหน่ง *</FormLabel>
+                    <FormControl>
+                      <Input placeholder="เช่น คลังหลัก ชั้น 1" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+            <FormField
+              control={form.control}
+              name="description"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>รายละเอียด</FormLabel>
+                  <FormControl>
+                    <Textarea 
+                      placeholder="รายละเอียดเพิ่มเติม..."
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <div className="flex justify-end gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setOpen(false)}
+              >
+                ยกเลิก
+              </Button>
+              <Button type="submit" disabled={loading}>
+                {loading ? "กำลังบันทึก..." : "บันทึก"}
+              </Button>
+            </div>
+          </form>
+        </Form>
+      </DialogContent>
+    </Dialog>
+  );
+}

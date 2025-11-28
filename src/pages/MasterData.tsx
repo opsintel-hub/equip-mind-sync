@@ -4,6 +4,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Package, MapPin, Truck } from "lucide-react";
 import { EquipmentForm } from "@/components/equipment/EquipmentForm";
 import { EquipmentList } from "@/components/equipment/EquipmentList";
+import { LocationForm } from "@/components/location/LocationForm";
+import { LocationList } from "@/components/location/LocationList";
+import { SupplierForm } from "@/components/supplier/SupplierForm";
+import { SupplierList } from "@/components/supplier/SupplierList";
 import { supabase } from "@/integrations/supabase/client";
 
 interface Location {
@@ -86,15 +90,18 @@ const MasterData = () => {
         <TabsContent value="locations" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>ตำแหน่งจัดเก็บ</CardTitle>
-              <CardDescription>
-                จัดการตำแหน่งจัดเก็บสินค้าในคลัง
-              </CardDescription>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>ตำแหน่งจัดเก็บ</CardTitle>
+                  <CardDescription>
+                    จัดการตำแหน่งจัดเก็บสินค้าในคลัง
+                  </CardDescription>
+                </div>
+                <LocationForm onSuccess={handleSuccess} />
+              </div>
             </CardHeader>
             <CardContent>
-              <div className="text-center py-12 text-muted-foreground">
-                กำลังพัฒนา...
-              </div>
+              <LocationList refresh={refreshKey} />
             </CardContent>
           </Card>
         </TabsContent>
@@ -102,15 +109,18 @@ const MasterData = () => {
         <TabsContent value="suppliers" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>ผู้จัดจำหน่าย</CardTitle>
-              <CardDescription>
-                จัดการข้อมูลผู้จัดจำหน่ายและซัพพลายเออร์
-              </CardDescription>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>ผู้จัดจำหน่าย</CardTitle>
+                  <CardDescription>
+                    จัดการข้อมูลผู้จัดจำหน่ายและซัพพลายเออร์
+                  </CardDescription>
+                </div>
+                <SupplierForm onSuccess={handleSuccess} />
+              </div>
             </CardHeader>
             <CardContent>
-              <div className="text-center py-12 text-muted-foreground">
-                กำลังพัฒนา...
-              </div>
+              <SupplierList refresh={refreshKey} />
             </CardContent>
           </Card>
         </TabsContent>
