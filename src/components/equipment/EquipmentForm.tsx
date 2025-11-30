@@ -17,6 +17,8 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { CategorySelect } from "./CategorySelect";
 import { SubcategorySelect } from "./SubcategorySelect";
+import { DepartmentSelect } from "./DepartmentSelect";
+import { LocationSelect } from "./LocationSelect";
 
 const equipmentSchema = z.object({
   code: z.string().min(1, "กรุณากรอกรหัสอุปกรณ์").max(50, "รหัสอุปกรณ์ต้องไม่เกิน 50 ตัวอักษร"),
@@ -38,23 +40,9 @@ type EquipmentFormValues = z.infer<typeof equipmentSchema>;
 
 interface EquipmentFormProps {
   onSuccess?: () => void;
-  locations: Array<{ id: string; code: string; name: string }>;
 }
 
-const departments = [
-  "Airport",
-  "Digital",
-  "Billboard",
-  "Static",
-  "Bus",
-  "7 Eleven",
-  "Construction",
-  "HR",
-  "Account",
-  "ของขวัญปีใหม่",
-];
-
-export function EquipmentForm({ onSuccess, locations }: EquipmentFormProps) {
+export function EquipmentForm({ onSuccess }: EquipmentFormProps) {
   const [open, setOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -180,20 +168,13 @@ export function EquipmentForm({ onSuccess, locations }: EquipmentFormProps) {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>ฝ่าย</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isLoading}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="เลือกฝ่าย" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent className="bg-background">
-                      {departments.map((dept) => (
-                        <SelectItem key={dept} value={dept}>
-                          {dept}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <FormControl>
+                    <DepartmentSelect
+                      value={field.value || ""}
+                      onChange={field.onChange}
+                      disabled={isLoading}
+                    />
+                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
@@ -289,20 +270,13 @@ export function EquipmentForm({ onSuccess, locations }: EquipmentFormProps) {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>คลังสินค้า *</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isLoading}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="เลือกคลังสินค้า" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent className="bg-background">
-                      {locations.map((loc) => (
-                        <SelectItem key={loc.id} value={loc.id}>
-                          {loc.code} - {loc.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <FormControl>
+                    <LocationSelect
+                      value={field.value}
+                      onChange={field.onChange}
+                      disabled={isLoading}
+                    />
+                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}

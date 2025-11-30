@@ -8,36 +8,9 @@ import { LocationForm } from "@/components/location/LocationForm";
 import { LocationList } from "@/components/location/LocationList";
 import { SupplierForm } from "@/components/supplier/SupplierForm";
 import { SupplierList } from "@/components/supplier/SupplierList";
-import { supabase } from "@/integrations/supabase/client";
-
-interface Location {
-  id: string;
-  code: string;
-  name: string;
-}
 
 const MasterData = () => {
   const [refreshKey, setRefreshKey] = useState(0);
-  const [locations, setLocations] = useState<Location[]>([]);
-
-  useEffect(() => {
-    fetchLocations();
-  }, []);
-
-  const fetchLocations = async () => {
-    try {
-      const { data, error } = await supabase
-        .from("locations")
-        .select("id, code, name")
-        .eq("is_active", true)
-        .order("code");
-
-      if (error) throw error;
-      setLocations(data || []);
-    } catch (error) {
-      console.error("Error fetching locations:", error);
-    }
-  };
 
   const handleSuccess = () => {
     setRefreshKey((prev) => prev + 1);
@@ -78,7 +51,7 @@ const MasterData = () => {
                     จัดการข้อมูลอุปกรณ์และอะไหล่ทั้งหมด
                   </CardDescription>
                 </div>
-                <EquipmentForm onSuccess={handleSuccess} locations={locations} />
+                <EquipmentForm onSuccess={handleSuccess} />
               </div>
             </CardHeader>
             <CardContent>
