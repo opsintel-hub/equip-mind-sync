@@ -383,6 +383,7 @@ export type Database = {
           id: string
           is_active: boolean | null
           name: string
+          storage_area: string | null
           updated_at: string
         }
         Insert: {
@@ -393,6 +394,7 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           name: string
+          storage_area?: string | null
           updated_at?: string
         }
         Update: {
@@ -403,6 +405,7 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           name?: string
+          storage_area?: string | null
           updated_at?: string
         }
         Relationships: []
@@ -480,6 +483,88 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      storage_slots: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          is_active: boolean | null
+          location_id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          location_id: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          location_id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "storage_slots_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sub_storage_slots: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          storage_slot_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          storage_slot_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          storage_slot_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sub_storage_slots_storage_slot_id_fkey"
+            columns: ["storage_slot_id"]
+            isOneToOne: false
+            referencedRelation: "storage_slots"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       subcategories: {
         Row: {
