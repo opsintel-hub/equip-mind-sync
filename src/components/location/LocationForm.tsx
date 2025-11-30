@@ -21,14 +21,26 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Plus } from "lucide-react";
+import { StorageSlotSelect } from "./StorageSlotSelect";
+import { SubStorageSlotSelect } from "./SubStorageSlotSelect";
 
 const formSchema = z.object({
   code: z.string().min(1, "กรุณาระบุรหัสตำแหน่ง"),
   name: z.string().min(1, "กรุณาระบุชื่อตำแหน่ง"),
   description: z.string().optional(),
+  storage_area: z.string().min(1, "กรุณาเลือกพื้นที่จัดเก็บ"),
+  storage_slot_id: z.string().min(1, "กรุณาเลือกช่องจัดเก็บ"),
+  sub_storage_slot_id: z.string().optional(),
 });
 
 interface LocationFormProps {
@@ -38,12 +50,15 @@ interface LocationFormProps {
     code: string;
     name: string;
     description: string | null;
+    storage_area: string | null;
   };
 }
 
 export function LocationForm({ onSuccess, location }: LocationFormProps) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [locationId, setLocationId] = useState<string | undefined>(location?.id);
+  const [storageSlotId, setStorageSlotId] = useState<string>("");
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -51,6 +66,9 @@ export function LocationForm({ onSuccess, location }: LocationFormProps) {
       code: location?.code || "",
       name: location?.name || "",
       description: location?.description || "",
+      storage_area: location?.storage_area || "",
+      storage_slot_id: "",
+      sub_storage_slot_id: "",
     },
   });
 
@@ -71,22 +89,40 @@ export function LocationForm({ onSuccess, location }: LocationFormProps) {
             code: values.code,
             name: values.name,
             description: values.description || null,
+            storage_area: values.storage_area,
           })
           .eq("id", location.id);
 
         if (error) throw error;
         toast.success("อัพเดทตำแหน่งจัดเก็บสำเร็จ");
       } else {
-        const { error } = await supabase
+        const { data, error } = await supabase
           .from("locations")
           .insert({
             code: values.code,
             name: values.name,
             description: values.description || null,
+            storage_area: values.storage_area,
             created_by: user.id,
-          });
+          })
+          .select()
+          .single();
 
         if (error) throw error;
+        
+        // Create storage slot
+        if (data && values.storage_slot_id) {
+          const { error: slotError } = await supabase
+            .from("storage_slots")
+            .insert({
+              location_id: data.id,
+              name: values.storage_slot_id,
+              created_by: user.id,
+            });
+          
+          if (slotError) throw slotError;
+        }
+        
         toast.success("เพิ่มตำแหน่งจัดเก็บสำเร็จ");
       }
 
@@ -151,6 +187,79 @@ export function LocationForm({ onSuccess, location }: LocationFormProps) {
                 )}
               />
             </div>
+            
+            <FormField
+              control={form.control}
+              name="storage_area"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>พื้นที่จัดเก็บ *</FormLabel>
+                  <Select 
+                    onValueChange={(value) => {
+                      field.onChange(value);
+                      if (value) {
+                        setLocationId(location?.id);
+                      }
+                    }} 
+                    value={field.value}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="เลือกพื้นที่จัดเก็บ" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="Indoor">Indoor</SelectItem>
+                      <SelectItem value="Outdoor">Outdoor</SelectItem>
+                      <SelectItem value="Semi-outdoor">Semi-outdoor</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="storage_slot_id"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>ช่องจัดเก็บ *</FormLabel>
+                  <FormControl>
+                    <StorageSlotSelect
+                      value={field.value}
+                      onChange={(value) => {
+                        field.onChange(value);
+                        setStorageSlotId(value);
+                      }}
+                      locationId={locationId}
+                      disabled={!locationId}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="sub_storage_slot_id"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>ช่องย่อยจัดเก็บ</FormLabel>
+                  <FormControl>
+                    <SubStorageSlotSelect
+                      value={field.value}
+                      onChange={field.onChange}
+                      storageSlotId={storageSlotId}
+                      disabled={!storageSlotId}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
             <FormField
               control={form.control}
               name="description"

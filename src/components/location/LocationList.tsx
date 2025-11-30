@@ -29,6 +29,7 @@ interface Location {
   code: string;
   name: string;
   description: string | null;
+  storage_area: string | null;
   is_active: boolean;
   created_at: string;
 }
