@@ -39,7 +39,7 @@ const formSchema = z.object({
   name: z.string().min(1, "กรุณาระบุชื่อตำแหน่ง"),
   description: z.string().optional(),
   storage_area: z.string().min(1, "กรุณาเลือกพื้นที่จัดเก็บ"),
-  storage_slot_id: z.string().min(1, "กรุณาเลือกช่องจัดเก็บ"),
+  storage_slot_id: z.string().optional(),
   sub_storage_slot_id: z.string().optional(),
 });
 
@@ -96,7 +96,7 @@ export function LocationForm({ onSuccess, location }: LocationFormProps) {
         if (error) throw error;
         toast.success("อัพเดทตำแหน่งจัดเก็บสำเร็จ");
       } else {
-        const { data, error } = await supabase
+        const { error } = await supabase
           .from("locations")
           .insert({
             code: values.code,
@@ -104,26 +104,10 @@ export function LocationForm({ onSuccess, location }: LocationFormProps) {
             description: values.description || null,
             storage_area: values.storage_area,
             created_by: user.id,
-          })
-          .select()
-          .single();
+          });
 
         if (error) throw error;
-        
-        // Create storage slot
-        if (data && values.storage_slot_id) {
-          const { error: slotError } = await supabase
-            .from("storage_slots")
-            .insert({
-              location_id: data.id,
-              name: values.storage_slot_id,
-              created_by: user.id,
-            });
-          
-          if (slotError) throw slotError;
-        }
-        
-        toast.success("เพิ่มตำแหน่งจัดเก็บสำเร็จ");
+        toast.success("เพิ่มตำแหน่งจัดเก็บสำเร็จ กรุณาแก้ไขเพื่อเพิ่มช่องจัดเก็บ");
       }
 
       form.reset();
@@ -224,7 +208,7 @@ export function LocationForm({ onSuccess, location }: LocationFormProps) {
               name="storage_slot_id"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>ช่องจัดเก็บ *</FormLabel>
+                  <FormLabel>ช่องจัดเก็บ {!location && "(บันทึกตำแหน่งก่อนเพื่อจัดการ)"}</FormLabel>
                   <FormControl>
                     <StorageSlotSelect
                       value={field.value}
@@ -246,7 +230,7 @@ export function LocationForm({ onSuccess, location }: LocationFormProps) {
               name="sub_storage_slot_id"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>ช่องย่อยจัดเก็บ</FormLabel>
+                  <FormLabel>ช่องย่อยจัดเก็บ (ไม่บังคับ)</FormLabel>
                   <FormControl>
                     <SubStorageSlotSelect
                       value={field.value}
