@@ -84,12 +84,14 @@ export function StorageSlotSelect({ value, onChange, locationId, disabled }: Sto
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
-    const { error } = await supabase.from("storage_slots").insert({
+    const { data, error } = await supabase.from("storage_slots").insert({
       location_id: locationId,
       name: newSlot.name,
       description: newSlot.description || null,
       created_by: user.id,
-    });
+    })
+    .select()
+    .single();
 
     if (error) {
       toast.error("เกิดข้อผิดพลาด: " + error.message);
@@ -99,6 +101,12 @@ export function StorageSlotSelect({ value, onChange, locationId, disabled }: Sto
     toast.success("เพิ่มช่องจัดเก็บสำเร็จ");
     setNewSlot({ name: "", description: "" });
     setIsAdding(false);
+    
+    // Auto-select the newly created slot
+    if (data) {
+      onChange(data.id);
+    }
+    
     fetchSlots();
   };
 

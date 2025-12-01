@@ -84,12 +84,14 @@ export function SubStorageSlotSelect({ value, onChange, storageSlotId, disabled 
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
-    const { error } = await supabase.from("sub_storage_slots").insert({
+    const { data, error } = await supabase.from("sub_storage_slots").insert({
       storage_slot_id: storageSlotId,
       name: newSubSlot.name,
       description: newSubSlot.description || null,
       created_by: user.id,
-    });
+    })
+    .select()
+    .single();
 
     if (error) {
       toast.error("เกิดข้อผิดพลาด: " + error.message);
@@ -99,6 +101,12 @@ export function SubStorageSlotSelect({ value, onChange, storageSlotId, disabled 
     toast.success("เพิ่มช่องย่อยจัดเก็บสำเร็จ");
     setNewSubSlot({ name: "", description: "" });
     setIsAdding(false);
+    
+    // Auto-select the newly created sub slot
+    if (data) {
+      onChange(data.id);
+    }
+    
     fetchSubSlots();
   };
 
