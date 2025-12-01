@@ -59,6 +59,7 @@ export function LocationForm({ onSuccess, location }: LocationFormProps) {
   const [loading, setLoading] = useState(false);
   const [locationId, setLocationId] = useState<string | undefined>(location?.id);
   const [storageSlotId, setStorageSlotId] = useState<string>("");
+  const [isNewLocationSaved, setIsNewLocationSaved] = useState(!!location);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -72,17 +73,60 @@ export function LocationForm({ onSuccess, location }: LocationFormProps) {
     },
   });
 
+  const handleSaveBasicInfo = async () => {
+    const values = form.getValues();
+    
+    // Validate required fields
+    if (!values.code || !values.name || !values.storage_area) {
+      toast.error("กรุณากรอกข้อมูลให้ครบถ้วน");
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const { data: { user } } = await supabase.auth.getUser();
+
+      if (!user) {
+        toast.error("กรุณาเข้าสู่ระบบก่อนทำรายการ");
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from("locations")
+        .insert({
+          code: values.code,
+          name: values.name,
+          description: values.description || null,
+          storage_area: values.storage_area,
+          created_by: user.id,
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      setLocationId(data.id);
+      setIsNewLocationSaved(true);
+      toast.success("บันทึกข้อมูลแล้ว ตอนนี้สามารถจัดการช่องจัดเก็บได้");
+    } catch (error: any) {
+      toast.error("เกิดข้อผิดพลาด: " + error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     try {
       setLoading(true);
       const { data: { user } } = await supabase.auth.getUser();
 
       if (!user) {
-        toast.error("กรุณาเข้าสระบบก่อนทำรายการ");
+        toast.error("กรุณาเข้าสู่ระบบก่อนทำรายการ");
         return;
       }
 
-      if (location) {
+      if (location || isNewLocationSaved) {
+        const targetId = location?.id || locationId;
         const { error } = await supabase
           .from("locations")
           .update({
@@ -91,28 +135,20 @@ export function LocationForm({ onSuccess, location }: LocationFormProps) {
             description: values.description || null,
             storage_area: values.storage_area,
           })
-          .eq("id", location.id);
+          .eq("id", targetId);
 
         if (error) throw error;
         toast.success("อัพเดทตำแหน่งจัดเก็บสำเร็จ");
+        
+        form.reset();
+        setOpen(false);
+        setIsNewLocationSaved(false);
+        setLocationId(undefined);
+        onSuccess();
       } else {
-        const { error } = await supabase
-          .from("locations")
-          .insert({
-            code: values.code,
-            name: values.name,
-            description: values.description || null,
-            storage_area: values.storage_area,
-            created_by: user.id,
-          });
-
-        if (error) throw error;
-        toast.success("เพิ่มตำแหน่งจัดเก็บสำเร็จ กรุณาแก้ไขเพื่อเพิ่มช่องจัดเก็บ");
+        // Save basic info first
+        await handleSaveBasicInfo();
       }
-
-      form.reset();
-      setOpen(false);
-      onSuccess();
     } catch (error: any) {
       toast.error("เกิดข้อผิดพลาด: " + error.message);
     } finally {
@@ -203,47 +239,57 @@ export function LocationForm({ onSuccess, location }: LocationFormProps) {
               )}
             />
 
-            <FormField
-              control={form.control}
-              name="storage_slot_id"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>ช่องจัดเก็บ {!location && "(บันทึกตำแหน่งก่อนเพื่อจัดการ)"}</FormLabel>
-                  <FormControl>
-                    <StorageSlotSelect
-                      value={field.value}
-                      onChange={(value) => {
-                        field.onChange(value);
-                        setStorageSlotId(value);
-                      }}
-                      locationId={locationId}
-                      disabled={!locationId}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            {!locationId && !location && (
+              <div className="p-4 bg-muted rounded-lg text-sm text-muted-foreground">
+                กรุณากดปุ่ม "บันทึก" ด้านล่างก่อนเพื่อสร้างตำแหน่ง จากนั้นจึงจะสามารถจัดการช่องจัดเก็บได้
+              </div>
+            )}
 
-            <FormField
-              control={form.control}
-              name="sub_storage_slot_id"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>ช่องย่อยจัดเก็บ (ไม่บังคับ)</FormLabel>
-                  <FormControl>
-                    <SubStorageSlotSelect
-                      value={field.value}
-                      onChange={field.onChange}
-                      storageSlotId={storageSlotId}
-                      disabled={!storageSlotId}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            
+            {locationId && (
+              <>
+                <FormField
+                  control={form.control}
+                  name="storage_slot_id"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>ช่องจัดเก็บ</FormLabel>
+                      <FormControl>
+                        <StorageSlotSelect
+                          value={field.value}
+                          onChange={(value) => {
+                            field.onChange(value);
+                            setStorageSlotId(value);
+                          }}
+                          locationId={locationId}
+                          disabled={!locationId}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="sub_storage_slot_id"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>ช่องย่อยจัดเก็บ (ไม่บังคับ)</FormLabel>
+                      <FormControl>
+                        <SubStorageSlotSelect
+                          value={field.value}
+                          onChange={field.onChange}
+                          storageSlotId={storageSlotId}
+                          disabled={!storageSlotId}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </>
+            )}
+
             <FormField
               control={form.control}
               name="description"
@@ -269,8 +315,23 @@ export function LocationForm({ onSuccess, location }: LocationFormProps) {
                 ยกเลิก
               </Button>
               <Button type="submit" disabled={loading}>
-                {loading ? "กำลังบันทึก..." : "บันทึก"}
+                {loading ? "กำลังบันทึก..." : (location || isNewLocationSaved ? "บันทึก" : "บันทึกข้อมูลพื้นฐาน")}
               </Button>
+              {isNewLocationSaved && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    form.reset();
+                    setOpen(false);
+                    setIsNewLocationSaved(false);
+                    setLocationId(undefined);
+                    onSuccess();
+                  }}
+                >
+                  เสร็จสิ้น
+                </Button>
+              )}
             </div>
           </form>
         </Form>
