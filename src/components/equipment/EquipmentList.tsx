@@ -3,6 +3,7 @@ import { format } from "date-fns";
 import { Pencil, Trash2, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { EquipmentTransferForm } from "./EquipmentTransferForm";
 import {
   Table,
   TableBody,
@@ -163,6 +164,10 @@ export function EquipmentList({ refresh }: EquipmentListProps) {
                 </TableCell>
                 <TableCell className="text-right">
                   <div className="flex justify-end gap-2">
+                    <EquipmentTransferForm
+                      equipment={item}
+                      onSuccess={fetchEquipment}
+                    />
                     <Button variant="ghost" size="icon" title="แก้ไข">
                       <Pencil className="h-4 w-4" />
                     </Button>

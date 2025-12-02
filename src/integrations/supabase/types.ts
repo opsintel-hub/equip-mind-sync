@@ -251,6 +251,64 @@ export type Database = {
           },
         ]
       }
+      equipment_transfers: {
+        Row: {
+          created_at: string
+          created_by: string
+          equipment_id: string
+          from_location_id: string | null
+          id: string
+          notes: string | null
+          quantity: number
+          to_location_id: string
+          transfer_date: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          equipment_id: string
+          from_location_id?: string | null
+          id?: string
+          notes?: string | null
+          quantity: number
+          to_location_id: string
+          transfer_date?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          equipment_id?: string
+          from_location_id?: string | null
+          id?: string
+          notes?: string | null
+          quantity?: number
+          to_location_id?: string
+          transfer_date?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "equipment_transfers_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "equipment"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "equipment_transfers_from_location_id_fkey"
+            columns: ["from_location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "equipment_transfers_to_location_id_fkey"
+            columns: ["to_location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       goods_issue: {
         Row: {
           created_at: string
