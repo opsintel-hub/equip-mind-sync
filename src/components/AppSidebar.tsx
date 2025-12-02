@@ -7,6 +7,7 @@ import {
   MapPin,
   LogOut,
   Shield,
+  History,
 } from "lucide-react";
 import {
   Sidebar,
@@ -29,6 +30,7 @@ const menuItems = [
   { title: "รับสินค้าเข้า (GR)", url: "/goods-receipt", icon: Package },
   { title: "เบิกจ่ายสินค้า (GI)", url: "/goods-issue", icon: PackageOpen },
   { title: "ข้อมูลหลัก", url: "/master-data", icon: Database },
+  { title: "ประวัติการย้าย", url: "/transfer-history", icon: History },
   { title: "ป้ายโฆษณา", url: "/billboards", icon: MapPin },
   { title: "จัดการผู้ใช้", url: "/admin", icon: Shield },
 ];
