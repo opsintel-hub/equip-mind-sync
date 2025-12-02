@@ -1,9 +1,11 @@
 import { useState, useEffect } from "react";
 import { format } from "date-fns";
-import { Pencil, Trash2, AlertCircle } from "lucide-react";
+import { Pencil, Trash2, AlertCircle, Download, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import { EquipmentTransferForm } from "./EquipmentTransferForm";
+import * as XLSX from "xlsx";
 import {
   Table,
   TableBody,
@@ -49,8 +51,10 @@ interface EquipmentListProps {
 
 export function EquipmentList({ refresh }: EquipmentListProps) {
   const [equipment, setEquipment] = useState<Equipment[]>([]);
+  const [filteredEquipment, setFilteredEquipment] = useState<Equipment[]>([]);
   const [loading, setLoading] = useState(true);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
 
   useEffect(() => {
     fetchEquipment();
@@ -71,6 +75,7 @@ export function EquipmentList({ refresh }: EquipmentListProps) {
 
       if (error) throw error;
       setEquipment(data || []);
+      setFilteredEquipment(data || []);
     } catch (error: any) {
       console.error("Error fetching equipment:", error);
       toast.error("ไม่สามารถโหลดข้อมูลอุปกรณ์ได้");
@@ -97,6 +102,41 @@ export function EquipmentList({ refresh }: EquipmentListProps) {
     }
   };
 
+  useEffect(() => {
+    if (searchTerm) {
+      const filtered = equipment.filter(
+        (item) =>
+          item.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          item.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          (item.department && item.department.toLowerCase().includes(searchTerm.toLowerCase()))
+      );
+      setFilteredEquipment(filtered);
+    } else {
+      setFilteredEquipment(equipment);
+    }
+  }, [searchTerm, equipment]);
+
+  const handleExport = () => {
+    const exportData = filteredEquipment.map((item) => ({
+      "รหัสอุปกรณ์": item.code,
+      "ชื่ออุปกรณ์": item.name,
+      "หมวดหมู่": item.category,
+      "ฝ่าย": item.department || "-",
+      "จำนวน": item.quantity_in_stock,
+      "หน่วย": item.unit,
+      "ตำแหน่งจัดเก็บ": item.locations?.name || "-",
+      "วันหมดอายุ": item.expiry_date || "-",
+      "วันหมดประกัน": item.warranty_expiry_date || "-",
+    }));
+
+    const ws = XLSX.utils.json_to_sheet(exportData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Equipment");
+    XLSX.writeFile(wb, `equipment_${new Date().toISOString().split("T")[0]}.xlsx`);
+    toast.success("ส่งออกข้อมูลสำเร็จ");
+  };
+
   const isLowStock = (item: Equipment) => item.quantity_in_stock <= item.min_stock_level;
 
   if (loading) {
@@ -114,6 +154,21 @@ export function EquipmentList({ refresh }: EquipmentListProps) {
 
   return (
     <>
+      <div className="flex items-center gap-2 mb-4">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="ค้นหาด้วยรหัส, ชื่อ, หมวดหมู่, หรือฝ่าย..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-10"
+          />
+        </div>
+        <Button onClick={handleExport} variant="outline" size="sm">
+          <Download className="h-4 w-4 mr-2" />
+          ส่งออก Excel
+        </Button>
+      </div>
       <div className="rounded-lg border">
         <Table>
           <TableHeader>
@@ -130,8 +185,8 @@ export function EquipmentList({ refresh }: EquipmentListProps) {
               <TableHead className="text-right">จัดการ</TableHead>
             </TableRow>
           </TableHeader>
-          <TableBody>
-            {equipment.map((item) => (
+        <TableBody>
+          {filteredEquipment.map((item) => (
               <TableRow key={item.id}>
                 <TableCell className="font-medium">{item.code}</TableCell>
                 <TableCell>

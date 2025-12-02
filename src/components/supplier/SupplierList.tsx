@@ -19,10 +19,12 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Trash2 } from "lucide-react";
+import { Trash2, Download, Search } from "lucide-react";
 import { SupplierForm } from "./SupplierForm";
+import * as XLSX from "xlsx";
 
 interface Supplier {
   id: string;
@@ -43,8 +45,10 @@ interface SupplierListProps {
 
 export function SupplierList({ refresh }: SupplierListProps) {
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
+  const [filteredSuppliers, setFilteredSuppliers] = useState<Supplier[]>([]);
   const [loading, setLoading] = useState(true);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
 
   useEffect(() => {
     fetchSuppliers();
@@ -60,6 +64,7 @@ export function SupplierList({ refresh }: SupplierListProps) {
 
       if (error) throw error;
       setSuppliers(data || []);
+      setFilteredSuppliers(data || []);
     } catch (error: any) {
       toast.error("เกิดข้อผิดพลาดในการดึงข้อมูล: " + error.message);
     } finally {
@@ -84,6 +89,40 @@ export function SupplierList({ refresh }: SupplierListProps) {
     }
   };
 
+  useEffect(() => {
+    if (searchTerm) {
+      const filtered = suppliers.filter(
+        (supplier) =>
+          supplier.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          supplier.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          (supplier.contact_person && supplier.contact_person.toLowerCase().includes(searchTerm.toLowerCase())) ||
+          (supplier.email && supplier.email.toLowerCase().includes(searchTerm.toLowerCase()))
+      );
+      setFilteredSuppliers(filtered);
+    } else {
+      setFilteredSuppliers(suppliers);
+    }
+  }, [searchTerm, suppliers]);
+
+  const handleExport = () => {
+    const exportData = filteredSuppliers.map((supplier) => ({
+      "รหัส": supplier.code,
+      "ชื่อผู้จัดจำหน่าย": supplier.name,
+      "ผู้ติดต่อ": supplier.contact_person || "-",
+      "เบอร์โทร": supplier.phone || "-",
+      "อีเมล": supplier.email || "-",
+      "ที่อยู่": supplier.address || "-",
+      "สถานะ": supplier.is_active ? "ใช้งาน" : "ไม่ใช้งาน",
+      "หมายเหตุ": supplier.notes || "-",
+    }));
+
+    const ws = XLSX.utils.json_to_sheet(exportData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Suppliers");
+    XLSX.writeFile(wb, `suppliers_${new Date().toISOString().split("T")[0]}.xlsx`);
+    toast.success("ส่งออกข้อมูลสำเร็จ");
+  };
+
   if (loading) {
     return <div className="text-center py-8">กำลังโหลด...</div>;
   }
@@ -98,6 +137,21 @@ export function SupplierList({ refresh }: SupplierListProps) {
 
   return (
     <>
+      <div className="flex items-center gap-2 mb-4">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="ค้นหาด้วยรหัส, ชื่อ, ผู้ติดต่อ, หรืออีเมล..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-10"
+          />
+        </div>
+        <Button onClick={handleExport} variant="outline" size="sm">
+          <Download className="h-4 w-4 mr-2" />
+          ส่งออก Excel
+        </Button>
+      </div>
       <Table>
         <TableHeader>
           <TableRow>
@@ -111,7 +165,7 @@ export function SupplierList({ refresh }: SupplierListProps) {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {suppliers.map((supplier) => (
+          {filteredSuppliers.map((supplier) => (
             <TableRow key={supplier.id}>
               <TableCell className="font-medium">{supplier.code}</TableCell>
               <TableCell>{supplier.name}</TableCell>

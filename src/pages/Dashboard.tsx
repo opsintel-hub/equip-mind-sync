@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Package, PackageOpen, TrendingUp, MapPin } from "lucide-react";
 import { LowStockAlerts } from "@/components/LowStockAlerts";
+import { ExpiryAlerts } from "@/components/ExpiryAlerts";
 
 const Dashboard = () => {
   const stats = [
@@ -85,6 +86,8 @@ const Dashboard = () => {
       </div>
 
       <LowStockAlerts />
+      
+      <ExpiryAlerts />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <Card className="lg:col-span-2">
