@@ -23,7 +23,7 @@ import { Input } from "@/components/ui/input";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Trash2, ChevronDown, ChevronRight, QrCode, Download, Search } from "lucide-react";
+import { Trash2, ChevronDown, ChevronRight, QrCode, Download, Search, Package } from "lucide-react";
 import { LocationForm } from "./LocationForm";
 import { useNavigate } from "react-router-dom";
 import * as XLSX from "xlsx";
@@ -54,6 +54,12 @@ interface Location {
   storage_slots?: StorageSlot[];
 }
 
+interface EquipmentCount {
+  location_id: string;
+  count: number;
+  total_quantity: number;
+}
+
 interface LocationListProps {
   refresh: number;
 }
@@ -62,6 +68,7 @@ export function LocationList({ refresh }: LocationListProps) {
   const navigate = useNavigate();
   const [locations, setLocations] = useState<Location[]>([]);
   const [filteredLocations, setFilteredLocations] = useState<Location[]>([]);
+  const [equipmentCounts, setEquipmentCounts] = useState<Map<string, EquipmentCount>>(new Map());
   const [loading, setLoading] = useState(true);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [openLocations, setOpenLocations] = useState<Set<string>>(new Set());
@@ -69,6 +76,7 @@ export function LocationList({ refresh }: LocationListProps) {
 
   useEffect(() => {
     fetchLocations();
+    fetchEquipmentCounts();
   }, [refresh]);
 
   const fetchLocations = async () => {
@@ -100,6 +108,38 @@ export function LocationList({ refresh }: LocationListProps) {
       toast.error("เกิดข้อผิดพลาดในการดึงข้อมูล: " + error.message);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchEquipmentCounts = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("equipment")
+        .select("location_id, quantity_in_stock")
+        .eq("is_active", true)
+        .not("location_id", "is", null);
+
+      if (error) throw error;
+
+      const countsMap = new Map<string, EquipmentCount>();
+      (data || []).forEach((item) => {
+        if (item.location_id) {
+          const existing = countsMap.get(item.location_id);
+          if (existing) {
+            existing.count += 1;
+            existing.total_quantity += item.quantity_in_stock || 0;
+          } else {
+            countsMap.set(item.location_id, {
+              location_id: item.location_id,
+              count: 1,
+              total_quantity: item.quantity_in_stock || 0,
+            });
+          }
+        }
+      });
+      setEquipmentCounts(countsMap);
+    } catch (error) {
+      console.error("Error fetching equipment counts:", error);
     }
   };
 
@@ -150,6 +190,7 @@ export function LocationList({ refresh }: LocationListProps) {
     const exportData: any[] = [];
     
     filteredLocations.forEach((location) => {
+      const eqCount = equipmentCounts.get(location.id);
       if (location.storage_slots && location.storage_slots.length > 0) {
         location.storage_slots.forEach((slot) => {
           if (slot.sub_storage_slots && slot.sub_storage_slots.length > 0) {
@@ -160,6 +201,8 @@ export function LocationList({ refresh }: LocationListProps) {
                 "พื้นที่จัดเก็บ": location.storage_area || "-",
                 "ช่องจัดเก็บ": slot.name,
                 "ช่องย่อย": subSlot.name,
+                "จำนวนรายการสินค้า": eqCount?.count || 0,
+                "จำนวนสินค้ารวม": eqCount?.total_quantity || 0,
                 "สถานะคลัง": location.is_active ? "ใช้งาน" : "ไม่ใช้งาน",
                 "สถานะช่อง": slot.is_active ? "ใช้งาน" : "ไม่ใช้งาน",
                 "สถานะช่องย่อย": subSlot.is_active ? "ใช้งาน" : "ไม่ใช้งาน",
@@ -172,6 +215,8 @@ export function LocationList({ refresh }: LocationListProps) {
               "พื้นที่จัดเก็บ": location.storage_area || "-",
               "ช่องจัดเก็บ": slot.name,
               "ช่องย่อย": "-",
+              "จำนวนรายการสินค้า": eqCount?.count || 0,
+              "จำนวนสินค้ารวม": eqCount?.total_quantity || 0,
               "สถานะคลัง": location.is_active ? "ใช้งาน" : "ไม่ใช้งาน",
               "สถานะช่อง": slot.is_active ? "ใช้งาน" : "ไม่ใช้งาน",
               "สถานะช่องย่อย": "-",
@@ -185,6 +230,8 @@ export function LocationList({ refresh }: LocationListProps) {
           "พื้นที่จัดเก็บ": location.storage_area || "-",
           "ช่องจัดเก็บ": "-",
           "ช่องย่อย": "-",
+          "จำนวนรายการสินค้า": eqCount?.count || 0,
+          "จำนวนสินค้ารวม": eqCount?.total_quantity || 0,
           "สถานะคลัง": location.is_active ? "ใช้งาน" : "ไม่ใช้งาน",
           "สถานะช่อง": "-",
           "สถานะช่องย่อย": "-",
@@ -237,6 +284,7 @@ export function LocationList({ refresh }: LocationListProps) {
             <TableHead>พื้นที่จัดเก็บ</TableHead>
             <TableHead>ช่องจัดเก็บ</TableHead>
             <TableHead>ช่องย่อยจัดเก็บ</TableHead>
+            <TableHead>จำนวนสินค้า</TableHead>
             <TableHead>รายละเอียด</TableHead>
             <TableHead>สถานะ</TableHead>
             <TableHead className="text-right">จัดการ</TableHead>
@@ -274,6 +322,21 @@ export function LocationList({ refresh }: LocationListProps) {
                   </TableCell>
                   <TableCell className="text-muted-foreground">
                     {location.storage_slots?.reduce((acc, slot) => acc + (slot.sub_storage_slots?.length || 0), 0) || 0} ช่องย่อย
+                  </TableCell>
+                  <TableCell>
+                    {equipmentCounts.get(location.id) ? (
+                      <div className="flex items-center gap-1.5">
+                        <Package className="h-4 w-4 text-primary" />
+                        <span className="font-medium text-primary">
+                          {equipmentCounts.get(location.id)?.count} รายการ
+                        </span>
+                        <span className="text-muted-foreground text-xs">
+                          ({equipmentCounts.get(location.id)?.total_quantity.toLocaleString()} ชิ้น)
+                        </span>
+                      </div>
+                    ) : (
+                      <span className="text-muted-foreground">-</span>
+                    )}
                   </TableCell>
                   <TableCell className="max-w-md truncate">
                     {location.description || "-"}
@@ -322,6 +385,7 @@ export function LocationList({ refresh }: LocationListProps) {
                       <TableCell className="text-muted-foreground">
                         {slot.sub_storage_slots?.length || 0} ช่องย่อย
                       </TableCell>
+                      <TableCell></TableCell>
                       <TableCell className="text-sm text-muted-foreground">
                         {slot.description || "-"}
                       </TableCell>
@@ -353,6 +417,7 @@ export function LocationList({ refresh }: LocationListProps) {
                         <TableCell></TableCell>
                         <TableCell></TableCell>
                         <TableCell className="font-medium text-sm">{subSlot.name}</TableCell>
+                        <TableCell></TableCell>
                         <TableCell className="text-sm text-muted-foreground">
                           {subSlot.description || "-"}
                         </TableCell>
