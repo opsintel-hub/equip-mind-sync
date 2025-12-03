@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,9 +7,67 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Plus, Search } from "lucide-react";
 import { toast } from "sonner";
+import { HierarchicalStorageSelect } from "@/components/location/HierarchicalStorageSelect";
+import { supabase } from "@/integrations/supabase/client";
+
+interface Equipment {
+  id: string;
+  code: string;
+  name: string;
+  unit: string;
+}
+
+interface Supplier {
+  id: string;
+  code: string;
+  name: string;
+}
 
 const GoodsReceipt = () => {
   const [searchTerm, setSearchTerm] = useState("");
+  const [equipment, setEquipment] = useState<Equipment[]>([]);
+  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
+  const [selectedEquipmentId, setSelectedEquipmentId] = useState("");
+  const [selectedSupplierId, setSelectedSupplierId] = useState("");
+  const [quantity, setQuantity] = useState("");
+  const [lotNumber, setLotNumber] = useState("");
+  const [expiryDate, setExpiryDate] = useState("");
+  const [storageLocation, setStorageLocation] = useState<{
+    locationId: string;
+    storageSlotId?: string;
+    subStorageSlotId?: string;
+  }>({ locationId: "" });
+
+  useEffect(() => {
+    fetchEquipment();
+    fetchSuppliers();
+  }, []);
+
+  const fetchEquipment = async () => {
+    const { data, error } = await supabase
+      .from("equipment")
+      .select("id, code, name, unit")
+      .eq("is_active", true)
+      .order("code");
+    
+    if (!error && data) {
+      setEquipment(data);
+    }
+  };
+
+  const fetchSuppliers = async () => {
+    const { data, error } = await supabase
+      .from("suppliers")
+      .select("id, code, name")
+      .eq("is_active", true)
+      .order("code");
+    
+    if (!error && data) {
+      setSuppliers(data);
+    }
+  };
+
+  const selectedEquipment = equipment.find(e => e.id === selectedEquipmentId);
 
   const mockReceipts = [
     { id: "GR-001", date: "2025-01-15", sku: "SKU-001", name: "อะไหล่ A", quantity: 100, supplier: "Supplier A", status: "รับเข้าแล้ว" },
@@ -20,7 +78,20 @@ const GoodsReceipt = () => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!selectedEquipmentId || !quantity || !selectedSupplierId || !storageLocation.locationId) {
+      toast.error("กรุณากรอกข้อมูลให้ครบถ้วน");
+      return;
+    }
+
     toast.success("บันทึกการรับสินค้าเข้าสำเร็จ");
+    // Reset form
+    setSelectedEquipmentId("");
+    setSelectedSupplierId("");
+    setQuantity("");
+    setLotNumber("");
+    setExpiryDate("");
+    setStorageLocation({ locationId: "" });
   };
 
   return (
@@ -42,73 +113,81 @@ const GoodsReceipt = () => {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="sku">รหัสสินค้า (SKU)</Label>
-                <Select>
+                <Select value={selectedEquipmentId} onValueChange={setSelectedEquipmentId}>
                   <SelectTrigger id="sku">
                     <SelectValue placeholder="เลือก SKU" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="sku-001">SKU-001 - อะไหล่ A</SelectItem>
-                    <SelectItem value="sku-102">SKU-102 - เครื่องมือ B</SelectItem>
-                    <SelectItem value="sku-203">SKU-203 - อุปกรณ์ C</SelectItem>
+                    {equipment.map((item) => (
+                      <SelectItem key={item.id} value={item.id}>
+                        {item.code} - {item.name}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="quantity">จำนวน</Label>
-                <Input id="quantity" type="number" placeholder="กรอกจำนวน" />
+                <Input 
+                  id="quantity" 
+                  type="number" 
+                  placeholder="กรอกจำนวน"
+                  value={quantity}
+                  onChange={(e) => setQuantity(e.target.value)}
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="unit">หน่วย</Label>
-                <Select>
-                  <SelectTrigger id="unit">
-                    <SelectValue placeholder="เลือกหน่วย" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="piece">ชิ้น</SelectItem>
-                    <SelectItem value="box">กล่อง</SelectItem>
-                    <SelectItem value="set">ชุด</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Input 
+                  id="unit" 
+                  value={selectedEquipment?.unit || ""} 
+                  disabled 
+                  placeholder="เลือกสินค้าก่อน"
+                />
               </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="supplier">ผู้จัดจำหน่าย</Label>
-                <Select>
+                <Select value={selectedSupplierId} onValueChange={setSelectedSupplierId}>
                   <SelectTrigger id="supplier">
                     <SelectValue placeholder="เลือกผู้จัดจำหน่าย" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="supplier-a">Supplier A</SelectItem>
-                    <SelectItem value="supplier-b">Supplier B</SelectItem>
-                    <SelectItem value="supplier-c">Supplier C</SelectItem>
+                    {suppliers.map((supplier) => (
+                      <SelectItem key={supplier.id} value={supplier.id}>
+                        {supplier.code} - {supplier.name}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="lot">Lot Number</Label>
-                <Input id="lot" type="text" placeholder="กรอก Lot No." />
+                <Input 
+                  id="lot" 
+                  type="text" 
+                  placeholder="กรอก Lot No."
+                  value={lotNumber}
+                  onChange={(e) => setLotNumber(e.target.value)}
+                />
               </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="location">ตำแหน่งจัดเก็บ</Label>
-                <Select>
-                  <SelectTrigger id="location">
-                    <SelectValue placeholder="เลือกตำแหน่ง" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="zone-a">Zone A - Aisle 1 - Shelf 1</SelectItem>
-                    <SelectItem value="zone-b">Zone B - Aisle 2 - Shelf 3</SelectItem>
-                    <SelectItem value="zone-c">Zone C - Aisle 1 - Shelf 2</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+              <HierarchicalStorageSelect
+                value={storageLocation}
+                onChange={setStorageLocation}
+              />
               <div className="space-y-2">
                 <Label htmlFor="expiry">วันหมดอายุ</Label>
-                <Input id="expiry" type="date" />
+                <Input 
+                  id="expiry" 
+                  type="date"
+                  value={expiryDate}
+                  onChange={(e) => setExpiryDate(e.target.value)}
+                />
               </div>
             </div>
 
