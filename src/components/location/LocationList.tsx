@@ -234,6 +234,9 @@ export function LocationList({ refresh }: LocationListProps) {
             <TableHead className="w-12"></TableHead>
             <TableHead>รหัส</TableHead>
             <TableHead>ชื่อตำแหน่ง</TableHead>
+            <TableHead>พื้นที่จัดเก็บ</TableHead>
+            <TableHead>ช่องจัดเก็บ</TableHead>
+            <TableHead>ช่องย่อยจัดเก็บ</TableHead>
             <TableHead>รายละเอียด</TableHead>
             <TableHead>สถานะ</TableHead>
             <TableHead className="text-right">จัดการ</TableHead>
@@ -265,6 +268,13 @@ export function LocationList({ refresh }: LocationListProps) {
                   </TableCell>
                   <TableCell className="font-medium">{location.code}</TableCell>
                   <TableCell>{location.name}</TableCell>
+                  <TableCell>{location.storage_area || "-"}</TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {location.storage_slots?.length || 0} ช่อง
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {location.storage_slots?.reduce((acc, slot) => acc + (slot.sub_storage_slots?.length || 0), 0) || 0} ช่องย่อย
+                  </TableCell>
                   <TableCell className="max-w-md truncate">
                     {location.description || "-"}
                   </TableCell>
@@ -301,16 +311,25 @@ export function LocationList({ refresh }: LocationListProps) {
                   <>
                     <TableRow key={`slot-${slot.id}`} className="bg-muted/30">
                       <TableCell></TableCell>
-                      <TableCell className="pl-8" colSpan={2}>
+                      <TableCell className="pl-8">
                         <div className="flex items-center gap-2">
                           <span className="text-muted-foreground">└─</span>
-                          <span className="font-medium">{slot.name}</span>
                         </div>
+                      </TableCell>
+                      <TableCell></TableCell>
+                      <TableCell></TableCell>
+                      <TableCell className="font-medium">{slot.name}</TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {slot.sub_storage_slots?.length || 0} ช่องย่อย
                       </TableCell>
                       <TableCell className="text-sm text-muted-foreground">
                         {slot.description || "-"}
                       </TableCell>
-                      <TableCell></TableCell>
+                      <TableCell>
+                        <Badge variant={slot.is_active ? "default" : "secondary"} className="text-xs">
+                          {slot.is_active ? "ใช้งาน" : "ไม่ใช้งาน"}
+                        </Badge>
+                      </TableCell>
                       <TableCell className="text-right">
                         <Button
                           variant="ghost"
@@ -325,16 +344,23 @@ export function LocationList({ refresh }: LocationListProps) {
                     {slot.sub_storage_slots && slot.sub_storage_slots.map((subSlot) => (
                       <TableRow key={`subslot-${subSlot.id}`} className="bg-muted/50">
                         <TableCell></TableCell>
-                        <TableCell className="pl-12" colSpan={2}>
+                        <TableCell className="pl-12">
                           <div className="flex items-center gap-2">
                             <span className="text-muted-foreground">└─└─</span>
-                            <span className="text-sm">{subSlot.name}</span>
                           </div>
                         </TableCell>
+                        <TableCell></TableCell>
+                        <TableCell></TableCell>
+                        <TableCell></TableCell>
+                        <TableCell className="font-medium text-sm">{subSlot.name}</TableCell>
                         <TableCell className="text-sm text-muted-foreground">
                           {subSlot.description || "-"}
                         </TableCell>
-                        <TableCell></TableCell>
+                        <TableCell>
+                          <Badge variant={subSlot.is_active ? "default" : "secondary"} className="text-xs">
+                            {subSlot.is_active ? "ใช้งาน" : "ไม่ใช้งาน"}
+                          </Badge>
+                        </TableCell>
                         <TableCell className="text-right">
                           <Button
                             variant="ghost"
