@@ -3,9 +3,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import { supabase } from "@/integrations/supabase/client";
-import { Package, MapPin, Eye } from "lucide-react";
+import { Package, MapPin, Eye, Filter } from "lucide-react";
 
 interface LocationData {
   id: string;
@@ -25,6 +26,11 @@ interface Equipment {
   department: string | null;
 }
 
+interface Department {
+  id: string;
+  name: string;
+}
+
 const COLORS = [
   "hsl(var(--chart-1))",
   "hsl(var(--chart-2))",
@@ -39,12 +45,28 @@ export const LocationInventoryChart = () => {
   const [selectedLocation, setSelectedLocation] = useState<LocationData | null>(null);
   const [locationEquipment, setLocationEquipment] = useState<Equipment[]>([]);
   const [loadingEquipment, setLoadingEquipment] = useState(false);
+  const [departments, setDepartments] = useState<Department[]>([]);
+  const [selectedDepartment, setSelectedDepartment] = useState<string>("all");
+
+  useEffect(() => {
+    fetchDepartments();
+  }, []);
 
   useEffect(() => {
     fetchLocationData();
-  }, []);
+  }, [selectedDepartment]);
+
+  const fetchDepartments = async () => {
+    const { data } = await supabase
+      .from("departments")
+      .select("id, name")
+      .eq("is_active", true)
+      .order("name");
+    setDepartments(data || []);
+  };
 
   const fetchLocationData = async () => {
+    setLoading(true);
     try {
       const { data: locations, error: locError } = await supabase
         .from("locations")
@@ -53,11 +75,17 @@ export const LocationInventoryChart = () => {
 
       if (locError) throw locError;
 
-      const { data: equipment, error: eqError } = await supabase
+      let equipmentQuery = supabase
         .from("equipment")
-        .select("location_id, quantity_in_stock")
+        .select("location_id, quantity_in_stock, department")
         .eq("is_active", true)
         .not("location_id", "is", null);
+
+      if (selectedDepartment !== "all") {
+        equipmentQuery = equipmentQuery.eq("department", selectedDepartment);
+      }
+
+      const { data: equipment, error: eqError } = await equipmentQuery;
 
       if (eqError) throw eqError;
 
@@ -85,11 +113,17 @@ export const LocationInventoryChart = () => {
     setLoadingEquipment(true);
 
     try {
-      const { data: equipment, error } = await supabase
+      let query = supabase
         .from("equipment")
         .select("id, code, name, category, quantity_in_stock, unit, department")
         .eq("location_id", data.id)
         .eq("is_active", true);
+
+      if (selectedDepartment !== "all") {
+        query = query.eq("department", selectedDepartment);
+      }
+
+      const { data: equipment, error } = await query;
 
       if (error) throw error;
       setLocationEquipment(equipment || []);
@@ -100,97 +134,91 @@ export const LocationInventoryChart = () => {
     }
   };
 
-  if (loading) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <MapPin className="w-5 h-5" />
-            สินค้าคงคลังแยกตามตำแหน่งจัดเก็บ
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="h-[300px] flex items-center justify-center text-muted-foreground">
-            กำลังโหลด...
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  if (locationData.length === 0) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <MapPin className="w-5 h-5" />
-            สินค้าคงคลังแยกตามตำแหน่งจัดเก็บ
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="h-[300px] flex items-center justify-center text-muted-foreground">
-            ไม่มีข้อมูลสินค้าในตำแหน่งจัดเก็บ
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
-
   return (
     <>
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <MapPin className="w-5 h-5" />
-            สินค้าคงคลังแยกตามตำแหน่งจัดเก็บ
-          </CardTitle>
-          <p className="text-sm text-muted-foreground flex items-center gap-1">
-            <Eye className="w-4 h-4" />
-            คลิกที่แท่งกราฟเพื่อดูรายละเอียดสินค้า
-          </p>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <MapPin className="w-5 h-5" />
+                สินค้าคงคลังแยกตามตำแหน่งจัดเก็บ
+              </CardTitle>
+              <p className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
+                <Eye className="w-4 h-4" />
+                คลิกที่แท่งกราฟเพื่อดูรายละเอียดสินค้า
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <Filter className="w-4 h-4 text-muted-foreground" />
+              <Select value={selectedDepartment} onValueChange={setSelectedDepartment}>
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="เลือกฝ่าย" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">ทุกฝ่าย</SelectItem>
+                  {departments.map((dept) => (
+                    <SelectItem key={dept.id} value={dept.name}>
+                      {dept.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={locationData} margin={{ top: 20, right: 30, left: 20, bottom: 60 }}>
-              <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-              <XAxis
-                dataKey="name"
-                angle={-45}
-                textAnchor="end"
-                height={80}
-                tick={{ fontSize: 12 }}
-                className="fill-muted-foreground"
-              />
-              <YAxis
-                tick={{ fontSize: 12 }}
-                className="fill-muted-foreground"
-                label={{ value: "จำนวน", angle: -90, position: "insideLeft", className: "fill-muted-foreground" }}
-              />
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: "hsl(var(--background))",
-                  border: "1px solid hsl(var(--border))",
-                  borderRadius: "8px",
-                }}
-                labelStyle={{ color: "hsl(var(--foreground))" }}
-                formatter={(value: number, name: string) => [
-                  value,
-                  name === "totalQuantity" ? "จำนวนสินค้ารวม" : "รายการสินค้า",
-                ]}
-              />
-              <Bar
-                dataKey="totalQuantity"
-                name="จำนวนสินค้ารวม"
-                radius={[4, 4, 0, 0]}
-                cursor="pointer"
-                onClick={(data) => handleBarClick(data)}
-              >
-                {locationData.map((_, index) => (
-                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                ))}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
+          {loading ? (
+            <div className="h-[300px] flex items-center justify-center text-muted-foreground">
+              กำลังโหลด...
+            </div>
+          ) : locationData.length === 0 ? (
+            <div className="h-[300px] flex items-center justify-center text-muted-foreground">
+              ไม่มีข้อมูลสินค้าในตำแหน่งจัดเก็บ
+            </div>
+          ) : (
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={locationData} margin={{ top: 20, right: 30, left: 20, bottom: 60 }}>
+                <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                <XAxis
+                  dataKey="name"
+                  angle={-45}
+                  textAnchor="end"
+                  height={80}
+                  tick={{ fontSize: 12 }}
+                  className="fill-muted-foreground"
+                />
+                <YAxis
+                  tick={{ fontSize: 12 }}
+                  className="fill-muted-foreground"
+                  label={{ value: "จำนวน", angle: -90, position: "insideLeft", className: "fill-muted-foreground" }}
+                />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: "hsl(var(--background))",
+                    border: "1px solid hsl(var(--border))",
+                    borderRadius: "8px",
+                  }}
+                  labelStyle={{ color: "hsl(var(--foreground))" }}
+                  formatter={(value: number, name: string) => [
+                    value,
+                    name === "totalQuantity" ? "จำนวนสินค้ารวม" : "รายการสินค้า",
+                  ]}
+                />
+                <Bar
+                  dataKey="totalQuantity"
+                  name="จำนวนสินค้ารวม"
+                  radius={[4, 4, 0, 0]}
+                  cursor="pointer"
+                  onClick={(data) => handleBarClick(data)}
+                >
+                  {locationData.map((_, index) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          )}
         </CardContent>
       </Card>
 
