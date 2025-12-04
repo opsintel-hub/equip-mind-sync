@@ -1,8 +1,8 @@
-import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Package, PackageOpen, TrendingUp, MapPin } from "lucide-react";
 import { LowStockAlerts } from "@/components/LowStockAlerts";
 import { ExpiryAlerts } from "@/components/ExpiryAlerts";
+import { LocationInventoryChart } from "@/components/LocationInventoryChart";
 
 const Dashboard = () => {
   const stats = [
@@ -84,6 +84,8 @@ const Dashboard = () => {
           </Card>
         ))}
       </div>
+
+      <LocationInventoryChart />
 
       <LowStockAlerts />
       
