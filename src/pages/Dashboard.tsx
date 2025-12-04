@@ -3,6 +3,7 @@ import { Package, PackageOpen, TrendingUp, MapPin } from "lucide-react";
 import { LowStockAlerts } from "@/components/LowStockAlerts";
 import { ExpiryAlerts } from "@/components/ExpiryAlerts";
 import { LocationInventoryChart } from "@/components/LocationInventoryChart";
+import { CategoryPieChart } from "@/components/CategoryPieChart";
 
 const Dashboard = () => {
   const stats = [
@@ -85,7 +86,10 @@ const Dashboard = () => {
         ))}
       </div>
 
-      <LocationInventoryChart />
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <LocationInventoryChart />
+        <CategoryPieChart />
+      </div>
 
       <LowStockAlerts />
       
