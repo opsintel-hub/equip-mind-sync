@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { format } from "date-fns";
 import { th } from "date-fns/locale";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,6 +10,7 @@ import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from "recha
 import { supabase } from "@/integrations/supabase/client";
 import { PieChartIcon, Filter, CalendarIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { ChartExportButton } from "./ChartExportButton";
 
 interface CategoryData {
   name: string;
@@ -40,6 +41,7 @@ export const CategoryPieChart = () => {
   const [selectedDepartment, setSelectedDepartment] = useState<string>("all");
   const [startDate, setStartDate] = useState<Date | undefined>(undefined);
   const [endDate, setEndDate] = useState<Date | undefined>(undefined);
+  const chartRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     fetchDepartments();
@@ -151,10 +153,13 @@ export const CategoryPieChart = () => {
     <Card>
       <CardHeader>
         <div className="flex flex-col gap-4">
-          <CardTitle className="flex items-center gap-2">
-            <PieChartIcon className="w-5 h-5" />
-            สัดส่วนสินค้าแยกตามหมวดหมู่
-          </CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center gap-2">
+              <PieChartIcon className="w-5 h-5" />
+              สัดส่วนสินค้าแยกตามหมวดหมู่
+            </CardTitle>
+            <ChartExportButton chartRef={chartRef} filename="category-pie-chart" />
+          </div>
           <div className="flex flex-wrap items-center gap-2">
             <Filter className="w-4 h-4 text-muted-foreground" />
             <Select value={selectedDepartment} onValueChange={setSelectedDepartment}>
@@ -206,17 +211,18 @@ export const CategoryPieChart = () => {
         </div>
       </CardHeader>
       <CardContent>
-        {loading ? (
-          <div className="h-[300px] flex items-center justify-center text-muted-foreground">
-            กำลังโหลด...
-          </div>
-        ) : categoryData.length === 0 ? (
-          <div className="h-[300px] flex items-center justify-center text-muted-foreground">
-            ไม่มีข้อมูลสินค้า
-          </div>
-        ) : (
-          <ResponsiveContainer width="100%" height={300}>
-            <PieChart>
+        <div ref={chartRef}>
+          {loading ? (
+            <div className="h-[300px] flex items-center justify-center text-muted-foreground">
+              กำลังโหลด...
+            </div>
+          ) : categoryData.length === 0 ? (
+            <div className="h-[300px] flex items-center justify-center text-muted-foreground">
+              ไม่มีข้อมูลสินค้า
+            </div>
+          ) : (
+            <ResponsiveContainer width="100%" height={300}>
+              <PieChart>
               <Pie
                 data={categoryData}
                 cx="50%"
@@ -231,11 +237,12 @@ export const CategoryPieChart = () => {
                   <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                 ))}
               </Pie>
-              <Tooltip content={<CustomTooltip />} />
-              <Legend formatter={(value) => <span className="text-foreground text-sm">{value}</span>} />
-            </PieChart>
-          </ResponsiveContainer>
-        )}
+                <Tooltip content={<CustomTooltip />} />
+                <Legend formatter={(value) => <span className="text-foreground text-sm">{value}</span>} />
+              </PieChart>
+            </ResponsiveContainer>
+          )}
+        </div>
       </CardContent>
     </Card>
   );

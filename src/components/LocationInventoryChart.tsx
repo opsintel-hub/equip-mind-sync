@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { format } from "date-fns";
 import { th } from "date-fns/locale";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,6 +13,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { supabase } from "@/integrations/supabase/client";
 import { Package, MapPin, Eye, Filter, CalendarIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { ChartExportButton } from "./ChartExportButton";
 
 interface LocationData {
   id: string;
@@ -55,6 +56,7 @@ export const LocationInventoryChart = () => {
   const [selectedDepartment, setSelectedDepartment] = useState<string>("all");
   const [startDate, setStartDate] = useState<Date | undefined>(undefined);
   const [endDate, setEndDate] = useState<Date | undefined>(undefined);
+  const chartRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     fetchDepartments();
@@ -210,6 +212,7 @@ export const LocationInventoryChart = () => {
                   คลิกที่แท่งกราฟเพื่อดูรายละเอียดสินค้า
                 </p>
               </div>
+              <ChartExportButton chartRef={chartRef} filename="location-inventory-chart" />
             </div>
             <div className="flex flex-wrap items-center gap-2">
               <Filter className="w-4 h-4 text-muted-foreground" />
@@ -262,17 +265,18 @@ export const LocationInventoryChart = () => {
           </div>
         </CardHeader>
         <CardContent>
-          {loading ? (
-            <div className="h-[300px] flex items-center justify-center text-muted-foreground">
-              กำลังโหลด...
-            </div>
-          ) : locationData.length === 0 ? (
-            <div className="h-[300px] flex items-center justify-center text-muted-foreground">
-              ไม่มีข้อมูลสินค้าในตำแหน่งจัดเก็บ
-            </div>
-          ) : (
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={locationData} margin={{ top: 20, right: 30, left: 20, bottom: 60 }}>
+          <div ref={chartRef}>
+            {loading ? (
+              <div className="h-[300px] flex items-center justify-center text-muted-foreground">
+                กำลังโหลด...
+              </div>
+            ) : locationData.length === 0 ? (
+              <div className="h-[300px] flex items-center justify-center text-muted-foreground">
+                ไม่มีข้อมูลสินค้าในตำแหน่งจัดเก็บ
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={locationData} margin={{ top: 20, right: 30, left: 20, bottom: 60 }}>
                 <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
                 <XAxis dataKey="name" angle={-45} textAnchor="end" height={80} tick={{ fontSize: 12 }} className="fill-muted-foreground" />
                 <YAxis tick={{ fontSize: 12 }} className="fill-muted-foreground" label={{ value: "จำนวน", angle: -90, position: "insideLeft", className: "fill-muted-foreground" }} />
@@ -281,14 +285,15 @@ export const LocationInventoryChart = () => {
                   labelStyle={{ color: "hsl(var(--foreground))" }}
                   formatter={(value: number, name: string) => [value, name === "totalQuantity" ? "จำนวนสินค้ารวม" : "รายการสินค้า"]}
                 />
-                <Bar dataKey="totalQuantity" name="จำนวนสินค้ารวม" radius={[4, 4, 0, 0]} cursor="pointer" onClick={(data) => handleBarClick(data)}>
-                  {locationData.map((_, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          )}
+                  <Bar dataKey="totalQuantity" name="จำนวนสินค้ารวม" radius={[4, 4, 0, 0]} cursor="pointer" onClick={(data) => handleBarClick(data)}>
+                    {locationData.map((_, index) => (
+                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            )}
+          </div>
         </CardContent>
       </Card>
 
