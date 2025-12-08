@@ -8,6 +8,9 @@ import {
   LogOut,
   Shield,
   History,
+  Truck,
+  PackageCheck,
+  ChevronDown,
 } from "lucide-react";
 import {
   Sidebar,
@@ -18,16 +21,28 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarMenuSub,
+  SidebarMenuSubItem,
+  SidebarMenuSubButton,
   SidebarHeader,
   SidebarFooter,
   useSidebar,
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { useState } from "react";
 
 const menuItems = [
   { title: "แดชบอร์ด", url: "/dashboard", icon: LayoutDashboard },
-  { title: "รับสินค้าเข้า (GR)", url: "/goods-receipt", icon: Package },
+  { 
+    title: "รับสินค้าเข้า (GR)", 
+    icon: Package,
+    subItems: [
+      { title: "นำสินค้าเข้า", url: "/delivery-entry", icon: Truck },
+      { title: "รับเข้าคลัง", url: "/receive-goods", icon: PackageCheck },
+    ]
+  },
   { title: "เบิกจ่ายสินค้า (GI)", url: "/goods-issue", icon: PackageOpen },
   { title: "ข้อมูลหลัก", url: "/master-data", icon: Database },
   { title: "ประวัติการย้าย", url: "/transfer-history", icon: History },
@@ -38,6 +53,7 @@ const menuItems = [
 export function AppSidebar() {
   const { state } = useSidebar();
   const { signOut } = useAuth();
+  const [openSubMenu, setOpenSubMenu] = useState<string | null>("รับสินค้าเข้า (GR)");
 
   const handleLogout = () => {
     signOut();
@@ -68,16 +84,55 @@ export function AppSidebar() {
             <SidebarMenu>
               {menuItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild>
-                    <NavLink
-                      to={item.url}
-                      className="flex items-center gap-3 px-3 py-2 rounded-lg text-sidebar-foreground hover:bg-sidebar-accent transition-colors"
-                      activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+                  {item.subItems ? (
+                    <Collapsible
+                      open={openSubMenu === item.title}
+                      onOpenChange={(open) => setOpenSubMenu(open ? item.title : null)}
                     >
-                      <item.icon className="w-5 h-5 flex-shrink-0" />
-                      {state !== "collapsed" && <span>{item.title}</span>}
-                    </NavLink>
-                  </SidebarMenuButton>
+                      <CollapsibleTrigger asChild>
+                        <SidebarMenuButton className="flex items-center justify-between w-full px-3 py-2 rounded-lg text-sidebar-foreground hover:bg-sidebar-accent transition-colors">
+                          <div className="flex items-center gap-3">
+                            <item.icon className="w-5 h-5 flex-shrink-0" />
+                            {state !== "collapsed" && <span>{item.title}</span>}
+                          </div>
+                          {state !== "collapsed" && (
+                            <ChevronDown className={`w-4 h-4 transition-transform ${openSubMenu === item.title ? "rotate-180" : ""}`} />
+                          )}
+                        </SidebarMenuButton>
+                      </CollapsibleTrigger>
+                      {state !== "collapsed" && (
+                        <CollapsibleContent>
+                          <SidebarMenuSub>
+                            {item.subItems.map((subItem) => (
+                              <SidebarMenuSubItem key={subItem.title}>
+                                <SidebarMenuSubButton asChild>
+                                  <NavLink
+                                    to={subItem.url}
+                                    className="flex items-center gap-3 px-3 py-2 rounded-lg text-sidebar-foreground hover:bg-sidebar-accent transition-colors text-sm"
+                                    activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+                                  >
+                                    <subItem.icon className="w-4 h-4 flex-shrink-0" />
+                                    <span>{subItem.title}</span>
+                                  </NavLink>
+                                </SidebarMenuSubButton>
+                              </SidebarMenuSubItem>
+                            ))}
+                          </SidebarMenuSub>
+                        </CollapsibleContent>
+                      )}
+                    </Collapsible>
+                  ) : (
+                    <SidebarMenuButton asChild>
+                      <NavLink
+                        to={item.url}
+                        className="flex items-center gap-3 px-3 py-2 rounded-lg text-sidebar-foreground hover:bg-sidebar-accent transition-colors"
+                        activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+                      >
+                        <item.icon className="w-5 h-5 flex-shrink-0" />
+                        {state !== "collapsed" && <span>{item.title}</span>}
+                      </NavLink>
+                    </SidebarMenuButton>
+                  )}
                 </SidebarMenuItem>
               ))}
             </SidebarMenu>
