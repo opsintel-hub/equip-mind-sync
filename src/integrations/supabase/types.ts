@@ -432,6 +432,117 @@ export type Database = {
           },
         ]
       }
+      goods_receipt_pending: {
+        Row: {
+          created_at: string
+          delivery_person_name: string
+          delivery_person_phone: string | null
+          document_no: string
+          equipment_code: string | null
+          equipment_id: string | null
+          equipment_name: string | null
+          expiry_date: string | null
+          id: string
+          lot_number: string | null
+          notes: string | null
+          quantity: number
+          received_at: string | null
+          received_by: string | null
+          received_location_id: string | null
+          received_storage_slot_id: string | null
+          received_sub_storage_slot_id: string | null
+          status: string
+          supplier_id: string | null
+          supplier_name: string | null
+          unit: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          delivery_person_name: string
+          delivery_person_phone?: string | null
+          document_no: string
+          equipment_code?: string | null
+          equipment_id?: string | null
+          equipment_name?: string | null
+          expiry_date?: string | null
+          id?: string
+          lot_number?: string | null
+          notes?: string | null
+          quantity: number
+          received_at?: string | null
+          received_by?: string | null
+          received_location_id?: string | null
+          received_storage_slot_id?: string | null
+          received_sub_storage_slot_id?: string | null
+          status?: string
+          supplier_id?: string | null
+          supplier_name?: string | null
+          unit?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          delivery_person_name?: string
+          delivery_person_phone?: string | null
+          document_no?: string
+          equipment_code?: string | null
+          equipment_id?: string | null
+          equipment_name?: string | null
+          expiry_date?: string | null
+          id?: string
+          lot_number?: string | null
+          notes?: string | null
+          quantity?: number
+          received_at?: string | null
+          received_by?: string | null
+          received_location_id?: string | null
+          received_storage_slot_id?: string | null
+          received_sub_storage_slot_id?: string | null
+          status?: string
+          supplier_id?: string | null
+          supplier_name?: string | null
+          unit?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "goods_receipt_pending_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "equipment"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "goods_receipt_pending_received_location_id_fkey"
+            columns: ["received_location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "goods_receipt_pending_received_storage_slot_id_fkey"
+            columns: ["received_storage_slot_id"]
+            isOneToOne: false
+            referencedRelation: "storage_slots"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "goods_receipt_pending_received_sub_storage_slot_id_fkey"
+            columns: ["received_sub_storage_slot_id"]
+            isOneToOne: false
+            referencedRelation: "sub_storage_slots"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "goods_receipt_pending_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       locations: {
         Row: {
           code: string
