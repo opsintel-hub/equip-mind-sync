@@ -43,7 +43,14 @@ const menuItems = [
       { title: "รับเข้าคลัง", url: "/receive-goods", icon: PackageCheck },
     ]
   },
-  { title: "เบิกจ่ายสินค้า (GI)", url: "/goods-issue", icon: PackageOpen },
+  { 
+    title: "เบิกจ่ายสินค้า (GI)", 
+    icon: PackageOpen,
+    subItems: [
+      { title: "ขอเบิกสินค้า", url: "/issue-request", icon: Package },
+      { title: "จ่ายสินค้า", url: "/issue-goods", icon: PackageCheck },
+    ]
+  },
   { title: "ข้อมูลหลัก", url: "/master-data", icon: Database },
   { title: "ประวัติการย้าย", url: "/transfer-history", icon: History },
   { title: "ป้ายโฆษณา", url: "/billboards", icon: MapPin },

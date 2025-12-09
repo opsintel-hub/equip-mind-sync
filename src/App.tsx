@@ -11,6 +11,8 @@ import GoodsReceipt from "./pages/GoodsReceipt";
 import DeliveryEntry from "./pages/DeliveryEntry";
 import ReceiveGoods from "./pages/ReceiveGoods";
 import GoodsIssue from "./pages/GoodsIssue";
+import IssueRequest from "./pages/IssueRequest";
+import IssueGoods from "./pages/IssueGoods";
 import MasterData from "./pages/MasterData";
 import Billboards from "./pages/Billboards";
 import Admin from "./pages/Admin";
@@ -36,6 +38,8 @@ const App = () => (
             <Route path="/delivery-entry" element={<ProtectedRoute><DashboardLayout><DeliveryEntry /></DashboardLayout></ProtectedRoute>} />
             <Route path="/receive-goods" element={<ProtectedRoute><DashboardLayout><ReceiveGoods /></DashboardLayout></ProtectedRoute>} />
             <Route path="/goods-issue" element={<ProtectedRoute><DashboardLayout><GoodsIssue /></DashboardLayout></ProtectedRoute>} />
+            <Route path="/issue-request" element={<IssueRequest />} />
+            <Route path="/issue-goods" element={<ProtectedRoute><IssueGoods /></ProtectedRoute>} />
             <Route path="/master-data" element={<ProtectedRoute><DashboardLayout><MasterData /></DashboardLayout></ProtectedRoute>} />
             <Route path="/billboards" element={<ProtectedRoute><DashboardLayout><Billboards /></DashboardLayout></ProtectedRoute>} />
             <Route path="/admin" element={<ProtectedRoute><DashboardLayout><Admin /></DashboardLayout></ProtectedRoute>} />
