@@ -369,6 +369,93 @@ export type Database = {
           },
         ]
       }
+      goods_issue_pending: {
+        Row: {
+          created_at: string
+          destination: string | null
+          document_no: string
+          equipment_code: string | null
+          equipment_id: string | null
+          equipment_name: string | null
+          id: string
+          issued_at: string | null
+          issued_by: string | null
+          issued_location_id: string | null
+          issued_quantity: number | null
+          notes: string | null
+          purpose: string | null
+          quantity: number
+          reject_reason: string | null
+          requester_department: string | null
+          requester_name: string
+          requester_phone: string | null
+          status: string
+          unit: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          destination?: string | null
+          document_no?: string
+          equipment_code?: string | null
+          equipment_id?: string | null
+          equipment_name?: string | null
+          id?: string
+          issued_at?: string | null
+          issued_by?: string | null
+          issued_location_id?: string | null
+          issued_quantity?: number | null
+          notes?: string | null
+          purpose?: string | null
+          quantity: number
+          reject_reason?: string | null
+          requester_department?: string | null
+          requester_name: string
+          requester_phone?: string | null
+          status?: string
+          unit?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          destination?: string | null
+          document_no?: string
+          equipment_code?: string | null
+          equipment_id?: string | null
+          equipment_name?: string | null
+          id?: string
+          issued_at?: string | null
+          issued_by?: string | null
+          issued_location_id?: string | null
+          issued_quantity?: number | null
+          notes?: string | null
+          purpose?: string | null
+          quantity?: number
+          reject_reason?: string | null
+          requester_department?: string | null
+          requester_name?: string
+          requester_phone?: string | null
+          status?: string
+          unit?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "goods_issue_pending_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "equipment"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "goods_issue_pending_issued_location_id_fkey"
+            columns: ["issued_location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       goods_receipt: {
         Row: {
           created_at: string
