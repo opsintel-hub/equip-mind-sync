@@ -4,6 +4,7 @@ import { LowStockAlerts } from "@/components/LowStockAlerts";
 import { ExpiryAlerts } from "@/components/ExpiryAlerts";
 import { LocationInventoryChart } from "@/components/LocationInventoryChart";
 import { CategoryPieChart } from "@/components/CategoryPieChart";
+import TransactionSummaryReport from "@/components/TransactionSummaryReport";
 
 const Dashboard = () => {
   const stats = [
@@ -85,6 +86,8 @@ const Dashboard = () => {
           </Card>
         ))}
       </div>
+
+      <TransactionSummaryReport />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <LocationInventoryChart />
