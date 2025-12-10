@@ -64,51 +64,87 @@ export type Database = {
       }
       billboards: {
         Row: {
-          address: string
-          billboard_code: string
+          bkk_upc: string | null
           created_at: string
           created_by: string | null
+          department: string | null
+          description: string | null
+          district: string | null
+          equipment_id: string
+          extra_1: string | null
+          extra_2: string | null
+          extra_3: string | null
           id: string
-          installation_date: string | null
-          latitude: number | null
-          location_name: string
-          longitude: number | null
+          location_name: string | null
+          media_class: string | null
+          media_segment: string | null
+          media_type: string | null
           notes: string | null
-          removal_date: string | null
-          size: string
+          old_code: string | null
+          region: string | null
+          route_install_demolish: string | null
+          route_monitoring: string | null
+          route_pm: string | null
+          route_report_photo: string | null
           status: string
+          target_monitoring: string | null
+          territory: string | null
           updated_at: string
         }
         Insert: {
-          address: string
-          billboard_code: string
+          bkk_upc?: string | null
           created_at?: string
           created_by?: string | null
+          department?: string | null
+          description?: string | null
+          district?: string | null
+          equipment_id: string
+          extra_1?: string | null
+          extra_2?: string | null
+          extra_3?: string | null
           id?: string
-          installation_date?: string | null
-          latitude?: number | null
-          location_name: string
-          longitude?: number | null
+          location_name?: string | null
+          media_class?: string | null
+          media_segment?: string | null
+          media_type?: string | null
           notes?: string | null
-          removal_date?: string | null
-          size: string
+          old_code?: string | null
+          region?: string | null
+          route_install_demolish?: string | null
+          route_monitoring?: string | null
+          route_pm?: string | null
+          route_report_photo?: string | null
           status?: string
+          target_monitoring?: string | null
+          territory?: string | null
           updated_at?: string
         }
         Update: {
-          address?: string
-          billboard_code?: string
+          bkk_upc?: string | null
           created_at?: string
           created_by?: string | null
+          department?: string | null
+          description?: string | null
+          district?: string | null
+          equipment_id?: string
+          extra_1?: string | null
+          extra_2?: string | null
+          extra_3?: string | null
           id?: string
-          installation_date?: string | null
-          latitude?: number | null
-          location_name?: string
-          longitude?: number | null
+          location_name?: string | null
+          media_class?: string | null
+          media_segment?: string | null
+          media_type?: string | null
           notes?: string | null
-          removal_date?: string | null
-          size?: string
+          old_code?: string | null
+          region?: string | null
+          route_install_demolish?: string | null
+          route_monitoring?: string | null
+          route_pm?: string | null
+          route_report_photo?: string | null
           status?: string
+          target_monitoring?: string | null
+          territory?: string | null
           updated_at?: string
         }
         Relationships: []
