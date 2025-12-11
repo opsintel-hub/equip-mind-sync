@@ -15,6 +15,7 @@ import IssueRequest from "./pages/IssueRequest";
 import IssueGoods from "./pages/IssueGoods";
 import MasterData from "./pages/MasterData";
 import Billboards from "./pages/Billboards";
+import BillboardDetail from "./pages/BillboardDetail";
 import Admin from "./pages/Admin";
 import QRCodePage from "./pages/QRCode";
 import TransferHistory from "./pages/TransferHistory";
@@ -42,6 +43,7 @@ const App = () => (
             <Route path="/issue-goods" element={<ProtectedRoute><IssueGoods /></ProtectedRoute>} />
             <Route path="/master-data" element={<ProtectedRoute><DashboardLayout><MasterData /></DashboardLayout></ProtectedRoute>} />
             <Route path="/billboards" element={<ProtectedRoute><DashboardLayout><Billboards /></DashboardLayout></ProtectedRoute>} />
+            <Route path="/billboards/:id" element={<ProtectedRoute><DashboardLayout><BillboardDetail /></DashboardLayout></ProtectedRoute>} />
             <Route path="/admin" element={<ProtectedRoute><DashboardLayout><Admin /></DashboardLayout></ProtectedRoute>} />
             <Route path="/qr-code" element={<ProtectedRoute><DashboardLayout><QRCodePage /></DashboardLayout></ProtectedRoute>} />
             <Route path="/transfer-history" element={<ProtectedRoute><DashboardLayout><TransferHistory /></DashboardLayout></ProtectedRoute>} />

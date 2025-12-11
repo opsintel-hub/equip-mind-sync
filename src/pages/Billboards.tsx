@@ -1,17 +1,20 @@
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { MapPin, Search, Plus, Upload, Edit, Trash2, ChevronLeft, ChevronRight, Building2, Monitor, Globe } from "lucide-react";
+import { MapPin, Search, Plus, Upload, Edit, Trash2, ChevronLeft, ChevronRight, Building2, Monitor, Globe, Eye } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Tables } from "@/integrations/supabase/types";
 import BillboardForm from "@/components/billboard/BillboardForm";
 import BillboardImport from "@/components/billboard/BillboardImport";
+import BillboardFilters from "@/components/billboard/BillboardFilters";
+import BillboardExport from "@/components/billboard/BillboardExport";
 import {
   Select,
   SelectContent,
@@ -23,16 +26,34 @@ import {
 const PAGE_SIZE_OPTIONS = [20, 50, 100];
 
 const Billboards = () => {
+  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isImportOpen, setIsImportOpen] = useState(false);
   const [selectedBillboard, setSelectedBillboard] = useState<Tables<"billboards"> | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
+  const [filters, setFilters] = useState({
+    region: "",
+    district: "",
+    department: "",
+    mediaType: "",
+    status: "",
+  });
 
-  // Fetch paginated data
+  const handleFilterChange = (key: string, value: string) => {
+    setFilters(prev => ({ ...prev, [key]: value }));
+    setCurrentPage(1);
+  };
+
+  const handleClearFilters = () => {
+    setFilters({ region: "", district: "", department: "", mediaType: "", status: "" });
+    setCurrentPage(1);
+  };
+
+  // Fetch paginated data with filters
   const { data: paginatedData, isLoading, refetch } = useQuery({
-    queryKey: ["billboards", searchTerm, currentPage, pageSize],
+    queryKey: ["billboards", searchTerm, currentPage, pageSize, filters],
     queryFn: async () => {
       const from = (currentPage - 1) * pageSize;
       const to = from + pageSize - 1;
@@ -46,6 +67,11 @@ const Billboards = () => {
       if (searchTerm) {
         query = query.or(`equipment_id.ilike.%${searchTerm}%,old_code.ilike.%${searchTerm}%,description.ilike.%${searchTerm}%,location_name.ilike.%${searchTerm}%`);
       }
+      if (filters.region) query = query.eq("region", filters.region);
+      if (filters.district) query = query.eq("district", filters.district);
+      if (filters.department) query = query.eq("department", filters.department);
+      if (filters.mediaType) query = query.eq("media_type", filters.mediaType);
+      if (filters.status) query = query.eq("status", filters.status);
 
       const { data, error, count } = await query;
       if (error) throw error;
@@ -255,6 +281,7 @@ const Billboards = () => {
                 />
               </div>
               <div className="flex gap-2">
+                <BillboardExport currentFilters={filters} />
                 <Button variant="outline" onClick={() => setIsImportOpen(true)}>
                   <Upload className="w-4 h-4 mr-2" />
                   นำเข้า Excel
@@ -267,7 +294,12 @@ const Billboards = () => {
             </div>
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-4">
+          <BillboardFilters 
+            filters={filters} 
+            onFilterChange={handleFilterChange} 
+            onClearFilters={handleClearFilters}
+          />
           {isLoading ? (
             <div className="text-center py-8 text-muted-foreground">กำลังโหลดข้อมูล...</div>
           ) : !billboards?.length ? (
@@ -306,6 +338,14 @@ const Billboards = () => {
                         <TableCell>{getStatusBadge(billboard.status)}</TableCell>
                         <TableCell className="text-right">
                           <div className="flex justify-end gap-1">
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              onClick={() => navigate(`/billboards/${billboard.id}`)}
+                              title="ดูรายละเอียด"
+                            >
+                              <Eye className="w-4 h-4" />
+                            </Button>
                             <Button variant="ghost" size="sm" onClick={() => handleEdit(billboard)}>
                               <Edit className="w-4 h-4" />
                             </Button>
