@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Filter, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -11,6 +12,7 @@ interface BillboardFiltersProps {
     department: string;
     mediaType: string;
     status: string;
+    locationName: string;
   };
   onFilterChange: (key: string, value: string) => void;
   onClearFilters: () => void;
@@ -122,8 +124,18 @@ const BillboardFilters = ({ filters, onFilterChange, onClearFilters }: Billboard
         </Select>
       </div>
 
+      <div className="flex flex-col gap-1">
+        <span className="text-xs text-muted-foreground">LocationName</span>
+        <Input
+          placeholder="ค้นหาตำแหน่ง..."
+          value={filters.locationName}
+          onChange={(e) => onFilterChange("locationName", e.target.value)}
+          className="w-48"
+        />
+      </div>
+
       {hasActiveFilters && (
-        <Button variant="ghost" size="sm" onClick={onClearFilters}>
+        <Button variant="ghost" size="sm" onClick={onClearFilters} className="self-end">
           <X className="w-4 h-4 mr-1" />
           ล้าง
         </Button>
