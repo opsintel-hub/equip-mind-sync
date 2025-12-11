@@ -140,12 +140,12 @@ const BillboardExport = ({ currentFilters }: BillboardExportProps) => {
           <div className="space-y-3">
             <div className="flex items-center gap-3">
               <span className="text-sm w-24">Region:</span>
-              <Select value={exportFilters.region} onValueChange={(v) => setExportFilters(p => ({ ...p, region: v }))}>
+              <Select value={exportFilters.region || "__all__"} onValueChange={(v) => setExportFilters(p => ({ ...p, region: v === "__all__" ? "" : v }))}>
                 <SelectTrigger className="flex-1">
                   <SelectValue placeholder="ทั้งหมด" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">ทั้งหมด</SelectItem>
+                  <SelectItem value="__all__">ทั้งหมด</SelectItem>
                   {filterOptions?.regions.map((r) => (
                     <SelectItem key={r} value={r!}>{r}</SelectItem>
                   ))}
@@ -155,12 +155,12 @@ const BillboardExport = ({ currentFilters }: BillboardExportProps) => {
 
             <div className="flex items-center gap-3">
               <span className="text-sm w-24">Department:</span>
-              <Select value={exportFilters.department} onValueChange={(v) => setExportFilters(p => ({ ...p, department: v }))}>
+              <Select value={exportFilters.department || "__all__"} onValueChange={(v) => setExportFilters(p => ({ ...p, department: v === "__all__" ? "" : v }))}>
                 <SelectTrigger className="flex-1">
                   <SelectValue placeholder="ทั้งหมด" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">ทั้งหมด</SelectItem>
+                  <SelectItem value="__all__">ทั้งหมด</SelectItem>
                   {filterOptions?.departments.map((d) => (
                     <SelectItem key={d} value={d!}>{d}</SelectItem>
                   ))}
@@ -170,12 +170,12 @@ const BillboardExport = ({ currentFilters }: BillboardExportProps) => {
 
             <div className="flex items-center gap-3">
               <span className="text-sm w-24">Status:</span>
-              <Select value={exportFilters.status} onValueChange={(v) => setExportFilters(p => ({ ...p, status: v }))}>
+              <Select value={exportFilters.status || "__all__"} onValueChange={(v) => setExportFilters(p => ({ ...p, status: v === "__all__" ? "" : v }))}>
                 <SelectTrigger className="flex-1">
                   <SelectValue placeholder="ทั้งหมด" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">ทั้งหมด</SelectItem>
+                  <SelectItem value="__all__">ทั้งหมด</SelectItem>
                   {filterOptions?.statuses.map((s) => (
                     <SelectItem key={s} value={s!}>
                       {s === "active" ? "ใช้งาน" : s === "maintenance" ? "บำรุงรักษา" : s === "inactive" ? "ไม่ใช้งาน" : s}
