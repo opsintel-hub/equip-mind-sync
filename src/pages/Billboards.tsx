@@ -39,6 +39,7 @@ const Billboards = () => {
     department: "",
     mediaType: "",
     status: "",
+    locationName: "",
   });
 
   const handleFilterChange = (key: string, value: string) => {
@@ -47,7 +48,7 @@ const Billboards = () => {
   };
 
   const handleClearFilters = () => {
-    setFilters({ region: "", district: "", department: "", mediaType: "", status: "" });
+    setFilters({ region: "", district: "", department: "", mediaType: "", status: "", locationName: "" });
     setCurrentPage(1);
   };
 
@@ -72,6 +73,7 @@ const Billboards = () => {
       if (filters.department) query = query.eq("department", filters.department);
       if (filters.mediaType) query = query.eq("media_type", filters.mediaType);
       if (filters.status) query = query.eq("status", filters.status);
+      if (filters.locationName) query = query.ilike("location_name", `%${filters.locationName}%`);
 
       const { data, error, count } = await query;
       if (error) throw error;
