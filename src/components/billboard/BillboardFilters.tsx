@@ -45,60 +45,60 @@ const BillboardFilters = ({ filters, onFilterChange, onClearFilters }: Billboard
         ตัวกรอง:
       </div>
 
-      <Select value={filters.region} onValueChange={(v) => onFilterChange("region", v)}>
+      <Select value={filters.region || "__all__"} onValueChange={(v) => onFilterChange("region", v === "__all__" ? "" : v)}>
         <SelectTrigger className="w-40">
           <SelectValue placeholder="Region" />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="">ทั้งหมด</SelectItem>
+          <SelectItem value="__all__">ทั้งหมด</SelectItem>
           {filterOptions?.regions.map((r) => (
             <SelectItem key={r} value={r!}>{r}</SelectItem>
           ))}
         </SelectContent>
       </Select>
 
-      <Select value={filters.district} onValueChange={(v) => onFilterChange("district", v)}>
+      <Select value={filters.district || "__all__"} onValueChange={(v) => onFilterChange("district", v === "__all__" ? "" : v)}>
         <SelectTrigger className="w-40">
           <SelectValue placeholder="District" />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="">ทั้งหมด</SelectItem>
+          <SelectItem value="__all__">ทั้งหมด</SelectItem>
           {filterOptions?.districts.map((d) => (
             <SelectItem key={d} value={d!}>{d}</SelectItem>
           ))}
         </SelectContent>
       </Select>
 
-      <Select value={filters.department} onValueChange={(v) => onFilterChange("department", v)}>
+      <Select value={filters.department || "__all__"} onValueChange={(v) => onFilterChange("department", v === "__all__" ? "" : v)}>
         <SelectTrigger className="w-40">
           <SelectValue placeholder="Department" />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="">ทั้งหมด</SelectItem>
+          <SelectItem value="__all__">ทั้งหมด</SelectItem>
           {filterOptions?.departments.map((d) => (
             <SelectItem key={d} value={d!}>{d}</SelectItem>
           ))}
         </SelectContent>
       </Select>
 
-      <Select value={filters.mediaType} onValueChange={(v) => onFilterChange("mediaType", v)}>
+      <Select value={filters.mediaType || "__all__"} onValueChange={(v) => onFilterChange("mediaType", v === "__all__" ? "" : v)}>
         <SelectTrigger className="w-48">
           <SelectValue placeholder="Media Type" />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="">ทั้งหมด</SelectItem>
+          <SelectItem value="__all__">ทั้งหมด</SelectItem>
           {filterOptions?.mediaTypes.map((m) => (
             <SelectItem key={m} value={m!}>{m}</SelectItem>
           ))}
         </SelectContent>
       </Select>
 
-      <Select value={filters.status} onValueChange={(v) => onFilterChange("status", v)}>
+      <Select value={filters.status || "__all__"} onValueChange={(v) => onFilterChange("status", v === "__all__" ? "" : v)}>
         <SelectTrigger className="w-32">
           <SelectValue placeholder="สถานะ" />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="">ทั้งหมด</SelectItem>
+          <SelectItem value="__all__">ทั้งหมด</SelectItem>
           {filterOptions?.statuses.map((s) => (
             <SelectItem key={s} value={s!}>
               {s === "active" ? "ใช้งาน" : s === "maintenance" ? "บำรุงรักษา" : s === "inactive" ? "ไม่ใช้งาน" : s}
