@@ -9,13 +9,15 @@ import { Textarea } from "@/components/ui/textarea";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Search, Package, Clock, CheckCircle, XCircle, Edit } from "lucide-react";
+import { Search, Package, Clock, CheckCircle, XCircle, MapPin } from "lucide-react";
 import { format } from "date-fns";
 import { th } from "date-fns/locale";
 import { useAuth } from "@/hooks/useAuth";
 import { LocationSelect } from "@/components/equipment/LocationSelect";
+import BillboardSelect from "@/components/billboard/BillboardSelect";
 
 interface PendingRequest {
   id: string;
@@ -47,6 +49,8 @@ const IssueGoods = () => {
     issued_quantity: "",
     issued_location_id: "",
     notes: "",
+    install_to_billboard: false,
+    billboard_id: "",
   });
   const [rejectReason, setRejectReason] = useState("");
 
@@ -110,14 +114,33 @@ const IssueGoods = () => {
           if (stockError) throw stockError;
         }
       }
+
+      // If installing to billboard, create billboard_equipment record
+      if (issueData.install_to_billboard && issueData.billboard_id && selectedRequest.equipment_id) {
+        const { error: billboardError } = await supabase
+          .from("billboard_equipment")
+          .insert({
+            billboard_id: issueData.billboard_id,
+            equipment_id: selectedRequest.equipment_id,
+            quantity: issuedQty,
+            installation_date: new Date().toISOString().split('T')[0],
+            notes: issueData.notes || `เบิกจากเอกสาร ${selectedRequest.document_no}`,
+            created_by: user.id,
+          });
+        if (billboardError) throw billboardError;
+      }
     },
     onSuccess: () => {
-      toast.success("จ่ายสินค้าสำเร็จ");
+      const successMessage = issueData.install_to_billboard && issueData.billboard_id
+        ? "จ่ายสินค้าและบันทึกการติดตั้งที่ป้ายสำเร็จ"
+        : "จ่ายสินค้าสำเร็จ";
+      toast.success(successMessage);
       queryClient.invalidateQueries({ queryKey: ["goods-issue-pending-staff"] });
       queryClient.invalidateQueries({ queryKey: ["equipment-active"] });
+      queryClient.invalidateQueries({ queryKey: ["billboard-equipment"] });
       setIssueDialogOpen(false);
       setSelectedRequest(null);
-      setIssueData({ issued_quantity: "", issued_location_id: "", notes: "" });
+      setIssueData({ issued_quantity: "", issued_location_id: "", notes: "", install_to_billboard: false, billboard_id: "" });
     },
     onError: (error) => {
       toast.error("เกิดข้อผิดพลาด: " + error.message);
@@ -157,6 +180,8 @@ const IssueGoods = () => {
       issued_quantity: request.quantity.toString(),
       issued_location_id: "",
       notes: request.notes || "",
+      install_to_billboard: false,
+      billboard_id: "",
     });
     setIssueDialogOpen(true);
   };
@@ -365,6 +390,43 @@ const IssueGoods = () => {
               />
             </div>
 
+            {/* Billboard Installation Option */}
+            {selectedRequest?.equipment_id && (
+              <div className="space-y-3 p-4 bg-muted/50 rounded-lg border border-dashed">
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="install_to_billboard"
+                    checked={issueData.install_to_billboard}
+                    onCheckedChange={(checked) => 
+                      setIssueData({ 
+                        ...issueData, 
+                        install_to_billboard: checked === true,
+                        billboard_id: checked ? issueData.billboard_id : ""
+                      })
+                    }
+                  />
+                  <Label htmlFor="install_to_billboard" className="flex items-center gap-2 cursor-pointer">
+                    <MapPin className="h-4 w-4 text-primary" />
+                    ติดตั้งที่ป้ายโฆษณา
+                  </Label>
+                </div>
+                
+                {issueData.install_to_billboard && (
+                  <div className="space-y-2 ml-6">
+                    <Label>เลือกป้ายโฆษณาปลายทาง *</Label>
+                    <BillboardSelect
+                      value={issueData.billboard_id}
+                      onChange={(value) => setIssueData({ ...issueData, billboard_id: value })}
+                      placeholder="ค้นหาและเลือกป้ายโฆษณา..."
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      ระบบจะบันทึกอุปกรณ์นี้เป็นอุปกรณ์ที่ติดตั้งที่ป้ายโฆษณาที่เลือก
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+
             <div className="space-y-2">
               <Label htmlFor="notes">หมายเหตุ</Label>
               <Textarea
@@ -379,7 +441,10 @@ const IssueGoods = () => {
             <Button variant="outline" onClick={() => setIssueDialogOpen(false)}>
               ยกเลิก
             </Button>
-            <Button onClick={() => issueGoods.mutate()} disabled={issueGoods.isPending}>
+            <Button 
+              onClick={() => issueGoods.mutate()} 
+              disabled={issueGoods.isPending || (issueData.install_to_billboard && !issueData.billboard_id)}
+            >
               {issueGoods.isPending ? "กำลังบันทึก..." : "ยืนยันการจ่าย"}
             </Button>
           </DialogFooter>

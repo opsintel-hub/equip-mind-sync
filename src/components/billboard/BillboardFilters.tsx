@@ -13,6 +13,7 @@ interface BillboardFiltersProps {
     mediaType: string;
     status: string;
     locationName: string;
+    equipmentStatus: string;
   };
   onFilterChange: (key: string, value: string) => void;
   onClearFilters: () => void;
@@ -132,6 +133,22 @@ const BillboardFilters = ({ filters, onFilterChange, onClearFilters }: Billboard
           onChange={(e) => onFilterChange("locationName", e.target.value)}
           className="w-48"
         />
+      </div>
+
+      <div className="flex flex-col gap-1">
+        <span className="text-xs text-muted-foreground">สถานะอุปกรณ์</span>
+        <Select value={filters.equipmentStatus || "__all__"} onValueChange={(v) => onFilterChange("equipmentStatus", v === "__all__" ? "" : v)}>
+          <SelectTrigger className="w-44">
+            <SelectValue placeholder="สถานะอุปกรณ์" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="__all__">ทั้งหมด</SelectItem>
+            <SelectItem value="expired">มีอุปกรณ์หมดอายุ</SelectItem>
+            <SelectItem value="warranty_expired">มีอุปกรณ์หมดประกัน</SelectItem>
+            <SelectItem value="expiring_soon">ใกล้หมดอายุ (30 วัน)</SelectItem>
+            <SelectItem value="warranty_expiring_soon">ใกล้หมดประกัน (30 วัน)</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       {hasActiveFilters && (
