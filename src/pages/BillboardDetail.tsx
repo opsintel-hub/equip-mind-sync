@@ -4,8 +4,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ArrowLeft, MapPin, Building2, Monitor, Globe, Package, Calendar } from "lucide-react";
+import { ArrowLeft, MapPin, Building2, Monitor, Globe, Package, Calendar, AlertTriangle, Clock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { differenceInDays, format } from "date-fns";
+import { th } from "date-fns/locale";
 
 const BillboardDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -37,7 +39,9 @@ const BillboardDetail = () => {
             code,
             name,
             unit,
-            category
+            category,
+            expiry_date,
+            warranty_expiry_date
           )
         `)
         .eq("billboard_id", id);
@@ -46,6 +50,28 @@ const BillboardDetail = () => {
     },
     enabled: !!id,
   });
+
+  const calculateDaysInstalled = (installDate: string | null) => {
+    if (!installDate) return null;
+    const days = differenceInDays(new Date(), new Date(installDate));
+    return days;
+  };
+
+  const getExpiryStatus = (expiryDate: string | null) => {
+    if (!expiryDate) return null;
+    const days = differenceInDays(new Date(expiryDate), new Date());
+    if (days < 0) return { status: "expired", days: Math.abs(days), label: "หมดอายุ" };
+    if (days <= 30) return { status: "warning", days, label: "ใกล้หมดอายุ" };
+    return { status: "ok", days, label: "ปกติ" };
+  };
+
+  const getWarrantyStatus = (warrantyDate: string | null) => {
+    if (!warrantyDate) return null;
+    const days = differenceInDays(new Date(warrantyDate), new Date());
+    if (days < 0) return { status: "expired", days: Math.abs(days), label: "หมดประกัน" };
+    if (days <= 30) return { status: "warning", days, label: "ใกล้หมดประกัน" };
+    return { status: "ok", days, label: "มีประกัน" };
+  };
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -268,7 +294,7 @@ const BillboardDetail = () => {
           </CardHeader>
           <CardContent>
             {installedEquipment && installedEquipment.length > 0 ? (
-              <div className="rounded-lg border">
+              <div className="rounded-lg border overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow className="bg-muted/50">
@@ -277,26 +303,79 @@ const BillboardDetail = () => {
                       <TableHead>หมวดหมู่</TableHead>
                       <TableHead className="text-right">จำนวน</TableHead>
                       <TableHead>วันที่ติดตั้ง</TableHead>
+                      <TableHead>ระยะเวลาติดตั้ง</TableHead>
+                      <TableHead>วันหมดอายุ</TableHead>
+                      <TableHead>วันหมดประกัน</TableHead>
                       <TableHead>หมายเหตุ</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {installedEquipment.map((item) => (
-                      <TableRow key={item.id}>
-                        <TableCell className="font-medium">{item.equipment?.code || "-"}</TableCell>
-                        <TableCell>{item.equipment?.name || "-"}</TableCell>
-                        <TableCell>{item.equipment?.category || "-"}</TableCell>
-                        <TableCell className="text-right">
-                          {item.quantity} {item.equipment?.unit || "ชิ้น"}
-                        </TableCell>
-                        <TableCell>
-                          {item.installation_date 
-                            ? new Date(item.installation_date).toLocaleDateString("th-TH") 
-                            : "-"}
-                        </TableCell>
-                        <TableCell className="max-w-xs truncate">{item.notes || "-"}</TableCell>
-                      </TableRow>
-                    ))}
+                    {installedEquipment.map((item) => {
+                      const daysInstalled = calculateDaysInstalled(item.installation_date);
+                      const expiryStatus = getExpiryStatus(item.equipment?.expiry_date);
+                      const warrantyStatus = getWarrantyStatus(item.equipment?.warranty_expiry_date);
+
+                      return (
+                        <TableRow key={item.id}>
+                          <TableCell className="font-medium">{item.equipment?.code || "-"}</TableCell>
+                          <TableCell>{item.equipment?.name || "-"}</TableCell>
+                          <TableCell>{item.equipment?.category || "-"}</TableCell>
+                          <TableCell className="text-right">
+                            {item.quantity} {item.equipment?.unit || "ชิ้น"}
+                          </TableCell>
+                          <TableCell>
+                            {item.installation_date 
+                              ? format(new Date(item.installation_date), "d MMM yyyy", { locale: th })
+                              : "-"}
+                          </TableCell>
+                          <TableCell>
+                            {daysInstalled !== null ? (
+                              <div className="flex items-center gap-1">
+                                <Clock className="w-3 h-3 text-muted-foreground" />
+                                <span>{daysInstalled} วัน</span>
+                              </div>
+                            ) : "-"}
+                          </TableCell>
+                          <TableCell>
+                            {item.equipment?.expiry_date ? (
+                              <div className="space-y-1">
+                                <div className="text-xs">
+                                  {format(new Date(item.equipment.expiry_date), "d MMM yyyy", { locale: th })}
+                                </div>
+                                {expiryStatus && (
+                                  <Badge 
+                                    variant={expiryStatus.status === "expired" ? "destructive" : expiryStatus.status === "warning" ? "default" : "secondary"}
+                                    className={`text-xs ${expiryStatus.status === "warning" ? "bg-warning/10 text-warning hover:bg-warning/20" : ""}`}
+                                  >
+                                    {expiryStatus.status === "expired" && <AlertTriangle className="w-3 h-3 mr-1" />}
+                                    {expiryStatus.label} {expiryStatus.status !== "ok" && `(${expiryStatus.days} วัน)`}
+                                  </Badge>
+                                )}
+                              </div>
+                            ) : "-"}
+                          </TableCell>
+                          <TableCell>
+                            {item.equipment?.warranty_expiry_date ? (
+                              <div className="space-y-1">
+                                <div className="text-xs">
+                                  {format(new Date(item.equipment.warranty_expiry_date), "d MMM yyyy", { locale: th })}
+                                </div>
+                                {warrantyStatus && (
+                                  <Badge 
+                                    variant={warrantyStatus.status === "expired" ? "destructive" : warrantyStatus.status === "warning" ? "default" : "secondary"}
+                                    className={`text-xs ${warrantyStatus.status === "warning" ? "bg-warning/10 text-warning hover:bg-warning/20" : ""}`}
+                                  >
+                                    {warrantyStatus.status === "expired" && <AlertTriangle className="w-3 h-3 mr-1" />}
+                                    {warrantyStatus.label} {warrantyStatus.status !== "ok" && `(${warrantyStatus.days} วัน)`}
+                                  </Badge>
+                                )}
+                              </div>
+                            ) : "-"}
+                          </TableCell>
+                          <TableCell className="max-w-xs truncate">{item.notes || "-"}</TableCell>
+                        </TableRow>
+                      );
+                    })}
                   </TableBody>
                 </Table>
               </div>
