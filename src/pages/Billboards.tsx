@@ -40,6 +40,7 @@ const Billboards = () => {
     mediaType: "",
     status: "",
     locationName: "",
+    equipmentStatus: "",
   });
 
   const handleFilterChange = (key: string, value: string) => {
@@ -48,7 +49,7 @@ const Billboards = () => {
   };
 
   const handleClearFilters = () => {
-    setFilters({ region: "", district: "", department: "", mediaType: "", status: "", locationName: "" });
+    setFilters({ region: "", district: "", department: "", mediaType: "", status: "", locationName: "", equipmentStatus: "" });
     setCurrentPage(1);
   };
 
@@ -58,6 +59,64 @@ const Billboards = () => {
     queryFn: async () => {
       const from = (currentPage - 1) * pageSize;
       const to = from + pageSize - 1;
+
+      // If equipment status filter is active, we need to filter by billboard IDs
+      let billboardIdsWithEquipmentIssues: string[] | null = null;
+      
+      if (filters.equipmentStatus) {
+        const today = new Date().toISOString().split('T')[0];
+        const thirtyDaysFromNow = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+        
+        // Fetch billboard_equipment with equipment expiry/warranty info
+        const { data: billboardEquipment, error: beError } = await supabase
+          .from("billboard_equipment")
+          .select(`
+            billboard_id,
+            equipment:equipment_id (
+              expiry_date,
+              warranty_expiry_date
+            )
+          `);
+        
+        if (beError) throw beError;
+        
+        const matchingBillboardIds = new Set<string>();
+        
+        billboardEquipment?.forEach((be) => {
+          const eq = be.equipment as { expiry_date: string | null; warranty_expiry_date: string | null } | null;
+          if (!eq) return;
+          
+          switch (filters.equipmentStatus) {
+            case "expired":
+              if (eq.expiry_date && eq.expiry_date < today) {
+                matchingBillboardIds.add(be.billboard_id);
+              }
+              break;
+            case "warranty_expired":
+              if (eq.warranty_expiry_date && eq.warranty_expiry_date < today) {
+                matchingBillboardIds.add(be.billboard_id);
+              }
+              break;
+            case "expiring_soon":
+              if (eq.expiry_date && eq.expiry_date >= today && eq.expiry_date <= thirtyDaysFromNow) {
+                matchingBillboardIds.add(be.billboard_id);
+              }
+              break;
+            case "warranty_expiring_soon":
+              if (eq.warranty_expiry_date && eq.warranty_expiry_date >= today && eq.warranty_expiry_date <= thirtyDaysFromNow) {
+                matchingBillboardIds.add(be.billboard_id);
+              }
+              break;
+          }
+        });
+        
+        billboardIdsWithEquipmentIssues = Array.from(matchingBillboardIds);
+        
+        // If no matching billboards, return empty result
+        if (billboardIdsWithEquipmentIssues.length === 0) {
+          return { data: [], count: 0 };
+        }
+      }
 
       let query = supabase
         .from("billboards")
@@ -74,6 +133,9 @@ const Billboards = () => {
       if (filters.mediaType) query = query.eq("media_type", filters.mediaType);
       if (filters.status) query = query.eq("status", filters.status);
       if (filters.locationName) query = query.ilike("location_name", `%${filters.locationName}%`);
+      if (billboardIdsWithEquipmentIssues) {
+        query = query.in("id", billboardIdsWithEquipmentIssues);
+      }
 
       const { data, error, count } = await query;
       if (error) throw error;
