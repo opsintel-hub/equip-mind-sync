@@ -1,17 +1,42 @@
+import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ArrowLeft, MapPin, Building2, Monitor, Globe, Package, Calendar, AlertTriangle, Clock } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ArrowLeft, MapPin, Building2, Monitor, Globe, Package, Calendar, AlertTriangle, Clock, Trash2, History, RotateCcw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { differenceInDays, format } from "date-fns";
 import { th } from "date-fns/locale";
+import { toast } from "sonner";
+import { useAuth } from "@/hooks/useAuth";
+import { LocationSelect } from "@/components/equipment/LocationSelect";
+
+interface UninstallData {
+  uninstall_reason: string;
+  return_to_stock: boolean;
+  return_location_id: string;
+}
 
 const BillboardDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+  
+  const [uninstallDialogOpen, setUninstallDialogOpen] = useState(false);
+  const [selectedEquipment, setSelectedEquipment] = useState<any>(null);
+  const [uninstallData, setUninstallData] = useState<UninstallData>({
+    uninstall_reason: "",
+    return_to_stock: false,
+    return_location_id: "",
+  });
 
   const { data: billboard, isLoading } = useQuery({
     queryKey: ["billboard", id],
@@ -27,7 +52,7 @@ const BillboardDetail = () => {
     enabled: !!id,
   });
 
-  const { data: installedEquipment } = useQuery({
+  const { data: installedEquipment, refetch: refetchEquipment } = useQuery({
     queryKey: ["billboard-equipment", id],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -41,7 +66,8 @@ const BillboardDetail = () => {
             unit,
             category,
             expiry_date,
-            warranty_expiry_date
+            warranty_expiry_date,
+            quantity_in_stock
           )
         `)
         .eq("billboard_id", id);
@@ -50,6 +76,100 @@ const BillboardDetail = () => {
     },
     enabled: !!id,
   });
+
+  const { data: equipmentHistory } = useQuery({
+    queryKey: ["billboard-equipment-history", id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("billboard_equipment_history")
+        .select("*")
+        .eq("billboard_id", id)
+        .order("uninstall_date", { ascending: false });
+      if (error) throw error;
+      
+      // Fetch equipment details for each history record
+      const equipmentIds = [...new Set(data.map(h => h.equipment_id))];
+      const { data: equipmentData } = await supabase
+        .from("equipment")
+        .select("id, code, name, unit, category")
+        .in("id", equipmentIds);
+      
+      const equipmentMap = new Map(equipmentData?.map(e => [e.id, e]) || []);
+      
+      return data.map(h => ({
+        ...h,
+        equipment: equipmentMap.get(h.equipment_id) || null
+      }));
+    },
+    enabled: !!id,
+  });
+
+  const uninstallMutation = useMutation({
+    mutationFn: async () => {
+      if (!selectedEquipment || !user || !id) return;
+
+      // 1. Insert into history table
+      const { error: historyError } = await supabase
+        .from("billboard_equipment_history")
+        .insert({
+          billboard_id: id,
+          equipment_id: selectedEquipment.equipment_id,
+          quantity: selectedEquipment.quantity,
+          installation_date: selectedEquipment.installation_date,
+          uninstall_date: new Date().toISOString().split('T')[0],
+          installed_by: selectedEquipment.created_by,
+          uninstalled_by: user.id,
+          installation_notes: selectedEquipment.notes,
+          uninstall_reason: uninstallData.uninstall_reason,
+          return_to_stock: uninstallData.return_to_stock,
+          return_location_id: uninstallData.return_to_stock && uninstallData.return_location_id 
+            ? uninstallData.return_location_id 
+            : null,
+        });
+
+      if (historyError) throw historyError;
+
+      // 2. If returning to stock, update equipment quantity
+      if (uninstallData.return_to_stock && selectedEquipment.equipment) {
+        const newStock = (selectedEquipment.equipment.quantity_in_stock || 0) + selectedEquipment.quantity;
+        const { error: stockError } = await supabase
+          .from("equipment")
+          .update({ quantity_in_stock: newStock })
+          .eq("id", selectedEquipment.equipment_id);
+        
+        if (stockError) throw stockError;
+      }
+
+      // 3. Delete from billboard_equipment
+      const { error: deleteError } = await supabase
+        .from("billboard_equipment")
+        .delete()
+        .eq("id", selectedEquipment.id);
+
+      if (deleteError) throw deleteError;
+    },
+    onSuccess: () => {
+      const successMsg = uninstallData.return_to_stock 
+        ? "ถอดอุปกรณ์และคืนสต็อกสำเร็จ" 
+        : "ถอดอุปกรณ์สำเร็จ";
+      toast.success(successMsg);
+      queryClient.invalidateQueries({ queryKey: ["billboard-equipment", id] });
+      queryClient.invalidateQueries({ queryKey: ["billboard-equipment-history", id] });
+      queryClient.invalidateQueries({ queryKey: ["equipment-active"] });
+      setUninstallDialogOpen(false);
+      setSelectedEquipment(null);
+      setUninstallData({ uninstall_reason: "", return_to_stock: false, return_location_id: "" });
+    },
+    onError: (error) => {
+      toast.error("เกิดข้อผิดพลาด: " + error.message);
+    },
+  });
+
+  const handleUninstall = (equipment: any) => {
+    setSelectedEquipment(equipment);
+    setUninstallData({ uninstall_reason: "", return_to_stock: false, return_location_id: "" });
+    setUninstallDialogOpen(true);
+  };
 
   const calculateDaysInstalled = (installDate: string | null) => {
     if (!installDate) return null;
@@ -284,106 +404,204 @@ const BillboardDetail = () => {
           </Card>
         )}
 
-        {/* Installed Equipment */}
+        {/* Equipment Section with Tabs */}
         <Card className="lg:col-span-2">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-lg">
               <Package className="w-5 h-5" />
-              อุปกรณ์ที่ติดตั้ง ({installedEquipment?.length || 0} รายการ)
+              อุปกรณ์
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {installedEquipment && installedEquipment.length > 0 ? (
-              <div className="rounded-lg border overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow className="bg-muted/50">
-                      <TableHead>รหัสอุปกรณ์</TableHead>
-                      <TableHead>ชื่ออุปกรณ์</TableHead>
-                      <TableHead>หมวดหมู่</TableHead>
-                      <TableHead className="text-right">จำนวน</TableHead>
-                      <TableHead>วันที่ติดตั้ง</TableHead>
-                      <TableHead>ระยะเวลาติดตั้ง</TableHead>
-                      <TableHead>วันหมดอายุ</TableHead>
-                      <TableHead>วันหมดประกัน</TableHead>
-                      <TableHead>หมายเหตุ</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {installedEquipment.map((item) => {
-                      const daysInstalled = calculateDaysInstalled(item.installation_date);
-                      const expiryStatus = getExpiryStatus(item.equipment?.expiry_date);
-                      const warrantyStatus = getWarrantyStatus(item.equipment?.warranty_expiry_date);
+            <Tabs defaultValue="installed" className="w-full">
+              <TabsList className="mb-4">
+                <TabsTrigger value="installed" className="flex items-center gap-2">
+                  <Package className="w-4 h-4" />
+                  ติดตั้งอยู่ ({installedEquipment?.length || 0})
+                </TabsTrigger>
+                <TabsTrigger value="history" className="flex items-center gap-2">
+                  <History className="w-4 h-4" />
+                  ประวัติการถอด ({equipmentHistory?.length || 0})
+                </TabsTrigger>
+              </TabsList>
 
-                      return (
-                        <TableRow key={item.id}>
-                          <TableCell className="font-medium">{item.equipment?.code || "-"}</TableCell>
-                          <TableCell>{item.equipment?.name || "-"}</TableCell>
-                          <TableCell>{item.equipment?.category || "-"}</TableCell>
-                          <TableCell className="text-right">
-                            {item.quantity} {item.equipment?.unit || "ชิ้น"}
-                          </TableCell>
-                          <TableCell>
-                            {item.installation_date 
-                              ? format(new Date(item.installation_date), "d MMM yyyy", { locale: th })
-                              : "-"}
-                          </TableCell>
-                          <TableCell>
-                            {daysInstalled !== null ? (
-                              <div className="flex items-center gap-1">
-                                <Clock className="w-3 h-3 text-muted-foreground" />
-                                <span>{daysInstalled} วัน</span>
-                              </div>
-                            ) : "-"}
-                          </TableCell>
-                          <TableCell>
-                            {item.equipment?.expiry_date ? (
-                              <div className="space-y-1">
-                                <div className="text-xs">
-                                  {format(new Date(item.equipment.expiry_date), "d MMM yyyy", { locale: th })}
-                                </div>
-                                {expiryStatus && (
-                                  <Badge 
-                                    variant={expiryStatus.status === "expired" ? "destructive" : expiryStatus.status === "warning" ? "default" : "secondary"}
-                                    className={`text-xs ${expiryStatus.status === "warning" ? "bg-warning/10 text-warning hover:bg-warning/20" : ""}`}
-                                  >
-                                    {expiryStatus.status === "expired" && <AlertTriangle className="w-3 h-3 mr-1" />}
-                                    {expiryStatus.label} {expiryStatus.status !== "ok" && `(${expiryStatus.days} วัน)`}
-                                  </Badge>
-                                )}
-                              </div>
-                            ) : "-"}
-                          </TableCell>
-                          <TableCell>
-                            {item.equipment?.warranty_expiry_date ? (
-                              <div className="space-y-1">
-                                <div className="text-xs">
-                                  {format(new Date(item.equipment.warranty_expiry_date), "d MMM yyyy", { locale: th })}
-                                </div>
-                                {warrantyStatus && (
-                                  <Badge 
-                                    variant={warrantyStatus.status === "expired" ? "destructive" : warrantyStatus.status === "warning" ? "default" : "secondary"}
-                                    className={`text-xs ${warrantyStatus.status === "warning" ? "bg-warning/10 text-warning hover:bg-warning/20" : ""}`}
-                                  >
-                                    {warrantyStatus.status === "expired" && <AlertTriangle className="w-3 h-3 mr-1" />}
-                                    {warrantyStatus.label} {warrantyStatus.status !== "ok" && `(${warrantyStatus.days} วัน)`}
-                                  </Badge>
-                                )}
-                              </div>
-                            ) : "-"}
-                          </TableCell>
-                          <TableCell className="max-w-xs truncate">{item.notes || "-"}</TableCell>
+              <TabsContent value="installed">
+                {installedEquipment && installedEquipment.length > 0 ? (
+                  <div className="rounded-lg border overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="bg-muted/50">
+                          <TableHead>รหัสอุปกรณ์</TableHead>
+                          <TableHead>ชื่ออุปกรณ์</TableHead>
+                          <TableHead>หมวดหมู่</TableHead>
+                          <TableHead className="text-right">จำนวน</TableHead>
+                          <TableHead>วันที่ติดตั้ง</TableHead>
+                          <TableHead>ระยะเวลาติดตั้ง</TableHead>
+                          <TableHead>วันหมดอายุ</TableHead>
+                          <TableHead>วันหมดประกัน</TableHead>
+                          <TableHead>หมายเหตุ</TableHead>
+                          <TableHead className="text-center">จัดการ</TableHead>
                         </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
-              </div>
-            ) : (
-              <div className="text-center py-8 text-muted-foreground">
-                ยังไม่มีอุปกรณ์ที่ติดตั้ง
-              </div>
-            )}
+                      </TableHeader>
+                      <TableBody>
+                        {installedEquipment.map((item) => {
+                          const daysInstalled = calculateDaysInstalled(item.installation_date);
+                          const expiryStatus = getExpiryStatus(item.equipment?.expiry_date);
+                          const warrantyStatus = getWarrantyStatus(item.equipment?.warranty_expiry_date);
+
+                          return (
+                            <TableRow key={item.id}>
+                              <TableCell className="font-medium">{item.equipment?.code || "-"}</TableCell>
+                              <TableCell>{item.equipment?.name || "-"}</TableCell>
+                              <TableCell>{item.equipment?.category || "-"}</TableCell>
+                              <TableCell className="text-right">
+                                {item.quantity} {item.equipment?.unit || "ชิ้น"}
+                              </TableCell>
+                              <TableCell>
+                                {item.installation_date 
+                                  ? format(new Date(item.installation_date), "d MMM yyyy", { locale: th })
+                                  : "-"}
+                              </TableCell>
+                              <TableCell>
+                                {daysInstalled !== null ? (
+                                  <div className="flex items-center gap-1">
+                                    <Clock className="w-3 h-3 text-muted-foreground" />
+                                    <span>{daysInstalled} วัน</span>
+                                  </div>
+                                ) : "-"}
+                              </TableCell>
+                              <TableCell>
+                                {item.equipment?.expiry_date ? (
+                                  <div className="space-y-1">
+                                    <div className="text-xs">
+                                      {format(new Date(item.equipment.expiry_date), "d MMM yyyy", { locale: th })}
+                                    </div>
+                                    {expiryStatus && (
+                                      <Badge 
+                                        variant={expiryStatus.status === "expired" ? "destructive" : expiryStatus.status === "warning" ? "default" : "secondary"}
+                                        className={`text-xs ${expiryStatus.status === "warning" ? "bg-warning/10 text-warning hover:bg-warning/20" : ""}`}
+                                      >
+                                        {expiryStatus.status === "expired" && <AlertTriangle className="w-3 h-3 mr-1" />}
+                                        {expiryStatus.label} {expiryStatus.status !== "ok" && `(${expiryStatus.days} วัน)`}
+                                      </Badge>
+                                    )}
+                                  </div>
+                                ) : "-"}
+                              </TableCell>
+                              <TableCell>
+                                {item.equipment?.warranty_expiry_date ? (
+                                  <div className="space-y-1">
+                                    <div className="text-xs">
+                                      {format(new Date(item.equipment.warranty_expiry_date), "d MMM yyyy", { locale: th })}
+                                    </div>
+                                    {warrantyStatus && (
+                                      <Badge 
+                                        variant={warrantyStatus.status === "expired" ? "destructive" : warrantyStatus.status === "warning" ? "default" : "secondary"}
+                                        className={`text-xs ${warrantyStatus.status === "warning" ? "bg-warning/10 text-warning hover:bg-warning/20" : ""}`}
+                                      >
+                                        {warrantyStatus.status === "expired" && <AlertTriangle className="w-3 h-3 mr-1" />}
+                                        {warrantyStatus.label} {warrantyStatus.status !== "ok" && `(${warrantyStatus.days} วัน)`}
+                                      </Badge>
+                                    )}
+                                  </div>
+                                ) : "-"}
+                              </TableCell>
+                              <TableCell className="max-w-xs truncate">{item.notes || "-"}</TableCell>
+                              <TableCell className="text-center">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleUninstall(item)}
+                                  className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                                  title="ถอดอุปกรณ์"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-muted-foreground">
+                    ยังไม่มีอุปกรณ์ที่ติดตั้ง
+                  </div>
+                )}
+              </TabsContent>
+
+              <TabsContent value="history">
+                {equipmentHistory && equipmentHistory.length > 0 ? (
+                  <div className="rounded-lg border overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="bg-muted/50">
+                          <TableHead>รหัสอุปกรณ์</TableHead>
+                          <TableHead>ชื่ออุปกรณ์</TableHead>
+                          <TableHead className="text-right">จำนวน</TableHead>
+                          <TableHead>วันที่ติดตั้ง</TableHead>
+                          <TableHead>วันที่ถอด</TableHead>
+                          <TableHead>ระยะเวลาใช้งาน</TableHead>
+                          <TableHead>เหตุผลการถอด</TableHead>
+                          <TableHead>คืนสต็อก</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {equipmentHistory.map((item) => {
+                          const daysUsed = item.installation_date && item.uninstall_date
+                            ? differenceInDays(new Date(item.uninstall_date), new Date(item.installation_date))
+                            : null;
+
+                          return (
+                            <TableRow key={item.id}>
+                              <TableCell className="font-medium">{item.equipment?.code || "-"}</TableCell>
+                              <TableCell>{item.equipment?.name || "-"}</TableCell>
+                              <TableCell className="text-right">
+                                {item.quantity} {item.equipment?.unit || "ชิ้น"}
+                              </TableCell>
+                              <TableCell>
+                                {item.installation_date 
+                                  ? format(new Date(item.installation_date), "d MMM yyyy", { locale: th })
+                                  : "-"}
+                              </TableCell>
+                              <TableCell>
+                                {item.uninstall_date 
+                                  ? format(new Date(item.uninstall_date), "d MMM yyyy", { locale: th })
+                                  : "-"}
+                              </TableCell>
+                              <TableCell>
+                                {daysUsed !== null ? (
+                                  <div className="flex items-center gap-1">
+                                    <Clock className="w-3 h-3 text-muted-foreground" />
+                                    <span>{daysUsed} วัน</span>
+                                  </div>
+                                ) : "-"}
+                              </TableCell>
+                              <TableCell className="max-w-xs truncate">{item.uninstall_reason || "-"}</TableCell>
+                              <TableCell>
+                                {item.return_to_stock ? (
+                                  <Badge className="bg-success/10 text-success">
+                                    <RotateCcw className="w-3 h-3 mr-1" />
+                                    คืนแล้ว
+                                  </Badge>
+                                ) : (
+                                  <Badge variant="secondary">ไม่คืน</Badge>
+                                )}
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-muted-foreground">
+                    ยังไม่มีประวัติการถอดอุปกรณ์
+                  </div>
+                )}
+              </TabsContent>
+            </Tabs>
           </CardContent>
         </Card>
 
@@ -399,6 +617,83 @@ const BillboardDetail = () => {
           </Card>
         )}
       </div>
+
+      {/* Uninstall Dialog */}
+      <Dialog open={uninstallDialogOpen} onOpenChange={setUninstallDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Trash2 className="w-5 h-5 text-destructive" />
+              ถอดอุปกรณ์ออกจากป้าย
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="p-4 bg-muted rounded-lg space-y-2">
+              <p><strong>อุปกรณ์:</strong> {selectedEquipment?.equipment?.code} - {selectedEquipment?.equipment?.name}</p>
+              <p><strong>จำนวน:</strong> {selectedEquipment?.quantity} {selectedEquipment?.equipment?.unit || "ชิ้น"}</p>
+              <p><strong>วันที่ติดตั้ง:</strong> {selectedEquipment?.installation_date 
+                ? format(new Date(selectedEquipment.installation_date), "d MMM yyyy", { locale: th })
+                : "-"}</p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="uninstall_reason">เหตุผลในการถอด</Label>
+              <Textarea
+                id="uninstall_reason"
+                value={uninstallData.uninstall_reason}
+                onChange={(e) => setUninstallData({ ...uninstallData, uninstall_reason: e.target.value })}
+                placeholder="ระบุเหตุผล เช่น หมดอายุ, ชำรุด, เปลี่ยนรุ่นใหม่..."
+                rows={2}
+              />
+            </div>
+
+            <div className="space-y-3 p-4 bg-muted/50 rounded-lg border border-dashed">
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="return_to_stock"
+                  checked={uninstallData.return_to_stock}
+                  onCheckedChange={(checked) => 
+                    setUninstallData({ 
+                      ...uninstallData, 
+                      return_to_stock: checked === true,
+                      return_location_id: checked ? uninstallData.return_location_id : ""
+                    })
+                  }
+                />
+                <Label htmlFor="return_to_stock" className="flex items-center gap-2 cursor-pointer">
+                  <RotateCcw className="h-4 w-4 text-primary" />
+                  คืนอุปกรณ์กลับสต็อก
+                </Label>
+              </div>
+              
+              {uninstallData.return_to_stock && (
+                <div className="space-y-2 ml-6">
+                  <Label>เก็บไว้ที่คลัง</Label>
+                  <LocationSelect
+                    value={uninstallData.return_location_id}
+                    onChange={(value) => setUninstallData({ ...uninstallData, return_location_id: value })}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    ระบบจะเพิ่มจำนวน {selectedEquipment?.quantity} {selectedEquipment?.equipment?.unit || "ชิ้น"} กลับเข้าสต็อก
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setUninstallDialogOpen(false)}>
+              ยกเลิก
+            </Button>
+            <Button 
+              variant="destructive" 
+              onClick={() => uninstallMutation.mutate()} 
+              disabled={uninstallMutation.isPending}
+            >
+              {uninstallMutation.isPending ? "กำลังบันทึก..." : "ยืนยันการถอด"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

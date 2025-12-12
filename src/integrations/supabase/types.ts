@@ -62,6 +62,54 @@ export type Database = {
           },
         ]
       }
+      billboard_equipment_history: {
+        Row: {
+          billboard_id: string
+          created_at: string
+          equipment_id: string
+          id: string
+          installation_date: string | null
+          installation_notes: string | null
+          installed_by: string | null
+          quantity: number
+          return_location_id: string | null
+          return_to_stock: boolean | null
+          uninstall_date: string
+          uninstall_reason: string | null
+          uninstalled_by: string | null
+        }
+        Insert: {
+          billboard_id: string
+          created_at?: string
+          equipment_id: string
+          id?: string
+          installation_date?: string | null
+          installation_notes?: string | null
+          installed_by?: string | null
+          quantity: number
+          return_location_id?: string | null
+          return_to_stock?: boolean | null
+          uninstall_date?: string
+          uninstall_reason?: string | null
+          uninstalled_by?: string | null
+        }
+        Update: {
+          billboard_id?: string
+          created_at?: string
+          equipment_id?: string
+          id?: string
+          installation_date?: string | null
+          installation_notes?: string | null
+          installed_by?: string | null
+          quantity?: number
+          return_location_id?: string | null
+          return_to_stock?: boolean | null
+          uninstall_date?: string
+          uninstall_reason?: string | null
+          uninstalled_by?: string | null
+        }
+        Relationships: []
+      }
       billboards: {
         Row: {
           bkk_upc: string | null
