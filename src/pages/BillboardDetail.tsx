@@ -11,6 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ArrowLeft, MapPin, Building2, Monitor, Globe, Package, Calendar, AlertTriangle, Clock, Trash2, History, RotateCcw } from "lucide-react";
+import BillboardQRCode from "@/components/billboard/BillboardQRCode";
 import { supabase } from "@/integrations/supabase/client";
 import { differenceInDays, format } from "date-fns";
 import { th } from "date-fns/locale";
@@ -237,7 +238,14 @@ const BillboardDetail = () => {
           <h1 className="text-2xl font-semibold text-foreground">{billboard.equipment_id}</h1>
           <p className="text-muted-foreground">{billboard.description || "รายละเอียดป้ายโฆษณา"}</p>
         </div>
-        <div className="ml-auto">{getStatusBadge(billboard.status)}</div>
+        <div className="ml-auto flex items-center gap-2">
+          <BillboardQRCode 
+            billboardId={billboard.id} 
+            billboardCode={billboard.equipment_id}
+            locationName={billboard.location_name || undefined}
+          />
+          {getStatusBadge(billboard.status)}
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
