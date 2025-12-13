@@ -3,6 +3,7 @@ import { Package, PackageOpen, TrendingUp, MapPin } from "lucide-react";
 import { LowStockAlerts } from "@/components/LowStockAlerts";
 import { ExpiryAlerts } from "@/components/ExpiryAlerts";
 import { BillboardEquipmentAlerts } from "@/components/BillboardEquipmentAlerts";
+import BillboardEquipmentChart from "@/components/BillboardEquipmentChart";
 import { LocationInventoryChart } from "@/components/LocationInventoryChart";
 import { CategoryPieChart } from "@/components/CategoryPieChart";
 import TransactionSummaryReport from "@/components/TransactionSummaryReport";
@@ -99,6 +100,8 @@ const Dashboard = () => {
       <ExpiryAlerts />
 
       <BillboardEquipmentAlerts />
+
+      <BillboardEquipmentChart />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <Card className="lg:col-span-2">
