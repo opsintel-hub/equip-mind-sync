@@ -15,6 +15,7 @@ import BillboardForm from "@/components/billboard/BillboardForm";
 import BillboardImport from "@/components/billboard/BillboardImport";
 import BillboardFilters from "@/components/billboard/BillboardFilters";
 import BillboardExport from "@/components/billboard/BillboardExport";
+import BillboardEquipmentExport from "@/components/billboard/BillboardEquipmentExport";
 import {
   Select,
   SelectContent,
@@ -476,6 +477,9 @@ const Billboards = () => {
           )}
         </CardContent>
       </Card>
+
+      {/* Billboard Equipment Export */}
+      <BillboardEquipmentExport />
 
       {/* Add/Edit Dialog */}
       <Dialog open={isFormOpen} onOpenChange={handleFormClose}>

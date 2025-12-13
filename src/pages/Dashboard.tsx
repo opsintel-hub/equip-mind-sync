@@ -2,10 +2,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Package, PackageOpen, TrendingUp, MapPin } from "lucide-react";
 import { LowStockAlerts } from "@/components/LowStockAlerts";
 import { ExpiryAlerts } from "@/components/ExpiryAlerts";
+import { BillboardEquipmentAlerts } from "@/components/BillboardEquipmentAlerts";
 import { LocationInventoryChart } from "@/components/LocationInventoryChart";
 import { CategoryPieChart } from "@/components/CategoryPieChart";
 import TransactionSummaryReport from "@/components/TransactionSummaryReport";
-
 const Dashboard = () => {
   const stats = [
     {
@@ -97,6 +97,8 @@ const Dashboard = () => {
       <LowStockAlerts />
       
       <ExpiryAlerts />
+
+      <BillboardEquipmentAlerts />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <Card className="lg:col-span-2">
