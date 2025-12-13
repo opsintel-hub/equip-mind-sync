@@ -16,6 +16,7 @@ import IssueGoods from "./pages/IssueGoods";
 import MasterData from "./pages/MasterData";
 import Billboards from "./pages/Billboards";
 import BillboardDetail from "./pages/BillboardDetail";
+import BillboardPublicView from "./pages/BillboardPublicView";
 import Admin from "./pages/Admin";
 import QRCodePage from "./pages/QRCode";
 import TransferHistory from "./pages/TransferHistory";
@@ -47,6 +48,8 @@ const App = () => (
             <Route path="/admin" element={<ProtectedRoute><DashboardLayout><Admin /></DashboardLayout></ProtectedRoute>} />
             <Route path="/qr-code" element={<ProtectedRoute><DashboardLayout><QRCodePage /></DashboardLayout></ProtectedRoute>} />
             <Route path="/transfer-history" element={<ProtectedRoute><DashboardLayout><TransferHistory /></DashboardLayout></ProtectedRoute>} />
+            {/* Public billboard view - no auth required */}
+            <Route path="/billboard-view/:id" element={<BillboardPublicView />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
