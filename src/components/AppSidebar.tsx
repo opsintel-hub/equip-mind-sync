@@ -54,6 +54,7 @@ const menuItems = [
   { title: "ข้อมูลหลัก", url: "/master-data", icon: Database },
   { title: "ประวัติการย้าย", url: "/transfer-history", icon: History },
   { title: "ป้ายโฆษณา", url: "/billboards", icon: MapPin },
+  { title: "ตาราง PM", url: "/pm-schedule", icon: History },
   { title: "จัดการผู้ใช้", url: "/admin", icon: Shield },
 ];
 
