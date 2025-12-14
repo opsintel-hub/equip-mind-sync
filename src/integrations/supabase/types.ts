@@ -800,6 +800,172 @@ export type Database = {
           },
         ]
       }
+      notification_settings: {
+        Row: {
+          advance_days: number
+          created_at: string
+          email_addresses: string[] | null
+          id: string
+          notify_equipment_expiry: boolean
+          notify_low_stock: boolean
+          notify_pm_schedule: boolean
+          notify_warranty_expiry: boolean
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          advance_days?: number
+          created_at?: string
+          email_addresses?: string[] | null
+          id?: string
+          notify_equipment_expiry?: boolean
+          notify_low_stock?: boolean
+          notify_pm_schedule?: boolean
+          notify_warranty_expiry?: boolean
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          advance_days?: number
+          created_at?: string
+          email_addresses?: string[] | null
+          id?: string
+          notify_equipment_expiry?: boolean
+          notify_low_stock?: boolean
+          notify_pm_schedule?: boolean
+          notify_warranty_expiry?: boolean
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      notifications: {
+        Row: {
+          category: string
+          created_at: string
+          id: string
+          is_read: boolean
+          message: string
+          reference_id: string | null
+          reference_type: string | null
+          title: string
+          type: string
+          user_id: string | null
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          message: string
+          reference_id?: string | null
+          reference_type?: string | null
+          title: string
+          type?: string
+          user_id?: string | null
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          message?: string
+          reference_id?: string | null
+          reference_type?: string | null
+          title?: string
+          type?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      pm_history: {
+        Row: {
+          completed_by: string | null
+          completed_date: string
+          created_at: string
+          id: string
+          notes: string | null
+          pm_schedule_id: string
+        }
+        Insert: {
+          completed_by?: string | null
+          completed_date: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          pm_schedule_id: string
+        }
+        Update: {
+          completed_by?: string | null
+          completed_date?: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          pm_schedule_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pm_history_pm_schedule_id_fkey"
+            columns: ["pm_schedule_id"]
+            isOneToOne: false
+            referencedRelation: "pm_schedules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pm_schedules: {
+        Row: {
+          advance_notice_days: number
+          billboard_id: string
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          is_active: boolean
+          last_completed_date: string | null
+          next_due_date: string
+          schedule_type: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          advance_notice_days?: number
+          billboard_id: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          last_completed_date?: string | null
+          next_due_date: string
+          schedule_type?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          advance_notice_days?: number
+          billboard_id?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          last_completed_date?: string | null
+          next_due_date?: string
+          schedule_type?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pm_schedules_billboard_id_fkey"
+            columns: ["billboard_id"]
+            isOneToOne: false
+            referencedRelation: "billboards"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           created_at: string
