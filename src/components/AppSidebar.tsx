@@ -9,6 +9,8 @@ import {
   Shield,
   History,
   Truck,
+  Bell,
+  Calendar,
   PackageCheck,
   ChevronDown,
 } from "lucide-react";
@@ -54,7 +56,15 @@ const menuItems = [
   { title: "ข้อมูลหลัก", url: "/master-data", icon: Database },
   { title: "ประวัติการย้าย", url: "/transfer-history", icon: History },
   { title: "ป้ายโฆษณา", url: "/billboards", icon: MapPin },
-  { title: "ตาราง PM", url: "/pm-schedule", icon: History },
+  { 
+    title: "PM (บำรุงรักษา)", 
+    icon: Calendar,
+    subItems: [
+      { title: "ตาราง PM", url: "/pm-schedule", icon: Calendar },
+      { title: "ประวัติ PM", url: "/pm-history", icon: History },
+    ]
+  },
+  { title: "ตั้งค่าแจ้งเตือน", url: "/notification-settings", icon: Bell },
   { title: "จัดการผู้ใช้", url: "/admin", icon: Shield },
 ];
 
