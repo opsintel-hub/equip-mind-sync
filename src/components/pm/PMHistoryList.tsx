@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
-import { History, Download, RefreshCw, Calendar, FileSpreadsheet } from "lucide-react";
+import { History, RefreshCw, FileSpreadsheet } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import {
   Table,
   TableBody,
@@ -26,9 +27,19 @@ import {
 } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { format, startOfMonth, endOfMonth, subMonths } from "date-fns";
+import { format, subMonths } from "date-fns";
 import { th } from "date-fns/locale";
 import * as XLSX from "xlsx";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  Legend,
+} from "recharts";
 
 interface PMHistory {
   id: string;
@@ -53,18 +64,34 @@ interface PMHistory {
 interface SummaryStats {
   totalCompleted: number;
   byScheduleType: Record<string, number>;
-  byMonth: Record<string, number>;
+  byMonth: { month: string; count: number }[];
+}
+
+interface Billboard {
+  id: string;
+  equipment_id: string;
 }
 
 export function PMHistoryList() {
   const [history, setHistory] = useState<PMHistory[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [dateFilter, setDateFilter] = useState("all");
+  const [billboardFilter, setBillboardFilter] = useState("all");
+  const [scheduleTypeFilter, setScheduleTypeFilter] = useState("all");
+  const [billboards, setBillboards] = useState<Billboard[]>([]);
   const [summary, setSummary] = useState<SummaryStats>({
     totalCompleted: 0,
     byScheduleType: {},
-    byMonth: {},
+    byMonth: [],
   });
+
+  const fetchBillboards = async () => {
+    const { data } = await supabase
+      .from("billboards")
+      .select("id, equipment_id")
+      .order("equipment_id");
+    setBillboards(data || []);
+  };
 
   const fetchHistory = async () => {
     setIsLoading(true);
@@ -76,6 +103,7 @@ export function PMHistoryList() {
           pm_schedules(
             title,
             schedule_type,
+            billboard_id,
             billboards(equipment_id, location_name)
           ),
           profiles:completed_by(full_name)
@@ -111,7 +139,21 @@ export function PMHistoryList() {
 
       if (error) throw error;
       
-      const historyData = (data as unknown as PMHistory[]) || [];
+      let historyData = (data as unknown as PMHistory[]) || [];
+
+      // Client-side filtering for billboard and schedule type
+      if (billboardFilter !== "all") {
+        historyData = historyData.filter(
+          (item) => (item.pm_schedules as any)?.billboard_id === billboardFilter
+        );
+      }
+
+      if (scheduleTypeFilter !== "all") {
+        historyData = historyData.filter(
+          (item) => item.pm_schedules?.schedule_type === scheduleTypeFilter
+        );
+      }
+
       setHistory(historyData);
       calculateSummary(historyData);
     } catch (error: any) {
@@ -124,7 +166,7 @@ export function PMHistoryList() {
 
   const calculateSummary = (data: PMHistory[]) => {
     const byScheduleType: Record<string, number> = {};
-    const byMonth: Record<string, number> = {};
+    const byMonthMap: Record<string, number> = {};
 
     data.forEach((item) => {
       // By schedule type
@@ -133,8 +175,13 @@ export function PMHistoryList() {
 
       // By month
       const month = format(new Date(item.completed_date), "yyyy-MM");
-      byMonth[month] = (byMonth[month] || 0) + 1;
+      byMonthMap[month] = (byMonthMap[month] || 0) + 1;
     });
+
+    // Convert month map to sorted array
+    const byMonth = Object.entries(byMonthMap)
+      .map(([month, count]) => ({ month, count }))
+      .sort((a, b) => a.month.localeCompare(b.month));
 
     setSummary({
       totalCompleted: data.length,
@@ -144,8 +191,12 @@ export function PMHistoryList() {
   };
 
   useEffect(() => {
+    fetchBillboards();
+  }, []);
+
+  useEffect(() => {
     fetchHistory();
-  }, [dateFilter]);
+  }, [dateFilter, billboardFilter, scheduleTypeFilter]);
 
   const getScheduleTypeLabel = (type: string) => {
     const labels: Record<string, string> = {
@@ -156,6 +207,11 @@ export function PMHistoryList() {
       yearly: "รายปี",
     };
     return labels[type] || type;
+  };
+
+  const formatMonthLabel = (month: string) => {
+    const date = new Date(month + "-01");
+    return format(date, "MMM yy", { locale: th });
   };
 
   const exportToExcel = () => {
@@ -205,10 +261,37 @@ export function PMHistoryList() {
         ))}
       </div>
 
-      {/* History Table */}
+      {/* Monthly Chart */}
+      {summary.byMonth.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm font-medium">สถิติการทำ PM รายเดือน</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={250}>
+              <BarChart data={summary.byMonth}>
+                <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                <XAxis
+                  dataKey="month"
+                  tickFormatter={formatMonthLabel}
+                  className="text-xs"
+                />
+                <YAxis className="text-xs" />
+                <Tooltip
+                  formatter={(value: number) => [value, "จำนวน PM"]}
+                  labelFormatter={(label) => formatMonthLabel(label)}
+                />
+                <Bar dataKey="count" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Filters */}
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
               <CardTitle className="flex items-center gap-2">
                 <History className="h-5 w-5" />
@@ -218,9 +301,35 @@ export function PMHistoryList() {
                 รายการบำรุงรักษาที่เสร็จสิ้นแล้วทั้งหมด
               </CardDescription>
             </div>
-            <div className="flex gap-2">
-              <Select value={dateFilter} onValueChange={setDateFilter}>
+            <div className="flex flex-wrap gap-2">
+              <Select value={billboardFilter} onValueChange={setBillboardFilter}>
+                <SelectTrigger className="w-40">
+                  <SelectValue placeholder="ป้ายโฆษณา" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">ทุกป้าย</SelectItem>
+                  {billboards.map((b) => (
+                    <SelectItem key={b.id} value={b.id}>
+                      {b.equipment_id}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={scheduleTypeFilter} onValueChange={setScheduleTypeFilter}>
                 <SelectTrigger className="w-32">
+                  <SelectValue placeholder="ประเภท" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">ทุกประเภท</SelectItem>
+                  <SelectItem value="daily">รายวัน</SelectItem>
+                  <SelectItem value="weekly">รายสัปดาห์</SelectItem>
+                  <SelectItem value="monthly">รายเดือน</SelectItem>
+                  <SelectItem value="quarterly">รายไตรมาส</SelectItem>
+                  <SelectItem value="yearly">รายปี</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={dateFilter} onValueChange={setDateFilter}>
+                <SelectTrigger className="w-28">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
