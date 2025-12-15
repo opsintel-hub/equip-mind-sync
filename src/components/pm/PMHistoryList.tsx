@@ -1,8 +1,10 @@
-import { useState, useEffect } from "react";
-import { History, RefreshCw, FileSpreadsheet } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { History, RefreshCw, FileSpreadsheet, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import jsPDF from "jspdf";
+import html2canvas from "html2canvas";
 import {
   Table,
   TableBody,
@@ -214,6 +216,8 @@ export function PMHistoryList() {
     return format(date, "MMM yy", { locale: th });
   };
 
+  const reportRef = useRef<HTMLDivElement>(null);
+
   const exportToExcel = () => {
     const exportData = history.map((item, index) => ({
       "ลำดับ": index + 1,
@@ -233,60 +237,115 @@ export function PMHistoryList() {
     toast.success("ส่งออกข้อมูลเรียบร้อยแล้ว");
   };
 
+  const exportToPDF = async () => {
+    if (!reportRef.current) return;
+
+    toast.info("กำลังสร้างรายงาน PDF...");
+
+    try {
+      const canvas = await html2canvas(reportRef.current, {
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        backgroundColor: "#ffffff",
+      });
+
+      const imgData = canvas.toDataURL("image/png");
+      const pdf = new jsPDF({
+        orientation: "portrait",
+        unit: "mm",
+        format: "a4",
+      });
+
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      const imgWidth = pageWidth - 20;
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+
+      // Add title
+      pdf.setFontSize(18);
+      pdf.text("รายงานสรุปการบำรุงรักษา (PM)", pageWidth / 2, 15, { align: "center" });
+      pdf.setFontSize(10);
+      pdf.text(`วันที่พิมพ์: ${format(new Date(), "d MMMM yyyy", { locale: th })}`, pageWidth / 2, 22, { align: "center" });
+
+      // Add chart and summary image
+      let yPosition = 30;
+      
+      if (imgHeight > pageHeight - 40) {
+        // If image is too tall, scale it down
+        const scaledHeight = pageHeight - 40;
+        const scaledWidth = (canvas.width * scaledHeight) / canvas.height;
+        pdf.addImage(imgData, "PNG", (pageWidth - scaledWidth) / 2, yPosition, scaledWidth, scaledHeight);
+      } else {
+        pdf.addImage(imgData, "PNG", 10, yPosition, imgWidth, imgHeight);
+      }
+
+      pdf.save(`PM_Report_${format(new Date(), "yyyyMMdd")}.pdf`);
+      toast.success("ส่งออก PDF เรียบร้อยแล้ว");
+    } catch (error) {
+      console.error("Error exporting PDF:", error);
+      toast.error("เกิดข้อผิดพลาดในการส่งออก PDF");
+    }
+  };
+
   return (
     <div className="space-y-6">
-      {/* Summary Cards */}
-      <div className="grid gap-4 md:grid-cols-4">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              PM ที่ทำเสร็จทั้งหมด
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{summary.totalCompleted}</div>
-          </CardContent>
-        </Card>
-        {Object.entries(summary.byScheduleType).slice(0, 3).map(([type, count]) => (
-          <Card key={type}>
+      {/* Report content for PDF export */}
+      <div ref={reportRef} className="space-y-6 bg-background p-4">
+        {/* Summary Cards */}
+        <div className="grid gap-4 md:grid-cols-4">
+          <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">
-                {getScheduleTypeLabel(type)}
+                PM ที่ทำเสร็จทั้งหมด
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{count}</div>
+              <div className="text-2xl font-bold">{summary.totalCompleted}</div>
             </CardContent>
           </Card>
-        ))}
+          {Object.entries(summary.byScheduleType).slice(0, 3).map(([type, count]) => (
+            <Card key={type}>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  {getScheduleTypeLabel(type)}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{count}</div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+
+        {/* Monthly Chart */}
+        {summary.byMonth.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-sm font-medium">สถิติการทำ PM รายเดือน</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={250}>
+                <BarChart data={summary.byMonth}>
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                  <XAxis
+                    dataKey="month"
+                    tickFormatter={formatMonthLabel}
+                    className="text-xs"
+                  />
+                  <YAxis className="text-xs" />
+                  <Tooltip
+                    formatter={(value: number) => [value, "จำนวน PM"]}
+                    labelFormatter={(label) => formatMonthLabel(label)}
+                  />
+                  <Bar dataKey="count" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+        )}
       </div>
 
-      {/* Monthly Chart */}
-      {summary.byMonth.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm font-medium">สถิติการทำ PM รายเดือน</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={250}>
-              <BarChart data={summary.byMonth}>
-                <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                <XAxis
-                  dataKey="month"
-                  tickFormatter={formatMonthLabel}
-                  className="text-xs"
-                />
-                <YAxis className="text-xs" />
-                <Tooltip
-                  formatter={(value: number) => [value, "จำนวน PM"]}
-                  labelFormatter={(label) => formatMonthLabel(label)}
-                />
-                <Bar dataKey="count" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-      )}
 
       {/* Filters */}
       <Card>
@@ -343,9 +402,13 @@ export function PMHistoryList() {
               <Button variant="outline" size="icon" onClick={fetchHistory}>
                 <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
               </Button>
+              <Button variant="outline" onClick={exportToPDF}>
+                <FileText className="h-4 w-4 mr-2" />
+                PDF
+              </Button>
               <Button variant="outline" onClick={exportToExcel}>
                 <FileSpreadsheet className="h-4 w-4 mr-2" />
-                Export
+                Excel
               </Button>
             </div>
           </div>
