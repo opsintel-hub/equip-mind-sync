@@ -102,7 +102,7 @@ export function PMHistoryList() {
         .from("pm_history")
         .select(`
           *,
-          pm_schedules(
+          pm_schedules!inner(
             title,
             schedule_type,
             billboard_id,
@@ -139,7 +139,15 @@ export function PMHistoryList() {
 
       const { data, error } = await query;
 
-      if (error) throw error;
+      if (error) {
+        // If error is due to no data, just set empty array
+        if (error.code === 'PGRST116' || error.message.includes('no rows')) {
+          setHistory([]);
+          calculateSummary([]);
+          return;
+        }
+        throw error;
+      }
       
       let historyData = (data as unknown as PMHistory[]) || [];
 
@@ -160,7 +168,12 @@ export function PMHistoryList() {
       calculateSummary(historyData);
     } catch (error: any) {
       console.error("Error fetching PM history:", error);
-      toast.error("เกิดข้อผิดพลาดในการโหลดข้อมูล");
+      // Only show error toast for real errors, not empty data
+      if (error.code !== 'PGRST116') {
+        toast.error("เกิดข้อผิดพลาดในการโหลดข้อมูล");
+      }
+      setHistory([]);
+      calculateSummary([]);
     } finally {
       setIsLoading(false);
     }
