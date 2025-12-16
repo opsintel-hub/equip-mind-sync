@@ -13,6 +13,7 @@ import {
   Calendar,
   PackageCheck,
   ChevronDown,
+  Archive,
 } from "lucide-react";
 import {
   Sidebar,
@@ -64,6 +65,7 @@ const menuItems = [
       { title: "ประวัติ PM", url: "/pm-history", icon: History },
     ]
   },
+  { title: "รายงาน Dead Stock", url: "/dead-stock", icon: Archive },
   { title: "ตั้งค่าแจ้งเตือน", url: "/notification-settings", icon: Bell },
   { title: "จัดการผู้ใช้", url: "/admin", icon: Shield },
 ];
