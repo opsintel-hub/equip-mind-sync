@@ -273,9 +273,12 @@ export type Database = {
           name: string
           notes: string | null
           quantity_in_stock: number
+          serial_number: string | null
           subcategory_id: string | null
           unit: string
+          unit_price: number
           updated_at: string
+          warehouse_entry_date: string
           warranty_expiry_date: string | null
         }
         Insert: {
@@ -293,9 +296,12 @@ export type Database = {
           name: string
           notes?: string | null
           quantity_in_stock?: number
+          serial_number?: string | null
           subcategory_id?: string | null
           unit: string
+          unit_price?: number
           updated_at?: string
+          warehouse_entry_date?: string
           warranty_expiry_date?: string | null
         }
         Update: {
@@ -313,9 +319,12 @@ export type Database = {
           name?: string
           notes?: string | null
           quantity_in_stock?: number
+          serial_number?: string | null
           subcategory_id?: string | null
           unit?: string
+          unit_price?: number
           updated_at?: string
+          warehouse_entry_date?: string
           warranty_expiry_date?: string | null
         }
         Relationships: [
@@ -622,10 +631,12 @@ export type Database = {
           received_location_id: string | null
           received_storage_slot_id: string | null
           received_sub_storage_slot_id: string | null
+          serial_number: string | null
           status: string
           supplier_id: string | null
           supplier_name: string | null
           unit: string
+          unit_price: number | null
           updated_at: string
         }
         Insert: {
@@ -646,10 +657,12 @@ export type Database = {
           received_location_id?: string | null
           received_storage_slot_id?: string | null
           received_sub_storage_slot_id?: string | null
+          serial_number?: string | null
           status?: string
           supplier_id?: string | null
           supplier_name?: string | null
           unit?: string
+          unit_price?: number | null
           updated_at?: string
         }
         Update: {
@@ -670,10 +683,12 @@ export type Database = {
           received_location_id?: string | null
           received_storage_slot_id?: string | null
           received_sub_storage_slot_id?: string | null
+          serial_number?: string | null
           status?: string
           supplier_id?: string | null
           supplier_name?: string | null
           unit?: string
+          unit_price?: number | null
           updated_at?: string
         }
         Relationships: [

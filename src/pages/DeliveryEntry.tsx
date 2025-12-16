@@ -55,6 +55,8 @@ const DeliveryEntry = () => {
   const [selectedSupplierId, setSelectedSupplierId] = useState("");
   const [supplierName, setSupplierName] = useState("");
   const [lotNumber, setLotNumber] = useState("");
+  const [serialNumber, setSerialNumber] = useState("");
+  const [unitPrice, setUnitPrice] = useState("");
   const [expiryDate, setExpiryDate] = useState("");
   const [deliveryPersonName, setDeliveryPersonName] = useState("");
   const [deliveryPersonPhone, setDeliveryPersonPhone] = useState("");
@@ -130,8 +132,8 @@ const DeliveryEntry = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!quantity || !deliveryPersonName) {
-      toast.error("กรุณากรอกข้อมูลให้ครบถ้วน (จำนวน และ ชื่อผู้ส่ง)");
+    if (!quantity || !deliveryPersonName || !unitPrice) {
+      toast.error("กรุณากรอกข้อมูลให้ครบถ้วน (จำนวน, ชื่อผู้ส่ง, และราคาต่อชิ้น)");
       return;
     }
 
@@ -155,6 +157,8 @@ const DeliveryEntry = () => {
           supplier_id: selectedSupplierId || null,
           supplier_name: supplierName || (selectedSupplier?.name || null),
           lot_number: lotNumber || null,
+          serial_number: serialNumber || null,
+          unit_price: unitPrice ? parseFloat(unitPrice) : null,
           expiry_date: expiryDate || null,
           delivery_person_name: deliveryPersonName,
           delivery_person_phone: deliveryPersonPhone || null,
@@ -175,6 +179,8 @@ const DeliveryEntry = () => {
       setSelectedSupplierId("");
       setSupplierName("");
       setLotNumber("");
+      setSerialNumber("");
+      setUnitPrice("");
       setExpiryDate("");
       setDeliveryPersonName("");
       setDeliveryPersonPhone("");
@@ -312,6 +318,31 @@ const DeliveryEntry = () => {
                   placeholder="Lot No."
                   value={lotNumber}
                   onChange={(e) => setLotNumber(e.target.value)}
+                />
+              </div>
+            </div>
+
+            {/* Serial Number & Unit Price */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="serialNumber">Serial Number</Label>
+                <Input 
+                  id="serialNumber" 
+                  placeholder="SN-xxxxx"
+                  value={serialNumber}
+                  onChange={(e) => setSerialNumber(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="unitPrice">ราคาต่อชิ้น (บาท) *</Label>
+                <Input 
+                  id="unitPrice" 
+                  type="number"
+                  step="0.01"
+                  placeholder="0.00"
+                  value={unitPrice}
+                  onChange={(e) => setUnitPrice(e.target.value)}
+                  required
                 />
               </div>
             </div>
