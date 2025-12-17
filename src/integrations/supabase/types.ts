@@ -638,6 +638,7 @@ export type Database = {
           unit: string
           unit_price: number | null
           updated_at: string
+          warranty_expiry_date: string | null
         }
         Insert: {
           created_at?: string
@@ -664,6 +665,7 @@ export type Database = {
           unit?: string
           unit_price?: number | null
           updated_at?: string
+          warranty_expiry_date?: string | null
         }
         Update: {
           created_at?: string
@@ -690,6 +692,7 @@ export type Database = {
           unit?: string
           unit_price?: number | null
           updated_at?: string
+          warranty_expiry_date?: string | null
         }
         Relationships: [
           {

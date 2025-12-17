@@ -6,8 +6,9 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Archive, Download, Filter, TrendingDown } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { format, differenceInDays, differenceInMonths, differenceInYears } from "date-fns";
+import { format, differenceInDays } from "date-fns";
 import * as XLSX from "xlsx";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from "recharts";
 
 interface Equipment {
   id: string;
@@ -23,6 +24,11 @@ interface Equipment {
 }
 
 interface Location {
+  id: string;
+  name: string;
+}
+
+interface Category {
   id: string;
   name: string;
 }
@@ -48,11 +54,26 @@ const AGE_GROUPS: Omit<AgeGroup, 'count' | 'quantity' | 'totalCost'>[] = [
   { label: "> 5 ปี", minDays: 1825, maxDays: Infinity },
 ];
 
+// Modern color palette for charts
+const CHART_COLORS = [
+  "#10B981", // emerald-500
+  "#3B82F6", // blue-500
+  "#8B5CF6", // violet-500
+  "#F59E0B", // amber-500
+  "#EF4444", // red-500
+  "#EC4899", // pink-500
+  "#06B6D4", // cyan-500
+  "#F97316", // orange-500
+  "#DC2626", // red-600
+];
+
 const DeadStockReport = () => {
   const [equipment, setEquipment] = useState<Equipment[]>([]);
   const [locations, setLocations] = useState<Location[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [selectedDepartment, setSelectedDepartment] = useState<string>("all");
   const [selectedAgeGroup, setSelectedAgeGroup] = useState<string>("all");
+  const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [departments, setDepartments] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -63,7 +84,7 @@ const DeadStockReport = () => {
   const fetchData = async () => {
     setIsLoading(true);
     
-    const [equipmentRes, locationsRes, deptRes] = await Promise.all([
+    const [equipmentRes, locationsRes, deptRes, catRes] = await Promise.all([
       supabase
         .from("equipment")
         .select("id, code, name, category, department, quantity_in_stock, unit, unit_price, warehouse_entry_date, location_id")
@@ -77,6 +98,10 @@ const DeadStockReport = () => {
         .from("departments")
         .select("name")
         .eq("is_active", true),
+      supabase
+        .from("categories")
+        .select("id, name")
+        .eq("is_active", true),
     ]);
 
     if (equipmentRes.data) {
@@ -87,6 +112,9 @@ const DeadStockReport = () => {
     }
     if (deptRes.data) {
       setDepartments(deptRes.data.map(d => d.name));
+    }
+    if (catRes.data) {
+      setCategories(catRes.data);
     }
     
     setIsLoading(false);
@@ -111,17 +139,19 @@ const DeadStockReport = () => {
 
   const filteredEquipment = equipment.filter(item => {
     const matchesDept = selectedDepartment === "all" || item.department === selectedDepartment;
+    const matchesCategory = selectedCategory === "all" || item.category === selectedCategory;
     const days = getAgeDays(item.warehouse_entry_date);
     const ageGroup = AGE_GROUPS.find(g => days >= g.minDays && days <= g.maxDays);
     const matchesAge = selectedAgeGroup === "all" || ageGroup?.label === selectedAgeGroup;
-    return matchesDept && matchesAge;
+    return matchesDept && matchesAge && matchesCategory;
   });
 
   const ageGroupSummary: AgeGroup[] = AGE_GROUPS.map(group => {
     const items = equipment.filter(item => {
       const days = getAgeDays(item.warehouse_entry_date);
       const matchesDept = selectedDepartment === "all" || item.department === selectedDepartment;
-      return matchesDept && days >= group.minDays && days <= group.maxDays;
+      const matchesCategory = selectedCategory === "all" || item.category === selectedCategory;
+      return matchesDept && matchesCategory && days >= group.minDays && days <= group.maxDays;
     });
     return {
       ...group,
@@ -130,6 +160,19 @@ const DeadStockReport = () => {
       totalCost: items.reduce((sum, item) => sum + (item.quantity_in_stock * item.unit_price), 0),
     };
   });
+
+  // Chart data
+  const quantityChartData = ageGroupSummary.map((group, index) => ({
+    name: group.label,
+    value: group.quantity,
+    fill: CHART_COLORS[index % CHART_COLORS.length],
+  }));
+
+  const amountChartData = ageGroupSummary.map((group, index) => ({
+    name: group.label,
+    value: group.totalCost,
+    fill: CHART_COLORS[index % CHART_COLORS.length],
+  }));
 
   const totalStats = {
     items: filteredEquipment.length,
@@ -181,6 +224,10 @@ const DeadStockReport = () => {
       currency: "THB",
       minimumFractionDigits: 2,
     }).format(amount);
+  };
+
+  const formatNumber = (num: number) => {
+    return new Intl.NumberFormat("th-TH").format(num);
   };
 
   return (
@@ -249,7 +296,7 @@ const DeadStockReport = () => {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-2">
               <label className="text-sm font-medium">ฝ่าย</label>
               <Select value={selectedDepartment} onValueChange={setSelectedDepartment}>
@@ -260,6 +307,20 @@ const DeadStockReport = () => {
                   <SelectItem value="all">ทั้งหมด</SelectItem>
                   {departments.map(dept => (
                     <SelectItem key={dept} value={dept}>{dept}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">หมวดหมู่</label>
+              <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                <SelectTrigger>
+                  <SelectValue placeholder="เลือกหมวดหมู่" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">ทั้งหมด</SelectItem>
+                  {categories.map(cat => (
+                    <SelectItem key={cat.id} value={cat.name}>{cat.name}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -282,6 +343,93 @@ const DeadStockReport = () => {
         </CardContent>
       </Card>
 
+      {/* Charts */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">จำนวนชิ้นตามช่วงอายุ</CardTitle>
+            <CardDescription>แสดงจำนวนสินค้า (ชิ้น) ในแต่ละช่วงอายุ</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="h-[300px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={quantityChartData} margin={{ top: 20, right: 30, left: 20, bottom: 60 }}>
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+                  <XAxis 
+                    dataKey="name" 
+                    tick={{ fontSize: 11 }} 
+                    angle={-45} 
+                    textAnchor="end"
+                    height={60}
+                    className="fill-muted-foreground"
+                  />
+                  <YAxis 
+                    tick={{ fontSize: 11 }} 
+                    tickFormatter={formatNumber}
+                    className="fill-muted-foreground"
+                  />
+                  <Tooltip 
+                    formatter={(value: number) => [formatNumber(value) + " ชิ้น", "จำนวน"]}
+                    contentStyle={{ 
+                      backgroundColor: 'hsl(var(--background))', 
+                      border: '1px solid hsl(var(--border))',
+                      borderRadius: '8px'
+                    }}
+                  />
+                  <Bar dataKey="value" radius={[4, 4, 0, 0]}>
+                    {quantityChartData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.fill} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">มูลค่าตามช่วงอายุ</CardTitle>
+            <CardDescription>แสดงมูลค่าสินค้า (บาท) ในแต่ละช่วงอายุ</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="h-[300px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={amountChartData} margin={{ top: 20, right: 30, left: 20, bottom: 60 }}>
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+                  <XAxis 
+                    dataKey="name" 
+                    tick={{ fontSize: 11 }} 
+                    angle={-45} 
+                    textAnchor="end"
+                    height={60}
+                    className="fill-muted-foreground"
+                  />
+                  <YAxis 
+                    tick={{ fontSize: 11 }} 
+                    tickFormatter={(value) => `฿${(value / 1000).toFixed(0)}K`}
+                    className="fill-muted-foreground"
+                  />
+                  <Tooltip 
+                    formatter={(value: number) => [formatCurrency(value), "มูลค่า"]}
+                    contentStyle={{ 
+                      backgroundColor: 'hsl(var(--background))', 
+                      border: '1px solid hsl(var(--border))',
+                      borderRadius: '8px'
+                    }}
+                  />
+                  <Bar dataKey="value" radius={[4, 4, 0, 0]}>
+                    {amountChartData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.fill} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
       {/* Age Group Summary */}
       <Card>
         <CardHeader>
@@ -290,11 +438,12 @@ const DeadStockReport = () => {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-3 md:grid-cols-5 lg:grid-cols-9 gap-2">
-            {ageGroupSummary.map(group => (
+            {ageGroupSummary.map((group, index) => (
               <Card 
                 key={group.label} 
                 className={`cursor-pointer transition-all ${selectedAgeGroup === group.label ? 'ring-2 ring-primary' : ''}`}
                 onClick={() => setSelectedAgeGroup(selectedAgeGroup === group.label ? "all" : group.label)}
+                style={{ borderTopColor: CHART_COLORS[index % CHART_COLORS.length], borderTopWidth: '3px' }}
               >
                 <CardContent className="p-3 text-center">
                   <div className="text-xs text-muted-foreground mb-1">{group.label}</div>
