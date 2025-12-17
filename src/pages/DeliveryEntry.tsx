@@ -58,6 +58,7 @@ const DeliveryEntry = () => {
   const [serialNumber, setSerialNumber] = useState("");
   const [unitPrice, setUnitPrice] = useState("");
   const [expiryDate, setExpiryDate] = useState("");
+  const [warrantyExpiryDate, setWarrantyExpiryDate] = useState("");
   const [deliveryPersonName, setDeliveryPersonName] = useState("");
   const [deliveryPersonPhone, setDeliveryPersonPhone] = useState("");
   const [notes, setNotes] = useState("");
@@ -160,6 +161,7 @@ const DeliveryEntry = () => {
           serial_number: serialNumber || null,
           unit_price: unitPrice ? parseFloat(unitPrice) : null,
           expiry_date: expiryDate || null,
+          warranty_expiry_date: warrantyExpiryDate || null,
           delivery_person_name: deliveryPersonName,
           delivery_person_phone: deliveryPersonPhone || null,
           notes: notes || null,
@@ -182,6 +184,7 @@ const DeliveryEntry = () => {
       setSerialNumber("");
       setUnitPrice("");
       setExpiryDate("");
+      setWarrantyExpiryDate("");
       setDeliveryPersonName("");
       setDeliveryPersonPhone("");
       setNotes("");
@@ -376,7 +379,7 @@ const DeliveryEntry = () => {
               </div>
             </div>
 
-            {/* Expiry & Notes */}
+            {/* Expiry Dates */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="expiry">วันหมดอายุ</Label>
@@ -388,15 +391,26 @@ const DeliveryEntry = () => {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="notes">หมายเหตุ</Label>
-                <Textarea 
-                  id="notes" 
-                  placeholder="รายละเอียดเพิ่มเติม..."
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  rows={1}
+                <Label htmlFor="warrantyExpiry">วันสิ้นสุดการรับประกัน</Label>
+                <Input 
+                  id="warrantyExpiry" 
+                  type="date"
+                  value={warrantyExpiryDate}
+                  onChange={(e) => setWarrantyExpiryDate(e.target.value)}
                 />
               </div>
+            </div>
+
+            {/* Notes */}
+            <div className="space-y-2">
+              <Label htmlFor="notes">หมายเหตุ</Label>
+              <Textarea 
+                id="notes" 
+                placeholder="รายละเอียดเพิ่มเติม..."
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                rows={2}
+              />
             </div>
 
             <Button type="submit" className="w-full" disabled={isLoading}>
