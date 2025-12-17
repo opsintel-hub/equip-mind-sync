@@ -36,7 +36,79 @@ serve(async (req) => {
       reference_type: string;
     }[] = [];
 
-    // Check billboard equipment expiry and warranty
+    // ============ Check WAREHOUSE equipment expiry and warranty ============
+    console.log("Checking warehouse equipment for expiry/warranty alerts...");
+    
+    const { data: warehouseEquipment, error: weError } = await supabase
+      .from("equipment")
+      .select("id, name, code, department, expiry_date, warranty_expiry_date, quantity_in_stock")
+      .eq("is_active", true)
+      .gt("quantity_in_stock", 0);
+
+    if (weError) {
+      console.error("Error fetching warehouse equipment:", weError);
+    } else if (warehouseEquipment) {
+      for (const eq of warehouseEquipment) {
+        // Check expiry date for warehouse items
+        if (eq.expiry_date) {
+          const expiryDate = new Date(eq.expiry_date);
+          const daysUntilExpiry = Math.ceil((expiryDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+
+          if (daysUntilExpiry <= advanceDays && daysUntilExpiry >= -7) {
+            const { data: existing } = await supabase
+              .from("notifications")
+              .select("id")
+              .eq("reference_id", eq.id)
+              .eq("category", "warehouse_equipment_expiry")
+              .eq("is_read", false)
+              .maybeSingle();
+
+            if (!existing) {
+              notifications.push({
+                title: daysUntilExpiry <= 0 ? "สินค้าในคลังหมดอายุแล้ว" : "สินค้าในคลังใกล้หมดอายุ",
+                message: `${eq.name} (${eq.code}) ${eq.department ? `ฝ่าย ${eq.department}` : ""} มีจำนวน ${eq.quantity_in_stock} ชิ้น ${daysUntilExpiry <= 0 ? "หมดอายุแล้ว" : `จะหมดอายุใน ${daysUntilExpiry} วัน`} - ควรเบิกใช้ก่อน`,
+                type: daysUntilExpiry <= 0 ? "error" : daysUntilExpiry <= 7 ? "warning" : "info",
+                category: "warehouse_equipment_expiry",
+                reference_id: eq.id,
+                reference_type: "equipment",
+              });
+            }
+          }
+        }
+
+        // Check warranty expiry date for warehouse items
+        if (eq.warranty_expiry_date) {
+          const warrantyDate = new Date(eq.warranty_expiry_date);
+          const daysUntilWarranty = Math.ceil((warrantyDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+
+          if (daysUntilWarranty <= advanceDays && daysUntilWarranty >= -7) {
+            const { data: existing } = await supabase
+              .from("notifications")
+              .select("id")
+              .eq("reference_id", eq.id)
+              .eq("category", "warehouse_warranty_expiry")
+              .eq("is_read", false)
+              .maybeSingle();
+
+            if (!existing) {
+              notifications.push({
+                title: daysUntilWarranty <= 0 ? "ประกันสินค้าในคลังหมดแล้ว" : "ประกันสินค้าในคลังใกล้หมด",
+                message: `${eq.name} (${eq.code}) ${eq.department ? `ฝ่าย ${eq.department}` : ""} มีจำนวน ${eq.quantity_in_stock} ชิ้น ${daysUntilWarranty <= 0 ? "ประกันหมดแล้ว" : `ประกันจะหมดใน ${daysUntilWarranty} วัน`} - ควรเบิกใช้ก่อน`,
+                type: daysUntilWarranty <= 0 ? "error" : daysUntilWarranty <= 7 ? "warning" : "info",
+                category: "warehouse_warranty_expiry",
+                reference_id: eq.id,
+                reference_type: "equipment",
+              });
+            }
+          }
+        }
+      }
+    }
+    console.log(`Found ${notifications.length} warehouse equipment alerts`);
+
+    // ============ Check billboard equipment expiry and warranty ============
+    console.log("Checking billboard equipment for expiry/warranty alerts...");
+    
     const { data: billboardEquipment, error: beError } = await supabase
       .from("billboard_equipment")
       .select(`
@@ -123,7 +195,9 @@ serve(async (req) => {
       }
     }
 
-    // Check PM schedules
+    // ============ Check PM schedules ============
+    console.log("Checking PM schedules...");
+    
     const { data: pmSchedules, error: pmError } = await supabase
       .from("pm_schedules")
       .select("id, billboard_id, title, description, next_due_date, advance_notice_days")
@@ -179,7 +253,7 @@ serve(async (req) => {
       }
     }
 
-    console.log(`Created ${notifications.length} new notifications`);
+    console.log(`Created ${notifications.length} new notifications total`);
 
     return new Response(
       JSON.stringify({

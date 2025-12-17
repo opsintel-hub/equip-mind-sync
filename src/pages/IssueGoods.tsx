@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import DashboardLayout from "@/components/DashboardLayout";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,12 +12,23 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Search, Package, Clock, CheckCircle, XCircle, MapPin } from "lucide-react";
-import { format } from "date-fns";
+import { Search, Package, Clock, CheckCircle, XCircle, MapPin, AlertTriangle, Calendar } from "lucide-react";
+import { format, differenceInDays } from "date-fns";
 import { th } from "date-fns/locale";
 import { useAuth } from "@/hooks/useAuth";
 import { LocationSelect } from "@/components/equipment/LocationSelect";
 import BillboardSelect from "@/components/billboard/BillboardSelect";
+
+interface EquipmentWithDetails {
+  id: string;
+  code: string;
+  name: string;
+  quantity_in_stock: number;
+  serial_number: string | null;
+  expiry_date: string | null;
+  warranty_expiry_date: string | null;
+  warehouse_entry_date: string;
+}
 
 interface PendingRequest {
   id: string;
@@ -67,18 +78,42 @@ const IssueGoods = () => {
     },
   });
 
-  // Fetch equipment for validation
+  // Fetch equipment for validation with full details
   const { data: equipment } = useQuery({
-    queryKey: ["equipment-active"],
+    queryKey: ["equipment-active-details"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("equipment")
-        .select("id, code, name, quantity_in_stock")
-        .eq("is_active", true);
+        .select("id, code, name, quantity_in_stock, serial_number, expiry_date, warranty_expiry_date, warehouse_entry_date")
+        .eq("is_active", true)
+        .order("warehouse_entry_date", { ascending: true }); // FIFO ordering
       if (error) throw error;
-      return data;
+      return data as EquipmentWithDetails[];
     },
   });
+
+  const getExpiryInfo = (equipmentId: string | null) => {
+    if (!equipmentId) return null;
+    const eq = equipment?.find((e) => e.id === equipmentId);
+    if (!eq) return null;
+    
+    const today = new Date();
+    const info: { expiry?: { days: number; date: string }; warranty?: { days: number; date: string }; serialNumber?: string; ageDays: number } = {
+      ageDays: differenceInDays(today, new Date(eq.warehouse_entry_date)),
+      serialNumber: eq.serial_number || undefined,
+    };
+    
+    if (eq.expiry_date) {
+      const days = differenceInDays(new Date(eq.expiry_date), today);
+      info.expiry = { days, date: eq.expiry_date };
+    }
+    if (eq.warranty_expiry_date) {
+      const days = differenceInDays(new Date(eq.warranty_expiry_date), today);
+      info.warranty = { days, date: eq.warranty_expiry_date };
+    }
+    
+    return info;
+  };
 
   // Issue goods mutation
   const issueGoods = useMutation({
@@ -370,6 +405,57 @@ const IssueGoods = () => {
                 </p>
               </div>
             </div>
+
+            {/* FIFO & Expiry Info */}
+            {selectedRequest?.equipment_id && (() => {
+              const info = getExpiryInfo(selectedRequest.equipment_id);
+              if (!info) return null;
+              
+              const hasWarning = (info.expiry && info.expiry.days <= 30) || (info.warranty && info.warranty.days <= 30);
+              
+              return (
+                <div className={`p-3 rounded-lg border ${hasWarning ? 'border-warning/50 bg-warning/5' : 'border-border bg-muted/30'}`}>
+                  <div className="flex items-center gap-2 mb-2">
+                    {hasWarning && <AlertTriangle className="h-4 w-4 text-warning" />}
+                    <Calendar className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-sm font-medium">ข้อมูล FIFO</span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 text-sm">
+                    <div>
+                      <span className="text-muted-foreground">อยู่ในคลัง: </span>
+                      <span className="font-medium">{info.ageDays} วัน</span>
+                    </div>
+                    {info.serialNumber && (
+                      <div>
+                        <span className="text-muted-foreground">Serial: </span>
+                        <span className="font-medium">{info.serialNumber}</span>
+                      </div>
+                    )}
+                    {info.expiry && (
+                      <div>
+                        <span className="text-muted-foreground">หมดอายุ: </span>
+                        <span className={`font-medium ${info.expiry.days <= 0 ? 'text-destructive' : info.expiry.days <= 30 ? 'text-warning' : ''}`}>
+                          {format(new Date(info.expiry.date), "dd/MM/yyyy")} 
+                          ({info.expiry.days <= 0 ? 'หมดแล้ว' : `อีก ${info.expiry.days} วัน`})
+                        </span>
+                      </div>
+                    )}
+                    {info.warranty && (
+                      <div>
+                        <span className="text-muted-foreground">ประกัน: </span>
+                        <span className={`font-medium ${info.warranty.days <= 0 ? 'text-destructive' : info.warranty.days <= 30 ? 'text-warning' : ''}`}>
+                          {format(new Date(info.warranty.date), "dd/MM/yyyy")} 
+                          ({info.warranty.days <= 0 ? 'หมดแล้ว' : `อีก ${info.warranty.days} วัน`})
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                  {hasWarning && (
+                    <p className="text-xs text-warning mt-2">แนะนำให้จ่ายสินค้านี้เพื่อใช้ประโยชน์ก่อนหมดอายุ/ประกัน</p>
+                  )}
+                </div>
+              );
+            })()}
 
             <div className="space-y-2">
               <Label htmlFor="issued_quantity">จำนวนที่จ่ายจริง *</Label>
