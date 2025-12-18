@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Package, MapPin, Truck, Warehouse } from "lucide-react";
+import { Package, MapPin, Truck, Warehouse, Building2 } from "lucide-react";
 import { EquipmentForm } from "@/components/equipment/EquipmentForm";
 import { EquipmentList } from "@/components/equipment/EquipmentList";
 import { LocationForm } from "@/components/location/LocationForm";
@@ -10,6 +10,8 @@ import { SupplierForm } from "@/components/supplier/SupplierForm";
 import { SupplierList } from "@/components/supplier/SupplierList";
 import { WarehouseForm } from "@/components/warehouse/WarehouseForm";
 import { WarehouseList } from "@/components/warehouse/WarehouseList";
+import { DepartmentForm } from "@/components/department/DepartmentForm";
+import { DepartmentList } from "@/components/department/DepartmentList";
 
 const MasterData = () => {
   const [refreshKey, setRefreshKey] = useState(0);
@@ -28,7 +30,7 @@ const MasterData = () => {
       </div>
 
       <Tabs defaultValue="equipment" className="w-full">
-        <TabsList className="grid w-full grid-cols-4 max-w-xl">
+        <TabsList className="grid w-full grid-cols-5 max-w-2xl">
           <TabsTrigger value="equipment" className="gap-2">
             <Package className="h-4 w-4" />
             อุปกรณ์
@@ -44,6 +46,10 @@ const MasterData = () => {
           <TabsTrigger value="warehouses" className="gap-2">
             <Warehouse className="h-4 w-4" />
             คลังสินค้า
+          </TabsTrigger>
+          <TabsTrigger value="departments" className="gap-2">
+            <Building2 className="h-4 w-4" />
+            ฝ่าย
           </TabsTrigger>
         </TabsList>
 
@@ -119,6 +125,25 @@ const MasterData = () => {
             </CardHeader>
             <CardContent>
               <WarehouseList refresh={refreshKey} />
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="departments" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>ฝ่าย</CardTitle>
+                  <CardDescription>
+                    จัดการข้อมูลฝ่ายทั้งหมดในระบบ
+                  </CardDescription>
+                </div>
+                <DepartmentForm onSuccess={handleSuccess} />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <DepartmentList refresh={refreshKey} />
             </CardContent>
           </Card>
         </TabsContent>
