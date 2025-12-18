@@ -144,9 +144,10 @@ export function SubcategorySelect({ categoryName, value, onChange, disabled }: S
 
       setFormData({ name: "", description: "", category_id: "" });
       setEditingSubcategory(null);
-      if (categoryName) {
-        await fetchSubcategories(categoryName);
-      }
+      
+      // Refresh the list in manage dialog
+      const allSubs = await fetchAllSubcategories();
+      setSubcategories(allSubs);
     } catch (error: any) {
       console.error("Error saving subcategory:", error);
       toast.error(error.message || "บันทึกหมวดหมู่ย่อยไม่สำเร็จ");

@@ -259,6 +259,7 @@ export type Database = {
       }
       equipment: {
         Row: {
+          amp: number | null
           category: string
           code: string
           created_at: string
@@ -269,6 +270,8 @@ export type Database = {
           id: string
           is_active: boolean | null
           location_id: string | null
+          lumen: number | null
+          lux: number | null
           min_stock_level: number | null
           name: string
           notes: string | null
@@ -278,10 +281,13 @@ export type Database = {
           unit: string
           unit_price: number
           updated_at: string
+          volt: number | null
           warehouse_entry_date: string
           warranty_expiry_date: string | null
+          watt: number | null
         }
         Insert: {
+          amp?: number | null
           category: string
           code: string
           created_at?: string
@@ -292,6 +298,8 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           location_id?: string | null
+          lumen?: number | null
+          lux?: number | null
           min_stock_level?: number | null
           name: string
           notes?: string | null
@@ -301,10 +309,13 @@ export type Database = {
           unit: string
           unit_price?: number
           updated_at?: string
+          volt?: number | null
           warehouse_entry_date?: string
           warranty_expiry_date?: string | null
+          watt?: number | null
         }
         Update: {
+          amp?: number | null
           category?: string
           code?: string
           created_at?: string
@@ -315,6 +326,8 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           location_id?: string | null
+          lumen?: number | null
+          lux?: number | null
           min_stock_level?: number | null
           name?: string
           notes?: string | null
@@ -324,8 +337,10 @@ export type Database = {
           unit?: string
           unit_price?: number
           updated_at?: string
+          volt?: number | null
           warehouse_entry_date?: string
           warranty_expiry_date?: string | null
+          watt?: number | null
         }
         Relationships: [
           {

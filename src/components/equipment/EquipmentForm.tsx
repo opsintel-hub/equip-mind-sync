@@ -37,6 +37,11 @@ const equipmentSchema = z.object({
   expiry_date: z.date().optional(),
   warranty_expiry_date: z.date().optional(),
   notes: z.string().max(1000, "หมายเหตุต้องไม่เกิน 1000 ตัวอักษร").optional(),
+  volt: z.number().optional(),
+  amp: z.number().optional(),
+  watt: z.number().optional(),
+  lumen: z.number().optional(),
+  lux: z.number().optional(),
 });
 
 type EquipmentFormValues = z.infer<typeof equipmentSchema>;
@@ -66,6 +71,11 @@ export function EquipmentForm({ onSuccess }: EquipmentFormProps) {
       unit_price: 0,
       warehouse_entry_date: new Date(),
       notes: "",
+      volt: undefined,
+      amp: undefined,
+      watt: undefined,
+      lumen: undefined,
+      lux: undefined,
     },
   });
 
@@ -91,6 +101,11 @@ export function EquipmentForm({ onSuccess }: EquipmentFormProps) {
         expiry_date: data.expiry_date ? format(data.expiry_date, "yyyy-MM-dd") : null,
         warranty_expiry_date: data.warranty_expiry_date ? format(data.warranty_expiry_date, "yyyy-MM-dd") : null,
         notes: data.notes || null,
+        volt: data.volt || null,
+        amp: data.amp || null,
+        watt: data.watt || null,
+        lumen: data.lumen || null,
+        lux: data.lux || null,
       });
 
       if (error) throw error;
@@ -216,6 +231,114 @@ export function EquipmentForm({ onSuccess }: EquipmentFormProps) {
                 </FormItem>
               )}
             />
+
+            {/* Electrical Specification Fields */}
+            <div className="grid grid-cols-5 gap-4">
+              <FormField
+                control={form.control}
+                name="volt"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>โวลท์ (V)</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        placeholder="0"
+                        value={field.value ?? ""}
+                        onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : undefined)}
+                        disabled={isLoading}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="amp"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>แอมป์ (A)</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        placeholder="0"
+                        value={field.value ?? ""}
+                        onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : undefined)}
+                        disabled={isLoading}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="watt"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>วัตต์ (W)</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        placeholder="0"
+                        value={field.value ?? ""}
+                        onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : undefined)}
+                        disabled={isLoading}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="lumen"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>ลูเมน (lm)</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        placeholder="0"
+                        value={field.value ?? ""}
+                        onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : undefined)}
+                        disabled={isLoading}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="lux"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>ลักซ์ (lx)</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        placeholder="0"
+                        value={field.value ?? ""}
+                        onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : undefined)}
+                        disabled={isLoading}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
 
             <div className="grid grid-cols-3 gap-4">
               <FormField
