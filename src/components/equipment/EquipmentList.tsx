@@ -118,7 +118,7 @@ export function EquipmentList({ refresh }: EquipmentListProps) {
   }, [searchTerm, equipment]);
 
   const handleExport = () => {
-    const exportData = filteredEquipment.map((item) => ({
+    const exportData = filteredEquipment.map((item: any) => ({
       "รหัสอุปกรณ์": item.code,
       "ชื่ออุปกรณ์": item.name,
       "หมวดหมู่": item.category,
@@ -126,6 +126,11 @@ export function EquipmentList({ refresh }: EquipmentListProps) {
       "จำนวน": item.quantity_in_stock,
       "หน่วย": item.unit,
       "ตำแหน่งจัดเก็บ": item.locations?.name || "-",
+      "โวลท์ (V)": item.volt || "-",
+      "แอมป์ (A)": item.amp || "-",
+      "วัตต์ (W)": item.watt || "-",
+      "ลูเมน (lm)": item.lumen || "-",
+      "ลักซ์ (lx)": item.lux || "-",
       "วันหมดอายุ": item.expiry_date || "-",
       "วันหมดประกัน": item.warranty_expiry_date || "-",
     }));
