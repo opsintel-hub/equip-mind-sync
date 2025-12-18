@@ -752,6 +752,7 @@ export type Database = {
           code: string
           created_at: string
           created_by: string | null
+          department: string | null
           description: string | null
           id: string
           is_active: boolean | null
@@ -763,6 +764,7 @@ export type Database = {
           code: string
           created_at?: string
           created_by?: string | null
+          department?: string | null
           description?: string | null
           id?: string
           is_active?: boolean | null
@@ -774,6 +776,7 @@ export type Database = {
           code?: string
           created_at?: string
           created_by?: string | null
+          department?: string | null
           description?: string | null
           id?: string
           is_active?: boolean | null

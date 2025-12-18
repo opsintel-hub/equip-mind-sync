@@ -14,6 +14,7 @@ interface WarehouseData {
   name: string;
   description: string | null;
   storage_area: string | null;
+  department: string | null;
   is_active: boolean | null;
   equipment_count?: number;
   total_quantity?: number;
@@ -125,6 +126,7 @@ export function WarehouseList({ refresh }: WarehouseListProps) {
           <TableRow>
             <TableHead>รหัสคลัง</TableHead>
             <TableHead>ชื่อคลังสินค้า</TableHead>
+            <TableHead>ฝ่าย</TableHead>
             <TableHead>ประเภทพื้นที่</TableHead>
             <TableHead className="text-right">จำนวนรายการสินค้า</TableHead>
             <TableHead className="text-right">จำนวนสินค้ารวม</TableHead>
@@ -141,6 +143,7 @@ export function WarehouseList({ refresh }: WarehouseListProps) {
                   {warehouse.name}
                 </div>
               </TableCell>
+              <TableCell className="text-muted-foreground">{warehouse.department || "-"}</TableCell>
               <TableCell>{getStorageAreaBadge(warehouse.storage_area)}</TableCell>
               <TableCell className="text-right">{warehouse.equipment_count}</TableCell>
               <TableCell className="text-right">{warehouse.total_quantity?.toLocaleString()}</TableCell>

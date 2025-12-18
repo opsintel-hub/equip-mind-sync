@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -17,9 +17,15 @@ const warehouseSchema = z.object({
   name: z.string().min(1, "กรุณากรอกชื่อคลัง").max(200, "ชื่อต้องไม่เกิน 200 ตัวอักษร"),
   description: z.string().max(500, "รายละเอียดต้องไม่เกิน 500 ตัวอักษร").optional(),
   storage_area: z.string().min(1, "กรุณาเลือกประเภทพื้นที่"),
+  department: z.string().optional(),
 });
 
 type WarehouseFormValues = z.infer<typeof warehouseSchema>;
+
+interface DepartmentOption {
+  id: string;
+  name: string;
+}
 
 interface WarehouseFormProps {
   onSuccess?: () => void;
@@ -29,6 +35,7 @@ interface WarehouseFormProps {
     name: string;
     description: string | null;
     storage_area: string | null;
+    department: string | null;
   };
 }
 
@@ -41,6 +48,20 @@ const storageAreaOptions = [
 export function WarehouseForm({ onSuccess, editData }: WarehouseFormProps) {
   const [open, setOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [departments, setDepartments] = useState<DepartmentOption[]>([]);
+
+  useEffect(() => {
+    fetchDepartments();
+  }, []);
+
+  const fetchDepartments = async () => {
+    const { data } = await supabase
+      .from("departments")
+      .select("id, name")
+      .eq("is_active", true)
+      .order("name");
+    setDepartments(data || []);
+  };
 
   const form = useForm<WarehouseFormValues>({
     resolver: zodResolver(warehouseSchema),
@@ -49,6 +70,7 @@ export function WarehouseForm({ onSuccess, editData }: WarehouseFormProps) {
       name: editData?.name || "",
       description: editData?.description || "",
       storage_area: editData?.storage_area || "",
+      department: editData?.department || "",
     },
   });
 
@@ -63,6 +85,7 @@ export function WarehouseForm({ onSuccess, editData }: WarehouseFormProps) {
             name: data.name,
             description: data.description || null,
             storage_area: data.storage_area,
+            department: data.department || null,
           })
           .eq("id", editData.id);
 
@@ -74,6 +97,7 @@ export function WarehouseForm({ onSuccess, editData }: WarehouseFormProps) {
           name: data.name,
           description: data.description || null,
           storage_area: data.storage_area,
+          department: data.department || null,
         });
 
         if (error) throw error;
@@ -155,6 +179,31 @@ export function WarehouseForm({ onSuccess, editData }: WarehouseFormProps) {
                       {storageAreaOptions.map((option) => (
                         <SelectItem key={option.value} value={option.value}>
                           {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="department"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>ฝ่าย</FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value} disabled={isLoading}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="เลือกฝ่าย (ถ้ามี)" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent className="bg-background">
+                      {departments.map((dept) => (
+                        <SelectItem key={dept.id} value={dept.name}>
+                          {dept.name}
                         </SelectItem>
                       ))}
                     </SelectContent>
