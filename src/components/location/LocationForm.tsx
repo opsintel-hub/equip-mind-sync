@@ -39,6 +39,7 @@ const formSchema = z.object({
   name: z.string().min(1, "กรุณาระบุชื่อตำแหน่ง"),
   description: z.string().optional(),
   storage_area: z.string().min(1, "กรุณาเลือกพื้นที่จัดเก็บ"),
+  storage_area_size: z.string().optional(),
   storage_slot_id: z.string().optional(),
   sub_storage_slot_id: z.string().optional(),
 });
@@ -51,6 +52,7 @@ interface LocationFormProps {
     name: string;
     description: string | null;
     storage_area: string | null;
+    storage_area_size: string | null;
   };
 }
 
@@ -68,6 +70,7 @@ export function LocationForm({ onSuccess, location }: LocationFormProps) {
       name: location?.name || "",
       description: location?.description || "",
       storage_area: location?.storage_area || "",
+      storage_area_size: location?.storage_area_size || "",
       storage_slot_id: "",
       sub_storage_slot_id: "",
     },
@@ -98,6 +101,7 @@ export function LocationForm({ onSuccess, location }: LocationFormProps) {
           name: values.name,
           description: values.description || null,
           storage_area: values.storage_area,
+          storage_area_size: values.storage_area_size || null,
           created_by: user.id,
         })
         .select()
@@ -134,6 +138,7 @@ export function LocationForm({ onSuccess, location }: LocationFormProps) {
             name: values.name,
             description: values.description || null,
             storage_area: values.storage_area,
+            storage_area_size: values.storage_area_size || null,
           })
           .eq("id", targetId);
 
@@ -208,36 +213,51 @@ export function LocationForm({ onSuccess, location }: LocationFormProps) {
               />
             </div>
             
-            <FormField
-              control={form.control}
-              name="storage_area"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>พื้นที่จัดเก็บ *</FormLabel>
-                  <Select 
-                    onValueChange={(value) => {
-                      field.onChange(value);
-                      if (value) {
-                        setLocationId(location?.id);
-                      }
-                    }} 
-                    value={field.value}
-                  >
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="storage_area"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>พื้นที่จัดเก็บ *</FormLabel>
+                    <Select 
+                      onValueChange={(value) => {
+                        field.onChange(value);
+                        if (value) {
+                          setLocationId(location?.id);
+                        }
+                      }} 
+                      value={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="เลือกพื้นที่จัดเก็บ" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="Indoor">Indoor</SelectItem>
+                        <SelectItem value="Outdoor">Outdoor</SelectItem>
+                        <SelectItem value="Semi-outdoor">Semi-outdoor</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="storage_area_size"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>ขนาดพื้นที่</FormLabel>
                     <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="เลือกพื้นที่จัดเก็บ" />
-                      </SelectTrigger>
+                      <Input placeholder="เช่น 50 ตร.ม., 100 ตร.ฟุต" {...field} />
                     </FormControl>
-                    <SelectContent>
-                      <SelectItem value="Indoor">Indoor</SelectItem>
-                      <SelectItem value="Outdoor">Outdoor</SelectItem>
-                      <SelectItem value="Semi-outdoor">Semi-outdoor</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
 
             {!locationId && !location && (
               <div className="p-4 bg-muted rounded-lg text-sm text-muted-foreground">

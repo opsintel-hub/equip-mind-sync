@@ -49,6 +49,7 @@ interface Location {
   name: string;
   description: string | null;
   storage_area: string | null;
+  storage_area_size: string | null;
   is_active: boolean;
   created_at: string;
   storage_slots?: StorageSlot[];
@@ -199,6 +200,7 @@ export function LocationList({ refresh }: LocationListProps) {
                 "รหัสคลัง": location.code,
                 "ชื่อคลัง": location.name,
                 "พื้นที่จัดเก็บ": location.storage_area || "-",
+                "ขนาดพื้นที่": location.storage_area_size || "-",
                 "ช่องจัดเก็บ": slot.name,
                 "ช่องย่อย": subSlot.name,
                 "จำนวนรายการสินค้า": eqCount?.count || 0,
@@ -213,6 +215,7 @@ export function LocationList({ refresh }: LocationListProps) {
               "รหัสคลัง": location.code,
               "ชื่อคลัง": location.name,
               "พื้นที่จัดเก็บ": location.storage_area || "-",
+              "ขนาดพื้นที่": location.storage_area_size || "-",
               "ช่องจัดเก็บ": slot.name,
               "ช่องย่อย": "-",
               "จำนวนรายการสินค้า": eqCount?.count || 0,
@@ -228,6 +231,7 @@ export function LocationList({ refresh }: LocationListProps) {
           "รหัสคลัง": location.code,
           "ชื่อคลัง": location.name,
           "พื้นที่จัดเก็บ": location.storage_area || "-",
+          "ขนาดพื้นที่": location.storage_area_size || "-",
           "ช่องจัดเก็บ": "-",
           "ช่องย่อย": "-",
           "จำนวนรายการสินค้า": eqCount?.count || 0,
@@ -282,6 +286,7 @@ export function LocationList({ refresh }: LocationListProps) {
             <TableHead>รหัส</TableHead>
             <TableHead>ชื่อตำแหน่ง</TableHead>
             <TableHead>พื้นที่จัดเก็บ</TableHead>
+            <TableHead>ขนาดพื้นที่</TableHead>
             <TableHead>ช่องจัดเก็บ</TableHead>
             <TableHead>ช่องย่อยจัดเก็บ</TableHead>
             <TableHead>จำนวนสินค้า</TableHead>
@@ -317,6 +322,7 @@ export function LocationList({ refresh }: LocationListProps) {
                   <TableCell className="font-medium">{location.code}</TableCell>
                   <TableCell>{location.name}</TableCell>
                   <TableCell>{location.storage_area || "-"}</TableCell>
+                  <TableCell>{location.storage_area_size || "-"}</TableCell>
                   <TableCell className="text-muted-foreground">
                     {location.storage_slots?.length || 0} ช่อง
                   </TableCell>
