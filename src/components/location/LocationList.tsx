@@ -43,6 +43,12 @@ interface SubStorageSlot {
   is_active: boolean;
 }
 
+interface Warehouse {
+  id: string;
+  code: string;
+  name: string;
+}
+
 interface Location {
   id: string;
   code: string;
@@ -50,9 +56,11 @@ interface Location {
   description: string | null;
   storage_area: string | null;
   storage_area_size: string | null;
+  warehouse_id: string | null;
   is_active: boolean;
   created_at: string;
   storage_slots?: StorageSlot[];
+  warehouse?: Warehouse;
 }
 
 interface EquipmentCount {
@@ -87,6 +95,7 @@ export function LocationList({ refresh }: LocationListProps) {
         .from("locations")
         .select(`
           *,
+          warehouse:warehouses(id, code, name),
           storage_slots:storage_slots(
             id,
             name,
@@ -111,6 +120,7 @@ export function LocationList({ refresh }: LocationListProps) {
       setLoading(false);
     }
   };
+
 
   const fetchEquipmentCounts = async () => {
     try {
@@ -192,35 +202,37 @@ export function LocationList({ refresh }: LocationListProps) {
     
     filteredLocations.forEach((location) => {
       const eqCount = equipmentCounts.get(location.id);
+      const warehouseName = location.warehouse ? `${location.warehouse.code} - ${location.warehouse.name}` : "-";
+      
       if (location.storage_slots && location.storage_slots.length > 0) {
         location.storage_slots.forEach((slot) => {
           if (slot.sub_storage_slots && slot.sub_storage_slots.length > 0) {
             slot.sub_storage_slots.forEach((subSlot) => {
               exportData.push({
-                "รหัสคลัง": location.code,
-                "ชื่อคลัง": location.name,
-                "พื้นที่จัดเก็บ": location.storage_area || "-",
+                "รหัสตำแหน่ง": location.code,
+                "ชื่อตำแหน่ง": location.name,
+                "คลังสินค้า": warehouseName,
                 "ขนาดพื้นที่": location.storage_area_size || "-",
                 "ช่องจัดเก็บ": slot.name,
                 "ช่องย่อย": subSlot.name,
                 "จำนวนรายการสินค้า": eqCount?.count || 0,
                 "จำนวนสินค้ารวม": eqCount?.total_quantity || 0,
-                "สถานะคลัง": location.is_active ? "ใช้งาน" : "ไม่ใช้งาน",
+                "สถานะ": location.is_active ? "ใช้งาน" : "ไม่ใช้งาน",
                 "สถานะช่อง": slot.is_active ? "ใช้งาน" : "ไม่ใช้งาน",
                 "สถานะช่องย่อย": subSlot.is_active ? "ใช้งาน" : "ไม่ใช้งาน",
               });
             });
           } else {
             exportData.push({
-              "รหัสคลัง": location.code,
-              "ชื่อคลัง": location.name,
-              "พื้นที่จัดเก็บ": location.storage_area || "-",
+              "รหัสตำแหน่ง": location.code,
+              "ชื่อตำแหน่ง": location.name,
+              "คลังสินค้า": warehouseName,
               "ขนาดพื้นที่": location.storage_area_size || "-",
               "ช่องจัดเก็บ": slot.name,
               "ช่องย่อย": "-",
               "จำนวนรายการสินค้า": eqCount?.count || 0,
               "จำนวนสินค้ารวม": eqCount?.total_quantity || 0,
-              "สถานะคลัง": location.is_active ? "ใช้งาน" : "ไม่ใช้งาน",
+              "สถานะ": location.is_active ? "ใช้งาน" : "ไม่ใช้งาน",
               "สถานะช่อง": slot.is_active ? "ใช้งาน" : "ไม่ใช้งาน",
               "สถานะช่องย่อย": "-",
             });
@@ -228,15 +240,15 @@ export function LocationList({ refresh }: LocationListProps) {
         });
       } else {
         exportData.push({
-          "รหัสคลัง": location.code,
-          "ชื่อคลัง": location.name,
-          "พื้นที่จัดเก็บ": location.storage_area || "-",
+          "รหัสตำแหน่ง": location.code,
+          "ชื่อตำแหน่ง": location.name,
+          "คลังสินค้า": warehouseName,
           "ขนาดพื้นที่": location.storage_area_size || "-",
           "ช่องจัดเก็บ": "-",
           "ช่องย่อย": "-",
           "จำนวนรายการสินค้า": eqCount?.count || 0,
           "จำนวนสินค้ารวม": eqCount?.total_quantity || 0,
-          "สถานะคลัง": location.is_active ? "ใช้งาน" : "ไม่ใช้งาน",
+          "สถานะ": location.is_active ? "ใช้งาน" : "ไม่ใช้งาน",
           "สถานะช่อง": "-",
           "สถานะช่องย่อย": "-",
         });
@@ -285,7 +297,7 @@ export function LocationList({ refresh }: LocationListProps) {
             <TableHead className="w-12"></TableHead>
             <TableHead>รหัส</TableHead>
             <TableHead>ชื่อตำแหน่ง</TableHead>
-            <TableHead>พื้นที่จัดเก็บ</TableHead>
+            <TableHead>คลังสินค้า</TableHead>
             <TableHead>ขนาดพื้นที่</TableHead>
             <TableHead>ช่องจัดเก็บ</TableHead>
             <TableHead>ช่องย่อยจัดเก็บ</TableHead>
@@ -321,7 +333,9 @@ export function LocationList({ refresh }: LocationListProps) {
                   </TableCell>
                   <TableCell className="font-medium">{location.code}</TableCell>
                   <TableCell>{location.name}</TableCell>
-                  <TableCell>{location.storage_area || "-"}</TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {location.warehouse ? `${location.warehouse.code} - ${location.warehouse.name}` : "-"}
+                  </TableCell>
                   <TableCell>{location.storage_area_size || "-"}</TableCell>
                   <TableCell className="text-muted-foreground">
                     {location.storage_slots?.length || 0} ช่อง

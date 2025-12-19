@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -34,11 +34,18 @@ import { Plus } from "lucide-react";
 import { StorageSlotSelect } from "./StorageSlotSelect";
 import { SubStorageSlotSelect } from "./SubStorageSlotSelect";
 
+interface Warehouse {
+  id: string;
+  code: string;
+  name: string;
+}
+
 const formSchema = z.object({
+  warehouse_id: z.string().min(1, "กรุณาเลือกคลังสินค้า"),
   code: z.string().min(1, "กรุณาระบุรหัสตำแหน่ง"),
   name: z.string().min(1, "กรุณาระบุชื่อตำแหน่ง"),
   description: z.string().optional(),
-  storage_area: z.string().min(1, "กรุณาเลือกพื้นที่จัดเก็บ"),
+  storage_area: z.string().optional(),
   storage_area_size: z.string().optional(),
   storage_slot_id: z.string().optional(),
   sub_storage_slot_id: z.string().optional(),
@@ -53,6 +60,7 @@ interface LocationFormProps {
     description: string | null;
     storage_area: string | null;
     storage_area_size: string | null;
+    warehouse_id: string | null;
   };
 }
 
@@ -62,10 +70,25 @@ export function LocationForm({ onSuccess, location }: LocationFormProps) {
   const [locationId, setLocationId] = useState<string | undefined>(location?.id);
   const [storageSlotId, setStorageSlotId] = useState<string>("");
   const [isNewLocationSaved, setIsNewLocationSaved] = useState(!!location);
+  const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
+
+  useEffect(() => {
+    fetchWarehouses();
+  }, []);
+
+  const fetchWarehouses = async () => {
+    const { data } = await supabase
+      .from("warehouses")
+      .select("id, code, name")
+      .eq("is_active", true)
+      .order("code");
+    setWarehouses(data || []);
+  };
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
+      warehouse_id: location?.warehouse_id || "",
       code: location?.code || "",
       name: location?.name || "",
       description: location?.description || "",
@@ -80,7 +103,7 @@ export function LocationForm({ onSuccess, location }: LocationFormProps) {
     const values = form.getValues();
     
     // Validate required fields
-    if (!values.code || !values.name || !values.storage_area) {
+    if (!values.warehouse_id || !values.code || !values.name) {
       toast.error("กรุณากรอกข้อมูลให้ครบถ้วน");
       return;
     }
@@ -97,10 +120,11 @@ export function LocationForm({ onSuccess, location }: LocationFormProps) {
       const { data, error } = await supabase
         .from("locations")
         .insert({
+          warehouse_id: values.warehouse_id,
           code: values.code,
           name: values.name,
           description: values.description || null,
-          storage_area: values.storage_area,
+          storage_area: values.storage_area || null,
           storage_area_size: values.storage_area_size || null,
           created_by: user.id,
         })
@@ -134,10 +158,11 @@ export function LocationForm({ onSuccess, location }: LocationFormProps) {
         const { error } = await supabase
           .from("locations")
           .update({
+            warehouse_id: values.warehouse_id,
             code: values.code,
             name: values.name,
             description: values.description || null,
-            storage_area: values.storage_area,
+            storage_area: values.storage_area || null,
             storage_area_size: values.storage_area_size || null,
           })
           .eq("id", targetId);
@@ -184,6 +209,31 @@ export function LocationForm({ onSuccess, location }: LocationFormProps) {
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <FormField
+              control={form.control}
+              name="warehouse_id"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>คลังสินค้า *</FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="เลือกคลังสินค้า" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {warehouses.map((wh) => (
+                        <SelectItem key={wh.id} value={wh.id}>
+                          {wh.code} - {wh.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
             <div className="grid grid-cols-2 gap-4">
               <FormField
                 control={form.control}
@@ -205,7 +255,7 @@ export function LocationForm({ onSuccess, location }: LocationFormProps) {
                   <FormItem>
                     <FormLabel>ชื่อตำแหน่ง *</FormLabel>
                     <FormControl>
-                      <Input placeholder="เช่น คลังหลัก ชั้น 1" {...field} />
+                      <Input placeholder="เช่น ชั้น 1 โซน A" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -219,7 +269,7 @@ export function LocationForm({ onSuccess, location }: LocationFormProps) {
                 name="storage_area"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>พื้นที่จัดเก็บ *</FormLabel>
+                    <FormLabel>พื้นที่จัดเก็บ</FormLabel>
                     <Select 
                       onValueChange={(value) => {
                         field.onChange(value);

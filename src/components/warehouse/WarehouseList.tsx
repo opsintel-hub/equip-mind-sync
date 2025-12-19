@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Trash2, AlertCircle, Warehouse } from "lucide-react";
+import { Trash2, AlertCircle, Warehouse, MapPin, ChevronDown, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
@@ -7,6 +7,13 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { WarehouseForm } from "./WarehouseForm";
+
+interface LocationData {
+  id: string;
+  code: string;
+  name: string;
+  storage_area_size: string | null;
+}
 
 interface WarehouseData {
   id: string;
@@ -16,8 +23,8 @@ interface WarehouseData {
   storage_area: string | null;
   department: string | null;
   is_active: boolean | null;
-  equipment_count?: number;
-  total_quantity?: number;
+  locations?: LocationData[];
+  location_count?: number;
 }
 
 interface WarehouseListProps {
@@ -28,6 +35,7 @@ export function WarehouseList({ refresh }: WarehouseListProps) {
   const [warehouses, setWarehouses] = useState<WarehouseData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [deleteWarehouse, setDeleteWarehouse] = useState<WarehouseData | null>(null);
+  const [expandedWarehouses, setExpandedWarehouses] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     fetchWarehouses();
@@ -36,32 +44,32 @@ export function WarehouseList({ refresh }: WarehouseListProps) {
   const fetchWarehouses = async () => {
     setIsLoading(true);
     try {
-      const { data: locationsData, error: locationsError } = await supabase
-        .from("locations")
+      const { data: warehousesData, error: warehousesError } = await supabase
+        .from("warehouses")
         .select("*")
         .eq("is_active", true)
         .order("code");
 
-      if (locationsError) throw locationsError;
+      if (warehousesError) throw warehousesError;
 
-      // Get equipment counts for each warehouse
-      const warehousesWithCounts = await Promise.all(
-        (locationsData || []).map(async (location) => {
-          const { data: equipmentData } = await supabase
-            .from("equipment")
-            .select("id, quantity_in_stock")
-            .eq("location_id", location.id)
+      // Get locations for each warehouse
+      const warehousesWithLocations = await Promise.all(
+        (warehousesData || []).map(async (warehouse) => {
+          const { data: locationsData } = await supabase
+            .from("locations")
+            .select("id, code, name, storage_area_size")
+            .eq("warehouse_id", warehouse.id)
             .eq("is_active", true);
 
           return {
-            ...location,
-            equipment_count: equipmentData?.length || 0,
-            total_quantity: equipmentData?.reduce((sum, eq) => sum + (eq.quantity_in_stock || 0), 0) || 0,
+            ...warehouse,
+            locations: locationsData || [],
+            location_count: locationsData?.length || 0,
           };
         })
       );
 
-      setWarehouses(warehousesWithCounts);
+      setWarehouses(warehousesWithLocations);
     } catch (error) {
       console.error("Error fetching warehouses:", error);
       toast.error("ไม่สามารถโหลดข้อมูลคลังสินค้าได้");
@@ -75,7 +83,7 @@ export function WarehouseList({ refresh }: WarehouseListProps) {
 
     try {
       const { error } = await supabase
-        .from("locations")
+        .from("warehouses")
         .update({ is_active: false })
         .eq("id", deleteWarehouse.id);
 
@@ -87,6 +95,18 @@ export function WarehouseList({ refresh }: WarehouseListProps) {
       console.error("Error deleting warehouse:", error);
       toast.error(error.message || "ลบคลังสินค้าไม่สำเร็จ");
     }
+  };
+
+  const toggleExpand = (warehouseId: string) => {
+    setExpandedWarehouses(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(warehouseId)) {
+        newSet.delete(warehouseId);
+      } else {
+        newSet.add(warehouseId);
+      }
+      return newSet;
+    });
   };
 
   const getStorageAreaBadge = (area: string | null) => {
@@ -124,43 +144,85 @@ export function WarehouseList({ refresh }: WarehouseListProps) {
       <Table>
         <TableHeader>
           <TableRow>
+            <TableHead className="w-12"></TableHead>
             <TableHead>รหัสคลัง</TableHead>
             <TableHead>ชื่อคลังสินค้า</TableHead>
             <TableHead>ฝ่าย</TableHead>
             <TableHead>ประเภทพื้นที่</TableHead>
-            <TableHead className="text-right">จำนวนรายการสินค้า</TableHead>
-            <TableHead className="text-right">จำนวนสินค้ารวม</TableHead>
+            <TableHead className="text-center">จำนวนตำแหน่งจัดเก็บ</TableHead>
             <TableHead className="text-right">จัดการ</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
-          {warehouses.map((warehouse) => (
-            <TableRow key={warehouse.id}>
-              <TableCell className="font-medium">{warehouse.code}</TableCell>
-              <TableCell>
-                <div className="flex items-center gap-2">
-                  <Warehouse className="h-4 w-4 text-muted-foreground" />
-                  {warehouse.name}
-                </div>
-              </TableCell>
-              <TableCell className="text-muted-foreground">{warehouse.department || "-"}</TableCell>
-              <TableCell>{getStorageAreaBadge(warehouse.storage_area)}</TableCell>
-              <TableCell className="text-right">{warehouse.equipment_count}</TableCell>
-              <TableCell className="text-right">{warehouse.total_quantity?.toLocaleString()}</TableCell>
-              <TableCell className="text-right">
-                <div className="flex justify-end gap-2">
-                  <WarehouseForm editData={warehouse} onSuccess={fetchWarehouses} />
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => setDeleteWarehouse(warehouse)}
-                  >
-                    <Trash2 className="h-4 w-4 text-destructive" />
-                  </Button>
-                </div>
-              </TableCell>
-            </TableRow>
-          ))}
+          {warehouses.map((warehouse) => {
+            const isExpanded = expandedWarehouses.has(warehouse.id);
+            const hasLocations = (warehouse.locations?.length || 0) > 0;
+            
+            return (
+              <>
+                <TableRow key={warehouse.id}>
+                  <TableCell>
+                    {hasLocations && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 w-6 p-0"
+                        onClick={() => toggleExpand(warehouse.id)}
+                      >
+                        {isExpanded ? (
+                          <ChevronDown className="h-4 w-4" />
+                        ) : (
+                          <ChevronRight className="h-4 w-4" />
+                        )}
+                      </Button>
+                    )}
+                  </TableCell>
+                  <TableCell className="font-medium">{warehouse.code}</TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      <Warehouse className="h-4 w-4 text-muted-foreground" />
+                      {warehouse.name}
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">{warehouse.department || "-"}</TableCell>
+                  <TableCell>{getStorageAreaBadge(warehouse.storage_area)}</TableCell>
+                  <TableCell className="text-center">{warehouse.location_count || 0}</TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex justify-end gap-2">
+                      <WarehouseForm editData={warehouse} onSuccess={fetchWarehouses} />
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => setDeleteWarehouse(warehouse)}
+                      >
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+                
+                {isExpanded && hasLocations && warehouse.locations?.map((location) => (
+                  <TableRow key={`loc-${location.id}`} className="bg-muted/30">
+                    <TableCell></TableCell>
+                    <TableCell className="pl-8">
+                      <div className="flex items-center gap-2 text-muted-foreground">
+                        <span>└─</span>
+                        <MapPin className="h-3 w-3" />
+                        {location.code}
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-sm">{location.name}</TableCell>
+                    <TableCell></TableCell>
+                    <TableCell className="text-sm text-muted-foreground">
+                      {location.storage_area_size || "-"}
+                    </TableCell>
+                    <TableCell></TableCell>
+                    <TableCell></TableCell>
+                  </TableRow>
+                ))}
+              </>
+            );
+          })}
         </TableBody>
       </Table>
 
@@ -171,7 +233,7 @@ export function WarehouseList({ refresh }: WarehouseListProps) {
             <AlertDialogDescription>
               คุณต้องการลบคลังสินค้า "{deleteWarehouse?.name}" ใช่หรือไม่?
               <br />
-              การลบจะไม่ส่งผลกระทบต่ออุปกรณ์ที่เก็บอยู่ในคลังนี้
+              การลบจะไม่ส่งผลกระทบต่อตำแหน่งจัดเก็บที่อยู่ในคลังนี้
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

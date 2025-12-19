@@ -760,6 +760,7 @@ export type Database = {
           storage_area: string | null
           storage_area_size: string | null
           updated_at: string
+          warehouse_id: string | null
         }
         Insert: {
           code: string
@@ -773,6 +774,7 @@ export type Database = {
           storage_area?: string | null
           storage_area_size?: string | null
           updated_at?: string
+          warehouse_id?: string | null
         }
         Update: {
           code?: string
@@ -786,8 +788,17 @@ export type Database = {
           storage_area?: string | null
           storage_area_size?: string | null
           updated_at?: string
+          warehouse_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "locations_warehouse_id_fkey"
+            columns: ["warehouse_id"]
+            isOneToOne: false
+            referencedRelation: "warehouses"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       low_stock_alerts: {
         Row: {
@@ -1251,6 +1262,45 @@ export type Database = {
           id?: string
           role?: Database["public"]["Enums"]["app_role"]
           user_id?: string
+        }
+        Relationships: []
+      }
+      warehouses: {
+        Row: {
+          code: string
+          created_at: string
+          created_by: string | null
+          department: string | null
+          description: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          storage_area: string | null
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          created_by?: string | null
+          department?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          storage_area?: string | null
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          department?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          storage_area?: string | null
+          updated_at?: string
         }
         Relationships: []
       }

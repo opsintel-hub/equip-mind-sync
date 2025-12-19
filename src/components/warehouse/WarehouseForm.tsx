@@ -79,7 +79,7 @@ export function WarehouseForm({ onSuccess, editData }: WarehouseFormProps) {
     try {
       if (editData) {
         const { error } = await supabase
-          .from("locations")
+          .from("warehouses")
           .update({
             code: data.code,
             name: data.name,
@@ -92,7 +92,7 @@ export function WarehouseForm({ onSuccess, editData }: WarehouseFormProps) {
         if (error) throw error;
         toast.success("แก้ไขคลังสินค้าสำเร็จ");
       } else {
-        const { error } = await supabase.from("locations").insert({
+        const { error } = await supabase.from("warehouses").insert({
           code: data.code,
           name: data.name,
           description: data.description || null,
