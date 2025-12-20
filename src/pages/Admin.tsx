@@ -18,8 +18,10 @@ const DEPARTMENTS = ["Airport", "Digital", "Billboard", "Static", "Bus", "7 Elev
 
 const ROLES: { value: UserRole; label: string; description: string }[] = [
   { value: "admin", label: "Admin", description: "สิทธิ์เต็มทุกอย่าง" },
-  { value: "manager", label: "Manager", description: "จัดการและอนุมัติรายการ" },
-  { value: "warehouse_staff", label: "Warehouse Staff", description: "จัดการคลังสินค้า" },
+  { value: "manager", label: "Manager", description: "จัดการและอนุมัติรายการ ดูรายงาน" },
+  { value: "warehouse_staff", label: "เจ้าหน้าที่คลัง", description: "รับเข้า-เบิกจ่ายสินค้า จัดการสต็อก" },
+  { value: "receiver", label: "ผู้รับเข้าสินค้า", description: "รับสินค้าเข้าคลัง บันทึกการส่งมอบ" },
+  { value: "requester", label: "ผู้เบิกสินค้า", description: "สร้างคำขอเบิกสินค้า ติดตามสถานะ" },
 ];
 
 interface User {
