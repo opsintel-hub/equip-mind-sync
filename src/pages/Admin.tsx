@@ -2,14 +2,17 @@ import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Switch } from "@/components/ui/switch";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Shield, UserCog } from "lucide-react";
+import { Shield, UserCog, Settings2 } from "lucide-react";
 import { useDepartmentPermissions } from "@/hooks/useDepartmentPermissions";
+import { SYSTEM_FUNCTIONS } from "@/hooks/useFunctionPermissions";
 import type { Database } from "@/integrations/supabase/types";
 
 type UserRole = Database["public"]["Enums"]["app_role"];
@@ -45,16 +48,23 @@ interface UserPermission {
   can_delete: boolean;
 }
 
+interface FunctionPermission {
+  function_name: string;
+  can_access: boolean;
+}
+
 const Admin = () => {
   const { isAdmin, loading: permLoading } = useDepartmentPermissions();
   const [users, setUsers] = useState<User[]>([]);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [userPermissions, setUserPermissions] = useState<UserPermission[]>([]);
+  const [userFunctionPermissions, setUserFunctionPermissions] = useState<FunctionPermission[]>([]);
   const [userRoles, setUserRoles] = useState<Record<string, UserRole[]>>({});
   const [selectedUserRoles, setSelectedUserRoles] = useState<UserRole[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [roleDialogOpen, setRoleDialogOpen] = useState(false);
+  const [functionDialogOpen, setFunctionDialogOpen] = useState(false);
 
   useEffect(() => {
     if (!permLoading && !isAdmin) {
@@ -138,6 +148,31 @@ const Admin = () => {
     }
   };
 
+  const fetchUserFunctionPermissions = async (userId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from("user_function_permissions")
+        .select("function_name, can_access")
+        .eq("user_id", userId);
+
+      if (error) throw error;
+
+      // Create full permission set with defaults
+      const fullPermissions = SYSTEM_FUNCTIONS.map(func => {
+        const existing = data?.find(p => p.function_name === func.name);
+        return existing || {
+          function_name: func.name,
+          can_access: false
+        };
+      });
+
+      setUserFunctionPermissions(fullPermissions);
+    } catch (error: any) {
+      console.error("Error fetching function permissions:", error);
+      toast.error("เกิดข้อผิดพลาดในการโหลดสิทธิ์ฟังก์ชัน");
+    }
+  };
+
   const handleOpenDialog = async (user: User) => {
     setSelectedUser(user);
     await fetchUserPermissions(user.id);
@@ -148,6 +183,12 @@ const Admin = () => {
     setSelectedUser(user);
     setSelectedUserRoles(userRoles[user.id] || []);
     setRoleDialogOpen(true);
+  };
+
+  const handleOpenFunctionDialog = async (user: User) => {
+    setSelectedUser(user);
+    await fetchUserFunctionPermissions(user.id);
+    setFunctionDialogOpen(true);
   };
 
   const toggleRole = (role: UserRole) => {
@@ -201,6 +242,16 @@ const Admin = () => {
     );
   };
 
+  const handleFunctionPermissionChange = (functionName: string, value: boolean) => {
+    setUserFunctionPermissions(prev => 
+      prev.map(p => 
+        p.function_name === functionName 
+          ? { ...p, can_access: value }
+          : p
+      )
+    );
+  };
+
   const handleSavePermissions = async () => {
     if (!selectedUser) return;
 
@@ -228,6 +279,41 @@ const Admin = () => {
       setDialogOpen(false);
     } catch (error: any) {
       console.error("Error saving permissions:", error);
+      toast.error("เกิดข้อผิดพลาดในการบันทึก");
+    }
+  };
+
+  const handleSaveFunctionPermissions = async () => {
+    if (!selectedUser) return;
+
+    try {
+      // Delete existing function permissions
+      await supabase
+        .from("user_function_permissions")
+        .delete()
+        .eq("user_id", selectedUser.id);
+
+      // Insert new function permissions
+      const permissionsToInsert = userFunctionPermissions
+        .filter(p => p.can_access)
+        .map(p => ({
+          user_id: selectedUser.id,
+          function_name: p.function_name,
+          can_access: true
+        }));
+
+      if (permissionsToInsert.length > 0) {
+        const { error } = await supabase
+          .from("user_function_permissions")
+          .insert(permissionsToInsert);
+
+        if (error) throw error;
+      }
+
+      toast.success("บันทึกสิทธิ์ฟังก์ชันสำเร็จ");
+      setFunctionDialogOpen(false);
+    } catch (error: any) {
+      console.error("Error saving function permissions:", error);
       toast.error("เกิดข้อผิดพลาดในการบันทึก");
     }
   };
@@ -291,7 +377,7 @@ const Admin = () => {
                       </div>
                     </TableCell>
                     <TableCell className="text-right">
-                      <div className="flex gap-2 justify-end">
+                      <div className="flex gap-2 justify-end flex-wrap">
                         <Button
                           variant="outline"
                           size="sm"
@@ -299,6 +385,14 @@ const Admin = () => {
                         >
                           <UserCog className="w-4 h-4 mr-2" />
                           บทบาท
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleOpenFunctionDialog(user)}
+                        >
+                          <Settings2 className="w-4 h-4 mr-2" />
+                          สิทธิ์ฟังก์ชัน
                         </Button>
                         <Button
                           variant="outline"
@@ -420,6 +514,49 @@ const Admin = () => {
               </Button>
               <Button onClick={handleSavePermissions}>
                 บันทึกสิทธิ์
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={functionDialogOpen} onOpenChange={setFunctionDialogOpen}>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>
+              กำหนดสิทธิ์ตามฟังก์ชัน - {selectedUser?.full_name}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              เลือกฟังก์ชันที่ผู้ใช้สามารถเข้าถึงได้
+            </p>
+            <div className="space-y-3">
+              {SYSTEM_FUNCTIONS.map((func) => {
+                const perm = userFunctionPermissions.find(p => p.function_name === func.name);
+                return (
+                  <div 
+                    key={func.name}
+                    className="flex items-center justify-between p-4 rounded-lg border hover:bg-muted/30"
+                  >
+                    <div className="flex-1">
+                      <Label className="font-medium">{func.label}</Label>
+                      <p className="text-sm text-muted-foreground">{func.description}</p>
+                    </div>
+                    <Switch
+                      checked={perm?.can_access || false}
+                      onCheckedChange={(checked) => handleFunctionPermissionChange(func.name, checked)}
+                    />
+                  </div>
+                );
+              })}
+            </div>
+            <div className="flex justify-end gap-2 pt-4">
+              <Button variant="outline" onClick={() => setFunctionDialogOpen(false)}>
+                ยกเลิก
+              </Button>
+              <Button onClick={handleSaveFunctionPermissions}>
+                บันทึกสิทธิ์ฟังก์ชัน
               </Button>
             </div>
           </div>

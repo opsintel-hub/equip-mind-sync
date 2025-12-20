@@ -1244,6 +1244,33 @@ export type Database = {
         }
         Relationships: []
       }
+      user_function_permissions: {
+        Row: {
+          can_access: boolean
+          created_at: string
+          function_name: string
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          can_access?: boolean
+          created_at?: string
+          function_name: string
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          can_access?: boolean
+          created_at?: string
+          function_name?: string
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -1311,6 +1338,10 @@ export type Database = {
     Functions: {
       has_department_permission: {
         Args: { _department: string; _permission: string; _user_id: string }
+        Returns: boolean
+      }
+      has_function_permission: {
+        Args: { _function_name: string; _user_id: string }
         Returns: boolean
       }
       has_role: {
