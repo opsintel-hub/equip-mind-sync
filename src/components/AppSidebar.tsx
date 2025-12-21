@@ -14,6 +14,7 @@ import {
   PackageCheck,
   ChevronDown,
   Archive,
+  Wrench,
 } from "lucide-react";
 import {
   Sidebar,
@@ -77,8 +78,17 @@ const allMenuItems: MenuItem[] = [
     icon: Calendar,
     functionName: "pm_schedule",
     subItems: [
-      { title: "ตาราง PM", url: "/pm-schedule", icon: Calendar },
-      { title: "ประวัติ PM", url: "/pm-history", icon: History },
+      { title: "ตาราง PM ป้าย", url: "/pm-schedule", icon: Calendar },
+      { title: "ประวัติ PM ป้าย", url: "/pm-history", icon: History },
+    ]
+  },
+  { 
+    title: "PM เครื่องมือ", 
+    icon: Wrench,
+    functionName: "equipment_pm",
+    subItems: [
+      { title: "ตาราง PM เครื่องมือ", url: "/equipment-pm-schedule", icon: Calendar },
+      { title: "ประวัติ PM เครื่องมือ", url: "/equipment-pm-history", icon: History },
     ]
   },
   { title: "รายงาน Dead Stock", url: "/dead-stock", icon: Archive, functionName: "reports" },
