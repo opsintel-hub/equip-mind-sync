@@ -50,50 +50,86 @@ interface MenuItem {
   }[];
 }
 
-const allMenuItems: MenuItem[] = [
-  { title: "แดชบอร์ด", url: "/dashboard", icon: LayoutDashboard },
-  { 
-    title: "รับสินค้าเข้า (GR)", 
-    icon: Package,
-    functionName: "goods_receipt",
-    subItems: [
-      { title: "นำสินค้าเข้า", url: "/delivery-entry", icon: Truck },
-      { title: "รับเข้าคลัง", url: "/receive-goods", icon: PackageCheck },
+// กลุ่มเมนูแบ่งตามหมวดหมู่
+interface MenuGroup {
+  label: string;
+  items: MenuItem[];
+}
+
+const menuGroups: MenuGroup[] = [
+  {
+    label: "หน้าหลัก",
+    items: [
+      { title: "แดชบอร์ด", url: "/dashboard", icon: LayoutDashboard },
     ]
   },
-  { 
-    title: "เบิกจ่ายสินค้า (GI)", 
-    icon: PackageOpen,
-    functionName: "goods_issue",
-    subItems: [
-      { title: "ขอเบิกสินค้า", url: "/issue-request", icon: Package },
-      { title: "จ่ายสินค้า", url: "/issue-goods", icon: PackageCheck },
+  {
+    label: "คลังสินค้า",
+    items: [
+      { 
+        title: "รับสินค้าเข้า (GR)", 
+        icon: Package,
+        functionName: "goods_receipt",
+        subItems: [
+          { title: "นำสินค้าเข้า", url: "/delivery-entry", icon: Truck },
+          { title: "รับเข้าคลัง", url: "/receive-goods", icon: PackageCheck },
+        ]
+      },
+      { 
+        title: "เบิกจ่ายสินค้า (GI)", 
+        icon: PackageOpen,
+        functionName: "goods_issue",
+        subItems: [
+          { title: "ขอเบิกสินค้า", url: "/issue-request", icon: Package },
+          { title: "จ่ายสินค้า", url: "/issue-goods", icon: PackageCheck },
+        ]
+      },
+      { title: "ประวัติการย้าย", url: "/transfer-history", icon: History, functionName: "transfer" },
     ]
   },
-  { title: "ข้อมูลหลัก", url: "/master-data", icon: Database, functionName: "master_data" },
-  { title: "ประวัติการย้าย", url: "/transfer-history", icon: History, functionName: "transfer" },
-  { title: "ป้ายโฆษณา", url: "/billboards", icon: MapPin, functionName: "billboards" },
-  { 
-    title: "PM ป้ายโฆษณา", 
-    icon: Calendar,
-    functionName: "pm_schedule",
-    subItems: [
-      { title: "ตาราง PM ป้าย", url: "/pm-schedule", icon: Calendar },
-      { title: "ประวัติ PM ป้าย", url: "/pm-history", icon: History },
+  {
+    label: "ป้ายโฆษณา",
+    items: [
+      { title: "จัดการป้ายโฆษณา", url: "/billboards", icon: MapPin, functionName: "billboards" },
+      { 
+        title: "PM ป้ายโฆษณา", 
+        icon: Calendar,
+        functionName: "pm_schedule",
+        subItems: [
+          { title: "ตาราง PM ป้าย", url: "/pm-schedule", icon: Calendar },
+          { title: "ประวัติ PM ป้าย", url: "/pm-history", icon: History },
+        ]
+      },
     ]
   },
-  { 
-    title: "PM เครื่องมือ", 
-    icon: Wrench,
-    functionName: "equipment_pm",
-    subItems: [
-      { title: "ตาราง PM เครื่องมือ", url: "/equipment-pm-schedule", icon: Calendar },
-      { title: "ประวัติ PM เครื่องมือ", url: "/equipment-pm-history", icon: History },
+  {
+    label: "เครื่องมือ",
+    items: [
+      { 
+        title: "PM เครื่องมือ", 
+        icon: Wrench,
+        functionName: "equipment_pm",
+        subItems: [
+          { title: "ตาราง PM เครื่องมือ", url: "/equipment-pm-schedule", icon: Calendar },
+          { title: "ประวัติ PM เครื่องมือ", url: "/equipment-pm-history", icon: History },
+        ]
+      },
     ]
   },
-  { title: "รายงาน Dead Stock", url: "/dead-stock", icon: Archive, functionName: "reports" },
-  { title: "ตั้งค่าแจ้งเตือน", url: "/notification-settings", icon: Bell },
-  { title: "จัดการผู้ใช้", url: "/admin", icon: Shield, functionName: "admin" },
+  {
+    label: "รายงาน",
+    items: [
+      { title: "รายงาน Dead Stock", url: "/dead-stock", icon: Archive, functionName: "reports" },
+    ]
+  },
+  {
+    label: "ตั้งค่าระบบ",
+    items: [
+      { title: "ข้อมูลหลัก", url: "/master-data", icon: Database, functionName: "master_data" },
+      { title: "ตั้งค่าแจ้งเตือน", url: "/notification-settings", icon: Bell },
+      { title: "จัดการผู้ใช้", url: "/admin", icon: Shield, functionName: "admin" },
+    ]
+  },
 ];
 
 export function AppSidebar() {
@@ -102,22 +138,81 @@ export function AppSidebar() {
   const { hasFunctionAccess, isAdmin, loading: permLoading } = useFunctionPermissions();
   const [openSubMenu, setOpenSubMenu] = useState<string | null>("รับสินค้าเข้า (GR)");
 
-  // Filter menu items based on function permissions
-  const menuItems = useMemo(() => {
+  // Filter menu groups based on function permissions
+  const filteredMenuGroups = useMemo(() => {
     if (permLoading) return [];
     
-    return allMenuItems.filter(item => {
-      // Items without functionName are always visible (e.g., Dashboard, Settings)
-      if (!item.functionName) return true;
-      // Admin can see everything
-      if (isAdmin) return true;
-      // Check function permission
-      return hasFunctionAccess(item.functionName);
-    });
+    return menuGroups.map(group => ({
+      ...group,
+      items: group.items.filter(item => {
+        // Items without functionName are always visible (e.g., Dashboard, Settings)
+        if (!item.functionName) return true;
+        // Admin can see everything
+        if (isAdmin) return true;
+        // Check function permission
+        return hasFunctionAccess(item.functionName);
+      })
+    })).filter(group => group.items.length > 0); // Only show groups with items
   }, [hasFunctionAccess, isAdmin, permLoading]);
 
   const handleLogout = () => {
     signOut();
+  };
+
+  const renderMenuItem = (item: MenuItem) => {
+    if (item.subItems) {
+      return (
+        <Collapsible
+          open={openSubMenu === item.title}
+          onOpenChange={(open) => setOpenSubMenu(open ? item.title : null)}
+        >
+          <CollapsibleTrigger asChild>
+            <SidebarMenuButton className="flex items-center justify-between w-full px-3 py-2 rounded-lg text-sidebar-foreground hover:bg-sidebar-accent transition-colors">
+              <div className="flex items-center gap-3">
+                <item.icon className="w-5 h-5 flex-shrink-0" />
+                {state !== "collapsed" && <span>{item.title}</span>}
+              </div>
+              {state !== "collapsed" && (
+                <ChevronDown className={`w-4 h-4 transition-transform ${openSubMenu === item.title ? "rotate-180" : ""}`} />
+              )}
+            </SidebarMenuButton>
+          </CollapsibleTrigger>
+          {state !== "collapsed" && (
+            <CollapsibleContent>
+              <SidebarMenuSub>
+                {item.subItems.map((subItem) => (
+                  <SidebarMenuSubItem key={subItem.title}>
+                    <SidebarMenuSubButton asChild>
+                      <NavLink
+                        to={subItem.url}
+                        className="flex items-center gap-3 px-3 py-2 rounded-lg text-sidebar-foreground hover:bg-sidebar-accent transition-colors text-sm"
+                        activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+                      >
+                        <subItem.icon className="w-4 h-4 flex-shrink-0" />
+                        <span>{subItem.title}</span>
+                      </NavLink>
+                    </SidebarMenuSubButton>
+                  </SidebarMenuSubItem>
+                ))}
+              </SidebarMenuSub>
+            </CollapsibleContent>
+          )}
+        </Collapsible>
+      );
+    }
+
+    return (
+      <SidebarMenuButton asChild>
+        <NavLink
+          to={item.url!}
+          className="flex items-center gap-3 px-3 py-2 rounded-lg text-sidebar-foreground hover:bg-sidebar-accent transition-colors"
+          activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+        >
+          <item.icon className="w-5 h-5 flex-shrink-0" />
+          {state !== "collapsed" && <span>{item.title}</span>}
+        </NavLink>
+      </SidebarMenuButton>
+    );
   };
 
   return (
@@ -137,68 +232,22 @@ export function AppSidebar() {
       </SidebarHeader>
 
       <SidebarContent>
-        <SidebarGroup>
-          <SidebarGroupLabel className={state === "collapsed" ? "text-center" : ""}>
-            {state === "collapsed" ? "•••" : "เมนูหลัก"}
-          </SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {menuItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  {item.subItems ? (
-                    <Collapsible
-                      open={openSubMenu === item.title}
-                      onOpenChange={(open) => setOpenSubMenu(open ? item.title : null)}
-                    >
-                      <CollapsibleTrigger asChild>
-                        <SidebarMenuButton className="flex items-center justify-between w-full px-3 py-2 rounded-lg text-sidebar-foreground hover:bg-sidebar-accent transition-colors">
-                          <div className="flex items-center gap-3">
-                            <item.icon className="w-5 h-5 flex-shrink-0" />
-                            {state !== "collapsed" && <span>{item.title}</span>}
-                          </div>
-                          {state !== "collapsed" && (
-                            <ChevronDown className={`w-4 h-4 transition-transform ${openSubMenu === item.title ? "rotate-180" : ""}`} />
-                          )}
-                        </SidebarMenuButton>
-                      </CollapsibleTrigger>
-                      {state !== "collapsed" && (
-                        <CollapsibleContent>
-                          <SidebarMenuSub>
-                            {item.subItems.map((subItem) => (
-                              <SidebarMenuSubItem key={subItem.title}>
-                                <SidebarMenuSubButton asChild>
-                                  <NavLink
-                                    to={subItem.url}
-                                    className="flex items-center gap-3 px-3 py-2 rounded-lg text-sidebar-foreground hover:bg-sidebar-accent transition-colors text-sm"
-                                    activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-medium"
-                                  >
-                                    <subItem.icon className="w-4 h-4 flex-shrink-0" />
-                                    <span>{subItem.title}</span>
-                                  </NavLink>
-                                </SidebarMenuSubButton>
-                              </SidebarMenuSubItem>
-                            ))}
-                          </SidebarMenuSub>
-                        </CollapsibleContent>
-                      )}
-                    </Collapsible>
-                  ) : (
-                    <SidebarMenuButton asChild>
-                      <NavLink
-                        to={item.url}
-                        className="flex items-center gap-3 px-3 py-2 rounded-lg text-sidebar-foreground hover:bg-sidebar-accent transition-colors"
-                        activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-medium"
-                      >
-                        <item.icon className="w-5 h-5 flex-shrink-0" />
-                        {state !== "collapsed" && <span>{item.title}</span>}
-                      </NavLink>
-                    </SidebarMenuButton>
-                  )}
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+        {filteredMenuGroups.map((group) => (
+          <SidebarGroup key={group.label}>
+            <SidebarGroupLabel className={state === "collapsed" ? "text-center" : ""}>
+              {state === "collapsed" ? "•••" : group.label}
+            </SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {group.items.map((item) => (
+                  <SidebarMenuItem key={item.title}>
+                    {renderMenuItem(item)}
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        ))}
       </SidebarContent>
 
       <SidebarFooter className="border-t border-sidebar-border p-4">
