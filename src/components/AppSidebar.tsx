@@ -74,7 +74,7 @@ const allMenuItems: MenuItem[] = [
   { title: "ประวัติการย้าย", url: "/transfer-history", icon: History, functionName: "transfer" },
   { title: "ป้ายโฆษณา", url: "/billboards", icon: MapPin, functionName: "billboards" },
   { 
-    title: "PM (บำรุงรักษา)", 
+    title: "PM ป้ายโฆษณา", 
     icon: Calendar,
     functionName: "pm_schedule",
     subItems: [
