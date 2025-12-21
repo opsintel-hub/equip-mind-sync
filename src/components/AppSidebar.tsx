@@ -34,13 +34,27 @@ import {
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { useState } from "react";
+import { useState, useMemo } from "react";
+import { useFunctionPermissions } from "@/hooks/useFunctionPermissions";
 
-const menuItems = [
+interface MenuItem {
+  title: string;
+  url?: string;
+  icon: React.ComponentType<{ className?: string }>;
+  functionName?: string;
+  subItems?: {
+    title: string;
+    url: string;
+    icon: React.ComponentType<{ className?: string }>;
+  }[];
+}
+
+const allMenuItems: MenuItem[] = [
   { title: "แดชบอร์ด", url: "/dashboard", icon: LayoutDashboard },
   { 
     title: "รับสินค้าเข้า (GR)", 
     icon: Package,
+    functionName: "goods_receipt",
     subItems: [
       { title: "นำสินค้าเข้า", url: "/delivery-entry", icon: Truck },
       { title: "รับเข้าคลัง", url: "/receive-goods", icon: PackageCheck },
@@ -49,31 +63,48 @@ const menuItems = [
   { 
     title: "เบิกจ่ายสินค้า (GI)", 
     icon: PackageOpen,
+    functionName: "goods_issue",
     subItems: [
       { title: "ขอเบิกสินค้า", url: "/issue-request", icon: Package },
       { title: "จ่ายสินค้า", url: "/issue-goods", icon: PackageCheck },
     ]
   },
-  { title: "ข้อมูลหลัก", url: "/master-data", icon: Database },
-  { title: "ประวัติการย้าย", url: "/transfer-history", icon: History },
-  { title: "ป้ายโฆษณา", url: "/billboards", icon: MapPin },
+  { title: "ข้อมูลหลัก", url: "/master-data", icon: Database, functionName: "master_data" },
+  { title: "ประวัติการย้าย", url: "/transfer-history", icon: History, functionName: "transfer" },
+  { title: "ป้ายโฆษณา", url: "/billboards", icon: MapPin, functionName: "billboards" },
   { 
     title: "PM (บำรุงรักษา)", 
     icon: Calendar,
+    functionName: "pm_schedule",
     subItems: [
       { title: "ตาราง PM", url: "/pm-schedule", icon: Calendar },
       { title: "ประวัติ PM", url: "/pm-history", icon: History },
     ]
   },
-  { title: "รายงาน Dead Stock", url: "/dead-stock", icon: Archive },
+  { title: "รายงาน Dead Stock", url: "/dead-stock", icon: Archive, functionName: "reports" },
   { title: "ตั้งค่าแจ้งเตือน", url: "/notification-settings", icon: Bell },
-  { title: "จัดการผู้ใช้", url: "/admin", icon: Shield },
+  { title: "จัดการผู้ใช้", url: "/admin", icon: Shield, functionName: "admin" },
 ];
 
 export function AppSidebar() {
   const { state } = useSidebar();
   const { signOut } = useAuth();
+  const { hasFunctionAccess, isAdmin, loading: permLoading } = useFunctionPermissions();
   const [openSubMenu, setOpenSubMenu] = useState<string | null>("รับสินค้าเข้า (GR)");
+
+  // Filter menu items based on function permissions
+  const menuItems = useMemo(() => {
+    if (permLoading) return [];
+    
+    return allMenuItems.filter(item => {
+      // Items without functionName are always visible (e.g., Dashboard, Settings)
+      if (!item.functionName) return true;
+      // Admin can see everything
+      if (isAdmin) return true;
+      // Check function permission
+      return hasFunctionAccess(item.functionName);
+    });
+  }, [hasFunctionAccess, isAdmin, permLoading]);
 
   const handleLogout = () => {
     signOut();

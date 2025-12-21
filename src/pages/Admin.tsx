@@ -2,15 +2,16 @@ import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
+import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Shield, UserCog, Settings2 } from "lucide-react";
+import { Shield, UserCog, Settings2, KeyRound } from "lucide-react";
 import { useDepartmentPermissions } from "@/hooks/useDepartmentPermissions";
 import { SYSTEM_FUNCTIONS } from "@/hooks/useFunctionPermissions";
 import type { Database } from "@/integrations/supabase/types";
@@ -65,6 +66,9 @@ const Admin = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [roleDialogOpen, setRoleDialogOpen] = useState(false);
   const [functionDialogOpen, setFunctionDialogOpen] = useState(false);
+  const [resetPasswordDialogOpen, setResetPasswordDialogOpen] = useState(false);
+  const [newPassword, setNewPassword] = useState("");
+  const [resetLoading, setResetLoading] = useState(false);
 
   useEffect(() => {
     if (!permLoading && !isAdmin) {
@@ -189,6 +193,46 @@ const Admin = () => {
     setSelectedUser(user);
     await fetchUserFunctionPermissions(user.id);
     setFunctionDialogOpen(true);
+  };
+
+  const handleOpenResetPasswordDialog = (user: User) => {
+    setSelectedUser(user);
+    setNewPassword("");
+    setResetPasswordDialogOpen(true);
+  };
+
+  const handleResetPassword = async () => {
+    if (!selectedUser || !newPassword) {
+      toast.error("กรุณากรอกรหัสผ่านใหม่");
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      toast.error("รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร");
+      return;
+    }
+
+    setResetLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("reset-user-password", {
+        body: {
+          userId: selectedUser.id,
+          newPassword: newPassword,
+        },
+      });
+
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
+      toast.success("รีเซ็ตรหัสผ่านสำเร็จ");
+      setResetPasswordDialogOpen(false);
+      setNewPassword("");
+    } catch (error: any) {
+      console.error("Error resetting password:", error);
+      toast.error("เกิดข้อผิดพลาดในการรีเซ็ตรหัสผ่าน: " + error.message);
+    } finally {
+      setResetLoading(false);
+    }
   };
 
   const toggleRole = (role: UserRole) => {
@@ -381,6 +425,14 @@ const Admin = () => {
                         <Button
                           variant="outline"
                           size="sm"
+                          onClick={() => handleOpenResetPasswordDialog(user)}
+                        >
+                          <KeyRound className="w-4 h-4 mr-2" />
+                          รีเซ็ตรหัสผ่าน
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
                           onClick={() => handleOpenRoleDialog(user)}
                         >
                           <UserCog className="w-4 h-4 mr-2" />
@@ -557,6 +609,39 @@ const Admin = () => {
               </Button>
               <Button onClick={handleSaveFunctionPermissions}>
                 บันทึกสิทธิ์ฟังก์ชัน
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={resetPasswordDialogOpen} onOpenChange={setResetPasswordDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>
+              รีเซ็ตรหัสผ่าน - {selectedUser?.full_name}
+            </DialogTitle>
+            <DialogDescription>
+              กรอกรหัสผ่านใหม่สำหรับผู้ใช้นี้
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="newPassword">รหัสผ่านใหม่</Label>
+              <Input
+                id="newPassword"
+                type="password"
+                placeholder="กรอกรหัสผ่านใหม่ (อย่างน้อย 6 ตัวอักษร)"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+              />
+            </div>
+            <div className="flex justify-end gap-2 pt-4">
+              <Button variant="outline" onClick={() => setResetPasswordDialogOpen(false)}>
+                ยกเลิก
+              </Button>
+              <Button onClick={handleResetPassword} disabled={resetLoading}>
+                {resetLoading ? "กำลังรีเซ็ต..." : "รีเซ็ตรหัสผ่าน"}
               </Button>
             </div>
           </div>
