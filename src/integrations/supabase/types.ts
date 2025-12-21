@@ -359,6 +359,100 @@ export type Database = {
           },
         ]
       }
+      equipment_pm_history: {
+        Row: {
+          completed_by: string | null
+          completed_date: string
+          created_at: string
+          equipment_pm_schedule_id: string
+          id: string
+          notes: string | null
+        }
+        Insert: {
+          completed_by?: string | null
+          completed_date: string
+          created_at?: string
+          equipment_pm_schedule_id: string
+          id?: string
+          notes?: string | null
+        }
+        Update: {
+          completed_by?: string | null
+          completed_date?: string
+          created_at?: string
+          equipment_pm_schedule_id?: string
+          id?: string
+          notes?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "equipment_pm_history_equipment_pm_schedule_id_fkey"
+            columns: ["equipment_pm_schedule_id"]
+            isOneToOne: false
+            referencedRelation: "equipment_pm_schedules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      equipment_pm_schedules: {
+        Row: {
+          advance_notice_days: number
+          created_at: string
+          created_by: string | null
+          department: string
+          description: string | null
+          equipment_id: string
+          equipment_type: string
+          id: string
+          is_active: boolean
+          last_completed_date: string | null
+          next_due_date: string
+          schedule_type: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          advance_notice_days?: number
+          created_at?: string
+          created_by?: string | null
+          department: string
+          description?: string | null
+          equipment_id: string
+          equipment_type: string
+          id?: string
+          is_active?: boolean
+          last_completed_date?: string | null
+          next_due_date: string
+          schedule_type?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          advance_notice_days?: number
+          created_at?: string
+          created_by?: string | null
+          department?: string
+          description?: string | null
+          equipment_id?: string
+          equipment_type?: string
+          id?: string
+          is_active?: boolean
+          last_completed_date?: string | null
+          next_due_date?: string
+          schedule_type?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "equipment_pm_schedules_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "equipment"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       equipment_transfers: {
         Row: {
           created_at: string
