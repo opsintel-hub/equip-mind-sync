@@ -453,6 +453,110 @@ export type Database = {
           },
         ]
       }
+      equipment_pm_task_images: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          description: string | null
+          equipment_pm_task_id: string
+          id: string
+          image_url: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          equipment_pm_task_id: string
+          id?: string
+          image_url: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          equipment_pm_task_id?: string
+          id?: string
+          image_url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "equipment_pm_task_images_equipment_pm_task_id_fkey"
+            columns: ["equipment_pm_task_id"]
+            isOneToOne: false
+            referencedRelation: "equipment_pm_tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      equipment_pm_tasks: {
+        Row: {
+          assigned_to: string | null
+          created_at: string
+          due_date: string
+          equipment_pm_schedule_id: string
+          id: string
+          inspected_by: string | null
+          inspection_date: string | null
+          inspection_notes: string | null
+          inspection_result: string | null
+          observation_details: string | null
+          parent_task_id: string | null
+          quantity_checked: number | null
+          status: string
+          task_number: string
+          updated_at: string
+        }
+        Insert: {
+          assigned_to?: string | null
+          created_at?: string
+          due_date: string
+          equipment_pm_schedule_id: string
+          id?: string
+          inspected_by?: string | null
+          inspection_date?: string | null
+          inspection_notes?: string | null
+          inspection_result?: string | null
+          observation_details?: string | null
+          parent_task_id?: string | null
+          quantity_checked?: number | null
+          status?: string
+          task_number: string
+          updated_at?: string
+        }
+        Update: {
+          assigned_to?: string | null
+          created_at?: string
+          due_date?: string
+          equipment_pm_schedule_id?: string
+          id?: string
+          inspected_by?: string | null
+          inspection_date?: string | null
+          inspection_notes?: string | null
+          inspection_result?: string | null
+          observation_details?: string | null
+          parent_task_id?: string | null
+          quantity_checked?: number | null
+          status?: string
+          task_number?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "equipment_pm_tasks_equipment_pm_schedule_id_fkey"
+            columns: ["equipment_pm_schedule_id"]
+            isOneToOne: false
+            referencedRelation: "equipment_pm_schedules"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "equipment_pm_tasks_parent_task_id_fkey"
+            columns: ["parent_task_id"]
+            isOneToOne: false
+            referencedRelation: "equipment_pm_tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       equipment_transfers: {
         Row: {
           created_at: string
@@ -1430,6 +1534,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      generate_equipment_pm_task_number: { Args: never; Returns: string }
       has_department_permission: {
         Args: { _department: string; _permission: string; _user_id: string }
         Returns: boolean

@@ -24,6 +24,7 @@ import PMSchedule from "./pages/PMSchedule";
 import PMHistory from "./pages/PMHistory";
 import EquipmentPMSchedule from "./pages/EquipmentPMSchedule";
 import EquipmentPMHistory from "./pages/EquipmentPMHistory";
+import EquipmentPMTasks from "./pages/EquipmentPMTasks";
 import NotificationSettingsPage from "./pages/NotificationSettingsPage";
 import DeadStockReport from "./pages/DeadStockReport";
 import DashboardLayout from "./components/DashboardLayout";
@@ -58,6 +59,7 @@ const App = () => (
             <Route path="/pm-history" element={<ProtectedRoute><DashboardLayout><PMHistory /></DashboardLayout></ProtectedRoute>} />
             <Route path="/equipment-pm-schedule" element={<ProtectedRoute><DashboardLayout><EquipmentPMSchedule /></DashboardLayout></ProtectedRoute>} />
             <Route path="/equipment-pm-history" element={<ProtectedRoute><DashboardLayout><EquipmentPMHistory /></DashboardLayout></ProtectedRoute>} />
+            <Route path="/equipment-pm-tasks" element={<ProtectedRoute><DashboardLayout><EquipmentPMTasks /></DashboardLayout></ProtectedRoute>} />
             <Route path="/notification-settings" element={<ProtectedRoute><DashboardLayout><NotificationSettingsPage /></DashboardLayout></ProtectedRoute>} />
             <Route path="/dead-stock" element={<ProtectedRoute><DashboardLayout><DeadStockReport /></DashboardLayout></ProtectedRoute>} />
             {/* Public billboard view - no auth required */}
