@@ -195,8 +195,8 @@ serve(async (req) => {
       }
     }
 
-    // ============ Check PM schedules ============
-    console.log("Checking PM schedules...");
+    // ============ Check Billboard PM schedules ============
+    console.log("Checking Billboard PM schedules...");
     
     const { data: pmSchedules, error: pmError } = await supabase
       .from("pm_schedules")
@@ -230,12 +230,123 @@ serve(async (req) => {
 
           if (!existing) {
             notifications.push({
-              title: daysUntilDue <= 0 ? "เลยกำหนด PM แล้ว" : "ใกล้ถึงกำหนด PM",
+              title: daysUntilDue <= 0 ? "เลยกำหนด PM ป้ายแล้ว" : "ใกล้ถึงกำหนด PM ป้าย",
               message: `${pm.title} - ป้าย ${billboardData.equipment_id} ${billboardData.location_name || ""} ${daysUntilDue <= 0 ? `เลยกำหนด ${Math.abs(daysUntilDue)} วัน` : `กำหนด ${daysUntilDue} วัน`}`,
               type: daysUntilDue <= 0 ? "error" : daysUntilDue <= 3 ? "warning" : "info",
               category: "pm_schedule",
               reference_id: pm.id,
               reference_type: "pm_schedule",
+            });
+          }
+        }
+      }
+    }
+
+    // ============ Check Equipment PM schedules and create tasks ============
+    console.log("Checking Equipment PM schedules...");
+    
+    const { data: equipmentPmSchedules, error: epmError } = await supabase
+      .from("equipment_pm_schedules")
+      .select("id, equipment_id, title, description, next_due_date, advance_notice_days, department, equipment_type")
+      .eq("is_active", true);
+
+    if (epmError) {
+      console.error("Error fetching Equipment PM schedules:", epmError);
+    } else if (equipmentPmSchedules) {
+      for (const epm of equipmentPmSchedules) {
+        const { data: equipmentData } = await supabase
+          .from("equipment")
+          .select("id, name, code")
+          .eq("id", epm.equipment_id)
+          .maybeSingle();
+
+        if (!equipmentData) continue;
+
+        const dueDate = new Date(epm.next_due_date);
+        const daysUntilDue = Math.ceil((dueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+        const noticeDays = epm.advance_notice_days || 7;
+
+        // Create PM Task if today >= next_due_date and no pending task exists
+        if (daysUntilDue <= 0) {
+          // Check if there's already a pending task for this schedule
+          const { data: existingTask } = await supabase
+            .from("equipment_pm_tasks")
+            .select("id")
+            .eq("equipment_pm_schedule_id", epm.id)
+            .in("status", ["pending", "in_progress"])
+            .maybeSingle();
+
+          if (!existingTask) {
+            // Generate task number
+            const { data: taskNumber } = await supabase.rpc("generate_equipment_pm_task_number");
+            
+            // Create PM Task
+            const { data: newTask, error: taskError } = await supabase
+              .from("equipment_pm_tasks")
+              .insert({
+                task_number: taskNumber || `PMT-${Date.now()}`,
+                equipment_pm_schedule_id: epm.id,
+                status: "pending",
+                due_date: epm.next_due_date,
+              })
+              .select()
+              .single();
+
+            if (taskError) {
+              console.error("Error creating PM task:", taskError);
+            } else {
+              console.log(`Created PM Task: ${newTask.task_number} for schedule ${epm.title}`);
+              
+              // Create notification for the new task
+              notifications.push({
+                title: "งาน PM เครื่องมือใหม่",
+                message: `สร้างงาน PM: ${epm.title} - ${equipmentData.name} (${equipmentData.code}) ฝ่าย ${epm.department}`,
+                type: "warning",
+                category: "equipment_pm_task",
+                reference_id: newTask.id,
+                reference_type: "equipment_pm_task",
+              });
+            }
+          }
+        }
+
+        // Send advance notification
+        if (daysUntilDue <= noticeDays && daysUntilDue > 0) {
+          const { data: existing } = await supabase
+            .from("notifications")
+            .select("id")
+            .eq("reference_id", epm.id)
+            .eq("category", "equipment_pm_schedule")
+            .eq("is_read", false)
+            .maybeSingle();
+
+          if (!existing) {
+            notifications.push({
+              title: "ใกล้ถึงกำหนด PM เครื่องมือ",
+              message: `${epm.title} - ${equipmentData.name} (${equipmentData.code}) ฝ่าย ${epm.department} กำหนดใน ${daysUntilDue} วัน`,
+              type: daysUntilDue <= 3 ? "warning" : "info",
+              category: "equipment_pm_schedule",
+              reference_id: epm.id,
+              reference_type: "equipment_pm_schedule",
+            });
+          }
+        } else if (daysUntilDue <= 0 && daysUntilDue >= -7) {
+          const { data: existing } = await supabase
+            .from("notifications")
+            .select("id")
+            .eq("reference_id", epm.id)
+            .eq("category", "equipment_pm_schedule")
+            .eq("is_read", false)
+            .maybeSingle();
+
+          if (!existing) {
+            notifications.push({
+              title: "เลยกำหนด PM เครื่องมือแล้ว",
+              message: `${epm.title} - ${equipmentData.name} (${equipmentData.code}) ฝ่าย ${epm.department} เลยกำหนด ${Math.abs(daysUntilDue)} วัน`,
+              type: "error",
+              category: "equipment_pm_schedule",
+              reference_id: epm.id,
+              reference_type: "equipment_pm_schedule",
             });
           }
         }

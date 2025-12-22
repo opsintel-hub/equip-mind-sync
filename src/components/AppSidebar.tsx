@@ -13,6 +13,7 @@ import {
   Calendar,
   PackageCheck,
   ChevronDown,
+  ClipboardList,
   Archive,
   Wrench,
 } from "lucide-react";
@@ -110,8 +111,9 @@ const menuGroups: MenuGroup[] = [
         icon: Wrench,
         functionName: "equipment_pm",
         subItems: [
-          { title: "ตาราง PM เครื่องมือ", url: "/equipment-pm-schedule", icon: Calendar },
-          { title: "ประวัติ PM เครื่องมือ", url: "/equipment-pm-history", icon: History },
+          { title: "งาน PM", url: "/equipment-pm-tasks", icon: ClipboardList },
+          { title: "ตาราง PM", url: "/equipment-pm-schedule", icon: Calendar },
+          { title: "ประวัติ PM", url: "/equipment-pm-history", icon: History },
         ]
       },
     ]
