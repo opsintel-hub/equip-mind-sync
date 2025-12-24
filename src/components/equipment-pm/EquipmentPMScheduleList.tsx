@@ -49,6 +49,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Plus, RefreshCw, Pencil, Trash2, CheckCircle } from "lucide-react";
 import { EquipmentPMScheduleForm } from "./EquipmentPMScheduleForm";
+import { EquipmentPMImport } from "./EquipmentPMImport";
 
 interface EquipmentPMSchedule {
   id: string;
@@ -231,6 +232,7 @@ export function EquipmentPMScheduleList() {
                 <RefreshCw className="h-4 w-4 mr-1" />
                 รีเฟรช
               </Button>
+              <EquipmentPMImport onSuccess={fetchSchedules} />
               <Button
                 size="sm"
                 onClick={() => {
