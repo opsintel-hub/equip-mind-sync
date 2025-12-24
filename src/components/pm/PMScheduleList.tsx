@@ -43,6 +43,7 @@ import { toast } from "sonner";
 import { format, differenceInDays, addDays, addWeeks, addMonths, addYears } from "date-fns";
 import { th } from "date-fns/locale";
 import { PMScheduleForm } from "./PMScheduleForm";
+import { PMScheduleImport } from "./PMScheduleImport";
 
 interface PMSchedule {
   id: string;
@@ -207,6 +208,7 @@ export function PMScheduleList() {
               <Button variant="outline" size="icon" onClick={fetchSchedules}>
                 <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
               </Button>
+              <PMScheduleImport onSuccess={fetchSchedules} />
               <Button onClick={() => { setEditData(null); setFormOpen(true); }}>
                 <Plus className="h-4 w-4 mr-2" />
                 เพิ่มตาราง PM
