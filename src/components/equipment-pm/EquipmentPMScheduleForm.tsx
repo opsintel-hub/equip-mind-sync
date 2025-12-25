@@ -50,6 +50,11 @@ interface Equipment {
   category: string;
 }
 
+interface Department {
+  id: string;
+  name: string;
+}
+
 interface EquipmentPMScheduleFormProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -84,14 +89,6 @@ const EQUIPMENT_TYPES = [
   "อื่นๆ",
 ];
 
-const DEPARTMENTS = [
-  "Airport",
-  "7-Eleven",
-  "Billboard",
-  "Bus",
-  "Static",
-  "Digital",
-];
 
 export function EquipmentPMScheduleForm({
   open,
@@ -101,6 +98,7 @@ export function EquipmentPMScheduleForm({
 }: EquipmentPMScheduleFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [equipment, setEquipment] = useState<Equipment[]>([]);
+  const [departments, setDepartments] = useState<Department[]>([]);
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -118,6 +116,7 @@ export function EquipmentPMScheduleForm({
 
   useEffect(() => {
     fetchEquipment();
+    fetchDepartments();
   }, []);
 
   useEffect(() => {
@@ -155,6 +154,18 @@ export function EquipmentPMScheduleForm({
 
     if (!error && data) {
       setEquipment(data);
+    }
+  };
+
+  const fetchDepartments = async () => {
+    const { data, error } = await supabase
+      .from("departments")
+      .select("id, name")
+      .eq("is_active", true)
+      .order("name");
+
+    if (!error && data) {
+      setDepartments(data);
     }
   };
 
@@ -252,9 +263,9 @@ export function EquipmentPMScheduleForm({
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {DEPARTMENTS.map((dept) => (
-                          <SelectItem key={dept} value={dept}>
-                            {dept}
+                        {departments.map((dept) => (
+                          <SelectItem key={dept.id} value={dept.name}>
+                            {dept.name}
                           </SelectItem>
                         ))}
                       </SelectContent>
