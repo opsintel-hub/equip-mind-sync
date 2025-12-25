@@ -279,8 +279,8 @@ export function EquipmentPMTaskList() {
       }
 
       // Handle post-inspection logic based on result
-      if (inspectionResult === "passed") {
-        // Close task and calculate next PM date
+      if (inspectionResult === "passed" || inspectionResult === "passed_incomplete") {
+        // Close task, calculate next PM date, and create next task immediately
         const { data: scheduleData } = await supabase
           .from("equipment_pm_schedules")
           .select("schedule_type")
@@ -289,19 +289,32 @@ export function EquipmentPMTaskList() {
 
         if (scheduleData) {
           const nextDueDate = calculateNextDueDate(scheduleData.schedule_type, new Date());
+          const nextDueDateStr = nextDueDate.toISOString().split("T")[0];
+          
+          // Update schedule with next due date
           await supabase
             .from("equipment_pm_schedules")
             .update({
-              next_due_date: nextDueDate.toISOString().split("T")[0],
+              next_due_date: nextDueDateStr,
               last_completed_date: new Date().toISOString().split("T")[0],
             })
             .eq("id", selectedTask.equipment_pm_schedule_id);
+
+          // Create next PM task immediately
+          const { data: taskNumber } = await supabase.rpc("generate_equipment_pm_task_number");
+          await supabase.from("equipment_pm_tasks").insert({
+            task_number: taskNumber || `PMT-${Date.now()}`,
+            equipment_pm_schedule_id: selectedTask.equipment_pm_schedule_id,
+            status: "pending",
+            due_date: nextDueDate.toISOString(),
+          });
         }
 
-        toast.success("บันทึกผลการตรวจสอบ PM สำเร็จ - คำนวณรอบถัดไปแล้ว");
-      } else if (inspectionResult === "passed_incomplete") {
-        // Flag warning and optionally create follow-up
-        toast.warning("บันทึกผลการตรวจสอบ PM - ผ่านไม่สมบูรณ์ ควรติดตามผล");
+        if (inspectionResult === "passed") {
+          toast.success("บันทึกผลการตรวจสอบ PM สำเร็จ - สร้างตั๋วรอบถัดไปแล้ว");
+        } else {
+          toast.warning("บันทึกผลการตรวจสอบ PM - ผ่านไม่สมบูรณ์ สร้างตั๋วรอบถัดไปแล้ว");
+        }
       } else if (inspectionResult === "failed") {
         // Create repair/recheck task
         const { data: taskNumber } = await supabase.rpc("generate_equipment_pm_task_number");
