@@ -189,6 +189,17 @@ export function AppSidebar() {
       const isOpen = openSubMenu === item.title;
       const hasActiveChild = item.subItems.some(sub => sub.url === location.pathname);
       
+      // Collapsed state - show only icon with tooltip-like behavior
+      if (state === "collapsed") {
+        return (
+          <SidebarMenuButton 
+            className={`flex items-center justify-center w-10 h-10 rounded-lg text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-foreground transition-colors duration-150 ${hasActiveChild ? "bg-sidebar-primary/15 text-sidebar-primary" : ""}`}
+          >
+            <item.icon className="w-5 h-5" />
+          </SidebarMenuButton>
+        );
+      }
+      
       return (
         <Collapsible
           open={isOpen || hasActiveChild}
@@ -200,34 +211,44 @@ export function AppSidebar() {
                 <div className="w-8 h-8 rounded-lg bg-sidebar-accent/50 flex items-center justify-center group-hover:bg-sidebar-primary/20 transition-colors duration-150">
                   <item.icon className="w-4 h-4 flex-shrink-0" />
                 </div>
-                {state !== "collapsed" && <span className="font-medium">{item.title}</span>}
+                <span className="font-medium">{item.title}</span>
               </div>
-              {state !== "collapsed" && (
-                <ChevronDown className={`w-4 h-4 transition-transform duration-150 ${isOpen || hasActiveChild ? "rotate-180" : ""}`} />
-              )}
+              <ChevronDown className={`w-4 h-4 transition-transform duration-150 ${isOpen || hasActiveChild ? "rotate-180" : ""}`} />
             </SidebarMenuButton>
           </CollapsibleTrigger>
-          {state !== "collapsed" && (
-            <CollapsibleContent className="overflow-hidden transition-all duration-100">
-              <SidebarMenuSub className="ml-6 mt-1 border-l border-sidebar-border/50 pl-3">
-                {item.subItems.map((subItem) => (
-                  <SidebarMenuSubItem key={subItem.title}>
-                    <SidebarMenuSubButton asChild>
-                      <NavLink
-                        to={subItem.url}
-                        className="flex items-center gap-3 px-3 py-2 rounded-lg text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground transition-colors duration-150 text-sm"
-                        activeClassName="bg-sidebar-primary/15 text-sidebar-primary font-medium border-l-2 border-sidebar-primary -ml-[13px] pl-[11px]"
-                      >
-                        <subItem.icon className="w-4 h-4 flex-shrink-0" />
-                        <span>{subItem.title}</span>
-                      </NavLink>
-                    </SidebarMenuSubButton>
-                  </SidebarMenuSubItem>
-                ))}
-              </SidebarMenuSub>
-            </CollapsibleContent>
-          )}
+          <CollapsibleContent className="overflow-hidden transition-all duration-100">
+            <SidebarMenuSub className="ml-6 mt-1 border-l border-sidebar-border/50 pl-3">
+              {item.subItems.map((subItem) => (
+                <SidebarMenuSubItem key={subItem.title}>
+                  <SidebarMenuSubButton asChild>
+                    <NavLink
+                      to={subItem.url}
+                      className="flex items-center gap-3 px-3 py-2 rounded-lg text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground transition-colors duration-150 text-sm"
+                      activeClassName="bg-sidebar-primary/15 text-sidebar-primary font-medium border-l-2 border-sidebar-primary -ml-[13px] pl-[11px]"
+                    >
+                      <subItem.icon className="w-4 h-4 flex-shrink-0" />
+                      <span>{subItem.title}</span>
+                    </NavLink>
+                  </SidebarMenuSubButton>
+                </SidebarMenuSubItem>
+              ))}
+            </SidebarMenuSub>
+          </CollapsibleContent>
         </Collapsible>
+      );
+    }
+
+    if (state === "collapsed") {
+      return (
+        <SidebarMenuButton asChild>
+          <NavLink
+            to={item.url!}
+            className="flex items-center justify-center w-10 h-10 rounded-lg text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-foreground transition-colors duration-150"
+            activeClassName="bg-sidebar-primary/15 text-sidebar-primary"
+          >
+            <item.icon className="w-5 h-5" />
+          </NavLink>
+        </SidebarMenuButton>
       );
     }
 
@@ -241,7 +262,7 @@ export function AppSidebar() {
           <div className="w-8 h-8 rounded-lg bg-sidebar-accent/50 flex items-center justify-center group-hover:bg-sidebar-primary/20 group-[.bg-sidebar-primary\\/15]:bg-sidebar-primary/20 transition-colors duration-150">
             <item.icon className="w-4 h-4 flex-shrink-0" />
           </div>
-          {state !== "collapsed" && <span className="font-medium">{item.title}</span>}
+          <span className="font-medium">{item.title}</span>
         </NavLink>
       </SidebarMenuButton>
     );
@@ -249,10 +270,10 @@ export function AppSidebar() {
 
   return (
     <Sidebar collapsible="icon" className="border-r-0">
-      <SidebarHeader className="border-b border-sidebar-border/50 p-5">
-        <div className="flex items-center gap-3">
-          <div className="w-11 h-11 gradient-primary rounded-xl flex items-center justify-center flex-shrink-0 shadow-lg">
-            <Package className="w-6 h-6 text-white" />
+      <SidebarHeader className={`border-b border-sidebar-border/50 ${state === "collapsed" ? "p-3" : "p-5"}`}>
+        <div className={`flex items-center ${state === "collapsed" ? "justify-center" : "gap-3"}`}>
+          <div className={`${state === "collapsed" ? "w-10 h-10" : "w-11 h-11"} gradient-primary rounded-xl flex items-center justify-center flex-shrink-0 shadow-lg`}>
+            <Package className={`${state === "collapsed" ? "w-5 h-5" : "w-6 h-6"} text-white`} />
           </div>
           {state !== "collapsed" && (
             <div className="animate-fade-in">
@@ -278,14 +299,19 @@ export function AppSidebar() {
           </div>
         ) : (
           filteredMenuGroups.map((group, idx) => (
-            <SidebarGroup key={group.label} className={idx > 0 ? "mt-4" : ""}>
-              <SidebarGroupLabel className={`${state === "collapsed" ? "text-center" : ""} text-xs font-semibold text-sidebar-foreground/40 uppercase tracking-wider mb-2 px-3`}>
-                {state === "collapsed" ? "•" : group.label}
-              </SidebarGroupLabel>
+            <SidebarGroup key={group.label} className={idx > 0 ? "mt-2" : ""}>
+              {state !== "collapsed" && (
+                <SidebarGroupLabel className="text-xs font-semibold text-sidebar-foreground/40 uppercase tracking-wider mb-2 px-3">
+                  {group.label}
+                </SidebarGroupLabel>
+              )}
+              {state === "collapsed" && idx > 0 && (
+                <div className="mx-auto my-2 w-6 h-px bg-sidebar-border/50" />
+              )}
               <SidebarGroupContent>
-                <SidebarMenu className="space-y-1">
+                <SidebarMenu className={state === "collapsed" ? "space-y-0.5 items-center" : "space-y-1"}>
                   {group.items.map((item) => (
-                    <SidebarMenuItem key={item.title}>
+                    <SidebarMenuItem key={item.title} className={state === "collapsed" ? "flex justify-center" : ""}>
                       {renderMenuItem(item)}
                     </SidebarMenuItem>
                   ))}
@@ -296,13 +322,13 @@ export function AppSidebar() {
         )}
       </SidebarContent>
 
-      <SidebarFooter className="border-t border-sidebar-border/50 p-4">
+      <SidebarFooter className={`border-t border-sidebar-border/50 ${state === "collapsed" ? "p-2" : "p-4"}`}>
         <Button
           variant="ghost"
-          className="w-full justify-start text-sidebar-foreground/70 hover:bg-destructive/10 hover:text-destructive transition-all duration-200 rounded-lg"
+          className={`${state === "collapsed" ? "w-10 h-10 p-0 justify-center" : "w-full justify-start"} text-sidebar-foreground/70 hover:bg-destructive/10 hover:text-destructive transition-all duration-200 rounded-lg`}
           onClick={handleLogout}
         >
-          <LogOut className="w-5 h-5 mr-3" />
+          <LogOut className={`${state === "collapsed" ? "w-5 h-5" : "w-5 h-5 mr-3"}`} />
           {state !== "collapsed" && <span className="font-medium">ออกจากระบบ</span>}
         </Button>
       </SidebarFooter>
