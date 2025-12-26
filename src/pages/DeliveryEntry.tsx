@@ -271,7 +271,7 @@ const DeliveryEntry = () => {
                   <SelectTrigger id="equipment">
                     <SelectValue placeholder="เลือกสินค้าจากระบบ..." />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent position="popper" sideOffset={4} className="bg-background z-[200] max-h-60 overflow-y-auto">
                     {equipment.map((item) => (
                       <SelectItem key={item.id} value={item.id}>
                         {item.code} - {item.name}

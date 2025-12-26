@@ -381,7 +381,7 @@ export function EquipmentPMTaskList() {
             <SelectTrigger className="w-40">
               <SelectValue placeholder="สถานะ" />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent position="popper" sideOffset={4} className="bg-background z-[200] max-h-60 overflow-y-auto">
               <SelectItem value="all">ทั้งหมด</SelectItem>
               <SelectItem value="pending">รอดำเนินการ</SelectItem>
               <SelectItem value="in_progress">กำลังดำเนินการ</SelectItem>
@@ -491,7 +491,7 @@ export function EquipmentPMTaskList() {
                       <SelectTrigger>
                         <SelectValue placeholder="เลือกผลการตรวจสอบ" />
                       </SelectTrigger>
-                      <SelectContent>
+                      <SelectContent position="popper" sideOffset={4} className="bg-background z-[200] max-h-60 overflow-y-auto">
                         <SelectItem value="passed">ผ่าน - ปิดงาน + คำนวณรอบถัดไป</SelectItem>
                         <SelectItem value="passed_incomplete">ผ่านไม่สมบูรณ์ - Flag เตือน</SelectItem>
                         <SelectItem value="failed">ไม่ผ่าน - สร้างงานซ่อม/Recheck</SelectItem>

@@ -47,7 +47,7 @@ export function LocationSelect({ value, onChange }: LocationSelectProps) {
       <SelectTrigger>
         <SelectValue placeholder="เลือกตำแหน่ง" />
       </SelectTrigger>
-      <SelectContent>
+      <SelectContent position="popper" sideOffset={4} className="bg-background z-[200] max-h-60 overflow-y-auto">
         {locations.map((location) => (
           <SelectItem key={location.id} value={location.id}>
             {location.code} - {location.name}

@@ -159,7 +159,7 @@ export function StorageSlotSelect({ value, onChange, locationId, disabled }: Sto
         <SelectTrigger>
           <SelectValue placeholder={locationId ? "เลือกช่องจัดเก็บ" : "เลือกตำแหน่งก่อน"} />
         </SelectTrigger>
-        <SelectContent>
+        <SelectContent position="popper" sideOffset={4} className="bg-background z-[200] max-h-60 overflow-y-auto">
           {slots.map((slot) => (
             <SelectItem key={slot.id} value={slot.id}>
               {slot.name}

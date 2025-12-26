@@ -46,7 +46,7 @@ const GoodsIssue = () => {
                   <SelectTrigger id="sku">
                     <SelectValue placeholder="เลือก SKU" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent position="popper" sideOffset={4} className="bg-background z-[200] max-h-60 overflow-y-auto">
                     <SelectItem value="sku-001">SKU-001 - อะไหล่ A</SelectItem>
                     <SelectItem value="sku-102">SKU-102 - เครื่องมือ B</SelectItem>
                     <SelectItem value="sku-203">SKU-203 - อุปกรณ์ C</SelectItem>
@@ -63,7 +63,7 @@ const GoodsIssue = () => {
                   <SelectTrigger id="unit">
                     <SelectValue placeholder="เลือกหน่วย" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent position="popper" sideOffset={4} className="bg-background z-[200] max-h-60 overflow-y-auto">
                     <SelectItem value="piece">ชิ้น</SelectItem>
                     <SelectItem value="box">กล่อง</SelectItem>
                     <SelectItem value="set">ชุด</SelectItem>
@@ -79,7 +79,7 @@ const GoodsIssue = () => {
                   <SelectTrigger id="destination-type">
                     <SelectValue placeholder="เลือกประเภท" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent position="popper" sideOffset={4} className="bg-background z-[200] max-h-60 overflow-y-auto">
                     <SelectItem value="billboard">ป้ายโฆษณา</SelectItem>
                     <SelectItem value="team">ทีมงาน</SelectItem>
                     <SelectItem value="project">โครงการ</SelectItem>
@@ -92,7 +92,7 @@ const GoodsIssue = () => {
                   <SelectTrigger id="destination">
                     <SelectValue placeholder="เลือกผู้รับ" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent position="popper" sideOffset={4} className="bg-background z-[200] max-h-60 overflow-y-auto">
                     <SelectItem value="brd-045">BRD-045 - สุขุมวิท</SelectItem>
                     <SelectItem value="brd-128">BRD-128 - พระราม 4</SelectItem>
                     <SelectItem value="team-eng">ทีม Engineering</SelectItem>

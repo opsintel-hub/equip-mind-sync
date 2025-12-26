@@ -280,7 +280,7 @@ const ReceiveGoods = () => {
                 <SelectTrigger className="w-40">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent position="popper" sideOffset={4} className="bg-background z-[200] max-h-60 overflow-y-auto">
                   <SelectItem value="pending">รอรับเข้า</SelectItem>
                   <SelectItem value="received">รับเข้าแล้ว</SelectItem>
                   <SelectItem value="all">ทั้งหมด</SelectItem>
@@ -388,7 +388,7 @@ const ReceiveGoods = () => {
                   <SelectTrigger>
                     <SelectValue placeholder="เลือกสินค้า..." />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent position="popper" sideOffset={4} className="bg-background z-[200] max-h-60 overflow-y-auto">
                     {equipment.map((item) => (
                       <SelectItem key={item.id} value={item.id}>
                         {item.code} - {item.name}
@@ -424,7 +424,7 @@ const ReceiveGoods = () => {
                   <SelectTrigger>
                     <SelectValue placeholder="เลือกผู้จัดจำหน่าย..." />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent position="popper" sideOffset={4} className="bg-background z-[200] max-h-60 overflow-y-auto">
                     {suppliers.map((supplier) => (
                       <SelectItem key={supplier.id} value={supplier.id}>
                         {supplier.code} - {supplier.name}

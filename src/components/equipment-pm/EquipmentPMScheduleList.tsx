@@ -252,7 +252,7 @@ export function EquipmentPMScheduleList() {
               <SelectTrigger className="w-[180px]">
                 <SelectValue placeholder="ทุกฝ่าย" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent position="popper" sideOffset={4} className="bg-background z-[200] max-h-60 overflow-y-auto">
                 <SelectItem value="all">ทุกฝ่าย</SelectItem>
                 {departments.map((dept) => (
                   <SelectItem key={dept} value={dept}>
@@ -266,7 +266,7 @@ export function EquipmentPMScheduleList() {
               <SelectTrigger className="w-[220px]">
                 <SelectValue placeholder="ทุกประเภท" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent position="popper" sideOffset={4} className="bg-background z-[200] max-h-60 overflow-y-auto">
                 <SelectItem value="all">ทุกประเภท</SelectItem>
                 {equipmentTypes.map((type) => (
                   <SelectItem key={type} value={type}>

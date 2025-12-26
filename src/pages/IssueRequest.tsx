@@ -285,7 +285,7 @@ const IssueRequest = () => {
                   <SelectTrigger>
                     <SelectValue placeholder="เลือกสินค้าที่ต้องการเบิก" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent position="popper" sideOffset={4} className="bg-background z-[200] max-h-60 overflow-y-auto">
                     {equipment?.map((eq) => {
                       const expiryBadge = getExpiryBadge(eq.expiry_date, eq.warranty_expiry_date);
                       const ageDays = differenceInDays(new Date(), new Date(eq.warehouse_entry_date));

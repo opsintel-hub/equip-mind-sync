@@ -236,7 +236,7 @@ export function EquipmentPMScheduleForm({
                         <SelectValue placeholder="เลือกเครื่องมือ" />
                       </SelectTrigger>
                     </FormControl>
-                    <SelectContent>
+                    <SelectContent position="popper" sideOffset={4} className="bg-background z-[200] max-h-60 overflow-y-auto">
                       {equipment.map((eq) => (
                         <SelectItem key={eq.id} value={eq.id}>
                           {eq.code} - {eq.name}
@@ -262,7 +262,7 @@ export function EquipmentPMScheduleForm({
                           <SelectValue placeholder="เลือกฝ่าย" />
                         </SelectTrigger>
                       </FormControl>
-                      <SelectContent>
+                      <SelectContent position="popper" sideOffset={4} className="bg-background z-[200] max-h-60 overflow-y-auto">
                         {departments.map((dept) => (
                           <SelectItem key={dept.id} value={dept.name}>
                             {dept.name}
@@ -287,7 +287,7 @@ export function EquipmentPMScheduleForm({
                           <SelectValue placeholder="เลือกประเภท" />
                         </SelectTrigger>
                       </FormControl>
-                      <SelectContent>
+                      <SelectContent position="popper" sideOffset={4} className="bg-background z-[200] max-h-60 overflow-y-auto">
                         {EQUIPMENT_TYPES.map((type) => (
                           <SelectItem key={type} value={type}>
                             {type}
@@ -345,7 +345,7 @@ export function EquipmentPMScheduleForm({
                           <SelectValue placeholder="เลือกความถี่" />
                         </SelectTrigger>
                       </FormControl>
-                      <SelectContent>
+                      <SelectContent position="popper" sideOffset={4} className="bg-background z-[200] max-h-60 overflow-y-auto">
                         {SCHEDULE_TYPES.map((type) => (
                           <SelectItem key={type.value} value={type.value}>
                             {type.label}

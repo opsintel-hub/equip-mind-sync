@@ -221,7 +221,7 @@ export function LocationForm({ onSuccess, location }: LocationFormProps) {
                         <SelectValue placeholder="เลือกคลังสินค้า" />
                       </SelectTrigger>
                     </FormControl>
-                    <SelectContent>
+                    <SelectContent position="popper" sideOffset={4} className="bg-background z-[200] max-h-60 overflow-y-auto">
                       {warehouses.map((wh) => (
                         <SelectItem key={wh.id} value={wh.id}>
                           {wh.code} - {wh.name}
@@ -284,7 +284,7 @@ export function LocationForm({ onSuccess, location }: LocationFormProps) {
                           <SelectValue placeholder="เลือกพื้นที่จัดเก็บ" />
                         </SelectTrigger>
                       </FormControl>
-                      <SelectContent>
+                      <SelectContent position="popper" sideOffset={4} className="bg-background z-[200] max-h-60 overflow-y-auto">
                         <SelectItem value="Indoor">Indoor</SelectItem>
                         <SelectItem value="Outdoor">Outdoor</SelectItem>
                         <SelectItem value="Semi-outdoor">Semi-outdoor</SelectItem>

@@ -117,7 +117,7 @@ const GoodsReceipt = () => {
                   <SelectTrigger id="sku">
                     <SelectValue placeholder="เลือก SKU" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent position="popper" sideOffset={4} className="bg-background z-[200] max-h-60 overflow-y-auto">
                     {equipment.map((item) => (
                       <SelectItem key={item.id} value={item.id}>
                         {item.code} - {item.name}
@@ -154,7 +154,7 @@ const GoodsReceipt = () => {
                   <SelectTrigger id="supplier">
                     <SelectValue placeholder="เลือกผู้จัดจำหน่าย" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent position="popper" sideOffset={4} className="bg-background z-[200] max-h-60 overflow-y-auto">
                     {suppliers.map((supplier) => (
                       <SelectItem key={supplier.id} value={supplier.id}>
                         {supplier.code} - {supplier.name}

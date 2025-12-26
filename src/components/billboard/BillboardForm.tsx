@@ -133,7 +133,7 @@ const BillboardForm = ({ billboard, onSuccess, onCancel }: BillboardFormProps) =
                       <SelectValue placeholder="เลือกสถานะ" />
                     </SelectTrigger>
                   </FormControl>
-                  <SelectContent>
+                  <SelectContent position="popper" sideOffset={4} className="bg-background z-[200] max-h-60 overflow-y-auto">
                     <SelectItem value="active">ใช้งาน</SelectItem>
                     <SelectItem value="maintenance">บำรุงรักษา</SelectItem>
                     <SelectItem value="inactive">ไม่ใช้งาน</SelectItem>

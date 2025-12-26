@@ -152,7 +152,7 @@ const BillboardEquipmentChart = () => {
               <SelectTrigger className="w-40">
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent position="popper" sideOffset={4} className="bg-background z-[200] max-h-60 overflow-y-auto">
                 <SelectItem value="7d">7 วันล่าสุด</SelectItem>
                 <SelectItem value="30d">30 วันล่าสุด</SelectItem>
                 <SelectItem value="90d">90 วันล่าสุด</SelectItem>
