@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import DashboardLayout from "@/components/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,7 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Plus, Search, FileText, Clock, CheckCircle, XCircle, AlertTriangle, Calendar } from "lucide-react";
+import { Plus, Search, FileText, Clock, CheckCircle, XCircle, AlertTriangle } from "lucide-react";
 import { format, differenceInDays } from "date-fns";
 import { th } from "date-fns/locale";
 
@@ -196,285 +195,283 @@ const IssueRequest = () => {
   }) || [];
 
   return (
-    <DashboardLayout>
-      <div className="space-y-6">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">ขอเบิกสินค้า</h1>
-          <p className="text-muted-foreground">สำหรับผู้ขอเบิกสินค้า - ไม่ต้องล็อกอิน</p>
-        </div>
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-bold text-foreground">ขอเบิกสินค้า</h1>
+        <p className="text-muted-foreground">สำหรับผู้ขอเบิกสินค้า - ไม่ต้องล็อกอิน</p>
+      </div>
 
-        {/* Priority Alert - Items approaching expiry */}
-        {priorityEquipment.length > 0 && (
-          <Card className="border-warning/50 bg-warning/5">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-lg flex items-center gap-2 text-warning">
-                <AlertTriangle className="h-5 w-5" />
-                สินค้าควรเบิกก่อน (FIFO)
-              </CardTitle>
-              <CardDescription>
-                รายการสินค้าที่ใกล้หมดอายุหรือใกล้หมดประกัน - แนะนำให้เบิกก่อน
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                {priorityEquipment.slice(0, 6).map((eq) => (
-                  <div 
-                    key={eq.id} 
-                    className="p-3 rounded-lg border border-warning/30 bg-background cursor-pointer hover:bg-muted/50 transition-colors"
-                    onClick={() => handleEquipmentSelect(eq.id)}
-                  >
-                    <div className="font-medium text-sm">{eq.code}</div>
-                    <div className="text-sm text-muted-foreground">{eq.name}</div>
-                    {eq.serial_number && (
-                      <div className="text-xs text-muted-foreground">SN: {eq.serial_number}</div>
-                    )}
-                    <div className="text-xs text-muted-foreground mt-1">คงเหลือ: {eq.quantity_in_stock} {eq.unit}</div>
-                    <div className="mt-2">
-                      {getExpiryBadge(eq.expiry_date, eq.warranty_expiry_date)}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Request Form */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Plus className="h-5 w-5" />
-              แบบฟอร์มขอเบิกสินค้า
+      {/* Priority Alert - Items approaching expiry */}
+      {priorityEquipment.length > 0 && (
+        <Card className="border-warning/50 bg-warning/5">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg flex items-center gap-2 text-warning">
+              <AlertTriangle className="h-5 w-5" />
+              สินค้าควรเบิกก่อน (FIFO)
             </CardTitle>
+            <CardDescription>
+              รายการสินค้าที่ใกล้หมดอายุหรือใกล้หมดประกัน - แนะนำให้เบิกก่อน
+            </CardDescription>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="requester_name">ชื่อผู้ขอเบิก *</Label>
-                  <Input
-                    id="requester_name"
-                    value={formData.requester_name}
-                    onChange={(e) => setFormData({ ...formData, requester_name: e.target.value })}
-                    placeholder="กรอกชื่อ-นามสกุล"
-                    required
-                  />
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              {priorityEquipment.slice(0, 6).map((eq) => (
+                <div 
+                  key={eq.id} 
+                  className="p-3 rounded-lg border border-warning/30 bg-background cursor-pointer hover:bg-muted/50 transition-colors"
+                  onClick={() => handleEquipmentSelect(eq.id)}
+                >
+                  <div className="font-medium text-sm">{eq.code}</div>
+                  <div className="text-sm text-muted-foreground">{eq.name}</div>
+                  {eq.serial_number && (
+                    <div className="text-xs text-muted-foreground">SN: {eq.serial_number}</div>
+                  )}
+                  <div className="text-xs text-muted-foreground mt-1">คงเหลือ: {eq.quantity_in_stock} {eq.unit}</div>
+                  <div className="mt-2">
+                    {getExpiryBadge(eq.expiry_date, eq.warranty_expiry_date)}
+                  </div>
                 </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
-                <div className="space-y-2">
-                  <Label htmlFor="requester_phone">เบอร์โทรศัพท์</Label>
-                  <Input
-                    id="requester_phone"
-                    value={formData.requester_phone}
-                    onChange={(e) => setFormData({ ...formData, requester_phone: e.target.value })}
-                    placeholder="กรอกเบอร์โทร"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="requester_department">แผนก/ฝ่าย</Label>
-                  <Input
-                    id="requester_department"
-                    value={formData.requester_department}
-                    onChange={(e) => setFormData({ ...formData, requester_department: e.target.value })}
-                    placeholder="กรอกแผนก/ฝ่าย"
-                  />
-                </div>
-
-                <div className="space-y-2 md:col-span-2">
-                  <Label htmlFor="equipment_code">เลือกสินค้า (เรียงตาม FIFO - ของเก่าก่อน)</Label>
-                  <Select onValueChange={handleEquipmentSelect} value={formData.equipment_id}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="เลือกสินค้าที่ต้องการเบิก" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {equipment?.map((eq) => {
-                        const expiryBadge = getExpiryBadge(eq.expiry_date, eq.warranty_expiry_date);
-                        const ageDays = differenceInDays(new Date(), new Date(eq.warehouse_entry_date));
-                        return (
-                          <SelectItem key={eq.id} value={eq.id}>
-                            <div className="flex items-center gap-2">
-                              <span className="font-medium">{eq.code}</span>
-                              <span className="text-muted-foreground">- {eq.name}</span>
-                              {eq.serial_number && (
-                                <span className="text-xs text-muted-foreground">(SN: {eq.serial_number})</span>
-                              )}
-                              <span className="text-sm text-muted-foreground">[คงเหลือ: {eq.quantity_in_stock}]</span>
-                              {ageDays > 30 && (
-                                <Badge variant="outline" className="text-xs">อยู่คลัง {ageDays} วัน</Badge>
-                              )}
-                              {expiryBadge}
-                            </div>
-                          </SelectItem>
-                        );
-                      })}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="equipment_name">หรือ ระบุชื่อสินค้า</Label>
-                  <Input
-                    id="equipment_name"
-                    value={formData.equipment_name}
-                    onChange={(e) => setFormData({ ...formData, equipment_name: e.target.value })}
-                    placeholder="กรอกชื่อสินค้า (ถ้าไม่รู้รหัส)"
-                    disabled={!!formData.equipment_id}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="serial_number">Serial Number (ถ้ามี)</Label>
-                  <Input
-                    id="serial_number"
-                    value={formData.serial_number}
-                    onChange={(e) => setFormData({ ...formData, serial_number: e.target.value })}
-                    placeholder="ระบุ Serial Number"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="quantity">จำนวน *</Label>
-                  <Input
-                    id="quantity"
-                    type="number"
-                    min="1"
-                    value={formData.quantity}
-                    onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
-                    placeholder="กรอกจำนวน"
-                    required
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="unit">หน่วย</Label>
-                  <Input
-                    id="unit"
-                    value={formData.unit}
-                    onChange={(e) => setFormData({ ...formData, unit: e.target.value })}
-                    placeholder="หน่วย"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="purpose">วัตถุประสงค์</Label>
-                  <Input
-                    id="purpose"
-                    value={formData.purpose}
-                    onChange={(e) => setFormData({ ...formData, purpose: e.target.value })}
-                    placeholder="ระบุวัตถุประสงค์"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="destination">ส่งไปที่</Label>
-                  <Input
-                    id="destination"
-                    value={formData.destination}
-                    onChange={(e) => setFormData({ ...formData, destination: e.target.value })}
-                    placeholder="ระบุจุดหมาย/สถานที่"
-                  />
-                </div>
+      {/* Request Form */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Plus className="h-5 w-5" />
+            แบบฟอร์มขอเบิกสินค้า
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="requester_name">ชื่อผู้ขอเบิก *</Label>
+                <Input
+                  id="requester_name"
+                  value={formData.requester_name}
+                  onChange={(e) => setFormData({ ...formData, requester_name: e.target.value })}
+                  placeholder="กรอกชื่อ-นามสกุล"
+                  required
+                />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="notes">หมายเหตุ</Label>
-                <Textarea
-                  id="notes"
-                  value={formData.notes}
-                  onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                  placeholder="หมายเหตุเพิ่มเติม"
-                  rows={2}
-                />
-              </div>
-
-              <Button type="submit" disabled={createRequest.isPending}>
-                <Plus className="h-4 w-4 mr-2" />
-                {createRequest.isPending ? "กำลังส่ง..." : "ส่งคำขอเบิก"}
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
-
-        {/* Request History */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <FileText className="h-5 w-5" />
-              ประวัติคำขอเบิก
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center gap-2 mb-4">
-              <div className="relative flex-1 max-w-sm">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Label htmlFor="requester_phone">เบอร์โทรศัพท์</Label>
                 <Input
-                  placeholder="ค้นหาเลขที่เอกสาร, รหัส, ชื่อสินค้า..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
+                  id="requester_phone"
+                  value={formData.requester_phone}
+                  onChange={(e) => setFormData({ ...formData, requester_phone: e.target.value })}
+                  placeholder="กรอกเบอร์โทร"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="requester_department">แผนก/ฝ่าย</Label>
+                <Input
+                  id="requester_department"
+                  value={formData.requester_department}
+                  onChange={(e) => setFormData({ ...formData, requester_department: e.target.value })}
+                  placeholder="กรอกแผนก/ฝ่าย"
+                />
+              </div>
+
+              <div className="space-y-2 md:col-span-2">
+                <Label htmlFor="equipment_code">เลือกสินค้า (เรียงตาม FIFO - ของเก่าก่อน)</Label>
+                <Select onValueChange={handleEquipmentSelect} value={formData.equipment_id}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="เลือกสินค้าที่ต้องการเบิก" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {equipment?.map((eq) => {
+                      const expiryBadge = getExpiryBadge(eq.expiry_date, eq.warranty_expiry_date);
+                      const ageDays = differenceInDays(new Date(), new Date(eq.warehouse_entry_date));
+                      return (
+                        <SelectItem key={eq.id} value={eq.id}>
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium">{eq.code}</span>
+                            <span className="text-muted-foreground">- {eq.name}</span>
+                            {eq.serial_number && (
+                              <span className="text-xs text-muted-foreground">(SN: {eq.serial_number})</span>
+                            )}
+                            <span className="text-sm text-muted-foreground">[คงเหลือ: {eq.quantity_in_stock}]</span>
+                            {ageDays > 30 && (
+                              <Badge variant="outline" className="text-xs">อยู่คลัง {ageDays} วัน</Badge>
+                            )}
+                            {expiryBadge}
+                          </div>
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="equipment_name">หรือ ระบุชื่อสินค้า</Label>
+                <Input
+                  id="equipment_name"
+                  value={formData.equipment_name}
+                  onChange={(e) => setFormData({ ...formData, equipment_name: e.target.value })}
+                  placeholder="กรอกชื่อสินค้า (ถ้าไม่รู้รหัส)"
+                  disabled={!!formData.equipment_id}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="serial_number">Serial Number (ถ้ามี)</Label>
+                <Input
+                  id="serial_number"
+                  value={formData.serial_number}
+                  onChange={(e) => setFormData({ ...formData, serial_number: e.target.value })}
+                  placeholder="ระบุ Serial Number"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="quantity">จำนวน *</Label>
+                <Input
+                  id="quantity"
+                  type="number"
+                  min="1"
+                  value={formData.quantity}
+                  onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
+                  placeholder="กรอกจำนวน"
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="unit">หน่วย</Label>
+                <Input
+                  id="unit"
+                  value={formData.unit}
+                  onChange={(e) => setFormData({ ...formData, unit: e.target.value })}
+                  placeholder="หน่วย"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="purpose">วัตถุประสงค์</Label>
+                <Input
+                  id="purpose"
+                  value={formData.purpose}
+                  onChange={(e) => setFormData({ ...formData, purpose: e.target.value })}
+                  placeholder="ระบุวัตถุประสงค์"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="destination">ส่งไปที่</Label>
+                <Input
+                  id="destination"
+                  value={formData.destination}
+                  onChange={(e) => setFormData({ ...formData, destination: e.target.value })}
+                  placeholder="ระบุจุดหมาย/สถานที่"
                 />
               </div>
             </div>
 
-            <div className="rounded-md border overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>เลขที่เอกสาร</TableHead>
-                    <TableHead>วันที่ขอ</TableHead>
-                    <TableHead>รหัส/ชื่อสินค้า</TableHead>
-                    <TableHead>จำนวน</TableHead>
-                    <TableHead>ผู้ขอเบิก</TableHead>
-                    <TableHead>วัตถุประสงค์</TableHead>
-                    <TableHead>สถานะ</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {isLoading ? (
-                    <TableRow>
-                      <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
-                        กำลังโหลด...
-                      </TableCell>
-                    </TableRow>
-                  ) : filteredRequests?.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
-                        ไม่พบข้อมูล
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    filteredRequests?.map((req) => (
-                      <TableRow key={req.id}>
-                        <TableCell className="font-medium">{req.document_no}</TableCell>
-                        <TableCell>
-                          {format(new Date(req.created_at), "dd/MM/yyyy HH:mm", { locale: th })}
-                        </TableCell>
-                        <TableCell>
-                          {req.equipment_code && <div className="font-medium">{req.equipment_code}</div>}
-                          <div className="text-sm text-muted-foreground">{req.equipment_name || "-"}</div>
-                        </TableCell>
-                        <TableCell>
-                          {req.quantity} {req.unit}
-                        </TableCell>
-                        <TableCell>
-                          <div>{req.requester_name}</div>
-                          {req.requester_department && (
-                            <div className="text-sm text-muted-foreground">{req.requester_department}</div>
-                          )}
-                        </TableCell>
-                        <TableCell>{req.purpose || "-"}</TableCell>
-                        <TableCell>{getStatusBadge(req.status)}</TableCell>
-                      </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
+            <div className="space-y-2">
+              <Label htmlFor="notes">หมายเหตุ</Label>
+              <Textarea
+                id="notes"
+                value={formData.notes}
+                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                placeholder="หมายเหตุเพิ่มเติม"
+                rows={2}
+              />
             </div>
-          </CardContent>
-        </Card>
-      </div>
-    </DashboardLayout>
+
+            <Button type="submit" disabled={createRequest.isPending}>
+              <Plus className="h-4 w-4 mr-2" />
+              {createRequest.isPending ? "กำลังส่ง..." : "ส่งคำขอเบิก"}
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
+
+      {/* Request History */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <FileText className="h-5 w-5" />
+            ประวัติคำขอเบิก
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center gap-2 mb-4">
+            <div className="relative flex-1 max-w-sm">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="ค้นหาเลขที่เอกสาร, รหัส, ชื่อสินค้า..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+          </div>
+
+          <div className="rounded-md border overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>เลขที่เอกสาร</TableHead>
+                  <TableHead>วันที่ขอ</TableHead>
+                  <TableHead>รหัส/ชื่อสินค้า</TableHead>
+                  <TableHead>จำนวน</TableHead>
+                  <TableHead>ผู้ขอเบิก</TableHead>
+                  <TableHead>วัตถุประสงค์</TableHead>
+                  <TableHead>สถานะ</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {isLoading ? (
+                  <TableRow>
+                    <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                      กำลังโหลด...
+                    </TableCell>
+                  </TableRow>
+                ) : filteredRequests?.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                      ไม่พบข้อมูล
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  filteredRequests?.map((req) => (
+                    <TableRow key={req.id}>
+                      <TableCell className="font-medium">{req.document_no}</TableCell>
+                      <TableCell>
+                        {format(new Date(req.created_at), "dd/MM/yyyy HH:mm", { locale: th })}
+                      </TableCell>
+                      <TableCell>
+                        {req.equipment_code && <div className="font-medium">{req.equipment_code}</div>}
+                        <div className="text-sm text-muted-foreground">{req.equipment_name || "-"}</div>
+                      </TableCell>
+                      <TableCell>
+                        {req.quantity} {req.unit}
+                      </TableCell>
+                      <TableCell>
+                        <div>{req.requester_name}</div>
+                        {req.requester_department && (
+                          <div className="text-sm text-muted-foreground">{req.requester_department}</div>
+                        )}
+                      </TableCell>
+                      <TableCell>{req.purpose || "-"}</TableCell>
+                      <TableCell>{getStatusBadge(req.status)}</TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
   );
 };
 

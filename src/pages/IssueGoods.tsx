@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import DashboardLayout from "@/components/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -256,7 +255,7 @@ const IssueGoods = () => {
   const pendingCount = pendingRequests?.filter((r) => r.status === "pending").length || 0;
 
   return (
-    <DashboardLayout>
+    <>
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
@@ -575,7 +574,7 @@ const IssueGoods = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </DashboardLayout>
+    </>
   );
 };
 
