@@ -36,8 +36,9 @@ import {
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { useFunctionPermissions } from "@/hooks/useFunctionPermissions";
+import { useLocation } from "react-router-dom";
 
 interface MenuItem {
   title: string;
@@ -137,7 +138,22 @@ export function AppSidebar() {
   const { state } = useSidebar();
   const { signOut } = useAuth();
   const { hasFunctionAccess, isAdmin, loading: permLoading } = useFunctionPermissions();
-  const [openSubMenu, setOpenSubMenu] = useState<string | null>("รับสินค้าเข้า (GR)");
+  const location = useLocation();
+  
+  // Find which menu should be open based on current route
+  const getActiveMenu = useCallback(() => {
+    const currentPath = location.pathname;
+    for (const group of menuGroups) {
+      for (const item of group.items) {
+        if (item.subItems?.some(sub => sub.url === currentPath)) {
+          return item.title;
+        }
+      }
+    }
+    return null;
+  }, [location.pathname]);
+
+  const [openSubMenu, setOpenSubMenu] = useState<string | null>(getActiveMenu);
 
   const filteredMenuGroups = useMemo(() => {
     if (permLoading) return [];
@@ -156,35 +172,42 @@ export function AppSidebar() {
     signOut();
   };
 
+  const handleToggleMenu = useCallback((title: string) => {
+    setOpenSubMenu(prev => prev === title ? null : title);
+  }, []);
+
   const renderMenuItem = (item: MenuItem) => {
     if (item.subItems) {
+      const isOpen = openSubMenu === item.title;
+      const hasActiveChild = item.subItems.some(sub => sub.url === location.pathname);
+      
       return (
         <Collapsible
-          open={openSubMenu === item.title}
-          onOpenChange={(open) => setOpenSubMenu(open ? item.title : null)}
+          open={isOpen || hasActiveChild}
+          onOpenChange={() => handleToggleMenu(item.title)}
         >
           <CollapsibleTrigger asChild>
-            <SidebarMenuButton className="flex items-center justify-between w-full px-3 py-2.5 rounded-lg text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-foreground transition-all duration-200 group">
+            <SidebarMenuButton className="flex items-center justify-between w-full px-3 py-2.5 rounded-lg text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-foreground transition-colors duration-150 group">
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg bg-sidebar-accent/50 flex items-center justify-center group-hover:bg-sidebar-primary/20 transition-colors">
+                <div className="w-8 h-8 rounded-lg bg-sidebar-accent/50 flex items-center justify-center group-hover:bg-sidebar-primary/20 transition-colors duration-150">
                   <item.icon className="w-4 h-4 flex-shrink-0" />
                 </div>
                 {state !== "collapsed" && <span className="font-medium">{item.title}</span>}
               </div>
               {state !== "collapsed" && (
-                <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${openSubMenu === item.title ? "rotate-180" : ""}`} />
+                <ChevronDown className={`w-4 h-4 transition-transform duration-150 ${isOpen || hasActiveChild ? "rotate-180" : ""}`} />
               )}
             </SidebarMenuButton>
           </CollapsibleTrigger>
           {state !== "collapsed" && (
-            <CollapsibleContent className="animate-accordion-down">
+            <CollapsibleContent className="overflow-hidden data-[state=open]:animate-accordion-down data-[state=closed]:animate-accordion-up">
               <SidebarMenuSub className="ml-6 mt-1 border-l border-sidebar-border/50 pl-3">
                 {item.subItems.map((subItem) => (
                   <SidebarMenuSubItem key={subItem.title}>
                     <SidebarMenuSubButton asChild>
                       <NavLink
                         to={subItem.url}
-                        className="flex items-center gap-3 px-3 py-2 rounded-lg text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground transition-all duration-200 text-sm"
+                        className="flex items-center gap-3 px-3 py-2 rounded-lg text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground transition-colors duration-150 text-sm"
                         activeClassName="bg-sidebar-primary/15 text-sidebar-primary font-medium border-l-2 border-sidebar-primary -ml-[13px] pl-[11px]"
                       >
                         <subItem.icon className="w-4 h-4 flex-shrink-0" />
@@ -204,10 +227,10 @@ export function AppSidebar() {
       <SidebarMenuButton asChild>
         <NavLink
           to={item.url!}
-          className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-foreground transition-all duration-200 group"
+          className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-foreground transition-colors duration-150 group"
           activeClassName="bg-sidebar-primary/15 text-sidebar-primary font-medium"
         >
-          <div className="w-8 h-8 rounded-lg bg-sidebar-accent/50 flex items-center justify-center group-hover:bg-sidebar-primary/20 group-[.bg-sidebar-primary\\/15]:bg-sidebar-primary/20 transition-colors">
+          <div className="w-8 h-8 rounded-lg bg-sidebar-accent/50 flex items-center justify-center group-hover:bg-sidebar-primary/20 group-[.bg-sidebar-primary\\/15]:bg-sidebar-primary/20 transition-colors duration-150">
             <item.icon className="w-4 h-4 flex-shrink-0" />
           </div>
           {state !== "collapsed" && <span className="font-medium">{item.title}</span>}
