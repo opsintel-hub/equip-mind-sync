@@ -1,5 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Package, PackageOpen, TrendingUp, MapPin } from "lucide-react";
+import { Package, PackageOpen, TrendingUp, TrendingDown, MapPin, ArrowRight } from "lucide-react";
 import { LowStockAlerts } from "@/components/LowStockAlerts";
 import { ExpiryAlerts } from "@/components/ExpiryAlerts";
 import { BillboardEquipmentAlerts } from "@/components/BillboardEquipmentAlerts";
@@ -7,6 +7,7 @@ import BillboardEquipmentChart from "@/components/BillboardEquipmentChart";
 import { LocationInventoryChart } from "@/components/LocationInventoryChart";
 import { CategoryPieChart } from "@/components/CategoryPieChart";
 import TransactionSummaryReport from "@/components/TransactionSummaryReport";
+
 const Dashboard = () => {
   const stats = [
     {
@@ -15,8 +16,10 @@ const Dashboard = () => {
       unit: "รายการ",
       icon: Package,
       trend: "+12.5%",
+      trendUp: true,
       color: "text-primary",
-      bg: "bg-primary/10",
+      bgGradient: "from-primary/10 to-primary/5",
+      iconBg: "bg-primary/15",
     },
     {
       title: "รับเข้าวันนี้",
@@ -24,8 +27,10 @@ const Dashboard = () => {
       unit: "รายการ",
       icon: Package,
       trend: "+5.2%",
+      trendUp: true,
       color: "text-success",
-      bg: "bg-success/10",
+      bgGradient: "from-success/10 to-success/5",
+      iconBg: "bg-success/15",
     },
     {
       title: "เบิกจ่ายวันนี้",
@@ -33,8 +38,10 @@ const Dashboard = () => {
       unit: "รายการ",
       icon: PackageOpen,
       trend: "-2.1%",
+      trendUp: false,
       color: "text-warning",
-      bg: "bg-warning/10",
+      bgGradient: "from-warning/10 to-warning/5",
+      iconBg: "bg-warning/15",
     },
     {
       title: "ป้ายโฆษณา",
@@ -42,8 +49,10 @@ const Dashboard = () => {
       unit: "จุด",
       icon: MapPin,
       trend: "+8.3%",
+      trendUp: true,
       color: "text-chart-4",
-      bg: "bg-chart-4/10",
+      bgGradient: "from-chart-4/10 to-chart-4/5",
+      iconBg: "bg-chart-4/15",
     },
   ];
 
@@ -55,70 +64,107 @@ const Dashboard = () => {
     { id: 5, type: "GR", description: "รับเข้าเครื่องมือ SKU-203", time: "3 ชั่วโมงที่แล้ว", status: "success" },
   ];
 
+  const warehouseZones = [
+    { name: "Zone A", percentage: 85, color: "bg-primary" },
+    { name: "Zone B", percentage: 62, color: "bg-success" },
+    { name: "Zone C", percentage: 41, color: "bg-warning" },
+    { name: "Zone D", percentage: 28, color: "bg-chart-5" },
+  ];
+
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-semibold text-foreground mb-2">แดชบอร์ด</h1>
-        <p className="text-muted-foreground">ภาพรวมระบบจัดการคลังสินค้า</p>
+    <div className="space-y-8">
+      {/* Header */}
+      <div className="space-y-1">
+        <h1 className="text-3xl font-bold text-foreground tracking-tight">แดชบอร์ด</h1>
+        <p className="text-muted-foreground">ภาพรวมระบบจัดการคลังสินค้าและอุปกรณ์</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {stats.map((stat) => (
-          <Card key={stat.title} className="hover:shadow-md transition-shadow">
-            <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                {stat.title}
-              </CardTitle>
-              <div className={`w-10 h-10 rounded-lg ${stat.bg} flex items-center justify-center`}>
-                <stat.icon className={`w-5 h-5 ${stat.color}`} />
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-baseline gap-2">
-                <div className="text-3xl font-semibold text-foreground">{stat.value}</div>
-                <span className="text-sm text-muted-foreground">{stat.unit}</span>
-              </div>
-              <div className="flex items-center gap-1 mt-2">
-                <TrendingUp className="w-4 h-4 text-success" />
-                <span className="text-sm text-success font-medium">{stat.trend}</span>
-                <span className="text-sm text-muted-foreground">จากเดือนที่แล้ว</span>
+      {/* Stats Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+        {stats.map((stat, index) => (
+          <Card 
+            key={stat.title} 
+            className={`relative overflow-hidden bg-gradient-to-br ${stat.bgGradient} border-0 hover-lift`}
+            style={{ animationDelay: `${index * 100}ms` }}
+          >
+            <CardContent className="p-6">
+              <div className="flex items-start justify-between">
+                <div className="space-y-3">
+                  <p className="text-sm font-medium text-muted-foreground">{stat.title}</p>
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-3xl font-bold text-foreground">{stat.value}</span>
+                    <span className="text-sm text-muted-foreground">{stat.unit}</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    {stat.trendUp ? (
+                      <TrendingUp className="w-4 h-4 text-success" />
+                    ) : (
+                      <TrendingDown className="w-4 h-4 text-destructive" />
+                    )}
+                    <span className={`text-sm font-semibold ${stat.trendUp ? 'text-success' : 'text-destructive'}`}>
+                      {stat.trend}
+                    </span>
+                    <span className="text-xs text-muted-foreground">vs เดือนที่แล้ว</span>
+                  </div>
+                </div>
+                <div className={`w-12 h-12 rounded-xl ${stat.iconBg} flex items-center justify-center`}>
+                  <stat.icon className={`w-6 h-6 ${stat.color}`} />
+                </div>
               </div>
             </CardContent>
           </Card>
         ))}
       </div>
 
+      {/* Transaction Summary */}
       <TransactionSummaryReport />
 
+      {/* Charts Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <LocationInventoryChart />
         <CategoryPieChart />
       </div>
 
-      <LowStockAlerts />
-      
-      <ExpiryAlerts />
+      {/* Alerts Section */}
+      <div className="space-y-6">
+        <LowStockAlerts />
+        <ExpiryAlerts />
+        <BillboardEquipmentAlerts />
+      </div>
 
-      <BillboardEquipmentAlerts />
-
+      {/* Billboard Chart */}
       <BillboardEquipmentChart />
 
+      {/* Activity and Warehouse Status */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Recent Activities */}
         <Card className="lg:col-span-2">
-          <CardHeader>
-            <CardTitle>กิจกรรมล่าสุด</CardTitle>
+          <CardHeader className="pb-4">
+            <div className="flex items-center justify-between">
+              <CardTitle className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-success animate-pulse-soft" />
+                กิจกรรมล่าสุด
+              </CardTitle>
+              <button className="text-sm text-primary hover:text-primary/80 font-medium flex items-center gap-1 transition-colors">
+                ดูทั้งหมด
+                <ArrowRight className="w-4 h-4" />
+              </button>
+            </div>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              {recentActivities.map((activity) => (
+            <div className="space-y-3">
+              {recentActivities.map((activity, index) => (
                 <div
                   key={activity.id}
-                  className="flex items-center justify-between p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors"
+                  className="flex items-center justify-between p-4 rounded-xl bg-muted/30 hover:bg-muted/50 transition-all duration-200 group cursor-pointer"
+                  style={{ animationDelay: `${index * 50}ms` }}
                 >
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-4">
                     <div
-                      className={`w-10 h-10 rounded-lg flex items-center justify-center ${
-                        activity.type === "GR" ? "bg-success/10" : "bg-warning/10"
+                      className={`w-11 h-11 rounded-xl flex items-center justify-center transition-transform group-hover:scale-105 ${
+                        activity.type === "GR" 
+                          ? "bg-success/10" 
+                          : "bg-warning/10"
                       }`}
                     >
                       {activity.type === "GR" ? (
@@ -128,12 +174,14 @@ const Dashboard = () => {
                       )}
                     </div>
                     <div>
-                      <p className="font-medium text-foreground">{activity.description}</p>
+                      <p className="font-medium text-foreground group-hover:text-primary transition-colors">
+                        {activity.description}
+                      </p>
                       <p className="text-sm text-muted-foreground">{activity.time}</p>
                     </div>
                   </div>
                   <div
-                    className={`px-3 py-1 rounded-full text-xs font-medium ${
+                    className={`px-3 py-1.5 rounded-full text-xs font-semibold ${
                       activity.status === "success"
                         ? "bg-success/10 text-success"
                         : "bg-warning/10 text-warning"
@@ -147,45 +195,33 @@ const Dashboard = () => {
           </CardContent>
         </Card>
 
+        {/* Warehouse Status */}
         <Card>
-          <CardHeader>
+          <CardHeader className="pb-4">
             <CardTitle>สถานะคลังสินค้า</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Zone A</span>
-                <span className="font-medium">85%</span>
+          <CardContent className="space-y-5">
+            {warehouseZones.map((zone) => (
+              <div key={zone.name} className="space-y-2.5">
+                <div className="flex justify-between text-sm">
+                  <span className="font-medium text-foreground">{zone.name}</span>
+                  <span className="font-semibold text-foreground">{zone.percentage}%</span>
+                </div>
+                <div className="h-2.5 bg-muted rounded-full overflow-hidden">
+                  <div 
+                    className={`h-full ${zone.color} rounded-full transition-all duration-500 ease-out`} 
+                    style={{ width: `${zone.percentage}%` }} 
+                  />
+                </div>
               </div>
-              <div className="h-2 bg-muted rounded-full overflow-hidden">
-                <div className="h-full bg-primary rounded-full" style={{ width: "85%" }} />
-              </div>
-            </div>
-            <div className="space-y-2">
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Zone B</span>
-                <span className="font-medium">62%</span>
-              </div>
-              <div className="h-2 bg-muted rounded-full overflow-hidden">
-                <div className="h-full bg-success rounded-full" style={{ width: "62%" }} />
-              </div>
-            </div>
-            <div className="space-y-2">
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Zone C</span>
-                <span className="font-medium">41%</span>
-              </div>
-              <div className="h-2 bg-muted rounded-full overflow-hidden">
-                <div className="h-full bg-warning rounded-full" style={{ width: "41%" }} />
-              </div>
-            </div>
-            <div className="space-y-2">
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Zone D</span>
-                <span className="font-medium">28%</span>
-              </div>
-              <div className="h-2 bg-muted rounded-full overflow-hidden">
-                <div className="h-full bg-chart-5 rounded-full" style={{ width: "28%" }} />
+            ))}
+            
+            {/* Legend */}
+            <div className="pt-4 mt-4 border-t border-border">
+              <div className="flex items-center justify-between text-xs text-muted-foreground">
+                <span>0%</span>
+                <span>พื้นที่ใช้งาน</span>
+                <span>100%</span>
               </div>
             </div>
           </CardContent>

@@ -51,7 +51,6 @@ interface MenuItem {
   }[];
 }
 
-// กลุ่มเมนูแบ่งตามหมวดหมู่
 interface MenuGroup {
   label: string;
   items: MenuItem[];
@@ -140,21 +139,17 @@ export function AppSidebar() {
   const { hasFunctionAccess, isAdmin, loading: permLoading } = useFunctionPermissions();
   const [openSubMenu, setOpenSubMenu] = useState<string | null>("รับสินค้าเข้า (GR)");
 
-  // Filter menu groups based on function permissions
   const filteredMenuGroups = useMemo(() => {
     if (permLoading) return [];
     
     return menuGroups.map(group => ({
       ...group,
       items: group.items.filter(item => {
-        // Items without functionName are always visible (e.g., Dashboard, Settings)
         if (!item.functionName) return true;
-        // Admin can see everything
         if (isAdmin) return true;
-        // Check function permission
         return hasFunctionAccess(item.functionName);
       })
-    })).filter(group => group.items.length > 0); // Only show groups with items
+    })).filter(group => group.items.length > 0);
   }, [hasFunctionAccess, isAdmin, permLoading]);
 
   const handleLogout = () => {
@@ -169,26 +164,28 @@ export function AppSidebar() {
           onOpenChange={(open) => setOpenSubMenu(open ? item.title : null)}
         >
           <CollapsibleTrigger asChild>
-            <SidebarMenuButton className="flex items-center justify-between w-full px-3 py-2 rounded-lg text-sidebar-foreground hover:bg-sidebar-accent transition-colors">
+            <SidebarMenuButton className="flex items-center justify-between w-full px-3 py-2.5 rounded-lg text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-foreground transition-all duration-200 group">
               <div className="flex items-center gap-3">
-                <item.icon className="w-5 h-5 flex-shrink-0" />
-                {state !== "collapsed" && <span>{item.title}</span>}
+                <div className="w-8 h-8 rounded-lg bg-sidebar-accent/50 flex items-center justify-center group-hover:bg-sidebar-primary/20 transition-colors">
+                  <item.icon className="w-4 h-4 flex-shrink-0" />
+                </div>
+                {state !== "collapsed" && <span className="font-medium">{item.title}</span>}
               </div>
               {state !== "collapsed" && (
-                <ChevronDown className={`w-4 h-4 transition-transform ${openSubMenu === item.title ? "rotate-180" : ""}`} />
+                <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${openSubMenu === item.title ? "rotate-180" : ""}`} />
               )}
             </SidebarMenuButton>
           </CollapsibleTrigger>
           {state !== "collapsed" && (
-            <CollapsibleContent>
-              <SidebarMenuSub>
+            <CollapsibleContent className="animate-accordion-down">
+              <SidebarMenuSub className="ml-6 mt-1 border-l border-sidebar-border/50 pl-3">
                 {item.subItems.map((subItem) => (
                   <SidebarMenuSubItem key={subItem.title}>
                     <SidebarMenuSubButton asChild>
                       <NavLink
                         to={subItem.url}
-                        className="flex items-center gap-3 px-3 py-2 rounded-lg text-sidebar-foreground hover:bg-sidebar-accent transition-colors text-sm"
-                        activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+                        className="flex items-center gap-3 px-3 py-2 rounded-lg text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground transition-all duration-200 text-sm"
+                        activeClassName="bg-sidebar-primary/15 text-sidebar-primary font-medium border-l-2 border-sidebar-primary -ml-[13px] pl-[11px]"
                       >
                         <subItem.icon className="w-4 h-4 flex-shrink-0" />
                         <span>{subItem.title}</span>
@@ -207,40 +204,42 @@ export function AppSidebar() {
       <SidebarMenuButton asChild>
         <NavLink
           to={item.url!}
-          className="flex items-center gap-3 px-3 py-2 rounded-lg text-sidebar-foreground hover:bg-sidebar-accent transition-colors"
-          activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+          className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-foreground transition-all duration-200 group"
+          activeClassName="bg-sidebar-primary/15 text-sidebar-primary font-medium"
         >
-          <item.icon className="w-5 h-5 flex-shrink-0" />
-          {state !== "collapsed" && <span>{item.title}</span>}
+          <div className="w-8 h-8 rounded-lg bg-sidebar-accent/50 flex items-center justify-center group-hover:bg-sidebar-primary/20 group-[.bg-sidebar-primary\\/15]:bg-sidebar-primary/20 transition-colors">
+            <item.icon className="w-4 h-4 flex-shrink-0" />
+          </div>
+          {state !== "collapsed" && <span className="font-medium">{item.title}</span>}
         </NavLink>
       </SidebarMenuButton>
     );
   };
 
   return (
-    <Sidebar collapsible="icon">
-      <SidebarHeader className="border-b border-sidebar-border p-4">
+    <Sidebar collapsible="icon" className="border-r-0">
+      <SidebarHeader className="border-b border-sidebar-border/50 p-5">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-sidebar-primary rounded-lg flex items-center justify-center flex-shrink-0">
-            <Package className="w-6 h-6 text-sidebar-primary-foreground" />
+          <div className="w-11 h-11 gradient-primary rounded-xl flex items-center justify-center flex-shrink-0 shadow-lg">
+            <Package className="w-6 h-6 text-white" />
           </div>
           {state !== "collapsed" && (
-            <div>
-              <h2 className="text-base font-semibold text-sidebar-foreground">Equipment</h2>
-              <p className="text-xs text-sidebar-foreground/60">Tracking System</p>
+            <div className="animate-fade-in">
+              <h2 className="text-lg font-bold text-sidebar-foreground tracking-tight">Equipment</h2>
+              <p className="text-xs text-sidebar-foreground/50 font-medium">Tracking System</p>
             </div>
           )}
         </div>
       </SidebarHeader>
 
-      <SidebarContent>
-        {filteredMenuGroups.map((group) => (
-          <SidebarGroup key={group.label}>
-            <SidebarGroupLabel className={state === "collapsed" ? "text-center" : ""}>
-              {state === "collapsed" ? "•••" : group.label}
+      <SidebarContent className="px-3 py-4">
+        {filteredMenuGroups.map((group, idx) => (
+          <SidebarGroup key={group.label} className={idx > 0 ? "mt-4" : ""}>
+            <SidebarGroupLabel className={`${state === "collapsed" ? "text-center" : ""} text-xs font-semibold text-sidebar-foreground/40 uppercase tracking-wider mb-2 px-3`}>
+              {state === "collapsed" ? "•" : group.label}
             </SidebarGroupLabel>
             <SidebarGroupContent>
-              <SidebarMenu>
+              <SidebarMenu className="space-y-1">
                 {group.items.map((item) => (
                   <SidebarMenuItem key={item.title}>
                     {renderMenuItem(item)}
@@ -252,14 +251,14 @@ export function AppSidebar() {
         ))}
       </SidebarContent>
 
-      <SidebarFooter className="border-t border-sidebar-border p-4">
+      <SidebarFooter className="border-t border-sidebar-border/50 p-4">
         <Button
           variant="ghost"
-          className="w-full justify-start text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+          className="w-full justify-start text-sidebar-foreground/70 hover:bg-destructive/10 hover:text-destructive transition-all duration-200 rounded-lg"
           onClick={handleLogout}
         >
-          <LogOut className="w-5 h-5 mr-2" />
-          {state !== "collapsed" && "ออกจากระบบ"}
+          <LogOut className="w-5 h-5 mr-3" />
+          {state !== "collapsed" && <span className="font-medium">ออกจากระบบ</span>}
         </Button>
       </SidebarFooter>
     </Sidebar>
