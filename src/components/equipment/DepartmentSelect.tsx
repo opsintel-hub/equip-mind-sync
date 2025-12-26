@@ -118,7 +118,7 @@ export function DepartmentSelect({ value, onChange, disabled }: DepartmentSelect
           <SelectTrigger className="flex-1">
             <SelectValue placeholder="เลือกฝ่าย" />
           </SelectTrigger>
-          <SelectContent className="bg-background">
+          <SelectContent position="popper" sideOffset={4} className="bg-background z-[200] max-h-60 overflow-y-auto">
             {departments.map((dept) => (
               <SelectItem key={dept.id} value={dept.name}>
                 {dept.name}

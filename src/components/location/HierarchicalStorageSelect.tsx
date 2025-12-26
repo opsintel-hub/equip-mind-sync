@@ -235,7 +235,7 @@ export function HierarchicalStorageSelect({ value, onChange, disabled }: Hierarc
             <SelectTrigger>
               <SelectValue placeholder={loading ? "กำลังโหลด..." : "เลือกตำแหน่ง"} />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent position="popper" sideOffset={4} className="bg-background z-[200] max-h-60 overflow-y-auto">
               {locations.map((location) => (
                 <SelectItem key={location.id} value={location.id}>
                   {location.code} - {location.name}
@@ -290,7 +290,7 @@ export function HierarchicalStorageSelect({ value, onChange, disabled }: Hierarc
             <SelectTrigger>
               <SelectValue placeholder="เลือกช่องจัดเก็บ (ไม่บังคับ)" />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent position="popper" sideOffset={4} className="bg-background z-[200] max-h-60 overflow-y-auto">
               {storageSlots.map((slot) => (
                 <SelectItem key={slot.id} value={slot.id}>
                   {slot.name}
@@ -312,7 +312,7 @@ export function HierarchicalStorageSelect({ value, onChange, disabled }: Hierarc
             <SelectTrigger>
               <SelectValue placeholder="เลือกช่องย่อยจัดเก็บ (ไม่บังคับ)" />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent position="popper" sideOffset={4} className="bg-background z-[200] max-h-60 overflow-y-auto">
               {subStorageSlots.map((subSlot) => (
                 <SelectItem key={subSlot.id} value={subSlot.id}>
                   {subSlot.name}
