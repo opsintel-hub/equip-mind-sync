@@ -144,7 +144,7 @@ const BillboardExport = ({ currentFilters }: BillboardExportProps) => {
                 <SelectTrigger className="flex-1">
                   <SelectValue placeholder="ทั้งหมด" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent position="popper" sideOffset={4} className="bg-background z-[200] max-h-60 overflow-y-auto">
                   <SelectItem value="__all__">ทั้งหมด</SelectItem>
                   {filterOptions?.regions.map((r) => (
                     <SelectItem key={r} value={r!}>{r}</SelectItem>
@@ -159,7 +159,7 @@ const BillboardExport = ({ currentFilters }: BillboardExportProps) => {
                 <SelectTrigger className="flex-1">
                   <SelectValue placeholder="ทั้งหมด" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent position="popper" sideOffset={4} className="bg-background z-[200] max-h-60 overflow-y-auto">
                   <SelectItem value="__all__">ทั้งหมด</SelectItem>
                   {filterOptions?.departments.map((d) => (
                     <SelectItem key={d} value={d!}>{d}</SelectItem>
@@ -174,7 +174,7 @@ const BillboardExport = ({ currentFilters }: BillboardExportProps) => {
                 <SelectTrigger className="flex-1">
                   <SelectValue placeholder="ทั้งหมด" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent position="popper" sideOffset={4} className="bg-background z-[200] max-h-60 overflow-y-auto">
                   <SelectItem value="__all__">ทั้งหมด</SelectItem>
                   {filterOptions?.statuses.map((s) => (
                     <SelectItem key={s} value={s!}>

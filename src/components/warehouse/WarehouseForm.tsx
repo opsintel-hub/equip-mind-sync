@@ -175,7 +175,7 @@ export function WarehouseForm({ onSuccess, editData }: WarehouseFormProps) {
                         <SelectValue placeholder="เลือกประเภทพื้นที่" />
                       </SelectTrigger>
                     </FormControl>
-                    <SelectContent className="bg-background">
+                    <SelectContent position="popper" sideOffset={4} className="bg-background z-[200] max-h-60 overflow-y-auto">
                       {storageAreaOptions.map((option) => (
                         <SelectItem key={option.value} value={option.value}>
                           {option.label}
@@ -200,7 +200,7 @@ export function WarehouseForm({ onSuccess, editData }: WarehouseFormProps) {
                         <SelectValue placeholder="เลือกฝ่าย (ถ้ามี)" />
                       </SelectTrigger>
                     </FormControl>
-                    <SelectContent className="bg-background">
+                    <SelectContent position="popper" sideOffset={4} className="bg-background z-[200] max-h-60 overflow-y-auto">
                       {departments.map((dept) => (
                         <SelectItem key={dept.id} value={dept.name}>
                           {dept.name}

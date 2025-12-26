@@ -54,7 +54,7 @@ const BillboardFilters = ({ filters, onFilterChange, onClearFilters }: Billboard
           <SelectTrigger className="w-40">
             <SelectValue placeholder="Region" />
           </SelectTrigger>
-          <SelectContent>
+          <SelectContent position="popper" sideOffset={4} className="bg-background z-[200] max-h-60 overflow-y-auto">
             <SelectItem value="__all__">ทั้งหมด</SelectItem>
             {filterOptions?.regions.map((r) => (
               <SelectItem key={r} value={r!}>{r}</SelectItem>
@@ -69,7 +69,7 @@ const BillboardFilters = ({ filters, onFilterChange, onClearFilters }: Billboard
           <SelectTrigger className="w-40">
             <SelectValue placeholder="District" />
           </SelectTrigger>
-          <SelectContent>
+          <SelectContent position="popper" sideOffset={4} className="bg-background z-[200] max-h-60 overflow-y-auto">
             <SelectItem value="__all__">ทั้งหมด</SelectItem>
             {filterOptions?.districts.map((d) => (
               <SelectItem key={d} value={d!}>{d}</SelectItem>
@@ -84,7 +84,7 @@ const BillboardFilters = ({ filters, onFilterChange, onClearFilters }: Billboard
           <SelectTrigger className="w-40">
             <SelectValue placeholder="Department" />
           </SelectTrigger>
-          <SelectContent>
+          <SelectContent position="popper" sideOffset={4} className="bg-background z-[200] max-h-60 overflow-y-auto">
             <SelectItem value="__all__">ทั้งหมด</SelectItem>
             {filterOptions?.departments.map((d) => (
               <SelectItem key={d} value={d!}>{d}</SelectItem>
@@ -99,7 +99,7 @@ const BillboardFilters = ({ filters, onFilterChange, onClearFilters }: Billboard
           <SelectTrigger className="w-48">
             <SelectValue placeholder="Media Type" />
           </SelectTrigger>
-          <SelectContent>
+          <SelectContent position="popper" sideOffset={4} className="bg-background z-[200] max-h-60 overflow-y-auto">
             <SelectItem value="__all__">ทั้งหมด</SelectItem>
             {filterOptions?.mediaTypes.map((m) => (
               <SelectItem key={m} value={m!}>{m}</SelectItem>
@@ -114,7 +114,7 @@ const BillboardFilters = ({ filters, onFilterChange, onClearFilters }: Billboard
           <SelectTrigger className="w-32">
             <SelectValue placeholder="สถานะ" />
           </SelectTrigger>
-          <SelectContent>
+          <SelectContent position="popper" sideOffset={4} className="bg-background z-[200] max-h-60 overflow-y-auto">
             <SelectItem value="__all__">ทั้งหมด</SelectItem>
             {filterOptions?.statuses.map((s) => (
               <SelectItem key={s} value={s!}>
@@ -141,7 +141,7 @@ const BillboardFilters = ({ filters, onFilterChange, onClearFilters }: Billboard
           <SelectTrigger className="w-44">
             <SelectValue placeholder="สถานะอุปกรณ์" />
           </SelectTrigger>
-          <SelectContent>
+          <SelectContent position="popper" sideOffset={4} className="bg-background z-[200] max-h-60 overflow-y-auto">
             <SelectItem value="__all__">ทั้งหมด</SelectItem>
             <SelectItem value="expired">มีอุปกรณ์หมดอายุ</SelectItem>
             <SelectItem value="warranty_expired">มีอุปกรณ์หมดประกัน</SelectItem>

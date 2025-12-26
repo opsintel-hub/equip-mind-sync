@@ -185,7 +185,7 @@ export function PMScheduleForm({
                           <SelectValue placeholder="เลือกรอบ" />
                         </SelectTrigger>
                       </FormControl>
-                      <SelectContent>
+                      <SelectContent position="popper" sideOffset={4} className="bg-background z-[200] max-h-60 overflow-y-auto">
                         <SelectItem value="daily">รายวัน</SelectItem>
                         <SelectItem value="weekly">รายสัปดาห์</SelectItem>
                         <SelectItem value="monthly">รายเดือน</SelectItem>

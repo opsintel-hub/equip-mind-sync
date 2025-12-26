@@ -159,7 +159,7 @@ export function SubStorageSlotSelect({ value, onChange, storageSlotId, disabled 
         <SelectTrigger>
           <SelectValue placeholder={storageSlotId ? "เลือกช่องย่อยจัดเก็บ (ไม่บังคับ)" : "เลือกช่องจัดเก็บก่อน"} />
         </SelectTrigger>
-        <SelectContent>
+        <SelectContent position="popper" sideOffset={4} className="bg-background z-[200] max-h-60 overflow-y-auto">
           {subSlots.map((subSlot) => (
             <SelectItem key={subSlot.id} value={subSlot.id}>
               {subSlot.name}

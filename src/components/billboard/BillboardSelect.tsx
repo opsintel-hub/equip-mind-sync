@@ -28,7 +28,7 @@ const BillboardSelect = ({ value, onChange, placeholder = "เลือกป้
       <SelectTrigger>
         <SelectValue placeholder={placeholder} />
       </SelectTrigger>
-      <SelectContent>
+      <SelectContent position="popper" sideOffset={4} className="bg-background z-[200] max-h-60 overflow-y-auto">
         <SelectItem value="__none__">ไม่ระบุ</SelectItem>
         {isLoading ? (
           <SelectItem value="__loading__" disabled>กำลังโหลด...</SelectItem>

@@ -303,7 +303,7 @@ const DeadStockReport = () => {
                 <SelectTrigger>
                   <SelectValue placeholder="เลือกฝ่าย" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent position="popper" sideOffset={4} className="bg-background z-[200] max-h-60 overflow-y-auto">
                   <SelectItem value="all">ทั้งหมด</SelectItem>
                   {departments.map(dept => (
                     <SelectItem key={dept} value={dept}>{dept}</SelectItem>
@@ -317,7 +317,7 @@ const DeadStockReport = () => {
                 <SelectTrigger>
                   <SelectValue placeholder="เลือกหมวดหมู่" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent position="popper" sideOffset={4} className="bg-background z-[200] max-h-60 overflow-y-auto">
                   <SelectItem value="all">ทั้งหมด</SelectItem>
                   {categories.map(cat => (
                     <SelectItem key={cat.id} value={cat.name}>{cat.name}</SelectItem>
@@ -331,7 +331,7 @@ const DeadStockReport = () => {
                 <SelectTrigger>
                   <SelectValue placeholder="เลือกช่วงอายุ" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent position="popper" sideOffset={4} className="bg-background z-[200] max-h-60 overflow-y-auto">
                   <SelectItem value="all">ทั้งหมด</SelectItem>
                   {AGE_GROUPS.map(group => (
                     <SelectItem key={group.label} value={group.label}>{group.label}</SelectItem>

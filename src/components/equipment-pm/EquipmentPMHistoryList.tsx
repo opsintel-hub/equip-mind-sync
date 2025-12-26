@@ -503,7 +503,7 @@ export function EquipmentPMHistoryList() {
               <SelectTrigger className="w-[180px]">
                 <SelectValue placeholder="ทุกฝ่าย" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent position="popper" sideOffset={4} className="bg-background z-[200] max-h-60 overflow-y-auto">
                 <SelectItem value="all">ทุกฝ่าย</SelectItem>
                 {departments.map((dept) => (
                   <SelectItem key={dept} value={dept!}>
@@ -517,7 +517,7 @@ export function EquipmentPMHistoryList() {
               <SelectTrigger className="w-[180px]">
                 <SelectValue placeholder="ทุกผลการตรวจ" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent position="popper" sideOffset={4} className="bg-background z-[200] max-h-60 overflow-y-auto">
                 <SelectItem value="all">ทุกผลการตรวจ</SelectItem>
                 {Object.entries(RESULT_LABELS).map(([key, label]) => (
                   <SelectItem key={key} value={key}>

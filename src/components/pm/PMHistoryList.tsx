@@ -378,7 +378,7 @@ export function PMHistoryList() {
                 <SelectTrigger className="w-40">
                   <SelectValue placeholder="ป้ายโฆษณา" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent position="popper" sideOffset={4} className="bg-background z-[200] max-h-60 overflow-y-auto">
                   <SelectItem value="all">ทุกป้าย</SelectItem>
                   {billboards.map((b) => (
                     <SelectItem key={b.id} value={b.id}>
@@ -391,7 +391,7 @@ export function PMHistoryList() {
                 <SelectTrigger className="w-32">
                   <SelectValue placeholder="ประเภท" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent position="popper" sideOffset={4} className="bg-background z-[200] max-h-60 overflow-y-auto">
                   <SelectItem value="all">ทุกประเภท</SelectItem>
                   <SelectItem value="daily">รายวัน</SelectItem>
                   <SelectItem value="weekly">รายสัปดาห์</SelectItem>
@@ -404,7 +404,7 @@ export function PMHistoryList() {
                 <SelectTrigger className="w-28">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent position="popper" sideOffset={4} className="bg-background z-[200] max-h-60 overflow-y-auto">
                   <SelectItem value="all">ทั้งหมด</SelectItem>
                   <SelectItem value="1m">1 เดือน</SelectItem>
                   <SelectItem value="3m">3 เดือน</SelectItem>

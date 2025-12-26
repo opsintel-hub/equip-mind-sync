@@ -438,7 +438,7 @@ const Billboards = () => {
                     <SelectTrigger className="w-20">
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent position="popper" sideOffset={4} className="bg-background z-[200] max-h-60 overflow-y-auto">
                       {PAGE_SIZE_OPTIONS.map((size) => (
                         <SelectItem key={size} value={size.toString()}>
                           {size}

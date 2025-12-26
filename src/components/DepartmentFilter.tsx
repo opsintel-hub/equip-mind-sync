@@ -27,7 +27,7 @@ export function DepartmentFilter({ value, onChange, showAll = true }: Department
       <SelectTrigger className="w-[200px]">
         <SelectValue placeholder="เลือกฝ่าย" />
       </SelectTrigger>
-      <SelectContent>
+      <SelectContent position="popper" sideOffset={4} className="bg-background z-[200] max-h-60 overflow-y-auto">
         {(showAll || isAdmin) && <SelectItem value="all">ทุกฝ่าย</SelectItem>}
         {viewableDepartments.map((dept) => (
           <SelectItem key={dept} value={dept}>
