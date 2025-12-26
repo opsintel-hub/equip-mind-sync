@@ -36,10 +36,10 @@ import {
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import { useFunctionPermissions } from "@/hooks/useFunctionPermissions";
 import { useLocation } from "react-router-dom";
-
+import { Skeleton } from "@/components/ui/skeleton";
 interface MenuItem {
   title: string;
   url?: string;
@@ -154,6 +154,14 @@ export function AppSidebar() {
   }, [location.pathname]);
 
   const [openSubMenu, setOpenSubMenu] = useState<string | null>(getActiveMenu);
+  
+  // Sync openSubMenu when route changes
+  useEffect(() => {
+    const activeMenu = getActiveMenu();
+    if (activeMenu && openSubMenu !== activeMenu) {
+      setOpenSubMenu(activeMenu);
+    }
+  }, [location.pathname, getActiveMenu]);
 
   const filteredMenuGroups = useMemo(() => {
     if (permLoading) return [];
@@ -200,7 +208,7 @@ export function AppSidebar() {
             </SidebarMenuButton>
           </CollapsibleTrigger>
           {state !== "collapsed" && (
-            <CollapsibleContent className="overflow-hidden data-[state=open]:animate-accordion-down data-[state=closed]:animate-accordion-up">
+            <CollapsibleContent className="overflow-hidden transition-all duration-100">
               <SidebarMenuSub className="ml-6 mt-1 border-l border-sidebar-border/50 pl-3">
                 {item.subItems.map((subItem) => (
                   <SidebarMenuSubItem key={subItem.title}>
@@ -256,22 +264,36 @@ export function AppSidebar() {
       </SidebarHeader>
 
       <SidebarContent className="px-3 py-4">
-        {filteredMenuGroups.map((group, idx) => (
-          <SidebarGroup key={group.label} className={idx > 0 ? "mt-4" : ""}>
-            <SidebarGroupLabel className={`${state === "collapsed" ? "text-center" : ""} text-xs font-semibold text-sidebar-foreground/40 uppercase tracking-wider mb-2 px-3`}>
-              {state === "collapsed" ? "•" : group.label}
-            </SidebarGroupLabel>
-            <SidebarGroupContent>
-              <SidebarMenu className="space-y-1">
-                {group.items.map((item) => (
-                  <SidebarMenuItem key={item.title}>
-                    {renderMenuItem(item)}
-                  </SidebarMenuItem>
-                ))}
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
-        ))}
+        {permLoading ? (
+          <div className="space-y-4">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="space-y-2">
+                <Skeleton className="h-4 w-16 ml-3" />
+                <div className="space-y-1">
+                  <Skeleton className="h-10 w-full rounded-lg" />
+                  <Skeleton className="h-10 w-full rounded-lg" />
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          filteredMenuGroups.map((group, idx) => (
+            <SidebarGroup key={group.label} className={idx > 0 ? "mt-4" : ""}>
+              <SidebarGroupLabel className={`${state === "collapsed" ? "text-center" : ""} text-xs font-semibold text-sidebar-foreground/40 uppercase tracking-wider mb-2 px-3`}>
+                {state === "collapsed" ? "•" : group.label}
+              </SidebarGroupLabel>
+              <SidebarGroupContent>
+                <SidebarMenu className="space-y-1">
+                  {group.items.map((item) => (
+                    <SidebarMenuItem key={item.title}>
+                      {renderMenuItem(item)}
+                    </SidebarMenuItem>
+                  ))}
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+          ))
+        )}
       </SidebarContent>
 
       <SidebarFooter className="border-t border-sidebar-border/50 p-4">
