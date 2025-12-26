@@ -132,7 +132,7 @@ export function LocationSelect({ value, onChange, disabled }: LocationSelectProp
           <SelectTrigger className="flex-1">
             <SelectValue placeholder="เลือกคลังสินค้า" />
           </SelectTrigger>
-          <SelectContent className="bg-background">
+          <SelectContent position="popper" sideOffset={4} className="bg-background z-[200] max-h-60 overflow-y-auto">
             {locations.map((loc) => (
               <SelectItem key={loc.id} value={loc.id}>
                 {loc.code} - {loc.name}

@@ -211,7 +211,7 @@ export function SubcategorySelect({ categoryName, value, onChange, disabled }: S
           <SelectTrigger>
             <SelectValue placeholder={categoryName ? "เลือกหมวดหมู่ย่อย" : "เลือกหมวดหมู่หลักก่อน"} />
           </SelectTrigger>
-          <SelectContent className="bg-background">
+          <SelectContent position="popper" sideOffset={4} className="bg-background z-[200] max-h-60 overflow-y-auto">
             {subcategories.map((sub) => (
               <SelectItem key={sub.id} value={sub.id}>
                 {sub.name}
@@ -247,7 +247,7 @@ export function SubcategorySelect({ categoryName, value, onChange, disabled }: S
                   <SelectTrigger>
                     <SelectValue placeholder="เลือกหมวดหมู่หลัก" />
                   </SelectTrigger>
-                  <SelectContent className="bg-background">
+                  <SelectContent position="popper" sideOffset={4} className="bg-background z-[200] max-h-60 overflow-y-auto">
                     {categories.map((cat) => (
                       <SelectItem key={cat.id} value={cat.id}>
                         {cat.name}
