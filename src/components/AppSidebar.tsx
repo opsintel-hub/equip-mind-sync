@@ -263,7 +263,7 @@ export function AppSidebar() {
         </div>
       </SidebarHeader>
 
-      <SidebarContent className="px-3 py-4">
+      <SidebarContent className="px-3 py-4 sidebar-scrollbar">
         {permLoading ? (
           <div className="space-y-4">
             {[1, 2, 3].map((i) => (
