@@ -188,7 +188,7 @@ const BillboardEquipmentExport = () => {
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent position="popper" sideOffset={4} className="bg-background z-[200] max-h-60 overflow-y-auto">
                 <SelectItem value="all">
                   <div className="flex items-center gap-2">
                     <FileSpreadsheet className="h-4 w-4" />
@@ -228,7 +228,7 @@ const BillboardEquipmentExport = () => {
               <SelectTrigger>
                 <SelectValue placeholder="ทั้งหมด" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent position="popper" sideOffset={4} className="bg-background z-[200] max-h-60 overflow-y-auto">
                 <SelectItem value="all">ทั้งหมด</SelectItem>
                 <SelectItem value="BKK">BKK</SelectItem>
                 <SelectItem value="UPC">UPC</SelectItem>
