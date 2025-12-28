@@ -197,6 +197,36 @@ export type Database = {
         }
         Relationships: []
       }
+      brands: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       categories: {
         Row: {
           created_at: string
@@ -260,6 +290,7 @@ export type Database = {
       equipment: {
         Row: {
           amp: number | null
+          brand: string | null
           category: string
           code: string
           created_at: string
@@ -288,6 +319,7 @@ export type Database = {
         }
         Insert: {
           amp?: number | null
+          brand?: string | null
           category: string
           code: string
           created_at?: string
@@ -316,6 +348,7 @@ export type Database = {
         }
         Update: {
           amp?: number | null
+          brand?: string | null
           category?: string
           code?: string
           created_at?: string

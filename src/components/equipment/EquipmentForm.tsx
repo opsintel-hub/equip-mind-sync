@@ -18,6 +18,7 @@ import { cn } from "@/lib/utils";
 import { CategorySelect } from "./CategorySelect";
 import { SubcategorySelect } from "./SubcategorySelect";
 import { DepartmentSelect } from "./DepartmentSelect";
+import { BrandSelect } from "./BrandSelect";
 import { LocationSelect } from "./LocationSelect";
 
 const equipmentSchema = z.object({
@@ -27,6 +28,7 @@ const equipmentSchema = z.object({
   category: z.string().min(1, "กรุณาเลือกหมวดหมู่"),
   subcategory_id: z.string().min(1, "กรุณาเลือกหมวดหมู่ย่อย"),
   department: z.string().optional(),
+  brand: z.string().optional(),
   unit: z.string().min(1, "กรุณากรอกหน่วยนับ").max(20, "หน่วยนับต้องไม่เกิน 20 ตัวอักษร"),
   quantity_in_stock: z.number().min(0, "จำนวนต้องไม่ติดลบ").int("จำนวนต้องเป็นจำนวนเต็ม"),
   min_stock_level: z.number().min(0, "จำนวนต้องไม่ติดลบ").int("จำนวนต้องเป็นจำนวนเต็ม"),
@@ -63,6 +65,7 @@ export function EquipmentForm({ onSuccess }: EquipmentFormProps) {
       category: "",
       subcategory_id: "",
       department: "",
+      brand: "",
       unit: "",
       quantity_in_stock: 0,
       min_stock_level: 0,
@@ -91,6 +94,7 @@ export function EquipmentForm({ onSuccess }: EquipmentFormProps) {
         category: data.category,
         subcategory_id: data.subcategory_id,
         department: data.department || null,
+        brand: data.brand || null,
         unit: data.unit,
         quantity_in_stock: data.quantity_in_stock,
         min_stock_level: data.min_stock_level,
@@ -186,23 +190,43 @@ export function EquipmentForm({ onSuccess }: EquipmentFormProps) {
               )}
             />
 
-            <FormField
-              control={form.control}
-              name="department"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>ฝ่าย</FormLabel>
-                  <FormControl>
-                    <DepartmentSelect
-                      value={field.value || ""}
-                      onChange={field.onChange}
-                      disabled={isLoading}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="department"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>ฝ่าย</FormLabel>
+                    <FormControl>
+                      <DepartmentSelect
+                        value={field.value || ""}
+                        onChange={field.onChange}
+                        disabled={isLoading}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="brand"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>ยี่ห้อ</FormLabel>
+                    <FormControl>
+                      <BrandSelect
+                        value={field.value || ""}
+                        onChange={field.onChange}
+                        disabled={isLoading}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
 
             <FormField
               control={form.control}
