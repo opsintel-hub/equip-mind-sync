@@ -363,10 +363,14 @@ export function EquipmentForm({ onSuccess }: EquipmentFormProps) {
                     <FormLabel>จำนวนในคลัง *</FormLabel>
                     <FormControl>
                       <Input
-                        type="number"
+                        inputMode="numeric"
+                        pattern="[0-9]*"
                         placeholder="0"
-                        {...field}
-                        onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
+                        value={field.value === 0 ? "" : field.value.toString()}
+                        onChange={(e) => {
+                          const value = e.target.value.replace(/[^0-9]/g, "");
+                          field.onChange(value ? parseInt(value, 10) : 0);
+                        }}
                         disabled={isLoading}
                       />
                     </FormControl>
@@ -383,10 +387,14 @@ export function EquipmentForm({ onSuccess }: EquipmentFormProps) {
                     <FormLabel>จำนวนขั้นต่ำ *</FormLabel>
                     <FormControl>
                       <Input
-                        type="number"
+                        inputMode="numeric"
+                        pattern="[0-9]*"
                         placeholder="0"
-                        {...field}
-                        onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
+                        value={field.value === 0 ? "" : field.value.toString()}
+                        onChange={(e) => {
+                          const value = e.target.value.replace(/[^0-9]/g, "");
+                          field.onChange(value ? parseInt(value, 10) : 0);
+                        }}
                         disabled={isLoading}
                       />
                     </FormControl>
@@ -419,11 +427,14 @@ export function EquipmentForm({ onSuccess }: EquipmentFormProps) {
                     <FormLabel>ราคาต่อชิ้น (บาท) *</FormLabel>
                     <FormControl>
                       <Input
-                        type="number"
-                        step="0.01"
+                        inputMode="decimal"
+                        pattern="[0-9]*\.?[0-9]*"
                         placeholder="0.00"
-                        {...field}
-                        onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                        value={field.value === 0 ? "" : field.value.toString()}
+                        onChange={(e) => {
+                          const value = e.target.value.replace(/[^0-9.]/g, "");
+                          field.onChange(value ? parseFloat(value) : 0);
+                        }}
                         disabled={isLoading}
                       />
                     </FormControl>
