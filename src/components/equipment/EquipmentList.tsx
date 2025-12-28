@@ -33,6 +33,7 @@ interface Equipment {
   name: string;
   category: string;
   department: string | null;
+  brand: string | null;
   unit: string;
   quantity_in_stock: number;
   min_stock_level: number;
@@ -109,7 +110,8 @@ export function EquipmentList({ refresh }: EquipmentListProps) {
           item.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
           item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
           item.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          (item.department && item.department.toLowerCase().includes(searchTerm.toLowerCase()))
+          (item.department && item.department.toLowerCase().includes(searchTerm.toLowerCase())) ||
+          (item.brand && item.brand.toLowerCase().includes(searchTerm.toLowerCase()))
       );
       setFilteredEquipment(filtered);
     } else {
@@ -123,6 +125,7 @@ export function EquipmentList({ refresh }: EquipmentListProps) {
       "ชื่ออุปกรณ์": item.name,
       "หมวดหมู่": item.category,
       "ฝ่าย": item.department || "-",
+      "ยี่ห้อ": item.brand || "-",
       "จำนวน": item.quantity_in_stock,
       "หน่วย": item.unit,
       "ตำแหน่งจัดเก็บ": item.locations?.name || "-",
@@ -163,7 +166,7 @@ export function EquipmentList({ refresh }: EquipmentListProps) {
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="ค้นหาด้วยรหัส, ชื่อ, หมวดหมู่, หรือฝ่าย..."
+            placeholder="ค้นหาด้วยรหัส, ชื่อ, หมวดหมู่, ฝ่าย, หรือยี่ห้อ..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="pl-10"
@@ -182,6 +185,7 @@ export function EquipmentList({ refresh }: EquipmentListProps) {
               <TableHead>ชื่ออุปกรณ์</TableHead>
               <TableHead>หมวดหมู่</TableHead>
               <TableHead>ฝ่าย</TableHead>
+              <TableHead>ยี่ห้อ</TableHead>
               <TableHead>จำนวน</TableHead>
               <TableHead>หน่วย</TableHead>
               <TableHead>ตำแหน่ง</TableHead>
@@ -206,6 +210,7 @@ export function EquipmentList({ refresh }: EquipmentListProps) {
                 </TableCell>
                 <TableCell>{item.category}</TableCell>
                 <TableCell>{item.department || "-"}</TableCell>
+                <TableCell>{item.brand || "-"}</TableCell>
                 <TableCell>
                   <span className={isLowStock(item) ? "text-destructive font-semibold" : ""}>
                     {item.quantity_in_stock}
