@@ -1,10 +1,11 @@
 import { useState, useEffect } from "react";
 import { format } from "date-fns";
-import { Pencil, Trash2, AlertCircle, Download, Search } from "lucide-react";
+import { Trash2, AlertCircle, Download, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { EquipmentTransferForm } from "./EquipmentTransferForm";
+import { EquipmentEditForm } from "./EquipmentEditForm";
 import * as XLSX from "xlsx";
 import {
   Table,
@@ -31,15 +32,26 @@ interface Equipment {
   id: string;
   code: string;
   name: string;
+  description?: string | null;
   category: string;
+  subcategory_id?: string | null;
   department: string | null;
   brand: string | null;
   unit: string;
   quantity_in_stock: number;
-  min_stock_level: number;
+  min_stock_level: number | null;
   expiry_date: string | null;
   warranty_expiry_date: string | null;
   location_id: string | null;
+  serial_number?: string | null;
+  unit_price: number;
+  warehouse_entry_date: string;
+  notes?: string | null;
+  volt?: number | null;
+  amp?: number | null;
+  watt?: number | null;
+  lumen?: number | null;
+  lux?: number | null;
   locations?: {
     code: string;
     name: string;
@@ -233,9 +245,10 @@ export function EquipmentList({ refresh }: EquipmentListProps) {
                       equipment={item}
                       onSuccess={fetchEquipment}
                     />
-                    <Button variant="ghost" size="icon" title="แก้ไข">
-                      <Pencil className="h-4 w-4" />
-                    </Button>
+                    <EquipmentEditForm
+                      equipment={item}
+                      onSuccess={fetchEquipment}
+                    />
                     <Button
                       variant="ghost"
                       size="icon"
