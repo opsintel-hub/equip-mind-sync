@@ -45,6 +45,9 @@ interface PendingRequest {
   notes: string | null;
   status: string;
   issued_quantity: number | null;
+  remaining_quantity: number | null;
+  partial_issue_count: number | null;
+  last_partial_issue_at: string | null;
   created_at: string;
 }
 
@@ -114,19 +117,39 @@ const IssueGoods = () => {
     return info;
   };
 
-  // Issue goods mutation
+  // Issue goods mutation - supports partial issue
   const issueGoods = useMutation({
     mutationFn: async () => {
       if (!selectedRequest || !user) return;
 
       const issuedQty = parseInt(issueData.issued_quantity);
+      const requestedQty = selectedRequest.remaining_quantity && selectedRequest.remaining_quantity > 0 
+        ? selectedRequest.remaining_quantity 
+        : selectedRequest.quantity;
+      const remainingQty = requestedQty - issuedQty;
+      const previousIssued = selectedRequest.issued_quantity || 0;
+      const totalIssued = previousIssued + issuedQty;
+      const partialCount = (selectedRequest.partial_issue_count || 0) + 1;
+      
+      // Determine new status
+      let newStatus: string;
+      if (remainingQty <= 0) {
+        newStatus = "issued"; // Fully issued
+      } else if (issuedQty > 0) {
+        newStatus = "waiting_stock"; // Partial issued, waiting for more stock
+      } else {
+        newStatus = selectedRequest.status;
+      }
       
       // Update pending request
       const { error: updateError } = await supabase
         .from("goods_issue_pending")
         .update({
-          status: "issued",
-          issued_quantity: issuedQty,
+          status: newStatus,
+          issued_quantity: totalIssued,
+          remaining_quantity: Math.max(0, remainingQty),
+          partial_issue_count: partialCount,
+          last_partial_issue_at: new Date().toISOString(),
           issued_at: new Date().toISOString(),
           issued_by: user.id,
           issued_location_id: issueData.issued_location_id || null,
@@ -137,7 +160,7 @@ const IssueGoods = () => {
       if (updateError) throw updateError;
 
       // If equipment_id exists, update stock
-      if (selectedRequest.equipment_id) {
+      if (selectedRequest.equipment_id && issuedQty > 0) {
         const currentEquipment = equipment?.find((e) => e.id === selectedRequest.equipment_id);
         if (currentEquipment) {
           const newStock = Math.max(0, currentEquipment.quantity_in_stock - issuedQty);
@@ -146,6 +169,22 @@ const IssueGoods = () => {
             .update({ quantity_in_stock: newStock })
             .eq("id", selectedRequest.equipment_id);
           if (stockError) throw stockError;
+
+          // Create goods_issue record
+          const { error: issueError } = await supabase
+            .from("goods_issue")
+            .insert({
+              document_no: selectedRequest.document_no + (partialCount > 1 ? `-P${partialCount}` : ""),
+              equipment_id: selectedRequest.equipment_id,
+              quantity: issuedQty,
+              location_id: issueData.issued_location_id || currentEquipment.id, // fallback
+              issue_date: new Date().toISOString().split('T')[0],
+              requester: selectedRequest.requester_name,
+              purpose: selectedRequest.purpose,
+              notes: issueData.notes || (remainingQty > 0 ? `จ่ายบางส่วน ${issuedQty}/${requestedQty} รอที่เหลือ ${remainingQty}` : null),
+              created_by: user.id,
+            });
+          if (issueError) console.error("Error creating goods_issue:", issueError);
         }
       }
 
@@ -163,14 +202,22 @@ const IssueGoods = () => {
           });
         if (billboardError) throw billboardError;
       }
+
+      return { remainingQty, newStatus };
     },
-    onSuccess: () => {
-      const successMessage = issueData.install_to_billboard && issueData.billboard_id
-        ? "จ่ายสินค้าและบันทึกการติดตั้งที่ป้ายสำเร็จ"
-        : "จ่ายสินค้าสำเร็จ";
+    onSuccess: (result) => {
+      let successMessage = "";
+      if (result?.newStatus === "waiting_stock") {
+        successMessage = `จ่ายสินค้าบางส่วนสำเร็จ รอของเข้าอีก ${result.remainingQty} ชิ้น`;
+      } else if (issueData.install_to_billboard && issueData.billboard_id) {
+        successMessage = "จ่ายสินค้าและบันทึกการติดตั้งที่ป้ายสำเร็จ";
+      } else {
+        successMessage = "จ่ายสินค้าสำเร็จ";
+      }
       toast.success(successMessage);
       queryClient.invalidateQueries({ queryKey: ["goods-issue-pending-staff"] });
       queryClient.invalidateQueries({ queryKey: ["equipment-active"] });
+      queryClient.invalidateQueries({ queryKey: ["equipment-active-details"] });
       queryClient.invalidateQueries({ queryKey: ["billboard-equipment"] });
       setIssueDialogOpen(false);
       setSelectedRequest(null);
@@ -210,8 +257,12 @@ const IssueGoods = () => {
 
   const handleIssue = (request: PendingRequest) => {
     setSelectedRequest(request);
+    // Use remaining_quantity if available (for partial issues), otherwise use original quantity
+    const qtyToIssue = request.remaining_quantity && request.remaining_quantity > 0 
+      ? request.remaining_quantity 
+      : request.quantity;
     setIssueData({
-      issued_quantity: request.quantity.toString(),
+      issued_quantity: qtyToIssue.toString(),
       issued_location_id: "",
       notes: request.notes || "",
       install_to_billboard: false,
@@ -230,7 +281,11 @@ const IssueGoods = () => {
       case "pending":
         return <Badge variant="secondary" className="bg-yellow-100 text-yellow-800"><Clock className="h-3 w-3 mr-1" />รอดำเนินการ</Badge>;
       case "issued":
-        return <Badge variant="default" className="bg-green-100 text-green-800"><CheckCircle className="h-3 w-3 mr-1" />จ่ายแล้ว</Badge>;
+        return <Badge variant="default" className="bg-green-100 text-green-800"><CheckCircle className="h-3 w-3 mr-1" />จ่ายครบแล้ว</Badge>;
+      case "waiting_stock":
+        return <Badge variant="secondary" className="bg-orange-100 text-orange-800"><Clock className="h-3 w-3 mr-1" />รอสินค้า</Badge>;
+      case "partial_issued":
+        return <Badge variant="secondary" className="bg-blue-100 text-blue-800"><Package className="h-3 w-3 mr-1" />จ่ายบางส่วน</Badge>;
       case "rejected":
         return <Badge variant="destructive"><XCircle className="h-3 w-3 mr-1" />ปฏิเสธ</Badge>;
       default:
@@ -252,7 +307,8 @@ const IssueGoods = () => {
       req.requester_name?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const pendingCount = pendingRequests?.filter((r) => r.status === "pending").length || 0;
+  const pendingCount = pendingRequests?.filter((r) => r.status === "pending" || r.status === "waiting_stock").length || 0;
+  const waitingStockCount = pendingRequests?.filter((r) => r.status === "waiting_stock").length || 0;
 
   return (
     <>
@@ -262,11 +318,18 @@ const IssueGoods = () => {
             <h1 className="text-2xl font-bold text-foreground">จ่ายสินค้า</h1>
             <p className="text-muted-foreground">สำหรับเจ้าหน้าที่คลัง - ดำเนินการจ่ายสินค้าตามคำขอ</p>
           </div>
-          {pendingCount > 0 && (
-            <Badge variant="destructive" className="text-lg px-4 py-2">
-              รอดำเนินการ: {pendingCount} รายการ
-            </Badge>
-          )}
+          <div className="flex gap-2">
+            {pendingCount > 0 && (
+              <Badge variant="destructive" className="text-lg px-4 py-2">
+                รอดำเนินการ: {pendingCount} รายการ
+              </Badge>
+            )}
+            {waitingStockCount > 0 && (
+              <Badge variant="secondary" className="text-lg px-4 py-2 bg-orange-100 text-orange-800">
+                รอสินค้า: {waitingStockCount} รายการ
+              </Badge>
+            )}
+          </div>
         </div>
 
         <Card>
@@ -321,7 +384,7 @@ const IssueGoods = () => {
                     filteredRequests?.map((req) => {
                       const availableStock = getAvailableStock(req.equipment_id);
                       return (
-                        <TableRow key={req.id} className={req.status === "pending" ? "bg-yellow-50" : ""}>
+                        <TableRow key={req.id} className={req.status === "pending" ? "bg-yellow-50" : req.status === "waiting_stock" ? "bg-orange-50" : ""}>
                           <TableCell className="font-medium">{req.document_no}</TableCell>
                           <TableCell>
                             {format(new Date(req.created_at), "dd/MM/yyyy HH:mm", { locale: th })}
@@ -331,7 +394,13 @@ const IssueGoods = () => {
                             <div className="text-sm text-muted-foreground">{req.equipment_name || "-"}</div>
                           </TableCell>
                           <TableCell>
-                            {req.quantity} {req.unit}
+                            <div>{req.quantity} {req.unit}</div>
+                            {req.issued_quantity && req.issued_quantity > 0 && (
+                              <div className="text-xs text-green-600">จ่ายแล้ว: {req.issued_quantity}</div>
+                            )}
+                            {req.remaining_quantity && req.remaining_quantity > 0 && (
+                              <div className="text-xs text-orange-600 font-medium">รอ: {req.remaining_quantity}</div>
+                            )}
                           </TableCell>
                           <TableCell>
                             {availableStock !== null ? (
@@ -351,16 +420,18 @@ const IssueGoods = () => {
                           <TableCell>{req.destination || "-"}</TableCell>
                           <TableCell>{getStatusBadge(req.status)}</TableCell>
                           <TableCell>
-                            {req.status === "pending" && (
+                            {(req.status === "pending" || req.status === "waiting_stock") && (
                               <div className="flex items-center gap-2 justify-center">
                                 <Button size="sm" onClick={() => handleIssue(req)}>
                                   <CheckCircle className="h-4 w-4 mr-1" />
-                                  จ่าย
+                                  {req.status === "waiting_stock" ? "จ่ายต่อ" : "จ่าย"}
                                 </Button>
-                                <Button size="sm" variant="destructive" onClick={() => handleReject(req)}>
-                                  <XCircle className="h-4 w-4 mr-1" />
-                                  ปฏิเสธ
-                                </Button>
+                                {req.status === "pending" && (
+                                  <Button size="sm" variant="destructive" onClick={() => handleReject(req)}>
+                                    <XCircle className="h-4 w-4 mr-1" />
+                                    ปฏิเสธ
+                                  </Button>
+                                )}
                               </div>
                             )}
                           </TableCell>
@@ -394,8 +465,23 @@ const IssueGoods = () => {
                 <p className="text-sm text-muted-foreground">{selectedRequest?.requester_department}</p>
               </div>
               <div>
-                <Label className="text-muted-foreground">จำนวนที่ขอ</Label>
+                <Label className="text-muted-foreground">จำนวนที่ขอทั้งหมด</Label>
                 <p className="font-medium">{selectedRequest?.quantity} {selectedRequest?.unit}</p>
+                {selectedRequest?.issued_quantity && selectedRequest.issued_quantity > 0 && (
+                  <p className="text-xs text-green-600">จ่ายไปแล้ว: {selectedRequest.issued_quantity}</p>
+                )}
+              </div>
+              <div>
+                <Label className="text-muted-foreground">
+                  {selectedRequest?.remaining_quantity && selectedRequest.remaining_quantity > 0 
+                    ? "ต้องจ่ายอีก" 
+                    : "คงเหลือในคลัง"}
+                </Label>
+                <p className="font-medium">
+                  {selectedRequest?.remaining_quantity && selectedRequest.remaining_quantity > 0 
+                    ? <span className="text-orange-600">{selectedRequest.remaining_quantity} {selectedRequest?.unit}</span>
+                    : selectedRequest?.equipment_id ? getAvailableStock(selectedRequest.equipment_id) : "-"}
+                </p>
               </div>
               <div>
                 <Label className="text-muted-foreground">คงเหลือในคลัง</Label>
@@ -403,6 +489,12 @@ const IssueGoods = () => {
                   {selectedRequest?.equipment_id ? getAvailableStock(selectedRequest.equipment_id) : "-"}
                 </p>
               </div>
+              {selectedRequest?.partial_issue_count && selectedRequest.partial_issue_count > 0 && (
+                <div>
+                  <Label className="text-muted-foreground">จ่ายไปแล้ว</Label>
+                  <p className="font-medium text-blue-600">{selectedRequest.partial_issue_count} ครั้ง</p>
+                </div>
+              )}
             </div>
 
             {/* FIFO & Expiry Info */}
@@ -465,6 +557,9 @@ const IssueGoods = () => {
                 value={issueData.issued_quantity}
                 onChange={(e) => setIssueData({ ...issueData, issued_quantity: e.target.value })}
               />
+              <p className="text-xs text-muted-foreground">
+                หากจ่ายไม่ครบ ระบบจะเก็บจำนวนที่เหลือไว้รอสินค้าเข้าคลังแล้วจ่ายต่อ
+              </p>
             </div>
 
             <div className="space-y-2">
