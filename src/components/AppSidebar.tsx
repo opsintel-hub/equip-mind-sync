@@ -77,13 +77,16 @@ const menuGroups: MenuGroup[] = [
         ]
       },
       { 
-        title: "เบิกจ่ายสินค้า (GI)", 
-        icon: PackageOpen,
+        title: "ขอเบิกสินค้า", 
+        url: "/issue-request",
+        icon: Package,
+        functionName: "issue_request",
+      },
+      { 
+        title: "จ่ายสินค้า", 
+        url: "/issue-goods",
+        icon: PackageCheck,
         functionName: "goods_issue",
-        subItems: [
-          { title: "ขอเบิกสินค้า", url: "/issue-request", icon: Package },
-          { title: "จ่ายสินค้า", url: "/issue-goods", icon: PackageCheck },
-        ]
       },
       { title: "ประวัติการย้าย", url: "/transfer-history", icon: History, functionName: "transfer" },
     ]
