@@ -9,7 +9,8 @@ export interface FunctionPermission {
 
 export const SYSTEM_FUNCTIONS = [
   { name: "goods_receipt", label: "รับเข้าสินค้า", description: "บันทึกการรับสินค้าเข้าคลัง" },
-  { name: "goods_issue", label: "เบิก-จ่ายสินค้า", description: "บันทึกการเบิกจ่ายสินค้า" },
+  { name: "issue_request", label: "ขอเบิกสินค้า", description: "ส่งคำขอเบิกสินค้า (สำหรับผู้เบิก)" },
+  { name: "goods_issue", label: "จ่ายสินค้า", description: "จ่ายสินค้าตามคำขอ (สำหรับเจ้าหน้าที่คลัง)" },
   { name: "master_data", label: "ข้อมูลหลัก", description: "จัดการหมวดหมู่ สถานที่ ผู้จำหน่าย" },
   { name: "reports", label: "รายงาน", description: "ดูรายงานและสถิติ" },
   { name: "billboards", label: "ป้ายโฆษณา", description: "จัดการข้อมูลป้ายโฆษณา" },
