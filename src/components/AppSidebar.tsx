@@ -125,6 +125,7 @@ const menuGroups: MenuGroup[] = [
     label: "รายงาน",
     items: [
       { title: "รายงาน Dead Stock", url: "/dead-stock", icon: Archive, functionName: "reports" },
+      { title: "ใบขอซื้อ (PR)", url: "/purchase-requests", icon: ClipboardList, functionName: "reports" },
     ]
   },
   {

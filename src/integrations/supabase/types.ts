@@ -721,10 +721,13 @@ export type Database = {
           issued_by: string | null
           issued_location_id: string | null
           issued_quantity: number | null
+          last_partial_issue_at: string | null
           notes: string | null
+          partial_issue_count: number | null
           purpose: string | null
           quantity: number
           reject_reason: string | null
+          remaining_quantity: number | null
           requester_department: string | null
           requester_name: string
           requester_phone: string | null
@@ -744,10 +747,13 @@ export type Database = {
           issued_by?: string | null
           issued_location_id?: string | null
           issued_quantity?: number | null
+          last_partial_issue_at?: string | null
           notes?: string | null
+          partial_issue_count?: number | null
           purpose?: string | null
           quantity: number
           reject_reason?: string | null
+          remaining_quantity?: number | null
           requester_department?: string | null
           requester_name: string
           requester_phone?: string | null
@@ -767,10 +773,13 @@ export type Database = {
           issued_by?: string | null
           issued_location_id?: string | null
           issued_quantity?: number | null
+          last_partial_issue_at?: string | null
           notes?: string | null
+          partial_issue_count?: number | null
           purpose?: string | null
           quantity?: number
           reject_reason?: string | null
+          remaining_quantity?: number | null
           requester_department?: string | null
           requester_name?: string
           requester_phone?: string | null
@@ -1271,6 +1280,80 @@ export type Database = {
         }
         Relationships: []
       }
+      purchase_requests: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          created_at: string
+          current_stock: number
+          equipment_code: string
+          equipment_id: string | null
+          equipment_name: string
+          id: string
+          min_stock_level: number
+          notes: string | null
+          pr_number: string
+          reason: string | null
+          reject_reason: string | null
+          rejected_at: string | null
+          rejected_by: string | null
+          status: string
+          suggested_quantity: number
+          unit: string
+          updated_at: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          current_stock: number
+          equipment_code: string
+          equipment_id?: string | null
+          equipment_name: string
+          id?: string
+          min_stock_level: number
+          notes?: string | null
+          pr_number: string
+          reason?: string | null
+          reject_reason?: string | null
+          rejected_at?: string | null
+          rejected_by?: string | null
+          status?: string
+          suggested_quantity: number
+          unit?: string
+          updated_at?: string
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          current_stock?: number
+          equipment_code?: string
+          equipment_id?: string | null
+          equipment_name?: string
+          id?: string
+          min_stock_level?: number
+          notes?: string | null
+          pr_number?: string
+          reason?: string | null
+          reject_reason?: string | null
+          rejected_at?: string | null
+          rejected_by?: string | null
+          status?: string
+          suggested_quantity?: number
+          unit?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "purchase_requests_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "equipment"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       storage_slots: {
         Row: {
           created_at: string
@@ -1568,6 +1651,7 @@ export type Database = {
     }
     Functions: {
       generate_equipment_pm_task_number: { Args: never; Returns: string }
+      generate_pr_number: { Args: never; Returns: string }
       has_department_permission: {
         Args: { _department: string; _permission: string; _user_id: string }
         Returns: boolean
