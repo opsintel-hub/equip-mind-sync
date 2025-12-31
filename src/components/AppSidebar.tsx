@@ -16,6 +16,7 @@ import {
   ClipboardList,
   Archive,
   Wrench,
+  Clock,
 } from "lucide-react";
 import {
   Sidebar,
@@ -86,6 +87,12 @@ const menuGroups: MenuGroup[] = [
         title: "จ่ายสินค้า", 
         url: "/issue-goods",
         icon: PackageCheck,
+        functionName: "goods_issue",
+      },
+      { 
+        title: "คำขอรอสินค้า", 
+        url: "/waiting-stock",
+        icon: Clock,
         functionName: "goods_issue",
       },
       { title: "ประวัติการย้าย", url: "/transfer-history", icon: History, functionName: "transfer" },
