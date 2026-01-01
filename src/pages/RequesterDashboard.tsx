@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,13 +9,16 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { format } from "date-fns";
 import { th } from "date-fns/locale";
-import { Search, Package, Clock, CheckCircle, XCircle, Bell, FileText, AlertTriangle } from "lucide-react";
+import { Search, Package, Clock, CheckCircle, XCircle, Bell, FileText, AlertTriangle, Ban } from "lucide-react";
+import { toast } from "sonner";
 
 export default function RequesterDashboard() {
   const [searchName, setSearchName] = useState("");
   const [searchedName, setSearchedName] = useState("");
+  const queryClient = useQueryClient();
 
   const { data: requests = [], isLoading: requestsLoading, refetch: refetchRequests } = useQuery({
     queryKey: ["requester-requests", searchedName],
@@ -56,6 +59,25 @@ export default function RequesterDashboard() {
     setSearchedName(searchName);
   };
 
+  // Cancel request mutation
+  const cancelRequestMutation = useMutation({
+    mutationFn: async (requestId: string) => {
+      const { error } = await supabase
+        .from("goods_issue_pending")
+        .update({ status: "cancelled" })
+        .eq("id", requestId);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("ยกเลิกคำขอสำเร็จ");
+      queryClient.invalidateQueries({ queryKey: ["requester-requests", searchedName] });
+    },
+    onError: (error) => {
+      toast.error("เกิดข้อผิดพลาด: " + error.message);
+    },
+  });
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "pending":
@@ -70,6 +92,8 @@ export default function RequesterDashboard() {
         return <Badge variant="outline" className="bg-orange-500/10 text-orange-600 border-orange-500/20"><AlertTriangle className="w-3 h-3 mr-1" />รอสินค้า</Badge>;
       case "partially_issued":
         return <Badge variant="outline" className="bg-purple-500/10 text-purple-600 border-purple-500/20"><Package className="w-3 h-3 mr-1" />จ่ายบางส่วน</Badge>;
+      case "cancelled":
+        return <Badge variant="outline" className="bg-gray-500/10 text-gray-600 border-gray-500/20"><Ban className="w-3 h-3 mr-1" />ยกเลิก</Badge>;
       default:
         return <Badge variant="secondary">{status}</Badge>;
     }
@@ -94,6 +118,7 @@ export default function RequesterDashboard() {
   const issuedCount = requests.filter(r => r.status === "issued").length;
   const waitingStockCount = requests.filter(r => r.status === "waiting_stock").length;
   const rejectedCount = requests.filter(r => r.status === "rejected").length;
+  const cancelledCount = requests.filter(r => r.status === "cancelled").length;
 
   return (
     <DashboardLayout>
@@ -224,6 +249,7 @@ export default function RequesterDashboard() {
                               <TableHead>วัตถุประสงค์</TableHead>
                               <TableHead>สถานะ</TableHead>
                               <TableHead>วันที่ขอ</TableHead>
+                              <TableHead className="text-center">จัดการ</TableHead>
                             </TableRow>
                           </TableHeader>
                           <TableBody>
@@ -245,6 +271,41 @@ export default function RequesterDashboard() {
                                 <TableCell>{getStatusBadge(request.status)}</TableCell>
                                 <TableCell>
                                   {format(new Date(request.created_at), "d MMM yyyy HH:mm", { locale: th })}
+                                </TableCell>
+                                <TableCell className="text-center">
+                                  {request.status === "pending" && (
+                                    <AlertDialog>
+                                      <AlertDialogTrigger asChild>
+                                        <Button
+                                          variant="ghost"
+                                          size="sm"
+                                          className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                                        >
+                                          <Ban className="w-4 h-4 mr-1" />
+                                          ยกเลิก
+                                        </Button>
+                                      </AlertDialogTrigger>
+                                      <AlertDialogContent>
+                                        <AlertDialogHeader>
+                                          <AlertDialogTitle>ยืนยันการยกเลิกคำขอ</AlertDialogTitle>
+                                          <AlertDialogDescription>
+                                            คุณต้องการยกเลิกคำขอเบิก "{request.document_no}" หรือไม่?
+                                            <br />
+                                            สินค้า: {request.equipment_name} จำนวน {request.quantity} {request.unit}
+                                          </AlertDialogDescription>
+                                        </AlertDialogHeader>
+                                        <AlertDialogFooter>
+                                          <AlertDialogCancel>ไม่ใช่</AlertDialogCancel>
+                                          <AlertDialogAction
+                                            onClick={() => cancelRequestMutation.mutate(request.id)}
+                                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                          >
+                                            ยืนยันยกเลิก
+                                          </AlertDialogAction>
+                                        </AlertDialogFooter>
+                                      </AlertDialogContent>
+                                    </AlertDialog>
+                                  )}
                                 </TableCell>
                               </TableRow>
                             ))}
