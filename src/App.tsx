@@ -29,6 +29,7 @@ import NotificationSettingsPage from "./pages/NotificationSettingsPage";
 import DeadStockReport from "./pages/DeadStockReport";
 import PurchaseRequests from "./pages/PurchaseRequests";
 import WaitingStockRequests from "./pages/WaitingStockRequests";
+import RequesterDashboard from "./pages/RequesterDashboard";
 import DashboardLayout from "./components/DashboardLayout";
 import ProtectedRoute from "./components/ProtectedRoute";
 import NotFound from "./pages/NotFound";
@@ -66,6 +67,7 @@ const App = () => (
             <Route path="/dead-stock" element={<ProtectedRoute><DashboardLayout><DeadStockReport /></DashboardLayout></ProtectedRoute>} />
             <Route path="/purchase-requests" element={<ProtectedRoute><DashboardLayout><PurchaseRequests /></DashboardLayout></ProtectedRoute>} />
             <Route path="/waiting-stock" element={<ProtectedRoute><DashboardLayout><WaitingStockRequests /></DashboardLayout></ProtectedRoute>} />
+            <Route path="/requester-dashboard" element={<ProtectedRoute><DashboardLayout><RequesterDashboard /></DashboardLayout></ProtectedRoute>} />
             {/* Public billboard view - no auth required */}
             <Route path="/billboard-view/:id" element={<BillboardPublicView />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
