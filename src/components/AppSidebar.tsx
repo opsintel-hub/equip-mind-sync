@@ -17,6 +17,7 @@ import {
   Archive,
   Wrench,
   Clock,
+  User,
 } from "lucide-react";
 import {
   Sidebar,
@@ -81,6 +82,12 @@ const menuGroups: MenuGroup[] = [
         title: "ขอเบิกสินค้า", 
         url: "/issue-request",
         icon: Package,
+        functionName: "issue_request",
+      },
+      { 
+        title: "Dashboard ผู้เบิก", 
+        url: "/requester-dashboard",
+        icon: User,
         functionName: "issue_request",
       },
       { 
