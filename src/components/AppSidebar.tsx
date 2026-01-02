@@ -18,6 +18,7 @@ import {
   Wrench,
   Clock,
   User,
+  BookOpen,
 } from "lucide-react";
 import {
   Sidebar,
@@ -148,6 +149,12 @@ const menuGroups: MenuGroup[] = [
       { title: "ข้อมูลหลัก", url: "/master-data", icon: Database, functionName: "master_data" },
       { title: "ตั้งค่าแจ้งเตือน", url: "/notification-settings", icon: Bell },
       { title: "จัดการผู้ใช้", url: "/admin", icon: Shield, functionName: "admin" },
+    ]
+  },
+  {
+    label: "ช่วยเหลือ",
+    items: [
+      { title: "คู่มือการใช้งาน", url: "/user-manual", icon: BookOpen },
     ]
   },
 ];
