@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Truck, Search, Package, Clock, CheckCircle2 } from "lucide-react";
+import { Truck, Search, Package, Clock, CheckCircle2, Upload, FileText, X, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
@@ -37,6 +37,7 @@ interface PendingReceipt {
   delivery_person_name: string;
   status: string;
   created_at: string;
+  document_url: string | null;
 }
 
 const DeliveryEntry = () => {
@@ -45,6 +46,8 @@ const DeliveryEntry = () => {
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [pendingReceipts, setPendingReceipts] = useState<PendingReceipt[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isUploadingFile, setIsUploadingFile] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Form state
   const [selectedEquipmentId, setSelectedEquipmentId] = useState("");
@@ -62,6 +65,7 @@ const DeliveryEntry = () => {
   const [deliveryPersonName, setDeliveryPersonName] = useState("");
   const [deliveryPersonPhone, setDeliveryPersonPhone] = useState("");
   const [notes, setNotes] = useState("");
+  const [documentFile, setDocumentFile] = useState<File | null>(null);
 
   useEffect(() => {
     fetchEquipment();
@@ -130,6 +134,56 @@ const DeliveryEntry = () => {
     return `PD-${dateStr}-${random}`;
   };
 
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // Check file size (max 10MB)
+      if (file.size > 10 * 1024 * 1024) {
+        toast.error("ไฟล์มีขนาดใหญ่เกินไป (สูงสุด 10MB)");
+        return;
+      }
+      
+      // Check file type
+      const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png', 'image/jpg', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+      if (!allowedTypes.includes(file.type)) {
+        toast.error("รองรับเฉพาะไฟล์ PDF, รูปภาพ (JPG, PNG) และ Word");
+        return;
+      }
+      
+      setDocumentFile(file);
+    }
+  };
+
+  const removeFile = () => {
+    setDocumentFile(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+
+  const uploadDocument = async (documentNo: string): Promise<string | null> => {
+    if (!documentFile) return null;
+
+    const fileExt = documentFile.name.split('.').pop();
+    const fileName = `${documentNo}-${Date.now()}.${fileExt}`;
+    const filePath = `deliveries/${fileName}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from('delivery-documents')
+      .upload(filePath, documentFile);
+
+    if (uploadError) {
+      console.error('Upload error:', uploadError);
+      throw new Error('ไม่สามารถอัปโหลดเอกสารได้');
+    }
+
+    const { data: { publicUrl } } = supabase.storage
+      .from('delivery-documents')
+      .getPublicUrl(filePath);
+
+    return publicUrl;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -146,10 +200,20 @@ const DeliveryEntry = () => {
     setIsLoading(true);
 
     try {
+      const docNo = generateDocumentNo();
+      let documentUrl: string | null = null;
+
+      // Upload document if exists
+      if (documentFile) {
+        setIsUploadingFile(true);
+        documentUrl = await uploadDocument(docNo);
+        setIsUploadingFile(false);
+      }
+
       const { error } = await supabase
         .from("goods_receipt_pending")
         .insert({
-          document_no: generateDocumentNo(),
+          document_no: docNo,
           equipment_id: selectedEquipmentId || null,
           equipment_code: equipmentCode || null,
           equipment_name: equipmentName || (selectedEquipment?.name || null),
@@ -165,6 +229,7 @@ const DeliveryEntry = () => {
           delivery_person_name: deliveryPersonName,
           delivery_person_phone: deliveryPersonPhone || null,
           notes: notes || null,
+          document_url: documentUrl,
           status: "pending"
         });
 
@@ -188,6 +253,10 @@ const DeliveryEntry = () => {
       setDeliveryPersonName("");
       setDeliveryPersonPhone("");
       setNotes("");
+      setDocumentFile(null);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
       
       fetchPendingReceipts();
     } catch (error) {
@@ -195,6 +264,7 @@ const DeliveryEntry = () => {
       toast.error("เกิดข้อผิดพลาดในการบันทึกข้อมูล");
     } finally {
       setIsLoading(false);
+      setIsUploadingFile(false);
     }
   };
 
@@ -401,6 +471,52 @@ const DeliveryEntry = () => {
               </div>
             </div>
 
+            {/* Document Upload */}
+            <div className="p-4 bg-muted/30 rounded-lg space-y-4">
+              <h3 className="font-medium text-sm text-muted-foreground flex items-center gap-2">
+                <FileText className="w-4 h-4" />
+                เอกสารแนบ
+              </h3>
+              <div className="space-y-2">
+                <Label htmlFor="document">อัปโหลดเอกสาร (PDF, รูปภาพ, Word)</Label>
+                <div className="flex items-center gap-3">
+                  <input
+                    ref={fileInputRef}
+                    id="document"
+                    type="file"
+                    accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                    onChange={handleFileSelect}
+                    className="hidden"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="flex items-center gap-2"
+                  >
+                    <Upload className="w-4 h-4" />
+                    เลือกไฟล์
+                  </Button>
+                  {documentFile && (
+                    <div className="flex items-center gap-2 bg-background px-3 py-2 rounded-md border">
+                      <FileText className="w-4 h-4 text-primary" />
+                      <span className="text-sm truncate max-w-[200px]">{documentFile.name}</span>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={removeFile}
+                        className="h-6 w-6 p-0"
+                      >
+                        <X className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground">รองรับไฟล์ PDF, JPG, PNG, DOC, DOCX (สูงสุด 10MB)</p>
+              </div>
+            </div>
+
             {/* Notes */}
             <div className="space-y-2">
               <Label htmlFor="notes">หมายเหตุ</Label>
@@ -413,8 +529,13 @@ const DeliveryEntry = () => {
               />
             </div>
 
-            <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading ? "กำลังบันทึก..." : "บันทึกข้อมูลสินค้า"}
+            <Button type="submit" className="w-full" disabled={isLoading || isUploadingFile}>
+              {isUploadingFile ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  กำลังอัปโหลดเอกสาร...
+                </>
+              ) : isLoading ? "กำลังบันทึก..." : "บันทึกข้อมูลสินค้า"}
             </Button>
           </form>
         </CardContent>
@@ -450,13 +571,14 @@ const DeliveryEntry = () => {
                   <TableHead>จำนวน</TableHead>
                   <TableHead>ผู้จัดจำหน่าย</TableHead>
                   <TableHead>ผู้ส่ง</TableHead>
+                  <TableHead>เอกสาร</TableHead>
                   <TableHead>สถานะ</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filteredReceipts.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
                       ยังไม่มีรายการ
                     </TableCell>
                   </TableRow>
@@ -469,6 +591,21 @@ const DeliveryEntry = () => {
                       <TableCell>{receipt.quantity} {receipt.unit}</TableCell>
                       <TableCell>{receipt.supplier_name || "-"}</TableCell>
                       <TableCell>{receipt.delivery_person_name}</TableCell>
+                      <TableCell>
+                        {receipt.document_url ? (
+                          <a
+                            href={receipt.document_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-1 text-primary hover:underline"
+                          >
+                            <FileText className="w-4 h-4" />
+                            ดูเอกสาร
+                          </a>
+                        ) : (
+                          <span className="text-muted-foreground">-</span>
+                        )}
+                      </TableCell>
                       <TableCell>{getStatusBadge(receipt.status)}</TableCell>
                     </TableRow>
                   ))

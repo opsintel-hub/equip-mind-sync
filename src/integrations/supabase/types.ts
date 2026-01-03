@@ -873,6 +873,7 @@ export type Database = {
           delivery_person_name: string
           delivery_person_phone: string | null
           document_no: string
+          document_url: string | null
           equipment_code: string | null
           equipment_id: string | null
           equipment_name: string | null
@@ -900,6 +901,7 @@ export type Database = {
           delivery_person_name: string
           delivery_person_phone?: string | null
           document_no: string
+          document_url?: string | null
           equipment_code?: string | null
           equipment_id?: string | null
           equipment_name?: string | null
@@ -927,6 +929,7 @@ export type Database = {
           delivery_person_name?: string
           delivery_person_phone?: string | null
           document_no?: string
+          document_url?: string | null
           equipment_code?: string | null
           equipment_id?: string | null
           equipment_name?: string | null
