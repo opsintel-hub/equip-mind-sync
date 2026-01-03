@@ -71,9 +71,14 @@ export function SubcategorySelect({ categoryName, value, onChange, disabled }: S
         .select("id")
         .eq("name", catName)
         .eq("is_active", true)
-        .single();
+        .maybeSingle();
 
       if (catError) throw catError;
+      
+      if (!categoryData) {
+        setSubcategories([]);
+        return;
+      }
 
       const { data, error } = await supabase
         .from("subcategories")
@@ -86,6 +91,7 @@ export function SubcategorySelect({ categoryName, value, onChange, disabled }: S
       setSubcategories(data || []);
     } catch (error) {
       console.error("Error fetching subcategories:", error);
+      setSubcategories([]);
     }
   };
 
