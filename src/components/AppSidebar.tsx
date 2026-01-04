@@ -19,6 +19,7 @@ import {
   Clock,
   User,
   BookOpen,
+  FileSearch,
 } from "lucide-react";
 import {
   Sidebar,
@@ -139,6 +140,7 @@ const menuGroups: MenuGroup[] = [
   {
     label: "รายงาน",
     items: [
+      { title: "ค้นหาเอกสาร", url: "/document-search", icon: FileSearch, functionName: "reports" },
       { title: "รายงาน Dead Stock", url: "/dead-stock", icon: Archive, functionName: "reports" },
       { title: "ใบขอซื้อ (PR)", url: "/purchase-requests", icon: ClipboardList, functionName: "reports" },
     ]
