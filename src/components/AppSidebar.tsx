@@ -20,6 +20,7 @@ import {
   User,
   BookOpen,
   FileSearch,
+  FlaskConical,
 } from "lucide-react";
 import {
   Sidebar,
@@ -157,6 +158,7 @@ const menuGroups: MenuGroup[] = [
     label: "ช่วยเหลือ",
     items: [
       { title: "คู่มือการใช้งาน", url: "/user-manual", icon: BookOpen },
+      { title: "ทดสอบระบบ", url: "/testing", icon: FlaskConical, functionName: "admin" },
     ]
   },
 ];

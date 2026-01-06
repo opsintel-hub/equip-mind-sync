@@ -32,6 +32,7 @@ import WaitingStockRequests from "./pages/WaitingStockRequests";
 import RequesterDashboard from "./pages/RequesterDashboard";
 import UserManual from "./pages/UserManual";
 import DocumentSearch from "./pages/DocumentSearch";
+import Testing from "./pages/Testing";
 import DashboardLayout from "./components/DashboardLayout";
 import ProtectedRoute from "./components/ProtectedRoute";
 import NotFound from "./pages/NotFound";
@@ -72,6 +73,7 @@ const App = () => (
             <Route path="/requester-dashboard" element={<ProtectedRoute><DashboardLayout><RequesterDashboard /></DashboardLayout></ProtectedRoute>} />
             <Route path="/user-manual" element={<ProtectedRoute><DashboardLayout><UserManual /></DashboardLayout></ProtectedRoute>} />
             <Route path="/document-search" element={<ProtectedRoute><DashboardLayout><DocumentSearch /></DashboardLayout></ProtectedRoute>} />
+            <Route path="/testing" element={<ProtectedRoute><DashboardLayout><Testing /></DashboardLayout></ProtectedRoute>} />
             {/* Public billboard view - no auth required */}
             <Route path="/billboard-view/:id" element={<BillboardPublicView />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
