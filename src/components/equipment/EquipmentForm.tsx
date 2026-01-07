@@ -384,7 +384,7 @@ export function EquipmentForm({ onSuccess }: EquipmentFormProps) {
                 name="quantity_in_stock"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>จำนวนในคลัง *</FormLabel>
+                    <FormLabel>จำนวนเริ่มต้น</FormLabel>
                     <FormControl>
                       <Input
                         inputMode="numeric"
@@ -398,6 +398,7 @@ export function EquipmentForm({ onSuccess }: EquipmentFormProps) {
                         disabled={isLoading}
                       />
                     </FormControl>
+                    <p className="text-xs text-muted-foreground">ใช้สำหรับตั้งค่าเริ่มต้น หลังจากนั้นให้รับเข้าผ่านหน้า "นำเข้าสินค้า"</p>
                     <FormMessage />
                   </FormItem>
                 )}

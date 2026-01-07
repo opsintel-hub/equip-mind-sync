@@ -157,9 +157,21 @@ const ReceiveGoods = () => {
     setIsLoading(true);
 
     try {
-      // Get selected equipment and supplier
-      const selectedEquip = equipment.find(e => e.id === editEquipmentId);
+      // Get selected supplier
       const selectedSupp = suppliers.find(s => s.id === editSupplierId);
+
+      // Fetch current equipment stock FIRST
+      const { data: currentEquipment, error: fetchError } = await supabase
+        .from("equipment")
+        .select("quantity_in_stock")
+        .eq("id", editEquipmentId)
+        .single();
+
+      if (fetchError) throw fetchError;
+
+      const currentStock = currentEquipment?.quantity_in_stock || 0;
+      const receivedQuantity = parseInt(editQuantity);
+      const newStock = currentStock + receivedQuantity;
 
       // Update pending receipt status
       const { error: updateError } = await supabase
@@ -172,7 +184,7 @@ const ReceiveGoods = () => {
           received_storage_slot_id: storageLocation.storageSlotId || null,
           received_sub_storage_slot_id: storageLocation.subStorageSlotId || null,
           equipment_id: editEquipmentId,
-          quantity: parseInt(editQuantity),
+          quantity: receivedQuantity,
           unit: editUnit,
           supplier_id: editSupplierId || null,
           lot_number: editLotNumber || null,
@@ -189,7 +201,7 @@ const ReceiveGoods = () => {
         .insert({
           document_no: generateGRDocumentNo(),
           equipment_id: editEquipmentId,
-          quantity: parseInt(editQuantity),
+          quantity: receivedQuantity,
           supplier: selectedSupp?.name || selectedReceipt.supplier_name || "ไม่ระบุ",
           location_id: storageLocation.locationId,
           receipt_date: new Date().toISOString().split("T")[0],
@@ -200,19 +212,23 @@ const ReceiveGoods = () => {
 
       if (grError) throw grError;
 
-      // Update equipment stock
+      // Update equipment stock - ADD to existing stock
       const { error: stockError } = await supabase
         .from("equipment")
         .update({
-          quantity_in_stock: (selectedEquip?.unit ? 0 : 0) + parseInt(editQuantity),
+          quantity_in_stock: newStock,
           location_id: storageLocation.locationId,
           expiry_date: editExpiryDate || null
         })
         .eq("id", editEquipmentId);
 
-      // Note: We ignore stock error for now since it needs proper calculation
+      if (stockError) {
+        console.error("Stock update error:", stockError);
+        toast.warning("รับสินค้าสำเร็จแต่ไม่สามารถอัปเดต Stock ได้");
+      } else {
+        toast.success(`รับสินค้าเข้าคลังสำเร็จ (Stock: ${currentStock} → ${newStock})`);
+      }
 
-      toast.success("รับสินค้าเข้าคลังสำเร็จ");
       setIsDialogOpen(false);
       fetchPendingReceipts();
     } catch (error) {
