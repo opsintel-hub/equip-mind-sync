@@ -60,8 +60,12 @@ const MasterData = () => {
                 <div>
                   <CardTitle>รายการอุปกรณ์/อะไหล่</CardTitle>
                   <CardDescription>
-                    จัดการข้อมูลอุปกรณ์และอะไหล่ทั้งหมด
+                    กำหนดว่าสินค้าอะไรมีในระบบ พร้อมตั้งค่า Min Stock, หน่วย, ราคา
                   </CardDescription>
+                  <p className="text-xs text-muted-foreground mt-1 bg-muted/50 p-2 rounded">
+                    💡 <strong>หมายเหตุ:</strong> การเพิ่มอุปกรณ์ที่นี่เป็นการกำหนดข้อมูลหลักเท่านั้น 
+                    สำหรับการรับสินค้าเข้าคลังจริง ให้ไปที่ <strong>"นำเข้าสินค้า" → "รับสินค้าเข้าคลัง"</strong>
+                  </p>
                 </div>
                 <EquipmentForm onSuccess={handleSuccess} />
               </div>
