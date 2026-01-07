@@ -1360,6 +1360,75 @@ export type Database = {
           },
         ]
       }
+      stock_movements: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          equipment_code: string
+          equipment_id: string
+          equipment_name: string
+          id: string
+          location_id: string | null
+          movement_type: string
+          notes: string | null
+          quantity: number
+          reference_document: string | null
+          reference_id: string | null
+          reference_type: string | null
+          stock_after: number
+          stock_before: number
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          equipment_code: string
+          equipment_id: string
+          equipment_name: string
+          id?: string
+          location_id?: string | null
+          movement_type: string
+          notes?: string | null
+          quantity: number
+          reference_document?: string | null
+          reference_id?: string | null
+          reference_type?: string | null
+          stock_after: number
+          stock_before: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          equipment_code?: string
+          equipment_id?: string
+          equipment_name?: string
+          id?: string
+          location_id?: string | null
+          movement_type?: string
+          notes?: string | null
+          quantity?: number
+          reference_document?: string | null
+          reference_id?: string | null
+          reference_type?: string | null
+          stock_after?: number
+          stock_before?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stock_movements_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "equipment"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_movements_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       storage_slots: {
         Row: {
           created_at: string

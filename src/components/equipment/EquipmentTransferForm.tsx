@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { ArrowRightLeft } from "lucide-react";
 import { LocationSelect } from "@/components/location/LocationSelect";
+import { logStockMovement } from "@/lib/stockMovement";
 
 interface Equipment {
   id: string;
@@ -95,6 +96,21 @@ export function EquipmentTransferForm({ equipment, onSuccess }: EquipmentTransfe
         .eq("id", equipment.id);
 
       if (updateError) throw updateError;
+
+      // Log stock movement for transfer (transfer_out from source, conceptually - stock doesn't change)
+      await logStockMovement({
+        equipment_id: equipment.id,
+        equipment_code: equipment.code,
+        equipment_name: equipment.name,
+        movement_type: "transfer_out",
+        quantity: formData.quantity,
+        stock_before: equipment.quantity_in_stock,
+        stock_after: equipment.quantity_in_stock, // Stock doesn't change on transfer
+        reference_type: "equipment_transfer",
+        reference_document: `Transfer ${formData.transfer_date}`,
+        location_id: formData.to_location_id,
+        notes: formData.notes || `ย้ายจาก ${equipment.locations?.name || "ไม่ระบุ"}`,
+      });
 
       toast.success("ย้ายอุปกรณ์สำเร็จ");
       setOpen(false);

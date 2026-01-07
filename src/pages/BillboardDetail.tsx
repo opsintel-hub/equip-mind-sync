@@ -18,6 +18,7 @@ import { th } from "date-fns/locale";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { LocationSelect } from "@/components/equipment/LocationSelect";
+import { logStockMovement } from "@/lib/stockMovement";
 
 interface UninstallData {
   uninstall_reason: string;
@@ -150,6 +151,22 @@ const BillboardDetail = () => {
           .eq("id", selectedEquipment.equipment_id);
         
         if (stockError) throw stockError;
+
+        // Log stock movement for return from billboard
+        await logStockMovement({
+          equipment_id: selectedEquipment.equipment_id,
+          equipment_code: selectedEquipment.equipment?.code || "",
+          equipment_name: selectedEquipment.equipment?.name || "",
+          movement_type: "return_from_billboard",
+          quantity: selectedEquipment.quantity,
+          stock_before: currentStock,
+          stock_after: newStock,
+          reference_type: "billboard_equipment",
+          reference_id: selectedEquipment.id,
+          reference_document: billboard?.equipment_id || "",
+          location_id: uninstallData.return_location_id || undefined,
+          notes: uninstallData.uninstall_reason || undefined,
+        });
       }
 
       // 3. Delete from billboard_equipment
