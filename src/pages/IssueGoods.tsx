@@ -210,21 +210,36 @@ const IssueGoods = () => {
             created_by: user.id,
           });
         if (issueError) console.error("Error creating goods_issue:", issueError);
-      }
 
-      // If installing to billboard, create billboard_equipment record
-      if (issueData.install_to_billboard && issueData.billboard_id && selectedRequest.equipment_id) {
-        const { error: billboardError } = await supabase
-          .from("billboard_equipment")
-          .insert({
-            billboard_id: issueData.billboard_id,
+        // If installing to billboard, create billboard_equipment record and log movement
+        if (issueData.install_to_billboard && issueData.billboard_id) {
+          const { error: billboardError } = await supabase
+            .from("billboard_equipment")
+            .insert({
+              billboard_id: issueData.billboard_id,
+              equipment_id: selectedRequest.equipment_id,
+              quantity: issuedQty,
+              installation_date: new Date().toISOString().split('T')[0],
+              notes: issueData.notes || `เบิกจากเอกสาร ${selectedRequest.document_no}`,
+              created_by: user.id,
+            });
+          if (billboardError) throw billboardError;
+
+          // Log stock movement for install to billboard
+          await logStockMovement({
             equipment_id: selectedRequest.equipment_id,
+            equipment_code: selectedRequest.equipment_code || "",
+            equipment_name: selectedRequest.equipment_name || "",
+            movement_type: "install_to_billboard",
             quantity: issuedQty,
-            installation_date: new Date().toISOString().split('T')[0],
-            notes: issueData.notes || `เบิกจากเอกสาร ${selectedRequest.document_no}`,
-            created_by: user.id,
+            stock_before: currentStock,
+            stock_after: newStock,
+            reference_type: "billboard_equipment",
+            reference_document: selectedRequest.document_no,
+            location_id: issueData.issued_location_id || undefined,
+            notes: `ติดตั้งที่ป้าย ${issueData.billboard_id}`,
           });
-        if (billboardError) throw billboardError;
+        }
       }
 
       return { remainingQty, newStatus };
