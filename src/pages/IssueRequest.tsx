@@ -10,9 +10,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Plus, Search, FileText, Clock, CheckCircle, XCircle, AlertTriangle } from "lucide-react";
+import { Plus, Search, FileText, Clock, CheckCircle, XCircle, AlertTriangle, MapPin, RotateCcw } from "lucide-react";
 import { format, differenceInDays } from "date-fns";
 import { th } from "date-fns/locale";
+import BillboardSelect from "@/components/billboard/BillboardSelect";
 
 interface EquipmentWithDetails {
   id: string;
@@ -26,6 +27,14 @@ interface EquipmentWithDetails {
   warehouse_entry_date: string;
 }
 
+interface IssuePurpose {
+  id: string;
+  name: string;
+  description: string | null;
+  requires_billboard: boolean;
+  requires_return: boolean;
+}
+
 const IssueRequest = () => {
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState("");
@@ -36,8 +45,10 @@ const IssueRequest = () => {
     serial_number: "",
     quantity: "",
     unit: "ชิ้น",
+    purpose_id: "",
     purpose: "",
     destination: "",
+    billboard_id: "",
     requester_name: "",
     requester_phone: "",
     requester_department: "",
@@ -59,6 +70,20 @@ const IssueRequest = () => {
     },
   });
 
+  // Fetch issue purposes
+  const { data: purposes } = useQuery({
+    queryKey: ["issue-purposes-active"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("issue_purposes")
+        .select("id, name, description, requires_billboard, requires_return")
+        .eq("is_active", true)
+        .order("name");
+      if (error) throw error;
+      return data as IssuePurpose[];
+    },
+  });
+
   // Fetch pending requests
   const { data: pendingRequests, isLoading } = useQuery({
     queryKey: ["goods-issue-pending"],
@@ -72,17 +97,24 @@ const IssueRequest = () => {
     },
   });
 
+  // Get selected purpose
+  const selectedPurpose = purposes?.find((p) => p.id === formData.purpose_id);
+
   // Create request mutation
   const createRequest = useMutation({
     mutationFn: async (data: typeof formData) => {
+      const purposeName = purposes?.find((p) => p.id === data.purpose_id)?.name || data.purpose;
       const { error } = await supabase.from("goods_issue_pending").insert({
         equipment_id: data.equipment_id || null,
         equipment_code: data.equipment_code || null,
         equipment_name: data.equipment_name || null,
         quantity: parseInt(data.quantity),
         unit: data.unit,
-        purpose: data.purpose || null,
+        purpose_id: data.purpose_id || null,
+        purpose: purposeName || null,
         destination: data.destination || null,
+        billboard_id: data.billboard_id || null,
+        is_complete: !selectedPurpose?.requires_billboard || !!data.billboard_id,
         requester_name: data.requester_name,
         requester_phone: data.requester_phone || null,
         requester_department: data.requester_department || null,
@@ -103,8 +135,10 @@ const IssueRequest = () => {
         serial_number: "",
         quantity: "",
         unit: "ชิ้น",
+        purpose_id: "",
         purpose: "",
         destination: "",
+        billboard_id: "",
         requester_name: "",
         requester_phone: "",
         requester_department: "",
@@ -355,14 +389,63 @@ const IssueRequest = () => {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="purpose">วัตถุประสงค์</Label>
-                <Input
-                  id="purpose"
-                  value={formData.purpose}
-                  onChange={(e) => setFormData({ ...formData, purpose: e.target.value })}
-                  placeholder="ระบุวัตถุประสงค์"
-                />
+                <Label htmlFor="purpose_id">วัตถุประสงค์ *</Label>
+                <Select 
+                  value={formData.purpose_id} 
+                  onValueChange={(value) => {
+                    const purpose = purposes?.find((p) => p.id === value);
+                    setFormData({ 
+                      ...formData, 
+                      purpose_id: value, 
+                      purpose: purpose?.name || "",
+                      billboard_id: purpose?.requires_billboard ? formData.billboard_id : ""
+                    });
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="เลือกวัตถุประสงค์" />
+                  </SelectTrigger>
+                  <SelectContent position="popper" sideOffset={4} className="bg-background z-[200] max-h-60 overflow-y-auto">
+                    {purposes?.map((purpose) => (
+                      <SelectItem key={purpose.id} value={purpose.id}>
+                        <div className="flex items-center gap-2">
+                          <span>{purpose.name}</span>
+                          {purpose.requires_billboard && (
+                            <Badge variant="secondary" className="text-xs bg-blue-100 text-blue-800">
+                              <MapPin className="h-3 w-3 mr-1" />ระบุป้าย
+                            </Badge>
+                          )}
+                          {purpose.requires_return && (
+                            <Badge variant="secondary" className="text-xs bg-orange-100 text-orange-800">
+                              <RotateCcw className="h-3 w-3 mr-1" />ต้องคืน
+                            </Badge>
+                          )}
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {selectedPurpose && (
+                  <p className="text-xs text-muted-foreground">
+                    {selectedPurpose.description}
+                    {selectedPurpose.requires_billboard && !formData.billboard_id && (
+                      <span className="text-warning ml-2">(⚠️ หากไม่ระบุป้าย จะต้องกลับมาระบุภายหลัง)</span>
+                    )}
+                  </p>
+                )}
               </div>
+
+              {selectedPurpose?.requires_billboard && (
+                <div className="space-y-2">
+                  <Label>
+                    ป้ายโฆษณา {selectedPurpose.requires_billboard && "(แนะนำ)"}
+                  </Label>
+                  <BillboardSelect
+                    value={formData.billboard_id}
+                    onChange={(value) => setFormData({ ...formData, billboard_id: value })}
+                  />
+                </div>
+              )}
 
               <div className="space-y-2">
                 <Label htmlFor="destination">ส่งไปที่</Label>

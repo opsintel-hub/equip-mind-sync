@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Package, MapPin, Truck, Warehouse, Building2 } from "lucide-react";
+import { Package, MapPin, Truck, Warehouse, Building2, Target } from "lucide-react";
 import { EquipmentForm } from "@/components/equipment/EquipmentForm";
 import { EquipmentList } from "@/components/equipment/EquipmentList";
 import { LocationForm } from "@/components/location/LocationForm";
@@ -12,6 +12,8 @@ import { WarehouseForm } from "@/components/warehouse/WarehouseForm";
 import { WarehouseList } from "@/components/warehouse/WarehouseList";
 import { DepartmentForm } from "@/components/department/DepartmentForm";
 import { DepartmentList } from "@/components/department/DepartmentList";
+import { IssuePurposeForm } from "@/components/purpose/IssuePurposeForm";
+import { IssuePurposeList } from "@/components/purpose/IssuePurposeList";
 
 const MasterData = () => {
   const [refreshKey, setRefreshKey] = useState(0);
@@ -30,14 +32,14 @@ const MasterData = () => {
       </div>
 
       <Tabs defaultValue="equipment" className="w-full">
-        <TabsList className="grid w-full grid-cols-5 max-w-2xl">
+        <TabsList className="grid w-full grid-cols-6 max-w-3xl">
           <TabsTrigger value="equipment" className="gap-2">
             <Package className="h-4 w-4" />
             อุปกรณ์
           </TabsTrigger>
           <TabsTrigger value="locations" className="gap-2">
             <MapPin className="h-4 w-4" />
-            ตำแหน่งจัดเก็บ
+            ตำแหน่ง
           </TabsTrigger>
           <TabsTrigger value="suppliers" className="gap-2">
             <Truck className="h-4 w-4" />
@@ -50,6 +52,10 @@ const MasterData = () => {
           <TabsTrigger value="departments" className="gap-2">
             <Building2 className="h-4 w-4" />
             ฝ่าย
+          </TabsTrigger>
+          <TabsTrigger value="purposes" className="gap-2">
+            <Target className="h-4 w-4" />
+            วัตถุประสงค์
           </TabsTrigger>
         </TabsList>
 
@@ -148,6 +154,25 @@ const MasterData = () => {
             </CardHeader>
             <CardContent>
               <DepartmentList refresh={refreshKey} />
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="purposes" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>วัตถุประสงค์การเบิก</CardTitle>
+                  <CardDescription>
+                    จัดการวัตถุประสงค์การเบิกอะไหล่ พร้อมกำหนดเงื่อนไข (ต้องระบุป้าย/ต้องรับคืน)
+                  </CardDescription>
+                </div>
+                <IssuePurposeForm onSuccess={handleSuccess} />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <IssuePurposeList refresh={refreshKey} />
             </CardContent>
           </Card>
         </TabsContent>
