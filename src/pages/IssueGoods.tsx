@@ -17,6 +17,7 @@ import { th } from "date-fns/locale";
 import { useAuth } from "@/hooks/useAuth";
 import { LocationSelect } from "@/components/equipment/LocationSelect";
 import BillboardSelect from "@/components/billboard/BillboardSelect";
+import { logStockMovement } from "@/lib/stockMovement";
 
 interface EquipmentWithDetails {
   id: string;
@@ -178,6 +179,21 @@ const IssueGoods = () => {
           .update({ quantity_in_stock: newStock })
           .eq("id", selectedRequest.equipment_id);
         if (stockError) throw stockError;
+
+        // Log stock movement
+        await logStockMovement({
+          equipment_id: selectedRequest.equipment_id,
+          equipment_code: selectedRequest.equipment_code || "",
+          equipment_name: selectedRequest.equipment_name || "",
+          movement_type: "issue",
+          quantity: issuedQty,
+          stock_before: currentStock,
+          stock_after: newStock,
+          reference_type: "goods_issue",
+          reference_document: selectedRequest.document_no,
+          location_id: issueData.issued_location_id || undefined,
+          notes: issueData.notes || undefined,
+        });
 
         // Create goods_issue record
         const { error: issueError } = await supabase

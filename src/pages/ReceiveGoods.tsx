@@ -14,6 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { HierarchicalStorageSelect } from "@/components/location/HierarchicalStorageSelect";
 import { format } from "date-fns";
 import { useAuth } from "@/hooks/useAuth";
+import { logStockMovement } from "@/lib/stockMovement";
 
 interface Equipment {
   id: string;
@@ -226,6 +227,21 @@ const ReceiveGoods = () => {
         console.error("Stock update error:", stockError);
         toast.warning("รับสินค้าสำเร็จแต่ไม่สามารถอัปเดต Stock ได้");
       } else {
+        // Log stock movement
+        const selectedEquipment = equipment.find(e => e.id === editEquipmentId);
+        await logStockMovement({
+          equipment_id: editEquipmentId,
+          equipment_code: selectedEquipment?.code || "",
+          equipment_name: selectedEquipment?.name || "",
+          movement_type: "receive",
+          quantity: receivedQuantity,
+          stock_before: currentStock,
+          stock_after: newStock,
+          reference_type: "goods_receipt",
+          reference_document: selectedReceipt.document_no,
+          location_id: storageLocation.locationId,
+          notes: editNotes || undefined,
+        });
         toast.success(`รับสินค้าเข้าคลังสำเร็จ (Stock: ${currentStock} → ${newStock})`);
       }
 
