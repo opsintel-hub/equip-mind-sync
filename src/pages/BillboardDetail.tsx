@@ -130,9 +130,20 @@ const BillboardDetail = () => {
 
       if (historyError) throw historyError;
 
-      // 2. If returning to stock, update equipment quantity
-      if (uninstallData.return_to_stock && selectedEquipment.equipment) {
-        const newStock = (selectedEquipment.equipment.quantity_in_stock || 0) + selectedEquipment.quantity;
+      // 2. If returning to stock, fetch current stock from database and update
+      if (uninstallData.return_to_stock && selectedEquipment.equipment_id) {
+        // Fetch current stock from database (not from cache)
+        const { data: currentEquipmentData, error: fetchError } = await supabase
+          .from("equipment")
+          .select("quantity_in_stock")
+          .eq("id", selectedEquipment.equipment_id)
+          .maybeSingle();
+
+        if (fetchError) throw fetchError;
+
+        const currentStock = currentEquipmentData?.quantity_in_stock || 0;
+        const newStock = currentStock + selectedEquipment.quantity;
+        
         const { error: stockError } = await supabase
           .from("equipment")
           .update({ quantity_in_stock: newStock })
@@ -157,6 +168,7 @@ const BillboardDetail = () => {
       queryClient.invalidateQueries({ queryKey: ["billboard-equipment", id] });
       queryClient.invalidateQueries({ queryKey: ["billboard-equipment-history", id] });
       queryClient.invalidateQueries({ queryKey: ["equipment-active"] });
+      queryClient.invalidateQueries({ queryKey: ["equipment-active-details"] });
       setUninstallDialogOpen(false);
       setSelectedEquipment(null);
       setUninstallData({ uninstall_reason: "", return_to_stock: false, return_location_id: "" });
