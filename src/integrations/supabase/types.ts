@@ -710,6 +710,7 @@ export type Database = {
       }
       goods_issue_pending: {
         Row: {
+          billboard_id: string | null
           created_at: string
           destination: string | null
           document_no: string
@@ -717,6 +718,7 @@ export type Database = {
           equipment_id: string | null
           equipment_name: string | null
           id: string
+          is_complete: boolean | null
           issued_at: string | null
           issued_by: string | null
           issued_location_id: string | null
@@ -725,17 +727,22 @@ export type Database = {
           notes: string | null
           partial_issue_count: number | null
           purpose: string | null
+          purpose_id: string | null
           quantity: number
           reject_reason: string | null
           remaining_quantity: number | null
           requester_department: string | null
           requester_name: string
           requester_phone: string | null
+          return_quantity: number | null
+          returned_at: string | null
+          returned_by: string | null
           status: string
           unit: string
           updated_at: string
         }
         Insert: {
+          billboard_id?: string | null
           created_at?: string
           destination?: string | null
           document_no?: string
@@ -743,6 +750,7 @@ export type Database = {
           equipment_id?: string | null
           equipment_name?: string | null
           id?: string
+          is_complete?: boolean | null
           issued_at?: string | null
           issued_by?: string | null
           issued_location_id?: string | null
@@ -751,17 +759,22 @@ export type Database = {
           notes?: string | null
           partial_issue_count?: number | null
           purpose?: string | null
+          purpose_id?: string | null
           quantity: number
           reject_reason?: string | null
           remaining_quantity?: number | null
           requester_department?: string | null
           requester_name: string
           requester_phone?: string | null
+          return_quantity?: number | null
+          returned_at?: string | null
+          returned_by?: string | null
           status?: string
           unit?: string
           updated_at?: string
         }
         Update: {
+          billboard_id?: string | null
           created_at?: string
           destination?: string | null
           document_no?: string
@@ -769,6 +782,7 @@ export type Database = {
           equipment_id?: string | null
           equipment_name?: string | null
           id?: string
+          is_complete?: boolean | null
           issued_at?: string | null
           issued_by?: string | null
           issued_location_id?: string | null
@@ -777,12 +791,16 @@ export type Database = {
           notes?: string | null
           partial_issue_count?: number | null
           purpose?: string | null
+          purpose_id?: string | null
           quantity?: number
           reject_reason?: string | null
           remaining_quantity?: number | null
           requester_department?: string | null
           requester_name?: string
           requester_phone?: string | null
+          return_quantity?: number | null
+          returned_at?: string | null
+          returned_by?: string | null
           status?: string
           unit?: string
           updated_at?: string
@@ -800,6 +818,13 @@ export type Database = {
             columns: ["issued_location_id"]
             isOneToOne: false
             referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "goods_issue_pending_purpose_id_fkey"
+            columns: ["purpose_id"]
+            isOneToOne: false
+            referencedRelation: "issue_purposes"
             referencedColumns: ["id"]
           },
         ]
@@ -992,6 +1017,42 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      issue_purposes: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          requires_billboard: boolean
+          requires_return: boolean
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          requires_billboard?: boolean
+          requires_return?: boolean
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          requires_billboard?: boolean
+          requires_return?: boolean
+          updated_at?: string
+        }
+        Relationships: []
       }
       locations: {
         Row: {
