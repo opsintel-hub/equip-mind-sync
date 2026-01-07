@@ -471,23 +471,28 @@ const Admin = () => {
               จัดการบทบาท - {selectedUser?.full_name}
             </DialogTitle>
           </DialogHeader>
-          <div className="space-y-4">
-            {ROLES.map((role) => (
-              <div 
-                key={role.value}
-                className="flex items-start space-x-3 p-4 rounded-lg border hover:bg-muted/30 cursor-pointer"
-                onClick={() => toggleRole(role.value)}
-              >
-                <Checkbox
-                  checked={selectedUserRoles.includes(role.value)}
-                  onCheckedChange={() => toggleRole(role.value)}
-                />
-                <div className="flex-1">
-                  <Label className="font-medium cursor-pointer">{role.label}</Label>
-                  <p className="text-sm text-muted-foreground">{role.description}</p>
-                </div>
-              </div>
-            ))}
+          <div className="space-y-3">
+            {ROLES.map((role) => {
+              const isSelected = selectedUserRoles.includes(role.value);
+              return (
+                <label 
+                  key={role.value}
+                  className={`flex items-center gap-3 p-4 rounded-lg border cursor-pointer transition-colors ${
+                    isSelected ? 'border-primary bg-primary/5' : 'hover:bg-muted/30'
+                  }`}
+                >
+                  <Checkbox
+                    checked={isSelected}
+                    onCheckedChange={() => toggleRole(role.value)}
+                    className="data-[state=checked]:bg-primary data-[state=checked]:border-primary"
+                  />
+                  <div className="flex-1">
+                    <span className="font-medium block">{role.label}</span>
+                    <span className="text-sm text-muted-foreground">{role.description}</span>
+                  </div>
+                </label>
+              );
+            })}
             <div className="flex justify-end gap-2 pt-4">
               <Button variant="outline" onClick={() => setRoleDialogOpen(false)}>
                 ยกเลิก
