@@ -161,31 +161,39 @@ const IssueGoods = () => {
 
       // If equipment_id exists, update stock
       if (selectedRequest.equipment_id && issuedQty > 0) {
-        const currentEquipment = equipment?.find((e) => e.id === selectedRequest.equipment_id);
-        if (currentEquipment) {
-          const newStock = Math.max(0, currentEquipment.quantity_in_stock - issuedQty);
-          const { error: stockError } = await supabase
-            .from("equipment")
-            .update({ quantity_in_stock: newStock })
-            .eq("id", selectedRequest.equipment_id);
-          if (stockError) throw stockError;
+        // Fetch current stock from database (not from cache)
+        const { data: currentEquipmentData, error: fetchError } = await supabase
+          .from("equipment")
+          .select("quantity_in_stock")
+          .eq("id", selectedRequest.equipment_id)
+          .single();
 
-          // Create goods_issue record
-          const { error: issueError } = await supabase
-            .from("goods_issue")
-            .insert({
-              document_no: selectedRequest.document_no + (partialCount > 1 ? `-P${partialCount}` : ""),
-              equipment_id: selectedRequest.equipment_id,
-              quantity: issuedQty,
-              location_id: issueData.issued_location_id || currentEquipment.id, // fallback
-              issue_date: new Date().toISOString().split('T')[0],
-              requester: selectedRequest.requester_name,
-              purpose: selectedRequest.purpose,
-              notes: issueData.notes || (remainingQty > 0 ? `จ่ายบางส่วน ${issuedQty}/${requestedQty} รอที่เหลือ ${remainingQty}` : null),
-              created_by: user.id,
-            });
-          if (issueError) console.error("Error creating goods_issue:", issueError);
-        }
+        if (fetchError) throw fetchError;
+
+        const currentStock = currentEquipmentData?.quantity_in_stock || 0;
+        const newStock = Math.max(0, currentStock - issuedQty);
+        
+        const { error: stockError } = await supabase
+          .from("equipment")
+          .update({ quantity_in_stock: newStock })
+          .eq("id", selectedRequest.equipment_id);
+        if (stockError) throw stockError;
+
+        // Create goods_issue record
+        const { error: issueError } = await supabase
+          .from("goods_issue")
+          .insert({
+            document_no: selectedRequest.document_no + (partialCount > 1 ? `-P${partialCount}` : ""),
+            equipment_id: selectedRequest.equipment_id,
+            quantity: issuedQty,
+            location_id: issueData.issued_location_id || selectedRequest.equipment_id, // fallback to equipment id if no location
+            issue_date: new Date().toISOString().split('T')[0],
+            requester: selectedRequest.requester_name,
+            purpose: selectedRequest.purpose,
+            notes: issueData.notes || (remainingQty > 0 ? `จ่ายบางส่วน ${issuedQty}/${requestedQty} รอที่เหลือ ${remainingQty} (Stock: ${currentStock} → ${newStock})` : `Stock: ${currentStock} → ${newStock}`),
+            created_by: user.id,
+          });
+        if (issueError) console.error("Error creating goods_issue:", issueError);
       }
 
       // If installing to billboard, create billboard_equipment record
