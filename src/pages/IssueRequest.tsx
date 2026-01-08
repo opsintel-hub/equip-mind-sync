@@ -14,6 +14,7 @@ import { Plus, Search, FileText, Clock, CheckCircle, XCircle, AlertTriangle, Map
 import { format, differenceInDays } from "date-fns";
 import { th } from "date-fns/locale";
 import BillboardSelect from "@/components/billboard/BillboardSelect";
+import { CompanySelect } from "@/components/company/CompanySelect";
 
 interface EquipmentWithDetails {
   id: string;
@@ -39,6 +40,7 @@ const IssueRequest = () => {
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState("");
   const [formData, setFormData] = useState({
+    company_id: "",
     equipment_id: "",
     equipment_code: "",
     equipment_name: "",
@@ -129,6 +131,7 @@ const IssueRequest = () => {
       toast.success("ส่งคำขอเบิกสำเร็จ");
       queryClient.invalidateQueries({ queryKey: ["goods-issue-pending"] });
       setFormData({
+        company_id: "",
         equipment_id: "",
         equipment_code: "",
         equipment_name: "",
@@ -281,6 +284,21 @@ const IssueRequest = () => {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Company Selection */}
+            <div className="p-4 bg-primary/5 border border-primary/20 rounded-lg">
+              <div className="space-y-2">
+                <Label htmlFor="company">บริษัทที่เบิก *</Label>
+                <CompanySelect
+                  value={formData.company_id}
+                  onChange={(value) => setFormData({ ...formData, company_id: value, equipment_id: "", equipment_code: "", equipment_name: "" })}
+                  placeholder="เลือกบริษัท..."
+                />
+                <p className="text-xs text-muted-foreground">
+                  กรุณาเลือกบริษัทที่จะเบิกสินค้า (ไม่สามารถเบิกข้ามบริษัทได้)
+                </p>
+              </div>
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="requester_name">ชื่อผู้ขอเบิก *</Label>
