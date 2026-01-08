@@ -19,6 +19,7 @@ import { SubcategorySelect } from "./SubcategorySelect";
 import { DepartmentSelect } from "./DepartmentSelect";
 import { BrandSelect } from "./BrandSelect";
 import { LocationSelect } from "./LocationSelect";
+import { CompanySelect } from "@/components/company/CompanySelect";
 
 const equipmentSchema = z.object({
   code: z.string().min(1, "กรุณากรอกรหัสอุปกรณ์").max(50, "รหัสอุปกรณ์ต้องไม่เกิน 50 ตัวอักษร"),
@@ -26,6 +27,7 @@ const equipmentSchema = z.object({
   description: z.string().max(500, "รายละเอียดต้องไม่เกิน 500 ตัวอักษร").optional(),
   category: z.string().min(1, "กรุณาเลือกหมวดหมู่"),
   subcategory_id: z.string().min(1, "กรุณาเลือกหมวดหมู่ย่อย"),
+  company_id: z.string().optional(),
   department: z.string().optional(),
   brand: z.string().optional(),
   unit: z.string().min(1, "กรุณากรอกหน่วยนับ").max(20, "หน่วยนับต้องไม่เกิน 20 ตัวอักษร"),
@@ -54,6 +56,7 @@ interface EquipmentData {
   description?: string | null;
   category: string;
   subcategory_id?: string | null;
+  company_id?: string | null;
   department?: string | null;
   brand?: string | null;
   unit: string;
@@ -90,6 +93,7 @@ export function EquipmentEditForm({ equipment, onSuccess }: EquipmentEditFormPro
       description: equipment.description || "",
       category: equipment.category,
       subcategory_id: equipment.subcategory_id || "",
+      company_id: equipment.company_id || "",
       department: equipment.department || "",
       brand: equipment.brand || "",
       unit: equipment.unit,
@@ -118,6 +122,7 @@ export function EquipmentEditForm({ equipment, onSuccess }: EquipmentEditFormPro
         description: equipment.description || "",
         category: equipment.category,
         subcategory_id: equipment.subcategory_id || "",
+        company_id: equipment.company_id || "",
         department: equipment.department || "",
         brand: equipment.brand || "",
         unit: equipment.unit,
@@ -152,6 +157,7 @@ export function EquipmentEditForm({ equipment, onSuccess }: EquipmentEditFormPro
           description: data.description || null,
           category: data.category,
           subcategory_id: data.subcategory_id,
+          company_id: data.company_id || null,
           department: data.department || null,
           brand: data.brand || null,
           unit: data.unit,
@@ -251,7 +257,7 @@ export function EquipmentEditForm({ equipment, onSuccess }: EquipmentEditFormPro
               )}
             />
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-3 gap-4">
               <FormField
                 control={form.control}
                 name="department"
@@ -260,6 +266,24 @@ export function EquipmentEditForm({ equipment, onSuccess }: EquipmentEditFormPro
                     <FormLabel>ฝ่าย</FormLabel>
                     <FormControl>
                       <DepartmentSelect
+                        value={field.value || ""}
+                        onChange={field.onChange}
+                        disabled={isLoading}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="company_id"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>บริษัท</FormLabel>
+                    <FormControl>
+                      <CompanySelect
                         value={field.value || ""}
                         onChange={field.onChange}
                         disabled={isLoading}

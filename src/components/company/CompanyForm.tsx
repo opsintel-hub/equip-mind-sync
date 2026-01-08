@@ -170,7 +170,7 @@ export function CompanyForm({ onSuccess, editData }: CompanyFormProps) {
                         <SelectValue placeholder="เลือกฝ่าย" />
                       </SelectTrigger>
                     </FormControl>
-                    <SelectContent>
+                    <SelectContent position="popper" sideOffset={4} className="bg-background z-[200] max-h-60 overflow-y-auto">
                       {departments.map((dept) => (
                         <SelectItem key={dept.id} value={dept.id}>
                           {dept.name}

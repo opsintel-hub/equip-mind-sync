@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Search, Package, Clock, CheckCircle, XCircle, MapPin, AlertTriangle, Calendar } from "lucide-react";
+import { Search, Package, Clock, CheckCircle, XCircle, MapPin, AlertTriangle, Calendar, Building } from "lucide-react";
 import { format, differenceInDays } from "date-fns";
 import { th } from "date-fns/locale";
 import { useAuth } from "@/hooks/useAuth";
@@ -36,6 +36,7 @@ interface PendingRequest {
   equipment_id: string | null;
   equipment_code: string | null;
   equipment_name: string | null;
+  company_id: string | null;
   quantity: number;
   unit: string;
   purpose: string | null;
@@ -68,16 +69,16 @@ const IssueGoods = () => {
   });
   const [rejectReason, setRejectReason] = useState("");
 
-  // Fetch pending requests
+  // Fetch pending requests with company info
   const { data: pendingRequests, isLoading } = useQuery({
     queryKey: ["goods-issue-pending-staff"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("goods_issue_pending")
-        .select("*")
+        .select("*, companies(name)")
         .order("created_at", { ascending: false });
       if (error) throw error;
-      return data as PendingRequest[];
+      return data as (PendingRequest & { companies: { name: string } | null })[];
     },
   });
 
@@ -397,6 +398,7 @@ const IssueGoods = () => {
                   <TableRow>
                     <TableHead>เลขที่เอกสาร</TableHead>
                     <TableHead>วันที่ขอ</TableHead>
+                    <TableHead>บริษัท</TableHead>
                     <TableHead>รหัส/ชื่อสินค้า</TableHead>
                     <TableHead>จำนวนขอ</TableHead>
                     <TableHead>คงเหลือ</TableHead>
@@ -409,13 +411,13 @@ const IssueGoods = () => {
                 <TableBody>
                   {isLoading ? (
                     <TableRow>
-                      <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
+                      <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
                         กำลังโหลด...
                       </TableCell>
                     </TableRow>
                   ) : filteredRequests?.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
+                      <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
                         ไม่พบข้อมูล
                       </TableCell>
                     </TableRow>
@@ -427,6 +429,9 @@ const IssueGoods = () => {
                           <TableCell className="font-medium">{req.document_no}</TableCell>
                           <TableCell>
                             {format(new Date(req.created_at), "dd/MM/yyyy HH:mm", { locale: th })}
+                          </TableCell>
+                          <TableCell>
+                            {req.companies?.name || "-"}
                           </TableCell>
                           <TableCell>
                             {req.equipment_code && <div className="font-medium">{req.equipment_code}</div>}

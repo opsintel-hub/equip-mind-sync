@@ -9,6 +9,7 @@ import { Plus, Search } from "lucide-react";
 import { toast } from "sonner";
 import { HierarchicalStorageSelect } from "@/components/location/HierarchicalStorageSelect";
 import { supabase } from "@/integrations/supabase/client";
+import { CompanySelect } from "@/components/company/CompanySelect";
 
 interface Equipment {
   id: string;
@@ -37,6 +38,7 @@ const GoodsReceipt = () => {
     storageSlotId?: string;
     subStorageSlotId?: string;
   }>({ locationId: "" });
+  const [selectedCompanyId, setSelectedCompanyId] = useState("");
 
   useEffect(() => {
     fetchEquipment();
@@ -79,13 +81,14 @@ const GoodsReceipt = () => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!selectedEquipmentId || !quantity || !selectedSupplierId || !storageLocation.locationId) {
+    if (!selectedCompanyId || !selectedEquipmentId || !quantity || !selectedSupplierId || !storageLocation.locationId) {
       toast.error("กรุณากรอกข้อมูลให้ครบถ้วน");
       return;
     }
 
     toast.success("บันทึกการรับสินค้าเข้าสำเร็จ");
     // Reset form
+    setSelectedCompanyId("");
     setSelectedEquipmentId("");
     setSelectedSupplierId("");
     setQuantity("");
@@ -110,6 +113,16 @@ const GoodsReceipt = () => {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="company">บริษัท *</Label>
+                <CompanySelect
+                  value={selectedCompanyId}
+                  onChange={setSelectedCompanyId}
+                />
+              </div>
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="sku">รหัสสินค้า (SKU)</Label>
@@ -220,9 +233,9 @@ const GoodsReceipt = () => {
                 <TableRow className="bg-muted/50">
                   <TableHead>เลขที่เอกสาร</TableHead>
                   <TableHead>วันที่</TableHead>
+                  <TableHead>บริษัท</TableHead>
                   <TableHead>SKU</TableHead>
                   <TableHead>ชื่อสินค้า</TableHead>
-                  <TableHead>ฝ่าย</TableHead>
                   <TableHead>จำนวน</TableHead>
                   <TableHead>ผู้จัดจำหน่าย</TableHead>
                   <TableHead>สถานะ</TableHead>
@@ -233,9 +246,9 @@ const GoodsReceipt = () => {
                   <TableRow key={receipt.id} className="hover:bg-muted/30">
                     <TableCell className="font-medium">{receipt.id}</TableCell>
                     <TableCell>{receipt.date}</TableCell>
+                    <TableCell>-</TableCell>
                     <TableCell>{receipt.sku}</TableCell>
                     <TableCell>{receipt.name}</TableCell>
-                    <TableCell>-</TableCell>
                     <TableCell>{receipt.quantity}</TableCell>
                     <TableCell>{receipt.supplier}</TableCell>
                     <TableCell>

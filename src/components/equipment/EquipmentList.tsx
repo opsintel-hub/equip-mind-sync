@@ -35,6 +35,7 @@ interface Equipment {
   description?: string | null;
   category: string;
   subcategory_id?: string | null;
+  company_id?: string | null;
   department: string | null;
   brand: string | null;
   unit: string;
@@ -54,6 +55,9 @@ interface Equipment {
   lux?: number | null;
   locations?: {
     code: string;
+    name: string;
+  };
+  companies?: {
     name: string;
   };
 }
@@ -81,6 +85,9 @@ export function EquipmentList({ refresh }: EquipmentListProps) {
           *,
           locations (
             code,
+            name
+          ),
+          companies (
             name
           )
         `)
@@ -136,6 +143,7 @@ export function EquipmentList({ refresh }: EquipmentListProps) {
       "รหัสอุปกรณ์": item.code,
       "ชื่ออุปกรณ์": item.name,
       "หมวดหมู่": item.category,
+      "บริษัท": item.companies?.name || "-",
       "ฝ่าย": item.department || "-",
       "ยี่ห้อ": item.brand || "-",
       "จำนวน": item.quantity_in_stock,
@@ -196,6 +204,7 @@ export function EquipmentList({ refresh }: EquipmentListProps) {
               <TableHead>รหัส</TableHead>
               <TableHead>ชื่ออุปกรณ์</TableHead>
               <TableHead>หมวดหมู่</TableHead>
+              <TableHead>บริษัท</TableHead>
               <TableHead>ฝ่าย</TableHead>
               <TableHead>ยี่ห้อ</TableHead>
               <TableHead>จำนวน</TableHead>
@@ -221,6 +230,7 @@ export function EquipmentList({ refresh }: EquipmentListProps) {
                   </div>
                 </TableCell>
                 <TableCell>{item.category}</TableCell>
+                <TableCell>{item.companies?.name || "-"}</TableCell>
                 <TableCell>{item.department || "-"}</TableCell>
                 <TableCell>{item.brand || "-"}</TableCell>
                 <TableCell>
