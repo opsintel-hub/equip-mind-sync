@@ -257,6 +257,50 @@ export type Database = {
         }
         Relationships: []
       }
+      companies: {
+        Row: {
+          code: string
+          created_at: string
+          created_by: string | null
+          department_id: string | null
+          description: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          created_by?: string | null
+          department_id?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          department_id?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "companies_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       departments: {
         Row: {
           created_at: string
@@ -293,6 +337,7 @@ export type Database = {
           brand: string | null
           category: string
           code: string
+          company_id: string | null
           created_at: string
           created_by: string | null
           department: string | null
@@ -322,6 +367,7 @@ export type Database = {
           brand?: string | null
           category: string
           code: string
+          company_id?: string | null
           created_at?: string
           created_by?: string | null
           department?: string | null
@@ -351,6 +397,7 @@ export type Database = {
           brand?: string | null
           category?: string
           code?: string
+          company_id?: string | null
           created_at?: string
           created_by?: string | null
           department?: string | null
@@ -376,6 +423,13 @@ export type Database = {
           watt?: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "equipment_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "equipment_location_id_fkey"
             columns: ["location_id"]
@@ -650,6 +704,7 @@ export type Database = {
       }
       goods_issue: {
         Row: {
+          company_id: string | null
           created_at: string
           created_by: string
           document_no: string
@@ -664,6 +719,7 @@ export type Database = {
           status: string
         }
         Insert: {
+          company_id?: string | null
           created_at?: string
           created_by: string
           document_no: string
@@ -678,6 +734,7 @@ export type Database = {
           status?: string
         }
         Update: {
+          company_id?: string | null
           created_at?: string
           created_by?: string
           document_no?: string
@@ -692,6 +749,13 @@ export type Database = {
           status?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "goods_issue_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "goods_issue_equipment_id_fkey"
             columns: ["equipment_id"]
@@ -711,6 +775,7 @@ export type Database = {
       goods_issue_pending: {
         Row: {
           billboard_id: string | null
+          company_id: string | null
           created_at: string
           destination: string | null
           document_no: string
@@ -743,6 +808,7 @@ export type Database = {
         }
         Insert: {
           billboard_id?: string | null
+          company_id?: string | null
           created_at?: string
           destination?: string | null
           document_no?: string
@@ -775,6 +841,7 @@ export type Database = {
         }
         Update: {
           billboard_id?: string | null
+          company_id?: string | null
           created_at?: string
           destination?: string | null
           document_no?: string
@@ -807,6 +874,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "goods_issue_pending_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "goods_issue_pending_equipment_id_fkey"
             columns: ["equipment_id"]
             isOneToOne: false
@@ -831,6 +905,7 @@ export type Database = {
       }
       goods_receipt: {
         Row: {
+          company_id: string | null
           created_at: string
           created_by: string
           document_no: string
@@ -847,6 +922,7 @@ export type Database = {
           unit_price: number | null
         }
         Insert: {
+          company_id?: string | null
           created_at?: string
           created_by: string
           document_no: string
@@ -863,6 +939,7 @@ export type Database = {
           unit_price?: number | null
         }
         Update: {
+          company_id?: string | null
           created_at?: string
           created_by?: string
           document_no?: string
@@ -879,6 +956,13 @@ export type Database = {
           unit_price?: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "goods_receipt_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "goods_receipt_equipment_id_fkey"
             columns: ["equipment_id"]
@@ -897,6 +981,7 @@ export type Database = {
       }
       goods_receipt_pending: {
         Row: {
+          company_id: string | null
           created_at: string
           delivery_person_name: string
           delivery_person_phone: string | null
@@ -925,6 +1010,7 @@ export type Database = {
           warranty_expiry_date: string | null
         }
         Insert: {
+          company_id?: string | null
           created_at?: string
           delivery_person_name: string
           delivery_person_phone?: string | null
@@ -953,6 +1039,7 @@ export type Database = {
           warranty_expiry_date?: string | null
         }
         Update: {
+          company_id?: string | null
           created_at?: string
           delivery_person_name?: string
           delivery_person_phone?: string | null
@@ -981,6 +1068,13 @@ export type Database = {
           warranty_expiry_date?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "goods_receipt_pending_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "goods_receipt_pending_equipment_id_fkey"
             columns: ["equipment_id"]
@@ -1423,6 +1517,7 @@ export type Database = {
       }
       stock_movements: {
         Row: {
+          company_id: string | null
           created_at: string
           created_by: string | null
           equipment_code: string
@@ -1440,6 +1535,7 @@ export type Database = {
           stock_before: number
         }
         Insert: {
+          company_id?: string | null
           created_at?: string
           created_by?: string | null
           equipment_code: string
@@ -1457,6 +1553,7 @@ export type Database = {
           stock_before: number
         }
         Update: {
+          company_id?: string | null
           created_at?: string
           created_by?: string | null
           equipment_code?: string
@@ -1474,6 +1571,13 @@ export type Database = {
           stock_before?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "stock_movements_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "stock_movements_equipment_id_fkey"
             columns: ["equipment_id"]

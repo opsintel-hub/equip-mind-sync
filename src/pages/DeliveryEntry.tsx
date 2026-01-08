@@ -11,6 +11,7 @@ import { Truck, Search, Package, Clock, CheckCircle2, Upload, FileText, X, Loade
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
+import { CompanySelect } from "@/components/company/CompanySelect";
 
 interface Equipment {
   id: string;
@@ -66,6 +67,7 @@ const DeliveryEntry = () => {
   const [deliveryPersonPhone, setDeliveryPersonPhone] = useState("");
   const [notes, setNotes] = useState("");
   const [documentFile, setDocumentFile] = useState<File | null>(null);
+  const [selectedCompanyId, setSelectedCompanyId] = useState("");
 
   useEffect(() => {
     fetchEquipment();
@@ -187,8 +189,8 @@ const DeliveryEntry = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!quantity || !deliveryPersonName || !unitPrice) {
-      toast.error("กรุณากรอกข้อมูลให้ครบถ้วน (จำนวน, ชื่อผู้ส่ง, และราคาต่อชิ้น)");
+    if (!quantity || !deliveryPersonName || !unitPrice || !selectedCompanyId) {
+      toast.error("กรุณากรอกข้อมูลให้ครบถ้วน (บริษัท, จำนวน, ชื่อผู้ส่ง, และราคาต่อชิ้น)");
       return;
     }
 
@@ -230,6 +232,7 @@ const DeliveryEntry = () => {
           delivery_person_phone: deliveryPersonPhone || null,
           notes: notes || null,
           document_url: documentUrl,
+          company_id: selectedCompanyId,
           status: "pending"
         });
 
@@ -254,6 +257,7 @@ const DeliveryEntry = () => {
       setDeliveryPersonPhone("");
       setNotes("");
       setDocumentFile(null);
+      setSelectedCompanyId("");
       if (fileInputRef.current) {
         fileInputRef.current.value = "";
       }
@@ -307,6 +311,23 @@ const DeliveryEntry = () => {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Company Selection - Required */}
+            <div className="p-4 bg-primary/5 border border-primary/20 rounded-lg space-y-4">
+              <h3 className="font-medium text-sm text-primary">เลือกบริษัท *</h3>
+              <div className="space-y-2">
+                <Label htmlFor="company">บริษัทที่สั่งซื้อ *</Label>
+                <CompanySelect
+                  value={selectedCompanyId}
+                  onChange={setSelectedCompanyId}
+                  placeholder="เลือกบริษัท..."
+                  required
+                />
+                <p className="text-xs text-muted-foreground">
+                  กรุณาเลือกบริษัทที่เป็นเจ้าของงบประมาณในการสั่งซื้อสินค้านี้
+                </p>
+              </div>
+            </div>
+
             {/* Delivery Person Info */}
             <div className="p-4 bg-muted/30 rounded-lg space-y-4">
               <h3 className="font-medium text-sm text-muted-foreground">ข้อมูลผู้ส่ง</h3>

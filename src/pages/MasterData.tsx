@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Package, MapPin, Truck, Warehouse, Building2, Target } from "lucide-react";
+import { Package, MapPin, Truck, Warehouse, Building2, Target, Building } from "lucide-react";
 import { EquipmentForm } from "@/components/equipment/EquipmentForm";
 import { EquipmentList } from "@/components/equipment/EquipmentList";
 import { LocationForm } from "@/components/location/LocationForm";
@@ -14,6 +14,8 @@ import { DepartmentForm } from "@/components/department/DepartmentForm";
 import { DepartmentList } from "@/components/department/DepartmentList";
 import { IssuePurposeForm } from "@/components/purpose/IssuePurposeForm";
 import { IssuePurposeList } from "@/components/purpose/IssuePurposeList";
+import { CompanyForm } from "@/components/company/CompanyForm";
+import { CompanyList } from "@/components/company/CompanyList";
 
 const MasterData = () => {
   const [refreshKey, setRefreshKey] = useState(0);
@@ -32,7 +34,7 @@ const MasterData = () => {
       </div>
 
       <Tabs defaultValue="equipment" className="w-full">
-        <TabsList className="grid w-full grid-cols-6 max-w-3xl">
+        <TabsList className="grid w-full grid-cols-7 max-w-4xl">
           <TabsTrigger value="equipment" className="gap-2">
             <Package className="h-4 w-4" />
             อุปกรณ์
@@ -52,6 +54,10 @@ const MasterData = () => {
           <TabsTrigger value="departments" className="gap-2">
             <Building2 className="h-4 w-4" />
             ฝ่าย
+          </TabsTrigger>
+          <TabsTrigger value="companies" className="gap-2">
+            <Building className="h-4 w-4" />
+            บริษัท
           </TabsTrigger>
           <TabsTrigger value="purposes" className="gap-2">
             <Target className="h-4 w-4" />
@@ -154,6 +160,25 @@ const MasterData = () => {
             </CardHeader>
             <CardContent>
               <DepartmentList refresh={refreshKey} />
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="companies" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>บริษัท</CardTitle>
+                  <CardDescription>
+                    จัดการข้อมูลบริษัทย่อยภายใต้แต่ละฝ่าย (เพื่อแยกงบประมาณและการจัดซื้อ)
+                  </CardDescription>
+                </div>
+                <CompanyForm onSuccess={handleSuccess} />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <CompanyList refresh={refreshKey} />
             </CardContent>
           </Card>
         </TabsContent>
