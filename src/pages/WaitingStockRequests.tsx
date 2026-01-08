@@ -24,6 +24,7 @@ interface WaitingRequest {
   equipment_id: string | null;
   equipment_code: string | null;
   equipment_name: string | null;
+  company_id: string | null;
   quantity: number;
   unit: string;
   purpose: string | null;
@@ -61,17 +62,17 @@ const WaitingStockRequests = () => {
     billboard_id: "",
   });
 
-  // Fetch waiting_stock requests only
+  // Fetch waiting_stock requests only with company info
   const { data: waitingRequests, isLoading } = useQuery({
     queryKey: ["waiting-stock-requests"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("goods_issue_pending")
-        .select("*")
+        .select("*, companies(name)")
         .eq("status", "waiting_stock")
         .order("created_at", { ascending: true });
       if (error) throw error;
-      return data as WaitingRequest[];
+      return data as (WaitingRequest & { companies: { name: string } | null })[];
     },
   });
 
@@ -275,6 +276,7 @@ const WaitingStockRequests = () => {
                 <TableRow>
                   <TableHead>เลขที่เอกสาร</TableHead>
                   <TableHead>วันที่ขอ</TableHead>
+                  <TableHead>บริษัท</TableHead>
                   <TableHead>รหัส/ชื่อสินค้า</TableHead>
                   <TableHead>ขอ/จ่ายแล้ว/รอ</TableHead>
                   <TableHead>คงเหลือในคลัง</TableHead>
@@ -287,13 +289,13 @@ const WaitingStockRequests = () => {
               <TableBody>
                 {isLoading ? (
                   <TableRow>
-                    <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
                       กำลังโหลด...
                     </TableCell>
                   </TableRow>
                 ) : filteredRequests?.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
                       ไม่มีคำขอรอสินค้า
                     </TableCell>
                   </TableRow>
@@ -306,6 +308,9 @@ const WaitingStockRequests = () => {
                         <TableCell className="font-medium">{req.document_no}</TableCell>
                         <TableCell>
                           {format(new Date(req.created_at), "dd/MM/yyyy HH:mm", { locale: th })}
+                        </TableCell>
+                        <TableCell>
+                          {req.companies?.name || "-"}
                         </TableCell>
                         <TableCell>
                           {req.equipment_code && <div className="font-medium">{req.equipment_code}</div>}

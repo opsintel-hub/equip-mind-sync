@@ -37,7 +37,8 @@ export default function StockMovementLog() {
         .select(`
           *,
           equipment:equipment_id(code, name),
-          location:location_id(name)
+          location:location_id(name),
+          companies:company_id(name)
         `, { count: "exact" })
         .order("created_at", { ascending: false });
 
@@ -146,6 +147,7 @@ export default function StockMovementLog() {
                     <TableRow>
                       <TableHead>วันที่/เวลา</TableHead>
                       <TableHead>ประเภท</TableHead>
+                      <TableHead>บริษัท</TableHead>
                       <TableHead>รหัส</TableHead>
                       <TableHead>ชื่ออุปกรณ์</TableHead>
                       <TableHead className="text-right">เปลี่ยน</TableHead>
@@ -163,6 +165,7 @@ export default function StockMovementLog() {
                           {format(new Date(movement.created_at), "dd MMM yy HH:mm", { locale: th })}
                         </TableCell>
                         <TableCell>{getMovementBadge(movement.movement_type)}</TableCell>
+                        <TableCell>{movement.companies?.name || "-"}</TableCell>
                         <TableCell className="font-mono text-sm">{movement.equipment_code}</TableCell>
                         <TableCell>{movement.equipment_name}</TableCell>
                         <TableCell className="text-right">
