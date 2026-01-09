@@ -446,6 +446,97 @@ export type Database = {
           },
         ]
       }
+      equipment_loans: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          created_at: string
+          created_by: string | null
+          due_date: string
+          equipment_id: string | null
+          from_company_id: string
+          id: string
+          loan_date: string
+          notes: string | null
+          quantity: number
+          requester_name: string
+          requester_phone: string | null
+          return_date: string | null
+          return_notes: string | null
+          returned_by: string | null
+          returned_quantity: number | null
+          status: string
+          to_company_id: string
+          updated_at: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          due_date: string
+          equipment_id?: string | null
+          from_company_id: string
+          id?: string
+          loan_date?: string
+          notes?: string | null
+          quantity: number
+          requester_name: string
+          requester_phone?: string | null
+          return_date?: string | null
+          return_notes?: string | null
+          returned_by?: string | null
+          returned_quantity?: number | null
+          status?: string
+          to_company_id: string
+          updated_at?: string
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          due_date?: string
+          equipment_id?: string | null
+          from_company_id?: string
+          id?: string
+          loan_date?: string
+          notes?: string | null
+          quantity?: number
+          requester_name?: string
+          requester_phone?: string | null
+          return_date?: string | null
+          return_notes?: string | null
+          returned_by?: string | null
+          returned_quantity?: number | null
+          status?: string
+          to_company_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "equipment_loans_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "equipment"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "equipment_loans_from_company_id_fkey"
+            columns: ["from_company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "equipment_loans_to_company_id_fkey"
+            columns: ["to_company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       equipment_pm_history: {
         Row: {
           completed_by: string | null
