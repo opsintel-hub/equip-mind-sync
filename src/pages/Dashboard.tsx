@@ -1,5 +1,6 @@
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Package, PackageOpen, TrendingUp, TrendingDown, MapPin, ArrowRight } from "lucide-react";
+import { Package, PackageOpen, TrendingUp, TrendingDown, MapPin, ArrowRight, ArrowLeftRight } from "lucide-react";
 import { LowStockAlerts } from "@/components/LowStockAlerts";
 import { ExpiryAlerts } from "@/components/ExpiryAlerts";
 import { BillboardEquipmentAlerts } from "@/components/BillboardEquipmentAlerts";
@@ -7,52 +8,110 @@ import BillboardEquipmentChart from "@/components/BillboardEquipmentChart";
 import { LocationInventoryChart } from "@/components/LocationInventoryChart";
 import { CategoryPieChart } from "@/components/CategoryPieChart";
 import TransactionSummaryReport from "@/components/TransactionSummaryReport";
+import { CompanyFilter } from "@/components/dashboard/CompanyFilter";
+import { supabase } from "@/integrations/supabase/client";
+import { Link } from "react-router-dom";
 
 const Dashboard = () => {
-  const stats = [
+  const [selectedCompanyId, setSelectedCompanyId] = useState("all");
+  const [stats, setStats] = useState({
+    totalEquipment: 0,
+    todayReceipts: 0,
+    todayIssues: 0,
+    totalBillboards: 0,
+    activeLoans: 0
+  });
+
+  useEffect(() => {
+    fetchStats();
+  }, [selectedCompanyId]);
+
+  const fetchStats = async () => {
+    const today = new Date().toISOString().split('T')[0];
+
+    // Build company filter
+    const companyFilter = selectedCompanyId !== "all" ? selectedCompanyId : null;
+
+    // Fetch equipment count
+    let equipmentQuery = supabase.from("equipment").select("id", { count: "exact" }).eq("is_active", true);
+    if (companyFilter) equipmentQuery = equipmentQuery.eq("company_id", companyFilter);
+    const { count: equipmentCount } = await equipmentQuery;
+
+    // Fetch today's receipts
+    let receiptsQuery = supabase.from("goods_receipt").select("id", { count: "exact" }).gte("receipt_date", today);
+    if (companyFilter) receiptsQuery = receiptsQuery.eq("company_id", companyFilter);
+    const { count: receiptsCount } = await receiptsQuery;
+
+    // Fetch today's issues
+    let issuesQuery = supabase.from("goods_issue").select("id", { count: "exact" }).gte("issue_date", today);
+    if (companyFilter) issuesQuery = issuesQuery.eq("company_id", companyFilter);
+    const { count: issuesCount } = await issuesQuery;
+
+    // Fetch billboards count
+    const { count: billboardsCount } = await supabase.from("billboards").select("id", { count: "exact" }).eq("status", "active");
+
+    // Fetch active loans
+    let loansQuery = supabase.from("equipment_loans").select("id", { count: "exact" }).eq("status", "approved");
+    if (companyFilter) {
+      loansQuery = loansQuery.or(`from_company_id.eq.${companyFilter},to_company_id.eq.${companyFilter}`);
+    }
+    const { count: loansCount } = await loansQuery;
+
+    setStats({
+      totalEquipment: equipmentCount || 0,
+      todayReceipts: receiptsCount || 0,
+      todayIssues: issuesCount || 0,
+      totalBillboards: billboardsCount || 0,
+      activeLoans: loansCount || 0
+    });
+  };
+
+  const statCards = [
     {
       title: "สินค้าคงคลัง",
-      value: "2,547",
+      value: stats.totalEquipment.toLocaleString(),
       unit: "รายการ",
       icon: Package,
-      trend: "+12.5%",
-      trendUp: true,
       color: "text-primary",
       bgGradient: "from-primary/10 to-primary/5",
       iconBg: "bg-primary/15",
     },
     {
       title: "รับเข้าวันนี้",
-      value: "156",
+      value: stats.todayReceipts.toLocaleString(),
       unit: "รายการ",
       icon: Package,
-      trend: "+5.2%",
-      trendUp: true,
       color: "text-success",
       bgGradient: "from-success/10 to-success/5",
       iconBg: "bg-success/15",
     },
     {
       title: "เบิกจ่ายวันนี้",
-      value: "89",
+      value: stats.todayIssues.toLocaleString(),
       unit: "รายการ",
       icon: PackageOpen,
-      trend: "-2.1%",
-      trendUp: false,
       color: "text-warning",
       bgGradient: "from-warning/10 to-warning/5",
       iconBg: "bg-warning/15",
     },
     {
       title: "ป้ายโฆษณา",
-      value: "324",
+      value: stats.totalBillboards.toLocaleString(),
       unit: "จุด",
       icon: MapPin,
-      trend: "+8.3%",
-      trendUp: true,
       color: "text-chart-4",
       bgGradient: "from-chart-4/10 to-chart-4/5",
       iconBg: "bg-chart-4/15",
+    },
+    {
+      title: "ยืมข้ามบริษัท",
+      value: stats.activeLoans.toLocaleString(),
+      unit: "รายการ",
+      icon: ArrowLeftRight,
+      color: "text-chart-5",
+      bgGradient: "from-chart-5/10 to-chart-5/5",
+      iconBg: "bg-chart-5/15",
+      link: "/equipment-loans"
     },
   ];
 
@@ -74,46 +133,49 @@ const Dashboard = () => {
   return (
     <div className="space-y-8">
       {/* Header */}
-      <div className="space-y-1">
-        <h1 className="text-3xl font-bold text-foreground tracking-tight">แดชบอร์ด</h1>
-        <p className="text-muted-foreground">ภาพรวมระบบจัดการคลังสินค้าและอุปกรณ์</p>
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div className="space-y-1">
+          <h1 className="text-3xl font-bold text-foreground tracking-tight">แดชบอร์ด</h1>
+          <p className="text-muted-foreground">ภาพรวมระบบจัดการคลังสินค้าและอุปกรณ์</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-muted-foreground">กรองตามบริษัท:</span>
+          <CompanyFilter value={selectedCompanyId} onChange={setSelectedCompanyId} />
+        </div>
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
-        {stats.map((stat, index) => (
-          <Card 
-            key={stat.title} 
-            className={`relative overflow-hidden bg-gradient-to-br ${stat.bgGradient} border-0 hover-lift`}
-            style={{ animationDelay: `${index * 100}ms` }}
-          >
-            <CardContent className="p-6">
-              <div className="flex items-start justify-between">
-                <div className="space-y-3">
-                  <p className="text-sm font-medium text-muted-foreground">{stat.title}</p>
-                  <div className="flex items-baseline gap-2">
-                    <span className="text-3xl font-bold text-foreground">{stat.value}</span>
-                    <span className="text-sm text-muted-foreground">{stat.unit}</span>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-5">
+        {statCards.map((stat, index) => {
+          const CardWrapper = stat.link ? Link : 'div';
+          return (
+            <CardWrapper 
+              key={stat.title} 
+              to={stat.link || ''}
+              className="block"
+            >
+              <Card 
+                className={`relative overflow-hidden bg-gradient-to-br ${stat.bgGradient} border-0 hover-lift ${stat.link ? 'cursor-pointer' : ''}`}
+                style={{ animationDelay: `${index * 100}ms` }}
+              >
+                <CardContent className="p-6">
+                  <div className="flex items-start justify-between">
+                    <div className="space-y-3">
+                      <p className="text-sm font-medium text-muted-foreground">{stat.title}</p>
+                      <div className="flex items-baseline gap-2">
+                        <span className="text-3xl font-bold text-foreground">{stat.value}</span>
+                        <span className="text-sm text-muted-foreground">{stat.unit}</span>
+                      </div>
+                    </div>
+                    <div className={`w-12 h-12 rounded-xl ${stat.iconBg} flex items-center justify-center`}>
+                      <stat.icon className={`w-6 h-6 ${stat.color}`} />
+                    </div>
                   </div>
-                  <div className="flex items-center gap-1.5">
-                    {stat.trendUp ? (
-                      <TrendingUp className="w-4 h-4 text-success" />
-                    ) : (
-                      <TrendingDown className="w-4 h-4 text-destructive" />
-                    )}
-                    <span className={`text-sm font-semibold ${stat.trendUp ? 'text-success' : 'text-destructive'}`}>
-                      {stat.trend}
-                    </span>
-                    <span className="text-xs text-muted-foreground">vs เดือนที่แล้ว</span>
-                  </div>
-                </div>
-                <div className={`w-12 h-12 rounded-xl ${stat.iconBg} flex items-center justify-center`}>
-                  <stat.icon className={`w-6 h-6 ${stat.color}`} />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+                </CardContent>
+              </Card>
+            </CardWrapper>
+          );
+        })}
       </div>
 
       {/* Transaction Summary */}

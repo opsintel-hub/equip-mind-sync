@@ -21,6 +21,7 @@ import {
   BookOpen,
   FileSearch,
   FlaskConical,
+  ArrowLeftRight,
 } from "lucide-react";
 import {
   Sidebar,
@@ -97,6 +98,12 @@ const menuGroups: MenuGroup[] = [
         title: "จ่ายสินค้า", 
         url: "/issue-goods",
         icon: PackageCheck,
+        functionName: "goods_issue",
+      },
+      { 
+        title: "ยืมข้ามบริษัท", 
+        url: "/equipment-loans",
+        icon: ArrowLeftRight,
         functionName: "goods_issue",
       },
       { 
