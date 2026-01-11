@@ -23,6 +23,10 @@ interface Department {
   name: string;
 }
 
+interface CategoryPieChartProps {
+  companyId?: string;
+}
+
 const COLORS = [
   "hsl(var(--chart-1))",
   "hsl(var(--chart-2))",
@@ -34,7 +38,7 @@ const COLORS = [
   "hsl(var(--warning))",
 ];
 
-export const CategoryPieChart = () => {
+export const CategoryPieChart = ({ companyId }: CategoryPieChartProps) => {
   const [categoryData, setCategoryData] = useState<CategoryData[]>([]);
   const [loading, setLoading] = useState(true);
   const [departments, setDepartments] = useState<Department[]>([]);
@@ -49,7 +53,7 @@ export const CategoryPieChart = () => {
 
   useEffect(() => {
     fetchCategoryData();
-  }, [selectedDepartment, startDate, endDate]);
+  }, [selectedDepartment, startDate, endDate, companyId]);
 
   const fetchDepartments = async () => {
     const { data } = await supabase
@@ -82,11 +86,15 @@ export const CategoryPieChart = () => {
 
       let query = supabase
         .from("equipment")
-        .select("id, category, quantity_in_stock")
+        .select("id, category, quantity_in_stock, company_id")
         .eq("is_active", true);
 
       if (selectedDepartment !== "all") {
         query = query.eq("department", selectedDepartment);
+      }
+
+      if (companyId && companyId !== "all") {
+        query = query.eq("company_id", companyId);
       }
 
       if (equipmentIdsInRange !== null) {
