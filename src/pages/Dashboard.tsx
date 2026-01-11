@@ -9,6 +9,7 @@ import { LocationInventoryChart } from "@/components/LocationInventoryChart";
 import { CategoryPieChart } from "@/components/CategoryPieChart";
 import TransactionSummaryReport from "@/components/TransactionSummaryReport";
 import { CompanyFilter } from "@/components/dashboard/CompanyFilter";
+import { StockMovementChart } from "@/components/dashboard/StockMovementChart";
 import { supabase } from "@/integrations/supabase/client";
 import { Link } from "react-router-dom";
 
@@ -179,13 +180,16 @@ const Dashboard = () => {
       </div>
 
       {/* Transaction Summary */}
-      <TransactionSummaryReport />
+      <TransactionSummaryReport companyId={selectedCompanyId} />
 
       {/* Charts Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <LocationInventoryChart />
-        <CategoryPieChart />
+        <LocationInventoryChart companyId={selectedCompanyId} />
+        <CategoryPieChart companyId={selectedCompanyId} />
       </div>
+
+      {/* Stock Movement Chart */}
+      <StockMovementChart companyId={selectedCompanyId} />
 
       {/* Alerts Section */}
       <div className="space-y-6">

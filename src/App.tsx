@@ -26,6 +26,8 @@ import EquipmentPMSchedule from "./pages/EquipmentPMSchedule";
 import EquipmentPMHistory from "./pages/EquipmentPMHistory";
 import EquipmentPMTasks from "./pages/EquipmentPMTasks";
 import EquipmentLoans from "./pages/EquipmentLoans";
+import IncompleteIssues from "./pages/IncompleteIssues";
+import BillboardIssueReport from "./pages/BillboardIssueReport";
 import NotificationSettingsPage from "./pages/NotificationSettingsPage";
 import DeadStockReport from "./pages/DeadStockReport";
 import PurchaseRequests from "./pages/PurchaseRequests";
@@ -69,6 +71,8 @@ const App = () => (
             <Route path="/equipment-pm-history" element={<ProtectedRoute><DashboardLayout><EquipmentPMHistory /></DashboardLayout></ProtectedRoute>} />
             <Route path="/equipment-pm-tasks" element={<ProtectedRoute><DashboardLayout><EquipmentPMTasks /></DashboardLayout></ProtectedRoute>} />
             <Route path="/equipment-loans" element={<ProtectedRoute><DashboardLayout><EquipmentLoans /></DashboardLayout></ProtectedRoute>} />
+            <Route path="/incomplete-issues" element={<ProtectedRoute><DashboardLayout><IncompleteIssues /></DashboardLayout></ProtectedRoute>} />
+            <Route path="/billboard-issue-report" element={<ProtectedRoute><DashboardLayout><BillboardIssueReport /></DashboardLayout></ProtectedRoute>} />
             <Route path="/notification-settings" element={<ProtectedRoute><DashboardLayout><NotificationSettingsPage /></DashboardLayout></ProtectedRoute>} />
             <Route path="/dead-stock" element={<ProtectedRoute><DashboardLayout><DeadStockReport /></DashboardLayout></ProtectedRoute>} />
             <Route path="/purchase-requests" element={<ProtectedRoute><DashboardLayout><PurchaseRequests /></DashboardLayout></ProtectedRoute>} />

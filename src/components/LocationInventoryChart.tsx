@@ -38,6 +38,10 @@ interface Department {
   name: string;
 }
 
+interface LocationInventoryChartProps {
+  companyId?: string;
+}
+
 const COLORS = [
   "hsl(var(--chart-1))",
   "hsl(var(--chart-2))",
@@ -46,7 +50,7 @@ const COLORS = [
   "hsl(var(--chart-5))",
 ];
 
-export const LocationInventoryChart = () => {
+export const LocationInventoryChart = ({ companyId }: LocationInventoryChartProps) => {
   const [locationData, setLocationData] = useState<LocationData[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedLocation, setSelectedLocation] = useState<LocationData | null>(null);
@@ -64,7 +68,7 @@ export const LocationInventoryChart = () => {
 
   useEffect(() => {
     fetchLocationData();
-  }, [selectedDepartment, startDate, endDate]);
+  }, [selectedDepartment, startDate, endDate, companyId]);
 
   const fetchDepartments = async () => {
     const { data } = await supabase
@@ -104,12 +108,16 @@ export const LocationInventoryChart = () => {
 
       let equipmentQuery = supabase
         .from("equipment")
-        .select("id, location_id, quantity_in_stock, department")
+        .select("id, location_id, quantity_in_stock, department, company_id")
         .eq("is_active", true)
         .not("location_id", "is", null);
 
       if (selectedDepartment !== "all") {
         equipmentQuery = equipmentQuery.eq("department", selectedDepartment);
+      }
+
+      if (companyId && companyId !== "all") {
+        equipmentQuery = equipmentQuery.eq("company_id", companyId);
       }
 
       if (equipmentIdsInRange !== null) {

@@ -10,19 +10,28 @@ import { th } from "date-fns/locale";
 import { CalendarIcon, Package, PackageOpen, TrendingUp, TrendingDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-const TransactionSummaryReport = () => {
+interface TransactionSummaryReportProps {
+  companyId?: string;
+}
+
+const TransactionSummaryReport = ({ companyId }: TransactionSummaryReportProps) => {
   const [startDate, setStartDate] = useState<Date>(startOfMonth(new Date()));
   const [endDate, setEndDate] = useState<Date>(endOfMonth(new Date()));
 
   const { data: grData, isLoading: grLoading } = useQuery({
-    queryKey: ["gr-summary", startDate, endDate],
+    queryKey: ["gr-summary", startDate, endDate, companyId],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from("goods_receipt")
         .select("quantity, receipt_date")
         .gte("receipt_date", format(startDate, "yyyy-MM-dd"))
         .lte("receipt_date", format(endDate, "yyyy-MM-dd"));
 
+      if (companyId && companyId !== "all") {
+        query = query.eq("company_id", companyId);
+      }
+
+      const { data, error } = await query;
       if (error) throw error;
 
       const totalQuantity = data?.reduce((sum, item) => sum + item.quantity, 0) || 0;
@@ -33,14 +42,19 @@ const TransactionSummaryReport = () => {
   });
 
   const { data: giData, isLoading: giLoading } = useQuery({
-    queryKey: ["gi-summary", startDate, endDate],
+    queryKey: ["gi-summary", startDate, endDate, companyId],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from("goods_issue")
         .select("quantity, issue_date")
         .gte("issue_date", format(startDate, "yyyy-MM-dd"))
         .lte("issue_date", format(endDate, "yyyy-MM-dd"));
 
+      if (companyId && companyId !== "all") {
+        query = query.eq("company_id", companyId);
+      }
+
+      const { data, error } = await query;
       if (error) throw error;
 
       const totalQuantity = data?.reduce((sum, item) => sum + item.quantity, 0) || 0;
@@ -52,7 +66,7 @@ const TransactionSummaryReport = () => {
 
   // Get previous period data for comparison
   const { data: prevGrData } = useQuery({
-    queryKey: ["gr-summary-prev", startDate, endDate],
+    queryKey: ["gr-summary-prev", startDate, endDate, companyId],
     queryFn: async () => {
       const daysDiff = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
       const prevStart = new Date(startDate);
@@ -60,19 +74,24 @@ const TransactionSummaryReport = () => {
       const prevEnd = new Date(startDate);
       prevEnd.setDate(prevEnd.getDate() - 1);
 
-      const { data, error } = await supabase
+      let query = supabase
         .from("goods_receipt")
         .select("quantity")
         .gte("receipt_date", format(prevStart, "yyyy-MM-dd"))
         .lte("receipt_date", format(prevEnd, "yyyy-MM-dd"));
 
+      if (companyId && companyId !== "all") {
+        query = query.eq("company_id", companyId);
+      }
+
+      const { data, error } = await query;
       if (error) throw error;
       return data?.reduce((sum, item) => sum + item.quantity, 0) || 0;
     },
   });
 
   const { data: prevGiData } = useQuery({
-    queryKey: ["gi-summary-prev", startDate, endDate],
+    queryKey: ["gi-summary-prev", startDate, endDate, companyId],
     queryFn: async () => {
       const daysDiff = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
       const prevStart = new Date(startDate);
@@ -80,12 +99,17 @@ const TransactionSummaryReport = () => {
       const prevEnd = new Date(startDate);
       prevEnd.setDate(prevEnd.getDate() - 1);
 
-      const { data, error } = await supabase
+      let query = supabase
         .from("goods_issue")
         .select("quantity")
         .gte("issue_date", format(prevStart, "yyyy-MM-dd"))
         .lte("issue_date", format(prevEnd, "yyyy-MM-dd"));
 
+      if (companyId && companyId !== "all") {
+        query = query.eq("company_id", companyId);
+      }
+
+      const { data, error } = await query;
       if (error) throw error;
       return data?.reduce((sum, item) => sum + item.quantity, 0) || 0;
     },

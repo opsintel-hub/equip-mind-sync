@@ -107,6 +107,12 @@ const menuGroups: MenuGroup[] = [
         functionName: "goods_issue",
       },
       { 
+        title: "รอระบุป้าย/รอคืน", 
+        url: "/incomplete-issues",
+        icon: Clock,
+        functionName: "goods_issue",
+      },
+      { 
         title: "คำขอรอสินค้า", 
         url: "/waiting-stock",
         icon: Clock,
@@ -151,6 +157,7 @@ const menuGroups: MenuGroup[] = [
       { title: "ค้นหาเอกสาร", url: "/document-search", icon: FileSearch, functionName: "reports" },
       { title: "Stock Movement Log", url: "/stock-movement-log", icon: History, functionName: "reports" },
       { title: "รายงาน Dead Stock", url: "/dead-stock", icon: Archive, functionName: "reports" },
+      { title: "รายงานเบิกตามป้าย", url: "/billboard-issue-report", icon: MapPin, functionName: "reports" },
       { title: "ใบขอซื้อ (PR)", url: "/purchase-requests", icon: ClipboardList, functionName: "reports" },
     ]
   },
