@@ -154,6 +154,7 @@ const menuGroups: MenuGroup[] = [
   {
   label: "รายงาน",
     items: [
+      { title: "รายงานสินค้าคงคลัง", url: "/inventory-report", icon: Package, functionName: "reports" },
       { title: "ค้นหาเอกสาร", url: "/document-search", icon: FileSearch, functionName: "reports" },
       { title: "Stock Movement Log", url: "/stock-movement-log", icon: History, functionName: "reports" },
       { title: "รายงาน Dead Stock", url: "/dead-stock", icon: Archive, functionName: "reports" },
