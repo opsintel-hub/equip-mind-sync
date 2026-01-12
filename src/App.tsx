@@ -37,6 +37,7 @@ import UserManual from "./pages/UserManual";
 import DocumentSearch from "./pages/DocumentSearch";
 import Testing from "./pages/Testing";
 import StockMovementLog from "./pages/StockMovementLog";
+import InventoryReport from "./pages/InventoryReport";
 import DashboardLayout from "./components/DashboardLayout";
 import ProtectedRoute from "./components/ProtectedRoute";
 import NotFound from "./pages/NotFound";
@@ -82,6 +83,7 @@ const App = () => (
             <Route path="/document-search" element={<ProtectedRoute><DashboardLayout><DocumentSearch /></DashboardLayout></ProtectedRoute>} />
             <Route path="/testing" element={<ProtectedRoute><DashboardLayout><Testing /></DashboardLayout></ProtectedRoute>} />
             <Route path="/stock-movement-log" element={<ProtectedRoute><DashboardLayout><StockMovementLog /></DashboardLayout></ProtectedRoute>} />
+            <Route path="/inventory-report" element={<ProtectedRoute><DashboardLayout><InventoryReport /></DashboardLayout></ProtectedRoute>} />
             {/* Public billboard view - no auth required */}
             <Route path="/billboard-view/:id" element={<BillboardPublicView />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
