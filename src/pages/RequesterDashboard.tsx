@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import DashboardLayout from "@/components/DashboardLayout";
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -121,8 +121,7 @@ export default function RequesterDashboard() {
   const cancelledCount = requests.filter(r => r.status === "cancelled").length;
 
   return (
-    <DashboardLayout>
-      <div className="space-y-6">
+    <div className="space-y-6">
         <div>
           <h1 className="text-3xl font-bold text-foreground">Dashboard ผู้เบิก</h1>
           <p className="text-muted-foreground mt-1">ตรวจสอบสถานะคำขอเบิกและการแจ้งเตือนของคุณ</p>
@@ -367,7 +366,6 @@ export default function RequesterDashboard() {
             </CardContent>
           </Card>
         )}
-      </div>
-    </DashboardLayout>
+    </div>
   );
 }
