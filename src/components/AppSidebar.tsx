@@ -144,9 +144,8 @@ const menuGroups: MenuGroup[] = [
         icon: Wrench,
         functionName: "equipment_pm",
         subItems: [
-          { title: "งาน PM", url: "/equipment-pm-tasks", icon: ClipboardList },
-          { title: "ตาราง PM", url: "/equipment-pm-schedule", icon: Calendar },
-          { title: "ประวัติ PM", url: "/equipment-pm-history", icon: History },
+          { title: "งาน PM", url: "/tool-pm-tasks", icon: ClipboardList },
+          { title: "ประวัติ PM", url: "/tool-pm-history", icon: History },
         ]
       },
     ]

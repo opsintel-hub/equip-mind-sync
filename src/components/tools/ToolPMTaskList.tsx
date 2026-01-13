@@ -1,0 +1,434 @@
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { RefreshCw, Search, ClipboardCheck, Camera, User } from "lucide-react";
+import { toast } from "sonner";
+import { format } from "date-fns";
+import { th } from "date-fns/locale";
+
+interface PMResult {
+  id: string;
+  name: string;
+  color: string;
+}
+
+interface PMType {
+  pm_type: {
+    id: string;
+    name: string;
+  };
+}
+
+interface ToolPMTask {
+  id: string;
+  task_number: string;
+  due_date: string;
+  status: string;
+  inspection_date: string | null;
+  inspector_name: string | null;
+  inspection_notes: string | null;
+  quantity_checked: number | null;
+  tool: {
+    id: string;
+    code: string;
+    name: string;
+    brand: string | null;
+    serial_number: string | null;
+    current_quantity: number;
+    unit: string;
+  };
+  pm_result: { id: string; name: string; color: string } | null;
+}
+
+export function ToolPMTaskList() {
+  const { user } = useAuth();
+  const [tasks, setTasks] = useState<ToolPMTask[]>([]);
+  const [pmResults, setPmResults] = useState<PMResult[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedTask, setSelectedTask] = useState<ToolPMTask | null>(null);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [toolPMTypes, setToolPMTypes] = useState<string[]>([]);
+
+  // Form state
+  const [inspectorName, setInspectorName] = useState("");
+  const [pmResultId, setPmResultId] = useState("");
+  const [quantityChecked, setQuantityChecked] = useState("");
+  const [notes, setNotes] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    fetchTasks();
+    fetchPMResults();
+  }, []);
+
+  const fetchTasks = async () => {
+    setIsLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from("tool_pm_tasks")
+        .select(`
+          *,
+          tool:tools(id, code, name, brand, serial_number, current_quantity, unit),
+          pm_result:pm_results(id, name, color)
+        `)
+        .in("status", ["pending", "in_progress"])
+        .order("due_date", { ascending: true });
+
+      if (error) throw error;
+      setTasks(data || []);
+    } catch (error) {
+      console.error("Error fetching tasks:", error);
+      toast.error("ไม่สามารถโหลดข้อมูลงาน PM ได้");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const fetchPMResults = async () => {
+    const { data, error } = await supabase
+      .from("pm_results")
+      .select("*")
+      .eq("is_active", true)
+      .order("name");
+
+    if (error) {
+      console.error("Error fetching PM results:", error);
+      return;
+    }
+    setPmResults(data || []);
+  };
+
+  const fetchToolPMTypes = async (toolId: string) => {
+    const { data, error } = await supabase
+      .from("tool_pm_types")
+      .select(`
+        pm_type:pm_types(id, name)
+      `)
+      .eq("tool_id", toolId);
+
+    if (error) {
+      console.error("Error fetching tool PM types:", error);
+      return;
+    }
+
+    const types = (data || []).map((d: any) => d.pm_type?.name).filter(Boolean);
+    setToolPMTypes(types);
+  };
+
+  const openInspectionDialog = async (task: ToolPMTask) => {
+    setSelectedTask(task);
+    setInspectorName("");
+    setPmResultId("");
+    setQuantityChecked(String(task.tool.current_quantity));
+    setNotes("");
+    await fetchToolPMTypes(task.tool.id);
+    setIsDialogOpen(true);
+  };
+
+  const handleSubmitInspection = async () => {
+    if (!selectedTask) return;
+    if (!pmResultId) {
+      toast.error("กรุณาเลือกผลการตรวจสอบ");
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const { error } = await supabase
+        .from("tool_pm_tasks")
+        .update({
+          status: "completed",
+          pm_result_id: pmResultId,
+          inspection_date: new Date().toISOString(),
+          inspected_by: user?.id || null,
+          inspector_name: inspectorName || user?.email || "ไม่ระบุ",
+          inspection_notes: notes || null,
+          quantity_checked: parseInt(quantityChecked) || null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", selectedTask.id);
+
+      if (error) throw error;
+
+      toast.success("บันทึกผลการตรวจสอบสำเร็จ");
+      setIsDialogOpen(false);
+      fetchTasks();
+    } catch (error) {
+      console.error("Error submitting inspection:", error);
+      toast.error("เกิดข้อผิดพลาดในการบันทึกผลการตรวจสอบ");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const getStatusBadge = (dueDate: string, status: string) => {
+    if (status === "completed") {
+      return <Badge className="bg-green-500">เสร็จสิ้น</Badge>;
+    }
+
+    const today = new Date();
+    const due = new Date(dueDate);
+    const diffDays = Math.ceil((due.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+
+    if (diffDays < 0) {
+      return <Badge variant="destructive">เกินกำหนด {Math.abs(diffDays)} วัน</Badge>;
+    } else if (diffDays === 0) {
+      return <Badge variant="destructive">ถึงกำหนดวันนี้</Badge>;
+    } else if (diffDays <= 3) {
+      return <Badge className="bg-yellow-500">อีก {diffDays} วัน</Badge>;
+    } else if (diffDays <= 7) {
+      return <Badge className="bg-blue-500">อีก {diffDays} วัน</Badge>;
+    }
+    return <Badge variant="outline">อีก {diffDays} วัน</Badge>;
+  };
+
+  const filteredTasks = tasks.filter(
+    (task) =>
+      task.task_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      task.tool.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      task.tool.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      task.tool.serial_number?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  return (
+    <>
+      <Card>
+        <CardHeader>
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <CardTitle className="flex items-center gap-2">
+              <ClipboardCheck className="h-5 w-5" />
+              งาน PM เครื่องมือ ({filteredTasks.length} รายการ)
+            </CardTitle>
+            <div className="flex gap-2 w-full sm:w-auto">
+              <div className="relative flex-1 sm:w-64">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="ค้นหาหมายเลขงาน, รหัส, ชื่อ..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-9"
+                />
+              </div>
+              <Button variant="outline" size="icon" onClick={fetchTasks}>
+                <RefreshCw className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {isLoading ? (
+            <div className="text-center py-8 text-muted-foreground">กำลังโหลด...</div>
+          ) : filteredTasks.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              {searchTerm ? "ไม่พบงาน PM ที่ค้นหา" : "ไม่มีงาน PM ที่รอดำเนินการ"}
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>หมายเลขงาน</TableHead>
+                    <TableHead>เครื่องมือ</TableHead>
+                    <TableHead>ยี่ห้อ</TableHead>
+                    <TableHead>Serial No.</TableHead>
+                    <TableHead className="text-center">จำนวน</TableHead>
+                    <TableHead>กำหนด PM</TableHead>
+                    <TableHead>สถานะ</TableHead>
+                    <TableHead className="text-center">ดำเนินการ</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredTasks.map((task) => (
+                    <TableRow key={task.id}>
+                      <TableCell className="font-medium">{task.task_number}</TableCell>
+                      <TableCell>
+                        <div>
+                          <div className="font-medium">{task.tool.name}</div>
+                          <div className="text-sm text-muted-foreground">
+                            {task.tool.code}
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        {task.tool.brand || (
+                          <span className="text-muted-foreground">-</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {task.tool.serial_number || (
+                          <span className="text-muted-foreground">-</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        {task.tool.current_quantity} {task.tool.unit}
+                      </TableCell>
+                      <TableCell>
+                        {format(new Date(task.due_date), "dd/MM/yyyy", { locale: th })}
+                      </TableCell>
+                      <TableCell>{getStatusBadge(task.due_date, task.status)}</TableCell>
+                      <TableCell className="text-center">
+                        <Button
+                          size="sm"
+                          onClick={() => openInspectionDialog(task)}
+                        >
+                          <ClipboardCheck className="h-4 w-4 mr-1" />
+                          บันทึกผล
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Inspection Dialog */}
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>บันทึกผลการตรวจสอบ PM</DialogTitle>
+          </DialogHeader>
+
+          {selectedTask && (
+            <div className="space-y-4">
+              {/* Tool Info */}
+              <div className="bg-muted p-4 rounded-lg space-y-2">
+                <div className="grid grid-cols-2 gap-2 text-sm">
+                  <div>
+                    <span className="text-muted-foreground">หมายเลขงาน:</span>{" "}
+                    <span className="font-medium">{selectedTask.task_number}</span>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">รหัสเครื่องมือ:</span>{" "}
+                    <span className="font-medium">{selectedTask.tool.code}</span>
+                  </div>
+                  <div className="col-span-2">
+                    <span className="text-muted-foreground">ชื่อเครื่องมือ:</span>{" "}
+                    <span className="font-medium">{selectedTask.tool.name}</span>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">ยี่ห้อ:</span>{" "}
+                    <span className="font-medium">{selectedTask.tool.brand || "-"}</span>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Serial No.:</span>{" "}
+                    <span className="font-medium">
+                      {selectedTask.tool.serial_number || "-"}
+                    </span>
+                  </div>
+                </div>
+
+                {toolPMTypes.length > 0 && (
+                  <div>
+                    <span className="text-muted-foreground text-sm">ประเภทการ PM:</span>
+                    <div className="flex flex-wrap gap-1 mt-1">
+                      {toolPMTypes.map((type, idx) => (
+                        <Badge key={idx} variant="secondary">
+                          {type}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Form */}
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label>ผลการตรวจสอบ *</Label>
+                  <Select value={pmResultId} onValueChange={setPmResultId}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="เลือกผลการตรวจสอบ" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {pmResults.map((result) => (
+                        <SelectItem key={result.id} value={result.id}>
+                          {result.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>จำนวนที่ตรวจ</Label>
+                  <Input
+                    type="number"
+                    value={quantityChecked}
+                    onChange={(e) => setQuantityChecked(e.target.value)}
+                    min={0}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-2">
+                    <User className="h-4 w-4" />
+                    ชื่อผู้ตรวจ
+                  </Label>
+                  <Input
+                    value={inspectorName}
+                    onChange={(e) => setInspectorName(e.target.value)}
+                    placeholder={user?.email || "กรอกชื่อผู้ตรวจ"}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    หากไม่กรอก จะใช้ชื่อผู้ใช้ที่ Login อยู่
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>หมายเหตุ / ข้อสังเกต</Label>
+                  <Textarea
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value)}
+                    placeholder="กรอกหมายเหตุหรือข้อสังเกตจากการตรวจสอบ"
+                    rows={3}
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
+              ยกเลิก
+            </Button>
+            <Button onClick={handleSubmitInspection} disabled={isSubmitting}>
+              {isSubmitting ? "กำลังบันทึก..." : "บันทึกผลการตรวจ"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+}
