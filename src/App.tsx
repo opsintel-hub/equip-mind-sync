@@ -25,6 +25,8 @@ import PMHistory from "./pages/PMHistory";
 import EquipmentPMSchedule from "./pages/EquipmentPMSchedule";
 import EquipmentPMHistory from "./pages/EquipmentPMHistory";
 import EquipmentPMTasks from "./pages/EquipmentPMTasks";
+import ToolPMTasks from "./pages/ToolPMTasks";
+import ToolPMHistory from "./pages/ToolPMHistory";
 import EquipmentLoans from "./pages/EquipmentLoans";
 import IncompleteIssues from "./pages/IncompleteIssues";
 import BillboardIssueReport from "./pages/BillboardIssueReport";
@@ -84,6 +86,8 @@ const App = () => (
             <Route path="/testing" element={<ProtectedRoute><DashboardLayout><Testing /></DashboardLayout></ProtectedRoute>} />
             <Route path="/stock-movement-log" element={<ProtectedRoute><DashboardLayout><StockMovementLog /></DashboardLayout></ProtectedRoute>} />
             <Route path="/inventory-report" element={<ProtectedRoute><DashboardLayout><InventoryReport /></DashboardLayout></ProtectedRoute>} />
+            <Route path="/tool-pm-tasks" element={<ProtectedRoute><DashboardLayout><ToolPMTasks /></DashboardLayout></ProtectedRoute>} />
+            <Route path="/tool-pm-history" element={<ProtectedRoute><DashboardLayout><ToolPMHistory /></DashboardLayout></ProtectedRoute>} />
             {/* Public billboard view - no auth required */}
             <Route path="/billboard-view/:id" element={<BillboardPublicView />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

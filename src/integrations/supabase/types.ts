@@ -1455,6 +1455,39 @@ export type Database = {
           },
         ]
       }
+      pm_results: {
+        Row: {
+          color: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          color?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       pm_schedules: {
         Row: {
           advance_notice_days: number
@@ -1507,6 +1540,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      pm_types: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       profiles: {
         Row: {
@@ -1853,6 +1916,334 @@ export type Database = {
         }
         Relationships: []
       }
+      tool_categories: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      tool_pm_history: {
+        Row: {
+          completed_by: string | null
+          completed_date: string
+          created_at: string
+          id: string
+          inspector_name: string | null
+          notes: string | null
+          pm_result_id: string | null
+          tool_id: string
+          tool_pm_task_id: string
+        }
+        Insert: {
+          completed_by?: string | null
+          completed_date?: string
+          created_at?: string
+          id?: string
+          inspector_name?: string | null
+          notes?: string | null
+          pm_result_id?: string | null
+          tool_id: string
+          tool_pm_task_id: string
+        }
+        Update: {
+          completed_by?: string | null
+          completed_date?: string
+          created_at?: string
+          id?: string
+          inspector_name?: string | null
+          notes?: string | null
+          pm_result_id?: string | null
+          tool_id?: string
+          tool_pm_task_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tool_pm_history_pm_result_id_fkey"
+            columns: ["pm_result_id"]
+            isOneToOne: false
+            referencedRelation: "pm_results"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tool_pm_history_tool_id_fkey"
+            columns: ["tool_id"]
+            isOneToOne: false
+            referencedRelation: "tools"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tool_pm_history_tool_pm_task_id_fkey"
+            columns: ["tool_pm_task_id"]
+            isOneToOne: false
+            referencedRelation: "tool_pm_tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tool_pm_task_images: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          image_url: string
+          tool_pm_task_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          image_url: string
+          tool_pm_task_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          image_url?: string
+          tool_pm_task_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tool_pm_task_images_tool_pm_task_id_fkey"
+            columns: ["tool_pm_task_id"]
+            isOneToOne: false
+            referencedRelation: "tool_pm_tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tool_pm_tasks: {
+        Row: {
+          created_at: string
+          due_date: string
+          id: string
+          inspected_by: string | null
+          inspection_date: string | null
+          inspection_notes: string | null
+          inspector_name: string | null
+          observation_details: string | null
+          pm_result_id: string | null
+          quantity_checked: number | null
+          status: string
+          task_number: string
+          tool_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          due_date: string
+          id?: string
+          inspected_by?: string | null
+          inspection_date?: string | null
+          inspection_notes?: string | null
+          inspector_name?: string | null
+          observation_details?: string | null
+          pm_result_id?: string | null
+          quantity_checked?: number | null
+          status?: string
+          task_number?: string
+          tool_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          due_date?: string
+          id?: string
+          inspected_by?: string | null
+          inspection_date?: string | null
+          inspection_notes?: string | null
+          inspector_name?: string | null
+          observation_details?: string | null
+          pm_result_id?: string | null
+          quantity_checked?: number | null
+          status?: string
+          task_number?: string
+          tool_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tool_pm_tasks_pm_result_id_fkey"
+            columns: ["pm_result_id"]
+            isOneToOne: false
+            referencedRelation: "pm_results"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tool_pm_tasks_tool_id_fkey"
+            columns: ["tool_id"]
+            isOneToOne: false
+            referencedRelation: "tools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tool_pm_types: {
+        Row: {
+          created_at: string
+          id: string
+          pm_type_id: string
+          tool_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          pm_type_id: string
+          tool_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          pm_type_id?: string
+          tool_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tool_pm_types_pm_type_id_fkey"
+            columns: ["pm_type_id"]
+            isOneToOne: false
+            referencedRelation: "pm_types"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tool_pm_types_tool_id_fkey"
+            columns: ["tool_id"]
+            isOneToOne: false
+            referencedRelation: "tools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tools: {
+        Row: {
+          brand: string | null
+          code: string
+          company_id: string | null
+          created_at: string
+          created_by: string | null
+          current_quantity: number
+          department: string | null
+          description: string | null
+          expiry_date: string | null
+          has_warranty: boolean | null
+          id: string
+          initial_quantity: number
+          is_active: boolean | null
+          location_id: string | null
+          name: string
+          notes: string | null
+          pm_interval_days: number | null
+          serial_number: string | null
+          tool_category_id: string | null
+          unit: string
+          unit_price: number | null
+          updated_at: string
+          warehouse_entry_date: string
+          warranty_expiry_date: string | null
+        }
+        Insert: {
+          brand?: string | null
+          code: string
+          company_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          current_quantity?: number
+          department?: string | null
+          description?: string | null
+          expiry_date?: string | null
+          has_warranty?: boolean | null
+          id?: string
+          initial_quantity?: number
+          is_active?: boolean | null
+          location_id?: string | null
+          name: string
+          notes?: string | null
+          pm_interval_days?: number | null
+          serial_number?: string | null
+          tool_category_id?: string | null
+          unit?: string
+          unit_price?: number | null
+          updated_at?: string
+          warehouse_entry_date?: string
+          warranty_expiry_date?: string | null
+        }
+        Update: {
+          brand?: string | null
+          code?: string
+          company_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          current_quantity?: number
+          department?: string | null
+          description?: string | null
+          expiry_date?: string | null
+          has_warranty?: boolean | null
+          id?: string
+          initial_quantity?: number
+          is_active?: boolean | null
+          location_id?: string | null
+          name?: string
+          notes?: string | null
+          pm_interval_days?: number | null
+          serial_number?: string | null
+          tool_category_id?: string | null
+          unit?: string
+          unit_price?: number | null
+          updated_at?: string
+          warehouse_entry_date?: string
+          warranty_expiry_date?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tools_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tools_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tools_tool_category_id_fkey"
+            columns: ["tool_category_id"]
+            isOneToOne: false
+            referencedRelation: "tool_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_departments: {
         Row: {
           can_create: boolean
@@ -1983,6 +2374,7 @@ export type Database = {
     Functions: {
       generate_equipment_pm_task_number: { Args: never; Returns: string }
       generate_pr_number: { Args: never; Returns: string }
+      generate_tool_pm_task_number: { Args: never; Returns: string }
       has_department_permission: {
         Args: { _department: string; _permission: string; _user_id: string }
         Returns: boolean
