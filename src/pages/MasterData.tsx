@@ -61,7 +61,7 @@ const MasterData = () => {
           </TabsTrigger>
           <TabsTrigger value="purposes" className="gap-2">
             <Target className="h-4 w-4" />
-            วัตถุประสงค์
+            วัตถุประสงค์การเบิก
           </TabsTrigger>
         </TabsList>
 
