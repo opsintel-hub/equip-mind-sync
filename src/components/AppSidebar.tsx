@@ -139,13 +139,16 @@ const menuGroups: MenuGroup[] = [
   {
     label: "เครื่องมือ",
     items: [
+      { title: "ข้อมูลเครื่องมือ", url: "/tool-management", icon: Wrench, functionName: "equipment_pm" },
       { 
         title: "PM เครื่องมือ", 
-        icon: Wrench,
+        icon: Calendar,
         functionName: "equipment_pm",
         subItems: [
           { title: "งาน PM", url: "/tool-pm-tasks", icon: ClipboardList },
+          { title: "ตาราง PM", url: "/tool-pm-schedule", icon: Calendar },
           { title: "ประวัติ PM", url: "/tool-pm-history", icon: History },
+          { title: "รายงาน PM", url: "/tool-pm-report", icon: FileSearch },
         ]
       },
     ]

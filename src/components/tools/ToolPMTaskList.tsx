@@ -29,7 +29,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { RefreshCw, Search, ClipboardCheck, Camera, User } from "lucide-react";
+import { RefreshCw, Search, ClipboardCheck, Camera, User, ImageIcon, X, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { th } from "date-fns/locale";
@@ -84,6 +84,11 @@ export function ToolPMTaskList() {
   const [quantityChecked, setQuantityChecked] = useState("");
   const [notes, setNotes] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  // Image upload state
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [previews, setPreviews] = useState<string[]>([]);
+  const [imageDescription, setImageDescription] = useState("");
 
   useEffect(() => {
     fetchTasks();
@@ -150,8 +155,26 @@ export function ToolPMTaskList() {
     setPmResultId("");
     setQuantityChecked(String(task.tool.current_quantity));
     setNotes("");
+    setSelectedFiles([]);
+    setPreviews([]);
+    setImageDescription("");
     await fetchToolPMTypes(task.tool.id);
     setIsDialogOpen(true);
+  };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+    const newFiles = files.slice(0, 5 - selectedFiles.length);
+    const newPreviews = newFiles.map(file => URL.createObjectURL(file));
+    setSelectedFiles(prev => [...prev, ...newFiles]);
+    setPreviews(prev => [...prev, ...newPreviews]);
+  };
+
+  const removeFile = (index: number) => {
+    URL.revokeObjectURL(previews[index]);
+    setSelectedFiles(prev => prev.filter((_, i) => i !== index));
+    setPreviews(prev => prev.filter((_, i) => i !== index));
   };
 
   const handleSubmitInspection = async () => {
@@ -163,6 +186,7 @@ export function ToolPMTaskList() {
 
     setIsSubmitting(true);
     try {
+      // Update task
       const { error } = await supabase
         .from("tool_pm_tasks")
         .update({
@@ -179,8 +203,38 @@ export function ToolPMTaskList() {
 
       if (error) throw error;
 
+      // Upload images if any
+      if (selectedFiles.length > 0) {
+        for (const file of selectedFiles) {
+          const fileExt = file.name.split('.').pop();
+          const fileName = `${selectedTask.id}/${Date.now()}_${Math.random().toString(36).substr(2, 9)}.${fileExt}`;
+
+          // Try to upload to storage
+          await supabase.storage
+            .from('pm-images')
+            .upload(fileName, file);
+
+          const { data: urlData } = supabase.storage
+            .from('pm-images')
+            .getPublicUrl(fileName);
+
+          // Save to database
+          await supabase
+            .from('tool_pm_task_images')
+            .insert({
+              tool_pm_task_id: selectedTask.id,
+              image_url: urlData.publicUrl || fileName,
+              description: imageDescription || null,
+            });
+        }
+      }
+
       toast.success("บันทึกผลการตรวจสอบสำเร็จ");
       setIsDialogOpen(false);
+      
+      // Cleanup previews
+      previews.forEach(p => URL.revokeObjectURL(p));
+      
       fetchTasks();
     } catch (error) {
       console.error("Error submitting inspection:", error);
@@ -414,6 +468,60 @@ export function ToolPMTaskList() {
                     placeholder="กรอกหมายเหตุหรือข้อสังเกตจากการตรวจสอบ"
                     rows={3}
                   />
+                </div>
+
+                {/* Image Upload Section */}
+                <div className="space-y-2 border-t pt-4">
+                  <Label className="flex items-center gap-2">
+                    <Camera className="h-4 w-4" />
+                    เพิ่มรูปภาพ (สูงสุด 5 รูป)
+                  </Label>
+                  
+                  <Input
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    onChange={handleFileSelect}
+                    className="hidden"
+                    id="pm-image-upload"
+                    disabled={selectedFiles.length >= 5}
+                  />
+                  <label htmlFor="pm-image-upload">
+                    <div className="border-2 border-dashed rounded-lg p-4 text-center cursor-pointer hover:bg-muted/50 transition-colors">
+                      <ImageIcon className="h-6 w-6 mx-auto text-muted-foreground mb-2" />
+                      <p className="text-sm text-muted-foreground">
+                        คลิกเพื่อเลือกรูปภาพ
+                      </p>
+                    </div>
+                  </label>
+
+                  {previews.length > 0 && (
+                    <div className="space-y-3">
+                      <div className="grid grid-cols-3 gap-2">
+                        {previews.map((preview, index) => (
+                          <div key={index} className="relative group">
+                            <img
+                              src={preview}
+                              alt={`Preview ${index + 1}`}
+                              className="w-full h-20 object-cover rounded-lg border"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => removeFile(index)}
+                              className="absolute top-1 right-1 p-1 bg-red-500 rounded-full text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                            >
+                              <X className="h-3 w-3" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                      <Input
+                        value={imageDescription}
+                        onChange={(e) => setImageDescription(e.target.value)}
+                        placeholder="คำอธิบายรูปภาพ (ไม่บังคับ)"
+                      />
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
