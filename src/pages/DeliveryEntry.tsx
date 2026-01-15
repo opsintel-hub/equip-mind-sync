@@ -7,6 +7,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Truck, Search, Package, Clock, CheckCircle2, Upload, FileText, X, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -39,6 +41,11 @@ interface PendingReceipt {
   status: string;
   created_at: string;
   document_url: string | null;
+  is_asset?: boolean;
+  asset_code?: string | null;
+  equipment_id_code?: string | null;
+  waiting_asset_code?: boolean;
+  waiting_equipment_id?: boolean;
 }
 
 const DeliveryEntry = () => {
@@ -68,6 +75,14 @@ const DeliveryEntry = () => {
   const [notes, setNotes] = useState("");
   const [documentFile, setDocumentFile] = useState<File | null>(null);
   const [selectedCompanyId, setSelectedCompanyId] = useState("");
+  
+  // Asset fields
+  const [isAsset, setIsAsset] = useState(false);
+  const [assetCode, setAssetCode] = useState("");
+  const [equipmentIdCode, setEquipmentIdCode] = useState("");
+  const [waitingAssetCode, setWaitingAssetCode] = useState(false);
+  const [waitingEquipmentId, setWaitingEquipmentId] = useState(false);
+  const [depreciationMonths, setDepreciationMonths] = useState("");
 
   useEffect(() => {
     fetchEquipment();
@@ -233,7 +248,13 @@ const DeliveryEntry = () => {
           notes: notes || null,
           document_url: documentUrl,
           company_id: selectedCompanyId,
-          status: "pending"
+          status: "pending",
+          is_asset: isAsset,
+          asset_code: assetCode || null,
+          equipment_id_code: equipmentIdCode || null,
+          waiting_asset_code: waitingAssetCode,
+          waiting_equipment_id: waitingEquipmentId,
+          depreciation_months: depreciationMonths ? parseInt(depreciationMonths) : null,
         });
 
       if (error) throw error;
@@ -258,6 +279,12 @@ const DeliveryEntry = () => {
       setNotes("");
       setDocumentFile(null);
       setSelectedCompanyId("");
+      setIsAsset(false);
+      setAssetCode("");
+      setEquipmentIdCode("");
+      setWaitingAssetCode(false);
+      setWaitingEquipmentId(false);
+      setDepreciationMonths("");
       if (fileInputRef.current) {
         fileInputRef.current.value = "";
       }

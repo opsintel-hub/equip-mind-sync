@@ -43,6 +43,8 @@ import DocumentSearch from "./pages/DocumentSearch";
 import Testing from "./pages/Testing";
 import StockMovementLog from "./pages/StockMovementLog";
 import InventoryReport from "./pages/InventoryReport";
+import PendingAssetCodes from "./pages/PendingAssetCodes";
+import MediaPlayerEntry from "./pages/MediaPlayerEntry";
 import DashboardLayout from "./components/DashboardLayout";
 import ProtectedRoute from "./components/ProtectedRoute";
 import NotFound from "./pages/NotFound";
@@ -94,6 +96,8 @@ const App = () => (
             <Route path="/tool-pm-report" element={<ProtectedRoute><DashboardLayout><ToolPMReport /></DashboardLayout></ProtectedRoute>} />
             <Route path="/tool-pm-schedule" element={<ProtectedRoute><DashboardLayout><ToolPMSchedule /></DashboardLayout></ProtectedRoute>} />
             <Route path="/tool-management" element={<ProtectedRoute><DashboardLayout><ToolManagement /></DashboardLayout></ProtectedRoute>} />
+            <Route path="/pending-asset-codes" element={<ProtectedRoute><DashboardLayout><PendingAssetCodes /></DashboardLayout></ProtectedRoute>} />
+            <Route path="/media-player-entry" element={<ProtectedRoute><DashboardLayout><MediaPlayerEntry /></DashboardLayout></ProtectedRoute>} />
             {/* Public billboard view - no auth required */}
             <Route path="/billboard-view/:id" element={<BillboardPublicView />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

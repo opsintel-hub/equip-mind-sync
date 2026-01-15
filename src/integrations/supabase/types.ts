@@ -257,6 +257,36 @@ export type Database = {
         }
         Relationships: []
       }
+      cms_types: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       companies: {
         Row: {
           code: string
@@ -334,6 +364,7 @@ export type Database = {
       equipment: {
         Row: {
           amp: number | null
+          asset_code: string | null
           brand: string | null
           category: string
           code: string
@@ -341,10 +372,13 @@ export type Database = {
           created_at: string
           created_by: string | null
           department: string | null
+          depreciation_months: number | null
           description: string | null
+          equipment_id_code: string | null
           expiry_date: string | null
           id: string
           is_active: boolean | null
+          is_asset: boolean | null
           location_id: string | null
           lumen: number | null
           lux: number | null
@@ -364,6 +398,7 @@ export type Database = {
         }
         Insert: {
           amp?: number | null
+          asset_code?: string | null
           brand?: string | null
           category: string
           code: string
@@ -371,10 +406,13 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           department?: string | null
+          depreciation_months?: number | null
           description?: string | null
+          equipment_id_code?: string | null
           expiry_date?: string | null
           id?: string
           is_active?: boolean | null
+          is_asset?: boolean | null
           location_id?: string | null
           lumen?: number | null
           lux?: number | null
@@ -394,6 +432,7 @@ export type Database = {
         }
         Update: {
           amp?: number | null
+          asset_code?: string | null
           brand?: string | null
           category?: string
           code?: string
@@ -401,10 +440,13 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           department?: string | null
+          depreciation_months?: number | null
           description?: string | null
+          equipment_id_code?: string | null
           expiry_date?: string | null
           id?: string
           is_active?: boolean | null
+          is_asset?: boolean | null
           location_id?: string | null
           lumen?: number | null
           lux?: number | null
@@ -1072,18 +1114,24 @@ export type Database = {
       }
       goods_receipt_pending: {
         Row: {
+          asset_code: string | null
           company_id: string | null
           created_at: string
           delivery_person_name: string
           delivery_person_phone: string | null
+          depreciation_months: number | null
           document_no: string
           document_url: string | null
           equipment_code: string | null
           equipment_id: string | null
+          equipment_id_code: string | null
           equipment_name: string | null
           expiry_date: string | null
           id: string
+          is_asset: boolean | null
+          is_media_player: boolean | null
           lot_number: string | null
+          media_player_id: string | null
           notes: string | null
           quantity: number
           received_at: string | null
@@ -1098,21 +1146,29 @@ export type Database = {
           unit: string
           unit_price: number | null
           updated_at: string
+          waiting_asset_code: boolean | null
+          waiting_equipment_id: boolean | null
           warranty_expiry_date: string | null
         }
         Insert: {
+          asset_code?: string | null
           company_id?: string | null
           created_at?: string
           delivery_person_name: string
           delivery_person_phone?: string | null
+          depreciation_months?: number | null
           document_no: string
           document_url?: string | null
           equipment_code?: string | null
           equipment_id?: string | null
+          equipment_id_code?: string | null
           equipment_name?: string | null
           expiry_date?: string | null
           id?: string
+          is_asset?: boolean | null
+          is_media_player?: boolean | null
           lot_number?: string | null
+          media_player_id?: string | null
           notes?: string | null
           quantity: number
           received_at?: string | null
@@ -1127,21 +1183,29 @@ export type Database = {
           unit?: string
           unit_price?: number | null
           updated_at?: string
+          waiting_asset_code?: boolean | null
+          waiting_equipment_id?: boolean | null
           warranty_expiry_date?: string | null
         }
         Update: {
+          asset_code?: string | null
           company_id?: string | null
           created_at?: string
           delivery_person_name?: string
           delivery_person_phone?: string | null
+          depreciation_months?: number | null
           document_no?: string
           document_url?: string | null
           equipment_code?: string | null
           equipment_id?: string | null
+          equipment_id_code?: string | null
           equipment_name?: string | null
           expiry_date?: string | null
           id?: string
+          is_asset?: boolean | null
+          is_media_player?: boolean | null
           lot_number?: string | null
+          media_player_id?: string | null
           notes?: string | null
           quantity?: number
           received_at?: string | null
@@ -1156,6 +1220,8 @@ export type Database = {
           unit?: string
           unit_price?: number | null
           updated_at?: string
+          waiting_asset_code?: boolean | null
+          waiting_equipment_id?: boolean | null
           warranty_expiry_date?: string | null
         }
         Relationships: [
@@ -1171,6 +1237,13 @@ export type Database = {
             columns: ["equipment_id"]
             isOneToOne: false
             referencedRelation: "equipment"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "goods_receipt_pending_media_player_id_fkey"
+            columns: ["media_player_id"]
+            isOneToOne: false
+            referencedRelation: "media_players"
             referencedColumns: ["id"]
           },
           {
@@ -1338,6 +1411,140 @@ export type Database = {
             columns: ["equipment_id"]
             isOneToOne: false
             referencedRelation: "equipment"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      media_players: {
+        Row: {
+          asset_code: string | null
+          billboard_id: string | null
+          brand: string | null
+          cms_type_id: string | null
+          code: string
+          company_id: string | null
+          created_at: string
+          created_by: string | null
+          department: string | null
+          depreciation_months: number | null
+          description: string | null
+          equipment_id_code: string | null
+          group_led: string | null
+          id: string
+          id_display: string | null
+          install_date: string | null
+          is_active: boolean | null
+          is_asset: boolean | null
+          led_control: string | null
+          location_id: string | null
+          name: string
+          notes: string | null
+          quantity: number
+          serial_number_1: string | null
+          serial_number_2: string | null
+          specification: string | null
+          unit: string
+          unit_price: number | null
+          updated_at: string
+          waiting_asset_code: boolean | null
+          waiting_equipment_id: boolean | null
+          warranty_expiry_date: string | null
+        }
+        Insert: {
+          asset_code?: string | null
+          billboard_id?: string | null
+          brand?: string | null
+          cms_type_id?: string | null
+          code: string
+          company_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          department?: string | null
+          depreciation_months?: number | null
+          description?: string | null
+          equipment_id_code?: string | null
+          group_led?: string | null
+          id?: string
+          id_display?: string | null
+          install_date?: string | null
+          is_active?: boolean | null
+          is_asset?: boolean | null
+          led_control?: string | null
+          location_id?: string | null
+          name: string
+          notes?: string | null
+          quantity?: number
+          serial_number_1?: string | null
+          serial_number_2?: string | null
+          specification?: string | null
+          unit?: string
+          unit_price?: number | null
+          updated_at?: string
+          waiting_asset_code?: boolean | null
+          waiting_equipment_id?: boolean | null
+          warranty_expiry_date?: string | null
+        }
+        Update: {
+          asset_code?: string | null
+          billboard_id?: string | null
+          brand?: string | null
+          cms_type_id?: string | null
+          code?: string
+          company_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          department?: string | null
+          depreciation_months?: number | null
+          description?: string | null
+          equipment_id_code?: string | null
+          group_led?: string | null
+          id?: string
+          id_display?: string | null
+          install_date?: string | null
+          is_active?: boolean | null
+          is_asset?: boolean | null
+          led_control?: string | null
+          location_id?: string | null
+          name?: string
+          notes?: string | null
+          quantity?: number
+          serial_number_1?: string | null
+          serial_number_2?: string | null
+          specification?: string | null
+          unit?: string
+          unit_price?: number | null
+          updated_at?: string
+          waiting_asset_code?: boolean | null
+          waiting_equipment_id?: boolean | null
+          warranty_expiry_date?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "media_players_billboard_id_fkey"
+            columns: ["billboard_id"]
+            isOneToOne: false
+            referencedRelation: "billboards"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "media_players_cms_type_id_fkey"
+            columns: ["cms_type_id"]
+            isOneToOne: false
+            referencedRelation: "cms_types"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "media_players_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "media_players_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
             referencedColumns: ["id"]
           },
         ]
