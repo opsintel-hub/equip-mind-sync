@@ -124,7 +124,7 @@ export function CategorySelect({ value, onChange, disabled }: CategorySelectProp
           <SelectTrigger>
             <SelectValue placeholder="เลือกหมวดหมู่" />
           </SelectTrigger>
-          <SelectContent position="popper" sideOffset={4} className="bg-background z-[200] max-h-60 overflow-y-auto">
+          <SelectContent position="popper" sideOffset={4} className="bg-background z-[9999] max-h-60 overflow-y-auto">
             {categories.map((cat) => (
               <SelectItem key={cat.id} value={cat.name}>
                 {cat.name}
