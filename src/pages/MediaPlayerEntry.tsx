@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
-import { Monitor, Search, Plus, Loader2, Settings, Trash2, Edit } from "lucide-react";
+import { Monitor, Search, Plus, Loader2, Settings, Trash2, Edit, MapPin, Unplug } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
@@ -23,6 +23,12 @@ interface CMSType {
   name: string;
   description: string | null;
   is_active: boolean;
+}
+
+interface Billboard {
+  id: string;
+  equipment_id: string;
+  location_name: string | null;
 }
 
 interface MediaPlayer {
@@ -45,17 +51,18 @@ interface MediaPlayer {
   brand: string | null;
   quantity: number;
   unit: string;
-  unit_price: number;
+  unit_price: number | null;
   depreciation_months: number | null;
   warranty_expiry_date: string | null;
-  is_asset: boolean;
+  is_asset: boolean | null;
   asset_code: string | null;
   equipment_id_code: string | null;
-  waiting_asset_code: boolean;
-  waiting_equipment_id: boolean;
+  waiting_asset_code: boolean | null;
+  waiting_equipment_id: boolean | null;
   notes: string | null;
-  is_active: boolean;
+  is_active: boolean | null;
   created_at: string;
+  billboard?: Billboard;
 }
 
 const MediaPlayerEntry = () => {
@@ -66,6 +73,10 @@ const MediaPlayerEntry = () => {
   const [isCMSDialogOpen, setIsCMSDialogOpen] = useState(false);
   const [isFormDialogOpen, setIsFormDialogOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isInstallDialogOpen, setIsInstallDialogOpen] = useState(false);
+  const [selectedPlayer, setSelectedPlayer] = useState<MediaPlayer | null>(null);
+  const [installBillboardId, setInstallBillboardId] = useState("");
+  const [installDate, setInstallDate] = useState("");
   
   // CMS Type form
   const [newCMSName, setNewCMSName] = useState("");
@@ -123,12 +134,15 @@ const MediaPlayerEntry = () => {
     setIsLoading(true);
     const { data, error } = await supabase
       .from("media_players")
-      .select("*")
+      .select(`
+        *,
+        billboard:billboards(id, equipment_id, location_name)
+      `)
       .eq("is_active", true)
       .order("created_at", { ascending: false });
     
     if (!error && data) {
-      setMediaPlayers(data);
+      setMediaPlayers(data as MediaPlayer[]);
     }
     setIsLoading(false);
   };
@@ -300,6 +314,74 @@ const MediaPlayerEntry = () => {
   const getCMSTypeName = (id: string | null) => {
     const cms = cmsTypes.find(c => c.id === id);
     return cms?.name || "-";
+  };
+
+  const handleOpenInstallDialog = (player: MediaPlayer) => {
+    setSelectedPlayer(player);
+    setInstallBillboardId(player.billboard_id || "");
+    setInstallDate(player.install_date || format(new Date(), "yyyy-MM-dd"));
+    setIsInstallDialogOpen(true);
+  };
+
+  const handleInstallToBillboard = async () => {
+    if (!selectedPlayer) return;
+    
+    if (!installBillboardId) {
+      toast.error("กรุณาเลือกป้ายโฆษณา");
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      const { error } = await supabase
+        .from("media_players")
+        .update({
+          billboard_id: installBillboardId,
+          install_date: installDate || null,
+        })
+        .eq("id", selectedPlayer.id);
+
+      if (error) throw error;
+
+      toast.success("บันทึกการติดตั้งสำเร็จ");
+      setIsInstallDialogOpen(false);
+      setSelectedPlayer(null);
+      fetchMediaPlayers();
+    } catch (error) {
+      console.error("Error:", error);
+      toast.error("เกิดข้อผิดพลาดในการบันทึก");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleUninstallFromBillboard = async (player: MediaPlayer) => {
+    if (!confirm(`ต้องการยกเลิกการติดตั้ง ${player.name} จากป้ายโฆษณา?`)) return;
+
+    try {
+      const { error } = await supabase
+        .from("media_players")
+        .update({
+          billboard_id: null,
+          install_date: null,
+        })
+        .eq("id", player.id);
+
+      if (error) throw error;
+
+      toast.success("ยกเลิกการติดตั้งสำเร็จ");
+      fetchMediaPlayers();
+    } catch (error) {
+      console.error("Error:", error);
+      toast.error("เกิดข้อผิดพลาด");
+    }
+  };
+
+  const getBillboardDisplay = (player: MediaPlayer) => {
+    if (!player.billboard_id) return null;
+    const billboard = player.billboard;
+    if (!billboard) return player.billboard_id;
+    return billboard.location_name || billboard.equipment_id;
   };
 
   return (
@@ -633,6 +715,45 @@ const MediaPlayerEntry = () => {
             </div>
           </DialogContent>
         </Dialog>
+
+        {/* Install to Billboard Dialog */}
+        <Dialog open={isInstallDialogOpen} onOpenChange={setIsInstallDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>ติดตั้งที่ป้ายโฆษณา</DialogTitle>
+              <DialogDescription>
+                เลือกป้ายโฆษณาที่ต้องการติดตั้ง {selectedPlayer?.name}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label>ป้ายโฆษณา *</Label>
+                <BillboardSelect
+                  value={installBillboardId}
+                  onChange={setInstallBillboardId}
+                  placeholder="เลือกป้ายโฆษณา"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>วันที่ติดตั้ง</Label>
+                <Input
+                  type="date"
+                  value={installDate}
+                  onChange={(e) => setInstallDate(e.target.value)}
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsInstallDialogOpen(false)}>
+                ยกเลิก
+              </Button>
+              <Button onClick={handleInstallToBillboard} disabled={isSaving}>
+                {isSaving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                บันทึก
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
 
       {/* Table */}
@@ -671,12 +792,13 @@ const MediaPlayerEntry = () => {
                     <TableHead>รหัสทรัพย์สิน</TableHead>
                     <TableHead>ป้ายโฆษณา</TableHead>
                     <TableHead>สถานะ</TableHead>
+                    <TableHead className="text-right">จัดการ</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {filteredPlayers.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                      <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
                         ยังไม่มีข้อมูล Media Player
                       </TableCell>
                     </TableRow>
@@ -692,11 +814,42 @@ const MediaPlayerEntry = () => {
                             <Badge variant="secondary" className="bg-warning/10 text-warning">รอรหัส</Badge>
                           ) : player.asset_code || "-"}
                         </TableCell>
-                        <TableCell className="text-sm">{player.billboard_id ? "มี" : "-"}</TableCell>
+                        <TableCell className="text-sm">
+                          {getBillboardDisplay(player) ? (
+                            <div className="flex items-center gap-1">
+                              <MapPin className="w-3 h-3 text-primary" />
+                              <span className="truncate max-w-[120px]">{getBillboardDisplay(player)}</span>
+                            </div>
+                          ) : (
+                            <span className="text-muted-foreground">ยังไม่ติดตั้ง</span>
+                          )}
+                        </TableCell>
                         <TableCell>
                           <Badge variant={player.is_active ? "secondary" : "outline"}>
                             {player.is_active ? "ใช้งาน" : "ไม่ใช้งาน"}
                           </Badge>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex items-center justify-end gap-1">
+                            {player.billboard_id ? (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleUninstallFromBillboard(player)}
+                                title="ถอดออกจากป้าย"
+                              >
+                                <Unplug className="w-4 h-4 text-destructive" />
+                              </Button>
+                            ) : null}
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleOpenInstallDialog(player)}
+                              title="ติดตั้งที่ป้าย"
+                            >
+                              <MapPin className="w-4 h-4 text-primary" />
+                            </Button>
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))

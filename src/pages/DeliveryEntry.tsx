@@ -497,6 +497,97 @@ const DeliveryEntry = () => {
               </div>
             </div>
 
+            {/* Asset Information */}
+            <div className="p-4 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-lg space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <h3 className="font-medium text-sm text-amber-700 dark:text-amber-400">ข้อมูลทรัพย์สิน</h3>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Label htmlFor="isAsset" className="text-sm text-amber-700 dark:text-amber-400">สินค้านี้เป็นทรัพย์สิน?</Label>
+                  <Switch
+                    id="isAsset"
+                    checked={isAsset}
+                    onCheckedChange={setIsAsset}
+                  />
+                </div>
+              </div>
+
+              {isAsset && (
+                <div className="space-y-4 pt-2 border-t border-amber-200 dark:border-amber-800">
+                  <p className="text-xs text-amber-600 dark:text-amber-500">
+                    สินค้าที่เป็นทรัพย์สินต้องระบุรหัสทรัพย์สินและ Equipment ID หากยังไม่มีรหัส สามารถเลือก "รอรหัส" ได้
+                  </p>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <Label htmlFor="assetCode">รหัสทรัพย์สิน *</Label>
+                        <div className="flex items-center gap-2">
+                          <Checkbox
+                            id="waitingAssetCode"
+                            checked={waitingAssetCode}
+                            onCheckedChange={(checked) => {
+                              setWaitingAssetCode(checked === true);
+                              if (checked) setAssetCode("");
+                            }}
+                          />
+                          <Label htmlFor="waitingAssetCode" className="text-xs text-muted-foreground">รอรหัสทรัพย์สิน</Label>
+                        </div>
+                      </div>
+                      <Input 
+                        id="assetCode" 
+                        placeholder="รหัสทรัพย์สิน"
+                        value={assetCode}
+                        onChange={(e) => setAssetCode(e.target.value)}
+                        disabled={waitingAssetCode}
+                        required={isAsset && !waitingAssetCode}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <Label htmlFor="equipmentIdCode">Equipment ID *</Label>
+                        <div className="flex items-center gap-2">
+                          <Checkbox
+                            id="waitingEquipmentId"
+                            checked={waitingEquipmentId}
+                            onCheckedChange={(checked) => {
+                              setWaitingEquipmentId(checked === true);
+                              if (checked) setEquipmentIdCode("");
+                            }}
+                          />
+                          <Label htmlFor="waitingEquipmentId" className="text-xs text-muted-foreground">รอ Equipment ID</Label>
+                        </div>
+                      </div>
+                      <Input 
+                        id="equipmentIdCode" 
+                        placeholder="Equipment ID"
+                        value={equipmentIdCode}
+                        onChange={(e) => setEquipmentIdCode(e.target.value)}
+                        disabled={waitingEquipmentId}
+                        required={isAsset && !waitingEquipmentId}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="depreciationMonths">ระยะเวลาค่าเสื่อม (เดือน) *</Label>
+                    <Input 
+                      id="depreciationMonths" 
+                      type="number"
+                      placeholder="จำนวนเดือน เช่น 60"
+                      value={depreciationMonths}
+                      onChange={(e) => setDepreciationMonths(e.target.value)}
+                      required={isAsset}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      ระบุระยะเวลาในการคิดค่าเสื่อมราคาของทรัพย์สิน (เช่น 60 เดือน = 5 ปี)
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+
             {/* Expiry Dates */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
