@@ -213,16 +213,26 @@ export function SubcategorySelect({ categoryName, value, onChange, disabled }: S
   return (
     <div className="flex gap-2">
       <div className="flex-1">
-        <Select value={value} onValueChange={onChange} disabled={disabled || !categoryName}>
+      <Select value={value} onValueChange={onChange} disabled={disabled || !categoryName}>
           <SelectTrigger>
             <SelectValue placeholder={categoryName ? "เลือกหมวดหมู่ย่อย" : "เลือกหมวดหมู่หลักก่อน"} />
           </SelectTrigger>
-          <SelectContent position="popper" sideOffset={4} className="bg-background z-[200] max-h-60 overflow-y-auto">
-            {subcategories.map((sub) => (
-              <SelectItem key={sub.id} value={sub.id}>
-                {sub.name}
+          <SelectContent 
+            position="popper" 
+            sideOffset={4} 
+            className="bg-background z-[9999] max-h-60 overflow-y-auto"
+          >
+            {subcategories.length === 0 ? (
+              <SelectItem value="no-data" disabled>
+                ไม่มีหมวดหมู่ย่อย
               </SelectItem>
-            ))}
+            ) : (
+              subcategories.map((sub) => (
+                <SelectItem key={sub.id} value={sub.id}>
+                  {sub.name}
+                </SelectItem>
+              ))
+            )}
           </SelectContent>
         </Select>
       </div>

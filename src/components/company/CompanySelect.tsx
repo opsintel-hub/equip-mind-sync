@@ -75,7 +75,7 @@ export function CompanySelect({
       <SelectTrigger>
         <SelectValue placeholder={isLoading ? "กำลังโหลด..." : placeholder} />
       </SelectTrigger>
-      <SelectContent position="popper" sideOffset={4} className="bg-background z-[200] max-h-60 overflow-y-auto">
+      <SelectContent position="popper" sideOffset={4} className="bg-background z-[9999] max-h-60 overflow-y-auto">
         {companies.length === 0 ? (
           <SelectItem value="no-data" disabled>
             ไม่พบบริษัท
