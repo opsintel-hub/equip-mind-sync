@@ -1,13 +1,6 @@
 import { useState, useEffect } from "react";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
-import { Badge } from "@/components/ui/badge";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 
 interface Company {
   id: string;
@@ -70,32 +63,22 @@ export function CompanySelect({
     setIsLoading(false);
   };
 
+  const options = companies.map((company) => ({
+    value: company.id,
+    label: `${company.code} - ${company.name}`,
+    description: company.departments && !departmentId ? company.departments.name : undefined,
+  }));
+
   return (
-    <Select value={value} onValueChange={onChange} disabled={disabled || isLoading}>
-      <SelectTrigger>
-        <SelectValue placeholder={isLoading ? "กำลังโหลด..." : placeholder} />
-      </SelectTrigger>
-      <SelectContent position="popper" sideOffset={4} className="bg-background z-[9999] max-h-60 overflow-y-auto">
-        {companies.length === 0 ? (
-          <SelectItem value="no-data" disabled>
-            ไม่พบบริษัท
-          </SelectItem>
-        ) : (
-          companies.map((company) => (
-            <SelectItem key={company.id} value={company.id}>
-              <div className="flex items-center gap-2">
-                <span className="font-medium">{company.code}</span>
-                <span>- {company.name}</span>
-                {company.departments && !departmentId && (
-                  <Badge variant="outline" className="text-xs">
-                    {company.departments.name}
-                  </Badge>
-                )}
-              </div>
-            </SelectItem>
-          ))
-        )}
-      </SelectContent>
-    </Select>
+    <SearchableSelect
+      options={options}
+      value={value}
+      onValueChange={onChange}
+      placeholder={placeholder}
+      searchPlaceholder="ค้นหาบริษัท..."
+      emptyMessage="ไม่พบบริษัท"
+      disabled={disabled}
+      isLoading={isLoading}
+    />
   );
 }

@@ -1,13 +1,14 @@
 import { useState, useEffect } from "react";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 
 interface LocationSelectProps {
   value: string;
   onChange: (value: string) => void;
+  disabled?: boolean;
 }
 
-export function LocationSelect({ value, onChange }: LocationSelectProps) {
+export function LocationSelect({ value, onChange, disabled }: LocationSelectProps) {
   const [locations, setLocations] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -32,28 +33,21 @@ export function LocationSelect({ value, onChange }: LocationSelectProps) {
     }
   };
 
-  if (loading) {
-    return (
-      <Select disabled>
-        <SelectTrigger>
-          <SelectValue placeholder="กำลังโหลด..." />
-        </SelectTrigger>
-      </Select>
-    );
-  }
+  const options = locations.map((location) => ({
+    value: location.id,
+    label: `${location.code} - ${location.name}`,
+  }));
 
   return (
-    <Select value={value} onValueChange={onChange}>
-      <SelectTrigger>
-        <SelectValue placeholder="เลือกตำแหน่ง" />
-      </SelectTrigger>
-      <SelectContent position="popper" sideOffset={4} className="bg-background z-[200] max-h-60 overflow-y-auto">
-        {locations.map((location) => (
-          <SelectItem key={location.id} value={location.id}>
-            {location.code} - {location.name}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
+    <SearchableSelect
+      options={options}
+      value={value}
+      onValueChange={onChange}
+      placeholder="เลือกตำแหน่ง"
+      searchPlaceholder="ค้นหาตำแหน่ง..."
+      emptyMessage="ไม่พบตำแหน่ง"
+      disabled={disabled}
+      isLoading={loading}
+    />
   );
 }

@@ -3,11 +3,11 @@ import { Settings, Plus, Pencil, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 
 interface Category {
   id: string;
@@ -117,21 +117,24 @@ export function CategorySelect({ value, onChange, disabled }: CategorySelectProp
     setFormData({ name: "", description: "" });
   };
 
+  const options = categories.map((cat) => ({
+    value: cat.name,
+    label: cat.name,
+    description: cat.description || undefined,
+  }));
+
   return (
     <div className="flex gap-2">
       <div className="flex-1">
-        <Select value={value} onValueChange={onChange} disabled={disabled}>
-          <SelectTrigger>
-            <SelectValue placeholder="เลือกหมวดหมู่" />
-          </SelectTrigger>
-          <SelectContent position="popper" sideOffset={4} className="bg-background z-[9999] max-h-60 overflow-y-auto">
-            {categories.map((cat) => (
-              <SelectItem key={cat.id} value={cat.name}>
-                {cat.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <SearchableSelect
+          options={options}
+          value={value}
+          onValueChange={onChange}
+          placeholder="เลือกหมวดหมู่"
+          searchPlaceholder="ค้นหาหมวดหมู่..."
+          emptyMessage="ไม่พบหมวดหมู่"
+          disabled={disabled}
+        />
       </div>
 
       <Dialog open={manageOpen} onOpenChange={setManageOpen}>

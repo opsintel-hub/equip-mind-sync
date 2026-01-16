@@ -1,14 +1,15 @@
 import { useQuery } from "@tanstack/react-query";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 
 interface BillboardSelectProps {
   value: string;
   onChange: (value: string) => void;
   placeholder?: string;
+  disabled?: boolean;
 }
 
-const BillboardSelect = ({ value, onChange, placeholder = "เลือกป้ายโฆษณา" }: BillboardSelectProps) => {
+const BillboardSelect = ({ value, onChange, placeholder = "เลือกป้ายโฆษณา", disabled }: BillboardSelectProps) => {
   const { data: billboards, isLoading } = useQuery({
     queryKey: ["billboards-select"],
     queryFn: async () => {
@@ -23,24 +24,26 @@ const BillboardSelect = ({ value, onChange, placeholder = "เลือกป้
     },
   });
 
+  const options = [
+    { value: "__none__", label: "ไม่ระบุ" },
+    ...(billboards?.map((b) => ({
+      value: b.id,
+      label: `${b.equipment_id}${b.location_name ? ` - ${b.location_name}` : ""}`,
+      description: b.department || undefined,
+    })) || []),
+  ];
+
   return (
-    <Select value={value || "__none__"} onValueChange={(v) => onChange(v === "__none__" ? "" : v)}>
-      <SelectTrigger>
-        <SelectValue placeholder={placeholder} />
-      </SelectTrigger>
-      <SelectContent position="popper" sideOffset={4} className="bg-background z-[200] max-h-60 overflow-y-auto">
-        <SelectItem value="__none__">ไม่ระบุ</SelectItem>
-        {isLoading ? (
-          <SelectItem value="__loading__" disabled>กำลังโหลด...</SelectItem>
-        ) : (
-          billboards?.map((b) => (
-            <SelectItem key={b.id} value={b.id}>
-              {b.equipment_id} {b.location_name ? `- ${b.location_name}` : ""}
-            </SelectItem>
-          ))
-        )}
-      </SelectContent>
-    </Select>
+    <SearchableSelect
+      options={options}
+      value={value || "__none__"}
+      onValueChange={(v) => onChange(v === "__none__" ? "" : v)}
+      placeholder={placeholder}
+      searchPlaceholder="ค้นหาป้ายโฆษณา..."
+      emptyMessage="ไม่พบป้ายโฆษณา"
+      disabled={disabled}
+      isLoading={isLoading}
+    />
   );
 };
 

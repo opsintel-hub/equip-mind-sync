@@ -3,11 +3,11 @@ import { Settings2, Pencil, Trash2, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 
 interface Location {
   id: string;
@@ -125,21 +125,26 @@ export function LocationSelect({ value, onChange, disabled }: LocationSelectProp
     }
   };
 
+  const options = locations.map((loc) => ({
+    value: loc.id,
+    label: `${loc.code} - ${loc.name}`,
+    description: loc.description || undefined,
+  }));
+
   return (
     <>
       <div className="flex gap-2">
-        <Select value={value} onValueChange={onChange} disabled={disabled}>
-          <SelectTrigger className="flex-1">
-            <SelectValue placeholder="เลือกคลังสินค้า" />
-          </SelectTrigger>
-          <SelectContent position="popper" sideOffset={4} className="bg-background z-[200] max-h-60 overflow-y-auto">
-            {locations.map((loc) => (
-              <SelectItem key={loc.id} value={loc.id}>
-                {loc.code} - {loc.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <div className="flex-1">
+          <SearchableSelect
+            options={options}
+            value={value}
+            onValueChange={onChange}
+            placeholder="เลือกคลังสินค้า"
+            searchPlaceholder="ค้นหาคลังสินค้า..."
+            emptyMessage="ไม่พบคลังสินค้า"
+            disabled={disabled}
+          />
+        </div>
         <Button
           type="button"
           variant="outline"

@@ -1,5 +1,5 @@
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useDepartmentPermissions } from "@/hooks/useDepartmentPermissions";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 
 interface DepartmentFilterProps {
   value: string;
@@ -9,32 +9,29 @@ interface DepartmentFilterProps {
 
 export function DepartmentFilter({ value, onChange, showAll = true }: DepartmentFilterProps) {
   const { getViewableDepartments, isAdmin, loading } = useDepartmentPermissions();
-  
-  if (loading) {
-    return (
-      <Select disabled value={value}>
-        <SelectTrigger className="w-[200px]">
-          <SelectValue placeholder="กำลังโหลด..." />
-        </SelectTrigger>
-      </Select>
-    );
-  }
 
   const viewableDepartments = getViewableDepartments();
 
+  const options = [
+    ...((showAll || isAdmin) ? [{ value: "all", label: "ทุกฝ่าย" }] : []),
+    ...viewableDepartments.map((dept) => ({
+      value: dept,
+      label: dept,
+    })),
+  ];
+
   return (
-    <Select value={value} onValueChange={onChange}>
-      <SelectTrigger className="w-[200px]">
-        <SelectValue placeholder="เลือกฝ่าย" />
-      </SelectTrigger>
-      <SelectContent position="popper" sideOffset={4} className="bg-background z-[200] max-h-60 overflow-y-auto">
-        {(showAll || isAdmin) && <SelectItem value="all">ทุกฝ่าย</SelectItem>}
-        {viewableDepartments.map((dept) => (
-          <SelectItem key={dept} value={dept}>
-            {dept}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
+    <div className="w-[200px]">
+      <SearchableSelect
+        options={options}
+        value={value}
+        onValueChange={onChange}
+        placeholder="เลือกฝ่าย"
+        searchPlaceholder="ค้นหาฝ่าย..."
+        emptyMessage="ไม่พบฝ่าย"
+        isLoading={loading}
+        triggerClassName="w-full"
+      />
+    </div>
   );
 }

@@ -2,13 +2,6 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -30,6 +23,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Settings, Plus, Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 
 interface StorageSlot {
   id: string;
@@ -153,20 +147,25 @@ export function StorageSlotSelect({ value, onChange, locationId, disabled }: Sto
     fetchSlots();
   };
 
+  const options = slots.map((slot) => ({
+    value: slot.id,
+    label: slot.name,
+    description: slot.description || undefined,
+  }));
+
   return (
     <div className="flex gap-2">
-      <Select value={value} onValueChange={onChange} disabled={disabled || !locationId}>
-        <SelectTrigger>
-          <SelectValue placeholder={locationId ? "เลือกช่องจัดเก็บ" : "เลือกตำแหน่งก่อน"} />
-        </SelectTrigger>
-        <SelectContent position="popper" sideOffset={4} className="bg-background z-[200] max-h-60 overflow-y-auto">
-          {slots.map((slot) => (
-            <SelectItem key={slot.id} value={slot.id}>
-              {slot.name}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+      <div className="flex-1">
+        <SearchableSelect
+          options={options}
+          value={value || ""}
+          onValueChange={onChange}
+          placeholder={locationId ? "เลือกช่องจัดเก็บ" : "เลือกตำแหน่งก่อน"}
+          searchPlaceholder="ค้นหาช่องจัดเก็บ..."
+          emptyMessage="ไม่พบช่องจัดเก็บ"
+          disabled={disabled || !locationId}
+        />
+      </div>
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogTrigger asChild>
