@@ -3,11 +3,11 @@ import { Settings, Plus, Pencil, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 
 interface Subcategory {
   id: string;
@@ -210,31 +210,29 @@ export function SubcategorySelect({ categoryName, value, onChange, disabled }: S
     }
   };
 
+  const options = subcategories.map((sub) => ({
+    value: sub.id,
+    label: sub.name,
+    description: sub.description || undefined,
+  }));
+
+  const categoryOptions = categories.map((cat) => ({
+    value: cat.id,
+    label: cat.name,
+  }));
+
   return (
     <div className="flex gap-2">
       <div className="flex-1">
-      <Select value={value} onValueChange={onChange} disabled={disabled || !categoryName}>
-          <SelectTrigger>
-            <SelectValue placeholder={categoryName ? "เลือกหมวดหมู่ย่อย" : "เลือกหมวดหมู่หลักก่อน"} />
-          </SelectTrigger>
-          <SelectContent 
-            position="popper" 
-            sideOffset={4} 
-            className="bg-background z-[9999] max-h-60 overflow-y-auto"
-          >
-            {subcategories.length === 0 ? (
-              <SelectItem value="no-data" disabled>
-                ไม่มีหมวดหมู่ย่อย
-              </SelectItem>
-            ) : (
-              subcategories.map((sub) => (
-                <SelectItem key={sub.id} value={sub.id}>
-                  {sub.name}
-                </SelectItem>
-              ))
-            )}
-          </SelectContent>
-        </Select>
+        <SearchableSelect
+          options={options}
+          value={value}
+          onValueChange={onChange}
+          placeholder={categoryName ? "เลือกหมวดหมู่ย่อย" : "เลือกหมวดหมู่หลักก่อน"}
+          searchPlaceholder="ค้นหาหมวดหมู่ย่อย..."
+          emptyMessage="ไม่มีหมวดหมู่ย่อย"
+          disabled={disabled || !categoryName}
+        />
       </div>
 
       <Dialog open={manageOpen} onOpenChange={handleManageOpen}>
@@ -255,22 +253,15 @@ export function SubcategorySelect({ categoryName, value, onChange, disabled }: S
               </h3>
               <div className="space-y-2">
                 <Label>หมวดหมู่หลัก *</Label>
-                <Select
+                <SearchableSelect
+                  options={categoryOptions}
                   value={formData.category_id}
                   onValueChange={(val) => setFormData({ ...formData, category_id: val })}
+                  placeholder="เลือกหมวดหมู่หลัก"
+                  searchPlaceholder="ค้นหาหมวดหมู่..."
+                  emptyMessage="ไม่พบหมวดหมู่"
                   disabled={isLoading}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="เลือกหมวดหมู่หลัก" />
-                  </SelectTrigger>
-                  <SelectContent position="popper" sideOffset={4} className="bg-background z-[200] max-h-60 overflow-y-auto">
-                    {categories.map((cat) => (
-                      <SelectItem key={cat.id} value={cat.id}>
-                        {cat.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                />
               </div>
               <div className="space-y-2">
                 <Label>ชื่อหมวดหมู่ย่อย *</Label>

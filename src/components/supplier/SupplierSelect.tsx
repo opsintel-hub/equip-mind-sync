@@ -3,11 +3,11 @@ import { Settings, Plus, Pencil, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 
 interface Supplier {
   id: string;
@@ -158,21 +158,24 @@ export function SupplierSelect({ value, onChange, disabled }: SupplierSelectProp
     onChange(selectedName, selectedSupplier?.id);
   };
 
+  const options = suppliers.map((supplier) => ({
+    value: supplier.name,
+    label: `${supplier.code} - ${supplier.name}`,
+    description: supplier.contact_person ? `ติดต่อ: ${supplier.contact_person}` : undefined,
+  }));
+
   return (
     <div className="flex gap-2">
       <div className="flex-1">
-        <Select value={value} onValueChange={handleSelectChange} disabled={disabled}>
-          <SelectTrigger>
-            <SelectValue placeholder="เลือกผู้จำหน่าย" />
-          </SelectTrigger>
-          <SelectContent position="popper" sideOffset={4} className="bg-background z-[200] max-h-60 overflow-y-auto">
-            {suppliers.map((supplier) => (
-              <SelectItem key={supplier.id} value={supplier.name}>
-                {supplier.code} - {supplier.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <SearchableSelect
+          options={options}
+          value={value}
+          onValueChange={handleSelectChange}
+          placeholder="เลือกผู้จำหน่าย"
+          searchPlaceholder="ค้นหาผู้จำหน่าย..."
+          emptyMessage="ไม่พบผู้จำหน่าย"
+          disabled={disabled}
+        />
       </div>
 
       <Dialog open={manageOpen} onOpenChange={setManageOpen}>

@@ -2,13 +2,6 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -30,6 +23,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Settings, Plus, Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 
 interface SubStorageSlot {
   id: string;
@@ -153,20 +147,25 @@ export function SubStorageSlotSelect({ value, onChange, storageSlotId, disabled 
     fetchSubSlots();
   };
 
+  const options = subSlots.map((subSlot) => ({
+    value: subSlot.id,
+    label: subSlot.name,
+    description: subSlot.description || undefined,
+  }));
+
   return (
     <div className="flex gap-2">
-      <Select value={value} onValueChange={onChange} disabled={disabled || !storageSlotId}>
-        <SelectTrigger>
-          <SelectValue placeholder={storageSlotId ? "เลือกช่องย่อยจัดเก็บ (ไม่บังคับ)" : "เลือกช่องจัดเก็บก่อน"} />
-        </SelectTrigger>
-        <SelectContent position="popper" sideOffset={4} className="bg-background z-[200] max-h-60 overflow-y-auto">
-          {subSlots.map((subSlot) => (
-            <SelectItem key={subSlot.id} value={subSlot.id}>
-              {subSlot.name}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+      <div className="flex-1">
+        <SearchableSelect
+          options={options}
+          value={value || ""}
+          onValueChange={onChange}
+          placeholder={storageSlotId ? "เลือกช่องย่อยจัดเก็บ (ไม่บังคับ)" : "เลือกช่องจัดเก็บก่อน"}
+          searchPlaceholder="ค้นหาช่องย่อยจัดเก็บ..."
+          emptyMessage="ไม่พบช่องย่อยจัดเก็บ"
+          disabled={disabled || !storageSlotId}
+        />
+      </div>
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogTrigger asChild>

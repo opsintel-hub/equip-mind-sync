@@ -2,11 +2,11 @@ import { useState, useEffect } from "react";
 import { Settings2, Pencil, Trash2, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 
 interface Department {
   id: string;
@@ -111,21 +111,26 @@ export function DepartmentSelect({ value, onChange, disabled }: DepartmentSelect
     }
   };
 
+  const options = departments.map((dept) => ({
+    value: dept.name,
+    label: dept.name,
+    description: dept.description || undefined,
+  }));
+
   return (
     <>
       <div className="flex gap-2">
-        <Select value={value} onValueChange={onChange} disabled={disabled}>
-          <SelectTrigger className="flex-1">
-            <SelectValue placeholder="เลือกฝ่าย" />
-          </SelectTrigger>
-          <SelectContent position="popper" sideOffset={4} className="bg-background z-[200] max-h-60 overflow-y-auto">
-            {departments.map((dept) => (
-              <SelectItem key={dept.id} value={dept.name}>
-                {dept.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <div className="flex-1">
+          <SearchableSelect
+            options={options}
+            value={value}
+            onValueChange={onChange}
+            placeholder="เลือกฝ่าย"
+            searchPlaceholder="ค้นหาฝ่าย..."
+            emptyMessage="ไม่พบฝ่าย"
+            disabled={disabled}
+          />
+        </div>
         <Button
           type="button"
           variant="outline"

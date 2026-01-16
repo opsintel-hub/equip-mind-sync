@@ -5,13 +5,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
   Dialog,
   DialogContent,
   DialogHeader,
@@ -30,6 +23,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Plus, Settings, Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 
 interface ToolCategory {
   id: string;
@@ -135,20 +129,25 @@ export function ToolCategorySelect({ value, onChange, disabled }: ToolCategorySe
     setFormData({ name: "", description: "" });
   };
 
+  const options = categories.map((category) => ({
+    value: category.id,
+    label: category.name,
+    description: category.description || undefined,
+  }));
+
   return (
     <div className="flex gap-2">
-      <Select value={value} onValueChange={onChange} disabled={disabled}>
-        <SelectTrigger className="flex-1">
-          <SelectValue placeholder="เลือกหมวดหมู่เครื่องมือ" />
-        </SelectTrigger>
-        <SelectContent>
-          {categories.map((category) => (
-            <SelectItem key={category.id} value={category.id}>
-              {category.name}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+      <div className="flex-1">
+        <SearchableSelect
+          options={options}
+          value={value}
+          onValueChange={onChange}
+          placeholder="เลือกหมวดหมู่เครื่องมือ"
+          searchPlaceholder="ค้นหาหมวดหมู่..."
+          emptyMessage="ไม่พบหมวดหมู่"
+          disabled={disabled}
+        />
+      </div>
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogTrigger asChild>

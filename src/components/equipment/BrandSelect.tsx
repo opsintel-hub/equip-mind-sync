@@ -2,11 +2,11 @@ import { useState, useEffect } from "react";
 import { Settings2, Pencil, Trash2, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 
 interface Brand {
   id: string;
@@ -111,21 +111,26 @@ export function BrandSelect({ value, onChange, disabled }: BrandSelectProps) {
     }
   };
 
+  const options = brands.map((brand) => ({
+    value: brand.name,
+    label: brand.name,
+    description: brand.description || undefined,
+  }));
+
   return (
     <>
       <div className="flex gap-2">
-        <Select value={value} onValueChange={onChange} disabled={disabled}>
-          <SelectTrigger className="flex-1">
-            <SelectValue placeholder="เลือกยี่ห้อ" />
-          </SelectTrigger>
-          <SelectContent position="popper" sideOffset={4} className="bg-background z-[200] max-h-60 overflow-y-auto">
-            {brands.map((brand) => (
-              <SelectItem key={brand.id} value={brand.name}>
-                {brand.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <div className="flex-1">
+          <SearchableSelect
+            options={options}
+            value={value}
+            onValueChange={onChange}
+            placeholder="เลือกยี่ห้อ"
+            searchPlaceholder="ค้นหายี่ห้อ..."
+            emptyMessage="ไม่พบยี่ห้อ"
+            disabled={disabled}
+          />
+        </div>
         <Button
           type="button"
           variant="outline"
