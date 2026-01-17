@@ -27,6 +27,7 @@ import { Plus } from "lucide-react";
 
 const formSchema = z.object({
   code: z.string().min(1, "กรุณาระบุรหัสผู้จัดจำหน่าย"),
+  vendor_code: z.string().optional(),
   name: z.string().min(1, "กรุณาระบุชื่อผู้จัดจำหน่าย"),
   contact_person: z.string().optional(),
   phone: z.string().optional(),
@@ -40,6 +41,7 @@ interface SupplierFormProps {
   supplier?: {
     id: string;
     code: string;
+    vendor_code: string | null;
     name: string;
     contact_person: string | null;
     phone: string | null;
@@ -57,6 +59,7 @@ export function SupplierForm({ onSuccess, supplier }: SupplierFormProps) {
     resolver: zodResolver(formSchema),
     defaultValues: {
       code: supplier?.code || "",
+      vendor_code: supplier?.vendor_code || "",
       name: supplier?.name || "",
       contact_person: supplier?.contact_person || "",
       phone: supplier?.phone || "",
@@ -81,6 +84,7 @@ export function SupplierForm({ onSuccess, supplier }: SupplierFormProps) {
           .from("suppliers")
           .update({
             code: values.code,
+            vendor_code: values.vendor_code || null,
             name: values.name,
             contact_person: values.contact_person || null,
             phone: values.phone || null,
@@ -97,6 +101,7 @@ export function SupplierForm({ onSuccess, supplier }: SupplierFormProps) {
           .from("suppliers")
           .insert({
             code: values.code,
+            vendor_code: values.vendor_code || null,
             name: values.name,
             contact_person: values.contact_person || null,
             phone: values.phone || null,
@@ -143,7 +148,7 @@ export function SupplierForm({ onSuccess, supplier }: SupplierFormProps) {
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-3 gap-4">
               <FormField
                 control={form.control}
                 name="code"
@@ -152,6 +157,19 @@ export function SupplierForm({ onSuccess, supplier }: SupplierFormProps) {
                     <FormLabel>รหัสผู้จัดจำหน่าย *</FormLabel>
                     <FormControl>
                       <Input placeholder="เช่น SUP-001" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="vendor_code"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>รหัส Vendor</FormLabel>
+                    <FormControl>
+                      <Input placeholder="เช่น VD-001" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

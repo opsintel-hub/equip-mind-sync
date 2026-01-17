@@ -1,19 +1,22 @@
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Package, MapPin, Truck, Warehouse, Building2, Target, Building, Wrench } from "lucide-react";
+import { Package, MapPin, Truck, Warehouse, Building2, Target, Building, Wrench, PackageOpen } from "lucide-react";
 import { EquipmentForm } from "@/components/equipment/EquipmentForm";
 import { EquipmentList } from "@/components/equipment/EquipmentList";
 import { LocationForm } from "@/components/location/LocationForm";
 import { LocationList } from "@/components/location/LocationList";
 import { SupplierForm } from "@/components/supplier/SupplierForm";
 import { SupplierList } from "@/components/supplier/SupplierList";
+import { SupplierImport } from "@/components/supplier/SupplierImport";
 import { WarehouseForm } from "@/components/warehouse/WarehouseForm";
 import { WarehouseList } from "@/components/warehouse/WarehouseList";
 import { DepartmentForm } from "@/components/department/DepartmentForm";
 import { DepartmentList } from "@/components/department/DepartmentList";
 import { IssuePurposeForm } from "@/components/purpose/IssuePurposeForm";
 import { IssuePurposeList } from "@/components/purpose/IssuePurposeList";
+import { ReceiptPurposeForm } from "@/components/purpose/ReceiptPurposeForm";
+import { ReceiptPurposeList } from "@/components/purpose/ReceiptPurposeList";
 import { CompanyForm } from "@/components/company/CompanyForm";
 import { CompanyList } from "@/components/company/CompanyList";
 import { ToolForm } from "@/components/tools/ToolForm";
@@ -36,7 +39,7 @@ const MasterData = () => {
       </div>
 
       <Tabs defaultValue="equipment" className="w-full">
-        <TabsList className="grid w-full grid-cols-8 max-w-5xl">
+        <TabsList className="grid w-full grid-cols-9 max-w-6xl">
           <TabsTrigger value="equipment" className="gap-2">
             <Package className="h-4 w-4" />
             อุปกรณ์
@@ -65,9 +68,13 @@ const MasterData = () => {
             <Building className="h-4 w-4" />
             บริษัท
           </TabsTrigger>
-          <TabsTrigger value="purposes" className="gap-2">
+          <TabsTrigger value="issue_purposes" className="gap-2">
             <Target className="h-4 w-4" />
-            วัตถุประสงค์
+            วัตถุประสงค์เบิก
+          </TabsTrigger>
+          <TabsTrigger value="receipt_purposes" className="gap-2">
+            <PackageOpen className="h-4 w-4" />
+            วัตถุประสงค์รับ
           </TabsTrigger>
         </TabsList>
 
@@ -146,7 +153,10 @@ const MasterData = () => {
                     จัดการข้อมูลผู้จัดจำหน่ายและซัพพลายเออร์
                   </CardDescription>
                 </div>
-                <SupplierForm onSuccess={handleSuccess} />
+                <div className="flex gap-2">
+                  <SupplierImport onSuccess={handleSuccess} />
+                  <SupplierForm onSuccess={handleSuccess} />
+                </div>
               </div>
             </CardHeader>
             <CardContent>
@@ -212,7 +222,7 @@ const MasterData = () => {
           </Card>
         </TabsContent>
 
-        <TabsContent value="purposes" className="space-y-4">
+        <TabsContent value="issue_purposes" className="space-y-4">
           <Card>
             <CardHeader>
               <div className="flex items-center justify-between">
@@ -227,6 +237,29 @@ const MasterData = () => {
             </CardHeader>
             <CardContent>
               <IssuePurposeList refresh={refreshKey} />
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="receipt_purposes" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>วัตถุประสงค์การนำสินค้าเข้า</CardTitle>
+                  <CardDescription>
+                    กำหนดวัตถุประสงค์การรับสินค้าเข้าคลัง (ฝากเก็บชั่วคราว / นำเข้าปกติ)
+                  </CardDescription>
+                  <p className="text-xs text-muted-foreground mt-1 bg-muted/50 p-2 rounded">
+                    💡 <strong>ฝากเก็บ:</strong> ไม่มี Process ต่อ รอเบิกออกเท่านั้น | 
+                    <strong> นำเข้าปกติ:</strong> ต้องจัดเก็บตามตำแหน่ง มี Process ต่อ
+                  </p>
+                </div>
+                <ReceiptPurposeForm onSuccess={handleSuccess} />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <ReceiptPurposeList refresh={refreshKey} onRefresh={handleSuccess} />
             </CardContent>
           </Card>
         </TabsContent>
