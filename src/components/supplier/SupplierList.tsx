@@ -29,6 +29,7 @@ import * as XLSX from "xlsx";
 interface Supplier {
   id: string;
   code: string;
+  vendor_code: string | null;
   name: string;
   contact_person: string | null;
   phone: string | null;
@@ -94,6 +95,7 @@ export function SupplierList({ refresh }: SupplierListProps) {
       const filtered = suppliers.filter(
         (supplier) =>
           supplier.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          (supplier.vendor_code && supplier.vendor_code.toLowerCase().includes(searchTerm.toLowerCase())) ||
           supplier.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
           (supplier.contact_person && supplier.contact_person.toLowerCase().includes(searchTerm.toLowerCase())) ||
           (supplier.email && supplier.email.toLowerCase().includes(searchTerm.toLowerCase()))
@@ -107,6 +109,7 @@ export function SupplierList({ refresh }: SupplierListProps) {
   const handleExport = () => {
     const exportData = filteredSuppliers.map((supplier) => ({
       "รหัส": supplier.code,
+      "รหัส Vendor": supplier.vendor_code || "-",
       "ชื่อผู้จัดจำหน่าย": supplier.name,
       "ผู้ติดต่อ": supplier.contact_person || "-",
       "เบอร์โทร": supplier.phone || "-",
@@ -156,6 +159,7 @@ export function SupplierList({ refresh }: SupplierListProps) {
         <TableHeader>
           <TableRow>
             <TableHead>รหัส</TableHead>
+            <TableHead>รหัส Vendor</TableHead>
             <TableHead>ชื่อผู้จัดจำหน่าย</TableHead>
             <TableHead>ผู้ติดต่อ</TableHead>
             <TableHead>เบอร์โทร</TableHead>
@@ -168,9 +172,11 @@ export function SupplierList({ refresh }: SupplierListProps) {
           {filteredSuppliers.map((supplier) => (
             <TableRow key={supplier.id}>
               <TableCell className="font-medium">{supplier.code}</TableCell>
+              <TableCell>{supplier.vendor_code || "-"}</TableCell>
               <TableCell>{supplier.name}</TableCell>
               <TableCell>{supplier.contact_person || "-"}</TableCell>
               <TableCell>{supplier.phone || "-"}</TableCell>
+              <TableCell>{supplier.email || "-"}</TableCell>
               <TableCell>{supplier.email || "-"}</TableCell>
               <TableCell>
                 <Badge variant={supplier.is_active ? "default" : "secondary"}>

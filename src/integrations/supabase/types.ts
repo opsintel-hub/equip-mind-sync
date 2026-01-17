@@ -1876,6 +1876,45 @@ export type Database = {
           },
         ]
       }
+      receipt_purposes: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          is_active: boolean | null
+          max_storage_days: number | null
+          name: string
+          purpose_type: string
+          requires_location: boolean
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          max_storage_days?: number | null
+          name: string
+          purpose_type?: string
+          requires_location?: boolean
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          max_storage_days?: number | null
+          name?: string
+          purpose_type?: string
+          requires_location?: boolean
+          updated_at?: string
+        }
+        Relationships: []
+      }
       stock_movements: {
         Row: {
           company_id: string | null
@@ -2092,6 +2131,7 @@ export type Database = {
           notes: string | null
           phone: string | null
           updated_at: string
+          vendor_code: string | null
         }
         Insert: {
           address?: string | null
@@ -2106,6 +2146,7 @@ export type Database = {
           notes?: string | null
           phone?: string | null
           updated_at?: string
+          vendor_code?: string | null
         }
         Update: {
           address?: string | null
@@ -2120,6 +2161,7 @@ export type Database = {
           notes?: string | null
           phone?: string | null
           updated_at?: string
+          vendor_code?: string | null
         }
         Relationships: []
       }
