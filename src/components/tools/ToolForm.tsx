@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -6,8 +6,14 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import {
   Form,
   FormControl,
@@ -59,6 +65,7 @@ interface ToolFormProps {
 }
 
 export function ToolForm({ onSuccess }: ToolFormProps) {
+  const [open, setOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedPMTypes, setSelectedPMTypes] = useState<string[]>([]);
 
@@ -153,6 +160,7 @@ export function ToolForm({ onSuccess }: ToolFormProps) {
       toast.success("เพิ่มเครื่องมือสำเร็จ");
       form.reset();
       setSelectedPMTypes([]);
+      setOpen(false);
       onSuccess?.();
     } catch (error: any) {
       console.error("Error creating tool:", error);
@@ -167,14 +175,21 @@ export function ToolForm({ onSuccess }: ToolFormProps) {
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Plus className="h-5 w-5" />
-          เพิ่มเครื่องมือใหม่
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button>
+          <Plus className="h-4 w-4 mr-2" />
+          เพิ่มเครื่องมือ
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Plus className="h-5 w-5" />
+            เพิ่มเครื่องมือใหม่
+          </DialogTitle>
+        </DialogHeader>
+
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -470,7 +485,7 @@ export function ToolForm({ onSuccess }: ToolFormProps) {
             </Button>
           </form>
         </Form>
-      </CardContent>
-    </Card>
+      </DialogContent>
+    </Dialog>
   );
 }
