@@ -4,8 +4,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Package, MapPin, Truck, Warehouse, Building2, Target, Building, Wrench, PackageOpen } from "lucide-react";
 import { EquipmentForm } from "@/components/equipment/EquipmentForm";
 import { EquipmentList } from "@/components/equipment/EquipmentList";
+import { EquipmentImport } from "@/components/equipment/EquipmentImport";
 import { LocationForm } from "@/components/location/LocationForm";
 import { LocationList } from "@/components/location/LocationList";
+import { LocationImport } from "@/components/location/LocationImport";
 import { SupplierForm } from "@/components/supplier/SupplierForm";
 import { SupplierList } from "@/components/supplier/SupplierList";
 import { SupplierImport } from "@/components/supplier/SupplierImport";
@@ -21,6 +23,7 @@ import { CompanyForm } from "@/components/company/CompanyForm";
 import { CompanyList } from "@/components/company/CompanyList";
 import { ToolForm } from "@/components/tools/ToolForm";
 import { ToolList } from "@/components/tools/ToolList";
+import { ToolImport } from "@/components/tools/ToolImport";
 
 const MasterData = () => {
   const [refreshKey, setRefreshKey] = useState(0);
@@ -92,7 +95,10 @@ const MasterData = () => {
                     สำหรับการรับสินค้าเข้าคลังจริง ให้ไปที่ <strong>"นำเข้าสินค้า" → "รับสินค้าเข้าคลัง"</strong>
                   </p>
                 </div>
-                <EquipmentForm onSuccess={handleSuccess} />
+                <div className="flex gap-2">
+                  <EquipmentImport onSuccess={handleSuccess} />
+                  <EquipmentForm onSuccess={handleSuccess} />
+                </div>
               </div>
             </CardHeader>
             <CardContent>
@@ -115,7 +121,10 @@ const MasterData = () => {
                     ระบบจะสร้างงาน PM ให้อัตโนมัติตามรอบที่กำหนด
                   </p>
                 </div>
-                <ToolForm onSuccess={handleSuccess} />
+                <div className="flex gap-2">
+                  <ToolImport onSuccess={handleSuccess} />
+                  <ToolForm onSuccess={handleSuccess} />
+                </div>
               </div>
             </CardHeader>
             <CardContent>
@@ -134,7 +143,10 @@ const MasterData = () => {
                     จัดการตำแหน่งจัดเก็บสินค้าในคลัง
                   </CardDescription>
                 </div>
-                <LocationForm onSuccess={handleSuccess} />
+                <div className="flex gap-2">
+                  <LocationImport onSuccess={handleSuccess} />
+                  <LocationForm onSuccess={handleSuccess} />
+                </div>
               </div>
             </CardHeader>
             <CardContent>
