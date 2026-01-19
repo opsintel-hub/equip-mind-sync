@@ -373,9 +373,11 @@ export type Database = {
           created_by: string | null
           department: string | null
           depreciation_months: number | null
+          depth_cm: number | null
           description: string | null
           equipment_id_code: string | null
           expiry_date: string | null
+          height_cm: number | null
           id: string
           is_active: boolean | null
           is_asset: boolean | null
@@ -392,9 +394,11 @@ export type Database = {
           unit_price: number
           updated_at: string
           volt: number | null
+          volume_cm3: number | null
           warehouse_entry_date: string
           warranty_expiry_date: string | null
           watt: number | null
+          width_cm: number | null
         }
         Insert: {
           amp?: number | null
@@ -407,9 +411,11 @@ export type Database = {
           created_by?: string | null
           department?: string | null
           depreciation_months?: number | null
+          depth_cm?: number | null
           description?: string | null
           equipment_id_code?: string | null
           expiry_date?: string | null
+          height_cm?: number | null
           id?: string
           is_active?: boolean | null
           is_asset?: boolean | null
@@ -426,9 +432,11 @@ export type Database = {
           unit_price?: number
           updated_at?: string
           volt?: number | null
+          volume_cm3?: number | null
           warehouse_entry_date?: string
           warranty_expiry_date?: string | null
           watt?: number | null
+          width_cm?: number | null
         }
         Update: {
           amp?: number | null
@@ -441,9 +449,11 @@ export type Database = {
           created_by?: string | null
           department?: string | null
           depreciation_months?: number | null
+          depth_cm?: number | null
           description?: string | null
           equipment_id_code?: string | null
           expiry_date?: string | null
+          height_cm?: number | null
           id?: string
           is_active?: boolean | null
           is_asset?: boolean | null
@@ -460,9 +470,11 @@ export type Database = {
           unit_price?: number
           updated_at?: string
           volt?: number | null
+          volume_cm3?: number | null
           warehouse_entry_date?: string
           warranty_expiry_date?: string | null
           watt?: number | null
+          width_cm?: number | null
         }
         Relationships: [
           {
@@ -520,6 +532,41 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      equipment_images: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          display_order: number | null
+          equipment_id: string
+          id: string
+          image_url: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          display_order?: number | null
+          equipment_id: string
+          id?: string
+          image_url: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          display_order?: number | null
+          equipment_id?: string
+          id?: string
+          image_url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "equipment_images_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "equipment"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       equipment_loans: {
         Row: {
@@ -2525,6 +2572,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      units: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       user_departments: {
         Row: {
