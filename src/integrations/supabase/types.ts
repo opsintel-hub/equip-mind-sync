@@ -488,6 +488,39 @@ export type Database = {
           },
         ]
       }
+      equipment_code_prefixes: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          is_active: boolean | null
+          next_number: number
+          prefix: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          next_number?: number
+          prefix: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          next_number?: number
+          prefix?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       equipment_loans: {
         Row: {
           approved_at: string | null
@@ -2624,6 +2657,7 @@ export type Database = {
       generate_equipment_pm_task_number: { Args: never; Returns: string }
       generate_pr_number: { Args: never; Returns: string }
       generate_tool_pm_task_number: { Args: never; Returns: string }
+      get_next_equipment_code: { Args: { p_prefix: string }; Returns: string }
       has_department_permission: {
         Args: { _department: string; _permission: string; _user_id: string }
         Returns: boolean

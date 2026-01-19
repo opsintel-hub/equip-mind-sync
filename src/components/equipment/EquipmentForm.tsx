@@ -7,7 +7,6 @@ import { CalendarIcon, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
@@ -17,18 +16,20 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { CategorySelect } from "./CategorySelect";
 import { SubcategorySelect } from "./SubcategorySelect";
-import { DepartmentSelect } from "./DepartmentSelect";
+import { SimpleDepartmentSelect } from "./SimpleDepartmentSelect";
 import { BrandSelect } from "./BrandSelect";
 import { LocationSelect } from "./LocationSelect";
 import { CompanySelect } from "@/components/company/CompanySelect";
+import { EquipmentCodePrefixSelect } from "./EquipmentCodePrefixSelect";
 
 const equipmentSchema = z.object({
-  code: z.string().min(1, "กรุณากรอกรหัสอุปกรณ์").max(50, "รหัสอุปกรณ์ต้องไม่เกิน 50 ตัวอักษร"),
-  name: z.string().min(1, "กรุณากรอกชื่อ อุปกรณ์").max(200, "ชื่ออุปกรณ์ต้องไม่เกิน 200 ตัวอักษร"),
+  code_prefix: z.string().min(1, "กรุณาเลือก Prefix รหัสอุปกรณ์"),
+  code: z.string().optional(),
+  name: z.string().min(1, "กรุณากรอกชื่อสินค้า").max(200, "ชื่อสินค้าต้องไม่เกิน 200 ตัวอักษร"),
   description: z.string().max(500, "รายละเอียดต้องไม่เกิน 500 ตัวอักษร").optional(),
   category: z.string().min(1, "กรุณาเลือกหมวดหมู่"),
   subcategory_id: z.string().min(1, "กรุณาเลือกหมวดหมู่ย่อย"),
-  department: z.string().optional(),
+  department: z.string().min(1, "กรุณาเลือกฝ่าย"),
   company_id: z.string().optional(),
   brand: z.string().optional(),
   unit: z.string().min(1, "กรุณากรอกหน่วยนับ").max(20, "หน่วยนับต้องไม่เกิน 20 ตัวอักษร"),
@@ -57,10 +58,12 @@ interface EquipmentFormProps {
 export function EquipmentForm({ onSuccess }: EquipmentFormProps) {
   const [open, setOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [previewCode, setPreviewCode] = useState("");
 
   const form = useForm<EquipmentFormValues>({
     resolver: zodResolver(equipmentSchema),
     defaultValues: {
+      code_prefix: "",
       code: "",
       name: "",
       description: "",
@@ -86,13 +89,20 @@ export function EquipmentForm({ onSuccess }: EquipmentFormProps) {
   });
 
   const selectedCategory = form.watch("category");
-  const selectedDepartment = form.watch("department");
 
   const onSubmit = async (data: EquipmentFormValues) => {
     setIsLoading(true);
     try {
+      // Generate the actual code using the database function
+      const { data: codeData, error: codeError } = await supabase
+        .rpc('get_next_equipment_code', { p_prefix: data.code_prefix });
+
+      if (codeError) throw codeError;
+
+      const generatedCode = codeData as string;
+
       const { error } = await supabase.from("equipment").insert({
-        code: data.code,
+        code: generatedCode,
         name: data.name,
         description: data.description || null,
         category: data.category,
@@ -119,8 +129,9 @@ export function EquipmentForm({ onSuccess }: EquipmentFormProps) {
 
       if (error) throw error;
 
-      toast.success("เพิ่มอุปกรณ์สำเร็จ");
+      toast.success(`เพิ่มอุปกรณ์สำเร็จ (รหัส: ${generatedCode})`);
       form.reset();
+      setPreviewCode("");
       setOpen(false);
       onSuccess?.();
     } catch (error: any) {
@@ -142,21 +153,55 @@ export function EquipmentForm({ onSuccess }: EquipmentFormProps) {
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="code"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>รหัสอุปกรณ์ *</FormLabel>
-                    <FormControl>
-                      <Input placeholder="EQ-001" {...field} disabled={isLoading} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+            {/* Department - First field as required */}
+            <FormField
+              control={form.control}
+              name="department"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>ฝ่าย *</FormLabel>
+                  <FormControl>
+                    <SimpleDepartmentSelect
+                      value={field.value || ""}
+                      onChange={(value) => {
+                        field.onChange(value);
+                        // Reset company when department changes
+                        form.setValue("company_id", "");
+                      }}
+                      disabled={isLoading}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
+            {/* Equipment Code Prefix */}
+            <FormField
+              control={form.control}
+              name="code_prefix"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>รหัสอุปกรณ์ *</FormLabel>
+                  <FormControl>
+                    <EquipmentCodePrefixSelect
+                      value={field.value}
+                      onChange={field.onChange}
+                      disabled={isLoading}
+                      onCodeGenerated={setPreviewCode}
+                    />
+                  </FormControl>
+                  {previewCode && (
+                    <p className="text-sm text-muted-foreground">
+                      รหัสถัดไป: <span className="font-medium text-primary">{previewCode}</span>
+                    </p>
+                  )}
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <div className="grid grid-cols-2 gap-4">
               <FormField
                 control={form.control}
                 name="category"
@@ -174,42 +219,18 @@ export function EquipmentForm({ onSuccess }: EquipmentFormProps) {
                   </FormItem>
                 )}
               />
-            </div>
 
-            <FormField
-              control={form.control}
-              name="subcategory_id"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>หมวดหมู่ย่อย *</FormLabel>
-                  <FormControl>
-                    <SubcategorySelect
-                      categoryName={selectedCategory}
-                      value={field.value}
-                      onChange={field.onChange}
-                      disabled={isLoading}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <div className="grid grid-cols-3 gap-4">
               <FormField
                 control={form.control}
-                name="department"
+                name="subcategory_id"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>ฝ่าย</FormLabel>
+                    <FormLabel>หมวดหมู่ย่อย *</FormLabel>
                     <FormControl>
-                      <DepartmentSelect
-                        value={field.value || ""}
-                        onChange={(value) => {
-                          field.onChange(value);
-                          // Reset company when department changes
-                          form.setValue("company_id", "");
-                        }}
+                      <SubcategorySelect
+                        categoryName={selectedCategory}
+                        value={field.value}
+                        onChange={field.onChange}
                         disabled={isLoading}
                       />
                     </FormControl>
@@ -217,7 +238,9 @@ export function EquipmentForm({ onSuccess }: EquipmentFormProps) {
                   </FormItem>
                 )}
               />
+            </div>
 
+            <div className="grid grid-cols-2 gap-4">
               <FormField
                 control={form.control}
                 name="company_id"
@@ -261,7 +284,7 @@ export function EquipmentForm({ onSuccess }: EquipmentFormProps) {
               name="name"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>ชื่ออุปกรณ์ *</FormLabel>
+                  <FormLabel>ชื่อสินค้า * (กรุณาคีย์ให้ถูกต้องเพราะมีผลต่อการค้นหา)</FormLabel>
                   <FormControl>
                     <Input placeholder="สายไฟ 2x4" {...field} disabled={isLoading} />
                   </FormControl>
