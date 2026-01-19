@@ -1,9 +1,9 @@
-import { useState } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { format } from "date-fns";
-import { CalendarIcon, Loader2 } from "lucide-react";
+import { CalendarIcon, Loader2, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -11,6 +11,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -18,9 +19,12 @@ import { CategorySelect } from "./CategorySelect";
 import { SubcategorySelect } from "./SubcategorySelect";
 import { SimpleDepartmentSelect } from "./SimpleDepartmentSelect";
 import { BrandSelect } from "./BrandSelect";
-import { LocationSelect } from "./LocationSelect";
+import { SimpleLocationSelect } from "./SimpleLocationSelect";
 import { CompanySelect } from "@/components/company/CompanySelect";
 import { EquipmentCodePrefixSelect } from "./EquipmentCodePrefixSelect";
+import { UnitSelect } from "./UnitSelect";
+import { DimensionFields } from "./DimensionFields";
+import { EquipmentImageUpload } from "./EquipmentImageUpload";
 
 const equipmentSchema = z.object({
   code_prefix: z.string().min(1, "กรุณาเลือก Prefix รหัสอุปกรณ์"),
@@ -32,12 +36,11 @@ const equipmentSchema = z.object({
   department: z.string().min(1, "กรุณาเลือกฝ่าย"),
   company_id: z.string().optional(),
   brand: z.string().optional(),
-  unit: z.string().min(1, "กรุณากรอกหน่วยนับ").max(20, "หน่วยนับต้องไม่เกิน 20 ตัวอักษร"),
+  unit: z.string().min(1, "กรุณาเลือกหน่วยนับ"),
   quantity_in_stock: z.number().min(0, "จำนวนต้องไม่ติดลบ").int("จำนวนต้องเป็นจำนวนเต็ม"),
   min_stock_level: z.number().min(0, "จำนวนต้องไม่ติดลบ").int("จำนวนต้องเป็นจำนวนเต็ม"),
   location_id: z.string().min(1, "กรุณาเลือกคลังสินค้า"),
   serial_number: z.string().max(100, "Serial Number ต้องไม่เกิน 100 ตัวอักษร").optional(),
-  unit_price: z.number().min(0, "ราคาต้องไม่ติดลบ"),
   warehouse_entry_date: z.date(),
   expiry_date: z.date().optional(),
   warranty_expiry_date: z.date().optional(),
@@ -47,6 +50,10 @@ const equipmentSchema = z.object({
   watt: z.number().optional(),
   lumen: z.number().optional(),
   lux: z.number().optional(),
+  width_cm: z.number().optional(),
+  height_cm: z.number().optional(),
+  depth_cm: z.number().optional(),
+  volume_cm3: z.number().optional(),
 });
 
 type EquipmentFormValues = z.infer<typeof equipmentSchema>;
@@ -59,6 +66,9 @@ export function EquipmentForm({ onSuccess }: EquipmentFormProps) {
   const [open, setOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [previewCode, setPreviewCode] = useState("");
+  const [images, setImages] = useState<string[]>([]);
+  const [duplicateWarning, setDuplicateWarning] = useState<string | null>(null);
+  const [isCheckingDuplicate, setIsCheckingDuplicate] = useState(false);
 
   const form = useForm<EquipmentFormValues>({
     resolver: zodResolver(equipmentSchema),
@@ -77,7 +87,6 @@ export function EquipmentForm({ onSuccess }: EquipmentFormProps) {
       min_stock_level: 0,
       location_id: "",
       serial_number: "",
-      unit_price: 0,
       warehouse_entry_date: new Date(),
       notes: "",
       volt: undefined,
@@ -85,10 +94,50 @@ export function EquipmentForm({ onSuccess }: EquipmentFormProps) {
       watt: undefined,
       lumen: undefined,
       lux: undefined,
+      width_cm: undefined,
+      height_cm: undefined,
+      depth_cm: undefined,
+      volume_cm3: undefined,
     },
   });
 
   const selectedCategory = form.watch("category");
+  const watchedName = form.watch("name");
+
+  // Check for duplicate equipment name
+  useEffect(() => {
+    const checkDuplicate = async () => {
+      if (!watchedName || watchedName.length < 3) {
+        setDuplicateWarning(null);
+        return;
+      }
+
+      setIsCheckingDuplicate(true);
+      try {
+        const { data, error } = await supabase
+          .from("equipment")
+          .select("id, code, name")
+          .ilike("name", `%${watchedName}%`)
+          .limit(5);
+
+        if (error) throw error;
+
+        if (data && data.length > 0) {
+          const matches = data.map(e => `${e.code}: ${e.name}`).join(", ");
+          setDuplicateWarning(`พบสินค้าที่คล้ายกัน: ${matches}`);
+        } else {
+          setDuplicateWarning(null);
+        }
+      } catch (error) {
+        console.error("Error checking duplicate:", error);
+      } finally {
+        setIsCheckingDuplicate(false);
+      }
+    };
+
+    const debounceTimer = setTimeout(checkDuplicate, 500);
+    return () => clearTimeout(debounceTimer);
+  }, [watchedName]);
 
   const onSubmit = async (data: EquipmentFormValues) => {
     setIsLoading(true);
@@ -101,7 +150,7 @@ export function EquipmentForm({ onSuccess }: EquipmentFormProps) {
 
       const generatedCode = codeData as string;
 
-      const { error } = await supabase.from("equipment").insert({
+      const { data: equipmentData, error } = await supabase.from("equipment").insert({
         code: generatedCode,
         name: data.name,
         description: data.description || null,
@@ -115,7 +164,7 @@ export function EquipmentForm({ onSuccess }: EquipmentFormProps) {
         min_stock_level: data.min_stock_level,
         location_id: data.location_id,
         serial_number: data.serial_number || null,
-        unit_price: data.unit_price,
+        unit_price: 0,
         warehouse_entry_date: format(data.warehouse_entry_date, "yyyy-MM-dd"),
         expiry_date: data.expiry_date ? format(data.expiry_date, "yyyy-MM-dd") : null,
         warranty_expiry_date: data.warranty_expiry_date ? format(data.warranty_expiry_date, "yyyy-MM-dd") : null,
@@ -125,13 +174,36 @@ export function EquipmentForm({ onSuccess }: EquipmentFormProps) {
         watt: data.watt || null,
         lumen: data.lumen || null,
         lux: data.lux || null,
-      });
+        width_cm: data.width_cm || null,
+        height_cm: data.height_cm || null,
+        depth_cm: data.depth_cm || null,
+        volume_cm3: data.volume_cm3 || null,
+      }).select('id').single();
 
       if (error) throw error;
+
+      // Save images if any
+      if (images.length > 0 && equipmentData) {
+        const imageInserts = images.map((url, index) => ({
+          equipment_id: equipmentData.id,
+          image_url: url,
+          display_order: index,
+        }));
+
+        const { error: imageError } = await supabase
+          .from("equipment_images")
+          .insert(imageInserts);
+
+        if (imageError) {
+          console.error("Error saving images:", imageError);
+        }
+      }
 
       toast.success(`เพิ่มอุปกรณ์สำเร็จ (รหัส: ${generatedCode})`);
       form.reset();
       setPreviewCode("");
+      setImages([]);
+      setDuplicateWarning(null);
       setOpen(false);
       onSuccess?.();
     } catch (error: any) {
@@ -288,6 +360,14 @@ export function EquipmentForm({ onSuccess }: EquipmentFormProps) {
                   <FormControl>
                     <Input placeholder="สายไฟ 2x4" {...field} disabled={isLoading} />
                   </FormControl>
+                  {duplicateWarning && (
+                    <Alert variant="destructive" className="py-2">
+                      <AlertCircle className="h-4 w-4" />
+                      <AlertDescription className="text-xs">
+                        {duplicateWarning}
+                      </AlertDescription>
+                    </Alert>
+                  )}
                   <FormMessage />
                 </FormItem>
               )}
@@ -305,6 +385,27 @@ export function EquipmentForm({ onSuccess }: EquipmentFormProps) {
                   <FormMessage />
                 </FormItem>
               )}
+            />
+
+            {/* Dimension Fields */}
+            <DimensionFields
+              widthCm={form.watch("width_cm")}
+              heightCm={form.watch("height_cm")}
+              depthCm={form.watch("depth_cm")}
+              volumeCm3={form.watch("volume_cm3")}
+              onWidthChange={(v) => form.setValue("width_cm", v)}
+              onHeightChange={(v) => form.setValue("height_cm", v)}
+              onDepthChange={(v) => form.setValue("depth_cm", v)}
+              onVolumeChange={(v) => form.setValue("volume_cm3", v)}
+              disabled={isLoading}
+            />
+
+            {/* Image Upload */}
+            <EquipmentImageUpload
+              images={images}
+              onChange={setImages}
+              disabled={isLoading}
+              maxImages={5}
             />
 
             {/* Electrical Specification Fields */}
@@ -423,7 +524,11 @@ export function EquipmentForm({ onSuccess }: EquipmentFormProps) {
                   <FormItem>
                     <FormLabel>หน่วยนับ *</FormLabel>
                     <FormControl>
-                      <Input placeholder="ชิ้น, เมตร, กล่อง" {...field} disabled={isLoading} />
+                      <UnitSelect
+                        value={field.value}
+                        onChange={field.onChange}
+                        disabled={isLoading}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -497,20 +602,14 @@ export function EquipmentForm({ onSuccess }: EquipmentFormProps) {
             <div className="grid grid-cols-2 gap-4">
               <FormField
                 control={form.control}
-                name="unit_price"
+                name="location_id"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>ราคาต่อชิ้น (บาท) *</FormLabel>
+                    <FormLabel>คลังสินค้า *</FormLabel>
                     <FormControl>
-                      <Input
-                        inputMode="decimal"
-                        pattern="[0-9]*\.?[0-9]*"
-                        placeholder="0.00"
-                        value={field.value === 0 ? "" : field.value.toString()}
-                        onChange={(e) => {
-                          const value = e.target.value.replace(/[^0-9.]/g, "");
-                          field.onChange(value ? parseFloat(value) : 0);
-                        }}
+                      <SimpleLocationSelect
+                        value={field.value}
+                        onChange={field.onChange}
                         disabled={isLoading}
                       />
                     </FormControl>
@@ -557,24 +656,6 @@ export function EquipmentForm({ onSuccess }: EquipmentFormProps) {
                 )}
               />
             </div>
-
-            <FormField
-              control={form.control}
-              name="location_id"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>คลังสินค้า *</FormLabel>
-                  <FormControl>
-                    <LocationSelect
-                      value={field.value}
-                      onChange={field.onChange}
-                      disabled={isLoading}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
 
             <div className="grid grid-cols-2 gap-4">
               <FormField
