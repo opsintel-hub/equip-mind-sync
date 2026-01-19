@@ -160,17 +160,23 @@ export function EquipmentCodePrefixSelect({ value, onChange, disabled, onCodeGen
             <SelectTrigger>
               <SelectValue placeholder="เลือก Prefix รหัส" />
             </SelectTrigger>
-            <SelectContent>
-              {prefixes.map((prefix) => (
-                <SelectItem key={prefix.id} value={prefix.prefix}>
-                  <div className="flex items-center gap-2">
-                    <span className="font-medium">{prefix.prefix}</span>
-                    <span className="text-muted-foreground text-xs">
-                      (ถัดไป: {prefix.next_number.toString().padStart(4, '0')})
-                    </span>
-                  </div>
-                </SelectItem>
-              ))}
+            <SelectContent className="z-[9999]" position="popper" sideOffset={4}>
+              {prefixes.length === 0 ? (
+                <div className="px-3 py-2 text-sm text-muted-foreground">
+                  ยังไม่มี Prefix กรุณาเพิ่มจากปุ่มด้านขวา
+                </div>
+              ) : (
+                prefixes.map((prefix) => (
+                  <SelectItem key={prefix.id} value={prefix.prefix}>
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium">{prefix.prefix}</span>
+                      <span className="text-muted-foreground text-xs">
+                        (ถัดไป: {prefix.next_number.toString().padStart(4, '0')})
+                      </span>
+                    </div>
+                  </SelectItem>
+                ))
+              )}
             </SelectContent>
           </Select>
         </div>
