@@ -331,6 +331,57 @@ export type Database = {
           },
         ]
       }
+      contractors: {
+        Row: {
+          address: string | null
+          code: string
+          contact_person: string | null
+          created_at: string
+          created_by: string | null
+          email: string | null
+          entity_type: string
+          id: string
+          is_active: boolean | null
+          name: string
+          notes: string | null
+          phone: string | null
+          tax_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          address?: string | null
+          code: string
+          contact_person?: string | null
+          created_at?: string
+          created_by?: string | null
+          email?: string | null
+          entity_type?: string
+          id?: string
+          is_active?: boolean | null
+          name: string
+          notes?: string | null
+          phone?: string | null
+          tax_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          address?: string | null
+          code?: string
+          contact_person?: string | null
+          created_at?: string
+          created_by?: string | null
+          email?: string | null
+          entity_type?: string
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          notes?: string | null
+          phone?: string | null
+          tax_id?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       departments: {
         Row: {
           created_at: string

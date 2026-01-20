@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Package, MapPin, Truck, Warehouse, Building2, Target, Building, Wrench, PackageOpen } from "lucide-react";
+import { Package, MapPin, Truck, Warehouse, Building2, Target, Building, Wrench, PackageOpen, HardHat } from "lucide-react";
 import { EquipmentForm } from "@/components/equipment/EquipmentForm";
 import { EquipmentList } from "@/components/equipment/EquipmentList";
 import { EquipmentImport } from "@/components/equipment/EquipmentImport";
@@ -11,6 +11,8 @@ import { LocationImport } from "@/components/location/LocationImport";
 import { SupplierForm } from "@/components/supplier/SupplierForm";
 import { SupplierList } from "@/components/supplier/SupplierList";
 import { SupplierImport } from "@/components/supplier/SupplierImport";
+import { ContractorForm } from "@/components/contractor/ContractorForm";
+import { ContractorList } from "@/components/contractor/ContractorList";
 import { WarehouseForm } from "@/components/warehouse/WarehouseForm";
 import { WarehouseList } from "@/components/warehouse/WarehouseList";
 import { DepartmentForm } from "@/components/department/DepartmentForm";
@@ -42,7 +44,7 @@ const MasterData = () => {
       </div>
 
       <Tabs defaultValue="equipment" className="w-full">
-        <TabsList className="grid w-full grid-cols-9 max-w-6xl">
+        <TabsList className="grid w-full grid-cols-10 max-w-7xl">
           <TabsTrigger value="equipment" className="gap-2">
             <Package className="h-4 w-4" />
             อุปกรณ์
@@ -58,6 +60,10 @@ const MasterData = () => {
           <TabsTrigger value="suppliers" className="gap-2">
             <Truck className="h-4 w-4" />
             ผู้จัดจำหน่าย
+          </TabsTrigger>
+          <TabsTrigger value="contractors" className="gap-2">
+            <HardHat className="h-4 w-4" />
+            ผู้รับเหมา
           </TabsTrigger>
           <TabsTrigger value="warehouses" className="gap-2">
             <Warehouse className="h-4 w-4" />
@@ -173,6 +179,25 @@ const MasterData = () => {
             </CardHeader>
             <CardContent>
               <SupplierList refresh={refreshKey} />
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="contractors" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>ผู้รับเหมา</CardTitle>
+                  <CardDescription>
+                    จัดการข้อมูลผู้รับเหมาทั้งหมดในระบบ
+                  </CardDescription>
+                </div>
+                <ContractorForm onSuccess={handleSuccess} />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <ContractorList refresh={refreshKey} />
             </CardContent>
           </Card>
         </TabsContent>
