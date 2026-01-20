@@ -43,6 +43,9 @@ const IssueRequest = () => {
   const [fifoSearchTerm, setFifoSearchTerm] = useState("");
   const [fifoShowExpiring, setFifoShowExpiring] = useState(true);
   const [fifoShowWarranty, setFifoShowWarranty] = useState(true);
+  const [fifoShowExpired, setFifoShowExpired] = useState(true);
+  const [fifoShowWarrantyExpired, setFifoShowWarrantyExpired] = useState(true);
+  const [customAdvanceDays, setCustomAdvanceDays] = useState<number | null>(null);
   const [imageDialogOpen, setImageDialogOpen] = useState(false);
   const [selectedEquipmentImages, setSelectedEquipmentImages] = useState<string[]>([]);
   const [selectedEquipmentName, setSelectedEquipmentName] = useState("");
@@ -79,8 +82,8 @@ const IssueRequest = () => {
     },
   });
 
-  // Use advance_days from settings or default to 30 days
-  const advanceDays = notificationSettings?.advance_days || 30;
+  // Use custom days if set, otherwise use advance_days from settings or default to 30 days
+  const advanceDays = customAdvanceDays || notificationSettings?.advance_days || 30;
 
   // Fetch equipment with full details including expiry dates
   const { data: equipment } = useQuery({
@@ -301,14 +304,29 @@ const IssueRequest = () => {
     const expiryDays = eq.expiry_date ? differenceInDays(new Date(eq.expiry_date), today) : Infinity;
     const warrantyDays = eq.warranty_expiry_date ? differenceInDays(new Date(eq.warranty_expiry_date), today) : Infinity;
     
-    const hasExpiring = expiryDays <= advanceDays;
-    const hasWarranty = warrantyDays <= advanceDays;
+    // Check each condition separately for multi-select
+    const isExpired = expiryDays <= 0;
+    const isExpiring = expiryDays > 0 && expiryDays <= advanceDays;
+    const isWarrantyExpired = warrantyDays <= 0;
+    const isWarrantyExpiring = warrantyDays > 0 && warrantyDays <= advanceDays;
     
-    if (fifoShowExpiring && fifoShowWarranty) return hasExpiring || hasWarranty;
-    if (fifoShowExpiring) return hasExpiring;
-    if (fifoShowWarranty) return hasWarranty;
-    return false;
+    // Multi-select: show if ANY selected filter matches
+    const matchesExpired = fifoShowExpired && isExpired;
+    const matchesExpiring = fifoShowExpiring && isExpiring;
+    const matchesWarrantyExpired = fifoShowWarrantyExpired && isWarrantyExpired;
+    const matchesWarranty = fifoShowWarranty && isWarrantyExpiring;
+    
+    return matchesExpired || matchesExpiring || matchesWarrantyExpired || matchesWarranty;
   }) || [];
+
+  // Check if any equipment has expiry/warranty issues (for showing the card)
+  const hasAnyPriorityItems = equipment?.some(eq => {
+    if (!eq.expiry_date && !eq.warranty_expiry_date) return false;
+    const today = new Date();
+    const expiryDays = eq.expiry_date ? differenceInDays(new Date(eq.expiry_date), today) : Infinity;
+    const warrantyDays = eq.warranty_expiry_date ? differenceInDays(new Date(eq.warranty_expiry_date), today) : Infinity;
+    return expiryDays <= advanceDays || warrantyDays <= advanceDays;
+  }) || false;
 
   return (
     <div className="space-y-6">
@@ -317,8 +335,8 @@ const IssueRequest = () => {
         <p className="text-muted-foreground">สำหรับผู้ขอเบิกสินค้า (ต้องล็อกอิน)</p>
       </div>
 
-      {/* Priority Alert - Items approaching expiry */}
-      {priorityEquipment.length > 0 && (
+      {/* Priority Alert - Items approaching expiry - Always show if any items exist */}
+      {hasAnyPriorityItems && (
         <Card className="border-warning/50 bg-warning/5">
           <CardHeader className="pb-3">
             <CardTitle className="text-lg flex items-center gap-2 text-warning">
@@ -336,7 +354,7 @@ const IssueRequest = () => {
                 <Filter className="h-4 w-4 text-muted-foreground" />
                 <span className="text-xs text-muted-foreground">กรอง:</span>
               </div>
-              <div className="relative flex-1 max-w-xs">
+              <div className="relative flex-1 max-w-[140px]">
                 <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-3 w-3 text-muted-foreground" />
                 <Input
                   placeholder="ค้นหารหัส/ชื่อ..."
@@ -345,6 +363,30 @@ const IssueRequest = () => {
                   className="pl-7 h-7 text-xs"
                 />
               </div>
+              <Select
+                value={customAdvanceDays?.toString() || "default"}
+                onValueChange={(value) => setCustomAdvanceDays(value === "default" ? null : parseInt(value))}
+              >
+                <SelectTrigger className="h-7 w-24 text-xs">
+                  <SelectValue placeholder="วัน" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="default">ค่าตั้ง ({notificationSettings?.advance_days || 30} วัน)</SelectItem>
+                  <SelectItem value="30">30 วัน</SelectItem>
+                  <SelectItem value="60">60 วัน</SelectItem>
+                  <SelectItem value="90">90 วัน</SelectItem>
+                  <SelectItem value="120">120 วัน</SelectItem>
+                </SelectContent>
+              </Select>
+              <Button
+                type="button"
+                variant={fifoShowExpired ? "destructive" : "outline"}
+                size="sm"
+                className="h-7 text-xs"
+                onClick={() => setFifoShowExpired(!fifoShowExpired)}
+              >
+                หมดอายุแล้ว
+              </Button>
               <Button
                 type="button"
                 variant={fifoShowExpiring ? "default" : "outline"}
@@ -353,6 +395,15 @@ const IssueRequest = () => {
                 onClick={() => setFifoShowExpiring(!fifoShowExpiring)}
               >
                 ใกล้หมดอายุ
+              </Button>
+              <Button
+                type="button"
+                variant={fifoShowWarrantyExpired ? "destructive" : "outline"}
+                size="sm"
+                className="h-7 text-xs"
+                onClick={() => setFifoShowWarrantyExpired(!fifoShowWarrantyExpired)}
+              >
+                ประกันหมดแล้ว
               </Button>
               <Button
                 type="button"
