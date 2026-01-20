@@ -40,17 +40,19 @@ interface PendingReceipt {
   supplier_id: string | null;
   supplier_name: string | null;
   lot_number: string | null;
+  lot_number_2: string | null;
   expiry_date: string | null;
   delivery_person_name: string;
   delivery_person_phone: string | null;
   notes: string | null;
   status: string;
   created_at: string;
-  storage_volume_cm3: number | null;
-  storage_width_cm: number | null;
-  storage_height_cm: number | null;
-  storage_depth_cm: number | null;
+  storage_volume_cm3?: number | null;
+  storage_width_cm?: number | null;
+  storage_height_cm?: number | null;
+  storage_depth_cm?: number | null;
   warranty_expiry_date: string | null;
+  unit_price: number | null;
 }
 
 interface LocationCapacity {
@@ -91,14 +93,7 @@ const ReceiveGoods = () => {
   const [selectedReceipt, setSelectedReceipt] = useState<PendingReceipt | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
-  // Form state for editing
-  const [editEquipmentId, setEditEquipmentId] = useState("");
-  const [editQuantity, setEditQuantity] = useState("");
-  const [editUnit, setEditUnit] = useState("");
-  const [editSupplierId, setEditSupplierId] = useState("");
-  const [editLotNumber, setEditLotNumber] = useState("");
-  const [editExpiryDate, setEditExpiryDate] = useState("");
-  const [editWarrantyExpiryDate, setEditWarrantyExpiryDate] = useState("");
+  // Form state for editing - only editable fields
   const [editNotes, setEditNotes] = useState("");
   const [storageVolumeCm3, setStorageVolumeCm3] = useState<string>("");
   const [locationCapacity, setLocationCapacity] = useState<LocationCapacity | null>(null);
@@ -154,7 +149,7 @@ const ReceiveGoods = () => {
     const { data, error } = await query;
     
     if (!error && data) {
-      setPendingReceipts(data as PendingReceipt[]);
+      setPendingReceipts(data as unknown as PendingReceipt[]);
     }
   };
 
@@ -204,13 +199,6 @@ const ReceiveGoods = () => {
 
   const openReceiveDialog = (receipt: PendingReceipt) => {
     setSelectedReceipt(receipt);
-    setEditEquipmentId(receipt.equipment_id || "");
-    setEditQuantity(receipt.quantity.toString());
-    setEditUnit(receipt.unit);
-    setEditSupplierId(receipt.supplier_id || "");
-    setEditLotNumber(receipt.lot_number || "");
-    setEditExpiryDate(receipt.expiry_date || "");
-    setEditWarrantyExpiryDate(receipt.warranty_expiry_date || "");
     setEditNotes(receipt.notes || "");
     setStorageVolumeCm3(receipt.storage_volume_cm3?.toString() || "");
     setLocationCapacity(null);
@@ -273,8 +261,8 @@ const ReceiveGoods = () => {
   const handleReceive = async () => {
     if (!selectedReceipt) return;
     
-    if (!editEquipmentId) {
-      toast.error("กรุณาเลือกสินค้าจากระบบ");
+    if (!selectedReceipt.equipment_id) {
+      toast.error("ไม่พบสินค้าในระบบ");
       return;
     }
 
@@ -286,20 +274,20 @@ const ReceiveGoods = () => {
     setIsLoading(true);
 
     try {
-      // Get selected supplier
-      const selectedSupp = suppliers.find(s => s.id === editSupplierId);
+      // Get supplier from receipt
+      const selectedSupp = suppliers.find(s => s.id === selectedReceipt.supplier_id);
 
       // Fetch current equipment stock FIRST
       const { data: currentEquipment, error: fetchError } = await supabase
         .from("equipment")
         .select("quantity_in_stock")
-        .eq("id", editEquipmentId)
+        .eq("id", selectedReceipt.equipment_id)
         .single();
 
       if (fetchError) throw fetchError;
 
       const currentStock = currentEquipment?.quantity_in_stock || 0;
-      const receivedQuantity = parseInt(editQuantity);
+      const receivedQuantity = selectedReceipt.quantity;
       const newStock = currentStock + receivedQuantity;
 
       const storageVolumeValue = storageVolumeCm3 ? parseFloat(storageVolumeCm3) : null;
@@ -314,12 +302,6 @@ const ReceiveGoods = () => {
           received_location_id: storageLocation.locationId,
           received_storage_slot_id: storageLocation.storageSlotId || null,
           received_sub_storage_slot_id: storageLocation.subStorageSlotId || null,
-          equipment_id: editEquipmentId,
-          quantity: receivedQuantity,
-          unit: editUnit,
-          supplier_id: editSupplierId || null,
-          lot_number: editLotNumber || null,
-          expiry_date: editExpiryDate || null,
           notes: editNotes || null,
           storage_volume_cm3: storageVolumeValue
         })
@@ -349,14 +331,15 @@ const ReceiveGoods = () => {
         .from("goods_receipt")
         .insert({
           document_no: generateGRDocumentNo(),
-          equipment_id: editEquipmentId,
+          equipment_id: selectedReceipt.equipment_id,
           quantity: receivedQuantity,
           supplier: selectedSupp?.name || selectedReceipt.supplier_name || "ไม่ระบุ",
           location_id: storageLocation.locationId,
           receipt_date: new Date().toISOString().split("T")[0],
           created_by: user?.id || "",
           notes: `นำเข้าจากเอกสาร ${selectedReceipt.document_no}. ${editNotes || ""}`.trim(),
-          status: "completed"
+          status: "completed",
+          unit_price: selectedReceipt.unit_price || null
         });
 
       if (grError) throw grError;
@@ -367,20 +350,20 @@ const ReceiveGoods = () => {
         .update({
           quantity_in_stock: newStock,
           location_id: storageLocation.locationId,
-          expiry_date: editExpiryDate || null
+          expiry_date: selectedReceipt.expiry_date || null
         })
-        .eq("id", editEquipmentId);
+        .eq("id", selectedReceipt.equipment_id);
 
       if (stockError) {
         console.error("Stock update error:", stockError);
         toast.warning("รับสินค้าสำเร็จแต่ไม่สามารถอัปเดต Stock ได้");
       } else {
         // Log stock movement
-        const selectedEquipment = equipment.find(e => e.id === editEquipmentId);
+        const selectedEquipment = equipment.find(e => e.id === selectedReceipt.equipment_id);
         await logStockMovement({
-          equipment_id: editEquipmentId,
-          equipment_code: selectedEquipment?.code || "",
-          equipment_name: selectedEquipment?.name || "",
+          equipment_id: selectedReceipt.equipment_id!,
+          equipment_code: selectedEquipment?.code || selectedReceipt.equipment_code || "",
+          equipment_name: selectedEquipment?.name || selectedReceipt.equipment_name || "",
           movement_type: "receive",
           quantity: receivedQuantity,
           stock_before: currentStock,
@@ -550,97 +533,101 @@ const ReceiveGoods = () => {
 
           {selectedReceipt && (
             <div className="space-y-4 py-4">
-              {/* Delivery Info */}
+              {/* Delivery Info - Read Only */}
               <div className="p-3 bg-muted/30 rounded-lg">
-                <p className="text-sm text-muted-foreground">ข้อมูลจากผู้ส่ง</p>
-                <div className="grid grid-cols-2 gap-2 mt-2 text-sm">
+                <p className="text-sm font-medium text-foreground mb-2">ข้อมูลจากการนำสินค้าเข้า</p>
+                <div className="grid grid-cols-2 gap-2 text-sm">
                   <p><span className="text-muted-foreground">ชื่อผู้ส่ง:</span> {selectedReceipt.delivery_person_name}</p>
                   <p><span className="text-muted-foreground">เบอร์โทร:</span> {selectedReceipt.delivery_person_phone || "-"}</p>
-                  <p><span className="text-muted-foreground">ชื่อสินค้า (ที่ระบุ):</span> {selectedReceipt.equipment_name || "-"}</p>
-                  <p><span className="text-muted-foreground">Lot No.:</span> {selectedReceipt.lot_number || "-"}</p>
                 </div>
               </div>
 
-              {/* Equipment Selection */}
+              {/* Equipment Name - Read Only */}
               <div className="space-y-2">
-                <Label>เลือกสินค้าจากระบบ *</Label>
-                <Select value={editEquipmentId} onValueChange={setEditEquipmentId}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="เลือกสินค้า..." />
-                  </SelectTrigger>
-                  <SelectContent position="popper" sideOffset={4} className="bg-background z-[200] max-h-60 overflow-y-auto">
-                    {equipment.map((item) => (
-                      <SelectItem key={item.id} value={item.id}>
-                        {item.code} - {item.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Label>ชื่อสินค้า</Label>
+                <Input 
+                  value={selectedReceipt.equipment_code ? `${selectedReceipt.equipment_code} - ${selectedReceipt.equipment_name || ""}` : selectedReceipt.equipment_name || "-"}
+                  disabled
+                  className="bg-muted"
+                />
               </div>
 
-              {/* Quantity & Unit */}
+              {/* Quantity & Unit - Read Only */}
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>จำนวน</Label>
                   <Input 
-                    type="number" 
-                    value={editQuantity}
-                    onChange={(e) => setEditQuantity(e.target.value)}
+                    value={selectedReceipt.quantity.toString()}
+                    disabled
+                    className="bg-muted"
                   />
                 </div>
                 <div className="space-y-2">
                   <Label>หน่วย</Label>
                   <Input 
-                    value={editUnit}
-                    onChange={(e) => setEditUnit(e.target.value)}
+                    value={selectedReceipt.unit}
+                    disabled
+                    className="bg-muted"
                   />
                 </div>
               </div>
 
-              {/* Supplier */}
+              {/* Lot Number 1, Lot Number 2 & Unit Price - Read Only */}
+              <div className="grid grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label>Lot Number 1</Label>
+                  <Input 
+                    value={selectedReceipt.lot_number || "-"}
+                    disabled
+                    className="bg-muted"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Lot Number 2</Label>
+                  <Input 
+                    value={selectedReceipt.lot_number_2 || "-"}
+                    disabled
+                    className="bg-muted"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>ราคาต่อชิ้น</Label>
+                  <Input 
+                    value={selectedReceipt.unit_price ? selectedReceipt.unit_price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "-"}
+                    disabled
+                    className="bg-muted"
+                  />
+                </div>
+              </div>
+
+              {/* Supplier - Read Only */}
               <div className="space-y-2">
                 <Label>ผู้จัดจำหน่าย</Label>
-                <Select value={editSupplierId} onValueChange={setEditSupplierId}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="เลือกผู้จัดจำหน่าย..." />
-                  </SelectTrigger>
-                  <SelectContent position="popper" sideOffset={4} className="bg-background z-[200] max-h-60 overflow-y-auto">
-                    {suppliers.map((supplier) => (
-                      <SelectItem key={supplier.id} value={supplier.id}>
-                        {supplier.code} - {supplier.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Input 
+                  value={selectedReceipt.supplier_name || "-"}
+                  disabled
+                  className="bg-muted"
+                />
               </div>
 
-              {/* Lot & Expiry */}
+              {/* Expiry Date & Warranty Expiry Date - Read Only */}
               <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Lot Number</Label>
-                  <Input 
-                    value={editLotNumber}
-                    onChange={(e) => setEditLotNumber(e.target.value)}
-                  />
-                </div>
                 <div className="space-y-2">
                   <Label>วันหมดอายุ</Label>
                   <Input 
-                    type="date"
-                    value={editExpiryDate}
-                    onChange={(e) => setEditExpiryDate(e.target.value)}
+                    value={selectedReceipt.expiry_date ? format(new Date(selectedReceipt.expiry_date), "dd/MM/yyyy") : "-"}
+                    disabled
+                    className="bg-muted"
                   />
                 </div>
-              </div>
-
-              {/* Warranty Expiry Date */}
-              <div className="space-y-2">
-                <Label>วันสิ้นสุดการรับประกัน</Label>
-                <Input 
-                  type="date"
-                  value={editWarrantyExpiryDate}
-                  onChange={(e) => setEditWarrantyExpiryDate(e.target.value)}
-                />
+                <div className="space-y-2">
+                  <Label>วันสิ้นสุดการรับประกัน</Label>
+                  <Input 
+                    value={selectedReceipt.warranty_expiry_date ? format(new Date(selectedReceipt.warranty_expiry_date), "dd/MM/yyyy") : "-"}
+                    disabled
+                    className="bg-muted"
+                  />
+                </div>
               </div>
 
               {/* Storage Dimensions Display */}
