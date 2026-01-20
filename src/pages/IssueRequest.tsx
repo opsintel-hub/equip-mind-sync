@@ -9,9 +9,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Plus, Search, FileText, Clock, CheckCircle, XCircle, AlertTriangle, MapPin, RotateCcw, Image, Filter, X } from "lucide-react";
+import { Plus, Search, FileText, Clock, CheckCircle, XCircle, AlertTriangle, MapPin, RotateCcw, Image, Filter, X, Trash2, ShoppingCart, ChevronDown, ChevronUp } from "lucide-react";
 import { format, differenceInDays } from "date-fns";
 import { th } from "date-fns/locale";
 import BillboardSelect from "@/components/billboard/BillboardSelect";
@@ -37,6 +38,18 @@ interface IssuePurpose {
   requires_return: boolean;
 }
 
+interface CartItem {
+  id: string;
+  equipment_id: string;
+  equipment_code: string;
+  equipment_name: string;
+  quantity: number;
+  unit: string;
+  serial_number: string;
+  billboard_id: string;
+  notes: string;
+}
+
 const IssueRequest = () => {
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState("");
@@ -49,22 +62,33 @@ const IssueRequest = () => {
   const [imageDialogOpen, setImageDialogOpen] = useState(false);
   const [selectedEquipmentImages, setSelectedEquipmentImages] = useState<string[]>([]);
   const [selectedEquipmentName, setSelectedEquipmentName] = useState("");
-  const [formData, setFormData] = useState({
+  const [expandedRequests, setExpandedRequests] = useState<Set<string>>(new Set());
+  
+  // Cart items - multiple items per request
+  const [cartItems, setCartItems] = useState<CartItem[]>([]);
+  
+  // Header form data
+  const [headerData, setHeaderData] = useState({
     company_id: "",
     department_id: "",
+    purpose_id: "",
+    purpose: "",
+    destination: "",
+    requester_name: "",
+    requester_phone: "",
+    requester_department: "",
+    notes: "",
+  });
+
+  // Current item form data
+  const [currentItem, setCurrentItem] = useState({
     equipment_id: "",
     equipment_code: "",
     equipment_name: "",
     serial_number: "",
-    quantity: "",
+    quantity: "1",
     unit: "ชิ้น",
-    purpose_id: "",
-    purpose: "",
-    destination: "",
     billboard_id: "",
-    requester_name: "",
-    requester_phone: "",
-    requester_department: "",
     notes: "",
   });
 
@@ -82,7 +106,6 @@ const IssueRequest = () => {
     },
   });
 
-  // Use custom days if set, otherwise use advance_days from settings or default to 30 days
   const advanceDays = customAdvanceDays || notificationSettings?.advance_days || 30;
 
   // Fetch equipment with full details including expiry dates
@@ -94,7 +117,7 @@ const IssueRequest = () => {
         .select("id, code, name, unit, quantity_in_stock, serial_number, expiry_date, warranty_expiry_date, warehouse_entry_date")
         .eq("is_active", true)
         .gt("quantity_in_stock", 0)
-        .order("warehouse_entry_date", { ascending: true }); // FIFO ordering
+        .order("warehouse_entry_date", { ascending: true });
       if (error) throw error;
       return data as EquipmentWithDetails[];
     },
@@ -128,7 +151,7 @@ const IssueRequest = () => {
     },
   });
 
-  // Fetch pending requests
+  // Fetch pending requests with items
   const { data: pendingRequests, isLoading } = useQuery({
     queryKey: ["goods-issue-pending"],
     queryFn: async () => {
@@ -141,50 +164,136 @@ const IssueRequest = () => {
     },
   });
 
-  // Get selected purpose
-  const selectedPurpose = purposes?.find((p) => p.id === formData.purpose_id);
+  // Fetch items for each pending request
+  const { data: pendingItems } = useQuery({
+    queryKey: ["goods-issue-pending-items"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("goods_issue_pending_items")
+        .select("*")
+        .order("created_at", { ascending: true });
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const selectedPurpose = purposes?.find((p) => p.id === headerData.purpose_id);
+
+  // Add item to cart
+  const handleAddToCart = () => {
+    if (!currentItem.equipment_id && !currentItem.equipment_name) {
+      toast.error("กรุณาเลือกหรือระบุชื่อสินค้า");
+      return;
+    }
+    if (!currentItem.quantity || parseInt(currentItem.quantity) < 1) {
+      toast.error("กรุณาระบุจำนวน");
+      return;
+    }
+
+    const newItem: CartItem = {
+      id: crypto.randomUUID(),
+      equipment_id: currentItem.equipment_id,
+      equipment_code: currentItem.equipment_code,
+      equipment_name: currentItem.equipment_name,
+      quantity: parseInt(currentItem.quantity),
+      unit: currentItem.unit,
+      serial_number: currentItem.serial_number,
+      billboard_id: currentItem.billboard_id,
+      notes: currentItem.notes,
+    };
+
+    setCartItems([...cartItems, newItem]);
+    
+    // Reset current item form
+    setCurrentItem({
+      equipment_id: "",
+      equipment_code: "",
+      equipment_name: "",
+      serial_number: "",
+      quantity: "1",
+      unit: "ชิ้น",
+      billboard_id: "",
+      notes: "",
+    });
+
+    toast.success("เพิ่มรายการลงตะกร้าแล้ว");
+  };
+
+  // Remove item from cart
+  const handleRemoveFromCart = (itemId: string) => {
+    setCartItems(cartItems.filter(item => item.id !== itemId));
+  };
 
   // Create request mutation
   const createRequest = useMutation({
-    mutationFn: async (data: typeof formData) => {
-      const purposeName = purposes?.find((p) => p.id === data.purpose_id)?.name || data.purpose;
-      const { error } = await supabase.from("goods_issue_pending").insert({
-        equipment_id: data.equipment_id || null,
-        equipment_code: data.equipment_code || null,
-        equipment_name: data.equipment_name || null,
-        quantity: parseInt(data.quantity),
-        unit: data.unit,
-        purpose_id: data.purpose_id || null,
-        purpose: purposeName || null,
-        destination: data.destination || null,
-        billboard_id: data.billboard_id || null,
-        is_complete: !selectedPurpose?.requires_billboard || !!data.billboard_id,
-        requester_name: data.requester_name,
-        requester_phone: data.requester_phone || null,
-        requester_department: data.requester_department || null,
-        notes: data.serial_number 
-          ? `Serial Number: ${data.serial_number}${data.notes ? ` | ${data.notes}` : ''}` 
-          : data.notes || null,
-      });
+    mutationFn: async () => {
+      if (cartItems.length === 0) {
+        throw new Error("กรุณาเพิ่มรายการสินค้าอย่างน้อย 1 รายการ");
+      }
 
-      if (error) throw error;
+      const purposeName = purposes?.find((p) => p.id === headerData.purpose_id)?.name || headerData.purpose;
+      
+      // Create header record
+      const { data: headerRecord, error: headerError } = await supabase
+        .from("goods_issue_pending")
+        .insert({
+          purpose_id: headerData.purpose_id || null,
+          purpose: purposeName || null,
+          destination: headerData.destination || null,
+          requester_name: headerData.requester_name,
+          requester_phone: headerData.requester_phone || null,
+          requester_department: headerData.requester_department || null,
+          notes: headerData.notes || null,
+          total_items: cartItems.length,
+          company_id: headerData.company_id || null,
+          // Keep first item's data for backward compatibility
+          equipment_id: cartItems[0]?.equipment_id || null,
+          equipment_code: cartItems[0]?.equipment_code || null,
+          equipment_name: cartItems[0]?.equipment_name || null,
+          quantity: cartItems.reduce((sum, item) => sum + item.quantity, 0),
+          unit: cartItems[0]?.unit || "ชิ้น",
+          billboard_id: cartItems[0]?.billboard_id || null,
+          is_complete: !selectedPurpose?.requires_billboard || cartItems.every(item => !!item.billboard_id),
+        })
+        .select()
+        .single();
+
+      if (headerError) throw headerError;
+
+      // Create item records
+      const itemsToInsert = cartItems.map(item => ({
+        pending_id: headerRecord.id,
+        equipment_id: item.equipment_id || null,
+        equipment_code: item.equipment_code || null,
+        equipment_name: item.equipment_name || null,
+        quantity: item.quantity,
+        unit: item.unit,
+        serial_number: item.serial_number || null,
+        billboard_id: item.billboard_id || null,
+        remaining_quantity: item.quantity,
+        status: "pending",
+        notes: item.notes || null,
+      }));
+
+      const { error: itemsError } = await supabase
+        .from("goods_issue_pending_items")
+        .insert(itemsToInsert);
+
+      if (itemsError) throw itemsError;
     },
     onSuccess: () => {
-      toast.success("ส่งคำขอเบิกสำเร็จ");
+      toast.success(`ส่งคำขอเบิกสำเร็จ (${cartItems.length} รายการ)`);
       queryClient.invalidateQueries({ queryKey: ["goods-issue-pending"] });
-      setFormData({
+      queryClient.invalidateQueries({ queryKey: ["goods-issue-pending-items"] });
+      
+      // Reset form
+      setCartItems([]);
+      setHeaderData({
         company_id: "",
         department_id: "",
-        equipment_id: "",
-        equipment_code: "",
-        equipment_name: "",
-        serial_number: "",
-        quantity: "",
-        unit: "ชิ้น",
         purpose_id: "",
         purpose: "",
         destination: "",
-        billboard_id: "",
         requester_name: "",
         requester_phone: "",
         requester_department: "",
@@ -198,18 +307,22 @@ const IssueRequest = () => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.requester_name || !formData.quantity) {
-      toast.error("กรุณากรอกชื่อผู้ขอเบิกและจำนวน");
+    if (!headerData.requester_name) {
+      toast.error("กรุณากรอกชื่อผู้ขอเบิก");
       return;
     }
-    createRequest.mutate(formData);
+    if (cartItems.length === 0) {
+      toast.error("กรุณาเพิ่มรายการสินค้าอย่างน้อย 1 รายการ");
+      return;
+    }
+    createRequest.mutate();
   };
 
   const handleEquipmentSelect = (equipmentId: string) => {
     const selected = equipment?.find((e) => e.id === equipmentId);
     if (selected) {
-      setFormData({
-        ...formData,
+      setCurrentItem({
+        ...currentItem,
         equipment_id: selected.id,
         equipment_code: selected.code,
         equipment_name: selected.name,
@@ -241,6 +354,16 @@ const IssueRequest = () => {
     setImageDialogOpen(true);
   };
 
+  const toggleRequestExpand = (requestId: string) => {
+    const newExpanded = new Set(expandedRequests);
+    if (newExpanded.has(requestId)) {
+      newExpanded.delete(requestId);
+    } else {
+      newExpanded.add(requestId);
+    }
+    setExpandedRequests(newExpanded);
+  };
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "pending":
@@ -249,6 +372,8 @@ const IssueRequest = () => {
         return <Badge variant="default" className="bg-green-100 text-green-800"><CheckCircle className="h-3 w-3 mr-1" />จ่ายแล้ว</Badge>;
       case "rejected":
         return <Badge variant="destructive"><XCircle className="h-3 w-3 mr-1" />ปฏิเสธ</Badge>;
+      case "waiting_stock":
+        return <Badge variant="secondary" className="bg-orange-100 text-orange-800"><Clock className="h-3 w-3 mr-1" />รอสินค้า</Badge>;
       default:
         return <Badge variant="outline">{status}</Badge>;
     }
@@ -287,9 +412,12 @@ const IssueRequest = () => {
       req.requester_name?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  const getItemsForRequest = (requestId: string) => {
+    return pendingItems?.filter(item => item.pending_id === requestId) || [];
+  };
+
   // Separate equipment into priority groups for FIFO with filtering
   const priorityEquipment = equipment?.filter(eq => {
-    // Apply search filter
     if (fifoSearchTerm) {
       const search = fifoSearchTerm.toLowerCase();
       if (!eq.code.toLowerCase().includes(search) && 
@@ -304,13 +432,11 @@ const IssueRequest = () => {
     const expiryDays = eq.expiry_date ? differenceInDays(new Date(eq.expiry_date), today) : Infinity;
     const warrantyDays = eq.warranty_expiry_date ? differenceInDays(new Date(eq.warranty_expiry_date), today) : Infinity;
     
-    // Check each condition separately for multi-select
     const isExpired = expiryDays <= 0;
     const isExpiring = expiryDays > 0 && expiryDays <= advanceDays;
     const isWarrantyExpired = warrantyDays <= 0;
     const isWarrantyExpiring = warrantyDays > 0 && warrantyDays <= advanceDays;
     
-    // Multi-select: show if ANY selected filter matches
     const matchesExpired = fifoShowExpired && isExpired;
     const matchesExpiring = fifoShowExpiring && isExpiring;
     const matchesWarrantyExpired = fifoShowWarrantyExpired && isWarrantyExpired;
@@ -319,7 +445,6 @@ const IssueRequest = () => {
     return matchesExpired || matchesExpiring || matchesWarrantyExpired || matchesWarranty;
   }) || [];
 
-  // Check if any equipment has expiry/warranty issues (for showing the card)
   const hasAnyPriorityItems = equipment?.some(eq => {
     if (!eq.expiry_date && !eq.warranty_expiry_date) return false;
     const today = new Date();
@@ -332,10 +457,10 @@ const IssueRequest = () => {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-foreground">ขอเบิกสินค้า</h1>
-        <p className="text-muted-foreground">สำหรับผู้ขอเบิกสินค้า (ต้องล็อกอิน)</p>
+        <p className="text-muted-foreground">สำหรับผู้ขอเบิกสินค้า - รองรับหลายรายการต่อ 1 เอกสาร</p>
       </div>
 
-      {/* Priority Alert - Items approaching expiry - Always show if any items exist */}
+      {/* Priority Alert - Items approaching expiry */}
       {hasAnyPriorityItems && (
         <Card className="border-warning/50 bg-warning/5">
           <CardHeader className="pb-3">
@@ -469,17 +594,52 @@ const IssueRequest = () => {
             <Plus className="h-5 w-5" />
             แบบฟอร์มขอเบิกสินค้า
           </CardTitle>
+          <CardDescription>
+            เพิ่มหลายรายการสินค้าในคำขอเดียว และระบุป้ายโฆษณาแยกต่างหากสำหรับแต่ละรายการได้
+          </CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {/* Department & Company Selection */}
-            <div className="p-4 bg-primary/5 border border-primary/20 rounded-lg">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Header Section - Requester Info */}
+            <div className="p-4 bg-primary/5 border border-primary/20 rounded-lg space-y-4">
+              <h3 className="font-medium flex items-center gap-2">
+                <FileText className="h-4 w-4" />
+                ข้อมูลผู้ขอเบิก
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="department">ฝ่าย *</Label>
+                  <Label htmlFor="requester_name">ชื่อผู้ขอเบิก *</Label>
+                  <Input
+                    id="requester_name"
+                    value={headerData.requester_name}
+                    onChange={(e) => setHeaderData({ ...headerData, requester_name: e.target.value })}
+                    placeholder="กรอกชื่อ-นามสกุล"
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="requester_phone">เบอร์โทรศัพท์</Label>
+                  <Input
+                    id="requester_phone"
+                    value={headerData.requester_phone}
+                    onChange={(e) => setHeaderData({ ...headerData, requester_phone: e.target.value })}
+                    placeholder="กรอกเบอร์โทร"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="requester_department">แผนก</Label>
+                  <Input
+                    id="requester_department"
+                    value={headerData.requester_department}
+                    onChange={(e) => setHeaderData({ ...headerData, requester_department: e.target.value })}
+                    placeholder="กรอกแผนกของผู้ขอ"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="department">ฝ่าย</Label>
                   <Select 
-                    value={formData.department_id} 
-                    onValueChange={(value) => setFormData({ ...formData, department_id: value })}
+                    value={headerData.department_id} 
+                    onValueChange={(value) => setHeaderData({ ...headerData, department_id: value })}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="เลือกฝ่าย..." />
@@ -494,75 +654,95 @@ const IssueRequest = () => {
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="company">บริษัท *</Label>
+                  <Label htmlFor="company">บริษัท</Label>
                   <CompanySelect
-                    value={formData.company_id}
-                    onChange={(value) => setFormData({ ...formData, company_id: value, equipment_id: "", equipment_code: "", equipment_name: "" })}
+                    value={headerData.company_id}
+                    onChange={(value) => setHeaderData({ ...headerData, company_id: value })}
                     placeholder="เลือกบริษัท..."
                   />
                 </div>
+                <div className="space-y-2">
+                  <Label htmlFor="purpose_id">วัตถุประสงค์</Label>
+                  <Select 
+                    value={headerData.purpose_id} 
+                    onValueChange={(value) => {
+                      const purpose = purposes?.find((p) => p.id === value);
+                      setHeaderData({ 
+                        ...headerData, 
+                        purpose_id: value, 
+                        purpose: purpose?.name || "",
+                      });
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="เลือกวัตถุประสงค์" />
+                    </SelectTrigger>
+                    <SelectContent position="popper" sideOffset={4} className="bg-background z-[200] max-h-60 overflow-y-auto">
+                      {purposes?.map((purpose) => (
+                        <SelectItem key={purpose.id} value={purpose.id}>
+                          <div className="flex items-center gap-2">
+                            <span>{purpose.name}</span>
+                            {purpose.requires_billboard && (
+                              <Badge variant="secondary" className="text-xs bg-blue-100 text-blue-800">
+                                <MapPin className="h-3 w-3 mr-1" />ระบุป้าย
+                              </Badge>
+                            )}
+                            {purpose.requires_return && (
+                              <Badge variant="secondary" className="text-xs bg-orange-100 text-orange-800">
+                                <RotateCcw className="h-3 w-3 mr-1" />ต้องคืน
+                              </Badge>
+                            )}
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="destination">ส่งไปที่</Label>
+                  <Input
+                    id="destination"
+                    value={headerData.destination}
+                    onChange={(e) => setHeaderData({ ...headerData, destination: e.target.value })}
+                    placeholder="ระบุจุดหมาย/สถานที่"
+                  />
+                </div>
+                <div className="space-y-2 md:col-span-2">
+                  <Label htmlFor="notes">หมายเหตุ</Label>
+                  <Textarea
+                    id="notes"
+                    value={headerData.notes}
+                    onChange={(e) => setHeaderData({ ...headerData, notes: e.target.value })}
+                    placeholder="หมายเหตุเพิ่มเติม"
+                    rows={2}
+                  />
+                </div>
               </div>
-              <p className="text-xs text-muted-foreground mt-2">
-                กรุณาเลือกฝ่ายและบริษัทที่จะเบิกสินค้า (ไม่สามารถเบิกข้ามบริษัทได้)
-              </p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="requester_name">ชื่อผู้ขอเบิก *</Label>
-                <Input
-                  id="requester_name"
-                  value={formData.requester_name}
-                  onChange={(e) => setFormData({ ...formData, requester_name: e.target.value })}
-                  placeholder="กรอกชื่อ-นามสกุล"
-                  required
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="requester_phone">เบอร์โทรศัพท์</Label>
-                <Input
-                  id="requester_phone"
-                  value={formData.requester_phone}
-                  onChange={(e) => setFormData({ ...formData, requester_phone: e.target.value })}
-                  placeholder="กรอกเบอร์โทร"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="requester_department">แผนก (ผู้ขอ)</Label>
-                <Input
-                  id="requester_department"
-                  value={formData.requester_department}
-                  onChange={(e) => setFormData({ ...formData, requester_department: e.target.value })}
-                  placeholder="กรอกแผนกของผู้ขอ"
-                />
-              </div>
-
-              <div className="space-y-2 md:col-span-2">
-                <Label htmlFor="equipment_code">เลือกสินค้า (เรียงตาม FIFO - ของเก่าก่อน)</Label>
-                <div className="flex gap-2">
-                  <div className="flex-1">
-                    <Select onValueChange={handleEquipmentSelect} value={formData.equipment_id}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="เลือกสินค้าที่ต้องการเบิก" />
+            {/* Add Item Section */}
+            <div className="p-4 border rounded-lg space-y-4">
+              <h3 className="font-medium flex items-center gap-2">
+                <ShoppingCart className="h-4 w-4" />
+                เพิ่มรายการสินค้า
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="space-y-2 md:col-span-2">
+                  <Label>เลือกสินค้า (FIFO)</Label>
+                  <div className="flex gap-2">
+                    <Select onValueChange={handleEquipmentSelect} value={currentItem.equipment_id}>
+                      <SelectTrigger className="flex-1">
+                        <SelectValue placeholder="เลือกสินค้า" />
                       </SelectTrigger>
                       <SelectContent position="popper" sideOffset={4} className="bg-background z-[200] max-h-60 overflow-y-auto">
                         {equipment?.map((eq) => {
                           const expiryBadge = getExpiryBadge(eq.expiry_date, eq.warranty_expiry_date);
-                          const ageDays = differenceInDays(new Date(), new Date(eq.warehouse_entry_date));
                           return (
                             <SelectItem key={eq.id} value={eq.id}>
                               <div className="flex items-center gap-2">
                                 <span className="font-medium">{eq.code}</span>
                                 <span className="text-muted-foreground">- {eq.name}</span>
-                                {eq.serial_number && (
-                                  <span className="text-xs text-muted-foreground">(SN: {eq.serial_number})</span>
-                                )}
                                 <span className="text-sm text-muted-foreground">[คงเหลือ: {eq.quantity_in_stock}]</span>
-                                {ageDays > 30 && (
-                                  <Badge variant="outline" className="text-xs">อยู่คลัง {ageDays} วัน</Badge>
-                                )}
                                 {expiryBadge}
                               </div>
                             </SelectItem>
@@ -570,149 +750,136 @@ const IssueRequest = () => {
                         })}
                       </SelectContent>
                     </Select>
-                  </div>
-                  {formData.equipment_id && (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleViewEquipmentImages(formData.equipment_id, formData.equipment_name)}
-                    >
-                      <Image className="h-4 w-4 mr-1" />
-                      ดูรูป
-                    </Button>
-                  )}
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="equipment_name">หรือ ระบุชื่อสินค้า</Label>
-                <Input
-                  id="equipment_name"
-                  value={formData.equipment_name}
-                  onChange={(e) => setFormData({ ...formData, equipment_name: e.target.value })}
-                  placeholder="กรอกชื่อสินค้า (ถ้าไม่รู้รหัส)"
-                  disabled={!!formData.equipment_id}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="serial_number">Serial Number (ถ้ามี)</Label>
-                <Input
-                  id="serial_number"
-                  value={formData.serial_number}
-                  onChange={(e) => setFormData({ ...formData, serial_number: e.target.value })}
-                  placeholder="ระบุ Serial Number"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="quantity">จำนวน *</Label>
-                <Input
-                  id="quantity"
-                  type="number"
-                  min="1"
-                  value={formData.quantity}
-                  onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
-                  placeholder="กรอกจำนวน"
-                  required
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="unit">หน่วย</Label>
-                <Input
-                  id="unit"
-                  value={formData.unit}
-                  onChange={(e) => setFormData({ ...formData, unit: e.target.value })}
-                  placeholder="หน่วย"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="purpose_id">วัตถุประสงค์ *</Label>
-                <Select 
-                  value={formData.purpose_id} 
-                  onValueChange={(value) => {
-                    const purpose = purposes?.find((p) => p.id === value);
-                    setFormData({ 
-                      ...formData, 
-                      purpose_id: value, 
-                      purpose: purpose?.name || "",
-                      billboard_id: purpose?.requires_billboard ? formData.billboard_id : ""
-                    });
-                  }}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="เลือกวัตถุประสงค์" />
-                  </SelectTrigger>
-                  <SelectContent position="popper" sideOffset={4} className="bg-background z-[200] max-h-60 overflow-y-auto">
-                    {purposes?.map((purpose) => (
-                      <SelectItem key={purpose.id} value={purpose.id}>
-                        <div className="flex items-center gap-2">
-                          <span>{purpose.name}</span>
-                          {purpose.requires_billboard && (
-                            <Badge variant="secondary" className="text-xs bg-blue-100 text-blue-800">
-                              <MapPin className="h-3 w-3 mr-1" />ระบุป้าย
-                            </Badge>
-                          )}
-                          {purpose.requires_return && (
-                            <Badge variant="secondary" className="text-xs bg-orange-100 text-orange-800">
-                              <RotateCcw className="h-3 w-3 mr-1" />ต้องคืน
-                            </Badge>
-                          )}
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {selectedPurpose && (
-                  <p className="text-xs text-muted-foreground">
-                    {selectedPurpose.description}
-                    {selectedPurpose.requires_billboard && !formData.billboard_id && (
-                      <span className="text-warning ml-2">(⚠️ หากไม่ระบุป้าย จะต้องกลับมาระบุภายหลัง)</span>
+                    {currentItem.equipment_id && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleViewEquipmentImages(currentItem.equipment_id, currentItem.equipment_name)}
+                      >
+                        <Image className="h-4 w-4" />
+                      </Button>
                     )}
-                  </p>
-                )}
-              </div>
-
-              {selectedPurpose?.requires_billboard && (
+                  </div>
+                </div>
                 <div className="space-y-2">
-                  <Label>
-                    ป้ายโฆษณา {selectedPurpose.requires_billboard && "(แนะนำ)"}
-                  </Label>
-                  <BillboardSelect
-                    value={formData.billboard_id}
-                    onChange={(value) => setFormData({ ...formData, billboard_id: value })}
+                  <Label>หรือระบุชื่อสินค้า</Label>
+                  <Input
+                    value={currentItem.equipment_name}
+                    onChange={(e) => setCurrentItem({ ...currentItem, equipment_name: e.target.value })}
+                    placeholder="ระบุชื่อสินค้า"
+                    disabled={!!currentItem.equipment_id}
                   />
                 </div>
-              )}
-
-              <div className="space-y-2">
-                <Label htmlFor="destination">ส่งไปที่</Label>
-                <Input
-                  id="destination"
-                  value={formData.destination}
-                  onChange={(e) => setFormData({ ...formData, destination: e.target.value })}
-                  placeholder="ระบุจุดหมาย/สถานที่"
-                />
+                <div className="space-y-2">
+                  <Label>Serial Number</Label>
+                  <Input
+                    value={currentItem.serial_number}
+                    onChange={(e) => setCurrentItem({ ...currentItem, serial_number: e.target.value })}
+                    placeholder="ระบุ S/N"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>จำนวน</Label>
+                  <Input
+                    type="number"
+                    min="1"
+                    value={currentItem.quantity}
+                    onChange={(e) => setCurrentItem({ ...currentItem, quantity: e.target.value })}
+                    placeholder="จำนวน"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>หน่วย</Label>
+                  <Input
+                    value={currentItem.unit}
+                    onChange={(e) => setCurrentItem({ ...currentItem, unit: e.target.value })}
+                    placeholder="หน่วย"
+                  />
+                </div>
+                {selectedPurpose?.requires_billboard && (
+                  <div className="space-y-2">
+                    <Label>ป้ายโฆษณา (สำหรับรายการนี้)</Label>
+                    <BillboardSelect
+                      value={currentItem.billboard_id}
+                      onChange={(value) => setCurrentItem({ ...currentItem, billboard_id: value })}
+                    />
+                  </div>
+                )}
+                <div className="space-y-2">
+                  <Label>หมายเหตุรายการ</Label>
+                  <Input
+                    value={currentItem.notes}
+                    onChange={(e) => setCurrentItem({ ...currentItem, notes: e.target.value })}
+                    placeholder="หมายเหตุ"
+                  />
+                </div>
               </div>
+              <Button type="button" variant="secondary" onClick={handleAddToCart}>
+                <Plus className="h-4 w-4 mr-2" />
+                เพิ่มลงตะกร้า
+              </Button>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="notes">หมายเหตุ</Label>
-              <Textarea
-                id="notes"
-                value={formData.notes}
-                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                placeholder="หมายเหตุเพิ่มเติม"
-                rows={2}
-              />
-            </div>
+            {/* Cart Items */}
+            {cartItems.length > 0 && (
+              <div className="p-4 border border-primary/30 bg-primary/5 rounded-lg space-y-4">
+                <h3 className="font-medium flex items-center gap-2">
+                  <ShoppingCart className="h-4 w-4" />
+                  รายการที่จะเบิก ({cartItems.length} รายการ)
+                </h3>
+                <ScrollArea className="max-h-60">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>รหัส/ชื่อสินค้า</TableHead>
+                        <TableHead>S/N</TableHead>
+                        <TableHead className="text-right">จำนวน</TableHead>
+                        <TableHead>ป้ายโฆษณา</TableHead>
+                        <TableHead>หมายเหตุ</TableHead>
+                        <TableHead className="w-10"></TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {cartItems.map((item) => (
+                        <TableRow key={item.id}>
+                          <TableCell>
+                            {item.equipment_code && <div className="font-medium">{item.equipment_code}</div>}
+                            <div className="text-sm text-muted-foreground">{item.equipment_name}</div>
+                          </TableCell>
+                          <TableCell>{item.serial_number || "-"}</TableCell>
+                          <TableCell className="text-right">{item.quantity} {item.unit}</TableCell>
+                          <TableCell>
+                            {item.billboard_id ? (
+                              <Badge variant="outline" className="text-xs">
+                                <MapPin className="h-3 w-3 mr-1" />
+                                ระบุแล้ว
+                              </Badge>
+                            ) : "-"}
+                          </TableCell>
+                          <TableCell className="text-sm text-muted-foreground">{item.notes || "-"}</TableCell>
+                          <TableCell>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleRemoveFromCart(item.id)}
+                              className="text-destructive hover:text-destructive"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </ScrollArea>
+              </div>
+            )}
 
-            <Button type="submit" disabled={createRequest.isPending}>
+            <Button type="submit" disabled={createRequest.isPending || cartItems.length === 0}>
               <Plus className="h-4 w-4 mr-2" />
-              {createRequest.isPending ? "กำลังส่ง..." : "ส่งคำขอเบิก"}
+              {createRequest.isPending ? "กำลังส่ง..." : `ส่งคำขอเบิก (${cartItems.length} รายการ)`}
             </Button>
           </form>
         </CardContent>
@@ -743,10 +910,10 @@ const IssueRequest = () => {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead className="w-10"></TableHead>
                   <TableHead>เลขที่เอกสาร</TableHead>
                   <TableHead>วันที่ขอ</TableHead>
-                  <TableHead>รหัส/ชื่อสินค้า</TableHead>
-                  <TableHead>จำนวน</TableHead>
+                  <TableHead>รายการ</TableHead>
                   <TableHead>ผู้ขอเบิก</TableHead>
                   <TableHead>วัตถุประสงค์</TableHead>
                   <TableHead>สถานะ</TableHead>
@@ -766,29 +933,85 @@ const IssueRequest = () => {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filteredRequests?.map((req) => (
-                    <TableRow key={req.id}>
-                      <TableCell className="font-medium">{req.document_no}</TableCell>
-                      <TableCell>
-                        {format(new Date(req.created_at), "dd/MM/yyyy HH:mm", { locale: th })}
-                      </TableCell>
-                      <TableCell>
-                        {req.equipment_code && <div className="font-medium">{req.equipment_code}</div>}
-                        <div className="text-sm text-muted-foreground">{req.equipment_name || "-"}</div>
-                      </TableCell>
-                      <TableCell>
-                        {req.quantity} {req.unit}
-                      </TableCell>
-                      <TableCell>
-                        <div>{req.requester_name}</div>
-                        {req.requester_department && (
-                          <div className="text-sm text-muted-foreground">{req.requester_department}</div>
+                  filteredRequests?.map((req) => {
+                    const items = getItemsForRequest(req.id);
+                    const isExpanded = expandedRequests.has(req.id);
+                    return (
+                      <>
+                        <TableRow key={req.id} className="cursor-pointer hover:bg-muted/50" onClick={() => toggleRequestExpand(req.id)}>
+                          <TableCell>
+                            {items.length > 0 && (
+                              <Button variant="ghost" size="sm" className="p-0 h-6 w-6">
+                                {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                              </Button>
+                            )}
+                          </TableCell>
+                          <TableCell className="font-medium">{req.document_no}</TableCell>
+                          <TableCell>
+                            {format(new Date(req.created_at), "dd/MM/yyyy HH:mm", { locale: th })}
+                          </TableCell>
+                          <TableCell>
+                            {items.length > 0 ? (
+                              <Badge variant="outline">{items.length} รายการ</Badge>
+                            ) : (
+                              <div>
+                                {req.equipment_code && <span className="font-medium">{req.equipment_code} - </span>}
+                                {req.equipment_name || "-"}
+                                <span className="text-muted-foreground ml-2">({req.quantity} {req.unit})</span>
+                              </div>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            <div>{req.requester_name}</div>
+                            {req.requester_department && (
+                              <div className="text-sm text-muted-foreground">{req.requester_department}</div>
+                            )}
+                          </TableCell>
+                          <TableCell>{req.purpose || "-"}</TableCell>
+                          <TableCell>{getStatusBadge(req.status)}</TableCell>
+                        </TableRow>
+                        {isExpanded && items.length > 0 && (
+                          <TableRow key={`${req.id}-items`}>
+                            <TableCell colSpan={7} className="bg-muted/30 p-0">
+                              <div className="p-4">
+                                <Table>
+                                  <TableHeader>
+                                    <TableRow>
+                                      <TableHead>รหัส/ชื่อสินค้า</TableHead>
+                                      <TableHead>S/N</TableHead>
+                                      <TableHead className="text-right">จำนวน</TableHead>
+                                      <TableHead>ป้ายโฆษณา</TableHead>
+                                      <TableHead>สถานะ</TableHead>
+                                    </TableRow>
+                                  </TableHeader>
+                                  <TableBody>
+                                    {items.map((item) => (
+                                      <TableRow key={item.id}>
+                                        <TableCell>
+                                          {item.equipment_code && <span className="font-medium">{item.equipment_code} - </span>}
+                                          {item.equipment_name || "-"}
+                                        </TableCell>
+                                        <TableCell>{item.serial_number || "-"}</TableCell>
+                                        <TableCell className="text-right">{item.quantity} {item.unit}</TableCell>
+                                        <TableCell>
+                                          {item.billboard_id ? (
+                                            <Badge variant="outline" className="text-xs">
+                                              <MapPin className="h-3 w-3 mr-1" />ระบุแล้ว
+                                            </Badge>
+                                          ) : "-"}
+                                        </TableCell>
+                                        <TableCell>{getStatusBadge(item.status)}</TableCell>
+                                      </TableRow>
+                                    ))}
+                                  </TableBody>
+                                </Table>
+                              </div>
+                            </TableCell>
+                          </TableRow>
                         )}
-                      </TableCell>
-                      <TableCell>{req.purpose || "-"}</TableCell>
-                      <TableCell>{getStatusBadge(req.status)}</TableCell>
-                    </TableRow>
-                  ))
+                      </>
+                    );
+                  })
                 )}
               </TableBody>
             </Table>
@@ -808,19 +1031,13 @@ const IssueRequest = () => {
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4 max-h-[60vh] overflow-y-auto p-4">
             {selectedEquipmentImages.map((url, index) => (
               <div key={index} className="relative aspect-square border rounded-lg overflow-hidden">
-                <img 
-                  src={url} 
-                  alt={`${selectedEquipmentName} - รูปที่ ${index + 1}`}
-                  className="w-full h-full object-cover hover:scale-105 transition-transform cursor-pointer"
-                  onClick={() => window.open(url, '_blank')}
+                <img
+                  src={url}
+                  alt={`${selectedEquipmentName} - ${index + 1}`}
+                  className="object-cover w-full h-full"
                 />
               </div>
             ))}
-          </div>
-          <div className="flex justify-end">
-            <Button variant="outline" onClick={() => setImageDialogOpen(false)}>
-              ปิด
-            </Button>
           </div>
         </DialogContent>
       </Dialog>
