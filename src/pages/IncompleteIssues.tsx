@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -9,9 +9,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Search, AlertTriangle, MapPin, Package, RefreshCw, Clock, Building } from "lucide-react";
+import { Search, AlertTriangle, MapPin, Package, RefreshCw, Clock, ChevronDown, ChevronRight, ShoppingCart, Edit } from "lucide-react";
 import { format } from "date-fns";
 import { th } from "date-fns/locale";
 import { useAuth } from "@/hooks/useAuth";
@@ -38,7 +39,24 @@ interface IncompleteIssue {
   notes: string | null;
   billboard_id: string | null;
   return_quantity: number | null;
+  total_items: number | null;
   companies?: { name: string } | null;
+}
+
+interface PendingItem {
+  id: string;
+  pending_id: string;
+  equipment_id: string | null;
+  equipment_code: string | null;
+  equipment_name: string | null;
+  serial_number: string | null;
+  quantity: number;
+  issued_quantity: number | null;
+  remaining_quantity: number | null;
+  unit: string;
+  status: string | null;
+  billboard_id: string | null;
+  notes: string | null;
 }
 
 interface IssuePurpose {
@@ -53,8 +71,10 @@ const IncompleteIssues = () => {
   const { user } = useAuth();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedIssue, setSelectedIssue] = useState<IncompleteIssue | null>(null);
+  const [selectedItem, setSelectedItem] = useState<PendingItem | null>(null);
   const [billboardDialogOpen, setBillboardDialogOpen] = useState(false);
   const [returnDialogOpen, setReturnDialogOpen] = useState(false);
+  const [expandedRequests, setExpandedRequests] = useState<Set<string>>(new Set());
   const [billboardId, setBillboardId] = useState("");
   const [returnData, setReturnData] = useState({
     quantity: "",
@@ -78,7 +98,7 @@ const IncompleteIssues = () => {
       const { data, error } = await supabase
         .from("goods_issue_pending")
         .select("*, companies(name)")
-        .in("status", ["issued", "partial_return"])
+        .in("status", ["issued", "partial_return", "partially_issued"])
         .order("issued_at", { ascending: false });
 
       if (error) throw error;
@@ -104,7 +124,112 @@ const IncompleteIssues = () => {
     },
   });
 
-  // Assign billboard mutation
+  // Fetch items for all incomplete issues
+  const issueIds = useMemo(() => (incompleteIssues?.issues || []).map(i => i.id), [incompleteIssues]);
+
+  const { data: allItems = [] } = useQuery({
+    queryKey: ["incomplete-issue-items", issueIds],
+    queryFn: async () => {
+      if (issueIds.length === 0) return [];
+      
+      const { data, error } = await supabase
+        .from("goods_issue_pending_items")
+        .select("*")
+        .in("pending_id", issueIds)
+        .order("created_at", { ascending: true });
+
+      if (error) throw error;
+      return data as PendingItem[];
+    },
+    enabled: issueIds.length > 0,
+  });
+
+  // Group items by pending_id
+  const itemsByIssue = useMemo(() => {
+    const map = new Map<string, PendingItem[]>();
+    allItems.forEach(item => {
+      if (!map.has(item.pending_id)) {
+        map.set(item.pending_id, []);
+      }
+      map.get(item.pending_id)!.push(item);
+    });
+    return map;
+  }, [allItems]);
+
+  const toggleExpand = (issueId: string) => {
+    setExpandedRequests(prev => {
+      const next = new Set(prev);
+      if (next.has(issueId)) {
+        next.delete(issueId);
+      } else {
+        next.add(issueId);
+      }
+      return next;
+    });
+  };
+
+  // Assign billboard to item mutation
+  const assignBillboardToItem = useMutation({
+    mutationFn: async () => {
+      if (!selectedItem || !billboardId || !user) return;
+
+      // Update item with billboard
+      const { error: itemError } = await supabase
+        .from("goods_issue_pending_items")
+        .update({
+          billboard_id: billboardId,
+          notes: (selectedItem.notes || "") + ` | ติดตั้งที่ป้าย`,
+        })
+        .eq("id", selectedItem.id);
+
+      if (itemError) throw itemError;
+
+      // Create billboard_equipment record
+      if (selectedItem.equipment_id) {
+        const { error: billboardError } = await supabase
+          .from("billboard_equipment")
+          .insert({
+            billboard_id: billboardId,
+            equipment_id: selectedItem.equipment_id,
+            quantity: selectedItem.issued_quantity || selectedItem.quantity,
+            installation_date: new Date().toISOString().split('T')[0],
+            notes: `จากเอกสาร ${selectedIssue?.document_no} - ${selectedItem.equipment_name}`,
+            created_by: user.id,
+          });
+        if (billboardError) throw billboardError;
+      }
+
+      // Check if all items now have billboard assigned
+      if (selectedIssue) {
+        const issueItems = itemsByIssue.get(selectedIssue.id) || [];
+        const updatedItems = issueItems.map(item => 
+          item.id === selectedItem.id ? { ...item, billboard_id: billboardId } : item
+        );
+        const allHaveBillboard = updatedItems.every(item => item.billboard_id);
+
+        if (allHaveBillboard) {
+          await supabase
+            .from("goods_issue_pending")
+            .update({ is_complete: true, billboard_id: billboardId })
+            .eq("id", selectedIssue.id);
+        }
+      }
+    },
+    onSuccess: () => {
+      toast.success("บันทึกข้อมูลป้ายโฆษณาสำเร็จ");
+      queryClient.invalidateQueries({ queryKey: ["incomplete-issues"] });
+      queryClient.invalidateQueries({ queryKey: ["incomplete-issue-items"] });
+      setBillboardDialogOpen(false);
+      setSelectedIssue(null);
+      setSelectedItem(null);
+      setBillboardId("");
+    },
+    onError: (error) => {
+      toast.error("เกิดข้อผิดพลาด: " + error.message);
+    },
+  });
+
+  // Assign billboard to header (legacy) mutation
   const assignBillboard = useMutation({
     mutationFn: async () => {
       if (!selectedIssue || !billboardId || !user) return;
@@ -220,8 +345,16 @@ const IncompleteIssues = () => {
     },
   });
 
+  const handleAssignBillboardToItem = (issue: IncompleteIssue, item: PendingItem) => {
+    setSelectedIssue(issue);
+    setSelectedItem(item);
+    setBillboardId(item.billboard_id || "");
+    setBillboardDialogOpen(true);
+  };
+
   const handleAssignBillboard = (issue: IncompleteIssue) => {
     setSelectedIssue(issue);
+    setSelectedItem(null);
     setBillboardDialogOpen(true);
   };
 
@@ -247,6 +380,11 @@ const IncompleteIssues = () => {
     return "return";
   };
 
+  const getItemsNeedingBillboard = (issue: IncompleteIssue) => {
+    const items = itemsByIssue.get(issue.id) || [];
+    return items.filter(item => !item.billboard_id && item.status === "issued");
+  };
+
   const filteredIssues = incompleteIssues?.issues.filter(
     (issue) =>
       issue.document_no?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -257,6 +395,16 @@ const IncompleteIssues = () => {
 
   const billboardIssues = filteredIssues.filter(i => getIssueType(i) === "billboard");
   const returnIssues = filteredIssues.filter(i => getIssueType(i) === "return");
+
+  const getItemStatusBadge = (item: PendingItem) => {
+    if (item.billboard_id) {
+      return <Badge variant="outline" className="text-xs bg-green-500/10 text-green-600">มีป้ายแล้ว</Badge>;
+    }
+    if (item.status === "issued") {
+      return <Badge variant="outline" className="text-xs bg-orange-500/10 text-orange-600">รอระบุป้าย</Badge>;
+    }
+    return <Badge variant="outline" className="text-xs">{item.status || "-"}</Badge>;
+  };
 
   return (
     <>
@@ -316,64 +464,133 @@ const IncompleteIssues = () => {
               </TabsList>
 
               <TabsContent value="billboard">
-                <div className="rounded-md border overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>เลขที่เอกสาร</TableHead>
-                        <TableHead>วันที่เบิก</TableHead>
-                        <TableHead>บริษัท</TableHead>
-                        <TableHead>สินค้า</TableHead>
-                        <TableHead>จำนวน</TableHead>
-                        <TableHead>ผู้ขอเบิก</TableHead>
-                        <TableHead>วัตถุประสงค์</TableHead>
-                        <TableHead className="text-center">จัดการ</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {isLoading ? (
-                        <TableRow>
-                          <TableCell colSpan={8} className="text-center py-8">กำลังโหลด...</TableCell>
-                        </TableRow>
-                      ) : billboardIssues.length === 0 ? (
-                        <TableRow>
-                          <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
-                            ไม่มีรายการที่รอระบุป้ายโฆษณา
-                          </TableCell>
-                        </TableRow>
-                      ) : (
-                        billboardIssues.map((issue) => (
-                          <TableRow key={issue.id}>
-                            <TableCell className="font-mono font-medium">{issue.document_no}</TableCell>
-                            <TableCell>
-                              {issue.issued_at ? format(new Date(issue.issued_at), "d MMM yy", { locale: th }) : "-"}
-                            </TableCell>
-                            <TableCell>{issue.companies?.name || "-"}</TableCell>
-                            <TableCell>
-                              <div>
-                                <div className="font-medium">{issue.equipment_name}</div>
-                                <div className="text-xs text-muted-foreground">{issue.equipment_code}</div>
+                <div className="space-y-2">
+                  {isLoading ? (
+                    <div className="text-center py-8">กำลังโหลด...</div>
+                  ) : billboardIssues.length === 0 ? (
+                    <div className="text-center py-8 text-muted-foreground">ไม่มีรายการที่รอระบุป้ายโฆษณา</div>
+                  ) : (
+                    billboardIssues.map((issue) => {
+                      const items = itemsByIssue.get(issue.id) || [];
+                      const hasItems = items.length > 0;
+                      const isExpanded = expandedRequests.has(issue.id);
+                      const itemsNeedingBillboard = getItemsNeedingBillboard(issue);
+
+                      return (
+                        <Collapsible key={issue.id} open={isExpanded} onOpenChange={() => toggleExpand(issue.id)}>
+                          <div className="border rounded-lg bg-blue-50/50 border-blue-200">
+                            {/* Header Row */}
+                            <CollapsibleTrigger asChild>
+                              <div className="flex items-center gap-4 p-4 hover:bg-muted/50 cursor-pointer">
+                                <div className="flex items-center gap-2">
+                                  {hasItems ? (
+                                    isExpanded ? <ChevronDown className="w-4 h-4 text-muted-foreground" /> : <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                                  ) : (
+                                    <div className="w-4" />
+                                  )}
+                                  <div className="font-medium">{issue.document_no}</div>
+                                </div>
+                                
+                                <div className="text-sm text-muted-foreground">
+                                  {issue.issued_at ? format(new Date(issue.issued_at), "d MMM yy", { locale: th }) : "-"}
+                                </div>
+
+                                <div className="text-sm">
+                                  {issue.companies?.name || "-"}
+                                </div>
+
+                                <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                                  <ShoppingCart className="w-3 h-3" />
+                                  {hasItems ? `${itemsNeedingBillboard.length}/${items.length} รอระบุป้าย` : "1 รายการ"}
+                                </div>
+                                
+                                <div className="text-sm text-muted-foreground">
+                                  {issue.requester_name}
+                                </div>
+
+                                <div className="text-sm text-muted-foreground">
+                                  {issue.purpose}
+                                </div>
+                                
+                                <div className="ml-auto flex items-center gap-4">
+                                  <Badge variant="outline" className="bg-blue-100 text-blue-800">
+                                    <MapPin className="w-3 h-3 mr-1" />
+                                    รอระบุป้าย
+                                  </Badge>
+                                  
+                                  {!hasItems && (
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={(e) => { e.stopPropagation(); handleAssignBillboard(issue); }}
+                                      className="gap-1"
+                                    >
+                                      <MapPin className="w-4 h-4" />
+                                      ระบุป้าย
+                                    </Button>
+                                  )}
+                                </div>
                               </div>
-                            </TableCell>
-                            <TableCell>{issue.issued_quantity || issue.quantity}</TableCell>
-                            <TableCell>{issue.requester_name}</TableCell>
-                            <TableCell>{issue.purpose}</TableCell>
-                            <TableCell className="text-center">
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => handleAssignBillboard(issue)}
-                                className="gap-1"
-                              >
-                                <MapPin className="w-4 h-4" />
-                                ระบุป้าย
-                              </Button>
-                            </TableCell>
-                          </TableRow>
-                        ))
-                      )}
-                    </TableBody>
-                  </Table>
+                            </CollapsibleTrigger>
+
+                            {/* Expandable Items */}
+                            <CollapsibleContent>
+                              <div className="border-t bg-white/50 p-4">
+                                {hasItems ? (
+                                  <Table>
+                                    <TableHeader>
+                                      <TableRow>
+                                        <TableHead>รหัสสินค้า</TableHead>
+                                        <TableHead>ชื่อสินค้า</TableHead>
+                                        <TableHead>Serial Number</TableHead>
+                                        <TableHead className="text-right">จำนวน</TableHead>
+                                        <TableHead>สถานะ</TableHead>
+                                        <TableHead className="text-center">จัดการ</TableHead>
+                                      </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                      {items.map((item) => (
+                                        <TableRow key={item.id} className={!item.billboard_id && item.status === "issued" ? "bg-orange-50/50" : ""}>
+                                          <TableCell className="font-mono text-sm">{item.equipment_code || "-"}</TableCell>
+                                          <TableCell>{item.equipment_name || "-"}</TableCell>
+                                          <TableCell className="text-muted-foreground">{item.serial_number || "-"}</TableCell>
+                                          <TableCell className="text-right">{item.issued_quantity || item.quantity}</TableCell>
+                                          <TableCell>{getItemStatusBadge(item)}</TableCell>
+                                          <TableCell className="text-center">
+                                            {item.status === "issued" && (
+                                              <Button
+                                                size="sm"
+                                                variant="outline"
+                                                onClick={(e) => { e.stopPropagation(); handleAssignBillboardToItem(issue, item); }}
+                                                className="gap-1"
+                                              >
+                                                {item.billboard_id ? <Edit className="w-3 h-3" /> : <MapPin className="w-3 h-3" />}
+                                                {item.billboard_id ? "แก้ไข" : "ระบุป้าย"}
+                                              </Button>
+                                            )}
+                                          </TableCell>
+                                        </TableRow>
+                                      ))}
+                                    </TableBody>
+                                  </Table>
+                                ) : (
+                                  <div className="flex items-center justify-between p-2">
+                                    <div className="flex items-center gap-4">
+                                      <div>
+                                        <div className="font-medium">{issue.equipment_name}</div>
+                                        <div className="text-xs text-muted-foreground">{issue.equipment_code}</div>
+                                      </div>
+                                      <div className="text-sm">จำนวน: {issue.issued_quantity || issue.quantity}</div>
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            </CollapsibleContent>
+                          </div>
+                        </Collapsible>
+                      );
+                    })
+                  )}
                 </div>
               </TabsContent>
 
@@ -467,11 +684,17 @@ const IncompleteIssues = () => {
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">สินค้า:</span>
-                <span className="font-medium">{selectedIssue?.equipment_name}</span>
+                <span className="font-medium">{selectedItem?.equipment_name || selectedIssue?.equipment_name}</span>
               </div>
+              {selectedItem?.serial_number && (
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Serial:</span>
+                  <span className="font-medium">{selectedItem.serial_number}</span>
+                </div>
+              )}
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">จำนวน:</span>
-                <span className="font-medium">{selectedIssue?.issued_quantity || selectedIssue?.quantity}</span>
+                <span className="font-medium">{selectedItem?.issued_quantity || selectedItem?.quantity || selectedIssue?.issued_quantity || selectedIssue?.quantity}</span>
               </div>
             </div>
 
@@ -482,8 +705,11 @@ const IncompleteIssues = () => {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setBillboardDialogOpen(false)}>ยกเลิก</Button>
-            <Button onClick={() => assignBillboard.mutate()} disabled={!billboardId || assignBillboard.isPending}>
-              {assignBillboard.isPending ? "กำลังบันทึก..." : "บันทึก"}
+            <Button 
+              onClick={() => selectedItem ? assignBillboardToItem.mutate() : assignBillboard.mutate()} 
+              disabled={!billboardId || assignBillboard.isPending || assignBillboardToItem.isPending}
+            >
+              {(assignBillboard.isPending || assignBillboardToItem.isPending) ? "กำลังบันทึก..." : "บันทึก"}
             </Button>
           </DialogFooter>
         </DialogContent>
