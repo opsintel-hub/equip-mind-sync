@@ -11,7 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { PackageCheck, Search, Clock, CheckCircle2, Edit, Package, Box } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { HierarchicalStorageSelect } from "@/components/location/HierarchicalStorageSelect";
+
 import { format } from "date-fns";
 import { useAuth } from "@/hooks/useAuth";
 import { logStockMovement } from "@/lib/stockMovement";
@@ -47,12 +47,33 @@ interface PendingReceipt {
   status: string;
   created_at: string;
   storage_volume_cm3: number | null;
+  storage_width_cm: number | null;
+  storage_height_cm: number | null;
+  storage_depth_cm: number | null;
+  warranty_expiry_date: string | null;
 }
 
 interface LocationCapacity {
   volume_cm3: number | null;
   used_volume_cm3: number | null;
   remaining_volume_cm3: number | null;
+}
+
+interface Warehouse {
+  id: string;
+  code: string;
+  name: string;
+  total_volume_cm3: number;
+  remaining_volume_cm3: number;
+}
+
+interface Location {
+  id: string;
+  code: string;
+  name: string;
+  warehouse_id: string | null;
+  volume_cm3: number | null;
+  used_volume_cm3: number | null;
 }
 
 const ReceiveGoods = () => {
@@ -63,6 +84,8 @@ const ReceiveGoods = () => {
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [pendingReceipts, setPendingReceipts] = useState<PendingReceipt[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
+  const [locations, setLocations] = useState<Location[]>([]);
 
   // Dialog state
   const [selectedReceipt, setSelectedReceipt] = useState<PendingReceipt | null>(null);
@@ -75,9 +98,11 @@ const ReceiveGoods = () => {
   const [editSupplierId, setEditSupplierId] = useState("");
   const [editLotNumber, setEditLotNumber] = useState("");
   const [editExpiryDate, setEditExpiryDate] = useState("");
+  const [editWarrantyExpiryDate, setEditWarrantyExpiryDate] = useState("");
   const [editNotes, setEditNotes] = useState("");
   const [storageVolumeCm3, setStorageVolumeCm3] = useState<string>("");
   const [locationCapacity, setLocationCapacity] = useState<LocationCapacity | null>(null);
+  const [selectedWarehouseId, setSelectedWarehouseId] = useState("");
   const [storageLocation, setStorageLocation] = useState<{
     locationId: string;
     storageSlotId?: string;
@@ -88,6 +113,8 @@ const ReceiveGoods = () => {
     fetchEquipment();
     fetchSuppliers();
     fetchPendingReceipts();
+    fetchWarehouses();
+    fetchLocations();
   }, [filterStatus]);
 
   const fetchEquipment = async () => {
@@ -131,6 +158,50 @@ const ReceiveGoods = () => {
     }
   };
 
+  const fetchWarehouses = async () => {
+    const { data: warehouseData, error: warehouseError } = await supabase
+      .from("warehouses")
+      .select("id, code, name")
+      .eq("is_active", true)
+      .order("code");
+
+    if (warehouseError) {
+      console.error("Error fetching warehouses:", warehouseError);
+      return;
+    }
+
+    // Fetch locations for each warehouse to calculate volumes
+    const { data: locData } = await supabase
+      .from("locations")
+      .select("warehouse_id, volume_cm3, used_volume_cm3")
+      .eq("is_active", true);
+
+    const warehousesWithVolume = (warehouseData || []).map(wh => {
+      const whLocations = (locData || []).filter(loc => loc.warehouse_id === wh.id);
+      const totalVolume = whLocations.reduce((sum, loc) => sum + (loc.volume_cm3 || 0), 0);
+      const usedVolume = whLocations.reduce((sum, loc) => sum + (loc.used_volume_cm3 || 0), 0);
+      return {
+        ...wh,
+        total_volume_cm3: totalVolume,
+        remaining_volume_cm3: totalVolume - usedVolume
+      };
+    });
+
+    setWarehouses(warehousesWithVolume);
+  };
+
+  const fetchLocations = async () => {
+    const { data, error } = await supabase
+      .from("locations")
+      .select("id, code, name, warehouse_id, volume_cm3, used_volume_cm3")
+      .eq("is_active", true)
+      .order("code");
+
+    if (!error && data) {
+      setLocations(data);
+    }
+  };
+
   const openReceiveDialog = (receipt: PendingReceipt) => {
     setSelectedReceipt(receipt);
     setEditEquipmentId(receipt.equipment_id || "");
@@ -139,11 +210,31 @@ const ReceiveGoods = () => {
     setEditSupplierId(receipt.supplier_id || "");
     setEditLotNumber(receipt.lot_number || "");
     setEditExpiryDate(receipt.expiry_date || "");
+    setEditWarrantyExpiryDate(receipt.warranty_expiry_date || "");
     setEditNotes(receipt.notes || "");
     setStorageVolumeCm3(receipt.storage_volume_cm3?.toString() || "");
     setLocationCapacity(null);
+    setSelectedWarehouseId("");
     setStorageLocation({ locationId: "" });
     setIsDialogOpen(true);
+  };
+
+  // Get filtered locations by selected warehouse
+  const filteredLocations = selectedWarehouseId 
+    ? locations.filter(loc => loc.warehouse_id === selectedWarehouseId)
+    : [];
+
+  // Handle warehouse change
+  const handleWarehouseChange = (warehouseId: string) => {
+    setSelectedWarehouseId(warehouseId);
+    setStorageLocation({ locationId: "" });
+    setLocationCapacity(null);
+  };
+
+  // Handle location change within warehouse
+  const handleLocationChange = (locationId: string) => {
+    setStorageLocation({ locationId });
+    fetchLocationCapacity(locationId);
   };
 
   // Fetch location capacity when location is selected
@@ -171,15 +262,6 @@ const ReceiveGoods = () => {
     }
   };
 
-  // Handle storage location change
-  const handleStorageLocationChange = (location: {
-    locationId: string;
-    storageSlotId?: string;
-    subStorageSlotId?: string;
-  }) => {
-    setStorageLocation(location);
-    fetchLocationCapacity(location.locationId);
-  };
 
   const generateGRDocumentNo = () => {
     const date = new Date();
@@ -551,53 +633,139 @@ const ReceiveGoods = () => {
                 </div>
               </div>
 
-              {/* Storage Location */}
-              <HierarchicalStorageSelect
-                value={storageLocation}
-                onChange={handleStorageLocationChange}
-              />
+              {/* Warranty Expiry Date */}
+              <div className="space-y-2">
+                <Label>วันสิ้นสุดการรับประกัน</Label>
+                <Input 
+                  type="date"
+                  value={editWarrantyExpiryDate}
+                  onChange={(e) => setEditWarrantyExpiryDate(e.target.value)}
+                />
+              </div>
 
-              {/* Storage Volume & Remaining Capacity */}
+              {/* Storage Dimensions Display */}
+              {selectedReceipt && (selectedReceipt.storage_width_cm || selectedReceipt.storage_height_cm || selectedReceipt.storage_depth_cm) && (
+                <div className="p-3 bg-muted/30 rounded-lg space-y-2">
+                  <Label className="flex items-center gap-2">
+                    <Box className="h-4 w-4" />
+                    ขนาดพื้นที่ๆต้องการใช้ (จากการนำเข้า)
+                  </Label>
+                  <div className="grid grid-cols-4 gap-4 text-sm">
+                    <div>
+                      <span className="text-muted-foreground">กว้าง: </span>
+                      <span className="font-medium">{selectedReceipt.storage_width_cm || 0} cm</span>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">สูง: </span>
+                      <span className="font-medium">{selectedReceipt.storage_height_cm || 0} cm</span>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">ลึก: </span>
+                      <span className="font-medium">{selectedReceipt.storage_depth_cm || 0} cm</span>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">ปริมาตร: </span>
+                      <span className="font-medium text-primary">
+                        {selectedReceipt.storage_volume_cm3?.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || 0} cm³
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Warehouse Selection */}
+              <div className="space-y-2">
+                <Label>คลังสินค้า *</Label>
+                <Select value={selectedWarehouseId} onValueChange={handleWarehouseChange}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="เลือกคลังสินค้า..." />
+                  </SelectTrigger>
+                  <SelectContent position="popper" sideOffset={4} className="bg-background z-[200] max-h-60 overflow-y-auto">
+                    {warehouses.map((wh) => (
+                      <SelectItem key={wh.id} value={wh.id}>
+                        {wh.code} - {wh.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {selectedWarehouseId && (
+                  <div className="text-xs text-muted-foreground">
+                    {(() => {
+                      const wh = warehouses.find(w => w.id === selectedWarehouseId);
+                      if (wh) {
+                        return (
+                          <span>
+                            พื้นที่คงเหลือของคลัง: <span className="font-medium text-success">{wh.remaining_volume_cm3.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} cm³</span>
+                          </span>
+                        );
+                      }
+                      return null;
+                    })()}
+                  </div>
+                )}
+              </div>
+
+              {/* Location Selection (filtered by warehouse) */}
+              {selectedWarehouseId && (
+                <div className="space-y-2">
+                  <Label>ตำแหน่งจัดเก็บ *</Label>
+                  <Select value={storageLocation.locationId} onValueChange={handleLocationChange}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="เลือกตำแหน่งจัดเก็บ..." />
+                    </SelectTrigger>
+                    <SelectContent position="popper" sideOffset={4} className="bg-background z-[200] max-h-60 overflow-y-auto">
+                      {filteredLocations.length === 0 ? (
+                        <div className="px-3 py-2 text-sm text-muted-foreground">
+                          ไม่มีตำแหน่งจัดเก็บในคลังนี้
+                        </div>
+                      ) : (
+                        filteredLocations.map((loc) => {
+                          const remaining = (loc.volume_cm3 || 0) - (loc.used_volume_cm3 || 0);
+                          return (
+                            <SelectItem key={loc.id} value={loc.id}>
+                              {loc.code} - {loc.name} (คงเหลือ: {remaining.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })} cm³)
+                            </SelectItem>
+                          );
+                        })
+                      )}
+                    </SelectContent>
+                  </Select>
+                  {locationCapacity && locationCapacity.volume_cm3 && (
+                    <div className="p-2 bg-muted/20 rounded text-sm">
+                      <div className="flex items-center justify-between">
+                        <span className="text-muted-foreground">พื้นที่คงเหลือของตำแหน่ง:</span>
+                        <span className={`font-medium ${
+                          locationCapacity.remaining_volume_cm3 !== null && 
+                          storageVolumeCm3 && 
+                          parseFloat(storageVolumeCm3) > locationCapacity.remaining_volume_cm3 
+                            ? 'text-destructive' 
+                            : 'text-success'
+                        }`}>
+                          {locationCapacity.remaining_volume_cm3?.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} cm³
+                        </span>
+                      </div>
+                      {storageVolumeCm3 && parseFloat(storageVolumeCm3) > (locationCapacity.remaining_volume_cm3 || 0) && (
+                        <div className="text-destructive text-xs mt-1">⚠️ พื้นที่ไม่เพียงพอ กรุณาเลือกตำแหน่งอื่น</div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Storage Volume Input */}
               <div className="space-y-2">
                 <Label className="flex items-center gap-2">
                   <Box className="h-4 w-4" />
                   ขนาดพื้นที่ที่ต้องการใช้ (cm³)
                 </Label>
-                <div className="flex items-center gap-4">
-                  <div className="flex-1">
-                    <Input 
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      placeholder="เช่น 1000"
-                      value={storageVolumeCm3}
-                      onChange={(e) => setStorageVolumeCm3(e.target.value)}
-                    />
-                  </div>
-                  {locationCapacity && locationCapacity.volume_cm3 && (
-                    <div className="text-sm">
-                      <span className="text-muted-foreground">พื้นที่คงเหลือ: </span>
-                      <span className={`font-medium ${
-                        locationCapacity.remaining_volume_cm3 !== null && 
-                        storageVolumeCm3 && 
-                        parseFloat(storageVolumeCm3) > locationCapacity.remaining_volume_cm3 
-                          ? 'text-destructive' 
-                          : 'text-success'
-                      }`}>
-                        {locationCapacity.remaining_volume_cm3?.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} cm³
-                      </span>
-                    </div>
-                  )}
-                </div>
-                {locationCapacity && locationCapacity.volume_cm3 && storageVolumeCm3 && (
-                  <div className="text-xs text-muted-foreground">
-                    ความจุทั้งหมด: {locationCapacity.volume_cm3.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} cm³ | 
-                    ใช้ไปแล้ว: {(locationCapacity.used_volume_cm3 || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} cm³
-                    {parseFloat(storageVolumeCm3) > (locationCapacity.remaining_volume_cm3 || 0) && (
-                      <span className="text-destructive ml-2">⚠️ พื้นที่ไม่เพียงพอ</span>
-                    )}
-                  </div>
-                )}
+                <Input 
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  placeholder="เช่น 1000"
+                  value={storageVolumeCm3}
+                  onChange={(e) => setStorageVolumeCm3(e.target.value)}
+                />
               </div>
 
               {/* Notes */}
