@@ -29,6 +29,12 @@ interface Supplier {
   name: string;
 }
 
+interface ReceiptPurpose {
+  id: string;
+  name: string;
+  purpose_type: string;
+}
+
 interface PendingReceipt {
   id: string;
   document_no: string;
@@ -54,6 +60,7 @@ interface PendingReceipt {
   warranty_expiry_date: string | null;
   unit_price: number | null;
   is_asset?: boolean | null;
+  receipt_purpose_id?: string | null;
 }
 
 interface LocationCapacity {
@@ -89,6 +96,7 @@ const ReceiveGoods = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
   const [locations, setLocations] = useState<Location[]>([]);
+  const [receiptPurposes, setReceiptPurposes] = useState<ReceiptPurpose[]>([]);
 
   // Dialog state
   const [selectedReceipt, setSelectedReceipt] = useState<PendingReceipt | null>(null);
@@ -111,7 +119,26 @@ const ReceiveGoods = () => {
     fetchPendingReceipts();
     fetchWarehouses();
     fetchLocations();
+    fetchReceiptPurposes();
   }, [filterStatus]);
+
+  const fetchReceiptPurposes = async () => {
+    const { data, error } = await supabase
+      .from("receipt_purposes")
+      .select("id, name, purpose_type")
+      .eq("is_active", true)
+      .order("name");
+    
+    if (!error && data) {
+      setReceiptPurposes(data);
+    }
+  };
+
+  const getReceiptPurposeName = (purposeId: string | null | undefined) => {
+    if (!purposeId) return "-";
+    const purpose = receiptPurposes.find(p => p.id === purposeId);
+    return purpose?.name || "-";
+  };
 
   const fetchEquipment = async () => {
     const { data, error } = await supabase
@@ -471,6 +498,7 @@ const ReceiveGoods = () => {
                   <TableHead>วันที่</TableHead>
                   <TableHead>ชื่อสินค้า</TableHead>
                   <TableHead>จำนวน</TableHead>
+                  <TableHead>วัตถุประสงค์</TableHead>
                   <TableHead>ผู้จัดจำหน่าย</TableHead>
                   <TableHead>ผู้ส่ง</TableHead>
                   <TableHead>สถานะ</TableHead>
@@ -480,7 +508,7 @@ const ReceiveGoods = () => {
               <TableBody>
                 {filteredReceipts.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
                       ไม่มีรายการ
                     </TableCell>
                   </TableRow>
@@ -491,6 +519,11 @@ const ReceiveGoods = () => {
                       <TableCell>{format(new Date(receipt.created_at), "dd/MM/yyyy HH:mm")}</TableCell>
                       <TableCell>{receipt.equipment_name || receipt.equipment_code || "-"}</TableCell>
                       <TableCell>{receipt.quantity} {receipt.unit}</TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className="font-normal">
+                          {getReceiptPurposeName(receipt.receipt_purpose_id)}
+                        </Badge>
+                      </TableCell>
                       <TableCell>{receipt.supplier_name || "-"}</TableCell>
                       <TableCell>
                         <div>
@@ -541,6 +574,16 @@ const ReceiveGoods = () => {
                   <p><span className="text-muted-foreground">ชื่อผู้ส่ง:</span> {selectedReceipt.delivery_person_name}</p>
                   <p><span className="text-muted-foreground">เบอร์โทร:</span> {selectedReceipt.delivery_person_phone || "-"}</p>
                 </div>
+              </div>
+
+              {/* Receipt Purpose - Read Only */}
+              <div className="space-y-2">
+                <Label>วัตถุประสงค์การนำสินค้าเข้า</Label>
+                <Input 
+                  value={getReceiptPurposeName(selectedReceipt.receipt_purpose_id)}
+                  disabled
+                  className="bg-muted"
+                />
               </div>
 
               {/* Equipment Name - Read Only */}
