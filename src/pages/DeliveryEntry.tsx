@@ -9,11 +9,12 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Truck, Search, Package, Clock, CheckCircle2, Upload, FileText, X, Loader2 } from "lucide-react";
+import { Truck, Search, Package, Clock, CheckCircle2, Upload, FileText, X, Loader2, Info, Warehouse } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { CompanySelect } from "@/components/company/CompanySelect";
+import { DeliveryImport } from "@/components/delivery/DeliveryImport";
 
 interface Equipment {
   id: string;
@@ -26,6 +27,19 @@ interface Supplier {
   id: string;
   code: string;
   name: string;
+}
+
+interface Department {
+  id: string;
+  name: string;
+}
+
+interface WarehouseData {
+  id: string;
+  code: string;
+  name: string;
+  total_volume_cm3: number;
+  remaining_volume_cm3: number;
 }
 
 interface PendingReceipt {
@@ -52,12 +66,17 @@ const DeliveryEntry = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [equipment, setEquipment] = useState<Equipment[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
+  const [departments, setDepartments] = useState<Department[]>([]);
+  const [warehouses, setWarehouses] = useState<WarehouseData[]>([]);
   const [pendingReceipts, setPendingReceipts] = useState<PendingReceipt[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isUploadingFile, setIsUploadingFile] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Form state
+  const [selectedDepartmentId, setSelectedDepartmentId] = useState("");
+  const [selectedCompanyId, setSelectedCompanyId] = useState("");
+  const [selectedWarehouseId, setSelectedWarehouseId] = useState("");
   const [selectedEquipmentId, setSelectedEquipmentId] = useState("");
   const [equipmentCode, setEquipmentCode] = useState("");
   const [equipmentName, setEquipmentName] = useState("");
@@ -65,7 +84,8 @@ const DeliveryEntry = () => {
   const [unit, setUnit] = useState("ชิ้น");
   const [selectedSupplierId, setSelectedSupplierId] = useState("");
   const [supplierName, setSupplierName] = useState("");
-  const [lotNumber, setLotNumber] = useState("");
+  const [lotNumber1, setLotNumber1] = useState("");
+  const [lotNumber2, setLotNumber2] = useState("");
   const [serialNumber, setSerialNumber] = useState("");
   const [unitPrice, setUnitPrice] = useState("");
   const [expiryDate, setExpiryDate] = useState("");
@@ -74,7 +94,12 @@ const DeliveryEntry = () => {
   const [deliveryPersonPhone, setDeliveryPersonPhone] = useState("");
   const [notes, setNotes] = useState("");
   const [documentFile, setDocumentFile] = useState<File | null>(null);
-  const [selectedCompanyId, setSelectedCompanyId] = useState("");
+  const [documentFileName, setDocumentFileName] = useState("");
+  
+  // Storage dimensions
+  const [storageWidthCm, setStorageWidthCm] = useState("");
+  const [storageHeightCm, setStorageHeightCm] = useState("");
+  const [storageDepthCm, setStorageDepthCm] = useState("");
   
   // Asset fields
   const [isAsset, setIsAsset] = useState(false);
@@ -84,9 +109,25 @@ const DeliveryEntry = () => {
   const [waitingEquipmentId, setWaitingEquipmentId] = useState(false);
   const [depreciationMonths, setDepreciationMonths] = useState("");
 
+  // Calculated volume
+  const calculatedVolume = (() => {
+    const w = parseFloat(storageWidthCm) || 0;
+    const h = parseFloat(storageHeightCm) || 0;
+    const d = parseFloat(storageDepthCm) || 0;
+    if (w > 0 && h > 0 && d > 0) {
+      return (w * h * d).toFixed(2).replace(/^0+/, '');
+    }
+    return "";
+  })();
+
+  // Selected warehouse info
+  const selectedWarehouse = warehouses.find(w => w.id === selectedWarehouseId);
+
   useEffect(() => {
     fetchEquipment();
     fetchSuppliers();
+    fetchDepartments();
+    fetchWarehouses();
     fetchPendingReceipts();
   }, []);
 
@@ -111,6 +152,50 @@ const DeliveryEntry = () => {
     
     if (!error && data) {
       setSuppliers(data);
+    }
+  };
+
+  const fetchDepartments = async () => {
+    const { data, error } = await supabase
+      .from("departments")
+      .select("id, name")
+      .eq("is_active", true)
+      .order("name");
+    
+    if (!error && data) {
+      setDepartments(data);
+    }
+  };
+
+  const fetchWarehouses = async () => {
+    const { data: warehousesData, error } = await supabase
+      .from("warehouses")
+      .select("id, code, name")
+      .eq("is_active", true)
+      .order("code");
+    
+    if (!error && warehousesData) {
+      // Get locations for each warehouse to calculate volume
+      const warehousesWithVolume = await Promise.all(
+        warehousesData.map(async (warehouse) => {
+          const { data: locationsData } = await supabase
+            .from("locations")
+            .select("volume_cm3, used_volume_cm3")
+            .eq("warehouse_id", warehouse.id)
+            .eq("is_active", true);
+
+          const totalVolume = (locationsData || []).reduce((sum, loc) => sum + (loc.volume_cm3 || 0), 0);
+          const usedVolume = (locationsData || []).reduce((sum, loc) => sum + (loc.used_volume_cm3 || 0), 0);
+
+          return {
+            ...warehouse,
+            total_volume_cm3: totalVolume,
+            remaining_volume_cm3: totalVolume - usedVolume
+          };
+        })
+      );
+
+      setWarehouses(warehousesWithVolume);
     }
   };
 
@@ -173,6 +258,7 @@ const DeliveryEntry = () => {
 
   const removeFile = () => {
     setDocumentFile(null);
+    setDocumentFileName("");
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
@@ -182,7 +268,8 @@ const DeliveryEntry = () => {
     if (!documentFile) return null;
 
     const fileExt = documentFile.name.split('.').pop();
-    const fileName = `${documentNo}-${Date.now()}.${fileExt}`;
+    const customName = documentFileName.trim() || documentNo;
+    const fileName = `${customName}-${Date.now()}.${fileExt}`;
     const filePath = `deliveries/${fileName}`;
 
     const { error: uploadError } = await supabase.storage
@@ -204,8 +291,8 @@ const DeliveryEntry = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!quantity || !deliveryPersonName || !unitPrice || !selectedCompanyId) {
-      toast.error("กรุณากรอกข้อมูลให้ครบถ้วน (บริษัท, จำนวน, ชื่อผู้ส่ง, และราคาต่อชิ้น)");
+    if (!quantity || !deliveryPersonName || !unitPrice || !selectedCompanyId || !selectedDepartmentId) {
+      toast.error("กรุณากรอกข้อมูลให้ครบถ้วน (ฝ่าย, บริษัท, จำนวน, ชื่อผู้ส่ง, และราคาต่อชิ้น)");
       return;
     }
 
@@ -231,6 +318,9 @@ const DeliveryEntry = () => {
         .from("goods_receipt_pending")
         .insert({
           document_no: docNo,
+          department_id: selectedDepartmentId,
+          company_id: selectedCompanyId,
+          warehouse_id: selectedWarehouseId || null,
           equipment_id: selectedEquipmentId || null,
           equipment_code: equipmentCode || null,
           equipment_name: equipmentName || (selectedEquipment?.name || null),
@@ -238,7 +328,8 @@ const DeliveryEntry = () => {
           unit: unit,
           supplier_id: selectedSupplierId || null,
           supplier_name: supplierName || (selectedSupplier?.name || null),
-          lot_number: lotNumber || null,
+          lot_number: lotNumber1 || null,
+          lot_number_2: lotNumber2 || null,
           serial_number: serialNumber || null,
           unit_price: unitPrice ? parseFloat(unitPrice) : null,
           expiry_date: expiryDate || null,
@@ -247,7 +338,11 @@ const DeliveryEntry = () => {
           delivery_person_phone: deliveryPersonPhone || null,
           notes: notes || null,
           document_url: documentUrl,
-          company_id: selectedCompanyId,
+          document_file_name: documentFileName || null,
+          storage_width_cm: storageWidthCm ? parseFloat(storageWidthCm) : null,
+          storage_height_cm: storageHeightCm ? parseFloat(storageHeightCm) : null,
+          storage_depth_cm: storageDepthCm ? parseFloat(storageDepthCm) : null,
+          storage_volume_cm3: calculatedVolume ? parseFloat(calculatedVolume) : null,
           status: "pending",
           is_asset: isAsset,
           asset_code: assetCode || null,
@@ -262,6 +357,9 @@ const DeliveryEntry = () => {
       toast.success("บันทึกข้อมูลสินค้าสำเร็จ รอเจ้าหน้าที่คลังรับเข้า");
       
       // Reset form
+      setSelectedDepartmentId("");
+      setSelectedCompanyId("");
+      setSelectedWarehouseId("");
       setSelectedEquipmentId("");
       setEquipmentCode("");
       setEquipmentName("");
@@ -269,7 +367,8 @@ const DeliveryEntry = () => {
       setUnit("ชิ้น");
       setSelectedSupplierId("");
       setSupplierName("");
-      setLotNumber("");
+      setLotNumber1("");
+      setLotNumber2("");
       setSerialNumber("");
       setUnitPrice("");
       setExpiryDate("");
@@ -278,7 +377,10 @@ const DeliveryEntry = () => {
       setDeliveryPersonPhone("");
       setNotes("");
       setDocumentFile(null);
-      setSelectedCompanyId("");
+      setDocumentFileName("");
+      setStorageWidthCm("");
+      setStorageHeightCm("");
+      setStorageDepthCm("");
       setIsAsset(false);
       setAssetCode("");
       setEquipmentIdCode("");
@@ -318,12 +420,15 @@ const DeliveryEntry = () => {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-semibold text-foreground mb-2 flex items-center gap-2">
-          <Truck className="w-8 h-8" />
-          นำสินค้าเข้า
-        </h1>
-        <p className="text-muted-foreground">สำหรับผู้นำสินค้า/อะไหล่เข้าคลัง คีย์ข้อมูลก่อนส่งให้เจ้าหน้าที่คลัง</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-semibold text-foreground mb-2 flex items-center gap-2">
+            <Truck className="w-8 h-8" />
+            นำสินค้าเข้า
+          </h1>
+          <p className="text-muted-foreground">สำหรับผู้นำสินค้า/อะไหล่เข้าคลัง คีย์ข้อมูลก่อนส่งให้เจ้าหน้าที่คลัง</p>
+        </div>
+        <DeliveryImport onSuccess={fetchPendingReceipts} />
       </div>
 
       <Card>
@@ -338,20 +443,72 @@ const DeliveryEntry = () => {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Company Selection - Required */}
+            {/* Department & Company Selection */}
             <div className="p-4 bg-primary/5 border border-primary/20 rounded-lg space-y-4">
-              <h3 className="font-medium text-sm text-primary">เลือกบริษัท *</h3>
+              <h3 className="font-medium text-sm text-primary">เลือกฝ่ายและบริษัท *</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="department">ฝ่าย *</Label>
+                  <Select value={selectedDepartmentId} onValueChange={setSelectedDepartmentId}>
+                    <SelectTrigger id="department">
+                      <SelectValue placeholder="เลือกฝ่าย..." />
+                    </SelectTrigger>
+                    <SelectContent position="popper" sideOffset={4} className="pointer-events-auto">
+                      {departments.map((dept) => (
+                        <SelectItem key={dept.id} value={dept.id}>
+                          {dept.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">
+                    เลือกฝ่ายที่รับผิดชอบสินค้านี้
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="company">บริษัทที่สั่งซื้อ *</Label>
+                  <CompanySelect
+                    value={selectedCompanyId}
+                    onChange={setSelectedCompanyId}
+                    placeholder="เลือกบริษัท..."
+                    required
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    กรุณาเลือกบริษัทที่เป็นเจ้าของงบประมาณ
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Warehouse Selection */}
+            <div className="p-4 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg space-y-4">
+              <h3 className="font-medium text-sm text-blue-700 dark:text-blue-400 flex items-center gap-2">
+                <Warehouse className="w-4 h-4" />
+                เลือกคลังสินค้าที่จัดเก็บ
+              </h3>
               <div className="space-y-2">
-                <Label htmlFor="company">บริษัทที่สั่งซื้อ *</Label>
-                <CompanySelect
-                  value={selectedCompanyId}
-                  onChange={setSelectedCompanyId}
-                  placeholder="เลือกบริษัท..."
-                  required
-                />
-                <p className="text-xs text-muted-foreground">
-                  กรุณาเลือกบริษัทที่เป็นเจ้าของงบประมาณในการสั่งซื้อสินค้านี้
-                </p>
+                <Label htmlFor="warehouse">คลังสินค้า</Label>
+                <Select value={selectedWarehouseId} onValueChange={setSelectedWarehouseId}>
+                  <SelectTrigger id="warehouse">
+                    <SelectValue placeholder="เลือกคลังสินค้า..." />
+                  </SelectTrigger>
+                  <SelectContent position="popper" sideOffset={4} className="pointer-events-auto">
+                    {warehouses.map((wh) => (
+                      <SelectItem key={wh.id} value={wh.id}>
+                        {wh.code} - {wh.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {selectedWarehouse && (
+                  <div className="flex items-center gap-2 text-sm">
+                    <Info className="w-4 h-4 text-blue-500" />
+                    <span className="text-muted-foreground">พื้นที่จัดเก็บที่เหลือ:</span>
+                    <span className={selectedWarehouse.remaining_volume_cm3 < 0 ? "text-destructive font-medium" : "text-green-600 font-medium"}>
+                      {selectedWarehouse.remaining_volume_cm3.toLocaleString()} cm³
+                    </span>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -389,7 +546,7 @@ const DeliveryEntry = () => {
                   <SelectTrigger id="equipment">
                     <SelectValue placeholder="เลือกสินค้าจากระบบ..." />
                   </SelectTrigger>
-                  <SelectContent position="popper" sideOffset={4} className="bg-background z-[200] max-h-60 overflow-y-auto">
+                  <SelectContent position="popper" sideOffset={4} className="bg-background z-[200] max-h-60 overflow-y-auto pointer-events-auto">
                     {equipment.map((item) => (
                       <SelectItem key={item.id} value={item.id}>
                         {item.code} - {item.name}
@@ -397,6 +554,10 @@ const DeliveryEntry = () => {
                     ))}
                   </SelectContent>
                 </Select>
+                <p className="text-xs text-muted-foreground flex items-center gap-1">
+                  <Info className="w-3 h-3" />
+                  ค้นหาจากรหัสและชื่อสินค้าในข้อมูลหลัก
+                </p>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="equipmentName">หรือ ระบุชื่อสินค้า</Label>
@@ -407,11 +568,14 @@ const DeliveryEntry = () => {
                   onChange={(e) => setEquipmentName(e.target.value)}
                   disabled={!!selectedEquipmentId}
                 />
+                <p className="text-xs text-muted-foreground">
+                  หากไม่พบสินค้าในระบบ สามารถพิมพ์ชื่อได้เอง
+                </p>
               </div>
             </div>
 
-            {/* Quantity & Unit */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* Quantity, Unit & Lot Numbers */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="quantity">จำนวน *</Label>
                 <Input 
@@ -433,12 +597,21 @@ const DeliveryEntry = () => {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="lotNumber">Lot Number</Label>
+                <Label htmlFor="lotNumber1">Lot Number 1</Label>
                 <Input 
-                  id="lotNumber" 
-                  placeholder="Lot No."
-                  value={lotNumber}
-                  onChange={(e) => setLotNumber(e.target.value)}
+                  id="lotNumber1" 
+                  placeholder="Lot No. 1"
+                  value={lotNumber1}
+                  onChange={(e) => setLotNumber1(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="lotNumber2">Lot Number 2</Label>
+                <Input 
+                  id="lotNumber2" 
+                  placeholder="Lot No. 2"
+                  value={lotNumber2}
+                  onChange={(e) => setLotNumber2(e.target.value)}
                 />
               </div>
             </div>
@@ -468,6 +641,72 @@ const DeliveryEntry = () => {
               </div>
             </div>
 
+            {/* Storage Dimensions */}
+            <div className="p-4 bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800 rounded-lg space-y-4">
+              <h3 className="font-medium text-sm text-green-700 dark:text-green-400">ขนาดพื้นที่ๆต้องการใช้</h3>
+              <div className="flex flex-wrap items-end gap-3">
+                <div className="space-y-1 flex-1 min-w-[100px]">
+                  <Label htmlFor="storageWidth" className="text-xs">กว้าง (ซ้าย-ขวา)</Label>
+                  <div className="flex items-center gap-1">
+                    <Input 
+                      id="storageWidth" 
+                      type="number"
+                      step="0.01"
+                      placeholder="0"
+                      value={storageWidthCm}
+                      onChange={(e) => setStorageWidthCm(e.target.value)}
+                      className="h-9"
+                    />
+                    <span className="text-xs text-muted-foreground">cm</span>
+                  </div>
+                </div>
+                <span className="text-muted-foreground pb-2">×</span>
+                <div className="space-y-1 flex-1 min-w-[100px]">
+                  <Label htmlFor="storageHeight" className="text-xs">สูง (บน-ล่าง)</Label>
+                  <div className="flex items-center gap-1">
+                    <Input 
+                      id="storageHeight" 
+                      type="number"
+                      step="0.01"
+                      placeholder="0"
+                      value={storageHeightCm}
+                      onChange={(e) => setStorageHeightCm(e.target.value)}
+                      className="h-9"
+                    />
+                    <span className="text-xs text-muted-foreground">cm</span>
+                  </div>
+                </div>
+                <span className="text-muted-foreground pb-2">×</span>
+                <div className="space-y-1 flex-1 min-w-[100px]">
+                  <Label htmlFor="storageDepth" className="text-xs">ลึก (หน้า-หลัง)</Label>
+                  <div className="flex items-center gap-1">
+                    <Input 
+                      id="storageDepth" 
+                      type="number"
+                      step="0.01"
+                      placeholder="0"
+                      value={storageDepthCm}
+                      onChange={(e) => setStorageDepthCm(e.target.value)}
+                      className="h-9"
+                    />
+                    <span className="text-xs text-muted-foreground">cm</span>
+                  </div>
+                </div>
+                <span className="text-muted-foreground pb-2">=</span>
+                <div className="space-y-1 min-w-[140px]">
+                  <Label className="text-xs">ลูกบาศก์เซนติเมตร</Label>
+                  <div className="flex items-center gap-1">
+                    <Input 
+                      readOnly
+                      value={calculatedVolume || "-"}
+                      className="h-9 bg-muted font-medium"
+                    />
+                    <span className="text-xs text-muted-foreground">cm³</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
             {/* Supplier */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
@@ -476,7 +715,7 @@ const DeliveryEntry = () => {
                   <SelectTrigger id="supplier">
                     <SelectValue placeholder="เลือกผู้จัดจำหน่าย..." />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent position="popper" sideOffset={4} className="pointer-events-auto">
                     {suppliers.map((supplier) => (
                       <SelectItem key={supplier.id} value={supplier.id}>
                         {supplier.code} - {supplier.name}
@@ -616,43 +855,58 @@ const DeliveryEntry = () => {
                 <FileText className="w-4 h-4" />
                 เอกสารแนบ
               </h3>
-              <div className="space-y-2">
-                <Label htmlFor="document">อัปโหลดเอกสาร (PDF, รูปภาพ, Word)</Label>
-                <div className="flex items-center gap-3">
-                  <input
-                    ref={fileInputRef}
-                    id="document"
-                    type="file"
-                    accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
-                    onChange={handleFileSelect}
-                    className="hidden"
+              <div className="space-y-3">
+                <div className="space-y-2">
+                  <Label htmlFor="documentFileName">ตั้งชื่อไฟล์ (ไม่เกิน 30 ตัวอักษร)</Label>
+                  <Input 
+                    id="documentFileName" 
+                    placeholder="ชื่อสำหรับค้นหาเอกสาร..."
+                    value={documentFileName}
+                    onChange={(e) => setDocumentFileName(e.target.value.slice(0, 30))}
+                    maxLength={30}
                   />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => fileInputRef.current?.click()}
-                    className="flex items-center gap-2"
-                  >
-                    <Upload className="w-4 h-4" />
-                    เลือกไฟล์
-                  </Button>
-                  {documentFile && (
-                    <div className="flex items-center gap-2 bg-background px-3 py-2 rounded-md border">
-                      <FileText className="w-4 h-4 text-primary" />
-                      <span className="text-sm truncate max-w-[200px]">{documentFile.name}</span>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={removeFile}
-                        className="h-6 w-6 p-0"
-                      >
-                        <X className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  )}
+                  <p className="text-xs text-muted-foreground">
+                    ชื่อนี้จะใช้ในการค้นหาเอกสารย้อนหลังที่หน้า "ค้นหาเอกสาร" (ค้นหาได้จากชื่อไฟล์, เลขที่เอกสาร, ชื่อสินค้า)
+                  </p>
                 </div>
-                <p className="text-xs text-muted-foreground">รองรับไฟล์ PDF, JPG, PNG, DOC, DOCX (สูงสุด 10MB)</p>
+                <div className="space-y-2">
+                  <Label htmlFor="document">อัปโหลดเอกสาร (PDF, รูปภาพ, Word)</Label>
+                  <div className="flex items-center gap-3">
+                    <input
+                      ref={fileInputRef}
+                      id="document"
+                      type="file"
+                      accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                      onChange={handleFileSelect}
+                      className="hidden"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="flex items-center gap-2"
+                    >
+                      <Upload className="w-4 h-4" />
+                      เลือกไฟล์
+                    </Button>
+                    {documentFile && (
+                      <div className="flex items-center gap-2 bg-background px-3 py-2 rounded-md border">
+                        <FileText className="w-4 h-4 text-primary" />
+                        <span className="text-sm truncate max-w-[200px]">{documentFile.name}</span>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={removeFile}
+                          className="h-6 w-6 p-0"
+                        >
+                          <X className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground">รองรับไฟล์ PDF, JPG, PNG, DOC, DOCX (สูงสุด 10MB)</p>
+                </div>
               </div>
             </div>
 
