@@ -13,6 +13,8 @@ interface LocationData {
   code: string;
   name: string;
   storage_area_size: string | null;
+  volume_cm3: number | null;
+  used_volume_cm3: number | null;
 }
 
 interface WarehouseData {
@@ -25,6 +27,9 @@ interface WarehouseData {
   is_active: boolean | null;
   locations?: LocationData[];
   location_count?: number;
+  total_volume_cm3?: number;
+  used_volume_cm3?: number;
+  remaining_volume_cm3?: number;
 }
 
 interface WarehouseListProps {
@@ -57,14 +62,21 @@ export function WarehouseList({ refresh }: WarehouseListProps) {
         (warehousesData || []).map(async (warehouse) => {
           const { data: locationsData } = await supabase
             .from("locations")
-            .select("id, code, name, storage_area_size")
+            .select("id, code, name, storage_area_size, volume_cm3, used_volume_cm3")
             .eq("warehouse_id", warehouse.id)
             .eq("is_active", true);
 
+          const locations = locationsData || [];
+          const totalVolume = locations.reduce((sum, loc) => sum + (loc.volume_cm3 || 0), 0);
+          const usedVolume = locations.reduce((sum, loc) => sum + (loc.used_volume_cm3 || 0), 0);
+
           return {
             ...warehouse,
-            locations: locationsData || [],
-            location_count: locationsData?.length || 0,
+            locations: locations,
+            location_count: locations.length,
+            total_volume_cm3: totalVolume,
+            used_volume_cm3: usedVolume,
+            remaining_volume_cm3: totalVolume - usedVolume,
           };
         })
       );
@@ -150,6 +162,8 @@ export function WarehouseList({ refresh }: WarehouseListProps) {
             <TableHead>ฝ่าย</TableHead>
             <TableHead>ประเภทพื้นที่</TableHead>
             <TableHead className="text-center">จำนวนตำแหน่งจัดเก็บ</TableHead>
+            <TableHead className="text-right">พื้นที่ทั้งหมด (cm³)</TableHead>
+            <TableHead className="text-right">พื้นที่คงเหลือ (cm³)</TableHead>
             <TableHead className="text-right">จัดการ</TableHead>
           </TableRow>
         </TableHeader>
@@ -187,6 +201,14 @@ export function WarehouseList({ refresh }: WarehouseListProps) {
                   <TableCell className="text-muted-foreground">{warehouse.department || "-"}</TableCell>
                   <TableCell>{getStorageAreaBadge(warehouse.storage_area)}</TableCell>
                   <TableCell className="text-center">{warehouse.location_count || 0}</TableCell>
+                  <TableCell className="text-right font-medium">
+                    {(warehouse.total_volume_cm3 || 0).toLocaleString()}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <span className={warehouse.remaining_volume_cm3 && warehouse.remaining_volume_cm3 < 0 ? "text-destructive font-medium" : "text-green-600 font-medium"}>
+                      {(warehouse.remaining_volume_cm3 || 0).toLocaleString()}
+                    </span>
+                  </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
                       <WarehouseForm editData={warehouse} onSuccess={fetchWarehouses} />
@@ -217,6 +239,12 @@ export function WarehouseList({ refresh }: WarehouseListProps) {
                       {location.storage_area_size || "-"}
                     </TableCell>
                     <TableCell></TableCell>
+                    <TableCell className="text-right text-sm text-muted-foreground">
+                      {(location.volume_cm3 || 0).toLocaleString()}
+                    </TableCell>
+                    <TableCell className="text-right text-sm text-muted-foreground">
+                      {((location.volume_cm3 || 0) - (location.used_volume_cm3 || 0)).toLocaleString()}
+                    </TableCell>
                     <TableCell></TableCell>
                   </TableRow>
                 ))}
