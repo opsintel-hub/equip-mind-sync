@@ -197,13 +197,13 @@ export function ContractorForm({ onSuccess, contractor }: ContractorFormProps) {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>ประเภทบุคคล *</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <Select value={field.value} onValueChange={field.onChange}>
                       <FormControl>
-                        <SelectTrigger>
+                        <SelectTrigger className="pointer-events-auto">
                           <SelectValue placeholder="เลือกประเภทบุคคล" />
                         </SelectTrigger>
                       </FormControl>
-                      <SelectContent position="popper" sideOffset={4}>
+                      <SelectContent position="popper" sideOffset={4} className="pointer-events-auto">
                         <SelectItem value="corporate">นิติบุคคล</SelectItem>
                         <SelectItem value="individual">บุคคลธรรมดา</SelectItem>
                       </SelectContent>
