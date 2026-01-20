@@ -42,6 +42,15 @@ interface WarehouseData {
   remaining_volume_cm3: number;
 }
 
+interface ReceiptPurpose {
+  id: string;
+  name: string;
+  description: string | null;
+  purpose_type: string;
+  requires_location: boolean;
+  max_storage_days: number | null;
+}
+
 interface PendingReceipt {
   id: string;
   document_no: string;
@@ -68,10 +77,14 @@ const DeliveryEntry = () => {
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
   const [warehouses, setWarehouses] = useState<WarehouseData[]>([]);
+  const [receiptPurposes, setReceiptPurposes] = useState<ReceiptPurpose[]>([]);
   const [pendingReceipts, setPendingReceipts] = useState<PendingReceipt[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isUploadingFile, setIsUploadingFile] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  // Receipt Purpose
+  const [selectedReceiptPurposeId, setSelectedReceiptPurposeId] = useState("");
 
   // Form state
   const [selectedDepartmentId, setSelectedDepartmentId] = useState("");
@@ -128,6 +141,7 @@ const DeliveryEntry = () => {
     fetchSuppliers();
     fetchDepartments();
     fetchWarehouses();
+    fetchReceiptPurposes();
     fetchPendingReceipts();
   }, []);
 
@@ -196,6 +210,19 @@ const DeliveryEntry = () => {
       );
 
       setWarehouses(warehousesWithVolume);
+    }
+  };
+
+  const fetchReceiptPurposes = async () => {
+    const { data, error } = await supabase
+      .from("receipt_purposes")
+      .select("id, name, description, purpose_type, requires_location, max_storage_days")
+      .eq("is_active", true)
+      .order("purpose_type", { ascending: true })
+      .order("name", { ascending: true });
+    
+    if (!error && data) {
+      setReceiptPurposes(data);
     }
   };
 
