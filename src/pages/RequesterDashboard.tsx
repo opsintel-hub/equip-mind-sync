@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -9,16 +9,34 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { format } from "date-fns";
 import { th } from "date-fns/locale";
-import { Search, Package, Clock, CheckCircle, XCircle, Bell, FileText, AlertTriangle, Ban } from "lucide-react";
+import { Search, Package, Clock, CheckCircle, XCircle, Bell, FileText, AlertTriangle, Ban, ChevronDown, ChevronRight, ShoppingCart } from "lucide-react";
 import { toast } from "sonner";
+
+interface PendingItem {
+  id: string;
+  pending_id: string;
+  equipment_id: string | null;
+  equipment_code: string | null;
+  equipment_name: string | null;
+  serial_number: string | null;
+  quantity: number;
+  issued_quantity: number | null;
+  remaining_quantity: number | null;
+  unit: string;
+  status: string | null;
+  billboard_id: string | null;
+  notes: string | null;
+}
 
 export default function RequesterDashboard() {
   const [searchName, setSearchName] = useState("");
   const [searchedName, setSearchedName] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [expandedRequests, setExpandedRequests] = useState<Set<string>>(new Set());
   const queryClient = useQueryClient();
 
   const { data: requests = [], isLoading: requestsLoading, refetch: refetchRequests } = useQuery({
@@ -37,6 +55,38 @@ export default function RequesterDashboard() {
     },
     enabled: !!searchedName.trim(),
   });
+
+  // Fetch items for all requests
+  const requestIds = useMemo(() => requests.map(r => r.id), [requests]);
+  
+  const { data: allItems = [] } = useQuery({
+    queryKey: ["requester-request-items", requestIds],
+    queryFn: async () => {
+      if (requestIds.length === 0) return [];
+      
+      const { data, error } = await supabase
+        .from("goods_issue_pending_items")
+        .select("*")
+        .in("pending_id", requestIds)
+        .order("created_at", { ascending: true });
+
+      if (error) throw error;
+      return data as PendingItem[];
+    },
+    enabled: requestIds.length > 0,
+  });
+
+  // Group items by pending_id
+  const itemsByRequest = useMemo(() => {
+    const map = new Map<string, PendingItem[]>();
+    allItems.forEach(item => {
+      if (!map.has(item.pending_id)) {
+        map.set(item.pending_id, []);
+      }
+      map.get(item.pending_id)!.push(item);
+    });
+    return map;
+  }, [allItems]);
 
   const { data: notifications = [], isLoading: notificationsLoading } = useQuery({
     queryKey: ["requester-notifications", searchedName],
@@ -58,6 +108,18 @@ export default function RequesterDashboard() {
 
   const handleSearch = () => {
     setSearchedName(searchName);
+  };
+
+  const toggleExpand = (requestId: string) => {
+    setExpandedRequests(prev => {
+      const next = new Set(prev);
+      if (next.has(requestId)) {
+        next.delete(requestId);
+      } else {
+        next.add(requestId);
+      }
+      return next;
+    });
   };
 
   // Cancel request mutation
@@ -97,6 +159,19 @@ export default function RequesterDashboard() {
         return <Badge variant="outline" className="bg-gray-500/10 text-gray-600 border-gray-500/20"><Ban className="w-3 h-3 mr-1" />ยกเลิก</Badge>;
       default:
         return <Badge variant="secondary">{status}</Badge>;
+    }
+  };
+
+  const getItemStatusBadge = (status: string | null) => {
+    switch (status) {
+      case "pending":
+        return <Badge variant="outline" className="text-xs bg-yellow-500/10 text-yellow-600">รอจ่าย</Badge>;
+      case "issued":
+        return <Badge variant="outline" className="text-xs bg-green-500/10 text-green-600">จ่ายแล้ว</Badge>;
+      case "partially_issued":
+        return <Badge variant="outline" className="text-xs bg-purple-500/10 text-purple-600">จ่ายบางส่วน</Badge>;
+      default:
+        return <Badge variant="outline" className="text-xs">-</Badge>;
     }
   };
 
@@ -294,81 +369,156 @@ export default function RequesterDashboard() {
                     ) : requests.length === 0 ? (
                       <div className="text-center py-8 text-muted-foreground">ไม่พบคำขอเบิก</div>
                     ) : (
-                      <ScrollArea className="h-[400px]">
-                        <Table>
-                          <TableHeader>
-                            <TableRow>
-                              <TableHead>เลขที่เอกสาร</TableHead>
-                              <TableHead>รหัสสินค้า</TableHead>
-                              <TableHead>ชื่อสินค้า</TableHead>
-                              <TableHead className="text-right">จำนวน</TableHead>
-                              <TableHead>วัตถุประสงค์</TableHead>
-                              <TableHead>สถานะ</TableHead>
-                              <TableHead>วันที่ขอ</TableHead>
-                              <TableHead className="text-center">จัดการ</TableHead>
-                            </TableRow>
-                          </TableHeader>
-                          <TableBody>
-                            {requests
-                              .filter(r => statusFilter === "all" || r.status === statusFilter)
-                              .map((request) => (
-                              <TableRow key={request.id}>
-                                <TableCell className="font-medium">{request.document_no}</TableCell>
-                                <TableCell>{request.equipment_code || "-"}</TableCell>
-                                <TableCell>{request.equipment_name || "-"}</TableCell>
-                                <TableCell className="text-right">
-                                  {request.issued_quantity && request.issued_quantity > 0 ? (
-                                    <span>
-                                      {request.issued_quantity}/{request.quantity} {request.unit}
-                                    </span>
-                                  ) : (
-                                    <span>{request.quantity} {request.unit}</span>
-                                  )}
-                                </TableCell>
-                                <TableCell>{request.purpose || "-"}</TableCell>
-                                <TableCell>{getStatusBadge(request.status)}</TableCell>
-                                <TableCell>
-                                  {format(new Date(request.created_at), "d MMM yyyy HH:mm", { locale: th })}
-                                </TableCell>
-                                <TableCell className="text-center">
-                                  {request.status === "pending" && (
-                                    <AlertDialog>
-                                      <AlertDialogTrigger asChild>
-                                        <Button
-                                          variant="ghost"
-                                          size="sm"
-                                          className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                                        >
-                                          <Ban className="w-4 h-4 mr-1" />
-                                          ยกเลิก
-                                        </Button>
-                                      </AlertDialogTrigger>
-                                      <AlertDialogContent>
-                                        <AlertDialogHeader>
-                                          <AlertDialogTitle>ยืนยันการยกเลิกคำขอ</AlertDialogTitle>
-                                          <AlertDialogDescription>
-                                            คุณต้องการยกเลิกคำขอเบิก "{request.document_no}" หรือไม่?
-                                            <br />
-                                            สินค้า: {request.equipment_name} จำนวน {request.quantity} {request.unit}
-                                          </AlertDialogDescription>
-                                        </AlertDialogHeader>
-                                        <AlertDialogFooter>
-                                          <AlertDialogCancel>ไม่ใช่</AlertDialogCancel>
-                                          <AlertDialogAction
-                                            onClick={() => cancelRequestMutation.mutate(request.id)}
-                                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                          >
-                                            ยืนยันยกเลิก
-                                          </AlertDialogAction>
-                                        </AlertDialogFooter>
-                                      </AlertDialogContent>
-                                    </AlertDialog>
-                                  )}
-                                </TableCell>
-                              </TableRow>
-                            ))}
-                          </TableBody>
-                        </Table>
+                      <ScrollArea className="h-[500px]">
+                        <div className="space-y-2">
+                          {requests
+                            .filter(r => statusFilter === "all" || r.status === statusFilter)
+                            .map((request) => {
+                              const items = itemsByRequest.get(request.id) || [];
+                              const hasItems = items.length > 0;
+                              const isExpanded = expandedRequests.has(request.id);
+
+                              return (
+                                <Collapsible key={request.id} open={isExpanded} onOpenChange={() => toggleExpand(request.id)}>
+                                  <div className="border rounded-lg">
+                                    {/* Header Row */}
+                                    <CollapsibleTrigger asChild>
+                                      <div className="flex items-center gap-4 p-4 hover:bg-muted/50 cursor-pointer">
+                                        <div className="flex items-center gap-2">
+                                          {hasItems ? (
+                                            isExpanded ? <ChevronDown className="w-4 h-4 text-muted-foreground" /> : <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                                          ) : (
+                                            <div className="w-4" />
+                                          )}
+                                          <div className="font-medium">{request.document_no}</div>
+                                        </div>
+                                        
+                                        <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                                          <ShoppingCart className="w-3 h-3" />
+                                          {hasItems ? `${items.length} รายการ` : "1 รายการ"}
+                                        </div>
+                                        
+                                        <div className="text-sm text-muted-foreground">
+                                          {request.purpose || "-"}
+                                        </div>
+                                        
+                                        <div className="ml-auto flex items-center gap-4">
+                                          {getStatusBadge(request.status)}
+                                          <div className="text-xs text-muted-foreground">
+                                            {format(new Date(request.created_at), "d MMM yyyy HH:mm", { locale: th })}
+                                          </div>
+                                          {request.status === "pending" && (
+                                            <AlertDialog>
+                                              <AlertDialogTrigger asChild>
+                                                <Button
+                                                  variant="ghost"
+                                                  size="sm"
+                                                  className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                                                  onClick={(e) => e.stopPropagation()}
+                                                >
+                                                  <Ban className="w-4 h-4 mr-1" />
+                                                  ยกเลิก
+                                                </Button>
+                                              </AlertDialogTrigger>
+                                              <AlertDialogContent onClick={(e) => e.stopPropagation()}>
+                                                <AlertDialogHeader>
+                                                  <AlertDialogTitle>ยืนยันการยกเลิกคำขอ</AlertDialogTitle>
+                                                  <AlertDialogDescription>
+                                                    คุณต้องการยกเลิกคำขอเบิก "{request.document_no}" หรือไม่?
+                                                  </AlertDialogDescription>
+                                                </AlertDialogHeader>
+                                                <AlertDialogFooter>
+                                                  <AlertDialogCancel>ไม่ใช่</AlertDialogCancel>
+                                                  <AlertDialogAction
+                                                    onClick={() => cancelRequestMutation.mutate(request.id)}
+                                                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                                  >
+                                                    ยืนยันยกเลิก
+                                                  </AlertDialogAction>
+                                                </AlertDialogFooter>
+                                              </AlertDialogContent>
+                                            </AlertDialog>
+                                          )}
+                                        </div>
+                                      </div>
+                                    </CollapsibleTrigger>
+
+                                    {/* Expandable Items */}
+                                    <CollapsibleContent>
+                                      <div className="border-t bg-muted/30 p-4">
+                                        {hasItems ? (
+                                          <Table>
+                                            <TableHeader>
+                                              <TableRow>
+                                                <TableHead>รหัสสินค้า</TableHead>
+                                                <TableHead>ชื่อสินค้า</TableHead>
+                                                <TableHead>Serial Number</TableHead>
+                                                <TableHead className="text-right">จำนวน</TableHead>
+                                                <TableHead>หน่วย</TableHead>
+                                                <TableHead>สถานะ</TableHead>
+                                              </TableRow>
+                                            </TableHeader>
+                                            <TableBody>
+                                              {items.map((item) => (
+                                                <TableRow key={item.id}>
+                                                  <TableCell className="font-mono text-sm">{item.equipment_code || "-"}</TableCell>
+                                                  <TableCell>{item.equipment_name || "-"}</TableCell>
+                                                  <TableCell className="text-muted-foreground">{item.serial_number || "-"}</TableCell>
+                                                  <TableCell className="text-right">
+                                                    {item.issued_quantity && item.issued_quantity > 0 ? (
+                                                      <span>
+                                                        <span className="text-green-600">{item.issued_quantity}</span>/{item.quantity}
+                                                      </span>
+                                                    ) : (
+                                                      item.quantity
+                                                    )}
+                                                  </TableCell>
+                                                  <TableCell>{item.unit}</TableCell>
+                                                  <TableCell>{getItemStatusBadge(item.status)}</TableCell>
+                                                </TableRow>
+                                              ))}
+                                            </TableBody>
+                                          </Table>
+                                        ) : (
+                                          <Table>
+                                            <TableHeader>
+                                              <TableRow>
+                                                <TableHead>รหัสสินค้า</TableHead>
+                                                <TableHead>ชื่อสินค้า</TableHead>
+                                                <TableHead className="text-right">จำนวน</TableHead>
+                                                <TableHead>หน่วย</TableHead>
+                                              </TableRow>
+                                            </TableHeader>
+                                            <TableBody>
+                                              <TableRow>
+                                                <TableCell className="font-mono text-sm">{request.equipment_code || "-"}</TableCell>
+                                                <TableCell>{request.equipment_name || "-"}</TableCell>
+                                                <TableCell className="text-right">
+                                                  {request.issued_quantity && request.issued_quantity > 0 ? (
+                                                    <span>
+                                                      <span className="text-green-600">{request.issued_quantity}</span>/{request.quantity}
+                                                    </span>
+                                                  ) : (
+                                                    request.quantity
+                                                  )}
+                                                </TableCell>
+                                                <TableCell>{request.unit}</TableCell>
+                                              </TableRow>
+                                            </TableBody>
+                                          </Table>
+                                        )}
+                                        {request.notes && (
+                                          <p className="mt-3 text-sm text-muted-foreground">
+                                            <span className="font-medium">หมายเหตุ:</span> {request.notes}
+                                          </p>
+                                        )}
+                                      </div>
+                                    </CollapsibleContent>
+                                  </div>
+                                </Collapsible>
+                              );
+                            })}
+                        </div>
                       </ScrollArea>
                     )}
                   </CardContent>
@@ -428,3 +578,5 @@ export default function RequesterDashboard() {
     </div>
   );
 }
+
+export { RequesterDashboard };
