@@ -53,6 +53,7 @@ interface PendingReceipt {
   storage_depth_cm?: number | null;
   warranty_expiry_date: string | null;
   unit_price: number | null;
+  is_asset?: boolean | null;
 }
 
 interface LocationCapacity {
@@ -600,14 +601,24 @@ const ReceiveGoods = () => {
                 </div>
               </div>
 
-              {/* Supplier - Read Only */}
-              <div className="space-y-2">
-                <Label>ผู้จัดจำหน่าย</Label>
-                <Input 
-                  value={selectedReceipt.supplier_name || "-"}
-                  disabled
-                  className="bg-muted"
-                />
+              {/* Supplier & Is Asset - Read Only */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>ผู้จัดจำหน่าย</Label>
+                  <Input 
+                    value={selectedReceipt.supplier_name || "-"}
+                    disabled
+                    className="bg-muted"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>ประเภทสินค้า</Label>
+                  <Input 
+                    value={selectedReceipt.is_asset ? "ทรัพย์สิน (Asset)" : "ไม่ใช่ทรัพย์สิน"}
+                    disabled
+                    className={`bg-muted ${selectedReceipt.is_asset ? 'text-primary font-medium' : ''}`}
+                  />
+                </div>
               </div>
 
               {/* Expiry Date & Warranty Expiry Date - Read Only */}
