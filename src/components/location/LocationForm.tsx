@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -33,6 +33,7 @@ import { toast } from "sonner";
 import { Plus } from "lucide-react";
 import { StorageSlotSelect } from "./StorageSlotSelect";
 import { SubStorageSlotSelect } from "./SubStorageSlotSelect";
+import { LocationDimensionFields } from "./LocationDimensionFields";
 
 interface Warehouse {
   id: string;
@@ -46,7 +47,6 @@ const formSchema = z.object({
   name: z.string().min(1, "กรุณาระบุชื่อตำแหน่ง"),
   description: z.string().optional(),
   storage_area: z.string().optional(),
-  storage_area_size: z.string().optional(),
   storage_slot_id: z.string().optional(),
   sub_storage_slot_id: z.string().optional(),
 });
@@ -59,8 +59,11 @@ interface LocationFormProps {
     name: string;
     description: string | null;
     storage_area: string | null;
-    storage_area_size: string | null;
     warehouse_id: string | null;
+    width_cm?: number | null;
+    height_cm?: number | null;
+    depth_cm?: number | null;
+    volume_cm3?: number | null;
   };
 }
 
@@ -71,10 +74,26 @@ export function LocationForm({ onSuccess, location }: LocationFormProps) {
   const [storageSlotId, setStorageSlotId] = useState<string>("");
   const [isNewLocationSaved, setIsNewLocationSaved] = useState(!!location);
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
+  
+  // Dimension fields state
+  const [widthCm, setWidthCm] = useState<number | undefined>(location?.width_cm ?? undefined);
+  const [heightCm, setHeightCm] = useState<number | undefined>(location?.height_cm ?? undefined);
+  const [depthCm, setDepthCm] = useState<number | undefined>(location?.depth_cm ?? undefined);
+  const [volumeCm3, setVolumeCm3] = useState<number | undefined>(location?.volume_cm3 ?? undefined);
 
   useEffect(() => {
     fetchWarehouses();
   }, []);
+
+  // Reset dimension fields when dialog opens/closes or location changes
+  useEffect(() => {
+    if (open) {
+      setWidthCm(location?.width_cm ?? undefined);
+      setHeightCm(location?.height_cm ?? undefined);
+      setDepthCm(location?.depth_cm ?? undefined);
+      setVolumeCm3(location?.volume_cm3 ?? undefined);
+    }
+  }, [open, location]);
 
   const fetchWarehouses = async () => {
     const { data } = await supabase
@@ -93,11 +112,14 @@ export function LocationForm({ onSuccess, location }: LocationFormProps) {
       name: location?.name || "",
       description: location?.description || "",
       storage_area: location?.storage_area || "",
-      storage_area_size: location?.storage_area_size || "",
       storage_slot_id: "",
       sub_storage_slot_id: "",
     },
   });
+
+  const handleVolumeChange = useCallback((value: number | undefined) => {
+    setVolumeCm3(value);
+  }, []);
 
   const handleSaveBasicInfo = async () => {
     const values = form.getValues();
@@ -125,7 +147,11 @@ export function LocationForm({ onSuccess, location }: LocationFormProps) {
           name: values.name,
           description: values.description || null,
           storage_area: values.storage_area || null,
-          storage_area_size: values.storage_area_size || null,
+          width_cm: widthCm || null,
+          height_cm: heightCm || null,
+          depth_cm: depthCm || null,
+          volume_cm3: volumeCm3 || null,
+          used_volume_cm3: 0,
           created_by: user.id,
         })
         .select()
@@ -163,7 +189,10 @@ export function LocationForm({ onSuccess, location }: LocationFormProps) {
             name: values.name,
             description: values.description || null,
             storage_area: values.storage_area || null,
-            storage_area_size: values.storage_area_size || null,
+            width_cm: widthCm || null,
+            height_cm: heightCm || null,
+            depth_cm: depthCm || null,
+            volume_cm3: volumeCm3 || null,
           })
           .eq("id", targetId);
 
@@ -174,6 +203,7 @@ export function LocationForm({ onSuccess, location }: LocationFormProps) {
         setOpen(false);
         setIsNewLocationSaved(false);
         setLocationId(undefined);
+        resetDimensionFields();
         onSuccess();
       } else {
         // Save basic info first
@@ -184,6 +214,13 @@ export function LocationForm({ onSuccess, location }: LocationFormProps) {
     } finally {
       setLoading(false);
     }
+  };
+
+  const resetDimensionFields = () => {
+    setWidthCm(undefined);
+    setHeightCm(undefined);
+    setDepthCm(undefined);
+    setVolumeCm3(undefined);
   };
 
   return (
@@ -263,51 +300,49 @@ export function LocationForm({ onSuccess, location }: LocationFormProps) {
               />
             </div>
             
-            <div className="grid grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="storage_area"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>พื้นที่จัดเก็บ</FormLabel>
-                    <Select 
-                      onValueChange={(value) => {
-                        field.onChange(value);
-                        if (value) {
-                          setLocationId(location?.id);
-                        }
-                      }} 
-                      value={field.value}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="เลือกพื้นที่จัดเก็บ" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent position="popper" sideOffset={4} className="bg-background z-[200] max-h-60 overflow-y-auto">
-                        <SelectItem value="Indoor">Indoor</SelectItem>
-                        <SelectItem value="Outdoor">Outdoor</SelectItem>
-                        <SelectItem value="Semi-outdoor">Semi-outdoor</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="storage_area_size"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>ขนาดพื้นที่</FormLabel>
+            <FormField
+              control={form.control}
+              name="storage_area"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>พื้นที่จัดเก็บ</FormLabel>
+                  <Select 
+                    onValueChange={(value) => {
+                      field.onChange(value);
+                      if (value) {
+                        setLocationId(location?.id);
+                      }
+                    }} 
+                    value={field.value}
+                  >
                     <FormControl>
-                      <Input placeholder="เช่น 50 ตร.ม., 100 ตร.ฟุต" {...field} />
+                      <SelectTrigger>
+                        <SelectValue placeholder="เลือกพื้นที่จัดเก็บ" />
+                      </SelectTrigger>
                     </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
+                    <SelectContent position="popper" sideOffset={4} className="bg-background z-[200] max-h-60 overflow-y-auto">
+                      <SelectItem value="Indoor">Indoor</SelectItem>
+                      <SelectItem value="Outdoor">Outdoor</SelectItem>
+                      <SelectItem value="Semi-outdoor">Semi-outdoor</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {/* Location Dimension Fields */}
+            <LocationDimensionFields
+              widthCm={widthCm}
+              heightCm={heightCm}
+              depthCm={depthCm}
+              volumeCm3={volumeCm3}
+              onWidthChange={setWidthCm}
+              onHeightChange={setHeightCm}
+              onDepthChange={setDepthCm}
+              onVolumeChange={handleVolumeChange}
+              disabled={loading}
+            />
 
             {!locationId && !location && (
               <div className="p-4 bg-muted rounded-lg text-sm text-muted-foreground">
@@ -396,6 +431,7 @@ export function LocationForm({ onSuccess, location }: LocationFormProps) {
                     setOpen(false);
                     setIsNewLocationSaved(false);
                     setLocationId(undefined);
+                    resetDimensionFields();
                     onSuccess();
                   }}
                 >

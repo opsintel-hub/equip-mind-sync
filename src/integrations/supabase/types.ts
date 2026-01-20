@@ -1221,6 +1221,7 @@ export type Database = {
           received_sub_storage_slot_id: string | null
           serial_number: string | null
           status: string
+          storage_volume_cm3: number | null
           supplier_id: string | null
           supplier_name: string | null
           unit: string
@@ -1258,6 +1259,7 @@ export type Database = {
           received_sub_storage_slot_id?: string | null
           serial_number?: string | null
           status?: string
+          storage_volume_cm3?: number | null
           supplier_id?: string | null
           supplier_name?: string | null
           unit?: string
@@ -1295,6 +1297,7 @@ export type Database = {
           received_sub_storage_slot_id?: string | null
           serial_number?: string | null
           status?: string
+          storage_volume_cm3?: number | null
           supplier_id?: string | null
           supplier_name?: string | null
           unit?: string
@@ -1398,42 +1401,57 @@ export type Database = {
           created_at: string
           created_by: string | null
           department: string | null
+          depth_cm: number | null
           description: string | null
+          height_cm: number | null
           id: string
           is_active: boolean | null
           name: string
           storage_area: string | null
           storage_area_size: string | null
           updated_at: string
+          used_volume_cm3: number | null
+          volume_cm3: number | null
           warehouse_id: string | null
+          width_cm: number | null
         }
         Insert: {
           code: string
           created_at?: string
           created_by?: string | null
           department?: string | null
+          depth_cm?: number | null
           description?: string | null
+          height_cm?: number | null
           id?: string
           is_active?: boolean | null
           name: string
           storage_area?: string | null
           storage_area_size?: string | null
           updated_at?: string
+          used_volume_cm3?: number | null
+          volume_cm3?: number | null
           warehouse_id?: string | null
+          width_cm?: number | null
         }
         Update: {
           code?: string
           created_at?: string
           created_by?: string | null
           department?: string | null
+          depth_cm?: number | null
           description?: string | null
+          height_cm?: number | null
           id?: string
           is_active?: boolean | null
           name?: string
           storage_area?: string | null
           storage_area_size?: string | null
           updated_at?: string
+          used_volume_cm3?: number | null
+          volume_cm3?: number | null
           warehouse_id?: string | null
+          width_cm?: number | null
         }
         Relationships: [
           {
