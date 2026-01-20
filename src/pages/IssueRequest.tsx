@@ -8,9 +8,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Plus, Search, FileText, Clock, CheckCircle, XCircle, AlertTriangle, MapPin, RotateCcw } from "lucide-react";
+import { Plus, Search, FileText, Clock, CheckCircle, XCircle, AlertTriangle, MapPin, RotateCcw, Image, Filter, X } from "lucide-react";
 import { format, differenceInDays } from "date-fns";
 import { th } from "date-fns/locale";
 import BillboardSelect from "@/components/billboard/BillboardSelect";
@@ -39,8 +40,15 @@ interface IssuePurpose {
 const IssueRequest = () => {
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState("");
+  const [fifoSearchTerm, setFifoSearchTerm] = useState("");
+  const [fifoShowExpiring, setFifoShowExpiring] = useState(true);
+  const [fifoShowWarranty, setFifoShowWarranty] = useState(true);
+  const [imageDialogOpen, setImageDialogOpen] = useState(false);
+  const [selectedEquipmentImages, setSelectedEquipmentImages] = useState<string[]>([]);
+  const [selectedEquipmentName, setSelectedEquipmentName] = useState("");
   const [formData, setFormData] = useState({
     company_id: "",
+    department_id: "",
     equipment_id: "",
     equipment_code: "",
     equipment_name: "",
@@ -83,6 +91,20 @@ const IssueRequest = () => {
         .order("name");
       if (error) throw error;
       return data as IssuePurpose[];
+    },
+  });
+
+  // Fetch departments
+  const { data: departments } = useQuery({
+    queryKey: ["departments-active"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("departments")
+        .select("id, name")
+        .eq("is_active", true)
+        .order("name");
+      if (error) throw error;
+      return data;
     },
   });
 
@@ -132,6 +154,7 @@ const IssueRequest = () => {
       queryClient.invalidateQueries({ queryKey: ["goods-issue-pending"] });
       setFormData({
         company_id: "",
+        department_id: "",
         equipment_id: "",
         equipment_code: "",
         equipment_name: "",
@@ -174,6 +197,28 @@ const IssueRequest = () => {
         serial_number: selected.serial_number || "",
       });
     }
+  };
+
+  const handleViewEquipmentImages = async (equipmentId: string, equipmentName: string) => {
+    const { data, error } = await supabase
+      .from("equipment_images")
+      .select("image_url")
+      .eq("equipment_id", equipmentId)
+      .order("display_order");
+    
+    if (error) {
+      toast.error("ไม่สามารถโหลดรูปภาพได้");
+      return;
+    }
+    
+    if (!data || data.length === 0) {
+      toast.info("ไม่พบรูปภาพสินค้านี้");
+      return;
+    }
+    
+    setSelectedEquipmentImages(data.map(d => d.image_url));
+    setSelectedEquipmentName(equipmentName);
+    setImageDialogOpen(true);
   };
 
   const getStatusBadge = (status: string) => {
@@ -222,20 +267,37 @@ const IssueRequest = () => {
       req.requester_name?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  // Separate equipment into priority groups for FIFO
+  // Separate equipment into priority groups for FIFO with filtering
   const priorityEquipment = equipment?.filter(eq => {
+    // Apply search filter
+    if (fifoSearchTerm) {
+      const search = fifoSearchTerm.toLowerCase();
+      if (!eq.code.toLowerCase().includes(search) && 
+          !eq.name.toLowerCase().includes(search) &&
+          !(eq.serial_number?.toLowerCase().includes(search))) {
+        return false;
+      }
+    }
+    
     if (!eq.expiry_date && !eq.warranty_expiry_date) return false;
     const today = new Date();
     const expiryDays = eq.expiry_date ? differenceInDays(new Date(eq.expiry_date), today) : Infinity;
     const warrantyDays = eq.warranty_expiry_date ? differenceInDays(new Date(eq.warranty_expiry_date), today) : Infinity;
-    return expiryDays <= 30 || warrantyDays <= 30;
+    
+    const hasExpiring = expiryDays <= 30;
+    const hasWarranty = warrantyDays <= 30;
+    
+    if (fifoShowExpiring && fifoShowWarranty) return hasExpiring || hasWarranty;
+    if (fifoShowExpiring) return hasExpiring;
+    if (fifoShowWarranty) return hasWarranty;
+    return false;
   }) || [];
 
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-foreground">ขอเบิกสินค้า</h1>
-        <p className="text-muted-foreground">สำหรับผู้ขอเบิกสินค้า - ไม่ต้องล็อกอิน</p>
+        <p className="text-muted-foreground">สำหรับผู้ขอเบิกสินค้า (ต้องล็อกอิน)</p>
       </div>
 
       {/* Priority Alert - Items approaching expiry */}
@@ -251,25 +313,83 @@ const IssueRequest = () => {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-              {priorityEquipment.slice(0, 6).map((eq) => (
+            {/* FIFO Filters */}
+            <div className="flex flex-wrap items-center gap-2 mb-3">
+              <div className="flex items-center gap-1">
+                <Filter className="h-4 w-4 text-muted-foreground" />
+                <span className="text-xs text-muted-foreground">กรอง:</span>
+              </div>
+              <div className="relative flex-1 max-w-xs">
+                <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-3 w-3 text-muted-foreground" />
+                <Input
+                  placeholder="ค้นหารหัส/ชื่อ..."
+                  value={fifoSearchTerm}
+                  onChange={(e) => setFifoSearchTerm(e.target.value)}
+                  className="pl-7 h-7 text-xs"
+                />
+              </div>
+              <Button
+                type="button"
+                variant={fifoShowExpiring ? "default" : "outline"}
+                size="sm"
+                className="h-7 text-xs"
+                onClick={() => setFifoShowExpiring(!fifoShowExpiring)}
+              >
+                ใกล้หมดอายุ
+              </Button>
+              <Button
+                type="button"
+                variant={fifoShowWarranty ? "default" : "outline"}
+                size="sm"
+                className="h-7 text-xs"
+                onClick={() => setFifoShowWarranty(!fifoShowWarranty)}
+              >
+                ใกล้หมดประกัน
+              </Button>
+              {fifoSearchTerm && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 text-xs"
+                  onClick={() => setFifoSearchTerm("")}
+                >
+                  <X className="h-3 w-3 mr-1" />
+                  ล้าง
+                </Button>
+              )}
+            </div>
+            
+            {/* 6 Columns Grid */}
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2">
+              {priorityEquipment.slice(0, 12).map((eq) => (
                 <div 
                   key={eq.id} 
-                  className="p-3 rounded-lg border border-warning/30 bg-background cursor-pointer hover:bg-muted/50 transition-colors"
+                  className="p-2 rounded-lg border border-warning/30 bg-background cursor-pointer hover:bg-muted/50 transition-colors"
                   onClick={() => handleEquipmentSelect(eq.id)}
                 >
-                  <div className="font-medium text-sm">{eq.code}</div>
-                  <div className="text-sm text-muted-foreground">{eq.name}</div>
+                  <div className="font-medium text-xs truncate">{eq.code}</div>
+                  <div className="text-xs text-muted-foreground truncate">{eq.name}</div>
                   {eq.serial_number && (
-                    <div className="text-xs text-muted-foreground">SN: {eq.serial_number}</div>
+                    <div className="text-[10px] text-muted-foreground truncate">SN: {eq.serial_number}</div>
                   )}
-                  <div className="text-xs text-muted-foreground mt-1">คงเหลือ: {eq.quantity_in_stock} {eq.unit}</div>
-                  <div className="mt-2">
+                  <div className="text-[10px] text-muted-foreground">คงเหลือ: {eq.quantity_in_stock} {eq.unit}</div>
+                  <div className="mt-1">
                     {getExpiryBadge(eq.expiry_date, eq.warranty_expiry_date)}
                   </div>
                 </div>
               ))}
             </div>
+            {priorityEquipment.length === 0 && (
+              <div className="text-center text-xs text-muted-foreground py-4">
+                ไม่พบสินค้าที่ตรงกับเงื่อนไข
+              </div>
+            )}
+            {priorityEquipment.length > 12 && (
+              <div className="text-center text-xs text-muted-foreground mt-2">
+                แสดง 12 จาก {priorityEquipment.length} รายการ (กรอกค้นหาเพื่อดูเพิ่มเติม)
+              </div>
+            )}
           </CardContent>
         </Card>
       )}
@@ -284,19 +404,39 @@ const IssueRequest = () => {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
-            {/* Company Selection */}
+            {/* Department & Company Selection */}
             <div className="p-4 bg-primary/5 border border-primary/20 rounded-lg">
-              <div className="space-y-2">
-                <Label htmlFor="company">บริษัทที่เบิก *</Label>
-                <CompanySelect
-                  value={formData.company_id}
-                  onChange={(value) => setFormData({ ...formData, company_id: value, equipment_id: "", equipment_code: "", equipment_name: "" })}
-                  placeholder="เลือกบริษัท..."
-                />
-                <p className="text-xs text-muted-foreground">
-                  กรุณาเลือกบริษัทที่จะเบิกสินค้า (ไม่สามารถเบิกข้ามบริษัทได้)
-                </p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="department">ฝ่าย *</Label>
+                  <Select 
+                    value={formData.department_id} 
+                    onValueChange={(value) => setFormData({ ...formData, department_id: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="เลือกฝ่าย..." />
+                    </SelectTrigger>
+                    <SelectContent position="popper" sideOffset={4} className="bg-background z-[200] max-h-60 overflow-y-auto">
+                      {departments?.map((dept) => (
+                        <SelectItem key={dept.id} value={dept.id}>
+                          {dept.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="company">บริษัท *</Label>
+                  <CompanySelect
+                    value={formData.company_id}
+                    onChange={(value) => setFormData({ ...formData, company_id: value, equipment_id: "", equipment_code: "", equipment_name: "" })}
+                    placeholder="เลือกบริษัท..."
+                  />
+                </div>
               </div>
+              <p className="text-xs text-muted-foreground mt-2">
+                กรุณาเลือกฝ่ายและบริษัทที่จะเบิกสินค้า (ไม่สามารถเบิกข้ามบริษัทได้)
+              </p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -322,44 +462,59 @@ const IssueRequest = () => {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="requester_department">แผนก/ฝ่าย</Label>
+                <Label htmlFor="requester_department">แผนก (ผู้ขอ)</Label>
                 <Input
                   id="requester_department"
                   value={formData.requester_department}
                   onChange={(e) => setFormData({ ...formData, requester_department: e.target.value })}
-                  placeholder="กรอกแผนก/ฝ่าย"
+                  placeholder="กรอกแผนกของผู้ขอ"
                 />
               </div>
 
               <div className="space-y-2 md:col-span-2">
                 <Label htmlFor="equipment_code">เลือกสินค้า (เรียงตาม FIFO - ของเก่าก่อน)</Label>
-                <Select onValueChange={handleEquipmentSelect} value={formData.equipment_id}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="เลือกสินค้าที่ต้องการเบิก" />
-                  </SelectTrigger>
-                  <SelectContent position="popper" sideOffset={4} className="bg-background z-[200] max-h-60 overflow-y-auto">
-                    {equipment?.map((eq) => {
-                      const expiryBadge = getExpiryBadge(eq.expiry_date, eq.warranty_expiry_date);
-                      const ageDays = differenceInDays(new Date(), new Date(eq.warehouse_entry_date));
-                      return (
-                        <SelectItem key={eq.id} value={eq.id}>
-                          <div className="flex items-center gap-2">
-                            <span className="font-medium">{eq.code}</span>
-                            <span className="text-muted-foreground">- {eq.name}</span>
-                            {eq.serial_number && (
-                              <span className="text-xs text-muted-foreground">(SN: {eq.serial_number})</span>
-                            )}
-                            <span className="text-sm text-muted-foreground">[คงเหลือ: {eq.quantity_in_stock}]</span>
-                            {ageDays > 30 && (
-                              <Badge variant="outline" className="text-xs">อยู่คลัง {ageDays} วัน</Badge>
-                            )}
-                            {expiryBadge}
-                          </div>
-                        </SelectItem>
-                      );
-                    })}
-                  </SelectContent>
-                </Select>
+                <div className="flex gap-2">
+                  <div className="flex-1">
+                    <Select onValueChange={handleEquipmentSelect} value={formData.equipment_id}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="เลือกสินค้าที่ต้องการเบิก" />
+                      </SelectTrigger>
+                      <SelectContent position="popper" sideOffset={4} className="bg-background z-[200] max-h-60 overflow-y-auto">
+                        {equipment?.map((eq) => {
+                          const expiryBadge = getExpiryBadge(eq.expiry_date, eq.warranty_expiry_date);
+                          const ageDays = differenceInDays(new Date(), new Date(eq.warehouse_entry_date));
+                          return (
+                            <SelectItem key={eq.id} value={eq.id}>
+                              <div className="flex items-center gap-2">
+                                <span className="font-medium">{eq.code}</span>
+                                <span className="text-muted-foreground">- {eq.name}</span>
+                                {eq.serial_number && (
+                                  <span className="text-xs text-muted-foreground">(SN: {eq.serial_number})</span>
+                                )}
+                                <span className="text-sm text-muted-foreground">[คงเหลือ: {eq.quantity_in_stock}]</span>
+                                {ageDays > 30 && (
+                                  <Badge variant="outline" className="text-xs">อยู่คลัง {ageDays} วัน</Badge>
+                                )}
+                                {expiryBadge}
+                              </div>
+                            </SelectItem>
+                          );
+                        })}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  {formData.equipment_id && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleViewEquipmentImages(formData.equipment_id, formData.equipment_name)}
+                    >
+                      <Image className="h-4 w-4 mr-1" />
+                      ดูรูป
+                    </Button>
+                  )}
+                </div>
               </div>
 
               <div className="space-y-2">
@@ -572,6 +727,35 @@ const IssueRequest = () => {
           </div>
         </CardContent>
       </Card>
+
+      {/* Equipment Image Dialog */}
+      <Dialog open={imageDialogOpen} onOpenChange={setImageDialogOpen}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Image className="h-5 w-5" />
+              รูปภาพ: {selectedEquipmentName}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4 max-h-[60vh] overflow-y-auto p-4">
+            {selectedEquipmentImages.map((url, index) => (
+              <div key={index} className="relative aspect-square border rounded-lg overflow-hidden">
+                <img 
+                  src={url} 
+                  alt={`${selectedEquipmentName} - รูปที่ ${index + 1}`}
+                  className="w-full h-full object-cover hover:scale-105 transition-transform cursor-pointer"
+                  onClick={() => window.open(url, '_blank')}
+                />
+              </div>
+            ))}
+          </div>
+          <div className="flex justify-end">
+            <Button variant="outline" onClick={() => setImageDialogOpen(false)}>
+              ปิด
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
