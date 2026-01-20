@@ -1067,6 +1067,7 @@ export type Database = {
           returned_at: string | null
           returned_by: string | null
           status: string
+          total_items: number | null
           unit: string
           updated_at: string
         }
@@ -1100,6 +1101,7 @@ export type Database = {
           returned_at?: string | null
           returned_by?: string | null
           status?: string
+          total_items?: number | null
           unit?: string
           updated_at?: string
         }
@@ -1133,6 +1135,7 @@ export type Database = {
           returned_at?: string | null
           returned_by?: string | null
           status?: string
+          total_items?: number | null
           unit?: string
           updated_at?: string
         }
@@ -1163,6 +1166,72 @@ export type Database = {
             columns: ["purpose_id"]
             isOneToOne: false
             referencedRelation: "issue_purposes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      goods_issue_pending_items: {
+        Row: {
+          billboard_id: string | null
+          created_at: string | null
+          equipment_code: string | null
+          equipment_id: string | null
+          equipment_name: string | null
+          id: string
+          issued_quantity: number | null
+          notes: string | null
+          pending_id: string
+          quantity: number
+          remaining_quantity: number | null
+          serial_number: string | null
+          status: string | null
+          unit: string
+        }
+        Insert: {
+          billboard_id?: string | null
+          created_at?: string | null
+          equipment_code?: string | null
+          equipment_id?: string | null
+          equipment_name?: string | null
+          id?: string
+          issued_quantity?: number | null
+          notes?: string | null
+          pending_id: string
+          quantity?: number
+          remaining_quantity?: number | null
+          serial_number?: string | null
+          status?: string | null
+          unit?: string
+        }
+        Update: {
+          billboard_id?: string | null
+          created_at?: string | null
+          equipment_code?: string | null
+          equipment_id?: string | null
+          equipment_name?: string | null
+          id?: string
+          issued_quantity?: number | null
+          notes?: string | null
+          pending_id?: string
+          quantity?: number
+          remaining_quantity?: number | null
+          serial_number?: string | null
+          status?: string | null
+          unit?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_pending_id"
+            columns: ["pending_id"]
+            isOneToOne: false
+            referencedRelation: "goods_issue_pending"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "goods_issue_pending_items_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "equipment"
             referencedColumns: ["id"]
           },
         ]
