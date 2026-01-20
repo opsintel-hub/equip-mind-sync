@@ -1337,6 +1337,7 @@ export type Database = {
           media_player_id: string | null
           notes: string | null
           quantity: number
+          receipt_purpose_id: string | null
           received_at: string | null
           received_by: string | null
           received_location_id: string | null
@@ -1382,6 +1383,7 @@ export type Database = {
           media_player_id?: string | null
           notes?: string | null
           quantity: number
+          receipt_purpose_id?: string | null
           received_at?: string | null
           received_by?: string | null
           received_location_id?: string | null
@@ -1427,6 +1429,7 @@ export type Database = {
           media_player_id?: string | null
           notes?: string | null
           quantity?: number
+          receipt_purpose_id?: string | null
           received_at?: string | null
           received_by?: string | null
           received_location_id?: string | null
@@ -1475,6 +1478,13 @@ export type Database = {
             columns: ["media_player_id"]
             isOneToOne: false
             referencedRelation: "media_players"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "goods_receipt_pending_receipt_purpose_id_fkey"
+            columns: ["receipt_purpose_id"]
+            isOneToOne: false
+            referencedRelation: "receipt_purposes"
             referencedColumns: ["id"]
           },
           {
