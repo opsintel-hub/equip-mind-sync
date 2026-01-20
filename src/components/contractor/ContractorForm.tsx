@@ -203,7 +203,7 @@ export function ContractorForm({ onSuccess, contractor }: ContractorFormProps) {
                           <SelectValue placeholder="เลือกประเภทบุคคล" />
                         </SelectTrigger>
                       </FormControl>
-                      <SelectContent>
+                      <SelectContent position="popper" sideOffset={4}>
                         <SelectItem value="corporate">นิติบุคคล</SelectItem>
                         <SelectItem value="individual">บุคคลธรรมดา</SelectItem>
                       </SelectContent>
