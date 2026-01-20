@@ -18,6 +18,7 @@ import { toast } from "sonner";
 export default function RequesterDashboard() {
   const [searchName, setSearchName] = useState("");
   const [searchedName, setSearchedName] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
   const queryClient = useQueryClient();
 
   const { data: requests = [], isLoading: requestsLoading, refetch: refetchRequests } = useQuery({
@@ -229,7 +230,63 @@ export default function RequesterDashboard() {
               <TabsContent value="requests">
                 <Card>
                   <CardHeader>
-                    <CardTitle>รายการคำขอเบิกทั้งหมด</CardTitle>
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                      <CardTitle>รายการคำขอเบิกทั้งหมด</CardTitle>
+                      <div className="flex flex-wrap gap-2">
+                        <Button
+                          variant={statusFilter === "all" ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => setStatusFilter("all")}
+                        >
+                          ทั้งหมด ({requests.length})
+                        </Button>
+                        <Button
+                          variant={statusFilter === "pending" ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => setStatusFilter("pending")}
+                          className={statusFilter === "pending" ? "" : "text-yellow-600 border-yellow-300 hover:bg-yellow-50"}
+                        >
+                          <Clock className="w-3 h-3 mr-1" />
+                          รออนุมัติ ({pendingCount})
+                        </Button>
+                        <Button
+                          variant={statusFilter === "approved" ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => setStatusFilter("approved")}
+                          className={statusFilter === "approved" ? "" : "text-blue-600 border-blue-300 hover:bg-blue-50"}
+                        >
+                          <CheckCircle className="w-3 h-3 mr-1" />
+                          อนุมัติแล้ว ({approvedCount})
+                        </Button>
+                        <Button
+                          variant={statusFilter === "issued" ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => setStatusFilter("issued")}
+                          className={statusFilter === "issued" ? "" : "text-green-600 border-green-300 hover:bg-green-50"}
+                        >
+                          <Package className="w-3 h-3 mr-1" />
+                          จ่ายแล้ว ({issuedCount})
+                        </Button>
+                        <Button
+                          variant={statusFilter === "waiting_stock" ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => setStatusFilter("waiting_stock")}
+                          className={statusFilter === "waiting_stock" ? "" : "text-orange-600 border-orange-300 hover:bg-orange-50"}
+                        >
+                          <AlertTriangle className="w-3 h-3 mr-1" />
+                          รอสินค้า ({waitingStockCount})
+                        </Button>
+                        <Button
+                          variant={statusFilter === "rejected" ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => setStatusFilter("rejected")}
+                          className={statusFilter === "rejected" ? "" : "text-red-600 border-red-300 hover:bg-red-50"}
+                        >
+                          <XCircle className="w-3 h-3 mr-1" />
+                          ปฏิเสธ ({rejectedCount})
+                        </Button>
+                      </div>
+                    </div>
                   </CardHeader>
                   <CardContent>
                     {requestsLoading ? (
@@ -252,7 +309,9 @@ export default function RequesterDashboard() {
                             </TableRow>
                           </TableHeader>
                           <TableBody>
-                            {requests.map((request) => (
+                            {requests
+                              .filter(r => statusFilter === "all" || r.status === statusFilter)
+                              .map((request) => (
                               <TableRow key={request.id}>
                                 <TableCell className="font-medium">{request.document_no}</TableCell>
                                 <TableCell>{request.equipment_code || "-"}</TableCell>
