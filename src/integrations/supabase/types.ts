@@ -1250,7 +1250,9 @@ export type Database = {
           created_at: string
           delivery_person_name: string
           delivery_person_phone: string | null
+          department_id: string | null
           depreciation_months: number | null
+          document_file_name: string | null
           document_no: string
           document_url: string | null
           equipment_code: string | null
@@ -1262,6 +1264,7 @@ export type Database = {
           is_asset: boolean | null
           is_media_player: boolean | null
           lot_number: string | null
+          lot_number_2: string | null
           media_player_id: string | null
           notes: string | null
           quantity: number
@@ -1272,7 +1275,10 @@ export type Database = {
           received_sub_storage_slot_id: string | null
           serial_number: string | null
           status: string
+          storage_depth_cm: number | null
+          storage_height_cm: number | null
           storage_volume_cm3: number | null
+          storage_width_cm: number | null
           supplier_id: string | null
           supplier_name: string | null
           unit: string
@@ -1280,6 +1286,7 @@ export type Database = {
           updated_at: string
           waiting_asset_code: boolean | null
           waiting_equipment_id: boolean | null
+          warehouse_id: string | null
           warranty_expiry_date: string | null
         }
         Insert: {
@@ -1288,7 +1295,9 @@ export type Database = {
           created_at?: string
           delivery_person_name: string
           delivery_person_phone?: string | null
+          department_id?: string | null
           depreciation_months?: number | null
+          document_file_name?: string | null
           document_no: string
           document_url?: string | null
           equipment_code?: string | null
@@ -1300,6 +1309,7 @@ export type Database = {
           is_asset?: boolean | null
           is_media_player?: boolean | null
           lot_number?: string | null
+          lot_number_2?: string | null
           media_player_id?: string | null
           notes?: string | null
           quantity: number
@@ -1310,7 +1320,10 @@ export type Database = {
           received_sub_storage_slot_id?: string | null
           serial_number?: string | null
           status?: string
+          storage_depth_cm?: number | null
+          storage_height_cm?: number | null
           storage_volume_cm3?: number | null
+          storage_width_cm?: number | null
           supplier_id?: string | null
           supplier_name?: string | null
           unit?: string
@@ -1318,6 +1331,7 @@ export type Database = {
           updated_at?: string
           waiting_asset_code?: boolean | null
           waiting_equipment_id?: boolean | null
+          warehouse_id?: string | null
           warranty_expiry_date?: string | null
         }
         Update: {
@@ -1326,7 +1340,9 @@ export type Database = {
           created_at?: string
           delivery_person_name?: string
           delivery_person_phone?: string | null
+          department_id?: string | null
           depreciation_months?: number | null
+          document_file_name?: string | null
           document_no?: string
           document_url?: string | null
           equipment_code?: string | null
@@ -1338,6 +1354,7 @@ export type Database = {
           is_asset?: boolean | null
           is_media_player?: boolean | null
           lot_number?: string | null
+          lot_number_2?: string | null
           media_player_id?: string | null
           notes?: string | null
           quantity?: number
@@ -1348,7 +1365,10 @@ export type Database = {
           received_sub_storage_slot_id?: string | null
           serial_number?: string | null
           status?: string
+          storage_depth_cm?: number | null
+          storage_height_cm?: number | null
           storage_volume_cm3?: number | null
+          storage_width_cm?: number | null
           supplier_id?: string | null
           supplier_name?: string | null
           unit?: string
@@ -1356,6 +1376,7 @@ export type Database = {
           updated_at?: string
           waiting_asset_code?: boolean | null
           waiting_equipment_id?: boolean | null
+          warehouse_id?: string | null
           warranty_expiry_date?: string | null
         }
         Relationships: [
@@ -1364,6 +1385,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "goods_receipt_pending_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
             referencedColumns: ["id"]
           },
           {
@@ -1406,6 +1434,13 @@ export type Database = {
             columns: ["supplier_id"]
             isOneToOne: false
             referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "goods_receipt_pending_warehouse_id_fkey"
+            columns: ["warehouse_id"]
+            isOneToOne: false
+            referencedRelation: "warehouses"
             referencedColumns: ["id"]
           },
         ]
