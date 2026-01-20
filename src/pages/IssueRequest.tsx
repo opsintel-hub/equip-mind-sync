@@ -65,6 +65,23 @@ const IssueRequest = () => {
     notes: "",
   });
 
+  // Fetch notification settings for advance_days
+  const { data: notificationSettings } = useQuery({
+    queryKey: ["notification-settings"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("notification_settings")
+        .select("advance_days")
+        .limit(1)
+        .single();
+      if (error && error.code !== "PGRST116") throw error;
+      return data;
+    },
+  });
+
+  // Use advance_days from settings or default to 30 days
+  const advanceDays = notificationSettings?.advance_days || 30;
+
   // Fetch equipment with full details including expiry dates
   const { data: equipment } = useQuery({
     queryKey: ["equipment-active-full"],
@@ -242,7 +259,7 @@ const IssueRequest = () => {
       const days = differenceInDays(new Date(expiryDate), today);
       if (days <= 0) {
         badges.push(<Badge key="exp" className="bg-destructive/10 text-destructive text-xs">หมดอายุแล้ว</Badge>);
-      } else if (days <= 30) {
+      } else if (days <= advanceDays) {
         badges.push(<Badge key="exp" className="bg-orange-500/10 text-orange-500 text-xs">หมดอายุใน {days} วัน</Badge>);
       }
     }
@@ -251,7 +268,7 @@ const IssueRequest = () => {
       const days = differenceInDays(new Date(warrantyDate), today);
       if (days <= 0) {
         badges.push(<Badge key="war" className="bg-warning/10 text-warning text-xs">ประกันหมดแล้ว</Badge>);
-      } else if (days <= 30) {
+      } else if (days <= advanceDays) {
         badges.push(<Badge key="war" className="bg-warning/10 text-warning text-xs">ประกันหมดใน {days} วัน</Badge>);
       }
     }
@@ -284,8 +301,8 @@ const IssueRequest = () => {
     const expiryDays = eq.expiry_date ? differenceInDays(new Date(eq.expiry_date), today) : Infinity;
     const warrantyDays = eq.warranty_expiry_date ? differenceInDays(new Date(eq.warranty_expiry_date), today) : Infinity;
     
-    const hasExpiring = expiryDays <= 30;
-    const hasWarranty = warrantyDays <= 30;
+    const hasExpiring = expiryDays <= advanceDays;
+    const hasWarranty = warrantyDays <= advanceDays;
     
     if (fifoShowExpiring && fifoShowWarranty) return hasExpiring || hasWarranty;
     if (fifoShowExpiring) return hasExpiring;
@@ -309,7 +326,7 @@ const IssueRequest = () => {
               สินค้าควรเบิกก่อน (FIFO)
             </CardTitle>
             <CardDescription>
-              รายการสินค้าที่ใกล้หมดอายุหรือใกล้หมดประกัน - แนะนำให้เบิกก่อน
+              รายการสินค้าที่ใกล้หมดอายุหรือใกล้หมดประกันภายใน {advanceDays} วัน - แนะนำให้เบิกก่อน
             </CardDescription>
           </CardHeader>
           <CardContent>
