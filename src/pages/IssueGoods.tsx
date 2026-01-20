@@ -50,6 +50,7 @@ interface PendingRequest {
   partial_issue_count: number | null;
   last_partial_issue_at: string | null;
   created_at: string;
+  billboard_id: string | null;
 }
 
 const IssueGoods = () => {
