@@ -8,7 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
-import { PackageCheck, Search, Clock, CheckCircle2, Edit, Package } from "lucide-react";
+import { PackageCheck, Search, Clock, CheckCircle2, Edit, Package, Box } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { HierarchicalStorageSelect } from "@/components/location/HierarchicalStorageSelect";
@@ -46,6 +46,13 @@ interface PendingReceipt {
   notes: string | null;
   status: string;
   created_at: string;
+  storage_volume_cm3: number | null;
+}
+
+interface LocationCapacity {
+  volume_cm3: number | null;
+  used_volume_cm3: number | null;
+  remaining_volume_cm3: number | null;
 }
 
 const ReceiveGoods = () => {
@@ -69,6 +76,8 @@ const ReceiveGoods = () => {
   const [editLotNumber, setEditLotNumber] = useState("");
   const [editExpiryDate, setEditExpiryDate] = useState("");
   const [editNotes, setEditNotes] = useState("");
+  const [storageVolumeCm3, setStorageVolumeCm3] = useState<string>("");
+  const [locationCapacity, setLocationCapacity] = useState<LocationCapacity | null>(null);
   const [storageLocation, setStorageLocation] = useState<{
     locationId: string;
     storageSlotId?: string;
@@ -131,8 +140,45 @@ const ReceiveGoods = () => {
     setEditLotNumber(receipt.lot_number || "");
     setEditExpiryDate(receipt.expiry_date || "");
     setEditNotes(receipt.notes || "");
+    setStorageVolumeCm3(receipt.storage_volume_cm3?.toString() || "");
+    setLocationCapacity(null);
     setStorageLocation({ locationId: "" });
     setIsDialogOpen(true);
+  };
+
+  // Fetch location capacity when location is selected
+  const fetchLocationCapacity = async (locationId: string) => {
+    if (!locationId) {
+      setLocationCapacity(null);
+      return;
+    }
+
+    const { data, error } = await supabase
+      .from("locations")
+      .select("volume_cm3, used_volume_cm3")
+      .eq("id", locationId)
+      .single();
+
+    if (!error && data) {
+      const remaining = data.volume_cm3 
+        ? (data.volume_cm3 - (data.used_volume_cm3 || 0)) 
+        : null;
+      setLocationCapacity({
+        volume_cm3: data.volume_cm3,
+        used_volume_cm3: data.used_volume_cm3,
+        remaining_volume_cm3: remaining
+      });
+    }
+  };
+
+  // Handle storage location change
+  const handleStorageLocationChange = (location: {
+    locationId: string;
+    storageSlotId?: string;
+    subStorageSlotId?: string;
+  }) => {
+    setStorageLocation(location);
+    fetchLocationCapacity(location.locationId);
   };
 
   const generateGRDocumentNo = () => {
@@ -174,6 +220,8 @@ const ReceiveGoods = () => {
       const receivedQuantity = parseInt(editQuantity);
       const newStock = currentStock + receivedQuantity;
 
+      const storageVolumeValue = storageVolumeCm3 ? parseFloat(storageVolumeCm3) : null;
+
       // Update pending receipt status
       const { error: updateError } = await supabase
         .from("goods_receipt_pending")
@@ -190,11 +238,29 @@ const ReceiveGoods = () => {
           supplier_id: editSupplierId || null,
           lot_number: editLotNumber || null,
           expiry_date: editExpiryDate || null,
-          notes: editNotes || null
+          notes: editNotes || null,
+          storage_volume_cm3: storageVolumeValue
         })
         .eq("id", selectedReceipt.id);
 
       if (updateError) throw updateError;
+
+      // Update location used_volume_cm3 if storage volume is provided
+      if (storageVolumeValue && storageVolumeValue > 0) {
+        const { data: locationData } = await supabase
+          .from("locations")
+          .select("used_volume_cm3")
+          .eq("id", storageLocation.locationId)
+          .single();
+
+        const currentUsed = locationData?.used_volume_cm3 || 0;
+        const newUsed = currentUsed + storageVolumeValue;
+
+        await supabase
+          .from("locations")
+          .update({ used_volume_cm3: newUsed })
+          .eq("id", storageLocation.locationId);
+      }
 
       // Create goods receipt record
       const { error: grError } = await supabase
@@ -488,8 +554,51 @@ const ReceiveGoods = () => {
               {/* Storage Location */}
               <HierarchicalStorageSelect
                 value={storageLocation}
-                onChange={setStorageLocation}
+                onChange={handleStorageLocationChange}
               />
+
+              {/* Storage Volume & Remaining Capacity */}
+              <div className="space-y-2">
+                <Label className="flex items-center gap-2">
+                  <Box className="h-4 w-4" />
+                  ขนาดพื้นที่ที่ต้องการใช้ (cm³)
+                </Label>
+                <div className="flex items-center gap-4">
+                  <div className="flex-1">
+                    <Input 
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      placeholder="เช่น 1000"
+                      value={storageVolumeCm3}
+                      onChange={(e) => setStorageVolumeCm3(e.target.value)}
+                    />
+                  </div>
+                  {locationCapacity && locationCapacity.volume_cm3 && (
+                    <div className="text-sm">
+                      <span className="text-muted-foreground">พื้นที่คงเหลือ: </span>
+                      <span className={`font-medium ${
+                        locationCapacity.remaining_volume_cm3 !== null && 
+                        storageVolumeCm3 && 
+                        parseFloat(storageVolumeCm3) > locationCapacity.remaining_volume_cm3 
+                          ? 'text-destructive' 
+                          : 'text-success'
+                      }`}>
+                        {locationCapacity.remaining_volume_cm3?.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} cm³
+                      </span>
+                    </div>
+                  )}
+                </div>
+                {locationCapacity && locationCapacity.volume_cm3 && storageVolumeCm3 && (
+                  <div className="text-xs text-muted-foreground">
+                    ความจุทั้งหมด: {locationCapacity.volume_cm3.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} cm³ | 
+                    ใช้ไปแล้ว: {(locationCapacity.used_volume_cm3 || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} cm³
+                    {parseFloat(storageVolumeCm3) > (locationCapacity.remaining_volume_cm3 || 0) && (
+                      <span className="text-destructive ml-2">⚠️ พื้นที่ไม่เพียงพอ</span>
+                    )}
+                  </div>
+                )}
+              </div>
 
               {/* Notes */}
               <div className="space-y-2">

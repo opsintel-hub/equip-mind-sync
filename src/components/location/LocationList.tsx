@@ -55,10 +55,14 @@ interface Location {
   name: string;
   description: string | null;
   storage_area: string | null;
-  storage_area_size: string | null;
   warehouse_id: string | null;
   is_active: boolean;
   created_at: string;
+  width_cm: number | null;
+  height_cm: number | null;
+  depth_cm: number | null;
+  volume_cm3: number | null;
+  used_volume_cm3: number | null;
   storage_slots?: StorageSlot[];
   warehouse?: Warehouse;
 }
@@ -212,7 +216,9 @@ export function LocationList({ refresh }: LocationListProps) {
                 "รหัสตำแหน่ง": location.code,
                 "ชื่อตำแหน่ง": location.name,
                 "คลังสินค้า": warehouseName,
-                "ขนาดพื้นที่": location.storage_area_size || "-",
+                "ปริมาตร (cm³)": location.volume_cm3?.toLocaleString() || "-",
+                "ใช้ไปแล้ว (cm³)": location.used_volume_cm3?.toLocaleString() || "0",
+                "คงเหลือ (cm³)": location.volume_cm3 ? (location.volume_cm3 - (location.used_volume_cm3 || 0)).toLocaleString() : "-",
                 "ช่องจัดเก็บ": slot.name,
                 "ช่องย่อย": subSlot.name,
                 "จำนวนรายการสินค้า": eqCount?.count || 0,
@@ -227,7 +233,9 @@ export function LocationList({ refresh }: LocationListProps) {
               "รหัสตำแหน่ง": location.code,
               "ชื่อตำแหน่ง": location.name,
               "คลังสินค้า": warehouseName,
-              "ขนาดพื้นที่": location.storage_area_size || "-",
+              "ปริมาตร (cm³)": location.volume_cm3?.toLocaleString() || "-",
+              "ใช้ไปแล้ว (cm³)": location.used_volume_cm3?.toLocaleString() || "0",
+              "คงเหลือ (cm³)": location.volume_cm3 ? (location.volume_cm3 - (location.used_volume_cm3 || 0)).toLocaleString() : "-",
               "ช่องจัดเก็บ": slot.name,
               "ช่องย่อย": "-",
               "จำนวนรายการสินค้า": eqCount?.count || 0,
@@ -243,7 +251,9 @@ export function LocationList({ refresh }: LocationListProps) {
           "รหัสตำแหน่ง": location.code,
           "ชื่อตำแหน่ง": location.name,
           "คลังสินค้า": warehouseName,
-          "ขนาดพื้นที่": location.storage_area_size || "-",
+          "ปริมาตร (cm³)": location.volume_cm3?.toLocaleString() || "-",
+          "ใช้ไปแล้ว (cm³)": location.used_volume_cm3?.toLocaleString() || "0",
+          "คงเหลือ (cm³)": location.volume_cm3 ? (location.volume_cm3 - (location.used_volume_cm3 || 0)).toLocaleString() : "-",
           "ช่องจัดเก็บ": "-",
           "ช่องย่อย": "-",
           "จำนวนรายการสินค้า": eqCount?.count || 0,
@@ -298,7 +308,7 @@ export function LocationList({ refresh }: LocationListProps) {
             <TableHead>รหัส</TableHead>
             <TableHead>ชื่อตำแหน่ง</TableHead>
             <TableHead>คลังสินค้า</TableHead>
-            <TableHead>ขนาดพื้นที่</TableHead>
+            <TableHead>ปริมาตร / คงเหลือ</TableHead>
             <TableHead>ช่องจัดเก็บ</TableHead>
             <TableHead>ช่องย่อยจัดเก็บ</TableHead>
             <TableHead>จำนวนสินค้า</TableHead>
@@ -311,6 +321,7 @@ export function LocationList({ refresh }: LocationListProps) {
           {filteredLocations.map((location) => {
             const hasSlots = location.storage_slots && location.storage_slots.length > 0;
             const isOpen = openLocations.has(location.id);
+            const remainingVolume = location.volume_cm3 ? location.volume_cm3 - (location.used_volume_cm3 || 0) : null;
             
             return (
               <>
@@ -336,7 +347,16 @@ export function LocationList({ refresh }: LocationListProps) {
                   <TableCell className="text-muted-foreground">
                     {location.warehouse ? `${location.warehouse.code} - ${location.warehouse.name}` : "-"}
                   </TableCell>
-                  <TableCell>{location.storage_area_size || "-"}</TableCell>
+                  <TableCell>
+                    {location.volume_cm3 ? (
+                      <div className="text-xs">
+                        <div>{location.volume_cm3.toLocaleString()} cm³</div>
+                        <div className={remainingVolume !== null && remainingVolume < 0 ? 'text-destructive' : 'text-success'}>
+                          คงเหลือ: {remainingVolume?.toLocaleString()} cm³
+                        </div>
+                      </div>
+                    ) : "-"}
+                  </TableCell>
                   <TableCell className="text-muted-foreground">
                     {location.storage_slots?.length || 0} ช่อง
                   </TableCell>
