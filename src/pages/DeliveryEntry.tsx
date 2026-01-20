@@ -348,6 +348,7 @@ const DeliveryEntry = () => {
           department_id: selectedDepartmentId,
           company_id: selectedCompanyId,
           warehouse_id: selectedWarehouseId || null,
+          receipt_purpose_id: selectedReceiptPurposeId || null,
           equipment_id: selectedEquipmentId || null,
           equipment_code: equipmentCode || null,
           equipment_name: equipmentName || (selectedEquipment?.name || null),
@@ -384,6 +385,7 @@ const DeliveryEntry = () => {
       toast.success("บันทึกข้อมูลสินค้าสำเร็จ รอเจ้าหน้าที่คลังรับเข้า");
       
       // Reset form
+      setSelectedReceiptPurposeId("");
       setSelectedDepartmentId("");
       setSelectedCompanyId("");
       setSelectedWarehouseId("");
@@ -504,6 +506,47 @@ const DeliveryEntry = () => {
                     กรุณาเลือกบริษัทที่เป็นเจ้าของงบประมาณ
                   </p>
                 </div>
+              </div>
+            </div>
+
+            {/* Receipt Purpose Selection */}
+            <div className="p-4 bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800 rounded-lg space-y-4">
+              <h3 className="font-medium text-sm text-emerald-700 dark:text-emerald-400 flex items-center gap-2">
+                <FileText className="w-4 h-4" />
+                วัตถุประสงค์การนำสินค้าเข้า
+              </h3>
+              <div className="space-y-2">
+                <Label htmlFor="receiptPurpose">วัตถุประสงค์</Label>
+                <Select value={selectedReceiptPurposeId} onValueChange={setSelectedReceiptPurposeId}>
+                  <SelectTrigger id="receiptPurpose">
+                    <SelectValue placeholder="เลือกวัตถุประสงค์..." />
+                  </SelectTrigger>
+                  <SelectContent position="popper" sideOffset={4} className="pointer-events-auto">
+                    {receiptPurposes.filter(p => p.purpose_type === 'regular').length > 0 && (
+                      <>
+                        <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">รับเข้าปกติ</div>
+                        {receiptPurposes.filter(p => p.purpose_type === 'regular').map((purpose) => (
+                          <SelectItem key={purpose.id} value={purpose.id}>
+                            {purpose.name}
+                          </SelectItem>
+                        ))}
+                      </>
+                    )}
+                    {receiptPurposes.filter(p => p.purpose_type === 'storage').length > 0 && (
+                      <>
+                        <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground border-t mt-1">ฝากเก็บชั่วคราว</div>
+                        {receiptPurposes.filter(p => p.purpose_type === 'storage').map((purpose) => (
+                          <SelectItem key={purpose.id} value={purpose.id}>
+                            {purpose.name} {purpose.max_storage_days ? `(${purpose.max_storage_days} วัน)` : ''}
+                          </SelectItem>
+                        ))}
+                      </>
+                    )}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  เลือกวัตถุประสงค์ในการนำสินค้าเข้าคลัง
+                </p>
               </div>
             </div>
 
