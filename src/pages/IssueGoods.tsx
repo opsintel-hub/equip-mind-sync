@@ -339,7 +339,7 @@ const IssueGoods = () => {
     },
   });
 
-  const handleIssue = (request: PendingRequest) => {
+  const handleIssue = (request: PendingRequest & { billboard_id?: string | null }) => {
     setSelectedRequest(request);
     // Use remaining_quantity if available (for partial issues), otherwise use original quantity
     const qtyToIssue = request.remaining_quantity && request.remaining_quantity > 0 
@@ -348,8 +348,8 @@ const IssueGoods = () => {
     setIssueData({
       issued_quantity: qtyToIssue.toString(),
       notes: request.notes || "",
-      install_to_billboard: false,
-      billboard_id: "",
+      install_to_billboard: !!request.billboard_id,
+      billboard_id: request.billboard_id || "",
     });
     setIssueDialogOpen(true);
   };
