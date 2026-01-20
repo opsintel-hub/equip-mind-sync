@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,11 +11,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Search, Package, Clock, CheckCircle, XCircle, MapPin, AlertTriangle, Calendar, Building } from "lucide-react";
+import { Search, Package, Clock, CheckCircle, XCircle, MapPin, AlertTriangle, Calendar, Image, Warehouse } from "lucide-react";
 import { format, differenceInDays } from "date-fns";
 import { th } from "date-fns/locale";
 import { useAuth } from "@/hooks/useAuth";
-import { LocationSelect } from "@/components/equipment/LocationSelect";
 import BillboardSelect from "@/components/billboard/BillboardSelect";
 import { logStockMovement } from "@/lib/stockMovement";
 
@@ -62,12 +61,14 @@ const IssueGoods = () => {
   const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
   const [issueData, setIssueData] = useState({
     issued_quantity: "",
-    issued_location_id: "",
     notes: "",
     install_to_billboard: false,
     billboard_id: "",
   });
   const [rejectReason, setRejectReason] = useState("");
+  const [imageDialogOpen, setImageDialogOpen] = useState(false);
+  const [selectedEquipmentImages, setSelectedEquipmentImages] = useState<string[]>([]);
+  const [selectedEquipmentName, setSelectedEquipmentName] = useState("");
 
   // Fetch pending requests with company info
   const { data: pendingRequests, isLoading } = useQuery({
@@ -82,17 +83,23 @@ const IssueGoods = () => {
     },
   });
 
-  // Fetch equipment for validation with full details
+  // Fetch equipment for validation with full details including location
   const { data: equipment } = useQuery({
     queryKey: ["equipment-active-details"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("equipment")
-        .select("id, code, name, quantity_in_stock, serial_number, expiry_date, warranty_expiry_date, warehouse_entry_date")
+        .select(`
+          id, code, name, quantity_in_stock, serial_number, expiry_date, warranty_expiry_date, warehouse_entry_date, location_id,
+          locations(id, name, code, warehouse_id, warehouses(id, name, code))
+        `)
         .eq("is_active", true)
         .order("warehouse_entry_date", { ascending: true }); // FIFO ordering
       if (error) throw error;
-      return data as EquipmentWithDetails[];
+      return data as (EquipmentWithDetails & { 
+        location_id: string | null; 
+        locations: { id: string; name: string; code: string; warehouse_id: string | null; warehouses: { id: string; name: string; code: string } | null } | null 
+      })[];
     },
   });
 
@@ -102,10 +109,25 @@ const IssueGoods = () => {
     if (!eq) return null;
     
     const today = new Date();
-    const info: { expiry?: { days: number; date: string }; warranty?: { days: number; date: string }; serialNumber?: string; ageDays: number } = {
+    const info: { 
+      expiry?: { days: number; date: string }; 
+      warranty?: { days: number; date: string }; 
+      serialNumber?: string; 
+      ageDays: number;
+      locationInfo?: { warehouseName: string; warehouseCode: string; locationName: string; locationCode: string };
+    } = {
       ageDays: differenceInDays(today, new Date(eq.warehouse_entry_date)),
       serialNumber: eq.serial_number || undefined,
     };
+    
+    if (eq.locations) {
+      info.locationInfo = {
+        warehouseName: eq.locations.warehouses?.name || "-",
+        warehouseCode: eq.locations.warehouses?.code || "-",
+        locationName: eq.locations.name,
+        locationCode: eq.locations.code,
+      };
+    }
     
     if (eq.expiry_date) {
       const days = differenceInDays(new Date(eq.expiry_date), today);
@@ -117,6 +139,28 @@ const IssueGoods = () => {
     }
     
     return info;
+  };
+
+  const handleViewEquipmentImages = async (equipmentId: string, equipmentName: string) => {
+    const { data, error } = await supabase
+      .from("equipment_images")
+      .select("image_url")
+      .eq("equipment_id", equipmentId)
+      .order("display_order");
+    
+    if (error) {
+      toast.error("ไม่สามารถโหลดรูปภาพได้");
+      return;
+    }
+    
+    if (!data || data.length === 0) {
+      toast.info("ไม่พบรูปภาพสินค้านี้");
+      return;
+    }
+    
+    setSelectedEquipmentImages(data.map(d => d.image_url));
+    setSelectedEquipmentName(equipmentName);
+    setImageDialogOpen(true);
   };
 
   // Issue goods mutation - supports partial issue
@@ -154,7 +198,7 @@ const IssueGoods = () => {
           last_partial_issue_at: new Date().toISOString(),
           issued_at: new Date().toISOString(),
           issued_by: user.id,
-          issued_location_id: issueData.issued_location_id || null,
+          issued_location_id: selectedRequest.equipment_id ? equipment?.find(e => e.id === selectedRequest.equipment_id)?.location_id || null : null,
           notes: issueData.notes || selectedRequest.notes,
         })
         .eq("id", selectedRequest.id);
@@ -192,7 +236,7 @@ const IssueGoods = () => {
           stock_after: newStock,
           reference_type: "goods_issue",
           reference_document: selectedRequest.document_no,
-          location_id: issueData.issued_location_id || undefined,
+          location_id: equipment?.find(e => e.id === selectedRequest.equipment_id)?.location_id || undefined,
           notes: issueData.notes || undefined,
         });
 
@@ -203,7 +247,7 @@ const IssueGoods = () => {
             document_no: selectedRequest.document_no + (partialCount > 1 ? `-P${partialCount}` : ""),
             equipment_id: selectedRequest.equipment_id,
             quantity: issuedQty,
-            location_id: issueData.issued_location_id || selectedRequest.equipment_id, // fallback to equipment id if no location
+            location_id: equipment?.find(e => e.id === selectedRequest.equipment_id)?.location_id || selectedRequest.equipment_id, // use equipment's location
             issue_date: new Date().toISOString().split('T')[0],
             requester: selectedRequest.requester_name,
             purpose: selectedRequest.purpose,
@@ -237,7 +281,7 @@ const IssueGoods = () => {
             stock_after: newStock,
             reference_type: "billboard_equipment",
             reference_document: selectedRequest.document_no,
-            location_id: issueData.issued_location_id || undefined,
+            location_id: equipment?.find(e => e.id === selectedRequest.equipment_id)?.location_id || undefined,
             notes: `ติดตั้งที่ป้าย ${issueData.billboard_id}`,
           });
         }
@@ -261,7 +305,7 @@ const IssueGoods = () => {
       queryClient.invalidateQueries({ queryKey: ["billboard-equipment"] });
       setIssueDialogOpen(false);
       setSelectedRequest(null);
-      setIssueData({ issued_quantity: "", issued_location_id: "", notes: "", install_to_billboard: false, billboard_id: "" });
+      setIssueData({ issued_quantity: "", notes: "", install_to_billboard: false, billboard_id: "" });
     },
     onError: (error) => {
       toast.error("เกิดข้อผิดพลาด: " + error.message);
@@ -303,7 +347,6 @@ const IssueGoods = () => {
       : request.quantity;
     setIssueData({
       issued_quantity: qtyToIssue.toString(),
-      issued_location_id: "",
       notes: request.notes || "",
       install_to_billboard: false,
       billboard_id: "",
@@ -606,13 +649,54 @@ const IssueGoods = () => {
               </p>
             </div>
 
-            <div className="space-y-2">
-              <Label>จ่ายจากคลัง</Label>
-              <LocationSelect
-                value={issueData.issued_location_id}
-                onChange={(value) => setIssueData({ ...issueData, issued_location_id: value })}
-              />
-            </div>
+            {/* Equipment Location Info */}
+            {selectedRequest?.equipment_id && (() => {
+              const info = getExpiryInfo(selectedRequest.equipment_id);
+              if (!info?.locationInfo) return (
+                <div className="p-3 rounded-lg border border-border bg-muted/30">
+                  <div className="flex items-center gap-2">
+                    <Warehouse className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-sm text-muted-foreground">ไม่พบข้อมูลตำแหน่งจัดเก็บ</span>
+                  </div>
+                </div>
+              );
+              
+              return (
+                <div className="p-3 rounded-lg border border-primary/30 bg-primary/5">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Warehouse className="h-4 w-4 text-primary" />
+                    <span className="text-sm font-medium">ตำแหน่งจัดเก็บ (ไปหยิบสินค้าที่นี่)</span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 text-sm">
+                    <div>
+                      <span className="text-muted-foreground">คลัง: </span>
+                      <span className="font-medium">{info.locationInfo.warehouseName}</span>
+                      <span className="text-xs text-muted-foreground ml-1">({info.locationInfo.warehouseCode})</span>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">ตำแหน่ง: </span>
+                      <span className="font-medium">{info.locationInfo.locationName}</span>
+                      <span className="text-xs text-muted-foreground ml-1">({info.locationInfo.locationCode})</span>
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
+
+            {/* View Equipment Image Button */}
+            {selectedRequest?.equipment_id && (
+              <div className="flex justify-center">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => handleViewEquipmentImages(selectedRequest.equipment_id!, selectedRequest.equipment_name || selectedRequest.equipment_code || "สินค้า")}
+                  className="gap-2"
+                >
+                  <Image className="h-4 w-4" />
+                  ดูรูปสินค้า (ก่อนหยิบ)
+                </Button>
+              </div>
+            )}
 
             {/* Billboard Installation Option */}
             {selectedRequest?.equipment_id && (
@@ -710,6 +794,32 @@ const IssueGoods = () => {
             >
               {rejectRequest.isPending ? "กำลังบันทึก..." : "ยืนยันการปฏิเสธ"}
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Equipment Image Dialog */}
+      <Dialog open={imageDialogOpen} onOpenChange={setImageDialogOpen}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Image className="h-5 w-5" />
+              รูปสินค้า: {selectedEquipmentName}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-96 overflow-y-auto">
+            {selectedEquipmentImages.map((url, index) => (
+              <div key={index} className="rounded-lg overflow-hidden border">
+                <img 
+                  src={url} 
+                  alt={`${selectedEquipmentName} - รูปที่ ${index + 1}`}
+                  className="w-full h-48 object-contain bg-muted"
+                />
+              </div>
+            ))}
+          </div>
+          <DialogFooter>
+            <Button onClick={() => setImageDialogOpen(false)}>ปิด</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
