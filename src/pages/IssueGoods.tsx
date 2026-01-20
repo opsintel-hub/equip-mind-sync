@@ -8,14 +8,16 @@ import { Textarea } from "@/components/ui/textarea";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Search, Package, Clock, CheckCircle, XCircle, MapPin, AlertTriangle, Calendar, Image, Warehouse } from "lucide-react";
+import { Search, Package, Clock, CheckCircle, XCircle, MapPin, AlertTriangle, Calendar, Image, Warehouse, ChevronDown, ChevronUp, ShoppingCart } from "lucide-react";
 import { format, differenceInDays } from "date-fns";
 import { th } from "date-fns/locale";
 import { useAuth } from "@/hooks/useAuth";
 import BillboardDisplay from "@/components/billboard/BillboardDisplay";
+import BillboardSelect from "@/components/billboard/BillboardSelect";
 import { logStockMovement } from "@/lib/stockMovement";
 
 interface EquipmentWithDetails {
@@ -51,6 +53,24 @@ interface PendingRequest {
   last_partial_issue_at: string | null;
   created_at: string;
   billboard_id: string | null;
+  total_items: number | null;
+}
+
+interface PendingItem {
+  id: string;
+  pending_id: string;
+  equipment_id: string | null;
+  equipment_code: string | null;
+  equipment_name: string | null;
+  quantity: number;
+  unit: string;
+  serial_number: string | null;
+  billboard_id: string | null;
+  issued_quantity: number | null;
+  remaining_quantity: number | null;
+  status: string;
+  notes: string | null;
+  created_at: string;
 }
 
 const IssueGoods = () => {
@@ -58,11 +78,15 @@ const IssueGoods = () => {
   const { user } = useAuth();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedRequest, setSelectedRequest] = useState<PendingRequest | null>(null);
+  const [selectedItem, setSelectedItem] = useState<PendingItem | null>(null);
   const [issueDialogOpen, setIssueDialogOpen] = useState(false);
+  const [itemIssueDialogOpen, setItemIssueDialogOpen] = useState(false);
   const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
+  const [expandedRequests, setExpandedRequests] = useState<Set<string>>(new Set());
   const [issueData, setIssueData] = useState({
     issued_quantity: "",
     notes: "",
+    billboard_id: "",
   });
   const [rejectReason, setRejectReason] = useState("");
   const [imageDialogOpen, setImageDialogOpen] = useState(false);
@@ -82,6 +106,19 @@ const IssueGoods = () => {
     },
   });
 
+  // Fetch pending items
+  const { data: pendingItems } = useQuery({
+    queryKey: ["goods-issue-pending-items-staff"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("goods_issue_pending_items")
+        .select("*")
+        .order("created_at", { ascending: true });
+      if (error) throw error;
+      return data as PendingItem[];
+    },
+  });
+
   // Fetch equipment for validation with full details including location
   const { data: equipment } = useQuery({
     queryKey: ["equipment-active-details"],
@@ -93,7 +130,7 @@ const IssueGoods = () => {
           locations(id, name, code, warehouse_id, warehouses(id, name, code))
         `)
         .eq("is_active", true)
-        .order("warehouse_entry_date", { ascending: true }); // FIFO ordering
+        .order("warehouse_entry_date", { ascending: true });
       if (error) throw error;
       return data as (EquipmentWithDetails & { 
         location_id: string | null; 
@@ -101,6 +138,20 @@ const IssueGoods = () => {
       })[];
     },
   });
+
+  const getItemsForRequest = (requestId: string) => {
+    return pendingItems?.filter(item => item.pending_id === requestId) || [];
+  };
+
+  const toggleRequestExpand = (requestId: string) => {
+    const newExpanded = new Set(expandedRequests);
+    if (newExpanded.has(requestId)) {
+      newExpanded.delete(requestId);
+    } else {
+      newExpanded.add(requestId);
+    }
+    setExpandedRequests(newExpanded);
+  };
 
   const getExpiryInfo = (equipmentId: string | null) => {
     if (!equipmentId) return null;
@@ -162,55 +213,49 @@ const IssueGoods = () => {
     setImageDialogOpen(true);
   };
 
-  // Issue goods mutation - supports partial issue
-  const issueGoods = useMutation({
+  // Issue item mutation
+  const issueItem = useMutation({
     mutationFn: async () => {
-      if (!selectedRequest || !user) return;
+      if (!selectedItem || !user) return;
 
       const issuedQty = parseInt(issueData.issued_quantity);
-      const requestedQty = selectedRequest.remaining_quantity && selectedRequest.remaining_quantity > 0 
-        ? selectedRequest.remaining_quantity 
-        : selectedRequest.quantity;
+      const requestedQty = selectedItem.remaining_quantity && selectedItem.remaining_quantity > 0 
+        ? selectedItem.remaining_quantity 
+        : selectedItem.quantity;
       const remainingQty = requestedQty - issuedQty;
-      const previousIssued = selectedRequest.issued_quantity || 0;
+      const previousIssued = selectedItem.issued_quantity || 0;
       const totalIssued = previousIssued + issuedQty;
-      const partialCount = (selectedRequest.partial_issue_count || 0) + 1;
       
       // Determine new status
       let newStatus: string;
       if (remainingQty <= 0) {
-        newStatus = "issued"; // Fully issued
+        newStatus = "issued";
       } else if (issuedQty > 0) {
-        newStatus = "waiting_stock"; // Partial issued, waiting for more stock
+        newStatus = "waiting_stock";
       } else {
-        newStatus = selectedRequest.status;
+        newStatus = selectedItem.status;
       }
       
-      // Update pending request
+      // Update item record
       const { error: updateError } = await supabase
-        .from("goods_issue_pending")
+        .from("goods_issue_pending_items")
         .update({
           status: newStatus,
           issued_quantity: totalIssued,
           remaining_quantity: Math.max(0, remainingQty),
-          partial_issue_count: partialCount,
-          last_partial_issue_at: new Date().toISOString(),
-          issued_at: new Date().toISOString(),
-          issued_by: user.id,
-          issued_location_id: selectedRequest.equipment_id ? equipment?.find(e => e.id === selectedRequest.equipment_id)?.location_id || null : null,
-          notes: issueData.notes || selectedRequest.notes,
+          billboard_id: issueData.billboard_id || selectedItem.billboard_id,
+          notes: issueData.notes || selectedItem.notes,
         })
-        .eq("id", selectedRequest.id);
+        .eq("id", selectedItem.id);
 
       if (updateError) throw updateError;
 
       // If equipment_id exists, update stock
-      if (selectedRequest.equipment_id && issuedQty > 0) {
-        // Fetch current stock from database (not from cache)
+      if (selectedItem.equipment_id && issuedQty > 0) {
         const { data: currentEquipmentData, error: fetchError } = await supabase
           .from("equipment")
           .select("quantity_in_stock")
-          .eq("id", selectedRequest.equipment_id)
+          .eq("id", selectedItem.equipment_id)
           .single();
 
         if (fetchError) throw fetchError;
@@ -221,21 +266,24 @@ const IssueGoods = () => {
         const { error: stockError } = await supabase
           .from("equipment")
           .update({ quantity_in_stock: newStock })
-          .eq("id", selectedRequest.equipment_id);
+          .eq("id", selectedItem.equipment_id);
         if (stockError) throw stockError;
+
+        // Get parent request for document_no
+        const parentRequest = pendingRequests?.find(r => r.id === selectedItem.pending_id);
 
         // Log stock movement
         await logStockMovement({
-          equipment_id: selectedRequest.equipment_id,
-          equipment_code: selectedRequest.equipment_code || "",
-          equipment_name: selectedRequest.equipment_name || "",
+          equipment_id: selectedItem.equipment_id,
+          equipment_code: selectedItem.equipment_code || "",
+          equipment_name: selectedItem.equipment_name || "",
           movement_type: "issue",
           quantity: issuedQty,
           stock_before: currentStock,
           stock_after: newStock,
           reference_type: "goods_issue",
-          reference_document: selectedRequest.document_no,
-          location_id: equipment?.find(e => e.id === selectedRequest.equipment_id)?.location_id || undefined,
+          reference_document: parentRequest?.document_no || "",
+          location_id: equipment?.find(e => e.id === selectedItem.equipment_id)?.location_id || undefined,
           notes: issueData.notes || undefined,
         });
 
@@ -243,48 +291,73 @@ const IssueGoods = () => {
         const { error: issueError } = await supabase
           .from("goods_issue")
           .insert({
-            document_no: selectedRequest.document_no + (partialCount > 1 ? `-P${partialCount}` : ""),
-            equipment_id: selectedRequest.equipment_id,
+            document_no: parentRequest?.document_no || "",
+            equipment_id: selectedItem.equipment_id,
             quantity: issuedQty,
-            location_id: equipment?.find(e => e.id === selectedRequest.equipment_id)?.location_id || selectedRequest.equipment_id, // use equipment's location
+            location_id: equipment?.find(e => e.id === selectedItem.equipment_id)?.location_id || selectedItem.equipment_id,
             issue_date: new Date().toISOString().split('T')[0],
-            requester: selectedRequest.requester_name,
-            purpose: selectedRequest.purpose,
-            notes: issueData.notes || (remainingQty > 0 ? `จ่ายบางส่วน ${issuedQty}/${requestedQty} รอที่เหลือ ${remainingQty} (Stock: ${currentStock} → ${newStock})` : `Stock: ${currentStock} → ${newStock}`),
+            requester: parentRequest?.requester_name || "",
+            purpose: parentRequest?.purpose,
+            notes: issueData.notes || `Stock: ${currentStock} → ${newStock}`,
             created_by: user.id,
           });
         if (issueError) console.error("Error creating goods_issue:", issueError);
 
-        // If installing to billboard (from request), create billboard_equipment record and log movement
-        if (selectedRequest.billboard_id) {
+        // If installing to billboard, create billboard_equipment record
+        const billboardId = issueData.billboard_id || selectedItem.billboard_id;
+        if (billboardId) {
           const { error: billboardError } = await supabase
             .from("billboard_equipment")
             .insert({
-              billboard_id: selectedRequest.billboard_id,
-              equipment_id: selectedRequest.equipment_id,
+              billboard_id: billboardId,
+              equipment_id: selectedItem.equipment_id,
               quantity: issuedQty,
               installation_date: new Date().toISOString().split('T')[0],
-              notes: issueData.notes || `เบิกจากเอกสาร ${selectedRequest.document_no}`,
+              notes: issueData.notes || `เบิกจากเอกสาร ${parentRequest?.document_no}`,
               created_by: user.id,
             });
           if (billboardError) throw billboardError;
 
-          // Log stock movement for install to billboard
           await logStockMovement({
-            equipment_id: selectedRequest.equipment_id,
-            equipment_code: selectedRequest.equipment_code || "",
-            equipment_name: selectedRequest.equipment_name || "",
+            equipment_id: selectedItem.equipment_id,
+            equipment_code: selectedItem.equipment_code || "",
+            equipment_name: selectedItem.equipment_name || "",
             movement_type: "install_to_billboard",
             quantity: issuedQty,
             stock_before: currentStock,
             stock_after: newStock,
             reference_type: "billboard_equipment",
-            reference_document: selectedRequest.document_no,
-            location_id: equipment?.find(e => e.id === selectedRequest.equipment_id)?.location_id || undefined,
-            notes: `ติดตั้งที่ป้าย ${selectedRequest.billboard_id}`,
+            reference_document: parentRequest?.document_no || "",
+            location_id: equipment?.find(e => e.id === selectedItem.equipment_id)?.location_id || undefined,
+            notes: `ติดตั้งที่ป้าย ${billboardId}`,
           });
         }
       }
+
+      // Update parent request status based on all items
+      const allItems = pendingItems?.filter(item => item.pending_id === selectedItem.pending_id) || [];
+      const allIssued = allItems.every(item => 
+        item.id === selectedItem.id ? newStatus === "issued" : item.status === "issued"
+      );
+      const anyWaiting = allItems.some(item => 
+        item.id === selectedItem.id ? newStatus === "waiting_stock" : item.status === "waiting_stock"
+      );
+
+      let parentStatus = "pending";
+      if (allIssued) {
+        parentStatus = "issued";
+      } else if (anyWaiting || newStatus === "waiting_stock") {
+        parentStatus = "waiting_stock";
+      }
+
+      await supabase
+        .from("goods_issue_pending")
+        .update({
+          status: parentStatus,
+          issued_at: new Date().toISOString(),
+          issued_by: user.id,
+        })
+        .eq("id", selectedItem.pending_id);
 
       return { remainingQty, newStatus };
     },
@@ -292,19 +365,20 @@ const IssueGoods = () => {
       let successMessage = "";
       if (result?.newStatus === "waiting_stock") {
         successMessage = `จ่ายสินค้าบางส่วนสำเร็จ รอของเข้าอีก ${result.remainingQty} ชิ้น`;
-      } else if (selectedRequest?.billboard_id) {
+      } else if (issueData.billboard_id || selectedItem?.billboard_id) {
         successMessage = "จ่ายสินค้าและบันทึกการติดตั้งที่ป้ายสำเร็จ";
       } else {
         successMessage = "จ่ายสินค้าสำเร็จ";
       }
       toast.success(successMessage);
       queryClient.invalidateQueries({ queryKey: ["goods-issue-pending-staff"] });
+      queryClient.invalidateQueries({ queryKey: ["goods-issue-pending-items-staff"] });
       queryClient.invalidateQueries({ queryKey: ["equipment-active"] });
       queryClient.invalidateQueries({ queryKey: ["equipment-active-details"] });
       queryClient.invalidateQueries({ queryKey: ["billboard-equipment"] });
-      setIssueDialogOpen(false);
-      setSelectedRequest(null);
-      setIssueData({ issued_quantity: "", notes: "" });
+      setItemIssueDialogOpen(false);
+      setSelectedItem(null);
+      setIssueData({ issued_quantity: "", notes: "", billboard_id: "" });
     },
     onError: (error) => {
       toast.error("เกิดข้อผิดพลาด: " + error.message);
@@ -325,10 +399,17 @@ const IssueGoods = () => {
         .eq("id", selectedRequest.id);
 
       if (error) throw error;
+
+      // Also reject all items
+      await supabase
+        .from("goods_issue_pending_items")
+        .update({ status: "rejected" })
+        .eq("pending_id", selectedRequest.id);
     },
     onSuccess: () => {
       toast.success("ปฏิเสธคำขอสำเร็จ");
       queryClient.invalidateQueries({ queryKey: ["goods-issue-pending-staff"] });
+      queryClient.invalidateQueries({ queryKey: ["goods-issue-pending-items-staff"] });
       setRejectDialogOpen(false);
       setSelectedRequest(null);
       setRejectReason("");
@@ -338,17 +419,17 @@ const IssueGoods = () => {
     },
   });
 
-  const handleIssue = (request: PendingRequest & { billboard_id?: string | null }) => {
-    setSelectedRequest(request);
-    // Use remaining_quantity if available (for partial issues), otherwise use original quantity
-    const qtyToIssue = request.remaining_quantity && request.remaining_quantity > 0 
-      ? request.remaining_quantity 
-      : request.quantity;
+  const handleIssueItem = (item: PendingItem) => {
+    setSelectedItem(item);
+    const qtyToIssue = item.remaining_quantity && item.remaining_quantity > 0 
+      ? item.remaining_quantity 
+      : item.quantity;
     setIssueData({
       issued_quantity: qtyToIssue.toString(),
-      notes: request.notes || "",
+      notes: item.notes || "",
+      billboard_id: item.billboard_id || "",
     });
-    setIssueDialogOpen(true);
+    setItemIssueDialogOpen(true);
   };
 
   const handleReject = (request: PendingRequest) => {
@@ -396,7 +477,7 @@ const IssueGoods = () => {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold text-foreground">จ่ายสินค้า</h1>
-            <p className="text-muted-foreground">สำหรับเจ้าหน้าที่คลัง - ดำเนินการจ่ายสินค้าตามคำขอ</p>
+            <p className="text-muted-foreground">สำหรับเจ้าหน้าที่คลัง - ดำเนินการจ่ายสินค้าตามคำขอ (รองรับหลายรายการ)</p>
           </div>
           <div className="flex gap-2">
             {pendingCount > 0 && (
@@ -436,12 +517,11 @@ const IssueGoods = () => {
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead className="w-10"></TableHead>
                     <TableHead>เลขที่เอกสาร</TableHead>
                     <TableHead>วันที่ขอ</TableHead>
                     <TableHead>บริษัท</TableHead>
-                    <TableHead>รหัส/ชื่อสินค้า</TableHead>
-                    <TableHead>จำนวนขอ</TableHead>
-                    <TableHead>คงเหลือ</TableHead>
+                    <TableHead>รายการ</TableHead>
                     <TableHead>ผู้ขอเบิก</TableHead>
                     <TableHead>ส่งไปที่</TableHead>
                     <TableHead>สถานะ</TableHead>
@@ -451,75 +531,146 @@ const IssueGoods = () => {
                 <TableBody>
                   {isLoading ? (
                     <TableRow>
-                      <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
+                      <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
                         กำลังโหลด...
                       </TableCell>
                     </TableRow>
                   ) : filteredRequests?.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
+                      <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
                         ไม่พบข้อมูล
                       </TableCell>
                     </TableRow>
                   ) : (
                     filteredRequests?.map((req) => {
-                      const availableStock = getAvailableStock(req.equipment_id);
+                      const items = getItemsForRequest(req.id);
+                      const isExpanded = expandedRequests.has(req.id);
+                      const hasMultipleItems = items.length > 0;
+                      
                       return (
-                        <TableRow key={req.id} className={req.status === "pending" ? "bg-yellow-50" : req.status === "waiting_stock" ? "bg-orange-50" : ""}>
-                          <TableCell className="font-medium">{req.document_no}</TableCell>
-                          <TableCell>
-                            {format(new Date(req.created_at), "dd/MM/yyyy HH:mm", { locale: th })}
-                          </TableCell>
-                          <TableCell>
-                            {req.companies?.name || "-"}
-                          </TableCell>
-                          <TableCell>
-                            {req.equipment_code && <div className="font-medium">{req.equipment_code}</div>}
-                            <div className="text-sm text-muted-foreground">{req.equipment_name || "-"}</div>
-                          </TableCell>
-                          <TableCell>
-                            <div>{req.quantity} {req.unit}</div>
-                            {req.issued_quantity && req.issued_quantity > 0 && (
-                              <div className="text-xs text-green-600">จ่ายแล้ว: {req.issued_quantity}</div>
-                            )}
-                            {req.remaining_quantity && req.remaining_quantity > 0 && (
-                              <div className="text-xs text-orange-600 font-medium">รอ: {req.remaining_quantity}</div>
-                            )}
-                          </TableCell>
-                          <TableCell>
-                            {availableStock !== null ? (
-                              <span className={availableStock < req.quantity ? "text-destructive font-medium" : ""}>
-                                {availableStock}
-                              </span>
-                            ) : (
-                              <span className="text-muted-foreground">-</span>
-                            )}
-                          </TableCell>
-                          <TableCell>
-                            <div>{req.requester_name}</div>
-                            {req.requester_department && (
-                              <div className="text-sm text-muted-foreground">{req.requester_department}</div>
-                            )}
-                          </TableCell>
-                          <TableCell>{req.destination || "-"}</TableCell>
-                          <TableCell>{getStatusBadge(req.status)}</TableCell>
-                          <TableCell>
-                            {(req.status === "pending" || req.status === "waiting_stock") && (
-                              <div className="flex items-center gap-2 justify-center">
-                                <Button size="sm" onClick={() => handleIssue(req)}>
-                                  <CheckCircle className="h-4 w-4 mr-1" />
-                                  {req.status === "waiting_stock" ? "จ่ายต่อ" : "จ่าย"}
+                        <>
+                          <TableRow 
+                            key={req.id} 
+                            className={`${req.status === "pending" ? "bg-yellow-50" : req.status === "waiting_stock" ? "bg-orange-50" : ""} cursor-pointer hover:bg-muted/50`}
+                            onClick={() => hasMultipleItems && toggleRequestExpand(req.id)}
+                          >
+                            <TableCell>
+                              {hasMultipleItems && (
+                                <Button variant="ghost" size="sm" className="p-0 h-6 w-6">
+                                  {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
                                 </Button>
-                                {req.status === "pending" && (
-                                  <Button size="sm" variant="destructive" onClick={() => handleReject(req)}>
-                                    <XCircle className="h-4 w-4 mr-1" />
-                                    ปฏิเสธ
-                                  </Button>
-                                )}
-                              </div>
-                            )}
-                          </TableCell>
-                        </TableRow>
+                              )}
+                            </TableCell>
+                            <TableCell className="font-medium">{req.document_no}</TableCell>
+                            <TableCell>
+                              {format(new Date(req.created_at), "dd/MM/yyyy HH:mm", { locale: th })}
+                            </TableCell>
+                            <TableCell>{req.companies?.name || "-"}</TableCell>
+                            <TableCell>
+                              {hasMultipleItems ? (
+                                <Badge variant="outline" className="gap-1">
+                                  <ShoppingCart className="h-3 w-3" />
+                                  {items.length} รายการ
+                                </Badge>
+                              ) : (
+                                <div>
+                                  {req.equipment_code && <div className="font-medium">{req.equipment_code}</div>}
+                                  <div className="text-sm text-muted-foreground">{req.equipment_name || "-"}</div>
+                                  <div className="text-xs text-muted-foreground">{req.quantity} {req.unit}</div>
+                                </div>
+                              )}
+                            </TableCell>
+                            <TableCell>
+                              <div>{req.requester_name}</div>
+                              {req.requester_department && (
+                                <div className="text-sm text-muted-foreground">{req.requester_department}</div>
+                              )}
+                            </TableCell>
+                            <TableCell>{req.destination || "-"}</TableCell>
+                            <TableCell>{getStatusBadge(req.status)}</TableCell>
+                            <TableCell>
+                              {req.status === "pending" && (
+                                <Button size="sm" variant="destructive" onClick={(e) => { e.stopPropagation(); handleReject(req); }}>
+                                  <XCircle className="h-4 w-4 mr-1" />
+                                  ปฏิเสธทั้งหมด
+                                </Button>
+                              )}
+                            </TableCell>
+                          </TableRow>
+                          
+                          {/* Expanded Items */}
+                          {isExpanded && hasMultipleItems && (
+                            <TableRow key={`${req.id}-items`}>
+                              <TableCell colSpan={9} className="bg-muted/30 p-0">
+                                <div className="p-4">
+                                  <h4 className="font-medium mb-3 flex items-center gap-2">
+                                    <ShoppingCart className="h-4 w-4" />
+                                    รายการสินค้า ({items.length} รายการ)
+                                  </h4>
+                                  <Table>
+                                    <TableHeader>
+                                      <TableRow>
+                                        <TableHead>รหัส/ชื่อสินค้า</TableHead>
+                                        <TableHead>S/N</TableHead>
+                                        <TableHead className="text-right">จำนวนขอ</TableHead>
+                                        <TableHead className="text-right">คงเหลือ</TableHead>
+                                        <TableHead>ป้ายโฆษณา</TableHead>
+                                        <TableHead>สถานะ</TableHead>
+                                        <TableHead className="text-center">จัดการ</TableHead>
+                                      </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                      {items.map((item) => {
+                                        const availableStock = getAvailableStock(item.equipment_id);
+                                        return (
+                                          <TableRow key={item.id}>
+                                            <TableCell>
+                                              {item.equipment_code && <div className="font-medium">{item.equipment_code}</div>}
+                                              <div className="text-sm text-muted-foreground">{item.equipment_name || "-"}</div>
+                                            </TableCell>
+                                            <TableCell>{item.serial_number || "-"}</TableCell>
+                                            <TableCell className="text-right">
+                                              <div>{item.quantity} {item.unit}</div>
+                                              {item.issued_quantity && item.issued_quantity > 0 && (
+                                                <div className="text-xs text-green-600">จ่ายแล้ว: {item.issued_quantity}</div>
+                                              )}
+                                              {item.remaining_quantity && item.remaining_quantity > 0 && (
+                                                <div className="text-xs text-orange-600">รอ: {item.remaining_quantity}</div>
+                                              )}
+                                            </TableCell>
+                                            <TableCell className="text-right">
+                                              {availableStock !== null ? (
+                                                <span className={availableStock < item.quantity ? "text-destructive font-medium" : ""}>
+                                                  {availableStock}
+                                                </span>
+                                              ) : "-"}
+                                            </TableCell>
+                                            <TableCell>
+                                              {item.billboard_id ? (
+                                                <Badge variant="outline" className="text-xs">
+                                                  <MapPin className="h-3 w-3 mr-1" />ระบุแล้ว
+                                                </Badge>
+                                              ) : "-"}
+                                            </TableCell>
+                                            <TableCell>{getStatusBadge(item.status)}</TableCell>
+                                            <TableCell className="text-center">
+                                              {(item.status === "pending" || item.status === "waiting_stock") && (
+                                                <Button size="sm" onClick={(e) => { e.stopPropagation(); handleIssueItem(item); }}>
+                                                  <CheckCircle className="h-4 w-4 mr-1" />
+                                                  {item.status === "waiting_stock" ? "จ่ายต่อ" : "จ่าย"}
+                                                </Button>
+                                              )}
+                                            </TableCell>
+                                          </TableRow>
+                                        );
+                                      })}
+                                    </TableBody>
+                                  </Table>
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          )}
+                        </>
                       );
                     })
                   )}
@@ -530,60 +681,41 @@ const IssueGoods = () => {
         </Card>
       </div>
 
-      {/* Issue Dialog */}
-      <Dialog open={issueDialogOpen} onOpenChange={setIssueDialogOpen}>
-        <DialogContent>
+      {/* Issue Item Dialog */}
+      <Dialog open={itemIssueDialogOpen} onOpenChange={setItemIssueDialogOpen}>
+        <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>จ่ายสินค้า - {selectedRequest?.document_no}</DialogTitle>
+            <DialogTitle>จ่ายสินค้า - {selectedItem?.equipment_code || selectedItem?.equipment_name}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-4 p-4 bg-muted rounded-lg">
               <div>
                 <Label className="text-muted-foreground">สินค้า</Label>
-                <p className="font-medium">{selectedRequest?.equipment_code || "-"}</p>
-                <p className="text-sm">{selectedRequest?.equipment_name || "-"}</p>
+                <p className="font-medium">{selectedItem?.equipment_code || "-"}</p>
+                <p className="text-sm">{selectedItem?.equipment_name || "-"}</p>
               </div>
               <div>
-                <Label className="text-muted-foreground">ผู้ขอเบิก</Label>
-                <p className="font-medium">{selectedRequest?.requester_name}</p>
-                <p className="text-sm text-muted-foreground">{selectedRequest?.requester_department}</p>
+                <Label className="text-muted-foreground">Serial Number</Label>
+                <p className="font-medium">{selectedItem?.serial_number || "-"}</p>
               </div>
               <div>
-                <Label className="text-muted-foreground">จำนวนที่ขอทั้งหมด</Label>
-                <p className="font-medium">{selectedRequest?.quantity} {selectedRequest?.unit}</p>
-                {selectedRequest?.issued_quantity && selectedRequest.issued_quantity > 0 && (
-                  <p className="text-xs text-green-600">จ่ายไปแล้ว: {selectedRequest.issued_quantity}</p>
+                <Label className="text-muted-foreground">จำนวนที่ขอ</Label>
+                <p className="font-medium">{selectedItem?.quantity} {selectedItem?.unit}</p>
+                {selectedItem?.issued_quantity && selectedItem.issued_quantity > 0 && (
+                  <p className="text-xs text-green-600">จ่ายไปแล้ว: {selectedItem.issued_quantity}</p>
                 )}
-              </div>
-              <div>
-                <Label className="text-muted-foreground">
-                  {selectedRequest?.remaining_quantity && selectedRequest.remaining_quantity > 0 
-                    ? "ต้องจ่ายอีก" 
-                    : "คงเหลือในคลัง"}
-                </Label>
-                <p className="font-medium">
-                  {selectedRequest?.remaining_quantity && selectedRequest.remaining_quantity > 0 
-                    ? <span className="text-orange-600">{selectedRequest.remaining_quantity} {selectedRequest?.unit}</span>
-                    : selectedRequest?.equipment_id ? getAvailableStock(selectedRequest.equipment_id) : "-"}
-                </p>
               </div>
               <div>
                 <Label className="text-muted-foreground">คงเหลือในคลัง</Label>
                 <p className="font-medium">
-                  {selectedRequest?.equipment_id ? getAvailableStock(selectedRequest.equipment_id) : "-"}
+                  {selectedItem?.equipment_id ? getAvailableStock(selectedItem.equipment_id) : "-"}
                 </p>
               </div>
-              {selectedRequest?.partial_issue_count && selectedRequest.partial_issue_count > 0 && (
-                <div>
-                  <Label className="text-muted-foreground">จ่ายไปแล้ว</Label>
-                  <p className="font-medium text-blue-600">{selectedRequest.partial_issue_count} ครั้ง</p>
-                </div>
-              )}
             </div>
 
             {/* FIFO & Expiry Info */}
-            {selectedRequest?.equipment_id && (() => {
-              const info = getExpiryInfo(selectedRequest.equipment_id);
+            {selectedItem?.equipment_id && (() => {
+              const info = getExpiryInfo(selectedItem.equipment_id);
               if (!info) return null;
               
               const hasWarning = (info.expiry && info.expiry.days <= 30) || (info.warranty && info.warranty.days <= 30);
@@ -625,9 +757,38 @@ const IssueGoods = () => {
                       </div>
                     )}
                   </div>
-                  {hasWarning && (
-                    <p className="text-xs text-warning mt-2">แนะนำให้จ่ายสินค้านี้เพื่อใช้ประโยชน์ก่อนหมดอายุ/ประกัน</p>
-                  )}
+                </div>
+              );
+            })()}
+
+            {/* Equipment Location Info */}
+            {selectedItem?.equipment_id && (() => {
+              const info = getExpiryInfo(selectedItem.equipment_id);
+              if (!info?.locationInfo) return (
+                <div className="p-3 rounded-lg border border-border bg-muted/30">
+                  <div className="flex items-center gap-2">
+                    <Warehouse className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-sm text-muted-foreground">ไม่พบข้อมูลตำแหน่งจัดเก็บ</span>
+                  </div>
+                </div>
+              );
+              
+              return (
+                <div className="p-3 rounded-lg border border-primary/30 bg-primary/5">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Warehouse className="h-4 w-4 text-primary" />
+                    <span className="text-sm font-medium">ตำแหน่งจัดเก็บ</span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 text-sm">
+                    <div>
+                      <span className="text-muted-foreground">คลัง: </span>
+                      <span className="font-medium">{info.locationInfo.warehouseName}</span>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">ตำแหน่ง: </span>
+                      <span className="font-medium">{info.locationInfo.locationName}</span>
+                    </div>
+                  </div>
                 </div>
               );
             })()}
@@ -646,68 +807,32 @@ const IssueGoods = () => {
               </p>
             </div>
 
-            {/* Equipment Location Info */}
-            {selectedRequest?.equipment_id && (() => {
-              const info = getExpiryInfo(selectedRequest.equipment_id);
-              if (!info?.locationInfo) return (
-                <div className="p-3 rounded-lg border border-border bg-muted/30">
-                  <div className="flex items-center gap-2">
-                    <Warehouse className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-sm text-muted-foreground">ไม่พบข้อมูลตำแหน่งจัดเก็บ</span>
-                  </div>
-                </div>
-              );
-              
-              return (
-                <div className="p-3 rounded-lg border border-primary/30 bg-primary/5">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Warehouse className="h-4 w-4 text-primary" />
-                    <span className="text-sm font-medium">ตำแหน่งจัดเก็บ (ไปหยิบสินค้าที่นี่)</span>
-                  </div>
-                  <div className="grid grid-cols-2 gap-2 text-sm">
-                    <div>
-                      <span className="text-muted-foreground">คลัง: </span>
-                      <span className="font-medium">{info.locationInfo.warehouseName}</span>
-                      <span className="text-xs text-muted-foreground ml-1">({info.locationInfo.warehouseCode})</span>
-                    </div>
-                    <div>
-                      <span className="text-muted-foreground">ตำแหน่ง: </span>
-                      <span className="font-medium">{info.locationInfo.locationName}</span>
-                      <span className="text-xs text-muted-foreground ml-1">({info.locationInfo.locationCode})</span>
-                    </div>
-                  </div>
-                </div>
-              );
-            })()}
+            {/* Billboard Selection - Can be added/changed here */}
+            <div className="space-y-2">
+              <Label>ป้ายโฆษณา (ระบุหรือเปลี่ยนได้)</Label>
+              <BillboardSelect
+                value={issueData.billboard_id}
+                onChange={(value) => setIssueData({ ...issueData, billboard_id: value })}
+              />
+              {selectedItem?.billboard_id && !issueData.billboard_id && (
+                <p className="text-xs text-muted-foreground">
+                  ป้ายที่ระบุไว้: จะใช้ป้ายที่ผู้ขอเลือกไว้
+                </p>
+              )}
+            </div>
 
             {/* View Equipment Image Button */}
-            {selectedRequest?.equipment_id && (
+            {selectedItem?.equipment_id && (
               <div className="flex justify-center">
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={() => handleViewEquipmentImages(selectedRequest.equipment_id!, selectedRequest.equipment_name || selectedRequest.equipment_code || "สินค้า")}
+                  onClick={() => handleViewEquipmentImages(selectedItem.equipment_id!, selectedItem.equipment_name || selectedItem.equipment_code || "สินค้า")}
                   className="gap-2"
                 >
                   <Image className="h-4 w-4" />
-                  ดูรูปสินค้า (ก่อนหยิบ)
+                  ดูรูปสินค้า
                 </Button>
-              </div>
-            )}
-
-            {/* Billboard Installation Display - Read Only */}
-            {selectedRequest?.billboard_id && (
-              <div className="space-y-2 p-4 bg-blue-50 rounded-lg border border-blue-200">
-                <div className="flex items-center gap-2">
-                  <MapPin className="h-4 w-4 text-blue-600" />
-                  <Label className="font-medium text-blue-800">ติดตั้งที่ป้ายโฆษณา</Label>
-                </div>
-                <div className="ml-6">
-                  <BillboardDisplay billboardId={selectedRequest.billboard_id} />
-                  <p className="text-xs text-muted-foreground mt-2">
-                    ระบบจะบันทึกอุปกรณ์นี้เป็นอุปกรณ์ที่ติดตั้งที่ป้ายโฆษณาตามที่ขอเบิก
-                  </p>
-                </div>
               </div>
             )}
 
@@ -722,14 +847,14 @@ const IssueGoods = () => {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIssueDialogOpen(false)}>
+            <Button variant="outline" onClick={() => setItemIssueDialogOpen(false)}>
               ยกเลิก
             </Button>
             <Button 
-              onClick={() => issueGoods.mutate()} 
-              disabled={issueGoods.isPending}
+              onClick={() => issueItem.mutate()} 
+              disabled={issueItem.isPending}
             >
-              {issueGoods.isPending ? "กำลังบันทึก..." : "ยืนยันการจ่าย"}
+              {issueItem.isPending ? "กำลังบันทึก..." : "ยืนยันการจ่าย"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -743,9 +868,8 @@ const IssueGoods = () => {
           </DialogHeader>
           <div className="space-y-4">
             <div className="p-4 bg-muted rounded-lg">
-              <p><strong>สินค้า:</strong> {selectedRequest?.equipment_name || selectedRequest?.equipment_code || "-"}</p>
-              <p><strong>จำนวน:</strong> {selectedRequest?.quantity} {selectedRequest?.unit}</p>
               <p><strong>ผู้ขอ:</strong> {selectedRequest?.requester_name}</p>
+              <p><strong>จำนวนรายการ:</strong> {getItemsForRequest(selectedRequest?.id || "").length || 1} รายการ</p>
             </div>
 
             <div className="space-y-2">
@@ -765,7 +889,7 @@ const IssueGoods = () => {
             </Button>
             <Button 
               variant="destructive" 
-              onClick={() => rejectRequest.mutate()} 
+              onClick={() => rejectRequest.mutate()}
               disabled={!rejectReason || rejectRequest.isPending}
             >
               {rejectRequest.isPending ? "กำลังบันทึก..." : "ยืนยันการปฏิเสธ"}
@@ -780,23 +904,22 @@ const IssueGoods = () => {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Image className="h-5 w-5" />
-              รูปสินค้า: {selectedEquipmentName}
+              รูปภาพ: {selectedEquipmentName}
             </DialogTitle>
           </DialogHeader>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-96 overflow-y-auto">
-            {selectedEquipmentImages.map((url, index) => (
-              <div key={index} className="rounded-lg overflow-hidden border">
-                <img 
-                  src={url} 
-                  alt={`${selectedEquipmentName} - รูปที่ ${index + 1}`}
-                  className="w-full h-48 object-contain bg-muted"
-                />
-              </div>
-            ))}
-          </div>
-          <DialogFooter>
-            <Button onClick={() => setImageDialogOpen(false)}>ปิด</Button>
-          </DialogFooter>
+          <ScrollArea className="max-h-[60vh]">
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 p-4">
+              {selectedEquipmentImages.map((url, index) => (
+                <div key={index} className="relative aspect-square border rounded-lg overflow-hidden">
+                  <img
+                    src={url}
+                    alt={`${selectedEquipmentName} - ${index + 1}`}
+                    className="object-cover w-full h-full"
+                  />
+                </div>
+              ))}
+            </div>
+          </ScrollArea>
         </DialogContent>
       </Dialog>
     </>
