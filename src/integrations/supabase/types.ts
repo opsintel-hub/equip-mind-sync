@@ -2918,6 +2918,13 @@ export type Database = {
       generate_pr_number: { Args: never; Returns: string }
       generate_tool_pm_task_number: { Args: never; Returns: string }
       get_next_equipment_code: { Args: { p_prefix: string }; Returns: string }
+      get_users_emails: {
+        Args: never
+        Returns: {
+          email: string
+          id: string
+        }[]
+      }
       has_department_permission: {
         Args: { _department: string; _permission: string; _user_id: string }
         Returns: boolean
