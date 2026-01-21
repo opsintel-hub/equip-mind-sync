@@ -95,12 +95,12 @@ const Admin = () => {
       // stored during signup, or use a workaround by querying the users table
       const userIds = profilesData?.map(p => p.id) || [];
       
-      // Try to get emails from the users view if available
+      // Try to get emails via RPC function
       let emailMap: Record<string, string> = {};
       try {
-        const { data: usersData } = await supabase.rpc('get_users_emails');
-        if (usersData) {
-          usersData.forEach((u: { id: string; email: string }) => {
+        const { data: usersData, error: rpcError } = await supabase.rpc('get_users_emails' as any);
+        if (!rpcError && usersData && Array.isArray(usersData)) {
+          (usersData as { id: string; email: string }[]).forEach((u) => {
             emailMap[u.id] = u.email;
           });
         }
