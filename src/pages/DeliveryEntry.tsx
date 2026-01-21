@@ -85,6 +85,12 @@ const DeliveryEntry = () => {
   
   // Receipt Purpose
   const [selectedReceiptPurposeId, setSelectedReceiptPurposeId] = useState("");
+  
+  // PO/PR fields for "นำเข้าจากการซื้อ"
+  const [poNumber, setPoNumber] = useState("");
+  const [prNumber, setPrNumber] = useState("");
+  const [purchaseDocumentFile, setPurchaseDocumentFile] = useState<File | null>(null);
+  const purchaseFileInputRef = useRef<HTMLInputElement>(null);
 
   // Form state
   const [selectedDepartmentId, setSelectedDepartmentId] = useState("");
@@ -239,6 +245,8 @@ const DeliveryEntry = () => {
 
   const selectedEquipment = equipment.find(e => e.id === selectedEquipmentId);
   const selectedSupplier = suppliers.find(s => s.id === selectedSupplierId);
+  const selectedReceiptPurpose = receiptPurposes.find(p => p.id === selectedReceiptPurposeId);
+  const isPurchaseReceipt = selectedReceiptPurpose?.name === "นำเข้าจากการซื้อ";
 
   // Update unit when equipment is selected
   useEffect(() => {
@@ -315,6 +323,56 @@ const DeliveryEntry = () => {
     return publicUrl;
   };
 
+  const handlePurchaseFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // Check file size (max 10MB)
+      if (file.size > 10 * 1024 * 1024) {
+        toast.error("ไฟล์มีขนาดใหญ่เกินไป (สูงสุด 10MB)");
+        return;
+      }
+      
+      // Check file type - only images and PDF
+      const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png', 'image/jpg'];
+      if (!allowedTypes.includes(file.type)) {
+        toast.error("รองรับเฉพาะไฟล์ PDF และรูปภาพ (JPG, PNG) เท่านั้น");
+        return;
+      }
+      
+      setPurchaseDocumentFile(file);
+    }
+  };
+
+  const removePurchaseFile = () => {
+    setPurchaseDocumentFile(null);
+    if (purchaseFileInputRef.current) {
+      purchaseFileInputRef.current.value = "";
+    }
+  };
+
+  const uploadPurchaseDocument = async (documentNo: string): Promise<string | null> => {
+    if (!purchaseDocumentFile) return null;
+
+    const fileExt = purchaseDocumentFile.name.split('.').pop();
+    const fileName = `PO-PR-${documentNo}-${Date.now()}.${fileExt}`;
+    const filePath = `purchase-documents/${fileName}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from('delivery-documents')
+      .upload(filePath, purchaseDocumentFile);
+
+    if (uploadError) {
+      console.error('Upload error:', uploadError);
+      throw new Error('ไม่สามารถอัปโหลดเอกสารได้');
+    }
+
+    const { data: { publicUrl } } = supabase.storage
+      .from('delivery-documents')
+      .getPublicUrl(filePath);
+
+    return publicUrl;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -325,6 +383,12 @@ const DeliveryEntry = () => {
 
     if (!selectedEquipmentId && !equipmentName) {
       toast.error("กรุณาเลือกสินค้า หรือระบุชื่อสินค้า");
+      return;
+    }
+    
+    // Validate PO/PR for "นำเข้าจากการซื้อ"
+    if (isPurchaseReceipt && !poNumber && !prNumber) {
+      toast.error("กรุณากรอกเลข PO หรือเลข PR อย่างน้อย 1 รายการ");
       return;
     }
 
@@ -416,8 +480,14 @@ const DeliveryEntry = () => {
       setWaitingAssetCode(false);
       setWaitingEquipmentId(false);
       setDepreciationMonths("");
+      setPoNumber("");
+      setPrNumber("");
+      setPurchaseDocumentFile(null);
       if (fileInputRef.current) {
         fileInputRef.current.value = "";
+      }
+      if (purchaseFileInputRef.current) {
+        purchaseFileInputRef.current.value = "";
       }
       
       fetchPendingReceipts();
@@ -548,6 +618,76 @@ const DeliveryEntry = () => {
                   เลือกวัตถุประสงค์ในการนำสินค้าเข้าคลัง
                 </p>
               </div>
+              
+              {/* PO/PR fields for "นำเข้าจากการซื้อ" */}
+              {isPurchaseReceipt && (
+                <div className="mt-4 p-4 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-lg space-y-4">
+                  <h4 className="font-medium text-sm text-amber-700 dark:text-amber-400">
+                    ข้อมูล PO/PR (กรอกอย่างน้อย 1 รายการ) *
+                  </h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="poNumber">เลข PO (Purchase Order)</Label>
+                      <Input 
+                        id="poNumber" 
+                        placeholder="กรอกเลข PO..."
+                        value={poNumber}
+                        onChange={(e) => setPoNumber(e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="prNumber">เลข PR (Purchase Request)</Label>
+                      <Input 
+                        id="prNumber" 
+                        placeholder="กรอกเลข PR..."
+                        value={prNumber}
+                        onChange={(e) => setPrNumber(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>เอกสาร PO/PR (รองรับ PDF และรูปภาพ)</Label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="file"
+                        ref={purchaseFileInputRef}
+                        onChange={handlePurchaseFileSelect}
+                        accept=".pdf,.jpg,.jpeg,.png"
+                        className="hidden"
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => purchaseFileInputRef.current?.click()}
+                        className="flex items-center gap-2"
+                      >
+                        <Upload className="w-4 h-4" />
+                        เลือกไฟล์เอกสาร
+                      </Button>
+                      {purchaseDocumentFile && (
+                        <div className="flex items-center gap-2 px-3 py-1.5 bg-muted rounded-md">
+                          <FileText className="w-4 h-4 text-muted-foreground" />
+                          <span className="text-sm truncate max-w-[200px]">
+                            {purchaseDocumentFile.name}
+                          </span>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6"
+                            onClick={removePurchaseFile}
+                          >
+                            <X className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      รองรับไฟล์ PDF และรูปภาพ (JPG, PNG) ขนาดไม่เกิน 10MB
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Warehouse Selection */}
