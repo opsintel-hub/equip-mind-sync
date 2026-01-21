@@ -39,9 +39,9 @@ const equipmentSchema = z.object({
   unit: z.string().min(1, "กรุณาเลือกหน่วยนับ"),
   quantity_in_stock: z.number().min(0, "จำนวนต้องไม่ติดลบ").int("จำนวนต้องเป็นจำนวนเต็ม"),
   min_stock_level: z.number().min(0, "จำนวนต้องไม่ติดลบ").int("จำนวนต้องเป็นจำนวนเต็ม"),
-  location_id: z.string().min(1, "กรุณาเลือกคลังสินค้า"),
+  location_id: z.string().optional(),
   serial_number: z.string().max(100, "Serial Number ต้องไม่เกิน 100 ตัวอักษร").optional(),
-  warehouse_entry_date: z.date(),
+  warehouse_entry_date: z.date().optional(),
   expiry_date: z.date().optional(),
   warranty_expiry_date: z.date().optional(),
   notes: z.string().max(1000, "หมายเหตุต้องไม่เกิน 1000 ตัวอักษร").optional(),
@@ -162,10 +162,10 @@ export function EquipmentForm({ onSuccess }: EquipmentFormProps) {
         unit: data.unit,
         quantity_in_stock: data.quantity_in_stock,
         min_stock_level: data.min_stock_level,
-        location_id: data.location_id,
+        location_id: data.location_id || null,
         serial_number: data.serial_number || null,
         unit_price: 0,
-        warehouse_entry_date: format(data.warehouse_entry_date, "yyyy-MM-dd"),
+        warehouse_entry_date: data.warehouse_entry_date ? format(data.warehouse_entry_date, "yyyy-MM-dd") : format(new Date(), "yyyy-MM-dd"),
         expiry_date: data.expiry_date ? format(data.expiry_date, "yyyy-MM-dd") : null,
         warranty_expiry_date: data.warranty_expiry_date ? format(data.warranty_expiry_date, "yyyy-MM-dd") : null,
         notes: data.notes || null,
@@ -605,7 +605,7 @@ export function EquipmentForm({ onSuccess }: EquipmentFormProps) {
                 name="location_id"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>คลังสินค้า *</FormLabel>
+                    <FormLabel>คลังสินค้า</FormLabel>
                     <FormControl>
                       <SimpleLocationSelect
                         value={field.value}
@@ -623,7 +623,7 @@ export function EquipmentForm({ onSuccess }: EquipmentFormProps) {
                 name="warehouse_entry_date"
                 render={({ field }) => (
                   <FormItem className="flex flex-col">
-                    <FormLabel>วันที่นำเข้าคลัง *</FormLabel>
+                    <FormLabel>วันที่นำเข้าคลัง</FormLabel>
                     <Popover>
                       <PopoverTrigger asChild>
                         <FormControl>
