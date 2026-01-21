@@ -397,11 +397,19 @@ const DeliveryEntry = () => {
     try {
       const docNo = generateDocumentNo();
       let documentUrl: string | null = null;
+      let purchaseDocumentUrl: string | null = null;
 
       // Upload document if exists
       if (documentFile) {
         setIsUploadingFile(true);
         documentUrl = await uploadDocument(docNo);
+        setIsUploadingFile(false);
+      }
+      
+      // Upload purchase document if exists
+      if (purchaseDocumentFile) {
+        setIsUploadingFile(true);
+        purchaseDocumentUrl = await uploadPurchaseDocument(docNo);
         setIsUploadingFile(false);
       }
 
@@ -442,7 +450,10 @@ const DeliveryEntry = () => {
           waiting_asset_code: waitingAssetCode,
           waiting_equipment_id: waitingEquipmentId,
           depreciation_months: depreciationMonths ? parseInt(depreciationMonths) : null,
-        });
+          po_number: poNumber || null,
+          pr_number: prNumber || null,
+          purchase_document_url: purchaseDocumentUrl,
+        } as any);
 
       if (error) throw error;
 
