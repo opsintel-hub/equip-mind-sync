@@ -32,6 +32,7 @@ interface User {
   id: string;
   full_name: string;
   phone: string | null;
+  email?: string;
 }
 
 interface UserRoleData {
@@ -82,13 +83,37 @@ const Admin = () => {
 
   const fetchUsers = async () => {
     try {
-      const { data, error } = await supabase
+      const { data: profilesData, error: profilesError } = await supabase
         .from("profiles")
         .select("*")
         .order("full_name");
 
-      if (error) throw error;
-      setUsers(data || []);
+      if (profilesError) throw profilesError;
+      
+      // Fetch emails from auth.users via edge function or RPC
+      // Since we can't directly query auth.users, we'll fetch from the raw_user_meta_data
+      // stored during signup, or use a workaround by querying the users table
+      const userIds = profilesData?.map(p => p.id) || [];
+      
+      // Try to get emails from the users view if available
+      let emailMap: Record<string, string> = {};
+      try {
+        const { data: usersData } = await supabase.rpc('get_users_emails');
+        if (usersData) {
+          usersData.forEach((u: { id: string; email: string }) => {
+            emailMap[u.id] = u.email;
+          });
+        }
+      } catch (e) {
+        console.log("Could not fetch emails via RPC, will use empty");
+      }
+      
+      const usersWithEmail = (profilesData || []).map(p => ({
+        ...p,
+        email: emailMap[p.id] || ''
+      }));
+      
+      setUsers(usersWithEmail);
       
       // Fetch all user roles
       await fetchAllUserRoles();
@@ -397,6 +422,7 @@ const Admin = () => {
               <TableHeader>
                 <TableRow className="bg-muted/50">
                   <TableHead>ชื่อ-นามสกุล</TableHead>
+                  <TableHead>อีเมล</TableHead>
                   <TableHead>เบอร์โทรศัพท์</TableHead>
                   <TableHead>บทบาท</TableHead>
                   <TableHead className="text-right">จัดการ</TableHead>
@@ -406,6 +432,7 @@ const Admin = () => {
                 {users.map((user) => (
                   <TableRow key={user.id} className="hover:bg-muted/30">
                     <TableCell className="font-medium">{user.full_name}</TableCell>
+                    <TableCell className="text-muted-foreground">{user.email || "-"}</TableCell>
                     <TableCell>{user.phone || "-"}</TableCell>
                     <TableCell>
                       <div className="flex gap-1 flex-wrap">
