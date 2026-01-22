@@ -694,20 +694,20 @@ const ReceiveGoods = () => {
                   <div className="grid grid-cols-4 gap-4 text-sm">
                     <div>
                       <span className="text-muted-foreground">กว้าง: </span>
-                      <span className="font-medium">{selectedReceipt.storage_width_cm || 0} cm</span>
+                      <span className="font-medium">{selectedReceipt.storage_width_cm || 0} m</span>
                     </div>
                     <div>
                       <span className="text-muted-foreground">สูง: </span>
-                      <span className="font-medium">{selectedReceipt.storage_height_cm || 0} cm</span>
+                      <span className="font-medium">{selectedReceipt.storage_height_cm || 0} m</span>
                     </div>
                     <div>
                       <span className="text-muted-foreground">ลึก: </span>
-                      <span className="font-medium">{selectedReceipt.storage_depth_cm || 0} cm</span>
+                      <span className="font-medium">{selectedReceipt.storage_depth_cm || 0} m</span>
                     </div>
                     <div>
                       <span className="text-muted-foreground">ปริมาตร: </span>
                       <span className="font-medium text-primary">
-                        {selectedReceipt.storage_volume_cm3?.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || 0} cm³
+                        {selectedReceipt.storage_volume_cm3?.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || 0} m³
                       </span>
                     </div>
                   </div>
@@ -736,7 +736,7 @@ const ReceiveGoods = () => {
                       if (wh) {
                         return (
                           <span>
-                            พื้นที่คงเหลือของคลัง: <span className="font-medium text-success">{wh.remaining_volume_cm3.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} cm³</span>
+                            พื้นที่คงเหลือของคลัง: <span className="font-medium text-success">{wh.remaining_volume_cm3.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} m³</span>
                           </span>
                         );
                       }
@@ -764,7 +764,7 @@ const ReceiveGoods = () => {
                           const remaining = (loc.volume_cm3 || 0) - (loc.used_volume_cm3 || 0);
                           return (
                             <SelectItem key={loc.id} value={loc.id}>
-                              {loc.code} - {loc.name} (คงเหลือ: {remaining.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })} cm³)
+                              {loc.code} - {loc.name} (คงเหลือ: {remaining.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })} m³)
                             </SelectItem>
                           );
                         })
@@ -782,7 +782,7 @@ const ReceiveGoods = () => {
                             ? 'text-destructive' 
                             : 'text-success'
                         }`}>
-                          {locationCapacity.remaining_volume_cm3?.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} cm³
+                          {locationCapacity.remaining_volume_cm3?.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} m³
                         </span>
                       </div>
                       {storageVolumeCm3 && parseFloat(storageVolumeCm3) > (locationCapacity.remaining_volume_cm3 || 0) && (
@@ -797,7 +797,7 @@ const ReceiveGoods = () => {
               <div className="space-y-2">
                 <Label className="flex items-center gap-2">
                   <Box className="h-4 w-4" />
-                  ขนาดพื้นที่ที่ต้องการใช้ (cm³)
+                  ขนาดพื้นที่ที่ต้องการใช้ (m³)
                 </Label>
                 <Input 
                   type="number"

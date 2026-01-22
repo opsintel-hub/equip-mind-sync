@@ -726,7 +726,7 @@ const DeliveryEntry = () => {
                     <Info className="w-4 h-4 text-blue-500" />
                     <span className="text-muted-foreground">พื้นที่จัดเก็บที่เหลือ:</span>
                     <span className={selectedWarehouse.remaining_volume_cm3 < 0 ? "text-destructive font-medium" : "text-green-600 font-medium"}>
-                      {selectedWarehouse.remaining_volume_cm3.toLocaleString()} cm³
+                      {selectedWarehouse.remaining_volume_cm3.toLocaleString()} m³
                     </span>
                   </div>
                 )}
@@ -878,7 +878,7 @@ const DeliveryEntry = () => {
                       onChange={(e) => setStorageWidthCm(e.target.value)}
                       className="h-9"
                     />
-                    <span className="text-xs text-muted-foreground">cm</span>
+                    <span className="text-xs text-muted-foreground">m</span>
                   </div>
                 </div>
                 <span className="text-muted-foreground pb-2">×</span>
@@ -894,7 +894,7 @@ const DeliveryEntry = () => {
                       onChange={(e) => setStorageHeightCm(e.target.value)}
                       className="h-9"
                     />
-                    <span className="text-xs text-muted-foreground">cm</span>
+                    <span className="text-xs text-muted-foreground">m</span>
                   </div>
                 </div>
                 <span className="text-muted-foreground pb-2">×</span>
@@ -910,19 +910,19 @@ const DeliveryEntry = () => {
                       onChange={(e) => setStorageDepthCm(e.target.value)}
                       className="h-9"
                     />
-                    <span className="text-xs text-muted-foreground">cm</span>
+                    <span className="text-xs text-muted-foreground">m</span>
                   </div>
                 </div>
                 <span className="text-muted-foreground pb-2">=</span>
                 <div className="space-y-1 min-w-[140px]">
-                  <Label className="text-xs">ลูกบาศก์เซนติเมตร</Label>
+                  <Label className="text-xs">ลูกบาศก์เมตร</Label>
                   <div className="flex items-center gap-1">
                     <Input 
                       readOnly
                       value={calculatedVolume || "-"}
                       className="h-9 bg-muted font-medium"
                     />
-                    <span className="text-xs text-muted-foreground">cm³</span>
+                    <span className="text-xs text-muted-foreground">m³</span>
                   </div>
                 </div>
               </div>

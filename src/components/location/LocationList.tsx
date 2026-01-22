@@ -216,9 +216,9 @@ export function LocationList({ refresh }: LocationListProps) {
                 "รหัสตำแหน่ง": location.code,
                 "ชื่อตำแหน่ง": location.name,
                 "คลังสินค้า": warehouseName,
-                "ปริมาตร (cm³)": location.volume_cm3?.toLocaleString() || "-",
-                "ใช้ไปแล้ว (cm³)": location.used_volume_cm3?.toLocaleString() || "0",
-                "คงเหลือ (cm³)": location.volume_cm3 ? (location.volume_cm3 - (location.used_volume_cm3 || 0)).toLocaleString() : "-",
+                "ปริมาตร (m³)": location.volume_cm3?.toLocaleString() || "-",
+                "ใช้ไปแล้ว (m³)": location.used_volume_cm3?.toLocaleString() || "0",
+                "คงเหลือ (m³)": location.volume_cm3 ? (location.volume_cm3 - (location.used_volume_cm3 || 0)).toLocaleString() : "-",
                 "ช่องจัดเก็บ": slot.name,
                 "ช่องย่อย": subSlot.name,
                 "จำนวนรายการสินค้า": eqCount?.count || 0,
@@ -233,9 +233,9 @@ export function LocationList({ refresh }: LocationListProps) {
               "รหัสตำแหน่ง": location.code,
               "ชื่อตำแหน่ง": location.name,
               "คลังสินค้า": warehouseName,
-              "ปริมาตร (cm³)": location.volume_cm3?.toLocaleString() || "-",
-              "ใช้ไปแล้ว (cm³)": location.used_volume_cm3?.toLocaleString() || "0",
-              "คงเหลือ (cm³)": location.volume_cm3 ? (location.volume_cm3 - (location.used_volume_cm3 || 0)).toLocaleString() : "-",
+              "ปริมาตร (m³)": location.volume_cm3?.toLocaleString() || "-",
+              "ใช้ไปแล้ว (m³)": location.used_volume_cm3?.toLocaleString() || "0",
+              "คงเหลือ (m³)": location.volume_cm3 ? (location.volume_cm3 - (location.used_volume_cm3 || 0)).toLocaleString() : "-",
               "ช่องจัดเก็บ": slot.name,
               "ช่องย่อย": "-",
               "จำนวนรายการสินค้า": eqCount?.count || 0,
@@ -251,9 +251,9 @@ export function LocationList({ refresh }: LocationListProps) {
           "รหัสตำแหน่ง": location.code,
           "ชื่อตำแหน่ง": location.name,
           "คลังสินค้า": warehouseName,
-          "ปริมาตร (cm³)": location.volume_cm3?.toLocaleString() || "-",
-          "ใช้ไปแล้ว (cm³)": location.used_volume_cm3?.toLocaleString() || "0",
-          "คงเหลือ (cm³)": location.volume_cm3 ? (location.volume_cm3 - (location.used_volume_cm3 || 0)).toLocaleString() : "-",
+          "ปริมาตร (m³)": location.volume_cm3?.toLocaleString() || "-",
+          "ใช้ไปแล้ว (m³)": location.used_volume_cm3?.toLocaleString() || "0",
+          "คงเหลือ (m³)": location.volume_cm3 ? (location.volume_cm3 - (location.used_volume_cm3 || 0)).toLocaleString() : "-",
           "ช่องจัดเก็บ": "-",
           "ช่องย่อย": "-",
           "จำนวนรายการสินค้า": eqCount?.count || 0,
@@ -350,9 +350,9 @@ export function LocationList({ refresh }: LocationListProps) {
                   <TableCell>
                     {location.volume_cm3 ? (
                       <div className="text-xs">
-                        <div>{location.volume_cm3.toLocaleString()} cm³</div>
+                        <div>{location.volume_cm3.toLocaleString()} m³</div>
                         <div className={remainingVolume !== null && remainingVolume < 0 ? 'text-destructive' : 'text-success'}>
-                          คงเหลือ: {remainingVolume?.toLocaleString()} cm³
+                          คงเหลือ: {remainingVolume?.toLocaleString()} m³
                         </div>
                       </div>
                     ) : "-"}

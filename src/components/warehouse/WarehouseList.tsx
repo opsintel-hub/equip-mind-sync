@@ -162,8 +162,8 @@ export function WarehouseList({ refresh }: WarehouseListProps) {
             <TableHead>ฝ่าย</TableHead>
             <TableHead>ประเภทพื้นที่</TableHead>
             <TableHead className="text-center">จำนวนตำแหน่งจัดเก็บ</TableHead>
-            <TableHead className="text-right">พื้นที่ทั้งหมด (cm³)</TableHead>
-            <TableHead className="text-right">พื้นที่คงเหลือ (cm³)</TableHead>
+            <TableHead className="text-right">พื้นที่ทั้งหมด (m³)</TableHead>
+            <TableHead className="text-right">พื้นที่คงเหลือ (m³)</TableHead>
             <TableHead className="text-right">จัดการ</TableHead>
           </TableRow>
         </TableHeader>
