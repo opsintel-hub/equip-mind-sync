@@ -78,7 +78,7 @@ export function LocationDimensionFields({
                     className="pr-8"
                   />
                   <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
-                    cm
+                    m
                   </span>
                 </div>
               </div>
@@ -110,7 +110,7 @@ export function LocationDimensionFields({
                     className="pr-8"
                   />
                   <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
-                    cm
+                    m
                   </span>
                 </div>
               </div>
@@ -142,7 +142,7 @@ export function LocationDimensionFields({
                     className="pr-8"
                   />
                   <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
-                    cm
+                    m
                   </span>
                 </div>
               </div>
@@ -171,13 +171,13 @@ export function LocationDimensionFields({
                     placeholder="-"
                   />
                   <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
-                    cm³
+                    m³
                   </span>
                 </div>
               </div>
             </TooltipTrigger>
             <TooltipContent>
-              <p>ลูกบาศก์เซนติเมตร = กว้าง × สูง × ลึก</p>
+              <p>ลูกบาศก์เมตร = กว้าง × สูง × ลึก</p>
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>
