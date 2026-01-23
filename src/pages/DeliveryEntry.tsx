@@ -9,7 +9,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Truck, Search, Package, Clock, CheckCircle2, Upload, FileText, X, Loader2, Info } from "lucide-react";
+import { Truck, Search, Package, Clock, CheckCircle2, Upload, FileText, X, Loader2, Info, ImageIcon } from "lucide-react";
+import { EquipmentImageViewer } from "@/components/equipment/EquipmentImageViewer";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
@@ -691,18 +692,29 @@ const DeliveryEntry = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="equipment">เลือกสินค้า (ถ้ารู้รหัส)</Label>
-                <Select value={selectedEquipmentId} onValueChange={setSelectedEquipmentId}>
-                  <SelectTrigger id="equipment">
-                    <SelectValue placeholder="เลือกสินค้าจากระบบ..." />
-                  </SelectTrigger>
-                  <SelectContent position="popper" sideOffset={4} className="bg-background z-[200] max-h-60 overflow-y-auto pointer-events-auto">
-                    {equipment.map((item) => (
-                      <SelectItem key={item.id} value={item.id}>
-                        {item.code} - {item.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <div className="flex gap-2">
+                  <div className="flex-1">
+                    <Select value={selectedEquipmentId} onValueChange={setSelectedEquipmentId}>
+                      <SelectTrigger id="equipment">
+                        <SelectValue placeholder="เลือกสินค้าจากระบบ..." />
+                      </SelectTrigger>
+                      <SelectContent position="popper" sideOffset={4} className="bg-background z-[200] max-h-60 overflow-y-auto pointer-events-auto">
+                        {equipment.map((item) => (
+                          <SelectItem key={item.id} value={item.id}>
+                            {item.code} - {item.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  {selectedEquipmentId && (
+                    <EquipmentImageViewer 
+                      equipmentId={selectedEquipmentId} 
+                      equipmentName={selectedEquipment?.name}
+                      variant="button"
+                    />
+                  )}
+                </div>
                 <p className="text-xs text-muted-foreground flex items-center gap-1">
                   <Info className="w-3 h-3" />
                   ค้นหาจากรหัสและชื่อสินค้าในข้อมูลหลัก
