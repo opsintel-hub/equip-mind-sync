@@ -8,9 +8,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
-import { PackageCheck, Search, Clock, CheckCircle2, Edit, Package, Box } from "lucide-react";
+import { PackageCheck, Search, Clock, CheckCircle2, Edit, Package, Box, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { SearchableSelect } from "@/components/ui/searchable-select";
+import { EquipmentForm } from "@/components/equipment/EquipmentForm";
 
 import { format } from "date-fns";
 import { useAuth } from "@/hooks/useAuth";
@@ -435,12 +437,19 @@ const ReceiveGoods = () => {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-semibold text-foreground mb-2 flex items-center gap-2">
-          <PackageCheck className="w-8 h-8" />
-          รับสินค้าเข้าคลัง
-        </h1>
-        <p className="text-muted-foreground">สำหรับเจ้าหน้าที่คลัง ตรวจสอบและรับสินค้าเข้าระบบ</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-semibold text-foreground mb-2 flex items-center gap-2">
+            <PackageCheck className="w-8 h-8" />
+            รับสินค้าเข้าคลัง
+          </h1>
+          <p className="text-muted-foreground">สำหรับเจ้าหน้าที่คลัง ตรวจสอบและรับสินค้าเข้าระบบ</p>
+        </div>
+        {/* Quick Create Equipment Button */}
+        <EquipmentForm onSuccess={() => {
+          fetchEquipment();
+          toast.success("สร้างอุปกรณ์ใหม่สำเร็จ สามารถเลือกสินค้านี้ได้ทันที");
+        }} />
       </div>
 
       {/* Summary */}
@@ -717,18 +726,18 @@ const ReceiveGoods = () => {
               {/* Warehouse Selection */}
               <div className="space-y-2">
                 <Label>คลังสินค้า *</Label>
-                <Select value={selectedWarehouseId} onValueChange={handleWarehouseChange}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="เลือกคลังสินค้า..." />
-                  </SelectTrigger>
-                  <SelectContent position="popper" sideOffset={4} className="bg-background z-[200] max-h-60 overflow-y-auto">
-                    {warehouses.map((wh) => (
-                      <SelectItem key={wh.id} value={wh.id}>
-                        {wh.code} - {wh.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <SearchableSelect
+                  options={warehouses.map((wh) => ({
+                    value: wh.id,
+                    label: `${wh.code} - ${wh.name}`,
+                    description: `คงเหลือ: ${wh.remaining_volume_cm3.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} m³`,
+                  }))}
+                  value={selectedWarehouseId}
+                  onValueChange={handleWarehouseChange}
+                  placeholder="ค้นหาคลังสินค้า..."
+                  searchPlaceholder="พิมพ์ค้นหา..."
+                  emptyMessage="ไม่พบคลังสินค้า"
+                />
                 {selectedWarehouseId && (
                   <div className="text-xs text-muted-foreground">
                     {(() => {
@@ -750,27 +759,21 @@ const ReceiveGoods = () => {
               {selectedWarehouseId && (
                 <div className="space-y-2">
                   <Label>ตำแหน่งจัดเก็บ *</Label>
-                  <Select value={storageLocation.locationId} onValueChange={handleLocationChange}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="เลือกตำแหน่งจัดเก็บ..." />
-                    </SelectTrigger>
-                    <SelectContent position="popper" sideOffset={4} className="bg-background z-[200] max-h-60 overflow-y-auto">
-                      {filteredLocations.length === 0 ? (
-                        <div className="px-3 py-2 text-sm text-muted-foreground">
-                          ไม่มีตำแหน่งจัดเก็บในคลังนี้
-                        </div>
-                      ) : (
-                        filteredLocations.map((loc) => {
-                          const remaining = (loc.volume_cm3 || 0) - (loc.used_volume_cm3 || 0);
-                          return (
-                            <SelectItem key={loc.id} value={loc.id}>
-                              {loc.code} - {loc.name} (คงเหลือ: {remaining.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })} m³)
-                            </SelectItem>
-                          );
-                        })
-                      )}
-                    </SelectContent>
-                  </Select>
+                  <SearchableSelect
+                    options={filteredLocations.map((loc) => {
+                      const remaining = (loc.volume_cm3 || 0) - (loc.used_volume_cm3 || 0);
+                      return {
+                        value: loc.id,
+                        label: `${loc.code} - ${loc.name}`,
+                        description: `คงเหลือ: ${remaining.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })} m³`,
+                      };
+                    })}
+                    value={storageLocation.locationId}
+                    onValueChange={handleLocationChange}
+                    placeholder="ค้นหาตำแหน่งจัดเก็บ..."
+                    searchPlaceholder="พิมพ์ค้นหา..."
+                    emptyMessage="ไม่มีตำแหน่งจัดเก็บในคลังนี้"
+                  />
                   {locationCapacity && locationCapacity.volume_cm3 && (
                     <div className="p-2 bg-muted/20 rounded text-sm">
                       <div className="flex items-center justify-between">
