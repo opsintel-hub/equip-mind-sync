@@ -8,7 +8,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
-import { PackageCheck, Search, Clock, CheckCircle2, Edit, Package, Box, Plus } from "lucide-react";
+import { PackageCheck, Search, Clock, CheckCircle2, Edit, Package, Box, Plus, ImageIcon } from "lucide-react";
+import { EquipmentImageViewer } from "@/components/equipment/EquipmentImageViewer";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { SearchableSelect } from "@/components/ui/searchable-select";
@@ -49,6 +50,7 @@ interface PendingReceipt {
   supplier_name: string | null;
   lot_number: string | null;
   lot_number_2: string | null;
+  serial_number: string | null;
   expiry_date: string | null;
   delivery_person_name: string;
   delivery_person_phone: string | null;
@@ -595,14 +597,23 @@ const ReceiveGoods = () => {
                 />
               </div>
 
-              {/* Equipment Name - Read Only */}
+              {/* Equipment Name - Read Only with Image Viewer */}
               <div className="space-y-2">
                 <Label>ชื่อสินค้า</Label>
-                <Input 
-                  value={selectedReceipt.equipment_code ? `${selectedReceipt.equipment_code} - ${selectedReceipt.equipment_name || ""}` : selectedReceipt.equipment_name || "-"}
-                  disabled
-                  className="bg-muted"
-                />
+                <div className="flex gap-2">
+                  <Input 
+                    value={selectedReceipt.equipment_code ? `${selectedReceipt.equipment_code} - ${selectedReceipt.equipment_name || ""}` : selectedReceipt.equipment_name || "-"}
+                    disabled
+                    className="bg-muted flex-1"
+                  />
+                  {selectedReceipt.equipment_id && (
+                    <EquipmentImageViewer 
+                      equipmentId={selectedReceipt.equipment_id} 
+                      equipmentName={selectedReceipt.equipment_name || undefined}
+                      variant="button"
+                    />
+                  )}
+                </div>
               </div>
 
               {/* Quantity & Unit - Read Only */}
@@ -625,8 +636,8 @@ const ReceiveGoods = () => {
                 </div>
               </div>
 
-              {/* Lot Number 1, Lot Number 2 & Unit Price - Read Only */}
-              <div className="grid grid-cols-3 gap-4">
+              {/* Lot Number 1, Lot Number 2, Serial Number & Unit Price - Read Only */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div className="space-y-2">
                   <Label>Lot Number 1</Label>
                   <Input 
@@ -639,6 +650,14 @@ const ReceiveGoods = () => {
                   <Label>Lot Number 2</Label>
                   <Input 
                     value={selectedReceipt.lot_number_2 || "-"}
+                    disabled
+                    className="bg-muted"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Serial Number</Label>
+                  <Input 
+                    value={selectedReceipt.serial_number || "-"}
                     disabled
                     className="bg-muted"
                   />
