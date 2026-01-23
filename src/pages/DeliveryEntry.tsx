@@ -9,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Truck, Search, Package, Clock, CheckCircle2, Upload, FileText, X, Loader2, Info, Warehouse } from "lucide-react";
+import { Truck, Search, Package, Clock, CheckCircle2, Upload, FileText, X, Loader2, Info } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
@@ -34,13 +34,6 @@ interface Department {
   name: string;
 }
 
-interface WarehouseData {
-  id: string;
-  code: string;
-  name: string;
-  total_volume_cm3: number;
-  remaining_volume_cm3: number;
-}
 
 interface ReceiptPurpose {
   id: string;
@@ -76,7 +69,7 @@ const DeliveryEntry = () => {
   const [equipment, setEquipment] = useState<Equipment[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
-  const [warehouses, setWarehouses] = useState<WarehouseData[]>([]);
+  
   const [receiptPurposes, setReceiptPurposes] = useState<ReceiptPurpose[]>([]);
   const [pendingReceipts, setPendingReceipts] = useState<PendingReceipt[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -95,7 +88,7 @@ const DeliveryEntry = () => {
   // Form state
   const [selectedDepartmentId, setSelectedDepartmentId] = useState("");
   const [selectedCompanyId, setSelectedCompanyId] = useState("");
-  const [selectedWarehouseId, setSelectedWarehouseId] = useState("");
+  
   const [selectedEquipmentId, setSelectedEquipmentId] = useState("");
   const [equipmentCode, setEquipmentCode] = useState("");
   const [equipmentName, setEquipmentName] = useState("");
@@ -139,14 +132,12 @@ const DeliveryEntry = () => {
     return "";
   })();
 
-  // Selected warehouse info
-  const selectedWarehouse = warehouses.find(w => w.id === selectedWarehouseId);
 
   useEffect(() => {
     fetchEquipment();
     fetchSuppliers();
     fetchDepartments();
-    fetchWarehouses();
+    
     fetchReceiptPurposes();
     fetchPendingReceipts();
   }, []);
@@ -187,37 +178,6 @@ const DeliveryEntry = () => {
     }
   };
 
-  const fetchWarehouses = async () => {
-    const { data: warehousesData, error } = await supabase
-      .from("warehouses")
-      .select("id, code, name")
-      .eq("is_active", true)
-      .order("code");
-    
-    if (!error && warehousesData) {
-      // Get locations for each warehouse to calculate volume
-      const warehousesWithVolume = await Promise.all(
-        warehousesData.map(async (warehouse) => {
-          const { data: locationsData } = await supabase
-            .from("locations")
-            .select("volume_cm3, used_volume_cm3")
-            .eq("warehouse_id", warehouse.id)
-            .eq("is_active", true);
-
-          const totalVolume = (locationsData || []).reduce((sum, loc) => sum + (loc.volume_cm3 || 0), 0);
-          const usedVolume = (locationsData || []).reduce((sum, loc) => sum + (loc.used_volume_cm3 || 0), 0);
-
-          return {
-            ...warehouse,
-            total_volume_cm3: totalVolume,
-            remaining_volume_cm3: totalVolume - usedVolume
-          };
-        })
-      );
-
-      setWarehouses(warehousesWithVolume);
-    }
-  };
 
   const fetchReceiptPurposes = async () => {
     const { data, error } = await supabase
@@ -419,7 +379,7 @@ const DeliveryEntry = () => {
           document_no: docNo,
           department_id: selectedDepartmentId,
           company_id: selectedCompanyId,
-          warehouse_id: selectedWarehouseId || null,
+          warehouse_id: null,
           receipt_purpose_id: selectedReceiptPurposeId || null,
           equipment_id: selectedEquipmentId || null,
           equipment_code: equipmentCode || null,
@@ -463,7 +423,7 @@ const DeliveryEntry = () => {
       setSelectedReceiptPurposeId("");
       setSelectedDepartmentId("");
       setSelectedCompanyId("");
-      setSelectedWarehouseId("");
+      
       setSelectedEquipmentId("");
       setEquipmentCode("");
       setEquipmentName("");
@@ -699,38 +659,6 @@ const DeliveryEntry = () => {
                   </div>
                 </div>
               )}
-            </div>
-
-            {/* Warehouse Selection */}
-            <div className="p-4 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg space-y-4">
-              <h3 className="font-medium text-sm text-blue-700 dark:text-blue-400 flex items-center gap-2">
-                <Warehouse className="w-4 h-4" />
-                เลือกคลังสินค้าที่จัดเก็บ
-              </h3>
-              <div className="space-y-2">
-                <Label htmlFor="warehouse">คลังสินค้า</Label>
-                <Select value={selectedWarehouseId} onValueChange={setSelectedWarehouseId}>
-                  <SelectTrigger id="warehouse">
-                    <SelectValue placeholder="เลือกคลังสินค้า..." />
-                  </SelectTrigger>
-                  <SelectContent position="popper" sideOffset={4} className="pointer-events-auto">
-                    {warehouses.map((wh) => (
-                      <SelectItem key={wh.id} value={wh.id}>
-                        {wh.code} - {wh.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {selectedWarehouse && (
-                  <div className="flex items-center gap-2 text-sm">
-                    <Info className="w-4 h-4 text-blue-500" />
-                    <span className="text-muted-foreground">พื้นที่จัดเก็บที่เหลือ:</span>
-                    <span className={selectedWarehouse.remaining_volume_cm3 < 0 ? "text-destructive font-medium" : "text-green-600 font-medium"}>
-                      {selectedWarehouse.remaining_volume_cm3.toLocaleString()} m³
-                    </span>
-                  </div>
-                )}
-              </div>
             </div>
 
             {/* Delivery Person Info */}
