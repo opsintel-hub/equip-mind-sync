@@ -9,13 +9,14 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Truck, Search, Package, Clock, CheckCircle2, Upload, FileText, X, Loader2, Info, ImageIcon } from "lucide-react";
+import { Truck, Search, Package, Clock, CheckCircle2, Upload, FileText, X, Loader2, Info, Plus, ShoppingCart, Send } from "lucide-react";
 import { EquipmentImageViewer } from "@/components/equipment/EquipmentImageViewer";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { CompanySelect } from "@/components/company/CompanySelect";
 import { DeliveryImport } from "@/components/delivery/DeliveryImport";
+import { DeliveryCart, DeliveryCartItem } from "@/components/delivery/DeliveryCart";
 
 interface Equipment {
   id: string;
@@ -34,7 +35,6 @@ interface Department {
   id: string;
   name: string;
 }
-
 
 interface ReceiptPurpose {
   id: string;
@@ -63,6 +63,7 @@ interface PendingReceipt {
   equipment_id_code?: string | null;
   waiting_asset_code?: boolean;
   waiting_equipment_id?: boolean;
+  total_items?: number;
 }
 
 const DeliveryEntry = () => {
@@ -77,19 +78,28 @@ const DeliveryEntry = () => {
   const [isUploadingFile, setIsUploadingFile] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
-  // Receipt Purpose
+  // Cart items
+  const [cartItems, setCartItems] = useState<DeliveryCartItem[]>([]);
+  
+  // Header data (shared across all items)
   const [selectedReceiptPurposeId, setSelectedReceiptPurposeId] = useState("");
+  const [selectedDepartmentId, setSelectedDepartmentId] = useState("");
+  const [selectedCompanyId, setSelectedCompanyId] = useState("");
+  const [deliveryPersonName, setDeliveryPersonName] = useState("");
+  const [deliveryPersonPhone, setDeliveryPersonPhone] = useState("");
   
   // PO/PR fields for "นำเข้าจากการซื้อ"
   const [poNumber, setPoNumber] = useState("");
   const [prNumber, setPrNumber] = useState("");
   const [purchaseDocumentFile, setPurchaseDocumentFile] = useState<File | null>(null);
   const purchaseFileInputRef = useRef<HTMLInputElement>(null);
-
-  // Form state
-  const [selectedDepartmentId, setSelectedDepartmentId] = useState("");
-  const [selectedCompanyId, setSelectedCompanyId] = useState("");
   
+  // Document upload (shared)
+  const [documentFile, setDocumentFile] = useState<File | null>(null);
+  const [documentFileName, setDocumentFileName] = useState("");
+  const [headerNotes, setHeaderNotes] = useState("");
+  
+  // Current item form state
   const [selectedEquipmentId, setSelectedEquipmentId] = useState("");
   const [equipmentCode, setEquipmentCode] = useState("");
   const [equipmentName, setEquipmentName] = useState("");
@@ -103,11 +113,7 @@ const DeliveryEntry = () => {
   const [unitPrice, setUnitPrice] = useState("");
   const [expiryDate, setExpiryDate] = useState("");
   const [warrantyExpiryDate, setWarrantyExpiryDate] = useState("");
-  const [deliveryPersonName, setDeliveryPersonName] = useState("");
-  const [deliveryPersonPhone, setDeliveryPersonPhone] = useState("");
-  const [notes, setNotes] = useState("");
-  const [documentFile, setDocumentFile] = useState<File | null>(null);
-  const [documentFileName, setDocumentFileName] = useState("");
+  const [itemNotes, setItemNotes] = useState("");
   
   // Storage dimensions
   const [storageWidthCm, setStorageWidthCm] = useState("");
@@ -133,12 +139,10 @@ const DeliveryEntry = () => {
     return "";
   })();
 
-
   useEffect(() => {
     fetchEquipment();
     fetchSuppliers();
     fetchDepartments();
-    
     fetchReceiptPurposes();
     fetchPendingReceipts();
   }, []);
@@ -178,7 +182,6 @@ const DeliveryEntry = () => {
       setDepartments(data);
     }
   };
-
 
   const fetchReceiptPurposes = async () => {
     const { data, error } = await supabase
@@ -235,13 +238,11 @@ const DeliveryEntry = () => {
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      // Check file size (max 10MB)
       if (file.size > 10 * 1024 * 1024) {
         toast.error("ไฟล์มีขนาดใหญ่เกินไป (สูงสุด 10MB)");
         return;
       }
       
-      // Check file type
       const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png', 'image/jpg', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
       if (!allowedTypes.includes(file.type)) {
         toast.error("รองรับเฉพาะไฟล์ PDF, รูปภาพ (JPG, PNG) และ Word");
@@ -287,13 +288,11 @@ const DeliveryEntry = () => {
   const handlePurchaseFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      // Check file size (max 10MB)
       if (file.size > 10 * 1024 * 1024) {
         toast.error("ไฟล์มีขนาดใหญ่เกินไป (สูงสุด 10MB)");
         return;
       }
       
-      // Check file type - only images and PDF
       const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png', 'image/jpg'];
       if (!allowedTypes.includes(file.type)) {
         toast.error("รองรับเฉพาะไฟล์ PDF และรูปภาพ (JPG, PNG) เท่านั้น");
@@ -334,16 +333,103 @@ const DeliveryEntry = () => {
     return publicUrl;
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  // Add item to cart
+  const handleAddToCart = () => {
+    if (!quantity || parseInt(quantity) < 1) {
+      toast.error("กรุณาระบุจำนวน");
+      return;
+    }
     
-    if (!quantity || !deliveryPersonName || !unitPrice || !selectedCompanyId || !selectedDepartmentId) {
-      toast.error("กรุณากรอกข้อมูลให้ครบถ้วน (ฝ่าย, บริษัท, จำนวน, ชื่อผู้ส่ง, และราคาต่อชิ้น)");
+    if (!selectedEquipmentId && !equipmentName) {
+      toast.error("กรุณาเลือกสินค้า หรือระบุชื่อสินค้า");
+      return;
+    }
+    
+    if (!unitPrice) {
+      toast.error("กรุณาระบุราคาต่อชิ้น");
       return;
     }
 
-    if (!selectedEquipmentId && !equipmentName) {
-      toast.error("กรุณาเลือกสินค้า หรือระบุชื่อสินค้า");
+    const newItem: DeliveryCartItem = {
+      id: crypto.randomUUID(),
+      equipment_id: selectedEquipmentId || null,
+      equipment_code: equipmentCode,
+      equipment_name: equipmentName || selectedEquipment?.name || "",
+      quantity: parseInt(quantity),
+      unit: unit,
+      lot_number_1: lotNumber1,
+      lot_number_2: lotNumber2,
+      serial_number: serialNumber,
+      unit_price: unitPrice ? parseFloat(unitPrice) : null,
+      supplier_id: selectedSupplierId || null,
+      supplier_name: supplierName || selectedSupplier?.name || "",
+      expiry_date: expiryDate,
+      warranty_expiry_date: warrantyExpiryDate,
+      storage_width_cm: storageWidthCm,
+      storage_height_cm: storageHeightCm,
+      storage_depth_cm: storageDepthCm,
+      storage_volume_cm3: calculatedVolume,
+      is_asset: isAsset,
+      asset_code: assetCode,
+      equipment_id_code: equipmentIdCode,
+      waiting_asset_code: waitingAssetCode,
+      waiting_equipment_id: waitingEquipmentId,
+      depreciation_months: depreciationMonths,
+      notes: itemNotes,
+    };
+
+    setCartItems([...cartItems, newItem]);
+    
+    // Reset item form
+    resetItemForm();
+    
+    toast.success("เพิ่มรายการลงตะกร้าแล้ว");
+  };
+
+  const resetItemForm = () => {
+    setSelectedEquipmentId("");
+    setEquipmentCode("");
+    setEquipmentName("");
+    setQuantity("");
+    setUnit("ชิ้น");
+    setSelectedSupplierId("");
+    setSupplierName("");
+    setLotNumber1("");
+    setLotNumber2("");
+    setSerialNumber("");
+    setUnitPrice("");
+    setExpiryDate("");
+    setWarrantyExpiryDate("");
+    setStorageWidthCm("");
+    setStorageHeightCm("");
+    setStorageDepthCm("");
+    setIsAsset(false);
+    setAssetCode("");
+    setEquipmentIdCode("");
+    setWaitingAssetCode(false);
+    setWaitingEquipmentId(false);
+    setDepreciationMonths("");
+    setItemNotes("");
+  };
+
+  const handleRemoveFromCart = (itemId: string) => {
+    setCartItems(cartItems.filter(item => item.id !== itemId));
+    toast.success("ลบรายการออกจากตะกร้าแล้ว");
+  };
+
+  const handleClearCart = () => {
+    setCartItems([]);
+    toast.success("ล้างตะกร้าแล้ว");
+  };
+
+  const handleSubmitAll = async () => {
+    if (cartItems.length === 0) {
+      toast.error("กรุณาเพิ่มสินค้าลงตะกร้าอย่างน้อย 1 รายการ");
+      return;
+    }
+    
+    if (!deliveryPersonName || !selectedCompanyId || !selectedDepartmentId) {
+      toast.error("กรุณากรอกข้อมูลให้ครบถ้วน (ฝ่าย, บริษัท, ชื่อผู้ส่ง)");
       return;
     }
     
@@ -360,101 +446,84 @@ const DeliveryEntry = () => {
       let documentUrl: string | null = null;
       let purchaseDocumentUrl: string | null = null;
 
-      // Upload document if exists
+      // Upload documents if exists
       if (documentFile) {
         setIsUploadingFile(true);
         documentUrl = await uploadDocument(docNo);
         setIsUploadingFile(false);
       }
       
-      // Upload purchase document if exists
       if (purchaseDocumentFile) {
         setIsUploadingFile(true);
         purchaseDocumentUrl = await uploadPurchaseDocument(docNo);
         setIsUploadingFile(false);
       }
 
+      // Insert all items with the same document number
+      const itemsToInsert = cartItems.map((item, index) => ({
+        document_no: `${docNo}-${(index + 1).toString().padStart(2, "0")}`,
+        department_id: selectedDepartmentId,
+        company_id: selectedCompanyId,
+        warehouse_id: null,
+        receipt_purpose_id: selectedReceiptPurposeId || null,
+        equipment_id: item.equipment_id,
+        equipment_code: item.equipment_code || null,
+        equipment_name: item.equipment_name || null,
+        quantity: item.quantity,
+        unit: item.unit,
+        supplier_id: item.supplier_id,
+        supplier_name: item.supplier_name || null,
+        lot_number: item.lot_number_1 || null,
+        lot_number_2: item.lot_number_2 || null,
+        serial_number: item.serial_number || null,
+        unit_price: item.unit_price,
+        expiry_date: item.expiry_date || null,
+        warranty_expiry_date: item.warranty_expiry_date || null,
+        delivery_person_name: deliveryPersonName,
+        delivery_person_phone: deliveryPersonPhone || null,
+        notes: item.notes || headerNotes || null,
+        document_url: documentUrl,
+        document_file_name: documentFileName || null,
+        storage_width_cm: item.storage_width_cm ? parseFloat(item.storage_width_cm) : null,
+        storage_height_cm: item.storage_height_cm ? parseFloat(item.storage_height_cm) : null,
+        storage_depth_cm: item.storage_depth_cm ? parseFloat(item.storage_depth_cm) : null,
+        storage_volume_cm3: item.storage_volume_cm3 ? parseFloat(item.storage_volume_cm3) : null,
+        status: "pending",
+        is_asset: item.is_asset,
+        asset_code: item.asset_code || null,
+        equipment_id_code: item.equipment_id_code || null,
+        waiting_asset_code: item.waiting_asset_code,
+        waiting_equipment_id: item.waiting_equipment_id,
+        depreciation_months: item.depreciation_months ? parseInt(item.depreciation_months) : null,
+        po_number: poNumber || null,
+        pr_number: prNumber || null,
+        purchase_document_url: purchaseDocumentUrl,
+        total_items: cartItems.length,
+      }));
+
       const { error } = await supabase
         .from("goods_receipt_pending")
-        .insert({
-          document_no: docNo,
-          department_id: selectedDepartmentId,
-          company_id: selectedCompanyId,
-          warehouse_id: null,
-          receipt_purpose_id: selectedReceiptPurposeId || null,
-          equipment_id: selectedEquipmentId || null,
-          equipment_code: equipmentCode || null,
-          equipment_name: equipmentName || (selectedEquipment?.name || null),
-          quantity: parseInt(quantity),
-          unit: unit,
-          supplier_id: selectedSupplierId || null,
-          supplier_name: supplierName || (selectedSupplier?.name || null),
-          lot_number: lotNumber1 || null,
-          lot_number_2: lotNumber2 || null,
-          serial_number: serialNumber || null,
-          unit_price: unitPrice ? parseFloat(unitPrice) : null,
-          expiry_date: expiryDate || null,
-          warranty_expiry_date: warrantyExpiryDate || null,
-          delivery_person_name: deliveryPersonName,
-          delivery_person_phone: deliveryPersonPhone || null,
-          notes: notes || null,
-          document_url: documentUrl,
-          document_file_name: documentFileName || null,
-          storage_width_cm: storageWidthCm ? parseFloat(storageWidthCm) : null,
-          storage_height_cm: storageHeightCm ? parseFloat(storageHeightCm) : null,
-          storage_depth_cm: storageDepthCm ? parseFloat(storageDepthCm) : null,
-          storage_volume_cm3: calculatedVolume ? parseFloat(calculatedVolume) : null,
-          status: "pending",
-          is_asset: isAsset,
-          asset_code: assetCode || null,
-          equipment_id_code: equipmentIdCode || null,
-          waiting_asset_code: waitingAssetCode,
-          waiting_equipment_id: waitingEquipmentId,
-          depreciation_months: depreciationMonths ? parseInt(depreciationMonths) : null,
-          po_number: poNumber || null,
-          pr_number: prNumber || null,
-          purchase_document_url: purchaseDocumentUrl,
-        } as any);
+        .insert(itemsToInsert as any);
 
       if (error) throw error;
 
-      toast.success("บันทึกข้อมูลสินค้าสำเร็จ รอเจ้าหน้าที่คลังรับเข้า");
+      toast.success(`บันทึกข้อมูลสินค้าสำเร็จ ${cartItems.length} รายการ รอเจ้าหน้าที่คลังรับเข้า`);
       
-      // Reset form
+      // Reset all forms
+      setCartItems([]);
       setSelectedReceiptPurposeId("");
       setSelectedDepartmentId("");
       setSelectedCompanyId("");
-      
-      setSelectedEquipmentId("");
-      setEquipmentCode("");
-      setEquipmentName("");
-      setQuantity("");
-      setUnit("ชิ้น");
-      setSelectedSupplierId("");
-      setSupplierName("");
-      setLotNumber1("");
-      setLotNumber2("");
-      setSerialNumber("");
-      setUnitPrice("");
-      setExpiryDate("");
-      setWarrantyExpiryDate("");
       setDeliveryPersonName("");
       setDeliveryPersonPhone("");
-      setNotes("");
-      setDocumentFile(null);
-      setDocumentFileName("");
-      setStorageWidthCm("");
-      setStorageHeightCm("");
-      setStorageDepthCm("");
-      setIsAsset(false);
-      setAssetCode("");
-      setEquipmentIdCode("");
-      setWaitingAssetCode(false);
-      setWaitingEquipmentId(false);
-      setDepreciationMonths("");
       setPoNumber("");
       setPrNumber("");
       setPurchaseDocumentFile(null);
+      setDocumentFile(null);
+      setDocumentFileName("");
+      setHeaderNotes("");
+      resetItemForm();
+      
       if (fileInputRef.current) {
         fileInputRef.current.value = "";
       }
@@ -497,10 +566,17 @@ const DeliveryEntry = () => {
             <Truck className="w-8 h-8" />
             นำสินค้าเข้า
           </h1>
-          <p className="text-muted-foreground">สำหรับผู้นำสินค้า/อะไหล่เข้าคลัง คีย์ข้อมูลก่อนส่งให้เจ้าหน้าที่คลัง</p>
+          <p className="text-muted-foreground">สำหรับผู้นำสินค้า/อะไหล่เข้าคลัง - รองรับหลายรายการต่อ 1 เอกสาร</p>
         </div>
         <DeliveryImport onSuccess={fetchPendingReceipts} />
       </div>
+
+      {/* Cart Display */}
+      <DeliveryCart
+        items={cartItems}
+        onRemoveItem={handleRemoveFromCart}
+        onClearCart={handleClearCart}
+      />
 
       <Card>
         <CardHeader>
@@ -509,14 +585,14 @@ const DeliveryEntry = () => {
             บันทึกข้อมูลสินค้า
           </CardTitle>
           <CardDescription>
-            กรอกข้อมูลสินค้าที่ต้องการนำเข้าคลัง (ถ้าไม่รู้รหัสสินค้า สามารถระบุชื่อสินค้าได้)
+            กรอกข้อมูลสินค้าแล้วกด "เพิ่มลงตะกร้า" เมื่อครบทุกรายการแล้วกด "ส่งทั้งหมด"
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Department & Company Selection */}
+          <div className="space-y-6">
+            {/* Header Section - Shared Data */}
             <div className="p-4 bg-primary/5 border border-primary/20 rounded-lg space-y-4">
-              <h3 className="font-medium text-sm text-primary">เลือกฝ่ายและบริษัท *</h3>
+              <h3 className="font-medium text-sm text-primary">ข้อมูลหลัก (ใช้ร่วมกันทุกรายการ) *</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="department">ฝ่าย *</Label>
@@ -532,9 +608,6 @@ const DeliveryEntry = () => {
                       ))}
                     </SelectContent>
                   </Select>
-                  <p className="text-xs text-muted-foreground">
-                    เลือกฝ่ายที่รับผิดชอบสินค้านี้
-                  </p>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="company">บริษัทที่สั่งซื้อ *</Label>
@@ -544,9 +617,29 @@ const DeliveryEntry = () => {
                     placeholder="เลือกบริษัท..."
                     required
                   />
-                  <p className="text-xs text-muted-foreground">
-                    กรุณาเลือกบริษัทที่เป็นเจ้าของงบประมาณ
-                  </p>
+                </div>
+              </div>
+              
+              {/* Delivery Person Info */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 border-t border-primary/20">
+                <div className="space-y-2">
+                  <Label htmlFor="deliveryPerson">ชื่อผู้ส่ง *</Label>
+                  <Input 
+                    id="deliveryPerson" 
+                    placeholder="ระบุชื่อผู้ส่งสินค้า"
+                    value={deliveryPersonName}
+                    onChange={(e) => setDeliveryPersonName(e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="phone">เบอร์โทรติดต่อ</Label>
+                  <Input 
+                    id="phone" 
+                    placeholder="เบอร์โทรศัพท์"
+                    value={deliveryPersonPhone}
+                    onChange={(e) => setDeliveryPersonPhone(e.target.value)}
+                  />
                 </div>
               </div>
             </div>
@@ -586,9 +679,6 @@ const DeliveryEntry = () => {
                     )}
                   </SelectContent>
                 </Select>
-                <p className="text-xs text-muted-foreground">
-                  เลือกวัตถุประสงค์ในการนำสินค้าเข้าคลัง
-                </p>
               </div>
               
               {/* PO/PR fields for "นำเข้าจากการซื้อ" */}
@@ -654,367 +744,362 @@ const DeliveryEntry = () => {
                         </div>
                       )}
                     </div>
-                    <p className="text-xs text-muted-foreground">
-                      รองรับไฟล์ PDF และรูปภาพ (JPG, PNG) ขนาดไม่เกิน 10MB
-                    </p>
                   </div>
                 </div>
               )}
             </div>
 
-            {/* Delivery Person Info */}
-            <div className="p-4 bg-muted/30 rounded-lg space-y-4">
-              <h3 className="font-medium text-sm text-muted-foreground">ข้อมูลผู้ส่ง</h3>
+            {/* Item Form Section */}
+            <div className="p-4 bg-muted/30 border rounded-lg space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="font-medium text-sm text-foreground flex items-center gap-2">
+                  <Package className="w-4 h-4" />
+                  ข้อมูลสินค้า (รายการที่ {cartItems.length + 1})
+                </h3>
+                {cartItems.length > 0 && (
+                  <Badge variant="secondary" className="bg-primary/10 text-primary">
+                    <ShoppingCart className="w-3 h-3 mr-1" />
+                    {cartItems.length} รายการในตะกร้า
+                  </Badge>
+                )}
+              </div>
+
+              {/* Equipment Selection */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="deliveryPerson">ชื่อผู้ส่ง *</Label>
+                  <Label htmlFor="equipment">เลือกสินค้า (ถ้ารู้รหัส)</Label>
+                  <div className="flex gap-2">
+                    <div className="flex-1">
+                      <Select value={selectedEquipmentId} onValueChange={setSelectedEquipmentId}>
+                        <SelectTrigger id="equipment">
+                          <SelectValue placeholder="เลือกสินค้าจากระบบ..." />
+                        </SelectTrigger>
+                        <SelectContent position="popper" sideOffset={4} className="bg-background z-[200] max-h-60 overflow-y-auto pointer-events-auto">
+                          {equipment.map((item) => (
+                            <SelectItem key={item.id} value={item.id}>
+                              {item.code} - {item.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    {selectedEquipmentId && (
+                      <EquipmentImageViewer 
+                        equipmentId={selectedEquipmentId} 
+                        equipmentName={selectedEquipment?.name}
+                        variant="button"
+                      />
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground flex items-center gap-1">
+                    <Info className="w-3 h-3" />
+                    สินค้าที่ไม่มีในระบบจะต้องสร้างใหม่ตอนรับเข้าคลัง
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="equipmentName">หรือ ระบุชื่อสินค้า</Label>
                   <Input 
-                    id="deliveryPerson" 
-                    placeholder="ระบุชื่อผู้ส่งสินค้า"
-                    value={deliveryPersonName}
-                    onChange={(e) => setDeliveryPersonName(e.target.value)}
+                    id="equipmentName" 
+                    placeholder="ชื่อสินค้า/อะไหล่"
+                    value={equipmentName}
+                    onChange={(e) => setEquipmentName(e.target.value)}
+                    disabled={!!selectedEquipmentId}
+                  />
+                </div>
+              </div>
+
+              {/* Quantity, Unit & Lot Numbers */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="quantity">จำนวน *</Label>
+                  <Input 
+                    id="quantity" 
+                    type="number" 
+                    placeholder="กรอกจำนวน"
+                    value={quantity}
+                    onChange={(e) => setQuantity(e.target.value)}
                     required
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="phone">เบอร์โทรติดต่อ</Label>
+                  <Label htmlFor="unit">หน่วย</Label>
                   <Input 
-                    id="phone" 
-                    placeholder="เบอร์โทรศัพท์"
-                    value={deliveryPersonPhone}
-                    onChange={(e) => setDeliveryPersonPhone(e.target.value)}
+                    id="unit" 
+                    value={unit}
+                    onChange={(e) => setUnit(e.target.value)}
+                    placeholder="ชิ้น, กล่อง, ..."
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="lotNumber1">Lot Number 1</Label>
+                  <Input 
+                    id="lotNumber1" 
+                    placeholder="Lot No. 1"
+                    value={lotNumber1}
+                    onChange={(e) => setLotNumber1(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="lotNumber2">Lot Number 2</Label>
+                  <Input 
+                    id="lotNumber2" 
+                    placeholder="Lot No. 2"
+                    value={lotNumber2}
+                    onChange={(e) => setLotNumber2(e.target.value)}
                   />
                 </div>
               </div>
-            </div>
 
-            {/* Equipment Selection */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="equipment">เลือกสินค้า (ถ้ารู้รหัส)</Label>
-                <div className="flex gap-2">
-                  <div className="flex-1">
-                    <Select value={selectedEquipmentId} onValueChange={setSelectedEquipmentId}>
-                      <SelectTrigger id="equipment">
-                        <SelectValue placeholder="เลือกสินค้าจากระบบ..." />
-                      </SelectTrigger>
-                      <SelectContent position="popper" sideOffset={4} className="bg-background z-[200] max-h-60 overflow-y-auto pointer-events-auto">
-                        {equipment.map((item) => (
-                          <SelectItem key={item.id} value={item.id}>
-                            {item.code} - {item.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  {selectedEquipmentId && (
-                    <EquipmentImageViewer 
-                      equipmentId={selectedEquipmentId} 
-                      equipmentName={selectedEquipment?.name}
-                      variant="button"
-                    />
-                  )}
+              {/* Serial Number & Unit Price */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="serialNumber">Serial Number</Label>
+                  <Input 
+                    id="serialNumber" 
+                    placeholder="SN-xxxxx"
+                    value={serialNumber}
+                    onChange={(e) => setSerialNumber(e.target.value)}
+                  />
                 </div>
-                <p className="text-xs text-muted-foreground flex items-center gap-1">
-                  <Info className="w-3 h-3" />
-                  ค้นหาจากรหัสและชื่อสินค้าในข้อมูลหลัก
-                </p>
+                <div className="space-y-2">
+                  <Label htmlFor="unitPrice">ราคาต่อชิ้น (บาท) *</Label>
+                  <Input 
+                    id="unitPrice" 
+                    type="number"
+                    step="0.01"
+                    placeholder="0.00"
+                    value={unitPrice}
+                    onChange={(e) => setUnitPrice(e.target.value)}
+                    required
+                  />
+                </div>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="equipmentName">หรือ ระบุชื่อสินค้า</Label>
-                <Input 
-                  id="equipmentName" 
-                  placeholder="ชื่อสินค้า/อะไหล่"
-                  value={equipmentName}
-                  onChange={(e) => setEquipmentName(e.target.value)}
-                  disabled={!!selectedEquipmentId}
-                />
-                <p className="text-xs text-muted-foreground">
-                  หากไม่พบสินค้าในระบบ สามารถพิมพ์ชื่อได้เอง
-                </p>
-              </div>
-            </div>
 
-            {/* Quantity, Unit & Lot Numbers */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="quantity">จำนวน *</Label>
-                <Input 
-                  id="quantity" 
-                  type="number" 
-                  placeholder="กรอกจำนวน"
-                  value={quantity}
-                  onChange={(e) => setQuantity(e.target.value)}
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="unit">หน่วย</Label>
-                <Input 
-                  id="unit" 
-                  value={unit}
-                  onChange={(e) => setUnit(e.target.value)}
-                  placeholder="ชิ้น, กล่อง, ..."
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="lotNumber1">Lot Number 1</Label>
-                <Input 
-                  id="lotNumber1" 
-                  placeholder="Lot No. 1"
-                  value={lotNumber1}
-                  onChange={(e) => setLotNumber1(e.target.value)}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="lotNumber2">Lot Number 2</Label>
-                <Input 
-                  id="lotNumber2" 
-                  placeholder="Lot No. 2"
-                  value={lotNumber2}
-                  onChange={(e) => setLotNumber2(e.target.value)}
-                />
-              </div>
-            </div>
-
-            {/* Serial Number & Unit Price */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="serialNumber">Serial Number</Label>
-                <Input 
-                  id="serialNumber" 
-                  placeholder="SN-xxxxx"
-                  value={serialNumber}
-                  onChange={(e) => setSerialNumber(e.target.value)}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="unitPrice">ราคาต่อชิ้น (บาท) *</Label>
-                <Input 
-                  id="unitPrice" 
-                  type="number"
-                  step="0.01"
-                  placeholder="0.00"
-                  value={unitPrice}
-                  onChange={(e) => setUnitPrice(e.target.value)}
-                  required
-                />
-              </div>
-            </div>
-
-            {/* Storage Dimensions */}
-            <div className="p-4 bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800 rounded-lg space-y-4">
-              <h3 className="font-medium text-sm text-green-700 dark:text-green-400">ขนาดพื้นที่ๆต้องการใช้</h3>
-              <div className="flex flex-wrap items-end gap-3">
-                <div className="space-y-1 flex-1 min-w-[100px]">
-                  <Label htmlFor="storageWidth" className="text-xs">กว้าง (ซ้าย-ขวา)</Label>
-                  <div className="flex items-center gap-1">
-                    <Input 
-                      id="storageWidth" 
-                      type="number"
-                      step="0.01"
-                      placeholder="0"
-                      value={storageWidthCm}
-                      onChange={(e) => setStorageWidthCm(e.target.value)}
-                      className="h-9"
-                    />
-                    <span className="text-xs text-muted-foreground">m</span>
+              {/* Storage Dimensions */}
+              <div className="p-4 bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800 rounded-lg space-y-4">
+                <h3 className="font-medium text-sm text-green-700 dark:text-green-400">ขนาดพื้นที่ๆต้องการใช้</h3>
+                <div className="flex flex-wrap items-end gap-3">
+                  <div className="space-y-1 flex-1 min-w-[100px]">
+                    <Label htmlFor="storageWidth" className="text-xs">กว้าง (ซ้าย-ขวา)</Label>
+                    <div className="flex items-center gap-1">
+                      <Input 
+                        id="storageWidth" 
+                        type="number"
+                        step="0.01"
+                        placeholder="0"
+                        value={storageWidthCm}
+                        onChange={(e) => setStorageWidthCm(e.target.value)}
+                        className="h-9"
+                      />
+                      <span className="text-xs text-muted-foreground">m</span>
+                    </div>
                   </div>
-                </div>
-                <span className="text-muted-foreground pb-2">×</span>
-                <div className="space-y-1 flex-1 min-w-[100px]">
-                  <Label htmlFor="storageHeight" className="text-xs">สูง (บน-ล่าง)</Label>
-                  <div className="flex items-center gap-1">
-                    <Input 
-                      id="storageHeight" 
-                      type="number"
-                      step="0.01"
-                      placeholder="0"
-                      value={storageHeightCm}
-                      onChange={(e) => setStorageHeightCm(e.target.value)}
-                      className="h-9"
-                    />
-                    <span className="text-xs text-muted-foreground">m</span>
+                  <span className="text-muted-foreground pb-2">×</span>
+                  <div className="space-y-1 flex-1 min-w-[100px]">
+                    <Label htmlFor="storageHeight" className="text-xs">สูง (บน-ล่าง)</Label>
+                    <div className="flex items-center gap-1">
+                      <Input 
+                        id="storageHeight" 
+                        type="number"
+                        step="0.01"
+                        placeholder="0"
+                        value={storageHeightCm}
+                        onChange={(e) => setStorageHeightCm(e.target.value)}
+                        className="h-9"
+                      />
+                      <span className="text-xs text-muted-foreground">m</span>
+                    </div>
                   </div>
-                </div>
-                <span className="text-muted-foreground pb-2">×</span>
-                <div className="space-y-1 flex-1 min-w-[100px]">
-                  <Label htmlFor="storageDepth" className="text-xs">ลึก (หน้า-หลัง)</Label>
-                  <div className="flex items-center gap-1">
-                    <Input 
-                      id="storageDepth" 
-                      type="number"
-                      step="0.01"
-                      placeholder="0"
-                      value={storageDepthCm}
-                      onChange={(e) => setStorageDepthCm(e.target.value)}
-                      className="h-9"
-                    />
-                    <span className="text-xs text-muted-foreground">m</span>
+                  <span className="text-muted-foreground pb-2">×</span>
+                  <div className="space-y-1 flex-1 min-w-[100px]">
+                    <Label htmlFor="storageDepth" className="text-xs">ลึก (หน้า-หลัง)</Label>
+                    <div className="flex items-center gap-1">
+                      <Input 
+                        id="storageDepth" 
+                        type="number"
+                        step="0.01"
+                        placeholder="0"
+                        value={storageDepthCm}
+                        onChange={(e) => setStorageDepthCm(e.target.value)}
+                        className="h-9"
+                      />
+                      <span className="text-xs text-muted-foreground">m</span>
+                    </div>
                   </div>
-                </div>
-                <span className="text-muted-foreground pb-2">=</span>
-                <div className="space-y-1 min-w-[140px]">
-                  <Label className="text-xs">ลูกบาศก์เมตร</Label>
-                  <div className="flex items-center gap-1">
-                    <Input 
-                      readOnly
-                      value={calculatedVolume || "-"}
-                      className="h-9 bg-muted font-medium"
-                    />
-                    <span className="text-xs text-muted-foreground">m³</span>
+                  <span className="text-muted-foreground pb-2">=</span>
+                  <div className="space-y-1 min-w-[140px]">
+                    <Label className="text-xs">ลูกบาศก์เมตร</Label>
+                    <div className="flex items-center gap-1">
+                      <Input 
+                        readOnly
+                        value={calculatedVolume || "-"}
+                        className="h-9 bg-muted font-medium"
+                      />
+                      <span className="text-xs text-muted-foreground">m³</span>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
 
-            {/* Supplier */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="supplier">เลือกผู้จัดจำหน่าย</Label>
-                <Select value={selectedSupplierId} onValueChange={setSelectedSupplierId}>
-                  <SelectTrigger id="supplier">
-                    <SelectValue placeholder="เลือกผู้จัดจำหน่าย..." />
-                  </SelectTrigger>
-                  <SelectContent position="popper" sideOffset={4} className="pointer-events-auto">
-                    {suppliers.map((supplier) => (
-                      <SelectItem key={supplier.id} value={supplier.id}>
-                        {supplier.code} - {supplier.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+              {/* Supplier */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="supplier">เลือกผู้จัดจำหน่าย</Label>
+                  <Select value={selectedSupplierId} onValueChange={setSelectedSupplierId}>
+                    <SelectTrigger id="supplier">
+                      <SelectValue placeholder="เลือกผู้จัดจำหน่าย..." />
+                    </SelectTrigger>
+                    <SelectContent position="popper" sideOffset={4} className="pointer-events-auto">
+                      {suppliers.map((supplier) => (
+                        <SelectItem key={supplier.id} value={supplier.id}>
+                          {supplier.code} - {supplier.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="supplierName">หรือ ระบุชื่อผู้จัดจำหน่าย</Label>
+                  <Input 
+                    id="supplierName" 
+                    placeholder="ชื่อผู้จัดจำหน่าย"
+                    value={supplierName}
+                    onChange={(e) => setSupplierName(e.target.value)}
+                    disabled={!!selectedSupplierId}
+                  />
+                </div>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="supplierName">หรือ ระบุชื่อผู้จัดจำหน่าย</Label>
-                <Input 
-                  id="supplierName" 
-                  placeholder="ชื่อผู้จัดจำหน่าย"
-                  value={supplierName}
-                  onChange={(e) => setSupplierName(e.target.value)}
-                  disabled={!!selectedSupplierId}
-                />
-              </div>
-            </div>
 
-            {/* Asset Information */}
-            <div className="p-4 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-lg space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
+              {/* Asset Information */}
+              <div className="p-4 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-lg space-y-4">
+                <div className="flex items-center justify-between">
                   <h3 className="font-medium text-sm text-amber-700 dark:text-amber-400">ข้อมูลทรัพย์สิน</h3>
+                  <div className="flex items-center gap-2">
+                    <Label htmlFor="isAsset" className="text-sm text-amber-700 dark:text-amber-400">สินค้านี้เป็นทรัพย์สิน?</Label>
+                    <Switch
+                      id="isAsset"
+                      checked={isAsset}
+                      onCheckedChange={setIsAsset}
+                    />
+                  </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Label htmlFor="isAsset" className="text-sm text-amber-700 dark:text-amber-400">สินค้านี้เป็นทรัพย์สิน?</Label>
-                  <Switch
-                    id="isAsset"
-                    checked={isAsset}
-                    onCheckedChange={setIsAsset}
+
+                {isAsset && (
+                  <div className="space-y-4 pt-2 border-t border-amber-200 dark:border-amber-800">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <Label htmlFor="assetCode">รหัสทรัพย์สิน *</Label>
+                          <div className="flex items-center gap-2">
+                            <Checkbox
+                              id="waitingAssetCode"
+                              checked={waitingAssetCode}
+                              onCheckedChange={(checked) => {
+                                setWaitingAssetCode(checked === true);
+                                if (checked) setAssetCode("");
+                              }}
+                            />
+                            <Label htmlFor="waitingAssetCode" className="text-xs text-muted-foreground">รอรหัสทรัพย์สิน</Label>
+                          </div>
+                        </div>
+                        <Input 
+                          id="assetCode" 
+                          placeholder="รหัสทรัพย์สิน"
+                          value={assetCode}
+                          onChange={(e) => setAssetCode(e.target.value)}
+                          disabled={waitingAssetCode}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <Label htmlFor="equipmentIdCode">Equipment ID *</Label>
+                          <div className="flex items-center gap-2">
+                            <Checkbox
+                              id="waitingEquipmentId"
+                              checked={waitingEquipmentId}
+                              onCheckedChange={(checked) => {
+                                setWaitingEquipmentId(checked === true);
+                                if (checked) setEquipmentIdCode("");
+                              }}
+                            />
+                            <Label htmlFor="waitingEquipmentId" className="text-xs text-muted-foreground">รอ Equipment ID</Label>
+                          </div>
+                        </div>
+                        <Input 
+                          id="equipmentIdCode" 
+                          placeholder="Equipment ID"
+                          value={equipmentIdCode}
+                          onChange={(e) => setEquipmentIdCode(e.target.value)}
+                          disabled={waitingEquipmentId}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="depreciationMonths">ระยะเวลาค่าเสื่อม (เดือน) *</Label>
+                      <Input 
+                        id="depreciationMonths" 
+                        type="number"
+                        placeholder="จำนวนเดือน เช่น 60"
+                        value={depreciationMonths}
+                        onChange={(e) => setDepreciationMonths(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Expiry Dates */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="expiry">วันหมดอายุ</Label>
+                  <Input 
+                    id="expiry" 
+                    type="date"
+                    value={expiryDate}
+                    onChange={(e) => setExpiryDate(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="warrantyExpiry">วันสิ้นสุดการรับประกัน</Label>
+                  <Input 
+                    id="warrantyExpiry" 
+                    type="date"
+                    value={warrantyExpiryDate}
+                    onChange={(e) => setWarrantyExpiryDate(e.target.value)}
                   />
                 </div>
               </div>
 
-              {isAsset && (
-                <div className="space-y-4 pt-2 border-t border-amber-200 dark:border-amber-800">
-                  <p className="text-xs text-amber-600 dark:text-amber-500">
-                    สินค้าที่เป็นทรัพย์สินต้องระบุรหัสทรัพย์สินและ Equipment ID หากยังไม่มีรหัส สามารถเลือก "รอรหัส" ได้
-                  </p>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <Label htmlFor="assetCode">รหัสทรัพย์สิน *</Label>
-                        <div className="flex items-center gap-2">
-                          <Checkbox
-                            id="waitingAssetCode"
-                            checked={waitingAssetCode}
-                            onCheckedChange={(checked) => {
-                              setWaitingAssetCode(checked === true);
-                              if (checked) setAssetCode("");
-                            }}
-                          />
-                          <Label htmlFor="waitingAssetCode" className="text-xs text-muted-foreground">รอรหัสทรัพย์สิน</Label>
-                        </div>
-                      </div>
-                      <Input 
-                        id="assetCode" 
-                        placeholder="รหัสทรัพย์สิน"
-                        value={assetCode}
-                        onChange={(e) => setAssetCode(e.target.value)}
-                        disabled={waitingAssetCode}
-                        required={isAsset && !waitingAssetCode}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <Label htmlFor="equipmentIdCode">Equipment ID *</Label>
-                        <div className="flex items-center gap-2">
-                          <Checkbox
-                            id="waitingEquipmentId"
-                            checked={waitingEquipmentId}
-                            onCheckedChange={(checked) => {
-                              setWaitingEquipmentId(checked === true);
-                              if (checked) setEquipmentIdCode("");
-                            }}
-                          />
-                          <Label htmlFor="waitingEquipmentId" className="text-xs text-muted-foreground">รอ Equipment ID</Label>
-                        </div>
-                      </div>
-                      <Input 
-                        id="equipmentIdCode" 
-                        placeholder="Equipment ID"
-                        value={equipmentIdCode}
-                        onChange={(e) => setEquipmentIdCode(e.target.value)}
-                        disabled={waitingEquipmentId}
-                        required={isAsset && !waitingEquipmentId}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="depreciationMonths">ระยะเวลาค่าเสื่อม (เดือน) *</Label>
-                    <Input 
-                      id="depreciationMonths" 
-                      type="number"
-                      placeholder="จำนวนเดือน เช่น 60"
-                      value={depreciationMonths}
-                      onChange={(e) => setDepreciationMonths(e.target.value)}
-                      required={isAsset}
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      ระบุระยะเวลาในการคิดค่าเสื่อมราคาของทรัพย์สิน (เช่น 60 เดือน = 5 ปี)
-                    </p>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Expiry Dates */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Item Notes */}
               <div className="space-y-2">
-                <Label htmlFor="expiry">วันหมดอายุ</Label>
-                <Input 
-                  id="expiry" 
-                  type="date"
-                  value={expiryDate}
-                  onChange={(e) => setExpiryDate(e.target.value)}
+                <Label htmlFor="itemNotes">หมายเหตุรายการ</Label>
+                <Textarea 
+                  id="itemNotes" 
+                  placeholder="รายละเอียดเพิ่มเติมสำหรับรายการนี้..."
+                  value={itemNotes}
+                  onChange={(e) => setItemNotes(e.target.value)}
+                  rows={2}
                 />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="warrantyExpiry">วันสิ้นสุดการรับประกัน</Label>
-                <Input 
-                  id="warrantyExpiry" 
-                  type="date"
-                  value={warrantyExpiryDate}
-                  onChange={(e) => setWarrantyExpiryDate(e.target.value)}
-                />
-              </div>
+
+              {/* Add to Cart Button */}
+              <Button 
+                type="button" 
+                variant="secondary"
+                className="w-full"
+                onClick={handleAddToCart}
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                เพิ่มลงตะกร้า
+              </Button>
             </div>
 
-            {/* Document Upload */}
+            {/* Document Upload (Shared) */}
             <div className="p-4 bg-muted/30 rounded-lg space-y-4">
               <h3 className="font-medium text-sm text-muted-foreground flex items-center gap-2">
                 <FileText className="w-4 h-4" />
-                เอกสารแนบ
+                เอกสารแนบ (ใช้ร่วมกันทุกรายการ)
               </h3>
               <div className="space-y-3">
                 <div className="space-y-2">
@@ -1026,9 +1111,6 @@ const DeliveryEntry = () => {
                     onChange={(e) => setDocumentFileName(e.target.value.slice(0, 30))}
                     maxLength={30}
                   />
-                  <p className="text-xs text-muted-foreground">
-                    ชื่อนี้จะใช้ในการค้นหาเอกสารย้อนหลังที่หน้า "ค้นหาเอกสาร" (ค้นหาได้จากชื่อไฟล์, เลขที่เอกสาร, ชื่อสินค้า)
-                  </p>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="document">อัปโหลดเอกสาร (PDF, รูปภาพ, Word)</Label>
@@ -1066,32 +1148,47 @@ const DeliveryEntry = () => {
                       </div>
                     )}
                   </div>
-                  <p className="text-xs text-muted-foreground">รองรับไฟล์ PDF, JPG, PNG, DOC, DOCX (สูงสุด 10MB)</p>
                 </div>
               </div>
             </div>
 
-            {/* Notes */}
+            {/* Header Notes */}
             <div className="space-y-2">
-              <Label htmlFor="notes">หมายเหตุ</Label>
+              <Label htmlFor="headerNotes">หมายเหตุเอกสาร</Label>
               <Textarea 
-                id="notes" 
-                placeholder="รายละเอียดเพิ่มเติม..."
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
+                id="headerNotes" 
+                placeholder="รายละเอียดเพิ่มเติมสำหรับเอกสารนี้..."
+                value={headerNotes}
+                onChange={(e) => setHeaderNotes(e.target.value)}
                 rows={2}
               />
             </div>
 
-            <Button type="submit" className="w-full" disabled={isLoading || isUploadingFile}>
+            {/* Submit All Button */}
+            <Button 
+              type="button"
+              className="w-full" 
+              disabled={isLoading || isUploadingFile || cartItems.length === 0}
+              onClick={handleSubmitAll}
+            >
               {isUploadingFile ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                   กำลังอัปโหลดเอกสาร...
                 </>
-              ) : isLoading ? "กำลังบันทึก..." : "บันทึกข้อมูลสินค้า"}
+              ) : isLoading ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  กำลังบันทึก...
+                </>
+              ) : (
+                <>
+                  <Send className="w-4 h-4 mr-2" />
+                  ส่งทั้งหมด ({cartItems.length} รายการ)
+                </>
+              )}
             </Button>
-          </form>
+          </div>
         </CardContent>
       </Card>
 
