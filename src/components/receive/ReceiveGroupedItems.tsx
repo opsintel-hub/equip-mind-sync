@@ -1,0 +1,329 @@
+import { useState } from "react";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { ChevronDown, ChevronRight, Clock, CheckCircle2, Edit, Package, Eye } from "lucide-react";
+import { format } from "date-fns";
+
+export interface PendingReceipt {
+  id: string;
+  document_no: string;
+  equipment_code: string | null;
+  equipment_name: string | null;
+  equipment_id: string | null;
+  quantity: number;
+  unit: string;
+  supplier_id: string | null;
+  supplier_name: string | null;
+  lot_number: string | null;
+  lot_number_2: string | null;
+  serial_number: string | null;
+  expiry_date: string | null;
+  delivery_person_name: string;
+  delivery_person_phone: string | null;
+  notes: string | null;
+  status: string;
+  created_at: string;
+  storage_volume_cm3?: number | null;
+  storage_width_cm?: number | null;
+  storage_height_cm?: number | null;
+  storage_depth_cm?: number | null;
+  warranty_expiry_date: string | null;
+  unit_price: number | null;
+  is_asset?: boolean | null;
+  receipt_purpose_id?: string | null;
+}
+
+interface GroupedReceipts {
+  parentDocNo: string;
+  deliveryPerson: string;
+  deliveryPhone: string | null;
+  createdAt: string;
+  items: PendingReceipt[];
+  pendingCount: number;
+  receivedCount: number;
+  totalItems: number;
+}
+
+interface ReceiveGroupedItemsProps {
+  receipts: PendingReceipt[];
+  onReceiveSingle: (receipt: PendingReceipt) => void;
+  onReceiveBatch: (receipts: PendingReceipt[]) => void;
+  getReceiptPurposeName: (purposeId: string | null | undefined) => string;
+}
+
+const getStatusBadge = (status: string) => {
+  switch (status) {
+    case "pending":
+      return <Badge variant="secondary" className="bg-warning/10 text-warning"><Clock className="w-3 h-3 mr-1" />รอรับเข้า</Badge>;
+    case "received":
+      return <Badge variant="secondary" className="bg-success/10 text-success"><CheckCircle2 className="w-3 h-3 mr-1" />รับเข้าแล้ว</Badge>;
+    default:
+      return <Badge variant="secondary">{status}</Badge>;
+  }
+};
+
+// Extract parent document number (e.g., PD-20250125-001 from PD-20250125-001-01)
+const getParentDocNo = (docNo: string): string => {
+  // Pattern: PD-YYYYMMDD-XXX-YY -> return PD-YYYYMMDD-XXX
+  const match = docNo.match(/^(PD-\d{8}-\d{3})(-\d+)?$/);
+  if (match) {
+    return match[1];
+  }
+  return docNo;
+};
+
+export const ReceiveGroupedItems = ({
+  receipts,
+  onReceiveSingle,
+  onReceiveBatch,
+  getReceiptPurposeName,
+}: ReceiveGroupedItemsProps) => {
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
+  const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
+
+  // Group receipts by parent document number
+  const groupedReceipts: GroupedReceipts[] = Object.values(
+    receipts.reduce((acc, receipt) => {
+      const parentDocNo = getParentDocNo(receipt.document_no);
+      
+      if (!acc[parentDocNo]) {
+        acc[parentDocNo] = {
+          parentDocNo,
+          deliveryPerson: receipt.delivery_person_name,
+          deliveryPhone: receipt.delivery_person_phone,
+          createdAt: receipt.created_at,
+          items: [],
+          pendingCount: 0,
+          receivedCount: 0,
+          totalItems: 0,
+        };
+      }
+      
+      acc[parentDocNo].items.push(receipt);
+      acc[parentDocNo].totalItems++;
+      if (receipt.status === "pending") {
+        acc[parentDocNo].pendingCount++;
+      } else if (receipt.status === "received") {
+        acc[parentDocNo].receivedCount++;
+      }
+      
+      return acc;
+    }, {} as Record<string, GroupedReceipts>)
+  ).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+  const toggleGroup = (parentDocNo: string) => {
+    const newExpanded = new Set(expandedGroups);
+    if (newExpanded.has(parentDocNo)) {
+      newExpanded.delete(parentDocNo);
+    } else {
+      newExpanded.add(parentDocNo);
+    }
+    setExpandedGroups(newExpanded);
+  };
+
+  const toggleItemSelection = (itemId: string, parentDocNo: string) => {
+    const newSelected = new Set(selectedItems);
+    if (newSelected.has(itemId)) {
+      newSelected.delete(itemId);
+    } else {
+      newSelected.add(itemId);
+    }
+    setSelectedItems(newSelected);
+  };
+
+  const toggleAllInGroup = (group: GroupedReceipts) => {
+    const pendingItems = group.items.filter(item => item.status === "pending");
+    const allSelected = pendingItems.every(item => selectedItems.has(item.id));
+    
+    const newSelected = new Set(selectedItems);
+    if (allSelected) {
+      pendingItems.forEach(item => newSelected.delete(item.id));
+    } else {
+      pendingItems.forEach(item => newSelected.add(item.id));
+    }
+    setSelectedItems(newSelected);
+  };
+
+  const getSelectedPendingItems = (group: GroupedReceipts) => {
+    return group.items.filter(item => 
+      item.status === "pending" && selectedItems.has(item.id)
+    );
+  };
+
+  const handleBatchReceive = (group: GroupedReceipts) => {
+    const selectedPendingItems = getSelectedPendingItems(group);
+    if (selectedPendingItems.length > 0) {
+      onReceiveBatch(selectedPendingItems);
+    }
+  };
+
+  if (groupedReceipts.length === 0) {
+    return (
+      <div className="text-center py-8 text-muted-foreground">
+        ไม่มีรายการ
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      {groupedReceipts.map((group) => {
+        const isExpanded = expandedGroups.has(group.parentDocNo);
+        const pendingItems = group.items.filter(item => item.status === "pending");
+        const allPendingSelected = pendingItems.length > 0 && 
+          pendingItems.every(item => selectedItems.has(item.id));
+        const somePendingSelected = pendingItems.some(item => selectedItems.has(item.id));
+        const selectedCount = getSelectedPendingItems(group).length;
+
+        return (
+          <div key={group.parentDocNo} className="border rounded-lg overflow-hidden">
+            {/* Group Header */}
+            <Collapsible open={isExpanded} onOpenChange={() => toggleGroup(group.parentDocNo)}>
+              <CollapsibleTrigger asChild>
+                <div className="flex items-center justify-between p-4 bg-muted/30 hover:bg-muted/50 cursor-pointer transition-colors">
+                  <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-2">
+                      {isExpanded ? (
+                        <ChevronDown className="w-5 h-5 text-muted-foreground" />
+                      ) : (
+                        <ChevronRight className="w-5 h-5 text-muted-foreground" />
+                      )}
+                      <Package className="w-5 h-5 text-primary" />
+                    </div>
+                    <div>
+                      <p className="font-semibold text-foreground">{group.parentDocNo}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {group.deliveryPerson} • {format(new Date(group.createdAt), "dd/MM/yyyy HH:mm")}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline" className="font-normal">
+                        {group.totalItems} รายการ
+                      </Badge>
+                      {group.pendingCount > 0 && (
+                        <Badge variant="secondary" className="bg-warning/10 text-warning">
+                          รอรับ {group.pendingCount}
+                        </Badge>
+                      )}
+                      {group.receivedCount > 0 && (
+                        <Badge variant="secondary" className="bg-success/10 text-success">
+                          รับแล้ว {group.receivedCount}
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </CollapsibleTrigger>
+
+              <CollapsibleContent>
+                {/* Batch Action Bar */}
+                {pendingItems.length > 1 && (
+                  <div className="flex items-center justify-between px-4 py-2 bg-primary/5 border-b">
+                    <div className="flex items-center gap-3">
+                      <Checkbox
+                        checked={allPendingSelected}
+                        onCheckedChange={() => toggleAllInGroup(group)}
+                        className="border-primary"
+                      />
+                      <span className="text-sm text-muted-foreground">
+                        {allPendingSelected ? "ยกเลิกเลือกทั้งหมด" : "เลือกทั้งหมดที่รอรับ"}
+                      </span>
+                    </div>
+                    {selectedCount > 0 && (
+                      <Button
+                        size="sm"
+                        onClick={() => handleBatchReceive(group)}
+                        className="gap-2"
+                      >
+                        <CheckCircle2 className="w-4 h-4" />
+                        รับเข้าคลัง {selectedCount} รายการ
+                      </Button>
+                    )}
+                  </div>
+                )}
+
+                {/* Items Table */}
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-muted/20">
+                      {pendingItems.length > 1 && <TableHead className="w-12"></TableHead>}
+                      <TableHead>ลำดับ</TableHead>
+                      <TableHead>ชื่อสินค้า</TableHead>
+                      <TableHead>จำนวน</TableHead>
+                      <TableHead>Serial No.</TableHead>
+                      <TableHead>วัตถุประสงค์</TableHead>
+                      <TableHead>ผู้จัดจำหน่าย</TableHead>
+                      <TableHead>สถานะ</TableHead>
+                      <TableHead className="w-24">จัดการ</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {group.items.map((item, index) => (
+                      <TableRow key={item.id} className="hover:bg-muted/30">
+                        {pendingItems.length > 1 && (
+                          <TableCell>
+                            {item.status === "pending" && (
+                              <Checkbox
+                                checked={selectedItems.has(item.id)}
+                                onCheckedChange={() => toggleItemSelection(item.id, group.parentDocNo)}
+                              />
+                            )}
+                          </TableCell>
+                        )}
+                        <TableCell className="font-medium text-muted-foreground">
+                          #{index + 1}
+                        </TableCell>
+                        <TableCell>
+                          <div>
+                            <p className="font-medium">{item.equipment_name || "-"}</p>
+                            {item.equipment_code && (
+                              <p className="text-xs text-muted-foreground">{item.equipment_code}</p>
+                            )}
+                            {!item.equipment_id && (
+                              <Badge variant="outline" className="text-warning border-warning text-xs mt-1">
+                                สินค้าใหม่
+                              </Badge>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell>{item.quantity} {item.unit}</TableCell>
+                        <TableCell className="text-sm">{item.serial_number || "-"}</TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className="font-normal text-xs">
+                            {getReceiptPurposeName(item.receipt_purpose_id)}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-sm">{item.supplier_name || "-"}</TableCell>
+                        <TableCell>{getStatusBadge(item.status)}</TableCell>
+                        <TableCell>
+                          {item.status === "pending" && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onReceiveSingle(item);
+                              }}
+                            >
+                              <Edit className="w-4 h-4 mr-1" />
+                              รับเข้า
+                            </Button>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </CollapsibleContent>
+            </Collapsible>
+          </div>
+        );
+      })}
+    </div>
+  );
+};
