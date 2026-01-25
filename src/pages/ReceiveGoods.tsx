@@ -4,16 +4,16 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
-import { PackageCheck, Search, Clock, CheckCircle2, Edit, Package, Box, Plus, ImageIcon } from "lucide-react";
+import { PackageCheck, Search, Clock, CheckCircle2, Package, Box, Layers } from "lucide-react";
 import { EquipmentImageViewer } from "@/components/equipment/EquipmentImageViewer";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { EquipmentForm } from "@/components/equipment/EquipmentForm";
+import { ReceiveGroupedItems, PendingReceipt } from "@/components/receive/ReceiveGroupedItems";
 
 import { format } from "date-fns";
 import { useAuth } from "@/hooks/useAuth";
@@ -36,35 +36,6 @@ interface ReceiptPurpose {
   id: string;
   name: string;
   purpose_type: string;
-}
-
-interface PendingReceipt {
-  id: string;
-  document_no: string;
-  equipment_code: string | null;
-  equipment_name: string | null;
-  equipment_id: string | null;
-  quantity: number;
-  unit: string;
-  supplier_id: string | null;
-  supplier_name: string | null;
-  lot_number: string | null;
-  lot_number_2: string | null;
-  serial_number: string | null;
-  expiry_date: string | null;
-  delivery_person_name: string;
-  delivery_person_phone: string | null;
-  notes: string | null;
-  status: string;
-  created_at: string;
-  storage_volume_cm3?: number | null;
-  storage_width_cm?: number | null;
-  storage_height_cm?: number | null;
-  storage_depth_cm?: number | null;
-  warranty_expiry_date: string | null;
-  unit_price: number | null;
-  is_asset?: boolean | null;
-  receipt_purpose_id?: string | null;
 }
 
 interface LocationCapacity {
@@ -102,9 +73,13 @@ const ReceiveGoods = () => {
   const [locations, setLocations] = useState<Location[]>([]);
   const [receiptPurposes, setReceiptPurposes] = useState<ReceiptPurpose[]>([]);
 
-  // Dialog state
+  // Single item dialog state
   const [selectedReceipt, setSelectedReceipt] = useState<PendingReceipt | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+
+  // Batch receive dialog state
+  const [batchReceipts, setBatchReceipts] = useState<PendingReceipt[]>([]);
+  const [isBatchDialogOpen, setIsBatchDialogOpen] = useState(false);
 
   // Form state for editing - only editable fields
   const [editNotes, setEditNotes] = useState("");
@@ -237,6 +212,16 @@ const ReceiveGoods = () => {
     setSelectedWarehouseId("");
     setStorageLocation({ locationId: "" });
     setIsDialogOpen(true);
+  };
+
+  const openBatchReceiveDialog = (receipts: PendingReceipt[]) => {
+    setBatchReceipts(receipts);
+    setEditNotes("");
+    setStorageVolumeCm3("");
+    setLocationCapacity(null);
+    setSelectedWarehouseId("");
+    setStorageLocation({ locationId: "" });
+    setIsBatchDialogOpen(true);
   };
 
   // Get filtered locations by selected warehouse
@@ -418,14 +403,125 @@ const ReceiveGoods = () => {
     }
   };
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case "pending":
-        return <Badge variant="secondary" className="bg-warning/10 text-warning"><Clock className="w-3 h-3 mr-1" />รอรับเข้า</Badge>;
-      case "received":
-        return <Badge variant="secondary" className="bg-success/10 text-success"><CheckCircle2 className="w-3 h-3 mr-1" />รับเข้าแล้ว</Badge>;
-      default:
-        return <Badge variant="secondary">{status}</Badge>;
+  const handleBatchReceive = async () => {
+    if (batchReceipts.length === 0) return;
+    
+    // Check all items have equipment_id
+    const itemsWithoutEquipment = batchReceipts.filter(r => !r.equipment_id);
+    if (itemsWithoutEquipment.length > 0) {
+      toast.error(`มี ${itemsWithoutEquipment.length} รายการที่ยังไม่มีสินค้าในระบบ กรุณาสร้างสินค้าก่อน`);
+      return;
+    }
+
+    if (!storageLocation.locationId) {
+      toast.error("กรุณาเลือกตำแหน่งจัดเก็บ");
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      let successCount = 0;
+      let errorCount = 0;
+
+      for (const receipt of batchReceipts) {
+        try {
+          const selectedSupp = suppliers.find(s => s.id === receipt.supplier_id);
+
+          // Fetch current equipment stock
+          const { data: currentEquipment, error: fetchError } = await supabase
+            .from("equipment")
+            .select("quantity_in_stock")
+            .eq("id", receipt.equipment_id!)
+            .single();
+
+          if (fetchError) throw fetchError;
+
+          const currentStock = currentEquipment?.quantity_in_stock || 0;
+          const receivedQuantity = receipt.quantity;
+          const newStock = currentStock + receivedQuantity;
+
+          // Update pending receipt status
+          const { error: updateError } = await supabase
+            .from("goods_receipt_pending")
+            .update({
+              status: "received",
+              received_by: user?.id,
+              received_at: new Date().toISOString(),
+              received_location_id: storageLocation.locationId,
+              notes: editNotes || null,
+            })
+            .eq("id", receipt.id);
+
+          if (updateError) throw updateError;
+
+          // Create goods receipt record
+          const { error: grError } = await supabase
+            .from("goods_receipt")
+            .insert({
+              document_no: generateGRDocumentNo(),
+              equipment_id: receipt.equipment_id,
+              quantity: receivedQuantity,
+              supplier: selectedSupp?.name || receipt.supplier_name || "ไม่ระบุ",
+              location_id: storageLocation.locationId,
+              receipt_date: new Date().toISOString().split("T")[0],
+              created_by: user?.id || "",
+              notes: `นำเข้าจากเอกสาร ${receipt.document_no}. ${editNotes || ""}`.trim(),
+              status: "completed",
+              unit_price: receipt.unit_price || null
+            });
+
+          if (grError) throw grError;
+
+          // Update equipment stock
+          const { error: stockError } = await supabase
+            .from("equipment")
+            .update({
+              quantity_in_stock: newStock,
+              location_id: storageLocation.locationId,
+              expiry_date: receipt.expiry_date || null
+            })
+            .eq("id", receipt.equipment_id!);
+
+          if (!stockError) {
+            const selectedEquipment = equipment.find(e => e.id === receipt.equipment_id);
+            await logStockMovement({
+              equipment_id: receipt.equipment_id!,
+              equipment_code: selectedEquipment?.code || receipt.equipment_code || "",
+              equipment_name: selectedEquipment?.name || receipt.equipment_name || "",
+              movement_type: "receive",
+              quantity: receivedQuantity,
+              stock_before: currentStock,
+              stock_after: newStock,
+              reference_type: "goods_receipt",
+              reference_document: receipt.document_no,
+              location_id: storageLocation.locationId,
+              notes: editNotes || undefined,
+            });
+          }
+
+          successCount++;
+        } catch (error) {
+          console.error("Error receiving item:", receipt.document_no, error);
+          errorCount++;
+        }
+      }
+
+      if (successCount > 0) {
+        toast.success(`รับสินค้าเข้าคลังสำเร็จ ${successCount} รายการ`);
+      }
+      if (errorCount > 0) {
+        toast.warning(`ไม่สามารถรับสินค้าได้ ${errorCount} รายการ`);
+      }
+
+      setIsBatchDialogOpen(false);
+      setBatchReceipts([]);
+      fetchPendingReceipts();
+    } catch (error) {
+      console.error("Error:", error);
+      toast.error("เกิดข้อผิดพลาดในการรับสินค้า");
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -463,19 +559,22 @@ const ReceiveGoods = () => {
             </div>
             <div>
               <p className="font-medium text-foreground">มีสินค้ารอรับเข้าคลัง {pendingCount} รายการ</p>
-              <p className="text-sm text-muted-foreground">กรุณาตรวจสอบและรับสินค้าเข้าระบบ</p>
+              <p className="text-sm text-muted-foreground">รายการจัดกลุ่มตามเอกสาร สามารถเลือกรับพร้อมกันได้</p>
             </div>
           </CardContent>
         </Card>
       )}
 
-      {/* Filter & Table */}
+      {/* Filter & Grouped Items */}
       <Card>
         <CardHeader>
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
-              <CardTitle>รายการสินค้ารอรับเข้า</CardTitle>
-              <CardDescription>รายการที่ผู้นำสินค้าคีย์เข้ามา รอเจ้าหน้าที่คลังตรวจสอบ</CardDescription>
+              <CardTitle className="flex items-center gap-2">
+                <Layers className="w-5 h-5" />
+                รายการสินค้ารอรับเข้า (จัดกลุ่มตามเอกสาร)
+              </CardTitle>
+              <CardDescription>คลิกที่กลุ่มเพื่อดูรายละเอียด สามารถเลือกรับหลายรายการพร้อมกันได้</CardDescription>
             </div>
             <div className="flex items-center gap-4">
               <Select value={filterStatus} onValueChange={setFilterStatus}>
@@ -501,72 +600,16 @@ const ReceiveGoods = () => {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="rounded-lg border">
-            <Table>
-              <TableHeader>
-                <TableRow className="bg-muted/50">
-                  <TableHead>เลขที่เอกสาร</TableHead>
-                  <TableHead>วันที่</TableHead>
-                  <TableHead>ชื่อสินค้า</TableHead>
-                  <TableHead>จำนวน</TableHead>
-                  <TableHead>วัตถุประสงค์</TableHead>
-                  <TableHead>ผู้จัดจำหน่าย</TableHead>
-                  <TableHead>ผู้ส่ง</TableHead>
-                  <TableHead>สถานะ</TableHead>
-                  <TableHead className="w-24">จัดการ</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredReceipts.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
-                      ไม่มีรายการ
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  filteredReceipts.map((receipt) => (
-                    <TableRow key={receipt.id} className="hover:bg-muted/30">
-                      <TableCell className="font-medium">{receipt.document_no}</TableCell>
-                      <TableCell>{format(new Date(receipt.created_at), "dd/MM/yyyy HH:mm")}</TableCell>
-                      <TableCell>{receipt.equipment_name || receipt.equipment_code || "-"}</TableCell>
-                      <TableCell>{receipt.quantity} {receipt.unit}</TableCell>
-                      <TableCell>
-                        <Badge variant="outline" className="font-normal">
-                          {getReceiptPurposeName(receipt.receipt_purpose_id)}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>{receipt.supplier_name || "-"}</TableCell>
-                      <TableCell>
-                        <div>
-                          <p>{receipt.delivery_person_name}</p>
-                          {receipt.delivery_person_phone && (
-                            <p className="text-xs text-muted-foreground">{receipt.delivery_person_phone}</p>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell>{getStatusBadge(receipt.status)}</TableCell>
-                      <TableCell>
-                        {receipt.status === "pending" && (
-                          <Button 
-                            size="sm" 
-                            variant="outline"
-                            onClick={() => openReceiveDialog(receipt)}
-                          >
-                            <Edit className="w-4 h-4 mr-1" />
-                            รับเข้า
-                          </Button>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </div>
+          <ReceiveGroupedItems
+            receipts={filteredReceipts}
+            onReceiveSingle={openReceiveDialog}
+            onReceiveBatch={openBatchReceiveDialog}
+            getReceiptPurposeName={getReceiptPurposeName}
+          />
         </CardContent>
       </Card>
 
-      {/* Receive Dialog */}
+      {/* Single Receive Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
@@ -849,6 +892,102 @@ const ReceiveGoods = () => {
             </Button>
             <Button onClick={handleReceive} disabled={isLoading}>
               {isLoading ? "กำลังบันทึก..." : "รับเข้าคลัง"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Batch Receive Dialog */}
+      <Dialog open={isBatchDialogOpen} onOpenChange={setIsBatchDialogOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Layers className="w-5 h-5" />
+              รับสินค้าเข้าคลังพร้อมกัน ({batchReceipts.length} รายการ)
+            </DialogTitle>
+            <DialogDescription>
+              เลือกตำแหน่งจัดเก็บสำหรับสินค้าทั้งหมดที่เลือก
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            {/* Items Summary */}
+            <div className="p-3 bg-muted/30 rounded-lg space-y-2">
+              <p className="text-sm font-medium text-foreground">รายการที่เลือก:</p>
+              <div className="max-h-32 overflow-y-auto space-y-1">
+                {batchReceipts.map((item, index) => (
+                  <div key={item.id} className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">#{index + 1}</span>
+                    <span className="flex-1 ml-2 truncate">{item.equipment_name || item.equipment_code || "-"}</span>
+                    <span className="font-medium">{item.quantity} {item.unit}</span>
+                  </div>
+                ))}
+              </div>
+              <div className="pt-2 border-t flex justify-between">
+                <span className="font-medium">รวมทั้งหมด:</span>
+                <span className="font-semibold text-primary">
+                  {batchReceipts.reduce((sum, item) => sum + item.quantity, 0)} รายการ
+                </span>
+              </div>
+            </div>
+
+            {/* Warehouse Selection */}
+            <div className="space-y-2">
+              <Label>คลังสินค้า *</Label>
+              <SearchableSelect
+                options={warehouses.map((wh) => ({
+                  value: wh.id,
+                  label: `${wh.code} - ${wh.name}`,
+                  description: `คงเหลือ: ${wh.remaining_volume_cm3.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} m³`,
+                }))}
+                value={selectedWarehouseId}
+                onValueChange={handleWarehouseChange}
+                placeholder="ค้นหาคลังสินค้า..."
+                searchPlaceholder="พิมพ์ค้นหา..."
+                emptyMessage="ไม่พบคลังสินค้า"
+              />
+            </div>
+
+            {/* Location Selection (filtered by warehouse) */}
+            {selectedWarehouseId && (
+              <div className="space-y-2">
+                <Label>ตำแหน่งจัดเก็บ *</Label>
+                <SearchableSelect
+                  options={filteredLocations.map((loc) => {
+                    const remaining = (loc.volume_cm3 || 0) - (loc.used_volume_cm3 || 0);
+                    return {
+                      value: loc.id,
+                      label: `${loc.code} - ${loc.name}`,
+                      description: `คงเหลือ: ${remaining.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })} m³`,
+                    };
+                  })}
+                  value={storageLocation.locationId}
+                  onValueChange={handleLocationChange}
+                  placeholder="ค้นหาตำแหน่งจัดเก็บ..."
+                  searchPlaceholder="พิมพ์ค้นหา..."
+                  emptyMessage="ไม่มีตำแหน่งจัดเก็บในคลังนี้"
+                />
+              </div>
+            )}
+
+            {/* Notes */}
+            <div className="space-y-2">
+              <Label>หมายเหตุ (สำหรับทุกรายการ)</Label>
+              <Textarea 
+                value={editNotes}
+                onChange={(e) => setEditNotes(e.target.value)}
+                rows={2}
+                placeholder="หมายเหตุจะถูกบันทึกให้กับทุกรายการที่เลือก"
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsBatchDialogOpen(false)}>
+              ยกเลิก
+            </Button>
+            <Button onClick={handleBatchReceive} disabled={isLoading}>
+              {isLoading ? "กำลังบันทึก..." : `รับเข้าคลัง ${batchReceipts.length} รายการ`}
             </Button>
           </DialogFooter>
         </DialogContent>
