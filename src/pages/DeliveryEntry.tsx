@@ -9,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Truck, Search, Package, Clock, CheckCircle2, Upload, FileText, X, Loader2, Info, Plus, ShoppingCart, Send } from "lucide-react";
+import { Truck, Search, Package, Clock, CheckCircle2, Upload, FileText, X, Loader2, Info, Plus, ShoppingCart, Send, PlusCircle } from "lucide-react";
 import { EquipmentImageViewer } from "@/components/equipment/EquipmentImageViewer";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -17,6 +17,8 @@ import { format } from "date-fns";
 import { CompanySelect } from "@/components/company/CompanySelect";
 import { DeliveryImport } from "@/components/delivery/DeliveryImport";
 import { DeliveryCart, DeliveryCartItem } from "@/components/delivery/DeliveryCart";
+import { DeliveryCartItemEditDialog } from "@/components/delivery/DeliveryCartItemEditDialog";
+import { EquipmentForm } from "@/components/equipment/EquipmentForm";
 
 interface Equipment {
   id: string;
@@ -80,6 +82,8 @@ const DeliveryEntry = () => {
   
   // Cart items
   const [cartItems, setCartItems] = useState<DeliveryCartItem[]>([]);
+  const [editingItem, setEditingItem] = useState<DeliveryCartItem | null>(null);
+  const [showEditDialog, setShowEditDialog] = useState(false);
   
   // Header data (shared across all items)
   const [selectedReceiptPurposeId, setSelectedReceiptPurposeId] = useState("");
@@ -417,6 +421,17 @@ const DeliveryEntry = () => {
     toast.success("ลบรายการออกจากตะกร้าแล้ว");
   };
 
+  const handleEditItem = (item: DeliveryCartItem) => {
+    setEditingItem(item);
+    setShowEditDialog(true);
+  };
+
+  const handleSaveEditItem = (updatedItem: DeliveryCartItem) => {
+    setCartItems(cartItems.map(item => 
+      item.id === updatedItem.id ? updatedItem : item
+    ));
+  };
+
   const handleClearCart = () => {
     setCartItems([]);
     toast.success("ล้างตะกร้าแล้ว");
@@ -571,11 +586,22 @@ const DeliveryEntry = () => {
         <DeliveryImport onSuccess={fetchPendingReceipts} />
       </div>
 
+      {/* Edit Item Dialog */}
+      <DeliveryCartItemEditDialog
+        item={editingItem}
+        open={showEditDialog}
+        onOpenChange={setShowEditDialog}
+        onSave={handleSaveEditItem}
+        equipment={equipment}
+        suppliers={suppliers}
+      />
+
       {/* Cart Display */}
       <DeliveryCart
         items={cartItems}
         onRemoveItem={handleRemoveFromCart}
         onClearCart={handleClearCart}
+        onEditItem={handleEditItem}
       />
 
       <Card>
@@ -791,20 +817,30 @@ const DeliveryEntry = () => {
                       />
                     )}
                   </div>
-                  <p className="text-xs text-muted-foreground flex items-center gap-1">
-                    <Info className="w-3 h-3" />
-                    สินค้าที่ไม่มีในระบบจะต้องสร้างใหม่ตอนรับเข้าคลัง
-                  </p>
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs text-muted-foreground flex items-center gap-1">
+                      <Info className="w-3 h-3" />
+                      ไม่พบสินค้าในระบบ?
+                    </p>
+                    <EquipmentForm onSuccess={() => {
+                      fetchEquipment();
+                      toast.success("เพิ่มสินค้าใหม่เรียบร้อย สามารถเลือกสินค้าได้จาก dropdown");
+                    }} />
+                  </div>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="equipmentName">หรือ ระบุชื่อสินค้า</Label>
+                  <Label htmlFor="equipmentName">หรือ ระบุชื่อสินค้า (สินค้าใหม่)</Label>
                   <Input 
                     id="equipmentName" 
-                    placeholder="ชื่อสินค้า/อะไหล่"
+                    placeholder="ชื่อสินค้า/อะไหล่ ที่ยังไม่มีในระบบ"
                     value={equipmentName}
                     onChange={(e) => setEquipmentName(e.target.value)}
                     disabled={!!selectedEquipmentId}
                   />
+                  <p className="text-xs text-muted-foreground flex items-center gap-1">
+                    <Info className="w-3 h-3" />
+                    สินค้าใหม่จะต้องสร้างในระบบตอนรับเข้าคลัง
+                  </p>
                 </div>
               </div>
 
