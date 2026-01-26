@@ -10,7 +10,9 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
-import { Monitor, Search, Plus, Loader2, Settings, Trash2, Edit, MapPin, Unplug } from "lucide-react";
+import { Monitor, Search, Plus, Loader2, Settings, Trash2, Edit, MapPin, Unplug, BarChart3 } from "lucide-react";
+import MediaPlayerImport from "@/components/media-player/MediaPlayerImport";
+import MediaPlayerDashboard from "@/components/media-player/MediaPlayerDashboard";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
@@ -66,6 +68,7 @@ interface MediaPlayer {
 }
 
 const MediaPlayerEntry = () => {
+  const [showDashboard, setShowDashboard] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [mediaPlayers, setMediaPlayers] = useState<MediaPlayer[]>([]);
   const [cmsTypes, setCmsTypes] = useState<CMSType[]>([]);
@@ -395,7 +398,16 @@ const MediaPlayerEntry = () => {
       </div>
 
       {/* Action Buttons */}
-      <div className="flex gap-3">
+      <div className="flex flex-wrap gap-3 items-center">
+        <Button
+          variant={showDashboard ? "default" : "outline"}
+          onClick={() => setShowDashboard(!showDashboard)}
+          className="flex items-center gap-2"
+        >
+          <BarChart3 className="w-4 h-4" />
+          {showDashboard ? "ซ่อน Dashboard" : "แสดง Dashboard"}
+        </Button>
+        
         <Dialog open={isFormDialogOpen} onOpenChange={setIsFormDialogOpen}>
           <DialogTrigger asChild>
             <Button className="flex items-center gap-2">
@@ -716,6 +728,8 @@ const MediaPlayerEntry = () => {
           </DialogContent>
         </Dialog>
 
+        <MediaPlayerImport onImportSuccess={fetchMediaPlayers} />
+
         {/* Install to Billboard Dialog */}
         <Dialog open={isInstallDialogOpen} onOpenChange={setIsInstallDialogOpen}>
           <DialogContent>
@@ -755,6 +769,9 @@ const MediaPlayerEntry = () => {
           </DialogContent>
         </Dialog>
       </div>
+
+      {/* Dashboard Section */}
+      {showDashboard && <MediaPlayerDashboard />}
 
       {/* Table */}
       <Card>
