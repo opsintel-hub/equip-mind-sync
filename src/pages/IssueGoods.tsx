@@ -71,6 +71,8 @@ interface PendingItem {
   status: string;
   notes: string | null;
   created_at: string;
+  is_media_player?: boolean | null;
+  media_player_id?: string | null;
 }
 
 const IssueGoods = () => {
@@ -268,8 +270,65 @@ const IssueGoods = () => {
 
       if (updateError) throw updateError;
 
-      // If equipment_id exists, update stock
-      if (selectedItem.equipment_id && issuedQty > 0) {
+      // Handle Media Player or Equipment stock update
+      const isMediaPlayer = selectedItem.is_media_player;
+      
+      if (isMediaPlayer && selectedItem.media_player_id && issuedQty > 0) {
+        // Media Player: Update media_players table
+        const { data: currentMediaPlayer, error: fetchMpError } = await supabase
+          .from("media_players")
+          .select("quantity, code, name, location_id")
+          .eq("id", selectedItem.media_player_id)
+          .single();
+
+        if (fetchMpError) throw fetchMpError;
+
+        const currentStock = currentMediaPlayer?.quantity || 0;
+        const newStock = Math.max(0, currentStock - issuedQty);
+        
+        const { error: stockError } = await supabase
+          .from("media_players")
+          .update({ quantity: newStock })
+          .eq("id", selectedItem.media_player_id);
+        if (stockError) throw stockError;
+
+        // Get parent request for document_no
+        const parentRequest = pendingRequests?.find(r => r.id === selectedItem.pending_id);
+
+        // Log stock movement for Media Player
+        await logStockMovement({
+          equipment_id: selectedItem.media_player_id,
+          equipment_code: currentMediaPlayer?.code || selectedItem.equipment_code || "",
+          equipment_name: currentMediaPlayer?.name || selectedItem.equipment_name || "",
+          movement_type: "issue",
+          quantity: issuedQty,
+          stock_before: currentStock,
+          stock_after: newStock,
+          reference_type: "goods_issue",
+          reference_document: parentRequest?.document_no || "",
+          location_id: currentMediaPlayer?.location_id || undefined,
+          notes: `Media Player - ${issueData.notes || ""}`.trim(),
+        });
+
+        // If installing to billboard for Media Player
+        const billboardId = issueData.billboard_id || selectedItem.billboard_id;
+        if (billboardId) {
+          await logStockMovement({
+            equipment_id: selectedItem.media_player_id,
+            equipment_code: currentMediaPlayer?.code || selectedItem.equipment_code || "",
+            equipment_name: currentMediaPlayer?.name || selectedItem.equipment_name || "",
+            movement_type: "install_to_billboard",
+            quantity: issuedQty,
+            stock_before: currentStock,
+            stock_after: newStock,
+            reference_type: "billboard_equipment",
+            reference_document: parentRequest?.document_no || "",
+            location_id: currentMediaPlayer?.location_id || undefined,
+            notes: `Media Player ติดตั้งที่ป้าย ${billboardId}`,
+          });
+        }
+      } else if (selectedItem.equipment_id && issuedQty > 0) {
+        // Regular Equipment: Update equipment table
         const { data: currentEquipmentData, error: fetchError } = await supabase
           .from("equipment")
           .select("quantity_in_stock")

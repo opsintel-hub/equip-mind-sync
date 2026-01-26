@@ -43,7 +43,7 @@ export default function StockMovementLog() {
         .order("created_at", { ascending: false });
 
       if (searchTerm) {
-        query = query.or(`equipment_code.ilike.%${searchTerm}%,equipment_name.ilike.%${searchTerm}%,reference_document.ilike.%${searchTerm}%`);
+        query = query.or(`equipment_code.ilike.%${searchTerm}%,equipment_name.ilike.%${searchTerm}%,reference_document.ilike.%${searchTerm}%,notes.ilike.%${searchTerm}%`);
       }
 
       if (typeFilter !== "all") {
@@ -62,16 +62,25 @@ export default function StockMovementLog() {
 
   const totalPages = movements?.count ? Math.ceil(movements.count / ITEMS_PER_PAGE) : 1;
 
-  const getMovementBadge = (type: string) => {
+  const getMovementBadge = (type: string, notes?: string | null) => {
     const config = movementTypeConfig[type as MovementType];
+    const isMediaPlayer = notes?.toLowerCase().includes("media player");
+    
     if (!config) return <Badge variant="outline">{type}</Badge>;
     
     const Icon = config.icon;
     return (
-      <Badge variant={config.variant} className="gap-1">
-        <Icon className="h-3 w-3" />
-        {config.label}
-      </Badge>
+      <div className="flex flex-col gap-1">
+        <Badge variant={config.variant} className="gap-1">
+          <Icon className="h-3 w-3" />
+          {config.label}
+        </Badge>
+        {isMediaPlayer && (
+          <Badge variant="secondary" className="bg-blue-500/10 text-blue-600 text-xs">
+            Media Player
+          </Badge>
+        )}
+      </div>
     );
   };
 
@@ -164,7 +173,7 @@ export default function StockMovementLog() {
                         <TableCell className="whitespace-nowrap">
                           {format(new Date(movement.created_at), "dd MMM yy HH:mm", { locale: th })}
                         </TableCell>
-                        <TableCell>{getMovementBadge(movement.movement_type)}</TableCell>
+                        <TableCell>{getMovementBadge(movement.movement_type, movement.notes)}</TableCell>
                         <TableCell>{movement.companies?.name || "-"}</TableCell>
                         <TableCell className="font-mono text-sm">{movement.equipment_code}</TableCell>
                         <TableCell>{movement.equipment_name}</TableCell>
