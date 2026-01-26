@@ -70,7 +70,6 @@ interface PendingReceipt {
   equipment_id_code?: string | null;
   waiting_asset_code?: boolean;
   waiting_equipment_id?: boolean;
-  total_items?: number;
   is_media_player?: boolean;
 }
 
@@ -619,7 +618,6 @@ const DeliveryEntry = () => {
         po_number: poNumber || null,
         pr_number: prNumber || null,
         purchase_document_url: purchaseDocumentUrl,
-        total_items: cartItems.length,
         // Media Player specific fields
         is_media_player: item.is_media_player || false,
         media_player_id: item.media_player_id || null,
