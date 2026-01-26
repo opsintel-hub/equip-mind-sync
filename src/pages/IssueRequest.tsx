@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -937,8 +937,8 @@ const IssueRequest = () => {
                     const items = getItemsForRequest(req.id);
                     const isExpanded = expandedRequests.has(req.id);
                     return (
-                      <>
-                        <TableRow key={req.id} className="cursor-pointer hover:bg-muted/50" onClick={() => toggleRequestExpand(req.id)}>
+                      <React.Fragment key={req.id}>
+                        <TableRow className="cursor-pointer hover:bg-muted/50" onClick={() => toggleRequestExpand(req.id)}>
                           <TableCell>
                             {items.length > 0 && (
                               <Button variant="ghost" size="sm" className="p-0 h-6 w-6">
@@ -971,7 +971,7 @@ const IssueRequest = () => {
                           <TableCell>{getStatusBadge(req.status)}</TableCell>
                         </TableRow>
                         {isExpanded && items.length > 0 && (
-                          <TableRow key={`${req.id}-items`}>
+                          <TableRow>
                             <TableCell colSpan={7} className="bg-muted/30 p-0">
                               <div className="p-4">
                                 <Table>
@@ -1009,7 +1009,7 @@ const IssueRequest = () => {
                             </TableCell>
                           </TableRow>
                         )}
-                      </>
+                      </React.Fragment>
                     );
                   })
                 )}
