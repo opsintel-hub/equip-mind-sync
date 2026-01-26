@@ -757,10 +757,10 @@ const IssueGoods = () => {
                                             </TableCell>
                                             <TableCell>
                                               {item.billboard_id ? (
-                                                <Badge variant="outline" className="text-xs">
-                                                  <MapPin className="h-3 w-3 mr-1" />ระบุแล้ว
-                                                </Badge>
-                                              ) : "-"}
+                                                <BillboardDisplay billboardId={item.billboard_id} />
+                                              ) : (
+                                                <span className="text-muted-foreground text-sm">-</span>
+                                              )}
                                             </TableCell>
                                             <TableCell>{getStatusBadge(item.status)}</TableCell>
                                             <TableCell className="text-center">
