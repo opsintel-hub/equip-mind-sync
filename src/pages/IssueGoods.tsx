@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { ScrollArea } from "@/components/ui/scroll-area";
+
 
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -139,8 +139,26 @@ const IssueGoods = () => {
     },
   });
 
+  // State for item rejection
+  const [itemRejectDialogOpen, setItemRejectDialogOpen] = useState(false);
+  const [selectedItemForReject, setSelectedItemForReject] = useState<PendingItem | null>(null);
+  const [itemRejectReason, setItemRejectReason] = useState("");
+
   const getItemsForRequest = (requestId: string) => {
     return pendingItems?.filter(item => item.pending_id === requestId) || [];
+  };
+
+  // Get location info for an item's equipment
+  const getLocationInfoForItem = (equipmentId: string | null) => {
+    if (!equipmentId) return null;
+    const eq = equipment?.find((e) => e.id === equipmentId);
+    if (!eq?.locations) return null;
+    return {
+      warehouseName: eq.locations.warehouses?.name || "-",
+      warehouseCode: eq.locations.warehouses?.code || "-",
+      locationName: eq.locations.name,
+      locationCode: eq.locations.code,
+    };
   };
 
   const toggleRequestExpand = (requestId: string) => {
@@ -419,6 +437,59 @@ const IssueGoods = () => {
     },
   });
 
+  // Reject single item mutation
+  const rejectItem = useMutation({
+    mutationFn: async () => {
+      if (!selectedItemForReject) return;
+
+      const { error } = await supabase
+        .from("goods_issue_pending_items")
+        .update({
+          status: "rejected",
+          notes: itemRejectReason || selectedItemForReject.notes,
+        })
+        .eq("id", selectedItemForReject.id);
+
+      if (error) throw error;
+
+      // Update parent request status if all items are rejected or issued
+      const allItems = pendingItems?.filter(item => item.pending_id === selectedItemForReject.pending_id) || [];
+      const allProcessed = allItems.every(item => 
+        item.id === selectedItemForReject.id ? true : (item.status === "issued" || item.status === "rejected")
+      );
+      const anyPending = allItems.some(item => 
+        item.id === selectedItemForReject.id ? false : (item.status === "pending" || item.status === "waiting_stock")
+      );
+      const allRejected = allItems.every(item => 
+        item.id === selectedItemForReject.id ? true : item.status === "rejected"
+      );
+
+      if (allRejected) {
+        await supabase
+          .from("goods_issue_pending")
+          .update({ status: "rejected", reject_reason: "ปฏิเสธทุกรายการ" })
+          .eq("id", selectedItemForReject.pending_id);
+      } else if (allProcessed && !anyPending) {
+        // At least some items were issued
+        await supabase
+          .from("goods_issue_pending")
+          .update({ status: "issued" })
+          .eq("id", selectedItemForReject.pending_id);
+      }
+    },
+    onSuccess: () => {
+      toast.success("ปฏิเสธรายการนี้สำเร็จ");
+      queryClient.invalidateQueries({ queryKey: ["goods-issue-pending-staff"] });
+      queryClient.invalidateQueries({ queryKey: ["goods-issue-pending-items-staff"] });
+      setItemRejectDialogOpen(false);
+      setSelectedItemForReject(null);
+      setItemRejectReason("");
+    },
+    onError: (error) => {
+      toast.error("เกิดข้อผิดพลาด: " + error.message);
+    },
+  });
+
   const handleIssueItem = (item: PendingItem) => {
     setSelectedItem(item);
     const qtyToIssue = item.remaining_quantity && item.remaining_quantity > 0 
@@ -610,8 +681,11 @@ const IssueGoods = () => {
                                   <Table>
                                     <TableHeader>
                                       <TableRow>
+                                        <TableHead className="w-10">ภาพ</TableHead>
                                         <TableHead>รหัส/ชื่อสินค้า</TableHead>
                                         <TableHead>S/N</TableHead>
+                                        <TableHead>คลังสินค้า</TableHead>
+                                        <TableHead>ตำแหน่งจัดเก็บ</TableHead>
                                         <TableHead className="text-right">จำนวนขอ</TableHead>
                                         <TableHead className="text-right">คงเหลือ</TableHead>
                                         <TableHead>ป้ายโฆษณา</TableHead>
@@ -622,13 +696,49 @@ const IssueGoods = () => {
                                     <TableBody>
                                       {items.map((item) => {
                                         const availableStock = getAvailableStock(item.equipment_id);
+                                        const locationInfo = getLocationInfoForItem(item.equipment_id);
                                         return (
                                           <TableRow key={item.id}>
+                                            <TableCell>
+                                              {item.equipment_id && (
+                                                <Button
+                                                  variant="ghost"
+                                                  size="icon"
+                                                  className="h-8 w-8"
+                                                  onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    handleViewEquipmentImages(item.equipment_id!, item.equipment_name || item.equipment_code || "สินค้า");
+                                                  }}
+                                                >
+                                                  <Image className="h-4 w-4 text-primary" />
+                                                </Button>
+                                              )}
+                                            </TableCell>
                                             <TableCell>
                                               {item.equipment_code && <div className="font-medium">{item.equipment_code}</div>}
                                               <div className="text-sm text-muted-foreground">{item.equipment_name || "-"}</div>
                                             </TableCell>
                                             <TableCell>{item.serial_number || "-"}</TableCell>
+                                            <TableCell>
+                                              {locationInfo ? (
+                                                <div className="flex items-center gap-1">
+                                                  <Warehouse className="h-3 w-3 text-muted-foreground" />
+                                                  <span className="text-sm font-medium">{locationInfo.warehouseName}</span>
+                                                </div>
+                                              ) : (
+                                                <span className="text-muted-foreground text-sm">-</span>
+                                              )}
+                                            </TableCell>
+                                            <TableCell>
+                                              {locationInfo ? (
+                                                <div className="flex items-center gap-1">
+                                                  <MapPin className="h-3 w-3 text-muted-foreground" />
+                                                  <span className="text-sm font-medium">{locationInfo.locationName}</span>
+                                                </div>
+                                              ) : (
+                                                <span className="text-muted-foreground text-sm">-</span>
+                                              )}
+                                            </TableCell>
                                             <TableCell className="text-right">
                                               <div>{item.quantity} {item.unit}</div>
                                               {item.issued_quantity && item.issued_quantity > 0 && (
@@ -654,12 +764,28 @@ const IssueGoods = () => {
                                             </TableCell>
                                             <TableCell>{getStatusBadge(item.status)}</TableCell>
                                             <TableCell className="text-center">
-                                              {(item.status === "pending" || item.status === "waiting_stock") && (
-                                                <Button size="sm" onClick={(e) => { e.stopPropagation(); handleIssueItem(item); }}>
-                                                  <CheckCircle className="h-4 w-4 mr-1" />
-                                                  {item.status === "waiting_stock" ? "จ่ายต่อ" : "จ่าย"}
-                                                </Button>
-                                              )}
+                                              <div className="flex items-center justify-center gap-1">
+                                                {(item.status === "pending" || item.status === "waiting_stock") && (
+                                                  <>
+                                                    <Button size="sm" onClick={(e) => { e.stopPropagation(); handleIssueItem(item); }}>
+                                                      <CheckCircle className="h-4 w-4 mr-1" />
+                                                      {item.status === "waiting_stock" ? "จ่ายต่อ" : "จ่าย"}
+                                                    </Button>
+                                                    <Button
+                                                      size="sm"
+                                                      variant="outline"
+                                                      className="text-destructive hover:text-destructive"
+                                                      onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setSelectedItemForReject(item);
+                                                        setItemRejectDialogOpen(true);
+                                                      }}
+                                                    >
+                                                      <XCircle className="h-4 w-4" />
+                                                    </Button>
+                                                  </>
+                                                )}
+                                              </div>
                                             </TableCell>
                                           </TableRow>
                                         );
@@ -681,9 +807,9 @@ const IssueGoods = () => {
         </Card>
       </div>
 
-      {/* Issue Item Dialog */}
+      {/* Issue Item Dialog - Fixed without scrollbar */}
       <Dialog open={itemIssueDialogOpen} onOpenChange={setItemIssueDialogOpen}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>จ่ายสินค้า - {selectedItem?.equipment_code || selectedItem?.equipment_name}</DialogTitle>
           </DialogHeader>
@@ -898,28 +1024,85 @@ const IssueGoods = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Equipment Image Dialog */}
+      {/* Equipment Image Dialog - Full size images */}
       <Dialog open={imageDialogOpen} onOpenChange={setImageDialogOpen}>
-        <DialogContent className="max-w-3xl">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Image className="h-5 w-5" />
               รูปภาพ: {selectedEquipmentName}
             </DialogTitle>
           </DialogHeader>
-          <ScrollArea className="max-h-[60vh]">
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 p-4">
-              {selectedEquipmentImages.map((url, index) => (
-                <div key={index} className="relative aspect-square border rounded-lg overflow-hidden">
-                  <img
-                    src={url}
-                    alt={`${selectedEquipmentName} - ${index + 1}`}
-                    className="object-cover w-full h-full"
-                  />
+          <div className="space-y-4 p-2">
+            {selectedEquipmentImages.map((url, index) => (
+              <div key={index} className="border rounded-lg overflow-hidden">
+                <img
+                  src={url}
+                  alt={`${selectedEquipmentName} - ${index + 1}`}
+                  className="w-full h-auto object-contain"
+                />
+              </div>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Item Reject Dialog */}
+      <Dialog open={itemRejectDialogOpen} onOpenChange={setItemRejectDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <XCircle className="h-5 w-5 text-destructive" />
+              ปฏิเสธรายการสินค้า
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="p-4 bg-muted rounded-lg">
+              <div className="grid grid-cols-2 gap-2 text-sm">
+                <div>
+                  <Label className="text-muted-foreground">รหัสสินค้า</Label>
+                  <p className="font-medium">{selectedItemForReject?.equipment_code || "-"}</p>
                 </div>
-              ))}
+                <div>
+                  <Label className="text-muted-foreground">ชื่อสินค้า</Label>
+                  <p className="font-medium">{selectedItemForReject?.equipment_name || "-"}</p>
+                </div>
+                <div>
+                  <Label className="text-muted-foreground">จำนวนที่ขอ</Label>
+                  <p className="font-medium">{selectedItemForReject?.quantity} {selectedItemForReject?.unit}</p>
+                </div>
+                <div>
+                  <Label className="text-muted-foreground">คงเหลือในคลัง</Label>
+                  <p className="font-medium">
+                    {selectedItemForReject?.equipment_id ? getAvailableStock(selectedItemForReject.equipment_id) : "-"}
+                  </p>
+                </div>
+              </div>
             </div>
-          </ScrollArea>
+
+            <div className="space-y-2">
+              <Label htmlFor="item_reject_reason">เหตุผลในการปฏิเสธรายการนี้ *</Label>
+              <Textarea
+                id="item_reject_reason"
+                value={itemRejectReason}
+                onChange={(e) => setItemRejectReason(e.target.value)}
+                placeholder="เช่น สินค้าหมด, ไม่มีในคลัง, ต้องรอสั่งซื้อ..."
+                rows={3}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setItemRejectDialogOpen(false); setItemRejectReason(""); }}>
+              ยกเลิก
+            </Button>
+            <Button 
+              variant="destructive" 
+              onClick={() => rejectItem.mutate()}
+              disabled={!itemRejectReason || rejectItem.isPending}
+            >
+              {rejectItem.isPending ? "กำลังบันทึก..." : "ยืนยันการปฏิเสธ"}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </>
