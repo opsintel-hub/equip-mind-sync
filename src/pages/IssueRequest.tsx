@@ -28,6 +28,7 @@ interface EquipmentWithDetails {
   expiry_date: string | null;
   warranty_expiry_date: string | null;
   warehouse_entry_date: string;
+  is_media_player?: boolean;
 }
 
 interface IssuePurpose {
@@ -109,7 +110,7 @@ const IssueRequest = () => {
   const advanceDays = customAdvanceDays || notificationSettings?.advance_days || 30;
 
   // Fetch equipment with full details including expiry dates
-  const { data: equipment } = useQuery({
+  const { data: equipmentData } = useQuery({
     queryKey: ["equipment-active-full"],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -122,6 +123,39 @@ const IssueRequest = () => {
       return data as EquipmentWithDetails[];
     },
   });
+
+  // Fetch media players for issuing
+  const { data: mediaPlayersData } = useQuery({
+    queryKey: ["media-players-active-for-issue"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("media_players")
+        .select("id, code, name, unit, quantity, serial_number_1, warranty_expiry_date, created_at")
+        .eq("is_active", true)
+        .gt("quantity", 0)
+        .order("created_at", { ascending: true });
+      if (error) throw error;
+      // Map to EquipmentWithDetails format
+      return data.map(mp => ({
+        id: mp.id,
+        code: mp.code,
+        name: mp.name,
+        unit: mp.unit,
+        quantity_in_stock: mp.quantity,
+        serial_number: mp.serial_number_1,
+        expiry_date: null,
+        warranty_expiry_date: mp.warranty_expiry_date,
+        warehouse_entry_date: mp.created_at?.split('T')[0] || new Date().toISOString().split('T')[0],
+        is_media_player: true,
+      })) as EquipmentWithDetails[];
+    },
+  });
+
+  // Combine equipment and media players
+  const equipment = [
+    ...(equipmentData || []),
+    ...(mediaPlayersData || []),
+  ].sort((a, b) => a.warehouse_entry_date.localeCompare(b.warehouse_entry_date));
 
   // Fetch issue purposes
   const { data: purposes } = useQuery({
@@ -561,6 +595,9 @@ const IssueRequest = () => {
                   className="p-2 rounded-lg border border-warning/30 bg-background cursor-pointer hover:bg-muted/50 transition-colors"
                   onClick={() => handleEquipmentSelect(eq.id)}
                 >
+                  {eq.is_media_player && (
+                    <Badge variant="outline" className="text-[10px] bg-blue-50 text-blue-700 border-blue-200 mb-1">MP</Badge>
+                  )}
                   <div className="font-medium text-xs truncate">{eq.code}</div>
                   <div className="text-xs text-muted-foreground truncate">{eq.name}</div>
                   {eq.serial_number && (
@@ -740,6 +777,9 @@ const IssueRequest = () => {
                           return (
                             <SelectItem key={eq.id} value={eq.id}>
                               <div className="flex items-center gap-2">
+                                {eq.is_media_player && (
+                                  <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200">Media Player</Badge>
+                                )}
                                 <span className="font-medium">{eq.code}</span>
                                 <span className="text-muted-foreground">- {eq.name}</span>
                                 <span className="text-sm text-muted-foreground">[คงเหลือ: {eq.quantity_in_stock}]</span>
