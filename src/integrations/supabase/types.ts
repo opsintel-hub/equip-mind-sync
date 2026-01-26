@@ -1048,11 +1048,13 @@ export type Database = {
           equipment_name: string | null
           id: string
           is_complete: boolean | null
+          is_media_player: boolean | null
           issued_at: string | null
           issued_by: string | null
           issued_location_id: string | null
           issued_quantity: number | null
           last_partial_issue_at: string | null
+          media_player_id: string | null
           notes: string | null
           partial_issue_count: number | null
           purpose: string | null
@@ -1082,11 +1084,13 @@ export type Database = {
           equipment_name?: string | null
           id?: string
           is_complete?: boolean | null
+          is_media_player?: boolean | null
           issued_at?: string | null
           issued_by?: string | null
           issued_location_id?: string | null
           issued_quantity?: number | null
           last_partial_issue_at?: string | null
+          media_player_id?: string | null
           notes?: string | null
           partial_issue_count?: number | null
           purpose?: string | null
@@ -1116,11 +1120,13 @@ export type Database = {
           equipment_name?: string | null
           id?: string
           is_complete?: boolean | null
+          is_media_player?: boolean | null
           issued_at?: string | null
           issued_by?: string | null
           issued_location_id?: string | null
           issued_quantity?: number | null
           last_partial_issue_at?: string | null
+          media_player_id?: string | null
           notes?: string | null
           partial_issue_count?: number | null
           purpose?: string | null
@@ -1162,6 +1168,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "goods_issue_pending_media_player_id_fkey"
+            columns: ["media_player_id"]
+            isOneToOne: false
+            referencedRelation: "media_players"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "goods_issue_pending_purpose_id_fkey"
             columns: ["purpose_id"]
             isOneToOne: false
@@ -1178,7 +1191,9 @@ export type Database = {
           equipment_id: string | null
           equipment_name: string | null
           id: string
+          is_media_player: boolean | null
           issued_quantity: number | null
+          media_player_id: string | null
           notes: string | null
           pending_id: string
           quantity: number
@@ -1194,7 +1209,9 @@ export type Database = {
           equipment_id?: string | null
           equipment_name?: string | null
           id?: string
+          is_media_player?: boolean | null
           issued_quantity?: number | null
+          media_player_id?: string | null
           notes?: string | null
           pending_id: string
           quantity?: number
@@ -1210,7 +1227,9 @@ export type Database = {
           equipment_id?: string | null
           equipment_name?: string | null
           id?: string
+          is_media_player?: boolean | null
           issued_quantity?: number | null
+          media_player_id?: string | null
           notes?: string | null
           pending_id?: string
           quantity?: number
@@ -1232,6 +1251,13 @@ export type Database = {
             columns: ["equipment_id"]
             isOneToOne: false
             referencedRelation: "equipment"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "goods_issue_pending_items_media_player_id_fkey"
+            columns: ["media_player_id"]
+            isOneToOne: false
+            referencedRelation: "media_players"
             referencedColumns: ["id"]
           },
         ]
