@@ -13,12 +13,33 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Download, Package, AlertTriangle, XCircle, CheckCircle } from "lucide-react";
+import { Download, Package, AlertTriangle, XCircle, CheckCircle, Monitor } from "lucide-react";
 import { InventoryFilters, InventoryFiltersState } from "@/components/inventory/InventoryFilters";
 import * as XLSX from "xlsx";
 import { toast } from "sonner";
 
 const ITEMS_PER_PAGE = 50;
+
+// Unified inventory item type
+interface InventoryItem {
+  id: string;
+  code: string;
+  name: string;
+  category: string;
+  brand: string | null;
+  department: string | null;
+  quantity_in_stock: number;
+  min_stock_level: number;
+  unit: string;
+  unit_price: number;
+  company_id: string | null;
+  location_id: string | null;
+  subcategory_id: string | null;
+  companies: { id: string; name: string; code: string } | null;
+  locations: { id: string; name: string; code: string; warehouse_id: string; warehouses: { id: string; name: string; code: string } | null } | null;
+  subcategories: { id: string; name: string; category_id: string } | null;
+  is_media_player: boolean;
+}
 
 export default function InventoryReport() {
   const [filters, setFilters] = useState<InventoryFiltersState>({
@@ -30,6 +51,7 @@ export default function InventoryReport() {
     locationId: "",
     stockStatus: "",
     search: "",
+    itemType: "",
   });
   const [currentPage, setCurrentPage] = useState(1);
 
@@ -55,9 +77,12 @@ export default function InventoryReport() {
   }, [categories]);
 
   // Fetch equipment with related data
-  const { data: equipmentData, isLoading } = useQuery({
-    queryKey: ["inventory-report", filters],
+  const { data: equipmentData = [], isLoading: isLoadingEquipment } = useQuery({
+    queryKey: ["inventory-report-equipment", filters],
     queryFn: async () => {
+      // Skip if filtering for media players only
+      if (filters.itemType === "media_player") return [];
+
       let query = supabase
         .from("equipment")
         .select(`
@@ -102,18 +127,105 @@ export default function InventoryReport() {
 
       const { data, error } = await query;
       if (error) throw error;
-      return data || [];
+      
+      // Transform to unified format
+      return (data || []).map((item): InventoryItem => ({
+        ...item,
+        quantity_in_stock: item.quantity_in_stock || 0,
+        min_stock_level: item.min_stock_level || 0,
+        is_media_player: false,
+      }));
     },
+    enabled: filters.itemType !== "media_player",
   });
+
+  // Fetch media players with related data
+  const { data: mediaPlayerData = [], isLoading: isLoadingMediaPlayers } = useQuery({
+    queryKey: ["inventory-report-media-players", filters],
+    queryFn: async () => {
+      // Skip if filtering for equipment only
+      if (filters.itemType === "equipment") return [];
+
+      let query = supabase
+        .from("media_players")
+        .select(`
+          id,
+          code,
+          name,
+          brand,
+          department,
+          quantity,
+          unit,
+          unit_price,
+          company_id,
+          location_id,
+          companies:company_id (id, name, code),
+          locations:location_id (id, name, code, warehouse_id, warehouses:warehouse_id (id, name, code))
+        `)
+        .eq("is_active", true)
+        .order("code");
+
+      // Apply filters
+      if (filters.companyId) {
+        query = query.eq("company_id", filters.companyId);
+      }
+      if (filters.department) {
+        query = query.eq("department", filters.department);
+      }
+      if (filters.locationId) {
+        query = query.eq("location_id", filters.locationId);
+      }
+      if (filters.search) {
+        query = query.or(
+          `code.ilike.%${filters.search}%,name.ilike.%${filters.search}%,brand.ilike.%${filters.search}%`
+        );
+      }
+
+      const { data, error } = await query;
+      if (error) throw error;
+      
+      // Transform to unified format
+      return (data || []).map((item): InventoryItem => ({
+        id: item.id,
+        code: item.code,
+        name: item.name,
+        category: "Media Player",
+        brand: item.brand,
+        department: item.department,
+        quantity_in_stock: item.quantity || 0,
+        min_stock_level: 0, // Media players don't have min stock
+        unit: item.unit,
+        unit_price: item.unit_price || 0,
+        company_id: item.company_id,
+        location_id: item.location_id,
+        subcategory_id: null,
+        companies: item.companies as InventoryItem["companies"],
+        locations: item.locations as InventoryItem["locations"],
+        subcategories: null,
+        is_media_player: true,
+      }));
+    },
+    enabled: filters.itemType !== "equipment",
+  });
+
+  // Combine equipment and media player data
+  const combinedData = useMemo(() => {
+    return [...equipmentData, ...mediaPlayerData];
+  }, [equipmentData, mediaPlayerData]);
+
+  const isLoading = isLoadingEquipment || isLoadingMediaPlayers;
 
   // Apply client-side filters and transform data
   const filteredData = useMemo(() => {
-    if (!equipmentData) return [];
+    if (!combinedData) return [];
 
-    return equipmentData.filter((item) => {
+    return combinedData.filter((item) => {
       // Filter by category (need to check subcategory's category_id)
       if (filters.categoryId) {
-        const subcat = item.subcategories as { category_id: string } | null;
+        // Media players don't have subcategories, so skip them if category filter is set
+        if (item.is_media_player) return false;
+        
+        const subcat = item.subcategories;
         if (!subcat || subcat.category_id !== filters.categoryId) {
           // Also check if category text matches category name
           const categoryName = categoryMap[filters.categoryId];
@@ -123,9 +235,14 @@ export default function InventoryReport() {
         }
       }
 
+      // Filter by subcategory (media players don't have subcategories)
+      if (filters.subcategoryId && item.is_media_player) {
+        return false;
+      }
+
       // Filter by warehouse (through location)
       if (filters.warehouseId) {
-        const location = item.locations as { warehouse_id: string } | null;
+        const location = item.locations;
         if (!location || location.warehouse_id !== filters.warehouseId) {
           return false;
         }
@@ -133,8 +250,8 @@ export default function InventoryReport() {
 
       // Filter by stock status
       if (filters.stockStatus) {
-        const qty = item.quantity_in_stock || 0;
-        const minStock = item.min_stock_level || 0;
+        const qty = item.quantity_in_stock;
+        const minStock = item.min_stock_level;
 
         if (filters.stockStatus === "out" && qty > 0) return false;
         if (filters.stockStatus === "low" && (qty === 0 || qty > minStock)) return false;
@@ -143,7 +260,7 @@ export default function InventoryReport() {
 
       return true;
     });
-  }, [equipmentData, filters, categoryMap]);
+  }, [combinedData, filters, categoryMap]);
 
   // Pagination
   const totalPages = Math.ceil(filteredData.length / ITEMS_PER_PAGE);
@@ -191,19 +308,16 @@ export default function InventoryReport() {
     }
 
     const exportData = filteredData.map((item) => {
-      const company = item.companies as { name: string; code: string } | null;
-      const location = item.locations as {
-        name: string;
-        code: string;
-        warehouses: { name: string; code: string } | null;
-      } | null;
-      const subcategory = item.subcategories as { name: string } | null;
+      const company = item.companies;
+      const location = item.locations;
+      const subcategory = item.subcategories;
       const status = getStockStatus(
-        item.quantity_in_stock || 0,
-        item.min_stock_level || 0
+        item.quantity_in_stock,
+        item.min_stock_level
       );
 
       return {
+        ประเภท: item.is_media_player ? "Media Player" : "อะไหล่",
         รหัส: item.code,
         ชื่อ: item.name,
         หมวดหมู่: item.category,
@@ -215,11 +329,11 @@ export default function InventoryReport() {
           ? `${location.warehouses.code} - ${location.warehouses.name}`
           : "-",
         ตำแหน่งจัดเก็บ: location ? `${location.code} - ${location.name}` : "-",
-        จำนวนคงเหลือ: item.quantity_in_stock || 0,
+        จำนวนคงเหลือ: item.quantity_in_stock,
         หน่วย: item.unit,
-        "Min Stock": item.min_stock_level || 0,
-        ราคาต่อหน่วย: item.unit_price || 0,
-        มูลค่ารวม: (item.quantity_in_stock || 0) * (item.unit_price || 0),
+        "Min Stock": item.min_stock_level,
+        ราคาต่อหน่วย: item.unit_price,
+        มูลค่ารวม: item.quantity_in_stock * item.unit_price,
         สถานะ: status.label,
       };
     });
@@ -341,6 +455,7 @@ export default function InventoryReport() {
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead>ประเภท</TableHead>
                     <TableHead>รหัส</TableHead>
                     <TableHead>ชื่อ</TableHead>
                     <TableHead>หมวดหมู่</TableHead>
@@ -355,32 +470,41 @@ export default function InventoryReport() {
                 <TableBody>
                   {isLoading ? (
                     <TableRow>
-                      <TableCell colSpan={9} className="text-center py-8">
+                      <TableCell colSpan={10} className="text-center py-8">
                         กำลังโหลด...
                       </TableCell>
                     </TableRow>
                   ) : paginatedData.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
+                      <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
                         ไม่พบข้อมูล
                       </TableCell>
                     </TableRow>
                   ) : (
                     paginatedData.map((item) => {
-                      const company = item.companies as { name: string; code: string } | null;
-                      const location = item.locations as {
-                        name: string;
-                        code: string;
-                        warehouses: { name: string; code: string } | null;
-                      } | null;
+                      const company = item.companies;
+                      const location = item.locations;
                       const status = getStockStatus(
-                        item.quantity_in_stock || 0,
-                        item.min_stock_level || 0
+                        item.quantity_in_stock,
+                        item.min_stock_level
                       );
                       const StatusIcon = status.icon;
 
                       return (
                         <TableRow key={item.id}>
+                          <TableCell>
+                            {item.is_media_player ? (
+                              <Badge variant="secondary" className="bg-blue-100 text-blue-700">
+                                <Monitor className="h-3 w-3 mr-1" />
+                                Media Player
+                              </Badge>
+                            ) : (
+                              <Badge variant="outline">
+                                <Package className="h-3 w-3 mr-1" />
+                                อะไหล่
+                              </Badge>
+                            )}
+                          </TableCell>
                           <TableCell className="font-mono text-sm">{item.code}</TableCell>
                           <TableCell>
                             <div>
@@ -412,10 +536,10 @@ export default function InventoryReport() {
                             )}
                           </TableCell>
                           <TableCell className="text-right font-medium">
-                            {(item.quantity_in_stock || 0).toLocaleString()} {item.unit}
+                            {item.quantity_in_stock.toLocaleString()} {item.unit}
                           </TableCell>
                           <TableCell className="text-right text-muted-foreground">
-                            {(item.min_stock_level || 0).toLocaleString()}
+                            {item.min_stock_level.toLocaleString()}
                           </TableCell>
                           <TableCell>
                             <Badge
