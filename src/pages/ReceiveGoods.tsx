@@ -340,19 +340,46 @@ const ReceiveGoods = () => {
 
       // Handle differently based on whether it's Media Player or Equipment
       if (isMediaPlayer) {
-        // Update Media Player location
+        // Fetch current Media Player stock FIRST
+        const { data: currentMediaPlayer, error: fetchMpError } = await supabase
+          .from("media_players")
+          .select("quantity, code, name")
+          .eq("id", (selectedReceipt as any).media_player_id)
+          .single();
+
+        if (fetchMpError) throw fetchMpError;
+
+        const currentStock = currentMediaPlayer?.quantity || 0;
+        const newStock = currentStock + receivedQuantity;
+
+        // Update Media Player stock and location (same as equipment)
         const { error: mpError } = await supabase
           .from("media_players")
           .update({
+            quantity: newStock,
             location_id: storageLocation.locationId,
           })
           .eq("id", (selectedReceipt as any).media_player_id);
 
         if (mpError) {
           console.error("Media Player update error:", mpError);
-          toast.warning("รับสินค้าสำเร็จแต่ไม่สามารถอัปเดตตำแหน่ง Media Player ได้");
+          toast.warning("รับสินค้าสำเร็จแต่ไม่สามารถอัปเดต Stock Media Player ได้");
         } else {
-          toast.success(`รับ Media Player เข้าคลังสำเร็จ`);
+          // Log stock movement for Media Player
+          await logStockMovement({
+            equipment_id: (selectedReceipt as any).media_player_id!,
+            equipment_code: currentMediaPlayer?.code || selectedReceipt.equipment_code || "",
+            equipment_name: currentMediaPlayer?.name || selectedReceipt.equipment_name || "",
+            movement_type: "receive",
+            quantity: receivedQuantity,
+            stock_before: currentStock,
+            stock_after: newStock,
+            reference_type: "goods_receipt",
+            reference_document: selectedReceipt.document_no,
+            location_id: storageLocation.locationId,
+            notes: `Media Player - ${editNotes || ""}`.trim(),
+          });
+          toast.success(`รับ Media Player เข้าคลังสำเร็จ (Stock: ${currentStock} → ${newStock})`);
         }
       } else {
         // Fetch current equipment stock FIRST
@@ -477,13 +504,43 @@ const ReceiveGoods = () => {
           if (updateError) throw updateError;
 
           if (isMediaPlayer) {
-            // Update Media Player location
-            await supabase
+            // Fetch current Media Player stock
+            const { data: currentMediaPlayer, error: fetchMpError } = await supabase
+              .from("media_players")
+              .select("quantity, code, name")
+              .eq("id", (receipt as any).media_player_id)
+              .single();
+
+            if (fetchMpError) throw fetchMpError;
+
+            const currentMpStock = currentMediaPlayer?.quantity || 0;
+            const newMpStock = currentMpStock + receivedQuantity;
+
+            // Update Media Player stock and location (same as equipment)
+            const { error: mpError } = await supabase
               .from("media_players")
               .update({
+                quantity: newMpStock,
                 location_id: storageLocation.locationId,
               })
               .eq("id", (receipt as any).media_player_id);
+
+            if (!mpError) {
+              // Log stock movement for Media Player
+              await logStockMovement({
+                equipment_id: (receipt as any).media_player_id!,
+                equipment_code: currentMediaPlayer?.code || receipt.equipment_code || "",
+                equipment_name: currentMediaPlayer?.name || receipt.equipment_name || "",
+                movement_type: "receive",
+                quantity: receivedQuantity,
+                stock_before: currentMpStock,
+                stock_after: newMpStock,
+                reference_type: "goods_receipt",
+                reference_document: receipt.document_no,
+                location_id: storageLocation.locationId,
+                notes: `Media Player - ${editNotes || ""}`.trim(),
+              });
+            }
           } else {
             // Fetch current equipment stock
             const { data: currentEquipment, error: fetchError } = await supabase
