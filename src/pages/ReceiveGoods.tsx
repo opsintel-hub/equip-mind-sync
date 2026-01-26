@@ -278,8 +278,16 @@ const ReceiveGoods = () => {
   const handleReceive = async () => {
     if (!selectedReceipt) return;
     
-    if (!selectedReceipt.equipment_id) {
-      toast.error("ไม่พบสินค้าในระบบ");
+    // Check if it's a Media Player or regular equipment
+    const isMediaPlayer = (selectedReceipt as any).is_media_player;
+    
+    if (!isMediaPlayer && !selectedReceipt.equipment_id) {
+      toast.error("ไม่พบสินค้าในระบบ กรุณาสร้างสินค้าก่อน");
+      return;
+    }
+    
+    if (isMediaPlayer && !(selectedReceipt as any).media_player_id) {
+      toast.error("ไม่พบ Media Player ในระบบ กรุณาสร้าง Media Player ก่อน");
       return;
     }
 
@@ -293,21 +301,8 @@ const ReceiveGoods = () => {
     try {
       // Get supplier from receipt
       const selectedSupp = suppliers.find(s => s.id === selectedReceipt.supplier_id);
-
-      // Fetch current equipment stock FIRST
-      const { data: currentEquipment, error: fetchError } = await supabase
-        .from("equipment")
-        .select("quantity_in_stock")
-        .eq("id", selectedReceipt.equipment_id)
-        .single();
-
-      if (fetchError) throw fetchError;
-
-      const currentStock = currentEquipment?.quantity_in_stock || 0;
-      const receivedQuantity = selectedReceipt.quantity;
-      const newStock = currentStock + receivedQuantity;
-
       const storageVolumeValue = storageVolumeCm3 ? parseFloat(storageVolumeCm3) : null;
+      const receivedQuantity = selectedReceipt.quantity;
 
       // Update pending receipt status
       const { error: updateError } = await supabase
@@ -343,54 +338,84 @@ const ReceiveGoods = () => {
           .eq("id", storageLocation.locationId);
       }
 
-      // Create goods receipt record
-      const { error: grError } = await supabase
-        .from("goods_receipt")
-        .insert({
-          document_no: generateGRDocumentNo(),
-          equipment_id: selectedReceipt.equipment_id,
-          quantity: receivedQuantity,
-          supplier: selectedSupp?.name || selectedReceipt.supplier_name || "ไม่ระบุ",
-          location_id: storageLocation.locationId,
-          receipt_date: new Date().toISOString().split("T")[0],
-          created_by: user?.id || "",
-          notes: `นำเข้าจากเอกสาร ${selectedReceipt.document_no}. ${editNotes || ""}`.trim(),
-          status: "completed",
-          unit_price: selectedReceipt.unit_price || null
-        });
+      // Handle differently based on whether it's Media Player or Equipment
+      if (isMediaPlayer) {
+        // Update Media Player location
+        const { error: mpError } = await supabase
+          .from("media_players")
+          .update({
+            location_id: storageLocation.locationId,
+          })
+          .eq("id", (selectedReceipt as any).media_player_id);
 
-      if (grError) throw grError;
-
-      // Update equipment stock - ADD to existing stock
-      const { error: stockError } = await supabase
-        .from("equipment")
-        .update({
-          quantity_in_stock: newStock,
-          location_id: storageLocation.locationId,
-          expiry_date: selectedReceipt.expiry_date || null
-        })
-        .eq("id", selectedReceipt.equipment_id);
-
-      if (stockError) {
-        console.error("Stock update error:", stockError);
-        toast.warning("รับสินค้าสำเร็จแต่ไม่สามารถอัปเดต Stock ได้");
+        if (mpError) {
+          console.error("Media Player update error:", mpError);
+          toast.warning("รับสินค้าสำเร็จแต่ไม่สามารถอัปเดตตำแหน่ง Media Player ได้");
+        } else {
+          toast.success(`รับ Media Player เข้าคลังสำเร็จ`);
+        }
       } else {
-        // Log stock movement
-        const selectedEquipment = equipment.find(e => e.id === selectedReceipt.equipment_id);
-        await logStockMovement({
-          equipment_id: selectedReceipt.equipment_id!,
-          equipment_code: selectedEquipment?.code || selectedReceipt.equipment_code || "",
-          equipment_name: selectedEquipment?.name || selectedReceipt.equipment_name || "",
-          movement_type: "receive",
-          quantity: receivedQuantity,
-          stock_before: currentStock,
-          stock_after: newStock,
-          reference_type: "goods_receipt",
-          reference_document: selectedReceipt.document_no,
-          location_id: storageLocation.locationId,
-          notes: editNotes || undefined,
-        });
-        toast.success(`รับสินค้าเข้าคลังสำเร็จ (Stock: ${currentStock} → ${newStock})`);
+        // Fetch current equipment stock FIRST
+        const { data: currentEquipment, error: fetchError } = await supabase
+          .from("equipment")
+          .select("quantity_in_stock")
+          .eq("id", selectedReceipt.equipment_id)
+          .single();
+
+        if (fetchError) throw fetchError;
+
+        const currentStock = currentEquipment?.quantity_in_stock || 0;
+        const newStock = currentStock + receivedQuantity;
+
+        // Create goods receipt record
+        const { error: grError } = await supabase
+          .from("goods_receipt")
+          .insert({
+            document_no: generateGRDocumentNo(),
+            equipment_id: selectedReceipt.equipment_id,
+            quantity: receivedQuantity,
+            supplier: selectedSupp?.name || selectedReceipt.supplier_name || "ไม่ระบุ",
+            location_id: storageLocation.locationId,
+            receipt_date: new Date().toISOString().split("T")[0],
+            created_by: user?.id || "",
+            notes: `นำเข้าจากเอกสาร ${selectedReceipt.document_no}. ${editNotes || ""}`.trim(),
+            status: "completed",
+            unit_price: selectedReceipt.unit_price || null
+          });
+
+        if (grError) throw grError;
+
+        // Update equipment stock - ADD to existing stock
+        const { error: stockError } = await supabase
+          .from("equipment")
+          .update({
+            quantity_in_stock: newStock,
+            location_id: storageLocation.locationId,
+            expiry_date: selectedReceipt.expiry_date || null
+          })
+          .eq("id", selectedReceipt.equipment_id);
+
+        if (stockError) {
+          console.error("Stock update error:", stockError);
+          toast.warning("รับสินค้าสำเร็จแต่ไม่สามารถอัปเดต Stock ได้");
+        } else {
+          // Log stock movement
+          const selectedEquipment = equipment.find(e => e.id === selectedReceipt.equipment_id);
+          await logStockMovement({
+            equipment_id: selectedReceipt.equipment_id!,
+            equipment_code: selectedEquipment?.code || selectedReceipt.equipment_code || "",
+            equipment_name: selectedEquipment?.name || selectedReceipt.equipment_name || "",
+            movement_type: "receive",
+            quantity: receivedQuantity,
+            stock_before: currentStock,
+            stock_after: newStock,
+            reference_type: "goods_receipt",
+            reference_document: selectedReceipt.document_no,
+            location_id: storageLocation.locationId,
+            notes: editNotes || undefined,
+          });
+          toast.success(`รับสินค้าเข้าคลังสำเร็จ (Stock: ${currentStock} → ${newStock})`);
+        }
       }
 
       setIsDialogOpen(false);
@@ -406,10 +431,17 @@ const ReceiveGoods = () => {
   const handleBatchReceive = async () => {
     if (batchReceipts.length === 0) return;
     
-    // Check all items have equipment_id
-    const itemsWithoutEquipment = batchReceipts.filter(r => !r.equipment_id);
+    // Check all items have equipment_id or media_player_id
+    const itemsWithoutEquipment = batchReceipts.filter(r => {
+      const isMediaPlayer = (r as any).is_media_player;
+      if (isMediaPlayer) {
+        return !(r as any).media_player_id;
+      }
+      return !r.equipment_id;
+    });
+    
     if (itemsWithoutEquipment.length > 0) {
-      toast.error(`มี ${itemsWithoutEquipment.length} รายการที่ยังไม่มีสินค้าในระบบ กรุณาสร้างสินค้าก่อน`);
+      toast.error(`มี ${itemsWithoutEquipment.length} รายการที่ยังไม่มีสินค้า/Media Player ในระบบ กรุณาสร้างก่อน`);
       return;
     }
 
@@ -427,19 +459,8 @@ const ReceiveGoods = () => {
       for (const receipt of batchReceipts) {
         try {
           const selectedSupp = suppliers.find(s => s.id === receipt.supplier_id);
-
-          // Fetch current equipment stock
-          const { data: currentEquipment, error: fetchError } = await supabase
-            .from("equipment")
-            .select("quantity_in_stock")
-            .eq("id", receipt.equipment_id!)
-            .single();
-
-          if (fetchError) throw fetchError;
-
-          const currentStock = currentEquipment?.quantity_in_stock || 0;
+          const isMediaPlayer = (receipt as any).is_media_player;
           const receivedQuantity = receipt.quantity;
-          const newStock = currentStock + receivedQuantity;
 
           // Update pending receipt status
           const { error: updateError } = await supabase
@@ -455,49 +476,71 @@ const ReceiveGoods = () => {
 
           if (updateError) throw updateError;
 
-          // Create goods receipt record
-          const { error: grError } = await supabase
-            .from("goods_receipt")
-            .insert({
-              document_no: generateGRDocumentNo(),
-              equipment_id: receipt.equipment_id,
-              quantity: receivedQuantity,
-              supplier: selectedSupp?.name || receipt.supplier_name || "ไม่ระบุ",
-              location_id: storageLocation.locationId,
-              receipt_date: new Date().toISOString().split("T")[0],
-              created_by: user?.id || "",
-              notes: `นำเข้าจากเอกสาร ${receipt.document_no}. ${editNotes || ""}`.trim(),
-              status: "completed",
-              unit_price: receipt.unit_price || null
-            });
+          if (isMediaPlayer) {
+            // Update Media Player location
+            await supabase
+              .from("media_players")
+              .update({
+                location_id: storageLocation.locationId,
+              })
+              .eq("id", (receipt as any).media_player_id);
+          } else {
+            // Fetch current equipment stock
+            const { data: currentEquipment, error: fetchError } = await supabase
+              .from("equipment")
+              .select("quantity_in_stock")
+              .eq("id", receipt.equipment_id!)
+              .single();
 
-          if (grError) throw grError;
+            if (fetchError) throw fetchError;
 
-          // Update equipment stock
-          const { error: stockError } = await supabase
-            .from("equipment")
-            .update({
-              quantity_in_stock: newStock,
-              location_id: storageLocation.locationId,
-              expiry_date: receipt.expiry_date || null
-            })
-            .eq("id", receipt.equipment_id!);
+            const currentStock = currentEquipment?.quantity_in_stock || 0;
+            const newStock = currentStock + receivedQuantity;
 
-          if (!stockError) {
-            const selectedEquipment = equipment.find(e => e.id === receipt.equipment_id);
-            await logStockMovement({
-              equipment_id: receipt.equipment_id!,
-              equipment_code: selectedEquipment?.code || receipt.equipment_code || "",
-              equipment_name: selectedEquipment?.name || receipt.equipment_name || "",
-              movement_type: "receive",
-              quantity: receivedQuantity,
-              stock_before: currentStock,
-              stock_after: newStock,
-              reference_type: "goods_receipt",
-              reference_document: receipt.document_no,
-              location_id: storageLocation.locationId,
-              notes: editNotes || undefined,
-            });
+            // Create goods receipt record
+            const { error: grError } = await supabase
+              .from("goods_receipt")
+              .insert({
+                document_no: generateGRDocumentNo(),
+                equipment_id: receipt.equipment_id,
+                quantity: receivedQuantity,
+                supplier: selectedSupp?.name || receipt.supplier_name || "ไม่ระบุ",
+                location_id: storageLocation.locationId,
+                receipt_date: new Date().toISOString().split("T")[0],
+                created_by: user?.id || "",
+                notes: `นำเข้าจากเอกสาร ${receipt.document_no}. ${editNotes || ""}`.trim(),
+                status: "completed",
+                unit_price: receipt.unit_price || null
+              });
+
+            if (grError) throw grError;
+
+            // Update equipment stock
+            const { error: stockError } = await supabase
+              .from("equipment")
+              .update({
+                quantity_in_stock: newStock,
+                location_id: storageLocation.locationId,
+                expiry_date: receipt.expiry_date || null
+              })
+              .eq("id", receipt.equipment_id!);
+
+            if (!stockError) {
+              const selectedEquipment = equipment.find(e => e.id === receipt.equipment_id);
+              await logStockMovement({
+                equipment_id: receipt.equipment_id!,
+                equipment_code: selectedEquipment?.code || receipt.equipment_code || "",
+                equipment_name: selectedEquipment?.name || receipt.equipment_name || "",
+                movement_type: "receive",
+                quantity: receivedQuantity,
+                stock_before: currentStock,
+                stock_after: newStock,
+                reference_type: "goods_receipt",
+                reference_document: receipt.document_no,
+                location_id: storageLocation.locationId,
+                notes: editNotes || undefined,
+              });
+            }
           }
 
           successCount++;

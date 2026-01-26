@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { ChevronDown, ChevronRight, Clock, CheckCircle2, Edit, Package, Eye } from "lucide-react";
+import { ChevronDown, ChevronRight, Clock, CheckCircle2, Edit, Package, Eye, Monitor } from "lucide-react";
 import { format } from "date-fns";
 
 export interface PendingReceipt {
@@ -34,6 +34,8 @@ export interface PendingReceipt {
   unit_price: number | null;
   is_asset?: boolean | null;
   receipt_purpose_id?: string | null;
+  is_media_player?: boolean | null;
+  media_player_id?: string | null;
 }
 
 interface GroupedReceipts {
@@ -280,15 +282,27 @@ export const ReceiveGroupedItems = ({
                         </TableCell>
                         <TableCell>
                           <div>
-                            <p className="font-medium">{item.equipment_name || "-"}</p>
+                            <div className="flex items-center gap-2">
+                              {item.is_media_player && (
+                                <Monitor className="w-4 h-4 text-blue-500" />
+                              )}
+                              <p className="font-medium">{item.equipment_name || "-"}</p>
+                            </div>
                             {item.equipment_code && (
                               <p className="text-xs text-muted-foreground">{item.equipment_code}</p>
                             )}
-                            {!item.equipment_id && (
-                              <Badge variant="outline" className="text-warning border-warning text-xs mt-1">
-                                สินค้าใหม่
-                              </Badge>
-                            )}
+                            <div className="flex gap-1 mt-1">
+                              {item.is_media_player && (
+                                <Badge variant="secondary" className="bg-blue-500/10 text-blue-600 text-xs">
+                                  Media Player
+                                </Badge>
+                              )}
+                              {!item.equipment_id && !item.media_player_id && (
+                                <Badge variant="outline" className="text-warning border-warning text-xs">
+                                  สินค้าใหม่
+                                </Badge>
+                              )}
+                            </div>
                           </div>
                         </TableCell>
                         <TableCell>{item.quantity} {item.unit}</TableCell>
