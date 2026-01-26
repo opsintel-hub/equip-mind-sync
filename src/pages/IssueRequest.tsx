@@ -49,6 +49,8 @@ interface CartItem {
   serial_number: string;
   billboard_id: string;
   notes: string;
+  is_media_player?: boolean;
+  media_player_id?: string;
 }
 
 const IssueRequest = () => {
@@ -224,9 +226,13 @@ const IssueRequest = () => {
       return;
     }
 
+    // Check if selected item is a Media Player
+    const selectedEquipment = equipment?.find(e => e.id === currentItem.equipment_id);
+    const isMediaPlayer = selectedEquipment?.is_media_player || false;
+
     const newItem: CartItem = {
       id: crypto.randomUUID(),
-      equipment_id: currentItem.equipment_id,
+      equipment_id: isMediaPlayer ? "" : currentItem.equipment_id,
       equipment_code: currentItem.equipment_code,
       equipment_name: currentItem.equipment_name,
       quantity: parseInt(currentItem.quantity),
@@ -234,6 +240,8 @@ const IssueRequest = () => {
       serial_number: currentItem.serial_number,
       billboard_id: currentItem.billboard_id,
       notes: currentItem.notes,
+      is_media_player: isMediaPlayer,
+      media_player_id: isMediaPlayer ? currentItem.equipment_id : undefined,
     };
 
     setCartItems([...cartItems, newItem]);
@@ -267,6 +275,9 @@ const IssueRequest = () => {
 
       const purposeName = purposes?.find((p) => p.id === headerData.purpose_id)?.name || headerData.purpose;
       
+      // Check if first item is a Media Player
+      const firstItemIsMediaPlayer = cartItems[0]?.is_media_player || false;
+      
       // Create header record
       const { data: headerRecord, error: headerError } = await supabase
         .from("goods_issue_pending")
@@ -280,8 +291,10 @@ const IssueRequest = () => {
           notes: headerData.notes || null,
           total_items: cartItems.length,
           company_id: headerData.company_id || null,
-          // Keep first item's data for backward compatibility
-          equipment_id: cartItems[0]?.equipment_id || null,
+          // Keep first item's data for backward compatibility (null for Media Player)
+          equipment_id: firstItemIsMediaPlayer ? null : (cartItems[0]?.equipment_id || null),
+          media_player_id: firstItemIsMediaPlayer ? cartItems[0]?.media_player_id : null,
+          is_media_player: firstItemIsMediaPlayer,
           equipment_code: cartItems[0]?.equipment_code || null,
           equipment_name: cartItems[0]?.equipment_name || null,
           quantity: cartItems.reduce((sum, item) => sum + item.quantity, 0),
@@ -297,7 +310,9 @@ const IssueRequest = () => {
       // Create item records
       const itemsToInsert = cartItems.map(item => ({
         pending_id: headerRecord.id,
-        equipment_id: item.equipment_id || null,
+        equipment_id: item.is_media_player ? null : (item.equipment_id || null),
+        media_player_id: item.is_media_player ? item.media_player_id : null,
+        is_media_player: item.is_media_player || false,
         equipment_code: item.equipment_code || null,
         equipment_name: item.equipment_name || null,
         quantity: item.quantity,
