@@ -21,6 +21,7 @@ export interface InventoryFiltersState {
   locationId: string;
   stockStatus: string;
   search: string;
+  itemType: string; // 'all' | 'equipment' | 'media_player'
 }
 
 interface InventoryFiltersProps {
@@ -156,6 +157,7 @@ export function InventoryFilters({ filters, onFiltersChange }: InventoryFiltersP
       locationId: "",
       stockStatus: "",
       search: "",
+      itemType: "",
     });
   };
 
@@ -290,8 +292,24 @@ export function InventoryFilters({ filters, onFiltersChange }: InventoryFiltersP
         </Select>
       </div>
 
-      {/* Row 2: Stock status & Search */}
+      {/* Row 2: Item type, Stock status & Search */}
       <div className="flex flex-wrap gap-3 items-center">
+        <Select
+          value={filters.itemType || "all"}
+          onValueChange={(value) =>
+            onFiltersChange({ ...filters, itemType: value === "all" ? "" : value })
+          }
+        >
+          <SelectTrigger className="w-[180px]">
+            <SelectValue placeholder="ประเภทสินค้า" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">ทั้งหมด</SelectItem>
+            <SelectItem value="equipment">อะไหล่ (Equipment)</SelectItem>
+            <SelectItem value="media_player">Media Player</SelectItem>
+          </SelectContent>
+        </Select>
+
         <Select
           value={filters.stockStatus}
           onValueChange={(value) =>
