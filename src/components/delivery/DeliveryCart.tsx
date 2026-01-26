@@ -32,6 +32,14 @@ export interface DeliveryCartItem {
   waiting_equipment_id: boolean;
   depreciation_months: string;
   notes: string;
+  // Media Player specific fields
+  is_media_player?: boolean;
+  media_player_id?: string | null;
+  cms_type_id?: string;
+  id_display?: string;
+  group_led?: string;
+  serial_number_2?: string;
+  led_control?: string;
 }
 
 interface DeliveryCartProps {
@@ -127,7 +135,12 @@ export function DeliveryCart({ items, onRemoveItem, onClearCart, onEditItem }: D
                     </TableCell>
                     <TableCell>
                       <div className="flex flex-wrap gap-1">
-                        {item.equipment_id ? (
+                        {item.is_media_player && (
+                          <Badge variant="secondary" className="bg-blue-500/10 text-blue-600 text-xs">
+                            Media Player
+                          </Badge>
+                        )}
+                        {item.equipment_id || item.media_player_id ? (
                           <Badge variant="secondary" className="bg-success/10 text-success text-xs">
                             มีในระบบ
                           </Badge>
