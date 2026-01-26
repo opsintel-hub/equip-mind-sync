@@ -9,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Truck, Search, Package, Clock, CheckCircle2, Upload, FileText, X, Loader2, Info, Plus, ShoppingCart, Send, PlusCircle } from "lucide-react";
+import { Truck, Search, Package, Clock, CheckCircle2, Upload, FileText, X, Loader2, Info, Plus, ShoppingCart, Send, PlusCircle, Monitor } from "lucide-react";
 import { EquipmentImageViewer } from "@/components/equipment/EquipmentImageViewer";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -34,6 +34,11 @@ interface Supplier {
 }
 
 interface Department {
+  id: string;
+  name: string;
+}
+
+interface CMSType {
   id: string;
   name: string;
 }
@@ -66,6 +71,7 @@ interface PendingReceipt {
   waiting_asset_code?: boolean;
   waiting_equipment_id?: boolean;
   total_items?: number;
+  is_media_player?: boolean;
 }
 
 const DeliveryEntry = () => {
@@ -73,6 +79,8 @@ const DeliveryEntry = () => {
   const [equipment, setEquipment] = useState<Equipment[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
+  const [cmsTypes, setCmsTypes] = useState<CMSType[]>([]);
+  const [mediaPlayers, setMediaPlayers] = useState<{ id: string; code: string; name: string; }[]>([]);
   
   const [receiptPurposes, setReceiptPurposes] = useState<ReceiptPurpose[]>([]);
   const [pendingReceipts, setPendingReceipts] = useState<PendingReceipt[]>([]);
@@ -103,8 +111,12 @@ const DeliveryEntry = () => {
   const [documentFileName, setDocumentFileName] = useState("");
   const [headerNotes, setHeaderNotes] = useState("");
   
+  // Item type toggle - Equipment or Media Player
+  const [isMediaPlayerEntry, setIsMediaPlayerEntry] = useState(false);
+  
   // Current item form state
   const [selectedEquipmentId, setSelectedEquipmentId] = useState("");
+  const [selectedMediaPlayerId, setSelectedMediaPlayerId] = useState("");
   const [equipmentCode, setEquipmentCode] = useState("");
   const [equipmentName, setEquipmentName] = useState("");
   const [quantity, setQuantity] = useState("");
@@ -118,6 +130,13 @@ const DeliveryEntry = () => {
   const [expiryDate, setExpiryDate] = useState("");
   const [warrantyExpiryDate, setWarrantyExpiryDate] = useState("");
   const [itemNotes, setItemNotes] = useState("");
+  
+  // Media Player specific fields
+  const [selectedCmsTypeId, setSelectedCmsTypeId] = useState("");
+  const [idDisplay, setIdDisplay] = useState("");
+  const [groupLed, setGroupLed] = useState("");
+  const [serialNumber2, setSerialNumber2] = useState("");
+  const [ledControl, setLedControl] = useState("");
   
   // Storage dimensions
   const [storageWidthCm, setStorageWidthCm] = useState("");
@@ -149,6 +168,8 @@ const DeliveryEntry = () => {
     fetchDepartments();
     fetchReceiptPurposes();
     fetchPendingReceipts();
+    fetchCmsTypes();
+    fetchMediaPlayers();
   }, []);
 
   const fetchEquipment = async () => {
@@ -208,6 +229,30 @@ const DeliveryEntry = () => {
     
     if (!error && data) {
       setPendingReceipts(data as PendingReceipt[]);
+    }
+  };
+
+  const fetchCmsTypes = async () => {
+    const { data, error } = await supabase
+      .from("cms_types")
+      .select("id, name")
+      .eq("is_active", true)
+      .order("name");
+    
+    if (!error && data) {
+      setCmsTypes(data);
+    }
+  };
+
+  const fetchMediaPlayers = async () => {
+    const { data, error } = await supabase
+      .from("media_players")
+      .select("id, code, name")
+      .eq("is_active", true)
+      .order("code");
+    
+    if (!error && data) {
+      setMediaPlayers(data);
     }
   };
 
@@ -344,45 +389,99 @@ const DeliveryEntry = () => {
       return;
     }
     
-    if (!selectedEquipmentId && !equipmentName) {
-      toast.error("กรุณาเลือกสินค้า หรือระบุชื่อสินค้า");
-      return;
-    }
-    
-    if (!unitPrice) {
-      toast.error("กรุณาระบุราคาต่อชิ้น");
-      return;
-    }
+    if (isMediaPlayerEntry) {
+      // Media Player validation
+      if (!selectedMediaPlayerId && !equipmentName) {
+        toast.error("กรุณาเลือก Media Player หรือระบุชื่อ");
+        return;
+      }
+      if (!unitPrice) {
+        toast.error("กรุณาระบุราคาต่อชิ้น");
+        return;
+      }
+      
+      const selectedMP = mediaPlayers.find(mp => mp.id === selectedMediaPlayerId);
+      
+      const newItem: DeliveryCartItem = {
+        id: crypto.randomUUID(),
+        equipment_id: null,
+        equipment_code: selectedMP?.code || equipmentCode,
+        equipment_name: selectedMP?.name || equipmentName,
+        quantity: parseInt(quantity),
+        unit: unit || "เครื่อง",
+        lot_number_1: lotNumber1,
+        lot_number_2: lotNumber2,
+        serial_number: serialNumber,
+        unit_price: unitPrice ? parseFloat(unitPrice) : null,
+        supplier_id: selectedSupplierId || null,
+        supplier_name: supplierName || selectedSupplier?.name || "",
+        expiry_date: expiryDate,
+        warranty_expiry_date: warrantyExpiryDate,
+        storage_width_cm: storageWidthCm,
+        storage_height_cm: storageHeightCm,
+        storage_depth_cm: storageDepthCm,
+        storage_volume_cm3: calculatedVolume,
+        is_asset: isAsset,
+        asset_code: assetCode,
+        equipment_id_code: equipmentIdCode,
+        waiting_asset_code: waitingAssetCode,
+        waiting_equipment_id: waitingEquipmentId,
+        depreciation_months: depreciationMonths,
+        notes: itemNotes,
+        // Media Player specific
+        is_media_player: true,
+        media_player_id: selectedMediaPlayerId || null,
+        cms_type_id: selectedCmsTypeId,
+        id_display: idDisplay,
+        group_led: groupLed,
+        serial_number_2: serialNumber2,
+        led_control: ledControl,
+      };
+      
+      setCartItems([...cartItems, newItem]);
+    } else {
+      // Regular equipment validation
+      if (!selectedEquipmentId && !equipmentName) {
+        toast.error("กรุณาเลือกสินค้า หรือระบุชื่อสินค้า");
+        return;
+      }
+      
+      if (!unitPrice) {
+        toast.error("กรุณาระบุราคาต่อชิ้น");
+        return;
+      }
 
-    const newItem: DeliveryCartItem = {
-      id: crypto.randomUUID(),
-      equipment_id: selectedEquipmentId || null,
-      equipment_code: equipmentCode,
-      equipment_name: equipmentName || selectedEquipment?.name || "",
-      quantity: parseInt(quantity),
-      unit: unit,
-      lot_number_1: lotNumber1,
-      lot_number_2: lotNumber2,
-      serial_number: serialNumber,
-      unit_price: unitPrice ? parseFloat(unitPrice) : null,
-      supplier_id: selectedSupplierId || null,
-      supplier_name: supplierName || selectedSupplier?.name || "",
-      expiry_date: expiryDate,
-      warranty_expiry_date: warrantyExpiryDate,
-      storage_width_cm: storageWidthCm,
-      storage_height_cm: storageHeightCm,
-      storage_depth_cm: storageDepthCm,
-      storage_volume_cm3: calculatedVolume,
-      is_asset: isAsset,
-      asset_code: assetCode,
-      equipment_id_code: equipmentIdCode,
-      waiting_asset_code: waitingAssetCode,
-      waiting_equipment_id: waitingEquipmentId,
-      depreciation_months: depreciationMonths,
-      notes: itemNotes,
-    };
+      const newItem: DeliveryCartItem = {
+        id: crypto.randomUUID(),
+        equipment_id: selectedEquipmentId || null,
+        equipment_code: equipmentCode,
+        equipment_name: equipmentName || selectedEquipment?.name || "",
+        quantity: parseInt(quantity),
+        unit: unit,
+        lot_number_1: lotNumber1,
+        lot_number_2: lotNumber2,
+        serial_number: serialNumber,
+        unit_price: unitPrice ? parseFloat(unitPrice) : null,
+        supplier_id: selectedSupplierId || null,
+        supplier_name: supplierName || selectedSupplier?.name || "",
+        expiry_date: expiryDate,
+        warranty_expiry_date: warrantyExpiryDate,
+        storage_width_cm: storageWidthCm,
+        storage_height_cm: storageHeightCm,
+        storage_depth_cm: storageDepthCm,
+        storage_volume_cm3: calculatedVolume,
+        is_asset: isAsset,
+        asset_code: assetCode,
+        equipment_id_code: equipmentIdCode,
+        waiting_asset_code: waitingAssetCode,
+        waiting_equipment_id: waitingEquipmentId,
+        depreciation_months: depreciationMonths,
+        notes: itemNotes,
+        is_media_player: false,
+      };
 
-    setCartItems([...cartItems, newItem]);
+      setCartItems([...cartItems, newItem]);
+    }
     
     // Reset item form
     resetItemForm();
@@ -392,6 +491,7 @@ const DeliveryEntry = () => {
 
   const resetItemForm = () => {
     setSelectedEquipmentId("");
+    setSelectedMediaPlayerId("");
     setEquipmentCode("");
     setEquipmentName("");
     setQuantity("");
@@ -414,6 +514,12 @@ const DeliveryEntry = () => {
     setWaitingEquipmentId(false);
     setDepreciationMonths("");
     setItemNotes("");
+    // Media Player specific
+    setSelectedCmsTypeId("");
+    setIdDisplay("");
+    setGroupLed("");
+    setSerialNumber2("");
+    setLedControl("");
   };
 
   const handleRemoveFromCart = (itemId: string) => {
@@ -481,7 +587,7 @@ const DeliveryEntry = () => {
         company_id: selectedCompanyId,
         warehouse_id: null,
         receipt_purpose_id: selectedReceiptPurposeId || null,
-        equipment_id: item.equipment_id,
+        equipment_id: item.is_media_player ? null : item.equipment_id,
         equipment_code: item.equipment_code || null,
         equipment_name: item.equipment_name || null,
         quantity: item.quantity,
@@ -514,6 +620,9 @@ const DeliveryEntry = () => {
         pr_number: prNumber || null,
         purchase_document_url: purchaseDocumentUrl,
         total_items: cartItems.length,
+        // Media Player specific fields
+        is_media_player: item.is_media_player || false,
+        media_player_id: item.media_player_id || null,
       }));
 
       const { error } = await supabase
@@ -782,67 +891,200 @@ const DeliveryEntry = () => {
                   <Package className="w-4 h-4" />
                   ข้อมูลสินค้า (รายการที่ {cartItems.length + 1})
                 </h3>
-                {cartItems.length > 0 && (
-                  <Badge variant="secondary" className="bg-primary/10 text-primary">
-                    <ShoppingCart className="w-3 h-3 mr-1" />
-                    {cartItems.length} รายการในตะกร้า
-                  </Badge>
-                )}
+                <div className="flex items-center gap-4">
+                  {cartItems.length > 0 && (
+                    <Badge variant="secondary" className="bg-primary/10 text-primary">
+                      <ShoppingCart className="w-3 h-3 mr-1" />
+                      {cartItems.length} รายการในตะกร้า
+                    </Badge>
+                  )}
+                  {/* Toggle Media Player */}
+                  <div className="flex items-center gap-2">
+                    <Label htmlFor="mediaPlayerToggle" className="text-sm flex items-center gap-1.5">
+                      <Monitor className="w-4 h-4" />
+                      Media Player
+                    </Label>
+                    <Switch
+                      id="mediaPlayerToggle"
+                      checked={isMediaPlayerEntry}
+                      onCheckedChange={(checked) => {
+                        setIsMediaPlayerEntry(checked);
+                        resetItemForm();
+                        if (checked) {
+                          setUnit("เครื่อง");
+                          setIsAsset(true);
+                        }
+                      }}
+                    />
+                  </div>
+                </div>
               </div>
 
-              {/* Equipment Selection */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="equipment">เลือกสินค้า (ถ้ารู้รหัส)</Label>
-                  <div className="flex gap-2">
-                    <div className="flex-1">
-                      <Select value={selectedEquipmentId} onValueChange={setSelectedEquipmentId}>
-                        <SelectTrigger id="equipment">
-                          <SelectValue placeholder="เลือกสินค้าจากระบบ..." />
+              {/* Media Player Selection (when toggle is on) */}
+              {isMediaPlayerEntry ? (
+                <>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="mediaPlayer">เลือก Media Player (ถ้ามีในระบบ)</Label>
+                      <Select value={selectedMediaPlayerId} onValueChange={(val) => {
+                        setSelectedMediaPlayerId(val);
+                        const mp = mediaPlayers.find(m => m.id === val);
+                        if (mp) {
+                          setEquipmentCode(mp.code);
+                          setEquipmentName(mp.name);
+                        }
+                      }}>
+                        <SelectTrigger id="mediaPlayer">
+                          <SelectValue placeholder="เลือก Media Player..." />
                         </SelectTrigger>
                         <SelectContent position="popper" sideOffset={4} className="bg-background z-[200] max-h-60 overflow-y-auto pointer-events-auto">
-                          {equipment.map((item) => (
-                            <SelectItem key={item.id} value={item.id}>
-                              {item.code} - {item.name}
+                          {mediaPlayers.map((mp) => (
+                            <SelectItem key={mp.id} value={mp.id}>
+                              {mp.code} - {mp.name}
                             </SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
                     </div>
-                    {selectedEquipmentId && (
-                      <EquipmentImageViewer 
-                        equipmentId={selectedEquipmentId} 
-                        equipmentName={selectedEquipment?.name}
-                        variant="button"
+                    <div className="space-y-2">
+                      <Label htmlFor="mediaPlayerName">หรือ ระบุชื่อ Media Player ใหม่</Label>
+                      <Input 
+                        id="mediaPlayerName" 
+                        placeholder="ชื่อ Media Player ที่ยังไม่มีในระบบ"
+                        value={equipmentName}
+                        onChange={(e) => setEquipmentName(e.target.value)}
+                        disabled={!!selectedMediaPlayerId}
                       />
-                    )}
+                    </div>
                   </div>
-                  <div className="flex items-center justify-between">
-                    <p className="text-xs text-muted-foreground flex items-center gap-1">
-                      <Info className="w-3 h-3" />
-                      ไม่พบสินค้าในระบบ?
-                    </p>
-                    <EquipmentForm onSuccess={() => {
-                      fetchEquipment();
-                      toast.success("เพิ่มสินค้าใหม่เรียบร้อย สามารถเลือกสินค้าได้จาก dropdown");
-                    }} />
+                  
+                  {/* Media Player Specific Fields */}
+                  <div className="p-3 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg space-y-4">
+                    <h4 className="font-medium text-sm text-blue-700 dark:text-blue-400 flex items-center gap-2">
+                      <Monitor className="w-4 h-4" />
+                      ข้อมูลเฉพาะ Media Player
+                    </h4>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="cmsType">ประเภท CMS</Label>
+                        <Select value={selectedCmsTypeId} onValueChange={setSelectedCmsTypeId}>
+                          <SelectTrigger id="cmsType">
+                            <SelectValue placeholder="เลือก CMS..." />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {cmsTypes.map((cms) => (
+                              <SelectItem key={cms.id} value={cms.id}>{cms.name}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="idDisplay">ID Display</Label>
+                        <Input 
+                          id="idDisplay" 
+                          placeholder="ID Display"
+                          value={idDisplay}
+                          onChange={(e) => setIdDisplay(e.target.value)}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="groupLed">Group LED</Label>
+                        <Input 
+                          id="groupLed" 
+                          placeholder="Group LED"
+                          value={groupLed}
+                          onChange={(e) => setGroupLed(e.target.value)}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="ledControl">LED Control</Label>
+                        <Input 
+                          id="ledControl" 
+                          placeholder="LED Control"
+                          value={ledControl}
+                          onChange={(e) => setLedControl(e.target.value)}
+                        />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="serialNumber1">Serial Number 1</Label>
+                        <Input 
+                          id="serialNumber1" 
+                          placeholder="SN-1"
+                          value={serialNumber}
+                          onChange={(e) => setSerialNumber(e.target.value)}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="serialNumber2">Serial Number 2</Label>
+                        <Input 
+                          id="serialNumber2" 
+                          placeholder="SN-2"
+                          value={serialNumber2}
+                          onChange={(e) => setSerialNumber2(e.target.value)}
+                        />
+                      </div>
+                    </div>
                   </div>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="equipmentName">หรือ ระบุชื่อสินค้า (สินค้าใหม่)</Label>
-                  <Input 
-                    id="equipmentName" 
-                    placeholder="ชื่อสินค้า/อะไหล่ ที่ยังไม่มีในระบบ"
-                    value={equipmentName}
-                    onChange={(e) => setEquipmentName(e.target.value)}
-                    disabled={!!selectedEquipmentId}
-                  />
-                  <p className="text-xs text-muted-foreground flex items-center gap-1">
-                    <Info className="w-3 h-3" />
-                    สินค้าใหม่จะต้องสร้างในระบบตอนรับเข้าคลัง
-                  </p>
-                </div>
-              </div>
+                </>
+              ) : (
+                <>
+                  {/* Equipment Selection */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="equipment">เลือกสินค้า (ถ้ารู้รหัส)</Label>
+                      <div className="flex gap-2">
+                        <div className="flex-1">
+                          <Select value={selectedEquipmentId} onValueChange={setSelectedEquipmentId}>
+                            <SelectTrigger id="equipment">
+                              <SelectValue placeholder="เลือกสินค้าจากระบบ..." />
+                            </SelectTrigger>
+                            <SelectContent position="popper" sideOffset={4} className="bg-background z-[200] max-h-60 overflow-y-auto pointer-events-auto">
+                              {equipment.map((item) => (
+                                <SelectItem key={item.id} value={item.id}>
+                                  {item.code} - {item.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        {selectedEquipmentId && (
+                          <EquipmentImageViewer 
+                            equipmentId={selectedEquipmentId} 
+                            equipmentName={selectedEquipment?.name}
+                            variant="button"
+                          />
+                        )}
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <p className="text-xs text-muted-foreground flex items-center gap-1">
+                          <Info className="w-3 h-3" />
+                          ไม่พบสินค้าในระบบ?
+                        </p>
+                        <EquipmentForm onSuccess={() => {
+                          fetchEquipment();
+                          toast.success("เพิ่มสินค้าใหม่เรียบร้อย สามารถเลือกสินค้าได้จาก dropdown");
+                        }} />
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="equipmentName">หรือ ระบุชื่อสินค้า (สินค้าใหม่)</Label>
+                      <Input 
+                        id="equipmentName" 
+                        placeholder="ชื่อสินค้า/อะไหล่ ที่ยังไม่มีในระบบ"
+                        value={equipmentName}
+                        onChange={(e) => setEquipmentName(e.target.value)}
+                        disabled={!!selectedEquipmentId}
+                      />
+                      <p className="text-xs text-muted-foreground flex items-center gap-1">
+                        <Info className="w-3 h-3" />
+                        สินค้าใหม่จะต้องสร้างในระบบตอนรับเข้าคลัง
+                      </p>
+                    </div>
+                  </div>
+                </>
+              )}
 
               {/* Quantity, Unit & Lot Numbers */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
