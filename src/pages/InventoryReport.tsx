@@ -13,12 +13,14 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Download, Package, AlertTriangle, XCircle, CheckCircle, Monitor } from "lucide-react";
+import { Download, Package, AlertTriangle, XCircle, CheckCircle, Monitor, ImageIcon } from "lucide-react";
 import { InventoryFilters, InventoryFiltersState } from "@/components/inventory/InventoryFilters";
+import { EquipmentImageViewer } from "@/components/equipment/EquipmentImageViewer";
 import * as XLSX from "xlsx";
 import { toast } from "sonner";
 
 const ITEMS_PER_PAGE = 50;
+const ADVANCE_DAYS = 30; // Days to consider as "near expiry/warranty"
 
 // Unified inventory item type
 interface InventoryItem {
@@ -35,6 +37,8 @@ interface InventoryItem {
   company_id: string | null;
   location_id: string | null;
   subcategory_id: string | null;
+  expiry_date: string | null;
+  warranty_expiry_date: string | null;
   companies: { id: string; name: string; code: string } | null;
   locations: { id: string; name: string; code: string; warehouse_id: string; warehouses: { id: string; name: string; code: string } | null } | null;
   subcategories: { id: string; name: string; category_id: string } | null;
@@ -52,6 +56,7 @@ export default function InventoryReport() {
     stockStatus: "",
     search: "",
     itemType: "",
+    statusFilters: [],
   });
   const [currentPage, setCurrentPage] = useState(1);
 
@@ -81,7 +86,10 @@ export default function InventoryReport() {
     queryKey: ["inventory-report-equipment", filters],
     queryFn: async () => {
       // Skip if filtering for media players only
-      if (filters.itemType === "media_player") return [];
+      if (filters.itemType === "media_player" || 
+          (filters.statusFilters?.includes("media_player") && filters.statusFilters.length === 1)) {
+        return [];
+      }
 
       let query = supabase
         .from("equipment")
@@ -99,6 +107,8 @@ export default function InventoryReport() {
           company_id,
           location_id,
           subcategory_id,
+          expiry_date,
+          warranty_expiry_date,
           companies:company_id (id, name, code),
           locations:location_id (id, name, code, warehouse_id, warehouses:warehouse_id (id, name, code)),
           subcategories:subcategory_id (id, name, category_id)
@@ -133,18 +143,23 @@ export default function InventoryReport() {
         ...item,
         quantity_in_stock: item.quantity_in_stock || 0,
         min_stock_level: item.min_stock_level || 0,
+        expiry_date: item.expiry_date,
+        warranty_expiry_date: item.warranty_expiry_date,
         is_media_player: false,
       }));
     },
-    enabled: filters.itemType !== "media_player",
+    enabled: filters.itemType !== "media_player" && 
+             !(filters.statusFilters?.includes("media_player") && filters.statusFilters.length === 1),
   });
 
   // Fetch media players with related data
   const { data: mediaPlayerData = [], isLoading: isLoadingMediaPlayers } = useQuery({
     queryKey: ["inventory-report-media-players", filters],
     queryFn: async () => {
-      // Skip if filtering for equipment only
-      if (filters.itemType === "equipment") return [];
+      // Skip if filtering for equipment only and no media_player status filter
+      if (filters.itemType === "equipment" && !filters.statusFilters?.includes("media_player")) {
+        return [];
+      }
 
       let query = supabase
         .from("media_players")
@@ -159,6 +174,7 @@ export default function InventoryReport() {
           unit_price,
           company_id,
           location_id,
+          warranty_expiry_date,
           companies:company_id (id, name, code),
           locations:location_id (id, name, code, warehouse_id, warehouses:warehouse_id (id, name, code))
         `)
@@ -199,13 +215,15 @@ export default function InventoryReport() {
         company_id: item.company_id,
         location_id: item.location_id,
         subcategory_id: null,
+        expiry_date: null, // Media players don't have expiry date
+        warranty_expiry_date: item.warranty_expiry_date,
         companies: item.companies as InventoryItem["companies"],
         locations: item.locations as InventoryItem["locations"],
         subcategories: null,
         is_media_player: true,
       }));
     },
-    enabled: filters.itemType !== "equipment",
+    enabled: filters.itemType !== "equipment" || filters.statusFilters?.includes("media_player"),
   });
 
   // Combine equipment and media player data
@@ -214,6 +232,33 @@ export default function InventoryReport() {
   }, [equipmentData, mediaPlayerData]);
 
   const isLoading = isLoadingEquipment || isLoadingMediaPlayers;
+
+  // Helper functions for status checks
+  const isExpired = (expiryDate: string | null) => {
+    if (!expiryDate) return false;
+    return new Date(expiryDate) < new Date();
+  };
+
+  const isWarrantyExpired = (warrantyDate: string | null) => {
+    if (!warrantyDate) return false;
+    return new Date(warrantyDate) < new Date();
+  };
+
+  const isNearExpiry = (expiryDate: string | null) => {
+    if (!expiryDate) return false;
+    const expiry = new Date(expiryDate);
+    const now = new Date();
+    const diffDays = Math.ceil((expiry.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+    return diffDays > 0 && diffDays <= ADVANCE_DAYS;
+  };
+
+  const isNearWarranty = (warrantyDate: string | null) => {
+    if (!warrantyDate) return false;
+    const warranty = new Date(warrantyDate);
+    const now = new Date();
+    const diffDays = Math.ceil((warranty.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+    return diffDays > 0 && diffDays <= ADVANCE_DAYS;
+  };
 
   // Apply client-side filters and transform data
   const filteredData = useMemo(() => {
@@ -256,6 +301,29 @@ export default function InventoryReport() {
         if (filters.stockStatus === "out" && qty > 0) return false;
         if (filters.stockStatus === "low" && (qty === 0 || qty > minStock)) return false;
         if (filters.stockStatus === "normal" && qty <= minStock) return false;
+      }
+
+      // Apply multi-select status filters
+      if (filters.statusFilters && filters.statusFilters.length > 0) {
+        const matchesAnyStatusFilter = filters.statusFilters.some((statusFilter) => {
+          switch (statusFilter) {
+            case "expired":
+              return !item.is_media_player && isExpired(item.expiry_date);
+            case "warranty_expired":
+              return isWarrantyExpired(item.warranty_expiry_date);
+            case "near_expiry":
+              return !item.is_media_player && isNearExpiry(item.expiry_date);
+            case "near_warranty":
+              return isNearWarranty(item.warranty_expiry_date);
+            case "out_of_stock":
+              return item.quantity_in_stock === 0;
+            case "media_player":
+              return item.is_media_player;
+            default:
+              return false;
+          }
+        });
+        if (!matchesAnyStatusFilter) return false;
       }
 
       return true;
@@ -455,13 +523,16 @@ export default function InventoryReport() {
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead className="w-[50px]">รูป</TableHead>
                     <TableHead>ประเภท</TableHead>
                     <TableHead>รหัส</TableHead>
                     <TableHead>ชื่อ</TableHead>
                     <TableHead>หมวดหมู่</TableHead>
+                    <TableHead>หมวดหมู่ย่อย</TableHead>
                     <TableHead>บริษัท</TableHead>
                     <TableHead>ฝ่าย</TableHead>
-                    <TableHead>คลัง/ตำแหน่ง</TableHead>
+                    <TableHead>คลัง</TableHead>
+                    <TableHead>ตำแหน่งจัดเก็บ</TableHead>
                     <TableHead className="text-right">จำนวน</TableHead>
                     <TableHead className="text-right">Min</TableHead>
                     <TableHead>สถานะ</TableHead>
@@ -470,13 +541,13 @@ export default function InventoryReport() {
                 <TableBody>
                   {isLoading ? (
                     <TableRow>
-                      <TableCell colSpan={10} className="text-center py-8">
+                      <TableCell colSpan={13} className="text-center py-8">
                         กำลังโหลด...
                       </TableCell>
                     </TableRow>
                   ) : paginatedData.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
+                      <TableCell colSpan={13} className="text-center py-8 text-muted-foreground">
                         ไม่พบข้อมูล
                       </TableCell>
                     </TableRow>
@@ -484,6 +555,7 @@ export default function InventoryReport() {
                     paginatedData.map((item) => {
                       const company = item.companies;
                       const location = item.locations;
+                      const subcategory = item.subcategories;
                       const status = getStockStatus(
                         item.quantity_in_stock,
                         item.min_stock_level
@@ -492,6 +564,20 @@ export default function InventoryReport() {
 
                       return (
                         <TableRow key={item.id}>
+                          <TableCell>
+                            {!item.is_media_player && (
+                              <EquipmentImageViewer
+                                equipmentId={item.id}
+                                equipmentName={item.name}
+                                variant="icon"
+                              />
+                            )}
+                            {item.is_media_player && (
+                              <span className="text-muted-foreground">
+                                <ImageIcon className="h-4 w-4 opacity-30" />
+                              </span>
+                            )}
+                          </TableCell>
                           <TableCell>
                             {item.is_media_player ? (
                               <Badge variant="secondary" className="bg-blue-100 text-blue-700">
@@ -516,6 +602,13 @@ export default function InventoryReport() {
                           </TableCell>
                           <TableCell>{item.category}</TableCell>
                           <TableCell>
+                            {subcategory ? (
+                              <span className="text-sm">{subcategory.name}</span>
+                            ) : (
+                              <span className="text-muted-foreground">-</span>
+                            )}
+                          </TableCell>
+                          <TableCell>
                             {company ? (
                               <div className="text-sm">{company.code}</div>
                             ) : (
@@ -524,12 +617,17 @@ export default function InventoryReport() {
                           </TableCell>
                           <TableCell>{item.department || "-"}</TableCell>
                           <TableCell>
+                            {location?.warehouses ? (
+                              <div className="text-sm font-medium">{location.warehouses.code}</div>
+                            ) : (
+                              <span className="text-muted-foreground">-</span>
+                            )}
+                          </TableCell>
+                          <TableCell>
                             {location ? (
                               <div className="text-sm">
-                                {location.warehouses && (
-                                  <div className="font-medium">{location.warehouses.code}</div>
-                                )}
-                                <div className="text-muted-foreground">{location.code}</div>
+                                <div>{location.code}</div>
+                                <div className="text-xs text-muted-foreground">{location.name}</div>
                               </div>
                             ) : (
                               <span className="text-muted-foreground">-</span>
@@ -542,17 +640,40 @@ export default function InventoryReport() {
                             {item.min_stock_level.toLocaleString()}
                           </TableCell>
                           <TableCell>
-                            <Badge
-                              variant={status.variant === "warning" ? "outline" : status.variant}
-                              className={
-                                status.variant === "warning"
-                                  ? "border-yellow-500 text-yellow-600 bg-yellow-50"
-                                  : ""
-                              }
-                            >
-                              <StatusIcon className="h-3 w-3 mr-1" />
-                              {status.label}
-                            </Badge>
+                            <div className="flex flex-col gap-1">
+                              <Badge
+                                variant={status.variant === "warning" ? "outline" : status.variant}
+                                className={
+                                  status.variant === "warning"
+                                    ? "border-yellow-500 text-yellow-600 bg-yellow-50"
+                                    : ""
+                                }
+                              >
+                                <StatusIcon className="h-3 w-3 mr-1" />
+                                {status.label}
+                              </Badge>
+                              {/* Show expiry/warranty status badges */}
+                              {isExpired(item.expiry_date) && (
+                                <Badge variant="destructive" className="text-xs">
+                                  หมดอายุ
+                                </Badge>
+                              )}
+                              {isWarrantyExpired(item.warranty_expiry_date) && (
+                                <Badge variant="outline" className="text-xs border-orange-500 text-orange-600">
+                                  หมดประกัน
+                                </Badge>
+                              )}
+                              {isNearExpiry(item.expiry_date) && (
+                                <Badge variant="outline" className="text-xs border-red-300 text-red-500">
+                                  ใกล้หมดอายุ
+                                </Badge>
+                              )}
+                              {isNearWarranty(item.warranty_expiry_date) && (
+                                <Badge variant="outline" className="text-xs border-yellow-400 text-yellow-600">
+                                  ใกล้หมดประกัน
+                                </Badge>
+                              )}
+                            </div>
                           </TableCell>
                         </TableRow>
                       );
