@@ -10,7 +10,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Search, X } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Search, X, Filter, ChevronDown } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 
 export interface InventoryFiltersState {
   companyId: string;
@@ -22,7 +26,17 @@ export interface InventoryFiltersState {
   stockStatus: string;
   search: string;
   itemType: string; // 'all' | 'equipment' | 'media_player'
+  statusFilters: string[]; // Multi-select: expired, warranty_expired, near_expiry, near_warranty, out_of_stock, media_player
 }
+
+export const STATUS_FILTER_OPTIONS = [
+  { value: "expired", label: "หมดอายุแล้ว" },
+  { value: "warranty_expired", label: "หมดประกันแล้ว" },
+  { value: "near_expiry", label: "ใกล้หมดอายุ" },
+  { value: "near_warranty", label: "ใกล้หมดประกัน" },
+  { value: "out_of_stock", label: "สินค้าหมด" },
+  { value: "media_player", label: "Media Player" },
+];
 
 interface InventoryFiltersProps {
   filters: InventoryFiltersState;
@@ -158,10 +172,29 @@ export function InventoryFilters({ filters, onFiltersChange }: InventoryFiltersP
       stockStatus: "",
       search: "",
       itemType: "",
+      statusFilters: [],
     });
   };
 
-  const hasActiveFilters = Object.values(filters).some((v) => v !== "");
+  const handleStatusFilterChange = (value: string, checked: boolean) => {
+    const currentFilters = filters.statusFilters || [];
+    let newFilters: string[];
+    
+    if (checked) {
+      newFilters = [...currentFilters, value];
+    } else {
+      newFilters = currentFilters.filter(f => f !== value);
+    }
+    
+    onFiltersChange({ ...filters, statusFilters: newFilters });
+  };
+
+  const hasActiveFilters = Object.entries(filters).some(([key, v]) => {
+    if (key === 'statusFilters') {
+      return Array.isArray(v) && v.length > 0;
+    }
+    return v !== "";
+  });
 
   return (
     <div className="space-y-4">
@@ -292,23 +325,57 @@ export function InventoryFilters({ filters, onFiltersChange }: InventoryFiltersP
         </Select>
       </div>
 
-      {/* Row 2: Item type, Stock status & Search */}
+      {/* Row 2: Multi-select status filter, Stock status & Search */}
       <div className="flex flex-wrap gap-3 items-center">
-        <Select
-          value={filters.itemType || "all"}
-          onValueChange={(value) =>
-            onFiltersChange({ ...filters, itemType: value === "all" ? "" : value })
-          }
-        >
-          <SelectTrigger className="w-[180px]">
-            <SelectValue placeholder="ประเภทสินค้า" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">ทั้งหมด</SelectItem>
-            <SelectItem value="equipment">อะไหล่ (Equipment)</SelectItem>
-            <SelectItem value="media_player">Media Player</SelectItem>
-          </SelectContent>
-        </Select>
+        {/* Multi-select Status Filter */}
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button variant="outline" className="min-w-[200px] justify-between">
+              <div className="flex items-center gap-2">
+                <Filter className="h-4 w-4" />
+                <span>สถานะสินค้า</span>
+                {(filters.statusFilters?.length || 0) > 0 && (
+                  <Badge variant="secondary" className="ml-1">
+                    {filters.statusFilters?.length}
+                  </Badge>
+                )}
+              </div>
+              <ChevronDown className="h-4 w-4 opacity-50" />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-[250px] p-3" align="start">
+            <div className="space-y-3">
+              <div className="font-medium text-sm">เลือกสถานะ (เลือกได้หลายรายการ)</div>
+              {STATUS_FILTER_OPTIONS.map((option) => (
+                <div key={option.value} className="flex items-center space-x-2">
+                  <Checkbox
+                    id={`status-${option.value}`}
+                    checked={(filters.statusFilters || []).includes(option.value)}
+                    onCheckedChange={(checked) => 
+                      handleStatusFilterChange(option.value, checked === true)
+                    }
+                  />
+                  <Label 
+                    htmlFor={`status-${option.value}`}
+                    className="text-sm font-normal cursor-pointer"
+                  >
+                    {option.label}
+                  </Label>
+                </div>
+              ))}
+              {(filters.statusFilters?.length || 0) > 0 && (
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="w-full mt-2"
+                  onClick={() => onFiltersChange({ ...filters, statusFilters: [] })}
+                >
+                  ล้างการเลือก
+                </Button>
+              )}
+            </div>
+          </PopoverContent>
+        </Popover>
 
         <Select
           value={filters.stockStatus}
@@ -347,6 +414,26 @@ export function InventoryFilters({ filters, onFiltersChange }: InventoryFiltersP
           </Button>
         )}
       </div>
+
+      {/* Selected Status Filters Display */}
+      {(filters.statusFilters?.length || 0) > 0 && (
+        <div className="flex flex-wrap gap-2">
+          {filters.statusFilters?.map((filter) => {
+            const option = STATUS_FILTER_OPTIONS.find(o => o.value === filter);
+            return option ? (
+              <Badge 
+                key={filter} 
+                variant="secondary"
+                className="cursor-pointer hover:bg-destructive hover:text-destructive-foreground"
+                onClick={() => handleStatusFilterChange(filter, false)}
+              >
+                {option.label}
+                <X className="h-3 w-3 ml-1" />
+              </Badge>
+            ) : null;
+          })}
+        </div>
+      )}
     </div>
   );
 }
