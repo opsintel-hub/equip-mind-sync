@@ -1,36 +1,26 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Table, TableBody, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
-import { Search, TrendingUp, TrendingDown, ArrowRightLeft, RotateCcw, Package, Loader2 } from "lucide-react";
-import { format } from "date-fns";
-import { th } from "date-fns/locale";
+import { Search, Loader2 } from "lucide-react";
+import { StockMovementGroupRow, GroupedMovement, StockMovementItem } from "@/components/stock-movement/StockMovementGroupRow";
+import { StockMovementDocumentDialog } from "@/components/stock-movement/StockMovementDocumentDialog";
 
 const ITEMS_PER_PAGE = 20;
-
-type MovementType = 'receive' | 'issue' | 'transfer_in' | 'transfer_out' | 'return_from_billboard' | 'install_to_billboard';
-
-const movementTypeConfig: Record<MovementType, { label: string; icon: React.ComponentType<{ className?: string }>; variant: "default" | "secondary" | "destructive" | "outline" }> = {
-  receive: { label: "รับเข้า", icon: TrendingUp, variant: "default" },
-  issue: { label: "เบิกออก", icon: TrendingDown, variant: "destructive" },
-  transfer_in: { label: "รับโอน", icon: ArrowRightLeft, variant: "secondary" },
-  transfer_out: { label: "โอนออก", icon: ArrowRightLeft, variant: "outline" },
-  return_from_billboard: { label: "คืนจากป้าย", icon: RotateCcw, variant: "default" },
-  install_to_billboard: { label: "ติดตั้งป้าย", icon: Package, variant: "outline" },
-};
 
 export default function StockMovementLog() {
   const [searchTerm, setSearchTerm] = useState("");
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [currentPage, setCurrentPage] = useState(1);
+  const [selectedGroup, setSelectedGroup] = useState<GroupedMovement | null>(null);
+  const [isDocumentDialogOpen, setIsDocumentDialogOpen] = useState(false);
 
   const { data: movements, isLoading } = useQuery({
-    queryKey: ["stock-movements", searchTerm, typeFilter, currentPage],
+    queryKey: ["stock-movements", searchTerm, typeFilter],
     queryFn: async () => {
       let query = supabase
         .from("stock_movements")
@@ -39,7 +29,7 @@ export default function StockMovementLog() {
           equipment:equipment_id(code, name),
           location:location_id(name),
           companies:company_id(name)
-        `, { count: "exact" })
+        `)
         .order("created_at", { ascending: false });
 
       if (searchTerm) {
@@ -50,47 +40,50 @@ export default function StockMovementLog() {
         query = query.eq("movement_type", typeFilter);
       }
 
-      const start = (currentPage - 1) * ITEMS_PER_PAGE;
-      const end = start + ITEMS_PER_PAGE - 1;
-      query = query.range(start, end);
-
-      const { data, error, count } = await query;
+      const { data, error } = await query;
       if (error) throw error;
-      return { data, count };
+      return data;
     },
   });
 
-  const totalPages = movements?.count ? Math.ceil(movements.count / ITEMS_PER_PAGE) : 1;
+  // Group movements by reference_document
+  const groupedMovements = useMemo(() => {
+    if (!movements) return [];
 
-  const getMovementBadge = (type: string, notes?: string | null) => {
-    const config = movementTypeConfig[type as MovementType];
-    const isMediaPlayer = notes?.toLowerCase().includes("media player");
-    
-    if (!config) return <Badge variant="outline">{type}</Badge>;
-    
-    const Icon = config.icon;
-    return (
-      <div className="flex flex-col gap-1">
-        <Badge variant={config.variant} className="gap-1">
-          <Icon className="h-3 w-3" />
-          {config.label}
-        </Badge>
-        {isMediaPlayer && (
-          <Badge variant="secondary" className="bg-blue-500/10 text-blue-600 text-xs">
-            Media Player
-          </Badge>
-        )}
-      </div>
-    );
-  };
+    const groups = new Map<string, GroupedMovement>();
 
-  const getStockChange = (type: string, quantity: number) => {
-    const isIncrease = ['receive', 'transfer_in', 'return_from_billboard'].includes(type);
-    return (
-      <span className={isIncrease ? "text-green-600 font-medium" : "text-red-600 font-medium"}>
-        {isIncrease ? "+" : "-"}{quantity}
-      </span>
-    );
+    movements.forEach((movement: any) => {
+      const key = movement.reference_document || movement.id; // Use id if no document
+      
+      if (groups.has(key)) {
+        const group = groups.get(key)!;
+        group.items.push(movement);
+        group.total_items = group.items.length;
+      } else {
+        groups.set(key, {
+          reference_document: movement.reference_document || `No-Doc-${movement.id.slice(0, 8)}`,
+          created_at: movement.created_at,
+          movement_type: movement.movement_type,
+          company_name: movement.companies?.name || null,
+          items: [movement],
+          total_items: 1,
+        });
+      }
+    });
+
+    return Array.from(groups.values());
+  }, [movements]);
+
+  // Paginate grouped data
+  const totalPages = Math.ceil(groupedMovements.length / ITEMS_PER_PAGE) || 1;
+  const paginatedGroups = useMemo(() => {
+    const start = (currentPage - 1) * ITEMS_PER_PAGE;
+    return groupedMovements.slice(start, start + ITEMS_PER_PAGE);
+  }, [groupedMovements, currentPage]);
+
+  const handleViewDocument = (group: GroupedMovement) => {
+    setSelectedGroup(group);
+    setIsDocumentDialogOpen(true);
   };
 
   return (
@@ -104,7 +97,7 @@ export default function StockMovementLog() {
         <CardHeader>
           <CardTitle>ประวัติการเคลื่อนไหว</CardTitle>
           <CardDescription>
-            แสดงรายการเปลี่ยนแปลง stock พร้อม stock ก่อน-หลังทุกรายการ
+            แสดงรายการเปลี่ยนแปลง stock พร้อม stock ก่อน-หลังทุกรายการ (จัดกลุ่มตามเอกสาร)
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -144,7 +137,7 @@ export default function StockMovementLog() {
             <div className="flex items-center justify-center py-8">
               <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
             </div>
-          ) : movements?.data?.length === 0 ? (
+          ) : paginatedGroups.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
               ไม่พบข้อมูลการเคลื่อนไหว stock
             </div>
@@ -154,42 +147,25 @@ export default function StockMovementLog() {
                 <Table>
                   <TableHeader>
                     <TableRow>
+                      <TableHead className="w-8"></TableHead>
                       <TableHead>วันที่/เวลา</TableHead>
                       <TableHead>ประเภท</TableHead>
                       <TableHead>บริษัท</TableHead>
-                      <TableHead>รหัส</TableHead>
-                      <TableHead>ชื่ออุปกรณ์</TableHead>
-                      <TableHead className="text-right">เปลี่ยน</TableHead>
+                      <TableHead>เลขเอกสาร / รหัสสินค้า</TableHead>
+                      <TableHead>รายการ / ชื่อสินค้า</TableHead>
+                      <TableHead className="text-right">จำนวน</TableHead>
                       <TableHead className="text-right">ก่อน</TableHead>
                       <TableHead className="text-right">หลัง</TableHead>
-                      <TableHead>เอกสารอ้างอิง</TableHead>
-                      <TableHead>ตำแหน่ง</TableHead>
-                      <TableHead>หมายเหตุ</TableHead>
+                      <TableHead>ตำแหน่ง / การดำเนินการ</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {movements?.data?.map((movement: any) => (
-                      <TableRow key={movement.id}>
-                        <TableCell className="whitespace-nowrap">
-                          {format(new Date(movement.created_at), "dd MMM yy HH:mm", { locale: th })}
-                        </TableCell>
-                        <TableCell>{getMovementBadge(movement.movement_type, movement.notes)}</TableCell>
-                        <TableCell>{movement.companies?.name || "-"}</TableCell>
-                        <TableCell className="font-mono text-sm">{movement.equipment_code}</TableCell>
-                        <TableCell>{movement.equipment_name}</TableCell>
-                        <TableCell className="text-right">
-                          {getStockChange(movement.movement_type, movement.quantity)}
-                        </TableCell>
-                        <TableCell className="text-right font-mono">{movement.stock_before}</TableCell>
-                        <TableCell className="text-right font-mono font-medium">{movement.stock_after}</TableCell>
-                        <TableCell className="font-mono text-sm text-muted-foreground">
-                          {movement.reference_document || "-"}
-                        </TableCell>
-                        <TableCell>{movement.location?.name || "-"}</TableCell>
-                        <TableCell className="max-w-[200px] truncate" title={movement.notes}>
-                          {movement.notes || "-"}
-                        </TableCell>
-                      </TableRow>
+                    {paginatedGroups.map((group) => (
+                      <StockMovementGroupRow
+                        key={group.reference_document}
+                        group={group}
+                        onViewDocument={handleViewDocument}
+                      />
                     ))}
                   </TableBody>
                 </Table>
@@ -242,6 +218,13 @@ export default function StockMovementLog() {
           )}
         </CardContent>
       </Card>
+
+      {/* Document Viewer Dialog */}
+      <StockMovementDocumentDialog
+        open={isDocumentDialogOpen}
+        onOpenChange={setIsDocumentDialogOpen}
+        group={selectedGroup}
+      />
     </div>
   );
 }
