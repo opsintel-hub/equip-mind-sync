@@ -13,7 +13,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Download, Package, AlertTriangle, XCircle, CheckCircle, Monitor, ImageIcon } from "lucide-react";
+import { Download, Package, AlertTriangle, XCircle, CheckCircle, Monitor, ImageIcon, Wrench } from "lucide-react";
 import { InventoryFilters, InventoryFiltersState } from "@/components/inventory/InventoryFilters";
 import { EquipmentImageViewer } from "@/components/equipment/EquipmentImageViewer";
 import * as XLSX from "xlsx";
@@ -42,7 +42,7 @@ interface InventoryItem {
   companies: { id: string; name: string; code: string } | null;
   locations: { id: string; name: string; code: string; warehouse_id: string; warehouses: { id: string; name: string; code: string } | null } | null;
   subcategories: { id: string; name: string; category_id: string } | null;
-  is_media_player: boolean;
+  item_type: 'equipment' | 'tools' | 'media_player';
 }
 
 export default function InventoryReport() {
@@ -85,9 +85,8 @@ export default function InventoryReport() {
   const { data: equipmentData = [], isLoading: isLoadingEquipment } = useQuery({
     queryKey: ["inventory-report-equipment", filters],
     queryFn: async () => {
-      // Skip if filtering for media players only
-      if (filters.itemType === "media_player" || 
-          (filters.statusFilters?.includes("media_player") && filters.statusFilters.length === 1)) {
+      // Skip if filtering for media players or tools only
+      if (filters.itemType === "media_player" || filters.itemType === "tools") {
         return [];
       }
 
@@ -145,19 +144,94 @@ export default function InventoryReport() {
         min_stock_level: item.min_stock_level || 0,
         expiry_date: item.expiry_date,
         warranty_expiry_date: item.warranty_expiry_date,
-        is_media_player: false,
+        item_type: 'equipment' as const,
       }));
     },
-    enabled: filters.itemType !== "media_player" && 
-             !(filters.statusFilters?.includes("media_player") && filters.statusFilters.length === 1),
+    enabled: filters.itemType !== "media_player" && filters.itemType !== "tools",
+  });
+
+  // Fetch tools with related data
+  const { data: toolsData = [], isLoading: isLoadingTools } = useQuery({
+    queryKey: ["inventory-report-tools", filters],
+    queryFn: async () => {
+      // Skip if filtering for equipment or media players only
+      if (filters.itemType === "equipment" || filters.itemType === "media_player") {
+        return [];
+      }
+
+      let query = supabase
+        .from("tools")
+        .select(`
+          id,
+          code,
+          name,
+          brand,
+          department,
+          current_quantity,
+          unit,
+          unit_price,
+          company_id,
+          location_id,
+          expiry_date,
+          warranty_expiry_date,
+          companies:company_id (id, name, code),
+          locations:location_id (id, name, code, warehouse_id, warehouses:warehouse_id (id, name, code)),
+          tool_categories:tool_category_id (id, name)
+        `)
+        .eq("is_active", true)
+        .order("code");
+
+      // Apply filters
+      if (filters.companyId) {
+        query = query.eq("company_id", filters.companyId);
+      }
+      if (filters.department) {
+        query = query.eq("department", filters.department);
+      }
+      if (filters.locationId) {
+        query = query.eq("location_id", filters.locationId);
+      }
+      if (filters.search) {
+        query = query.or(
+          `code.ilike.%${filters.search}%,name.ilike.%${filters.search}%,brand.ilike.%${filters.search}%`
+        );
+      }
+
+      const { data, error } = await query;
+      if (error) throw error;
+      
+      // Transform to unified format
+      return (data || []).map((item: any): InventoryItem => ({
+        id: item.id,
+        code: item.code,
+        name: item.name,
+        category: item.tool_categories?.name || "เครื่องมือ",
+        brand: item.brand,
+        department: item.department,
+        quantity_in_stock: item.current_quantity || 0,
+        min_stock_level: 0,
+        unit: item.unit,
+        unit_price: item.unit_price || 0,
+        company_id: item.company_id,
+        location_id: item.location_id,
+        subcategory_id: null,
+        expiry_date: item.expiry_date,
+        warranty_expiry_date: item.warranty_expiry_date,
+        companies: item.companies as InventoryItem["companies"],
+        locations: item.locations as InventoryItem["locations"],
+        subcategories: null,
+        item_type: 'tools' as const,
+      }));
+    },
+    enabled: filters.itemType !== "equipment" && filters.itemType !== "media_player",
   });
 
   // Fetch media players with related data
   const { data: mediaPlayerData = [], isLoading: isLoadingMediaPlayers } = useQuery({
     queryKey: ["inventory-report-media-players", filters],
     queryFn: async () => {
-      // Skip if filtering for equipment only and no media_player status filter
-      if (filters.itemType === "equipment" && !filters.statusFilters?.includes("media_player")) {
+      // Skip if filtering for equipment or tools only
+      if (filters.itemType === "equipment" || filters.itemType === "tools") {
         return [];
       }
 
@@ -220,18 +294,18 @@ export default function InventoryReport() {
         companies: item.companies as InventoryItem["companies"],
         locations: item.locations as InventoryItem["locations"],
         subcategories: null,
-        is_media_player: true,
+        item_type: 'media_player' as const,
       }));
     },
-    enabled: filters.itemType !== "equipment" || filters.statusFilters?.includes("media_player"),
+    enabled: filters.itemType !== "equipment" && filters.itemType !== "tools",
   });
 
-  // Combine equipment and media player data
+  // Combine equipment, tools and media player data
   const combinedData = useMemo(() => {
-    return [...equipmentData, ...mediaPlayerData];
-  }, [equipmentData, mediaPlayerData]);
+    return [...equipmentData, ...toolsData, ...mediaPlayerData];
+  }, [equipmentData, toolsData, mediaPlayerData]);
 
-  const isLoading = isLoadingEquipment || isLoadingMediaPlayers;
+  const isLoading = isLoadingEquipment || isLoadingTools || isLoadingMediaPlayers;
 
   // Helper functions for status checks
   const isExpired = (expiryDate: string | null) => {
@@ -267,8 +341,8 @@ export default function InventoryReport() {
     return combinedData.filter((item) => {
       // Filter by category (need to check subcategory's category_id)
       if (filters.categoryId) {
-        // Media players don't have subcategories, so skip them if category filter is set
-        if (item.is_media_player) return false;
+        // Media players and tools don't have subcategories, so skip them if category filter is set
+        if (item.item_type !== 'equipment') return false;
         
         const subcat = item.subcategories;
         if (!subcat || subcat.category_id !== filters.categoryId) {
@@ -280,8 +354,8 @@ export default function InventoryReport() {
         }
       }
 
-      // Filter by subcategory (media players don't have subcategories)
-      if (filters.subcategoryId && item.is_media_player) {
+      // Filter by subcategory (only equipment have subcategories)
+      if (filters.subcategoryId && item.item_type !== 'equipment') {
         return false;
       }
 
@@ -308,17 +382,15 @@ export default function InventoryReport() {
         const matchesAnyStatusFilter = filters.statusFilters.some((statusFilter) => {
           switch (statusFilter) {
             case "expired":
-              return !item.is_media_player && isExpired(item.expiry_date);
+              return item.item_type !== 'media_player' && isExpired(item.expiry_date);
             case "warranty_expired":
               return isWarrantyExpired(item.warranty_expiry_date);
             case "near_expiry":
-              return !item.is_media_player && isNearExpiry(item.expiry_date);
+              return item.item_type !== 'media_player' && isNearExpiry(item.expiry_date);
             case "near_warranty":
               return isNearWarranty(item.warranty_expiry_date);
             case "out_of_stock":
               return item.quantity_in_stock === 0;
-            case "media_player":
-              return item.is_media_player;
             default:
               return false;
           }
@@ -384,8 +456,9 @@ export default function InventoryReport() {
         item.min_stock_level
       );
 
+      const itemTypeLabel = item.item_type === 'media_player' ? "Media Player" : item.item_type === 'tools' ? "เครื่องมือ" : "อะไหล่";
       return {
-        ประเภท: item.is_media_player ? "Media Player" : "อะไหล่",
+        ประเภท: itemTypeLabel,
         รหัส: item.code,
         ชื่อ: item.name,
         หมวดหมู่: item.category,
@@ -565,24 +638,29 @@ export default function InventoryReport() {
                       return (
                         <TableRow key={item.id}>
                           <TableCell>
-                            {!item.is_media_player && (
+                            {item.item_type === 'equipment' && (
                               <EquipmentImageViewer
                                 equipmentId={item.id}
                                 equipmentName={item.name}
                                 variant="icon"
                               />
                             )}
-                            {item.is_media_player && (
+                            {item.item_type !== 'equipment' && (
                               <span className="text-muted-foreground">
                                 <ImageIcon className="h-4 w-4 opacity-30" />
                               </span>
                             )}
                           </TableCell>
                           <TableCell>
-                            {item.is_media_player ? (
+                            {item.item_type === 'media_player' ? (
                               <Badge variant="secondary" className="bg-blue-100 text-blue-700">
                                 <Monitor className="h-3 w-3 mr-1" />
                                 Media Player
+                              </Badge>
+                            ) : item.item_type === 'tools' ? (
+                              <Badge variant="secondary" className="bg-purple-100 text-purple-700">
+                                <Wrench className="h-3 w-3 mr-1" />
+                                เครื่องมือ
                               </Badge>
                             ) : (
                               <Badge variant="outline">
