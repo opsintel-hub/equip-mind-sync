@@ -35,6 +35,12 @@ export const STATUS_FILTER_OPTIONS = [
   { value: "near_expiry", label: "ใกล้หมดอายุ" },
   { value: "near_warranty", label: "ใกล้หมดประกัน" },
   { value: "out_of_stock", label: "สินค้าหมด" },
+];
+
+export const ITEM_TYPE_OPTIONS = [
+  { value: "all", label: "ทั้งหมด" },
+  { value: "equipment", label: "อะไหล่หรืออุปกรณ์" },
+  { value: "tools", label: "เครื่องมือ" },
   { value: "media_player", label: "Media Player" },
 ];
 
@@ -233,6 +239,25 @@ export function InventoryFilters({ filters, onFiltersChange }: InventoryFiltersP
             {departments.map((dept) => (
               <SelectItem key={dept.id} value={dept.name}>
                 {dept.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        {/* Item Type Filter - after ฝ่าย */}
+        <Select
+          value={filters.itemType || "all"}
+          onValueChange={(value) =>
+            onFiltersChange({ ...filters, itemType: value === "all" ? "" : value })
+          }
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="ประเภทสินค้า" />
+          </SelectTrigger>
+          <SelectContent>
+            {ITEM_TYPE_OPTIONS.map((option) => (
+              <SelectItem key={option.value} value={option.value}>
+                {option.label}
               </SelectItem>
             ))}
           </SelectContent>
