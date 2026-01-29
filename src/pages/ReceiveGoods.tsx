@@ -81,6 +81,11 @@ const ReceiveGoods = () => {
   const [batchReceipts, setBatchReceipts] = useState<PendingReceipt[]>([]);
   const [isBatchDialogOpen, setIsBatchDialogOpen] = useState(false);
 
+  // Reject dialog state
+  const [isRejectDialogOpen, setIsRejectDialogOpen] = useState(false);
+  const [rejectReceipt, setRejectReceipt] = useState<PendingReceipt | null>(null);
+  const [rejectReason, setRejectReason] = useState("");
+
   // Form state for editing - only editable fields
   const [editNotes, setEditNotes] = useState("");
   const [storageVolumeCm3, setStorageVolumeCm3] = useState<string>("");
@@ -222,6 +227,44 @@ const ReceiveGoods = () => {
     setSelectedWarehouseId("");
     setStorageLocation({ locationId: "" });
     setIsBatchDialogOpen(true);
+  };
+
+  const openRejectDialog = (receipt: PendingReceipt) => {
+    setRejectReceipt(receipt);
+    setRejectReason("");
+    setIsRejectDialogOpen(true);
+  };
+
+  const handleReject = async () => {
+    if (!rejectReceipt) return;
+    
+    if (!rejectReason.trim()) {
+      toast.error("กรุณาระบุเหตุผลในการปฏิเสธ");
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      const { error } = await supabase
+        .from("goods_receipt_pending")
+        .update({
+          status: "rejected",
+          notes: `ปฏิเสธ: ${rejectReason}${rejectReceipt.notes ? ` | หมายเหตุเดิม: ${rejectReceipt.notes}` : ""}`,
+        })
+        .eq("id", rejectReceipt.id);
+
+      if (error) throw error;
+
+      toast.success("ปฏิเสธรายการสำเร็จ");
+      setIsRejectDialogOpen(false);
+      fetchPendingReceipts();
+    } catch (error) {
+      console.error("Error rejecting:", error);
+      toast.error("เกิดข้อผิดพลาดในการปฏิเสธรายการ");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   // Get filtered locations by selected warehouse
@@ -684,6 +727,7 @@ const ReceiveGoods = () => {
                 <SelectContent position="popper" sideOffset={4} className="bg-background z-[200] max-h-60 overflow-y-auto">
                   <SelectItem value="pending">รอรับเข้า</SelectItem>
                   <SelectItem value="received">รับเข้าแล้ว</SelectItem>
+                  <SelectItem value="rejected">ปฏิเสธแล้ว</SelectItem>
                   <SelectItem value="all">ทั้งหมด</SelectItem>
                 </SelectContent>
               </Select>
@@ -704,6 +748,7 @@ const ReceiveGoods = () => {
             receipts={filteredReceipts}
             onReceiveSingle={openReceiveDialog}
             onReceiveBatch={openBatchReceiveDialog}
+            onRejectSingle={openRejectDialog}
             getReceiptPurposeName={getReceiptPurposeName}
           />
         </CardContent>
@@ -726,7 +771,7 @@ const ReceiveGoods = () => {
                 <p className="text-sm font-medium text-foreground mb-2">ข้อมูลจากการนำสินค้าเข้า</p>
                 <div className="grid grid-cols-2 gap-2 text-sm">
                   <p><span className="text-muted-foreground">ชื่อผู้ส่ง:</span> {selectedReceipt.delivery_person_name}</p>
-                  <p><span className="text-muted-foreground">เบอร์โทร:</span> {selectedReceipt.delivery_person_phone || "-"}</p>
+                  <p><span className="text-muted-foreground">เบอร์โทร:</span> {selectedReceipt.delivery_person_phone || <span className="text-destructive/70">ไม่ได้กรอก</span>}</p>
                 </div>
               </div>
 
@@ -734,10 +779,30 @@ const ReceiveGoods = () => {
               <div className="space-y-2">
                 <Label>วัตถุประสงค์การนำสินค้าเข้า</Label>
                 <Input 
-                  value={getReceiptPurposeName(selectedReceipt.receipt_purpose_id)}
+                  value={getReceiptPurposeName(selectedReceipt.receipt_purpose_id) || "-"}
                   disabled
-                  className="bg-muted"
+                  className={`bg-muted ${!selectedReceipt.receipt_purpose_id ? 'text-destructive/70' : ''}`}
                 />
+              </div>
+
+              {/* PO/PR Numbers - Read Only */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>เลข PO</Label>
+                  <Input 
+                    value={selectedReceipt.po_number || "-"}
+                    disabled
+                    className={`bg-muted ${!selectedReceipt.po_number ? 'text-muted-foreground' : ''}`}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>เลข PR</Label>
+                  <Input 
+                    value={selectedReceipt.pr_number || "-"}
+                    disabled
+                    className={`bg-muted ${!selectedReceipt.pr_number ? 'text-muted-foreground' : ''}`}
+                  />
+                </div>
               </div>
 
               {/* Equipment Name - Read Only with Image Viewer */}
@@ -786,7 +851,7 @@ const ReceiveGoods = () => {
                   <Input 
                     value={selectedReceipt.lot_number || "-"}
                     disabled
-                    className="bg-muted"
+                    className={`bg-muted ${!selectedReceipt.lot_number ? 'text-muted-foreground' : ''}`}
                   />
                 </div>
                 <div className="space-y-2">
@@ -794,7 +859,7 @@ const ReceiveGoods = () => {
                   <Input 
                     value={selectedReceipt.lot_number_2 || "-"}
                     disabled
-                    className="bg-muted"
+                    className={`bg-muted ${!selectedReceipt.lot_number_2 ? 'text-muted-foreground' : ''}`}
                   />
                 </div>
                 <div className="space-y-2">
@@ -802,7 +867,7 @@ const ReceiveGoods = () => {
                   <Input 
                     value={selectedReceipt.serial_number || "-"}
                     disabled
-                    className="bg-muted"
+                    className={`bg-muted ${!selectedReceipt.serial_number ? 'text-muted-foreground' : ''}`}
                   />
                 </div>
                 <div className="space-y-2">
@@ -810,7 +875,7 @@ const ReceiveGoods = () => {
                   <Input 
                     value={selectedReceipt.unit_price ? selectedReceipt.unit_price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "-"}
                     disabled
-                    className="bg-muted"
+                    className={`bg-muted ${!selectedReceipt.unit_price ? 'text-muted-foreground' : ''}`}
                   />
                 </div>
               </div>
@@ -822,7 +887,7 @@ const ReceiveGoods = () => {
                   <Input 
                     value={selectedReceipt.supplier_name || "-"}
                     disabled
-                    className="bg-muted"
+                    className={`bg-muted ${!selectedReceipt.supplier_name ? 'text-muted-foreground' : ''}`}
                   />
                 </div>
                 <div className="space-y-2">
@@ -835,6 +900,39 @@ const ReceiveGoods = () => {
                 </div>
               </div>
 
+              {/* Asset Details - Show when is_asset is true */}
+              {selectedReceipt.is_asset && (
+                <div className="p-3 bg-primary/5 border border-primary/20 rounded-lg space-y-3">
+                  <p className="text-sm font-medium text-primary">ข้อมูลทรัพย์สิน</p>
+                  <div className="grid grid-cols-3 gap-4">
+                    <div className="space-y-2">
+                      <Label>รหัสทรัพย์สิน</Label>
+                      <Input 
+                        value={selectedReceipt.asset_code || (selectedReceipt.waiting_asset_code ? "รอรหัส" : "-")}
+                        disabled
+                        className={`bg-muted ${selectedReceipt.waiting_asset_code ? 'text-warning' : !selectedReceipt.asset_code ? 'text-muted-foreground' : ''}`}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>รหัสอุปกรณ์</Label>
+                      <Input 
+                        value={selectedReceipt.equipment_id_code || (selectedReceipt.waiting_equipment_id ? "รอรหัส" : "-")}
+                        disabled
+                        className={`bg-muted ${selectedReceipt.waiting_equipment_id ? 'text-warning' : !selectedReceipt.equipment_id_code ? 'text-muted-foreground' : ''}`}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>ค่าเสื่อมราคา (เดือน)</Label>
+                      <Input 
+                        value={selectedReceipt.depreciation_months?.toString() || "-"}
+                        disabled
+                        className={`bg-muted ${!selectedReceipt.depreciation_months ? 'text-muted-foreground' : ''}`}
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* Expiry Date & Warranty Expiry Date - Read Only */}
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
@@ -842,7 +940,7 @@ const ReceiveGoods = () => {
                   <Input 
                     value={selectedReceipt.expiry_date ? format(new Date(selectedReceipt.expiry_date), "dd/MM/yyyy") : "-"}
                     disabled
-                    className="bg-muted"
+                    className={`bg-muted ${!selectedReceipt.expiry_date ? 'text-muted-foreground' : ''}`}
                   />
                 </div>
                 <div className="space-y-2">
@@ -850,10 +948,52 @@ const ReceiveGoods = () => {
                   <Input 
                     value={selectedReceipt.warranty_expiry_date ? format(new Date(selectedReceipt.warranty_expiry_date), "dd/MM/yyyy") : "-"}
                     disabled
-                    className="bg-muted"
+                    className={`bg-muted ${!selectedReceipt.warranty_expiry_date ? 'text-muted-foreground' : ''}`}
                   />
                 </div>
               </div>
+
+              {/* Notes from Delivery - Read Only */}
+              {selectedReceipt.notes && (
+                <div className="space-y-2">
+                  <Label>หมายเหตุจากผู้นำเข้า</Label>
+                  <Textarea 
+                    value={selectedReceipt.notes}
+                    disabled
+                    className="bg-muted"
+                    rows={2}
+                  />
+                </div>
+              )}
+
+              {/* Document Links */}
+              {(selectedReceipt.document_url || selectedReceipt.purchase_document_url) && (
+                <div className="p-3 bg-muted/30 rounded-lg space-y-2">
+                  <p className="text-sm font-medium text-foreground">เอกสารแนบ</p>
+                  <div className="flex gap-4 text-sm">
+                    {selectedReceipt.document_url && (
+                      <a 
+                        href={selectedReceipt.document_url} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="text-primary hover:underline"
+                      >
+                        📎 เอกสารนำส่ง
+                      </a>
+                    )}
+                    {selectedReceipt.purchase_document_url && (
+                      <a 
+                        href={selectedReceipt.purchase_document_url} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="text-primary hover:underline"
+                      >
+                        📎 เอกสาร PO/PR
+                      </a>
+                    )}
+                  </div>
+                </div>
+              )}
 
               {/* Storage Dimensions Display */}
               {selectedReceipt && (selectedReceipt.storage_width_cm || selectedReceipt.storage_height_cm || selectedReceipt.storage_depth_cm) && (
@@ -1088,6 +1228,56 @@ const ReceiveGoods = () => {
             </Button>
             <Button onClick={handleBatchReceive} disabled={isLoading}>
               {isLoading ? "กำลังบันทึก..." : `รับเข้าคลัง ${batchReceipts.length} รายการ`}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Reject Dialog */}
+      <Dialog open={isRejectDialogOpen} onOpenChange={setIsRejectDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-destructive">ปฏิเสธรายการสินค้า</DialogTitle>
+            <DialogDescription>
+              กรุณาระบุเหตุผลในการปฏิเสธรายการนี้
+            </DialogDescription>
+          </DialogHeader>
+
+          {rejectReceipt && (
+            <div className="space-y-4 py-4">
+              {/* Item Info */}
+              <div className="p-3 bg-muted/30 rounded-lg space-y-2">
+                <p className="font-medium">{rejectReceipt.equipment_name || rejectReceipt.equipment_code || "-"}</p>
+                <div className="text-sm text-muted-foreground">
+                  <span>จำนวน: {rejectReceipt.quantity} {rejectReceipt.unit}</span>
+                  <span className="mx-2">•</span>
+                  <span>เอกสาร: {rejectReceipt.document_no}</span>
+                </div>
+              </div>
+
+              {/* Reject Reason */}
+              <div className="space-y-2">
+                <Label>เหตุผลในการปฏิเสธ *</Label>
+                <Textarea 
+                  value={rejectReason}
+                  onChange={(e) => setRejectReason(e.target.value)}
+                  rows={3}
+                  placeholder="ระบุเหตุผล เช่น สินค้าไม่ตรงตาม PO, สินค้าชำรุด, จำนวนไม่ตรง..."
+                />
+              </div>
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsRejectDialogOpen(false)}>
+              ยกเลิก
+            </Button>
+            <Button 
+              variant="destructive" 
+              onClick={handleReject} 
+              disabled={isLoading}
+            >
+              {isLoading ? "กำลังบันทึก..." : "ยืนยันปฏิเสธ"}
             </Button>
           </DialogFooter>
         </DialogContent>
