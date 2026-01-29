@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { ChevronDown, ChevronRight, Clock, CheckCircle2, Edit, Package, Eye, Monitor } from "lucide-react";
+import { ChevronDown, ChevronRight, Clock, CheckCircle2, Edit, Package, Monitor, XCircle } from "lucide-react";
 import { format } from "date-fns";
 
 export interface PendingReceipt {
@@ -36,6 +36,20 @@ export interface PendingReceipt {
   receipt_purpose_id?: string | null;
   is_media_player?: boolean | null;
   media_player_id?: string | null;
+  // Additional fields for complete display
+  po_number?: string | null;
+  pr_number?: string | null;
+  document_url?: string | null;
+  purchase_document_url?: string | null;
+  document_file_name?: string | null;
+  company_id?: string | null;
+  department_id?: string | null;
+  warehouse_id?: string | null;
+  asset_code?: string | null;
+  equipment_id_code?: string | null;
+  waiting_asset_code?: boolean | null;
+  waiting_equipment_id?: boolean | null;
+  depreciation_months?: number | null;
 }
 
 interface GroupedReceipts {
@@ -46,6 +60,7 @@ interface GroupedReceipts {
   items: PendingReceipt[];
   pendingCount: number;
   receivedCount: number;
+  rejectedCount: number;
   totalItems: number;
 }
 
@@ -53,6 +68,7 @@ interface ReceiveGroupedItemsProps {
   receipts: PendingReceipt[];
   onReceiveSingle: (receipt: PendingReceipt) => void;
   onReceiveBatch: (receipts: PendingReceipt[]) => void;
+  onRejectSingle: (receipt: PendingReceipt) => void;
   getReceiptPurposeName: (purposeId: string | null | undefined) => string;
 }
 
@@ -62,6 +78,8 @@ const getStatusBadge = (status: string) => {
       return <Badge variant="secondary" className="bg-warning/10 text-warning"><Clock className="w-3 h-3 mr-1" />รอรับเข้า</Badge>;
     case "received":
       return <Badge variant="secondary" className="bg-success/10 text-success"><CheckCircle2 className="w-3 h-3 mr-1" />รับเข้าแล้ว</Badge>;
+    case "rejected":
+      return <Badge variant="secondary" className="bg-destructive/10 text-destructive"><XCircle className="w-3 h-3 mr-1" />ปฏิเสธ</Badge>;
     default:
       return <Badge variant="secondary">{status}</Badge>;
   }
@@ -81,6 +99,7 @@ export const ReceiveGroupedItems = ({
   receipts,
   onReceiveSingle,
   onReceiveBatch,
+  onRejectSingle,
   getReceiptPurposeName,
 }: ReceiveGroupedItemsProps) => {
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
@@ -100,6 +119,7 @@ export const ReceiveGroupedItems = ({
           items: [],
           pendingCount: 0,
           receivedCount: 0,
+          rejectedCount: 0,
           totalItems: 0,
         };
       }
@@ -110,6 +130,8 @@ export const ReceiveGroupedItems = ({
         acc[parentDocNo].pendingCount++;
       } else if (receipt.status === "received") {
         acc[parentDocNo].receivedCount++;
+      } else if (receipt.status === "rejected") {
+        acc[parentDocNo].rejectedCount++;
       }
       
       return acc;
@@ -217,6 +239,11 @@ export const ReceiveGroupedItems = ({
                           รับแล้ว {group.receivedCount}
                         </Badge>
                       )}
+                      {group.rejectedCount > 0 && (
+                        <Badge variant="secondary" className="bg-destructive/10 text-destructive">
+                          ปฏิเสธ {group.rejectedCount}
+                        </Badge>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -316,17 +343,31 @@ export const ReceiveGroupedItems = ({
                         <TableCell>{getStatusBadge(item.status)}</TableCell>
                         <TableCell>
                           {item.status === "pending" && (
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                onReceiveSingle(item);
-                              }}
-                            >
-                              <Edit className="w-4 h-4 mr-1" />
-                              รับเข้า
-                            </Button>
+                            <div className="flex items-center gap-2">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  onReceiveSingle(item);
+                                }}
+                              >
+                                <Edit className="w-4 h-4 mr-1" />
+                                รับเข้า
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="text-destructive border-destructive/50 hover:bg-destructive/10"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  onRejectSingle(item);
+                                }}
+                              >
+                                <XCircle className="w-4 h-4 mr-1" />
+                                ปฏิเสธ
+                              </Button>
+                            </div>
                           )}
                         </TableCell>
                       </TableRow>
