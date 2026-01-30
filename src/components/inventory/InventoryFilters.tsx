@@ -13,7 +13,7 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Search, X, Filter, ChevronDown } from "lucide-react";
+import { Search, X, Filter, ChevronDown, Settings } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
 export interface InventoryFiltersState {
@@ -26,7 +26,8 @@ export interface InventoryFiltersState {
   stockStatus: string;
   search: string;
   itemType: string; // 'all' | 'equipment' | 'media_player'
-  statusFilters: string[]; // Multi-select: expired, warranty_expired, near_expiry, near_warranty, out_of_stock, media_player
+  statusFilters: string[]; // Multi-select: expired, warranty_expired, near_expiry, near_warranty, out_of_stock
+  advanceDays?: number; // Custom days for near expiry/warranty calculation
 }
 
 export const STATUS_FILTER_OPTIONS = [
@@ -35,6 +36,13 @@ export const STATUS_FILTER_OPTIONS = [
   { value: "near_expiry", label: "ใกล้หมดอายุ" },
   { value: "near_warranty", label: "ใกล้หมดประกัน" },
   { value: "out_of_stock", label: "สินค้าหมด" },
+];
+
+export const ADVANCE_DAYS_OPTIONS = [
+  { value: 30, label: "30 วัน" },
+  { value: 60, label: "60 วัน" },
+  { value: 90, label: "90 วัน" },
+  { value: 120, label: "120 วัน" },
 ];
 
 export const ITEM_TYPE_OPTIONS = [
@@ -179,6 +187,7 @@ export function InventoryFilters({ filters, onFiltersChange }: InventoryFiltersP
       search: "",
       itemType: "",
       statusFilters: [],
+      advanceDays: 30,
     });
   };
 
@@ -352,7 +361,7 @@ export function InventoryFilters({ filters, onFiltersChange }: InventoryFiltersP
 
       {/* Row 2: Multi-select status filter, Stock status & Search */}
       <div className="flex flex-wrap gap-3 items-center">
-        {/* Multi-select Status Filter */}
+        {/* Multi-select Status Filter with Days Setting */}
         <Popover>
           <PopoverTrigger asChild>
             <Button variant="outline" className="min-w-[200px] justify-between">
@@ -368,7 +377,7 @@ export function InventoryFilters({ filters, onFiltersChange }: InventoryFiltersP
               <ChevronDown className="h-4 w-4 opacity-50" />
             </Button>
           </PopoverTrigger>
-          <PopoverContent className="w-[250px] p-3" align="start">
+          <PopoverContent className="w-[280px] p-3" align="start">
             <div className="space-y-3">
               <div className="font-medium text-sm">เลือกสถานะ (เลือกได้หลายรายการ)</div>
               {STATUS_FILTER_OPTIONS.map((option) => (
@@ -398,6 +407,39 @@ export function InventoryFilters({ filters, onFiltersChange }: InventoryFiltersP
                   ล้างการเลือก
                 </Button>
               )}
+            </div>
+          </PopoverContent>
+        </Popover>
+
+        {/* Days Setting Dropdown */}
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button variant="outline" className="min-w-[120px] justify-between">
+              <div className="flex items-center gap-2">
+                <Settings className="h-4 w-4" />
+                <span>ค่าตั้ง ({filters.advanceDays || 30})</span>
+              </div>
+              <ChevronDown className="h-4 w-4 opacity-50" />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-[200px] p-3" align="start">
+            <div className="space-y-3">
+              <div className="font-medium text-sm">ระยะเวลาแจ้งเตือนล่วงหน้า</div>
+              <div className="text-xs text-muted-foreground">
+                สำหรับ "ใกล้หมดอายุ" และ "ใกล้หมดประกัน"
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {ADVANCE_DAYS_OPTIONS.map((option) => (
+                  <Badge
+                    key={option.value}
+                    variant={(filters.advanceDays || 30) === option.value ? "default" : "outline"}
+                    className="cursor-pointer hover:bg-primary hover:text-primary-foreground"
+                    onClick={() => onFiltersChange({ ...filters, advanceDays: option.value })}
+                  >
+                    {option.label}
+                  </Badge>
+                ))}
+              </div>
             </div>
           </PopoverContent>
         </Popover>
