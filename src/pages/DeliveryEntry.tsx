@@ -18,7 +18,7 @@ import { CompanySelect } from "@/components/company/CompanySelect";
 import { DeliveryImport } from "@/components/delivery/DeliveryImport";
 import { DeliveryCart, DeliveryCartItem } from "@/components/delivery/DeliveryCart";
 import { DeliveryCartItemEditDialog } from "@/components/delivery/DeliveryCartItemEditDialog";
-import { EquipmentForm } from "@/components/equipment/EquipmentForm";
+
 
 interface Equipment {
   id: string;
@@ -1054,16 +1054,6 @@ const DeliveryEntry = () => {
                             variant="button"
                           />
                         )}
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <p className="text-xs text-muted-foreground flex items-center gap-1">
-                          <Info className="w-3 h-3" />
-                          ไม่พบสินค้าในระบบ?
-                        </p>
-                        <EquipmentForm onSuccess={() => {
-                          fetchEquipment();
-                          toast.success("เพิ่มสินค้าใหม่เรียบร้อย สามารถเลือกสินค้าได้จาก dropdown");
-                        }} />
                       </div>
                     </div>
                     <div className="space-y-2">
