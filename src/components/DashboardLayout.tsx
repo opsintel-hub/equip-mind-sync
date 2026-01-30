@@ -1,6 +1,7 @@
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "./AppSidebar";
 import { NotificationCenter } from "./NotificationCenter";
+import { UserInfoDisplay } from "./UserInfoDisplay";
 import { Menu } from "lucide-react";
 
 interface DashboardLayoutProps {
@@ -21,6 +22,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
                 </SidebarTrigger>
               </div>
               <div className="flex items-center gap-4">
+                <UserInfoDisplay />
                 <NotificationCenter />
               </div>
             </div>
