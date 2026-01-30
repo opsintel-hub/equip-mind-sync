@@ -20,7 +20,7 @@ import * as XLSX from "xlsx";
 import { toast } from "sonner";
 
 const ITEMS_PER_PAGE = 50;
-const ADVANCE_DAYS = 30; // Days to consider as "near expiry/warranty"
+const DEFAULT_ADVANCE_DAYS = 30; // Default days to consider as "near expiry/warranty"
 
 // Unified inventory item type
 interface InventoryItem {
@@ -57,6 +57,7 @@ export default function InventoryReport() {
     search: "",
     itemType: "",
     statusFilters: [],
+    advanceDays: DEFAULT_ADVANCE_DAYS,
   });
   const [currentPage, setCurrentPage] = useState(1);
 
@@ -307,6 +308,9 @@ export default function InventoryReport() {
 
   const isLoading = isLoadingEquipment || isLoadingTools || isLoadingMediaPlayers;
 
+  // Get advance days from filters or use default
+  const advanceDays = filters.advanceDays || DEFAULT_ADVANCE_DAYS;
+
   // Helper functions for status checks
   const isExpired = (expiryDate: string | null) => {
     if (!expiryDate) return false;
@@ -323,7 +327,7 @@ export default function InventoryReport() {
     const expiry = new Date(expiryDate);
     const now = new Date();
     const diffDays = Math.ceil((expiry.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-    return diffDays > 0 && diffDays <= ADVANCE_DAYS;
+    return diffDays > 0 && diffDays <= advanceDays;
   };
 
   const isNearWarranty = (warrantyDate: string | null) => {
@@ -331,7 +335,7 @@ export default function InventoryReport() {
     const warranty = new Date(warrantyDate);
     const now = new Date();
     const diffDays = Math.ceil((warranty.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-    return diffDays > 0 && diffDays <= ADVANCE_DAYS;
+    return diffDays > 0 && diffDays <= advanceDays;
   };
 
   // Apply client-side filters and transform data
@@ -400,7 +404,7 @@ export default function InventoryReport() {
 
       return true;
     });
-  }, [combinedData, filters, categoryMap]);
+  }, [combinedData, filters, categoryMap, advanceDays]);
 
   // Pagination
   const totalPages = Math.ceil(filteredData.length / ITEMS_PER_PAGE);
