@@ -13,7 +13,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Download, Package, AlertTriangle, XCircle, CheckCircle, Monitor, ImageIcon, Wrench } from "lucide-react";
+import { Download, Package, AlertTriangle, XCircle, CheckCircle, Monitor, ImageIcon, Wrench, ArrowRightLeft, MapPin } from "lucide-react";
 import { InventoryFilters, InventoryFiltersState } from "@/components/inventory/InventoryFilters";
 import { EquipmentImageViewer } from "@/components/equipment/EquipmentImageViewer";
 import * as XLSX from "xlsx";
@@ -43,6 +43,12 @@ interface InventoryItem {
   locations: { id: string; name: string; code: string; warehouse_id: string; warehouses: { id: string; name: string; code: string } | null } | null;
   subcategories: { id: string; name: string; category_id: string } | null;
   item_type: 'equipment' | 'tools' | 'media_player';
+  // Issue tracking fields
+  issue_status?: 'in_stock' | 'issued' | 'partial';
+  issue_purpose?: string | null;
+  issue_billboard_code?: string | null;
+  issue_requester?: string | null;
+  issued_quantity?: number;
 }
 
 export default function InventoryReport() {
@@ -58,6 +64,7 @@ export default function InventoryReport() {
     itemType: "",
     statusFilters: [],
     advanceDays: DEFAULT_ADVANCE_DAYS,
+    issueStatus: "",
   });
   const [currentPage, setCurrentPage] = useState(1);
 
@@ -301,10 +308,128 @@ export default function InventoryReport() {
     enabled: filters.itemType !== "equipment" && filters.itemType !== "tools",
   });
 
-  // Combine equipment, tools and media player data
+  // Fetch issue data for equipment
+  const { data: issueData = [] } = useQuery({
+    queryKey: ["inventory-issue-data"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("goods_issue_pending")
+        .select(`
+          id,
+          equipment_id,
+          status,
+          purpose,
+          purpose_id,
+          billboard_id,
+          requester_name,
+          issued_quantity,
+          quantity,
+          billboards:billboard_id (id, equipment_id)
+        `)
+        .in("status", ["issued", "approved", "partial", "waiting_stock"]);
+
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
+  // Fetch billboards to get their codes
+  const { data: billboards = [] } = useQuery({
+    queryKey: ["billboards-map"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("billboards")
+        .select("id, equipment_id");
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
+  // Fetch equipment for billboard codes
+  const { data: billboardEquipment = [] } = useQuery({
+    queryKey: ["billboard-equipment-codes"],
+    queryFn: async () => {
+      const billboardEquipmentIds = billboards.map((b) => b.equipment_id);
+      if (billboardEquipmentIds.length === 0) return [];
+      
+      const { data, error } = await supabase
+        .from("equipment")
+        .select("id, code")
+        .in("id", billboardEquipmentIds);
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: billboards.length > 0,
+  });
+
+  // Create a map of equipment ID to issue info
+  const issueMap = useMemo(() => {
+    const map: Record<string, {
+      status: string;
+      purpose: string | null;
+      billboard_code: string | null;
+      requester: string | null;
+      issued_quantity: number;
+    }> = {};
+
+    issueData.forEach((issue: any) => {
+      if (!issue.equipment_id) return;
+      
+      // Find billboard code if billboard_id exists
+      let billboardCode: string | null = null;
+      if (issue.billboard_id) {
+        const billboard = billboards.find((b) => b.id === issue.billboard_id);
+        if (billboard) {
+          const eqCode = billboardEquipment.find((e) => e.id === billboard.equipment_id);
+          billboardCode = eqCode?.code || null;
+        }
+      }
+
+      // Aggregate issued quantities per equipment
+      if (!map[issue.equipment_id]) {
+        map[issue.equipment_id] = {
+          status: issue.status,
+          purpose: issue.purpose,
+          billboard_code: billboardCode,
+          requester: issue.requester_name,
+          issued_quantity: issue.issued_quantity || issue.quantity || 0,
+        };
+      } else {
+        // Add to existing
+        map[issue.equipment_id].issued_quantity += issue.issued_quantity || issue.quantity || 0;
+      }
+    });
+
+    return map;
+  }, [issueData, billboards, billboardEquipment]);
+
+  // Combine equipment, tools and media player data with issue information
   const combinedData = useMemo(() => {
-    return [...equipmentData, ...toolsData, ...mediaPlayerData];
-  }, [equipmentData, toolsData, mediaPlayerData]);
+    const allData = [...equipmentData, ...toolsData, ...mediaPlayerData];
+    
+    // Enhance with issue data
+    return allData.map((item): InventoryItem => {
+      const issueInfo = issueMap[item.id];
+      
+      let issueStatus: 'in_stock' | 'issued' | 'partial' = 'in_stock';
+      if (issueInfo) {
+        if (issueInfo.issued_quantity >= item.quantity_in_stock + issueInfo.issued_quantity) {
+          issueStatus = 'issued';
+        } else if (issueInfo.issued_quantity > 0) {
+          issueStatus = 'partial';
+        }
+      }
+      
+      return {
+        ...item,
+        issue_status: issueStatus,
+        issue_purpose: issueInfo?.purpose || null,
+        issue_billboard_code: issueInfo?.billboard_code || null,
+        issue_requester: issueInfo?.requester || null,
+        issued_quantity: issueInfo?.issued_quantity || 0,
+      };
+    });
+  }, [equipmentData, toolsData, mediaPlayerData, issueMap]);
 
   const isLoading = isLoadingEquipment || isLoadingTools || isLoadingMediaPlayers;
 
@@ -402,6 +527,13 @@ export default function InventoryReport() {
         if (!matchesAnyStatusFilter) return false;
       }
 
+      // Filter by issue status
+      if (filters.issueStatus) {
+        if (filters.issueStatus === "in_stock" && item.issue_status !== "in_stock") return false;
+        if (filters.issueStatus === "issued" && item.issue_status !== "issued") return false;
+        if (filters.issueStatus === "partial" && item.issue_status !== "partial") return false;
+      }
+
       return true;
     });
   }, [combinedData, filters, categoryMap, advanceDays]);
@@ -461,6 +593,8 @@ export default function InventoryReport() {
       );
 
       const itemTypeLabel = item.item_type === 'media_player' ? "Media Player" : item.item_type === 'tools' ? "เครื่องมือ" : "อะไหล่";
+      const issueStatusLabel = item.issue_status === 'issued' ? "ถูกเบิกออก" : item.issue_status === 'partial' ? "เบิกบางส่วน" : "อยู่ในคลัง";
+      
       return {
         ประเภท: itemTypeLabel,
         รหัส: item.code,
@@ -479,7 +613,11 @@ export default function InventoryReport() {
         "Min Stock": item.min_stock_level,
         ราคาต่อหน่วย: item.unit_price,
         มูลค่ารวม: item.quantity_in_stock * item.unit_price,
-        สถานะ: status.label,
+        "สถานะ Stock": status.label,
+        สถานะการเบิก: issueStatusLabel,
+        จำนวนที่เบิก: item.issued_quantity || 0,
+        วัตถุประสงค์: item.issue_purpose || "-",
+        "ป้าย/Billboard": item.issue_billboard_code || "-",
       };
     });
 
@@ -612,19 +750,22 @@ export default function InventoryReport() {
                     <TableHead>ตำแหน่งจัดเก็บ</TableHead>
                     <TableHead className="text-right">จำนวน</TableHead>
                     <TableHead className="text-right">Min</TableHead>
-                    <TableHead>สถานะ</TableHead>
+                    <TableHead>สถานะ Stock</TableHead>
+                    <TableHead>สถานะการเบิก</TableHead>
+                    <TableHead>วัตถุประสงค์</TableHead>
+                    <TableHead>ป้าย/Billboard</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {isLoading ? (
                     <TableRow>
-                      <TableCell colSpan={13} className="text-center py-8">
+                      <TableCell colSpan={16} className="text-center py-8">
                         กำลังโหลด...
                       </TableCell>
                     </TableRow>
                   ) : paginatedData.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={13} className="text-center py-8 text-muted-foreground">
+                      <TableCell colSpan={16} className="text-center py-8 text-muted-foreground">
                         ไม่พบข้อมูล
                       </TableCell>
                     </TableRow>
@@ -756,6 +897,44 @@ export default function InventoryReport() {
                                 </Badge>
                               )}
                             </div>
+                          </TableCell>
+                          {/* Issue Status Column */}
+                          <TableCell>
+                            {item.issue_status === 'issued' ? (
+                              <Badge variant="destructive" className="text-xs">
+                                <ArrowRightLeft className="h-3 w-3 mr-1" />
+                                ถูกเบิกออก
+                              </Badge>
+                            ) : item.issue_status === 'partial' ? (
+                              <Badge variant="outline" className="text-xs border-orange-500 text-orange-600 bg-orange-50">
+                                <ArrowRightLeft className="h-3 w-3 mr-1" />
+                                เบิกบางส่วน ({item.issued_quantity})
+                              </Badge>
+                            ) : (
+                              <Badge variant="outline" className="text-xs border-green-500 text-green-600 bg-green-50">
+                                <CheckCircle className="h-3 w-3 mr-1" />
+                                อยู่ในคลัง
+                              </Badge>
+                            )}
+                          </TableCell>
+                          {/* Issue Purpose Column */}
+                          <TableCell>
+                            {item.issue_purpose ? (
+                              <span className="text-sm">{item.issue_purpose}</span>
+                            ) : (
+                              <span className="text-muted-foreground">-</span>
+                            )}
+                          </TableCell>
+                          {/* Billboard Column */}
+                          <TableCell>
+                            {item.issue_billboard_code ? (
+                              <Badge variant="secondary" className="text-xs">
+                                <MapPin className="h-3 w-3 mr-1" />
+                                {item.issue_billboard_code}
+                              </Badge>
+                            ) : (
+                              <span className="text-muted-foreground">-</span>
+                            )}
                           </TableCell>
                         </TableRow>
                       );
