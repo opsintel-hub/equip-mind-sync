@@ -28,6 +28,7 @@ export interface InventoryFiltersState {
   itemType: string; // 'all' | 'equipment' | 'media_player'
   statusFilters: string[]; // Multi-select: expired, warranty_expired, near_expiry, near_warranty, out_of_stock
   advanceDays?: number; // Custom days for near expiry/warranty calculation
+  issueStatus: string; // '' | 'in_stock' | 'issued' | 'partial'
 }
 
 export const STATUS_FILTER_OPTIONS = [
@@ -50,6 +51,13 @@ export const ITEM_TYPE_OPTIONS = [
   { value: "equipment", label: "อะไหล่หรืออุปกรณ์" },
   { value: "tools", label: "เครื่องมือ" },
   { value: "media_player", label: "Media Player" },
+];
+
+export const ISSUE_STATUS_OPTIONS = [
+  { value: "all", label: "ทุกสถานะ" },
+  { value: "in_stock", label: "อยู่ในคลัง" },
+  { value: "issued", label: "ถูกเบิกออก" },
+  { value: "partial", label: "เบิกบางส่วน" },
 ];
 
 interface InventoryFiltersProps {
@@ -188,6 +196,7 @@ export function InventoryFilters({ filters, onFiltersChange }: InventoryFiltersP
       itemType: "",
       statusFilters: [],
       advanceDays: 30,
+      issueStatus: "",
     });
   };
 
@@ -458,6 +467,24 @@ export function InventoryFilters({ filters, onFiltersChange }: InventoryFiltersP
             <SelectItem value="normal">ปกติ</SelectItem>
             <SelectItem value="low">ใกล้หมด</SelectItem>
             <SelectItem value="out">หมด</SelectItem>
+          </SelectContent>
+        </Select>
+
+        <Select
+          value={filters.issueStatus || "all"}
+          onValueChange={(value) =>
+            onFiltersChange({ ...filters, issueStatus: value === "all" ? "" : value })
+          }
+        >
+          <SelectTrigger className="w-[180px]">
+            <SelectValue placeholder="สถานะการเบิก" />
+          </SelectTrigger>
+          <SelectContent>
+            {ISSUE_STATUS_OPTIONS.map((option) => (
+              <SelectItem key={option.value} value={option.value}>
+                {option.label}
+              </SelectItem>
+            ))}
           </SelectContent>
         </Select>
 

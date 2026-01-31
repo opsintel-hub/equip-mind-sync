@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Package, MapPin, Truck, Warehouse, Building2, Target, Building, Wrench, PackageOpen, HardHat } from "lucide-react";
+import { Package, MapPin, Truck, Warehouse, Building2, Target, Building, Wrench, PackageOpen, HardHat, Layers } from "lucide-react";
 import { EquipmentForm } from "@/components/equipment/EquipmentForm";
 import { EquipmentList } from "@/components/equipment/EquipmentList";
 import { EquipmentImport } from "@/components/equipment/EquipmentImport";
@@ -17,6 +17,8 @@ import { WarehouseForm } from "@/components/warehouse/WarehouseForm";
 import { WarehouseList } from "@/components/warehouse/WarehouseList";
 import { DepartmentForm } from "@/components/department/DepartmentForm";
 import { DepartmentList } from "@/components/department/DepartmentList";
+import { SectionForm } from "@/components/section/SectionForm";
+import { SectionList } from "@/components/section/SectionList";
 import { IssuePurposeForm } from "@/components/purpose/IssuePurposeForm";
 import { IssuePurposeList } from "@/components/purpose/IssuePurposeList";
 import { ReceiptPurposeForm } from "@/components/purpose/ReceiptPurposeForm";
@@ -44,7 +46,7 @@ const MasterData = () => {
       </div>
 
       <Tabs defaultValue="equipment" className="w-full">
-        <TabsList className="grid w-full grid-cols-10 max-w-7xl">
+        <TabsList className="grid w-full grid-cols-11 max-w-7xl">
           <TabsTrigger value="equipment" className="gap-2">
             <Package className="h-4 w-4" />
             อุปกรณ์
@@ -52,6 +54,10 @@ const MasterData = () => {
           <TabsTrigger value="tools" className="gap-2">
             <Wrench className="h-4 w-4" />
             เครื่องมือ
+          </TabsTrigger>
+          <TabsTrigger value="warehouses" className="gap-2">
+            <Warehouse className="h-4 w-4" />
+            คลังสินค้า
           </TabsTrigger>
           <TabsTrigger value="locations" className="gap-2">
             <MapPin className="h-4 w-4" />
@@ -65,13 +71,13 @@ const MasterData = () => {
             <HardHat className="h-4 w-4" />
             ผู้รับเหมา
           </TabsTrigger>
-          <TabsTrigger value="warehouses" className="gap-2">
-            <Warehouse className="h-4 w-4" />
-            คลังสินค้า
-          </TabsTrigger>
           <TabsTrigger value="departments" className="gap-2">
             <Building2 className="h-4 w-4" />
             ฝ่าย
+          </TabsTrigger>
+          <TabsTrigger value="sections" className="gap-2">
+            <Layers className="h-4 w-4" />
+            แผนก
           </TabsTrigger>
           <TabsTrigger value="companies" className="gap-2">
             <Building className="h-4 w-4" />
@@ -139,6 +145,25 @@ const MasterData = () => {
           </Card>
         </TabsContent>
 
+        <TabsContent value="warehouses" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>คลังสินค้า</CardTitle>
+                  <CardDescription>
+                    จัดการข้อมูลคลังสินค้าทั้งหมดในระบบ
+                  </CardDescription>
+                </div>
+                <WarehouseForm onSuccess={handleSuccess} />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <WarehouseList refresh={refreshKey} />
+            </CardContent>
+          </Card>
+        </TabsContent>
+
         <TabsContent value="locations" className="space-y-4">
           <Card>
             <CardHeader>
@@ -202,25 +227,6 @@ const MasterData = () => {
           </Card>
         </TabsContent>
 
-        <TabsContent value="warehouses" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle>คลังสินค้า</CardTitle>
-                  <CardDescription>
-                    จัดการข้อมูลคลังสินค้าทั้งหมดในระบบ
-                  </CardDescription>
-                </div>
-                <WarehouseForm onSuccess={handleSuccess} />
-              </div>
-            </CardHeader>
-            <CardContent>
-              <WarehouseList refresh={refreshKey} />
-            </CardContent>
-          </Card>
-        </TabsContent>
-
         <TabsContent value="departments" className="space-y-4">
           <Card>
             <CardHeader>
@@ -236,6 +242,25 @@ const MasterData = () => {
             </CardHeader>
             <CardContent>
               <DepartmentList refresh={refreshKey} />
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="sections" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>แผนก</CardTitle>
+                  <CardDescription>
+                    จัดการข้อมูลแผนกทั้งหมดในระบบ (ผูกกับฝ่าย)
+                  </CardDescription>
+                </div>
+                <SectionForm onSuccess={handleSuccess} />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <SectionList refresh={refreshKey} />
             </CardContent>
           </Card>
         </TabsContent>
