@@ -777,7 +777,14 @@ const IssueGoods = () => {
                                               {item.equipment_code && <div className="font-medium">{item.equipment_code}</div>}
                                               <div className="text-sm text-muted-foreground">{item.equipment_name || "-"}</div>
                                             </TableCell>
-                                            <TableCell>{item.serial_number || "-"}</TableCell>
+                                            <TableCell>
+                                              {item.serial_number ? (
+                                                <Badge variant="outline" className="font-mono text-xs bg-blue-50 text-blue-700 border-blue-200">
+                                                  {item.serial_number}
+                                                </Badge>
+                                              ) : (
+                                                <span className="text-muted-foreground">-</span>
+                                              )}</TableCell>
                                             <TableCell>
                                               {locationInfo ? (
                                                 <div className="flex items-center gap-1">

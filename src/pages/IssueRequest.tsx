@@ -12,12 +12,14 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Plus, Search, FileText, Clock, CheckCircle, XCircle, AlertTriangle, MapPin, RotateCcw, Image, Filter, X, Trash2, ShoppingCart, ChevronDown, ChevronUp } from "lucide-react";
+import { Plus, Search, FileText, Clock, CheckCircle, XCircle, AlertTriangle, MapPin, RotateCcw, Image, Filter, X, Trash2, ShoppingCart, ChevronDown, ChevronUp, Lock } from "lucide-react";
 import { format, differenceInDays } from "date-fns";
 import { th } from "date-fns/locale";
 import BillboardSelect from "@/components/billboard/BillboardSelect";
 import { CompanySelect } from "@/components/company/CompanySelect";
-
+import { SectionSelect } from "@/components/section/SectionSelect";
+import { SerialNumberSelect, SerialNumberItem } from "@/components/equipment/SerialNumberSelect";
+import { SimpleDepartmentSelect } from "@/components/equipment/SimpleDepartmentSelect";
 interface EquipmentWithDetails {
   id: string;
   code: string;
@@ -74,6 +76,7 @@ const IssueRequest = () => {
   const [headerData, setHeaderData] = useState({
     company_id: "",
     department_id: "",
+    section: "",
     purpose_id: "",
     purpose: "",
     destination: "",
@@ -94,6 +97,9 @@ const IssueRequest = () => {
     billboard_id: "",
     notes: "",
   });
+  
+  // Track if quantity is locked (when selected via S/N)
+  const [isQuantityLocked, setIsQuantityLocked] = useState(false);
 
   // Fetch notification settings for advance_days
   const { data: notificationSettings } = useQuery({
@@ -257,6 +263,7 @@ const IssueRequest = () => {
       billboard_id: "",
       notes: "",
     });
+    setIsQuantityLocked(false);
 
     toast.success("เพิ่มรายการลงตะกร้าแล้ว");
   };
@@ -340,6 +347,7 @@ const IssueRequest = () => {
       setHeaderData({
         company_id: "",
         department_id: "",
+        section: "",
         purpose_id: "",
         purpose: "",
         destination: "",
@@ -378,6 +386,34 @@ const IssueRequest = () => {
         unit: selected.unit,
         serial_number: selected.serial_number || "",
       });
+      setIsQuantityLocked(false); // Reset lock when selecting via equipment dropdown
+    }
+  };
+
+  // Handler for Serial Number searchable dropdown selection
+  const handleSerialNumberSelect = (item: SerialNumberItem | null) => {
+    if (item) {
+      setCurrentItem({
+        ...currentItem,
+        equipment_id: item.id,
+        equipment_code: item.code,
+        equipment_name: item.name,
+        unit: item.unit,
+        serial_number: item.serial_number,
+        quantity: "1", // Lock quantity to 1
+      });
+      setIsQuantityLocked(true); // Lock quantity when selected via S/N
+    } else {
+      // Clear the selection
+      setCurrentItem({
+        ...currentItem,
+        equipment_id: "",
+        equipment_code: "",
+        equipment_name: "",
+        serial_number: "",
+        quantity: "1",
+      });
+      setIsQuantityLocked(false);
     }
   };
 
@@ -678,32 +714,21 @@ const IssueRequest = () => {
                     placeholder="กรอกเบอร์โทร"
                   />
                 </div>
+                {/* ฝ่าย and แผนก - Adjacent layout */}
                 <div className="space-y-2">
-                  <Label htmlFor="requester_department">แผนก</Label>
-                  <Input
-                    id="requester_department"
+                  <Label htmlFor="department">ฝ่าย</Label>
+                  <SimpleDepartmentSelect
                     value={headerData.requester_department}
-                    onChange={(e) => setHeaderData({ ...headerData, requester_department: e.target.value })}
-                    placeholder="กรอกแผนกของผู้ขอ"
+                    onChange={(value) => setHeaderData({ ...headerData, requester_department: value, section: "" })}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="department">ฝ่าย</Label>
-                  <Select 
-                    value={headerData.department_id} 
-                    onValueChange={(value) => setHeaderData({ ...headerData, department_id: value })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="เลือกฝ่าย..." />
-                    </SelectTrigger>
-                    <SelectContent position="popper" sideOffset={4} className="bg-background z-[200] max-h-60 overflow-y-auto">
-                      {departments?.map((dept) => (
-                        <SelectItem key={dept.id} value={dept.id}>
-                          {dept.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Label htmlFor="section">แผนก</Label>
+                  <SectionSelect
+                    value={headerData.section}
+                    onChange={(value) => setHeaderData({ ...headerData, section: value })}
+                    placeholder="เลือกแผนก..."
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="company">บริษัท</Label>
@@ -826,22 +851,34 @@ const IssueRequest = () => {
                     disabled={!!currentItem.equipment_id}
                   />
                 </div>
-                <div className="space-y-2">
-                  <Label>Serial Number</Label>
-                  <Input
-                    value={currentItem.serial_number}
-                    onChange={(e) => setCurrentItem({ ...currentItem, serial_number: e.target.value })}
-                    placeholder="ระบุ S/N"
+                <div className="space-y-2 md:col-span-2">
+                  <Label>ค้นหาจาก Serial Number</Label>
+                  <SerialNumberSelect
+                    value={currentItem.serial_number ? `equipment:${currentItem.equipment_id}:${currentItem.serial_number}` : ""}
+                    onChange={handleSerialNumberSelect}
+                    disabled={false}
+                    placeholder="ค้นหา S/N จาก Equipment และ Media Player..."
                   />
+                  {isQuantityLocked && currentItem.serial_number && (
+                    <p className="text-xs text-muted-foreground flex items-center gap-1">
+                      <Lock className="h-3 w-3" />
+                      เลือกจาก S/N: จำนวนถูกล็อคที่ 1 อัตโนมัติ
+                    </p>
+                  )}
                 </div>
                 <div className="space-y-2">
-                  <Label>จำนวน</Label>
+                  <Label className="flex items-center gap-1">
+                    จำนวน
+                    {isQuantityLocked && <Lock className="h-3 w-3 text-muted-foreground" />}
+                  </Label>
                   <Input
                     type="number"
                     min="1"
                     value={currentItem.quantity}
                     onChange={(e) => setCurrentItem({ ...currentItem, quantity: e.target.value })}
                     placeholder="จำนวน"
+                    disabled={isQuantityLocked}
+                    className={isQuantityLocked ? "bg-muted" : ""}
                   />
                 </div>
                 <div className="space-y-2">
