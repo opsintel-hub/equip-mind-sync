@@ -58,11 +58,24 @@ const equipmentSchema = z.object({
 
 type EquipmentFormValues = z.infer<typeof equipmentSchema>;
 
-interface EquipmentFormProps {
-  onSuccess?: () => void;
+// Interface for prefilling data from delivery/pending receipts
+export interface EquipmentPrefillData {
+  name?: string;
+  unit?: string;
+  serial_number?: string;
+  expiry_date?: string;
+  warranty_expiry_date?: string;
+  notes?: string;
+  quantity?: number;
 }
 
-export function EquipmentForm({ onSuccess }: EquipmentFormProps) {
+interface EquipmentFormProps {
+  onSuccess?: (newEquipmentId?: string) => void;
+  prefillData?: EquipmentPrefillData;
+  triggerButton?: React.ReactNode;
+}
+
+export function EquipmentForm({ onSuccess, prefillData, triggerButton }: EquipmentFormProps) {
   const [open, setOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [previewCode, setPreviewCode] = useState("");
@@ -100,6 +113,33 @@ export function EquipmentForm({ onSuccess }: EquipmentFormProps) {
       volume_cm3: undefined,
     },
   });
+
+  // Effect to apply prefill data when dialog opens
+  useEffect(() => {
+    if (open && prefillData) {
+      if (prefillData.name) {
+        form.setValue("name", prefillData.name);
+      }
+      if (prefillData.unit) {
+        form.setValue("unit", prefillData.unit);
+      }
+      if (prefillData.serial_number) {
+        form.setValue("serial_number", prefillData.serial_number);
+      }
+      if (prefillData.expiry_date) {
+        form.setValue("expiry_date", new Date(prefillData.expiry_date));
+      }
+      if (prefillData.warranty_expiry_date) {
+        form.setValue("warranty_expiry_date", new Date(prefillData.warranty_expiry_date));
+      }
+      if (prefillData.notes) {
+        form.setValue("notes", prefillData.notes);
+      }
+      if (prefillData.quantity !== undefined) {
+        form.setValue("quantity_in_stock", prefillData.quantity);
+      }
+    }
+  }, [open, prefillData, form]);
 
   const selectedCategory = form.watch("category");
   const watchedName = form.watch("name");
@@ -205,7 +245,8 @@ export function EquipmentForm({ onSuccess }: EquipmentFormProps) {
       setImages([]);
       setDuplicateWarning(null);
       setOpen(false);
-      onSuccess?.();
+      // Pass the new equipment ID back to the caller
+      onSuccess?.(equipmentData?.id);
     } catch (error: any) {
       console.error("Error adding equipment:", error);
       toast.error(error.message || "เพิ่มอุปกรณ์ไม่สำเร็จ");
@@ -217,7 +258,7 @@ export function EquipmentForm({ onSuccess }: EquipmentFormProps) {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button>+ เพิ่มอุปกรณ์</Button>
+        {triggerButton || <Button>+ เพิ่มอุปกรณ์</Button>}
       </DialogTrigger>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>

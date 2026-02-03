@@ -7,12 +7,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
-import { PackageCheck, Search, Clock, CheckCircle2, Package, Box, Layers } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { PackageCheck, Search, Clock, CheckCircle2, Package, Box, Layers, AlertTriangle, Plus } from "lucide-react";
 import { EquipmentImageViewer } from "@/components/equipment/EquipmentImageViewer";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { SearchableSelect } from "@/components/ui/searchable-select";
-import { EquipmentForm } from "@/components/equipment/EquipmentForm";
+import { EquipmentForm, EquipmentPrefillData } from "@/components/equipment/EquipmentForm";
 import { ReceiveGroupedItems, PendingReceipt } from "@/components/receive/ReceiveGroupedItems";
 
 import { format } from "date-fns";
@@ -805,7 +806,7 @@ const ReceiveGoods = () => {
                 </div>
               </div>
 
-              {/* Equipment Name - Read Only with Image Viewer */}
+              {/* Equipment Name - Read Only with Image Viewer and Quick Create */}
               <div className="space-y-2">
                 <Label>ชื่อสินค้า</Label>
                 <div className="flex gap-2">
@@ -822,6 +823,65 @@ const ReceiveGoods = () => {
                     />
                   )}
                 </div>
+
+                {/* Alert when no equipment_id - New Equipment */}
+                {!selectedReceipt.equipment_id && !(selectedReceipt as any).is_media_player && (
+                  <Alert className="border-warning bg-warning/10">
+                    <AlertTriangle className="h-4 w-4 text-warning" />
+                    <AlertDescription className="text-sm">
+                      <span className="font-medium">สินค้าใหม่ยังไม่มีในระบบ</span>
+                      <p className="text-muted-foreground mt-1">
+                        กรุณาสร้างอุปกรณ์ใหม่ก่อนจึงจะรับเข้าคลังได้
+                      </p>
+                    </AlertDescription>
+                  </Alert>
+                )}
+
+                {/* Quick Create Equipment Button - Inline */}
+                {!selectedReceipt.equipment_id && !(selectedReceipt as any).is_media_player && (
+                  <EquipmentForm
+                    prefillData={{
+                      name: selectedReceipt.equipment_name || undefined,
+                      unit: selectedReceipt.unit || undefined,
+                      serial_number: selectedReceipt.serial_number || undefined,
+                      expiry_date: selectedReceipt.expiry_date || undefined,
+                      warranty_expiry_date: selectedReceipt.warranty_expiry_date || undefined,
+                      notes: selectedReceipt.notes || undefined,
+                      quantity: selectedReceipt.quantity || 0,
+                    } as EquipmentPrefillData}
+                    onSuccess={async (newEquipmentId) => {
+                      if (newEquipmentId) {
+                        // Update the pending receipt to link with new equipment
+                        const { error } = await supabase
+                          .from("goods_receipt_pending")
+                          .update({ equipment_id: newEquipmentId })
+                          .eq("id", selectedReceipt.id);
+
+                        if (error) {
+                          console.error("Error linking equipment:", error);
+                          toast.error("สร้างอุปกรณ์สำเร็จแต่ไม่สามารถเชื่อมต่อกับรายการรอรับได้");
+                        } else {
+                          toast.success("สร้างอุปกรณ์และเชื่อมต่อกับรายการสำเร็จ พร้อมรับเข้าคลังได้ทันที");
+                          // Update local state
+                          setSelectedReceipt({
+                            ...selectedReceipt,
+                            equipment_id: newEquipmentId,
+                          });
+                        }
+                        
+                        // Refresh equipment and pending receipts
+                        fetchEquipment();
+                        fetchPendingReceipts();
+                      }
+                    }}
+                    triggerButton={
+                      <Button variant="outline" className="w-full border-primary/50 text-primary hover:bg-primary/10">
+                        <Plus className="w-4 h-4 mr-2" />
+                        สร้างอุปกรณ์ใหม่ (Auto-fill จากข้อมูลนำเข้า)
+                      </Button>
+                    }
+                  />
+                )}
               </div>
 
               {/* Quantity & Unit - Read Only */}
