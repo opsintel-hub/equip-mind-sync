@@ -679,19 +679,12 @@ const ReceiveGoods = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-semibold text-foreground mb-2 flex items-center gap-2">
-            <PackageCheck className="w-8 h-8" />
-            รับสินค้าเข้าคลัง
-          </h1>
-          <p className="text-muted-foreground">สำหรับเจ้าหน้าที่คลัง ตรวจสอบและรับสินค้าเข้าระบบ</p>
-        </div>
-        {/* Quick Create Equipment Button */}
-        <EquipmentForm onSuccess={() => {
-          fetchEquipment();
-          toast.success("สร้างอุปกรณ์ใหม่สำเร็จ สามารถเลือกสินค้านี้ได้ทันที");
-        }} />
+      <div>
+        <h1 className="text-3xl font-semibold text-foreground mb-2 flex items-center gap-2">
+          <PackageCheck className="w-8 h-8" />
+          รับสินค้าเข้าคลัง
+        </h1>
+        <p className="text-muted-foreground">สำหรับเจ้าหน้าที่คลัง ตรวจสอบและรับสินค้าเข้าระบบ</p>
       </div>
 
       {/* Summary */}
