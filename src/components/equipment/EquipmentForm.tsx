@@ -67,6 +67,10 @@ export interface EquipmentPrefillData {
   warranty_expiry_date?: string;
   notes?: string;
   quantity?: number;
+  department?: string; // department name (not ID)
+  company_id?: string;
+  unit_price?: number;
+  lot_number?: string;
 }
 
 interface EquipmentFormProps {
@@ -137,6 +141,12 @@ export function EquipmentForm({ onSuccess, prefillData, triggerButton }: Equipme
       }
       if (prefillData.quantity !== undefined) {
         form.setValue("quantity_in_stock", prefillData.quantity);
+      }
+      if (prefillData.department) {
+        form.setValue("department", prefillData.department);
+      }
+      if (prefillData.company_id) {
+        form.setValue("company_id", prefillData.company_id);
       }
     }
   }, [open, prefillData, form]);
