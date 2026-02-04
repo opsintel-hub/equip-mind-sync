@@ -18,6 +18,7 @@ import { CompanySelect } from "@/components/company/CompanySelect";
 import { DeliveryImport } from "@/components/delivery/DeliveryImport";
 import { DeliveryCart, DeliveryCartItem } from "@/components/delivery/DeliveryCart";
 import { DeliveryCartItemEditDialog } from "@/components/delivery/DeliveryCartItemEditDialog";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 
 
 interface Equipment {
@@ -924,25 +925,25 @@ const DeliveryEntry = () => {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="mediaPlayer">เลือก Media Player (ถ้ามีในระบบ)</Label>
-                      <Select value={selectedMediaPlayerId} onValueChange={(val) => {
-                        setSelectedMediaPlayerId(val);
-                        const mp = mediaPlayers.find(m => m.id === val);
-                        if (mp) {
-                          setEquipmentCode(mp.code);
-                          setEquipmentName(mp.name);
-                        }
-                      }}>
-                        <SelectTrigger id="mediaPlayer">
-                          <SelectValue placeholder="เลือก Media Player..." />
-                        </SelectTrigger>
-                        <SelectContent position="popper" sideOffset={4} className="bg-background z-[200] max-h-60 overflow-y-auto pointer-events-auto">
-                          {mediaPlayers.map((mp) => (
-                            <SelectItem key={mp.id} value={mp.id}>
-                              {mp.code} - {mp.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <SearchableSelect
+                        options={mediaPlayers.map((mp) => ({
+                          value: mp.id,
+                          label: `${mp.code} - ${mp.name}`,
+                          searchableText: `${mp.code} ${mp.name}`,
+                        }))}
+                        value={selectedMediaPlayerId}
+                        onValueChange={(val) => {
+                          setSelectedMediaPlayerId(val);
+                          const mp = mediaPlayers.find(m => m.id === val);
+                          if (mp) {
+                            setEquipmentCode(mp.code);
+                            setEquipmentName(mp.name);
+                          }
+                        }}
+                        placeholder="เลือก Media Player..."
+                        searchPlaceholder="พิมพ์รหัสหรือชื่อ Media Player..."
+                        emptyMessage="ไม่พบ Media Player"
+                      />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="mediaPlayerName">หรือ ระบุชื่อ Media Player ใหม่</Label>
@@ -1034,18 +1035,18 @@ const DeliveryEntry = () => {
                       <Label htmlFor="equipment">เลือกสินค้า (ถ้ารู้รหัส)</Label>
                       <div className="flex gap-2">
                         <div className="flex-1">
-                          <Select value={selectedEquipmentId} onValueChange={setSelectedEquipmentId}>
-                            <SelectTrigger id="equipment">
-                              <SelectValue placeholder="เลือกสินค้าจากระบบ..." />
-                            </SelectTrigger>
-                            <SelectContent position="popper" sideOffset={4} className="bg-background z-[200] max-h-60 overflow-y-auto pointer-events-auto">
-                              {equipment.map((item) => (
-                                <SelectItem key={item.id} value={item.id}>
-                                  {item.code} - {item.name}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
+                          <SearchableSelect
+                            options={equipment.map((item) => ({
+                              value: item.id,
+                              label: `${item.code} - ${item.name}`,
+                              searchableText: `${item.code} ${item.name}`,
+                            }))}
+                            value={selectedEquipmentId}
+                            onValueChange={setSelectedEquipmentId}
+                            placeholder="เลือกสินค้าจากระบบ..."
+                            searchPlaceholder="พิมพ์รหัสหรือชื่อสินค้า..."
+                            emptyMessage="ไม่พบสินค้า"
+                          />
                         </div>
                         {selectedEquipmentId && (
                           <EquipmentImageViewer 
