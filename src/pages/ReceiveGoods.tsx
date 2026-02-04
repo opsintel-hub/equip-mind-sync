@@ -53,6 +53,17 @@ interface Warehouse {
   remaining_volume_cm3: number;
 }
 
+interface Department {
+  id: string;
+  name: string;
+}
+
+interface Company {
+  id: string;
+  code: string;
+  name: string;
+}
+
 interface Location {
   id: string;
   code: string;
@@ -73,6 +84,8 @@ const ReceiveGoods = () => {
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
   const [locations, setLocations] = useState<Location[]>([]);
   const [receiptPurposes, setReceiptPurposes] = useState<ReceiptPurpose[]>([]);
+  const [departments, setDepartments] = useState<Department[]>([]);
+  const [companies, setCompanies] = useState<Company[]>([]);
 
   // Single item dialog state
   const [selectedReceipt, setSelectedReceipt] = useState<PendingReceipt | null>(null);
@@ -105,6 +118,8 @@ const ReceiveGoods = () => {
     fetchWarehouses();
     fetchLocations();
     fetchReceiptPurposes();
+    fetchDepartments();
+    fetchCompanies();
   }, [filterStatus]);
 
   const fetchReceiptPurposes = async () => {
@@ -119,10 +134,46 @@ const ReceiveGoods = () => {
     }
   };
 
+  const fetchDepartments = async () => {
+    const { data, error } = await supabase
+      .from("departments")
+      .select("id, name")
+      .eq("is_active", true)
+      .order("name");
+    
+    if (!error && data) {
+      setDepartments(data);
+    }
+  };
+
+  const fetchCompanies = async () => {
+    const { data, error } = await supabase
+      .from("companies")
+      .select("id, code, name")
+      .eq("is_active", true)
+      .order("code");
+    
+    if (!error && data) {
+      setCompanies(data);
+    }
+  };
+
   const getReceiptPurposeName = (purposeId: string | null | undefined) => {
     if (!purposeId) return "-";
     const purpose = receiptPurposes.find(p => p.id === purposeId);
     return purpose?.name || "-";
+  };
+
+  const getDepartmentName = (departmentId: string | null | undefined) => {
+    if (!departmentId) return null;
+    const dept = departments.find(d => d.id === departmentId);
+    return dept?.name || null;
+  };
+
+  const getCompanyName = (companyId: string | null | undefined) => {
+    if (!companyId) return null;
+    const company = companies.find(c => c.id === companyId);
+    return company ? `${company.code} - ${company.name}` : null;
   };
 
   const fetchEquipment = async () => {
@@ -760,6 +811,26 @@ const ReceiveGoods = () => {
 
           {selectedReceipt && (
             <div className="space-y-4 py-4">
+              {/* Department & Company - First Row (Most Important) */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>ฝ่าย</Label>
+                  <Input 
+                    value={getDepartmentName(selectedReceipt.department_id) || "-"}
+                    disabled
+                    className={`bg-muted ${!selectedReceipt.department_id ? 'text-muted-foreground' : ''}`}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>บริษัท</Label>
+                  <Input 
+                    value={getCompanyName(selectedReceipt.company_id) || "-"}
+                    disabled
+                    className={`bg-muted ${!selectedReceipt.company_id ? 'text-muted-foreground' : ''}`}
+                  />
+                </div>
+              </div>
+
               {/* Delivery Info - Read Only */}
               <div className="p-3 bg-muted/30 rounded-lg">
                 <p className="text-sm font-medium text-foreground mb-2">ข้อมูลจากการนำสินค้าเข้า</p>
@@ -775,7 +846,7 @@ const ReceiveGoods = () => {
                 <Input 
                   value={getReceiptPurposeName(selectedReceipt.receipt_purpose_id) || "-"}
                   disabled
-                  className={`bg-muted ${!selectedReceipt.receipt_purpose_id ? 'text-destructive/70' : ''}`}
+                  className={`bg-muted ${!selectedReceipt.receipt_purpose_id ? 'text-muted-foreground' : ''}`}
                 />
               </div>
 
@@ -841,6 +912,10 @@ const ReceiveGoods = () => {
                       warranty_expiry_date: selectedReceipt.warranty_expiry_date || undefined,
                       notes: selectedReceipt.notes || undefined,
                       quantity: selectedReceipt.quantity || 0,
+                      department: getDepartmentName(selectedReceipt.department_id) || undefined,
+                      company_id: selectedReceipt.company_id || undefined,
+                      unit_price: selectedReceipt.unit_price || undefined,
+                      lot_number: selectedReceipt.lot_number || undefined,
                     } as EquipmentPrefillData}
                     onSuccess={async (newEquipmentId) => {
                       if (newEquipmentId) {
@@ -1006,18 +1081,16 @@ const ReceiveGoods = () => {
                 </div>
               </div>
 
-              {/* Notes from Delivery - Read Only */}
-              {selectedReceipt.notes && (
-                <div className="space-y-2">
-                  <Label>หมายเหตุจากผู้นำเข้า</Label>
-                  <Textarea 
-                    value={selectedReceipt.notes}
-                    disabled
-                    className="bg-muted"
-                    rows={2}
-                  />
-                </div>
-              )}
+              {/* Notes from Delivery - Read Only (Always Show) */}
+              <div className="space-y-2">
+                <Label>หมายเหตุจากผู้นำเข้า</Label>
+                <Textarea 
+                  value={selectedReceipt.notes || "-"}
+                  disabled
+                  className={`bg-muted ${!selectedReceipt.notes ? 'text-muted-foreground' : ''}`}
+                  rows={2}
+                />
+              </div>
 
               {/* Document Links */}
               {(selectedReceipt.document_url || selectedReceipt.purchase_document_url) && (
