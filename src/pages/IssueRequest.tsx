@@ -20,6 +20,7 @@ import { CompanySelect } from "@/components/company/CompanySelect";
 import { SectionSelect } from "@/components/section/SectionSelect";
 import { SerialNumberSelect, SerialNumberItem } from "@/components/equipment/SerialNumberSelect";
 import { SimpleDepartmentSelect } from "@/components/equipment/SimpleDepartmentSelect";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 interface EquipmentWithDetails {
   id: string;
   code: string;
@@ -807,29 +808,21 @@ const IssueRequest = () => {
                 <div className="space-y-2 md:col-span-2">
                   <Label>เลือกสินค้า (FIFO)</Label>
                   <div className="flex gap-2">
-                    <Select onValueChange={handleEquipmentSelect} value={currentItem.equipment_id}>
-                      <SelectTrigger className="flex-1">
-                        <SelectValue placeholder="เลือกสินค้า" />
-                      </SelectTrigger>
-                      <SelectContent position="popper" sideOffset={4} className="bg-background z-[200] max-h-60 overflow-y-auto">
-                        {equipment?.map((eq) => {
-                          const expiryBadge = getExpiryBadge(eq.expiry_date, eq.warranty_expiry_date);
-                          return (
-                            <SelectItem key={eq.id} value={eq.id}>
-                              <div className="flex items-center gap-2">
-                                {eq.is_media_player && (
-                                  <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200">Media Player</Badge>
-                                )}
-                                <span className="font-medium">{eq.code}</span>
-                                <span className="text-muted-foreground">- {eq.name}</span>
-                                <span className="text-sm text-muted-foreground">[คงเหลือ: {eq.quantity_in_stock}]</span>
-                                {expiryBadge}
-                              </div>
-                            </SelectItem>
-                          );
-                        })}
-                      </SelectContent>
-                    </Select>
+                    <div className="flex-1">
+                      <SearchableSelect
+                        options={equipment?.map((eq) => ({
+                          value: eq.id,
+                          label: `${eq.code} - ${eq.name}`,
+                          description: `${eq.is_media_player ? '[Media Player] ' : ''}คงเหลือ: ${eq.quantity_in_stock} ${eq.unit}`,
+                          searchableText: `${eq.code} ${eq.name} ${eq.serial_number || ''}`,
+                        })) || []}
+                        value={currentItem.equipment_id}
+                        onValueChange={handleEquipmentSelect}
+                        placeholder="เลือกสินค้า"
+                        searchPlaceholder="พิมพ์รหัส, ชื่อ หรือ S/N..."
+                        emptyMessage="ไม่พบสินค้า"
+                      />
+                    </div>
                     {currentItem.equipment_id && (
                       <Button
                         type="button"

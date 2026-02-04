@@ -21,6 +21,8 @@ export interface SearchableSelectOption {
   label: string;
   description?: string;
   disabled?: boolean;
+  /** Additional searchable text that will be matched against but not displayed */
+  searchableText?: string;
 }
 
 interface SearchableSelectProps {
@@ -89,33 +91,43 @@ export function SearchableSelect({
           <CommandList className="max-h-60">
             <CommandEmpty>{emptyMessage}</CommandEmpty>
             <CommandGroup>
-              {options.map((option) => (
-                <CommandItem
-                  key={option.value}
-                  value={option.label}
-                  disabled={option.disabled}
-                  onSelect={() => {
-                    onValueChange(option.value);
-                    setOpen(false);
-                  }}
-                  className="cursor-pointer"
-                >
-                  <Check
-                    className={cn(
-                      "mr-2 h-4 w-4",
-                      value === option.value ? "opacity-100" : "opacity-0"
-                    )}
-                  />
-                  <div className="flex flex-col">
-                    <span>{option.label}</span>
-                    {option.description && (
-                      <span className="text-xs text-muted-foreground">
-                        {option.description}
-                      </span>
-                    )}
-                  </div>
-                </CommandItem>
-              ))}
+              {options.map((option) => {
+                // Combine label, description, and searchableText for better filtering
+                const searchValue = [
+                  option.label,
+                  option.description,
+                  option.searchableText,
+                ].filter(Boolean).join(" ");
+                
+                return (
+                  <CommandItem
+                    key={option.value}
+                    value={searchValue}
+                    keywords={option.searchableText ? [option.searchableText] : undefined}
+                    disabled={option.disabled}
+                    onSelect={() => {
+                      onValueChange(option.value);
+                      setOpen(false);
+                    }}
+                    className="cursor-pointer"
+                  >
+                    <Check
+                      className={cn(
+                        "mr-2 h-4 w-4",
+                        value === option.value ? "opacity-100" : "opacity-0"
+                      )}
+                    />
+                    <div className="flex flex-col">
+                      <span>{option.label}</span>
+                      {option.description && (
+                        <span className="text-xs text-muted-foreground">
+                          {option.description}
+                        </span>
+                      )}
+                    </div>
+                  </CommandItem>
+                );
+              })}
             </CommandGroup>
           </CommandList>
         </Command>
@@ -201,10 +213,18 @@ export function SearchableMultiSelect({
             <CommandGroup>
               {options.map((option) => {
                 const isSelected = values.includes(option.value);
+                // Combine label, description, and searchableText for better filtering
+                const searchValue = [
+                  option.label,
+                  option.description,
+                  option.searchableText,
+                ].filter(Boolean).join(" ");
+                
                 return (
                   <CommandItem
                     key={option.value}
-                    value={option.label}
+                    value={searchValue}
+                    keywords={option.searchableText ? [option.searchableText] : undefined}
                     disabled={option.disabled}
                     onSelect={() => {
                       if (isSelected) {
