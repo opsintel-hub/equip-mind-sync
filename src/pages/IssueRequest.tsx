@@ -225,7 +225,7 @@ const IssueRequest = () => {
   // Add item to cart
   const handleAddToCart = () => {
     if (!currentItem.equipment_id && !currentItem.equipment_name) {
-      toast.error("กรุณาเลือกหรือระบุชื่อสินค้า");
+      toast.error("กรุณาเลือกสินค้า");
       return;
     }
     if (!currentItem.quantity || parseInt(currentItem.quantity) < 1) {
@@ -834,15 +834,6 @@ const IssueRequest = () => {
                       </Button>
                     )}
                   </div>
-                </div>
-                <div className="space-y-2">
-                  <Label>หรือระบุชื่อสินค้า</Label>
-                  <Input
-                    value={currentItem.equipment_name}
-                    onChange={(e) => setCurrentItem({ ...currentItem, equipment_name: e.target.value })}
-                    placeholder="ระบุชื่อสินค้า"
-                    disabled={!!currentItem.equipment_id}
-                  />
                 </div>
                 <div className="space-y-2 md:col-span-2">
                   <Label>ค้นหาจาก Serial Number</Label>
