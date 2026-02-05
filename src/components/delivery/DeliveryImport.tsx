@@ -18,10 +18,19 @@ interface ImportRow {
   quantity: number;
   unit: string;
   supplier_name?: string;
+  company_code?: string;
+  department?: string;
+  po_number?: string;
+  pr_number?: string;
+  purpose?: string;
   lot_number_1?: string;
   lot_number_2?: string;
   serial_number?: string;
   unit_price?: number;
+  is_asset?: boolean;
+  asset_code?: string;
+  equipment_id_code?: string;
+  depreciation_months?: number;
   delivery_person_name: string;
   delivery_person_phone?: string;
   expiry_date?: string;
@@ -47,10 +56,19 @@ export function DeliveryImport({ onSuccess }: DeliveryImportProps) {
         "จำนวน": 10,
         "หน่วย": "ชิ้น",
         "ผู้จัดจำหน่าย": "บริษัท ABC",
+        "รหัสบริษัท (company_code)": "",
+        "รหัสฝ่าย (department)": "",
+        "เลขที่ PO": "",
+        "เลขที่ PR": "",
+        "วัตถุประสงค์ (ซื้อ/ยืม/โอน)": "ซื้อ",
         "Lot Number 1": "LOT001",
         "Lot Number 2": "",
         "Serial Number": "",
         "ราคาต่อชิ้น": 100,
+        "เป็นสินทรัพย์ (ใช่/ไม่)": "ไม่",
+        "รหัสสินทรัพย์ (Asset Code)": "",
+        "รหัส Equipment ID": "",
+        "ค่าเสื่อมราคา (เดือน)": "",
         "ชื่อผู้ส่ง": "นายทดสอบ",
         "เบอร์โทรผู้ส่ง": "0812345678",
         "วันหมดอายุ (YYYY-MM-DD)": "",
@@ -67,10 +85,12 @@ export function DeliveryImport({ onSuccess }: DeliveryImportProps) {
     
     // Set column widths
     ws['!cols'] = [
-      { wch: 15 }, { wch: 30 }, { wch: 10 }, { wch: 10 },
-      { wch: 25 }, { wch: 15 }, { wch: 15 }, { wch: 20 },
-      { wch: 12 }, { wch: 20 }, { wch: 15 }, { wch: 20 },
-      { wch: 25 }, { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 30 }
+      { wch: 15 }, { wch: 30 }, { wch: 10 }, { wch: 10 }, { wch: 25 },
+      { wch: 25 }, { wch: 20 }, { wch: 15 }, { wch: 15 }, { wch: 25 },
+      { wch: 15 }, { wch: 15 }, { wch: 20 }, { wch: 12 },
+      { wch: 20 }, { wch: 25 }, { wch: 20 }, { wch: 20 },
+      { wch: 20 }, { wch: 15 }, { wch: 22 }, { wch: 28 },
+      { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 30 }
     ];
     
     XLSX.utils.book_append_sheet(wb, ws, "Template");
@@ -127,10 +147,19 @@ export function DeliveryImport({ onSuccess }: DeliveryImportProps) {
           quantity: Number(row["จำนวน"]),
           unit: row["หน่วย"] || "ชิ้น",
           supplier_name: row["ผู้จัดจำหน่าย"] || undefined,
+          company_code: row["รหัสบริษัท (company_code)"] || undefined,
+          department: row["รหัสฝ่าย (department)"] || undefined,
+          po_number: row["เลขที่ PO"] || undefined,
+          pr_number: row["เลขที่ PR"] || undefined,
+          purpose: row["วัตถุประสงค์ (ซื้อ/ยืม/โอน)"] || undefined,
           lot_number_1: row["Lot Number 1"] || undefined,
           lot_number_2: row["Lot Number 2"] || undefined,
           serial_number: row["Serial Number"] || undefined,
           unit_price: row["ราคาต่อชิ้น"] ? Number(row["ราคาต่อชิ้น"]) : undefined,
+          is_asset: row["เป็นสินทรัพย์ (ใช่/ไม่)"] === "ใช่" || row["เป็นสินทรัพย์ (ใช่/ไม่)"] === "yes" || row["เป็นสินทรัพย์ (ใช่/ไม่)"] === "Yes",
+          asset_code: row["รหัสสินทรัพย์ (Asset Code)"] || undefined,
+          equipment_id_code: row["รหัส Equipment ID"] || undefined,
+          depreciation_months: row["ค่าเสื่อมราคา (เดือน)"] ? Number(row["ค่าเสื่อมราคา (เดือน)"]) : undefined,
           delivery_person_name: row["ชื่อผู้ส่ง"],
           delivery_person_phone: row["เบอร์โทรผู้ส่ง"] || undefined,
           expiry_date: row["วันหมดอายุ (YYYY-MM-DD)"] || undefined,
@@ -183,6 +212,12 @@ export function DeliveryImport({ onSuccess }: DeliveryImportProps) {
         quantity: row.quantity,
         unit: row.unit,
         supplier_name: row.supplier_name || null,
+        po_number: row.po_number || null,
+        pr_number: row.pr_number || null,
+        is_asset: row.is_asset || false,
+        asset_code: row.asset_code || null,
+        equipment_id_code: row.equipment_id_code || null,
+        depreciation_months: row.depreciation_months || null,
         lot_number: row.lot_number_1 || null,
         lot_number_2: row.lot_number_2 || null,
         serial_number: row.serial_number || null,

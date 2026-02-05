@@ -175,6 +175,17 @@ const BillboardImport = ({ onSuccess, onCancel }: BillboardImportProps) => {
         MediaType: "Airport Digital Network",
         Location: "ตำแหน่งติดตั้ง",
         OldCode: "XXX-001",
+        Extra_1: "",
+        Extra_2: "",
+        Extra_3: "",
+        TargetMonitoring: "",
+        BKKUPC: "",
+        RouteMonitoring: "",
+        RouteInstallAndDemolish: "",
+        RouteReportPhoto: "",
+        RoutePM: "",
+        Status: "active",
+        Notes: "หมายเหตุ",
       },
     ];
 
