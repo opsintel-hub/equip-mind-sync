@@ -6,7 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import { EquipmentImageViewer } from "@/components/equipment/EquipmentImageViewer";
 import { DeliveryCartItem } from "./DeliveryCart";
 import { toast } from "sonner";
@@ -126,7 +126,7 @@ export function DeliveryCartItemEditDialog({
     }
     
     if (!selectedEquipmentId && !equipmentName) {
-      toast.error("กรุณาเลือกสินค้า หรือระบุชื่อสินค้า");
+      toast.error("กรุณาเลือกสินค้า");
       return;
     }
     
@@ -181,22 +181,21 @@ export function DeliveryCartItemEditDialog({
           {/* Equipment Selection */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label>เลือกสินค้า (ถ้ารู้รหัส)</Label>
+              <Label>เลือกสินค้า</Label>
               <div className="flex gap-2">
                 <div className="flex-1">
-                  <Select value={selectedEquipmentId} onValueChange={setSelectedEquipmentId}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="เลือกสินค้าจากระบบ..." />
-                    </SelectTrigger>
-                    <SelectContent position="popper" sideOffset={4} className="bg-background z-[300] max-h-60 overflow-y-auto pointer-events-auto">
-                      <SelectItem value="">-- ไม่เลือก --</SelectItem>
-                      {equipment.map((eq) => (
-                        <SelectItem key={eq.id} value={eq.id}>
-                          {eq.code} - {eq.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <SearchableSelect
+                    options={equipment.map((eq) => ({
+                      value: eq.id,
+                      label: `${eq.code} - ${eq.name}`,
+                      searchableText: `${eq.code} ${eq.name}`,
+                    }))}
+                    value={selectedEquipmentId}
+                    onValueChange={setSelectedEquipmentId}
+                    placeholder="เลือกสินค้าจากระบบ..."
+                    searchPlaceholder="พิมพ์รหัสหรือชื่อสินค้า..."
+                    emptyMessage="ไม่พบสินค้า"
+                  />
                 </div>
                 {selectedEquipmentId && (
                   <EquipmentImageViewer 
@@ -206,15 +205,6 @@ export function DeliveryCartItemEditDialog({
                   />
                 )}
               </div>
-            </div>
-            <div className="space-y-2">
-              <Label>หรือ ระบุชื่อสินค้า</Label>
-              <Input 
-                placeholder="ชื่อสินค้า/อะไหล่"
-                value={equipmentName}
-                onChange={(e) => setEquipmentName(e.target.value)}
-                disabled={!!selectedEquipmentId}
-              />
             </div>
           </div>
 
@@ -294,32 +284,20 @@ export function DeliveryCartItemEditDialog({
           </div>
 
           {/* Supplier */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>ผู้จัดจำหน่าย</Label>
-              <Select value={selectedSupplierId} onValueChange={setSelectedSupplierId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="เลือกผู้จัดจำหน่าย..." />
-                </SelectTrigger>
-                <SelectContent position="popper" sideOffset={4} className="bg-background z-[300] pointer-events-auto">
-                  <SelectItem value="">-- ไม่เลือก --</SelectItem>
-                  {suppliers.map((sup) => (
-                    <SelectItem key={sup.id} value={sup.id}>
-                      {sup.code} - {sup.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>หรือ ระบุชื่อผู้จัดจำหน่าย</Label>
-              <Input 
-                placeholder="ชื่อผู้จัดจำหน่าย"
-                value={supplierName}
-                onChange={(e) => setSupplierName(e.target.value)}
-                disabled={!!selectedSupplierId}
-              />
-            </div>
+          <div className="space-y-2">
+            <Label>ผู้จัดจำหน่าย</Label>
+            <SearchableSelect
+              options={suppliers.map((sup) => ({
+                value: sup.id,
+                label: `${sup.code} - ${sup.name}`,
+                searchableText: `${sup.code} ${sup.name}`,
+              }))}
+              value={selectedSupplierId}
+              onValueChange={setSelectedSupplierId}
+              placeholder="เลือกผู้จัดจำหน่าย..."
+              searchPlaceholder="พิมพ์รหัสหรือชื่อผู้จัดจำหน่าย..."
+              emptyMessage="ไม่พบผู้จัดจำหน่าย"
+            />
           </div>
 
           {/* Storage Dimensions */}

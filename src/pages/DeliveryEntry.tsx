@@ -32,6 +32,7 @@ interface Supplier {
   id: string;
   code: string;
   name: string;
+  vendor_code: string | null;
 }
 
 interface Department {
@@ -187,7 +188,7 @@ const DeliveryEntry = () => {
   const fetchSuppliers = async () => {
     const { data, error } = await supabase
       .from("suppliers")
-      .select("id, code, name")
+      .select("id, code, name, vendor_code")
       .eq("is_active", true)
       .order("code");
     
@@ -391,8 +392,8 @@ const DeliveryEntry = () => {
     
     if (isMediaPlayerEntry) {
       // Media Player validation
-      if (!selectedMediaPlayerId && !equipmentName) {
-        toast.error("กรุณาเลือก Media Player หรือระบุชื่อ");
+      if (!selectedMediaPlayerId) {
+        toast.error("กรุณาเลือก Media Player");
         return;
       }
       if (!unitPrice) {
@@ -441,8 +442,8 @@ const DeliveryEntry = () => {
       setCartItems([...cartItems, newItem]);
     } else {
       // Regular equipment validation
-      if (!selectedEquipmentId && !equipmentName) {
-        toast.error("กรุณาเลือกสินค้า หรือระบุชื่อสินค้า");
+      if (!selectedEquipmentId) {
+        toast.error("กรุณาเลือกสินค้า");
         return;
       }
       
@@ -945,16 +946,6 @@ const DeliveryEntry = () => {
                         emptyMessage="ไม่พบ Media Player"
                       />
                     </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="mediaPlayerName">หรือ ระบุชื่อ Media Player ใหม่</Label>
-                      <Input 
-                        id="mediaPlayerName" 
-                        placeholder="ชื่อ Media Player ที่ยังไม่มีในระบบ"
-                        value={equipmentName}
-                        onChange={(e) => setEquipmentName(e.target.value)}
-                        disabled={!!selectedMediaPlayerId}
-                      />
-                    </div>
                   </div>
                   
                   {/* Media Player Specific Fields */}
@@ -1056,20 +1047,6 @@ const DeliveryEntry = () => {
                           />
                         )}
                       </div>
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="equipmentName">หรือ ระบุชื่อสินค้า (สินค้าใหม่)</Label>
-                      <Input 
-                        id="equipmentName" 
-                        placeholder="ชื่อสินค้า/อะไหล่ ที่ยังไม่มีในระบบ"
-                        value={equipmentName}
-                        onChange={(e) => setEquipmentName(e.target.value)}
-                        disabled={!!selectedEquipmentId}
-                      />
-                      <p className="text-xs text-muted-foreground flex items-center gap-1">
-                        <Info className="w-3 h-3" />
-                        สินค้าใหม่จะต้องสร้างในระบบตอนรับเข้าคลัง
-                      </p>
                     </div>
                   </div>
                 </>
@@ -1212,27 +1189,17 @@ const DeliveryEntry = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="supplier">เลือกผู้จัดจำหน่าย</Label>
-                  <Select value={selectedSupplierId} onValueChange={setSelectedSupplierId}>
-                    <SelectTrigger id="supplier">
-                      <SelectValue placeholder="เลือกผู้จัดจำหน่าย..." />
-                    </SelectTrigger>
-                    <SelectContent position="popper" sideOffset={4} className="pointer-events-auto">
-                      {suppliers.map((supplier) => (
-                        <SelectItem key={supplier.id} value={supplier.id}>
-                          {supplier.code} - {supplier.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="supplierName">หรือ ระบุชื่อผู้จัดจำหน่าย</Label>
-                  <Input 
-                    id="supplierName" 
-                    placeholder="ชื่อผู้จัดจำหน่าย"
-                    value={supplierName}
-                    onChange={(e) => setSupplierName(e.target.value)}
-                    disabled={!!selectedSupplierId}
+                  <SearchableSelect
+                    options={suppliers.map((supplier) => ({
+                      value: supplier.id,
+                      label: `${supplier.code} - ${supplier.name}`,
+                      searchableText: `${supplier.code} ${supplier.name} ${supplier.vendor_code || ''}`,
+                    }))}
+                    value={selectedSupplierId}
+                    onValueChange={setSelectedSupplierId}
+                    placeholder="เลือกผู้จัดจำหน่าย..."
+                    searchPlaceholder="พิมพ์รหัสหรือชื่อผู้จัดจำหน่าย..."
+                    emptyMessage="ไม่พบผู้จัดจำหน่าย"
                   />
                 </div>
               </div>
