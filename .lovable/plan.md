@@ -1,93 +1,97 @@
 
 
-# แผนการปรับปรุง: เพิ่มการตรวจสอบ Duplicate และ Warning ก่อน Import
+# แผนการปรับปรุง: เพิ่ม Logic ตรวจสอบ OldCode+Location และคำอธิบายวิธีการตรวจสอบ
 
 ## สรุปภาพรวม
 ปรับปรุง Billboard Import ให้:
-1. ตรวจจับ equipment_id ที่ซ้ำกันในไฟล์ Excel ก่อน Import
-2. แสดง Warning Dialog ยืนยันก่อน Import พร้อมสรุปรายละเอียด
-3. แปลง Error Message ให้เข้าใจง่าย
+1. เมื่อพบ OldCode ซ้ำในไฟล์ → ตรวจ Location ต่อ
+   - Location ต่างกัน → Warning (อนุญาตนำเข้าได้หลังยืนยัน)
+   - Location เหมือนกัน → Error (Block ไม่ให้นำเข้า)
+2. เพิ่มส่วนคำอธิบายวิธีการตรวจสอบของระบบ (Collapsible)
 
 ---
 
-## ส่วนที่ 1: เพิ่มการตรวจสอบ Duplicate ในไฟล์ Excel
+## ส่วนที่ 1: เปลี่ยน Logic การตรวจสอบ OldCode ซ้ำ
 
-### 1.1 ตรวจจับ equipment_id ซ้ำ
-เมื่ออ่านไฟล์ Excel จะตรวจสอบว่ามี equipment_id เดียวกันหลายแถวหรือไม่
-
+### 1.1 Logic ใหม่
 ```text
-ตัวอย่างข้อมูลในไฟล์:
-+------+-------------------+
-| แถว  | EquipmentID       |
-+------+-------------------+
-| 3    | A02002-BKK-001    |  ← ถูกต้อง
-| 5    | A02002-BKK-001    |  ← ซ้ำกับแถว 3!
-| 8    | A02010-BKK-002    |  ← ถูกต้อง
-| 12   | A02010-BKK-002    |  ← ซ้ำกับแถว 8!
-+------+-------------------+
+เมื่อพบ OldCode ซ้ำในไฟล์ Excel:
+
+1. ตรวจสอบ Location ของแถวที่ซ้ำ
+   │
+   ├─ Location ต่างกัน
+   │  └─ Status = "warning" (สีส้ม)
+   │  └─ แจ้งเตือนผู้ใช้ แต่อนุญาตให้นำเข้าได้
+   │  └─ ใช้ข้อมูลจากแถวแรกที่พบ
+   │
+   └─ Location เหมือนกัน
+      └─ Status = "duplicate" (สีแดง)
+      └─ Block ไม่ให้นำเข้า
+      └─ ผู้ใช้ต้องแก้ไขไฟล์ก่อน
 ```
 
-### 1.2 แสดงในตาราง Preview
-- แถวแรกของ equipment_id นั้นจะถือว่า "ถูกต้อง" (new หรือ update)
-- แถวที่ซ้ำจะ mark เป็น "error" พร้อมบอกว่า "ซ้ำกับแถวที่ X"
-
+### 1.2 ตัวอย่างการตรวจสอบ
 ```text
-+-- Preview Table ------------------------------------------+
-| สถานะ      | รหัสป้าย         | ปัญหา                    |
-|------------|------------------|--------------------------|
-| ✓ เพิ่มใหม่  | A02002-BKK-001  |                          |
-| ✗ ซ้ำในไฟล์  | A02002-BKK-001  | ซ้ำกับแถวที่ 3 ในไฟล์ Excel |
-| ⚠ อัพเดท   | A02010-BKK-002  |                          |
-+-----------------------------------------------------------+
++------+------------+--------------+----------+-----------------------------+
+| แถว  | OldCode    | Location     | สถานะ    | หมายเหตุ                     |
++------+------------+--------------+----------+-----------------------------+
+| 3    | DS175-001  | สถานีรถไฟ A   | เพิ่มใหม่ | ถูกต้อง                      |
+| 5    | DS175-001  | สถานีรถไฟ B   | คำเตือน  | OldCode ซ้ำแถว 3 แต่ Location ต่าง (อนุญาต) |
+| 8    | DS175-001  | สถานีรถไฟ A   | ซ้ำในไฟล์ | OldCode+Location ซ้ำแถว 3 (Block!) |
++------+------------+--------------+----------+-----------------------------+
 ```
 
 ---
 
-## ส่วนที่ 2: เพิ่ม Warning Dialog ก่อน Import
+## ส่วนที่ 2: เพิ่มสถานะใหม่ "warning"
 
-### 2.1 แสดง Confirmation Dialog
-เมื่อกดปุ่ม "นำเข้า" จะแสดง Dialog ยืนยันก่อน พร้อมสรุปรายละเอียด
+### 2.1 เพิ่ม Type Status
+```typescript
+// เดิม
+status: "new" | "update" | "error" | "duplicate";
+
+// ใหม่
+status: "new" | "update" | "error" | "duplicate" | "warning";
+```
+
+### 2.2 Badge สำหรับ Warning
+```text
+| สถานะ       | Badge สี          | ความหมาย                    |
+|-------------|-------------------|----------------------------|
+| เพิ่มใหม่     | สีเขียว (success)  | OldCode ใหม่ในระบบ           |
+| อัพเดท      | สีส้ม (warning)    | OldCode มีในระบบแล้ว         |
+| คำเตือน     | สีส้มอ่อน (amber)  | OldCode ซ้ำ แต่ Location ต่าง  |  <-- ใหม่
+| ซ้ำในไฟล์    | สีแดง (destructive)| OldCode+Location ซ้ำ (Block) |
+| ข้อผิดพลาด   | สีแดงเข้ม          | ข้อมูลไม่ครบ                  |
+```
+
+---
+
+## ส่วนที่ 3: เพิ่มคำอธิบายวิธีการตรวจสอบของระบบ
+
+### 3.1 Collapsible Section
+เพิ่มส่วนคำอธิบายที่สามารถกดเปิด/ปิดได้
 
 ```text
-+-- ยืนยันการนำเข้าข้อมูล ----------------------------------+
++-- นำเข้าข้อมูลจาก Excel ----------------------------------+
+| ระบบจะตรวจสอบรหัส OldCode อัตโนมัติ                       |
 |                                                          |
-|  คุณกำลังจะดำเนินการดังนี้:                                 |
+| [▼ วิธีการตรวจสอบของระบบ] (กดเพื่อดู/ซ่อน)                  |
+| +--------------------------------------------------------+
+| | ขั้นตอนที่ 1: ตรวจสอบ OldCode                           |
+| | • ถ้า OldCode มีในฐานข้อมูลแล้ว → อัพเดท (ทับข้อมูลเดิม)  |
+| | • ถ้า OldCode ไม่มี → เพิ่มใหม่                          |
+| | • ถ้า OldCode ว่าง → ข้อผิดพลาด (ต้องแก้ไข)              |
+| |                                                        |
+| | ขั้นตอนที่ 2: ตรวจสอบ OldCode ซ้ำในไฟล์                  |
+| | • ถ้า OldCode ซ้ำ แต่ Location ต่างกัน → คำเตือน         |
+| |   (อนุญาตให้นำเข้าได้ ใช้ข้อมูลจากแถวแรก)                |
+| | • ถ้า OldCode ซ้ำ และ Location เหมือนกัน → ซ้ำในไฟล์     |
+| |   (ไม่อนุญาต ต้องแก้ไขไฟล์ก่อน)                         |
+| +--------------------------------------------------------+
 |                                                          |
-|  ✓ เพิ่มป้ายใหม่:           1,915 รายการ                  |
-|  ⚠ อัพเดทป้ายที่มีอยู่:      696 รายการ                    |
-|                                                          |
-|  ⚠ หมายเหตุ: การอัพเดทจะทับข้อมูลเดิมในระบบ               |
-|                                                          |
-|                          [ยกเลิก]  [ยืนยันนำเข้า]           |
+| [ดาวน์โหลด Template]  [เลือกไฟล์ Excel]                    |
 +----------------------------------------------------------+
-```
-
-### 2.2 เงื่อนไขการแสดง Warning พิเศษ
-- ถ้ามี Update มากกว่า 100 รายการ → แสดง Warning สีส้ม
-- ถ้ามี Error (ซ้ำในไฟล์) → ไม่ให้กด Import จนกว่าจะแก้ไข
-
----
-
-## ส่วนที่ 3: ปรับปรุง Error Message
-
-### 3.1 แปลง Technical Error
-| Error เดิม | ข้อความใหม่ |
-|------------|-------------|
-| duplicate key value violates unique constraint | รหัสป้าย "XXX" ซ้ำกับข้อมูลในระบบ |
-| foreign key violation | ข้อมูลอ้างอิงไม่ถูกต้อง |
-| null value in column | ข้อมูลบางช่องที่จำเป็นไม่มีค่า |
-
-### 3.2 แสดงวิธีแก้ไข
-```text
-+-- เกิดข้อผิดพลาด ----------------------------------------+
-|                                                         |
-| ✗ รหัสป้าย "A02002-BKK-HKW04" ซ้ำกับข้อมูลในระบบ          |
-|                                                         |
-| วิธีแก้ไข:                                               |
-| • ตรวจสอบว่ารหัสนี้มีอยู่ในระบบแล้ว                        |
-| • ถ้าต้องการอัพเดท ให้ลองนำเข้าใหม่                        |
-|                                                         |
-+---------------------------------------------------------+
 ```
 
 ---
@@ -97,114 +101,167 @@
 ### 4.1 ไฟล์ที่ต้องแก้ไข
 | ไฟล์ | การเปลี่ยนแปลง |
 |------|---------------|
-| `src/components/billboard/BillboardImport.tsx` | เพิ่ม Duplicate detection, Warning dialog, Error translation |
+| `src/components/billboard/BillboardImport.tsx` | เพิ่ม Logic ตรวจ Location, เพิ่ม Collapsible คำอธิบาย |
 
-### 4.2 Logic การตรวจสอบ Duplicate
+### 4.2 Logic การตรวจสอบ OldCode + Location
 
 ```typescript
-// หา equipment_id ที่ซ้ำในไฟล์ พร้อมเก็บหมายเลขแถว
-const equipmentIdRowMap = new Map<string, number>();
+// Step 1: เก็บข้อมูล OldCode พร้อม Location และหมายเลขแถว
+const oldCodeDataMap = new Map<string, { rowNumber: number; location: string }>();
+const duplicateInfo = new Map<number, { 
+  duplicateOfRow: number; 
+  sameLocation: boolean;
+}>();
 
 jsonData.forEach((row: any, index: number) => {
-  const equipmentId = row["EquipmentID"] || "";
-  const rowNumber = index + 2; // +2 เพราะ Excel Header = แถว 1
+  const oldCode = row["OldCode"] || row["old_code"] || "";
+  const location = row["Location"] || row["location_name"] || "";
+  const rowNumber = index + 2;
   
-  if (equipmentIdRowMap.has(equipmentId)) {
-    // ซ้ำ! เก็บข้อมูลแถวที่ซ้ำกับแถวแรก
-    duplicateErrors.push({
-      rowNumber,
-      equipmentId,
-      duplicateOfRow: equipmentIdRowMap.get(equipmentId)
-    });
-  } else {
-    equipmentIdRowMap.set(equipmentId, rowNumber);
+  if (oldCode) {
+    if (oldCodeDataMap.has(oldCode)) {
+      const firstRow = oldCodeDataMap.get(oldCode)!;
+      // ตรวจสอบว่า Location ซ้ำด้วยหรือไม่
+      const sameLocation = location === firstRow.location;
+      duplicateInfo.set(index, {
+        duplicateOfRow: firstRow.rowNumber,
+        sameLocation,
+      });
+    } else {
+      oldCodeDataMap.set(oldCode, { rowNumber, location });
+    }
   }
 });
+
+// Step 2: กำหนดสถานะตาม sameLocation
+if (duplicateInfo.has(index)) {
+  const info = duplicateInfo.get(index)!;
+  if (info.sameLocation) {
+    // OldCode + Location ซ้ำ → Block
+    status = "duplicate";
+    errorMessage = `OldCode และ Location ซ้ำกับแถวที่ ${info.duplicateOfRow}`;
+  } else {
+    // OldCode ซ้ำ แต่ Location ต่าง → Warning
+    status = "warning";
+    errorMessage = `OldCode ซ้ำกับแถวที่ ${info.duplicateOfRow} (Location ต่างกัน จะใช้แถว ${info.duplicateOfRow})`;
+  }
+}
 ```
 
-### 4.3 Confirmation Dialog Component
+### 4.3 ปรับ canImport Logic
 
-```tsx
-<AlertDialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
-  <AlertDialogContent>
-    <AlertDialogHeader>
-      <AlertDialogTitle>ยืนยันการนำเข้าข้อมูล</AlertDialogTitle>
-      <AlertDialogDescription>
-        คุณกำลังจะดำเนินการดังนี้:
-        <ul className="mt-3 space-y-2">
-          <li className="flex items-center gap-2">
-            <CheckCircle className="h-4 w-4 text-success" />
-            เพิ่มป้ายใหม่: {newCount} รายการ
-          </li>
-          <li className="flex items-center gap-2">
-            <AlertCircle className="h-4 w-4 text-warning" />
-            อัพเดทป้ายที่มีอยู่: {updateCount} รายการ
-          </li>
-        </ul>
-        {updateCount > 0 && (
-          <Alert className="mt-4 bg-warning/10 border-warning">
-            การอัพเดทจะทับข้อมูลเดิมในระบบ
-          </Alert>
-        )}
-      </AlertDialogDescription>
-    </AlertDialogHeader>
-    <AlertDialogFooter>
-      <AlertDialogCancel>ยกเลิก</AlertDialogCancel>
-      <AlertDialogAction onClick={confirmImport}>
-        ยืนยันนำเข้า
-      </AlertDialogAction>
-    </AlertDialogFooter>
-  </AlertDialogContent>
-</AlertDialog>
+```typescript
+// เดิม: Block ทั้ง duplicate และ error
+const hasProblems = errorCount > 0 || duplicateCount > 0;
+
+// ใหม่: Block เฉพาะ duplicate (OldCode+Location ซ้ำ) และ error
+// Warning (OldCode ซ้ำ แต่ Location ต่าง) ไม่ Block
+const hasBlockingProblems = errorCount > 0 || duplicateCount > 0;
+const canImport = (newCount > 0 || updateCount > 0) && !hasBlockingProblems;
+```
+
+### 4.4 เพิ่ม Collapsible Component
+
+```typescript
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { ChevronDown, HelpCircle } from "lucide-react";
+
+// ภายใน Card Header
+<Collapsible>
+  <CollapsibleTrigger asChild>
+    <Button variant="ghost" size="sm" className="gap-2 text-muted-foreground">
+      <HelpCircle className="h-4 w-4" />
+      วิธีการตรวจสอบของระบบ
+      <ChevronDown className="h-4 w-4" />
+    </Button>
+  </CollapsibleTrigger>
+  <CollapsibleContent className="mt-4 p-4 bg-muted/50 rounded-lg text-sm space-y-3">
+    <div>
+      <strong>ขั้นตอนที่ 1: ตรวจสอบ OldCode</strong>
+      <ul className="list-disc list-inside mt-1 space-y-1 text-muted-foreground">
+        <li>ถ้า OldCode มีในฐานข้อมูลแล้ว → อัพเดท (ทับข้อมูลเดิม)</li>
+        <li>ถ้า OldCode ไม่มี → เพิ่มใหม่</li>
+        <li>ถ้า OldCode ว่าง → ข้อผิดพลาด (ต้องแก้ไข)</li>
+      </ul>
+    </div>
+    <div>
+      <strong>ขั้นตอนที่ 2: ตรวจสอบ OldCode ซ้ำในไฟล์</strong>
+      <ul className="list-disc list-inside mt-1 space-y-1 text-muted-foreground">
+        <li>ถ้า OldCode ซ้ำ แต่ Location ต่างกัน → คำเตือน (ใช้ข้อมูลจากแถวแรก)</li>
+        <li>ถ้า OldCode ซ้ำ และ Location เหมือนกัน → ซ้ำในไฟล์ (ต้องแก้ไข)</li>
+      </ul>
+    </div>
+  </CollapsibleContent>
+</Collapsible>
 ```
 
 ---
 
 ## ส่วนที่ 5: ตัวอย่างหน้าจอหลังปรับปรุง
 
-### 5.1 Preview พร้อมแสดง Duplicate Error
-
+### 5.1 สรุปก่อนนำเข้า (พบ Warning)
 ```text
-+-- ตรวจสอบข้อมูลก่อนนำเข้า (2616 รายการ) -----------------+
-| ✓ เพิ่มใหม่: 1915  ⚠ อัพเดท: 696  ✗ ซ้ำในไฟล์: 5        |
-+----------------------------------------------------------+
-| สถานะ      | รหัสป้าย         | คำอธิบาย   | ปัญหา        |
-|------------|------------------|-----------|-------------|
-| ✓ เพิ่มใหม่  | A02002-BKK-001  | EXAT12... |             |
-| ✗ ซ้ำในไฟล์  | A02002-BKK-001  | EXAT12... | ซ้ำแถว 3    |
-| ⚠ อัพเดท   | A02010-BKK-002  | DS175...  |             |
-+----------------------------------------------------------+
-|                                                          |
-| ⚠ พบรหัสป้ายซ้ำกัน 5 รายการในไฟล์ Excel                   |
-|   กรุณาแก้ไขไฟล์และอัปโหลดใหม่ก่อนนำเข้า                   |
-|                                                          |
-+----------------------------------------------------------+
++-- ตรวจสอบข้อมูลก่อนนำเข้า (2616 รายการ) ------------------+
+| ✓ เพิ่มใหม่: 2590  ⚠ อัพเดท: 9  ⚡ คำเตือน: 12  ✗ ซ้ำ: 5   |
++-----------------------------------------------------------+
+|                                                           |
+| ⚠ พบ OldCode ซ้ำกัน 12 รายการ (Location ต่างกัน)           |
+|   ระบบจะใช้ข้อมูลจากแถวแรกที่พบ และข้ามแถวที่เหลือ          |
+|                                                           |
+| ✗ พบ OldCode+Location ซ้ำกัน 5 รายการ                      |
+|   ไม่สามารถนำเข้าได้ กรุณาแก้ไขไฟล์ก่อน                     |
+|                                                           |
++-----------------------------------------------------------+
 ```
 
-### 5.2 Warning เมื่อมี Error
+### 5.2 ตาราง Preview พร้อมคอลัมน์ Location
 ```text
-| ⚠ ไม่สามารถนำเข้าได้เนื่องจากพบ 5 รายการซ้ำในไฟล์          |
-|   กรุณาลบแถวที่ซ้ำออกจากไฟล์ Excel แล้วอัปโหลดใหม่         |
+| สถานะ     | OldCode     | Location      | คำอธิบาย | ปัญหา              |
+|-----------|-------------|---------------|---------|-------------------|
+| ✓ เพิ่มใหม่ | DS175-001   | สถานีรถไฟ A    | ...     |                   |
+| ⚡ คำเตือน  | DS175-001   | สถานีรถไฟ B    | ...     | OldCode ซ้ำแถว 3   |
+| ✗ ซ้ำในไฟล์ | DS175-001   | สถานีรถไฟ A    | ...     | OldCode+Location ซ้ำ |
 ```
 
 ---
 
-## ส่วนที่ 6: ขั้นตอนการดำเนินงาน
+## ส่วนที่ 6: Confirmation Dialog พร้อม Warning
 
-1. **เพิ่ม Duplicate Detection Logic** - ตรวจหา equipment_id ซ้ำในไฟล์ก่อน mapping
-2. **เพิ่มคอลัมน์ "ปัญหา" ในตาราง Preview** - แสดง error message ที่เข้าใจง่าย
-3. **เพิ่ม Alert Banner** - แสดงเมื่อพบ duplicate พร้อมคำแนะนำ
-4. **เพิ่ม Confirmation Dialog** - ยืนยันก่อน Import พร้อมสรุปจำนวน
-5. **เพิ่ม Error Translation** - แปลง database error เป็นภาษาไทย
-6. **Block Import ถ้ามี Error** - ไม่ให้กด Import จนกว่าจะแก้ไข
+### 6.1 แสดงจำนวนที่จะข้าม
+```text
++-- ยืนยันการนำเข้าข้อมูล ----------------------------------+
+|                                                          |
+|  คุณกำลังจะดำเนินการดังนี้:                                 |
+|                                                          |
+|  ✓ เพิ่มป้ายใหม่:           2,590 รายการ                  |
+|  ⚠ อัพเดทป้ายที่มีอยู่:      9 รายการ                      |
+|  ⏭ ข้ามแถวที่ซ้ำ:           12 รายการ                     |  <-- ใหม่
+|                                                          |
+|  ⚠ หมายเหตุ:                                             |
+|  • การอัพเดทจะทับข้อมูลเดิมในระบบ                         |
+|  • แถวที่มี OldCode ซ้ำจะใช้ข้อมูลจากแถวแรกเท่านั้น         |
+|                                                          |
+|                          [ยกเลิก]  [ยืนยันนำเข้า]           |
++----------------------------------------------------------+
+```
+
+---
+
+## ส่วนที่ 7: ขั้นตอนการดำเนินงาน
+
+1. **เพิ่ม status "warning"** - สำหรับ OldCode ซ้ำที่ Location ต่างกัน
+2. **ปรับ Logic ตรวจสอบ** - เก็บ Location พร้อม OldCode ในการเปรียบเทียบ
+3. **เพิ่ม Collapsible คำอธิบาย** - อธิบายวิธีการตรวจสอบทั้งหมด
+4. **เพิ่มคอลัมน์ Location** - แสดงในตาราง Preview
+5. **ปรับ canImport Logic** - อนุญาต Warning แต่ Block Duplicate
+6. **ปรับ Confirmation Dialog** - แสดงจำนวนที่จะข้าม
 
 ---
 
 ## ประโยชน์ที่จะได้รับ
 
-- ป้องกันการ Import ข้อมูลซ้ำก่อนเกิด Error
-- ผู้ใช้เห็นปัญหาทันทีพร้อมวิธีแก้ไข
-- ยืนยันก่อนทำการ Update ข้อมูลจำนวนมาก
-- ลดความสับสนจาก Technical error message
-- ลด Support case เรื่อง Import error
+- รองรับกรณี OldCode ซ้ำแต่คนละ Location (เป็นป้ายคนละตัว)
+- Block เฉพาะกรณีที่ซ้ำจริงๆ (OldCode + Location เหมือนกัน)
+- มีคำอธิบายชัดเจนให้ผู้ใช้เข้าใจวิธีการตรวจสอบ
+- ลดความสับสนและข้อผิดพลาดในการนำเข้าข้อมูล
 
