@@ -1559,8 +1559,45 @@ export type Database = {
           },
         ]
       }
+      issue_purpose_categories: {
+        Row: {
+          category_id: string
+          created_at: string
+          id: string
+          issue_purpose_id: string
+        }
+        Insert: {
+          category_id: string
+          created_at?: string
+          id?: string
+          issue_purpose_id: string
+        }
+        Update: {
+          category_id?: string
+          created_at?: string
+          id?: string
+          issue_purpose_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "issue_purpose_categories_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "issue_purpose_categories_issue_purpose_id_fkey"
+            columns: ["issue_purpose_id"]
+            isOneToOne: false
+            referencedRelation: "issue_purposes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       issue_purposes: {
         Row: {
+          allow_all_categories: boolean
           created_at: string
           created_by: string | null
           description: string | null
@@ -1572,6 +1609,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          allow_all_categories?: boolean
           created_at?: string
           created_by?: string | null
           description?: string | null
@@ -1583,6 +1621,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          allow_all_categories?: boolean
           created_at?: string
           created_by?: string | null
           description?: string | null
