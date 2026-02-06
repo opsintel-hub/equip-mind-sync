@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -98,6 +98,16 @@ const IssueRequest = () => {
     billboard_id: "",
     notes: "",
   });
+  
+  // Current stock info for selected equipment
+  const [currentStockInfo, setCurrentStockInfo] = useState<{
+    currentStock: number;
+    remainingAfterIssue: number;
+  } | null>(null);
+  
+  // Stock warning dialog
+  const [stockWarningOpen, setStockWarningOpen] = useState(false);
+  const [suggestedQuantity, setSuggestedQuantity] = useState(0);
   
   // Track if quantity is locked (when selected via S/N)
   const [isQuantityLocked, setIsQuantityLocked] = useState(false);
@@ -236,7 +246,22 @@ const IssueRequest = () => {
     // Check if selected item is a Media Player
     const selectedEquipment = equipment?.find(e => e.id === currentItem.equipment_id);
     const isMediaPlayer = selectedEquipment?.is_media_player || false;
+    const requestedQty = parseInt(currentItem.quantity);
+    const currentStock = selectedEquipment?.quantity_in_stock || 0;
 
+    // Validate stock
+    if (currentStock < requestedQty) {
+      // Show stock warning dialog
+      setSuggestedQuantity(currentStock);
+      setStockWarningOpen(true);
+      return;
+    }
+
+    addItemToCartInternal(isMediaPlayer);
+  };
+
+  // Internal function to add item to cart
+  const addItemToCartInternal = (isMediaPlayer: boolean) => {
     const newItem: CartItem = {
       id: crypto.randomUUID(),
       equipment_id: isMediaPlayer ? "" : currentItem.equipment_id,
@@ -265,8 +290,24 @@ const IssueRequest = () => {
       notes: "",
     });
     setIsQuantityLocked(false);
+    setCurrentStockInfo(null);
 
     toast.success("เพิ่มรายการลงตะกร้าแล้ว");
+  };
+
+  // Accept suggested quantity from warning dialog
+  const handleAcceptSuggestedQuantity = () => {
+    setCurrentItem(prev => ({ ...prev, quantity: suggestedQuantity.toString() }));
+    setStockWarningOpen(false);
+    
+    // Update stock info
+    const selectedEquipment = equipment?.find(e => e.id === currentItem.equipment_id);
+    if (selectedEquipment) {
+      setCurrentStockInfo({
+        currentStock: selectedEquipment.quantity_in_stock,
+        remainingAfterIssue: selectedEquipment.quantity_in_stock - suggestedQuantity,
+      });
+    }
   };
 
   // Remove item from cart
@@ -388,12 +429,21 @@ const IssueRequest = () => {
         serial_number: selected.serial_number || "",
       });
       setIsQuantityLocked(false); // Reset lock when selecting via equipment dropdown
+      // Update stock info
+      setCurrentStockInfo({
+        currentStock: selected.quantity_in_stock,
+        remainingAfterIssue: selected.quantity_in_stock - parseInt(currentItem.quantity || "1"),
+      });
+    } else {
+      setCurrentStockInfo(null);
     }
   };
 
   // Handler for Serial Number searchable dropdown selection
   const handleSerialNumberSelect = (item: SerialNumberItem | null) => {
     if (item) {
+      // Find the equipment to get current stock
+      const selectedEquipment = equipment?.find(e => e.id === item.id);
       setCurrentItem({
         ...currentItem,
         equipment_id: item.id,
@@ -404,6 +454,13 @@ const IssueRequest = () => {
         quantity: "1", // Lock quantity to 1
       });
       setIsQuantityLocked(true); // Lock quantity when selected via S/N
+      // Update stock info
+      if (selectedEquipment) {
+        setCurrentStockInfo({
+          currentStock: selectedEquipment.quantity_in_stock,
+          remainingAfterIssue: selectedEquipment.quantity_in_stock - 1,
+        });
+      }
     } else {
       // Clear the selection
       setCurrentItem({
@@ -415,6 +472,23 @@ const IssueRequest = () => {
         quantity: "1",
       });
       setIsQuantityLocked(false);
+      setCurrentStockInfo(null);
+    }
+  };
+
+  // Update stock info when quantity changes
+  const handleQuantityChange = (newQty: string) => {
+    setCurrentItem({ ...currentItem, quantity: newQty });
+    
+    if (currentItem.equipment_id) {
+      const selectedEquipment = equipment?.find(e => e.id === currentItem.equipment_id);
+      if (selectedEquipment) {
+        const qty = parseInt(newQty) || 0;
+        setCurrentStockInfo({
+          currentStock: selectedEquipment.quantity_in_stock,
+          remainingAfterIssue: selectedEquipment.quantity_in_stock - qty,
+        });
+      }
     }
   };
 
@@ -859,11 +933,32 @@ const IssueRequest = () => {
                     type="number"
                     min="1"
                     value={currentItem.quantity}
-                    onChange={(e) => setCurrentItem({ ...currentItem, quantity: e.target.value })}
+                    onChange={(e) => handleQuantityChange(e.target.value)}
                     placeholder="จำนวน"
                     disabled={isQuantityLocked}
                     className={isQuantityLocked ? "bg-muted" : ""}
                   />
+                  {/* Stock Info Display */}
+                  {currentStockInfo && (
+                    <div className="text-xs space-y-1">
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">คงเหลือในคลัง:</span>
+                        <span className="font-medium">{currentStockInfo.currentStock} {currentItem.unit}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">หลังเบิก:</span>
+                        <span className={`font-medium ${currentStockInfo.remainingAfterIssue < 0 ? 'text-destructive' : 'text-primary'}`}>
+                          {currentStockInfo.remainingAfterIssue} {currentItem.unit}
+                        </span>
+                      </div>
+                      {currentStockInfo.remainingAfterIssue < 0 && (
+                        <div className="text-destructive flex items-center gap-1">
+                          <AlertTriangle className="h-3 w-3" />
+                          จำนวนไม่เพียงพอ
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
                 <div className="space-y-2">
                   <Label>หน่วย</Label>
@@ -1115,6 +1210,46 @@ const IssueRequest = () => {
               </div>
             ))}
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Stock Warning Dialog */}
+      <Dialog open={stockWarningOpen} onOpenChange={setStockWarningOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-destructive">
+              <AlertTriangle className="h-5 w-5" />
+              จำนวนสินค้าไม่เพียงพอ
+            </DialogTitle>
+            <DialogDescription>
+              สินค้า "{currentItem.equipment_name}" มีในคลังเพียง {currentStockInfo?.currentStock || 0} {currentItem.unit} 
+              แต่ท่านขอเบิก {currentItem.quantity} {currentItem.unit}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <div className="p-4 bg-muted rounded-lg space-y-2">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">จำนวนในคลัง:</span>
+                <span className="font-medium">{currentStockInfo?.currentStock || 0} {currentItem.unit}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">จำนวนที่ขอเบิก:</span>
+                <span className="font-medium text-destructive">{currentItem.quantity} {currentItem.unit}</span>
+              </div>
+              <div className="flex justify-between border-t pt-2 mt-2">
+                <span className="text-muted-foreground">จำนวนแนะนำ:</span>
+                <span className="font-medium text-primary">{suggestedQuantity} {currentItem.unit}</span>
+              </div>
+            </div>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setStockWarningOpen(false)}>
+              ยกเลิก
+            </Button>
+            <Button onClick={handleAcceptSuggestedQuantity}>
+              ใช้จำนวน {suggestedQuantity} แทน
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
