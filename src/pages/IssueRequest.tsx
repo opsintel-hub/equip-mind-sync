@@ -12,7 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Plus, Search, FileText, Clock, CheckCircle, XCircle, AlertTriangle, MapPin, RotateCcw, Image, Filter, X, Trash2, ShoppingCart, ChevronDown, ChevronUp, Lock } from "lucide-react";
+import { Plus, Search, FileText, Clock, CheckCircle, XCircle, AlertTriangle, MapPin, RotateCcw, Image, Filter, X, Trash2, ShoppingCart, ChevronDown, ChevronUp, Lock, Layers } from "lucide-react";
 import { format, differenceInDays } from "date-fns";
 import { th } from "date-fns/locale";
 import BillboardSelect from "@/components/billboard/BillboardSelect";
@@ -32,6 +32,7 @@ interface EquipmentWithDetails {
   warranty_expiry_date: string | null;
   warehouse_entry_date: string;
   is_media_player?: boolean;
+  category?: string;
 }
 
 interface IssuePurpose {
@@ -40,6 +41,12 @@ interface IssuePurpose {
   description: string | null;
   requires_billboard: boolean;
   requires_return: boolean;
+  allow_all_categories: boolean;
+}
+
+interface CategoryMapping {
+  issue_purpose_id: string;
+  category_id: string;
 }
 
 interface CartItem {
@@ -128,18 +135,18 @@ const IssueRequest = () => {
 
   const advanceDays = customAdvanceDays || notificationSettings?.advance_days || 30;
 
-  // Fetch equipment with full details including expiry dates
+  // Fetch equipment with full details including expiry dates and category
   const { data: equipmentData } = useQuery({
     queryKey: ["equipment-active-full"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("equipment")
-        .select("id, code, name, unit, quantity_in_stock, serial_number, expiry_date, warranty_expiry_date, warehouse_entry_date")
+        .select("id, code, name, unit, quantity_in_stock, serial_number, expiry_date, warranty_expiry_date, warehouse_entry_date, category")
         .eq("is_active", true)
         .gt("quantity_in_stock", 0)
         .order("warehouse_entry_date", { ascending: true });
       if (error) throw error;
-      return data as EquipmentWithDetails[];
+      return data as (EquipmentWithDetails & { category?: string })[];
     },
   });
 
@@ -182,11 +189,36 @@ const IssueRequest = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("issue_purposes")
-        .select("id, name, description, requires_billboard, requires_return")
+        .select("id, name, description, requires_billboard, requires_return, allow_all_categories")
         .eq("is_active", true)
         .order("name");
       if (error) throw error;
       return data as IssuePurpose[];
+    },
+  });
+
+  // Fetch issue purpose category mappings
+  const { data: purposeCategoryMappings } = useQuery({
+    queryKey: ["issue-purpose-categories"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("issue_purpose_categories")
+        .select("issue_purpose_id, category_id");
+      if (error) throw error;
+      return data as CategoryMapping[];
+    },
+  });
+
+  // Fetch all categories for displaying names
+  const { data: categories } = useQuery({
+    queryKey: ["categories-all"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("categories")
+        .select("id, name")
+        .eq("is_active", true);
+      if (error) throw error;
+      return data as { id: string; name: string }[];
     },
   });
 
@@ -231,6 +263,42 @@ const IssueRequest = () => {
   });
 
   const selectedPurpose = purposes?.find((p) => p.id === headerData.purpose_id);
+
+  // Get allowed category IDs for selected purpose
+  const getAllowedCategoryIds = (): string[] => {
+    if (!selectedPurpose) return [];
+    if (selectedPurpose.allow_all_categories) return [];
+    
+    return purposeCategoryMappings
+      ?.filter(m => m.issue_purpose_id === selectedPurpose.id)
+      .map(m => m.category_id) || [];
+  };
+
+  // Get allowed category names for display
+  const getAllowedCategoryNames = (): string[] => {
+    const allowedIds = getAllowedCategoryIds();
+    if (allowedIds.length === 0) return [];
+    return categories
+      ?.filter(c => allowedIds.includes(c.id))
+      .map(c => c.name) || [];
+  };
+
+  // Filter equipment based on selected purpose's allowed categories
+  const filteredEquipmentByCategory = equipment?.filter(eq => {
+    if (!selectedPurpose) return true; // No purpose selected, show all
+    if (selectedPurpose.allow_all_categories) return true; // Allow all
+    
+    const allowedCategoryIds = getAllowedCategoryIds();
+    if (allowedCategoryIds.length === 0) return true; // No category restrictions
+    
+    // Media players don't have category, always include them
+    if (eq.is_media_player) return true;
+    
+    // Check if equipment's category is in allowed list
+    // Equipment uses category name (string), need to find matching category ID
+    const equipmentCategory = categories?.find(c => c.name === eq.category);
+    return equipmentCategory ? allowedCategoryIds.includes(equipmentCategory.id) : false;
+  }) || [];
 
   // Add item to cart
   const handleAddToCart = () => {
@@ -874,23 +942,34 @@ const IssueRequest = () => {
                 <ShoppingCart className="h-4 w-4" />
                 เพิ่มรายการสินค้า
               </h3>
+              
+              {/* Category restriction notice */}
+              {selectedPurpose && !selectedPurpose.allow_all_categories && getAllowedCategoryNames().length > 0 && (
+                <div className="text-sm bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-md p-3">
+                  <p className="text-blue-800 dark:text-blue-200">
+                    <Layers className="h-4 w-4 inline mr-1" />
+                    วัตถุประสงค์นี้เบิกได้เฉพาะหมวดหมู่: <strong>{getAllowedCategoryNames().join(", ")}</strong>
+                  </p>
+                </div>
+              )}
+              
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div className="space-y-2 md:col-span-2">
                   <Label>เลือกสินค้า (FIFO)</Label>
                   <div className="flex gap-2">
                     <div className="flex-1">
                       <SearchableSelect
-                        options={equipment?.map((eq) => ({
+                        options={filteredEquipmentByCategory?.map((eq) => ({
                           value: eq.id,
                           label: `${eq.code} - ${eq.name}`,
-                          description: `${eq.is_media_player ? '[Media Player] ' : ''}คงเหลือ: ${eq.quantity_in_stock} ${eq.unit}`,
-                          searchableText: `${eq.code} ${eq.name} ${eq.serial_number || ''}`,
+                          description: `${eq.is_media_player ? '[Media Player] ' : ''}${eq.category ? `[${eq.category}] ` : ''}คงเหลือ: ${eq.quantity_in_stock} ${eq.unit}`,
+                          searchableText: `${eq.code} ${eq.name} ${eq.serial_number || ''} ${eq.category || ''}`,
                         })) || []}
                         value={currentItem.equipment_id}
                         onValueChange={handleEquipmentSelect}
                         placeholder="เลือกสินค้า"
                         searchPlaceholder="พิมพ์รหัส, ชื่อ หรือ S/N..."
-                        emptyMessage="ไม่พบสินค้า"
+                        emptyMessage={selectedPurpose && !selectedPurpose.allow_all_categories ? "ไม่พบสินค้าในหมวดหมู่ที่อนุญาต" : "ไม่พบสินค้า"}
                       />
                     </div>
                     {currentItem.equipment_id && (

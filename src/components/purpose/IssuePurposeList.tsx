@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Trash2, MapPin, RotateCcw } from "lucide-react";
+import { Trash2, MapPin, RotateCcw, Layers } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -24,8 +24,18 @@ interface IssuePurpose {
   description: string | null;
   requires_billboard: boolean;
   requires_return: boolean;
+  allow_all_categories: boolean;
   is_active: boolean;
   created_at: string;
+}
+
+interface CategoryMapping {
+  issue_purpose_id: string;
+  category_id: string;
+  categories: {
+    id: string;
+    name: string;
+  };
 }
 
 interface IssuePurposeListProps {
@@ -34,18 +44,36 @@ interface IssuePurposeListProps {
 
 export function IssuePurposeList({ refresh }: IssuePurposeListProps) {
   const [purposes, setPurposes] = useState<IssuePurpose[]>([]);
+  const [categoryMappings, setCategoryMappings] = useState<CategoryMapping[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchPurposes = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
+      
+      // Fetch purposes
+      const { data: purposesData, error: purposesError } = await supabase
         .from("issue_purposes")
         .select("*")
         .order("created_at", { ascending: true });
 
-      if (error) throw error;
-      setPurposes(data || []);
+      if (purposesError) throw purposesError;
+      setPurposes(purposesData || []);
+
+      // Fetch category mappings with category names
+      const { data: mappingsData, error: mappingsError } = await supabase
+        .from("issue_purpose_categories")
+        .select(`
+          issue_purpose_id,
+          category_id,
+          categories (
+            id,
+            name
+          )
+        `);
+
+      if (mappingsError) throw mappingsError;
+      setCategoryMappings(mappingsData as unknown as CategoryMapping[] || []);
     } catch (error: any) {
       toast.error("โหลดข้อมูลไม่สำเร็จ: " + error.message);
     } finally {
@@ -56,6 +84,13 @@ export function IssuePurposeList({ refresh }: IssuePurposeListProps) {
   useEffect(() => {
     fetchPurposes();
   }, [refresh]);
+
+  const getCategoriesForPurpose = (purposeId: string): string[] => {
+    return categoryMappings
+      .filter(m => m.issue_purpose_id === purposeId)
+      .map(m => m.categories?.name)
+      .filter(Boolean) as string[];
+  };
 
   const handleToggleActive = async (id: string, currentValue: boolean) => {
     try {
@@ -74,6 +109,7 @@ export function IssuePurposeList({ refresh }: IssuePurposeListProps) {
 
   const handleDelete = async (id: string) => {
     try {
+      // Delete category mappings first (handled by CASCADE)
       const { error } = await supabase.from("issue_purposes").delete().eq("id", id);
       if (error) throw error;
       toast.success("ลบวัตถุประสงค์สำเร็จ");
@@ -99,67 +135,97 @@ export function IssuePurposeList({ refresh }: IssuePurposeListProps) {
             <TableHead>ชื่อวัตถุประสงค์</TableHead>
             <TableHead>คำอธิบาย</TableHead>
             <TableHead>เงื่อนไข</TableHead>
+            <TableHead>หมวดหมู่ที่เบิกได้</TableHead>
             <TableHead>สถานะ</TableHead>
             <TableHead className="w-24">จัดการ</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
-          {purposes.map((purpose) => (
-            <TableRow key={purpose.id}>
-              <TableCell className="font-medium">{purpose.name}</TableCell>
-              <TableCell className="text-muted-foreground">
-                {purpose.description || "-"}
-              </TableCell>
-              <TableCell>
-                <div className="flex flex-wrap gap-1">
-                  {purpose.requires_billboard && (
-                    <Badge variant="secondary" className="bg-blue-100 text-blue-800">
-                      <MapPin className="h-3 w-3 mr-1" />
-                      ต้องระบุป้าย
-                    </Badge>
-                  )}
-                  {purpose.requires_return && (
-                    <Badge variant="secondary" className="bg-orange-100 text-orange-800">
-                      <RotateCcw className="h-3 w-3 mr-1" />
-                      ต้องรับคืน
-                    </Badge>
-                  )}
-                  {!purpose.requires_billboard && !purpose.requires_return && (
-                    <span className="text-muted-foreground">-</span>
-                  )}
-                </div>
-              </TableCell>
-              <TableCell>
-                <Switch
-                  checked={purpose.is_active || false}
-                  onCheckedChange={() => handleToggleActive(purpose.id, purpose.is_active || false)}
-                />
-              </TableCell>
-              <TableCell>
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button variant="ghost" size="sm" className="text-destructive">
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>ยืนยันการลบ</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        คุณต้องการลบวัตถุประสงค์ "{purpose.name}" ใช่หรือไม่?
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>ยกเลิก</AlertDialogCancel>
-                      <AlertDialogAction onClick={() => handleDelete(purpose.id)}>
-                        ลบ
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
-              </TableCell>
-            </TableRow>
-          ))}
+          {purposes.map((purpose) => {
+            const allowedCategories = getCategoriesForPurpose(purpose.id);
+            
+            return (
+              <TableRow key={purpose.id}>
+                <TableCell className="font-medium">{purpose.name}</TableCell>
+                <TableCell className="text-muted-foreground">
+                  {purpose.description || "-"}
+                </TableCell>
+                <TableCell>
+                  <div className="flex flex-wrap gap-1">
+                    {purpose.requires_billboard && (
+                      <Badge variant="secondary" className="bg-blue-100 text-blue-800">
+                        <MapPin className="h-3 w-3 mr-1" />
+                        ต้องระบุป้าย
+                      </Badge>
+                    )}
+                    {purpose.requires_return && (
+                      <Badge variant="secondary" className="bg-orange-100 text-orange-800">
+                        <RotateCcw className="h-3 w-3 mr-1" />
+                        ต้องรับคืน
+                      </Badge>
+                    )}
+                    {!purpose.requires_billboard && !purpose.requires_return && (
+                      <span className="text-muted-foreground">-</span>
+                    )}
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <div className="flex flex-wrap gap-1 max-w-xs">
+                    {purpose.allow_all_categories ? (
+                      <Badge variant="default" className="bg-green-100 text-green-800">
+                        <Layers className="h-3 w-3 mr-1" />
+                        ทุกหมวดหมู่
+                      </Badge>
+                    ) : allowedCategories.length > 0 ? (
+                      <>
+                        {allowedCategories.slice(0, 3).map((cat, idx) => (
+                          <Badge key={idx} variant="outline" className="text-xs">
+                            {cat}
+                          </Badge>
+                        ))}
+                        {allowedCategories.length > 3 && (
+                          <Badge variant="secondary" className="text-xs">
+                            +{allowedCategories.length - 3}
+                          </Badge>
+                        )}
+                      </>
+                    ) : (
+                      <span className="text-muted-foreground text-xs">ไม่ได้กำหนด</span>
+                    )}
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <Switch
+                    checked={purpose.is_active || false}
+                    onCheckedChange={() => handleToggleActive(purpose.id, purpose.is_active || false)}
+                  />
+                </TableCell>
+                <TableCell>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button variant="ghost" size="sm" className="text-destructive">
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>ยืนยันการลบ</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          คุณต้องการลบวัตถุประสงค์ "{purpose.name}" ใช่หรือไม่?
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>ยกเลิก</AlertDialogCancel>
+                        <AlertDialogAction onClick={() => handleDelete(purpose.id)}>
+                          ลบ
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </TableCell>
+              </TableRow>
+            );
+          })}
         </TableBody>
       </Table>
     </div>
