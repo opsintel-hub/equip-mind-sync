@@ -71,6 +71,7 @@ export interface EquipmentPrefillData {
   company_id?: string;
   unit_price?: number;
   lot_number?: string;
+  images?: string[]; // Pre-uploaded images from delivery entry
 }
 
 interface EquipmentFormProps {
@@ -147,6 +148,10 @@ export function EquipmentForm({ onSuccess, prefillData, triggerButton }: Equipme
       }
       if (prefillData.company_id) {
         form.setValue("company_id", prefillData.company_id);
+      }
+      // Pre-populate images from delivery entry
+      if (prefillData.images && prefillData.images.length > 0) {
+        setImages(prefillData.images);
       }
     }
   }, [open, prefillData, form]);
