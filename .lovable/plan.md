@@ -1,267 +1,326 @@
 
+# แผนการปรับปรุง: รองรับการนำเข้าสินค้าใหม่ที่ไม่มีในระบบ
 
-# แผนการปรับปรุง: เพิ่ม Logic ตรวจสอบ OldCode+Location และคำอธิบายวิธีการตรวจสอบ
+## สรุปปัญหาปัจจุบัน
 
-## สรุปภาพรวม
-ปรับปรุง Billboard Import ให้:
-1. เมื่อพบ OldCode ซ้ำในไฟล์ → ตรวจ Location ต่อ
-   - Location ต่างกัน → Warning (อนุญาตนำเข้าได้หลังยืนยัน)
-   - Location เหมือนกัน → Error (Block ไม่ให้นำเข้า)
-2. เพิ่มส่วนคำอธิบายวิธีการตรวจสอบของระบบ (Collapsible)
+ปัจจุบันหน้า "นำสินค้าเข้า" (Delivery Entry) บังคับให้ผู้ใช้ต้องเลือกสินค้าจาก Dropdown (`selectedEquipmentId`) ก่อนถึงจะเพิ่มลงตะกร้าได้ ทำให้ไม่สามารถนำเข้าสินค้าใหม่ที่ยังไม่มีในระบบได้
 
 ---
 
-## ส่วนที่ 1: เปลี่ยน Logic การตรวจสอบ OldCode ซ้ำ
+## แนวทางแก้ไข: สร้างรหัสสินค้าชั่วคราว
 
-### 1.1 Logic ใหม่
-```text
-เมื่อพบ OldCode ซ้ำในไฟล์ Excel:
-
-1. ตรวจสอบ Location ของแถวที่ซ้ำ
-   │
-   ├─ Location ต่างกัน
-   │  └─ Status = "warning" (สีส้ม)
-   │  └─ แจ้งเตือนผู้ใช้ แต่อนุญาตให้นำเข้าได้
-   │  └─ ใช้ข้อมูลจากแถวแรกที่พบ
-   │
-   └─ Location เหมือนกัน
-      └─ Status = "duplicate" (สีแดง)
-      └─ Block ไม่ให้นำเข้า
-      └─ ผู้ใช้ต้องแก้ไขไฟล์ก่อน
-```
-
-### 1.2 ตัวอย่างการตรวจสอบ
-```text
-+------+------------+--------------+----------+-----------------------------+
-| แถว  | OldCode    | Location     | สถานะ    | หมายเหตุ                     |
-+------+------------+--------------+----------+-----------------------------+
-| 3    | DS175-001  | สถานีรถไฟ A   | เพิ่มใหม่ | ถูกต้อง                      |
-| 5    | DS175-001  | สถานีรถไฟ B   | คำเตือน  | OldCode ซ้ำแถว 3 แต่ Location ต่าง (อนุญาต) |
-| 8    | DS175-001  | สถานีรถไฟ A   | ซ้ำในไฟล์ | OldCode+Location ซ้ำแถว 3 (Block!) |
-+------+------------+--------------+----------+-----------------------------+
-```
+เมื่อผู้ใช้ไม่เลือกสินค้าจาก Dropdown ระบบจะ:
+1. สร้างรหัสสินค้าชั่วคราว (เช่น `TEMP-20260206-001`)
+2. บังคับให้กรอกข้อมูลจำเป็น: **ชื่อสินค้า + หมวดหมู่ + หมวดหมู่ย่อย + รูปภาพ**
+3. ส่งข้อมูลไปยังขั้นตอน "รับเข้าคลัง" เพื่อให้เจ้าหน้าที่คลังสร้างรหัสสินค้าถาวรภายหลัง
 
 ---
 
-## ส่วนที่ 2: เพิ่มสถานะใหม่ "warning"
+## ส่วนที่ 1: UI สำหรับกรอกข้อมูลสินค้าใหม่
 
-### 2.1 เพิ่ม Type Status
-```typescript
-// เดิม
-status: "new" | "update" | "error" | "duplicate";
+### 1.1 เพิ่มช่องกรอกชื่อสินค้า (กรณีไม่เลือกจากระบบ)
 
-// ใหม่
-status: "new" | "update" | "error" | "duplicate" | "warning";
-```
-
-### 2.2 Badge สำหรับ Warning
-```text
-| สถานะ       | Badge สี          | ความหมาย                    |
-|-------------|-------------------|----------------------------|
-| เพิ่มใหม่     | สีเขียว (success)  | OldCode ใหม่ในระบบ           |
-| อัพเดท      | สีส้ม (warning)    | OldCode มีในระบบแล้ว         |
-| คำเตือน     | สีส้มอ่อน (amber)  | OldCode ซ้ำ แต่ Location ต่าง  |  <-- ใหม่
-| ซ้ำในไฟล์    | สีแดง (destructive)| OldCode+Location ซ้ำ (Block) |
-| ข้อผิดพลาด   | สีแดงเข้ม          | ข้อมูลไม่ครบ                  |
-```
-
----
-
-## ส่วนที่ 3: เพิ่มคำอธิบายวิธีการตรวจสอบของระบบ
-
-### 3.1 Collapsible Section
-เพิ่มส่วนคำอธิบายที่สามารถกดเปิด/ปิดได้
+เมื่อไม่ได้เลือกสินค้าจาก Dropdown จะแสดงส่วนนี้:
 
 ```text
-+-- นำเข้าข้อมูลจาก Excel ----------------------------------+
-| ระบบจะตรวจสอบรหัส OldCode อัตโนมัติ                       |
++-- ข้อมูลสินค้าใหม่ (ไม่พบในระบบ) -----------------------+
 |                                                          |
-| [▼ วิธีการตรวจสอบของระบบ] (กดเพื่อดู/ซ่อน)                  |
-| +--------------------------------------------------------+
-| | ขั้นตอนที่ 1: ตรวจสอบ OldCode                           |
-| | • ถ้า OldCode มีในฐานข้อมูลแล้ว → อัพเดท (ทับข้อมูลเดิม)  |
-| | • ถ้า OldCode ไม่มี → เพิ่มใหม่                          |
-| | • ถ้า OldCode ว่าง → ข้อผิดพลาด (ต้องแก้ไข)              |
-| |                                                        |
-| | ขั้นตอนที่ 2: ตรวจสอบ OldCode ซ้ำในไฟล์                  |
-| | • ถ้า OldCode ซ้ำ แต่ Location ต่างกัน → คำเตือน         |
-| |   (อนุญาตให้นำเข้าได้ ใช้ข้อมูลจากแถวแรก)                |
-| | • ถ้า OldCode ซ้ำ และ Location เหมือนกัน → ซ้ำในไฟล์     |
-| |   (ไม่อนุญาต ต้องแก้ไขไฟล์ก่อน)                         |
-| +--------------------------------------------------------+
+| ⚠ ท่านกำลังนำเข้าสินค้าใหม่ที่ยังไม่มีในระบบ                |
+|   ระบบจะสร้างรหัสชั่วคราวและรอเจ้าหน้าที่คลังอนุมัติ        |
 |                                                          |
-| [ดาวน์โหลด Template]  [เลือกไฟล์ Excel]                    |
+| ชื่อสินค้า/อะไหล่ *                                        |
+| [____________________________________]                   |
+|                                                          |
+| หมวดหมู่ *              หมวดหมู่ย่อย *                      |
+| [▼ เลือกหมวดหมู่...]    [▼ เลือกหมวดหมู่ย่อย...]            |
+|                                                          |
+| รูปภาพสินค้า *                                             |
+| [📷 อัปโหลดรูปภาพ] (บังคับอย่างน้อย 1 รูป)                  |
+|                                                          |
 +----------------------------------------------------------+
 ```
 
+### 1.2 Flow การทำงาน
+
+```text
+ผู้ใช้ค้นหาสินค้าใน Dropdown
+    │
+    ├─ พบสินค้า → เลือกได้ตามปกติ
+    │
+    └─ ไม่พบสินค้า → กรอกข้อมูลด้วยตนเอง
+       │
+       ├─ กรอกชื่อสินค้า (บังคับ)
+       ├─ เลือกหมวดหมู่ (บังคับ)
+       ├─ เลือกหมวดหมู่ย่อย (บังคับ)
+       ├─ อัปโหลดรูปภาพ (บังคับอย่างน้อย 1 รูป)
+       └─ กรอกข้อมูลอื่นๆ (จำนวน, ราคา, ฯลฯ)
+```
+
 ---
 
-## ส่วนที่ 4: รายละเอียดทางเทคนิค
+## ส่วนที่ 2: การสร้างรหัสชั่วคราว
 
-### 4.1 ไฟล์ที่ต้องแก้ไข
-| ไฟล์ | การเปลี่ยนแปลง |
-|------|---------------|
-| `src/components/billboard/BillboardImport.tsx` | เพิ่ม Logic ตรวจ Location, เพิ่ม Collapsible คำอธิบาย |
+### 2.1 รูปแบบรหัสชั่วคราว
+```text
+TEMP-YYYYMMDD-XXX
+TEMP-20260206-001
+TEMP-20260206-002
+...
+```
 
-### 4.2 Logic การตรวจสอบ OldCode + Location
-
+### 2.2 Logic การสร้างรหัส
 ```typescript
-// Step 1: เก็บข้อมูล OldCode พร้อม Location และหมายเลขแถว
-const oldCodeDataMap = new Map<string, { rowNumber: number; location: string }>();
-const duplicateInfo = new Map<number, { 
-  duplicateOfRow: number; 
-  sameLocation: boolean;
-}>();
+const generateTempCode = () => {
+  const date = new Date();
+  const dateStr = format(date, "yyyyMMdd");
+  const random = Math.floor(Math.random() * 1000).toString().padStart(3, "0");
+  return `TEMP-${dateStr}-${random}`;
+};
+```
 
-jsonData.forEach((row: any, index: number) => {
-  const oldCode = row["OldCode"] || row["old_code"] || "";
-  const location = row["Location"] || row["location_name"] || "";
-  const rowNumber = index + 2;
-  
-  if (oldCode) {
-    if (oldCodeDataMap.has(oldCode)) {
-      const firstRow = oldCodeDataMap.get(oldCode)!;
-      // ตรวจสอบว่า Location ซ้ำด้วยหรือไม่
-      const sameLocation = location === firstRow.location;
-      duplicateInfo.set(index, {
-        duplicateOfRow: firstRow.rowNumber,
-        sameLocation,
-      });
-    } else {
-      oldCodeDataMap.set(oldCode, { rowNumber, location });
-    }
+---
+
+## ส่วนที่ 3: การ Validate ก่อนเพิ่มลงตะกร้า
+
+### 3.1 กรณีเลือกสินค้าจากระบบ
+- ไม่ต้อง Validate เพิ่มเติม (เหมือนเดิม)
+
+### 3.2 กรณีสินค้าใหม่ (ไม่ได้เลือก)
+ต้องกรอกครบ:
+- ✓ ชื่อสินค้า (บังคับ)
+- ✓ หมวดหมู่ (บังคับ)
+- ✓ หมวดหมู่ย่อย (บังคับ)
+- ✓ รูปภาพอย่างน้อย 1 รูป (บังคับ)
+- ✓ จำนวน (บังคับ)
+- ✓ ราคาต่อชิ้น (บังคับ)
+
+### 3.3 Error Messages
+```typescript
+if (!selectedEquipmentId) {
+  // New product validation
+  if (!equipmentName.trim()) {
+    toast.error("กรุณาระบุชื่อสินค้า/อะไหล่");
+    return;
   }
-});
-
-// Step 2: กำหนดสถานะตาม sameLocation
-if (duplicateInfo.has(index)) {
-  const info = duplicateInfo.get(index)!;
-  if (info.sameLocation) {
-    // OldCode + Location ซ้ำ → Block
-    status = "duplicate";
-    errorMessage = `OldCode และ Location ซ้ำกับแถวที่ ${info.duplicateOfRow}`;
-  } else {
-    // OldCode ซ้ำ แต่ Location ต่าง → Warning
-    status = "warning";
-    errorMessage = `OldCode ซ้ำกับแถวที่ ${info.duplicateOfRow} (Location ต่างกัน จะใช้แถว ${info.duplicateOfRow})`;
+  if (!selectedCategoryId) {
+    toast.error("กรุณาเลือกหมวดหมู่");
+    return;
+  }
+  if (!selectedSubcategoryId) {
+    toast.error("กรุณาเลือกหมวดหมู่ย่อย");
+    return;
+  }
+  if (newProductImages.length === 0) {
+    toast.error("กรุณาอัปโหลดรูปภาพสินค้าอย่างน้อย 1 รูป");
+    return;
   }
 }
 ```
 
-### 4.3 ปรับ canImport Logic
+---
 
+## ส่วนที่ 4: การบันทึกลงฐานข้อมูล
+
+### 4.1 ข้อมูลที่บันทึกลง `goods_receipt_pending`
+
+สำหรับสินค้าใหม่:
 ```typescript
-// เดิม: Block ทั้ง duplicate และ error
-const hasProblems = errorCount > 0 || duplicateCount > 0;
-
-// ใหม่: Block เฉพาะ duplicate (OldCode+Location ซ้ำ) และ error
-// Warning (OldCode ซ้ำ แต่ Location ต่าง) ไม่ Block
-const hasBlockingProblems = errorCount > 0 || duplicateCount > 0;
-const canImport = (newCount > 0 || updateCount > 0) && !hasBlockingProblems;
+{
+  equipment_id: null,                    // ไม่มี equipment_id เพราะยังไม่มีในระบบ
+  equipment_code: "TEMP-20260206-001",   // รหัสชั่วคราว
+  equipment_name: "ชื่อสินค้าที่กรอก",      // ชื่อที่ผู้ใช้กรอก
+  // ... ข้อมูลอื่นๆ
+}
 ```
 
-### 4.4 เพิ่ม Collapsible Component
+### 4.2 การเพิ่มคอลัมน์ใหม่ในฐานข้อมูล
 
-```typescript
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { ChevronDown, HelpCircle } from "lucide-react";
-
-// ภายใน Card Header
-<Collapsible>
-  <CollapsibleTrigger asChild>
-    <Button variant="ghost" size="sm" className="gap-2 text-muted-foreground">
-      <HelpCircle className="h-4 w-4" />
-      วิธีการตรวจสอบของระบบ
-      <ChevronDown className="h-4 w-4" />
-    </Button>
-  </CollapsibleTrigger>
-  <CollapsibleContent className="mt-4 p-4 bg-muted/50 rounded-lg text-sm space-y-3">
-    <div>
-      <strong>ขั้นตอนที่ 1: ตรวจสอบ OldCode</strong>
-      <ul className="list-disc list-inside mt-1 space-y-1 text-muted-foreground">
-        <li>ถ้า OldCode มีในฐานข้อมูลแล้ว → อัพเดท (ทับข้อมูลเดิม)</li>
-        <li>ถ้า OldCode ไม่มี → เพิ่มใหม่</li>
-        <li>ถ้า OldCode ว่าง → ข้อผิดพลาด (ต้องแก้ไข)</li>
-      </ul>
-    </div>
-    <div>
-      <strong>ขั้นตอนที่ 2: ตรวจสอบ OldCode ซ้ำในไฟล์</strong>
-      <ul className="list-disc list-inside mt-1 space-y-1 text-muted-foreground">
-        <li>ถ้า OldCode ซ้ำ แต่ Location ต่างกัน → คำเตือน (ใช้ข้อมูลจากแถวแรก)</li>
-        <li>ถ้า OldCode ซ้ำ และ Location เหมือนกัน → ซ้ำในไฟล์ (ต้องแก้ไข)</li>
-      </ul>
-    </div>
-  </CollapsibleContent>
-</Collapsible>
+ต้องเพิ่มคอลัมน์เพื่อเก็บข้อมูลสำหรับสินค้าใหม่:
+```sql
+ALTER TABLE goods_receipt_pending
+ADD COLUMN temp_category_id UUID REFERENCES categories(id),
+ADD COLUMN temp_subcategory_id UUID REFERENCES subcategories(id),
+ADD COLUMN temp_product_images TEXT[];
 ```
 
 ---
 
-## ส่วนที่ 5: ตัวอย่างหน้าจอหลังปรับปรุง
+## ส่วนที่ 5: การแสดงผลในตะกร้า
 
-### 5.1 สรุปก่อนนำเข้า (พบ Warning)
-```text
-+-- ตรวจสอบข้อมูลก่อนนำเข้า (2616 รายการ) ------------------+
-| ✓ เพิ่มใหม่: 2590  ⚠ อัพเดท: 9  ⚡ คำเตือน: 12  ✗ ซ้ำ: 5   |
-+-----------------------------------------------------------+
-|                                                           |
-| ⚠ พบ OldCode ซ้ำกัน 12 รายการ (Location ต่างกัน)           |
-|   ระบบจะใช้ข้อมูลจากแถวแรกที่พบ และข้ามแถวที่เหลือ          |
-|                                                           |
-| ✗ พบ OldCode+Location ซ้ำกัน 5 รายการ                      |
-|   ไม่สามารถนำเข้าได้ กรุณาแก้ไขไฟล์ก่อน                     |
-|                                                           |
-+-----------------------------------------------------------+
-```
+### 5.1 Badge "สินค้าใหม่"
+สินค้าที่ไม่มี `equipment_id` จะแสดง Badge สีส้ม "สินค้าใหม่" เพื่อแยกจากสินค้าที่มีอยู่ในระบบ (ใช้ logic เดิมที่มีอยู่แล้ว)
 
-### 5.2 ตาราง Preview พร้อมคอลัมน์ Location
 ```text
-| สถานะ     | OldCode     | Location      | คำอธิบาย | ปัญหา              |
-|-----------|-------------|---------------|---------|-------------------|
-| ✓ เพิ่มใหม่ | DS175-001   | สถานีรถไฟ A    | ...     |                   |
-| ⚡ คำเตือน  | DS175-001   | สถานีรถไฟ B    | ...     | OldCode ซ้ำแถว 3   |
-| ✗ ซ้ำในไฟล์ | DS175-001   | สถานีรถไฟ A    | ...     | OldCode+Location ซ้ำ |
+| สถานะ                   |
+|------------------------|
+| ✓ มีในระบบ (เขียว)       | → มี equipment_id
+| ⚠ สินค้าใหม่ (ส้ม)       | → ไม่มี equipment_id
 ```
 
 ---
 
-## ส่วนที่ 6: Confirmation Dialog พร้อม Warning
+## ส่วนที่ 6: การปรับปรุงหน้า "รับเข้าคลัง"
 
-### 6.1 แสดงจำนวนที่จะข้าม
+### 6.1 แสดงข้อมูลสินค้าใหม่
+ในหน้า ReceiveGoods แสดงข้อมูลที่ผู้ใช้กรอกมา:
+- ชื่อสินค้า
+- หมวดหมู่/หมวดหมู่ย่อย (ใหม่)
+- รูปภาพสินค้า (ใหม่)
+
+### 6.2 ปุ่ม "สร้างอุปกรณ์ใหม่" (Quick Create)
+ฟีเจอร์ที่มีอยู่แล้วจะ Auto-fill ข้อมูลจาก:
+- ชื่อสินค้าที่กรอก
+- หมวดหมู่ที่เลือก
+- หมวดหมู่ย่อยที่เลือก
+- รูปภาพที่อัปโหลด
+
+---
+
+## ส่วนที่ 7: รายละเอียดทางเทคนิค
+
+### 7.1 ไฟล์ที่ต้องแก้ไข
+
+| ไฟล์ | การเปลี่ยนแปลง |
+|------|---------------|
+| `src/pages/DeliveryEntry.tsx` | เพิ่มช่องกรอกชื่อสินค้า, ปรับ validation |
+| `src/components/delivery/DeliveryCart.tsx` | เพิ่มการแสดง DeliveryCartItem interface |
+| `src/components/receive/ReceiveGroupedItems.tsx` | เพิ่มการแสดงหมวดหมู่และรูปภาพสินค้าใหม่ |
+| `src/pages/ReceiveGoods.tsx` | ส่งข้อมูลหมวดหมู่ไปยัง Quick Create |
+
+### 7.2 Database Migration
+เพิ่มคอลัมน์ใหม่:
+```sql
+ALTER TABLE goods_receipt_pending
+ADD COLUMN temp_category_id UUID REFERENCES categories(id),
+ADD COLUMN temp_subcategory_id UUID REFERENCES subcategories(id),
+ADD COLUMN temp_product_images TEXT[];
+```
+
+### 7.3 เพิ่ม State ใหม่ใน DeliveryEntry
+
+```typescript
+// เพิ่ม state สำหรับชื่อสินค้าที่กรอกเอง
+const [manualEquipmentName, setManualEquipmentName] = useState("");
+```
+
+### 7.4 ปรับปรุง handleAddToCart
+
+```typescript
+const handleAddToCart = () => {
+  // ... existing validation
+
+  if (!isMediaPlayerEntry) {
+    if (!selectedEquipmentId) {
+      // New product validation
+      if (!manualEquipmentName.trim()) {
+        toast.error("กรุณาระบุชื่อสินค้า/อะไหล่");
+        return;
+      }
+      if (!selectedCategoryId) {
+        toast.error("กรุณาเลือกหมวดหมู่");
+        return;
+      }
+      if (!selectedSubcategoryId) {
+        toast.error("กรุณาเลือกหมวดหมู่ย่อย");
+        return;
+      }
+      if (newProductImages.length === 0) {
+        toast.error("กรุณาอัปโหลดรูปภาพสินค้าอย่างน้อย 1 รูป");
+        return;
+      }
+    }
+    
+    // ... rest of validation
+  }
+
+  // Create cart item
+  const newItem: DeliveryCartItem = {
+    equipment_id: selectedEquipmentId || null,
+    equipment_code: selectedEquipmentId 
+      ? equipmentCode 
+      : generateTempCode(),  // สร้างรหัสชั่วคราว
+    equipment_name: selectedEquipmentId 
+      ? (selectedEquipment?.name || "") 
+      : manualEquipmentName,  // ใช้ชื่อที่กรอกเอง
+    // ... other fields
+    temp_category_id: selectedCategoryId || null,
+    temp_subcategory_id: selectedSubcategoryId || null,
+    temp_product_images: newProductImages,
+  };
+  
+  // ... rest of logic
+};
+```
+
+### 7.5 ปรับปรุง DeliveryCartItem Interface
+
+```typescript
+export interface DeliveryCartItem {
+  // ... existing fields
+  temp_category_id?: string | null;
+  temp_subcategory_id?: string | null;
+  temp_product_images?: string[];
+}
+```
+
+---
+
+## ส่วนที่ 8: ตัวอย่างหน้าจอหลังปรับปรุง
+
+### 8.1 กรณีไม่เลือกสินค้าจาก Dropdown
+
 ```text
-+-- ยืนยันการนำเข้าข้อมูล ----------------------------------+
++-- ข้อมูลสินค้า (รายการที่ 1) -----------------------------+
 |                                                          |
-|  คุณกำลังจะดำเนินการดังนี้:                                 |
+| เลือกสินค้า (ถ้ารู้รหัส)                                   |
+| [▼ เลือกสินค้าจากระบบ...                    ]            |
 |                                                          |
-|  ✓ เพิ่มป้ายใหม่:           2,590 รายการ                  |
-|  ⚠ อัพเดทป้ายที่มีอยู่:      9 รายการ                      |
-|  ⏭ ข้ามแถวที่ซ้ำ:           12 รายการ                     |  <-- ใหม่
+| ⚠ ไม่พบสินค้าในระบบ? กรอกข้อมูลด้านล่างเพื่อนำเข้าสินค้าใหม่ |
 |                                                          |
-|  ⚠ หมายเหตุ:                                             |
-|  • การอัพเดทจะทับข้อมูลเดิมในระบบ                         |
-|  • แถวที่มี OldCode ซ้ำจะใช้ข้อมูลจากแถวแรกเท่านั้น         |
+| ชื่อสินค้า/อะไหล่ *                                        |
+| [____________________________________]                   |
 |                                                          |
-|                          [ยกเลิก]  [ยืนยันนำเข้า]           |
+| หมวดหมู่ *                   หมวดหมู่ย่อย *                 |
+| [▼ เลือกหมวดหมู่...]         [▼ เลือกหมวดหมู่ย่อย...]       |
+|                                                          |
+| รูปภาพสินค้า * (บังคับอย่างน้อย 1 รูป)                      |
+| [📷] [📷] [📷] [📷] [📷]                                   |
+|                                                          |
+| จำนวน *    หน่วย     Lot Number 1    Lot Number 2         |
+| [___]      [___]     [___________]   [___________]        |
+|                                                          |
 +----------------------------------------------------------+
 ```
 
+### 8.2 ตะกร้าแสดง Badge "สินค้าใหม่"
+
+```text
++-- ตะกร้าสินค้านำเข้า (3 รายการ) -------------------------+
+|                                                         |
+| # | สินค้า              | จำนวน | สถานะ                  |
+|---|---------------------|-------|------------------------|
+| 1 | EQ-001 - ตัวต้านทาน | 100   | ✓ มีในระบบ              |
+| 2 | TEMP-... - สายไฟใหม่| 50    | ⚠ สินค้าใหม่            |
+| 3 | TEMP-... - น็อตหกเหลี่ยม | 200   | ⚠ สินค้าใหม่        |
+|                                                         |
++---------------------------------------------------------+
+```
+
 ---
 
-## ส่วนที่ 7: ขั้นตอนการดำเนินงาน
+## ส่วนที่ 9: ขั้นตอนการดำเนินงาน
 
-1. **เพิ่ม status "warning"** - สำหรับ OldCode ซ้ำที่ Location ต่างกัน
-2. **ปรับ Logic ตรวจสอบ** - เก็บ Location พร้อม OldCode ในการเปรียบเทียบ
-3. **เพิ่ม Collapsible คำอธิบาย** - อธิบายวิธีการตรวจสอบทั้งหมด
-4. **เพิ่มคอลัมน์ Location** - แสดงในตาราง Preview
-5. **ปรับ canImport Logic** - อนุญาต Warning แต่ Block Duplicate
-6. **ปรับ Confirmation Dialog** - แสดงจำนวนที่จะข้าม
+1. **Database Migration** - เพิ่มคอลัมน์ temp_category_id, temp_subcategory_id, temp_product_images
+2. **ปรับปรุง DeliveryCartItem Interface** - เพิ่ม fields ใหม่
+3. **ปรับปรุง DeliveryEntry.tsx** - เพิ่มช่องกรอกชื่อ + ปรับ validation
+4. **ปรับปรุง handleSubmitAll** - ส่งข้อมูลหมวดหมู่และรูปภาพไป
+5. **ปรับปรุง ReceiveGoods.tsx** - แสดงข้อมูลและส่งไป Quick Create
 
 ---
 
 ## ประโยชน์ที่จะได้รับ
 
-- รองรับกรณี OldCode ซ้ำแต่คนละ Location (เป็นป้ายคนละตัว)
-- Block เฉพาะกรณีที่ซ้ำจริงๆ (OldCode + Location เหมือนกัน)
-- มีคำอธิบายชัดเจนให้ผู้ใช้เข้าใจวิธีการตรวจสอบ
-- ลดความสับสนและข้อผิดพลาดในการนำเข้าข้อมูล
-
+- ผู้ใช้สามารถนำเข้าสินค้าใหม่ได้โดยไม่ต้องรอสร้างในระบบก่อน
+- เจ้าหน้าที่คลังได้รับข้อมูลครบถ้วน (ชื่อ + หมวดหมู่ + รูปภาพ) เพื่อสร้างรหัสสินค้าถาวร
+- ลดขั้นตอนการทำงานและเวลาในการนำเข้าสินค้าใหม่
+- รักษา Data Integrity ด้วยการบังคับเลือกหมวดหมู่จาก Master Data
