@@ -15,7 +15,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Upload, FileSpreadsheet, CheckCircle, XCircle, AlertCircle, Download, AlertTriangle, HelpCircle, ChevronDown, SkipForward } from "lucide-react";
+import { Upload, FileSpreadsheet, CheckCircle, XCircle, AlertCircle, Download, AlertTriangle, HelpCircle, ChevronDown } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import * as XLSX from "xlsx";
@@ -41,7 +41,7 @@ interface ImportRow {
   route_install_demolish?: string;
   route_report_photo?: string;
   route_pm?: string;
-  status: "new" | "update" | "error" | "duplicate" | "warning";
+  status: "new" | "update" | "error" | "duplicate";
   errorMessage?: string;
   rowNumber?: number;
   duplicateOfRow?: number;
@@ -104,13 +104,10 @@ const BillboardImport = ({ onSuccess, onCancel }: BillboardImportProps) => {
       
       const existingOldCodes = new Set(existingBillboards?.map(b => b.old_code).filter(Boolean) || []);
 
-      // Step 1: ตรวจหา OldCode ที่ซ้ำกันในไฟล์ Excel พร้อมเก็บ Location
-      const oldCodeDataMap = new Map<string, { rowNumber: number; location: string }>();
-      const duplicateInfo = new Map<number, { 
-        duplicateOfRow: number; 
-        sameLocation: boolean;
-        firstRowLocation: string;
-      }>();
+      // Step 1: ตรวจหา OldCode + Location ที่ซ้ำกันในไฟล์ Excel
+      // ใช้ OldCode + Location เป็น key - ถ้า OldCode เหมือนกันแต่ Location ต่างกัน ถือว่าคนละป้าย
+      const oldCodeLocationMap = new Map<string, number>();
+      const duplicateInfo = new Map<number, number>(); // index -> duplicateOfRowNumber
 
       jsonData.forEach((row: any, index: number) => {
         const oldCode = row["OldCode"] || row["old_code"] || "";
@@ -118,17 +115,14 @@ const BillboardImport = ({ onSuccess, onCancel }: BillboardImportProps) => {
         const rowNumber = index + 2; // +2 เพราะ Excel Header = แถว 1, และ index เริ่มจาก 0
         
         if (oldCode) {
-          if (oldCodeDataMap.has(oldCode)) {
-            const firstRow = oldCodeDataMap.get(oldCode)!;
-            // ตรวจสอบว่า Location ซ้ำด้วยหรือไม่
-            const sameLocation = location === firstRow.location;
-            duplicateInfo.set(index, {
-              duplicateOfRow: firstRow.rowNumber,
-              sameLocation,
-              firstRowLocation: firstRow.location,
-            });
+          // สร้าง key จาก OldCode + Location
+          const uniqueKey = `${oldCode}|||${location}`;
+          
+          if (oldCodeLocationMap.has(uniqueKey)) {
+            // OldCode + Location ซ้ำกัน → duplicate
+            duplicateInfo.set(index, oldCodeLocationMap.get(uniqueKey)!);
           } else {
-            oldCodeDataMap.set(oldCode, { rowNumber, location });
+            oldCodeLocationMap.set(uniqueKey, rowNumber);
           }
         }
       });
@@ -147,72 +141,40 @@ const BillboardImport = ({ onSuccess, onCancel }: BillboardImportProps) => {
             old_code: "",
             location_name: locationName,
             status: "error" as const,
-            errorMessage: "ไม่มีรหัส OldCode",
+            errorMessage: "ช่อง OldCode ในไฟล์ Excel ว่างเปล่า - กรุณากรอกข้อมูล",
             rowNumber,
           };
         }
 
-        // ตรวจสอบว่าซ้ำในไฟล์หรือไม่
+        // ตรวจสอบว่า OldCode + Location ซ้ำในไฟล์หรือไม่
         if (duplicateInfo.has(index)) {
-          const info = duplicateInfo.get(index)!;
-          
-          if (info.sameLocation) {
-            // OldCode + Location ซ้ำกัน → Block (duplicate)
-            return {
-              equipment_id: equipmentId,
-              description: row["Description"] || row["description"] || "",
-              department: row["Department"] || row["department"] || "",
-              media_class: row["MediaClass"] || row["media_class"] || "",
-              media_segment: row["MediaSegment"] || row["media_segment"] || "",
-              region: row["Region"] || row["region"] || "",
-              district: row["District"] || row["district"] || "",
-              territory: row["Territory"] || row["territory"] || "",
-              media_type: row["MediaType"] || row["media_type"] || "",
-              location_name: locationName,
-              old_code: oldCode,
-              extra_1: row["Extra_1"] || "",
-              extra_2: row["Extra_2"] || "",
-              extra_3: row["Extra_3"] || "",
-              target_monitoring: row["TargetMonitoring"] || "",
-              bkk_upc: row["BKKUPC"] || "",
-              route_monitoring: row["RouteMonitoring"] || "",
-              route_install_demolish: row["RouteInstallAndDemolish"] || "",
-              route_report_photo: row["RouteReportPhoto"] || "",
-              route_pm: row["RoutePM"] || "",
-              status: "duplicate" as const,
-              errorMessage: `OldCode และ Location ซ้ำกับแถวที่ ${info.duplicateOfRow} - ต้องแก้ไขไฟล์`,
-              rowNumber,
-              duplicateOfRow: info.duplicateOfRow,
-            };
-          } else {
-            // OldCode ซ้ำ แต่ Location ต่างกัน → Warning (อนุญาตให้นำเข้าได้)
-            return {
-              equipment_id: equipmentId,
-              description: row["Description"] || row["description"] || "",
-              department: row["Department"] || row["department"] || "",
-              media_class: row["MediaClass"] || row["media_class"] || "",
-              media_segment: row["MediaSegment"] || row["media_segment"] || "",
-              region: row["Region"] || row["region"] || "",
-              district: row["District"] || row["district"] || "",
-              territory: row["Territory"] || row["territory"] || "",
-              media_type: row["MediaType"] || row["media_type"] || "",
-              location_name: locationName,
-              old_code: oldCode,
-              extra_1: row["Extra_1"] || "",
-              extra_2: row["Extra_2"] || "",
-              extra_3: row["Extra_3"] || "",
-              target_monitoring: row["TargetMonitoring"] || "",
-              bkk_upc: row["BKKUPC"] || "",
-              route_monitoring: row["RouteMonitoring"] || "",
-              route_install_demolish: row["RouteInstallAndDemolish"] || "",
-              route_report_photo: row["RouteReportPhoto"] || "",
-              route_pm: row["RoutePM"] || "",
-              status: "warning" as const,
-              errorMessage: `OldCode ซ้ำกับแถวที่ ${info.duplicateOfRow} (Location ต่างกัน - จะใช้แถว ${info.duplicateOfRow})`,
-              rowNumber,
-              duplicateOfRow: info.duplicateOfRow,
-            };
-          }
+          const duplicateOfRow = duplicateInfo.get(index)!;
+          return {
+            equipment_id: equipmentId,
+            description: row["Description"] || row["description"] || "",
+            department: row["Department"] || row["department"] || "",
+            media_class: row["MediaClass"] || row["media_class"] || "",
+            media_segment: row["MediaSegment"] || row["media_segment"] || "",
+            region: row["Region"] || row["region"] || "",
+            district: row["District"] || row["district"] || "",
+            territory: row["Territory"] || row["territory"] || "",
+            media_type: row["MediaType"] || row["media_type"] || "",
+            location_name: locationName,
+            old_code: oldCode,
+            extra_1: row["Extra_1"] || "",
+            extra_2: row["Extra_2"] || "",
+            extra_3: row["Extra_3"] || "",
+            target_monitoring: row["TargetMonitoring"] || "",
+            bkk_upc: row["BKKUPC"] || "",
+            route_monitoring: row["RouteMonitoring"] || "",
+            route_install_demolish: row["RouteInstallAndDemolish"] || "",
+            route_report_photo: row["RouteReportPhoto"] || "",
+            route_pm: row["RoutePM"] || "",
+            status: "duplicate" as const,
+            errorMessage: `OldCode และ Location ซ้ำกับแถวที่ ${duplicateOfRow} ในไฟล์ - ต้องแก้ไข`,
+            rowNumber,
+            duplicateOfRow,
+          };
         }
 
         const isExisting = existingOldCodes.has(oldCode);
@@ -260,7 +222,7 @@ const BillboardImport = ({ onSuccess, onCancel }: BillboardImportProps) => {
     setShowConfirmDialog(true);
   };
 
-  // ทำการ Import จริง (ไม่นำเข้าแถวที่มี status = warning)
+  // ทำการ Import จริง
   const confirmImport = async () => {
     setShowConfirmDialog(false);
     const validData = previewData.filter(row => 
@@ -308,7 +270,7 @@ const BillboardImport = ({ onSuccess, onCancel }: BillboardImportProps) => {
         updatedCount++;
       }
 
-      toast.success(`นำเข้าสำเร็จ: เพิ่มใหม่ ${insertedCount} รายการ, อัพเดท ${updatedCount} รายการ${warningCount > 0 ? `, ข้าม ${warningCount} รายการ` : ""}`);
+      toast.success(`นำเข้าสำเร็จ: เพิ่มใหม่ ${insertedCount} รายการ, อัพเดท ${updatedCount} รายการ`);
       onSuccess();
     } catch (error: any) {
       const friendlyMessage = translateDatabaseError(error);
@@ -356,10 +318,8 @@ const BillboardImport = ({ onSuccess, onCancel }: BillboardImportProps) => {
   const updateCount = previewData.filter(r => r.status === "update").length;
   const errorCount = previewData.filter(r => r.status === "error").length;
   const duplicateCount = previewData.filter(r => r.status === "duplicate").length;
-  const warningCount = previewData.filter(r => r.status === "warning").length;
   
-  // Block เฉพาะ error และ duplicate (OldCode+Location ซ้ำ)
-  // Warning (OldCode ซ้ำ แต่ Location ต่าง) ไม่ Block - อนุญาตให้นำเข้าได้
+  // Block เฉพาะ error และ duplicate
   const hasBlockingProblems = errorCount > 0 || duplicateCount > 0;
   const canImport = (newCount > 0 || updateCount > 0) && !hasBlockingProblems;
 
@@ -390,19 +350,19 @@ const BillboardImport = ({ onSuccess, onCancel }: BillboardImportProps) => {
                 <ul className="list-disc list-inside mt-2 space-y-1 text-muted-foreground">
                   <li>ถ้า OldCode มีในฐานข้อมูลแล้ว → <Badge className="bg-warning/10 text-warning hover:bg-warning/20 text-xs">อัพเดท</Badge> (ทับข้อมูลเดิม)</li>
                   <li>ถ้า OldCode ไม่มีในฐานข้อมูล → <Badge className="bg-success/10 text-success hover:bg-success/20 text-xs">เพิ่มใหม่</Badge></li>
-                  <li>ถ้า OldCode ว่าง → <Badge variant="destructive" className="text-xs">ข้อผิดพลาด</Badge> (ต้องแก้ไขไฟล์)</li>
+                  <li>ถ้าช่อง OldCode ในไฟล์ Excel ว่างเปล่า → <Badge variant="destructive" className="text-xs">ข้อผิดพลาด</Badge> (ต้องกรอกข้อมูลก่อน)</li>
                 </ul>
               </div>
               <div>
-                <strong className="text-foreground">ขั้นตอนที่ 2: ตรวจสอบ OldCode ซ้ำในไฟล์ Excel</strong>
+                <strong className="text-foreground">ขั้นตอนที่ 2: ตรวจสอบข้อมูลซ้ำในไฟล์ Excel</strong>
                 <ul className="list-disc list-inside mt-2 space-y-1 text-muted-foreground">
-                  <li>ถ้า OldCode ซ้ำ แต่ Location ต่างกัน → <Badge className="bg-amber-500/10 text-amber-600 hover:bg-amber-500/20 text-xs">คำเตือน</Badge> (ใช้ข้อมูลจากแถวแรก ข้ามแถวที่เหลือ)</li>
-                  <li>ถ้า OldCode ซ้ำ และ Location เหมือนกัน → <Badge className="bg-destructive/20 text-destructive hover:bg-destructive/30 text-xs">ซ้ำในไฟล์</Badge> (ไม่อนุญาต ต้องแก้ไขไฟล์)</li>
+                  <li>ถ้า OldCode เหมือนกัน แต่ Location ต่างกัน → <span className="text-success">อนุญาต</span> (ถือว่าเป็นป้ายคนละตัว นำเข้าทั้งคู่)</li>
+                  <li>ถ้า OldCode และ Location เหมือนกันทั้งคู่ → <Badge className="bg-destructive/20 text-destructive hover:bg-destructive/30 text-xs">ซ้ำในไฟล์</Badge> (ต้องลบแถวที่ซ้ำออก)</li>
                 </ul>
               </div>
               <div className="pt-2 border-t border-border">
                 <p className="text-muted-foreground">
-                  <strong className="text-foreground">หมายเหตุ:</strong> ระบบใช้ OldCode เป็นรหัสหลักในการระบุป้ายแต่ละตัว หากมี OldCode ซ้ำแต่ Location ต่างกัน ระบบจะถือว่าเป็นคนละป้ายและอนุญาตให้นำเข้าได้ โดยใช้ข้อมูลจากแถวแรกที่พบ
+                  <strong className="text-foreground">สรุป:</strong> ระบบใช้ OldCode + Location เป็นรหัสหลักในการระบุป้ายแต่ละตัว หากมี OldCode เหมือนกันแต่ Location ต่างกัน ระบบจะถือว่าเป็นป้ายคนละตัวและนำเข้าทั้งหมด
                 </p>
               </div>
             </CollapsibleContent>
@@ -442,12 +402,6 @@ const BillboardImport = ({ onSuccess, onCancel }: BillboardImportProps) => {
                 <AlertCircle className="w-4 h-4 text-warning" />
                 <span className="text-sm">อัพเดท: {updateCount}</span>
               </div>
-              {warningCount > 0 && (
-                <div className="flex items-center gap-2">
-                  <SkipForward className="w-4 h-4 text-amber-500" />
-                  <span className="text-sm text-amber-600">ข้าม (OldCode ซ้ำ): {warningCount}</span>
-                </div>
-              )}
               {duplicateCount > 0 && (
                 <div className="flex items-center gap-2">
                   <AlertTriangle className="w-4 h-4 text-destructive" />
@@ -463,17 +417,6 @@ const BillboardImport = ({ onSuccess, onCancel }: BillboardImportProps) => {
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
-            {/* แสดง Warning Banner สำหรับแถวที่จะข้าม */}
-            {warningCount > 0 && !hasBlockingProblems && (
-              <Alert className="border-amber-500 bg-amber-500/10">
-                <SkipForward className="h-4 w-4 text-amber-600" />
-                <AlertDescription className="text-amber-700">
-                  <strong>พบ OldCode ซ้ำกัน {warningCount} รายการ (Location ต่างกัน)</strong>
-                  <p className="mt-1">ระบบจะใช้ข้อมูลจากแถวแรกที่พบ และข้ามแถวที่ซ้ำ หากต้องการใช้ข้อมูลจากแถวอื่น กรุณาแก้ไขไฟล์</p>
-                </AlertDescription>
-              </Alert>
-            )}
-
             {/* แสดง Error Banner ถ้าพบปัญหา Blocking */}
             {hasBlockingProblems && (
               <Alert className="bg-destructive/10 border-destructive">
@@ -482,10 +425,10 @@ const BillboardImport = ({ onSuccess, onCancel }: BillboardImportProps) => {
                   <strong>ไม่สามารถนำเข้าได้</strong>
                   <ul className="mt-2 list-disc list-inside space-y-1">
                     {duplicateCount > 0 && (
-                      <li>พบ OldCode และ Location ซ้ำกัน {duplicateCount} รายการ - กรุณาลบแถวที่ซ้ำออกจากไฟล์</li>
+                      <li>พบ OldCode และ Location ซ้ำกัน {duplicateCount} รายการในไฟล์ Excel - กรุณาลบแถวที่ซ้ำออก</li>
                     )}
                     {errorCount > 0 && (
-                      <li>พบข้อมูลที่มีปัญหา {errorCount} รายการ - กรุณาตรวจสอบและแก้ไข</li>
+                      <li>พบช่อง OldCode ว่างเปล่า {errorCount} รายการ - กรุณากรอกข้อมูลในไฟล์ Excel</li>
                     )}
                   </ul>
                 </AlertDescription>
@@ -519,9 +462,7 @@ const BillboardImport = ({ onSuccess, onCancel }: BillboardImportProps) => {
                     <TableRow key={index} className={
                       row.status === "duplicate" || row.status === "error" 
                         ? "bg-destructive/5" 
-                        : row.status === "warning" 
-                          ? "bg-amber-500/5" 
-                          : ""
+                        : ""
                     }>
                       <TableCell>
                         {row.status === "new" && (
@@ -529,9 +470,6 @@ const BillboardImport = ({ onSuccess, onCancel }: BillboardImportProps) => {
                         )}
                         {row.status === "update" && (
                           <Badge className="bg-warning/10 text-warning hover:bg-warning/20">อัพเดท</Badge>
-                        )}
-                        {row.status === "warning" && (
-                          <Badge className="bg-amber-500/10 text-amber-600 hover:bg-amber-500/20">ข้าม</Badge>
                         )}
                         {row.status === "duplicate" && (
                           <Badge className="bg-destructive/20 text-destructive hover:bg-destructive/30">ซ้ำในไฟล์</Badge>
@@ -596,25 +534,12 @@ const BillboardImport = ({ onSuccess, onCancel }: BillboardImportProps) => {
                       <span className="text-foreground">อัพเดทป้ายที่มีอยู่: <strong>{updateCount.toLocaleString()}</strong> รายการ</span>
                     </li>
                   )}
-                  {warningCount > 0 && (
-                    <li className="flex items-center gap-3 p-2 rounded-lg bg-amber-500/10">
-                      <SkipForward className="h-5 w-5 text-amber-600 flex-shrink-0" />
-                      <span className="text-foreground">ข้ามแถวที่ OldCode ซ้ำ: <strong>{warningCount.toLocaleString()}</strong> รายการ</span>
-                    </li>
-                  )}
                 </ul>
-                {(updateCount > 0 || warningCount > 0) && (
+                {updateCount > 0 && (
                   <Alert className="bg-muted/50 border-muted">
                     <AlertCircle className="h-4 w-4" />
                     <AlertDescription>
-                      <ul className="space-y-1 text-sm">
-                        {updateCount > 0 && (
-                          <li>• การอัพเดทจะทับข้อมูลเดิมในระบบตาม OldCode</li>
-                        )}
-                        {warningCount > 0 && (
-                          <li>• แถวที่มี OldCode ซ้ำจะใช้ข้อมูลจากแถวแรกเท่านั้น</li>
-                        )}
-                      </ul>
+                      <strong>หมายเหตุ:</strong> การอัพเดทจะทับข้อมูลเดิมในระบบตาม OldCode
                     </AlertDescription>
                   </Alert>
                 )}
