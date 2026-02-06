@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Package, MapPin, Truck, Warehouse, Building2, Target, Building, Wrench, PackageOpen, HardHat, Layers } from "lucide-react";
+import { Package, MapPin, Truck, Warehouse, Building2, Target, Building, Wrench, PackageOpen, HardHat, Layers, FolderTree } from "lucide-react";
 import { EquipmentForm } from "@/components/equipment/EquipmentForm";
 import { EquipmentList } from "@/components/equipment/EquipmentList";
 import { EquipmentImport } from "@/components/equipment/EquipmentImport";
@@ -28,6 +28,10 @@ import { CompanyList } from "@/components/company/CompanyList";
 import { ToolForm } from "@/components/tools/ToolForm";
 import { ToolList } from "@/components/tools/ToolList";
 import { ToolImport } from "@/components/tools/ToolImport";
+import { CategoryList } from "@/components/category/CategoryList";
+import { CategoryForm } from "@/components/category/CategoryForm";
+import { SubcategoryList } from "@/components/category/SubcategoryList";
+import { SubcategoryForm } from "@/components/category/SubcategoryForm";
 
 const MasterData = () => {
   const [refreshKey, setRefreshKey] = useState(0);
@@ -46,7 +50,7 @@ const MasterData = () => {
       </div>
 
       <Tabs defaultValue="equipment" className="w-full">
-        <TabsList className="grid w-full grid-cols-11 max-w-7xl">
+        <TabsList className="grid w-full grid-cols-12 max-w-7xl">
           <TabsTrigger value="equipment" className="gap-2">
             <Package className="h-4 w-4" />
             อุปกรณ์
@@ -54,6 +58,10 @@ const MasterData = () => {
           <TabsTrigger value="tools" className="gap-2">
             <Wrench className="h-4 w-4" />
             เครื่องมือ
+          </TabsTrigger>
+          <TabsTrigger value="categories" className="gap-2">
+            <FolderTree className="h-4 w-4" />
+            หมวดหมู่
           </TabsTrigger>
           <TabsTrigger value="warehouses" className="gap-2">
             <Warehouse className="h-4 w-4" />
@@ -141,6 +149,42 @@ const MasterData = () => {
             </CardHeader>
             <CardContent>
               <ToolList refreshKey={refreshKey} />
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="categories" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>หมวดหมู่หลัก</CardTitle>
+                  <CardDescription>
+                    จัดการหมวดหมู่หลักของอุปกรณ์/อะไหล่
+                  </CardDescription>
+                </div>
+                <CategoryForm onSuccess={handleSuccess} />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <CategoryList refresh={refreshKey} />
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>หมวดหมู่ย่อย</CardTitle>
+                  <CardDescription>
+                    จัดการหมวดหมู่ย่อยและเชื่อมโยงกับหมวดหมู่หลัก
+                  </CardDescription>
+                </div>
+                <SubcategoryForm onSuccess={handleSuccess} />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <SubcategoryList refresh={refreshKey} />
             </CardContent>
           </Card>
         </TabsContent>
