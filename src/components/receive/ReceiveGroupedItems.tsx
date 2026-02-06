@@ -50,6 +50,10 @@ export interface PendingReceipt {
   waiting_asset_code?: boolean | null;
   waiting_equipment_id?: boolean | null;
   depreciation_months?: number | null;
+  // Temp fields for new products
+  temp_category_id?: string | null;
+  temp_subcategory_id?: string | null;
+  temp_product_images?: string[] | null;
 }
 
 interface GroupedReceipts {
@@ -327,6 +331,11 @@ export const ReceiveGroupedItems = ({
                               {!item.equipment_id && !item.media_player_id && (
                                 <Badge variant="outline" className="text-warning border-warning text-xs">
                                   สินค้าใหม่
+                                </Badge>
+                              )}
+                              {item.temp_product_images && item.temp_product_images.length > 0 && (
+                                <Badge variant="outline" className="text-blue-500 border-blue-300 text-xs">
+                                  📷 {item.temp_product_images.length} รูป
                                 </Badge>
                               )}
                             </div>

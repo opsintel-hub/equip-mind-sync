@@ -916,11 +916,16 @@ const ReceiveGoods = () => {
                       company_id: selectedReceipt.company_id || undefined,
                       unit_price: selectedReceipt.unit_price || undefined,
                       lot_number: selectedReceipt.lot_number || undefined,
-                      // Pass images from document_url if it contains image URLs
-                      images: selectedReceipt.document_url ? 
-                        selectedReceipt.document_url.split(',')
-                          .map(url => url.trim())
-                          .filter(url => url.match(/\.(jpg|jpeg|png|gif|webp)/i)) : undefined,
+                      category_id: selectedReceipt.temp_category_id || undefined,
+                      subcategory_id: selectedReceipt.temp_subcategory_id || undefined,
+                      // Pass images: prioritize temp_product_images, fallback to document_url
+                      images: (selectedReceipt.temp_product_images && selectedReceipt.temp_product_images.length > 0)
+                        ? selectedReceipt.temp_product_images
+                        : selectedReceipt.document_url 
+                          ? selectedReceipt.document_url.split(',')
+                              .map(url => url.trim())
+                              .filter(url => url.match(/\.(jpg|jpeg|png|gif|webp)/i)) 
+                          : undefined,
                     } as EquipmentPrefillData}
                     onSuccess={async (newEquipmentId) => {
                       if (newEquipmentId) {

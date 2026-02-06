@@ -1380,6 +1380,9 @@ export type Database = {
           storage_width_cm: number | null
           supplier_id: string | null
           supplier_name: string | null
+          temp_category_id: string | null
+          temp_product_images: string[] | null
+          temp_subcategory_id: string | null
           unit: string
           unit_price: number | null
           updated_at: string
@@ -1429,6 +1432,9 @@ export type Database = {
           storage_width_cm?: number | null
           supplier_id?: string | null
           supplier_name?: string | null
+          temp_category_id?: string | null
+          temp_product_images?: string[] | null
+          temp_subcategory_id?: string | null
           unit?: string
           unit_price?: number | null
           updated_at?: string
@@ -1478,6 +1484,9 @@ export type Database = {
           storage_width_cm?: number | null
           supplier_id?: string | null
           supplier_name?: string | null
+          temp_category_id?: string | null
+          temp_product_images?: string[] | null
+          temp_subcategory_id?: string | null
           unit?: string
           unit_price?: number | null
           updated_at?: string
@@ -1548,6 +1557,20 @@ export type Database = {
             columns: ["supplier_id"]
             isOneToOne: false
             referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "goods_receipt_pending_temp_category_id_fkey"
+            columns: ["temp_category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "goods_receipt_pending_temp_subcategory_id_fkey"
+            columns: ["temp_subcategory_id"]
+            isOneToOne: false
+            referencedRelation: "subcategories"
             referencedColumns: ["id"]
           },
           {

@@ -72,6 +72,8 @@ export interface EquipmentPrefillData {
   unit_price?: number;
   lot_number?: string;
   images?: string[]; // Pre-uploaded images from delivery entry
+  category_id?: string; // Category UUID for auto-fill
+  subcategory_id?: string; // Subcategory UUID for auto-fill
 }
 
 interface EquipmentFormProps {
@@ -152,6 +154,23 @@ export function EquipmentForm({ onSuccess, prefillData, triggerButton }: Equipme
       // Pre-populate images from delivery entry
       if (prefillData.images && prefillData.images.length > 0) {
         setImages(prefillData.images);
+      }
+      // Auto-fill category from category_id
+      if (prefillData.category_id) {
+        supabase
+          .from("categories")
+          .select("name")
+          .eq("id", prefillData.category_id)
+          .single()
+          .then(({ data }) => {
+            if (data?.name) {
+              form.setValue("category", data.name);
+            }
+          });
+      }
+      // Auto-fill subcategory_id directly
+      if (prefillData.subcategory_id) {
+        form.setValue("subcategory_id", prefillData.subcategory_id);
       }
     }
   }, [open, prefillData, form]);
