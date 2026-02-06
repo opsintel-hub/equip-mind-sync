@@ -1190,9 +1190,8 @@ const DeliveryEntry = () => {
 
             {/* Document Upload (Shared) - 4 Categories */}
             <div className="p-4 bg-muted/30 rounded-lg space-y-4">
-              <h3 className="font-medium text-sm text-muted-foreground flex items-center gap-2">เอกสารแนบ (ใช้ร่วมกันทุกรายการ) 
-กรุณาตั้งชื่อไฟล์ให้สะดวกต่อการค้นหาเอกสารแนบ (ใช้ร่วมกันทุกรายการ)<FileText className="w-4 h-4" />
-                เอกสารแนบ (ใช้ร่วมกันทุกรายการ)
+              <h3 className="font-medium text-sm text-muted-foreground flex items-center gap-2">เอกสารแนบ (ใช้ร่วมกันทุกรายการ)  กรุณาตั้งชื่อไฟล์ให้สะดวกต่อการค้นหาเอกสารแนบ <FileText className="w-4 h-4" />
+                ​
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* PR Document */}
