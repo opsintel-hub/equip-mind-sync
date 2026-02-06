@@ -9,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Truck, Search, Package, Clock, CheckCircle2, Upload, FileText, X, Loader2, Info, Plus, ShoppingCart, Send, PlusCircle, Monitor, ImagePlus, Eye } from "lucide-react";
+import { Truck, Search, Package, Clock, CheckCircle2, Upload, FileText, X, Loader2, Info, Plus, ShoppingCart, Send, PlusCircle, Monitor, ImagePlus, Eye, AlertTriangle } from "lucide-react";
 import { EquipmentImageViewer } from "@/components/equipment/EquipmentImageViewer";
 import { EquipmentImageUpload } from "@/components/equipment/EquipmentImageUpload";
 import { toast } from "sonner";
@@ -134,6 +134,7 @@ const DeliveryEntry = () => {
   const [selectedMediaPlayerId, setSelectedMediaPlayerId] = useState("");
   const [equipmentCode, setEquipmentCode] = useState("");
   const [equipmentName, setEquipmentName] = useState("");
+  const [manualEquipmentName, setManualEquipmentName] = useState("");
   const [quantity, setQuantity] = useState("");
   const [unit, setUnit] = useState("ชิ้น");
   const [selectedSupplierId, setSelectedSupplierId] = useState("");
@@ -406,6 +407,12 @@ const DeliveryEntry = () => {
     return publicUrl;
   };
 
+  const generateTempCode = () => {
+    const dateStr = format(new Date(), "yyyyMMdd");
+    const random = Math.floor(Math.random() * 1000).toString().padStart(3, "0");
+    return `TEMP-${dateStr}-${random}`;
+  };
+
   // Add item to cart
   const handleAddToCart = () => {
     if (!quantity || parseInt(quantity) < 1) {
@@ -462,8 +469,23 @@ const DeliveryEntry = () => {
     } else {
       // Regular equipment validation
       if (!selectedEquipmentId) {
-        toast.error("กรุณาเลือกสินค้า");
-        return;
+        // New product manual entry validation
+        if (!manualEquipmentName.trim()) {
+          toast.error("กรุณาเลือกสินค้าจากระบบ หรือกรอกชื่อสินค้า/อะไหล่ใหม่");
+          return;
+        }
+        if (!selectedCategoryId) {
+          toast.error("กรุณาเลือกหมวดหมู่");
+          return;
+        }
+        if (!selectedSubcategoryId) {
+          toast.error("กรุณาเลือกหมวดหมู่ย่อย");
+          return;
+        }
+        if (newProductImages.length === 0) {
+          toast.error("กรุณาอัปโหลดรูปภาพสินค้าอย่างน้อย 1 รูป");
+          return;
+        }
       }
       if (!unitPrice) {
         toast.error("กรุณาระบุราคาต่อชิ้น");
@@ -472,8 +494,10 @@ const DeliveryEntry = () => {
       const newItem: DeliveryCartItem = {
         id: crypto.randomUUID(),
         equipment_id: selectedEquipmentId || null,
-        equipment_code: equipmentCode,
-        equipment_name: equipmentName || selectedEquipment?.name || "",
+        equipment_code: selectedEquipmentId ? equipmentCode : generateTempCode(),
+        equipment_name: selectedEquipmentId 
+          ? (equipmentName || selectedEquipment?.name || "") 
+          : manualEquipmentName.trim(),
         quantity: parseInt(quantity),
         unit: unit,
         lot_number_1: lotNumber1,
@@ -495,7 +519,10 @@ const DeliveryEntry = () => {
         waiting_equipment_id: waitingEquipmentId,
         depreciation_months: depreciationMonths,
         notes: itemNotes,
-        is_media_player: false
+        is_media_player: false,
+        temp_category_id: !selectedEquipmentId ? (selectedCategoryId || null) : null,
+        temp_subcategory_id: !selectedEquipmentId ? (selectedSubcategoryId || null) : null,
+        temp_product_images: !selectedEquipmentId ? newProductImages : undefined,
       };
       setCartItems([...cartItems, newItem]);
     }
@@ -509,6 +536,7 @@ const DeliveryEntry = () => {
     setSelectedMediaPlayerId("");
     setEquipmentCode("");
     setEquipmentName("");
+    setManualEquipmentName("");
     setQuantity("");
     setUnit("ชิ้น");
     setSelectedSupplierId("");
@@ -641,7 +669,11 @@ const DeliveryEntry = () => {
         purchase_document_url: purchaseDocumentUrl,
         // Media Player specific fields
         is_media_player: item.is_media_player || false,
-        media_player_id: item.media_player_id || null
+        media_player_id: item.media_player_id || null,
+        // Temp fields for new products
+        temp_category_id: item.temp_category_id || null,
+        temp_subcategory_id: item.temp_subcategory_id || null,
+        temp_product_images: item.temp_product_images || null,
       }));
       const {
         error
@@ -941,6 +973,30 @@ const DeliveryEntry = () => {
                         </div>}
                     </div>
 
+                    {/* Manual Equipment Name - New Product Entry */}
+                    {!selectedEquipmentId && (
+                      <div className="p-4 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-lg space-y-3">
+                        <div className="flex items-center gap-2">
+                          <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+                          <span className="text-sm font-medium text-amber-700 dark:text-amber-400">
+                            ไม่พบสินค้าในระบบ? กรอกข้อมูลด้านล่างเพื่อนำเข้าสินค้าใหม่
+                          </span>
+                        </div>
+                        <p className="text-xs text-amber-600/80 dark:text-amber-500/80">
+                          ระบบจะสร้างรหัสชั่วคราว (TEMP-XXXXXXXX-XXX) และรอเจ้าหน้าที่คลังสร้างรหัสสินค้าถาวรในขั้นตอนรับเข้าคลัง
+                        </p>
+                        <div className="space-y-2">
+                          <Label htmlFor="manualName">ชื่อสินค้า/อะไหล่ <span className="text-destructive">*</span></Label>
+                          <Input 
+                            id="manualName" 
+                            placeholder="กรอกชื่อสินค้าหรืออะไหล่..."
+                            value={manualEquipmentName} 
+                            onChange={e => setManualEquipmentName(e.target.value)} 
+                          />
+                        </div>
+                      </div>
+                    )}
+
                     {/* Category & Subcategory */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-2">
@@ -991,8 +1047,11 @@ const DeliveryEntry = () => {
                     {/* Image Upload for New Products */}
                     {!selectedEquipmentId && <div className="p-4 bg-orange-50 dark:bg-orange-950/20 border border-orange-200 dark:border-orange-800 rounded-lg space-y-3">
                         <Label className="text-orange-700 dark:text-orange-400 text-sm font-medium">
-                          หากค้นหาไม่พบสินค้าที่มีอยู่ในระบบ ท่านจะต้องใส่รูปภาพสินค้าหรืออะไหล่ที่นี่
+                          รูปภาพสินค้า/อะไหล่ <span className="text-destructive">*</span> (บังคับอย่างน้อย 1 รูป)
                         </Label>
+                        <p className="text-xs text-orange-600/80 dark:text-orange-500/80">
+                          ใส่รูปภาพสินค้าเพื่อให้เจ้าหน้าที่คลังสามารถระบุตัวสินค้าได้
+                        </p>
                         <EquipmentImageUpload images={newProductImages} onChange={setNewProductImages} maxImages={5} />
                       </div>}
                   </div>

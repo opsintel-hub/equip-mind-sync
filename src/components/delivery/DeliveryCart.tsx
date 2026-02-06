@@ -32,6 +32,10 @@ export interface DeliveryCartItem {
   waiting_equipment_id: boolean;
   depreciation_months: string;
   notes: string;
+  // Temp fields for new products not in system
+  temp_category_id?: string | null;
+  temp_subcategory_id?: string | null;
+  temp_product_images?: string[];
   // Media Player specific fields
   is_media_player?: boolean;
   media_player_id?: string | null;
