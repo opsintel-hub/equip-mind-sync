@@ -166,6 +166,9 @@ const DeliveryEntry = () => {
   // Product images for new products
   const [newProductImages, setNewProductImages] = useState<string[]>([]);
 
+  // Min stock level for new products
+  const [minStockLevel, setMinStockLevel] = useState("");
+
   // Asset fields
   const [isAsset, setIsAsset] = useState(false);
   const [assetCode, setAssetCode] = useState("");
@@ -523,6 +526,7 @@ const DeliveryEntry = () => {
         temp_category_id: !selectedEquipmentId ? (selectedCategoryId || null) : null,
         temp_subcategory_id: !selectedEquipmentId ? (selectedSubcategoryId || null) : null,
         temp_product_images: !selectedEquipmentId ? newProductImages : undefined,
+        temp_min_stock_level: !selectedEquipmentId ? (parseInt(minStockLevel) || 0) : undefined,
       };
       setCartItems([...cartItems, newItem]);
     }
@@ -568,6 +572,8 @@ const DeliveryEntry = () => {
     setSelectedSubcategoryId("");
     // New product images
     setNewProductImages([]);
+    // Min stock level
+    setMinStockLevel("");
   };
   const handleRemoveFromCart = (itemId: string) => {
     setCartItems(cartItems.filter(item => item.id !== itemId));
@@ -674,6 +680,7 @@ const DeliveryEntry = () => {
         temp_category_id: item.temp_category_id || null,
         temp_subcategory_id: item.temp_subcategory_id || null,
         temp_product_images: item.temp_product_images || null,
+        temp_min_stock_level: item.temp_min_stock_level ?? 0,
       }));
       const {
         error
@@ -1057,8 +1064,8 @@ const DeliveryEntry = () => {
                   </div>
                 </>}
 
-              {/* Quantity, Unit & Lot Numbers */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {/* Quantity, Unit, Min Stock Level & Lot Numbers */}
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="quantity">จำนวน *</Label>
                   <Input id="quantity" type="number" placeholder="กรอกจำนวน" value={quantity} onChange={e => setQuantity(e.target.value)} required />
@@ -1067,6 +1074,22 @@ const DeliveryEntry = () => {
                   <Label htmlFor="unit">หน่วย</Label>
                   <Input id="unit" value={unit} onChange={e => setUnit(e.target.value)} placeholder="ชิ้น, กล่อง, ..." />
                 </div>
+                {!selectedEquipmentId && !isMediaPlayerEntry && (
+                  <div className="space-y-2">
+                    <Label htmlFor="minStockLevel">จำนวนขั้นต่ำ</Label>
+                    <Input 
+                      id="minStockLevel" 
+                      type="number" 
+                      placeholder="0" 
+                      value={minStockLevel} 
+                      onChange={e => setMinStockLevel(e.target.value)}
+                      min="0"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      ระบบจะแจ้งเตือนเมื่อสินค้าต่ำกว่าค่านี้
+                    </p>
+                  </div>
+                )}
                 <div className="space-y-2">
                   <Label htmlFor="lotNumber1">Lot Number 1</Label>
                   <Input id="lotNumber1" placeholder="Lot No. 1" value={lotNumber1} onChange={e => setLotNumber1(e.target.value)} />

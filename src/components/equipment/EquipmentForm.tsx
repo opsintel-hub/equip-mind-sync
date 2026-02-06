@@ -74,6 +74,7 @@ export interface EquipmentPrefillData {
   images?: string[]; // Pre-uploaded images from delivery entry
   category_id?: string; // Category UUID for auto-fill
   subcategory_id?: string; // Subcategory UUID for auto-fill
+  min_stock_level?: number; // Min stock level from delivery entry
 }
 
 interface EquipmentFormProps {
@@ -171,6 +172,10 @@ export function EquipmentForm({ onSuccess, prefillData, triggerButton }: Equipme
       // Auto-fill subcategory_id directly
       if (prefillData.subcategory_id) {
         form.setValue("subcategory_id", prefillData.subcategory_id);
+      }
+      // Auto-fill min_stock_level from delivery entry
+      if (prefillData.min_stock_level !== undefined) {
+        form.setValue("min_stock_level", prefillData.min_stock_level);
       }
     }
   }, [open, prefillData, form]);
