@@ -410,6 +410,10 @@ const IssueRequest = () => {
       toast.error("กรุณากรอกชื่อผู้ขอเบิก");
       return;
     }
+    if (!headerData.purpose_id) {
+      toast.error("กรุณาเลือกวัตถุประสงค์");
+      return;
+    }
     if (cartItems.length === 0) {
       toast.error("กรุณาเพิ่มรายการสินค้าอย่างน้อย 1 รายการ");
       return;
@@ -806,16 +810,8 @@ const IssueRequest = () => {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="company">บริษัท</Label>
-                  <CompanySelect
-                    value={headerData.company_id}
-                    onChange={(value) => setHeaderData({ ...headerData, company_id: value })}
-                    placeholder="เลือกบริษัท..."
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="purpose_id">วัตถุประสงค์</Label>
-                  <Select 
+                  <Label htmlFor="purpose_id">วัตถุประสงค์ *</Label>
+                  <Select
                     value={headerData.purpose_id} 
                     onValueChange={(value) => {
                       const purpose = purposes?.find((p) => p.id === value);
