@@ -52,14 +52,14 @@ interface BillboardImportProps {
 }
 
 // แปลง Technical Error เป็นข้อความภาษาไทยที่เข้าใจง่าย
-const translateDatabaseError = (error: any, equipmentId?: string): string => {
+const translateDatabaseError = (error: any, oldCode?: string): string => {
   const message = error?.message || error?.toString() || "";
   
   if (message.includes("duplicate key") || message.includes("unique constraint")) {
-    if (equipmentId) {
-      return `รหัสป้าย "${equipmentId}" ซ้ำกับข้อมูลในระบบ - กรุณาตรวจสอบว่ารหัสนี้มีอยู่แล้วหรือไม่`;
+    if (oldCode) {
+      return `รหัส OldCode "${oldCode}" ซ้ำกับข้อมูลในระบบ - กรุณาตรวจสอบว่ารหัสนี้มีอยู่แล้วหรือไม่`;
     }
-    return "พบรหัสป้ายซ้ำกับข้อมูลในระบบ - กรุณาตรวจสอบรหัสป้ายในไฟล์";
+    return "พบรหัส OldCode ซ้ำกับข้อมูลในระบบ - กรุณาตรวจสอบรหัสในไฟล์";
   }
   
   if (message.includes("foreign key") || message.includes("violates foreign key")) {
@@ -95,27 +95,27 @@ const BillboardImport = ({ onSuccess, onCancel }: BillboardImportProps) => {
       const worksheet = workbook.Sheets[workbook.SheetNames[0]];
       const jsonData = XLSX.utils.sheet_to_json(worksheet);
 
-      // Get existing equipment_ids from database
+      // Get existing old_codes from database
       const { data: existingBillboards } = await supabase
         .from("billboards")
-        .select("equipment_id");
+        .select("old_code");
       
-      const existingIds = new Set(existingBillboards?.map(b => b.equipment_id) || []);
+      const existingOldCodes = new Set(existingBillboards?.map(b => b.old_code).filter(Boolean) || []);
 
-      // Step 1: ตรวจหา equipment_id ที่ซ้ำกันในไฟล์ Excel
-      const equipmentIdRowMap = new Map<string, number>();
+      // Step 1: ตรวจหา OldCode ที่ซ้ำกันในไฟล์ Excel
+      const oldCodeRowMap = new Map<string, number>();
       const duplicateInfo = new Map<number, number>(); // rowIndex -> duplicateOfRowNumber
 
       jsonData.forEach((row: any, index: number) => {
-        const equipmentId = row["EquipmentID"] || row["equipment_id"] || "";
+        const oldCode = row["OldCode"] || row["old_code"] || "";
         const rowNumber = index + 2; // +2 เพราะ Excel Header = แถว 1, และ index เริ่มจาก 0
         
-        if (equipmentId) {
-          if (equipmentIdRowMap.has(equipmentId)) {
+        if (oldCode) {
+          if (oldCodeRowMap.has(oldCode)) {
             // ซ้ำ! บันทึกว่าแถวนี้ซ้ำกับแถวไหน
-            duplicateInfo.set(index, equipmentIdRowMap.get(equipmentId)!);
+            duplicateInfo.set(index, oldCodeRowMap.get(oldCode)!);
           } else {
-            equipmentIdRowMap.set(equipmentId, rowNumber);
+            oldCodeRowMap.set(oldCode, rowNumber);
           }
         }
       });
@@ -123,14 +123,16 @@ const BillboardImport = ({ onSuccess, onCancel }: BillboardImportProps) => {
       // Step 2: Map Excel columns to our schema and check status
       const mappedData: ImportRow[] = jsonData.map((row: any, index: number) => {
         const equipmentId = row["EquipmentID"] || row["equipment_id"] || "";
+        const oldCode = row["OldCode"] || row["old_code"] || "";
         const rowNumber = index + 2;
         
-        // ตรวจสอบ equipment_id ว่างเปล่า
-        if (!equipmentId) {
+        // ตรวจสอบ OldCode ว่างเปล่า (ใช้ OldCode เป็น key หลักในการตรวจสอบซ้ำ)
+        if (!oldCode) {
           return {
-            equipment_id: "",
+            equipment_id: equipmentId,
+            old_code: "",
             status: "error" as const,
-            errorMessage: "ไม่มีรหัสป้าย (EquipmentID)",
+            errorMessage: "ไม่มีรหัส OldCode",
             rowNumber,
           };
         }
@@ -148,7 +150,7 @@ const BillboardImport = ({ onSuccess, onCancel }: BillboardImportProps) => {
             territory: row["Territory"] || row["territory"] || "",
             media_type: row["MediaType"] || row["media_type"] || "",
             location_name: row["Location"] || row["location_name"] || "",
-            old_code: row["OldCode"] || row["old_code"] || "",
+            old_code: oldCode,
             extra_1: row["Extra_1"] || "",
             extra_2: row["Extra_2"] || "",
             extra_3: row["Extra_3"] || "",
@@ -159,13 +161,13 @@ const BillboardImport = ({ onSuccess, onCancel }: BillboardImportProps) => {
             route_report_photo: row["RouteReportPhoto"] || "",
             route_pm: row["RoutePM"] || "",
             status: "duplicate" as const,
-            errorMessage: `ซ้ำกับแถวที่ ${duplicateInfo.get(index)} ในไฟล์`,
+            errorMessage: `OldCode ซ้ำกับแถวที่ ${duplicateInfo.get(index)} ในไฟล์`,
             rowNumber,
             duplicateOfRow: duplicateInfo.get(index),
           };
         }
 
-        const isExisting = existingIds.has(equipmentId);
+        const isExisting = existingOldCodes.has(oldCode);
         
         return {
           equipment_id: equipmentId,
@@ -178,7 +180,7 @@ const BillboardImport = ({ onSuccess, onCancel }: BillboardImportProps) => {
           territory: row["Territory"] || row["territory"] || "",
           media_type: row["MediaType"] || row["media_type"] || "",
           location_name: row["Location"] || row["location_name"] || "",
-          old_code: row["OldCode"] || row["old_code"] || "",
+          old_code: oldCode,
           extra_1: row["Extra_1"] || "",
           extra_2: row["Extra_2"] || "",
           extra_3: row["Extra_3"] || "",
@@ -214,7 +216,7 @@ const BillboardImport = ({ onSuccess, onCancel }: BillboardImportProps) => {
   const confirmImport = async () => {
     setShowConfirmDialog(false);
     const validData = previewData.filter(row => 
-      (row.status === "new" || row.status === "update") && row.equipment_id
+      (row.status === "new" || row.status === "update") && row.old_code
     );
     
     if (validData.length === 0) {
@@ -246,13 +248,13 @@ const BillboardImport = ({ onSuccess, onCancel }: BillboardImportProps) => {
         insertedCount = newRecords.length;
       }
 
-      // Update existing records
+      // Update existing records by old_code
       for (const record of updateRecords) {
-        const { status, errorMessage, equipment_id, rowNumber, duplicateOfRow, ...updateData } = record;
+        const { status, errorMessage, old_code, rowNumber, duplicateOfRow, ...updateData } = record;
         const { error: updateError } = await supabase
           .from("billboards")
           .update(updateData)
-          .eq("equipment_id", equipment_id);
+          .eq("old_code", old_code);
         
         if (updateError) throw updateError;
         updatedCount++;
@@ -318,7 +320,7 @@ const BillboardImport = ({ onSuccess, onCancel }: BillboardImportProps) => {
             นำเข้าข้อมูลจาก Excel
           </CardTitle>
           <CardDescription>
-            ระบบจะตรวจสอบรหัสป้าย (EquipmentID) อัตโนมัติ - ถ้ามีแล้วจะ Update, ถ้าไม่มีจะเพิ่มใหม่
+            ระบบจะตรวจสอบรหัส OldCode อัตโนมัติ - ถ้ามีแล้วจะ Update, ถ้าไม่มีจะเพิ่มใหม่
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -358,7 +360,7 @@ const BillboardImport = ({ onSuccess, onCancel }: BillboardImportProps) => {
               {duplicateCount > 0 && (
                 <div className="flex items-center gap-2">
                   <AlertTriangle className="w-4 h-4 text-destructive" />
-                  <span className="text-sm text-destructive font-medium">ซ้ำในไฟล์: {duplicateCount}</span>
+                  <span className="text-sm text-destructive font-medium">OldCode ซ้ำในไฟล์: {duplicateCount}</span>
                 </div>
               )}
               {errorCount > 0 && (
@@ -378,7 +380,7 @@ const BillboardImport = ({ onSuccess, onCancel }: BillboardImportProps) => {
                   <strong>ไม่สามารถนำเข้าได้</strong>
                   <ul className="mt-2 list-disc list-inside space-y-1">
                     {duplicateCount > 0 && (
-                      <li>พบรหัสป้ายซ้ำกัน {duplicateCount} รายการในไฟล์ Excel - กรุณาลบแถวที่ซ้ำออก</li>
+                      <li>พบ OldCode ซ้ำกัน {duplicateCount} รายการในไฟล์ Excel - กรุณาลบแถวที่ซ้ำออก</li>
                     )}
                     {errorCount > 0 && (
                       <li>พบข้อมูลที่มีปัญหา {errorCount} รายการ - กรุณาตรวจสอบและแก้ไข</li>
@@ -403,10 +405,10 @@ const BillboardImport = ({ onSuccess, onCancel }: BillboardImportProps) => {
                 <TableHeader>
                   <TableRow className="bg-muted/50">
                     <TableHead className="w-28">สถานะ</TableHead>
-                    <TableHead>รหัสป้าย</TableHead>
+                    <TableHead>OldCode</TableHead>
+                    <TableHead>EquipmentID</TableHead>
                     <TableHead>คำอธิบาย</TableHead>
                     <TableHead>แผนก</TableHead>
-                    <TableHead>ภูมิภาค</TableHead>
                     <TableHead className="w-48">ปัญหา</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -427,10 +429,10 @@ const BillboardImport = ({ onSuccess, onCancel }: BillboardImportProps) => {
                           <Badge variant="destructive">ข้อผิดพลาด</Badge>
                         )}
                       </TableCell>
-                      <TableCell className="font-medium">{row.equipment_id || "-"}</TableCell>
+                      <TableCell className="font-medium">{row.old_code || "-"}</TableCell>
+                      <TableCell>{row.equipment_id || "-"}</TableCell>
                       <TableCell className="max-w-48 truncate">{row.description || "-"}</TableCell>
                       <TableCell>{row.department || "-"}</TableCell>
-                      <TableCell>{row.region || "-"}</TableCell>
                       <TableCell className="text-sm text-destructive">
                         {row.errorMessage || "-"}
                       </TableCell>
