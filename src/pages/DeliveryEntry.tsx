@@ -117,16 +117,12 @@ const DeliveryEntry = () => {
   const [purchaseDocumentFile, setPurchaseDocumentFile] = useState<File | null>(null);
   const purchaseFileInputRef = useRef<HTMLInputElement>(null);
 
-  // Document upload (shared) - split into 4 categories
-  const [prDocumentFile, setPrDocumentFile] = useState<File | null>(null);
-  const [poDocumentFile, setPoDocumentFile] = useState<File | null>(null);
+  // Document upload (shared) - 2 categories
   const [additionalDocumentFile, setAdditionalDocumentFile] = useState<File | null>(null);
   const [additionalImageFile, setAdditionalImageFile] = useState<File | null>(null);
   const [headerNotes, setHeaderNotes] = useState("");
 
   // File input refs for document uploads
-  const prFileInputRef = useRef<HTMLInputElement>(null);
-  const poFileInputRef = useRef<HTMLInputElement>(null);
   const additionalDocFileInputRef = useRef<HTMLInputElement>(null);
   const additionalImageFileInputRef = useRef<HTMLInputElement>(null);
 
@@ -327,26 +323,6 @@ const DeliveryEntry = () => {
   };
 
   // Document file upload handlers
-  const handlePrFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      if (file.size > 10 * 1024 * 1024) {
-        toast.error("ไฟล์มีขนาดใหญ่เกินไป (สูงสุด 10MB)");
-        return;
-      }
-      setPrDocumentFile(file);
-    }
-  };
-  const handlePoFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      if (file.size > 10 * 1024 * 1024) {
-        toast.error("ไฟล์มีขนาดใหญ่เกินไป (สูงสุด 10MB)");
-        return;
-      }
-      setPoDocumentFile(file);
-    }
-  };
   const handleAdditionalDocFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -604,20 +580,12 @@ const DeliveryEntry = () => {
     setIsLoading(true);
     try {
       const docNo = generateDocumentNo();
-      let prDocUrl: string | null = null;
-      let poDocUrl: string | null = null;
       let additionalDocUrl: string | null = null;
       let additionalImageUrl: string | null = null;
       let purchaseDocumentUrl: string | null = null;
 
       // Upload documents if exists
       setIsUploadingFile(true);
-      if (prDocumentFile) {
-        prDocUrl = await uploadDocumentFile(prDocumentFile, 'PR', docNo);
-      }
-      if (poDocumentFile) {
-        poDocUrl = await uploadDocumentFile(poDocumentFile, 'PO', docNo);
-      }
       if (additionalDocumentFile) {
         additionalDocUrl = await uploadDocumentFile(additionalDocumentFile, 'DOC', docNo);
       }
@@ -630,7 +598,7 @@ const DeliveryEntry = () => {
       setIsUploadingFile(false);
 
       // Combine all document URLs
-      const allDocumentUrls = [prDocUrl, poDocUrl, additionalDocUrl, additionalImageUrl].filter(Boolean).join(', ');
+      const allDocumentUrls = [additionalDocUrl, additionalImageUrl].filter(Boolean).join(', ');
 
       // Insert all items with the same document number
       const itemsToInsert = cartItems.map((item, index) => ({
@@ -691,14 +659,10 @@ const DeliveryEntry = () => {
       setPoNumber("");
       setPrNumber("");
       setPurchaseDocumentFile(null);
-      setPrDocumentFile(null);
-      setPoDocumentFile(null);
       setAdditionalDocumentFile(null);
       setAdditionalImageFile(null);
       setHeaderNotes("");
       resetItemForm();
-      if (prFileInputRef.current) prFileInputRef.current.value = "";
-      if (poFileInputRef.current) poFileInputRef.current.value = "";
       if (additionalDocFileInputRef.current) additionalDocFileInputRef.current.value = "";
       if (additionalImageFileInputRef.current) additionalImageFileInputRef.current.value = "";
       if (purchaseFileInputRef.current) purchaseFileInputRef.current.value = "";
@@ -1188,56 +1152,11 @@ const DeliveryEntry = () => {
               </Button>
             </div>
 
-            {/* Document Upload (Shared) - 4 Categories */}
+            {/* Document Upload (Shared) */}
             <div className="p-4 bg-muted/30 rounded-lg space-y-4">
-              <h3 className="font-medium text-sm text-muted-foreground flex items-center gap-2">เอกสารแนบ (ใช้ร่วมกันทุกรายการ)  กรุณาตั้งชื่อไฟล์ให้สะดวกต่อการค้นหาเอกสารแนบ <FileText className="w-4 h-4" />
-                ​
+              <h3 className="font-medium text-sm text-muted-foreground flex items-center gap-2">เอกสารแนบ (ใช้ร่วมกันทุกรายการ)  กรุณาตั้งชื่อไฟล์ให้สะดวกต่อการค้นหาเอกสารแนบ <FileText className="w-4 h-4" />
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* PR Document */}
-                <div className="space-y-2">
-                  <Label>อัปโหลดเอกสาร PR</Label>
-                  <div className="flex items-center gap-2">
-                    <input ref={prFileInputRef} type="file" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" onChange={handlePrFileSelect} className="hidden" />
-                    <Button type="button" variant="outline" size="sm" onClick={() => prFileInputRef.current?.click()} className="flex items-center gap-2">
-                      <Upload className="w-4 h-4" />
-                      เลือกไฟล์ PR
-                    </Button>
-                    {prDocumentFile && <div className="flex items-center gap-2 bg-background px-2 py-1 rounded-md border text-xs">
-                        <FileText className="w-3 h-3 text-primary" />
-                        <span className="truncate max-w-[100px]">{prDocumentFile.name}</span>
-                        <Button type="button" variant="ghost" size="sm" onClick={() => {
-                      setPrDocumentFile(null);
-                      if (prFileInputRef.current) prFileInputRef.current.value = "";
-                    }} className="h-5 w-5 p-0">
-                          <X className="w-3 h-3" />
-                        </Button>
-                      </div>}
-                  </div>
-                </div>
-
-                {/* PO Document */}
-                <div className="space-y-2">
-                  <Label>อัปโหลดเอกสาร PO</Label>
-                  <div className="flex items-center gap-2">
-                    <input ref={poFileInputRef} type="file" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" onChange={handlePoFileSelect} className="hidden" />
-                    <Button type="button" variant="outline" size="sm" onClick={() => poFileInputRef.current?.click()} className="flex items-center gap-2">
-                      <Upload className="w-4 h-4" />
-                      เลือกไฟล์ PO
-                    </Button>
-                    {poDocumentFile && <div className="flex items-center gap-2 bg-background px-2 py-1 rounded-md border text-xs">
-                        <FileText className="w-3 h-3 text-primary" />
-                        <span className="truncate max-w-[100px]">{poDocumentFile.name}</span>
-                        <Button type="button" variant="ghost" size="sm" onClick={() => {
-                      setPoDocumentFile(null);
-                      if (poFileInputRef.current) poFileInputRef.current.value = "";
-                    }} className="h-5 w-5 p-0">
-                          <X className="w-3 h-3" />
-                        </Button>
-                      </div>}
-                  </div>
-                </div>
-
                 {/* Additional Document */}
                 <div className="space-y-2">
                   <Label>อัปโหลดเอกสารแนบเพิ่มเติม</Label>
