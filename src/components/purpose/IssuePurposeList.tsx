@@ -5,7 +5,8 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Trash2, MapPin, RotateCcw, Layers } from "lucide-react";
+import { Trash2, MapPin, RotateCcw, Layers, Pencil } from "lucide-react";
+import { IssuePurposeEditDialog } from "./IssuePurposeEditDialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -46,6 +47,8 @@ export function IssuePurposeList({ refresh }: IssuePurposeListProps) {
   const [purposes, setPurposes] = useState<IssuePurpose[]>([]);
   const [categoryMappings, setCategoryMappings] = useState<CategoryMapping[]>([]);
   const [loading, setLoading] = useState(true);
+  const [editingPurpose, setEditingPurpose] = useState<IssuePurpose | null>(null);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
 
   const fetchPurposes = async () => {
     try {
@@ -200,34 +203,53 @@ export function IssuePurposeList({ refresh }: IssuePurposeListProps) {
                     onCheckedChange={() => handleToggleActive(purpose.id, purpose.is_active || false)}
                   />
                 </TableCell>
-                <TableCell>
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button variant="ghost" size="sm" className="text-destructive">
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>ยืนยันการลบ</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          คุณต้องการลบวัตถุประสงค์ "{purpose.name}" ใช่หรือไม่?
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>ยกเลิก</AlertDialogCancel>
-                        <AlertDialogAction onClick={() => handleDelete(purpose.id)}>
-                          ลบ
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
+              <TableCell>
+                  <div className="flex items-center gap-1">
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      onClick={() => {
+                        setEditingPurpose(purpose);
+                        setEditDialogOpen(true);
+                      }}
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button variant="ghost" size="sm" className="text-destructive">
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>ยืนยันการลบ</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            คุณต้องการลบวัตถุประสงค์ "{purpose.name}" ใช่หรือไม่?
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>ยกเลิก</AlertDialogCancel>
+                          <AlertDialogAction onClick={() => handleDelete(purpose.id)}>
+                            ลบ
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </div>
                 </TableCell>
               </TableRow>
             );
           })}
         </TableBody>
       </Table>
+
+      <IssuePurposeEditDialog
+        purpose={editingPurpose}
+        open={editDialogOpen}
+        onOpenChange={setEditDialogOpen}
+        onSuccess={fetchPurposes}
+      />
     </div>
   );
 }
