@@ -9,8 +9,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Truck, Search, Package, Clock, CheckCircle2, Upload, FileText, X, Loader2, Info, Plus, ShoppingCart, Send, PlusCircle, Monitor } from "lucide-react";
+import { Truck, Search, Package, Clock, CheckCircle2, Upload, FileText, X, Loader2, Info, Plus, ShoppingCart, Send, PlusCircle, Monitor, ImagePlus, Eye } from "lucide-react";
 import { EquipmentImageViewer } from "@/components/equipment/EquipmentImageViewer";
+import { EquipmentImageUpload } from "@/components/equipment/EquipmentImageUpload";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
@@ -26,6 +27,20 @@ interface Equipment {
   code: string;
   name: string;
   unit: string;
+  category: string | null;
+  subcategory_id: string | null;
+  quantity_in_stock: number;
+}
+
+interface Category {
+  id: string;
+  name: string;
+}
+
+interface Subcategory {
+  id: string;
+  name: string;
+  category_id: string;
 }
 
 interface Supplier {
@@ -77,11 +92,13 @@ interface PendingReceipt {
 
 const DeliveryEntry = () => {
   const [searchTerm, setSearchTerm] = useState("");
-  const [equipment, setEquipment] = useState<Equipment[]>([]);
+const [equipment, setEquipment] = useState<Equipment[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
   const [cmsTypes, setCmsTypes] = useState<CMSType[]>([]);
   const [mediaPlayers, setMediaPlayers] = useState<{ id: string; code: string; name: string; }[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [subcategories, setSubcategories] = useState<Subcategory[]>([]);
   
   const [receiptPurposes, setReceiptPurposes] = useState<ReceiptPurpose[]>([]);
   const [pendingReceipts, setPendingReceipts] = useState<PendingReceipt[]>([]);
@@ -107,10 +124,18 @@ const DeliveryEntry = () => {
   const [purchaseDocumentFile, setPurchaseDocumentFile] = useState<File | null>(null);
   const purchaseFileInputRef = useRef<HTMLInputElement>(null);
   
-  // Document upload (shared)
-  const [documentFile, setDocumentFile] = useState<File | null>(null);
-  const [documentFileName, setDocumentFileName] = useState("");
+// Document upload (shared) - split into 4 categories
+  const [prDocumentFile, setPrDocumentFile] = useState<File | null>(null);
+  const [poDocumentFile, setPoDocumentFile] = useState<File | null>(null);
+  const [additionalDocumentFile, setAdditionalDocumentFile] = useState<File | null>(null);
+  const [additionalImageFile, setAdditionalImageFile] = useState<File | null>(null);
   const [headerNotes, setHeaderNotes] = useState("");
+  
+  // File input refs for document uploads
+  const prFileInputRef = useRef<HTMLInputElement>(null);
+  const poFileInputRef = useRef<HTMLInputElement>(null);
+  const additionalDocFileInputRef = useRef<HTMLInputElement>(null);
+  const additionalImageFileInputRef = useRef<HTMLInputElement>(null);
   
   // Item type toggle - Equipment or Media Player
   const [isMediaPlayerEntry, setIsMediaPlayerEntry] = useState(false);
@@ -139,10 +164,17 @@ const DeliveryEntry = () => {
   const [serialNumber2, setSerialNumber2] = useState("");
   const [ledControl, setLedControl] = useState("");
   
-  // Storage dimensions
+// Storage dimensions
   const [storageWidthCm, setStorageWidthCm] = useState("");
   const [storageHeightCm, setStorageHeightCm] = useState("");
   const [storageDepthCm, setStorageDepthCm] = useState("");
+  
+  // Category and subcategory for new products
+  const [selectedCategoryId, setSelectedCategoryId] = useState("");
+  const [selectedSubcategoryId, setSelectedSubcategoryId] = useState("");
+  
+  // Product images for new products
+  const [newProductImages, setNewProductImages] = useState<string[]>([]);
   
   // Asset fields
   const [isAsset, setIsAsset] = useState(false);
@@ -171,17 +203,43 @@ const DeliveryEntry = () => {
     fetchPendingReceipts();
     fetchCmsTypes();
     fetchMediaPlayers();
+    fetchCategories();
+    fetchSubcategories();
   }, []);
 
   const fetchEquipment = async () => {
     const { data, error } = await supabase
       .from("equipment")
-      .select("id, code, name, unit")
+      .select("id, code, name, unit, category, subcategory_id, quantity_in_stock")
       .eq("is_active", true)
       .order("code");
     
     if (!error && data) {
-      setEquipment(data);
+      setEquipment(data as Equipment[]);
+    }
+  };
+
+  const fetchCategories = async () => {
+    const { data, error } = await supabase
+      .from("categories")
+      .select("id, name")
+      .eq("is_active", true)
+      .order("name");
+    
+    if (!error && data) {
+      setCategories(data);
+    }
+  };
+
+  const fetchSubcategories = async () => {
+    const { data, error } = await supabase
+      .from("subcategories")
+      .select("id, name, category_id")
+      .eq("is_active", true)
+      .order("name");
+    
+    if (!error && data) {
+      setSubcategories(data);
     }
   };
 
@@ -262,14 +320,28 @@ const DeliveryEntry = () => {
   const selectedReceiptPurpose = receiptPurposes.find(p => p.id === selectedReceiptPurposeId);
   const isPurchaseReceipt = selectedReceiptPurpose?.name === "นำเข้าจากการซื้อ";
 
-  // Update unit when equipment is selected
+  // Update unit and category when equipment is selected
   useEffect(() => {
     if (selectedEquipment) {
       setUnit(selectedEquipment.unit);
       setEquipmentCode(selectedEquipment.code);
       setEquipmentName(selectedEquipment.name);
+      // Auto-fill category and subcategory from existing equipment
+      if (selectedEquipment.category) {
+        const matchingCategory = categories.find(c => c.name === selectedEquipment.category);
+        if (matchingCategory) {
+          setSelectedCategoryId(matchingCategory.id);
+        }
+      }
+      if (selectedEquipment.subcategory_id) {
+        setSelectedSubcategoryId(selectedEquipment.subcategory_id);
+      }
+    } else {
+      // Clear category/subcategory when no equipment selected
+      setSelectedCategoryId("");
+      setSelectedSubcategoryId("");
     }
-  }, [selectedEquipment]);
+  }, [selectedEquipment, categories]);
 
   // Update supplier name when selected
   useEffect(() => {
@@ -285,43 +357,63 @@ const DeliveryEntry = () => {
     return `PD-${dateStr}-${random}`;
   };
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Document file upload handlers
+  const handlePrFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       if (file.size > 10 * 1024 * 1024) {
         toast.error("ไฟล์มีขนาดใหญ่เกินไป (สูงสุด 10MB)");
         return;
       }
-      
-      const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png', 'image/jpg', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
-      if (!allowedTypes.includes(file.type)) {
-        toast.error("รองรับเฉพาะไฟล์ PDF, รูปภาพ (JPG, PNG) และ Word");
+      setPrDocumentFile(file);
+    }
+  };
+
+  const handlePoFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 10 * 1024 * 1024) {
+        toast.error("ไฟล์มีขนาดใหญ่เกินไป (สูงสุด 10MB)");
         return;
       }
-      
-      setDocumentFile(file);
+      setPoDocumentFile(file);
     }
   };
 
-  const removeFile = () => {
-    setDocumentFile(null);
-    setDocumentFileName("");
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
+  const handleAdditionalDocFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 10 * 1024 * 1024) {
+        toast.error("ไฟล์มีขนาดใหญ่เกินไป (สูงสุด 10MB)");
+        return;
+      }
+      setAdditionalDocumentFile(file);
     }
   };
 
-  const uploadDocument = async (documentNo: string): Promise<string | null> => {
-    if (!documentFile) return null;
+  const handleAdditionalImageFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 10 * 1024 * 1024) {
+        toast.error("ไฟล์มีขนาดใหญ่เกินไป (สูงสุด 10MB)");
+        return;
+      }
+      if (!file.type.startsWith('image/')) {
+        toast.error("กรุณาเลือกไฟล์รูปภาพเท่านั้น");
+        return;
+      }
+      setAdditionalImageFile(file);
+    }
+  };
 
-    const fileExt = documentFile.name.split('.').pop();
-    const customName = documentFileName.trim() || documentNo;
-    const fileName = `${customName}-${Date.now()}.${fileExt}`;
+  const uploadDocumentFile = async (file: File, prefix: string, documentNo: string): Promise<string | null> => {
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${prefix}-${documentNo}-${Date.now()}.${fileExt}`;
     const filePath = `deliveries/${fileName}`;
 
     const { error: uploadError } = await supabase.storage
       .from('delivery-documents')
-      .upload(filePath, documentFile);
+      .upload(filePath, file);
 
     if (uploadError) {
       console.error('Upload error:', uploadError);
@@ -521,6 +613,11 @@ const DeliveryEntry = () => {
     setGroupLed("");
     setSerialNumber2("");
     setLedControl("");
+    // Category/Subcategory
+    setSelectedCategoryId("");
+    setSelectedSubcategoryId("");
+    // New product images
+    setNewProductImages([]);
   };
 
   const handleRemoveFromCart = (itemId: string) => {
@@ -555,6 +652,12 @@ const DeliveryEntry = () => {
       return;
     }
     
+    // Validate receipt purpose (required)
+    if (!selectedReceiptPurposeId) {
+      toast.error("กรุณาเลือกวัตถุประสงค์การนำสินค้าเข้า");
+      return;
+    }
+    
     // Validate PO/PR for "นำเข้าจากการซื้อ"
     if (isPurchaseReceipt && !poNumber && !prNumber) {
       toast.error("กรุณากรอกเลข PO หรือเลข PR อย่างน้อย 1 รายการ");
@@ -565,21 +668,39 @@ const DeliveryEntry = () => {
 
     try {
       const docNo = generateDocumentNo();
-      let documentUrl: string | null = null;
+      let prDocUrl: string | null = null;
+      let poDocUrl: string | null = null;
+      let additionalDocUrl: string | null = null;
+      let additionalImageUrl: string | null = null;
       let purchaseDocumentUrl: string | null = null;
 
       // Upload documents if exists
-      if (documentFile) {
-        setIsUploadingFile(true);
-        documentUrl = await uploadDocument(docNo);
-        setIsUploadingFile(false);
+      setIsUploadingFile(true);
+      
+      if (prDocumentFile) {
+        prDocUrl = await uploadDocumentFile(prDocumentFile, 'PR', docNo);
+      }
+      
+      if (poDocumentFile) {
+        poDocUrl = await uploadDocumentFile(poDocumentFile, 'PO', docNo);
+      }
+      
+      if (additionalDocumentFile) {
+        additionalDocUrl = await uploadDocumentFile(additionalDocumentFile, 'DOC', docNo);
+      }
+      
+      if (additionalImageFile) {
+        additionalImageUrl = await uploadDocumentFile(additionalImageFile, 'IMG', docNo);
       }
       
       if (purchaseDocumentFile) {
-        setIsUploadingFile(true);
         purchaseDocumentUrl = await uploadPurchaseDocument(docNo);
-        setIsUploadingFile(false);
       }
+      
+      setIsUploadingFile(false);
+
+      // Combine all document URLs
+      const allDocumentUrls = [prDocUrl, poDocUrl, additionalDocUrl, additionalImageUrl].filter(Boolean).join(', ');
 
       // Insert all items with the same document number
       const itemsToInsert = cartItems.map((item, index) => ({
@@ -604,8 +725,8 @@ const DeliveryEntry = () => {
         delivery_person_name: deliveryPersonName,
         delivery_person_phone: deliveryPersonPhone || null,
         notes: item.notes || headerNotes || null,
-        document_url: documentUrl,
-        document_file_name: documentFileName || null,
+        document_url: allDocumentUrls || null,
+        document_file_name: null,
         storage_width_cm: item.storage_width_cm ? parseFloat(item.storage_width_cm) : null,
         storage_height_cm: item.storage_height_cm ? parseFloat(item.storage_height_cm) : null,
         storage_depth_cm: item.storage_depth_cm ? parseFloat(item.storage_depth_cm) : null,
@@ -643,17 +764,18 @@ const DeliveryEntry = () => {
       setPoNumber("");
       setPrNumber("");
       setPurchaseDocumentFile(null);
-      setDocumentFile(null);
-      setDocumentFileName("");
+      setPrDocumentFile(null);
+      setPoDocumentFile(null);
+      setAdditionalDocumentFile(null);
+      setAdditionalImageFile(null);
       setHeaderNotes("");
       resetItemForm();
       
-      if (fileInputRef.current) {
-        fileInputRef.current.value = "";
-      }
-      if (purchaseFileInputRef.current) {
-        purchaseFileInputRef.current.value = "";
-      }
+      if (prFileInputRef.current) prFileInputRef.current.value = "";
+      if (poFileInputRef.current) poFileInputRef.current.value = "";
+      if (additionalDocFileInputRef.current) additionalDocFileInputRef.current.value = "";
+      if (additionalImageFileInputRef.current) additionalImageFileInputRef.current.value = "";
+      if (purchaseFileInputRef.current) purchaseFileInputRef.current.value = "";
       
       fetchPendingReceipts();
     } catch (error) {
@@ -783,13 +905,13 @@ const DeliveryEntry = () => {
             <div className="p-4 bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800 rounded-lg space-y-4">
               <h3 className="font-medium text-sm text-emerald-700 dark:text-emerald-400 flex items-center gap-2">
                 <FileText className="w-4 h-4" />
-                วัตถุประสงค์การนำสินค้าเข้า
+                วัตถุประสงค์การนำสินค้าเข้า <span className="text-destructive">*</span>
               </h3>
               <div className="space-y-2">
-                <Label htmlFor="receiptPurpose">วัตถุประสงค์</Label>
+                <Label htmlFor="receiptPurpose">วัตถุประสงค์ <span className="text-destructive">*</span></Label>
                 <Select value={selectedReceiptPurposeId} onValueChange={setSelectedReceiptPurposeId}>
-                  <SelectTrigger id="receiptPurpose">
-                    <SelectValue placeholder="เลือกวัตถุประสงค์..." />
+                  <SelectTrigger id="receiptPurpose" className={!selectedReceiptPurposeId ? "border-destructive/50" : ""}>
+                    <SelectValue placeholder="กรุณาเลือกวัตถุประสงค์..." />
                   </SelectTrigger>
                   <SelectContent position="popper" sideOffset={4} className="pointer-events-auto">
                     {receiptPurposes.filter(p => p.purpose_type === 'regular').length > 0 && (
@@ -814,6 +936,9 @@ const DeliveryEntry = () => {
                     )}
                   </SelectContent>
                 </Select>
+                {!selectedReceiptPurposeId && (
+                  <p className="text-xs text-destructive">กรุณาเลือกวัตถุประสงค์การนำสินค้าเข้า</p>
+                )}
               </div>
               
               {/* PO/PR fields for "นำเข้าจากการซื้อ" */}
@@ -1021,33 +1146,127 @@ const DeliveryEntry = () => {
               ) : (
                 <>
                   {/* Equipment Selection */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="equipment">เลือกสินค้า (ถ้ารู้รหัส)</Label>
-                      <div className="flex gap-2">
-                        <div className="flex-1">
-                          <SearchableSelect
-                            options={equipment.map((item) => ({
-                              value: item.id,
-                              label: `${item.code} - ${item.name}`,
-                              searchableText: `${item.code} ${item.name}`,
-                            }))}
-                            value={selectedEquipmentId}
-                            onValueChange={setSelectedEquipmentId}
-                            placeholder="เลือกสินค้าจากระบบ..."
-                            searchPlaceholder="พิมพ์รหัสหรือชื่อสินค้า..."
-                            emptyMessage="ไม่พบสินค้า"
-                          />
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="equipment">เลือกสินค้า (ถ้ารู้รหัส)</Label>
+                        <div className="flex gap-2">
+                          <div className="flex-1">
+                            <SearchableSelect
+                              options={equipment.map((item) => ({
+                                value: item.id,
+                                label: `${item.code} - ${item.name}`,
+                                searchableText: `${item.code} ${item.name}`,
+                              }))}
+                              value={selectedEquipmentId}
+                              onValueChange={setSelectedEquipmentId}
+                              placeholder="เลือกสินค้าจากระบบ..."
+                              searchPlaceholder="พิมพ์รหัสหรือชื่อสินค้า..."
+                              emptyMessage="ไม่พบสินค้า"
+                            />
+                          </div>
+                          {selectedEquipmentId && (
+                            <EquipmentImageViewer 
+                              equipmentId={selectedEquipmentId} 
+                              equipmentName={selectedEquipment?.name}
+                              variant="button"
+                            />
+                          )}
                         </div>
-                        {selectedEquipmentId && (
-                          <EquipmentImageViewer 
-                            equipmentId={selectedEquipmentId} 
-                            equipmentName={selectedEquipment?.name}
-                            variant="button"
-                          />
+                      </div>
+                      
+                      {/* Current Stock Display */}
+                      {selectedEquipmentId && selectedEquipment && (
+                        <div className="space-y-2">
+                          <Label>จำนวนสินค้าที่มีเหลืออยู่ในคลัง</Label>
+                          <div className="flex items-center gap-2 h-10 px-3 rounded-md border bg-muted">
+                            <Package className="w-4 h-4 text-muted-foreground" />
+                            <span className="font-medium text-foreground">
+                              {selectedEquipment.quantity_in_stock.toLocaleString()} {selectedEquipment.unit}
+                            </span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Category & Subcategory */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="category">
+                          หมวดหมู่ {!selectedEquipmentId && <span className="text-destructive">*</span>}
+                        </Label>
+                        {selectedEquipmentId && selectedEquipment?.category ? (
+                          <div className="flex items-center gap-2 h-10 px-3 rounded-md border bg-muted">
+                            <span className="text-foreground">{selectedEquipment.category}</span>
+                          </div>
+                        ) : (
+                          <Select value={selectedCategoryId} onValueChange={(val) => {
+                            setSelectedCategoryId(val);
+                            setSelectedSubcategoryId(""); // Reset subcategory when category changes
+                          }}>
+                            <SelectTrigger id="category">
+                              <SelectValue placeholder="เลือกหมวดหมู่..." />
+                            </SelectTrigger>
+                            <SelectContent position="popper" sideOffset={4} className="pointer-events-auto">
+                              {categories.map((cat) => (
+                                <SelectItem key={cat.id} value={cat.id}>
+                                  {cat.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        )}
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label htmlFor="subcategory">
+                          หมวดหมู่ย่อย {!selectedEquipmentId && <span className="text-destructive">*</span>}
+                        </Label>
+                        {selectedEquipmentId && selectedEquipment?.subcategory_id ? (
+                          <div className="flex items-center gap-2 h-10 px-3 rounded-md border bg-muted">
+                            <span className="text-foreground">
+                              {subcategories.find(s => s.id === selectedEquipment.subcategory_id)?.name || '-'}
+                            </span>
+                          </div>
+                        ) : (
+                          <Select 
+                            value={selectedSubcategoryId} 
+                            onValueChange={setSelectedSubcategoryId}
+                            disabled={!selectedCategoryId}
+                          >
+                            <SelectTrigger id="subcategory">
+                              <SelectValue placeholder={selectedCategoryId ? "เลือกหมวดหมู่ย่อย..." : "เลือกหมวดหมู่ก่อน"} />
+                            </SelectTrigger>
+                            <SelectContent position="popper" sideOffset={4} className="pointer-events-auto">
+                              {subcategories
+                                .filter(sub => {
+                                  const selectedCat = categories.find(c => c.id === selectedCategoryId);
+                                  return selectedCat && sub.category_id === selectedCategoryId;
+                                })
+                                .map((sub) => (
+                                  <SelectItem key={sub.id} value={sub.id}>
+                                    {sub.name}
+                                  </SelectItem>
+                                ))}
+                            </SelectContent>
+                          </Select>
                         )}
                       </div>
                     </div>
+
+                    {/* Image Upload for New Products */}
+                    {!selectedEquipmentId && (
+                      <div className="p-4 bg-orange-50 dark:bg-orange-950/20 border border-orange-200 dark:border-orange-800 rounded-lg space-y-3">
+                        <Label className="text-orange-700 dark:text-orange-400 text-sm font-medium">
+                          หากค้นหาไม่พบสินค้าที่มีอยู่ในระบบ ท่านจะต้องใส่รูปภาพสินค้าหรืออะไหล่ที่นี่
+                        </Label>
+                        <EquipmentImageUpload
+                          images={newProductImages}
+                          onChange={setNewProductImages}
+                          maxImages={5}
+                        />
+                      </div>
+                    )}
                   </div>
                 </>
               )}
@@ -1329,55 +1548,163 @@ const DeliveryEntry = () => {
               </Button>
             </div>
 
-            {/* Document Upload (Shared) */}
+            {/* Document Upload (Shared) - 4 Categories */}
             <div className="p-4 bg-muted/30 rounded-lg space-y-4">
               <h3 className="font-medium text-sm text-muted-foreground flex items-center gap-2">
                 <FileText className="w-4 h-4" />
                 เอกสารแนบ (ใช้ร่วมกันทุกรายการ)
               </h3>
-              <div className="space-y-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* PR Document */}
                 <div className="space-y-2">
-                  <Label htmlFor="documentFileName">ตั้งชื่อไฟล์ (ไม่เกิน 30 ตัวอักษร)</Label>
-                  <Input 
-                    id="documentFileName" 
-                    placeholder="ชื่อสำหรับค้นหาเอกสาร..."
-                    value={documentFileName}
-                    onChange={(e) => setDocumentFileName(e.target.value.slice(0, 30))}
-                    maxLength={30}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="document">อัปโหลดเอกสาร (PDF, รูปภาพ, Word)</Label>
-                  <div className="flex items-center gap-3">
+                  <Label>อัปโหลดเอกสาร PR</Label>
+                  <div className="flex items-center gap-2">
                     <input
-                      ref={fileInputRef}
-                      id="document"
+                      ref={prFileInputRef}
                       type="file"
                       accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
-                      onChange={handleFileSelect}
+                      onChange={handlePrFileSelect}
                       className="hidden"
                     />
                     <Button
                       type="button"
                       variant="outline"
-                      onClick={() => fileInputRef.current?.click()}
+                      size="sm"
+                      onClick={() => prFileInputRef.current?.click()}
                       className="flex items-center gap-2"
                     >
                       <Upload className="w-4 h-4" />
-                      เลือกไฟล์
+                      เลือกไฟล์ PR
                     </Button>
-                    {documentFile && (
-                      <div className="flex items-center gap-2 bg-background px-3 py-2 rounded-md border">
-                        <FileText className="w-4 h-4 text-primary" />
-                        <span className="text-sm truncate max-w-[200px]">{documentFile.name}</span>
+                    {prDocumentFile && (
+                      <div className="flex items-center gap-2 bg-background px-2 py-1 rounded-md border text-xs">
+                        <FileText className="w-3 h-3 text-primary" />
+                        <span className="truncate max-w-[100px]">{prDocumentFile.name}</span>
                         <Button
                           type="button"
                           variant="ghost"
                           size="sm"
-                          onClick={removeFile}
-                          className="h-6 w-6 p-0"
+                          onClick={() => { setPrDocumentFile(null); if (prFileInputRef.current) prFileInputRef.current.value = ""; }}
+                          className="h-5 w-5 p-0"
                         >
-                          <X className="w-4 h-4" />
+                          <X className="w-3 h-3" />
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* PO Document */}
+                <div className="space-y-2">
+                  <Label>อัปโหลดเอกสาร PO</Label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      ref={poFileInputRef}
+                      type="file"
+                      accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                      onChange={handlePoFileSelect}
+                      className="hidden"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => poFileInputRef.current?.click()}
+                      className="flex items-center gap-2"
+                    >
+                      <Upload className="w-4 h-4" />
+                      เลือกไฟล์ PO
+                    </Button>
+                    {poDocumentFile && (
+                      <div className="flex items-center gap-2 bg-background px-2 py-1 rounded-md border text-xs">
+                        <FileText className="w-3 h-3 text-primary" />
+                        <span className="truncate max-w-[100px]">{poDocumentFile.name}</span>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => { setPoDocumentFile(null); if (poFileInputRef.current) poFileInputRef.current.value = ""; }}
+                          className="h-5 w-5 p-0"
+                        >
+                          <X className="w-3 h-3" />
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Additional Document */}
+                <div className="space-y-2">
+                  <Label>อัปโหลดเอกสารแนบเพิ่มเติม</Label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      ref={additionalDocFileInputRef}
+                      type="file"
+                      accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                      onChange={handleAdditionalDocFileSelect}
+                      className="hidden"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => additionalDocFileInputRef.current?.click()}
+                      className="flex items-center gap-2"
+                    >
+                      <Upload className="w-4 h-4" />
+                      เลือกเอกสาร
+                    </Button>
+                    {additionalDocumentFile && (
+                      <div className="flex items-center gap-2 bg-background px-2 py-1 rounded-md border text-xs">
+                        <FileText className="w-3 h-3 text-primary" />
+                        <span className="truncate max-w-[100px]">{additionalDocumentFile.name}</span>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => { setAdditionalDocumentFile(null); if (additionalDocFileInputRef.current) additionalDocFileInputRef.current.value = ""; }}
+                          className="h-5 w-5 p-0"
+                        >
+                          <X className="w-3 h-3" />
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Additional Image */}
+                <div className="space-y-2">
+                  <Label>อัปโหลดรูปภาพเพิ่มเติม</Label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      ref={additionalImageFileInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={handleAdditionalImageFileSelect}
+                      className="hidden"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => additionalImageFileInputRef.current?.click()}
+                      className="flex items-center gap-2"
+                    >
+                      <ImagePlus className="w-4 h-4" />
+                      เลือกรูปภาพ
+                    </Button>
+                    {additionalImageFile && (
+                      <div className="flex items-center gap-2 bg-background px-2 py-1 rounded-md border text-xs">
+                        <ImagePlus className="w-3 h-3 text-primary" />
+                        <span className="truncate max-w-[100px]">{additionalImageFile.name}</span>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => { setAdditionalImageFile(null); if (additionalImageFileInputRef.current) additionalImageFileInputRef.current.value = ""; }}
+                          className="h-5 w-5 p-0"
+                        >
+                          <X className="w-3 h-3" />
                         </Button>
                       </div>
                     )}
