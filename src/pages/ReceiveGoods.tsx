@@ -918,6 +918,7 @@ const ReceiveGoods = () => {
                       lot_number: selectedReceipt.lot_number || undefined,
                       category_id: selectedReceipt.temp_category_id || undefined,
                       subcategory_id: selectedReceipt.temp_subcategory_id || undefined,
+                      min_stock_level: (selectedReceipt as any).temp_min_stock_level || undefined,
                       // Pass images: prioritize temp_product_images, fallback to document_url
                       images: (selectedReceipt.temp_product_images && selectedReceipt.temp_product_images.length > 0)
                         ? selectedReceipt.temp_product_images

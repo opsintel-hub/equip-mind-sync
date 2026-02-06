@@ -36,6 +36,7 @@ export interface DeliveryCartItem {
   temp_category_id?: string | null;
   temp_subcategory_id?: string | null;
   temp_product_images?: string[];
+  temp_min_stock_level?: number;
   // Media Player specific fields
   is_media_player?: boolean;
   media_player_id?: string | null;

@@ -1381,6 +1381,7 @@ export type Database = {
           supplier_id: string | null
           supplier_name: string | null
           temp_category_id: string | null
+          temp_min_stock_level: number | null
           temp_product_images: string[] | null
           temp_subcategory_id: string | null
           unit: string
@@ -1433,6 +1434,7 @@ export type Database = {
           supplier_id?: string | null
           supplier_name?: string | null
           temp_category_id?: string | null
+          temp_min_stock_level?: number | null
           temp_product_images?: string[] | null
           temp_subcategory_id?: string | null
           unit?: string
@@ -1485,6 +1487,7 @@ export type Database = {
           supplier_id?: string | null
           supplier_name?: string | null
           temp_category_id?: string | null
+          temp_min_stock_level?: number | null
           temp_product_images?: string[] | null
           temp_subcategory_id?: string | null
           unit?: string
