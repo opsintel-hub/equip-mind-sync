@@ -129,6 +129,7 @@ const menuGroups: MenuGroup[] = [
     label: "ป้ายโฆษณา",
     items: [
       { title: "จัดการป้ายโฆษณา", url: "/billboards", icon: MapPin, functionName: "billboards" },
+      { title: "จัดการภาพโฆษณา", url: "/ad-management", icon: Monitor, functionName: "billboards" },
       { 
         title: "PM ป้ายโฆษณา", 
         icon: Calendar,
