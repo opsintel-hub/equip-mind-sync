@@ -156,6 +156,50 @@ const FUNCTION_DETAILS: FunctionInfo[] = [
     relatedPages: ["โอนย้ายสินค้า", "ประวัติโอนย้าย"]
   },
   {
+    name: "ad_entry",
+    label: "นำเข้าภาพโฆษณา",
+    icon: <PackageOpen className="h-5 w-5" />,
+    color: "bg-amber-500/10 text-amber-600 border-amber-200",
+    description: "กรอกข้อมูลภาพโฆษณาเข้าระบบ",
+    details: [
+      "นำเข้าภาพโฆษณาใหม่ (New Ads)",
+      "ขอใช้พื้นที่รับฝากชั่วคราว (Temporary Storage)",
+      "นำเข้าภาพโฆษณาเก่าที่ปลดจากป้าย (Old Ads)",
+      "ดูรายการภาพโฆษณาทั้งหมดและ Dashboard",
+      "จัดการ Master Data (ประเภทสื่อ, ขนาด)"
+    ],
+    relatedPages: ["นำเข้าภาพโฆษณา"]
+  },
+  {
+    name: "ad_issue_request",
+    label: "เบิกภาพโฆษณา",
+    icon: <Send className="h-5 w-5" />,
+    color: "bg-orange-500/10 text-orange-600 border-orange-200",
+    description: "สร้างคำขอเบิกภาพโฆษณา (สำหรับผู้เบิก)",
+    details: [
+      "สร้างคำขอเบิกภาพโฆษณา",
+      "เลือกภาพโฆษณาที่ต้องการเบิก",
+      "ระบุวัตถุประสงค์ (ติดตั้ง, ตรวจสภาพ, CSR)",
+      "ติดตามสถานะคำขอของตัวเอง"
+    ],
+    relatedPages: ["เบิกภาพโฆษณา"]
+  },
+  {
+    name: "ad_warehouse",
+    label: "คลังภาพโฆษณา",
+    icon: <Package className="h-5 w-5" />,
+    color: "bg-emerald-500/10 text-emerald-600 border-emerald-200",
+    description: "รับเข้าคลังและจ่ายภาพโฆษณาออก (สำหรับเจ้าหน้าที่คลัง)",
+    details: [
+      "ยืนยันรับภาพโฆษณาเข้าคลัง",
+      "ตรวจสอบสภาพสื่อก่อนรับเข้า",
+      "ดูคำขอเบิกทั้งหมดจากทุกคน",
+      "ยืนยันจ่ายภาพโฆษณาออก",
+      "ยืนยันการติดตั้งเสร็จสิ้น"
+    ],
+    relatedPages: ["รับเข้าคลังภาพ", "จ่ายภาพโฆษณา"]
+  },
+  {
     name: "admin",
     label: "จัดการระบบ",
     icon: <Shield className="h-5 w-5" />,

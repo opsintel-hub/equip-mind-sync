@@ -24,6 +24,9 @@ import {
   ArrowLeftRight,
   Monitor,
   FileKey,
+  ImageIcon,
+  PackageCheck as PackageCheckIcon,
+  FileOutput,
 } from "lucide-react";
 import {
   Sidebar,
@@ -129,7 +132,6 @@ const menuGroups: MenuGroup[] = [
     label: "ป้ายโฆษณา",
     items: [
       { title: "จัดการป้ายโฆษณา", url: "/billboards", icon: MapPin, functionName: "billboards" },
-      { title: "จัดการภาพโฆษณา", url: "/ad-management", icon: Monitor, functionName: "billboards" },
       { 
         title: "PM ป้ายโฆษณา", 
         icon: Calendar,
@@ -139,6 +141,15 @@ const menuGroups: MenuGroup[] = [
           { title: "ประวัติ PM ป้าย", url: "/pm-history", icon: History },
         ]
       },
+    ]
+  },
+  {
+    label: "ภาพโฆษณา",
+    items: [
+      { title: "นำเข้าภาพโฆษณา", url: "/ad-entry", icon: ImageIcon, functionName: "ad_entry" },
+      { title: "รับเข้าคลังภาพ", url: "/ad-receive", icon: PackageCheckIcon, functionName: "ad_warehouse" },
+      { title: "เบิกภาพโฆษณา", url: "/ad-request", icon: FileOutput, functionName: "ad_issue_request" },
+      { title: "จ่ายภาพโฆษณา", url: "/ad-issue", icon: FileOutput, functionName: "ad_warehouse" },
     ]
   },
   {
