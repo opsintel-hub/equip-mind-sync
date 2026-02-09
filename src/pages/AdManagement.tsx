@@ -1,13 +1,17 @@
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AdDashboard } from "@/components/ad/AdDashboard";
 import { AdList } from "@/components/ad/AdList";
 import { AdMasterDataDialog } from "@/components/ad/AdMasterDataDialog";
 import { AdNewForm } from "@/components/ad/AdNewForm";
 import { AdTemporaryForm } from "@/components/ad/AdTemporaryForm";
 import { AdOldForm } from "@/components/ad/AdOldForm";
-import { ImageIcon, ChevronUp, ChevronDown } from "lucide-react";
+import { AdReceiveSection } from "@/components/ad/AdReceiveSection";
+import { AdIssueDialog } from "@/components/ad/AdIssueDialog";
+import { AdIssueList } from "@/components/ad/AdIssueList";
+import { ImageIcon, ChevronUp, ChevronDown, Package, FileOutput, List } from "lucide-react";
 
 const AdManagement = () => {
   const [refreshKey, setRefreshKey] = useState(0);
@@ -35,6 +39,7 @@ const AdManagement = () => {
           <AdNewForm onSuccess={handleRefresh} />
           <AdTemporaryForm onSuccess={handleRefresh} />
           <AdOldForm onSuccess={handleRefresh} />
+          <AdIssueDialog onSuccess={handleRefresh} />
           <AdMasterDataDialog />
         </div>
       </div>
@@ -55,29 +60,90 @@ const AdManagement = () => {
         )}
       </div>
 
-      {/* Ad List */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-primary/10">
-              <ImageIcon className="h-5 w-5 text-primary" />
-            </div>
-            <div>
-              <CardTitle>รายการภาพโฆษณา</CardTitle>
-              <CardDescription>
-                รายการภาพโฆษณาทั้งหมดในระบบ
-              </CardDescription>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <AdList
-            refresh={refreshKey}
-            filterType={filterType}
-            filterStatus={filterStatus}
-          />
-        </CardContent>
-      </Card>
+      {/* Tabs: All / Receive / Issue */}
+      <Tabs defaultValue="all" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="all" className="gap-1.5">
+            <List className="h-4 w-4" />
+            รายการทั้งหมด
+          </TabsTrigger>
+          <TabsTrigger value="receive" className="gap-1.5">
+            <Package className="h-4 w-4" />
+            รับเข้าคลัง
+          </TabsTrigger>
+          <TabsTrigger value="issue" className="gap-1.5">
+            <FileOutput className="h-4 w-4" />
+            เอกสารเบิก
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="all">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-primary/10">
+                  <ImageIcon className="h-5 w-5 text-primary" />
+                </div>
+                <div>
+                  <CardTitle>รายการภาพโฆษณา</CardTitle>
+                  <CardDescription>
+                    รายการภาพโฆษณาทั้งหมดในระบบ
+                  </CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <AdList
+                refresh={refreshKey}
+                filterType={filterType}
+                filterStatus={filterStatus}
+              />
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="receive">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-warning/10">
+                  <Package className="h-5 w-5 text-warning" />
+                </div>
+                <div>
+                  <CardTitle>รับเข้าคลัง</CardTitle>
+                  <CardDescription>
+                    รายการภาพโฆษณารอรับเข้าคลัง — ภาพใหม่จะสร้างเอกสารเบิกอัตโนมัติ
+                  </CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <AdReceiveSection refresh={refreshKey} onReceived={handleRefresh} />
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="issue">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-success/10">
+                  <FileOutput className="h-5 w-5 text-success" />
+                </div>
+                <div>
+                  <CardTitle>เอกสารเบิกภาพโฆษณา</CardTitle>
+                  <CardDescription>
+                    รายการเอกสารเบิกทั้งหมด ทั้งที่สร้างอัตโนมัติและสร้างเอง
+                  </CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <AdIssueList refresh={refreshKey} onUpdated={handleRefresh} />
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };
