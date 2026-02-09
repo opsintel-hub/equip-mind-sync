@@ -66,6 +66,7 @@ export function BillboardEquipmentAlerts() {
           billboards:billboard_id (
             id,
             equipment_id,
+            old_code,
             location_name,
             department
           )
@@ -110,7 +111,7 @@ export function BillboardEquipmentAlerts() {
             billboard_equipment_id: item.id,
             equipment_code: item.equipment.code,
             equipment_name: item.equipment.name,
-            billboard_code: item.billboards.equipment_id,
+            billboard_code: item.billboards.old_code || item.billboards.equipment_id,
             billboard_location: item.billboards.location_name || "-",
             department: item.billboards.department || "-",
             expiry_date: item.equipment.expiry_date,

@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
+import { formatBillboardLabel } from "@/lib/billboardUtils";
 
 interface BillboardDisplayProps {
   billboardId: string;
@@ -12,7 +13,7 @@ const BillboardDisplay = ({ billboardId }: BillboardDisplayProps) => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("billboards")
-        .select("equipment_id, location_name")
+        .select("equipment_id, old_code, location_name")
         .eq("id", billboardId)
         .single();
       if (error) throw error;
@@ -32,10 +33,7 @@ const BillboardDisplay = ({ billboardId }: BillboardDisplayProps) => {
   return (
     <div className="p-3 bg-white rounded-md border border-blue-200">
       <p className="font-medium text-sm">
-        {billboard.equipment_id}
-        {billboard.location_name && (
-          <span className="text-muted-foreground"> - {billboard.location_name}</span>
-        )}
+        {formatBillboardLabel(billboard.old_code, billboard.location_name, billboard.equipment_id)}
       </p>
     </div>
   );

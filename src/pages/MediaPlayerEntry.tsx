@@ -16,6 +16,7 @@ import MediaPlayerDashboard from "@/components/media-player/MediaPlayerDashboard
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
+import { formatBillboardLabel } from "@/lib/billboardUtils";
 import { CompanySelect } from "@/components/company/CompanySelect";
 import BillboardSelect from "@/components/billboard/BillboardSelect";
 import { LocationSelect } from "@/components/equipment/LocationSelect";
@@ -30,6 +31,7 @@ interface CMSType {
 interface Billboard {
   id: string;
   equipment_id: string;
+  old_code: string | null;
   location_name: string | null;
 }
 
@@ -139,7 +141,7 @@ const MediaPlayerEntry = () => {
       .from("media_players")
       .select(`
         *,
-        billboard:billboards(id, equipment_id, location_name)
+        billboard:billboards(id, equipment_id, old_code, location_name)
       `)
       .eq("is_active", true)
       .order("created_at", { ascending: false });
@@ -384,7 +386,7 @@ const MediaPlayerEntry = () => {
     if (!player.billboard_id) return null;
     const billboard = player.billboard;
     if (!billboard) return player.billboard_id;
-    return billboard.location_name || billboard.equipment_id;
+    return formatBillboardLabel(billboard.old_code, billboard.location_name, billboard.equipment_id);
   };
 
   return (

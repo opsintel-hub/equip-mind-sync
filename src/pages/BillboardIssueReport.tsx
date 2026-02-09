@@ -49,7 +49,7 @@ const CHART_COLORS = [
 
 const BillboardIssueReport = () => {
   const [billboardEquipment, setBillboardEquipment] = useState<BillboardEquipment[]>([]);
-  const [billboards, setBillboards] = useState<Array<{ id: string; equipment_id: string; location_name: string | null }>>([]);
+  const [billboards, setBillboards] = useState<Array<{ id: string; equipment_id: string; old_code: string | null; location_name: string | null }>>([]);
   const [selectedBillboard, setSelectedBillboard] = useState<string>("all");
   const [selectedRegion, setSelectedRegion] = useState<string>("all");
   const [searchTerm, setSearchTerm] = useState("");
@@ -80,9 +80,9 @@ const BillboardIssueReport = () => {
     // Fetch all billboards
     const { data: billboardsData } = await supabase
       .from("billboards")
-      .select("id, equipment_id, location_name, region")
+      .select("id, equipment_id, old_code, location_name, region")
       .eq("status", "active")
-      .order("equipment_id");
+      .order("old_code");
 
     const typedData = (beData || []) as unknown as BillboardEquipment[];
     setBillboardEquipment(typedData);
@@ -274,7 +274,7 @@ const BillboardIssueReport = () => {
                 <SelectContent className="max-h-60">
                   <SelectItem value="all">ทั้งหมด</SelectItem>
                   {billboards.map(b => (
-                    <SelectItem key={b.id} value={b.id}>{b.equipment_id} - {b.location_name || "N/A"}</SelectItem>
+                    <SelectItem key={b.id} value={b.id}>{b.old_code || b.equipment_id} - {b.location_name || "N/A"}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>

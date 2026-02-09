@@ -54,6 +54,7 @@ interface PMHistory {
     title: string;
     schedule_type: string;
     billboards?: {
+      old_code: string | null;
       equipment_id: string;
       location_name: string | null;
     };
@@ -72,6 +73,8 @@ interface SummaryStats {
 interface Billboard {
   id: string;
   equipment_id: string;
+  old_code: string | null;
+  location_name: string | null;
 }
 
 export function PMHistoryList() {
@@ -90,8 +93,8 @@ export function PMHistoryList() {
   const fetchBillboards = async () => {
     const { data } = await supabase
       .from("billboards")
-      .select("id, equipment_id")
-      .order("equipment_id");
+      .select("id, equipment_id, old_code, location_name")
+      .order("old_code");
     setBillboards(data || []);
   };
 
@@ -106,7 +109,7 @@ export function PMHistoryList() {
             title,
             schedule_type,
             billboard_id,
-            billboards(equipment_id, location_name)
+            billboards(old_code, equipment_id, location_name)
           ),
           profiles:completed_by(full_name)
         `)
@@ -382,7 +385,7 @@ export function PMHistoryList() {
                   <SelectItem value="all">ทุกป้าย</SelectItem>
                   {billboards.map((b) => (
                     <SelectItem key={b.id} value={b.id}>
-                      {b.equipment_id}
+                      {b.old_code || b.equipment_id}{b.location_name ? ` - ${b.location_name}` : ""}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -452,7 +455,7 @@ export function PMHistoryList() {
                   <TableRow key={item.id}>
                     <TableCell>
                       <div className="font-medium">
-                        {item.pm_schedules?.billboards?.equipment_id || "-"}
+                        {item.pm_schedules?.billboards?.old_code || item.pm_schedules?.billboards?.equipment_id || "-"}
                       </div>
                       <div className="text-sm text-muted-foreground">
                         {item.pm_schedules?.billboards?.location_name || "-"}
