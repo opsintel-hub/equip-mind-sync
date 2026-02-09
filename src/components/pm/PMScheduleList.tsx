@@ -56,6 +56,7 @@ interface PMSchedule {
   advance_notice_days: number;
   is_active: boolean;
   billboards?: {
+    old_code: string | null;
     equipment_id: string;
     location_name: string | null;
   };
@@ -78,7 +79,7 @@ export function PMScheduleList() {
         .from("pm_schedules")
         .select(`
           *,
-          billboards(equipment_id, location_name)
+          billboards(old_code, equipment_id, location_name)
         `)
         .order("next_due_date", { ascending: true });
 
@@ -243,7 +244,7 @@ export function PMScheduleList() {
                   <TableRow key={schedule.id}>
                     <TableCell>
                       <div className="font-medium">
-                        {schedule.billboards?.equipment_id}
+                        {schedule.billboards?.old_code || schedule.billboards?.equipment_id}
                       </div>
                       <div className="text-sm text-muted-foreground">
                         {schedule.billboards?.location_name}

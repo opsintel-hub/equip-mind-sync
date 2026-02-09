@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { SearchableSelect } from "@/components/ui/searchable-select";
+import { formatBillboardLabel } from "@/lib/billboardUtils";
 
 interface BillboardSelectProps {
   value: string;
@@ -15,9 +16,9 @@ const BillboardSelect = ({ value, onChange, placeholder = "เลือกป้
     queryFn: async () => {
       const { data, error } = await supabase
         .from("billboards")
-        .select("id, equipment_id, location_name, department")
+        .select("id, equipment_id, old_code, location_name, department")
         .eq("status", "active")
-        .order("equipment_id", { ascending: true })
+        .order("old_code", { ascending: true })
         .limit(500);
       if (error) throw error;
       return data;
@@ -28,7 +29,7 @@ const BillboardSelect = ({ value, onChange, placeholder = "เลือกป้
     { value: "__none__", label: "ไม่ระบุ" },
     ...(billboards?.map((b) => ({
       value: b.id,
-      label: `${b.equipment_id}${b.location_name ? ` - ${b.location_name}` : ""}`,
+      label: formatBillboardLabel(b.old_code, b.location_name, b.equipment_id),
       description: b.department || undefined,
     })) || []),
   ];

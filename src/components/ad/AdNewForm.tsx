@@ -22,6 +22,7 @@ import { ContractorSelect } from "./ContractorSelect";
 import BillboardSelect from "@/components/billboard/BillboardSelect";
 import { SearchableMultiSelect } from "@/components/ui/searchable-select";
 import { useQuery } from "@tanstack/react-query";
+import { formatBillboardLabel } from "@/lib/billboardUtils";
 
 interface AdNewFormProps {
   onSuccess: () => void;
@@ -51,9 +52,9 @@ export function AdNewForm({ onSuccess }: AdNewFormProps) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("billboards")
-        .select("id, equipment_id, location_name, department")
+        .select("id, equipment_id, old_code, location_name, department")
         .eq("status", "active")
-        .order("equipment_id")
+        .order("old_code")
         .limit(500);
       if (error) throw error;
       return data;
@@ -62,7 +63,7 @@ export function AdNewForm({ onSuccess }: AdNewFormProps) {
 
   const billboardOptions = (billboards || []).map((b) => ({
     value: b.id,
-    label: `${b.equipment_id}${b.location_name ? ` - ${b.location_name}` : ""}`,
+    label: formatBillboardLabel(b.old_code, b.location_name, b.equipment_id),
     description: b.department || undefined,
   }));
 

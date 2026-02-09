@@ -10,6 +10,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { FileOutput, Clock } from "lucide-react";
 import { format } from "date-fns";
+import { formatBillboardLabel } from "@/lib/billboardUtils";
 
 interface MyIssueRequest {
   id: string;
@@ -27,6 +28,7 @@ interface MyIssueRequest {
     total_quantity: number | null;
   } | null;
   target_billboard: {
+    old_code: string | null;
     equipment_id: string;
     location_name: string | null;
   } | null;
@@ -65,7 +67,7 @@ const AdRequest = () => {
         .select(`
           *,
           advertisement:advertisements (code, name, total_quantity),
-          target_billboard:billboards!ad_issue_requests_target_billboard_id_fkey (equipment_id, location_name)
+          target_billboard:billboards!ad_issue_requests_target_billboard_id_fkey (old_code, equipment_id, location_name)
         `)
         .eq("created_by", user!.id)
         .order("created_at", { ascending: false })
@@ -154,7 +156,7 @@ const AdRequest = () => {
                         </TableCell>
                         <TableCell className="text-sm">
                           {req.target_billboard
-                            ? `${req.target_billboard.equipment_id}${req.target_billboard.location_name ? ` - ${req.target_billboard.location_name}` : ""}`
+                            ? formatBillboardLabel(req.target_billboard.old_code, req.target_billboard.location_name, req.target_billboard.equipment_id)
                             : "-"}
                         </TableCell>
                         <TableCell>

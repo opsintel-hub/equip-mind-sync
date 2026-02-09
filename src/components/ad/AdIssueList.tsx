@@ -13,6 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { CheckCircle2, FileOutput, Clock } from "lucide-react";
 import { format } from "date-fns";
+import { formatBillboardLabel } from "@/lib/billboardUtils";
 
 interface IssueRequest {
   id: string;
@@ -30,6 +31,7 @@ interface IssueRequest {
     total_quantity: number | null;
   } | null;
   target_billboard: {
+    old_code: string | null;
     equipment_id: string;
     location_name: string | null;
   } | null;
@@ -71,7 +73,7 @@ export function AdIssueList({ refresh, onUpdated }: AdIssueListProps) {
         .select(`
           *,
           advertisement:advertisements (code, name, total_quantity),
-          target_billboard:billboards!ad_issue_requests_target_billboard_id_fkey (equipment_id, location_name)
+          target_billboard:billboards!ad_issue_requests_target_billboard_id_fkey (old_code, equipment_id, location_name)
         `)
         .order("created_at", { ascending: false })
         .limit(100);
@@ -201,7 +203,7 @@ export function AdIssueList({ refresh, onUpdated }: AdIssueListProps) {
                   </TableCell>
                   <TableCell className="text-sm">
                     {req.target_billboard
-                      ? `${req.target_billboard.equipment_id}${req.target_billboard.location_name ? ` - ${req.target_billboard.location_name}` : ""}`
+                      ? formatBillboardLabel(req.target_billboard.old_code, req.target_billboard.location_name, req.target_billboard.equipment_id)
                       : "-"}
                   </TableCell>
                   <TableCell>
@@ -250,7 +252,7 @@ export function AdIssueList({ refresh, onUpdated }: AdIssueListProps) {
               {confirmIssue?.advertisement?.name} จำนวน{" "}
               {confirmIssue?.issued_quantity} ชิ้น
               {confirmIssue?.target_billboard && (
-                <> ไปป้าย <strong>{confirmIssue.target_billboard.equipment_id}</strong></>
+                <> ไปป้าย <strong>{formatBillboardLabel(confirmIssue.target_billboard.old_code, confirmIssue.target_billboard.location_name, confirmIssue.target_billboard.equipment_id)}</strong></>
               )}
             </AlertDialogDescription>
           </AlertDialogHeader>

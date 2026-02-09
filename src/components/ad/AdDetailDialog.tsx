@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
+import { formatBillboardLabel } from "@/lib/billboardUtils";
 import {
   Package,
   MapPin,
@@ -31,6 +32,7 @@ interface AdTargetBillboard {
   id: string;
   billboard_id: string;
   billboard?: {
+    old_code: string | null;
     equipment_id: string;
     location_name: string | null;
   };
@@ -111,7 +113,7 @@ export function AdDetailDialog({ adId, open, onOpenChange }: AdDetailDialogProps
           ad_target_billboards (
             id,
             billboard_id,
-            billboard:billboards (equipment_id, location_name)
+            billboard:billboards (old_code, equipment_id, location_name)
           ),
           installation_team:contractors!advertisements_installation_team_id_fkey (name),
           pickup_contractor:contractors!advertisements_pickup_contractor_id_fkey (name),
@@ -258,8 +260,9 @@ export function AdDetailDialog({ adId, open, onOpenChange }: AdDetailDialogProps
                 <div className="flex flex-wrap gap-2">
                   {ad.ad_target_billboards.map((tb) => (
                     <Badge key={tb.id} variant="secondary" className="text-xs">
-                      {tb.billboard?.equipment_id || tb.billboard_id}
-                      {tb.billboard?.location_name ? ` — ${tb.billboard.location_name}` : ""}
+                      {tb.billboard
+                        ? formatBillboardLabel(tb.billboard.old_code, tb.billboard.location_name, tb.billboard.equipment_id)
+                        : tb.billboard_id}
                     </Badge>
                   ))}
                 </div>
