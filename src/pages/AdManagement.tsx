@@ -4,13 +4,18 @@ import { Button } from "@/components/ui/button";
 import { AdDashboard } from "@/components/ad/AdDashboard";
 import { AdList } from "@/components/ad/AdList";
 import { AdMasterDataDialog } from "@/components/ad/AdMasterDataDialog";
-import { Plus, Clock, Archive, ImageIcon, ChevronUp, ChevronDown } from "lucide-react";
+import { AdNewForm } from "@/components/ad/AdNewForm";
+import { AdTemporaryForm } from "@/components/ad/AdTemporaryForm";
+import { AdOldForm } from "@/components/ad/AdOldForm";
+import { ImageIcon, ChevronUp, ChevronDown } from "lucide-react";
 
 const AdManagement = () => {
   const [refreshKey, setRefreshKey] = useState(0);
   const [filterType, setFilterType] = useState<string | undefined>();
   const [filterStatus, setFilterStatus] = useState<string | undefined>();
   const [showDashboard, setShowDashboard] = useState(true);
+
+  const handleRefresh = () => setRefreshKey((k) => k + 1);
 
   const handleFilterChange = (filter: { type?: string; status?: string }) => {
     setFilterType(filter.type);
@@ -27,18 +32,9 @@ const AdManagement = () => {
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button className="gap-2" disabled>
-            <Plus className="h-4 w-4" />
-            ภาพใหม่
-          </Button>
-          <Button variant="outline" className="gap-2" disabled>
-            <Clock className="h-4 w-4" />
-            ขอใช้พื้นที่
-          </Button>
-          <Button variant="outline" className="gap-2" disabled>
-            <Archive className="h-4 w-4" />
-            ภาพเก่า
-          </Button>
+          <AdNewForm onSuccess={handleRefresh} />
+          <AdTemporaryForm onSuccess={handleRefresh} />
+          <AdOldForm onSuccess={handleRefresh} />
           <AdMasterDataDialog />
         </div>
       </div>
@@ -82,11 +78,6 @@ const AdManagement = () => {
           />
         </CardContent>
       </Card>
-
-      <p className="text-xs text-muted-foreground text-center bg-muted/50 p-3 rounded-lg">
-        💡 <strong>หมายเหตุ:</strong> ปุ่ม "ภาพใหม่", "ขอใช้พื้นที่" และ "ภาพเก่า" จะเปิดใช้งานในเฟสถัดไป 
-        ตอนนี้สามารถจัดการ Master Data (ขนาดภาพ / ประเภทสื่อ) ได้ก่อน
-      </p>
     </div>
   );
 };
