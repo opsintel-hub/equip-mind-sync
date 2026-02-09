@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
-import { Clock, Package, PackageCheck, Warehouse, Archive } from "lucide-react";
+import { Clock, Package, PackageCheck, Warehouse, Archive, AlertTriangle } from "lucide-react";
 
 interface StatusCount {
   pending: number;
@@ -9,6 +9,7 @@ interface StatusCount {
   issued: number;
   temporary: number;
   old: number;
+  retention_expiring: number;
 }
 
 interface AdDashboardProps {
@@ -23,6 +24,7 @@ export function AdDashboard({ refresh, onFilterChange }: AdDashboardProps) {
     issued: 0,
     temporary: 0,
     old: 0,
+    retention_expiring: 0,
   });
 
   useEffect(() => {
@@ -33,17 +35,19 @@ export function AdDashboard({ refresh, onFilterChange }: AdDashboardProps) {
     try {
       const { data, error } = await supabase
         .from("advertisements")
-        .select("status, entry_type")
+        .select("status, entry_type, retention_start_date, retention_days")
         .eq("is_active", true);
 
       if (error) throw error;
 
+      const today = new Date();
       const result: StatusCount = {
         pending: 0,
         in_storage: 0,
         issued: 0,
         temporary: 0,
         old: 0,
+        retention_expiring: 0,
       };
 
       (data || []).forEach((item) => {
@@ -52,6 +56,19 @@ export function AdDashboard({ refresh, onFilterChange }: AdDashboardProps) {
         if (item.status === "issued" || item.status === "installed") result.issued++;
         if (item.entry_type === "temporary") result.temporary++;
         if (item.entry_type === "old") result.old++;
+
+        // Check retention deadline for old ads
+        if (
+          item.entry_type === "old" &&
+          item.retention_start_date &&
+          item.retention_days &&
+          (item.status === "in_storage" || item.status === "received")
+        ) {
+          const start = new Date(item.retention_start_date);
+          const deadline = new Date(start.getTime() + item.retention_days * 24 * 60 * 60 * 1000);
+          const daysLeft = Math.ceil((deadline.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+          if (daysLeft <= 7) result.retention_expiring++;
+        }
       });
 
       setCounts(result);
@@ -101,14 +118,25 @@ export function AdDashboard({ refresh, onFilterChange }: AdDashboardProps) {
       bgColor: "bg-chart-5/10",
       filter: { type: "old" },
     },
+    {
+      label: "ใกล้ครบกำหนด",
+      value: counts.retention_expiring,
+      icon: AlertTriangle,
+      color: "text-destructive",
+      bgColor: "bg-destructive/10",
+      filter: { type: "old" },
+      highlight: counts.retention_expiring > 0,
+    },
   ];
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+    <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
       {cards.map((card) => (
         <Card
           key={card.label}
-          className="cursor-pointer hover-lift border-border/50"
+          className={`cursor-pointer hover-lift border-border/50 ${
+            (card as any).highlight ? "border-destructive/50 ring-1 ring-destructive/20" : ""
+          }`}
           onClick={() => onFilterChange?.(card.filter)}
         >
           <CardContent className="p-4 flex items-center gap-3">
