@@ -85,7 +85,7 @@ const menuGroups: MenuGroup[] = [
         subItems: [
           { title: "นำสินค้าเข้า", url: "/delivery-entry", icon: Truck },
           { title: "รับเข้าคลัง", url: "/receive-goods", icon: PackageCheck },
-          { title: "นำเข้า Media Player", url: "/media-player-entry", icon: Monitor },
+          { title: "จัดการ Media Player", url: "/media-player-entry", icon: Monitor },
           { title: "รายการรอรหัส", url: "/pending-asset-codes", icon: FileKey },
         ]
       },
