@@ -18,8 +18,9 @@ import {
 } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Search } from "lucide-react";
+import { Search, AlertTriangle } from "lucide-react";
 import { format } from "date-fns";
+import { AdDetailDialog } from "./AdDetailDialog";
 
 interface Advertisement {
   id: string;
@@ -30,6 +31,7 @@ interface Advertisement {
   total_quantity: number;
   target_installation_date: string | null;
   retention_days: number | null;
+  retention_start_date: string | null;
   storage_location: string | null;
   created_at: string;
   ad_versions: { id: string; version_name: string; quantity: number }[];
@@ -65,6 +67,8 @@ export function AdList({ refresh, filterType, filterStatus }: AdListProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [typeFilter, setTypeFilter] = useState(filterType || "all");
   const [statusFilter, setStatusFilter] = useState(filterStatus || "all");
+  const [selectedAdId, setSelectedAdId] = useState<string | null>(null);
+  const [detailOpen, setDetailOpen] = useState(false);
 
   useEffect(() => {
     if (filterType) setTypeFilter(filterType);
@@ -185,17 +189,38 @@ export function AdList({ refresh, filterType, filterStatus }: AdListProps) {
                 const entryType = entryTypeLabels[ad.entry_type] || { label: ad.entry_type, variant: "secondary" as const };
                 const status = statusLabels[ad.status] || { label: ad.status, variant: "secondary" as const };
 
+                // Calculate retention warning for old ads
+                let retentionWarning: "expired" | "warning" | null = null;
+                if (ad.entry_type === "old" && ad.retention_start_date && ad.retention_days) {
+                  const start = new Date(ad.retention_start_date);
+                  const deadline = new Date(start.getTime() + ad.retention_days * 24 * 60 * 60 * 1000);
+                  const daysLeft = Math.ceil((deadline.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
+                  if (daysLeft <= 0) retentionWarning = "expired";
+                  else if (daysLeft <= 7) retentionWarning = "warning";
+                }
+
                 return (
-                  <TableRow key={ad.id}>
+                  <TableRow
+                    key={ad.id}
+                    className="cursor-pointer hover:bg-muted/50"
+                    onClick={() => {
+                      setSelectedAdId(ad.id);
+                      setDetailOpen(true);
+                    }}
+                  >
                     <TableCell className="font-mono text-sm">{ad.code}</TableCell>
                     <TableCell>
                       <Badge variant={entryType.variant}>{entryType.label}</Badge>
                     </TableCell>
                     <TableCell className="font-medium max-w-[200px] truncate">{ad.name}</TableCell>
                     <TableCell>
-                      {ad.ad_versions.length > 0
-                        ? `${ad.ad_versions.length} ver.`
-                        : "-"}
+                      {ad.ad_versions.length > 0 ? (
+                        <span className="text-sm">
+                          {ad.ad_versions.map((v) => v.version_name).join(", ")}
+                        </span>
+                      ) : (
+                        "-"
+                      )}
                     </TableCell>
                     <TableCell className="text-center font-medium">
                       {ad.total_quantity || 0}
@@ -207,7 +232,15 @@ export function AdList({ refresh, filterType, filterStatus }: AdListProps) {
                       {ad.installation_team?.name || "-"}
                     </TableCell>
                     <TableCell>
-                      <Badge variant={status.variant}>{status.label}</Badge>
+                      <div className="flex items-center gap-1.5">
+                        <Badge variant={status.variant}>{status.label}</Badge>
+                        {retentionWarning === "expired" && (
+                          <AlertTriangle className="h-4 w-4 text-destructive" />
+                        )}
+                        {retentionWarning === "warning" && (
+                          <AlertTriangle className="h-4 w-4 text-warning" />
+                        )}
+                      </div>
                     </TableCell>
                     <TableCell className="text-sm text-muted-foreground">
                       {format(new Date(ad.created_at), "dd/MM/yyyy")}
@@ -223,6 +256,12 @@ export function AdList({ refresh, filterType, filterStatus }: AdListProps) {
       <div className="text-sm text-muted-foreground">
         แสดง {filteredAds.length} จาก {ads.length} รายการ
       </div>
+
+      <AdDetailDialog
+        adId={selectedAdId}
+        open={detailOpen}
+        onOpenChange={setDetailOpen}
+      />
     </div>
   );
 }

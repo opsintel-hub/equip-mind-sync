@@ -353,6 +353,61 @@ serve(async (req) => {
       }
     }
 
+    // ============ Check Old Advertisement Retention Deadlines ============
+    console.log("Checking old advertisement retention deadlines...");
+
+    const { data: oldAds, error: oldAdError } = await supabase
+      .from("advertisements")
+      .select("id, code, name, retention_start_date, retention_days, retention_alert_sent, storage_location")
+      .eq("is_active", true)
+      .eq("entry_type", "old")
+      .in("status", ["in_storage", "received"])
+      .not("retention_start_date", "is", null)
+      .not("retention_days", "is", null);
+
+    if (oldAdError) {
+      console.error("Error fetching old advertisements:", oldAdError);
+    } else if (oldAds) {
+      for (const ad of oldAds) {
+        if (!ad.retention_start_date || !ad.retention_days) continue;
+
+        const startDate = new Date(ad.retention_start_date);
+        const deadlineDate = new Date(startDate.getTime() + ad.retention_days * 24 * 60 * 60 * 1000);
+        const daysUntilDeadline = Math.ceil((deadlineDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+
+        // Alert when 7 days before deadline, on deadline, and up to 7 days after
+        if (daysUntilDeadline <= 7 && daysUntilDeadline >= -7) {
+          const { data: existing } = await supabase
+            .from("notifications")
+            .select("id")
+            .eq("reference_id", ad.id)
+            .eq("category", "ad_retention")
+            .eq("is_read", false)
+            .maybeSingle();
+
+          if (!existing) {
+            notifications.push({
+              title: daysUntilDeadline <= 0 ? "ภาพเก่าครบกำหนดจัดเก็บ" : "ภาพเก่าใกล้ครบกำหนดจัดเก็บ",
+              message: `${ad.name} (${ad.code}) ${ad.storage_location ? `ที่ ${ad.storage_location}` : ""} ${daysUntilDeadline <= 0 ? `ครบกำหนด ${ad.retention_days} วันแล้ว เกินมา ${Math.abs(daysUntilDeadline)} วัน` : `จะครบกำหนด ${ad.retention_days} วันใน ${daysUntilDeadline} วัน`} — กรุณาดำเนินการ`,
+              type: daysUntilDeadline <= 0 ? "error" : "warning",
+              category: "ad_retention",
+              reference_id: ad.id,
+              reference_type: "advertisement",
+            });
+
+            // Update retention_alert_sent flag
+            if (!ad.retention_alert_sent) {
+              await supabase
+                .from("advertisements")
+                .update({ retention_alert_sent: true })
+                .eq("id", ad.id);
+            }
+          }
+        }
+      }
+    }
+    console.log(`Total notifications after ad retention check: ${notifications.length}`);
+
     // Insert new notifications
     if (notifications.length > 0) {
       const { error: insertError } = await supabase
