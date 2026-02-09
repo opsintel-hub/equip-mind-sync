@@ -1044,7 +1044,7 @@ const IssueRequest = () => {
                   />
                 </div>
                 {selectedPurpose?.requires_billboard && (
-                  <div className="space-y-2">
+                  <div className="space-y-2 md:col-span-2">
                     <Label>ป้ายโฆษณา (สำหรับรายการนี้)</Label>
                     <BillboardSelect
                       value={currentItem.billboard_id}
@@ -1052,7 +1052,7 @@ const IssueRequest = () => {
                     />
                   </div>
                 )}
-                <div className="space-y-2">
+                <div className="space-y-2 md:col-span-4">
                   <Label>หมายเหตุรายการ</Label>
                   <Input
                     value={currentItem.notes}
