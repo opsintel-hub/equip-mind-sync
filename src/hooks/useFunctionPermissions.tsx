@@ -17,6 +17,9 @@ export const SYSTEM_FUNCTIONS = [
   { name: "pm_schedule", label: "PM ป้ายโฆษณา", description: "จัดการตารางบำรุงรักษาป้ายโฆษณา" },
   { name: "equipment_pm", label: "PM เครื่องมือ", description: "จัดการตารางบำรุงรักษาเครื่องมือ" },
   { name: "transfer", label: "โอนย้ายสินค้า", description: "โอนย้ายสินค้าระหว่างสถานที่" },
+  { name: "ad_entry", label: "นำเข้าภาพโฆษณา", description: "กรอกข้อมูลภาพโฆษณาเข้าระบบ (ภาพใหม่, ฝากชั่วคราว, ภาพเก่า)" },
+  { name: "ad_issue_request", label: "เบิกภาพโฆษณา", description: "สร้างคำขอเบิกภาพโฆษณา (สำหรับผู้เบิก)" },
+  { name: "ad_warehouse", label: "คลังภาพโฆษณา", description: "รับเข้าคลัง + จ่ายภาพโฆษณาออก (สำหรับเจ้าหน้าที่คลัง)" },
   { name: "admin", label: "จัดการระบบ", description: "จัดการผู้ใช้และสิทธิ์" },
 ];
 
