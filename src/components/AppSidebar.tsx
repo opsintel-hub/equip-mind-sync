@@ -6,6 +6,7 @@ import {
   Database,
   MapPin,
   LogOut,
+  Search,
   Shield,
   History,
   Truck,
@@ -178,6 +179,7 @@ const menuGroups: MenuGroup[] = [
       { title: "รายงาน Dead Stock", url: "/dead-stock", icon: Archive, functionName: "reports" },
       { title: "รายงานเบิกตามป้าย", url: "/billboard-issue-report", icon: MapPin, functionName: "reports" },
       { title: "ใบขอซื้อ (PR)", url: "/purchase-requests", icon: ClipboardList, functionName: "reports" },
+      { title: "ค้นหาอุปกรณ์ป้าย", url: "/equipment-tracking", icon: Search, functionName: "reports" },
     ]
   },
   {
