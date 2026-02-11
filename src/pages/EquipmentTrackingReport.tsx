@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { formatBillboardLabel } from "@/lib/billboardUtils";
 import { format, differenceInDays } from "date-fns";
 import { th } from "date-fns/locale";
-import { Search, ChevronDown, ChevronRight, Eye, MapPin, Package, AlertTriangle, Shield, Clock, History as HistoryIcon } from "lucide-react";
+import { Search, ChevronDown, ChevronRight, Eye, MapPin, Package, AlertTriangle, Shield, Clock, History as HistoryIcon, Download, ChevronLeft } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -14,10 +14,13 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Checkbox } from "@/components/ui/checkbox";
+import * as XLSX from "xlsx";
 
 // ─── Helpers ─────────────────────────────────────────────
 
 const EXPIRY_WARNING_DAYS = 90;
+const ITEMS_PER_PAGE = 20;
 
 function expiryBadge(dateStr: string | null, label: string) {
   if (!dateStr) return <span className="text-muted-foreground text-xs">-</span>;
@@ -41,11 +44,51 @@ function fmtDate(dateStr: string | null) {
 const movementTypeLabel: Record<string, string> = {
   receive: "รับเข้า",
   issue: "จ่ายออก",
+  transfer_in: "ย้ายเข้า",
+  transfer_out: "ย้ายออก",
   transfer: "ย้าย",
   return: "คืน",
+  return_from_billboard: "คืนจากป้าย",
+  install_to_billboard: "ติดตั้งป้าย",
+  uninstall_from_billboard: "ถอดจากป้าย",
   claim: "ส่งเคลม",
   adjust: "ปรับปรุง",
 };
+
+// ─── Pagination Component ────────────────────────────────
+
+function SimplePagination({ currentPage, totalPages, onPageChange }: { currentPage: number; totalPages: number; onPageChange: (p: number) => void }) {
+  if (totalPages <= 1) return null;
+  const pages: number[] = [];
+  for (let i = 1; i <= totalPages; i++) {
+    if (i === 1 || i === totalPages || Math.abs(i - currentPage) <= 2) pages.push(i);
+  }
+  const display: (number | "...")[] = [];
+  pages.forEach((p, idx) => {
+    if (idx > 0 && p - pages[idx - 1] > 1) display.push("...");
+    display.push(p);
+  });
+
+  return (
+    <div className="flex items-center justify-center gap-1 py-3">
+      <Button variant="outline" size="sm" disabled={currentPage === 1} onClick={() => onPageChange(currentPage - 1)}>
+        <ChevronLeft className="w-4 h-4" />
+      </Button>
+      {display.map((item, i) =>
+        item === "..." ? (
+          <span key={`e${i}`} className="px-2 text-muted-foreground">...</span>
+        ) : (
+          <Button key={item} variant={item === currentPage ? "default" : "outline"} size="sm" className="min-w-[36px]" onClick={() => onPageChange(item as number)}>
+            {item}
+          </Button>
+        )
+      )}
+      <Button variant="outline" size="sm" disabled={currentPage === totalPages} onClick={() => onPageChange(currentPage + 1)}>
+        <ChevronRight className="w-4 h-4" />
+      </Button>
+    </div>
+  );
+}
 
 // ─── Billboard View ──────────────────────────────────────
 
@@ -55,7 +98,9 @@ function BillboardViewTab() {
   const [deptFilter, setDeptFilter] = useState("all");
   const [mediaTypeFilter, setMediaTypeFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [showAllBillboards, setShowAllBillboards] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
 
   const { data: billboards, isLoading: loadingBillboards } = useQuery({
     queryKey: ["billboard-tracking-billboards"],
@@ -134,6 +179,7 @@ function BillboardViewTab() {
   const matchesStatusFilter = (bbId: string) => {
     if (statusFilter === "all") return true;
     const items = equipByBillboard[bbId] || [];
+    if (items.length === 0) return false;
     const now = new Date();
     return items.some(item => {
       const eq = item.equipmentData;
@@ -159,18 +205,77 @@ function BillboardViewTab() {
       if (deptFilter !== "all" && b.department !== deptFilter) return false;
       if (mediaTypeFilter !== "all" && b.media_type !== mediaTypeFilter) return false;
       if (!matchesStatusFilter(b.id)) return false;
-      // Only show billboards that have equipment installed
-      if (!(equipByBillboard[b.id]?.length > 0)) return false;
+      if (!showAllBillboards && !(equipByBillboard[b.id]?.length > 0)) return false;
       return true;
     });
-  }, [billboards, search, regionFilter, deptFilter, mediaTypeFilter, statusFilter, equipByBillboard]);
+  }, [billboards, search, regionFilter, deptFilter, mediaTypeFilter, statusFilter, equipByBillboard, showAllBillboards]);
+
+  // Summary stats
+  const summaryStats = useMemo(() => {
+    const now = new Date();
+    let withEquip = 0;
+    let hasExpired = 0;
+    let hasWarrantyExpired = 0;
+    (billboards || []).forEach(b => {
+      const items = equipByBillboard[b.id] || [];
+      if (items.length > 0) withEquip++;
+      items.forEach(item => {
+        const eq = item.equipmentData;
+        if (eq.expiry_date && differenceInDays(new Date(eq.expiry_date), now) < 0) hasExpired++;
+        if (eq.warranty_expiry_date && differenceInDays(new Date(eq.warranty_expiry_date), now) < 0) hasWarrantyExpired++;
+      });
+    });
+    return { total: (billboards || []).length, withEquip, hasExpired, hasWarrantyExpired };
+  }, [billboards, equipByBillboard]);
+
+  // Pagination
+  const totalPages = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE));
+  const safeCurrentPage = Math.min(currentPage, totalPages);
+  const paginatedData = filtered.slice((safeCurrentPage - 1) * ITEMS_PER_PAGE, safeCurrentPage * ITEMS_PER_PAGE);
+
+  // Reset page on filter change
+  useMemo(() => { setCurrentPage(1); }, [search, regionFilter, deptFilter, mediaTypeFilter, statusFilter, showAllBillboards]);
+
+  // Export
+  const handleExport = () => {
+    const rows: any[] = [];
+    filtered.forEach(b => {
+      const items = equipByBillboard[b.id] || [];
+      if (items.length === 0) {
+        rows.push({ "Old Code": b.old_code, "Location": b.location_name, "Region": b.region, "Department": b.department, "Media Type": b.media_type, "ชื่ออุปกรณ์": "-", "Code": "-", "S/N": "-", "ประเภท": "-", "จำนวน": 0, "วันที่ติดตั้ง": "-", "อายุ (วัน)": "-", "วันหมดอายุ": "-", "วันหมดประกัน": "-" });
+      } else {
+        items.forEach(item => {
+          const eq = item.equipmentData;
+          rows.push({
+            "Old Code": b.old_code, "Location": b.location_name, "Region": b.region, "Department": b.department, "Media Type": b.media_type,
+            "ชื่ออุปกรณ์": eq.name, "Code": eq.code, "S/N": eq.serial_number || "-", "ประเภท": eq.category || item.type,
+            "จำนวน": item.quantity, "วันที่ติดตั้ง": item.installation_date || "-",
+            "อายุ (วัน)": item.installation_date ? differenceInDays(new Date(), new Date(item.installation_date)) : "-",
+            "วันหมดอายุ": eq.expiry_date || "-", "วันหมดประกัน": eq.warranty_expiry_date || "-",
+          });
+        });
+      }
+    });
+    const ws = XLSX.utils.json_to_sheet(rows);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Billboard Equipment");
+    XLSX.writeFile(wb, `billboard-equipment-${format(new Date(), "yyyyMMdd")}.xlsx`);
+  };
 
   const isLoading = loadingBillboards || loadingEquipment || loadingMedia;
 
   return (
     <div className="space-y-4">
+      {/* Summary Cards */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <Card><CardContent className="p-3 text-center"><div className="text-2xl font-bold text-primary">{summaryStats.total}</div><div className="text-xs text-muted-foreground">ป้ายทั้งหมด</div></CardContent></Card>
+        <Card><CardContent className="p-3 text-center"><div className="text-2xl font-bold text-emerald-600">{summaryStats.withEquip}</div><div className="text-xs text-muted-foreground">ป้ายที่มีอุปกรณ์</div></CardContent></Card>
+        <Card><CardContent className="p-3 text-center"><div className="text-2xl font-bold text-destructive">{summaryStats.hasExpired}</div><div className="text-xs text-muted-foreground">อุปกรณ์หมดอายุ</div></CardContent></Card>
+        <Card><CardContent className="p-3 text-center"><div className="text-2xl font-bold text-amber-600">{summaryStats.hasWarrantyExpired}</div><div className="text-xs text-muted-foreground">อุปกรณ์หมดประกัน</div></CardContent></Card>
+      </div>
+
       {/* Filters */}
-      <div className="flex flex-wrap gap-3">
+      <div className="flex flex-wrap gap-3 items-center">
         <div className="relative flex-1 min-w-[200px]">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input placeholder="ค้นหาป้าย (Old Code / Location)..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
@@ -206,6 +311,13 @@ function BillboardViewTab() {
             <SelectItem value="warranty_expiring">ใกล้หมดประกัน</SelectItem>
           </SelectContent>
         </Select>
+        <Button variant="outline" size="sm" onClick={handleExport} className="gap-1">
+          <Download className="w-4 h-4" /> Export
+        </Button>
+      </div>
+      <div className="flex items-center gap-2">
+        <Checkbox id="showAll" checked={showAllBillboards} onCheckedChange={(v) => setShowAllBillboards(!!v)} />
+        <label htmlFor="showAll" className="text-sm text-muted-foreground cursor-pointer">แสดงป้ายที่ไม่มีอุปกรณ์ติดตั้งด้วย</label>
       </div>
 
       {/* Table */}
@@ -226,9 +338,9 @@ function BillboardViewTab() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filtered.length === 0 ? (
+              {paginatedData.length === 0 ? (
                 <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">ไม่พบข้อมูล</TableCell></TableRow>
-              ) : filtered.map(b => {
+              ) : paginatedData.map(b => {
                 const items = equipByBillboard[b.id] || [];
                 const isExpanded = expandedId === b.id;
                 return (
@@ -240,9 +352,11 @@ function BillboardViewTab() {
                       <TableCell>{b.region || "-"}</TableCell>
                       <TableCell>{b.department || "-"}</TableCell>
                       <TableCell>{b.media_type || "-"}</TableCell>
-                      <TableCell className="text-center"><Badge variant="secondary">{items.length} ชิ้น</Badge></TableCell>
+                      <TableCell className="text-center">
+                        {items.length > 0 ? <Badge variant="secondary">{items.length} ชิ้น</Badge> : <span className="text-muted-foreground text-xs">ไม่มี</span>}
+                      </TableCell>
                     </TableRow>
-                    {isExpanded && (
+                    {isExpanded && items.length > 0 && (
                       <TableRow>
                         <TableCell colSpan={7} className="bg-muted/30 p-0">
                           <div className="p-4">
@@ -270,7 +384,7 @@ function BillboardViewTab() {
                                       <TableCell className="font-medium">{eq.name}</TableCell>
                                       <TableCell className="text-xs font-mono">{eq.code}</TableCell>
                                       <TableCell className="text-xs">{eq.serial_number || "-"}</TableCell>
-                                      <TableCell><Badge variant="outline" className="text-xs">{eq.category || item.type === "media_player" ? "Media Player" : "อุปกรณ์"}</Badge></TableCell>
+                                      <TableCell><Badge variant="outline" className="text-xs">{item.type === "media_player" ? "Media Player" : eq.category || "อุปกรณ์"}</Badge></TableCell>
                                       <TableCell className="text-center">{item.quantity}</TableCell>
                                       <TableCell className="text-xs">{fmtDate(item.installation_date)}</TableCell>
                                       <TableCell><Badge variant="outline"><Clock className="w-3 h-3 mr-1" />{daysSince(item.installation_date)}</Badge></TableCell>
@@ -292,7 +406,8 @@ function BillboardViewTab() {
               })}
             </TableBody>
           </Table>
-          <div className="p-3 text-sm text-muted-foreground border-t">แสดง {filtered.length} ป้าย</div>
+          <div className="px-3 pt-1 text-sm text-muted-foreground border-t">แสดง {filtered.length} ป้าย</div>
+          <SimplePagination currentPage={safeCurrentPage} totalPages={totalPages} onPageChange={setCurrentPage} />
         </div>
       )}
     </div>
@@ -308,6 +423,7 @@ function EquipmentViewTab() {
   const [brandFilter, setBrandFilter] = useState("all");
   const [installFilter, setInstallFilter] = useState("all");
   const [selectedEquipment, setSelectedEquipment] = useState<any | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
 
   // Equipment
   const { data: equipment, isLoading: loadingEq } = useQuery({
@@ -430,10 +546,44 @@ function EquipmentViewTab() {
     });
   }, [allItems, search, typeFilter, categoryFilter, brandFilter, installFilter]);
 
+  // Summary stats
+  const summaryStats = useMemo(() => {
+    const installed = allItems.filter(i => i.isInstalled).length;
+    const inStock = allItems.filter(i => !i.isInstalled).length;
+    return { total: allItems.length, installed, inStock };
+  }, [allItems]);
+
+  // Pagination
+  const totalPages = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE));
+  const safeCurrentPage = Math.min(currentPage, totalPages);
+  const paginatedData = filtered.slice((safeCurrentPage - 1) * ITEMS_PER_PAGE, safeCurrentPage * ITEMS_PER_PAGE);
+
+  // Reset page on filter change
+  useMemo(() => { setCurrentPage(1); }, [search, typeFilter, categoryFilter, brandFilter, installFilter]);
+
+  // Export
+  const handleExport = () => {
+    const rows = filtered.map(item => ({
+      "Code": item.code, "ชื่อ": item.name, "S/N": item.serialDisplay, "ประเภท": item.itemType === "media_player" ? "Media Player" : item.category,
+      "Brand": item.brand || "-", "สต็อกคลัง": item.quantity_in_stock, "ติดตั้งที่ป้าย": item.installedBillboard || "ในคลัง",
+    }));
+    const ws = XLSX.utils.json_to_sheet(rows);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Equipment");
+    XLSX.writeFile(wb, `equipment-tracking-${format(new Date(), "yyyyMMdd")}.xlsx`);
+  };
+
   const isLoading = loadingEq || loadingMP;
 
   return (
     <div className="space-y-4">
+      {/* Summary Cards */}
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+        <Card><CardContent className="p-3 text-center"><div className="text-2xl font-bold text-primary">{summaryStats.total}</div><div className="text-xs text-muted-foreground">ทั้งหมด</div></CardContent></Card>
+        <Card><CardContent className="p-3 text-center"><div className="text-2xl font-bold text-emerald-600">{summaryStats.installed}</div><div className="text-xs text-muted-foreground">ติดตั้งอยู่</div></CardContent></Card>
+        <Card><CardContent className="p-3 text-center"><div className="text-2xl font-bold text-primary">{summaryStats.inStock}</div><div className="text-xs text-muted-foreground">ในคลัง</div></CardContent></Card>
+      </div>
+
       {/* Filters */}
       <div className="flex flex-wrap gap-3">
         <div className="relative flex-1 min-w-[200px]">
@@ -470,6 +620,9 @@ function EquipmentViewTab() {
             <SelectItem value="in_stock">ในคลัง</SelectItem>
           </SelectContent>
         </Select>
+        <Button variant="outline" size="sm" onClick={handleExport} className="gap-1">
+          <Download className="w-4 h-4" /> Export
+        </Button>
       </div>
 
       {/* Table */}
@@ -491,9 +644,9 @@ function EquipmentViewTab() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filtered.length === 0 ? (
+              {paginatedData.length === 0 ? (
                 <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-8">ไม่พบข้อมูล</TableCell></TableRow>
-              ) : filtered.map(item => (
+              ) : paginatedData.map(item => (
                 <TableRow key={`${item.itemType}-${item.id}`}>
                   <TableCell className="font-mono text-xs">{item.code}</TableCell>
                   <TableCell className="font-medium">{item.name}</TableCell>
@@ -515,7 +668,8 @@ function EquipmentViewTab() {
               ))}
             </TableBody>
           </Table>
-          <div className="p-3 text-sm text-muted-foreground border-t">แสดง {filtered.length} รายการ</div>
+          <div className="px-3 pt-1 text-sm text-muted-foreground border-t">แสดง {filtered.length} รายการ</div>
+          <SimplePagination currentPage={safeCurrentPage} totalPages={totalPages} onPageChange={setCurrentPage} />
         </div>
       )}
 
@@ -547,19 +701,31 @@ function EquipmentDetailDialog({ item, onClose, bbLookup }: { item: any; onClose
         if (error) throw error;
         return data || [];
       }
+      // For media_player, no billboard_equipment_history (they use media_players.billboard_id directly)
       return [];
     },
   });
 
-  // Stock movements
+  // Stock movements - for media_player search by code/name since stock_movements uses equipment references
   const { data: movements, isLoading: loadingMov } = useQuery({
-    queryKey: ["eq-detail-movements", item.id, item.itemType],
+    queryKey: ["eq-detail-movements", item.id, item.itemType, item.code],
     queryFn: async () => {
       if (item.itemType === "equipment") {
         const { data, error } = await supabase
           .from("stock_movements")
           .select("*")
           .eq("equipment_id", item.id)
+          .order("created_at", { ascending: false })
+          .limit(50);
+        if (error) throw error;
+        return data || [];
+      }
+      // Media Player: search by equipment_code matching media player code
+      if (item.itemType === "media_player" && item.code) {
+        const { data, error } = await supabase
+          .from("stock_movements")
+          .select("*")
+          .eq("equipment_code", item.code)
           .order("created_at", { ascending: false })
           .limit(50);
         if (error) throw error;
@@ -711,51 +877,47 @@ function EquipmentDetailDialog({ item, onClose, bbLookup }: { item: any; onClose
             </div>
           )}
 
-          {/* Stock Movements */}
-          {item.itemType === "equipment" && (
-            <div>
-              <h4 className="font-semibold mb-2 flex items-center gap-2"><AlertTriangle className="w-4 h-4" /> Stock Movement</h4>
-              {loadingMov ? (
-                <Skeleton className="h-20 w-full" />
-              ) : (movements || []).length > 0 ? (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>วันที่</TableHead>
-                      <TableHead>ประเภท</TableHead>
-                      <TableHead className="text-center">จำนวน</TableHead>
-                      <TableHead>สต็อกก่อน</TableHead>
-                      <TableHead>สต็อกหลัง</TableHead>
-                      <TableHead>เอกสารอ้างอิง</TableHead>
-                      <TableHead>หมายเหตุ</TableHead>
+          {/* Stock Movements - show for both equipment AND media_player */}
+          <div>
+            <h4 className="font-semibold mb-2 flex items-center gap-2"><AlertTriangle className="w-4 h-4" /> Stock Movement</h4>
+            {loadingMov ? (
+              <Skeleton className="h-20 w-full" />
+            ) : (movements || []).length > 0 ? (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>วันที่</TableHead>
+                    <TableHead>ประเภท</TableHead>
+                    <TableHead className="text-center">จำนวน</TableHead>
+                    <TableHead>สต็อกก่อน</TableHead>
+                    <TableHead>สต็อกหลัง</TableHead>
+                    <TableHead>เอกสารอ้างอิง</TableHead>
+                    <TableHead>หมายเหตุ</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {(movements || []).map((m: any) => (
+                    <TableRow key={m.id}>
+                      <TableCell className="text-xs">{fmtDate(m.created_at)}</TableCell>
+                      <TableCell><Badge variant="outline">{movementTypeLabel[m.movement_type] || m.movement_type}</Badge></TableCell>
+                      <TableCell className={`text-center font-medium ${m.quantity > 0 ? "text-emerald-600" : "text-red-600"}`}>{m.quantity > 0 ? `+${m.quantity}` : m.quantity}</TableCell>
+                      <TableCell className="text-center">{m.stock_before}</TableCell>
+                      <TableCell className="text-center">{m.stock_after}</TableCell>
+                      <TableCell className="text-xs font-mono">{m.reference_document || "-"}</TableCell>
+                      <TableCell className="text-xs">{m.notes || "-"}</TableCell>
                     </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {(movements || []).map((m: any) => (
-                      <TableRow key={m.id}>
-                        <TableCell className="text-xs">{fmtDate(m.created_at)}</TableCell>
-                        <TableCell><Badge variant="outline">{movementTypeLabel[m.movement_type] || m.movement_type}</Badge></TableCell>
-                        <TableCell className={`text-center font-medium ${m.quantity > 0 ? "text-emerald-600" : "text-red-600"}`}>{m.quantity > 0 ? `+${m.quantity}` : m.quantity}</TableCell>
-                        <TableCell className="text-center">{m.stock_before}</TableCell>
-                        <TableCell className="text-center">{m.stock_after}</TableCell>
-                        <TableCell className="text-xs font-mono">{m.reference_document || "-"}</TableCell>
-                        <TableCell className="text-xs">{m.notes || "-"}</TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              ) : (
-                <p className="text-sm text-muted-foreground p-3 border rounded-lg">ไม่มีข้อมูล Stock Movement</p>
-              )}
-            </div>
-          )}
+                  ))}
+                </TableBody>
+              </Table>
+            ) : (
+              <p className="text-sm text-muted-foreground p-3 border rounded-lg">ไม่มีข้อมูล Stock Movement</p>
+            )}
+          </div>
         </div>
       </DialogContent>
     </Dialog>
   );
 }
-
-
 
 // ─── Main Page ───────────────────────────────────────────
 
