@@ -1,96 +1,86 @@
 
-# แผนสร้างหน้า "ค้นหาอุปกรณ์ป้ายโฆษณา" (Equipment Tracking Report)
 
-## สรุปความต้องการ
+# แผนปรับปรุงหน้า "ค้นหาอุปกรณ์ป้ายโฆษณา" ให้สมบูรณ์ยิ่งขึ้น
 
-สร้างหน้ารายงานใหม่ภายใต้เมนู "รายงาน" สำหรับ **ค้นหาและติดตามอุปกรณ์/อะไหล่ที่ติดตั้งบนป้ายโฆษณา** โดยมี 2 มุมมองหลัก:
+## ปัญหาที่พบจากการตรวจสอบ
 
-### มุมมองที่ 1: ค้นหาตามป้าย (Billboard View)
-- ป้ายแต่ละป้ายมีอะไหล่อะไรติดตั้งอยู่
-- แต่ละชิ้นติดตั้งมานานแค่ไหน (นับจากวันที่ระบุป้ายจนถึงวันนี้)
-- วันหมดอายุ + ใกล้หมดอายุหรือยัง
-- วันหมดประกัน + ใกล้หมดประกันหรือยัง
+### 1. Movement Type ไม่ครบ
+ในระบบมี movement_type ที่ใช้จริง เช่น `install_to_billboard` แต่ในตัวแปล label ไม่มี จะแสดงเป็นชื่อ raw แทน
 
-### มุมมองที่ 2: ค้นหาตามอุปกรณ์ (Equipment View)
-- ค้นหาอุปกรณ์ชิ้นเดียว (รวม Media Player ด้วย S/N) ดูว่า:
-  - ปัจจุบันติดตั้งที่ป้ายไหน
-  - เคยติดตั้งที่ป้ายไหนมาบ้าง + ติดนานแค่ไหน
-  - สต็อกคงเหลือในคลัง
-  - ประวัติ Stock Movement (เบิก/จ่าย/ย้าย/ส่งเคลม)
-  - สรุปจำนวน: ติดตั้งอยู่เท่าไหร่ / ในคลังเท่าไหร่ / ส่งเคลมเท่าไหร่
+### 2. Billboard View แสดงเฉพาะป้ายที่มีอุปกรณ์ติดตั้ง
+ถ้าต้องการดูป้ายทั้งหมดเพื่อเช็คว่าป้ายไหนยังไม่ได้ติดตั้งอะไรเลย ก็ทำไม่ได้
 
----
+### 3. ไม่มี Pagination
+ข้อมูลปัจจุบันมีไม่เยอะ (34 ป้าย, 21 อุปกรณ์, 5 Media Player) แต่เมื่อเพิ่มขึ้นจะช้า ควรเพิ่ม Pagination ไว้ล่วงหน้า
 
-## Filter ที่ออกแบบ
+### 4. Media Player ไม่มีประวัติติดตั้ง/Stock Movement ใน Detail Dialog
+เมื่อกดดูรายละเอียด Media Player จะเห็นแค่ว่าติดตั้งอยู่ที่ไหนปัจจุบัน แต่ไม่แสดงประวัติหรือ Stock Movement เพราะ query คืน array ว่าง (return []) สำหรับ media_player type
 
-### Billboard View Filters
-- ค้นหาป้าย (Old Code / Location)
-- Region
-- Department
-- Media Type
-- สถานะอุปกรณ์ (หมดอายุ / ใกล้หมดอายุ / หมดประกัน / ใกล้หมดประกัน)
+### 5. ไม่มี Export ข้อมูล
+หน้ารายงานอื่นมีปุ่ม Export แต่หน้านี้ยังไม่มี
 
-### Equipment View Filters
-- ค้นหาอุปกรณ์ (ชื่อ / Code / Serial Number)
-- ประเภทสินค้า (Equipment / Media Player)
-- หมวดหมู่ (Category)
-- Brand
-- สถานะการติดตั้ง (ติดตั้งอยู่ / ในคลัง / ทั้งหมด)
+### 6. ไม่มี Summary Cards ด้านบน
+หน้ารายงานอื่นมีการ์ดสรุปภาพรวม (เช่น จำนวนป้ายทั้งหมด / อุปกรณ์ทั้งหมด / หมดอายุ / ใกล้หมดประกัน)
 
 ---
 
-## ข้อมูลที่ดึงจาก Database
+## สิ่งที่จะปรับปรุง
 
-| ตาราง | ข้อมูลที่ใช้ |
-|-------|-------------|
-| `billboard_equipment` | อุปกรณ์ที่ติดตั้งอยู่ปัจจุบัน + วันที่ติดตั้ง |
-| `billboard_equipment_history` | ประวัติการถอด (uninstall) -- ใช้ trace ว่าอุปกรณ์เคยไปที่ไหนมา |
-| `equipment` | ข้อมูลอุปกรณ์ (ชื่อ, code, expiry, warranty, stock, serial_number) |
-| `media_players` | ข้อมูล Media Player (S/N 1, S/N 2, billboard_id, install_date) |
-| `billboards` | ข้อมูลป้าย (old_code, location_name, region, department) |
-| `stock_movements` | ประวัติ Stock Movement (เบิก/จ่าย/ย้าย/คืน/เคลม) |
+### 1. เพิ่ม Movement Type Label ที่ขาด
+เพิ่ม `install_to_billboard: "ติดตั้งป้าย"` และ type อื่นที่อาจมีในอนาคต
+
+### 2. เพิ่มตัวเลือก "แสดงป้ายทั้งหมด" ใน Billboard View
+เพิ่ม toggle/filter เพื่อแสดงป้ายที่ยังไม่มีอุปกรณ์ติดตั้งด้วย
+
+### 3. เพิ่ม Summary Cards ด้านบนทั้ง 2 Tabs
+- **Billboard View**: จำนวนป้ายที่มีอุปกรณ์ / อุปกรณ์หมดอายุ / อุปกรณ์ใกล้หมดประกัน
+- **Equipment View**: อุปกรณ์ทั้งหมด / ติดตั้งอยู่ / ในคลัง / ส่งเคลม
+
+### 4. เพิ่ม Media Player History ใน Detail Dialog
+ค้นหาประวัติจากตาราง `stock_movements` ที่เชื่อมกับ Media Player ผ่านชื่อหรือ code (เนื่องจาก stock_movements มี equipment_id ที่อาจเชื่อมกับ media_players ด้วย)
+
+### 5. เพิ่ม Pagination (แสดง 20 รายการต่อหน้า)
+ทั้ง Billboard View และ Equipment View
+
+### 6. เพิ่มปุ่ม Export Excel
+ส่งออกข้อมูลตามที่ filter ไว้
 
 ---
 
 ## รายละเอียดทางเทคนิค
 
-### ไฟล์ที่ต้องสร้าง (1 ไฟล์)
-
-| ไฟล์ | คำอธิบาย |
-|------|----------|
-| `src/pages/EquipmentTrackingReport.tsx` | หน้ารายงานหลัก มี 2 Tabs: "ค้นหาตามป้าย" และ "ค้นหาตามอุปกรณ์" |
-
-### ไฟล์ที่ต้องแก้ไข (2 ไฟล์)
+### ไฟล์ที่ต้องแก้ไข (1 ไฟล์)
 
 | ไฟล์ | การเปลี่ยนแปลง |
 |------|---------------|
-| `src/components/AppSidebar.tsx` | เพิ่มเมนู "ค้นหาอุปกรณ์ป้าย" ในหมวด "รายงาน" พร้อม functionName: `reports` |
-| `src/App.tsx` | เพิ่ม route `/equipment-tracking` |
+| `src/pages/EquipmentTrackingReport.tsx` | ปรับปรุงทั้ง 6 ข้อข้างต้น |
 
-### โครงสร้างหน้า
+### รายละเอียดการแก้ไข
 
-**Tab 1: ค้นหาตามป้าย**
-- Filter bar (ค้นหาป้าย, Region, Department, Media Type, สถานะอุปกรณ์)
-- ตารางป้าย พร้อมคอลัมน์: Old Code, Location, จำนวนอุปกรณ์ที่ติดตั้ง
-- เมื่อกดดูรายละเอียดป้าย -> แสดง Expandable Row / Dialog รายการอุปกรณ์ทั้งหมดพร้อม:
-  - ชื่ออุปกรณ์, Code, จำนวน
-  - วันที่ติดตั้ง, อายุการใช้งาน (X วัน)
-  - วันหมดอายุ + Badge (ปกติ/ใกล้หมด/หมดแล้ว)
-  - วันหมดประกัน + Badge (ปกติ/ใกล้หมด/หมดแล้ว)
+**movementTypeLabel** -- เพิ่ม key:
+```
+install_to_billboard: "ติดตั้งป้าย"
+uninstall_from_billboard: "ถอดจากป้าย"
+```
 
-**Tab 2: ค้นหาตามอุปกรณ์**
-- Filter bar (ค้นหา S/N หรือชื่อ, ประเภท, Category, Brand, สถานะติดตั้ง)
-- ตารางอุปกรณ์ พร้อมคอลัมน์: Code, ชื่อ, S/N, Category, Brand, สต็อกคงเหลือ, ติดตั้งที่ป้าย (ปัจจุบัน)
-- เมื่อกดดูรายละเอียด -> Dialog แสดง:
-  - **ข้อมูลปัจจุบัน**: ติดตั้งที่ป้ายไหน / อยู่ในคลัง
-  - **ประวัติติดตั้ง**: ตารางเรียงตามวันที่ แสดงป้ายที่เคยติดตั้ง + ระยะเวลา + เหตุผลถอด
-  - **Stock Movement**: ตาราง movement_type (receive/issue/transfer/return/claim) + วันที่ + จำนวน + เอกสารอ้างอิง
-  - **สรุป**: สต็อกในคลัง / ติดตั้งอยู่ / ส่งเคลม
+**Billboard View**:
+- เพิ่ม Summary Cards 3 ใบ (ป้ายที่มีอุปกรณ์ / มีอุปกรณ์หมดอายุ / มีอุปกรณ์หมดประกัน)
+- เพิ่ม checkbox "แสดงป้ายไม่มีอุปกรณ์ด้วย"
+- เพิ่ม Pagination (20 ป้าย/หน้า)
+
+**Equipment View**:
+- เพิ่ม Summary Cards 4 ใบ (ทั้งหมด / ติดตั้งอยู่ / ในคลัง / ส่งเคลม)
+- เพิ่ม Pagination (20 รายการ/หน้า)
+
+**Detail Dialog**:
+- แก้ไข query สำหรับ media_player ให้ดึง stock_movements ได้ (ค้นหาโดย equipment_name หรือ equipment_code ที่ตรงกัน)
+
+**Export**:
+- เพิ่มปุ่ม Export Excel ใช้ library `xlsx` ที่มีอยู่แล้ว
 
 ### ขั้นตอนการดำเนินงาน
 
-1. สร้าง `EquipmentTrackingReport.tsx` พร้อม 2 Tabs และ Filters ครบ
-2. แก้ `AppSidebar.tsx` เพิ่มเมนูในหมวด "รายงาน"
-3. แก้ `App.tsx` เพิ่ม route
+1. แก้ไข `EquipmentTrackingReport.tsx` เพิ่ม Summary Cards, Pagination, Export, fix Movement Labels, fix Media Player history
 
-ไม่ต้องทำ Database Migration เพราะข้อมูลทั้งหมดมีอยู่แล้วในตารางที่มี
+ไม่ต้องทำ Database Migration
+
