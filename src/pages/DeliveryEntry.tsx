@@ -781,8 +781,8 @@ const DeliveryEntry = () => {
               {/* Delivery Person Info */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 border-t border-primary/20">
                 <div className="space-y-2">
-                  <Label htmlFor="deliveryPerson">ชื่อผู้ส่ง *</Label>
-                  <Input id="deliveryPerson" placeholder="ระบุชื่อผู้ส่งสินค้า" value={deliveryPersonName} onChange={e => setDeliveryPersonName(e.target.value)} required />
+                  <Label htmlFor="deliveryPerson">ชื่อผู้ดำเนินการนำเข้าข้อมูล *</Label>
+                  <Input id="deliveryPerson" placeholder="ระบุชื่อผู้ดำเนินการนำเข้าข้อมูล" value={deliveryPersonName} onChange={e => setDeliveryPersonName(e.target.value)} required />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="phone">เบอร์โทรติดต่อ</Label>
