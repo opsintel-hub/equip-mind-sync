@@ -631,13 +631,17 @@ const BillboardImport = ({ onSuccess, onCancel }: BillboardImportProps) => {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            {!isImporting && (
+            {!isImporting ? (
               <>
                 <AlertDialogCancel>ยกเลิก</AlertDialogCancel>
-                <AlertDialogAction onClick={(e) => { e.preventDefault(); confirmImport(); }}>
+                <Button onClick={() => confirmImport()}>
                   ยืนยันนำเข้า
-                </AlertDialogAction>
+                </Button>
               </>
+            ) : (
+              <Button variant="outline" disabled>
+                กำลังนำเข้า...
+              </Button>
             )}
           </AlertDialogFooter>
         </AlertDialogContent>
