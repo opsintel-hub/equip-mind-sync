@@ -116,9 +116,31 @@ export function EquipmentImport({ onSuccess }: EquipmentImportProps) {
       }
 
       const { data: userData } = await supabase.auth.getUser();
+
+      // Fetch all existing codes with pagination to bypass 1000 row limit
+      const existingCodeMap = new Map<string, string>();
+      let from = 0;
+      const pageSize = 1000;
+      while (true) {
+        const { data: eqData, error } = await supabase
+          .from("equipment")
+          .select("id, code")
+          .range(from, from + pageSize - 1);
+        if (error) throw error;
+        if (!eqData || eqData.length === 0) break;
+        eqData.forEach(eq => existingCodeMap.set(eq.code, eq.id));
+        if (eqData.length < pageSize) break;
+        from += pageSize;
+      }
+
       let successCount = 0;
       let failedCount = 0;
       const errors: string[] = [];
+
+      // Process in batches for better performance
+      const BATCH_SIZE = 50;
+      const rowsToInsert: any[] = [];
+      const rowsToUpdate: { id: string; data: any; rowNum: number }[] = [];
 
       for (let i = 0; i < jsonData.length; i++) {
         const row = jsonData[i] as Record<string, any>;
@@ -157,40 +179,45 @@ export function EquipmentImport({ onSuccess }: EquipmentImportProps) {
           notes: row["หมายเหตุ (notes)"] || row["notes"] || undefined,
         };
 
-        const { data: existing } = await supabase
-          .from("equipment")
-          .select("id")
-          .eq("code", equipmentData.code)
-          .maybeSingle();
+        const existingId = existingCodeMap.get(equipmentData.code);
 
-        if (existing) {
-          const { error } = await supabase
-            .from("equipment")
-            .update({
-              ...equipmentData,
-              updated_at: new Date().toISOString(),
-            })
-            .eq("id", existing.id);
-
-          if (error) {
-            errors.push(`แถวที่ ${rowNum}: ${error.message}`);
-            failedCount++;
-          } else {
-            successCount++;
-          }
+        if (existingId) {
+          rowsToUpdate.push({ id: existingId, data: equipmentData, rowNum });
         } else {
-          const { error } = await supabase.from("equipment").insert({
+          rowsToInsert.push({
             ...equipmentData,
             warehouse_entry_date: new Date().toISOString().split("T")[0],
             created_by: userData?.user?.id,
+            _rowNum: rowNum,
           });
+        }
+      }
 
-          if (error) {
-            errors.push(`แถวที่ ${rowNum}: ${error.message}`);
-            failedCount++;
-          } else {
-            successCount++;
-          }
+      // Batch insert new records
+      for (let i = 0; i < rowsToInsert.length; i += BATCH_SIZE) {
+        const batch = rowsToInsert.slice(i, i + BATCH_SIZE).map(({ _rowNum, ...rest }) => rest);
+        const { error } = await supabase.from("equipment").insert(batch);
+        if (error) {
+          const batchStart = rowsToInsert[i]._rowNum;
+          const batchEnd = rowsToInsert[Math.min(i + BATCH_SIZE - 1, rowsToInsert.length - 1)]._rowNum;
+          errors.push(`แถวที่ ${batchStart}-${batchEnd}: ${error.message}`);
+          failedCount += batch.length;
+        } else {
+          successCount += batch.length;
+        }
+      }
+
+      // Update existing records (still row-by-row due to different IDs)
+      for (const { id, data, rowNum } of rowsToUpdate) {
+        const { error } = await supabase
+          .from("equipment")
+          .update({ ...data, updated_at: new Date().toISOString() })
+          .eq("id", id);
+        if (error) {
+          errors.push(`แถวที่ ${rowNum}: ${error.message}`);
+          failedCount++;
+        } else {
+          successCount++;
         }
       }
 

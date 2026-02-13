@@ -86,6 +86,25 @@ const BillboardImport = ({ onSuccess, onCancel }: BillboardImportProps) => {
   const [isHelpOpen, setIsHelpOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Fetch all old_codes with pagination to bypass 1000 row limit
+  const fetchAllOldCodes = async (): Promise<Set<string>> => {
+    const allCodes: string[] = [];
+    let from = 0;
+    const pageSize = 1000;
+    while (true) {
+      const { data, error } = await supabase
+        .from("billboards")
+        .select("old_code")
+        .range(from, from + pageSize - 1);
+      if (error) throw error;
+      if (!data || data.length === 0) break;
+      allCodes.push(...data.map(b => b.old_code).filter(Boolean) as string[]);
+      if (data.length < pageSize) break;
+      from += pageSize;
+    }
+    return new Set(allCodes);
+  };
+
   const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -97,12 +116,8 @@ const BillboardImport = ({ onSuccess, onCancel }: BillboardImportProps) => {
       const worksheet = workbook.Sheets[workbook.SheetNames[0]];
       const jsonData = XLSX.utils.sheet_to_json(worksheet);
 
-      // Get existing old_codes from database
-      const { data: existingBillboards } = await supabase
-        .from("billboards")
-        .select("old_code");
-      
-      const existingOldCodes = new Set(existingBillboards?.map(b => b.old_code).filter(Boolean) || []);
+      // Get ALL existing old_codes from database (paginated)
+      const existingOldCodes = await fetchAllOldCodes();
 
       // Step 1: ตรวจหา OldCode + Location ที่ซ้ำกันในไฟล์ Excel
       // ใช้ OldCode + Location เป็น key - ถ้า OldCode เหมือนกันแต่ Location ต่างกัน ถือว่าคนละป้าย
@@ -242,20 +257,24 @@ const BillboardImport = ({ onSuccess, onCancel }: BillboardImportProps) => {
 
       let insertedCount = 0;
       let updatedCount = 0;
+      const BATCH_SIZE = 200;
 
-      // Insert new records
+      // Insert new records in batches
       if (newRecords.length > 0) {
         const insertData = newRecords.map(({ status, errorMessage, rowNumber, duplicateOfRow, ...rest }) => ({
           ...rest,
           status: "active",
         }));
         
-        const { error: insertError } = await supabase
-          .from("billboards")
-          .insert(insertData);
-        
-        if (insertError) throw insertError;
-        insertedCount = newRecords.length;
+        for (let i = 0; i < insertData.length; i += BATCH_SIZE) {
+          const batch = insertData.slice(i, i + BATCH_SIZE);
+          const { error: insertError } = await supabase
+            .from("billboards")
+            .insert(batch);
+          
+          if (insertError) throw insertError;
+          insertedCount += batch.length;
+        }
       }
 
       // Update existing records by old_code
