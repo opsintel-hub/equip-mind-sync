@@ -15,6 +15,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Progress } from "@/components/ui/progress";
 import { Upload, FileSpreadsheet, CheckCircle, XCircle, AlertCircle, Download, AlertTriangle, HelpCircle, ChevronDown } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -41,6 +42,7 @@ interface ImportRow {
   route_install_demolish?: string;
   route_report_photo?: string;
   route_pm?: string;
+  notes?: string;
   status: "new" | "update" | "error" | "duplicate";
   errorMessage?: string;
   rowNumber?: number;
@@ -84,6 +86,7 @@ const BillboardImport = ({ onSuccess, onCancel }: BillboardImportProps) => {
   const [isImporting, setIsImporting] = useState(false);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [isHelpOpen, setIsHelpOpen] = useState(false);
+  const [importProgress, setImportProgress] = useState<{ current: number; total: number; phase: string } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Fetch all old_codes with pagination to bypass 1000 row limit
@@ -215,6 +218,7 @@ const BillboardImport = ({ onSuccess, onCancel }: BillboardImportProps) => {
           route_install_demolish: row["RouteInstallAndDemolish"] || "",
           route_report_photo: row["RouteReportPhoto"] || "",
           route_pm: row["RoutePM"] || "",
+          notes: row["Notes"] || row["notes"] || "",
           status: isExisting ? "update" as const : "new" as const,
           rowNumber,
         };
@@ -250,45 +254,67 @@ const BillboardImport = ({ onSuccess, onCancel }: BillboardImportProps) => {
     }
 
     setIsImporting(true);
+    const totalItems = validData.length;
+    setImportProgress({ current: 0, total: totalItems, phase: "กำลังเตรียมข้อมูล..." });
+    
     try {
       // Separate new and update records
       const newRecords = validData.filter(row => row.status === "new");
       const updateRecords = validData.filter(row => row.status === "update");
 
+      let processedCount = 0;
       let insertedCount = 0;
       let updatedCount = 0;
-      const BATCH_SIZE = 200;
+      const INSERT_BATCH_SIZE = 200;
+      const UPDATE_BATCH_SIZE = 20;
 
       // Insert new records in batches
       if (newRecords.length > 0) {
+        setImportProgress({ current: processedCount, total: totalItems, phase: `กำลังเพิ่มข้อมูลใหม่ (${newRecords.length} รายการ)...` });
         const insertData = newRecords.map(({ status, errorMessage, rowNumber, duplicateOfRow, ...rest }) => ({
           ...rest,
           status: "active",
         }));
         
-        for (let i = 0; i < insertData.length; i += BATCH_SIZE) {
-          const batch = insertData.slice(i, i + BATCH_SIZE);
+        for (let i = 0; i < insertData.length; i += INSERT_BATCH_SIZE) {
+          const batch = insertData.slice(i, i + INSERT_BATCH_SIZE);
           const { error: insertError } = await supabase
             .from("billboards")
             .insert(batch);
           
           if (insertError) throw insertError;
           insertedCount += batch.length;
+          processedCount += batch.length;
+          setImportProgress({ current: processedCount, total: totalItems, phase: `กำลังเพิ่มข้อมูลใหม่ (${insertedCount}/${newRecords.length})...` });
         }
       }
 
-      // Update existing records by old_code
-      for (const record of updateRecords) {
-        const { status, errorMessage, old_code, rowNumber, duplicateOfRow, ...updateData } = record;
-        const { error: updateError } = await supabase
-          .from("billboards")
-          .update(updateData)
-          .eq("old_code", old_code);
+      // Update existing records in parallel batches
+      if (updateRecords.length > 0) {
+        setImportProgress({ current: processedCount, total: totalItems, phase: `กำลังอัพเดทข้อมูล (${updateRecords.length} รายการ)...` });
         
-        if (updateError) throw updateError;
-        updatedCount++;
+        for (let i = 0; i < updateRecords.length; i += UPDATE_BATCH_SIZE) {
+          const batch = updateRecords.slice(i, i + UPDATE_BATCH_SIZE);
+          const promises = batch.map(record => {
+            const { status, errorMessage, old_code, rowNumber, duplicateOfRow, ...updateData } = record;
+            return supabase
+              .from("billboards")
+              .update(updateData)
+              .eq("old_code", old_code);
+          });
+          
+          const results = await Promise.all(promises);
+          for (const result of results) {
+            if (result.error) throw result.error;
+          }
+          
+          updatedCount += batch.length;
+          processedCount += batch.length;
+          setImportProgress({ current: processedCount, total: totalItems, phase: `กำลังอัพเดทข้อมูล (${updatedCount}/${updateRecords.length})...` });
+        }
       }
 
+      setImportProgress({ current: totalItems, total: totalItems, phase: "เสร็จสิ้น!" });
       toast.success(`นำเข้าสำเร็จ: เพิ่มใหม่ ${insertedCount} รายการ, อัพเดท ${updatedCount} รายการ`);
       onSuccess();
     } catch (error: any) {
@@ -296,6 +322,7 @@ const BillboardImport = ({ onSuccess, onCancel }: BillboardImportProps) => {
       toast.error(friendlyMessage);
     } finally {
       setIsImporting(false);
+      setTimeout(() => setImportProgress(null), 3000);
     }
   };
 
@@ -531,6 +558,22 @@ const BillboardImport = ({ onSuccess, onCancel }: BillboardImportProps) => {
           </Button>
         )}
       </div>
+
+      {/* Progress Bar */}
+      {importProgress && (
+        <Card className="border-primary/30 bg-primary/5">
+          <CardContent className="pt-6 space-y-3">
+            <div className="flex items-center justify-between text-sm">
+              <span className="font-medium">{importProgress.phase}</span>
+              <span className="text-muted-foreground font-mono">
+                {importProgress.current}/{importProgress.total} ({Math.round((importProgress.current / importProgress.total) * 100)}%)
+              </span>
+            </div>
+            <Progress value={(importProgress.current / importProgress.total) * 100} className="h-3" />
+          </CardContent>
+        </Card>
+      )}
+
 
       {/* Confirmation Dialog ก่อน Import */}
       <AlertDialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
