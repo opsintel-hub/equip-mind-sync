@@ -634,7 +634,7 @@ const BillboardImport = ({ onSuccess, onCancel }: BillboardImportProps) => {
             {!isImporting && (
               <>
                 <AlertDialogCancel>ยกเลิก</AlertDialogCancel>
-                <AlertDialogAction onClick={confirmImport}>
+                <AlertDialogAction onClick={(e) => { e.preventDefault(); confirmImport(); }}>
                   ยืนยันนำเข้า
                 </AlertDialogAction>
               </>
