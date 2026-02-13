@@ -1,86 +1,78 @@
 
 
-# แผนปรับปรุงหน้า "ค้นหาอุปกรณ์ป้ายโฆษณา" ให้สมบูรณ์ยิ่งขึ้น
+# แผนผูกฝ่ายกับ Master Data และล็อค Dropdown ตามสิทธิ์
 
-## ปัญหาที่พบจากการตรวจสอบ
+## ขั้นตอนที่ 1: แก้ไขข้อมูล departments ให้ตรงกับข้อมูลจริง
 
-### 1. Movement Type ไม่ครบ
-ในระบบมี movement_type ที่ใช้จริง เช่น `install_to_billboard` แต่ในตัวแปล label ไม่มี จะแสดงเป็นชื่อ raw แทน
+ปัจจุบันชื่อฝ่ายไม่ตรงกันข้ามตาราง ต้องแก้ให้ตรงกันก่อน:
 
-### 2. Billboard View แสดงเฉพาะป้ายที่มีอุปกรณ์ติดตั้ง
-ถ้าต้องการดูป้ายทั้งหมดเพื่อเช็คว่าป้ายไหนยังไม่ได้ติดตั้งอะไรเลย ก็ทำไม่ได้
+| ตาราง departments (ปัจจุบัน) | ข้อมูลจริงที่ใช้ | การดำเนินการ |
+|---|---|---|
+| Airport | Airport Media (ใน billboards) | เปลี่ยนเป็น "Airport Media" |
+| HR PlanB | ไม่มีใน data จริง | คงไว้ (อาจใช้ในอนาคต) |
+| Production | ไม่มีใน data จริง | คงไว้ |
+| Store Center | มีใน locations | คงไว้ |
 
-### 3. ไม่มี Pagination
-ข้อมูลปัจจุบันมีไม่เยอะ (34 ป้าย, 21 อุปกรณ์, 5 Media Player) แต่เมื่อเพิ่มขึ้นจะช้า ควรเพิ่ม Pagination ไว้ล่วงหน้า
+พร้อมกัน ต้อง update ข้อมูลในตารางอื่นที่ใช้ "Airport" เป็น "Airport Media" ให้ตรงกัน:
+- `equipment.department` = "Airport" -> "Airport Media"
+- `user_departments.department` = "Airport" -> "Airport Media"
 
-### 4. Media Player ไม่มีประวัติติดตั้ง/Stock Movement ใน Detail Dialog
-เมื่อกดดูรายละเอียด Media Player จะเห็นแค่ว่าติดตั้งอยู่ที่ไหนปัจจุบัน แต่ไม่แสดงประวัติหรือ Stock Movement เพราะ query คืน array ว่าง (return []) สำหรับ media_player type
+## ขั้นตอนที่ 2: ลบ Hardcode ALL_DEPARTMENTS
 
-### 5. ไม่มี Export ข้อมูล
-หน้ารายงานอื่นมีปุ่ม Export แต่หน้านี้ยังไม่มี
+ลบ array ที่ hardcode ไว้ใน `useDepartmentPermissions.tsx` แล้วให้ `getViewableDepartments()` สำหรับ Admin ดึงจากตาราง `departments` แทน
 
-### 6. ไม่มี Summary Cards ด้านบน
-หน้ารายงานอื่นมีการ์ดสรุปภาพรวม (เช่น จำนวนป้ายทั้งหมด / อุปกรณ์ทั้งหมด / หมดอายุ / ใกล้หมดประกัน)
+## ขั้นตอนที่ 3: สร้าง Hook กลาง `useAllowedDepartments`
 
----
+สร้าง hook ใหม่ที่:
+- ดึงฝ่ายทั้งหมดจาก DB (`departments` table)
+- กรองตามสิทธิ์ผู้ใช้ (จาก `user_departments`)
+- Admin เห็นทุกฝ่าย / ผู้ใช้ทั่วไปเห็นเฉพาะฝ่ายตัวเอง
+- ถ้ามีฝ่ายเดียว -> auto-select + ล็อค dropdown
 
-## สิ่งที่จะปรับปรุง
+## ขั้นตอนที่ 4: ปรับ Dropdown ทั้งระบบ
 
-### 1. เพิ่ม Movement Type Label ที่ขาด
-เพิ่ม `install_to_billboard: "ติดตั้งป้าย"` และ type อื่นที่อาจมีในอนาคต
+### ไฟล์ใหม่ (1 ไฟล์)
 
-### 2. เพิ่มตัวเลือก "แสดงป้ายทั้งหมด" ใน Billboard View
-เพิ่ม toggle/filter เพื่อแสดงป้ายที่ยังไม่มีอุปกรณ์ติดตั้งด้วย
+| ไฟล์ | คำอธิบาย |
+|------|----------|
+| `src/hooks/useAllowedDepartments.tsx` | Hook กลางดึงฝ่ายจาก DB + กรองตามสิทธิ์ |
 
-### 3. เพิ่ม Summary Cards ด้านบนทั้ง 2 Tabs
-- **Billboard View**: จำนวนป้ายที่มีอุปกรณ์ / อุปกรณ์หมดอายุ / อุปกรณ์ใกล้หมดประกัน
-- **Equipment View**: อุปกรณ์ทั้งหมด / ติดตั้งอยู่ / ในคลัง / ส่งเคลม
+### ไฟล์ที่ต้องแก้ไข (9 ไฟล์)
 
-### 4. เพิ่ม Media Player History ใน Detail Dialog
-ค้นหาประวัติจากตาราง `stock_movements` ที่เชื่อมกับ Media Player ผ่านชื่อหรือ code (เนื่องจาก stock_movements มี equipment_id ที่อาจเชื่อมกับ media_players ด้วย)
+| # | ไฟล์ | การเปลี่ยนแปลง |
+|---|------|---------------|
+| 1 | `src/hooks/useDepartmentPermissions.tsx` | ลบ `ALL_DEPARTMENTS` hardcode, ให้ `getViewableDepartments` ดึงจาก DB |
+| 2 | `src/components/equipment/SimpleDepartmentSelect.tsx` | ใช้ `useAllowedDepartments` แทนดึงทุกฝ่าย + auto-lock |
+| 3 | `src/components/equipment/DepartmentSelect.tsx` | กรอง departments ตามสิทธิ์ |
+| 4 | `src/components/DepartmentFilter.tsx` | ปรับ auto-select ถ้ามีฝ่ายเดียว |
+| 5 | `src/pages/DeliveryEntry.tsx` | กรอง departments + auto-select |
+| 6 | `src/components/billboard/BillboardFilters.tsx` | กรอง department filter ตามสิทธิ์ |
+| 7 | `src/pages/EquipmentTrackingReport.tsx` | กรอง departments ตามสิทธิ์ |
+| 8 | `src/pages/DeadStockReport.tsx` | กรอง departments ตามสิทธิ์ |
+| 9 | `src/pages/ToolPMSchedule.tsx` | กรอง departments ตามสิทธิ์ |
 
-### 5. เพิ่ม Pagination (แสดง 20 รายการต่อหน้า)
-ทั้ง Billboard View และ Equipment View
+### รายละเอียดทางเทคนิค
 
-### 6. เพิ่มปุ่ม Export Excel
-ส่งออกข้อมูลตามที่ filter ไว้
-
----
-
-## รายละเอียดทางเทคนิค
-
-### ไฟล์ที่ต้องแก้ไข (1 ไฟล์)
-
-| ไฟล์ | การเปลี่ยนแปลง |
-|------|---------------|
-| `src/pages/EquipmentTrackingReport.tsx` | ปรับปรุงทั้ง 6 ข้อข้างต้น |
-
-### รายละเอียดการแก้ไข
-
-**movementTypeLabel** -- เพิ่ม key:
+**useAllowedDepartments Hook:**
+```text
+Input: permission type (default: "view")
+Output:
+  - allowedDepartments: { id, name, description }[]
+  - isAdmin: boolean
+  - isSingleDepartment: boolean
+  - loading: boolean
 ```
-install_to_billboard: "ติดตั้งป้าย"
-uninstall_from_billboard: "ถอดจากป้าย"
-```
 
-**Billboard View**:
-- เพิ่ม Summary Cards 3 ใบ (ป้ายที่มีอุปกรณ์ / มีอุปกรณ์หมดอายุ / มีอุปกรณ์หมดประกัน)
-- เพิ่ม checkbox "แสดงป้ายไม่มีอุปกรณ์ด้วย"
-- เพิ่ม Pagination (20 ป้าย/หน้า)
+**Auto-lock Logic:**
+- ถ้าผู้ใช้มีฝ่ายเดียว -> ตั้งค่าอัตโนมัติ + disabled dropdown
+- ถ้ามีหลายฝ่าย -> แสดงเฉพาะฝ่ายที่มีสิทธิ์
+- Admin -> เห็นทุกฝ่าย เลือกได้อิสระ
 
-**Equipment View**:
-- เพิ่ม Summary Cards 4 ใบ (ทั้งหมด / ติดตั้งอยู่ / ในคลัง / ส่งเคลม)
-- เพิ่ม Pagination (20 รายการ/หน้า)
+### ขั้นตอนดำเนินงาน
 
-**Detail Dialog**:
-- แก้ไข query สำหรับ media_player ให้ดึง stock_movements ได้ (ค้นหาโดย equipment_name หรือ equipment_code ที่ตรงกัน)
+1. Update ข้อมูล: เปลี่ยน "Airport" เป็น "Airport Media" ในทุกตาราง
+2. สร้าง `useAllowedDepartments.tsx`
+3. แก้ `useDepartmentPermissions.tsx` ลบ hardcode
+4. แก้ทุก component/page ที่มี department dropdown (8 ไฟล์)
 
-**Export**:
-- เพิ่มปุ่ม Export Excel ใช้ library `xlsx` ที่มีอยู่แล้ว
-
-### ขั้นตอนการดำเนินงาน
-
-1. แก้ไข `EquipmentTrackingReport.tsx` เพิ่ม Summary Cards, Pagination, Export, fix Movement Labels, fix Media Player history
-
-ไม่ต้องทำ Database Migration
-
+ไม่ต้องทำ Database Migration (ไม่เปลี่ยน schema) -- แค่ update ข้อมูลและแก้โค้ด
