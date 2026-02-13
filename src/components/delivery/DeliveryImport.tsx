@@ -41,6 +41,32 @@ interface ImportRow {
   notes?: string;
 }
 
+const INVALID_VALUES = ["-", "#N/A", "N/A", "#REF!", "#VALUE!", "#NAME?", "null", "undefined", ""];
+
+function cleanValue(val: any): string | undefined {
+  if (val === undefined || val === null) return undefined;
+  const str = String(val).trim();
+  if (INVALID_VALUES.includes(str)) return undefined;
+  return str;
+}
+
+function parseDate(val: any): string | undefined {
+  if (val === undefined || val === null) return undefined;
+  // Handle Excel serial date numbers
+  if (typeof val === "number") {
+    const date = XLSX.SSF.parse_date_code(val);
+    if (date) {
+      return `${date.y}-${String(date.m).padStart(2, "0")}-${String(date.d).padStart(2, "0")}`;
+    }
+    return undefined;
+  }
+  const str = String(val).trim();
+  if (INVALID_VALUES.includes(str)) return undefined;
+  // Validate YYYY-MM-DD format
+  if (/^\d{4}-\d{2}-\d{2}$/.test(str)) return str;
+  return undefined;
+}
+
 export function DeliveryImport({ onSuccess }: DeliveryImportProps) {
   const [open, setOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -154,16 +180,16 @@ export function DeliveryImport({ onSuccess }: DeliveryImportProps) {
           purpose: row["วัตถุประสงค์ (ซื้อ/ยืม/โอน)"] || undefined,
           lot_number_1: row["Lot Number 1"] || undefined,
           lot_number_2: row["Lot Number 2"] || undefined,
-          serial_number: row["Serial Number"] || undefined,
+          serial_number: cleanValue(row["Serial Number"]),
           unit_price: row["ราคาต่อชิ้น"] ? Number(row["ราคาต่อชิ้น"]) : undefined,
           is_asset: row["เป็นสินทรัพย์ (ใช่/ไม่)"] === "ใช่" || row["เป็นสินทรัพย์ (ใช่/ไม่)"] === "yes" || row["เป็นสินทรัพย์ (ใช่/ไม่)"] === "Yes",
-          asset_code: row["รหัสสินทรัพย์ (Asset Code)"] || undefined,
-          equipment_id_code: row["รหัส Equipment ID"] || undefined,
+          asset_code: cleanValue(row["รหัสสินทรัพย์ (Asset Code)"]),
+          equipment_id_code: cleanValue(row["รหัส Equipment ID"]),
           depreciation_months: row["ค่าเสื่อมราคา (เดือน)"] ? Number(row["ค่าเสื่อมราคา (เดือน)"]) : undefined,
           delivery_person_name: row["ชื่อผู้ส่ง"],
           delivery_person_phone: row["เบอร์โทรผู้ส่ง"] || undefined,
-          expiry_date: row["วันหมดอายุ (YYYY-MM-DD)"] || undefined,
-          warranty_expiry_date: row["วันสิ้นสุดรับประกัน (YYYY-MM-DD)"] || undefined,
+          expiry_date: parseDate(row["วันหมดอายุ (YYYY-MM-DD)"]),
+          warranty_expiry_date: parseDate(row["วันสิ้นสุดรับประกัน (YYYY-MM-DD)"]),
           storage_width_cm: row["กว้าง (cm)"] ? Number(row["กว้าง (cm)"]) : undefined,
           storage_height_cm: row["สูง (cm)"] ? Number(row["สูง (cm)"]) : undefined,
           storage_depth_cm: row["ลึก (cm)"] ? Number(row["ลึก (cm)"]) : undefined,
