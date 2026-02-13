@@ -2,7 +2,7 @@ import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Download, Upload, FileSpreadsheet, AlertCircle, CheckCircle2, Loader2 } from "lucide-react";
+import { Download, Upload, FileSpreadsheet, AlertCircle, CheckCircle2, Loader2, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
@@ -72,6 +72,7 @@ export function DeliveryImport({ onSuccess }: DeliveryImportProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [importData, setImportData] = useState<ImportRow[]>([]);
   const [errors, setErrors] = useState<string[]>([]);
+  const [warnings, setWarnings] = useState<string[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const downloadTemplate = () => {
@@ -148,6 +149,7 @@ export function DeliveryImport({ onSuccess }: DeliveryImportProps) {
 
       const parsedData: ImportRow[] = [];
       const parseErrors: string[] = [];
+      const parseWarnings: string[] = [];
 
       jsonData.forEach((row: any, index) => {
         const rowNum = index + 2; // Excel row (1-indexed + header)
@@ -167,6 +169,29 @@ export function DeliveryImport({ onSuccess }: DeliveryImportProps) {
           return;
         }
 
+        // Validate and warn about auto-corrected values
+        const rawExpiryDate = row["วันหมดอายุ (YYYY-MM-DD)"];
+        const rawWarrantyDate = row["วันสิ้นสุดรับประกัน (YYYY-MM-DD)"];
+        const rawAssetCode = row["รหัสสินทรัพย์ (Asset Code)"];
+        const rawEquipmentId = row["รหัส Equipment ID"];
+        const rawSerial = row["Serial Number"];
+
+        if (rawExpiryDate && !parseDate(rawExpiryDate)) {
+          parseWarnings.push(`แถว ${rowNum}: วันหมดอายุ "${rawExpiryDate}" ไม่ถูกต้อง (ต้องเป็น YYYY-MM-DD) → ข้ามค่านี้`);
+        }
+        if (rawWarrantyDate && !parseDate(rawWarrantyDate)) {
+          parseWarnings.push(`แถว ${rowNum}: วันสิ้นสุดรับประกัน "${rawWarrantyDate}" ไม่ถูกต้อง (ต้องเป็น YYYY-MM-DD) → ข้ามค่านี้`);
+        }
+        if (rawAssetCode && !cleanValue(rawAssetCode)) {
+          parseWarnings.push(`แถว ${rowNum}: รหัสสินทรัพย์ "${rawAssetCode}" ไม่ถูกต้อง → ข้ามค่านี้`);
+        }
+        if (rawEquipmentId && !cleanValue(rawEquipmentId)) {
+          parseWarnings.push(`แถว ${rowNum}: รหัส Equipment ID "${rawEquipmentId}" ไม่ถูกต้อง → ข้ามค่านี้`);
+        }
+        if (rawSerial && !cleanValue(rawSerial)) {
+          parseWarnings.push(`แถว ${rowNum}: Serial Number "${rawSerial}" ไม่ถูกต้อง → ข้ามค่านี้`);
+        }
+
         parsedData.push({
           equipment_code: row["รหัสสินค้า"] || undefined,
           equipment_name: row["ชื่อสินค้า"] || undefined,
@@ -180,16 +205,16 @@ export function DeliveryImport({ onSuccess }: DeliveryImportProps) {
           purpose: row["วัตถุประสงค์ (ซื้อ/ยืม/โอน)"] || undefined,
           lot_number_1: row["Lot Number 1"] || undefined,
           lot_number_2: row["Lot Number 2"] || undefined,
-          serial_number: cleanValue(row["Serial Number"]),
+          serial_number: cleanValue(rawSerial),
           unit_price: row["ราคาต่อชิ้น"] ? Number(row["ราคาต่อชิ้น"]) : undefined,
           is_asset: row["เป็นสินทรัพย์ (ใช่/ไม่)"] === "ใช่" || row["เป็นสินทรัพย์ (ใช่/ไม่)"] === "yes" || row["เป็นสินทรัพย์ (ใช่/ไม่)"] === "Yes",
-          asset_code: cleanValue(row["รหัสสินทรัพย์ (Asset Code)"]),
-          equipment_id_code: cleanValue(row["รหัส Equipment ID"]),
+          asset_code: cleanValue(rawAssetCode),
+          equipment_id_code: cleanValue(rawEquipmentId),
           depreciation_months: row["ค่าเสื่อมราคา (เดือน)"] ? Number(row["ค่าเสื่อมราคา (เดือน)"]) : undefined,
           delivery_person_name: row["ชื่อผู้ส่ง"],
           delivery_person_phone: row["เบอร์โทรผู้ส่ง"] || undefined,
-          expiry_date: parseDate(row["วันหมดอายุ (YYYY-MM-DD)"]),
-          warranty_expiry_date: parseDate(row["วันสิ้นสุดรับประกัน (YYYY-MM-DD)"]),
+          expiry_date: parseDate(rawExpiryDate),
+          warranty_expiry_date: parseDate(rawWarrantyDate),
           storage_width_cm: row["กว้าง (cm)"] ? Number(row["กว้าง (cm)"]) : undefined,
           storage_height_cm: row["สูง (cm)"] ? Number(row["สูง (cm)"]) : undefined,
           storage_depth_cm: row["ลึก (cm)"] ? Number(row["ลึก (cm)"]) : undefined,
@@ -199,9 +224,12 @@ export function DeliveryImport({ onSuccess }: DeliveryImportProps) {
 
       setImportData(parsedData);
       setErrors(parseErrors);
+      setWarnings(parseWarnings);
 
       if (parsedData.length === 0) {
         toast.error("ไม่พบข้อมูลที่สามารถนำเข้าได้");
+      } else if (parseWarnings.length > 0) {
+        toast.warning(`พบข้อมูล ${parsedData.length} รายการ แต่มี ${parseWarnings.length} คำเตือน`);
       } else {
         toast.success(`พบข้อมูล ${parsedData.length} รายการ พร้อมนำเข้า`);
       }
@@ -338,7 +366,25 @@ export function DeliveryImport({ onSuccess }: DeliveryImportProps) {
             </div>
           )}
 
-          {/* Preview */}
+          {/* Warnings */}
+          {warnings.length > 0 && (
+            <div className="p-4 bg-warning/10 border border-warning/30 rounded-lg">
+              <div className="flex items-center gap-2 text-warning mb-2">
+                <AlertTriangle className="h-4 w-4" />
+                <span className="font-medium">คำเตือน: ข้อมูลบางส่วนถูกแก้ไขอัตโนมัติ ({warnings.length} รายการ)</span>
+              </div>
+              <p className="text-xs text-muted-foreground mb-2">ค่าที่ไม่ถูกต้อง (เช่น "-", "#N/A", "N/A") จะถูกข้ามและไม่บันทึกลงฐานข้อมูล สามารถนำเข้าได้ตามปกติ</p>
+              <ul className="list-disc list-inside text-sm text-warning max-h-32 overflow-auto">
+                {warnings.slice(0, 20).map((warn, i) => (
+                  <li key={i}>{warn}</li>
+                ))}
+                {warnings.length > 20 && (
+                  <li className="text-muted-foreground">...และอีก {warnings.length - 20} รายการ</li>
+                )}
+              </ul>
+            </div>
+          )}
+
           {importData.length > 0 && (
             <div className="space-y-3">
               <div className="flex items-center gap-2 text-green-600">
