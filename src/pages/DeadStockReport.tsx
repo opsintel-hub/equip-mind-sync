@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { format, differenceInDays } from "date-fns";
 import * as XLSX from "xlsx";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from "recharts";
+import { useAllowedDepartments } from "@/hooks/useAllowedDepartments";
 
 interface Equipment {
   id: string;
@@ -74,8 +75,23 @@ const DeadStockReport = () => {
   const [selectedDepartment, setSelectedDepartment] = useState<string>("all");
   const [selectedAgeGroup, setSelectedAgeGroup] = useState<string>("all");
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
-  const [departments, setDepartments] = useState<string[]>([]);
+  const [allDepartments, setAllDepartments] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+
+  const { allowedDepartments, isAdmin, isSingleDepartment, loading: permLoading } = useAllowedDepartments();
+  const allowedDeptNames = useMemo(() => allowedDepartments.map(d => d.name), [allowedDepartments]);
+
+  // Filter departments by permissions
+  const departments = useMemo(() => {
+    return isAdmin ? allDepartments : allDepartments.filter(d => allowedDeptNames.includes(d));
+  }, [allDepartments, isAdmin, allowedDeptNames]);
+
+  // Auto-select if single department
+  useEffect(() => {
+    if (!permLoading && isSingleDepartment && allowedDepartments.length === 1 && selectedDepartment === "all") {
+      setSelectedDepartment(allowedDepartments[0].name);
+    }
+  }, [permLoading, isSingleDepartment, allowedDepartments, selectedDepartment]);
 
   useEffect(() => {
     fetchData();
@@ -111,7 +127,7 @@ const DeadStockReport = () => {
       setLocations(locationsRes.data);
     }
     if (deptRes.data) {
-      setDepartments(deptRes.data.map(d => d.name));
+      setAllDepartments(deptRes.data.map(d => d.name));
     }
     if (catRes.data) {
       setCategories(catRes.data);
@@ -299,12 +315,12 @@ const DeadStockReport = () => {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-2">
               <label className="text-sm font-medium">ฝ่าย</label>
-              <Select value={selectedDepartment} onValueChange={setSelectedDepartment}>
+              <Select value={selectedDepartment} onValueChange={setSelectedDepartment} disabled={isSingleDepartment}>
                 <SelectTrigger>
                   <SelectValue placeholder="เลือกฝ่าย" />
                 </SelectTrigger>
                 <SelectContent position="popper" sideOffset={4} className="bg-background z-[200] max-h-60 overflow-y-auto">
-                  <SelectItem value="all">ทั้งหมด</SelectItem>
+                  {!isSingleDepartment && <SelectItem value="all">ทั้งหมด</SelectItem>}
                   {departments.map(dept => (
                     <SelectItem key={dept} value={dept}>{dept}</SelectItem>
                   ))}

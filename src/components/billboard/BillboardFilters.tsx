@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Filter, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { useAllowedDepartments } from "@/hooks/useAllowedDepartments";
 
 interface BillboardFiltersProps {
   filters: {
@@ -20,6 +21,8 @@ interface BillboardFiltersProps {
 }
 
 const BillboardFilters = ({ filters, onFilterChange, onClearFilters }: BillboardFiltersProps) => {
+  const { allowedDepartments, isAdmin } = useAllowedDepartments();
+
   // Fetch distinct filter values
   const { data: filterOptions } = useQuery({
     queryKey: ["billboard-filter-options"],
@@ -31,12 +34,19 @@ const BillboardFilters = ({ filters, onFilterChange, onClearFilters }: Billboard
 
       const regions = [...new Set(data.map(b => b.region).filter(Boolean))].sort();
       const districts = [...new Set(data.map(b => b.district).filter(Boolean))].sort();
-      const departments = [...new Set(data.map(b => b.department).filter(Boolean))].sort();
+      const allDepartments = [...new Set(data.map(b => b.department).filter(Boolean))].sort();
       const mediaTypes = [...new Set(data.map(b => b.media_type).filter(Boolean))].sort();
       const statuses = [...new Set(data.map(b => b.status).filter(Boolean))].sort();
 
+      // Filter departments by allowed list
+      const allowedNames = allowedDepartments.map(d => d.name);
+      const departments = isAdmin
+        ? allDepartments
+        : allDepartments.filter(d => allowedNames.includes(d!));
+
       return { regions, districts, departments, mediaTypes, statuses };
     },
+    enabled: allowedDepartments.length > 0 || isAdmin,
   });
 
   const hasActiveFilters = Object.values(filters).some(v => v !== "");

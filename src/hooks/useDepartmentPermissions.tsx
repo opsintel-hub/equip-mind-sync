@@ -10,11 +10,12 @@ export interface DepartmentPermission {
   can_delete: boolean;
 }
 
-const ALL_DEPARTMENTS = ["Airport", "Digital", "Billboard", "Static", "Bus", "7 Eleven", "Construction", "HR", "Account", "ของขวัญปีใหม่"];
+// ALL_DEPARTMENTS removed - now fetched dynamically from DB
 
 export function useDepartmentPermissions() {
   const { user } = useAuth();
   const [permissions, setPermissions] = useState<DepartmentPermission[]>([]);
+  const [allDepartmentNames, setAllDepartmentNames] = useState<string[]>([]);
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -28,26 +29,17 @@ export function useDepartmentPermissions() {
 
     const fetchPermissions = async () => {
       try {
-        // Check if user is admin
-        const { data: roleData } = await supabase
-          .from("user_roles")
-          .select("role")
-          .eq("user_id", user.id)
-          .eq("role", "admin")
-          .maybeSingle();
+        // Check if user is admin + fetch permissions + fetch all departments in parallel
+        const [roleRes, permsRes, deptRes] = await Promise.all([
+          supabase.from("user_roles").select("role").eq("user_id", user.id).eq("role", "admin").maybeSingle(),
+          supabase.from("user_departments").select("*").eq("user_id", user.id),
+          supabase.from("departments").select("name").eq("is_active", true).order("name"),
+        ]);
 
-        const isAdminUser = !!roleData;
+        const isAdminUser = !!roleRes.data;
         setIsAdmin(isAdminUser);
-
-        // Fetch department permissions
-        const { data: perms, error } = await supabase
-          .from("user_departments")
-          .select("*")
-          .eq("user_id", user.id);
-
-        if (error) throw error;
-
-        setPermissions(perms || []);
+        setPermissions(permsRes.data || []);
+        setAllDepartmentNames((deptRes.data || []).map(d => d.name));
       } catch (error) {
         console.error("Error fetching permissions:", error);
         setPermissions([]);
@@ -76,7 +68,7 @@ export function useDepartmentPermissions() {
   };
 
   const getViewableDepartments = (): string[] => {
-    if (isAdmin) return ALL_DEPARTMENTS;
+    if (isAdmin) return allDepartmentNames;
     return permissions.filter(p => p.can_view).map(p => p.department);
   };
 

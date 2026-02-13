@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,7 @@ import { format, addDays, differenceInDays, parseISO } from "date-fns";
 import { th } from "date-fns/locale";
 import { Plus, Search, RefreshCw, Calendar, Wrench, PlayCircle, Pause, Edit, Trash2 } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { useAllowedDepartments } from "@/hooks/useAllowedDepartments";
 
 const ToolPMSchedule = () => {
   const queryClient = useQueryClient();
@@ -102,8 +103,18 @@ const ToolPMSchedule = () => {
     }
   });
 
-  // Get unique departments
-  const departments = [...new Set(pmSummary.map((t: any) => t.department).filter(Boolean))];
+  // Get departments filtered by permissions
+  const { allowedDepartments, isAdmin: isAdminDept, isSingleDepartment } = useAllowedDepartments();
+  const allowedDeptNames = allowedDepartments.map(d => d.name);
+  const allDepts = [...new Set(pmSummary.map((t: any) => t.department).filter(Boolean))];
+  const departments = isAdminDept ? allDepts : allDepts.filter(d => allowedDeptNames.includes(d as string));
+
+  // Auto-select if single department
+  useEffect(() => {
+    if (isSingleDepartment && allowedDepartments.length === 1 && departmentFilter === "all") {
+      setDepartmentFilter(allowedDepartments[0].name);
+    }
+  }, [isSingleDepartment, allowedDepartments, departmentFilter]);
 
   // Filter tools
   const filteredSummary = pmSummary.filter((tool: any) => {
@@ -311,12 +322,12 @@ const ToolPMSchedule = () => {
                   className="pl-10 w-[200px]"
                 />
               </div>
-              <Select value={departmentFilter} onValueChange={setDepartmentFilter}>
+              <Select value={departmentFilter} onValueChange={setDepartmentFilter} disabled={isSingleDepartment}>
                 <SelectTrigger className="w-[180px]">
                   <SelectValue placeholder="เลือกฝ่าย" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">ทุกฝ่าย</SelectItem>
+                  {!isSingleDepartment && <SelectItem value="all">ทุกฝ่าย</SelectItem>}
                   {departments.map((dept: any) => (
                     <SelectItem key={dept} value={dept}>{dept}</SelectItem>
                   ))}

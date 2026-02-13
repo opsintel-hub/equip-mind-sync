@@ -7,6 +7,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { SearchableSelect } from "@/components/ui/searchable-select";
+import { useAllowedDepartments } from "@/hooks/useAllowedDepartments";
 
 interface Department {
   id: string;
@@ -21,6 +22,7 @@ interface DepartmentSelectProps {
 }
 
 export function DepartmentSelect({ value, onChange, disabled }: DepartmentSelectProps) {
+  const { allowedDepartments, isSingleDepartment, isAdmin, loading: permLoading } = useAllowedDepartments();
   const [departments, setDepartments] = useState<Department[]>([]);
   const [isManageOpen, setIsManageOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -49,6 +51,13 @@ export function DepartmentSelect({ value, onChange, disabled }: DepartmentSelect
   useEffect(() => {
     fetchDepartments();
   }, []);
+
+  // Auto-select if only one department
+  useEffect(() => {
+    if (!permLoading && isSingleDepartment && allowedDepartments.length === 1 && value !== allowedDepartments[0].name) {
+      onChange(allowedDepartments[0].name);
+    }
+  }, [permLoading, isSingleDepartment, allowedDepartments, value, onChange]);
 
   const handleAdd = async () => {
     if (!newName.trim()) {
@@ -111,7 +120,12 @@ export function DepartmentSelect({ value, onChange, disabled }: DepartmentSelect
     }
   };
 
-  const options = departments.map((dept) => ({
+  // Filter departments by allowed list
+  const filteredDepartments = isAdmin
+    ? departments
+    : departments.filter(d => allowedDepartments.some(ad => ad.name === d.name));
+
+  const options = filteredDepartments.map((dept) => ({
     value: dept.name,
     label: dept.name,
     description: dept.description || undefined,
@@ -128,7 +142,8 @@ export function DepartmentSelect({ value, onChange, disabled }: DepartmentSelect
             placeholder="เลือกฝ่าย"
             searchPlaceholder="ค้นหาฝ่าย..."
             emptyMessage="ไม่พบฝ่าย"
-            disabled={disabled}
+            disabled={disabled || isSingleDepartment}
+            isLoading={permLoading}
           />
         </div>
         <Button
