@@ -1,13 +1,6 @@
-import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
+import { useEffect } from "react";
+import { useAllowedDepartments } from "@/hooks/useAllowedDepartments";
 import { SearchableSelect } from "@/components/ui/searchable-select";
-
-interface Department {
-  id: string;
-  name: string;
-  description: string | null;
-}
 
 interface SimpleDepartmentSelectProps {
   value: string;
@@ -16,28 +9,16 @@ interface SimpleDepartmentSelectProps {
 }
 
 export function SimpleDepartmentSelect({ value, onChange, disabled }: SimpleDepartmentSelectProps) {
-  const [departments, setDepartments] = useState<Department[]>([]);
+  const { allowedDepartments, isSingleDepartment, loading } = useAllowedDepartments();
 
-  const fetchDepartments = async () => {
-    const { data, error } = await supabase
-      .from("departments")
-      .select("*")
-      .eq("is_active", true)
-      .order("name");
-
-    if (error) {
-      console.error("Error fetching departments:", error);
-      toast.error("ไม่สามารถโหลดข้อมูลฝ่ายได้");
-    } else {
-      setDepartments(data || []);
-    }
-  };
-
+  // Auto-select if only one department
   useEffect(() => {
-    fetchDepartments();
-  }, []);
+    if (!loading && isSingleDepartment && allowedDepartments.length === 1 && value !== allowedDepartments[0].name) {
+      onChange(allowedDepartments[0].name);
+    }
+  }, [loading, isSingleDepartment, allowedDepartments, value, onChange]);
 
-  const options = departments.map((dept) => ({
+  const options = allowedDepartments.map((dept) => ({
     value: dept.name,
     label: dept.name,
     description: dept.description || undefined,
@@ -51,7 +32,8 @@ export function SimpleDepartmentSelect({ value, onChange, disabled }: SimpleDepa
       placeholder="เลือกฝ่าย"
       searchPlaceholder="ค้นหาฝ่าย..."
       emptyMessage="ไม่พบฝ่าย"
-      disabled={disabled}
+      disabled={disabled || isSingleDepartment}
+      isLoading={loading}
     />
   );
 }

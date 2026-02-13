@@ -235,6 +235,7 @@ const DeliveryEntry = () => {
     }
   };
   const fetchDepartments = async () => {
+    // Departments are now filtered via useAllowedDepartments in the component
     const {
       data,
       error

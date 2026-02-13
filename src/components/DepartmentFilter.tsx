@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { useDepartmentPermissions } from "@/hooks/useDepartmentPermissions";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 
@@ -12,8 +13,17 @@ export function DepartmentFilter({ value, onChange, showAll = true }: Department
 
   const viewableDepartments = getViewableDepartments();
 
+  // Auto-select if only one department and not admin
+  useEffect(() => {
+    if (!loading && !isAdmin && viewableDepartments.length === 1 && value !== viewableDepartments[0]) {
+      onChange(viewableDepartments[0]);
+    }
+  }, [loading, isAdmin, viewableDepartments, value, onChange]);
+
+  const isSingleDepartment = !isAdmin && viewableDepartments.length === 1;
+
   const options = [
-    ...((showAll || isAdmin) ? [{ value: "all", label: "ทุกฝ่าย" }] : []),
+    ...((showAll || isAdmin) && !isSingleDepartment ? [{ value: "all", label: "ทุกฝ่าย" }] : []),
     ...viewableDepartments.map((dept) => ({
       value: dept,
       label: dept,
@@ -31,6 +41,7 @@ export function DepartmentFilter({ value, onChange, showAll = true }: Department
         emptyMessage="ไม่พบฝ่าย"
         isLoading={loading}
         triggerClassName="w-full"
+        disabled={isSingleDepartment}
       />
     </div>
   );

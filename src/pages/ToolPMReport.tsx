@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -26,6 +26,7 @@ import { toast } from "sonner";
 import { format, startOfYear, endOfYear, differenceInDays, parseISO } from "date-fns";
 import { th } from "date-fns/locale";
 import * as XLSX from "xlsx";
+import { useAllowedDepartments } from "@/hooks/useAllowedDepartments";
 
 interface Tool {
   id: string;
@@ -56,7 +57,20 @@ const ToolPMReport = () => {
   const [selectedDepartment, setSelectedDepartment] = useState<string>("all");
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
   const [selectedMonth, setSelectedMonth] = useState<string>("all");
-  const [departments, setDepartments] = useState<string[]>([]);
+  const [allDepartments, setAllDepartments] = useState<string[]>([]);
+
+  const { allowedDepartments, isAdmin, isSingleDepartment, loading: permLoading } = useAllowedDepartments();
+  const allowedDeptNames = useMemo(() => allowedDepartments.map(d => d.name), [allowedDepartments]);
+  const departments = useMemo(() => {
+    return isAdmin ? allDepartments : allDepartments.filter(d => allowedDeptNames.includes(d));
+  }, [allDepartments, isAdmin, allowedDeptNames]);
+
+  // Auto-select if single department
+  useEffect(() => {
+    if (!permLoading && isSingleDepartment && allowedDepartments.length === 1 && selectedDepartment === "all") {
+      setSelectedDepartment(allowedDepartments[0].name);
+    }
+  }, [permLoading, isSingleDepartment, allowedDepartments, selectedDepartment]);
 
   useEffect(() => {
     fetchData();
@@ -93,7 +107,7 @@ const ToolPMReport = () => {
       
       setTools(toolsData || []);
       setPmTasks(tasksData || []);
-      setDepartments(depts);
+      setAllDepartments(depts);
     } catch (error) {
       console.error("Error fetching data:", error);
       toast.error("ไม่สามารถโหลดข้อมูลได้");
@@ -331,12 +345,12 @@ const ToolPMReport = () => {
 
             <div className="space-y-2">
               <Label>ฝ่าย</Label>
-              <Select value={selectedDepartment} onValueChange={setSelectedDepartment}>
+              <Select value={selectedDepartment} onValueChange={setSelectedDepartment} disabled={isSingleDepartment}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">ทั้งหมด</SelectItem>
+                  {!isSingleDepartment && <SelectItem value="all">ทั้งหมด</SelectItem>}
                   {departments.map((dept) => (
                     <SelectItem key={dept} value={dept}>
                       {dept}

@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { formatBillboardLabel } from "@/lib/billboardUtils";
@@ -16,6 +16,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Skeleton } from "@/components/ui/skeleton";
 import { Checkbox } from "@/components/ui/checkbox";
 import * as XLSX from "xlsx";
+import { useAllowedDepartments } from "@/hooks/useAllowedDepartments";
 
 // ─── Helpers ─────────────────────────────────────────────
 
@@ -139,8 +140,20 @@ function BillboardViewTab() {
   });
 
   const regions = useMemo(() => [...new Set(billboards?.map(b => b.region).filter(Boolean) || [])].sort(), [billboards]);
-  const departments = useMemo(() => [...new Set(billboards?.map(b => b.department).filter(Boolean) || [])].sort(), [billboards]);
+  const { allowedDepartments, isAdmin: isAdminDept, isSingleDepartment } = useAllowedDepartments();
+  const allowedDeptNames = useMemo(() => allowedDepartments.map(d => d.name), [allowedDepartments]);
+  const departments = useMemo(() => {
+    const allDepts = [...new Set(billboards?.map(b => b.department).filter(Boolean) || [])].sort();
+    return isAdminDept ? allDepts : allDepts.filter(d => allowedDeptNames.includes(d!));
+  }, [billboards, isAdminDept, allowedDeptNames]);
   const mediaTypes = useMemo(() => [...new Set(billboards?.map(b => b.media_type).filter(Boolean) || [])].sort(), [billboards]);
+
+  // Auto-select if single department
+  useEffect(() => {
+    if (isSingleDepartment && allowedDepartments.length === 1 && deptFilter === "all") {
+      setDeptFilter(allowedDepartments[0].name);
+    }
+  }, [isSingleDepartment, allowedDepartments, deptFilter]);
 
   // Group equipment by billboard
   const equipByBillboard = useMemo(() => {
@@ -287,10 +300,10 @@ function BillboardViewTab() {
             {regions.map(r => <SelectItem key={r} value={r!}>{r}</SelectItem>)}
           </SelectContent>
         </Select>
-        <Select value={deptFilter} onValueChange={setDeptFilter}>
+        <Select value={deptFilter} onValueChange={setDeptFilter} disabled={isSingleDepartment}>
           <SelectTrigger className="w-[160px]"><SelectValue placeholder="Department" /></SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">ทุก Department</SelectItem>
+            {!isSingleDepartment && <SelectItem value="all">ทุก Department</SelectItem>}
             {departments.map(d => <SelectItem key={d} value={d!}>{d}</SelectItem>)}
           </SelectContent>
         </Select>
