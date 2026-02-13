@@ -1,78 +1,47 @@
 
 
-# แผนผูกฝ่ายกับ Master Data และล็อค Dropdown ตามสิทธิ์
+# แผนแก้ไข: เพิ่ม Progress Bar และปรับปรุงประสิทธิภาพการนำเข้า Billboard
 
-## ขั้นตอนที่ 1: แก้ไขข้อมูล departments ให้ตรงกับข้อมูลจริง
+## ปัญหาที่พบ
 
-ปัจจุบันชื่อฝ่ายไม่ตรงกันข้ามตาราง ต้องแก้ให้ตรงกันก่อน:
+1. **ไม่มี Progress Indicator** - เมื่อกดปุ่ม "นำเข้า 92 รายการ" ระบบแสดงเพียง "กำลังนำเข้า..." โดยไม่มี % ความคืบหน้า ทำให้ไม่รู้ว่าระบบทำงานอยู่หรือค้าง
+2. **Update ทีละแถว** - สำหรับข้อมูลที่ต้อง update จะทำทีละ row ซึ่งช้ามากเมื่อมีหลายร้อย/พันแถว
+3. **ไม่มี mapping สำหรับ Status และ Notes จาก Excel** - คอลัมน์ Status และ Notes ในไฟล์ Excel ถูกข้ามไปไม่ได้นำเข้า
 
-| ตาราง departments (ปัจจุบัน) | ข้อมูลจริงที่ใช้ | การดำเนินการ |
-|---|---|---|
-| Airport | Airport Media (ใน billboards) | เปลี่ยนเป็น "Airport Media" |
-| HR PlanB | ไม่มีใน data จริง | คงไว้ (อาจใช้ในอนาคต) |
-| Production | ไม่มีใน data จริง | คงไว้ |
-| Store Center | มีใน locations | คงไว้ |
+## การแก้ไข (1 ไฟล์)
 
-พร้อมกัน ต้อง update ข้อมูลในตารางอื่นที่ใช้ "Airport" เป็น "Airport Media" ให้ตรงกัน:
-- `equipment.department` = "Airport" -> "Airport Media"
-- `user_departments.department` = "Airport" -> "Airport Media"
+### `src/components/billboard/BillboardImport.tsx`
 
-## ขั้นตอนที่ 2: ลบ Hardcode ALL_DEPARTMENTS
+1. **เพิ่ม Progress Bar แบบ real-time** แสดง:
+   - จำนวนรายการที่ดำเนินการแล้ว / ทั้งหมด (เช่น "45/92")
+   - เปอร์เซ็นต์ความคืบหน้า (เช่น "49%")
+   - แถบ progress แบบ visual
+   - สถานะปัจจุบัน: "กำลังเพิ่มข้อมูลใหม่..." / "กำลังอัพเดทข้อมูล..."
 
-ลบ array ที่ hardcode ไว้ใน `useDepartmentPermissions.tsx` แล้วให้ `getViewableDepartments()` สำหรับ Admin ดึงจากตาราง `departments` แทน
+2. **ปรับ update records เป็น batch** - ใช้ upsert หรือ batch update แทนการ update ทีละแถว เพื่อเพิ่มความเร็ว
 
-## ขั้นตอนที่ 3: สร้าง Hook กลาง `useAllowedDepartments`
+3. **เพิ่ม mapping คอลัมน์ Notes** จากไฟล์ Excel เข้าสู่ฐานข้อมูล
 
-สร้าง hook ใหม่ที่:
-- ดึงฝ่ายทั้งหมดจาก DB (`departments` table)
-- กรองตามสิทธิ์ผู้ใช้ (จาก `user_departments`)
-- Admin เห็นทุกฝ่าย / ผู้ใช้ทั่วไปเห็นเฉพาะฝ่ายตัวเอง
-- ถ้ามีฝ่ายเดียว -> auto-select + ล็อค dropdown
+## รายละเอียดทางเทคนิค
 
-## ขั้นตอนที่ 4: ปรับ Dropdown ทั้งระบบ
+### Progress State
 
-### ไฟล์ใหม่ (1 ไฟล์)
-
-| ไฟล์ | คำอธิบาย |
-|------|----------|
-| `src/hooks/useAllowedDepartments.tsx` | Hook กลางดึงฝ่ายจาก DB + กรองตามสิทธิ์ |
-
-### ไฟล์ที่ต้องแก้ไข (9 ไฟล์)
-
-| # | ไฟล์ | การเปลี่ยนแปลง |
-|---|------|---------------|
-| 1 | `src/hooks/useDepartmentPermissions.tsx` | ลบ `ALL_DEPARTMENTS` hardcode, ให้ `getViewableDepartments` ดึงจาก DB |
-| 2 | `src/components/equipment/SimpleDepartmentSelect.tsx` | ใช้ `useAllowedDepartments` แทนดึงทุกฝ่าย + auto-lock |
-| 3 | `src/components/equipment/DepartmentSelect.tsx` | กรอง departments ตามสิทธิ์ |
-| 4 | `src/components/DepartmentFilter.tsx` | ปรับ auto-select ถ้ามีฝ่ายเดียว |
-| 5 | `src/pages/DeliveryEntry.tsx` | กรอง departments + auto-select |
-| 6 | `src/components/billboard/BillboardFilters.tsx` | กรอง department filter ตามสิทธิ์ |
-| 7 | `src/pages/EquipmentTrackingReport.tsx` | กรอง departments ตามสิทธิ์ |
-| 8 | `src/pages/DeadStockReport.tsx` | กรอง departments ตามสิทธิ์ |
-| 9 | `src/pages/ToolPMSchedule.tsx` | กรอง departments ตามสิทธิ์ |
-
-### รายละเอียดทางเทคนิค
-
-**useAllowedDepartments Hook:**
 ```text
-Input: permission type (default: "view")
-Output:
-  - allowedDepartments: { id, name, description }[]
-  - isAdmin: boolean
-  - isSingleDepartment: boolean
-  - loading: boolean
+progressState: {
+  current: number      // จำนวนที่ทำแล้ว
+  total: number        // จำนวนทั้งหมด
+  phase: string        // "inserting" | "updating"
+}
 ```
 
-**Auto-lock Logic:**
-- ถ้าผู้ใช้มีฝ่ายเดียว -> ตั้งค่าอัตโนมัติ + disabled dropdown
-- ถ้ามีหลายฝ่าย -> แสดงเฉพาะฝ่ายที่มีสิทธิ์
-- Admin -> เห็นทุกฝ่าย เลือกได้อิสระ
+### ปรับ confirmImport function
 
-### ขั้นตอนดำเนินงาน
+- เพิ่ม state `importProgress` เพื่อ track ความคืบหน้า
+- ทุกครั้งที่ insert/update batch สำเร็จ -> update progress
+- Progress bar จะ re-render ทันทีที่ state เปลี่ยน
 
-1. Update ข้อมูล: เปลี่ยน "Airport" เป็น "Airport Media" ในทุกตาราง
-2. สร้าง `useAllowedDepartments.tsx`
-3. แก้ `useDepartmentPermissions.tsx` ลบ hardcode
-4. แก้ทุก component/page ที่มี department dropdown (8 ไฟล์)
+### ปรับ Update Logic
 
-ไม่ต้องทำ Database Migration (ไม่เปลี่ยน schema) -- แค่ update ข้อมูลและแก้โค้ด
+- รวม update records เป็น batch โดยใช้ Promise.all กับ chunk ขนาด 10-20 records เพื่อทำพร้อมกัน
+- อัพเดท progress ทุก batch
+
