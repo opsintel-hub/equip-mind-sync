@@ -4,16 +4,6 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Progress } from "@/components/ui/progress";
 import { Upload, FileSpreadsheet, CheckCircle, XCircle, AlertCircle, Download, AlertTriangle, HelpCircle, ChevronDown } from "lucide-react";
@@ -84,7 +74,7 @@ const BillboardImport = ({ onSuccess, onCancel }: BillboardImportProps) => {
   const [previewData, setPreviewData] = useState<ImportRow[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
-  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
   const [isHelpOpen, setIsHelpOpen] = useState(false);
   const [importProgress, setImportProgress] = useState<{ current: number; total: number; phase: string } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -238,7 +228,7 @@ const BillboardImport = ({ onSuccess, onCancel }: BillboardImportProps) => {
       toast.error("กรุณาแก้ไขข้อมูลที่มีปัญหาในไฟล์ Excel ก่อนนำเข้า");
       return;
     }
-    setShowConfirmDialog(true);
+    setShowConfirm(true);
   };
 
   // ทำการ Import จริง
@@ -318,12 +308,12 @@ const BillboardImport = ({ onSuccess, onCancel }: BillboardImportProps) => {
       setImportProgress({ current: totalItems, total: totalItems, phase: "เสร็จสิ้น!" });
       await yieldToUI();
       toast.success(`นำเข้าสำเร็จ: เพิ่มใหม่ ${insertedCount} รายการ, อัพเดท ${updatedCount} รายการ`);
-      setShowConfirmDialog(false);
+      setShowConfirm(false);
       onSuccess();
     } catch (error: any) {
       const friendlyMessage = translateDatabaseError(error);
       toast.error(friendlyMessage);
-      setShowConfirmDialog(false);
+      setShowConfirm(false);
     } finally {
       setIsImporting(false);
       setTimeout(() => setImportProgress(null), 3000);
@@ -549,17 +539,54 @@ const BillboardImport = ({ onSuccess, onCancel }: BillboardImportProps) => {
         </Card>
       )}
 
-      {/* Progress Bar - แสดงเหนือปุ่มกด */}
-      {importProgress && !showConfirmDialog && (
+      {/* Inline Confirmation & Progress - ไม่ใช้ AlertDialog เพราะซ้อน Dialog ไม่ได้ */}
+      {showConfirm && !isImporting && (
+        <Card className="border-primary/30 bg-primary/5">
+          <CardContent className="pt-6 space-y-4">
+            <h3 className="font-semibold text-lg">ยืนยันการนำเข้าข้อมูล</h3>
+            <ul className="space-y-3">
+              {newCount > 0 && (
+                <li className="flex items-center gap-3 p-2 rounded-lg bg-success/10">
+                  <CheckCircle className="h-5 w-5 text-success flex-shrink-0" />
+                  <span>เพิ่มป้ายใหม่: <strong>{newCount.toLocaleString()}</strong> รายการ</span>
+                </li>
+              )}
+              {updateCount > 0 && (
+                <li className="flex items-center gap-3 p-2 rounded-lg bg-warning/10">
+                  <AlertCircle className="h-5 w-5 text-warning flex-shrink-0" />
+                  <span>อัพเดทป้ายที่มีอยู่: <strong>{updateCount.toLocaleString()}</strong> รายการ</span>
+                </li>
+              )}
+            </ul>
+            {updateCount > 0 && (
+              <Alert className="bg-muted/50 border-muted">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>
+                  <strong>หมายเหตุ:</strong> การอัพเดทจะทับข้อมูลเดิมในระบบตาม OldCode
+                </AlertDescription>
+              </Alert>
+            )}
+            <div className="flex justify-end gap-3 pt-2">
+              <Button variant="outline" onClick={() => setShowConfirm(false)}>ยกเลิก</Button>
+              <Button onClick={() => confirmImport()}>ยืนยันนำเข้า</Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Progress Bar - แสดงระหว่างนำเข้า */}
+      {isImporting && importProgress && (
         <Card className="border-primary/30 bg-primary/5">
           <CardContent className="pt-6 space-y-3">
+            <h3 className="font-semibold text-lg">กำลังนำเข้าข้อมูล...</h3>
             <div className="flex items-center justify-between text-sm">
               <span className="font-medium">{importProgress.phase}</span>
               <span className="text-muted-foreground font-mono">
                 {importProgress.current}/{importProgress.total} ({importProgress.total > 0 ? Math.round((importProgress.current / importProgress.total) * 100) : 0}%)
               </span>
             </div>
-            <Progress value={importProgress.total > 0 ? (importProgress.current / importProgress.total) * 100 : 0} className="h-3" />
+            <Progress value={importProgress.total > 0 ? (importProgress.current / importProgress.total) * 100 : 0} className="h-4" />
+            <p className="text-sm text-muted-foreground text-center">กรุณาอย่าปิดหน้าต่างนี้ระหว่างการนำเข้า</p>
           </CardContent>
         </Card>
       )}
@@ -568,7 +595,7 @@ const BillboardImport = ({ onSuccess, onCancel }: BillboardImportProps) => {
         <Button variant="outline" onClick={onCancel} disabled={isImporting}>
           ยกเลิก
         </Button>
-        {previewData.length > 0 && (
+        {previewData.length > 0 && !showConfirm && (
           <Button 
             onClick={handleImportClick} 
             disabled={isImporting || !canImport}
@@ -577,75 +604,6 @@ const BillboardImport = ({ onSuccess, onCancel }: BillboardImportProps) => {
           </Button>
         )}
       </div>
-
-      {/* Confirmation Dialog - แสดง progress ระหว่างนำเข้า */}
-      <AlertDialog open={showConfirmDialog} onOpenChange={(open) => { if (!isImporting) setShowConfirmDialog(open); }}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{isImporting ? "กำลังนำเข้าข้อมูล..." : "ยืนยันการนำเข้าข้อมูล"}</AlertDialogTitle>
-            <AlertDialogDescription asChild>
-              <div className="space-y-4">
-                {!isImporting ? (
-                  <>
-                    <p>คุณกำลังจะดำเนินการดังนี้:</p>
-                    <ul className="space-y-3">
-                      {newCount > 0 && (
-                        <li className="flex items-center gap-3 p-2 rounded-lg bg-success/10">
-                          <CheckCircle className="h-5 w-5 text-success flex-shrink-0" />
-                          <span className="text-foreground">เพิ่มป้ายใหม่: <strong>{newCount.toLocaleString()}</strong> รายการ</span>
-                        </li>
-                      )}
-                      {updateCount > 0 && (
-                        <li className="flex items-center gap-3 p-2 rounded-lg bg-warning/10">
-                          <AlertCircle className="h-5 w-5 text-warning flex-shrink-0" />
-                          <span className="text-foreground">อัพเดทป้ายที่มีอยู่: <strong>{updateCount.toLocaleString()}</strong> รายการ</span>
-                        </li>
-                      )}
-                    </ul>
-                    {updateCount > 0 && (
-                      <Alert className="bg-muted/50 border-muted">
-                        <AlertCircle className="h-4 w-4" />
-                        <AlertDescription>
-                          <strong>หมายเหตุ:</strong> การอัพเดทจะทับข้อมูลเดิมในระบบตาม OldCode
-                        </AlertDescription>
-                      </Alert>
-                    )}
-                  </>
-                ) : (
-                  <div className="space-y-4 py-4">
-                    {importProgress && (
-                      <>
-                        <div className="flex items-center justify-between text-sm">
-                          <span className="font-medium text-foreground">{importProgress.phase}</span>
-                          <span className="text-muted-foreground font-mono">
-                            {importProgress.current}/{importProgress.total} ({importProgress.total > 0 ? Math.round((importProgress.current / importProgress.total) * 100) : 0}%)
-                          </span>
-                        </div>
-                        <Progress value={importProgress.total > 0 ? (importProgress.current / importProgress.total) * 100 : 0} className="h-4" />
-                      </>
-                    )}
-                    <p className="text-sm text-muted-foreground text-center">กรุณาอย่าปิดหน้าต่างนี้ระหว่างการนำเข้า</p>
-                  </div>
-                )}
-              </div>
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            {!isImporting ? (
-              <>
-                <AlertDialogCancel>ยกเลิก</AlertDialogCancel>
-                <Button onClick={() => confirmImport()}>
-                  ยืนยันนำเข้า
-                </Button>
-              </>
-            ) : (
-              <Button variant="outline" disabled>
-                กำลังนำเข้า...
-              </Button>
-            )}
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   );
 };
