@@ -1,6 +1,7 @@
-import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { SearchableMultiSelect, SearchableSelectOption } from "@/components/ui/searchable-select";
+import { SYSTEM_FUNCTIONS } from "@/hooks/useFunctionPermissions";
 import { 
   Shield, 
   ClipboardCheck, 
@@ -9,15 +10,10 @@ import {
   Send,
   ChevronDown,
   Eye,
-  FileText,
   Settings,
   Users,
-  Package,
-  MapPin,
-  Calendar,
-  BarChart3
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 
 interface RoleInfo {
   value: string;
@@ -26,7 +22,7 @@ interface RoleInfo {
   color: string;
   description: string;
   capabilities: string[];
-  accessiblePages: string[];
+  defaultFunctions: string[]; // function_name keys from SYSTEM_FUNCTIONS
 }
 
 const ROLE_DETAILS: RoleInfo[] = [
@@ -44,9 +40,7 @@ const ROLE_DETAILS: RoleInfo[] = [
       "จัดการข้อมูลหลัก (Master Data) ทั้งหมด",
       "ลบข้อมูลสินค้าและรายการต่างๆ"
     ],
-    accessiblePages: [
-      "ทุกหน้าในระบบ"
-    ]
+    defaultFunctions: SYSTEM_FUNCTIONS.map(f => f.name), // all functions
   },
   {
     value: "manager",
@@ -60,11 +54,7 @@ const ROLE_DETAILS: RoleInfo[] = [
       "ดูข้อมูลคลังสินค้าตามฝ่ายที่ได้รับสิทธิ์",
       "ตรวจสอบประวัติการทำรายการ"
     ],
-    accessiblePages: [
-      "Dashboard",
-      "รายงานสินค้าคงคลัง",
-      "ประวัติการเคลื่อนไหวสต็อก"
-    ]
+    defaultFunctions: ["reports"],
   },
   {
     value: "warehouse_staff",
@@ -80,13 +70,7 @@ const ROLE_DETAILS: RoleInfo[] = [
       "จัดการตำแหน่งจัดเก็บ",
       "บันทึกงาน PM (บำรุงรักษา)"
     ],
-    accessiblePages: [
-      "รับเข้าสินค้า",
-      "จ่ายสินค้า",
-      "โอนย้ายสินค้า",
-      "จัดการสินค้าและอะไหล่",
-      "PM ป้ายโฆษณา / เครื่องมือ"
-    ]
+    defaultFunctions: ["goods_receipt", "goods_issue", "transfer", "pm_schedule", "equipment_pm"],
   },
   {
     value: "receiver",
@@ -100,10 +84,7 @@ const ROLE_DETAILS: RoleInfo[] = [
       "อัพโหลดเอกสารการรับสินค้า",
       "เพิ่มสินค้าใหม่เข้าระบบ (ถ้าได้รับสิทธิ์)"
     ],
-    accessiblePages: [
-      "รับเข้าสินค้า",
-      "รายการรอรับ"
-    ]
+    defaultFunctions: ["goods_receipt"],
   },
   {
     value: "requester",
@@ -117,15 +98,31 @@ const ROLE_DETAILS: RoleInfo[] = [
       "ดูรายการสินค้าที่มีในคลัง (ตามฝ่ายที่ได้รับสิทธิ์)",
       "ยกเลิกคำขอที่ยังไม่ได้จ่าย"
     ],
-    accessiblePages: [
-      "ขอเบิกสินค้า",
-      "หน้าหลักผู้เบิก"
-    ]
+    defaultFunctions: ["issue_request"],
   }
 ];
 
 export function RoleDescriptions() {
   const [openRoles, setOpenRoles] = useState<string[]>([]);
+  
+  // Build initial selected functions per role from defaults
+  const [selectedByRole, setSelectedByRole] = useState<Record<string, string[]>>(() => {
+    const initial: Record<string, string[]> = {};
+    ROLE_DETAILS.forEach(role => {
+      initial[role.value] = [...role.defaultFunctions];
+    });
+    return initial;
+  });
+
+  // Build options from SYSTEM_FUNCTIONS (dynamic - auto-updates when new functions added)
+  const functionOptions: SearchableSelectOption[] = useMemo(() => 
+    SYSTEM_FUNCTIONS.map(f => ({
+      value: f.name,
+      label: f.label,
+      description: f.description,
+    })),
+    []
+  );
 
   const toggleRole = (value: string) => {
     setOpenRoles(prev => 
@@ -133,6 +130,12 @@ export function RoleDescriptions() {
         ? prev.filter(r => r !== value) 
         : [...prev, value]
     );
+  };
+
+  const handleFunctionsChange = (roleValue: string, newValues: string[]) => {
+    // Admin always has all functions - don't allow change
+    if (roleValue === "admin") return;
+    setSelectedByRole(prev => ({ ...prev, [roleValue]: newValues }));
   };
 
   return (
@@ -186,13 +189,21 @@ export function RoleDescriptions() {
                     <Eye className="h-4 w-4" />
                     หน้าที่เข้าถึงได้:
                   </h4>
-                  <div className="flex flex-wrap gap-2">
-                    {role.accessiblePages.map((page, idx) => (
-                      <Badge key={idx} variant="outline" className="text-xs">
-                        {page}
-                      </Badge>
-                    ))}
-                  </div>
+                  <SearchableMultiSelect
+                    options={functionOptions}
+                    values={selectedByRole[role.value] || []}
+                    onValuesChange={(vals) => handleFunctionsChange(role.value, vals)}
+                    placeholder="เลือกฟังก์ชันที่เข้าถึงได้..."
+                    searchPlaceholder="ค้นหาฟังก์ชัน..."
+                    emptyMessage="ไม่พบฟังก์ชัน"
+                    disabled={role.value === "admin"}
+                    maxDisplay={3}
+                  />
+                  {role.value === "admin" && (
+                    <p className="text-xs text-muted-foreground mt-1">
+                      * Admin มีสิทธิ์เข้าถึงทุกฟังก์ชันโดยอัตโนมัติ
+                    </p>
+                  )}
                 </div>
               </div>
             </CollapsibleContent>
