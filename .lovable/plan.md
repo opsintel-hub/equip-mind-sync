@@ -1,47 +1,19 @@
 
+## เปลี่ยน "หน้าที่เข้าถึงได้" ใน คำอธิบายฟังก์ชัน เป็น Multi-Select Dropdown
 
-# แผนแก้ไข: เพิ่ม Progress Bar และปรับปรุงประสิทธิภาพการนำเข้า Billboard
+### สิ่งที่จะทำ
+เปลี่ยนส่วน `relatedPages` ในแต่ละฟังก์ชัน (เช่น "ตาราง PM ป้าย", "งาน PM ป้าย", "ประวัติ PM ป้าย") จาก **Badge แบบคงที่** เป็น **SearchableMultiSelect Dropdown** เพื่อให้รูปแบบสอดคล้องกับหน้า "คำอธิบายบทบาท" ที่ทำไปแล้ว
 
-## ปัญหาที่พบ
+### ผลกระทบ
+- ไม่กระทบระบบสิทธิ์จริง (เป็นส่วนเอกสารอ้างอิงเท่านั้น)
+- รูปแบบ UI จะเหมือนกันทั้งหน้า FunctionDescriptions และ RoleDescriptions
 
-1. **ไม่มี Progress Indicator** - เมื่อกดปุ่ม "นำเข้า 92 รายการ" ระบบแสดงเพียง "กำลังนำเข้า..." โดยไม่มี % ความคืบหน้า ทำให้ไม่รู้ว่าระบบทำงานอยู่หรือค้าง
-2. **Update ทีละแถว** - สำหรับข้อมูลที่ต้อง update จะทำทีละ row ซึ่งช้ามากเมื่อมีหลายร้อย/พันแถว
-3. **ไม่มี mapping สำหรับ Status และ Notes จาก Excel** - คอลัมน์ Status และ Notes ในไฟล์ Excel ถูกข้ามไปไม่ได้นำเข้า
+### รายละเอียดทางเทคนิค
 
-## การแก้ไข (1 ไฟล์)
+#### ไฟล์ที่แก้ไข: `src/components/admin/FunctionDescriptions.tsx`
 
-### `src/components/billboard/BillboardImport.tsx`
-
-1. **เพิ่ม Progress Bar แบบ real-time** แสดง:
-   - จำนวนรายการที่ดำเนินการแล้ว / ทั้งหมด (เช่น "45/92")
-   - เปอร์เซ็นต์ความคืบหน้า (เช่น "49%")
-   - แถบ progress แบบ visual
-   - สถานะปัจจุบัน: "กำลังเพิ่มข้อมูลใหม่..." / "กำลังอัพเดทข้อมูล..."
-
-2. **ปรับ update records เป็น batch** - ใช้ upsert หรือ batch update แทนการ update ทีละแถว เพื่อเพิ่มความเร็ว
-
-3. **เพิ่ม mapping คอลัมน์ Notes** จากไฟล์ Excel เข้าสู่ฐานข้อมูล
-
-## รายละเอียดทางเทคนิค
-
-### Progress State
-
-```text
-progressState: {
-  current: number      // จำนวนที่ทำแล้ว
-  total: number        // จำนวนทั้งหมด
-  phase: string        // "inserting" | "updating"
-}
-```
-
-### ปรับ confirmImport function
-
-- เพิ่ม state `importProgress` เพื่อ track ความคืบหน้า
-- ทุกครั้งที่ insert/update batch สำเร็จ -> update progress
-- Progress bar จะ re-render ทันทีที่ state เปลี่ยน
-
-### ปรับ Update Logic
-
-- รวม update records เป็น batch โดยใช้ Promise.all กับ chunk ขนาด 10-20 records เพื่อทำพร้อมกัน
-- อัพเดท progress ทุก batch
-
+1. **Import เพิ่มเติม**: นำเข้า `SearchableMultiSelect` จาก `@/components/ui/searchable-select` และ `useMemo` จาก React
+2. **สร้างรายการ Page Options**: รวบรวมหน้าทั้งหมดจาก `relatedPages` ของทุกฟังก์ชันเป็น options สำหรับ dropdown (ค่าไม่ซ้ำกัน)
+3. **เพิ่ม State**: `selectedPagesByFunction` เก็บหน้าที่เลือกของแต่ละฟังก์ชัน (ค่าเริ่มต้นมาจาก `relatedPages` เดิม)
+4. **แทนที่ Badge**: เปลี่ยนจาก Badge loop เป็น `SearchableMultiSelect` พร้อมหัวข้อ "หน้าที่เข้าถึงได้:"
+5. **Dropdown ใช้งานได้**: ผู้ใช้สามารถค้นหาและเลือก/ยกเลิกหน้าได้อิสระ (เป็น reference เท่านั้น ไม่บันทึกลงฐานข้อมูล)
