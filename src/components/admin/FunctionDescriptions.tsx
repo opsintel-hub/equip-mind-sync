@@ -1,6 +1,6 @@
-import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { SearchableMultiSelect } from "@/components/ui/searchable-select";
 import { 
   Settings2, 
   ChevronDown,
@@ -15,7 +15,7 @@ import {
   ArrowRightLeft,
   Shield
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 
 interface FunctionInfo {
   name: string;
@@ -218,12 +218,21 @@ const FUNCTION_DETAILS: FunctionInfo[] = [
 
 export function FunctionDescriptions() {
   const [openFunctions, setOpenFunctions] = useState<string[]>([]);
+  const [selectedPagesByFunction, setSelectedPagesByFunction] = useState<Record<string, string[]>>(() => {
+    const initial: Record<string, string[]> = {};
+    FUNCTION_DETAILS.forEach(f => { initial[f.name] = [...f.relatedPages]; });
+    return initial;
+  });
+
+  const pageOptions = useMemo(() => {
+    const allPages = new Set<string>();
+    FUNCTION_DETAILS.forEach(f => f.relatedPages.forEach(p => allPages.add(p)));
+    return Array.from(allPages).sort().map(p => ({ value: p, label: p }));
+  }, []);
 
   const toggleFunction = (name: string) => {
     setOpenFunctions(prev => 
-      prev.includes(name) 
-        ? prev.filter(f => f !== name) 
-        : [...prev, name]
+      prev.includes(name) ? prev.filter(f => f !== name) : [...prev, name]
     );
   };
 
@@ -268,12 +277,17 @@ export function FunctionDescriptions() {
                     ))}
                   </ul>
                 </div>
-                <div className="flex flex-wrap gap-1">
-                  {func.relatedPages.map((page, idx) => (
-                    <Badge key={idx} variant="outline" className="text-xs">
-                      {page}
-                    </Badge>
-                  ))}
+                <div>
+                  <h4 className="font-medium mb-1">หน้าที่เข้าถึงได้:</h4>
+                  <SearchableMultiSelect
+                    options={pageOptions}
+                    values={selectedPagesByFunction[func.name] || []}
+                    onValuesChange={(values) =>
+                      setSelectedPagesByFunction(prev => ({ ...prev, [func.name]: values }))
+                    }
+                    placeholder="เลือกหน้าที่เข้าถึงได้..."
+                    searchPlaceholder="ค้นหาหน้า..."
+                  />
                 </div>
               </div>
             </CollapsibleContent>
