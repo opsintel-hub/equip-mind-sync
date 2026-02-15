@@ -143,10 +143,10 @@ export function RoleDescriptions() {
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center gap-2 text-lg">
           <Users className="h-5 w-5 text-primary" />
-          คำอธิบายบทบาท (Roles)
+          แนวทางสิทธิ์ตามบทบาท (Roles)
         </CardTitle>
         <p className="text-sm text-muted-foreground">
-          คลิกเพื่อดูรายละเอียดสิทธิ์และหน้าที่เข้าถึงได้ของแต่ละบทบาท
+          คลิกเพื่อดูรายละเอียด และปรับแนวทางฟังก์ชันที่แต่ละบทบาทควรเข้าถึงได้
         </p>
       </CardHeader>
       <CardContent className="space-y-3">

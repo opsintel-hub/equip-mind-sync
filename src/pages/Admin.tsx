@@ -47,7 +47,7 @@ const Admin = () => {
           </TabsTrigger>
           <TabsTrigger value="help" className="flex items-center gap-2">
             <HelpCircle className="h-4 w-4" />
-            คำอธิบายสิทธิ์
+            คู่มือและแนวทางสิทธิ์
           </TabsTrigger>
         </TabsList>
 
@@ -90,7 +90,7 @@ const Admin = () => {
                   <div className="p-3 bg-white/50 dark:bg-black/20 rounded-lg mt-4">
                     <p className="text-sm text-blue-700 dark:text-blue-300">
                       <strong>💡 หมายเหตุ:</strong> ผู้ใช้ที่มีบทบาท <strong>Admin</strong> จะได้สิทธิ์เต็มทุกอย่างโดยอัตโนมัติ 
-                      ไม่ต้องกำหนดสิทธิ์ฟังก์ชันหรือฝ่ายเพิ่มเติม
+                      ไม่ต้องกำหนดสิทธิ์ฟังก์ชันหรือฝ่ายเพิ่มเติม สามารถปรับ Dropdown ด้านล่างเพื่อดูตัวอย่างแนวทางการกำหนดสิทธิ์ที่เหมาะสมกับแต่ละบทบาทและฟังก์ชัน
                     </p>
                   </div>
                 </div>
