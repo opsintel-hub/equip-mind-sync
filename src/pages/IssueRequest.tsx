@@ -874,7 +874,9 @@ const IssueRequest = () => {
                   <SectionSelect
                     value={headerData.section}
                     onChange={(value) => setHeaderData({ ...headerData, section: value })}
-                    placeholder="เลือกแผนก..."
+                    departmentId={departments?.find(d => d.name === headerData.requester_department)?.id}
+                    disabled={!headerData.requester_department}
+                    placeholder={headerData.requester_department ? "เลือกแผนก..." : "เลือกฝ่ายก่อน"}
                   />
                 </div>
                 <div className="space-y-2">
