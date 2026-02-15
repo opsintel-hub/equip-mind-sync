@@ -241,10 +241,10 @@ export function FunctionDescriptions() {
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center gap-2 text-lg">
           <Settings2 className="h-5 w-5 text-primary" />
-          คำอธิบายฟังก์ชัน
+          แนวทางสิทธิ์ตามฟังก์ชัน
         </CardTitle>
         <p className="text-sm text-muted-foreground">
-          แต่ละฟังก์ชันควบคุมการเข้าถึงเมนูและความสามารถที่แตกต่างกัน
+          แต่ละฟังก์ชันควบคุมการเข้าถึงเมนู สามารถปรับหน้าที่เกี่ยวข้องเป็นแนวทางอ้างอิงได้
         </p>
       </CardHeader>
       <CardContent className="grid gap-3 md:grid-cols-2">
