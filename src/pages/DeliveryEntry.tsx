@@ -28,6 +28,10 @@ interface Equipment {
   category: string | null;
   subcategory_id: string | null;
   quantity_in_stock: number;
+  width_cm: number | null;
+  height_cm: number | null;
+  depth_cm: number | null;
+  volume_cm3: number | null;
 }
 interface Category {
   id: string;
@@ -177,13 +181,22 @@ const DeliveryEntry = () => {
   const [waitingEquipmentId, setWaitingEquipmentId] = useState(false);
   const [depreciationMonths, setDepreciationMonths] = useState("");
 
-  // Calculated volume
-  const calculatedVolume = (() => {
+  // Calculated volume (per unit)
+  const volumePerUnit = (() => {
     const w = parseFloat(storageWidthCm) || 0;
     const h = parseFloat(storageHeightCm) || 0;
     const d = parseFloat(storageDepthCm) || 0;
     if (w > 0 && h > 0 && d > 0) {
-      return (w * h * d).toFixed(2).replace(/^0+/, '');
+      return w * h * d;
+    }
+    return 0;
+  })();
+
+  // Total volume = per unit volume × quantity
+  const calculatedVolume = (() => {
+    if (volumePerUnit > 0) {
+      const qty = parseInt(quantity) || 1;
+      return (volumePerUnit * qty).toFixed(2).replace(/^0+/, '');
     }
     return "";
   })();
@@ -202,7 +215,7 @@ const DeliveryEntry = () => {
     const {
       data,
       error
-    } = await supabase.from("equipment").select("id, code, name, unit, category, subcategory_id, quantity_in_stock").eq("is_active", true).order("code");
+    } = await supabase.from("equipment").select("id, code, name, unit, category, subcategory_id, quantity_in_stock, width_cm, height_cm, depth_cm, volume_cm3").eq("is_active", true).order("code");
     if (!error && data) {
       setEquipment(data as Equipment[]);
     }
@@ -307,10 +320,23 @@ const DeliveryEntry = () => {
       if (selectedEquipment.subcategory_id) {
         setSelectedSubcategoryId(selectedEquipment.subcategory_id);
       }
+      // Auto-fill dimensions from existing equipment
+      if (selectedEquipment.width_cm !== null) {
+        setStorageWidthCm(String(selectedEquipment.width_cm));
+      }
+      if (selectedEquipment.height_cm !== null) {
+        setStorageHeightCm(String(selectedEquipment.height_cm));
+      }
+      if (selectedEquipment.depth_cm !== null) {
+        setStorageDepthCm(String(selectedEquipment.depth_cm));
+      }
     } else {
-      // Clear category/subcategory when no equipment selected
+      // Clear category/subcategory and dimensions when no equipment selected
       setSelectedCategoryId("");
       setSelectedSubcategoryId("");
+      setStorageWidthCm("");
+      setStorageHeightCm("");
+      setStorageDepthCm("");
     }
   }, [selectedEquipment, categories]);
 

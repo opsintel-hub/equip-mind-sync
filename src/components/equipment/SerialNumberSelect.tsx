@@ -20,6 +20,8 @@ interface SerialNumberSelectProps {
   onChange: (item: SerialNumberItem | null) => void;
   disabled?: boolean;
   placeholder?: string;
+  equipmentId?: string;
+  isMediaPlayer?: boolean;
 }
 
 export function SerialNumberSelect({
@@ -27,6 +29,8 @@ export function SerialNumberSelect({
   onChange,
   disabled = false,
   placeholder = "ค้นหา Serial Number...",
+  equipmentId,
+  isMediaPlayer,
 }: SerialNumberSelectProps) {
   // Fetch equipment with serial numbers
   const { data: equipmentData, isLoading: loadingEquipment } = useQuery({
@@ -112,8 +116,13 @@ export function SerialNumberSelect({
       }
     });
 
+    // Filter by equipmentId if provided
+    if (equipmentId) {
+      return items.filter((item) => item.id === equipmentId);
+    }
+
     return items;
-  }, [equipmentData, mediaPlayersData]);
+  }, [equipmentData, mediaPlayersData, equipmentId]);
 
   // Map serial number items to dropdown options
   const options: SearchableSelectOption[] = useMemo(() => {

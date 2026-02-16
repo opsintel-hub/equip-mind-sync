@@ -498,7 +498,7 @@ const IssueRequest = () => {
         equipment_code: selected.code,
         equipment_name: selected.name,
         unit: selected.unit,
-        serial_number: selected.serial_number || "",
+        serial_number: "", // Clear S/N when changing equipment
       });
       setIsQuantityLocked(false); // Reset lock when selecting via equipment dropdown
       // Update stock info
@@ -992,7 +992,9 @@ const IssueRequest = () => {
                     value={currentItem.serial_number ? `equipment:${currentItem.equipment_id}:${currentItem.serial_number}` : ""}
                     onChange={handleSerialNumberSelect}
                     disabled={false}
-                    placeholder="ค้นหา S/N จาก Equipment และ Media Player..."
+                    placeholder={currentItem.equipment_id ? "ค้นหา S/N ของสินค้าที่เลือก..." : "ค้นหา S/N จาก Equipment และ Media Player..."}
+                    equipmentId={currentItem.equipment_id || undefined}
+                    isMediaPlayer={equipment?.find(e => e.id === currentItem.equipment_id)?.is_media_player}
                   />
                   {isQuantityLocked && currentItem.serial_number && (
                     <p className="text-xs text-muted-foreground flex items-center gap-1">
