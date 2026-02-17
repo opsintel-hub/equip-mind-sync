@@ -80,11 +80,16 @@ const menuGroups: MenuGroup[] = [
     label: "คลังสินค้า",
     items: [
       { 
+        title: "นำสินค้าเข้า", 
+        url: "/delivery-entry",
+        icon: Truck,
+        functionName: "delivery_entry",
+      },
+      { 
         title: "รับสินค้าเข้า (GR)", 
         icon: Package,
         functionName: "goods_receipt",
         subItems: [
-          { title: "นำสินค้าเข้า", url: "/delivery-entry", icon: Truck },
           { title: "รับเข้าคลัง", url: "/receive-goods", icon: PackageCheck },
           { title: "จัดการ Media Player", url: "/media-player-entry", icon: Monitor },
           { title: "รายการรอรหัส", url: "/pending-asset-codes", icon: FileKey },

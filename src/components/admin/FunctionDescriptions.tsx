@@ -29,18 +29,32 @@ interface FunctionInfo {
 
 const FUNCTION_DETAILS: FunctionInfo[] = [
   {
-    name: "goods_receipt",
-    label: "รับเข้าสินค้า",
+    name: "delivery_entry",
+    label: "นำสินค้าเข้า",
     icon: <PackageOpen className="h-5 w-5" />,
-    color: "bg-green-500/10 text-green-600 border-green-200",
-    description: "บันทึกการรับสินค้าเข้าคลัง จากผู้จำหน่ายหรือโอนย้าย",
+    color: "bg-lime-500/10 text-lime-600 border-lime-200",
+    description: "สร้างรายการนำสินค้าเข้า (สำหรับผู้นำเข้า)",
     details: [
       "สร้างรายการรับสินค้าใหม่ (Delivery Entry)",
-      "ตรวจสอบและยืนยันรายการที่รอรับ",
-      "เพิ่มสินค้าใหม่เข้าระบบขณะรับเข้า",
-      "อัพโหลดเอกสารประกอบ (ใบส่งของ, ใบเสร็จ)"
+      "กรอกข้อมูลสินค้าและอัพโหลดเอกสารประกอบ",
+      "ระบุผู้ดำเนินการนำเข้าข้อมูล",
+      "ส่งต่อรายการให้เจ้าหน้าที่คลังรับเข้า"
     ],
-    relatedPages: ["รับเข้าสินค้า", "บันทึกการส่ง", "รอรับสินค้า"]
+    relatedPages: ["นำสินค้าเข้า"]
+  },
+  {
+    name: "goods_receipt",
+    label: "รับเข้าคลัง",
+    icon: <PackageOpen className="h-5 w-5" />,
+    color: "bg-green-500/10 text-green-600 border-green-200",
+    description: "รับเข้าคลัง, จัดการ Media Player, รายการรอรหัส (สำหรับเจ้าหน้าที่คลัง)",
+    details: [
+      "ตรวจสอบและยืนยันรายการที่รอรับเข้าคลัง",
+      "เพิ่มสินค้าใหม่เข้าระบบขณะรับเข้า",
+      "จัดการ Media Player",
+      "จัดการรายการรอรหัสสินค้า"
+    ],
+    relatedPages: ["รับเข้าคลัง", "จัดการ Media Player", "รายการรอรหัส"]
   },
   {
     name: "issue_request",
