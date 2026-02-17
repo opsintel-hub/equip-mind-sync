@@ -70,7 +70,7 @@ const ROLE_DETAILS: RoleInfo[] = [
       "จัดการตำแหน่งจัดเก็บ",
       "บันทึกงาน PM (บำรุงรักษา)"
     ],
-    defaultFunctions: ["goods_receipt", "goods_issue", "transfer", "pm_schedule", "equipment_pm"],
+    defaultFunctions: ["goods_receipt", "goods_issue", "transfer", "pm_schedule", "equipment_pm", "delivery_entry"],
   },
   {
     value: "receiver",
@@ -84,7 +84,7 @@ const ROLE_DETAILS: RoleInfo[] = [
       "อัพโหลดเอกสารการรับสินค้า",
       "เพิ่มสินค้าใหม่เข้าระบบ (ถ้าได้รับสิทธิ์)"
     ],
-    defaultFunctions: ["goods_receipt"],
+    defaultFunctions: ["delivery_entry"],
   },
   {
     value: "requester",

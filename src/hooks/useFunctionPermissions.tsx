@@ -8,7 +8,8 @@ export interface FunctionPermission {
 }
 
 export const SYSTEM_FUNCTIONS = [
-  { name: "goods_receipt", label: "รับเข้าสินค้า", description: "บันทึกการรับสินค้าเข้าคลัง" },
+  { name: "delivery_entry", label: "นำสินค้าเข้า", description: "สร้างรายการนำสินค้าเข้า (สำหรับผู้นำเข้า)" },
+  { name: "goods_receipt", label: "รับเข้าคลัง", description: "รับเข้าคลัง, จัดการ Media, รายการรอรหัส (สำหรับเจ้าหน้าที่คลัง)" },
   { name: "issue_request", label: "ขอเบิกสินค้า", description: "ส่งคำขอเบิกสินค้า (สำหรับผู้เบิก)" },
   { name: "goods_issue", label: "จ่ายสินค้า", description: "จ่ายสินค้าตามคำขอ (สำหรับเจ้าหน้าที่คลัง)" },
   { name: "master_data", label: "ข้อมูลหลัก", description: "จัดการหมวดหมู่ สถานที่ ผู้จำหน่าย" },
