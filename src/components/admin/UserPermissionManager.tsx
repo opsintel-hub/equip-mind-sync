@@ -20,7 +20,8 @@ import {
   Building2,
   Check,
   X,
-  Info
+  Info,
+  Lock
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -35,7 +36,7 @@ import {
 
 type UserRole = Database["public"]["Enums"]["app_role"];
 
-const DEPARTMENTS = ["Airport", "Digital", "Billboard", "Static", "Bus", "7 Eleven", "Construction", "HR", "Account", "ของขวัญปีใหม่"];
+// DEPARTMENTS removed - now fetched dynamically from DB
 
 const ROLES: { value: UserRole; label: string; description: string; color: string }[] = [
   { value: "admin", label: "Admin", description: "สิทธิ์เต็มทุกอย่าง", color: "bg-red-500" },
@@ -68,6 +69,7 @@ interface FunctionPermission {
 
 export function UserPermissionManager() {
   const [users, setUsers] = useState<User[]>([]);
+  const [allDepartments, setAllDepartments] = useState<string[]>([]);
   const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
@@ -103,12 +105,15 @@ export function UserPermissionManager() {
 
   const fetchUsers = async () => {
     try {
-      const { data: profilesData, error: profilesError } = await supabase
-        .from("profiles")
-        .select("*")
-        .order("full_name");
+      const [profilesRes, deptRes] = await Promise.all([
+        supabase.from("profiles").select("*").order("full_name"),
+        supabase.from("departments").select("name").eq("is_active", true).order("name"),
+      ]);
 
-      if (profilesError) throw profilesError;
+      if (profilesRes.error) throw profilesRes.error;
+
+      const departments = (deptRes.data || []).map(d => d.name);
+      setAllDepartments(departments);
       
       let emailMap: Record<string, string> = {};
       try {
@@ -122,7 +127,7 @@ export function UserPermissionManager() {
         console.log("Could not fetch emails via RPC");
       }
       
-      const usersWithEmail = (profilesData || []).map(p => ({
+      const usersWithEmail = (profilesRes.data || []).map(p => ({
         ...p,
         email: emailMap[p.id] || ''
       }));
@@ -159,15 +164,18 @@ export function UserPermissionManager() {
 
   const fetchUserPermissions = async (userId: string) => {
     try {
-      const { data, error } = await supabase
-        .from("user_departments")
-        .select("*")
-        .eq("user_id", userId);
+      const [permRes, deptRes] = await Promise.all([
+        supabase.from("user_departments").select("*").eq("user_id", userId),
+        supabase.from("departments").select("name").eq("is_active", true).order("name"),
+      ]);
 
-      if (error) throw error;
+      if (permRes.error) throw permRes.error;
 
-      const fullPermissions = DEPARTMENTS.map(dept => {
-        const existing = data?.find(p => p.department === dept);
+      const departments = (deptRes.data || []).map(d => d.name);
+      setAllDepartments(departments);
+
+      const fullPermissions = departments.map(dept => {
+        const existing = permRes.data?.find(p => p.department === dept);
         return existing || {
           user_id: userId,
           department: dept,
@@ -272,11 +280,15 @@ export function UserPermissionManager() {
         if (funcError) throw funcError;
       }
 
-      // Save department permissions
+      // Save department permissions - force can_delete = false for non-admin
       await supabase.from("user_departments").delete().eq("user_id", selectedUser.id);
-      const deptPermsToInsert = userPermissions.filter(p => 
-        p.can_view || p.can_create || p.can_edit || p.can_delete
-      );
+      const isUserAdmin = selectedUserRoles.includes('admin');
+      const deptPermsToInsert = userPermissions
+        .map(p => ({
+          ...p,
+          can_delete: isUserAdmin ? p.can_delete : false,
+        }))
+        .filter(p => p.can_view || p.can_create || p.can_edit || p.can_delete);
       if (deptPermsToInsert.length > 0) {
         const { error: deptError } = await supabase.from("user_departments").insert(deptPermsToInsert);
         if (deptError) throw deptError;
@@ -568,63 +580,113 @@ export function UserPermissionManager() {
                     <div className="p-3 mb-3 bg-purple-50 dark:bg-purple-950 rounded-lg border border-purple-200 dark:border-purple-800">
                       <div className="flex items-start gap-2">
                         <Info className="h-4 w-4 text-purple-600 mt-0.5" />
-                        <div className="text-sm text-purple-800 dark:text-purple-200">
-                          <strong>สิทธิ์ตามฝ่าย</strong> กำหนดว่าผู้ใช้สามารถดู/สร้าง/แก้ไข/ลบ ข้อมูลของฝ่ายใดได้บ้าง
+                        <div className="text-sm text-purple-800 dark:text-purple-200 space-y-1">
+                          <strong>สิทธิ์ตามฝ่าย</strong> กำหนดว่าผู้ใช้ทำอะไรกับข้อมูลของแต่ละฝ่ายได้บ้าง
+                          <ul className="list-disc list-inside ml-2 space-y-0.5">
+                            <li><strong>ดูข้อมูล</strong> — เห็นรายการสินค้า, รายงาน, ประวัติของฝ่ายนั้น</li>
+                            <li><strong>สร้างรายการ</strong> — รับเข้า/ขอเบิก/สร้างคำขอสินค้าของฝ่ายนั้น</li>
+                            <li><strong>แก้ไขข้อมูล</strong> — อัปเดตข้อมูลสินค้า, สถานะรายการของฝ่ายนั้น</li>
+                            <li><strong>ลบรายการ</strong> — ลบข้อมูลออกจากระบบ (สงวนสำหรับ Admin เท่านั้น)</li>
+                          </ul>
                         </div>
                       </div>
                     </div>
                     <div className="rounded-lg border overflow-hidden">
-                      <Table>
-                        <TableHeader>
-                          <TableRow className="bg-muted/50">
-                            <TableHead className="w-40">ฝ่าย</TableHead>
-                            <TableHead className="text-center w-20">ดู</TableHead>
-                            <TableHead className="text-center w-20">สร้าง</TableHead>
-                            <TableHead className="text-center w-20">แก้ไข</TableHead>
-                            <TableHead className="text-center w-20">ลบ</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {userPermissions.map((perm) => (
-                            <TableRow key={perm.department} className="hover:bg-muted/30">
-                              <TableCell className="font-medium">{perm.department}</TableCell>
-                              <TableCell className="text-center">
-                                <Checkbox
-                                  checked={perm.can_view}
-                                  onCheckedChange={(checked) => 
-                                    handlePermissionChange(perm.department, 'can_view', checked as boolean)
-                                  }
-                                />
-                              </TableCell>
-                              <TableCell className="text-center">
-                                <Checkbox
-                                  checked={perm.can_create}
-                                  onCheckedChange={(checked) => 
-                                    handlePermissionChange(perm.department, 'can_create', checked as boolean)
-                                  }
-                                />
-                              </TableCell>
-                              <TableCell className="text-center">
-                                <Checkbox
-                                  checked={perm.can_edit}
-                                  onCheckedChange={(checked) => 
-                                    handlePermissionChange(perm.department, 'can_edit', checked as boolean)
-                                  }
-                                />
-                              </TableCell>
-                              <TableCell className="text-center">
-                                <Checkbox
-                                  checked={perm.can_delete}
-                                  onCheckedChange={(checked) => 
-                                    handlePermissionChange(perm.department, 'can_delete', checked as boolean)
-                                  }
-                                />
-                              </TableCell>
+                      <TooltipProvider>
+                        <Table>
+                          <TableHeader>
+                            <TableRow className="bg-muted/50">
+                              <TableHead className="w-40">ฝ่าย</TableHead>
+                              <TableHead className="text-center w-24">
+                                <Tooltip>
+                                  <TooltipTrigger className="cursor-help border-b border-dashed border-muted-foreground">
+                                    ดูข้อมูล
+                                  </TooltipTrigger>
+                                  <TooltipContent>เห็นรายการสินค้า, รายงาน, ประวัติของฝ่ายนั้น</TooltipContent>
+                                </Tooltip>
+                              </TableHead>
+                              <TableHead className="text-center w-24">
+                                <Tooltip>
+                                  <TooltipTrigger className="cursor-help border-b border-dashed border-muted-foreground">
+                                    สร้างรายการ
+                                  </TooltipTrigger>
+                                  <TooltipContent>รับเข้า/ขอเบิก/สร้างคำขอสินค้าของฝ่ายนั้น</TooltipContent>
+                                </Tooltip>
+                              </TableHead>
+                              <TableHead className="text-center w-24">
+                                <Tooltip>
+                                  <TooltipTrigger className="cursor-help border-b border-dashed border-muted-foreground">
+                                    แก้ไขข้อมูล
+                                  </TooltipTrigger>
+                                  <TooltipContent>อัปเดตข้อมูลสินค้า, สถานะรายการของฝ่ายนั้น</TooltipContent>
+                                </Tooltip>
+                              </TableHead>
+                              <TableHead className="text-center w-24">
+                                <Tooltip>
+                                  <TooltipTrigger className="cursor-help border-b border-dashed border-muted-foreground">
+                                    <span className="flex items-center justify-center gap-1">
+                                      ลบรายการ
+                                      <Lock className="h-3 w-3 text-destructive" />
+                                    </span>
+                                  </TooltipTrigger>
+                                  <TooltipContent>สงวนสำหรับ Admin เท่านั้น — ลบข้อมูลออกจากระบบ</TooltipContent>
+                                </Tooltip>
+                              </TableHead>
                             </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
+                          </TableHeader>
+                          <TableBody>
+                            {userPermissions.map((perm) => (
+                              <TableRow key={perm.department} className="hover:bg-muted/30">
+                                <TableCell className="font-medium">{perm.department}</TableCell>
+                                <TableCell className="text-center">
+                                  <Checkbox
+                                    checked={perm.can_view}
+                                    onCheckedChange={(checked) => 
+                                      handlePermissionChange(perm.department, 'can_view', checked as boolean)
+                                    }
+                                  />
+                                </TableCell>
+                                <TableCell className="text-center">
+                                  <Checkbox
+                                    checked={perm.can_create}
+                                    onCheckedChange={(checked) => 
+                                      handlePermissionChange(perm.department, 'can_create', checked as boolean)
+                                    }
+                                  />
+                                </TableCell>
+                                <TableCell className="text-center">
+                                  <Checkbox
+                                    checked={perm.can_edit}
+                                    onCheckedChange={(checked) => 
+                                      handlePermissionChange(perm.department, 'can_edit', checked as boolean)
+                                    }
+                                  />
+                                </TableCell>
+                                <TableCell className="text-center">
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <span className="inline-flex items-center justify-center">
+                                        <Checkbox
+                                          checked={perm.can_delete}
+                                          disabled
+                                          className="opacity-40"
+                                        />
+                                        <Lock className="h-3 w-3 ml-1 text-muted-foreground" />
+                                      </span>
+                                    </TooltipTrigger>
+                                    <TooltipContent>สิทธิ์ลบรายการสงวนสำหรับ Admin เท่านั้น</TooltipContent>
+                                  </Tooltip>
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </TooltipProvider>
                     </div>
+                    <p className="text-xs text-destructive mt-2 flex items-center gap-1">
+                      <Lock className="h-3 w-3" />
+                      สิทธิ์ลบรายการสงวนสำหรับ Admin เท่านั้น
+                    </p>
                   </>
                 )}
               </TabsContent>
