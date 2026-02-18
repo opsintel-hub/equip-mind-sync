@@ -20,6 +20,7 @@ import { DeliveryImport } from "@/components/delivery/DeliveryImport";
 import { DeliveryCart, DeliveryCartItem } from "@/components/delivery/DeliveryCart";
 import { DeliveryCartItemEditDialog } from "@/components/delivery/DeliveryCartItemEditDialog";
 import { SearchableSelect } from "@/components/ui/searchable-select";
+import { useAllowedDepartments } from "@/hooks/useAllowedDepartments";
 interface Equipment {
   id: string;
   code: string;
@@ -47,10 +48,6 @@ interface Supplier {
   code: string;
   name: string;
   vendor_code: string | null;
-}
-interface Department {
-  id: string;
-  name: string;
 }
 interface CMSType {
   id: string;
@@ -88,8 +85,8 @@ const DeliveryEntry = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [equipment, setEquipment] = useState<Equipment[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
-  const [departments, setDepartments] = useState<Department[]>([]);
   const [cmsTypes, setCmsTypes] = useState<CMSType[]>([]);
+  const { allowedDepartments, isSingleDepartment, loading: deptLoading } = useAllowedDepartments("create");
   const [mediaPlayers, setMediaPlayers] = useState<{
     id: string;
     code: string;
@@ -200,10 +197,16 @@ const DeliveryEntry = () => {
     }
     return "";
   })();
+  // Auto-select department if only one allowed
+  useEffect(() => {
+    if (!deptLoading && isSingleDepartment && allowedDepartments.length === 1 && !selectedDepartmentId) {
+      setSelectedDepartmentId(allowedDepartments[0].id);
+    }
+  }, [deptLoading, isSingleDepartment, allowedDepartments, selectedDepartmentId]);
+
   useEffect(() => {
     fetchEquipment();
     fetchSuppliers();
-    fetchDepartments();
     fetchReceiptPurposes();
     fetchPendingReceipts();
     fetchCmsTypes();
@@ -247,16 +250,8 @@ const DeliveryEntry = () => {
       setSuppliers(data);
     }
   };
-  const fetchDepartments = async () => {
-    // Departments are now filtered via useAllowedDepartments in the component
-    const {
-      data,
-      error
-    } = await supabase.from("departments").select("id, name").eq("is_active", true).order("name");
-    if (!error && data) {
-      setDepartments(data);
-    }
-  };
+  // Department name lookup from allowedDepartments
+  const getDepartmentName = (id: string) => allowedDepartments.find(d => d.id === id)?.name || "";
   const fetchReceiptPurposes = async () => {
     const {
       data,
@@ -788,12 +783,12 @@ const DeliveryEntry = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="department">ฝ่าย *</Label>
-                  <Select value={selectedDepartmentId} onValueChange={setSelectedDepartmentId}>
+                  <Select value={selectedDepartmentId} onValueChange={setSelectedDepartmentId} disabled={isSingleDepartment}>
                     <SelectTrigger id="department">
-                      <SelectValue placeholder="เลือกฝ่าย..." />
+                      <SelectValue placeholder={deptLoading ? "กำลังโหลด..." : "เลือกฝ่าย..."} />
                     </SelectTrigger>
                     <SelectContent position="popper" sideOffset={4} className="pointer-events-auto">
-                      {departments.map(dept => <SelectItem key={dept.id} value={dept.id}>
+                      {allowedDepartments.map(dept => <SelectItem key={dept.id} value={dept.id}>
                           {dept.name}
                         </SelectItem>)}
                     </SelectContent>
@@ -801,7 +796,7 @@ const DeliveryEntry = () => {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="company">บริษัทที่สั่งซื้อ *</Label>
-                  <CompanySelect value={selectedCompanyId} onChange={setSelectedCompanyId} placeholder="เลือกบริษัท..." required />
+                  <CompanySelect value={selectedCompanyId} onChange={setSelectedCompanyId} placeholder="เลือกบริษัท..." required departmentId={selectedDepartmentId || undefined} />
                 </div>
               </div>
               

@@ -8,18 +8,25 @@ interface BillboardSelectProps {
   onChange: (value: string) => void;
   placeholder?: string;
   disabled?: boolean;
+  department?: string; // Filter billboards by department name
 }
 
-const BillboardSelect = ({ value, onChange, placeholder = "เลือกป้ายโฆษณา", disabled }: BillboardSelectProps) => {
+const BillboardSelect = ({ value, onChange, placeholder = "เลือกป้ายโฆษณา", disabled, department }: BillboardSelectProps) => {
   const { data: billboards, isLoading } = useQuery({
-    queryKey: ["billboards-select"],
+    queryKey: ["billboards-select", department],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from("billboards")
         .select("id, equipment_id, old_code, location_name, department")
         .eq("status", "active")
         .order("old_code", { ascending: true })
         .limit(500);
+      
+      if (department) {
+        query = query.eq("department", department);
+      }
+
+      const { data, error } = await query;
       if (error) throw error;
       return data;
     },
