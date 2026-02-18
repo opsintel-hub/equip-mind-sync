@@ -1053,6 +1053,7 @@ const IssueRequest = () => {
                     <BillboardSelect
                       value={currentItem.billboard_id}
                       onChange={(value) => setCurrentItem({ ...currentItem, billboard_id: value })}
+                      department={headerData.requester_department}
                     />
                   </div>
                 )}
