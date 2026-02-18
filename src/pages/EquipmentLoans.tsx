@@ -13,6 +13,8 @@ import { format } from "date-fns";
 import { th } from "date-fns/locale";
 import { LoanRequestForm } from "@/components/loan/LoanRequestForm";
 import { LoanReturnDialog } from "@/components/loan/LoanReturnDialog";
+import { useTablePagination } from "@/hooks/useTablePagination";
+import { TablePagination } from "@/components/TablePagination";
 
 interface Loan {
   id: string;
@@ -147,6 +149,16 @@ const EquipmentLoans = () => {
     if (activeTab === "returned") return matchesSearch && (loan.status === "returned" || loan.returned_quantity >= loan.quantity);
     return matchesSearch;
   });
+
+  const {
+    paginatedData: paginatedLoans,
+    currentPage: loanPage,
+    pageSize: loanPageSize,
+    totalPages: loanTotalPages,
+    totalItems: loanTotalItems,
+    handlePageChange: handleLoanPageChange,
+    handlePageSizeChange: handleLoanPageSizeChange,
+  } = useTablePagination(filteredLoans, 20);
 
   const countByStatus = {
     all: loans.length,
@@ -294,7 +306,7 @@ const EquipmentLoans = () => {
                       </TableCell>
                     </TableRow>
                   ) : (
-                    filteredLoans.map((loan) => (
+                    paginatedLoans.map((loan) => (
                       <TableRow key={loan.id}>
                         <TableCell>
                           <div>
@@ -361,6 +373,14 @@ const EquipmentLoans = () => {
                 </TableBody>
               </Table>
             </div>
+            <TablePagination
+              currentPage={loanPage}
+              totalPages={loanTotalPages}
+              totalItems={loanTotalItems}
+              pageSize={loanPageSize}
+              onPageChange={handleLoanPageChange}
+              onPageSizeChange={handleLoanPageSizeChange}
+            />
           </Tabs>
         </CardContent>
       </Card>

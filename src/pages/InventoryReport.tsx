@@ -1,5 +1,7 @@
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useTablePagination } from "@/hooks/useTablePagination";
+import { TablePagination } from "@/components/TablePagination";
 import { supabase } from "@/integrations/supabase/client";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -19,7 +21,7 @@ import { EquipmentImageViewer } from "@/components/equipment/EquipmentImageViewe
 import * as XLSX from "xlsx";
 import { toast } from "sonner";
 
-const ITEMS_PER_PAGE = 50;
+// Removed hardcoded ITEMS_PER_PAGE - now using useTablePagination hook
 const DEFAULT_ADVANCE_DAYS = 30; // Default days to consider as "near expiry/warranty"
 
 // Unified inventory item type
@@ -66,7 +68,7 @@ export default function InventoryReport() {
     advanceDays: DEFAULT_ADVANCE_DAYS,
     issueStatus: "",
   });
-  const [currentPage, setCurrentPage] = useState(1);
+  // Pagination is handled by useTablePagination below
 
   // Fetch categories for mapping
   const { data: categories = [] } = useQuery({
@@ -539,16 +541,20 @@ export default function InventoryReport() {
   }, [combinedData, filters, categoryMap, advanceDays]);
 
   // Pagination
-  const totalPages = Math.ceil(filteredData.length / ITEMS_PER_PAGE);
-  const paginatedData = useMemo(() => {
-    const start = (currentPage - 1) * ITEMS_PER_PAGE;
-    return filteredData.slice(start, start + ITEMS_PER_PAGE);
-  }, [filteredData, currentPage]);
+  const {
+    paginatedData,
+    currentPage,
+    pageSize,
+    totalPages,
+    totalItems,
+    handlePageChange,
+    handlePageSizeChange,
+  } = useTablePagination(filteredData, 20);
 
   // Reset page when filters change
   const handleFiltersChange = (newFilters: InventoryFiltersState) => {
     setFilters(newFilters);
-    setCurrentPage(1);
+    handlePageChange(1);
   };
 
   // Get stock status
@@ -945,58 +951,16 @@ export default function InventoryReport() {
             </div>
 
             {/* Pagination */}
-            {totalPages > 1 && (
-              <div className="flex items-center justify-between px-4 py-3 border-t">
-                <div className="text-sm text-muted-foreground">
-                  แสดง {((currentPage - 1) * ITEMS_PER_PAGE) + 1}-
-                  {Math.min(currentPage * ITEMS_PER_PAGE, filteredData.length)} จาก{" "}
-                  {filteredData.length.toLocaleString()} รายการ
-                </div>
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                    disabled={currentPage === 1}
-                  >
-                    ก่อนหน้า
-                  </Button>
-                  <div className="flex items-center gap-1">
-                    {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                      let pageNum: number;
-                      if (totalPages <= 5) {
-                        pageNum = i + 1;
-                      } else if (currentPage <= 3) {
-                        pageNum = i + 1;
-                      } else if (currentPage >= totalPages - 2) {
-                        pageNum = totalPages - 4 + i;
-                      } else {
-                        pageNum = currentPage - 2 + i;
-                      }
-                      return (
-                        <Button
-                          key={pageNum}
-                          variant={currentPage === pageNum ? "default" : "outline"}
-                          size="sm"
-                          onClick={() => setCurrentPage(pageNum)}
-                          className="w-8"
-                        >
-                          {pageNum}
-                        </Button>
-                      );
-                    })}
-                  </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                    disabled={currentPage === totalPages}
-                  >
-                    ถัดไป
-                  </Button>
-                </div>
-              </div>
-            )}
+            <div className="px-4 pb-3">
+              <TablePagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                totalItems={totalItems}
+                pageSize={pageSize}
+                onPageChange={handlePageChange}
+                onPageSizeChange={handlePageSizeChange}
+              />
+            </div>
           </CardContent>
         </Card>
     </div>

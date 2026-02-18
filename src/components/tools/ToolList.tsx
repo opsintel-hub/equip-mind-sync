@@ -26,6 +26,8 @@ import { RefreshCw, Search, Trash2, Pencil, Wrench } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { th } from "date-fns/locale";
+import { useTablePagination } from "@/hooks/useTablePagination";
+import { TablePagination } from "@/components/TablePagination";
 
 interface Tool {
   id: string;
@@ -131,6 +133,16 @@ export function ToolList({ refreshKey }: ToolListProps) {
       tool.serial_number?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  const {
+    paginatedData: paginatedTools,
+    currentPage,
+    pageSize,
+    totalPages,
+    totalItems,
+    handlePageChange,
+    handlePageSizeChange,
+  } = useTablePagination(filteredTools, 20);
+
   return (
     <Card>
       <CardHeader>
@@ -163,92 +175,102 @@ export function ToolList({ refreshKey }: ToolListProps) {
             {searchTerm ? "ไม่พบเครื่องมือที่ค้นหา" : "ยังไม่มีเครื่องมือในระบบ"}
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>รหัส</TableHead>
-                  <TableHead>ชื่อเครื่องมือ</TableHead>
-                  <TableHead>หมวดหมู่</TableHead>
-                  <TableHead>ยี่ห้อ</TableHead>
-                  <TableHead>Serial No.</TableHead>
-                  <TableHead className="text-center">จำนวน</TableHead>
-                  <TableHead>ระยะเวลา PM</TableHead>
-                  <TableHead>ประกัน</TableHead>
-                  <TableHead className="text-center">จัดการ</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredTools.map((tool) => (
-                  <TableRow key={tool.id}>
-                    <TableCell className="font-medium">{tool.code}</TableCell>
-                    <TableCell>
-                      <div>
-                        <div className="font-medium">{tool.name}</div>
-                        {tool.description && (
-                          <div className="text-sm text-muted-foreground truncate max-w-[200px]">
-                            {tool.description}
-                          </div>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      {tool.tool_category?.name || (
-                        <span className="text-muted-foreground">-</span>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      {tool.brand || <span className="text-muted-foreground">-</span>}
-                    </TableCell>
-                    <TableCell>
-                      {tool.serial_number || (
-                        <span className="text-muted-foreground">-</span>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-center">
-                      {tool.current_quantity} {tool.unit}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="outline">
-                        {getPMIntervalLabel(tool.pm_interval_days)}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      {tool.has_warranty ? (
-                        tool.warranty_expiry_date ? (
-                          <Badge variant="secondary">
-                            หมด{" "}
-                            {format(new Date(tool.warranty_expiry_date), "dd/MM/yyyy", {
-                              locale: th,
-                            })}
-                          </Badge>
-                        ) : (
-                          <Badge variant="secondary">มีประกัน</Badge>
-                        )
-                      ) : (
-                        <Badge variant="outline">ไม่มีประกัน</Badge>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-center">
-                      <div className="flex justify-center gap-1">
-                        <Button variant="ghost" size="icon" title="แก้ไข">
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          title="ลบ"
-                          onClick={() => setDeleteId(tool.id)}
-                        >
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
-                      </div>
-                    </TableCell>
+          <>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>รหัส</TableHead>
+                    <TableHead>ชื่อเครื่องมือ</TableHead>
+                    <TableHead>หมวดหมู่</TableHead>
+                    <TableHead>ยี่ห้อ</TableHead>
+                    <TableHead>Serial No.</TableHead>
+                    <TableHead className="text-center">จำนวน</TableHead>
+                    <TableHead>ระยะเวลา PM</TableHead>
+                    <TableHead>ประกัน</TableHead>
+                    <TableHead className="text-center">จัดการ</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
+                </TableHeader>
+                <TableBody>
+                  {paginatedTools.map((tool) => (
+                    <TableRow key={tool.id}>
+                      <TableCell className="font-medium">{tool.code}</TableCell>
+                      <TableCell>
+                        <div>
+                          <div className="font-medium">{tool.name}</div>
+                          {tool.description && (
+                            <div className="text-sm text-muted-foreground truncate max-w-[200px]">
+                              {tool.description}
+                            </div>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        {tool.tool_category?.name || (
+                          <span className="text-muted-foreground">-</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {tool.brand || <span className="text-muted-foreground">-</span>}
+                      </TableCell>
+                      <TableCell>
+                        {tool.serial_number || (
+                          <span className="text-muted-foreground">-</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        {tool.current_quantity} {tool.unit}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline">
+                          {getPMIntervalLabel(tool.pm_interval_days)}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        {tool.has_warranty ? (
+                          tool.warranty_expiry_date ? (
+                            <Badge variant="secondary">
+                              หมด{" "}
+                              {format(new Date(tool.warranty_expiry_date), "dd/MM/yyyy", {
+                                locale: th,
+                              })}
+                            </Badge>
+                          ) : (
+                            <Badge variant="secondary">มีประกัน</Badge>
+                          )
+                        ) : (
+                          <Badge variant="outline">ไม่มีประกัน</Badge>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <div className="flex justify-center gap-1">
+                          <Button variant="ghost" size="icon" title="แก้ไข">
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            title="ลบ"
+                            onClick={() => setDeleteId(tool.id)}
+                          >
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+            <TablePagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              totalItems={totalItems}
+              pageSize={pageSize}
+              onPageChange={handlePageChange}
+              onPageSizeChange={handlePageSizeChange}
+            />
+          </>
         )}
 
         <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>

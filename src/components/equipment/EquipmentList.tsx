@@ -6,6 +6,8 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { EquipmentTransferForm } from "./EquipmentTransferForm";
 import { EquipmentEditForm } from "./EquipmentEditForm";
+import { useTablePagination } from "@/hooks/useTablePagination";
+import { TablePagination } from "@/components/TablePagination";
 import * as XLSX from "xlsx";
 import {
   Table,
@@ -138,6 +140,16 @@ export function EquipmentList({ refresh }: EquipmentListProps) {
     }
   }, [searchTerm, equipment]);
 
+  const {
+    paginatedData: paginatedEquipment,
+    currentPage,
+    pageSize,
+    totalPages,
+    totalItems,
+    handlePageChange,
+    handlePageSizeChange,
+  } = useTablePagination(filteredEquipment, 20);
+
   const handleExport = () => {
     const exportData = filteredEquipment.map((item: any) => ({
       "รหัสอุปกรณ์": item.code,
@@ -216,7 +228,7 @@ export function EquipmentList({ refresh }: EquipmentListProps) {
             </TableRow>
           </TableHeader>
         <TableBody>
-          {filteredEquipment.map((item) => (
+          {paginatedEquipment.map((item) => (
               <TableRow key={item.id}>
                 <TableCell className="font-medium">{item.code}</TableCell>
                 <TableCell>
@@ -274,6 +286,14 @@ export function EquipmentList({ refresh }: EquipmentListProps) {
           </TableBody>
         </Table>
       </div>
+      <TablePagination
+        currentPage={currentPage}
+        totalPages={totalPages}
+        totalItems={totalItems}
+        pageSize={pageSize}
+        onPageChange={handlePageChange}
+        onPageSizeChange={handlePageSizeChange}
+      />
 
       <AlertDialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
         <AlertDialogContent>

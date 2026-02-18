@@ -7,6 +7,8 @@ import { toast } from "sonner";
 import { format } from "date-fns";
 import { th } from "date-fns/locale";
 import { ArrowRight } from "lucide-react";
+import { useTablePagination } from "@/hooks/useTablePagination";
+import { TablePagination } from "@/components/TablePagination";
 
 interface Transfer {
   id: string;
@@ -98,6 +100,16 @@ export default function TransferHistory() {
     );
   }
 
+  const {
+    paginatedData: paginatedTransfers,
+    currentPage,
+    pageSize,
+    totalPages,
+    totalItems,
+    handlePageChange,
+    handlePageSizeChange,
+  } = useTablePagination(transfers, 20);
+
   return (
     <div className="container mx-auto p-6">
       <div className="mb-6">
@@ -120,73 +132,83 @@ export default function TransferHistory() {
               ยังไม่มีประวัติการย้ายอุปกรณ์
             </div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>วันที่</TableHead>
-                  <TableHead>อุปกรณ์</TableHead>
-                  <TableHead>จำนวน</TableHead>
-                  <TableHead>ตำแหน่งเดิม</TableHead>
-                  <TableHead></TableHead>
-                  <TableHead>ตำแหน่งใหม่</TableHead>
-                  <TableHead>ผู้ทำรายการ</TableHead>
-                  <TableHead>หมายเหตุ</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {transfers.map((transfer) => (
-                  <TableRow key={transfer.id}>
-                    <TableCell>
-                      {format(new Date(transfer.transfer_date), "d MMM yyyy", {
-                        locale: th,
-                      })}
-                    </TableCell>
-                    <TableCell>
-                      <div>
-                        <div className="font-medium">{transfer.equipment.name}</div>
-                        <div className="text-sm text-muted-foreground">
-                          {transfer.equipment.code}
+            <>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>วันที่</TableHead>
+                    <TableHead>อุปกรณ์</TableHead>
+                    <TableHead>จำนวน</TableHead>
+                    <TableHead>ตำแหน่งเดิม</TableHead>
+                    <TableHead></TableHead>
+                    <TableHead>ตำแหน่งใหม่</TableHead>
+                    <TableHead>ผู้ทำรายการ</TableHead>
+                    <TableHead>หมายเหตุ</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {paginatedTransfers.map((transfer) => (
+                    <TableRow key={transfer.id}>
+                      <TableCell>
+                        {format(new Date(transfer.transfer_date), "d MMM yyyy", {
+                          locale: th,
+                        })}
+                      </TableCell>
+                      <TableCell>
+                        <div>
+                          <div className="font-medium">{transfer.equipment.name}</div>
+                          <div className="text-sm text-muted-foreground">
+                            {transfer.equipment.code}
+                          </div>
                         </div>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="outline">{transfer.quantity}</Badge>
-                    </TableCell>
-                    <TableCell>
-                      {transfer.from_location ? (
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline">{transfer.quantity}</Badge>
+                      </TableCell>
+                      <TableCell>
+                        {transfer.from_location ? (
+                          <div>
+                            <div className="font-medium">
+                              {transfer.from_location.code}
+                            </div>
+                            <div className="text-sm text-muted-foreground">
+                              {transfer.from_location.name}
+                            </div>
+                          </div>
+                        ) : (
+                          <span className="text-muted-foreground">-</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <ArrowRight className="h-4 w-4 text-muted-foreground" />
+                      </TableCell>
+                      <TableCell>
                         <div>
                           <div className="font-medium">
-                            {transfer.from_location.code}
+                            {transfer.to_location.code}
                           </div>
                           <div className="text-sm text-muted-foreground">
-                            {transfer.from_location.name}
+                            {transfer.to_location.name}
                           </div>
                         </div>
-                      ) : (
-                        <span className="text-muted-foreground">-</span>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <ArrowRight className="h-4 w-4 text-muted-foreground" />
-                    </TableCell>
-                    <TableCell>
-                      <div>
-                        <div className="font-medium">
-                          {transfer.to_location.code}
-                        </div>
-                        <div className="text-sm text-muted-foreground">
-                          {transfer.to_location.name}
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell>{transfer.profiles.full_name}</TableCell>
-                    <TableCell className="max-w-xs truncate">
-                      {transfer.notes || "-"}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                      </TableCell>
+                      <TableCell>{transfer.profiles.full_name}</TableCell>
+                      <TableCell className="max-w-xs truncate">
+                        {transfer.notes || "-"}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+              <TablePagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                totalItems={totalItems}
+                pageSize={pageSize}
+                onPageChange={handlePageChange}
+                onPageSizeChange={handlePageSizeChange}
+              />
+            </>
           )}
         </CardContent>
       </Card>
