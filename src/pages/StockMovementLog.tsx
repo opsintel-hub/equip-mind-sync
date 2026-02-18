@@ -5,17 +5,15 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 import { Search, Loader2 } from "lucide-react";
 import { StockMovementGroupRow, GroupedMovement, StockMovementItem } from "@/components/stock-movement/StockMovementGroupRow";
 import { StockMovementDocumentDialog } from "@/components/stock-movement/StockMovementDocumentDialog";
-
-const ITEMS_PER_PAGE = 20;
+import { useTablePagination } from "@/hooks/useTablePagination";
+import { TablePagination } from "@/components/TablePagination";
 
 export default function StockMovementLog() {
   const [searchTerm, setSearchTerm] = useState("");
   const [typeFilter, setTypeFilter] = useState<string>("all");
-  const [currentPage, setCurrentPage] = useState(1);
   const [selectedGroup, setSelectedGroup] = useState<GroupedMovement | null>(null);
   const [isDocumentDialogOpen, setIsDocumentDialogOpen] = useState(false);
 
@@ -75,11 +73,15 @@ export default function StockMovementLog() {
   }, [movements]);
 
   // Paginate grouped data
-  const totalPages = Math.ceil(groupedMovements.length / ITEMS_PER_PAGE) || 1;
-  const paginatedGroups = useMemo(() => {
-    const start = (currentPage - 1) * ITEMS_PER_PAGE;
-    return groupedMovements.slice(start, start + ITEMS_PER_PAGE);
-  }, [groupedMovements, currentPage]);
+  const {
+    paginatedData: paginatedGroups,
+    currentPage,
+    pageSize,
+    totalPages,
+    totalItems,
+    handlePageChange,
+    handlePageSizeChange,
+  } = useTablePagination(groupedMovements, 20);
 
   const handleViewDocument = (group: GroupedMovement) => {
     setSelectedGroup(group);
@@ -109,14 +111,14 @@ export default function StockMovementLog() {
                 value={searchTerm}
                 onChange={(e) => {
                   setSearchTerm(e.target.value);
-                  setCurrentPage(1);
+                  handlePageChange(1);
                 }}
                 className="pl-10"
               />
             </div>
             <Select value={typeFilter} onValueChange={(value) => {
               setTypeFilter(value);
-              setCurrentPage(1);
+              handlePageChange(1);
             }}>
               <SelectTrigger className="w-[180px]">
                 <SelectValue placeholder="ประเภท" />
@@ -171,49 +173,14 @@ export default function StockMovementLog() {
                 </Table>
               </div>
 
-              {totalPages > 1 && (
-                <div className="mt-4">
-                  <Pagination>
-                    <PaginationContent>
-                      <PaginationItem>
-                        <PaginationPrevious
-                          onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                          className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
-                        />
-                      </PaginationItem>
-                      {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                        let pageNum;
-                        if (totalPages <= 5) {
-                          pageNum = i + 1;
-                        } else if (currentPage <= 3) {
-                          pageNum = i + 1;
-                        } else if (currentPage >= totalPages - 2) {
-                          pageNum = totalPages - 4 + i;
-                        } else {
-                          pageNum = currentPage - 2 + i;
-                        }
-                        return (
-                          <PaginationItem key={pageNum}>
-                            <PaginationLink
-                              onClick={() => setCurrentPage(pageNum)}
-                              isActive={currentPage === pageNum}
-                              className="cursor-pointer"
-                            >
-                              {pageNum}
-                            </PaginationLink>
-                          </PaginationItem>
-                        );
-                      })}
-                      <PaginationItem>
-                        <PaginationNext
-                          onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                          className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
-                        />
-                      </PaginationItem>
-                    </PaginationContent>
-                  </Pagination>
-                </div>
-              )}
+              <TablePagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                totalItems={totalItems}
+                pageSize={pageSize}
+                onPageChange={handlePageChange}
+                onPageSizeChange={handlePageSizeChange}
+              />
             </>
           )}
         </CardContent>

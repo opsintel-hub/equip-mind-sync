@@ -17,6 +17,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { CompanySelect } from "@/components/company/CompanySelect";
 import { DeliveryImport } from "@/components/delivery/DeliveryImport";
+import { useTablePagination } from "@/hooks/useTablePagination";
+import { TablePagination } from "@/components/TablePagination";
 import { DeliveryCart, DeliveryCartItem } from "@/components/delivery/DeliveryCart";
 import { DeliveryCartItemEditDialog } from "@/components/delivery/DeliveryCartItemEditDialog";
 import { SearchableSelect } from "@/components/ui/searchable-select";
@@ -747,6 +749,15 @@ const DeliveryEntry = () => {
     }
   };
   const filteredReceipts = pendingReceipts.filter(receipt => receipt.document_no.toLowerCase().includes(searchTerm.toLowerCase()) || receipt.equipment_name?.toLowerCase().includes(searchTerm.toLowerCase()) || receipt.delivery_person_name.toLowerCase().includes(searchTerm.toLowerCase()));
+  const {
+    paginatedData: paginatedReceipts,
+    currentPage: historyPage,
+    pageSize: historyPageSize,
+    totalPages: historyTotalPages,
+    totalItems: historyTotalItems,
+    handlePageChange: handleHistoryPageChange,
+    handlePageSizeChange: handleHistoryPageSizeChange,
+  } = useTablePagination(filteredReceipts, 20);
   return <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
@@ -1360,11 +1371,11 @@ const DeliveryEntry = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredReceipts.length === 0 ? <TableRow>
+                {paginatedReceipts.length === 0 ? <TableRow>
                     <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
                       ยังไม่มีรายการ
                     </TableCell>
-                  </TableRow> : filteredReceipts.map(receipt => <TableRow key={receipt.id} className="hover:bg-muted/30">
+                  </TableRow> : paginatedReceipts.map(receipt => <TableRow key={receipt.id} className="hover:bg-muted/30">
                       <TableCell className="font-medium">{receipt.document_no}</TableCell>
                       <TableCell>{format(new Date(receipt.created_at), "dd/MM/yyyy HH:mm")}</TableCell>
                       <TableCell>{receipt.equipment_name || "-"}</TableCell>
@@ -1382,6 +1393,14 @@ const DeliveryEntry = () => {
               </TableBody>
             </Table>
           </div>
+          <TablePagination
+            currentPage={historyPage}
+            totalPages={historyTotalPages}
+            totalItems={historyTotalItems}
+            pageSize={historyPageSize}
+            onPageChange={handleHistoryPageChange}
+            onPageSizeChange={handleHistoryPageSizeChange}
+          />
         </CardContent>
       </Card>
     </div>;

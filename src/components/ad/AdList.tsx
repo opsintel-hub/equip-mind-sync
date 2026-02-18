@@ -21,6 +21,8 @@ import { toast } from "sonner";
 import { Search, AlertTriangle } from "lucide-react";
 import { format } from "date-fns";
 import { AdDetailDialog } from "./AdDetailDialog";
+import { useTablePagination } from "@/hooks/useTablePagination";
+import { TablePagination } from "@/components/TablePagination";
 
 interface Advertisement {
   id: string;
@@ -118,6 +120,16 @@ export function AdList({ refresh, filterType, filterStatus }: AdListProps) {
     return matchSearch && matchType && matchStatus;
   });
 
+  const {
+    paginatedData: paginatedAds,
+    currentPage,
+    pageSize,
+    totalPages,
+    totalItems,
+    handlePageChange,
+    handlePageSizeChange,
+  } = useTablePagination(filteredAds, 20);
+
   if (loading) {
     return <div className="text-center py-8 text-muted-foreground">กำลังโหลด...</div>;
   }
@@ -185,7 +197,7 @@ export function AdList({ refresh, filterType, filterStatus }: AdListProps) {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredAds.map((ad) => {
+              {paginatedAds.map((ad) => {
                 const entryType = entryTypeLabels[ad.entry_type] || { label: ad.entry_type, variant: "secondary" as const };
                 const status = statusLabels[ad.status] || { label: ad.status, variant: "secondary" as const };
 
@@ -253,9 +265,14 @@ export function AdList({ refresh, filterType, filterStatus }: AdListProps) {
         </div>
       )}
 
-      <div className="text-sm text-muted-foreground">
-        แสดง {filteredAds.length} จาก {ads.length} รายการ
-      </div>
+      <TablePagination
+        currentPage={currentPage}
+        totalPages={totalPages}
+        totalItems={totalItems}
+        pageSize={pageSize}
+        onPageChange={handlePageChange}
+        onPageSizeChange={handlePageSizeChange}
+      />
 
       <AdDetailDialog
         adId={selectedAdId}

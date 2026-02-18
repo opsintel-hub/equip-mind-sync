@@ -44,6 +44,8 @@ import { format, differenceInDays, addDays, addWeeks, addMonths, addYears } from
 import { th } from "date-fns/locale";
 import { PMScheduleForm } from "./PMScheduleForm";
 import { PMScheduleImport } from "./PMScheduleImport";
+import { useTablePagination } from "@/hooks/useTablePagination";
+import { TablePagination } from "@/components/TablePagination";
 
 interface PMSchedule {
   id: string;
@@ -71,6 +73,16 @@ export function PMScheduleList() {
   const [selectedSchedule, setSelectedSchedule] = useState<PMSchedule | null>(null);
   const [completionNotes, setCompletionNotes] = useState("");
   const [completionDate, setCompletionDate] = useState(format(new Date(), "yyyy-MM-dd"));
+
+  const {
+    paginatedData: paginatedSchedules,
+    currentPage: scheduleCurrentPage,
+    pageSize: schedulePageSize,
+    totalPages: scheduleTotalPages,
+    totalItems: scheduleTotalItems,
+    handlePageChange: handleSchedulePageChange,
+    handlePageSizeChange: handleSchedulePageSizeChange,
+  } = useTablePagination(schedules, 20);
 
   const fetchSchedules = async () => {
     setIsLoading(true);
@@ -227,97 +239,169 @@ export function PMScheduleList() {
               ยังไม่มีตาราง PM
             </div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>ป้ายโฆษณา</TableHead>
-                  <TableHead>งาน PM</TableHead>
-                  <TableHead>รอบ</TableHead>
-                  <TableHead>กำหนดถัดไป</TableHead>
-                  <TableHead>สถานะ</TableHead>
-                  <TableHead>ทำล่าสุด</TableHead>
-                  <TableHead className="text-right">การดำเนินการ</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {schedules.map((schedule) => (
-                  <TableRow key={schedule.id}>
-                    <TableCell>
-                      <div className="font-medium">
-                        {schedule.billboards?.old_code || schedule.billboards?.equipment_id}
-                      </div>
-                      <div className="text-sm text-muted-foreground">
-                        {schedule.billboards?.location_name}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="font-medium">{schedule.title}</div>
-                      {schedule.description && (
-                        <div className="text-sm text-muted-foreground truncate max-w-[200px]">
-                          {schedule.description}
-                        </div>
-                      )}
-                    </TableCell>
-                    <TableCell>{getScheduleTypeLabel(schedule.schedule_type)}</TableCell>
-                    <TableCell>
-                      {format(new Date(schedule.next_due_date), "d MMM yyyy", { locale: th })}
-                    </TableCell>
-                    <TableCell>{getStatusBadge(schedule.next_due_date)}</TableCell>
-                    <TableCell>
-                      {schedule.last_completed_date
-                        ? format(new Date(schedule.last_completed_date), "d MMM yyyy", { locale: th })
-                        : "-"}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-1">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => {
-                            setSelectedSchedule(schedule);
-                            setCompleteDialogOpen(true);
-                          }}
-                          title="บันทึกการทำ PM"
-                        >
-                          <CheckCircle className="h-4 w-4 text-green-500" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => {
-                            setEditData(schedule);
-                            setFormOpen(true);
-                          }}
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button variant="ghost" size="icon">
-                              <Trash2 className="h-4 w-4 text-destructive" />
-                            </Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>ยืนยันการลบ</AlertDialogTitle>
-                              <AlertDialogDescription>
-                                คุณต้องการลบตาราง PM "{schedule.title}" ใช่หรือไม่?
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>ยกเลิก</AlertDialogCancel>
-                              <AlertDialogAction onClick={() => handleDelete(schedule.id)}>
-                                ลบ
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
-                      </div>
-                    </TableCell>
+            <>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>ป้ายโฆษณา</TableHead>
+                    <TableHead>งาน PM</TableHead>
+                    <TableHead>รอบ</TableHead>
+                    <TableHead>กำหนดถัดไป</TableHead>
+                    <TableHead>สถานะ</TableHead>
+                    <TableHead>ทำล่าสุด</TableHead>
+                    <TableHead className="text-right">การดำเนินการ</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {paginatedSchedules.map((schedule) => (
+                    <TableRow key={schedule.id}>
+                      <TableCell>
+                        <div className="font-medium">
+                          {schedule.billboards?.old_code || schedule.billboards?.equipment_id}
+                        </div>
+                        <div className="text-sm text-muted-foreground">
+                          {schedule.billboards?.location_name}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="font-medium">{schedule.title}</div>
+                        {schedule.description && (
+                          <div className="text-sm text-muted-foreground truncate max-w-[200px]">
+                            {schedule.description}
+                          </div>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline">
+                          {schedule.schedule_type === "monthly"
+                            ? "รายเดือน"
+                            : schedule.schedule_type === "quarterly"
+                            ? "รายไตรมาส"
+                            : schedule.schedule_type === "yearly"
+                            ? "รายปี"
+                            : schedule.schedule_type === "weekly"
+                            ? "รายสัปดาห์"
+                            : schedule.schedule_type === "biweekly"
+                            ? "ทุก 2 สัปดาห์"
+                            : schedule.schedule_type}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        {(() => {
+                          const daysUntilDue = differenceInDays(
+                            new Date(schedule.next_due_date),
+                            new Date()
+                          );
+                          const isOverdue = daysUntilDue < 0;
+                          const isNearDue =
+                            daysUntilDue >= 0 &&
+                            daysUntilDue <= schedule.advance_notice_days;
+
+                          return (
+                            <div>
+                              <div className="font-medium">
+                                {format(
+                                  new Date(schedule.next_due_date),
+                                  "d MMM yyyy",
+                                  { locale: th }
+                                )}
+                              </div>
+                              {isOverdue && (
+                                <Badge variant="destructive" className="text-xs mt-1">
+                                  เกินกำหนด {Math.abs(daysUntilDue)} วัน
+                                </Badge>
+                              )}
+                              {isNearDue && (
+                                <Badge
+                                  variant="outline"
+                                  className="text-xs mt-1 border-yellow-500 text-yellow-600 bg-yellow-50"
+                                >
+                                  อีก {daysUntilDue} วัน
+                                </Badge>
+                              )}
+                            </div>
+                          );
+                        })()}
+                      </TableCell>
+                      <TableCell>
+                        {schedule.is_active ? (
+                          <Badge className="bg-green-500/10 text-green-600 border-green-200">
+                            ใช้งาน
+                          </Badge>
+                        ) : (
+                          <Badge variant="secondary">ปิดใช้งาน</Badge>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {schedule.last_completed_date
+                          ? format(
+                              new Date(schedule.last_completed_date),
+                              "d MMM yyyy",
+                              { locale: th }
+                            )
+                          : "-"}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-1">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setSelectedSchedule(schedule);
+                              setCompleteDialogOpen(true);
+                            }}
+                          >
+                            <CheckCircle className="h-4 w-4 mr-1" />
+                            ทำแล้ว
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => {
+                              setEditData(schedule);
+                              setFormOpen(true);
+                            }}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button variant="ghost" size="icon">
+                                <Trash2 className="h-4 w-4 text-destructive" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>ยืนยันการลบ</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  คุณแน่ใจหรือไม่ว่าต้องการลบตาราง PM นี้?
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>ยกเลิก</AlertDialogCancel>
+                                <AlertDialogAction
+                                  onClick={() => handleDelete(schedule.id)}
+                                >
+                                  ลบ
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+              <TablePagination
+                currentPage={scheduleCurrentPage}
+                totalPages={scheduleTotalPages}
+                totalItems={scheduleTotalItems}
+                pageSize={schedulePageSize}
+                onPageChange={handleSchedulePageChange}
+                onPageSizeChange={handleSchedulePageSizeChange}
+              />
+            </>
           )}
         </CardContent>
       </Card>
