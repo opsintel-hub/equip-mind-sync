@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
 import { Search, FileText, Download, ExternalLink, Loader2 } from "lucide-react";
+import { useTablePagination } from "@/hooks/useTablePagination";
+import { TablePagination } from "@/components/TablePagination";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -126,6 +128,8 @@ export default function DocumentSearch() {
     }
   });
 
+  const { paginatedData, currentPage, pageSize, totalPages, totalItems, handlePageChange, handlePageSizeChange } = useTablePagination(filteredDocuments);
+
   const getStatusBadge = (status: string, source: string) => {
     if (source === "received") {
       return <Badge className="bg-green-100 text-green-800">รับเข้าคลังแล้ว</Badge>;
@@ -246,58 +250,21 @@ export default function DocumentSearch() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredDocuments.map((doc) => (
+                  {paginatedData.map((doc) => (
                     <TableRow key={`${doc.source}-${doc.id}`}>
-                      <TableCell className="font-medium">{doc.document_no}</TableCell>
-                      <TableCell>{doc.equipment_code || "-"}</TableCell>
-                      <TableCell>{doc.equipment_name || "-"}</TableCell>
-                      <TableCell>{doc.supplier_name || "-"}</TableCell>
-                      <TableCell className="text-right">
-                        {doc.quantity.toLocaleString()} {doc.unit}
-                      </TableCell>
-                      <TableCell>
-                        {format(new Date(doc.created_at), "dd MMM yyyy", { locale: th })}
-                      </TableCell>
-                      <TableCell>{getStatusBadge(doc.status, doc.source)}</TableCell>
-                      <TableCell className="text-center">
-                        {doc.document_url ? (
-                          <div className="flex items-center justify-center gap-1">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              asChild
-                              title="ดูเอกสาร"
-                            >
-                              <a
-                                href={doc.document_url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                              >
-                                <ExternalLink className="h-4 w-4" />
-                              </a>
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              asChild
-                              title="ดาวน์โหลด"
-                            >
-                              <a
-                                href={doc.document_url}
-                                download
-                              >
-                                <Download className="h-4 w-4" />
-                              </a>
-                            </Button>
-                          </div>
-                        ) : (
-                          <span className="text-muted-foreground">-</span>
-                        )}
-                      </TableCell>
+...
                     </TableRow>
                   ))}
                 </TableBody>
               </Table>
+              <TablePagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                totalItems={totalItems}
+                pageSize={pageSize}
+                onPageChange={handlePageChange}
+                onPageSizeChange={handlePageSizeChange}
+              />
             </div>
           )}
         </CardContent>

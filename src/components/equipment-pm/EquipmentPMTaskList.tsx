@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useTablePagination } from "@/hooks/useTablePagination";
+import { TablePagination } from "@/components/TablePagination";
 import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -358,6 +360,8 @@ export function EquipmentPMTaskList() {
     return task.status === filterStatus;
   });
 
+  const { paginatedData, currentPage, pageSize, totalPages, totalItems, handlePageChange, handlePageSizeChange } = useTablePagination(filteredTasks);
+
   const getStatusBadge = (status: string) => {
     const colors: Record<string, string> = {
       pending: "bg-yellow-500",
@@ -401,6 +405,7 @@ export function EquipmentPMTaskList() {
             ไม่มีงาน PM
           </div>
         ) : (
+          <>
           <Table>
             <TableHeader>
               <TableRow>
@@ -416,57 +421,22 @@ export function EquipmentPMTaskList() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredTasks.map((task) => (
+              {paginatedData.map((task) => (
                 <TableRow key={task.id}>
-                  <TableCell className="font-mono text-sm">
-                    {task.task_number}
-                    {task.parent_task_id && (
-                      <Badge variant="outline" className="ml-2 text-xs">
-                        งานต่อเนื่อง
-                      </Badge>
-                    )}
-                  </TableCell>
-                  <TableCell>{task.schedule?.title || "-"}</TableCell>
-                  <TableCell>
-                    {task.schedule?.equipment?.name} ({task.schedule?.equipment?.code})
-                  </TableCell>
-                  <TableCell>{task.schedule?.department}</TableCell>
-                  <TableCell>
-                    {format(new Date(task.due_date), "d MMM yyyy", { locale: th })}
-                  </TableCell>
-                  <TableCell>{getStatusBadge(task.status)}</TableCell>
-                  <TableCell>
-                    {task.inspection_result ? (
-                      <Badge className={`${RESULT_COLORS[task.inspection_result]} text-white`}>
-                        {RESULT_LABELS[task.inspection_result]}
-                      </Badge>
-                    ) : (
-                      "-"
-                    )}
-                  </TableCell>
-                  <TableCell>{task.inspector?.full_name || "-"}</TableCell>
-                  <TableCell className="text-right">
-                    {task.status !== "completed" && task.status !== "cancelled" && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleOpenInspection(task)}
-                      >
-                        <ClipboardCheck className="h-4 w-4 mr-1" />
-                        บันทึกผล
-                      </Button>
-                    )}
-                    {task.images && task.images.length > 0 && (
-                      <Badge variant="secondary" className="ml-2">
-                        <Image className="h-3 w-3 mr-1" />
-                        {task.images.length}
-                      </Badge>
-                    )}
-                  </TableCell>
+...
                 </TableRow>
               ))}
             </TableBody>
           </Table>
+          <TablePagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            totalItems={totalItems}
+            pageSize={pageSize}
+            onPageChange={handlePageChange}
+            onPageSizeChange={handlePageSizeChange}
+          />
+          </>
         )}
 
         {/* Inspection Dialog */}

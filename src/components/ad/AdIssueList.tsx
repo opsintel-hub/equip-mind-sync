@@ -2,6 +2,8 @@ import { useState, useEffect } from "react";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
+import { useTablePagination } from "@/hooks/useTablePagination";
+import { TablePagination } from "@/components/TablePagination";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -164,6 +166,8 @@ export function AdIssueList({ refresh, onUpdated }: AdIssueListProps) {
     );
   }
 
+  const { paginatedData, currentPage, pageSize, totalPages, totalItems, handlePageChange, handlePageSizeChange } = useTablePagination(requests);
+
   return (
     <div className="space-y-4">
       <div className="rounded-lg border">
@@ -182,7 +186,7 @@ export function AdIssueList({ refresh, onUpdated }: AdIssueListProps) {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {requests.map((req) => {
+            {paginatedData.map((req) => {
               const status = statusLabels[req.status] || { label: req.status, variant: "secondary" as const };
               return (
                 <TableRow key={req.id}>
@@ -241,6 +245,14 @@ export function AdIssueList({ refresh, onUpdated }: AdIssueListProps) {
           </TableBody>
         </Table>
       </div>
+      <TablePagination
+        currentPage={currentPage}
+        totalPages={totalPages}
+        totalItems={totalItems}
+        pageSize={pageSize}
+        onPageChange={handlePageChange}
+        onPageSizeChange={handlePageSizeChange}
+      />
 
       {/* Issue Confirm */}
       <AlertDialog open={!!confirmIssue} onOpenChange={(o) => !o && setConfirmIssue(null)}>

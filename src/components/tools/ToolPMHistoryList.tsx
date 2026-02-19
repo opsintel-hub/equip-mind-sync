@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useTablePagination } from "@/hooks/useTablePagination";
+import { TablePagination } from "@/components/TablePagination";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -122,6 +124,8 @@ export function ToolPMHistoryList() {
       item.tool.serial_number?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  const { paginatedData, currentPage, pageSize, totalPages, totalItems, handlePageChange, handlePageSizeChange } = useTablePagination(filteredHistory);
+
   return (
     <Card>
       <CardHeader>
@@ -174,52 +178,21 @@ export function ToolPMHistoryList() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredHistory.map((item) => (
+                {paginatedData.map((item) => (
                   <TableRow key={item.id}>
-                    <TableCell className="font-medium">
-                      {item.tool_pm_task?.task_number || "-"}
-                    </TableCell>
-                    <TableCell>
-                      <div>
-                        <div className="font-medium">{item.tool.name}</div>
-                        <div className="text-sm text-muted-foreground">
-                          {item.tool.code}
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      {item.tool.brand || (
-                        <span className="text-muted-foreground">-</span>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      {item.tool.serial_number || (
-                        <span className="text-muted-foreground">-</span>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-center">
-                      {item.tool_pm_task?.quantity_checked
-                        ? `${item.tool_pm_task.quantity_checked} ${item.tool.unit}`
-                        : "-"}
-                    </TableCell>
-                    <TableCell>{getResultBadge(item.pm_result)}</TableCell>
-                    <TableCell>
-                      {format(new Date(item.completed_date), "dd/MM/yyyy HH:mm", {
-                        locale: th,
-                      })}
-                    </TableCell>
-                    <TableCell>
-                      {item.inspector_name || (
-                        <span className="text-muted-foreground">-</span>
-                      )}
-                    </TableCell>
-                    <TableCell className="max-w-[200px] truncate">
-                      {item.notes || <span className="text-muted-foreground">-</span>}
-                    </TableCell>
+...
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
+            <TablePagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              totalItems={totalItems}
+              pageSize={pageSize}
+              onPageChange={handlePageChange}
+              onPageSizeChange={handlePageSizeChange}
+            />
           </div>
         )}
       </CardContent>

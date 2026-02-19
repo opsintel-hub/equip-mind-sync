@@ -7,6 +7,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { useTablePagination } from "@/hooks/useTablePagination";
+import { TablePagination } from "@/components/TablePagination";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -51,6 +53,7 @@ export function ContractorList({ refresh }: ContractorListProps) {
   const [loading, setLoading] = useState(true);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const pagination = useTablePagination(filteredContractors);
 
   useEffect(() => {
     fetchContractors();
@@ -178,38 +181,49 @@ export function ContractorList({ refresh }: ContractorListProps) {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {filteredContractors.map((contractor) => (
-            <TableRow key={contractor.id}>
-              <TableCell className="font-medium">{contractor.code}</TableCell>
-              <TableCell>{contractor.name}</TableCell>
-              <TableCell>{getEntityTypeBadge(contractor.entity_type)}</TableCell>
-              <TableCell>{contractor.tax_id || "-"}</TableCell>
-              <TableCell>{contractor.contact_person || "-"}</TableCell>
-              <TableCell>{contractor.phone || "-"}</TableCell>
-              <TableCell>
-                <Badge variant={contractor.is_active ? "default" : "secondary"}>
-                  {contractor.is_active ? "ใช้งาน" : "ไม่ใช้งาน"}
-                </Badge>
-              </TableCell>
-              <TableCell className="text-right">
-                <div className="flex justify-end gap-2">
-                  <ContractorForm
-                    onSuccess={fetchContractors}
-                    contractor={contractor}
-                  />
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setDeleteId(contractor.id)}
-                  >
-                    <Trash2 className="h-4 w-4 text-destructive" />
-                  </Button>
-                </div>
-              </TableCell>
-            </TableRow>
-          ))}
+          {(() => {
+            const { paginatedData, currentPage, pageSize: ps, totalPages, totalItems, handlePageChange, handlePageSizeChange } = pagination;
+            return paginatedData.map((contractor) => (
+              <TableRow key={contractor.id}>
+                <TableCell className="font-medium">{contractor.code}</TableCell>
+                <TableCell>{contractor.name}</TableCell>
+                <TableCell>{getEntityTypeBadge(contractor.entity_type)}</TableCell>
+                <TableCell>{contractor.tax_id || "-"}</TableCell>
+                <TableCell>{contractor.contact_person || "-"}</TableCell>
+                <TableCell>{contractor.phone || "-"}</TableCell>
+                <TableCell>
+                  <Badge variant={contractor.is_active ? "default" : "secondary"}>
+                    {contractor.is_active ? "ใช้งาน" : "ไม่ใช้งาน"}
+                  </Badge>
+                </TableCell>
+                <TableCell className="text-right">
+                  <div className="flex justify-end gap-2">
+                    <ContractorForm
+                      onSuccess={fetchContractors}
+                      contractor={contractor}
+                    />
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setDeleteId(contractor.id)}
+                    >
+                      <Trash2 className="h-4 w-4 text-destructive" />
+                    </Button>
+                  </div>
+                </TableCell>
+              </TableRow>
+            ));
+          })()}
         </TableBody>
       </Table>
+      <TablePagination
+        currentPage={pagination.currentPage}
+        totalPages={pagination.totalPages}
+        totalItems={pagination.totalItems}
+        pageSize={pagination.pageSize}
+        onPageChange={pagination.handlePageChange}
+        onPageSizeChange={pagination.handlePageSizeChange}
+      />
 
       <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
         <AlertDialogContent>

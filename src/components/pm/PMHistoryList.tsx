@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { History, RefreshCw, FileSpreadsheet, FileText } from "lucide-react";
+import { useTablePagination } from "@/hooks/useTablePagination";
+import { TablePagination } from "@/components/TablePagination";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -80,6 +82,7 @@ interface Billboard {
 export function PMHistoryList() {
   const [history, setHistory] = useState<PMHistory[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const pagination = useTablePagination(history);
   const [dateFilter, setDateFilter] = useState("all");
   const [billboardFilter, setBillboardFilter] = useState("all");
   const [scheduleTypeFilter, setScheduleTypeFilter] = useState("all");
@@ -439,45 +442,60 @@ export function PMHistoryList() {
               ไม่มีประวัติการทำ PM
             </div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>ป้ายโฆษณา</TableHead>
-                  <TableHead>งาน PM</TableHead>
-                  <TableHead>รอบ</TableHead>
-                  <TableHead>วันที่ทำ</TableHead>
-                  <TableHead>ผู้ทำ</TableHead>
-                  <TableHead>หมายเหตุ</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {history.map((item) => (
-                  <TableRow key={item.id}>
-                    <TableCell>
-                      <div className="font-medium">
-                        {item.pm_schedules?.billboards?.old_code || item.pm_schedules?.billboards?.equipment_id || "-"}
-                      </div>
-                      <div className="text-sm text-muted-foreground">
-                        {item.pm_schedules?.billboards?.location_name || "-"}
-                      </div>
-                    </TableCell>
-                    <TableCell>{item.pm_schedules?.title || "-"}</TableCell>
-                    <TableCell>
-                      <Badge variant="outline">
-                        {getScheduleTypeLabel(item.pm_schedules?.schedule_type || "")}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      {format(new Date(item.completed_date), "d MMM yyyy", { locale: th })}
-                    </TableCell>
-                    <TableCell>{item.profiles?.full_name || "-"}</TableCell>
-                    <TableCell className="max-w-[200px] truncate">
-                      {item.notes || "-"}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+            (() => {
+              const { paginatedData, currentPage, pageSize, totalPages, totalItems, handlePageChange, handlePageSizeChange } = pagination;
+              return (
+                <>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>ป้ายโฆษณา</TableHead>
+                        <TableHead>งาน PM</TableHead>
+                        <TableHead>รอบ</TableHead>
+                        <TableHead>วันที่ทำ</TableHead>
+                        <TableHead>ผู้ทำ</TableHead>
+                        <TableHead>หมายเหตุ</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {paginatedData.map((item) => (
+                        <TableRow key={item.id}>
+                          <TableCell>
+                            <div className="font-medium">
+                              {item.pm_schedules?.billboards?.old_code || item.pm_schedules?.billboards?.equipment_id || "-"}
+                            </div>
+                            <div className="text-sm text-muted-foreground">
+                              {item.pm_schedules?.billboards?.location_name || "-"}
+                            </div>
+                          </TableCell>
+                          <TableCell>{item.pm_schedules?.title || "-"}</TableCell>
+                          <TableCell>
+                            <Badge variant="outline">
+                              {getScheduleTypeLabel(item.pm_schedules?.schedule_type || "")}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            {format(new Date(item.completed_date), "d MMM yyyy", { locale: th })}
+                          </TableCell>
+                          <TableCell>{item.profiles?.full_name || "-"}</TableCell>
+                          <TableCell className="max-w-[200px] truncate">
+                            {item.notes || "-"}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                  <TablePagination
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    totalItems={totalItems}
+                    pageSize={pageSize}
+                    onPageChange={handlePageChange}
+                    onPageSizeChange={handlePageSizeChange}
+                  />
+                </>
+              );
+            })()
           )}
         </CardContent>
       </Card>
