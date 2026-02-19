@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useTablePagination } from "@/hooks/useTablePagination";
+import { TablePagination } from "@/components/TablePagination";
 import { toast } from "sonner";
 import { format, subMonths } from "date-fns";
 import { th } from "date-fns/locale";
@@ -274,6 +276,8 @@ export function EquipmentPMHistoryList() {
       return false;
     return true;
   });
+
+  const { paginatedData, currentPage, pageSize, totalPages, totalItems, handlePageChange, handlePageSizeChange } = useTablePagination(filteredTasks);
 
   const departments = [...new Set(tasks.map((t) => t.schedule?.department).filter(Boolean))];
 
@@ -571,56 +575,21 @@ export function EquipmentPMHistoryList() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredTasks.map((task) => (
+                  {paginatedData.map((task) => (
                     <TableRow key={task.id}>
-                      <TableCell className="font-medium">
-                        {task.task_number}
-                      </TableCell>
-                      <TableCell>{task.schedule?.department || "-"}</TableCell>
-                      <TableCell>
-                        <div className="font-medium">
-                          {task.schedule?.equipment?.code || "-"}
-                        </div>
-                        <div className="text-sm text-muted-foreground truncate max-w-[150px]">
-                          {task.schedule?.equipment?.name || "-"}
-                        </div>
-                      </TableCell>
-                      <TableCell>{task.schedule?.title || "-"}</TableCell>
-                      <TableCell>
-                        {task.inspection_date
-                          ? format(new Date(task.inspection_date), "d MMM yyyy", {
-                              locale: th,
-                            })
-                          : "-"}
-                      </TableCell>
-                      <TableCell>{getResultBadge(task.inspection_result)}</TableCell>
-                      <TableCell>
-                        {task.inspector_profile?.full_name || "-"}
-                      </TableCell>
-                      <TableCell>
-                        {task.images.length > 0 ? (
-                          <Badge variant="outline" className="gap-1">
-                            <ImageIcon className="h-3 w-3" />
-                            {task.images.length}
-                          </Badge>
-                        ) : (
-                          "-"
-                        )}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => openDetailDialog(task)}
-                        >
-                          <Eye className="h-4 w-4 mr-1" />
-                          ดู
-                        </Button>
-                      </TableCell>
+...
                     </TableRow>
                   ))}
                 </TableBody>
               </Table>
+              <TablePagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                totalItems={totalItems}
+                pageSize={pageSize}
+                onPageChange={handlePageChange}
+                onPageSizeChange={handlePageSizeChange}
+              />
             </div>
           )}
         </CardContent>

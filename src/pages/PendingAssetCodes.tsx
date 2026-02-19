@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { useTablePagination } from "@/hooks/useTablePagination";
+import { TablePagination } from "@/components/TablePagination";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -109,6 +111,8 @@ const PendingAssetCodes = () => {
     record.equipment_id_code?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  const { paginatedData, currentPage, pageSize, totalPages, totalItems, handlePageChange, handlePageSizeChange } = useTablePagination(filteredRecords);
+
   const getWaitingBadge = (record: PendingAssetRecord) => {
     const badges = [];
     if (record.waiting_asset_code) {
@@ -208,60 +212,70 @@ const PendingAssetCodes = () => {
               <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
             </div>
           ) : (
-            <div className="rounded-lg border">
-              <Table>
-                <TableHeader>
-                  <TableRow className="bg-muted/50">
-                    <TableHead>เลขที่เอกสาร</TableHead>
-                    <TableHead>วันที่</TableHead>
-                    <TableHead>ชื่อสินค้า</TableHead>
-                    <TableHead>จำนวน</TableHead>
-                    <TableHead>รหัสทรัพย์สิน</TableHead>
-                    <TableHead>Equipment ID</TableHead>
-                    <TableHead>สถานะ</TableHead>
-                    <TableHead className="text-center">จัดการ</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredRecords.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
-                        ไม่มีรายการรอบันทึกรหัส
-                      </TableCell>
+            <>
+              <div className="rounded-lg border">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-muted/50">
+                      <TableHead>เลขที่เอกสาร</TableHead>
+                      <TableHead>วันที่</TableHead>
+                      <TableHead>ชื่อสินค้า</TableHead>
+                      <TableHead>จำนวน</TableHead>
+                      <TableHead>รหัสทรัพย์สิน</TableHead>
+                      <TableHead>Equipment ID</TableHead>
+                      <TableHead>สถานะ</TableHead>
+                      <TableHead className="text-center">จัดการ</TableHead>
                     </TableRow>
-                  ) : (
-                    filteredRecords.map((record) => (
-                      <TableRow key={record.id} className="hover:bg-muted/30">
-                        <TableCell className="font-medium">{record.document_no}</TableCell>
-                        <TableCell>{format(new Date(record.created_at), "dd/MM/yyyy")}</TableCell>
-                        <TableCell>
-                          <div>
-                            {record.equipment_name || "-"}
-                            {record.is_media_player && (
-                              <Badge variant="outline" className="ml-2 text-xs">Media Player</Badge>
-                            )}
-                          </div>
-                        </TableCell>
-                        <TableCell>{record.quantity} {record.unit}</TableCell>
-                        <TableCell>{record.asset_code || <span className="text-muted-foreground">-</span>}</TableCell>
-                        <TableCell>{record.equipment_id_code || <span className="text-muted-foreground">-</span>}</TableCell>
-                        <TableCell>{getWaitingBadge(record)}</TableCell>
-                        <TableCell className="text-center">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => openEditDialog(record)}
-                            disabled={!record.waiting_asset_code && !record.waiting_equipment_id}
-                          >
-                            บันทึกรหัส
-                          </Button>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredRecords.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                          ไม่มีรายการรอบันทึกรหัส
                         </TableCell>
                       </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
-            </div>
+                    ) : (
+                      paginatedData.map((record) => (
+                        <TableRow key={record.id} className="hover:bg-muted/30">
+                          <TableCell className="font-medium">{record.document_no}</TableCell>
+                          <TableCell>{format(new Date(record.created_at), "dd/MM/yyyy")}</TableCell>
+                          <TableCell>
+                            <div>
+                              {record.equipment_name || "-"}
+                              {record.is_media_player && (
+                                <Badge variant="outline" className="ml-2 text-xs">Media Player</Badge>
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell>{record.quantity} {record.unit}</TableCell>
+                          <TableCell>{record.asset_code || <span className="text-muted-foreground">-</span>}</TableCell>
+                          <TableCell>{record.equipment_id_code || <span className="text-muted-foreground">-</span>}</TableCell>
+                          <TableCell>{getWaitingBadge(record)}</TableCell>
+                          <TableCell className="text-center">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => openEditDialog(record)}
+                              disabled={!record.waiting_asset_code && !record.waiting_equipment_id}
+                            >
+                              บันทึกรหัส
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+              <TablePagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                totalItems={totalItems}
+                pageSize={pageSize}
+                onPageChange={handlePageChange}
+                onPageSizeChange={handlePageSizeChange}
+              />
+            </>
           )}
         </CardContent>
       </Card>

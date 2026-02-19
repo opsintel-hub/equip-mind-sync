@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { useTablePagination } from "@/hooks/useTablePagination";
+import { TablePagination } from "@/components/TablePagination";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -142,6 +144,8 @@ export const ReceiveGroupedItems = ({
     }, {} as Record<string, GroupedReceipts>)
   ).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
+  const { paginatedData, currentPage, pageSize, totalPages, totalItems, handlePageChange, handlePageSizeChange } = useTablePagination(groupedReceipts);
+
   const toggleGroup = (parentDocNo: string) => {
     const newExpanded = new Set(expandedGroups);
     if (newExpanded.has(parentDocNo)) {
@@ -198,7 +202,7 @@ export const ReceiveGroupedItems = ({
 
   return (
     <div className="space-y-4">
-      {groupedReceipts.map((group) => {
+      {paginatedData.map((group) => {
         const isExpanded = expandedGroups.has(group.parentDocNo);
         const pendingItems = group.items.filter(item => item.status === "pending");
         const allPendingSelected = pendingItems.length > 0 && 
@@ -388,6 +392,14 @@ export const ReceiveGroupedItems = ({
           </div>
         );
       })}
+      <TablePagination
+        currentPage={currentPage}
+        totalPages={totalPages}
+        totalItems={totalItems}
+        pageSize={pageSize}
+        onPageChange={handlePageChange}
+        onPageSizeChange={handlePageSizeChange}
+      />
     </div>
   );
 };

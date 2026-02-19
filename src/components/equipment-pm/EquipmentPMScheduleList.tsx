@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useTablePagination } from "@/hooks/useTablePagination";
+import { TablePagination } from "@/components/TablePagination";
 import { format, differenceInDays } from "date-fns";
 import { th } from "date-fns/locale";
 import {
@@ -211,6 +213,8 @@ export function EquipmentPMScheduleList() {
     return true;
   });
 
+  const { paginatedData, currentPage, pageSize, totalPages, totalItems, handlePageChange, handlePageSizeChange } = useTablePagination(filteredSchedules);
+
   const departments = [...new Set(schedules.map((s) => s.department))];
   const equipmentTypes = [...new Set(schedules.map((s) => s.equipment_type))];
 
@@ -300,75 +304,21 @@ export function EquipmentPMScheduleList() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredSchedules.map((schedule) => (
+                  {paginatedData.map((schedule) => (
                     <TableRow key={schedule.id}>
-                      <TableCell>{schedule.department}</TableCell>
-                      <TableCell className="max-w-[150px] truncate">
-                        {schedule.equipment_type}
-                      </TableCell>
-                      <TableCell>
-                        <div className="font-medium">
-                          {schedule.equipment?.code}
-                        </div>
-                        <div className="text-sm text-muted-foreground truncate max-w-[200px]">
-                          {schedule.equipment?.name}
-                        </div>
-                      </TableCell>
-                      <TableCell>{schedule.title}</TableCell>
-                      <TableCell>
-                        {SCHEDULE_TYPE_LABELS[schedule.schedule_type] || schedule.schedule_type}
-                      </TableCell>
-                      <TableCell>
-                        {format(new Date(schedule.next_due_date), "d MMM yyyy", {
-                          locale: th,
-                        })}
-                      </TableCell>
-                      <TableCell>{getStatusBadge(schedule.next_due_date)}</TableCell>
-                      <TableCell>
-                        {schedule.last_completed_date
-                          ? format(new Date(schedule.last_completed_date), "d MMM yyyy", {
-                              locale: th,
-                            })
-                          : "-"}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-1">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => {
-                              setSelectedSchedule(schedule);
-                              setCompleteDialogOpen(true);
-                            }}
-                            title="ทำ PM เสร็จ"
-                          >
-                            <CheckCircle className="h-4 w-4 text-green-600" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleEdit(schedule)}
-                            title="แก้ไข"
-                          >
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => {
-                              setSelectedSchedule(schedule);
-                              setDeleteDialogOpen(true);
-                            }}
-                            title="ลบ"
-                          >
-                            <Trash2 className="h-4 w-4 text-red-600" />
-                          </Button>
-                        </div>
-                      </TableCell>
+...
                     </TableRow>
                   ))}
                 </TableBody>
               </Table>
+              <TablePagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                totalItems={totalItems}
+                pageSize={pageSize}
+                onPageChange={handlePageChange}
+                onPageSizeChange={handlePageSizeChange}
+              />
             </div>
           )}
         </CardContent>

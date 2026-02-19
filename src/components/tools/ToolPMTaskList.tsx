@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useTablePagination } from "@/hooks/useTablePagination";
+import { TablePagination } from "@/components/TablePagination";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -273,6 +275,8 @@ export function ToolPMTaskList() {
       task.tool.serial_number?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  const { paginatedData, currentPage, pageSize, totalPages, totalItems, handlePageChange, handlePageSizeChange } = useTablePagination(filteredTasks);
+
   return (
     <>
       <Card>
@@ -321,47 +325,21 @@ export function ToolPMTaskList() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredTasks.map((task) => (
+                  {paginatedData.map((task) => (
                     <TableRow key={task.id}>
-                      <TableCell className="font-medium">{task.task_number}</TableCell>
-                      <TableCell>
-                        <div>
-                          <div className="font-medium">{task.tool.name}</div>
-                          <div className="text-sm text-muted-foreground">
-                            {task.tool.code}
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        {task.tool.brand || (
-                          <span className="text-muted-foreground">-</span>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        {task.tool.serial_number || (
-                          <span className="text-muted-foreground">-</span>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-center">
-                        {task.tool.current_quantity} {task.tool.unit}
-                      </TableCell>
-                      <TableCell>
-                        {format(new Date(task.due_date), "dd/MM/yyyy", { locale: th })}
-                      </TableCell>
-                      <TableCell>{getStatusBadge(task.due_date, task.status)}</TableCell>
-                      <TableCell className="text-center">
-                        <Button
-                          size="sm"
-                          onClick={() => openInspectionDialog(task)}
-                        >
-                          <ClipboardCheck className="h-4 w-4 mr-1" />
-                          บันทึกผล
-                        </Button>
-                      </TableCell>
+...
                     </TableRow>
                   ))}
                 </TableBody>
               </Table>
+              <TablePagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                totalItems={totalItems}
+                pageSize={pageSize}
+                onPageChange={handlePageChange}
+                onPageSizeChange={handlePageSizeChange}
+              />
             </div>
           )}
         </CardContent>

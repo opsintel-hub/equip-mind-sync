@@ -7,6 +7,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { useTablePagination } from "@/hooks/useTablePagination";
+import { TablePagination } from "@/components/TablePagination";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -50,6 +52,7 @@ export function SupplierList({ refresh }: SupplierListProps) {
   const [loading, setLoading] = useState(true);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const pagination = useTablePagination(filteredSuppliers);
 
   useEffect(() => {
     fetchSuppliers();
@@ -169,7 +172,7 @@ export function SupplierList({ refresh }: SupplierListProps) {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {filteredSuppliers.map((supplier) => (
+          {pagination.paginatedData.map((supplier) => (
             <TableRow key={supplier.id}>
               <TableCell className="font-medium">{supplier.code}</TableCell>
               <TableCell>{supplier.vendor_code || "-"}</TableCell>
@@ -202,6 +205,14 @@ export function SupplierList({ refresh }: SupplierListProps) {
           ))}
         </TableBody>
       </Table>
+      <TablePagination
+        currentPage={pagination.currentPage}
+        totalPages={pagination.totalPages}
+        totalItems={pagination.totalItems}
+        pageSize={pagination.pageSize}
+        onPageChange={pagination.handlePageChange}
+        onPageSizeChange={pagination.handlePageSizeChange}
+      />
 
       <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
         <AlertDialogContent>
