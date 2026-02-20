@@ -34,6 +34,7 @@ import { CategoryList } from "@/components/category/CategoryList";
 import { CategoryForm } from "@/components/category/CategoryForm";
 import { SubcategoryList } from "@/components/category/SubcategoryList";
 import { SubcategoryForm } from "@/components/category/SubcategoryForm";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 const MasterData = () => {
   const [refreshKey, setRefreshKey] = useState(0);
@@ -52,60 +53,62 @@ const MasterData = () => {
       </div>
 
       <Tabs defaultValue="equipment" className="w-full">
-        <TabsList className="flex flex-wrap gap-1 h-auto max-w-7xl">
-          <TabsTrigger value="equipment" className="gap-2">
-            <Package className="h-4 w-4" />
-            อุปกรณ์
-          </TabsTrigger>
-          <TabsTrigger value="tools" className="gap-2">
-            <Wrench className="h-4 w-4" />
-            เครื่องมือ
-          </TabsTrigger>
-          <TabsTrigger value="categories" className="gap-2">
-            <FolderTree className="h-4 w-4" />
-            หมวดหมู่
-          </TabsTrigger>
-          <TabsTrigger value="warehouses" className="gap-2">
-            <Warehouse className="h-4 w-4" />
-            คลังสินค้า
-          </TabsTrigger>
-          <TabsTrigger value="locations" className="gap-2">
-            <MapPin className="h-4 w-4" />
-            ตำแหน่ง
-          </TabsTrigger>
-          <TabsTrigger value="suppliers" className="gap-2">
-            <Truck className="h-4 w-4" />
-            ผู้จัดจำหน่าย
-          </TabsTrigger>
-          <TabsTrigger value="contractors" className="gap-2">
-            <HardHat className="h-4 w-4" />
-            ผู้รับเหมา
-          </TabsTrigger>
-          <TabsTrigger value="departments" className="gap-2">
-            <Building2 className="h-4 w-4" />
-            ฝ่าย
-          </TabsTrigger>
-          <TabsTrigger value="sections" className="gap-2">
-            <Layers className="h-4 w-4" />
-            แผนก
-          </TabsTrigger>
-          <TabsTrigger value="companies" className="gap-2">
-            <Building className="h-4 w-4" />
-            บริษัท
-          </TabsTrigger>
-          <TabsTrigger value="issue_purposes" className="gap-2">
-            <Target className="h-4 w-4" />
-            วัตถุประสงค์เบิก
-          </TabsTrigger>
-          <TabsTrigger value="receipt_purposes" className="gap-2">
-            <PackageOpen className="h-4 w-4" />
-            วัตถุประสงค์รับ
-          </TabsTrigger>
-          <TabsTrigger value="pm_action_types" className="gap-2">
-            <Zap className="h-4 w-4" />
-            PM Action Types
-          </TabsTrigger>
-        </TabsList>
+        <ScrollArea className="w-full" type="scroll">
+          <TabsList className="flex w-max h-10 mb-0">
+            <TabsTrigger value="equipment" className="gap-1.5 text-xs px-3">
+              <Package className="h-3.5 w-3.5" />
+              อุปกรณ์
+            </TabsTrigger>
+            <TabsTrigger value="tools" className="gap-1.5 text-xs px-3">
+              <Wrench className="h-3.5 w-3.5" />
+              เครื่องมือ
+            </TabsTrigger>
+            <TabsTrigger value="categories" className="gap-1.5 text-xs px-3">
+              <FolderTree className="h-3.5 w-3.5" />
+              หมวดหมู่
+            </TabsTrigger>
+            <TabsTrigger value="warehouses" className="gap-1.5 text-xs px-3">
+              <Warehouse className="h-3.5 w-3.5" />
+              คลังสินค้า
+            </TabsTrigger>
+            <TabsTrigger value="locations" className="gap-1.5 text-xs px-3">
+              <MapPin className="h-3.5 w-3.5" />
+              ตำแหน่ง
+            </TabsTrigger>
+            <TabsTrigger value="suppliers" className="gap-1.5 text-xs px-3">
+              <Truck className="h-3.5 w-3.5" />
+              ผู้จัดจำหน่าย
+            </TabsTrigger>
+            <TabsTrigger value="contractors" className="gap-1.5 text-xs px-3">
+              <HardHat className="h-3.5 w-3.5" />
+              ผู้รับเหมา
+            </TabsTrigger>
+            <TabsTrigger value="departments" className="gap-1.5 text-xs px-3">
+              <Building2 className="h-3.5 w-3.5" />
+              ฝ่าย
+            </TabsTrigger>
+            <TabsTrigger value="sections" className="gap-1.5 text-xs px-3">
+              <Layers className="h-3.5 w-3.5" />
+              แผนก
+            </TabsTrigger>
+            <TabsTrigger value="companies" className="gap-1.5 text-xs px-3">
+              <Building className="h-3.5 w-3.5" />
+              บริษัท
+            </TabsTrigger>
+            <TabsTrigger value="issue_purposes" className="gap-1.5 text-xs px-3">
+              <Target className="h-3.5 w-3.5" />
+              วัตถุประสงค์เบิก
+            </TabsTrigger>
+            <TabsTrigger value="receipt_purposes" className="gap-1.5 text-xs px-3">
+              <PackageOpen className="h-3.5 w-3.5" />
+              วัตถุประสงค์รับ
+            </TabsTrigger>
+            <TabsTrigger value="pm_action_types" className="gap-1.5 text-xs px-3">
+              <Zap className="h-3.5 w-3.5" />
+              PM Action Types
+            </TabsTrigger>
+          </TabsList>
+        </ScrollArea>
 
         <TabsContent value="equipment" className="space-y-4">
           <Card>
