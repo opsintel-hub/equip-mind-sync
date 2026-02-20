@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { RefreshCw, Download, AlertTriangle, Clock } from "lucide-react";
+import { RefreshCw, Download, AlertTriangle, Clock, DatabaseZap } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { format, differenceInDays } from "date-fns";
@@ -65,6 +65,7 @@ export default function BillboardPMPage() {
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState<BillboardPMFilterState>(defaultFilters);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [seeding, setSeeding] = useState(false);
 
   const fetchData = async () => {
     setLoading(true);
@@ -214,6 +215,20 @@ export default function BillboardPMPage() {
 
   useEffect(() => { fetchData(); }, []);
 
+  const handleAutoImport = async () => {
+    setSeeding(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("seed-billboard-pm-history");
+      if (error) throw error;
+      toast.success(data?.message || "นำเข้าข้อมูลเก่าสำเร็จ");
+      fetchData();
+    } catch (err: any) {
+      toast.error("นำเข้าข้อมูลไม่สำเร็จ: " + (err?.message || ""));
+    } finally {
+      setSeeding(false);
+    }
+  };
+
   // Build distinct values for filters
   const distinctValues = useMemo(() => ({
     departments: [...new Set(records.map(r => r.department).filter(Boolean))].sort(),
@@ -308,7 +323,13 @@ export default function BillboardPMPage() {
           <h1 className="text-3xl font-bold">แจ้ง PM ป้ายโฆษณา</h1>
           <p className="text-muted-foreground">ป้ายที่ต้องดำเนินการ PM (อิงจากวันหมดอายุ/ประกันของอะไหล่ที่ติดตั้ง)</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
+          {isAdmin && (
+            <Button variant="secondary" onClick={handleAutoImport} disabled={seeding} className="gap-2">
+              <DatabaseZap className="w-4 h-4" />
+              {seeding ? "กำลังนำเข้า..." : "นำเข้าข้อมูลเก่า (Auto)"}
+            </Button>
+          )}
           <Button variant="outline" onClick={fetchData} className="gap-2">
             <RefreshCw className="w-4 h-4" />
             รีเฟรช
