@@ -50,6 +50,7 @@ import AdEntry from "./pages/AdEntry";
 import AdRequest from "./pages/AdRequest";
 import AdIssue from "./pages/AdIssue";
 import EquipmentTrackingReport from "./pages/EquipmentTrackingReport";
+import BillboardPMPage from "./pages/BillboardPMPage";
 import DashboardLayout from "./components/DashboardLayout";
 import ProtectedRoute from "./components/ProtectedRoute";
 import NotFound from "./pages/NotFound";
@@ -107,7 +108,8 @@ const App = () => (
             <Route path="/ad-receive" element={<ProtectedRoute><DashboardLayout><AdManagement /></DashboardLayout></ProtectedRoute>} />
             <Route path="/ad-request" element={<ProtectedRoute><DashboardLayout><AdRequest /></DashboardLayout></ProtectedRoute>} />
             <Route path="/ad-issue" element={<ProtectedRoute><DashboardLayout><AdIssue /></DashboardLayout></ProtectedRoute>} />
-            <Route path="/equipment-tracking" element={<ProtectedRoute><DashboardLayout><EquipmentTrackingReport /></DashboardLayout></ProtectedRoute>} />
+             <Route path="/equipment-tracking" element={<ProtectedRoute><DashboardLayout><EquipmentTrackingReport /></DashboardLayout></ProtectedRoute>} />
+            <Route path="/pm-billboard" element={<ProtectedRoute><DashboardLayout><BillboardPMPage /></DashboardLayout></ProtectedRoute>} />
             {/* Public billboard view - no auth required */}
             <Route path="/billboard-view/:id" element={<BillboardPublicView />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
