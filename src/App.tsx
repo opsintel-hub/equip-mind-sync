@@ -20,7 +20,6 @@ import BillboardPublicView from "./pages/BillboardPublicView";
 import Admin from "./pages/Admin";
 import QRCodePage from "./pages/QRCode";
 import TransferHistory from "./pages/TransferHistory";
-import PMSchedule from "./pages/PMSchedule";
 import PMHistory from "./pages/PMHistory";
 import EquipmentPMSchedule from "./pages/EquipmentPMSchedule";
 import EquipmentPMHistory from "./pages/EquipmentPMHistory";
@@ -79,7 +78,6 @@ const App = () => (
             <Route path="/admin" element={<ProtectedRoute><DashboardLayout><Admin /></DashboardLayout></ProtectedRoute>} />
             <Route path="/qr-code" element={<ProtectedRoute><DashboardLayout><QRCodePage /></DashboardLayout></ProtectedRoute>} />
             <Route path="/transfer-history" element={<ProtectedRoute><DashboardLayout><TransferHistory /></DashboardLayout></ProtectedRoute>} />
-            <Route path="/pm-schedule" element={<ProtectedRoute><DashboardLayout><PMSchedule /></DashboardLayout></ProtectedRoute>} />
             <Route path="/pm-history" element={<ProtectedRoute><DashboardLayout><PMHistory /></DashboardLayout></ProtectedRoute>} />
             <Route path="/equipment-pm-schedule" element={<ProtectedRoute><DashboardLayout><EquipmentPMSchedule /></DashboardLayout></ProtectedRoute>} />
             <Route path="/equipment-pm-history" element={<ProtectedRoute><DashboardLayout><EquipmentPMHistory /></DashboardLayout></ProtectedRoute>} />

@@ -145,7 +145,6 @@ const menuGroups: MenuGroup[] = [
         functionName: "pm_schedule",
         subItems: [
           { title: "แจ้ง PM ป้ายโฆษณา", url: "/pm-billboard", icon: AlertTriangleIcon },
-          { title: "ตาราง PM ป้าย", url: "/pm-schedule", icon: Calendar },
           { title: "ประวัติ PM ป้าย", url: "/pm-history", icon: History },
         ]
       },
