@@ -449,6 +449,117 @@ export type Database = {
         }
         Relationships: []
       }
+      billboard_pm_actions: {
+        Row: {
+          action_type: string
+          action_type_id: string | null
+          billboard_id: string
+          created_at: string
+          created_by: string | null
+          equipment_snapshot: Json | null
+          id: string
+          notes: string | null
+          pm_reason: string
+          snooze_until: string | null
+        }
+        Insert: {
+          action_type: string
+          action_type_id?: string | null
+          billboard_id: string
+          created_at?: string
+          created_by?: string | null
+          equipment_snapshot?: Json | null
+          id?: string
+          notes?: string | null
+          pm_reason: string
+          snooze_until?: string | null
+        }
+        Update: {
+          action_type?: string
+          action_type_id?: string | null
+          billboard_id?: string
+          created_at?: string
+          created_by?: string | null
+          equipment_snapshot?: Json | null
+          id?: string
+          notes?: string | null
+          pm_reason?: string
+          snooze_until?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "billboard_pm_actions_action_type_id_fkey"
+            columns: ["action_type_id"]
+            isOneToOne: false
+            referencedRelation: "pm_action_types"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "billboard_pm_actions_billboard_id_fkey"
+            columns: ["billboard_id"]
+            isOneToOne: false
+            referencedRelation: "billboards"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      billboard_pm_history: {
+        Row: {
+          action_label: string
+          action_type_id: string | null
+          actioned_at: string
+          actioned_by: string | null
+          billboard_id: string
+          billboard_snapshot: Json | null
+          created_at: string
+          equipment_snapshot: Json | null
+          id: string
+          notes: string | null
+          pm_reason: string
+        }
+        Insert: {
+          action_label: string
+          action_type_id?: string | null
+          actioned_at?: string
+          actioned_by?: string | null
+          billboard_id: string
+          billboard_snapshot?: Json | null
+          created_at?: string
+          equipment_snapshot?: Json | null
+          id?: string
+          notes?: string | null
+          pm_reason: string
+        }
+        Update: {
+          action_label?: string
+          action_type_id?: string | null
+          actioned_at?: string
+          actioned_by?: string | null
+          billboard_id?: string
+          billboard_snapshot?: Json | null
+          created_at?: string
+          equipment_snapshot?: Json | null
+          id?: string
+          notes?: string | null
+          pm_reason?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "billboard_pm_history_action_type_id_fkey"
+            columns: ["action_type_id"]
+            isOneToOne: false
+            referencedRelation: "pm_action_types"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "billboard_pm_history_billboard_id_fkey"
+            columns: ["billboard_id"]
+            isOneToOne: false
+            referencedRelation: "billboards"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       billboards: {
         Row: {
           bkk_upc: string | null
@@ -2326,6 +2437,39 @@ export type Database = {
           title?: string
           type?: string
           user_id?: string | null
+        }
+        Relationships: []
+      }
+      pm_action_types: {
+        Row: {
+          code: string
+          created_at: string
+          id: string
+          is_active: boolean
+          is_snooze: boolean
+          name: string
+          snooze_days: number | null
+          sort_order: number
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          is_snooze?: boolean
+          name: string
+          snooze_days?: number | null
+          sort_order?: number
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          is_snooze?: boolean
+          name?: string
+          snooze_days?: number | null
+          sort_order?: number
         }
         Relationships: []
       }
