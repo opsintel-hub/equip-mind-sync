@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Package, PackageOpen, TrendingUp, TrendingDown, MapPin, ArrowRight, ArrowLeftRight } from "lucide-react";
+import { Package, PackageOpen, TrendingUp, TrendingDown, MapPin, ArrowRight, ArrowLeftRight, AlertTriangle, Clock } from "lucide-react";
 import { LowStockAlerts } from "@/components/LowStockAlerts";
 import { ExpiryAlerts } from "@/components/ExpiryAlerts";
 import { BillboardEquipmentAlerts } from "@/components/BillboardEquipmentAlerts";
@@ -22,9 +22,11 @@ const Dashboard = () => {
     totalBillboards: 0,
     activeLoans: 0
   });
+  const [pmStats, setPmStats] = useState({ overdue: 0, within30: 0 });
 
   useEffect(() => {
     fetchStats();
+    fetchPMStats();
   }, [selectedCompanyId]);
 
   const fetchStats = async () => {
@@ -65,6 +67,38 @@ const Dashboard = () => {
       totalBillboards: billboardsCount || 0,
       activeLoans: loansCount || 0
     });
+  };
+
+  const fetchPMStats = async () => {
+    const today = new Date().toISOString().split("T")[0];
+    const { data: beData } = await supabase
+      .from("billboard_equipment")
+      .select(`equipment:equipment_id (expiry_date, warranty_expiry_date), billboard_id`);
+    const { data: actionsData } = await supabase
+      .from("billboard_pm_actions")
+      .select("billboard_id, action_type, snooze_until");
+    const excluded = new Set<string>();
+    (actionsData || []).forEach((a: any) => {
+      if (a.action_type === "ticket_created") excluded.add(a.billboard_id);
+      else if (a.action_type === "snoozed" && a.snooze_until >= today) excluded.add(a.billboard_id);
+    });
+    const billboardMinDate = new Map<string, string>();
+    (beData || []).forEach((be: any) => {
+      const eq = be.equipment;
+      if (!eq || excluded.has(be.billboard_id)) return;
+      const dates = [eq.expiry_date, eq.warranty_expiry_date].filter(Boolean) as string[];
+      if (dates.length === 0) return;
+      const minDate = dates.sort()[0];
+      const current = billboardMinDate.get(be.billboard_id);
+      if (!current || minDate < current) billboardMinDate.set(be.billboard_id, minDate);
+    });
+    let overdue = 0; let within30 = 0;
+    billboardMinDate.forEach((minDate) => {
+      const diff = Math.ceil((new Date(minDate).getTime() - new Date(today).getTime()) / 86400000);
+      if (diff < 0) overdue++;
+      else if (diff <= 30) within30++;
+    });
+    setPmStats({ overdue, within30 });
   };
 
   const statCards = [
@@ -178,6 +212,42 @@ const Dashboard = () => {
           );
         })}
       </div>
+
+      {/* Billboard PM Alert Widget */}
+      {(pmStats.overdue > 0 || pmStats.within30 > 0) && (
+        <Link to="/pm-billboard">
+          <Card className="border-destructive/30 bg-gradient-to-r from-destructive/5 to-warning/5 hover-lift cursor-pointer">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="w-10 h-10 rounded-xl bg-destructive/15 flex items-center justify-center">
+                    <AlertTriangle className="w-5 h-5 text-destructive" />
+                  </div>
+                  <div>
+                    <p className="font-semibold text-foreground">แจ้ง PM ป้ายโฆษณา</p>
+                    <p className="text-sm text-muted-foreground">ป้ายที่ต้องดำเนินการ PM</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-4">
+                  {pmStats.overdue > 0 && (
+                    <div className="text-center">
+                      <p className="text-2xl font-bold text-destructive">{pmStats.overdue}</p>
+                      <p className="text-xs text-muted-foreground">หมดแล้ว</p>
+                    </div>
+                  )}
+                  {pmStats.within30 > 0 && (
+                    <div className="text-center">
+                      <p className="text-2xl font-bold text-warning">{pmStats.within30}</p>
+                      <p className="text-xs text-muted-foreground">ภายใน 30 วัน</p>
+                    </div>
+                  )}
+                  <ArrowRight className="w-5 h-5 text-muted-foreground" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </Link>
+      )}
 
       {/* Transaction Summary */}
       <TransactionSummaryReport companyId={selectedCompanyId} />

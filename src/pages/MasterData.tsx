@@ -1,7 +1,9 @@
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Package, MapPin, Truck, Warehouse, Building2, Target, Building, Wrench, PackageOpen, HardHat, Layers, FolderTree } from "lucide-react";
+import { Package, MapPin, Truck, Warehouse, Building2, Target, Building, Wrench, PackageOpen, HardHat, Layers, FolderTree, Zap } from "lucide-react";
+import { PMActionTypeList } from "@/components/pm/PMActionTypeList";
+import { PMActionTypeForm } from "@/components/pm/PMActionTypeForm";
 import { EquipmentForm } from "@/components/equipment/EquipmentForm";
 import { EquipmentList } from "@/components/equipment/EquipmentList";
 import { EquipmentImport } from "@/components/equipment/EquipmentImport";
@@ -98,6 +100,10 @@ const MasterData = () => {
           <TabsTrigger value="receipt_purposes" className="gap-2">
             <PackageOpen className="h-4 w-4" />
             วัตถุประสงค์รับ
+          </TabsTrigger>
+          <TabsTrigger value="pm_action_types" className="gap-2">
+            <Zap className="h-4 w-4" />
+            PM Action Types
           </TabsTrigger>
         </TabsList>
 
@@ -366,6 +372,25 @@ const MasterData = () => {
             </CardHeader>
             <CardContent>
               <ReceiptPurposeList refresh={refreshKey} onRefresh={handleSuccess} />
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="pm_action_types" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>ประเภท PM Action</CardTitle>
+                  <CardDescription>
+                    จัดการตัวเลือก Action สำหรับระบบแจ้ง PM ป้ายโฆษณา (สร้างตั๋ว / Snooze)
+                  </CardDescription>
+                </div>
+                <PMActionTypeForm onSuccess={handleSuccess} />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <PMActionTypeList refresh={refreshKey} />
             </CardContent>
           </Card>
         </TabsContent>
