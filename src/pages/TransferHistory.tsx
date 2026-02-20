@@ -92,14 +92,6 @@ export default function TransferHistory() {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="container mx-auto p-6">
-        <div className="text-center py-8">กำลังโหลด...</div>
-      </div>
-    );
-  }
-
   const {
     paginatedData: paginatedTransfers,
     currentPage,
@@ -109,6 +101,14 @@ export default function TransferHistory() {
     handlePageChange,
     handlePageSizeChange,
   } = useTablePagination(transfers, 20);
+
+  if (loading) {
+    return (
+      <div className="container mx-auto p-6">
+        <div className="text-center py-8">กำลังโหลด...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto p-6">
