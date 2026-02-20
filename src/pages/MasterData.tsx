@@ -52,7 +52,7 @@ const MasterData = () => {
       </div>
 
       <Tabs defaultValue="equipment" className="w-full">
-        <TabsList className="grid w-full grid-cols-12 max-w-7xl">
+        <TabsList className="flex flex-wrap gap-1 h-auto max-w-7xl">
           <TabsTrigger value="equipment" className="gap-2">
             <Package className="h-4 w-4" />
             อุปกรณ์
