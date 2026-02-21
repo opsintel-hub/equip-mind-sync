@@ -66,6 +66,7 @@ interface ToolPMTask {
     serial_number: string | null;
     current_quantity: number;
     unit: string;
+    is_personal_tool: boolean;
   };
   pm_result: { id: string; name: string; color: string } | null;
 }
@@ -104,7 +105,7 @@ export function ToolPMTaskList() {
         .from("tool_pm_tasks")
         .select(`
           *,
-          tool:tools(id, code, name, brand, serial_number, current_quantity, unit),
+          tool:tools(id, code, name, brand, serial_number, current_quantity, unit, is_personal_tool),
           pm_result:pm_results(id, name, color)
         `)
         .in("status", ["pending", "in_progress"])
@@ -183,6 +184,12 @@ export function ToolPMTaskList() {
     if (!selectedTask) return;
     if (!pmResultId) {
       toast.error("กรุณาเลือกผลการตรวจสอบ");
+      return;
+    }
+
+    // Enforce photo for personal tools
+    if (selectedTask.tool.is_personal_tool && selectedFiles.length === 0) {
+      toast.error("เครื่องมือประจำตัวช่าง ต้องแนบรูปอย่างน้อย 1 รูปก่อนปิดตั๋ว PM");
       return;
     }
 
@@ -509,7 +516,15 @@ export function ToolPMTaskList() {
             <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
               ยกเลิก
             </Button>
-            <Button onClick={handleSubmitInspection} disabled={isSubmitting}>
+            {selectedTask?.tool.is_personal_tool && selectedFiles.length === 0 && (
+              <p className="text-xs text-destructive mr-auto flex items-center">
+                ⚠️ เครื่องมือประจำตัวช่าง ต้องแนบรูปอย่างน้อย 1 รูป
+              </p>
+            )}
+            <Button
+              onClick={handleSubmitInspection}
+              disabled={isSubmitting || (selectedTask?.tool.is_personal_tool && selectedFiles.length === 0)}
+            >
               {isSubmitting ? "กำลังบันทึก..." : "บันทึกผลการตรวจ"}
             </Button>
           </DialogFooter>

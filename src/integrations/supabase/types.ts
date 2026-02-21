@@ -3052,6 +3052,90 @@ export type Database = {
         }
         Relationships: []
       }
+      technician_tools: {
+        Row: {
+          assigned_date: string
+          created_at: string
+          id: string
+          notes: string | null
+          technician_id: string
+          tool_id: string
+          updated_at: string
+        }
+        Insert: {
+          assigned_date?: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          technician_id: string
+          tool_id: string
+          updated_at?: string
+        }
+        Update: {
+          assigned_date?: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          technician_id?: string
+          tool_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "technician_tools_technician_id_fkey"
+            columns: ["technician_id"]
+            isOneToOne: false
+            referencedRelation: "technicians"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "technician_tools_tool_id_fkey"
+            columns: ["tool_id"]
+            isOneToOne: false
+            referencedRelation: "tools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      technicians: {
+        Row: {
+          code: string
+          created_at: string
+          created_by: string | null
+          department: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          notes: string | null
+          phone: string | null
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          created_by?: string | null
+          department?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          notes?: string | null
+          phone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          department?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          notes?: string | null
+          phone?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       tool_categories: {
         Row: {
           created_at: string
@@ -3078,6 +3162,39 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      tool_code_prefixes: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          is_active: boolean | null
+          next_number: number
+          prefix: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          next_number?: number
+          prefix: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          next_number?: number
+          prefix?: string
           updated_at?: string
         }
         Relationships: []
@@ -3279,6 +3396,7 @@ export type Database = {
       }
       tools: {
         Row: {
+          asset_code: string | null
           brand: string | null
           code: string
           company_id: string | null
@@ -3292,10 +3410,13 @@ export type Database = {
           id: string
           initial_quantity: number
           is_active: boolean | null
+          is_asset: boolean | null
+          is_personal_tool: boolean | null
           location_id: string | null
           name: string
           notes: string | null
           pm_interval_days: number | null
+          responsible_person: string | null
           serial_number: string | null
           tool_category_id: string | null
           unit: string
@@ -3305,6 +3426,7 @@ export type Database = {
           warranty_expiry_date: string | null
         }
         Insert: {
+          asset_code?: string | null
           brand?: string | null
           code: string
           company_id?: string | null
@@ -3318,10 +3440,13 @@ export type Database = {
           id?: string
           initial_quantity?: number
           is_active?: boolean | null
+          is_asset?: boolean | null
+          is_personal_tool?: boolean | null
           location_id?: string | null
           name: string
           notes?: string | null
           pm_interval_days?: number | null
+          responsible_person?: string | null
           serial_number?: string | null
           tool_category_id?: string | null
           unit?: string
@@ -3331,6 +3456,7 @@ export type Database = {
           warranty_expiry_date?: string | null
         }
         Update: {
+          asset_code?: string | null
           brand?: string | null
           code?: string
           company_id?: string | null
@@ -3344,10 +3470,13 @@ export type Database = {
           id?: string
           initial_quantity?: number
           is_active?: boolean | null
+          is_asset?: boolean | null
+          is_personal_tool?: boolean | null
           location_id?: string | null
           name?: string
           notes?: string | null
           pm_interval_days?: number | null
+          responsible_person?: string | null
           serial_number?: string | null
           tool_category_id?: string | null
           unit?: string
@@ -3542,6 +3671,7 @@ export type Database = {
       generate_pr_number: { Args: never; Returns: string }
       generate_tool_pm_task_number: { Args: never; Returns: string }
       get_next_equipment_code: { Args: { p_prefix: string }; Returns: string }
+      get_next_tool_code: { Args: { p_prefix: string }; Returns: string }
       get_users_emails: {
         Args: never
         Returns: {
