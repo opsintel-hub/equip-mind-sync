@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Package, MapPin, Truck, Warehouse, Building2, Target, Building, Wrench, PackageOpen, HardHat, Layers, FolderTree, Zap } from "lucide-react";
+import { Package, MapPin, Truck, Warehouse, Building2, Target, Building, Wrench, PackageOpen, HardHat, Layers, FolderTree, Zap, Users } from "lucide-react";
 import { PMActionTypeList } from "@/components/pm/PMActionTypeList";
 import { PMActionTypeForm } from "@/components/pm/PMActionTypeForm";
 import { EquipmentForm } from "@/components/equipment/EquipmentForm";
@@ -35,6 +35,8 @@ import { CategoryForm } from "@/components/category/CategoryForm";
 import { SubcategoryList } from "@/components/category/SubcategoryList";
 import { SubcategoryForm } from "@/components/category/SubcategoryForm";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { TechnicianForm } from "@/components/tools/TechnicianForm";
+import { TechnicianList } from "@/components/tools/TechnicianList";
 
 const MasterData = () => {
   const [refreshKey, setRefreshKey] = useState(0);
@@ -102,6 +104,10 @@ const MasterData = () => {
             <TabsTrigger value="receipt_purposes" className="gap-1.5 text-xs px-3">
               <PackageOpen className="h-3.5 w-3.5" />
               วัตถุประสงค์รับ
+            </TabsTrigger>
+            <TabsTrigger value="technicians" className="gap-1.5 text-xs px-3">
+              <Users className="h-3.5 w-3.5" />
+              ช่าง
             </TabsTrigger>
             <TabsTrigger value="pm_action_types" className="gap-1.5 text-xs px-3">
               <Zap className="h-3.5 w-3.5" />
@@ -375,6 +381,28 @@ const MasterData = () => {
             </CardHeader>
             <CardContent>
               <ReceiptPurposeList refresh={refreshKey} onRefresh={handleSuccess} />
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="technicians" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>ทะเบียนช่าง</CardTitle>
+                  <CardDescription>
+                    จัดการข้อมูลช่างและเครื่องมือประจำตัว
+                  </CardDescription>
+                  <p className="text-xs text-muted-foreground mt-1 bg-muted/50 p-2 rounded">
+                    💡 <strong>หมายเหตุ:</strong> เพิ่มช่างที่นี่ แล้วไปจัดกลุ่มเครื่องมือประจำตัวช่างแต่ละคนได้โดยกดปุ่ม 🔧 ที่แต่ละแถว
+                  </p>
+                </div>
+                <TechnicianForm onSuccess={handleSuccess} />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <TechnicianList refreshKey={refreshKey} />
             </CardContent>
           </Card>
         </TabsContent>

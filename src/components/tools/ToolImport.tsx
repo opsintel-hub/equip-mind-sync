@@ -12,24 +12,6 @@ interface ToolImportProps {
   onSuccess: () => void;
 }
 
-interface ImportRow {
-  code: string;
-  name: string;
-  description?: string;
-  department?: string;
-  brand?: string;
-  unit: string;
-  initial_quantity: number;
-  current_quantity: number;
-  serial_number?: string;
-  unit_price?: number;
-  pm_interval_days: number;
-  has_warranty?: boolean;
-  warranty_expiry_date?: string;
-  expiry_date?: string;
-  notes?: string;
-}
-
 export function ToolImport({ onSuccess }: ToolImportProps) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -54,6 +36,10 @@ export function ToolImport({ onSuccess }: ToolImportProps) {
         "หมายเลขซีเรียล (serial_number)": "SN-TL-001",
         "ราคาต่อหน่วย (unit_price)": 1500,
         "ระยะเวลา PM (วัน) (pm_interval_days)*": 30,
+        "เป็นทรัพย์สิน (is_asset)": "ไม่ใช่",
+        "เลขที่ทรัพย์สิน (asset_code)": "",
+        "ผู้รับผิดชอบ (responsible_person)": "สมชาย ใจดี",
+        "เครื่องมือประจำตัวช่าง (is_personal_tool)": "ไม่ใช่",
         "มีประกัน (has_warranty)": "ใช่",
         "วันหมดประกัน (warranty_expiry_date)": "2026-06-30",
         "วันหมดอายุ (expiry_date)": "2027-12-31",
@@ -65,11 +51,7 @@ export function ToolImport({ onSuccess }: ToolImportProps) {
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Tools");
 
-    ws["!cols"] = [
-      { wch: 22 }, { wch: 25 }, { wch: 30 }, { wch: 20 }, { wch: 20 },
-      { wch: 15 }, { wch: 22 }, { wch: 22 }, { wch: 25 }, { wch: 18 },
-      { wch: 25 }, { wch: 18 }, { wch: 22 }, { wch: 18 }, { wch: 30 },
-    ];
+    ws["!cols"] = Array(19).fill({ wch: 22 });
 
     XLSX.writeFile(wb, "tool_import_template.xlsx");
     toast.success("ดาวน์โหลด Template สำเร็จ");
@@ -98,6 +80,25 @@ export function ToolImport({ onSuccess }: ToolImportProps) {
     return false;
   };
 
+  const cleanValue = (val: any): string | undefined => {
+    if (val === undefined || val === null) return undefined;
+    const str = String(val).trim();
+    if (str === "" || str === "-" || str === "#N/A" || str === "N/A") return undefined;
+    return str;
+  };
+
+  const parsePMInterval = (val: any): number => {
+    if (typeof val === "number") return val;
+    const str = String(val).trim().toLowerCase();
+    if (str.includes("15")) return 15;
+    if (str.includes("60")) return 60;
+    if (str.includes("90")) return 90;
+    if (str.includes("180")) return 180;
+    if (str.includes("365") || str.includes("1 ปี") || str.includes("ปี")) return 365;
+    if (str.includes("30")) return 30;
+    return 30;
+  };
+
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -122,39 +123,116 @@ export function ToolImport({ onSuccess }: ToolImportProps) {
       let failedCount = 0;
       const errors: string[] = [];
 
+      // Detect format: check if first row has simplified columns
+      const firstRow = jsonData[0] as Record<string, any>;
+      const isSimplifiedFormat = !!(firstRow["ประเภทเครื่องมือ"] || firstRow["รายการเครื่องมือ"] || firstRow["ความถี่ PM"]);
+
       for (let i = 0; i < jsonData.length; i++) {
         const row = jsonData[i] as Record<string, any>;
         const rowNum = i + 2;
 
-        const code = row["รหัสเครื่องมือ (code)*"] || row["code"];
-        const name = row["ชื่อเครื่องมือ (name)*"] || row["name"];
-        const unit = row["หน่วย (unit)*"] || row["unit"];
-        const initialQty = row["จำนวนเริ่มต้น (initial_quantity)*"] ?? row["initial_quantity"];
-        const currentQty = row["จำนวนปัจจุบัน (current_quantity)*"] ?? row["current_quantity"];
-        const pmDays = row["ระยะเวลา PM (วัน) (pm_interval_days)*"] ?? row["pm_interval_days"];
+        let code: string;
+        let name: string;
+        let unit: string;
+        let initialQty: number;
+        let currentQty: number;
+        let pmDays: number;
+        let department: string | undefined;
+        let description: string | undefined;
+        let brand: string | undefined;
+        let serialNumber: string | undefined;
+        let unitPrice: number | undefined;
+        let hasWarranty: boolean;
+        let warrantyExpiryDate: string | undefined;
+        let expiryDate: string | undefined;
+        let notes: string | undefined;
+        let isAsset: boolean;
+        let assetCode: string | undefined;
+        let responsiblePerson: string | undefined;
+        let isPersonalTool: boolean;
 
-        if (!code || !name || !unit || initialQty === undefined || currentQty === undefined || pmDays === undefined) {
-          errors.push(`แถวที่ ${rowNum}: ต้องระบุ รหัส, ชื่อ, หน่วย, จำนวนเริ่มต้น, จำนวนปัจจุบัน และระยะเวลา PM`);
-          failedCount++;
-          continue;
+        if (isSimplifiedFormat) {
+          // Simplified 4-column format
+          name = cleanValue(row["รายการเครื่องมือ"] || row["ชื่อเครื่องมือ"]) || "";
+          if (!name) {
+            errors.push(`แถวที่ ${rowNum}: ต้องระบุชื่อเครื่องมือ`);
+            failedCount++;
+            continue;
+          }
+          code = `IMPORT-${rowNum}`;
+          unit = "ชิ้น";
+          initialQty = 1;
+          currentQty = 1;
+          pmDays = parsePMInterval(row["ความถี่ PM"] || row["ความถี่PM"] || 30);
+          department = cleanValue(row["ฝ่าย"] || row["Department"]);
+          description = cleanValue(row["ประเภทเครื่องมือ"]);
+          brand = undefined;
+          serialNumber = undefined;
+          unitPrice = undefined;
+          hasWarranty = false;
+          warrantyExpiryDate = undefined;
+          expiryDate = undefined;
+          notes = undefined;
+          isAsset = false;
+          assetCode = undefined;
+          responsiblePerson = undefined;
+          isPersonalTool = false;
+        } else {
+          // Full format
+          const rawCode = row["รหัสเครื่องมือ (code)*"] || row["code"];
+          const rawName = row["ชื่อเครื่องมือ (name)*"] || row["name"];
+          const rawUnit = row["หน่วย (unit)*"] || row["unit"];
+          const rawInitQty = row["จำนวนเริ่มต้น (initial_quantity)*"] ?? row["initial_quantity"];
+          const rawCurQty = row["จำนวนปัจจุบัน (current_quantity)*"] ?? row["current_quantity"];
+          const rawPmDays = row["ระยะเวลา PM (วัน) (pm_interval_days)*"] ?? row["pm_interval_days"];
+
+          if (!rawCode || !rawName || !rawUnit || rawInitQty === undefined || rawCurQty === undefined || rawPmDays === undefined) {
+            errors.push(`แถวที่ ${rowNum}: ต้องระบุ รหัส, ชื่อ, หน่วย, จำนวนเริ่มต้น, จำนวนปัจจุบัน และระยะเวลา PM`);
+            failedCount++;
+            continue;
+          }
+
+          code = String(rawCode).trim();
+          name = String(rawName).trim();
+          unit = String(rawUnit).trim();
+          initialQty = Number(rawInitQty) || 0;
+          currentQty = Number(rawCurQty) || 0;
+          pmDays = parsePMInterval(rawPmDays);
+          department = cleanValue(row["ฝ่าย (department)"] || row["department"]);
+          description = cleanValue(row["รายละเอียด (description)"] || row["description"]);
+          brand = cleanValue(row["ยี่ห้อ (brand)"] || row["brand"]);
+          serialNumber = cleanValue(row["หมายเลขซีเรียล (serial_number)"] || row["serial_number"]);
+          unitPrice = row["ราคาต่อหน่วย (unit_price)"] ?? row["unit_price"] ?? undefined;
+          hasWarranty = parseBoolean(row["มีประกัน (has_warranty)"] ?? row["has_warranty"]);
+          warrantyExpiryDate = parseDate(row["วันหมดประกัน (warranty_expiry_date)"] || row["warranty_expiry_date"]);
+          expiryDate = parseDate(row["วันหมดอายุ (expiry_date)"] || row["expiry_date"]);
+          notes = cleanValue(row["หมายเหตุ (notes)"] || row["notes"]);
+          isAsset = parseBoolean(row["เป็นทรัพย์สิน (is_asset)"] ?? row["is_asset"]);
+          assetCode = cleanValue(row["เลขที่ทรัพย์สิน (asset_code)"] || row["asset_code"]);
+          responsiblePerson = cleanValue(row["ผู้รับผิดชอบ (responsible_person)"] || row["responsible_person"]);
+          isPersonalTool = parseBoolean(row["เครื่องมือประจำตัวช่าง (is_personal_tool)"] ?? row["is_personal_tool"]);
         }
 
-        const toolData: ImportRow = {
-          code: String(code).trim(),
-          name: String(name).trim(),
-          description: row["รายละเอียด (description)"] || row["description"] || undefined,
-          department: row["ฝ่าย (department)"] || row["department"] || undefined,
-          brand: row["ยี่ห้อ (brand)"] || row["brand"] || undefined,
-          unit: String(unit).trim(),
-          initial_quantity: Number(initialQty) || 0,
-          current_quantity: Number(currentQty) || 0,
-          serial_number: row["หมายเลขซีเรียล (serial_number)"] || row["serial_number"] || undefined,
-          unit_price: row["ราคาต่อหน่วย (unit_price)"] ?? row["unit_price"] ?? undefined,
-          pm_interval_days: Number(pmDays) || 30,
-          has_warranty: parseBoolean(row["มีประกัน (has_warranty)"] ?? row["has_warranty"]),
-          warranty_expiry_date: parseDate(row["วันหมดประกัน (warranty_expiry_date)"] || row["warranty_expiry_date"]),
-          expiry_date: parseDate(row["วันหมดอายุ (expiry_date)"] || row["expiry_date"]),
-          notes: row["หมายเหตุ (notes)"] || row["notes"] || undefined,
+        const toolData = {
+          code,
+          name,
+          description: description || null,
+          department: department || null,
+          brand: brand || null,
+          unit,
+          initial_quantity: initialQty,
+          current_quantity: currentQty,
+          serial_number: serialNumber || null,
+          unit_price: unitPrice != null ? Number(unitPrice) : 0,
+          pm_interval_days: pmDays,
+          has_warranty: hasWarranty,
+          warranty_expiry_date: warrantyExpiryDate || null,
+          expiry_date: expiryDate || null,
+          notes: notes || null,
+          is_asset: isAsset,
+          asset_code: isAsset ? assetCode || null : null,
+          responsible_person: responsiblePerson || null,
+          is_personal_tool: isPersonalTool,
         };
 
         const { data: existing } = await supabase
@@ -166,61 +244,34 @@ export function ToolImport({ onSuccess }: ToolImportProps) {
         if (existing) {
           const { error } = await supabase
             .from("tools")
-            .update({
-              ...toolData,
-              updated_at: new Date().toISOString(),
-            })
+            .update({ ...toolData, updated_at: new Date().toISOString() })
             .eq("id", existing.id);
-
-          if (error) {
-            errors.push(`แถวที่ ${rowNum}: ${error.message}`);
-            failedCount++;
-          } else {
-            successCount++;
-          }
+          if (error) { errors.push(`แถวที่ ${rowNum}: ${error.message}`); failedCount++; } else { successCount++; }
         } else {
           const { error } = await supabase.from("tools").insert({
             ...toolData,
             warehouse_entry_date: new Date().toISOString().split("T")[0],
             created_by: userData?.user?.id,
           });
-
-          if (error) {
-            errors.push(`แถวที่ ${rowNum}: ${error.message}`);
-            failedCount++;
-          } else {
-            successCount++;
-          }
+          if (error) { errors.push(`แถวที่ ${rowNum}: ${error.message}`); failedCount++; } else { successCount++; }
         }
       }
 
       setImportResult({ success: successCount, failed: failedCount, errors });
-
-      if (successCount > 0) {
-        toast.success(`นำเข้าข้อมูลสำเร็จ ${successCount} รายการ`);
-        onSuccess();
-      }
-
-      if (failedCount > 0) {
-        toast.error(`นำเข้าไม่สำเร็จ ${failedCount} รายการ`);
-      }
+      if (successCount > 0) { toast.success(`นำเข้าข้อมูลสำเร็จ ${successCount} รายการ`); onSuccess(); }
+      if (failedCount > 0) { toast.error(`นำเข้าไม่สำเร็จ ${failedCount} รายการ`); }
     } catch (error: any) {
       toast.error("เกิดข้อผิดพลาดในการอ่านไฟล์: " + error.message);
     } finally {
       setLoading(false);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = "";
-      }
+      if (fileInputRef.current) { fileInputRef.current.value = ""; }
     }
   };
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline">
-          <Upload className="h-4 w-4 mr-2" />
-          Import Excel
-        </Button>
+        <Button variant="outline"><Upload className="h-4 w-4 mr-2" />Import Excel</Button>
       </DialogTrigger>
       <DialogContent className="max-w-lg">
         <DialogHeader>
@@ -239,6 +290,9 @@ export function ToolImport({ onSuccess }: ToolImportProps) {
               <li>บันทึกไฟล์เป็น .xlsx หรือ .csv</li>
               <li>อัปโหลดไฟล์เพื่อนำเข้าข้อมูล</li>
             </ol>
+            <p className="text-xs text-muted-foreground mt-2">
+              💡 รองรับ 2 รูปแบบ: แบบเต็ม (Template) และแบบย่อ (ฝ่าย, ประเภท, ชื่อ, ความถี่ PM)
+            </p>
           </div>
 
           <Button onClick={downloadTemplate} variant="secondary" className="w-full">
@@ -249,34 +303,20 @@ export function ToolImport({ onSuccess }: ToolImportProps) {
           <div className="border-t pt-4">
             <label className="block">
               <span className="text-sm font-medium">อัปโหลดไฟล์ Excel/CSV</span>
-              <Input
-                ref={fileInputRef}
-                type="file"
-                accept=".xlsx,.xls,.csv"
-                onChange={handleFileUpload}
-                disabled={loading}
-                className="mt-2"
-              />
+              <Input ref={fileInputRef} type="file" accept=".xlsx,.xls,.csv" onChange={handleFileUpload} disabled={loading} className="mt-2" />
             </label>
           </div>
 
-          {loading && (
-            <div className="text-center py-4 text-muted-foreground">
-              กำลังนำเข้าข้อมูล...
-            </div>
-          )}
+          {loading && <div className="text-center py-4 text-muted-foreground">กำลังนำเข้าข้อมูล...</div>}
 
           {importResult && (
             <div className="space-y-3">
               {importResult.success > 0 && (
                 <Alert className="bg-green-50 border-green-200">
                   <CheckCircle2 className="h-4 w-4 text-green-600" />
-                  <AlertDescription className="text-green-800">
-                    นำเข้าสำเร็จ {importResult.success} รายการ
-                  </AlertDescription>
+                  <AlertDescription className="text-green-800">นำเข้าสำเร็จ {importResult.success} รายการ</AlertDescription>
                 </Alert>
               )}
-
               {importResult.failed > 0 && (
                 <Alert variant="destructive">
                   <AlertCircle className="h-4 w-4" />
@@ -284,12 +324,8 @@ export function ToolImport({ onSuccess }: ToolImportProps) {
                     นำเข้าไม่สำเร็จ {importResult.failed} รายการ
                     {importResult.errors.length > 0 && (
                       <ul className="mt-2 text-xs list-disc list-inside max-h-32 overflow-auto">
-                        {importResult.errors.slice(0, 10).map((err, i) => (
-                          <li key={i}>{err}</li>
-                        ))}
-                        {importResult.errors.length > 10 && (
-                          <li>...และอีก {importResult.errors.length - 10} รายการ</li>
-                        )}
+                        {importResult.errors.slice(0, 10).map((err, i) => <li key={i}>{err}</li>)}
+                        {importResult.errors.length > 10 && <li>...และอีก {importResult.errors.length - 10} รายการ</li>}
                       </ul>
                     )}
                   </AlertDescription>
