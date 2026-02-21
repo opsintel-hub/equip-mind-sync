@@ -24,6 +24,7 @@ import { PMTypeSelect } from "./PMTypeSelect";
 import { CompanySelect } from "@/components/company/CompanySelect";
 import { LocationSelect } from "@/components/location/LocationSelect";
 import { BrandSelect } from "@/components/equipment/BrandSelect";
+import { SimpleDepartmentSelect } from "@/components/equipment/SimpleDepartmentSelect";
 
 const formSchema = z.object({
   prefix: z.string().min(1, "กรุณาเลือก Prefix รหัสเครื่องมือ"),
@@ -231,7 +232,9 @@ export function ToolForm({ onSuccess }: ToolFormProps) {
               <FormField control={form.control} name="department" render={({ field }) => (
                 <FormItem>
                   <FormLabel>ฝ่าย</FormLabel>
-                  <FormControl><Input {...field} placeholder="กรอกชื่อฝ่าย" /></FormControl>
+                  <FormControl>
+                    <SimpleDepartmentSelect value={field.value || ""} onChange={field.onChange} />
+                  </FormControl>
                 </FormItem>
               )} />
 
