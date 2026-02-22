@@ -9,15 +9,17 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { toast } from "sonner";
 import { format, addDays, differenceInDays, parseISO } from "date-fns";
 import { th } from "date-fns/locale";
-import { Plus, Search, RefreshCw, Calendar, Wrench, PlayCircle, Pause, Edit, Trash2 } from "lucide-react";
+import { Plus, Search, RefreshCw, Calendar, Wrench, PlayCircle, Pause, Edit, Trash2, BookOpen, ChevronDown, ChevronRight } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useAllowedDepartments } from "@/hooks/useAllowedDepartments";
 
 const ToolPMSchedule = () => {
   const queryClient = useQueryClient();
+  const [isGuideOpen, setIsGuideOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [departmentFilter, setDepartmentFilter] = useState<string>("all");
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
@@ -207,12 +209,97 @@ const ToolPMSchedule = () => {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold">ตาราง PM เครื่องมือ</h1>
-        <p className="text-muted-foreground">
-          จัดการตารางการบำรุงรักษาเครื่องมือ สร้างและติดตามงาน PM
-        </p>
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+        <div>
+          <h1 className="text-3xl font-bold">ตาราง PM เครื่องมือ</h1>
+          <p className="text-muted-foreground">
+            จัดการตารางการบำรุงรักษาเครื่องมือ สร้างและติดตามงาน PM
+          </p>
+        </div>
+        <Button variant="outline" onClick={() => setIsGuideOpen(!isGuideOpen)}>
+          <BookOpen className="h-4 w-4 mr-2" />
+          วิธีใช้งาน
+          {isGuideOpen ? <ChevronDown className="h-4 w-4 ml-1" /> : <ChevronRight className="h-4 w-4 ml-1" />}
+        </Button>
       </div>
+
+      {/* Collapsible Guide */}
+      <Collapsible open={isGuideOpen} onOpenChange={setIsGuideOpen}>
+        <CollapsibleContent>
+          <Card className="border-primary/20 bg-primary/5">
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <BookOpen className="h-5 w-5" />
+                วิธีใช้งานระบบ PM เครื่องมือ
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <Collapsible>
+                <CollapsibleTrigger className="flex items-center gap-2 w-full text-left font-semibold hover:text-primary transition-colors p-2 rounded-md hover:bg-muted">
+                  <ChevronRight className="h-4 w-4" />
+                  ขั้นตอนที่ 1: เพิ่มเครื่องมือ
+                </CollapsibleTrigger>
+                <CollapsibleContent className="pl-8 pb-3">
+                  <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground">
+                    <li>ไปที่เมนู <strong>Master Data → เครื่องมือ</strong></li>
+                    <li>กดปุ่ม <strong>"เพิ่มเครื่องมือใหม่"</strong> เพื่อเปิดฟอร์มบันทึก</li>
+                    <li>กรอกข้อมูลเครื่องมือ: รหัส, ชื่อ, ยี่ห้อ, Serial No., ฝ่าย ฯลฯ</li>
+                    <li>กำหนด <strong>รอบ PM (วัน)</strong> เช่น 15, 30, 90 วัน</li>
+                    <li>ระบุว่าเป็น <strong>เครื่องมือประจำตัวช่าง</strong> หรือไม่</li>
+                  </ul>
+                </CollapsibleContent>
+              </Collapsible>
+
+              <Collapsible>
+                <CollapsibleTrigger className="flex items-center gap-2 w-full text-left font-semibold hover:text-primary transition-colors p-2 rounded-md hover:bg-muted">
+                  <ChevronRight className="h-4 w-4" />
+                  ขั้นตอนที่ 2: สร้างงาน PM
+                </CollapsibleTrigger>
+                <CollapsibleContent className="pl-8 pb-3">
+                  <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground">
+                    <li>ในหน้านี้ กดปุ่ม <strong>"สร้างงาน PM ใหม่"</strong></li>
+                    <li>เลือกเครื่องมือจาก Dropdown (แสดงเฉพาะที่ยังไม่มีงาน PM รอดำเนินการ)</li>
+                    <li>หรือกดปุ่ม <strong>+</strong> ที่แถวเครื่องมือในตาราง</li>
+                    <li>ระบบจะคำนวณวันกำหนด PM อัตโนมัติจากรอบ PM</li>
+                  </ul>
+                </CollapsibleContent>
+              </Collapsible>
+
+              <Collapsible>
+                <CollapsibleTrigger className="flex items-center gap-2 w-full text-left font-semibold hover:text-primary transition-colors p-2 rounded-md hover:bg-muted">
+                  <ChevronRight className="h-4 w-4" />
+                  ขั้นตอนที่ 3: ดำเนินการตรวจสอบ PM
+                </CollapsibleTrigger>
+                <CollapsibleContent className="pl-8 pb-3">
+                  <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground">
+                    <li>ไปที่เมนู <strong>"งาน PM"</strong> เพื่อดูรายการงานที่รอดำเนินการ</li>
+                    <li>กดปุ่ม <strong>"ตรวจสอบ"</strong> ที่แถวงาน PM</li>
+                    <li>เลือกผลการตรวจสอบ: ผ่าน, ผ่านไม่สมบูรณ์, ไม่ผ่าน, ต้องตรวจซ้ำ</li>
+                    <li>กรอกจำนวนที่ตรวจ, ชื่อผู้ตรวจ, หมายเหตุ</li>
+                    <li><strong>แนบรูปภาพ</strong> สูงสุด 5 รูป (เครื่องมือประจำตัวช่างบังคับอย่างน้อย 1 รูป)</li>
+                    <li>เมื่อบันทึกสำเร็จ ระบบจะ <strong>สร้างงาน PM ถัดไปอัตโนมัติ</strong></li>
+                  </ul>
+                </CollapsibleContent>
+              </Collapsible>
+
+              <Collapsible>
+                <CollapsibleTrigger className="flex items-center gap-2 w-full text-left font-semibold hover:text-primary transition-colors p-2 rounded-md hover:bg-muted">
+                  <ChevronRight className="h-4 w-4" />
+                  ขั้นตอนที่ 4: ดูประวัติและรายงาน
+                </CollapsibleTrigger>
+                <CollapsibleContent className="pl-8 pb-3">
+                  <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground">
+                    <li>เมนู <strong>"ประวัติ PM"</strong> ดูประวัติงาน PM ที่เสร็จแล้ว</li>
+                    <li>กรองตามปี, เดือน, ฝ่าย, ผลการตรวจ ได้</li>
+                    <li>เมนู <strong>"รายงาน PM"</strong> ดูสรุปสถิติ เป้าหมาย PM ประจำปี</li>
+                    <li>สามารถ <strong>ส่งออกเป็น Excel</strong> ได้จากทุกหน้า</li>
+                  </ul>
+                </CollapsibleContent>
+              </Collapsible>
+            </CardContent>
+          </Card>
+        </CollapsibleContent>
+      </Collapsible>
 
       {/* Quick Stats */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -431,44 +518,6 @@ const ToolPMSchedule = () => {
               </TableBody>
             </Table>
           )}
-        </CardContent>
-      </Card>
-
-      {/* How to use guide */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Calendar className="h-5 w-5" />
-            วิธีใช้งานระบบ PM เครื่องมือ
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid md:grid-cols-2 gap-4">
-            <div className="space-y-2 p-4 bg-muted rounded-lg">
-              <h4 className="font-semibold">ขั้นตอนที่ 1: เพิ่มเครื่องมือ</h4>
-              <p className="text-sm text-muted-foreground">
-                ไปที่ Master Data → เครื่องมือ เพื่อเพิ่มเครื่องมือใหม่ พร้อมกำหนดรอบ PM (วัน)
-              </p>
-            </div>
-            <div className="space-y-2 p-4 bg-muted rounded-lg">
-              <h4 className="font-semibold">ขั้นตอนที่ 2: สร้างงาน PM</h4>
-              <p className="text-sm text-muted-foreground">
-                ในหน้านี้ กดปุ่ม "สร้างงาน PM ใหม่" หรือกดปุ่ม + ที่แถวเครื่องมือ
-              </p>
-            </div>
-            <div className="space-y-2 p-4 bg-muted rounded-lg">
-              <h4 className="font-semibold">ขั้นตอนที่ 3: ดำเนินการ PM</h4>
-              <p className="text-sm text-muted-foreground">
-                ไปที่ "งาน PM" เพื่อดำเนินการตรวจสอบ บันทึกผล และอัพโหลดรูปภาพ
-              </p>
-            </div>
-            <div className="space-y-2 p-4 bg-muted rounded-lg">
-              <h4 className="font-semibold">ขั้นตอนที่ 4: ดูประวัติและรายงาน</h4>
-              <p className="text-sm text-muted-foreground">
-                ดูประวัติ PM ที่เมนู "ประวัติ PM" และรายงานสรุปที่ "รายงาน PM"
-              </p>
-            </div>
-          </div>
         </CardContent>
       </Card>
     </div>
