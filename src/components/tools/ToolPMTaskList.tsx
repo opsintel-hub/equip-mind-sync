@@ -334,7 +334,27 @@ export function ToolPMTaskList() {
                 <TableBody>
                   {paginatedData.map((task) => (
                     <TableRow key={task.id}>
-...
+                      <TableCell className="font-medium">{task.task_number}</TableCell>
+                      <TableCell>
+                        <div>
+                          <span className="font-medium">{task.tool.code}</span>
+                          <br />
+                          <span className="text-sm text-muted-foreground">{task.tool.name}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell>{task.tool.brand || "-"}</TableCell>
+                      <TableCell>{task.tool.serial_number || "-"}</TableCell>
+                      <TableCell className="text-center">{task.tool.current_quantity} {task.tool.unit}</TableCell>
+                      <TableCell>
+                        {format(new Date(task.due_date), "dd MMM yyyy", { locale: th })}
+                      </TableCell>
+                      <TableCell>{getStatusBadge(task.due_date, task.status)}</TableCell>
+                      <TableCell className="text-center">
+                        <Button size="sm" onClick={() => openInspectionDialog(task)}>
+                          <ClipboardCheck className="h-4 w-4 mr-1" />
+                          ตรวจสอบ
+                        </Button>
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
