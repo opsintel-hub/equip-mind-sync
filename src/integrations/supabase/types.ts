@@ -2228,8 +2228,42 @@ export type Database = {
           },
         ]
       }
+      media_player_code_prefixes: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          is_active: boolean | null
+          next_number: number
+          prefix: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          next_number?: number
+          prefix: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          next_number?: number
+          prefix?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       media_players: {
         Row: {
+          activate_windows: string | null
           asset_code: string | null
           billboard_id: string | null
           brand: string | null
@@ -2238,6 +2272,7 @@ export type Database = {
           company_id: string | null
           created_at: string
           created_by: string | null
+          date_of_receipt: string | null
           department: string | null
           depreciation_months: number | null
           description: string | null
@@ -2245,17 +2280,24 @@ export type Database = {
           group_led: string | null
           id: string
           id_display: string | null
+          image_url: string | null
           install_date: string | null
+          invoice_number: string | null
           is_active: boolean | null
           is_asset: boolean | null
           led_control: string | null
           location_id: string | null
           name: string
           notes: string | null
+          order_for_project: string | null
+          po_number: string | null
+          pr_number: string | null
           quantity: number
+          remote_name: string | null
           serial_number_1: string | null
           serial_number_2: string | null
           specification: string | null
+          status: string | null
           unit: string
           unit_price: number | null
           updated_at: string
@@ -2264,6 +2306,7 @@ export type Database = {
           warranty_expiry_date: string | null
         }
         Insert: {
+          activate_windows?: string | null
           asset_code?: string | null
           billboard_id?: string | null
           brand?: string | null
@@ -2272,6 +2315,7 @@ export type Database = {
           company_id?: string | null
           created_at?: string
           created_by?: string | null
+          date_of_receipt?: string | null
           department?: string | null
           depreciation_months?: number | null
           description?: string | null
@@ -2279,17 +2323,24 @@ export type Database = {
           group_led?: string | null
           id?: string
           id_display?: string | null
+          image_url?: string | null
           install_date?: string | null
+          invoice_number?: string | null
           is_active?: boolean | null
           is_asset?: boolean | null
           led_control?: string | null
           location_id?: string | null
           name: string
           notes?: string | null
+          order_for_project?: string | null
+          po_number?: string | null
+          pr_number?: string | null
           quantity?: number
+          remote_name?: string | null
           serial_number_1?: string | null
           serial_number_2?: string | null
           specification?: string | null
+          status?: string | null
           unit?: string
           unit_price?: number | null
           updated_at?: string
@@ -2298,6 +2349,7 @@ export type Database = {
           warranty_expiry_date?: string | null
         }
         Update: {
+          activate_windows?: string | null
           asset_code?: string | null
           billboard_id?: string | null
           brand?: string | null
@@ -2306,6 +2358,7 @@ export type Database = {
           company_id?: string | null
           created_at?: string
           created_by?: string | null
+          date_of_receipt?: string | null
           department?: string | null
           depreciation_months?: number | null
           description?: string | null
@@ -2313,17 +2366,24 @@ export type Database = {
           group_led?: string | null
           id?: string
           id_display?: string | null
+          image_url?: string | null
           install_date?: string | null
+          invoice_number?: string | null
           is_active?: boolean | null
           is_asset?: boolean | null
           led_control?: string | null
           location_id?: string | null
           name?: string
           notes?: string | null
+          order_for_project?: string | null
+          po_number?: string | null
+          pr_number?: string | null
           quantity?: number
+          remote_name?: string | null
           serial_number_1?: string | null
           serial_number_2?: string | null
           specification?: string | null
+          status?: string | null
           unit?: string
           unit_price?: number | null
           updated_at?: string
@@ -3671,6 +3731,10 @@ export type Database = {
       generate_pr_number: { Args: never; Returns: string }
       generate_tool_pm_task_number: { Args: never; Returns: string }
       get_next_equipment_code: { Args: { p_prefix: string }; Returns: string }
+      get_next_media_player_code: {
+        Args: { p_prefix: string }
+        Returns: string
+      }
       get_next_tool_code: { Args: { p_prefix: string }; Returns: string }
       get_users_emails: {
         Args: never
