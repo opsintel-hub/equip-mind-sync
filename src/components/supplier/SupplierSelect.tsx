@@ -17,6 +17,7 @@ interface Supplier {
   phone: string | null;
   email: string | null;
   address: string | null;
+  vendor_code: string | null;
 }
 
 interface SupplierSelectProps {
@@ -160,7 +161,9 @@ export function SupplierSelect({ value, onChange, disabled }: SupplierSelectProp
   const options = suppliers.map((supplier) => ({
     value: supplier.id,
     label: `${supplier.code} - ${supplier.name}`,
-    description: [supplier.contact_person && `ติดต่อ: ${supplier.contact_person}`, (supplier as any).vendor_code && `Vendor: ${(supplier as any).vendor_code}`].filter(Boolean).join(" | ") || undefined,
+    description: [supplier.contact_person && `ติดต่อ: ${supplier.contact_person}`, supplier.vendor_code && `Vendor: ${supplier.vendor_code}`]
+      .filter(Boolean)
+      .join(" | ") || undefined,
   }));
 
   return (

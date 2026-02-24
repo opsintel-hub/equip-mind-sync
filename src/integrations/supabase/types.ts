@@ -2274,6 +2274,63 @@ export type Database = {
         }
         Relationships: []
       }
+      media_player_models: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      media_player_statuses: {
+        Row: {
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          label: string
+          updated_at: string | null
+          value: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          label: string
+          updated_at?: string | null
+          value: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          label?: string
+          updated_at?: string | null
+          value?: string
+        }
+        Relationships: []
+      }
       media_players: {
         Row: {
           activate_windows: string | null
@@ -2295,15 +2352,19 @@ export type Database = {
           id_display: string | null
           image_url: string | null
           install_date: string | null
+          invoice_document_url: string | null
           invoice_number: string | null
           is_active: boolean | null
           is_asset: boolean | null
           led_control: string | null
           location_id: string | null
+          model_id: string | null
           name: string
           notes: string | null
           order_for_project: string | null
+          po_document_url: string | null
           po_number: string | null
+          pr_document_url: string | null
           pr_number: string | null
           quantity: number
           remote_name: string | null
@@ -2315,6 +2376,7 @@ export type Database = {
           unit: string
           unit_price: number | null
           updated_at: string
+          usage_lifespan_months: number | null
           waiting_asset_code: boolean | null
           waiting_equipment_id: boolean | null
           warranty_expiry_date: string | null
@@ -2339,15 +2401,19 @@ export type Database = {
           id_display?: string | null
           image_url?: string | null
           install_date?: string | null
+          invoice_document_url?: string | null
           invoice_number?: string | null
           is_active?: boolean | null
           is_asset?: boolean | null
           led_control?: string | null
           location_id?: string | null
+          model_id?: string | null
           name: string
           notes?: string | null
           order_for_project?: string | null
+          po_document_url?: string | null
           po_number?: string | null
+          pr_document_url?: string | null
           pr_number?: string | null
           quantity?: number
           remote_name?: string | null
@@ -2359,6 +2425,7 @@ export type Database = {
           unit?: string
           unit_price?: number | null
           updated_at?: string
+          usage_lifespan_months?: number | null
           waiting_asset_code?: boolean | null
           waiting_equipment_id?: boolean | null
           warranty_expiry_date?: string | null
@@ -2383,15 +2450,19 @@ export type Database = {
           id_display?: string | null
           image_url?: string | null
           install_date?: string | null
+          invoice_document_url?: string | null
           invoice_number?: string | null
           is_active?: boolean | null
           is_asset?: boolean | null
           led_control?: string | null
           location_id?: string | null
+          model_id?: string | null
           name?: string
           notes?: string | null
           order_for_project?: string | null
+          po_document_url?: string | null
           po_number?: string | null
+          pr_document_url?: string | null
           pr_number?: string | null
           quantity?: number
           remote_name?: string | null
@@ -2403,6 +2474,7 @@ export type Database = {
           unit?: string
           unit_price?: number | null
           updated_at?: string
+          usage_lifespan_months?: number | null
           waiting_asset_code?: boolean | null
           waiting_equipment_id?: boolean | null
           warranty_expiry_date?: string | null
