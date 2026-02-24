@@ -18,9 +18,9 @@ import { CategorySelect } from "./CategorySelect";
 import { SubcategorySelect } from "./SubcategorySelect";
 import { DepartmentSelect } from "./DepartmentSelect";
 import { BrandSelect } from "./BrandSelect";
-import { LocationSelect } from "./LocationSelect";
 import { WarehouseLocationSelect } from "@/components/location/WarehouseLocationSelect";
 import { CompanySelect } from "@/components/company/CompanySelect";
+import { SupplierSelect } from "@/components/supplier/SupplierSelect";
 
 const equipmentSchema = z.object({
   code: z.string().min(1, "กรุณากรอกรหัสอุปกรณ์").max(50, "รหัสอุปกรณ์ต้องไม่เกิน 50 ตัวอักษร"),
@@ -29,6 +29,7 @@ const equipmentSchema = z.object({
   category: z.string().min(1, "กรุณาเลือกหมวดหมู่"),
   subcategory_id: z.string().min(1, "กรุณาเลือกหมวดหมู่ย่อย"),
   company_id: z.string().optional(),
+  supplier_id: z.string().optional(),
   department: z.string().optional(),
   brand: z.string().optional(),
   unit: z.string().min(1, "กรุณากรอกหน่วยนับ").max(20, "หน่วยนับต้องไม่เกิน 20 ตัวอักษร"),
@@ -58,6 +59,7 @@ interface EquipmentData {
   category: string;
   subcategory_id?: string | null;
   company_id?: string | null;
+  supplier_id?: string | null;
   department?: string | null;
   brand?: string | null;
   unit: string;
@@ -85,6 +87,7 @@ interface EquipmentEditFormProps {
 export function EquipmentEditForm({ equipment, onSuccess }: EquipmentEditFormProps) {
   const [open, setOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [warehouseId, setWarehouseId] = useState("");
 
   const form = useForm<EquipmentFormValues>({
     resolver: zodResolver(equipmentSchema),
@@ -124,6 +127,7 @@ export function EquipmentEditForm({ equipment, onSuccess }: EquipmentEditFormPro
         category: equipment.category,
         subcategory_id: equipment.subcategory_id || "",
         company_id: equipment.company_id || "",
+        supplier_id: (equipment as any).supplier_id || "",
         department: equipment.department || "",
         brand: equipment.brand || "",
         unit: equipment.unit,
@@ -142,6 +146,21 @@ export function EquipmentEditForm({ equipment, onSuccess }: EquipmentEditFormPro
         lumen: equipment.lumen || undefined,
         lux: equipment.lux || undefined,
       });
+
+      // Preload warehouseId from location_id (for editing)
+      const preloadWarehouseId = async () => {
+        if (!equipment.location_id) {
+          setWarehouseId("");
+          return;
+        }
+        const { data } = await supabase
+          .from("locations")
+          .select("warehouse_id")
+          .eq("id", equipment.location_id)
+          .maybeSingle();
+        setWarehouseId(data?.warehouse_id || "");
+      };
+      preloadWarehouseId();
     }
   }, [open, equipment, form]);
 
@@ -152,31 +171,32 @@ export function EquipmentEditForm({ equipment, onSuccess }: EquipmentEditFormPro
     try {
       const { error } = await supabase
         .from("equipment")
-        .update({
-          code: data.code,
-          name: data.name,
-          description: data.description || null,
-          category: data.category,
-          subcategory_id: data.subcategory_id,
-          company_id: data.company_id || null,
-          department: data.department || null,
-          brand: data.brand || null,
-          unit: data.unit,
-          quantity_in_stock: data.quantity_in_stock,
-          min_stock_level: data.min_stock_level,
-          location_id: data.location_id,
-          serial_number: data.serial_number || null,
-          unit_price: data.unit_price,
-          warehouse_entry_date: format(data.warehouse_entry_date, "yyyy-MM-dd"),
-          expiry_date: data.expiry_date ? format(data.expiry_date, "yyyy-MM-dd") : null,
-          warranty_expiry_date: data.warranty_expiry_date ? format(data.warranty_expiry_date, "yyyy-MM-dd") : null,
-          notes: data.notes || null,
-          volt: data.volt || null,
-          amp: data.amp || null,
-          watt: data.watt || null,
-          lumen: data.lumen || null,
-          lux: data.lux || null,
-        })
+          .update({
+            code: data.code,
+            name: data.name,
+            description: data.description || null,
+            category: data.category,
+            subcategory_id: data.subcategory_id,
+            company_id: data.company_id || null,
+            supplier_id: data.supplier_id || null,
+            department: data.department || null,
+            brand: data.brand || null,
+            unit: data.unit,
+            quantity_in_stock: data.quantity_in_stock,
+            min_stock_level: data.min_stock_level,
+            location_id: data.location_id,
+            serial_number: data.serial_number || null,
+            unit_price: data.unit_price,
+            warehouse_entry_date: format(data.warehouse_entry_date, "yyyy-MM-dd"),
+            expiry_date: data.expiry_date ? format(data.expiry_date, "yyyy-MM-dd") : null,
+            warranty_expiry_date: data.warranty_expiry_date ? format(data.warranty_expiry_date, "yyyy-MM-dd") : null,
+            notes: data.notes || null,
+            volt: data.volt || null,
+            amp: data.amp || null,
+            watt: data.watt || null,
+            lumen: data.lumen || null,
+            lux: data.lux || null,
+          } as any)
         .eq("id", equipment.id);
 
       if (error) throw error;
@@ -598,11 +618,14 @@ export function EquipmentEditForm({ equipment, onSuccess }: EquipmentEditFormPro
               name="location_id"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>คลังสินค้า *</FormLabel>
+                  <FormLabel>คลัง {" > "} ตำแหน่ง *</FormLabel>
                   <FormControl>
-                    <LocationSelect
-                      value={field.value}
-                      onChange={field.onChange}
+                    <WarehouseLocationSelect
+                      department={form.watch("department") || ""}
+                      warehouseId={warehouseId}
+                      onWarehouseChange={setWarehouseId}
+                      locationId={field.value || ""}
+                      onLocationChange={field.onChange}
                       disabled={isLoading}
                     />
                   </FormControl>

@@ -19,7 +19,6 @@ import { CategorySelect } from "./CategorySelect";
 import { SubcategorySelect } from "./SubcategorySelect";
 import { SimpleDepartmentSelect } from "./SimpleDepartmentSelect";
 import { BrandSelect } from "./BrandSelect";
-import { SimpleLocationSelect } from "./SimpleLocationSelect";
 import { WarehouseLocationSelect } from "@/components/location/WarehouseLocationSelect";
 import { CompanySelect } from "@/components/company/CompanySelect";
 import { EquipmentCodePrefixSelect } from "./EquipmentCodePrefixSelect";
@@ -446,21 +445,7 @@ export function EquipmentForm({ onSuccess, prefillData, triggerButton }: Equipme
                   <FormLabel>ผู้จัดจำหน่าย</FormLabel>
                   <FormControl>
                     <SupplierSelect
-                      value={field.value || ""} 
-                      // Wait, SupplierSelect implementation uses name as value? Let me check.
-                      // Yes: value={value} which is string (name). onChange(value: string, supplierId?: string).
-                      // We should probably change how we use it or fix SupplierSelect to support ID better.
-                      // For now let's follow the existing pattern in SupplierSelect.
-                      // Actually, let's check SupplierSelect again. It takes value (string) and onChange (value, id).
-                      // So we need to store name in form for display? Or maybe just store ID and let select handle it?
-                      // In EquipmentForm, we are storing IDs for relations usually.
-                      // Let's check EquipmentForm again.
-                      // It seems we need to adapt.
-                      // Let's implement a wrapper or just use it as is but we need the name for the value prop.
-                      // But we don't have the supplier name in form data, only ID.
-                      // I should update SupplierSelect to handle ID value or just handle it here.
-                      // Let's assume for now I can pass empty string if I don't have name, but that's bad for edit.
-                      // For create (EquipmentForm), it's fine.
+                      value={field.value || ""}
                       onChange={field.onChange}
                       disabled={isLoading}
                     />
