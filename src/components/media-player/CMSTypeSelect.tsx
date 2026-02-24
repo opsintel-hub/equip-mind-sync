@@ -10,6 +10,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import {
   AlertDialog,
@@ -58,7 +59,7 @@ export function CMSTypeSelect({ value, onChange, disabled }: CMSTypeSelectProps)
       .order("name");
 
     if (error) {
-      toast.error("ไม่สามารถโหลดประเภท CMS ได้");
+      toast.error("ไม่สามารถโหลดประเภทสินค้าได้");
       return;
     }
     setCmsTypes(data || []);
@@ -66,7 +67,7 @@ export function CMSTypeSelect({ value, onChange, disabled }: CMSTypeSelectProps)
 
   const handleSave = async () => {
     if (!formData.name.trim()) {
-      toast.error("กรุณากรอกชื่อประเภท CMS");
+      toast.error("กรุณากรอกชื่อประเภทสินค้า");
       return;
     }
 
@@ -79,14 +80,14 @@ export function CMSTypeSelect({ value, onChange, disabled }: CMSTypeSelectProps)
           .eq("id", editingItem.id);
 
         if (error) throw error;
-        toast.success("แก้ไขประเภท CMS สำเร็จ");
+        toast.success("แก้ไขประเภทสินค้าสำเร็จ");
       } else {
         const { error } = await supabase
           .from("cms_types")
           .insert({ name: formData.name, description: formData.description || null });
 
         if (error) throw error;
-        toast.success("เพิ่มประเภท CMS สำเร็จ");
+        toast.success("เพิ่มประเภทสินค้าสำเร็จ");
       }
 
       setFormData({ name: "", description: "" });
@@ -109,10 +110,10 @@ export function CMSTypeSelect({ value, onChange, disabled }: CMSTypeSelectProps)
         .eq("id", deleteId);
 
       if (error) throw error;
-      toast.success("ลบประเภท CMS สำเร็จ");
+      toast.success("ลบประเภทสินค้าสำเร็จ");
       fetchCmsTypes();
     } catch (error) {
-      toast.error("ไม่สามารถลบประเภท CMS ได้");
+      toast.error("ไม่สามารถลบประเภทสินค้าได้");
     } finally {
       setIsDeleteDialogOpen(false);
       setDeleteId(null);
@@ -142,9 +143,9 @@ export function CMSTypeSelect({ value, onChange, disabled }: CMSTypeSelectProps)
           options={options}
           value={value}
           onValueChange={onChange}
-          placeholder="เลือกประเภท CMS"
-          searchPlaceholder="ค้นหาประเภท CMS..."
-          emptyMessage="ไม่พบประเภท CMS"
+          placeholder="เลือกประเภทสินค้า"
+          searchPlaceholder="ค้นหาประเภทสินค้า..."
+          emptyMessage="ไม่พบประเภทสินค้า"
           disabled={disabled}
         />
       </div>
@@ -157,15 +158,16 @@ export function CMSTypeSelect({ value, onChange, disabled }: CMSTypeSelectProps)
         </DialogTrigger>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>จัดการประเภท CMS</DialogTitle>
+            <DialogTitle>จัดการประเภทสินค้า</DialogTitle>
+            <DialogDescription>เพิ่ม แก้ไข หรือลบประเภทสินค้า</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label>ชื่อประเภท CMS</Label>
+              <Label>ชื่อประเภทสินค้า</Label>
               <Input
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                placeholder="กรอกชื่อประเภท CMS"
+                placeholder="กรอกชื่อประเภทสินค้า"
               />
             </div>
             <div className="space-y-2">
@@ -179,7 +181,7 @@ export function CMSTypeSelect({ value, onChange, disabled }: CMSTypeSelectProps)
             <div className="flex gap-2">
               <Button onClick={handleSave} disabled={isLoading} className="flex-1">
                 <Plus className="h-4 w-4 mr-2" />
-                {editingItem ? "บันทึกการแก้ไข" : "เพิ่มประเภท CMS"}
+                {editingItem ? "บันทึกการแก้ไข" : "เพิ่มประเภทสินค้า"}
               </Button>
               {editingItem && (
                 <Button variant="outline" onClick={cancelEdit}>
@@ -189,7 +191,7 @@ export function CMSTypeSelect({ value, onChange, disabled }: CMSTypeSelectProps)
             </div>
 
             <div className="border-t pt-4">
-              <Label className="mb-2 block">ประเภท CMS ที่มีอยู่</Label>
+              <Label className="mb-2 block">ประเภทสินค้าที่มีอยู่</Label>
               <div className="space-y-2 max-h-48 overflow-y-auto">
                 {cmsTypes.map((cms) => (
                   <div
@@ -232,11 +234,11 @@ export function CMSTypeSelect({ value, onChange, disabled }: CMSTypeSelectProps)
       </Dialog>
 
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <AlertDialogContent>
+        <AlertDialogContent className="z-[10000]">
           <AlertDialogHeader>
             <AlertDialogTitle>ยืนยันการลบ</AlertDialogTitle>
             <AlertDialogDescription>
-              คุณต้องการลบประเภท CMS นี้หรือไม่?
+              คุณต้องการลบประเภทสินค้านี้หรือไม่?
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
