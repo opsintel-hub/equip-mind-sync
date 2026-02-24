@@ -7,7 +7,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { ArrowRightLeft } from "lucide-react";
-import { LocationSelect } from "@/components/location/LocationSelect";
+import { WarehouseLocationSelect } from "@/components/location/WarehouseLocationSelect";
+import { SimpleDepartmentSelect } from "@/components/equipment/SimpleDepartmentSelect";
 import { logStockMovement } from "@/lib/stockMovement";
 
 interface Equipment {
@@ -31,6 +32,8 @@ export function EquipmentTransferForm({ equipment, onSuccess }: EquipmentTransfe
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     to_location_id: "",
+    to_department: "",
+    to_warehouse_id: "",
     quantity: 1,
     transfer_date: new Date().toISOString().split("T")[0],
     notes: "",
@@ -41,6 +44,8 @@ export function EquipmentTransferForm({ equipment, onSuccess }: EquipmentTransfe
       // Reset form when dialog opens
       setFormData({
         to_location_id: "",
+        to_department: "",
+        to_warehouse_id: "",
         quantity: 1,
         transfer_date: new Date().toISOString().split("T")[0],
         notes: "",
@@ -146,17 +151,21 @@ export function EquipmentTransferForm({ equipment, onSuccess }: EquipmentTransfe
             />
           </div>
 
-          <div>
-            <Label htmlFor="to_location_id">
-              ตำแหน่งปลายทาง <span className="text-destructive">*</span>
-            </Label>
-            <LocationSelect
-              value={formData.to_location_id}
-              onChange={(value) =>
-                setFormData({ ...formData, to_location_id: value })
-              }
+          <div className="space-y-2">
+            <Label>ฝ่ายปลายทาง</Label>
+            <SimpleDepartmentSelect
+              value={formData.to_department}
+              onChange={(value) => setFormData({ ...formData, to_department: value, to_warehouse_id: "", to_location_id: "" })}
             />
           </div>
+
+          <WarehouseLocationSelect
+            department={formData.to_department}
+            warehouseId={formData.to_warehouse_id}
+            onWarehouseChange={(value) => setFormData({ ...formData, to_warehouse_id: value, to_location_id: "" })}
+            locationId={formData.to_location_id}
+            onLocationChange={(value) => setFormData({ ...formData, to_location_id: value })}
+          />
 
           <div>
             <Label htmlFor="quantity">

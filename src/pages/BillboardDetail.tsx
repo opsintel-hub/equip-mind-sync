@@ -17,7 +17,8 @@ import { differenceInDays, format } from "date-fns";
 import { th } from "date-fns/locale";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
-import { LocationSelect } from "@/components/equipment/LocationSelect";
+import { WarehouseLocationSelect } from "@/components/location/WarehouseLocationSelect";
+import { SimpleDepartmentSelect } from "@/components/equipment/SimpleDepartmentSelect";
 import { logStockMovement } from "@/lib/stockMovement";
 
 interface UninstallData {
@@ -39,6 +40,8 @@ const BillboardDetail = () => {
     return_to_stock: false,
     return_location_id: "",
   });
+  const [returnDepartment, setReturnDepartment] = useState("");
+  const [returnWarehouseId, setReturnWarehouseId] = useState("");
 
   const { data: billboard, isLoading } = useQuery({
     queryKey: ["billboard", id],
@@ -705,10 +708,19 @@ const BillboardDetail = () => {
               
               {uninstallData.return_to_stock && (
                 <div className="space-y-2 ml-6">
-                  <Label>เก็บไว้ที่คลัง</Label>
-                  <LocationSelect
-                    value={uninstallData.return_location_id}
-                    onChange={(value) => setUninstallData({ ...uninstallData, return_location_id: value })}
+                  <div className="space-y-2">
+                    <Label>ฝ่าย</Label>
+                    <SimpleDepartmentSelect
+                      value={returnDepartment || billboard?.department || ""}
+                      onChange={(val) => { setReturnDepartment(val); setReturnWarehouseId(""); setUninstallData({ ...uninstallData, return_location_id: "" }); }}
+                    />
+                  </div>
+                  <WarehouseLocationSelect
+                    department={returnDepartment || billboard?.department || ""}
+                    warehouseId={returnWarehouseId}
+                    onWarehouseChange={setReturnWarehouseId}
+                    locationId={uninstallData.return_location_id}
+                    onLocationChange={(value) => setUninstallData({ ...uninstallData, return_location_id: value })}
                   />
                   <p className="text-xs text-muted-foreground">
                     ระบบจะเพิ่มจำนวน {selectedEquipment?.quantity} {selectedEquipment?.equipment?.unit || "ชิ้น"} กลับเข้าสต็อก

@@ -17,7 +17,8 @@ import { format } from "date-fns";
 import { th } from "date-fns/locale";
 import { useAuth } from "@/hooks/useAuth";
 import BillboardSelect from "@/components/billboard/BillboardSelect";
-import { LocationSelect } from "@/components/equipment/LocationSelect";
+import { WarehouseLocationSelect } from "@/components/location/WarehouseLocationSelect";
+import { SimpleDepartmentSelect } from "@/components/equipment/SimpleDepartmentSelect";
 import { logStockMovement } from "@/lib/stockMovement";
 
 interface IncompleteIssue {
@@ -79,6 +80,8 @@ const IncompleteIssues = () => {
   const [returnData, setReturnData] = useState({
     quantity: "",
     location_id: "",
+    return_department: "",
+    return_warehouse_id: "",
     notes: "",
   });
 
@@ -338,7 +341,7 @@ const IncompleteIssues = () => {
       queryClient.invalidateQueries({ queryKey: ["equipment-active"] });
       setReturnDialogOpen(false);
       setSelectedIssue(null);
-      setReturnData({ quantity: "", location_id: "", notes: "" });
+      setReturnData({ quantity: "", location_id: "", return_department: "", return_warehouse_id: "", notes: "" });
     },
     onError: (error) => {
       toast.error("เกิดข้อผิดพลาด: " + error.message);
@@ -364,6 +367,8 @@ const IncompleteIssues = () => {
     setReturnData({
       quantity: remainingQty.toString(),
       location_id: "",
+      return_department: "",
+      return_warehouse_id: "",
       notes: "",
     });
     setReturnDialogOpen(true);
@@ -756,12 +761,22 @@ const IncompleteIssues = () => {
             </div>
 
             <div className="space-y-2">
-              <Label>ตำแหน่งจัดเก็บ</Label>
-              <LocationSelect
-                value={returnData.location_id}
-                onChange={(value) => setReturnData({ ...returnData, location_id: value })}
+              <Label>ฝ่าย</Label>
+              <SimpleDepartmentSelect
+                value={returnData.return_department}
+                onChange={(val) => setReturnData({ ...returnData, return_department: val, return_warehouse_id: "", location_id: "" })}
               />
             </div>
+
+            <WarehouseLocationSelect
+              department={returnData.return_department}
+              warehouseId={returnData.return_warehouse_id}
+              onWarehouseChange={(val) => setReturnData({ ...returnData, return_warehouse_id: val })}
+              locationId={returnData.location_id}
+              onLocationChange={(value) => setReturnData({ ...returnData, location_id: value })}
+            />
+
+
 
             <div className="space-y-2">
               <Label>หมายเหตุ</Label>
