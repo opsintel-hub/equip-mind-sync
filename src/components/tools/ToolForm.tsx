@@ -22,7 +22,7 @@ import { ToolCategorySelect } from "./ToolCategorySelect";
 import { ToolCodePrefixSelect } from "./ToolCodePrefixSelect";
 import { PMTypeSelect } from "./PMTypeSelect";
 import { CompanySelect } from "@/components/company/CompanySelect";
-import { LocationSelect } from "@/components/location/LocationSelect";
+import { SupplierSelect } from "@/components/supplier/SupplierSelect";
 import { WarehouseLocationSelect } from "@/components/location/WarehouseLocationSelect";
 import { BrandSelect } from "@/components/equipment/BrandSelect";
 import { SimpleDepartmentSelect } from "@/components/equipment/SimpleDepartmentSelect";
@@ -41,6 +41,7 @@ const formSchema = z.object({
   unit_price: z.coerce.number().min(0).optional(),
   warehouse_entry_date: z.string().min(1, "กรุณาเลือกวันที่นำเข้าคลัง"),
   location_id: z.string().optional(),
+  supplier_id: z.string().optional(),
   expiry_date: z.string().optional(),
   warranty_expiry_date: z.string().optional(),
   has_warranty: z.boolean().default(true),
@@ -63,6 +64,7 @@ export function ToolForm({ onSuccess }: ToolFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedPMTypes, setSelectedPMTypes] = useState<string[]>([]);
   const [previewCode, setPreviewCode] = useState("");
+  const [warehouseId, setWarehouseId] = useState("");
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -80,6 +82,7 @@ export function ToolForm({ onSuccess }: ToolFormProps) {
       unit_price: 0,
       warehouse_entry_date: new Date().toISOString().split("T")[0],
       location_id: "",
+      supplier_id: "",
       expiry_date: "",
       warranty_expiry_date: "",
       has_warranty: true,
@@ -123,6 +126,7 @@ export function ToolForm({ onSuccess }: ToolFormProps) {
           unit_price: data.unit_price || 0,
           warehouse_entry_date: data.warehouse_entry_date,
           location_id: data.location_id || null,
+          supplier_id: data.supplier_id || null,
           expiry_date: data.expiry_date || null,
           warranty_expiry_date: data.has_warranty ? data.warranty_expiry_date || null : null,
           has_warranty: data.has_warranty,
@@ -291,12 +295,30 @@ export function ToolForm({ onSuccess }: ToolFormProps) {
                 </FormItem>
               )} />
 
-              <FormField control={form.control} name="location_id" render={({ field }) => (
+              <FormField control={form.control} name="supplier_id" render={({ field }) => (
                 <FormItem>
-                  <FormLabel>คลังสินค้าที่นำเข้า</FormLabel>
-                  <FormControl><LocationSelect value={field.value || ""} onChange={field.onChange} /></FormControl>
+                  <FormLabel>ผู้จัดจำหน่าย</FormLabel>
+                  <FormControl><SupplierSelect value={field.value || ""} onChange={field.onChange} /></FormControl>
                 </FormItem>
               )} />
+            </div>
+
+            {/* Warehouse Location Select */}
+            <FormField control={form.control} name="location_id" render={({ field }) => (
+              <FormItem>
+                <FormControl>
+                  <WarehouseLocationSelect
+                    department={form.watch("department") || ""}
+                    warehouseId={warehouseId}
+                    onWarehouseChange={setWarehouseId}
+                    locationId={field.value || ""}
+                    onLocationChange={field.onChange}
+                  />
+                </FormControl>
+              </FormItem>
+            )} />
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
 
               <FormField control={form.control} name="expiry_date" render={({ field }) => (
                 <FormItem>

@@ -43,6 +43,7 @@ interface Tool {
   tool_category_id: string | null;
   company_id: string | null;
   location_id: string | null;
+  supplier_id: string | null;
   notes: string | null;
   tool_category: { name: string } | null;
   company: { name: string } | null;

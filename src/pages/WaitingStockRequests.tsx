@@ -16,7 +16,8 @@ import { Search, Package, Clock, CheckCircle, Bell, AlertTriangle, ChevronDown, 
 import { format, differenceInDays } from "date-fns";
 import { th } from "date-fns/locale";
 import { useAuth } from "@/hooks/useAuth";
-import { LocationSelect } from "@/components/equipment/LocationSelect";
+import { WarehouseLocationSelect } from "@/components/location/WarehouseLocationSelect";
+import { SimpleDepartmentSelect } from "@/components/equipment/SimpleDepartmentSelect";
 import BillboardSelect from "@/components/billboard/BillboardSelect";
 
 interface WaitingRequest {
@@ -77,6 +78,8 @@ const WaitingStockRequests = () => {
   const [issueData, setIssueData] = useState({
     issued_quantity: "",
     issued_location_id: "",
+    issued_department: "",
+    issued_warehouse_id: "",
     notes: "",
     install_to_billboard: false,
     billboard_id: "",
@@ -317,7 +320,7 @@ const WaitingStockRequests = () => {
       setIssueDialogOpen(false);
       setSelectedRequest(null);
       setSelectedItem(null);
-      setIssueData({ issued_quantity: "", issued_location_id: "", notes: "", install_to_billboard: false, billboard_id: "" });
+      setIssueData({ issued_quantity: "", issued_location_id: "", issued_department: "", issued_warehouse_id: "", notes: "", install_to_billboard: false, billboard_id: "" });
     },
     onError: (error) => {
       toast.error("เกิดข้อผิดพลาด: " + error.message);
@@ -340,6 +343,8 @@ const WaitingStockRequests = () => {
     setIssueData({
       issued_quantity: qtyToIssue.toString(),
       issued_location_id: "",
+      issued_department: "",
+      issued_warehouse_id: "",
       notes: "",
       install_to_billboard: false,
       billboard_id: "",
@@ -357,6 +362,8 @@ const WaitingStockRequests = () => {
     setIssueData({
       issued_quantity: qtyToIssue.toString(),
       issued_location_id: "",
+      issued_department: "",
+      issued_warehouse_id: "",
       notes: "",
       install_to_billboard: false,
       billboard_id: "",
@@ -671,12 +678,20 @@ const WaitingStockRequests = () => {
               </div>
 
               <div className="space-y-2">
-                <Label>ตำแหน่งจัดเก็บ</Label>
-                <LocationSelect
-                  value={issueData.issued_location_id}
-                  onChange={(val) => setIssueData({ ...issueData, issued_location_id: val })}
+                <Label>ฝ่าย</Label>
+                <SimpleDepartmentSelect
+                  value={issueData.issued_department}
+                  onChange={(val) => setIssueData({ ...issueData, issued_department: val, issued_warehouse_id: "", issued_location_id: "" })}
                 />
               </div>
+
+              <WarehouseLocationSelect
+                department={issueData.issued_department}
+                warehouseId={issueData.issued_warehouse_id}
+                onWarehouseChange={(val) => setIssueData({ ...issueData, issued_warehouse_id: val })}
+                locationId={issueData.issued_location_id}
+                onLocationChange={(val) => setIssueData({ ...issueData, issued_location_id: val })}
+              />
 
               <div className="flex items-center space-x-2">
                 <Checkbox

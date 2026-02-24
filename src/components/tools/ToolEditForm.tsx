@@ -20,7 +20,7 @@ import { toast } from "sonner";
 import { Pencil } from "lucide-react";
 import { ToolCategorySelect } from "./ToolCategorySelect";
 import { CompanySelect } from "@/components/company/CompanySelect";
-import { LocationSelect } from "@/components/location/LocationSelect";
+import { SupplierSelect } from "@/components/supplier/SupplierSelect";
 import { WarehouseLocationSelect } from "@/components/location/WarehouseLocationSelect";
 import { BrandSelect } from "@/components/equipment/BrandSelect";
 import { SimpleDepartmentSelect } from "@/components/equipment/SimpleDepartmentSelect";
@@ -36,6 +36,7 @@ const formSchema = z.object({
   serial_number: z.string().optional(),
   unit_price: z.coerce.number().min(0).optional(),
   location_id: z.string().optional(),
+  supplier_id: z.string().optional(),
   expiry_date: z.string().optional(),
   warranty_expiry_date: z.string().optional(),
   has_warranty: z.boolean().default(true),
@@ -63,6 +64,7 @@ interface ToolEditFormProps {
     serial_number: string | null;
     unit_price: number;
     location_id: string | null;
+    supplier_id: string | null;
     expiry_date: string | null;
     warranty_expiry_date: string | null;
     has_warranty: boolean;
@@ -80,6 +82,7 @@ interface ToolEditFormProps {
 
 export function ToolEditForm({ tool, open, onOpenChange, onSuccess }: ToolEditFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [warehouseId, setWarehouseId] = useState("");
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -94,6 +97,7 @@ export function ToolEditForm({ tool, open, onOpenChange, onSuccess }: ToolEditFo
       serial_number: tool.serial_number || "",
       unit_price: tool.unit_price || 0,
       location_id: tool.location_id || "",
+      supplier_id: tool.supplier_id || "",
       expiry_date: tool.expiry_date || "",
       warranty_expiry_date: tool.warranty_expiry_date || "",
       has_warranty: tool.has_warranty,
@@ -119,6 +123,7 @@ export function ToolEditForm({ tool, open, onOpenChange, onSuccess }: ToolEditFo
         serial_number: tool.serial_number || "",
         unit_price: tool.unit_price || 0,
         location_id: tool.location_id || "",
+        supplier_id: tool.supplier_id || "",
         expiry_date: tool.expiry_date || "",
         warranty_expiry_date: tool.warranty_expiry_date || "",
         has_warranty: tool.has_warranty,
@@ -151,6 +156,7 @@ export function ToolEditForm({ tool, open, onOpenChange, onSuccess }: ToolEditFo
           serial_number: data.serial_number || null,
           unit_price: data.unit_price || 0,
           location_id: data.location_id || null,
+          supplier_id: data.supplier_id || null,
           expiry_date: data.expiry_date || null,
           warranty_expiry_date: data.has_warranty ? data.warranty_expiry_date || null : null,
           has_warranty: data.has_warranty,
@@ -254,12 +260,30 @@ export function ToolEditForm({ tool, open, onOpenChange, onSuccess }: ToolEditFo
                 </FormItem>
               )} />
 
-              <FormField control={form.control} name="location_id" render={({ field }) => (
+              <FormField control={form.control} name="supplier_id" render={({ field }) => (
                 <FormItem>
-                  <FormLabel>คลังสินค้า</FormLabel>
-                  <FormControl><LocationSelect value={field.value || ""} onChange={field.onChange} /></FormControl>
+                  <FormLabel>ผู้จัดจำหน่าย</FormLabel>
+                  <FormControl><SupplierSelect value={field.value || ""} onChange={field.onChange} /></FormControl>
                 </FormItem>
               )} />
+            </div>
+
+            {/* Warehouse Location Select */}
+            <FormField control={form.control} name="location_id" render={({ field }) => (
+              <FormItem>
+                <FormControl>
+                  <WarehouseLocationSelect
+                    department={form.watch("department") || ""}
+                    warehouseId={warehouseId}
+                    onWarehouseChange={setWarehouseId}
+                    locationId={field.value || ""}
+                    onLocationChange={field.onChange}
+                  />
+                </FormControl>
+              </FormItem>
+            )} />
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
 
               <FormField control={form.control} name="expiry_date" render={({ field }) => (
                 <FormItem>

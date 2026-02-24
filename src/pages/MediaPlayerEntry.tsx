@@ -22,7 +22,8 @@ import { format } from "date-fns";
 import { formatBillboardLabel } from "@/lib/billboardUtils";
 import { CompanySelect } from "@/components/company/CompanySelect";
 import BillboardSelect from "@/components/billboard/BillboardSelect";
-import { LocationSelect } from "@/components/equipment/LocationSelect";
+import { WarehouseLocationSelect } from "@/components/location/WarehouseLocationSelect";
+import { SupplierSelect } from "@/components/supplier/SupplierSelect";
 import { SimpleDepartmentSelect } from "@/components/equipment/SimpleDepartmentSelect";
 import { BrandSelect } from "@/components/equipment/BrandSelect";
 
@@ -121,8 +122,10 @@ const MediaPlayerEntry = () => {
     install_date: "",
     company_id: "",
     location_id: "",
+    warehouse_id: "",
     department: "",
     brand: "",
+    supplier_id: "",
     quantity: 1,
     unit: "เครื่อง",
     unit_price: 0,
@@ -233,6 +236,7 @@ const MediaPlayerEntry = () => {
           location_id: formData.location_id || null,
           department: formData.department || null,
           brand: formData.brand || null,
+          supplier_id: formData.supplier_id || null,
           quantity: formData.quantity,
           unit: formData.unit,
           unit_price: formData.unit_price,
@@ -282,8 +286,10 @@ const MediaPlayerEntry = () => {
       install_date: "",
       company_id: "",
       location_id: "",
+      warehouse_id: "",
       department: "",
       brand: "",
+      supplier_id: "",
       quantity: 1,
       unit: "เครื่อง",
       unit_price: 0,
@@ -439,13 +445,15 @@ const MediaPlayerEntry = () => {
                       placeholder="เลือกบริษัท"
                     />
                   </div>
-                  <div className="space-y-2">
-                    <Label>ตำแหน่งจัดเก็บ</Label>
-                    <LocationSelect
-                      value={formData.location_id}
-                      onChange={(value) => setFormData({ ...formData, location_id: value })}
-                    />
-                  </div>
+                </div>
+                <WarehouseLocationSelect
+                  department={formData.department}
+                  warehouseId={formData.warehouse_id || ""}
+                  onWarehouseChange={(value) => setFormData({ ...formData, warehouse_id: value })}
+                  locationId={formData.location_id}
+                  onLocationChange={(value) => setFormData({ ...formData, location_id: value })}
+                />
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="space-y-2">
@@ -471,10 +479,18 @@ const MediaPlayerEntry = () => {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label>ยี่ห้อ/ผู้จัดจำหน่าย</Label>
+                    <Label>ยี่ห้อ</Label>
                     <BrandSelect
                       value={formData.brand}
                       onChange={(value) => setFormData({ ...formData, brand: value })}
+                      brandType="media_player"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>ผู้จัดจำหน่าย</Label>
+                    <SupplierSelect
+                      value={formData.supplier_id}
+                      onChange={(value) => setFormData({ ...formData, supplier_id: value })}
                     />
                   </div>
                 </div>
