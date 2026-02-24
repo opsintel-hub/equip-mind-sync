@@ -4,51 +4,69 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { SearchableSelect } from "@/components/ui/searchable-select";
+
+const BRAND_TYPE_OPTIONS = [
+  { value: "equipment", label: "อะไหล่" },
+  { value: "tool", label: "เครื่องมือ" },
+  { value: "media_player", label: "Media Player" },
+];
 
 interface Brand {
   id: string;
   name: string;
   description: string | null;
+  brand_type: string | null;
 }
 
 interface BrandSelectProps {
   value: string;
   onChange: (value: string) => void;
   disabled?: boolean;
+  brandType?: "equipment" | "tool" | "media_player";
 }
 
-export function BrandSelect({ value, onChange, disabled }: BrandSelectProps) {
+export function BrandSelect({ value, onChange, disabled, brandType }: BrandSelectProps) {
   const [brands, setBrands] = useState<Brand[]>([]);
   const [isManageOpen, setIsManageOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
   const [editDescription, setEditDescription] = useState("");
+  const [editBrandType, setEditBrandType] = useState<string>("equipment");
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [isAdding, setIsAdding] = useState(false);
   const [newName, setNewName] = useState("");
   const [newDescription, setNewDescription] = useState("");
+  const [newBrandType, setNewBrandType] = useState<string>(brandType || "equipment");
 
   const fetchBrands = async () => {
-    const { data, error } = await supabase
+    let query = supabase
       .from("brands")
       .select("*")
       .eq("is_active", true)
       .order("name");
 
+    if (brandType) {
+      query = query.eq("brand_type", brandType);
+    }
+
+    const { data, error } = await query;
+
     if (error) {
       console.error("Error fetching brands:", error);
       toast.error("ไม่สามารถโหลดข้อมูลยี่ห้อได้");
     } else {
-      setBrands(data || []);
+      setBrands((data as Brand[]) || []);
     }
   };
 
   useEffect(() => {
     fetchBrands();
-  }, []);
+  }, [brandType]);
 
   const handleAdd = async () => {
     if (!newName.trim()) {
@@ -58,7 +76,7 @@ export function BrandSelect({ value, onChange, disabled }: BrandSelectProps) {
 
     const { error } = await supabase
       .from("brands")
-      .insert({ name: newName.trim(), description: newDescription.trim() || null });
+      .insert({ name: newName.trim(), description: newDescription.trim() || null, brand_type: newBrandType } as any);
 
     if (error) {
       console.error("Error adding brand:", error);
@@ -67,6 +85,7 @@ export function BrandSelect({ value, onChange, disabled }: BrandSelectProps) {
       toast.success("เพิ่มยี่ห้อสำเร็จ");
       setNewName("");
       setNewDescription("");
+      setNewBrandType(brandType || "equipment");
       setIsAdding(false);
       fetchBrands();
     }
@@ -80,7 +99,7 @@ export function BrandSelect({ value, onChange, disabled }: BrandSelectProps) {
 
     const { error } = await supabase
       .from("brands")
-      .update({ name: editName.trim(), description: editDescription.trim() || null })
+      .update({ name: editName.trim(), description: editDescription.trim() || null, brand_type: editBrandType } as any)
       .eq("id", editingId);
 
     if (error) {
@@ -91,6 +110,7 @@ export function BrandSelect({ value, onChange, disabled }: BrandSelectProps) {
       setEditingId(null);
       setEditName("");
       setEditDescription("");
+      setEditBrandType("equipment");
       fetchBrands();
     }
   };
@@ -109,6 +129,10 @@ export function BrandSelect({ value, onChange, disabled }: BrandSelectProps) {
       setDeleteId(null);
       fetchBrands();
     }
+  };
+
+  const getBrandTypeLabel = (type: string | null) => {
+    return BRAND_TYPE_OPTIONS.find((o) => o.value === type)?.label || "อะไหล่";
   };
 
   const options = brands.map((brand) => ({
@@ -166,6 +190,19 @@ export function BrandSelect({ value, onChange, disabled }: BrandSelectProps) {
                   value={newDescription}
                   onChange={(e) => setNewDescription(e.target.value)}
                 />
+                <div className="space-y-1">
+                  <Label>ประเภท</Label>
+                  <Select value={newBrandType} onValueChange={setNewBrandType}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {BRAND_TYPE_OPTIONS.map((o) => (
+                        <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
                 <div className="flex gap-2">
                   <Button onClick={handleAdd} className="flex-1">บันทึก</Button>
                   <Button
@@ -174,6 +211,7 @@ export function BrandSelect({ value, onChange, disabled }: BrandSelectProps) {
                       setIsAdding(false);
                       setNewName("");
                       setNewDescription("");
+                      setNewBrandType(brandType || "equipment");
                     }}
                     className="flex-1"
                   >
@@ -198,6 +236,19 @@ export function BrandSelect({ value, onChange, disabled }: BrandSelectProps) {
                         value={editDescription}
                         onChange={(e) => setEditDescription(e.target.value)}
                       />
+                      <div className="space-y-1">
+                        <Label>ประเภท</Label>
+                        <Select value={editBrandType} onValueChange={setEditBrandType}>
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {BRAND_TYPE_OPTIONS.map((o) => (
+                              <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
                       <div className="flex gap-2">
                         <Button onClick={handleEdit} size="sm" className="flex-1">
                           บันทึก
@@ -208,6 +259,7 @@ export function BrandSelect({ value, onChange, disabled }: BrandSelectProps) {
                             setEditingId(null);
                             setEditName("");
                             setEditDescription("");
+                            setEditBrandType("equipment");
                           }}
                           size="sm"
                           className="flex-1"
@@ -220,9 +272,10 @@ export function BrandSelect({ value, onChange, disabled }: BrandSelectProps) {
                     <div className="flex items-center justify-between">
                       <div>
                         <div className="font-medium">{brand.name}</div>
-                        {brand.description && (
-                          <div className="text-sm text-muted-foreground">{brand.description}</div>
-                        )}
+                        <div className="text-xs text-muted-foreground">
+                          {getBrandTypeLabel(brand.brand_type)}
+                          {brand.description && ` — ${brand.description}`}
+                        </div>
                       </div>
                       <div className="flex gap-2">
                         <Button
@@ -232,6 +285,7 @@ export function BrandSelect({ value, onChange, disabled }: BrandSelectProps) {
                             setEditingId(brand.id);
                             setEditName(brand.name);
                             setEditDescription(brand.description || "");
+                            setEditBrandType(brand.brand_type || "equipment");
                           }}
                         >
                           <Pencil className="h-4 w-4" />

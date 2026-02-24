@@ -21,7 +21,7 @@ interface Supplier {
 
 interface SupplierSelectProps {
   value: string;
-  onChange: (value: string, supplierId?: string) => void;
+  onChange: (value: string) => void;
   disabled?: boolean;
 }
 
@@ -153,15 +153,14 @@ export function SupplierSelect({ value, onChange, disabled }: SupplierSelectProp
     });
   };
 
-  const handleSelectChange = (selectedName: string) => {
-    const selectedSupplier = suppliers.find((s) => s.name === selectedName);
-    onChange(selectedName, selectedSupplier?.id);
+  const handleSelectChange = (selectedId: string) => {
+    onChange(selectedId);
   };
 
   const options = suppliers.map((supplier) => ({
-    value: supplier.name,
+    value: supplier.id,
     label: `${supplier.code} - ${supplier.name}`,
-    description: supplier.contact_person ? `ติดต่อ: ${supplier.contact_person}` : undefined,
+    description: [supplier.contact_person && `ติดต่อ: ${supplier.contact_person}`, (supplier as any).vendor_code && `Vendor: ${(supplier as any).vendor_code}`].filter(Boolean).join(" | ") || undefined,
   }));
 
   return (
