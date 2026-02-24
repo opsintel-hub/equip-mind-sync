@@ -449,7 +449,7 @@ const MediaPlayerEntry = () => {
                     <Label>ฝ่าย</Label>
                     <SimpleDepartmentSelect
                       value={formData.department}
-                      onChange={(value) => setFormData({ ...formData, department: value })}
+                      onChange={(value) => setFormData((prev) => ({ ...prev, department: value }))}
                     />
                   </div>
                   <div className="space-y-2">
@@ -464,9 +464,9 @@ const MediaPlayerEntry = () => {
                 <WarehouseLocationSelect
                   department={formData.department}
                   warehouseId={formData.warehouse_id || ""}
-                  onWarehouseChange={(value) => setFormData({ ...formData, warehouse_id: value })}
+                  onWarehouseChange={(value) => setFormData((prev) => ({ ...prev, warehouse_id: value }))}
                   locationId={formData.location_id}
-                  onLocationChange={(value) => setFormData({ ...formData, location_id: value })}
+                  onLocationChange={(value) => setFormData((prev) => ({ ...prev, location_id: value }))}
                 />
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 </div>
