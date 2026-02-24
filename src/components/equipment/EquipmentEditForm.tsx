@@ -337,6 +337,24 @@ export function EquipmentEditForm({ equipment, onSuccess }: EquipmentEditFormPro
 
             <FormField
               control={form.control}
+              name="supplier_id"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>ผู้จัดจำหน่าย</FormLabel>
+                  <FormControl>
+                    <SupplierSelect
+                      value={field.value || ""}
+                      onChange={field.onChange}
+                      disabled={isLoading}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
               name="name"
               render={({ field }) => (
                 <FormItem>
