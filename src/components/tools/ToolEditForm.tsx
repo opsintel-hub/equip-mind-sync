@@ -110,6 +110,25 @@ export function ToolEditForm({ tool, open, onOpenChange, onSuccess }: ToolEditFo
     },
   });
 
+  // Preload warehouseId from location_id
+  useEffect(() => {
+    if (open && tool.location_id) {
+      const preloadWarehouse = async () => {
+        const { data } = await supabase
+          .from("locations")
+          .select("warehouse_id")
+          .eq("id", tool.location_id!)
+          .maybeSingle();
+        if (data?.warehouse_id) {
+          setWarehouseId(data.warehouse_id);
+        }
+      };
+      preloadWarehouse();
+    } else if (open) {
+      setWarehouseId("");
+    }
+  }, [open, tool.location_id]);
+
   useEffect(() => {
     if (open) {
       form.reset({
