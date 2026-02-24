@@ -21,6 +21,7 @@ import { Pencil } from "lucide-react";
 import { ToolCategorySelect } from "./ToolCategorySelect";
 import { CompanySelect } from "@/components/company/CompanySelect";
 import { LocationSelect } from "@/components/location/LocationSelect";
+import { WarehouseLocationSelect } from "@/components/location/WarehouseLocationSelect";
 import { BrandSelect } from "@/components/equipment/BrandSelect";
 import { SimpleDepartmentSelect } from "@/components/equipment/SimpleDepartmentSelect";
 
@@ -227,7 +228,7 @@ export function ToolEditForm({ tool, open, onOpenChange, onSuccess }: ToolEditFo
               <FormField control={form.control} name="brand" render={({ field }) => (
                 <FormItem>
                   <FormLabel>ยี่ห้อ</FormLabel>
-                  <FormControl><BrandSelect value={field.value || ""} onChange={field.onChange} /></FormControl>
+                  <FormControl><BrandSelect value={field.value || ""} onChange={field.onChange} brandType="tool" /></FormControl>
                 </FormItem>
               )} />
 

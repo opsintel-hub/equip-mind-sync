@@ -649,6 +649,7 @@ export type Database = {
       }
       brands: {
         Row: {
+          brand_type: string | null
           created_at: string
           created_by: string | null
           description: string | null
@@ -658,6 +659,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          brand_type?: string | null
           created_at?: string
           created_by?: string | null
           description?: string | null
@@ -667,6 +669,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          brand_type?: string | null
           created_at?: string
           created_by?: string | null
           description?: string | null
@@ -891,6 +894,7 @@ export type Database = {
           quantity_in_stock: number
           serial_number: string | null
           subcategory_id: string | null
+          supplier_id: string | null
           unit: string
           unit_price: number
           updated_at: string
@@ -929,6 +933,7 @@ export type Database = {
           quantity_in_stock?: number
           serial_number?: string | null
           subcategory_id?: string | null
+          supplier_id?: string | null
           unit: string
           unit_price?: number
           updated_at?: string
@@ -967,6 +972,7 @@ export type Database = {
           quantity_in_stock?: number
           serial_number?: string | null
           subcategory_id?: string | null
+          supplier_id?: string | null
           unit?: string
           unit_price?: number
           updated_at?: string
@@ -997,6 +1003,13 @@ export type Database = {
             columns: ["subcategory_id"]
             isOneToOne: false
             referencedRelation: "subcategories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "equipment_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
             referencedColumns: ["id"]
           },
         ]
@@ -2298,6 +2311,7 @@ export type Database = {
           serial_number_2: string | null
           specification: string | null
           status: string | null
+          supplier_id: string | null
           unit: string
           unit_price: number | null
           updated_at: string
@@ -2341,6 +2355,7 @@ export type Database = {
           serial_number_2?: string | null
           specification?: string | null
           status?: string | null
+          supplier_id?: string | null
           unit?: string
           unit_price?: number | null
           updated_at?: string
@@ -2384,6 +2399,7 @@ export type Database = {
           serial_number_2?: string | null
           specification?: string | null
           status?: string | null
+          supplier_id?: string | null
           unit?: string
           unit_price?: number | null
           updated_at?: string
@@ -2418,6 +2434,13 @@ export type Database = {
             columns: ["location_id"]
             isOneToOne: false
             referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "media_players_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
             referencedColumns: ["id"]
           },
         ]
@@ -3478,6 +3501,7 @@ export type Database = {
           pm_interval_days: number | null
           responsible_person: string | null
           serial_number: string | null
+          supplier_id: string | null
           tool_category_id: string | null
           unit: string
           unit_price: number | null
@@ -3508,6 +3532,7 @@ export type Database = {
           pm_interval_days?: number | null
           responsible_person?: string | null
           serial_number?: string | null
+          supplier_id?: string | null
           tool_category_id?: string | null
           unit?: string
           unit_price?: number | null
@@ -3538,6 +3563,7 @@ export type Database = {
           pm_interval_days?: number | null
           responsible_person?: string | null
           serial_number?: string | null
+          supplier_id?: string | null
           tool_category_id?: string | null
           unit?: string
           unit_price?: number | null
@@ -3558,6 +3584,13 @@ export type Database = {
             columns: ["location_id"]
             isOneToOne: false
             referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tools_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
             referencedColumns: ["id"]
           },
           {

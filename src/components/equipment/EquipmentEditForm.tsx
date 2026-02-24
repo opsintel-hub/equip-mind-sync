@@ -19,6 +19,7 @@ import { SubcategorySelect } from "./SubcategorySelect";
 import { DepartmentSelect } from "./DepartmentSelect";
 import { BrandSelect } from "./BrandSelect";
 import { LocationSelect } from "./LocationSelect";
+import { WarehouseLocationSelect } from "@/components/location/WarehouseLocationSelect";
 import { CompanySelect } from "@/components/company/CompanySelect";
 
 const equipmentSchema = z.object({
@@ -305,6 +306,7 @@ export function EquipmentEditForm({ equipment, onSuccess }: EquipmentEditFormPro
                         value={field.value || ""}
                         onChange={field.onChange}
                         disabled={isLoading}
+                        brandType="equipment"
                       />
                     </FormControl>
                     <FormMessage />
