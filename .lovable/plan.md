@@ -1,118 +1,104 @@
 
 
-## ปรับปรุงหน้าจัดการ Media Player เป็นแบบ Tab
+## ปรับปรุงระบบ "คลัง > ตำแหน่ง" และ "ยี่ห้อแยกประเภท" ทั้งระบบ
 
 ### ภาพรวม
-เปลี่ยนหน้า Media Player Entry จากรูปแบบ Dialog/ปุ่ม เป็นรูปแบบ Tab โดยคงคุณสมบัติเดิมทั้งหมดไว้ (รอรหัสทรัพย์สิน, Install/Uninstall ป้าย ฯลฯ) และเพิ่มระบบรหัสอัตโนมัติแบบ Prefix + เลขรัน 4 หลัก
+ปรับ 2 ระบบหลักให้ใช้ทั่วทั้งแอปพลิเคชัน:
+1. ตำแหน่งจัดเก็บต้องเลือกฝ่าย > คลัง > ตำแหน่ง เสมอ
+2. ยี่ห้อต้องแยกประเภท (อะไหล่/เครื่องมือ/Media Player)
 
 ---
 
-### Tab 1: "เพิ่ม Media Player ใหม่"
-ย้าย Form จาก Dialog มาเป็นหน้าเต็ม จัดเป็น Card sections ตามภาพอ้างอิง
+### ส่วนที่ 1: ระบบ ฝ่าย > คลัง > ตำแหน่ง
 
-**ข้อมูลทั่วไป:**
-- ฝ่าย - `SimpleDepartmentSelect` (dropdown จากระบบ)
-- บริษัทที่สั่งซื้อ - `CompanySelect` (dropdown จากระบบ)
-- ตำแหน่งจัดเก็บ - `LocationSelect` (dropdown จากระบบ)
-- รหัส - ใช้ระบบ Prefix + Auto Run 4 หลัก (สร้าง `MediaPlayerCodePrefixSelect` ใหม่ ใช้ pattern เดียวกับ `EquipmentCodePrefixSelect` / `ToolCodePrefixSelect`)
-- ชื่อสินค้า
-- ยี่ห้อ/ผู้จัดจำหน่าย - `BrandSelect` (dropdown จากระบบ)
+**แนวคิด**: สร้าง component ใหม่ `WarehouseLocationSelect` ที่รวมการเลือกคลังและตำแหน่งไว้ด้วยกัน โดยรับ prop `department` เข้ามาเพื่อกรองคลังตามฝ่าย
 
-**ประเภทของสินค้า:**
-- ประเภท CMS - `SearchableSelect` พร้อม CRUD ในตัว (แทนปุ่ม "จัดการประเภท CMS" แยก) สามารถเพิ่ม/แก้ไข/ลบได้จาก dropdown เลย
-- Specification
+**Component ใหม่**: `src/components/location/WarehouseLocationSelect.tsx`
+- รับ props: `department`, `warehouseId`, `onWarehouseChange`, `locationId`, `onLocationChange`, `disabled`
+- เมื่อ `department` ยังไม่ถูกเลือก: dropdown คลังจะ disabled
+- เมื่อเลือกฝ่ายแล้ว: โหลดคลังจาก `warehouses` where `department = ฝ่ายที่เลือก` and `is_active = true`
+- เมื่อเลือกคลังแล้ว: โหลดตำแหน่งจาก `locations` where `warehouse_id = คลังที่เลือก` and `is_active = true`
+- เมื่อเปลี่ยนฝ่าย: reset คลังและตำแหน่ง
+- เมื่อเปลี่ยนคลัง: reset ตำแหน่ง
+- แสดงผลเป็น 2 dropdown (คลังสินค้า + ตำแหน่งจัดเก็บ) แบบ read-only (ไม่มีปุ่มจัดการ เพราะจัดการจากหน้า Master Data)
 
-**ข้อมูลเฉพาะ Media Player (กรอบสี):**
-- Model (CMS Type dropdown เดิม)
-- S/N 1, S/N 2
-- Activate Windows (text field ใหม่)
-- Note
-- Upload รูปภาพ
+**ไฟล์ที่ต้องแก้ไข** (เปลี่ยนจาก LocationSelect/SimpleLocationSelect เป็น WarehouseLocationSelect):
 
-**ข้อมูลเพิ่มเติม:**
-- Status dropdown: Active, Spare Office Bamed, Spare Office Planto Tw, Fix or Break, Claim, Spare Ow, Spare Online พร้อมใช้งาน
-- Name, Remote (text fields ใหม่)
-- ID Display, Group Led, Led Control (คงเดิม)
+| ไฟล์ | LocationSelect เดิม | หมายเหตุ |
+|---|---|---|
+| `EquipmentForm.tsx` | `SimpleLocationSelect` | มี department field อยู่แล้ว, เพิ่ม warehouse_id state |
+| `EquipmentEditForm.tsx` | `equipment/LocationSelect` | มี department field อยู่แล้ว, เพิ่ม warehouse_id state |
+| `ToolForm.tsx` | `location/LocationSelect` | มี department field อยู่แล้ว, เพิ่ม warehouse_id state |
+| `ToolEditForm.tsx` | `location/LocationSelect` | มี department field อยู่แล้ว, เพิ่ม warehouse_id state |
+| `MediaPlayerEntry.tsx` | `equipment/LocationSelect` | มี department field อยู่แล้ว, เพิ่ม warehouse_id state |
+| `WaitingStockRequests.tsx` | `equipment/LocationSelect` | ต้องตรวจสอบว่ามี department context หรือไม่ |
+| `BillboardDetail.tsx` | `equipment/LocationSelect` | ต้องตรวจสอบว่ามี department context หรือไม่ |
+| `IncompleteIssues.tsx` | `equipment/LocationSelect` | ต้องตรวจสอบว่ามี department context หรือไม่ |
+| `EquipmentTransferForm.tsx` | `location/LocationSelect` | ตำแหน่งปลายทาง อาจข้ามฝ่ายได้ |
 
-**ผูกกับป้ายโฆษณา (กรอบสี):**
-- ป้ายโฆษณา - `BillboardSelect` (dropdown จากระบบ)
-- วันที่ติดตั้ง
-
-**ราคาและค่าเสื่อม:**
-- ราคาต่อหน่วย
-- ระยะเวลาค่าเสื่อม (เดือน) *
-- วันสิ้นสุดการรับประกัน
-
-**ทรัพย์สิน (คงเดิมทั้งหมด):**
-- Switch เป็นทรัพย์สิน
-- รหัสทรัพย์สิน + Checkbox "รอรหัสทรัพย์สิน"
-- Equipment ID + Checkbox "รอ Equipment ID"
-
-**PO/PR (fields ใหม่):**
-- เลข PO, เลข PR, Invoice No.
-- วันที่รับสินค้า
-- Order For Project
-
-**หมายเหตุ**
+**หมายเหตุ**: สำหรับ `EquipmentTransferForm`, `BillboardDetail`, `WaitingStockRequests`, `IncompleteIssues` ที่อาจไม่มี department context โดยตรง จะเพิ่ม department dropdown ก่อนคลัง/ตำแหน่ง หรือดึงจาก context ของ equipment ที่กำลังจัดการ
 
 ---
 
-### Tab 2: "Dashboard"
-- แสดง `MediaPlayerDashboard` component (คงเดิม)
-- ด้านล่างแสดงตารางรายการ Media Player พร้อม search + filters (บริษัท, สถานะ, ประเภท CMS)
-- ปุ่ม Import Excel อยู่ใน tab นี้
-- ปุ่ม Install/Uninstall ป้ายโฆษณาในตาราง (คงเดิม)
+### ส่วนที่ 2: ยี่ห้อแยกประเภท + แยกผู้จัดจำหน่าย
 
----
+**2.1 Database Migration**:
+- เพิ่มคอลัมน์ `brand_type` (text, default 'equipment') ในตาราง `brands`
+- ค่าที่รองรับ: `equipment`, `tool`, `media_player`
 
-### สิ่งที่ลบออก
-- ปุ่ม "ซ่อน Dashboard" / "แสดง Dashboard"
-- ปุ่ม "เพิ่ม Media Player" (ย้ายเป็น Tab)
-- ปุ่ม "จัดการประเภท CMS" (รวมเข้าใน dropdown CMS Type)
+**2.2 แก้ไข `BrandSelect` component** (`src/components/equipment/BrandSelect.tsx`):
+- เพิ่ม prop ใหม่: `brandType?: "equipment" | "tool" | "media_player"`
+- กรองยี่ห้อตาม `brand_type` เมื่อแสดง dropdown (ถ้าไม่ระบุ brandType แสดงทั้งหมดเพื่อ backward compatibility)
+- ในหน้าจัดการยี่ห้อ (Dialog): เพิ่ม dropdown เลือกประเภท (อะไหล่/เครื่องมือ/Media Player) ตอนสร้างและแก้ไข
+- ยี่ห้อที่ยังไม่มี brand_type จะถูกถือว่าเป็น equipment (default)
 
----
+**2.3 ปรับทุกไฟล์ที่ใช้ BrandSelect**:
 
-### สิ่งที่คงไว้ (ไม่เปลี่ยน)
-- ระบบรอรหัสทรัพย์สิน / รอ Equipment ID พร้อม validation
-- ระบบ Install/Uninstall ป้ายโฆษณา
-- Dashboard charts และ alerts ทั้งหมด
-- Import Excel
-- ฟิลด์เฉพาะ Media Player (ID Display, Group Led, Led Control, S/N 1, S/N 2)
+| ไฟล์ | brandType ที่ส่ง |
+|---|---|
+| `EquipmentForm.tsx` | `brandType="equipment"` |
+| `EquipmentEditForm.tsx` | `brandType="equipment"` |
+| `ToolForm.tsx` | `brandType="tool"` |
+| `ToolEditForm.tsx` | `brandType="tool"` |
+| `MediaPlayerEntry.tsx` | `brandType="media_player"` |
+
+**2.4 เพิ่มช่อง "ผู้จัดจำหน่าย" แยกจากยี่ห้อ**:
+- ใช้ `SupplierSelect` ที่มีอยู่แล้ว (รองรับค้นหาชื่อ, ผู้ติดต่อ, รหัส Vendor)
+- เพิ่ม `searchableText` ใน `SupplierSelect` เพื่อรวม vendor_code ในการค้นหา
+- เพิ่มคอลัมน์ `supplier_id` (uuid) ในตาราง `media_players` (DB migration)
+- เพิ่มช่อง "ผู้จัดจำหน่าย" ในหน้า Media Player, Equipment Form, Equipment Edit Form, Tool Form, Tool Edit Form โดยใช้ `SupplierSelect`
+- เพิ่มคอลัมน์ `supplier_id` (uuid) ในตาราง `equipment` และ `tools` ด้วย (DB migration)
 
 ---
 
 ### รายละเอียดทางเทคนิค
 
-#### 1. Database Migration
-**สร้างตาราง `media_player_code_prefixes`:**
-- `id` (uuid, PK), `prefix` (varchar 7, unique), `description` (text), `next_number` (int, default 1), `is_active` (boolean, default true), `created_at`, `updated_at`, `created_by`
-- RLS policies สำหรับ authenticated users
+#### Database Migration:
+```text
+1. ALTER TABLE brands ADD COLUMN brand_type text DEFAULT 'equipment';
+2. ALTER TABLE media_players ADD COLUMN supplier_id uuid REFERENCES suppliers(id);
+3. ALTER TABLE equipment ADD COLUMN supplier_id uuid REFERENCES suppliers(id);
+4. ALTER TABLE tools ADD COLUMN supplier_id uuid REFERENCES suppliers(id);
+```
 
-**สร้าง Function `get_next_media_player_code(p_prefix)`:**
-- ใช้ pattern เดียวกับ `get_next_equipment_code` และ `get_next_tool_code`
-- Update `next_number + 1` แล้ว return `PREFIX XXXX` (เช่น "MP 0001")
+#### ไฟล์ที่สร้างใหม่:
+- `src/components/location/WarehouseLocationSelect.tsx`
 
-**เพิ่มคอลัมน์ในตาราง `media_players`:**
-- `status` (text, default 'active')
-- `remote_name` (text)
-- `activate_windows` (text)
-- `po_number` (text)
-- `pr_number` (text)
-- `invoice_number` (text)
-- `date_of_receipt` (date)
-- `order_for_project` (text)
-- `image_url` (text)
+#### ไฟล์ที่แก้ไข:
+- `src/components/equipment/BrandSelect.tsx` - เพิ่ม `brandType` prop, กรอง, เพิ่มช่องเลือกประเภทในหน้าจัดการ
+- `src/components/supplier/SupplierSelect.tsx` - เพิ่ม `searchableText` (vendor_code) ในตัวเลือก
+- `src/components/equipment/EquipmentForm.tsx` - ใช้ `WarehouseLocationSelect`, `brandType="equipment"`, เพิ่ม `SupplierSelect`
+- `src/components/equipment/EquipmentEditForm.tsx` - ใช้ `WarehouseLocationSelect`, `brandType="equipment"`, เพิ่ม `SupplierSelect`
+- `src/components/tools/ToolForm.tsx` - ใช้ `WarehouseLocationSelect`, `brandType="tool"`, เพิ่ม `SupplierSelect`
+- `src/components/tools/ToolEditForm.tsx` - ใช้ `WarehouseLocationSelect`, `brandType="tool"`, เพิ่ม `SupplierSelect`
+- `src/pages/MediaPlayerEntry.tsx` - ใช้ `WarehouseLocationSelect`, `brandType="media_player"`, เพิ่ม `SupplierSelect`
+- `src/pages/WaitingStockRequests.tsx` - ใช้ `WarehouseLocationSelect`
+- `src/pages/BillboardDetail.tsx` - ใช้ `WarehouseLocationSelect`
+- `src/pages/IncompleteIssues.tsx` - ใช้ `WarehouseLocationSelect`
+- `src/components/equipment/EquipmentTransferForm.tsx` - ใช้ `WarehouseLocationSelect`
 
-#### 2. สร้าง Component ใหม่
-- `src/components/media-player/MediaPlayerCodePrefixSelect.tsx` - Prefix dropdown พร้อม CRUD (clone จาก EquipmentCodePrefixSelect ปรับใช้ตาราง `media_player_code_prefixes`)
-- `src/components/media-player/CMSTypeSelect.tsx` - CMS Type dropdown พร้อม CRUD ในตัว (pattern เดียวกับ `ToolCategorySelect`)
-
-#### 3. แก้ไขไฟล์หลัก
-- `src/pages/MediaPlayerEntry.tsx` - Rewrite เป็น Tab layout, ย้าย form เป็น inline, เพิ่ม fields ใหม่, ใช้ Prefix select แทน free text code
-- `src/components/media-player/MediaPlayerDashboard.tsx` - เพิ่ม status-based stats จาก field `status` ใหม่
-
-#### 4. ไฟล์ที่ไม่แก้ไข
-- `src/components/media-player/MediaPlayerImport.tsx` (คงเดิม)
-- `src/components/media-player/MediaPlayerDashboard.tsx` (ปรับเล็กน้อยถ้ามี status field)
-- ทุก dropdown ที่ใช้อยู่ (`CompanySelect`, `LocationSelect`, `BillboardSelect`, `BrandSelect`, `SimpleDepartmentSelect`)
+#### ไฟล์ที่ไม่แก้ไข:
+- `src/components/equipment/SimpleLocationSelect.tsx` - จะถูกแทนที่ด้วย `WarehouseLocationSelect`
+- `src/components/equipment/LocationSelect.tsx` - จะถูกแทนที่ด้วย `WarehouseLocationSelect`
+- `src/components/location/LocationSelect.tsx` - จะถูกแทนที่ด้วย `WarehouseLocationSelect`
 
