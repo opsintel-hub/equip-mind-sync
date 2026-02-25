@@ -522,7 +522,8 @@ const MediaPlayerEntry = () => {
       "ยี่ห้อสินค้า": p.name,
       "Model": modelsForFilter.find(m => m.id === (p as any).model_id)?.name || "-",
       "ชื่อ": p.remote_name || "-",
-      "S/N": p.serial_number_1 || "-",
+      "S/N 1": p.serial_number_1 || "-",
+      "S/N 2": p.serial_number_2 || "-",
       "ป้ายโฆษณา": getBillboardDisplay(p) || "ยังไม่ติดตั้ง",
       "สถานะ": getStatusLabel(p.status),
       "รหัสทรัพย์สิน": p.asset_code || (p.waiting_asset_code ? "รอรหัส" : "-"),
@@ -1145,7 +1146,8 @@ const MediaPlayerEntry = () => {
                           <TableHead>ยี่ห้อสินค้า</TableHead>
                           <TableHead>Model</TableHead>
                           <TableHead>ชื่อ</TableHead>
-                          <TableHead>S/N</TableHead>
+                          <TableHead>S/N 1</TableHead>
+                          <TableHead>S/N 2</TableHead>
                           <TableHead>ป้ายโฆษณา</TableHead>
                           <TableHead>สถานะ</TableHead>
                           <TableHead className="text-right">จัดการ</TableHead>
@@ -1154,7 +1156,7 @@ const MediaPlayerEntry = () => {
                       <TableBody>
                         {filteredPlayers.length === 0 ? (
                           <TableRow>
-                            <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
+                            <TableCell colSpan={11} className="text-center py-8 text-muted-foreground">
                               ยังไม่มีข้อมูล Media Player
                             </TableCell>
                           </TableRow>
@@ -1170,6 +1172,7 @@ const MediaPlayerEntry = () => {
                               </TableCell>
                               <TableCell className="text-sm">{player.remote_name || "-"}</TableCell>
                               <TableCell className="text-sm">{player.serial_number_1 || "-"}</TableCell>
+                              <TableCell className="text-sm">{player.serial_number_2 || "-"}</TableCell>
                               <TableCell className="text-sm">
                                 {getBillboardDisplay(player) ? (
                                   <div className="flex items-center gap-1">
