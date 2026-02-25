@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,8 +11,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Monitor, Search, Loader2, MapPin, Unplug, Plus } from "lucide-react";
-import MediaPlayerImport from "@/components/media-player/MediaPlayerImport";
+import { Monitor, Search, Loader2, MapPin, Unplug, Plus, Download } from "lucide-react";
+import * as XLSX from "xlsx";
 import MediaPlayerDashboard from "@/components/media-player/MediaPlayerDashboard";
 import { MediaPlayerCodePrefixSelect } from "@/components/media-player/MediaPlayerCodePrefixSelect";
 import { CMSTypeSelect } from "@/components/media-player/CMSTypeSelect";
@@ -97,11 +97,17 @@ const MediaPlayerEntry = () => {
   const [filterCompany, setFilterCompany] = useState("all");
   const [filterStatus, setFilterStatus] = useState("all");
   const [filterCmsType, setFilterCmsType] = useState("all");
+  const [filterDepartment, setFilterDepartment] = useState("all");
+  const [filterModel, setFilterModel] = useState("all");
+  const [filterAlert, setFilterAlert] = useState("all");
+  const [alertDays, setAlertDays] = useState(30);
 
   // CMS types for filter dropdown
   const [cmsTypesForFilter, setCmsTypesForFilter] = useState<{id: string; name: string}[]>([]);
   const [companiesForFilter, setCompaniesForFilter] = useState<{id: string; name: string}[]>([]);
   const [statusesForFilter, setStatusesForFilter] = useState<{value: string; label: string}[]>([]);
+  const [modelsForFilter, setModelsForFilter] = useState<{id: string; name: string}[]>([]);
+  const [departmentsForFilter, setDepartmentsForFilter] = useState<{id: string; name: string}[]>([]);
   
   const [formData, setFormData] = useState({
     name: "",
@@ -154,14 +160,18 @@ const MediaPlayerEntry = () => {
   }, []);
 
   const fetchFiltersData = async () => {
-    const [cmsRes, compRes, statusRes] = await Promise.all([
+    const [cmsRes, compRes, statusRes, modelRes, deptRes] = await Promise.all([
       supabase.from("cms_types").select("id, name").eq("is_active", true).order("name"),
       supabase.from("companies").select("id, name").eq("is_active", true).order("name"),
       supabase.from("media_player_statuses").select("value, label").eq("is_active", true).order("label"),
+      supabase.from("media_player_models").select("id, name").eq("is_active", true).order("name"),
+      supabase.from("departments").select("id, name").eq("is_active", true).order("name"),
     ]);
     if (cmsRes.data) setCmsTypesForFilter(cmsRes.data);
     if (compRes.data) setCompaniesForFilter(compRes.data);
     if (statusRes.data) setStatusesForFilter(statusRes.data);
+    if (modelRes.data) setModelsForFilter(modelRes.data);
+    if (deptRes.data) setDepartmentsForFilter(deptRes.data);
   };
 
   const fetchMediaPlayers = async () => {
@@ -329,19 +339,109 @@ const MediaPlayerEntry = () => {
     setCodePreview("");
   };
 
-  const filteredPlayers = mediaPlayers.filter(player => {
-    const matchSearch = !searchTerm || 
-      player.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      player.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      player.serial_number_1?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      player.asset_code?.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    const matchCompany = filterCompany === "all" || player.company_id === filterCompany;
-    const matchStatus = filterStatus === "all" || (player.status || "active") === filterStatus;
-    const matchCmsType = filterCmsType === "all" || player.cms_type_id === filterCmsType;
-    
-    return matchSearch && matchCompany && matchStatus && matchCmsType;
-  });
+  const filteredPlayers = useMemo(() => {
+    const today = new Date();
+    return mediaPlayers.filter(player => {
+      const matchSearch = !searchTerm || 
+        player.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        player.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        player.serial_number_1?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        player.asset_code?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        player.po_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        player.pr_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        player.invoice_number?.toLowerCase().includes(searchTerm.toLowerCase());
+      
+      const matchCompany = filterCompany === "all" || player.company_id === filterCompany;
+      const matchStatus = filterStatus === "all" || (player.status || "active") === filterStatus;
+      const matchCmsType = filterCmsType === "all" || player.cms_type_id === filterCmsType;
+      const matchDepartment = filterDepartment === "all" || player.department === filterDepartment;
+      const matchModel = filterModel === "all" || (player as any).model_id === filterModel;
+
+      // Alert filter
+      let matchAlert = true;
+      if (filterAlert === "warranty_expired") {
+        matchAlert = !!player.warranty_expiry_date && new Date(player.warranty_expiry_date) < today;
+      } else if (filterAlert === "warranty_expiring") {
+        if (!player.warranty_expiry_date) { matchAlert = false; }
+        else {
+          const diff = Math.floor((new Date(player.warranty_expiry_date).getTime() - today.getTime()) / (1000*60*60*24));
+          matchAlert = diff > 0 && diff <= alertDays;
+        }
+      } else if (filterAlert === "waiting_code") {
+        matchAlert = !!(player.waiting_asset_code || player.waiting_equipment_id);
+      }
+      
+      return matchSearch && matchCompany && matchStatus && matchCmsType && matchDepartment && matchModel && matchAlert;
+    });
+  }, [mediaPlayers, searchTerm, filterCompany, filterStatus, filterCmsType, filterDepartment, filterModel, filterAlert, alertDays]);
+
+  // Dashboard statistics computed from ALL media players (unfiltered)
+  const dashboardStats = useMemo(() => {
+    const today = new Date();
+    const total = mediaPlayers.length;
+    const statusMap: Record<string, number> = {};
+    let waitingCode = 0;
+    let warrantyExpiring = 0;
+    let warrantyExpired = 0;
+    const modelMap: Record<string, number> = {};
+    const deptMap: Record<string, number> = {};
+
+    mediaPlayers.forEach(p => {
+      const st = p.status || "active";
+      statusMap[st] = (statusMap[st] || 0) + 1;
+      if (p.waiting_asset_code || p.waiting_equipment_id) waitingCode++;
+      if (p.warranty_expiry_date) {
+        const diff = Math.floor((new Date(p.warranty_expiry_date).getTime() - today.getTime()) / (1000*60*60*24));
+        if (diff < 0) warrantyExpired++;
+        else if (diff <= alertDays) warrantyExpiring++;
+      }
+      // Model
+      const modelId = (p as any).model_id;
+      if (modelId) {
+        const modelName = modelsForFilter.find(m => m.id === modelId)?.name || "ไม่ระบุ";
+        modelMap[modelName] = (modelMap[modelName] || 0) + 1;
+      }
+      // Department
+      const dept = p.department || "ไม่ระบุ";
+      deptMap[dept] = (deptMap[dept] || 0) + 1;
+    });
+
+    // Map status counts - detect by value patterns
+    const active = statusMap["active"] || 0;
+    const claim = statusMap["claim"] || 0;
+    const fixOrBreak = Object.entries(statusMap)
+      .filter(([k]) => k.includes("fix") || k.includes("break"))
+      .reduce((sum, [, v]) => sum + v, 0);
+    const spare = Object.entries(statusMap)
+      .filter(([k]) => k.includes("spare"))
+      .reduce((sum, [, v]) => sum + v, 0);
+
+    const statusColors: Record<string, string> = {};
+    const colorList = ["#22c55e", "#3b82f6", "#f97316", "#eab308", "#8b5cf6", "#ec4899", "#14b8a6", "#f43f5e"];
+    const statusDistribution = Object.entries(statusMap)
+      .filter(([, v]) => v > 0)
+      .map(([k, v], i) => {
+        const label = statusesForFilter.find(s => s.value === k)?.label || k;
+        return { name: label, value: v, color: colorList[i % colorList.length] };
+      });
+
+    const modelDistribution = Object.entries(modelMap)
+      .filter(([, v]) => v > 0)
+      .sort((a, b) => b[1] - a[1])
+      .map(([name, count]) => ({ name, count }));
+
+    const departmentDistribution = Object.entries(deptMap)
+      .filter(([, v]) => v > 0)
+      .sort((a, b) => b[1] - a[1])
+      .map(([name, count]) => ({ name, count }));
+
+    return {
+      statusCounts: { total, active, spare, fixOrBreak, claim, waitingCode, warrantyExpiring, warrantyExpired },
+      statusDistribution,
+      modelDistribution,
+      departmentDistribution,
+    };
+  }, [mediaPlayers, alertDays, statusesForFilter, modelsForFilter]);
 
   const getCMSTypeName = (id: string | null) => {
     const cms = cmsTypesForFilter.find(c => c.id === id);
@@ -407,6 +507,36 @@ const MediaPlayerEntry = () => {
       console.error("Error:", error);
       toast.error("เกิดข้อผิดพลาด");
     }
+  };
+
+  const getCompanyName = (id: string | null) => {
+    const c = companiesForFilter.find(co => co.id === id);
+    return c?.name || "-";
+  };
+
+  const handleExportExcel = () => {
+    const exportData = filteredPlayers.map((p) => ({
+      "รหัส": p.code,
+      "ฝ่าย": p.department || "-",
+      "บริษัท": getCompanyName(p.company_id),
+      "ยี่ห้อสินค้า": p.name,
+      "Model": modelsForFilter.find(m => m.id === (p as any).model_id)?.name || "-",
+      "ชื่อ": p.remote_name || "-",
+      "S/N": p.serial_number_1 || "-",
+      "ป้ายโฆษณา": getBillboardDisplay(p) || "ยังไม่ติดตั้ง",
+      "สถานะ": getStatusLabel(p.status),
+      "รหัสทรัพย์สิน": p.asset_code || (p.waiting_asset_code ? "รอรหัส" : "-"),
+      "Equipment ID": p.equipment_id_code || (p.waiting_equipment_id ? "รอรหัส" : "-"),
+      "วันหมดประกัน": p.warranty_expiry_date || "-",
+      "PO": p.po_number || "-",
+      "PR": p.pr_number || "-",
+      "Invoice": p.invoice_number || "-",
+    }));
+    const ws = XLSX.utils.json_to_sheet(exportData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "MediaPlayers");
+    XLSX.writeFile(wb, `media_players_${new Date().toISOString().split("T")[0]}.xlsx`);
+    toast.success("ส่งออกข้อมูลสำเร็จ");
   };
 
   const getBillboardDisplay = (player: MediaPlayer) => {
@@ -896,7 +1026,12 @@ const MediaPlayerEntry = () => {
         {/* Tab 2: Dashboard */}
         <TabsContent value="dashboard">
           <div className="space-y-6">
-            <MediaPlayerDashboard />
+            <MediaPlayerDashboard
+              statusCounts={dashboardStats.statusCounts}
+              statusDistribution={dashboardStats.statusDistribution}
+              modelDistribution={dashboardStats.modelDistribution}
+              departmentDistribution={dashboardStats.departmentDistribution}
+            />
 
             {/* Filters & Table */}
             <Card>
@@ -904,25 +1039,39 @@ const MediaPlayerEntry = () => {
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                   <div>
                     <CardTitle>รายการ Media Player</CardTitle>
-                    <CardDescription>เครื่อง Media Player ทั้งหมดในระบบ</CardDescription>
+                    <CardDescription>แสดงข้อมูลเครื่องทั้งหมด ({filteredPlayers.length} จาก {mediaPlayers.length} รายการ)</CardDescription>
                   </div>
                   <div className="flex flex-wrap items-center gap-3">
                     <div className="relative w-64">
                       <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                       <Input
-                        placeholder="ค้นหา..."
+                        placeholder="ค้นหารหัส, ชื่อ, S/N, PO, PR, Invoice..."
                         className="pl-10"
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                       />
                     </div>
-                    <MediaPlayerImport onImportSuccess={fetchMediaPlayers} />
+                    <Button onClick={handleExportExcel} variant="outline" size="sm">
+                      <Download className="h-4 w-4 mr-2" />
+                      Export Excel
+                    </Button>
                   </div>
                 </div>
                 {/* Filter Row */}
                 <div className="flex flex-wrap gap-3 mt-4">
+                  <Select value={filterDepartment} onValueChange={setFilterDepartment}>
+                    <SelectTrigger className="w-[160px]">
+                      <SelectValue placeholder="ทุกฝ่าย" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">ทุกฝ่าย</SelectItem>
+                      {departmentsForFilter.map((d) => (
+                        <SelectItem key={d.id} value={d.name}>{d.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                   <Select value={filterCompany} onValueChange={setFilterCompany}>
-                    <SelectTrigger className="w-[180px]">
+                    <SelectTrigger className="w-[160px]">
                       <SelectValue placeholder="ทุกบริษัท" />
                     </SelectTrigger>
                     <SelectContent>
@@ -933,7 +1082,7 @@ const MediaPlayerEntry = () => {
                     </SelectContent>
                   </Select>
                   <Select value={filterStatus} onValueChange={setFilterStatus}>
-                    <SelectTrigger className="w-[200px]">
+                    <SelectTrigger className="w-[160px]">
                       <SelectValue placeholder="ทุกสถานะ" />
                     </SelectTrigger>
                     <SelectContent>
@@ -943,17 +1092,41 @@ const MediaPlayerEntry = () => {
                       ))}
                     </SelectContent>
                   </Select>
-                  <Select value={filterCmsType} onValueChange={setFilterCmsType}>
-                    <SelectTrigger className="w-[180px]">
-                      <SelectValue placeholder="ทุกประเภท CMS" />
+                  <Select value={filterModel} onValueChange={setFilterModel}>
+                    <SelectTrigger className="w-[160px]">
+                      <SelectValue placeholder="ทุก Model" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">ทุกประเภท CMS</SelectItem>
-                      {cmsTypesForFilter.map((c) => (
-                        <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                      <SelectItem value="all">ทุก Model</SelectItem>
+                      {modelsForFilter.map((m) => (
+                        <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
+                  <Select value={filterAlert} onValueChange={setFilterAlert}>
+                    <SelectTrigger className="w-[200px]">
+                      <SelectValue placeholder="การแจ้งเตือน" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">ทั้งหมด</SelectItem>
+                      <SelectItem value="warranty_expired">ประกันหมดแล้ว</SelectItem>
+                      <SelectItem value="warranty_expiring">ใกล้หมดประกัน</SelectItem>
+                      <SelectItem value="waiting_code">รอรหัสทรัพย์สิน</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {filterAlert === "warranty_expiring" && (
+                    <Select value={String(alertDays)} onValueChange={(v) => setAlertDays(Number(v))}>
+                      <SelectTrigger className="w-[120px]">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="30">30 วัน</SelectItem>
+                        <SelectItem value="60">60 วัน</SelectItem>
+                        <SelectItem value="90">90 วัน</SelectItem>
+                        <SelectItem value="120">120 วัน</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  )}
                 </div>
               </CardHeader>
               <CardContent>
@@ -967,10 +1140,12 @@ const MediaPlayerEntry = () => {
                       <TableHeader>
                         <TableRow className="bg-muted/50">
                           <TableHead>รหัส</TableHead>
+                          <TableHead>ฝ่าย</TableHead>
+                          <TableHead>บริษัท</TableHead>
+                          <TableHead>ยี่ห้อสินค้า</TableHead>
+                          <TableHead>Model</TableHead>
                           <TableHead>ชื่อ</TableHead>
-                          <TableHead>CMS</TableHead>
                           <TableHead>S/N</TableHead>
-                          <TableHead>รหัสทรัพย์สิน</TableHead>
                           <TableHead>ป้ายโฆษณา</TableHead>
                           <TableHead>สถานะ</TableHead>
                           <TableHead className="text-right">จัดการ</TableHead>
@@ -979,7 +1154,7 @@ const MediaPlayerEntry = () => {
                       <TableBody>
                         {filteredPlayers.length === 0 ? (
                           <TableRow>
-                            <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                            <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
                               ยังไม่มีข้อมูล Media Player
                             </TableCell>
                           </TableRow>
@@ -987,14 +1162,14 @@ const MediaPlayerEntry = () => {
                           filteredPlayers.map((player) => (
                             <TableRow key={player.id} className="hover:bg-muted/30">
                               <TableCell className="font-mono text-sm">{player.code}</TableCell>
+                              <TableCell className="text-sm">{player.department || "-"}</TableCell>
+                              <TableCell className="text-sm">{getCompanyName(player.company_id)}</TableCell>
                               <TableCell>{player.name}</TableCell>
-                              <TableCell>{getCMSTypeName(player.cms_type_id)}</TableCell>
-                              <TableCell className="text-sm">{player.serial_number_1 || "-"}</TableCell>
                               <TableCell className="text-sm">
-                                {player.waiting_asset_code ? (
-                                  <Badge variant="secondary" className="bg-warning/10 text-warning">รอรหัส</Badge>
-                                ) : player.asset_code || "-"}
+                                {modelsForFilter.find(m => m.id === (player as any).model_id)?.name || "-"}
                               </TableCell>
+                              <TableCell className="text-sm">{player.remote_name || "-"}</TableCell>
+                              <TableCell className="text-sm">{player.serial_number_1 || "-"}</TableCell>
                               <TableCell className="text-sm">
                                 {getBillboardDisplay(player) ? (
                                   <div className="flex items-center gap-1">
@@ -1039,6 +1214,9 @@ const MediaPlayerEntry = () => {
                     </Table>
                   </div>
                 )}
+                <p className="text-sm text-muted-foreground mt-2">
+                  แสดง {filteredPlayers.length} จาก {mediaPlayers.length} รายการ
+                </p>
               </CardContent>
             </Card>
           </div>
