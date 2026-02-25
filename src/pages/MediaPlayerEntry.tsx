@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Monitor, Search, Loader2, MapPin, Unplug, Plus, Download } from "lucide-react";
+import { Monitor, Search, Loader2, MapPin, Unplug, Plus, Download, Image, FileText, ExternalLink } from "lucide-react";
 import * as XLSX from "xlsx";
 import MediaPlayerDashboard from "@/components/media-player/MediaPlayerDashboard";
 import { MediaPlayerCodePrefixSelect } from "@/components/media-player/MediaPlayerCodePrefixSelect";
@@ -81,6 +81,9 @@ interface MediaPlayer {
   date_of_receipt: string | null;
   order_for_project: string | null;
   image_url: string | null;
+  po_document_url: string | null;
+  pr_document_url: string | null;
+  invoice_document_url: string | null;
   billboard?: Billboard;
 }
 
@@ -1179,8 +1182,12 @@ const MediaPlayerEntry = () => {
                           <TableHead className="whitespace-nowrap">รหัสทรัพย์สิน</TableHead>
                           <TableHead className="whitespace-nowrap">Equipment ID</TableHead>
                           <TableHead className="whitespace-nowrap">PO</TableHead>
+                          <TableHead className="whitespace-nowrap text-center">ไฟล์ PO</TableHead>
                           <TableHead className="whitespace-nowrap">PR</TableHead>
+                          <TableHead className="whitespace-nowrap text-center">ไฟล์ PR</TableHead>
                           <TableHead className="whitespace-nowrap">Invoice</TableHead>
+                          <TableHead className="whitespace-nowrap text-center">ไฟล์ Invoice</TableHead>
+                          <TableHead className="whitespace-nowrap text-center">รูปภาพ</TableHead>
                           <TableHead className="whitespace-nowrap">วันที่รับสินค้า</TableHead>
                           <TableHead className="whitespace-nowrap">หมายเหตุ</TableHead>
                           <TableHead className="text-right whitespace-nowrap">จัดการ</TableHead>
@@ -1189,7 +1196,7 @@ const MediaPlayerEntry = () => {
                       <TableBody>
                         {filteredPlayers.length === 0 ? (
                           <TableRow>
-                            <TableCell colSpan={29} className="text-center py-8 text-muted-foreground">
+                            <TableCell colSpan={33} className="text-center py-8 text-muted-foreground">
                               ยังไม่มีข้อมูล Media Player
                             </TableCell>
                           </TableRow>
@@ -1235,8 +1242,36 @@ const MediaPlayerEntry = () => {
                               <TableCell className="text-sm whitespace-nowrap">{player.asset_code || (player.waiting_asset_code ? "รอรหัส" : "-")}</TableCell>
                               <TableCell className="text-sm whitespace-nowrap">{player.equipment_id_code || (player.waiting_equipment_id ? "รอรหัส" : "-")}</TableCell>
                               <TableCell className="text-sm whitespace-nowrap">{player.po_number || "-"}</TableCell>
+                              <TableCell className="text-center">
+                                {player.po_document_url ? (
+                                  <a href={player.po_document_url} target="_blank" rel="noopener noreferrer" title="ดูไฟล์ PO">
+                                    <FileText className="w-4 h-4 text-primary hover:text-primary/80 mx-auto" />
+                                  </a>
+                                ) : <span className="text-muted-foreground">-</span>}
+                              </TableCell>
                               <TableCell className="text-sm whitespace-nowrap">{player.pr_number || "-"}</TableCell>
+                              <TableCell className="text-center">
+                                {player.pr_document_url ? (
+                                  <a href={player.pr_document_url} target="_blank" rel="noopener noreferrer" title="ดูไฟล์ PR">
+                                    <FileText className="w-4 h-4 text-primary hover:text-primary/80 mx-auto" />
+                                  </a>
+                                ) : <span className="text-muted-foreground">-</span>}
+                              </TableCell>
                               <TableCell className="text-sm whitespace-nowrap">{player.invoice_number || "-"}</TableCell>
+                              <TableCell className="text-center">
+                                {player.invoice_document_url ? (
+                                  <a href={player.invoice_document_url} target="_blank" rel="noopener noreferrer" title="ดูไฟล์ Invoice">
+                                    <FileText className="w-4 h-4 text-primary hover:text-primary/80 mx-auto" />
+                                  </a>
+                                ) : <span className="text-muted-foreground">-</span>}
+                              </TableCell>
+                              <TableCell className="text-center">
+                                {player.image_url ? (
+                                  <a href={player.image_url} target="_blank" rel="noopener noreferrer" title="ดูรูปภาพ">
+                                    <Image className="w-4 h-4 text-primary hover:text-primary/80 mx-auto" />
+                                  </a>
+                                ) : <span className="text-muted-foreground">-</span>}
+                              </TableCell>
                               <TableCell className="text-sm whitespace-nowrap">{player.date_of_receipt || "-"}</TableCell>
                               <TableCell className="text-sm whitespace-nowrap max-w-[150px] truncate">{player.description || "-"}</TableCell>
                               <TableCell className="text-right">
