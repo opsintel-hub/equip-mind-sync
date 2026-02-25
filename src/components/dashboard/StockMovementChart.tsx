@@ -165,10 +165,18 @@ export const StockMovementChart = ({ companyId }: StockMovementChartProps) => {
   };
 
   const formatDateLabel = (date: string) => {
-    if (viewMode === "daily") {
-      return format(new Date(date), "d MMM", { locale: th });
+    try {
+      if (viewMode === "daily") {
+        const d = new Date(date);
+        if (isNaN(d.getTime())) return date;
+        return format(d, "d MMM", { locale: th });
+      }
+      const d = new Date(date + "-01");
+      if (isNaN(d.getTime())) return date;
+      return format(d, "MMM yy", { locale: th });
+    } catch {
+      return date;
     }
-    return format(new Date(date + "-01"), "MMM yy", { locale: th });
   };
 
   const CustomTooltip = ({ active, payload, label }: any) => {
