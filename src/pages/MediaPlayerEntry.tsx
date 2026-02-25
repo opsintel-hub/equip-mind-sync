@@ -60,7 +60,10 @@ interface MediaPlayer {
   unit: string;
   unit_price: number | null;
   depreciation_months: number | null;
+  usage_lifespan_months: number | null;
   warranty_expiry_date: string | null;
+  supplier_id: string | null;
+  model_id: string | null;
   is_asset: boolean | null;
   asset_code: string | null;
   equipment_id_code: string | null;
@@ -355,7 +358,7 @@ const MediaPlayerEntry = () => {
       const matchStatus = filterStatus === "all" || (player.status || "active") === filterStatus;
       const matchCmsType = filterCmsType === "all" || player.cms_type_id === filterCmsType;
       const matchDepartment = filterDepartment === "all" || player.department === filterDepartment;
-      const matchModel = filterModel === "all" || (player as any).model_id === filterModel;
+      const matchModel = filterModel === "all" || player.model_id === filterModel;
 
       // Alert filter
       let matchAlert = true;
@@ -396,7 +399,7 @@ const MediaPlayerEntry = () => {
         else if (diff <= alertDays) warrantyExpiring++;
       }
       // Model
-      const modelId = (p as any).model_id;
+      const modelId = p.model_id;
       if (modelId) {
         const modelName = modelsForFilter.find(m => m.id === modelId)?.name || "ไม่ระบุ";
         modelMap[modelName] = (modelMap[modelName] || 0) + 1;
@@ -520,18 +523,30 @@ const MediaPlayerEntry = () => {
       "ฝ่าย": p.department || "-",
       "บริษัท": getCompanyName(p.company_id),
       "ยี่ห้อสินค้า": p.name,
-      "Model": modelsForFilter.find(m => m.id === (p as any).model_id)?.name || "-",
+      "Model": modelsForFilter.find(m => m.id === p.model_id)?.name || "-",
       "ชื่อ": p.remote_name || "-",
+      "ประเภทสินค้า": getCMSTypeName(p.cms_type_id),
+      "Specification": p.specification || "-",
       "S/N 1": p.serial_number_1 || "-",
       "S/N 2": p.serial_number_2 || "-",
+      "ID Display": p.id_display || "-",
+      "Group Led": p.group_led || "-",
+      "Led Control": p.led_control || "-",
+      "Activate Windows": p.activate_windows || "-",
       "ป้ายโฆษณา": getBillboardDisplay(p) || "ยังไม่ติดตั้ง",
+      "วันที่ติดตั้ง": p.install_date || "-",
       "สถานะ": getStatusLabel(p.status),
+      "ราคา (บาท)": p.unit_price || 0,
+      "ค่าเสื่อม (เดือน)": p.depreciation_months || "-",
+      "อายุใช้งาน (เดือน)": p.usage_lifespan_months || "-",
+      "วันหมดประกัน": p.warranty_expiry_date || "-",
       "รหัสทรัพย์สิน": p.asset_code || (p.waiting_asset_code ? "รอรหัส" : "-"),
       "Equipment ID": p.equipment_id_code || (p.waiting_equipment_id ? "รอรหัส" : "-"),
-      "วันหมดประกัน": p.warranty_expiry_date || "-",
       "PO": p.po_number || "-",
       "PR": p.pr_number || "-",
       "Invoice": p.invoice_number || "-",
+      "วันที่รับสินค้า": p.date_of_receipt || "-",
+      "หมายเหตุ": p.description || "-",
     }));
     const ws = XLSX.utils.json_to_sheet(exportData);
     const wb = XLSX.utils.book_new();
@@ -1140,54 +1155,90 @@ const MediaPlayerEntry = () => {
                     <Table>
                       <TableHeader>
                         <TableRow className="bg-muted/50">
-                          <TableHead>รหัส</TableHead>
-                          <TableHead>ฝ่าย</TableHead>
-                          <TableHead>บริษัท</TableHead>
-                          <TableHead>ยี่ห้อสินค้า</TableHead>
-                          <TableHead>Model</TableHead>
-                          <TableHead>ชื่อ</TableHead>
-                          <TableHead>S/N 1</TableHead>
-                          <TableHead>S/N 2</TableHead>
-                          <TableHead>ป้ายโฆษณา</TableHead>
-                          <TableHead>สถานะ</TableHead>
-                          <TableHead className="text-right">จัดการ</TableHead>
+                          <TableHead className="whitespace-nowrap">รหัส</TableHead>
+                          <TableHead className="whitespace-nowrap">ฝ่าย</TableHead>
+                          <TableHead className="whitespace-nowrap">บริษัท</TableHead>
+                          <TableHead className="whitespace-nowrap">ยี่ห้อสินค้า</TableHead>
+                          <TableHead className="whitespace-nowrap">Model</TableHead>
+                          <TableHead className="whitespace-nowrap">ชื่อ</TableHead>
+                          <TableHead className="whitespace-nowrap">ประเภทสินค้า</TableHead>
+                          <TableHead className="whitespace-nowrap">Specification</TableHead>
+                          <TableHead className="whitespace-nowrap">S/N 1</TableHead>
+                          <TableHead className="whitespace-nowrap">S/N 2</TableHead>
+                          <TableHead className="whitespace-nowrap">ID Display</TableHead>
+                          <TableHead className="whitespace-nowrap">Group Led</TableHead>
+                          <TableHead className="whitespace-nowrap">Led Control</TableHead>
+                          <TableHead className="whitespace-nowrap">Activate Windows</TableHead>
+                          <TableHead className="whitespace-nowrap">ป้ายโฆษณา</TableHead>
+                          <TableHead className="whitespace-nowrap">วันที่ติดตั้ง</TableHead>
+                          <TableHead className="whitespace-nowrap">สถานะ</TableHead>
+                          <TableHead className="whitespace-nowrap">ราคา (บาท)</TableHead>
+                          <TableHead className="whitespace-nowrap">ค่าเสื่อม (เดือน)</TableHead>
+                          <TableHead className="whitespace-nowrap">อายุใช้งาน (เดือน)</TableHead>
+                          <TableHead className="whitespace-nowrap">วันหมดประกัน</TableHead>
+                          <TableHead className="whitespace-nowrap">รหัสทรัพย์สิน</TableHead>
+                          <TableHead className="whitespace-nowrap">Equipment ID</TableHead>
+                          <TableHead className="whitespace-nowrap">PO</TableHead>
+                          <TableHead className="whitespace-nowrap">PR</TableHead>
+                          <TableHead className="whitespace-nowrap">Invoice</TableHead>
+                          <TableHead className="whitespace-nowrap">วันที่รับสินค้า</TableHead>
+                          <TableHead className="whitespace-nowrap">หมายเหตุ</TableHead>
+                          <TableHead className="text-right whitespace-nowrap">จัดการ</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {filteredPlayers.length === 0 ? (
                           <TableRow>
-                            <TableCell colSpan={11} className="text-center py-8 text-muted-foreground">
+                            <TableCell colSpan={29} className="text-center py-8 text-muted-foreground">
                               ยังไม่มีข้อมูล Media Player
                             </TableCell>
                           </TableRow>
                         ) : (
                           filteredPlayers.map((player) => (
                             <TableRow key={player.id} className="hover:bg-muted/30">
-                              <TableCell className="font-mono text-sm">{player.code}</TableCell>
-                              <TableCell className="text-sm">{player.department || "-"}</TableCell>
-                              <TableCell className="text-sm">{getCompanyName(player.company_id)}</TableCell>
-                              <TableCell>{player.name}</TableCell>
-                              <TableCell className="text-sm">
-                                {modelsForFilter.find(m => m.id === (player as any).model_id)?.name || "-"}
+                              <TableCell className="font-mono text-sm whitespace-nowrap">{player.code}</TableCell>
+                              <TableCell className="text-sm whitespace-nowrap">{player.department || "-"}</TableCell>
+                              <TableCell className="text-sm whitespace-nowrap">{getCompanyName(player.company_id)}</TableCell>
+                              <TableCell className="whitespace-nowrap">{player.name}</TableCell>
+                              <TableCell className="text-sm whitespace-nowrap">
+                                {modelsForFilter.find(m => m.id === player.model_id)?.name || "-"}
                               </TableCell>
-                              <TableCell className="text-sm">{player.remote_name || "-"}</TableCell>
-                              <TableCell className="text-sm">{player.serial_number_1 || "-"}</TableCell>
-                              <TableCell className="text-sm">{player.serial_number_2 || "-"}</TableCell>
-                              <TableCell className="text-sm">
+                              <TableCell className="text-sm whitespace-nowrap">{player.remote_name || "-"}</TableCell>
+                              <TableCell className="text-sm whitespace-nowrap">{getCMSTypeName(player.cms_type_id)}</TableCell>
+                              <TableCell className="text-sm whitespace-nowrap">{player.specification || "-"}</TableCell>
+                              <TableCell className="text-sm whitespace-nowrap">{player.serial_number_1 || "-"}</TableCell>
+                              <TableCell className="text-sm whitespace-nowrap">{player.serial_number_2 || "-"}</TableCell>
+                              <TableCell className="text-sm whitespace-nowrap">{player.id_display || "-"}</TableCell>
+                              <TableCell className="text-sm whitespace-nowrap">{player.group_led || "-"}</TableCell>
+                              <TableCell className="text-sm whitespace-nowrap">{player.led_control || "-"}</TableCell>
+                              <TableCell className="text-sm whitespace-nowrap">{player.activate_windows || "-"}</TableCell>
+                              <TableCell className="text-sm whitespace-nowrap">
                                 {getBillboardDisplay(player) ? (
                                   <div className="flex items-center gap-1">
                                     <MapPin className="w-3 h-3 text-primary" />
-                                    <span className="truncate max-w-[120px]">{getBillboardDisplay(player)}</span>
+                                    <span className="truncate max-w-[150px]">{getBillboardDisplay(player)}</span>
                                   </div>
                                 ) : (
                                   <span className="text-muted-foreground">ยังไม่ติดตั้ง</span>
                                 )}
                               </TableCell>
-                              <TableCell>
+                              <TableCell className="text-sm whitespace-nowrap">{player.install_date || "-"}</TableCell>
+                              <TableCell className="whitespace-nowrap">
                                 <Badge variant="secondary">
                                   {getStatusLabel(player.status)}
                                 </Badge>
                               </TableCell>
+                              <TableCell className="text-sm whitespace-nowrap text-right">{player.unit_price?.toLocaleString() || "0"}</TableCell>
+                              <TableCell className="text-sm whitespace-nowrap text-center">{player.depreciation_months || "-"}</TableCell>
+                              <TableCell className="text-sm whitespace-nowrap text-center">{player.usage_lifespan_months || "-"}</TableCell>
+                              <TableCell className="text-sm whitespace-nowrap">{player.warranty_expiry_date || "-"}</TableCell>
+                              <TableCell className="text-sm whitespace-nowrap">{player.asset_code || (player.waiting_asset_code ? "รอรหัส" : "-")}</TableCell>
+                              <TableCell className="text-sm whitespace-nowrap">{player.equipment_id_code || (player.waiting_equipment_id ? "รอรหัส" : "-")}</TableCell>
+                              <TableCell className="text-sm whitespace-nowrap">{player.po_number || "-"}</TableCell>
+                              <TableCell className="text-sm whitespace-nowrap">{player.pr_number || "-"}</TableCell>
+                              <TableCell className="text-sm whitespace-nowrap">{player.invoice_number || "-"}</TableCell>
+                              <TableCell className="text-sm whitespace-nowrap">{player.date_of_receipt || "-"}</TableCell>
+                              <TableCell className="text-sm whitespace-nowrap max-w-[150px] truncate">{player.description || "-"}</TableCell>
                               <TableCell className="text-right">
                                 <div className="flex items-center justify-end gap-1">
                                   {player.billboard_id ? (
