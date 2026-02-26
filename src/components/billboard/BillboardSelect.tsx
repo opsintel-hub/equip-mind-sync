@@ -17,7 +17,7 @@ const BillboardSelect = ({ value, onChange, placeholder = "เลือกป้
     queryFn: async () => {
       let query = supabase
         .from("billboards")
-        .select("id, equipment_id, old_code, location_name, department")
+        .select("id, equipment_id, old_code, location_name, department, size")
         .eq("status", "active")
         .order("old_code", { ascending: true })
         .limit(500);
@@ -37,7 +37,7 @@ const BillboardSelect = ({ value, onChange, placeholder = "เลือกป้
     ...(billboards?.map((b) => ({
       value: b.id,
       label: formatBillboardLabel(b.old_code, b.location_name, b.equipment_id),
-      description: b.department || undefined,
+      description: [b.department, (b as any).size].filter(Boolean).join(" | ") || undefined,
     })) || []),
   ];
 

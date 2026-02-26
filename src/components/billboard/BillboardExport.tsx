@@ -91,6 +91,7 @@ const BillboardExport = ({ currentFilters }: BillboardExportProps) => {
         RoutePM: b.route_pm || "",
         Status: b.status,
         Notes: b.notes || "",
+        Size: (b as any).size || "",
       }));
 
       const ws = XLSX.utils.json_to_sheet(exportData);

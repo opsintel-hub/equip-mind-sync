@@ -385,6 +385,7 @@ const Billboards = () => {
                       <TableHead>Region</TableHead>
                       <TableHead>Territory</TableHead>
                       <TableHead>Location</TableHead>
+                      <TableHead>Size</TableHead>
                       <TableHead>สถานะ</TableHead>
                       <TableHead className="text-right">จัดการ</TableHead>
                     </TableRow>
@@ -400,6 +401,7 @@ const Billboards = () => {
                         <TableCell>{billboard.region || "-"}</TableCell>
                         <TableCell>{billboard.territory || "-"}</TableCell>
                         <TableCell className="max-w-xs truncate">{billboard.location_name || "-"}</TableCell>
+                        <TableCell>{(billboard as any).size || "-"}</TableCell>
                         <TableCell>{getStatusBadge(billboard.status)}</TableCell>
                         <TableCell className="text-right">
                           <div className="flex justify-end gap-1">

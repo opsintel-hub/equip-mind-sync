@@ -33,6 +33,7 @@ interface ImportRow {
   route_report_photo?: string;
   route_pm?: string;
   notes?: string;
+  size?: string;
   status: "new" | "update" | "error" | "duplicate";
   errorMessage?: string;
   rowNumber?: number;
@@ -209,6 +210,7 @@ const BillboardImport = ({ onSuccess, onCancel }: BillboardImportProps) => {
           route_report_photo: row["RouteReportPhoto"] || "",
           route_pm: row["RoutePM"] || "",
           notes: row["Notes"] || row["notes"] || "",
+          size: row["Size"] || row["size"] || "",
           status: isExisting ? "update" as const : "new" as const,
           rowNumber,
         };
@@ -345,6 +347,7 @@ const BillboardImport = ({ onSuccess, onCancel }: BillboardImportProps) => {
         RoutePM: "",
         Status: "active",
         Notes: "หมายเหตุ",
+        Size: "512x320 px",
       },
     ];
 
