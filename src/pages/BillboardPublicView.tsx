@@ -183,6 +183,10 @@ const BillboardPublicView = () => {
                   <span className="text-muted-foreground">Media Class:</span>
                   <span className="font-medium">{billboard.media_class || "-"}</span>
                 </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Size:</span>
+                  <span className="font-medium">{(billboard as any).size || "-"}</span>
+                </div>
               </div>
             </CardContent>
           </Card>

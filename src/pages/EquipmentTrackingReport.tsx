@@ -108,7 +108,7 @@ function BillboardViewTab() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("billboards")
-        .select("id, old_code, location_name, region, department, media_type, status")
+        .select("id, old_code, location_name, region, department, media_type, status, size")
         .eq("status", "active")
         .order("old_code");
       if (error) throw error;
@@ -255,12 +255,12 @@ function BillboardViewTab() {
     filtered.forEach(b => {
       const items = equipByBillboard[b.id] || [];
       if (items.length === 0) {
-        rows.push({ "Old Code": b.old_code, "Location": b.location_name, "Region": b.region, "Department": b.department, "Media Type": b.media_type, "ชื่ออุปกรณ์": "-", "Code": "-", "S/N": "-", "ประเภท": "-", "จำนวน": 0, "วันที่ติดตั้ง": "-", "อายุ (วัน)": "-", "วันหมดอายุ": "-", "วันหมดประกัน": "-" });
+        rows.push({ "Old Code": b.old_code, "Location": b.location_name, "Size": (b as any).size || "-", "Region": b.region, "Department": b.department, "Media Type": b.media_type, "ชื่ออุปกรณ์": "-", "Code": "-", "S/N": "-", "ประเภท": "-", "จำนวน": 0, "วันที่ติดตั้ง": "-", "อายุ (วัน)": "-", "วันหมดอายุ": "-", "วันหมดประกัน": "-" });
       } else {
         items.forEach(item => {
           const eq = item.equipmentData;
           rows.push({
-            "Old Code": b.old_code, "Location": b.location_name, "Region": b.region, "Department": b.department, "Media Type": b.media_type,
+            "Old Code": b.old_code, "Location": b.location_name, "Size": (b as any).size || "-", "Region": b.region, "Department": b.department, "Media Type": b.media_type,
             "ชื่ออุปกรณ์": eq.name, "Code": eq.code, "S/N": eq.serial_number || "-", "ประเภท": eq.category || item.type,
             "จำนวน": item.quantity, "วันที่ติดตั้ง": item.installation_date || "-",
             "อายุ (วัน)": item.installation_date ? differenceInDays(new Date(), new Date(item.installation_date)) : "-",
@@ -342,8 +342,9 @@ function BillboardViewTab() {
             <TableHeader>
               <TableRow>
                 <TableHead className="w-10"></TableHead>
-                <TableHead>Old Code</TableHead>
+                 <TableHead>Old Code</TableHead>
                 <TableHead>Location</TableHead>
+                <TableHead>Size</TableHead>
                 <TableHead>Region</TableHead>
                 <TableHead>Department</TableHead>
                 <TableHead>Media Type</TableHead>
@@ -352,7 +353,7 @@ function BillboardViewTab() {
             </TableHeader>
             <TableBody>
               {paginatedData.length === 0 ? (
-                <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">ไม่พบข้อมูล</TableCell></TableRow>
+                <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-8">ไม่พบข้อมูล</TableCell></TableRow>
               ) : paginatedData.map(b => {
                 const items = equipByBillboard[b.id] || [];
                 const isExpanded = expandedId === b.id;
@@ -362,6 +363,7 @@ function BillboardViewTab() {
                       <TableCell>{isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}</TableCell>
                       <TableCell className="font-medium">{b.old_code || "-"}</TableCell>
                       <TableCell>{b.location_name || "-"}</TableCell>
+                      <TableCell>{(b as any).size || "-"}</TableCell>
                       <TableCell>{b.region || "-"}</TableCell>
                       <TableCell>{b.department || "-"}</TableCell>
                       <TableCell>{b.media_type || "-"}</TableCell>
@@ -371,7 +373,7 @@ function BillboardViewTab() {
                     </TableRow>
                     {isExpanded && items.length > 0 && (
                       <TableRow>
-                        <TableCell colSpan={7} className="bg-muted/30 p-0">
+                        <TableCell colSpan={8} className="bg-muted/30 p-0">
                           <div className="p-4">
                             <Table>
                               <TableHeader>

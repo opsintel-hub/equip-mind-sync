@@ -13,7 +13,7 @@ const BillboardDisplay = ({ billboardId }: BillboardDisplayProps) => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("billboards")
-        .select("equipment_id, old_code, location_name")
+        .select("equipment_id, old_code, location_name, size")
         .eq("id", billboardId)
         .single();
       if (error) throw error;
@@ -35,6 +35,9 @@ const BillboardDisplay = ({ billboardId }: BillboardDisplayProps) => {
       <p className="font-medium text-sm">
         {formatBillboardLabel(billboard.old_code, billboard.location_name, billboard.equipment_id)}
       </p>
+      {(billboard as any).size && (
+        <p className="text-xs text-muted-foreground mt-1">Size: {(billboard as any).size}</p>
+      )}
     </div>
   );
 };

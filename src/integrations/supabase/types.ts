@@ -584,6 +584,7 @@ export type Database = {
           route_monitoring: string | null
           route_pm: string | null
           route_report_photo: string | null
+          size: string | null
           status: string
           target_monitoring: string | null
           territory: string | null
@@ -612,6 +613,7 @@ export type Database = {
           route_monitoring?: string | null
           route_pm?: string | null
           route_report_photo?: string | null
+          size?: string | null
           status?: string
           target_monitoring?: string | null
           territory?: string | null
@@ -640,6 +642,7 @@ export type Database = {
           route_monitoring?: string | null
           route_pm?: string | null
           route_report_photo?: string | null
+          size?: string | null
           status?: string
           target_monitoring?: string | null
           territory?: string | null

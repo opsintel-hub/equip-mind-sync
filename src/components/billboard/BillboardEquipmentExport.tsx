@@ -42,7 +42,8 @@ const BillboardEquipmentExport = () => {
               department,
               media_type,
               region,
-              district
+              district,
+              size
             ),
             equipment:equipment_id (
               code,
@@ -71,6 +72,7 @@ const BillboardEquipmentExport = () => {
         const installedRows = installedData?.map((item: any) => ({
           "Billboard ID": item.billboards?.equipment_id || "-",
           "Location": item.billboards?.location_name || "-",
+          "Size": (item.billboards as any)?.size || "-",
           "Department": item.billboards?.department || "-",
           "Media Type": item.billboards?.media_type || "-",
           "Region": item.billboards?.region || "-",
@@ -112,7 +114,7 @@ const BillboardEquipmentExport = () => {
 
         const { data: billboards } = await supabase
           .from("billboards")
-          .select("id, equipment_id, location_name, department, media_type, region, district")
+          .select("id, equipment_id, location_name, department, media_type, region, district, size")
           .in("id", billboardIds);
 
         const { data: equipment } = await supabase
@@ -129,6 +131,7 @@ const BillboardEquipmentExport = () => {
           return {
             "Billboard ID": billboard?.equipment_id || "-",
             "Location": billboard?.location_name || "-",
+            "Size": (billboard as any)?.size || "-",
             "Department": billboard?.department || "-",
             "Media Type": billboard?.media_type || "-",
             "Region": billboard?.region || "-",

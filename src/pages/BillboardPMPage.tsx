@@ -85,7 +85,7 @@ export default function BillboardPMPage() {
           ),
           billboards:billboard_id (
             id, old_code, equipment_id, department, media_type, location_name,
-            region, district, territory, route_pm, route_monitoring
+            region, district, territory, route_pm, route_monitoring, size
           )
         `);
 
@@ -301,6 +301,7 @@ export default function BillboardPMPage() {
       "Territory": r.territory,
       "Route PM": r.routePM,
       "Route Monitoring": r.routeMonitoring,
+      "Size": r.billboardSnapshot?.size || "",
       "เหตุผล PM": r.pmReason === "expiry" ? "หมดอายุ" : r.pmReason === "warranty_expiry" ? "หมดประกัน" : "หมดอายุ+ประกัน",
       "วันที่วิกฤต": r.criticalDate,
       "วันเหลือ": r.daysLeft,

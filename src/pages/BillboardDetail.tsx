@@ -356,6 +356,10 @@ const BillboardDetail = () => {
                 <p className="font-medium">{billboard.media_segment || "-"}</p>
               </div>
               <div>
+                <span className="text-muted-foreground">Size:</span>
+                <p className="font-medium">{(billboard as any).size || "-"}</p>
+              </div>
+              <div>
                 <span className="text-muted-foreground">Target Monitoring:</span>
                 <p className="font-medium">{billboard.target_monitoring || "-"}</p>
               </div>

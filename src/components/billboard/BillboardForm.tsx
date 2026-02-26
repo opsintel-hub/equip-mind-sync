@@ -24,6 +24,7 @@ const billboardSchema = z.object({
   old_code: z.string().optional(),
   status: z.string().default("active"),
   notes: z.string().optional(),
+  size: z.string().optional(),
 });
 
 type BillboardFormValues = z.infer<typeof billboardSchema>;
@@ -51,6 +52,7 @@ const BillboardForm = ({ billboard, onSuccess, onCancel }: BillboardFormProps) =
       old_code: billboard?.old_code || "",
       status: billboard?.status || "active",
       notes: billboard?.notes || "",
+      size: (billboard as any)?.size || "",
     },
   });
 
@@ -72,6 +74,7 @@ const BillboardForm = ({ billboard, onSuccess, onCancel }: BillboardFormProps) =
             old_code: data.old_code,
             status: data.status,
             notes: data.notes,
+            size: data.size,
           })
           .eq("id", billboard.id);
         if (error) throw error;
@@ -93,6 +96,7 @@ const BillboardForm = ({ billboard, onSuccess, onCancel }: BillboardFormProps) =
             old_code: data.old_code,
             status: data.status,
             notes: data.notes,
+            size: data.size,
           });
         if (error) throw error;
         toast.success("เพิ่มป้ายใหม่สำเร็จ");
@@ -278,6 +282,20 @@ const BillboardForm = ({ billboard, onSuccess, onCancel }: BillboardFormProps) =
                 <FormLabel>รหัสเดิม (Old Code)</FormLabel>
                 <FormControl>
                   <Input {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="size"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Size</FormLabel>
+                <FormControl>
+                  <Input placeholder="เช่น 512x320 px" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
