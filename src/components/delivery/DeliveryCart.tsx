@@ -41,10 +41,7 @@ export interface DeliveryCartItem {
   is_media_player?: boolean;
   media_player_id?: string | null;
   cms_type_id?: string;
-  id_display?: string;
-  group_led?: string;
   serial_number_2?: string;
-  led_control?: string;
 }
 
 interface DeliveryCartProps {

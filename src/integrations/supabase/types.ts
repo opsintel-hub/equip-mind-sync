@@ -2350,16 +2350,13 @@ export type Database = {
           depreciation_months: number | null
           description: string | null
           equipment_id_code: string | null
-          group_led: string | null
           id: string
-          id_display: string | null
           image_url: string | null
           install_date: string | null
           invoice_document_url: string | null
           invoice_number: string | null
           is_active: boolean | null
           is_asset: boolean | null
-          led_control: string | null
           location_id: string | null
           model_id: string | null
           name: string
@@ -2399,16 +2396,13 @@ export type Database = {
           depreciation_months?: number | null
           description?: string | null
           equipment_id_code?: string | null
-          group_led?: string | null
           id?: string
-          id_display?: string | null
           image_url?: string | null
           install_date?: string | null
           invoice_document_url?: string | null
           invoice_number?: string | null
           is_active?: boolean | null
           is_asset?: boolean | null
-          led_control?: string | null
           location_id?: string | null
           model_id?: string | null
           name: string
@@ -2448,16 +2442,13 @@ export type Database = {
           depreciation_months?: number | null
           description?: string | null
           equipment_id_code?: string | null
-          group_led?: string | null
           id?: string
-          id_display?: string | null
           image_url?: string | null
           install_date?: string | null
           invoice_document_url?: string | null
           invoice_number?: string | null
           is_active?: boolean | null
           is_asset?: boolean | null
-          led_control?: string | null
           location_id?: string | null
           model_id?: string | null
           name?: string
