@@ -9,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { ScrollArea } from "@/components/ui/scroll-area";
+
 import { Separator } from "@/components/ui/separator";
 import { 
   Search, 
@@ -484,9 +484,9 @@ export function UserPermissionManager() {
               </TabsTrigger>
             </TabsList>
 
-            <ScrollArea className="flex-1 mt-4 min-h-0" style={{ maxHeight: 'calc(90vh - 220px)' }}>
+            <div className="flex-1 mt-4 min-h-0 overflow-y-auto pr-1">
               {/* Roles Tab */}
-              <TabsContent value="roles" className="m-0 space-y-3">
+              <TabsContent value="roles" className="m-0 space-y-3 pb-4">
                 <div className="p-3 bg-blue-50 dark:bg-blue-950 rounded-lg border border-blue-200 dark:border-blue-800">
                   <div className="flex items-start gap-2">
                     <Info className="h-4 w-4 text-blue-600 mt-0.5" />
@@ -524,7 +524,7 @@ export function UserPermissionManager() {
               </TabsContent>
 
               {/* Functions Tab */}
-              <TabsContent value="functions" className="m-0 space-y-3">
+              <TabsContent value="functions" className="m-0 space-y-3 pb-4">
                 {selectedUserRoles.includes('admin') ? (
                   <div className="p-4 bg-green-50 dark:bg-green-950 rounded-lg border border-green-200 dark:border-green-800">
                     <div className="flex items-center gap-2 text-green-800 dark:text-green-200">
@@ -567,7 +567,7 @@ export function UserPermissionManager() {
               </TabsContent>
 
               {/* Departments Tab */}
-              <TabsContent value="departments" className="m-0">
+              <TabsContent value="departments" className="m-0 pb-4">
                 {selectedUserRoles.includes('admin') ? (
                   <div className="p-4 bg-green-50 dark:bg-green-950 rounded-lg border border-green-200 dark:border-green-800">
                     <div className="flex items-center gap-2 text-green-800 dark:text-green-200">
@@ -690,7 +690,7 @@ export function UserPermissionManager() {
                   </>
                 )}
               </TabsContent>
-            </ScrollArea>
+            </div>
 
             <Separator className="my-4" />
             
