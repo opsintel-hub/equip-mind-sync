@@ -484,7 +484,7 @@ export function UserPermissionManager() {
               </TabsTrigger>
             </TabsList>
 
-            <ScrollArea className="flex-1 mt-4">
+            <ScrollArea className="flex-1 mt-4 max-h-[60vh]">
               {/* Roles Tab */}
               <TabsContent value="roles" className="m-0 space-y-3">
                 <div className="p-3 bg-blue-50 dark:bg-blue-950 rounded-lg border border-blue-200 dark:border-blue-800">
