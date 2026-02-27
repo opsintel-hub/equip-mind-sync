@@ -152,10 +152,7 @@ const DeliveryEntry = () => {
 
   // Media Player specific fields
   const [selectedCmsTypeId, setSelectedCmsTypeId] = useState("");
-  const [idDisplay, setIdDisplay] = useState("");
-  const [groupLed, setGroupLed] = useState("");
   const [serialNumber2, setSerialNumber2] = useState("");
-  const [ledControl, setLedControl] = useState("");
 
   // Storage dimensions
   const [storageWidthCm, setStorageWidthCm] = useState("");
@@ -487,10 +484,7 @@ const DeliveryEntry = () => {
         is_media_player: true,
         media_player_id: selectedMediaPlayerId || null,
         cms_type_id: selectedCmsTypeId,
-        id_display: idDisplay,
-        group_led: groupLed,
-        serial_number_2: serialNumber2,
-        led_control: ledControl
+        serial_number_2: serialNumber2
       };
       setCartItems([...cartItems, newItem]);
     } else {
@@ -587,10 +581,7 @@ const DeliveryEntry = () => {
     setItemNotes("");
     // Media Player specific
     setSelectedCmsTypeId("");
-    setIdDisplay("");
-    setGroupLed("");
-    setSerialNumber2("");
-    setLedControl("");
+  setSerialNumber2("");
     // Category/Subcategory
     setSelectedCategoryId("");
     setSelectedSubcategoryId("");
@@ -958,18 +949,6 @@ const DeliveryEntry = () => {
                             {cmsTypes.map(cms => <SelectItem key={cms.id} value={cms.id}>{cms.name}</SelectItem>)}
                           </SelectContent>
                         </Select>
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="idDisplay">ID Display</Label>
-                        <Input id="idDisplay" placeholder="ID Display" value={idDisplay} onChange={e => setIdDisplay(e.target.value)} />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="groupLed">Group LED</Label>
-                        <Input id="groupLed" placeholder="Group LED" value={groupLed} onChange={e => setGroupLed(e.target.value)} />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="ledControl">LED Control</Label>
-                        <Input id="ledControl" placeholder="LED Control" value={ledControl} onChange={e => setLedControl(e.target.value)} />
                       </div>
                     </div>
                     <div className="grid grid-cols-2 gap-4">

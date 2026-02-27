@@ -14,11 +14,8 @@ interface ImportRow {
   description?: string;
   cms_type?: string;
   specification?: string;
-  id_display?: string;
-  group_led?: string;
   serial_number_1?: string;
   serial_number_2?: string;
-  led_control?: string;
   brand?: string;
   unit?: string;
   unit_price?: number;
@@ -50,11 +47,8 @@ const MediaPlayerImport = ({ onImportSuccess }: MediaPlayerImportProps) => {
         description: "รายละเอียด",
         cms_type: "BroadSign",
         specification: "Intel i5, 8GB RAM",
-        id_display: "D001",
-        group_led: "G1",
         serial_number_1: "SN123456",
         serial_number_2: "SN789012",
-        led_control: "LC001",
         brand: "Samsung",
         unit: "เครื่อง",
         unit_price: 50000,
@@ -159,11 +153,8 @@ const MediaPlayerImport = ({ onImportSuccess }: MediaPlayerImportProps) => {
           description: row.description || null,
           cms_type_id: row.cms_type ? cmsTypeMap.get(row.cms_type.toLowerCase()) || null : null,
           specification: row.specification || null,
-          id_display: row.id_display || null,
-          group_led: row.group_led || null,
           serial_number_1: row.serial_number_1 || null,
           serial_number_2: row.serial_number_2 || null,
-          led_control: row.led_control || null,
           brand: row.brand || null,
           unit: row.unit || "เครื่อง",
           unit_price: row.unit_price || 0,

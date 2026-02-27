@@ -45,11 +45,8 @@ interface MediaPlayer {
   description: string | null;
   cms_type_id: string | null;
   specification: string | null;
-  id_display: string | null;
-  group_led: string | null;
   serial_number_1: string | null;
   serial_number_2: string | null;
-  led_control: string | null;
   billboard_id: string | null;
   install_date: string | null;
   company_id: string | null;
@@ -120,11 +117,8 @@ const MediaPlayerEntry = () => {
     description: "",
     cms_type_id: "",
     specification: "",
-    id_display: "",
-    group_led: "",
     serial_number_1: "",
     serial_number_2: "",
-    led_control: "",
     billboard_id: "",
     install_date: "",
     company_id: "",
@@ -244,11 +238,8 @@ const MediaPlayerEntry = () => {
           description: formData.description || null,
           cms_type_id: formData.cms_type_id || null,
           specification: formData.specification || null,
-          id_display: formData.id_display || null,
-          group_led: formData.group_led || null,
           serial_number_1: formData.serial_number_1 || null,
           serial_number_2: formData.serial_number_2 || null,
-          led_control: formData.led_control || null,
           billboard_id: formData.billboard_id || null,
           install_date: formData.install_date || null,
           company_id: formData.company_id || null,
@@ -302,11 +293,8 @@ const MediaPlayerEntry = () => {
       description: "",
       cms_type_id: "",
       specification: "",
-      id_display: "",
-      group_led: "",
       serial_number_1: "",
       serial_number_2: "",
-      led_control: "",
       billboard_id: "",
       install_date: "",
       company_id: "",
@@ -532,9 +520,6 @@ const MediaPlayerEntry = () => {
       "Specification": p.specification || "-",
       "S/N 1": p.serial_number_1 || "-",
       "S/N 2": p.serial_number_2 || "-",
-      "ID Display": p.id_display || "-",
-      "Group Led": p.group_led || "-",
-      "Led Control": p.led_control || "-",
       "Activate Windows": p.activate_windows || "-",
       "ป้ายโฆษณา": getBillboardDisplay(p) || "ยังไม่ติดตั้ง",
       "วันที่ติดตั้ง": p.install_date || "-",
@@ -765,32 +750,6 @@ const MediaPlayerEntry = () => {
                       value={formData.remote_name}
                       onChange={(e) => setFormData({ ...formData, remote_name: e.target.value })}
                       placeholder="Name / Remote"
-                    />
-                  </div>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="space-y-2">
-                    <Label>ID Display</Label>
-                    <Input
-                      value={formData.id_display}
-                      onChange={(e) => setFormData({ ...formData, id_display: e.target.value })}
-                      placeholder="ID Display"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Group Led</Label>
-                    <Input
-                      value={formData.group_led}
-                      onChange={(e) => setFormData({ ...formData, group_led: e.target.value })}
-                      placeholder="Group Led"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Led Control</Label>
-                    <Input
-                      value={formData.led_control}
-                      onChange={(e) => setFormData({ ...formData, led_control: e.target.value })}
-                      placeholder="รุ่น Led Control"
                     />
                   </div>
                 </div>
@@ -1168,9 +1127,6 @@ const MediaPlayerEntry = () => {
                           <TableHead className="whitespace-nowrap">Specification</TableHead>
                           <TableHead className="whitespace-nowrap">S/N 1</TableHead>
                           <TableHead className="whitespace-nowrap">S/N 2</TableHead>
-                          <TableHead className="whitespace-nowrap">ID Display</TableHead>
-                          <TableHead className="whitespace-nowrap">Group Led</TableHead>
-                          <TableHead className="whitespace-nowrap">Led Control</TableHead>
                           <TableHead className="whitespace-nowrap">Activate Windows</TableHead>
                           <TableHead className="whitespace-nowrap">ป้ายโฆษณา</TableHead>
                           <TableHead className="whitespace-nowrap">วันที่ติดตั้ง</TableHead>
@@ -1215,9 +1171,6 @@ const MediaPlayerEntry = () => {
                               <TableCell className="text-sm whitespace-nowrap">{player.specification || "-"}</TableCell>
                               <TableCell className="text-sm whitespace-nowrap">{player.serial_number_1 || "-"}</TableCell>
                               <TableCell className="text-sm whitespace-nowrap">{player.serial_number_2 || "-"}</TableCell>
-                              <TableCell className="text-sm whitespace-nowrap">{player.id_display || "-"}</TableCell>
-                              <TableCell className="text-sm whitespace-nowrap">{player.group_led || "-"}</TableCell>
-                              <TableCell className="text-sm whitespace-nowrap">{player.led_control || "-"}</TableCell>
                               <TableCell className="text-sm whitespace-nowrap">{player.activate_windows || "-"}</TableCell>
                               <TableCell className="text-sm whitespace-nowrap">
                                 {getBillboardDisplay(player) ? (

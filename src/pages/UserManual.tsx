@@ -292,8 +292,8 @@ const UserManual = () => {
           <div>
             <h4 className="font-semibold mb-2">5.5 Media Player</h4>
             <p className="text-xs text-muted-foreground">
-              Media Player จัดการแยกจากอุปกรณ์ทั่วไป มีข้อมูลเพิ่มเติม: ID Display, Group LED, LED Control, CMS Type,
-              Serial Number 2 ตัว (S/N 1 และ S/N 2) สามารถนำเข้า/รับเข้าคลัง/เบิกจ่ายได้เช่นเดียวกับสินค้าทั่วไป
+               Media Player จัดการแยกจากอุปกรณ์ทั่วไป มีข้อมูลเพิ่มเติม: CMS Type,
+               Serial Number 2 ตัว (S/N 1 และ S/N 2) สามารถนำเข้า/รับเข้าคลัง/เบิกจ่ายได้เช่นเดียวกับสินค้าทั่วไป
             </p>
           </div>
         </div>
@@ -326,7 +326,7 @@ const UserManual = () => {
                 <li>จำนวน, หน่วย, ราคาต่อชิ้น, Supplier, Lot Number, Serial Number</li>
                 <li>ขนาดพื้นที่ (กว้าง x สูง x ลึก) — ปริมาตรรวม = ปริมาตรต่อชิ้น × จำนวน</li>
                 <li>วันหมดอายุ, วันหมดประกัน, ข้อมูลทรัพย์สิน</li>
-                <li><strong>Media Player:</strong> สลับสวิตช์เป็น "Media Player" เพิ่มข้อมูล CMS Type, ID Display, S/N 1, S/N 2</li>
+                <li><strong>Media Player:</strong> สลับสวิตช์เป็น "Media Player" เพิ่มข้อมูล CMS Type, S/N 1, S/N 2</li>
               </ul>
               <p className="mt-2"><strong>สรุป:</strong> กด "เพิ่มลงตะกร้า" ทีละรายการ → ตรวจสอบรายการทั้งหมด → กด "ส่งข้อมูลทั้งหมด" → ระบบสร้างเอกสาร PD-YYYYMMDD-XXX</p>
             </div>
