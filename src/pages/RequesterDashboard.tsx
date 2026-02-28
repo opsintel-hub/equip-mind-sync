@@ -11,10 +11,15 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
 import { format } from "date-fns";
 import { th } from "date-fns/locale";
-import { Search, Package, Clock, CheckCircle, XCircle, Bell, FileText, AlertTriangle, Ban, ChevronDown, ChevronRight, ShoppingCart } from "lucide-react";
+import { Search, Package, Clock, CheckCircle, XCircle, Bell, FileText, AlertTriangle, Ban, ChevronDown, ChevronRight, ShoppingCart, CalendarIcon, X } from "lucide-react";
 import { toast } from "sonner";
+import { TablePagination } from "@/components/TablePagination";
+import { useTablePagination } from "@/hooks/useTablePagination";
+import { cn } from "@/lib/utils";
 
 interface PendingItem {
   id: string;
@@ -37,6 +42,8 @@ export default function RequesterDashboard() {
   const [searchedName, setSearchedName] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [expandedRequests, setExpandedRequests] = useState<Set<string>>(new Set());
+  const [dateFrom, setDateFrom] = useState<Date | undefined>(undefined);
+  const [dateTo, setDateTo] = useState<Date | undefined>(undefined);
   const queryClient = useQueryClient();
 
   const { data: requests = [], isLoading: requestsLoading, refetch: refetchRequests } = useQuery({
@@ -188,13 +195,46 @@ export default function RequesterDashboard() {
     }
   };
 
-  // Summary stats
-  const pendingCount = requests.filter(r => r.status === "pending").length;
-  const approvedCount = requests.filter(r => r.status === "approved").length;
-  const issuedCount = requests.filter(r => r.status === "issued").length;
-  const waitingStockCount = requests.filter(r => r.status === "waiting_stock").length;
-  const rejectedCount = requests.filter(r => r.status === "rejected").length;
-  const cancelledCount = requests.filter(r => r.status === "cancelled").length;
+  // Filter by date range
+  const dateFilteredRequests = useMemo(() => {
+    return requests.filter(r => {
+      const created = new Date(r.created_at);
+      if (dateFrom) {
+        const from = new Date(dateFrom);
+        from.setHours(0, 0, 0, 0);
+        if (created < from) return false;
+      }
+      if (dateTo) {
+        const to = new Date(dateTo);
+        to.setHours(23, 59, 59, 999);
+        if (created > to) return false;
+      }
+      return true;
+    });
+  }, [requests, dateFrom, dateTo]);
+
+  // Filter by status
+  const filteredRequests = useMemo(() => {
+    return dateFilteredRequests.filter(r => statusFilter === "all" || r.status === statusFilter);
+  }, [dateFilteredRequests, statusFilter]);
+
+  // Pagination
+  const {
+    paginatedData,
+    currentPage,
+    pageSize,
+    totalPages,
+    totalItems,
+    handlePageChange,
+    handlePageSizeChange,
+  } = useTablePagination(filteredRequests, 20);
+
+  // Recalculate counts based on date-filtered data
+  const datePendingCount = dateFilteredRequests.filter(r => r.status === "pending").length;
+  const dateApprovedCount = dateFilteredRequests.filter(r => r.status === "approved").length;
+  const dateIssuedCount = dateFilteredRequests.filter(r => r.status === "issued").length;
+  const dateWaitingStockCount = dateFilteredRequests.filter(r => r.status === "waiting_stock").length;
+  const dateRejectedCount = dateFilteredRequests.filter(r => r.status === "rejected").length;
 
   return (
     <div className="space-y-6">
@@ -237,7 +277,7 @@ export default function RequesterDashboard() {
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm text-muted-foreground">รออนุมัติ</p>
-                      <p className="text-2xl font-bold text-yellow-600">{pendingCount}</p>
+                      <p className="text-2xl font-bold text-yellow-600">{datePendingCount}</p>
                     </div>
                     <Clock className="w-8 h-8 text-yellow-500/20" />
                   </div>
@@ -248,7 +288,7 @@ export default function RequesterDashboard() {
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm text-muted-foreground">อนุมัติแล้ว</p>
-                      <p className="text-2xl font-bold text-blue-600">{approvedCount}</p>
+                      <p className="text-2xl font-bold text-blue-600">{dateApprovedCount}</p>
                     </div>
                     <CheckCircle className="w-8 h-8 text-blue-500/20" />
                   </div>
@@ -259,7 +299,7 @@ export default function RequesterDashboard() {
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm text-muted-foreground">จ่ายแล้ว</p>
-                      <p className="text-2xl font-bold text-green-600">{issuedCount}</p>
+                      <p className="text-2xl font-bold text-green-600">{dateIssuedCount}</p>
                     </div>
                     <Package className="w-8 h-8 text-green-500/20" />
                   </div>
@@ -270,7 +310,7 @@ export default function RequesterDashboard() {
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm text-muted-foreground">รอสินค้า</p>
-                      <p className="text-2xl font-bold text-orange-600">{waitingStockCount}</p>
+                      <p className="text-2xl font-bold text-orange-600">{dateWaitingStockCount}</p>
                     </div>
                     <AlertTriangle className="w-8 h-8 text-orange-500/20" />
                   </div>
@@ -281,12 +321,46 @@ export default function RequesterDashboard() {
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm text-muted-foreground">ปฏิเสธ</p>
-                      <p className="text-2xl font-bold text-red-600">{rejectedCount}</p>
+                      <p className="text-2xl font-bold text-red-600">{dateRejectedCount}</p>
                     </div>
                     <XCircle className="w-8 h-8 text-red-500/20" />
                   </div>
                 </CardContent>
               </Card>
+            </div>
+
+            {/* Date Range Filter */}
+            <div className="flex flex-wrap items-center gap-3">
+              <span className="text-sm font-medium text-muted-foreground">กรองช่วงเวลา:</span>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" size="sm" className={cn("w-[160px] justify-start text-left font-normal", !dateFrom && "text-muted-foreground")}>
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {dateFrom ? format(dateFrom, "d MMM yyyy", { locale: th }) : "จากวันที่"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar mode="single" selected={dateFrom} onSelect={setDateFrom} initialFocus />
+                </PopoverContent>
+              </Popover>
+              <span className="text-muted-foreground">-</span>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" size="sm" className={cn("w-[160px] justify-start text-left font-normal", !dateTo && "text-muted-foreground")}>
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {dateTo ? format(dateTo, "d MMM yyyy", { locale: th }) : "ถึงวันที่"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar mode="single" selected={dateTo} onSelect={setDateTo} initialFocus />
+                </PopoverContent>
+              </Popover>
+              {(dateFrom || dateTo) && (
+                <Button variant="ghost" size="sm" onClick={() => { setDateFrom(undefined); setDateTo(undefined); }}>
+                  <X className="w-4 h-4 mr-1" />
+                  ล้าง
+                </Button>
+              )}
             </div>
 
             {/* Tabs for Requests and Notifications */}
@@ -313,7 +387,7 @@ export default function RequesterDashboard() {
                           size="sm"
                           onClick={() => setStatusFilter("all")}
                         >
-                          ทั้งหมด ({requests.length})
+                          ทั้งหมด ({dateFilteredRequests.length})
                         </Button>
                         <Button
                           variant={statusFilter === "pending" ? "default" : "outline"}
@@ -322,7 +396,7 @@ export default function RequesterDashboard() {
                           className={statusFilter === "pending" ? "" : "text-yellow-600 border-yellow-300 hover:bg-yellow-50"}
                         >
                           <Clock className="w-3 h-3 mr-1" />
-                          รออนุมัติ ({pendingCount})
+                          รออนุมัติ ({datePendingCount})
                         </Button>
                         <Button
                           variant={statusFilter === "approved" ? "default" : "outline"}
@@ -331,7 +405,7 @@ export default function RequesterDashboard() {
                           className={statusFilter === "approved" ? "" : "text-blue-600 border-blue-300 hover:bg-blue-50"}
                         >
                           <CheckCircle className="w-3 h-3 mr-1" />
-                          อนุมัติแล้ว ({approvedCount})
+                          อนุมัติแล้ว ({dateApprovedCount})
                         </Button>
                         <Button
                           variant={statusFilter === "issued" ? "default" : "outline"}
@@ -340,7 +414,7 @@ export default function RequesterDashboard() {
                           className={statusFilter === "issued" ? "" : "text-green-600 border-green-300 hover:bg-green-50"}
                         >
                           <Package className="w-3 h-3 mr-1" />
-                          จ่ายแล้ว ({issuedCount})
+                          จ่ายแล้ว ({dateIssuedCount})
                         </Button>
                         <Button
                           variant={statusFilter === "waiting_stock" ? "default" : "outline"}
@@ -349,7 +423,7 @@ export default function RequesterDashboard() {
                           className={statusFilter === "waiting_stock" ? "" : "text-orange-600 border-orange-300 hover:bg-orange-50"}
                         >
                           <AlertTriangle className="w-3 h-3 mr-1" />
-                          รอสินค้า ({waitingStockCount})
+                          รอสินค้า ({dateWaitingStockCount})
                         </Button>
                         <Button
                           variant={statusFilter === "rejected" ? "default" : "outline"}
@@ -358,7 +432,7 @@ export default function RequesterDashboard() {
                           className={statusFilter === "rejected" ? "" : "text-red-600 border-red-300 hover:bg-red-50"}
                         >
                           <XCircle className="w-3 h-3 mr-1" />
-                          ปฏิเสธ ({rejectedCount})
+                          ปฏิเสธ ({dateRejectedCount})
                         </Button>
                       </div>
                     </div>
@@ -369,11 +443,9 @@ export default function RequesterDashboard() {
                     ) : requests.length === 0 ? (
                       <div className="text-center py-8 text-muted-foreground">ไม่พบคำขอเบิก</div>
                     ) : (
-                      <ScrollArea className="h-[500px]">
+                      <div>
                         <div className="space-y-2">
-                          {requests
-                            .filter(r => statusFilter === "all" || r.status === statusFilter)
-                            .map((request) => {
+                          {paginatedData.map((request) => {
                               const items = itemsByRequest.get(request.id) || [];
                               const hasItems = items.length > 0;
                               const isExpanded = expandedRequests.has(request.id);
@@ -519,7 +591,15 @@ export default function RequesterDashboard() {
                               );
                             })}
                         </div>
-                      </ScrollArea>
+                        <TablePagination
+                          currentPage={currentPage}
+                          totalPages={totalPages}
+                          totalItems={totalItems}
+                          pageSize={pageSize}
+                          onPageChange={handlePageChange}
+                          onPageSizeChange={handlePageSizeChange}
+                        />
+                      </div>
                     )}
                   </CardContent>
                 </Card>
