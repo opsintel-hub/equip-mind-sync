@@ -2515,11 +2515,20 @@ export type Database = {
         Row: {
           advance_days: number
           created_at: string
+          department_emails: Json | null
           email_addresses: string[] | null
           id: string
+          notify_ad_retention: boolean | null
+          notify_billboard_pm: boolean | null
           notify_equipment_expiry: boolean
+          notify_incomplete_issues: boolean | null
+          notify_loan_overdue: boolean | null
           notify_low_stock: boolean
+          notify_media_player_expiry: boolean | null
+          notify_media_player_warranty: boolean | null
+          notify_pending_requests: boolean | null
           notify_pm_schedule: boolean
+          notify_tool_pm: boolean | null
           notify_warranty_expiry: boolean
           updated_at: string
           user_id: string | null
@@ -2527,11 +2536,20 @@ export type Database = {
         Insert: {
           advance_days?: number
           created_at?: string
+          department_emails?: Json | null
           email_addresses?: string[] | null
           id?: string
+          notify_ad_retention?: boolean | null
+          notify_billboard_pm?: boolean | null
           notify_equipment_expiry?: boolean
+          notify_incomplete_issues?: boolean | null
+          notify_loan_overdue?: boolean | null
           notify_low_stock?: boolean
+          notify_media_player_expiry?: boolean | null
+          notify_media_player_warranty?: boolean | null
+          notify_pending_requests?: boolean | null
           notify_pm_schedule?: boolean
+          notify_tool_pm?: boolean | null
           notify_warranty_expiry?: boolean
           updated_at?: string
           user_id?: string | null
@@ -2539,11 +2557,20 @@ export type Database = {
         Update: {
           advance_days?: number
           created_at?: string
+          department_emails?: Json | null
           email_addresses?: string[] | null
           id?: string
+          notify_ad_retention?: boolean | null
+          notify_billboard_pm?: boolean | null
           notify_equipment_expiry?: boolean
+          notify_incomplete_issues?: boolean | null
+          notify_loan_overdue?: boolean | null
           notify_low_stock?: boolean
+          notify_media_player_expiry?: boolean | null
+          notify_media_player_warranty?: boolean | null
+          notify_pending_requests?: boolean | null
           notify_pm_schedule?: boolean
+          notify_tool_pm?: boolean | null
           notify_warranty_expiry?: boolean
           updated_at?: string
           user_id?: string | null
