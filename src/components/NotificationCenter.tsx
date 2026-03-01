@@ -1,5 +1,5 @@
-import { useState, useEffect, useMemo } from "react";
-import { Bell, Check, RefreshCw, Monitor, Shield, Wrench, FileText, AlertTriangle, Info, CheckCircle, XCircle } from "lucide-react";
+import { useState, useEffect, useMemo, useCallback } from "react";
+import { Bell, Check, RefreshCw, Monitor, Shield, Wrench, FileText, AlertTriangle, Info, CheckCircle, XCircle, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 import { th } from "date-fns/locale";
 import { useDepartmentPermissions } from "@/hooks/useDepartmentPermissions";
+import { useAuth } from "@/hooks/useAuth";
 
 interface Notification {
   id: string;
@@ -89,17 +90,22 @@ function getGroupForCategory(category: string): CategoryConfig | undefined {
 
 export function NotificationCenter() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [dismissedIds, setDismissedIds] = useState<Set<string>>(new Set());
   const [isLoading, setIsLoading] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("all");
   const { isAdmin, getViewableDepartments } = useDepartmentPermissions();
+  const { user } = useAuth();
 
-  // Filter notifications by user's department permissions
+  // Filter notifications by user's department permissions AND dismissed
   const filteredNotifications = useMemo(() => {
-    if (isAdmin) return notifications;
-    const viewable = getViewableDepartments();
-    return notifications.filter(n => !n.department || viewable.includes(n.department));
-  }, [notifications, isAdmin, getViewableDepartments]);
+    let filtered = notifications.filter(n => !dismissedIds.has(n.id));
+    if (!isAdmin) {
+      const viewable = getViewableDepartments();
+      filtered = filtered.filter(n => !n.department || viewable.includes(n.department));
+    }
+    return filtered;
+  }, [notifications, dismissedIds, isAdmin, getViewableDepartments]);
 
   const tabNotifications = useMemo(() => {
     if (activeTab === "all") return filteredNotifications;
@@ -116,23 +122,31 @@ export function NotificationCenter() {
     return filteredNotifications.filter(n => !n.is_read && group.categories.includes(n.category)).length;
   };
 
-  const fetchNotifications = async () => {
+  const fetchNotifications = useCallback(async () => {
+    if (!user) return;
     setIsLoading(true);
     try {
-      const { data, error } = await supabase
-        .from("notifications")
-        .select("*")
-        .order("created_at", { ascending: false })
-        .limit(50);
+      const [notifRes, dismissRes] = await Promise.all([
+        supabase
+          .from("notifications")
+          .select("*")
+          .order("created_at", { ascending: false })
+          .limit(50),
+        supabase
+          .from("notification_dismissals")
+          .select("notification_id")
+          .eq("user_id", user.id),
+      ]);
 
-      if (error) throw error;
-      setNotifications((data as Notification[]) || []);
+      if (notifRes.error) throw notifRes.error;
+      setNotifications((notifRes.data as Notification[]) || []);
+      setDismissedIds(new Set((dismissRes.data || []).map(d => d.notification_id)));
     } catch (error: any) {
       console.error("Error fetching notifications:", error);
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [user]);
 
   const checkExpiringEquipment = async () => {
     setIsLoading(true);
@@ -183,9 +197,25 @@ export function NotificationCenter() {
     }
   };
 
+  const dismissNotification = async (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!user) return;
+    try {
+      const { error } = await supabase
+        .from("notification_dismissals")
+        .insert({ user_id: user.id, notification_id: id });
+
+      if (error) throw error;
+      setDismissedIds(prev => new Set([...prev, id]));
+      toast.success("ซ่อนการแจ้งเตือนแล้ว");
+    } catch (error: any) {
+      console.error("Error dismissing notification:", error);
+    }
+  };
+
   useEffect(() => {
     fetchNotifications();
-  }, []);
+  }, [fetchNotifications]);
 
   const getTypeIcon = (type: string) => {
     switch (type) {
@@ -252,37 +282,39 @@ export function NotificationCenter() {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="w-full justify-start rounded-none border-b bg-transparent h-auto p-0 gap-0">
-            <TabsTrigger
-              value="all"
-              className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-3 py-2 text-xs"
-            >
-              ทั้งหมด
-              {unreadCount > 0 && (
-                <Badge variant="destructive" className="ml-1 h-4 min-w-4 px-1 text-[10px]">
-                  {unreadCount}
-                </Badge>
-              )}
-            </TabsTrigger>
-            {categoryGroups.map(group => {
-              const count = getTabUnreadCount(group.id);
-              return (
-                <TabsTrigger
-                  key={group.id}
-                  value={group.id}
-                  className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-3 py-2 text-xs flex items-center gap-1"
-                >
-                  {group.icon}
-                  <span className="hidden sm:inline">{group.title}</span>
-                  {count > 0 && (
-                    <Badge variant="destructive" className="h-4 min-w-4 px-1 text-[10px]">
-                      {count}
-                    </Badge>
-                  )}
-                </TabsTrigger>
-              );
-            })}
-          </TabsList>
+          <div className="overflow-x-auto">
+            <TabsList className="w-max min-w-full justify-start rounded-none border-b bg-transparent h-auto p-0 gap-0">
+              <TabsTrigger
+                value="all"
+                className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-3 py-2 text-xs shrink-0"
+              >
+                ทั้งหมด
+                {unreadCount > 0 && (
+                  <Badge variant="destructive" className="ml-1 h-4 min-w-4 px-1 text-[10px]">
+                    {unreadCount}
+                  </Badge>
+                )}
+              </TabsTrigger>
+              {categoryGroups.map(group => {
+                const count = getTabUnreadCount(group.id);
+                return (
+                  <TabsTrigger
+                    key={group.id}
+                    value={group.id}
+                    className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-3 py-2 text-xs flex items-center gap-1 shrink-0 whitespace-nowrap"
+                  >
+                    {group.icon}
+                    {group.title}
+                    {count > 0 && (
+                      <Badge variant="destructive" className="h-4 min-w-4 px-1 text-[10px]">
+                        {count}
+                      </Badge>
+                    )}
+                  </TabsTrigger>
+                );
+              })}
+            </TabsList>
+          </div>
 
           <ScrollArea className="h-[400px]">
             {tabNotifications.length === 0 ? (
@@ -298,7 +330,7 @@ export function NotificationCenter() {
                   return (
                     <div
                       key={notification.id}
-                      className={`p-3 hover:bg-muted/50 cursor-pointer transition-colors ${
+                      className={`p-3 hover:bg-muted/50 cursor-pointer transition-colors group ${
                         !notification.is_read ? "bg-primary/5" : ""
                       }`}
                       onClick={() => markAsRead(notification.id)}
@@ -329,12 +361,23 @@ export function NotificationCenter() {
                           <p className="text-sm text-muted-foreground line-clamp-2">
                             {notification.message}
                           </p>
-                          <p className="text-xs text-muted-foreground mt-1">
-                            {formatDistanceToNow(new Date(notification.created_at), {
-                              addSuffix: true,
-                              locale: th,
-                            })}
-                          </p>
+                          <div className="flex items-center justify-between mt-1">
+                            <p className="text-xs text-muted-foreground">
+                              {formatDistanceToNow(new Date(notification.created_at), {
+                                addSuffix: true,
+                                locale: th,
+                              })}
+                            </p>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                              onClick={(e) => dismissNotification(notification.id, e)}
+                              title="ซ่อนการแจ้งเตือนนี้"
+                            >
+                              <EyeOff className="h-3.5 w-3.5 text-muted-foreground" />
+                            </Button>
+                          </div>
                         </div>
                       </div>
                     </div>
