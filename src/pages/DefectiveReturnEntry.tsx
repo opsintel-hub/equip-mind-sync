@@ -8,10 +8,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { SearchableSelect } from "@/components/ui/searchable-select";
-import BillboardSelect from "@/components/billboard/BillboardSelect";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { AlertTriangle, Package, MapPin, Send, Loader2 } from "lucide-react";
+import { AlertTriangle, Package, MapPin, Send, Loader2, Info } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { format } from "date-fns";
 
@@ -41,13 +40,15 @@ interface MediaPlayerItem {
   billboard_id: string | null;
 }
 
-interface BillboardEquipment {
+interface BillboardEquipmentRecord {
   id: string;
   billboard_id: string;
   equipment_id: string;
   quantity: number;
   installation_date: string | null;
   notes: string | null;
+  billboard_old_code?: string;
+  billboard_location?: string;
 }
 
 const DefectiveReturnEntry = () => {
@@ -60,10 +61,10 @@ const DefectiveReturnEntry = () => {
   const [mediaPlayerList, setMediaPlayerList] = useState<MediaPlayerItem[]>([]);
   const [selectedItemId, setSelectedItemId] = useState("");
 
-  // Billboard source
-  const [isFromBillboard, setIsFromBillboard] = useState(false);
-  const [selectedBillboardId, setSelectedBillboardId] = useState("");
-  const [billboardEquipment, setBillboardEquipment] = useState<BillboardEquipment[]>([]);
+  // Auto-detected billboard info
+  const [detectedBillboards, setDetectedBillboards] = useState<BillboardEquipmentRecord[]>([]);
+  const [selectedBillboardEquipmentId, setSelectedBillboardEquipmentId] = useState("");
+  const [isLoadingBillboard, setIsLoadingBillboard] = useState(false);
 
   // Form fields
   const [quantity, setQuantity] = useState("1");
@@ -75,17 +76,28 @@ const DefectiveReturnEntry = () => {
   const selectedEquipment = useMemo(() => equipmentList.find(e => e.id === selectedItemId), [equipmentList, selectedItemId]);
   const selectedMediaPlayer = useMemo(() => mediaPlayerList.find(m => m.id === selectedItemId), [mediaPlayerList, selectedItemId]);
 
+  // Selected billboard record
+  const selectedBillboardRecord = useMemo(() => 
+    detectedBillboards.find(b => b.id === selectedBillboardEquipmentId),
+    [detectedBillboards, selectedBillboardEquipmentId]
+  );
+
   useEffect(() => {
     fetchEquipment();
     fetchMediaPlayers();
   }, []);
 
-  // Fetch billboard equipment when billboard selected
+  // Auto-detect billboard when equipment is selected
   useEffect(() => {
-    if (selectedBillboardId && !isMediaPlayer) {
-      fetchBillboardEquipment(selectedBillboardId);
+    if (selectedItemId && !isMediaPlayer) {
+      detectBillboardForEquipment(selectedItemId);
+    } else if (selectedItemId && isMediaPlayer) {
+      detectBillboardForMediaPlayer(selectedItemId);
+    } else {
+      setDetectedBillboards([]);
+      setSelectedBillboardEquipmentId("");
     }
-  }, [selectedBillboardId, isMediaPlayer]);
+  }, [selectedItemId, isMediaPlayer]);
 
   const fetchEquipment = async () => {
     const { data } = await supabase
@@ -105,12 +117,82 @@ const DefectiveReturnEntry = () => {
     if (data) setMediaPlayerList(data as MediaPlayerItem[]);
   };
 
-  const fetchBillboardEquipment = async (billboardId: string) => {
-    const { data } = await supabase
-      .from("billboard_equipment")
-      .select("*")
-      .eq("billboard_id", billboardId);
-    if (data) setBillboardEquipment(data);
+  const detectBillboardForEquipment = async (equipmentId: string) => {
+    setIsLoadingBillboard(true);
+    try {
+      const { data } = await supabase
+        .from("billboard_equipment")
+        .select("id, billboard_id, equipment_id, quantity, installation_date, notes")
+        .eq("equipment_id", equipmentId);
+
+      if (data && data.length > 0) {
+        // Fetch billboard details for display
+        const billboardIds = data.map(d => d.billboard_id);
+        const { data: billboards } = await supabase
+          .from("billboards")
+          .select("id, old_code, location_name")
+          .in("id", billboardIds);
+
+        const enriched: BillboardEquipmentRecord[] = data.map(be => {
+          const bb = billboards?.find(b => b.id === be.billboard_id);
+          return {
+            ...be,
+            billboard_old_code: bb?.old_code || "-",
+            billboard_location: bb?.location_name || "-",
+          };
+        });
+
+        setDetectedBillboards(enriched);
+        // Auto-select if only one billboard
+        if (enriched.length === 1) {
+          setSelectedBillboardEquipmentId(enriched[0].id);
+        }
+      } else {
+        setDetectedBillboards([]);
+        setSelectedBillboardEquipmentId("");
+      }
+    } catch (err) {
+      console.error("Error detecting billboard:", err);
+      setDetectedBillboards([]);
+    } finally {
+      setIsLoadingBillboard(false);
+    }
+  };
+
+  const detectBillboardForMediaPlayer = async (mediaPlayerId: string) => {
+    const mp = mediaPlayerList.find(m => m.id === mediaPlayerId);
+    if (mp?.billboard_id) {
+      setIsLoadingBillboard(true);
+      try {
+        const { data: bb } = await supabase
+          .from("billboards")
+          .select("id, old_code, location_name")
+          .eq("id", mp.billboard_id)
+          .single();
+
+        if (bb) {
+          const record: BillboardEquipmentRecord = {
+            id: `mp-${mp.id}`,
+            billboard_id: bb.id,
+            equipment_id: mp.id,
+            quantity: mp.quantity,
+            installation_date: null,
+            notes: null,
+            billboard_old_code: bb.old_code || "-",
+            billboard_location: bb.location_name || "-",
+          };
+          setDetectedBillboards([record]);
+          setSelectedBillboardEquipmentId(record.id);
+        }
+      } catch {
+        setDetectedBillboards([]);
+      } finally {
+        setIsLoadingBillboard(false);
+      }
+    } else {
+      setDetectedBillboards([]);
+      setSelectedBillboardEquipmentId("");
+    }
   };
 
   // Equipment options for searchable select
@@ -121,31 +203,23 @@ const DefectiveReturnEntry = () => {
         label: `${mp.code} - ${mp.name}`,
       }));
     }
-    
-    // If from billboard, filter to equipment installed on that billboard
-    if (isFromBillboard && selectedBillboardId) {
-      const installedIds = new Set(billboardEquipment.map(be => be.equipment_id));
-      return equipmentList
-        .filter(e => installedIds.has(e.id))
-        .map(e => ({ value: e.id, label: `${e.code} - ${e.name}` }));
-    }
-    
     return equipmentList.map(e => ({
       value: e.id,
       label: `${e.code} - ${e.name}`,
     }));
-  }, [isMediaPlayer, mediaPlayerList, equipmentList, isFromBillboard, selectedBillboardId, billboardEquipment]);
+  }, [isMediaPlayer, mediaPlayerList, equipmentList]);
 
-  // Max quantity from billboard
+  // Max quantity
   const maxQuantity = useMemo(() => {
-    if (isFromBillboard && selectedBillboardId && selectedItemId) {
-      const be = billboardEquipment.find(b => b.equipment_id === selectedItemId);
-      return be?.quantity || 1;
+    if (selectedBillboardRecord && !isMediaPlayer) {
+      return selectedBillboardRecord.quantity;
     }
     if (isMediaPlayer && selectedMediaPlayer) return selectedMediaPlayer.quantity;
     if (selectedEquipment) return selectedEquipment.quantity_in_stock;
     return 999;
-  }, [isFromBillboard, selectedBillboardId, selectedItemId, billboardEquipment, isMediaPlayer, selectedMediaPlayer, selectedEquipment]);
+  }, [selectedBillboardRecord, isMediaPlayer, selectedMediaPlayer, selectedEquipment]);
+
+  const isFromBillboard = selectedBillboardEquipmentId !== "" && detectedBillboards.length > 0;
 
   const generateDocNo = () => {
     const dateStr = format(new Date(), "yyyyMMdd");
@@ -155,13 +229,12 @@ const DefectiveReturnEntry = () => {
 
   const handleReset = () => {
     setSelectedItemId("");
-    setSelectedBillboardId("");
-    setIsFromBillboard(false);
+    setSelectedBillboardEquipmentId("");
+    setDetectedBillboards([]);
     setQuantity("1");
     setItemCondition("defective");
     setReason("");
     setNotes("");
-    setBillboardEquipment([]);
   };
 
   const handleSubmit = async () => {
@@ -187,6 +260,7 @@ const DefectiveReturnEntry = () => {
 
     try {
       const docNo = generateDocNo();
+      const billboardId = selectedBillboardRecord?.billboard_id || null;
 
       // 1. Create defective_returns record
       const { error: insertError } = await supabase.from("defective_returns").insert({
@@ -195,7 +269,7 @@ const DefectiveReturnEntry = () => {
         media_player_id: isMediaPlayer ? selectedItemId : null,
         is_media_player: isMediaPlayer,
         quantity: qty,
-        billboard_id: isFromBillboard ? selectedBillboardId : null,
+        billboard_id: billboardId,
         item_condition: itemCondition,
         reason: reason.trim(),
         status: "pending_warehouse_entry",
@@ -206,12 +280,11 @@ const DefectiveReturnEntry = () => {
       if (insertError) throw insertError;
 
       // 2. If from billboard, remove from billboard_equipment + create history
-      if (isFromBillboard && selectedBillboardId && !isMediaPlayer) {
-        const be = billboardEquipment.find(b => b.equipment_id === selectedItemId);
+      if (isFromBillboard && billboardId && !isMediaPlayer) {
+        const be = detectedBillboards.find(b => b.id === selectedBillboardEquipmentId);
         if (be) {
-          // Insert into history
           await supabase.from("billboard_equipment_history").insert({
-            billboard_id: selectedBillboardId,
+            billboard_id: billboardId,
             equipment_id: selectedItemId,
             quantity: qty,
             installation_date: be.installation_date,
@@ -221,7 +294,6 @@ const DefectiveReturnEntry = () => {
             installation_notes: be.notes,
           });
 
-          // Remove or reduce quantity from billboard_equipment
           if (qty >= be.quantity) {
             await supabase.from("billboard_equipment").delete().eq("id", be.id);
           } else {
@@ -233,7 +305,7 @@ const DefectiveReturnEntry = () => {
       }
 
       // 3. If media player from billboard, clear billboard_id
-      if (isFromBillboard && isMediaPlayer && selectedBillboardId) {
+      if (isFromBillboard && isMediaPlayer && billboardId) {
         await supabase.from("media_players").update({
           billboard_id: null,
           status: "defective",
@@ -267,27 +339,15 @@ const DefectiveReturnEntry = () => {
         <Card className="lg:col-span-2">
           <CardHeader>
             <CardTitle>ข้อมูลสินค้าเสีย/ชำรุด</CardTitle>
-            <CardDescription>เลือกสินค้า ระบบจะดึงข้อมูลเดิมมาให้อัตโนมัติ</CardDescription>
+            <CardDescription>เลือกสินค้า ระบบจะดึงข้อมูลเดิมมาให้อัตโนมัติ รวมถึงตรวจสอบว่าติดตั้งบนป้ายโฆษณาหรือไม่</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
             {/* Item type toggle */}
             <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
               <Label className="text-sm font-medium">ประเภท:</Label>
               <span className={`text-sm ${!isMediaPlayer ? "font-semibold text-primary" : "text-muted-foreground"}`}>สินค้า/อะไหล่</span>
-              <Switch checked={isMediaPlayer} onCheckedChange={(v) => { setIsMediaPlayer(v); setSelectedItemId(""); setIsFromBillboard(false); setSelectedBillboardId(""); }} />
+              <Switch checked={isMediaPlayer} onCheckedChange={(v) => { setIsMediaPlayer(v); setSelectedItemId(""); setDetectedBillboards([]); setSelectedBillboardEquipmentId(""); }} />
               <span className={`text-sm ${isMediaPlayer ? "font-semibold text-primary" : "text-muted-foreground"}`}>Media Player</span>
-            </div>
-
-            {/* Billboard source */}
-            <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
-              <MapPin className="w-4 h-4 text-muted-foreground" />
-              <Label className="text-sm font-medium">มาจากป้ายโฆษณา:</Label>
-              <Switch checked={isFromBillboard} onCheckedChange={(v) => { setIsFromBillboard(v); setSelectedBillboardId(""); setSelectedItemId(""); }} />
-              {isFromBillboard && (
-                <div className="flex-1 max-w-sm">
-                  <BillboardSelect value={selectedBillboardId} onChange={setSelectedBillboardId} />
-                </div>
-              )}
             </div>
 
             {/* Equipment selection */}
@@ -300,6 +360,61 @@ const DefectiveReturnEntry = () => {
                 placeholder="พิมพ์รหัสหรือชื่อสินค้าเพื่อค้นหา..."
               />
             </div>
+
+            {/* Auto-detected billboard info */}
+            {isLoadingBillboard && (
+              <div className="flex items-center gap-2 p-3 rounded-lg bg-muted/50 text-sm text-muted-foreground">
+                <Loader2 className="w-4 h-4 animate-spin" />
+                กำลังตรวจสอบข้อมูลป้ายโฆษณา...
+              </div>
+            )}
+
+            {!isLoadingBillboard && detectedBillboards.length > 0 && (
+              <div className="p-4 rounded-lg border border-blue-200 bg-blue-50/50 dark:border-blue-800 dark:bg-blue-950/30 space-y-3">
+                <div className="flex items-center gap-2 text-sm font-medium text-blue-700 dark:text-blue-300">
+                  <MapPin className="w-4 h-4" />
+                  ตรวจพบว่าสินค้านี้ติดตั้งอยู่บนป้ายโฆษณา
+                </div>
+                {detectedBillboards.length === 1 ? (
+                  <div className="text-sm space-y-1">
+                    <p><span className="font-medium">ป้าย:</span> {detectedBillboards[0].billboard_old_code} - {detectedBillboards[0].billboard_location}</p>
+                    <p><span className="font-medium">จำนวนติดตั้ง:</span> {detectedBillboards[0].quantity}</p>
+                    <p className="text-xs text-muted-foreground flex items-center gap-1">
+                      <Info className="w-3 h-3" />
+                      ระบบจะถอดสินค้าออกจากป้ายนี้อัตโนมัติเมื่อบันทึก
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <Label className="text-sm">เลือกป้ายที่ต้องการถอดออก:</Label>
+                    <Select value={selectedBillboardEquipmentId} onValueChange={setSelectedBillboardEquipmentId}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="เลือกป้ายโฆษณา..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="">ไม่ระบุป้าย (จากคลัง)</SelectItem>
+                        {detectedBillboards.map(be => (
+                          <SelectItem key={be.id} value={be.id}>
+                            {be.billboard_old_code} - {be.billboard_location} (จำนวน {be.quantity})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-muted-foreground flex items-center gap-1">
+                      <Info className="w-3 h-3" />
+                      สินค้านี้ติดตั้งอยู่บนหลายป้าย กรุณาเลือกป้ายที่ต้องการถอดออก
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {!isLoadingBillboard && selectedItemId && detectedBillboards.length === 0 && (
+              <div className="flex items-center gap-2 p-3 rounded-lg bg-muted/30 text-sm text-muted-foreground">
+                <Info className="w-4 h-4" />
+                สินค้านี้ไม่ได้ติดตั้งบนป้ายโฆษณา (จากคลัง/ภาคสนาม)
+              </div>
+            )}
 
             {/* Quantity & Condition */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -400,18 +515,18 @@ const DefectiveReturnEntry = () => {
                     <InfoRow label="จำนวน" value={String(selectedMediaPlayer.quantity)} />
                   </>
                 )}
-                {isFromBillboard && selectedBillboardId && (
-                  <div className="pt-2 border-t">
+                {isFromBillboard && selectedBillboardRecord && (
+                  <div className="pt-2 border-t space-y-1">
                     <Badge variant="outline" className="text-xs bg-blue-500/10 text-blue-600">
                       <MapPin className="w-3 h-3 mr-1" />
-                      จากป้ายโฆษณา
+                      ติดตั้งบนป้าย: {selectedBillboardRecord.billboard_old_code}
                     </Badge>
                   </div>
                 )}
                 <div className="pt-2 border-t">
                   <Badge 
                     variant="outline" 
-                    className={`text-xs ${itemCondition === "defective" ? "bg-destructive/10 text-destructive" : "bg-warning/10 text-warning"}`}
+                    className={`text-xs ${itemCondition === "defective" ? "bg-destructive/10 text-destructive" : "bg-yellow-500/10 text-yellow-600"}`}
                   >
                     {itemCondition === "defective" ? "เสีย/ชำรุด" : "รอตรวจสอบ"}
                   </Badge>
@@ -429,11 +544,13 @@ const DefectiveReturnEntry = () => {
   );
 };
 
-const InfoRow = ({ label, value }: { label: string; value: string }) => (
-  <div className="flex justify-between">
-    <span className="text-muted-foreground">{label}</span>
-    <span className="font-medium text-right max-w-[60%] truncate">{value}</span>
-  </div>
-);
+function InfoRow({ label, value }: { label: string; value: string | null | undefined }) {
+  return (
+    <div className="flex justify-between">
+      <span className="text-muted-foreground">{label}</span>
+      <span className="font-medium text-right">{value || "-"}</span>
+    </div>
+  );
+}
 
 export default DefectiveReturnEntry;
