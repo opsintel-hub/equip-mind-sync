@@ -16,7 +16,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Download, Package, AlertTriangle, XCircle, CheckCircle, Monitor, ImageIcon, Wrench, ArrowRightLeft, MapPin } from "lucide-react";
-import { InventoryFilters, InventoryFiltersState } from "@/components/inventory/InventoryFilters";
+import { InventoryFilters, InventoryFiltersState, getConditionLabel, getConditionBadgeClass } from "@/components/inventory/InventoryFilters";
 import { EquipmentImageViewer } from "@/components/equipment/EquipmentImageViewer";
 import * as XLSX from "xlsx";
 import { toast } from "sonner";
@@ -45,6 +45,7 @@ interface InventoryItem {
   locations: { id: string; name: string; code: string; warehouse_id: string; warehouses: { id: string; name: string; code: string } | null } | null;
   subcategories: { id: string; name: string; category_id: string } | null;
   item_type: 'equipment' | 'tools' | 'media_player';
+  item_condition: string;
   // Issue tracking fields
   issue_status?: 'in_stock' | 'issued' | 'partial';
   issue_purpose?: string | null;
@@ -67,6 +68,7 @@ export default function InventoryReport() {
     statusFilters: [],
     advanceDays: DEFAULT_ADVANCE_DAYS,
     issueStatus: "",
+    itemCondition: "",
   });
   // Pagination is handled by useTablePagination below
 
@@ -118,6 +120,7 @@ export default function InventoryReport() {
           subcategory_id,
           expiry_date,
           warranty_expiry_date,
+          item_condition,
           companies:company_id (id, name, code),
           locations:location_id (id, name, code, warehouse_id, warehouses:warehouse_id (id, name, code)),
           subcategories:subcategory_id (id, name, category_id)
@@ -155,6 +158,7 @@ export default function InventoryReport() {
         expiry_date: item.expiry_date,
         warranty_expiry_date: item.warranty_expiry_date,
         item_type: 'equipment' as const,
+        item_condition: item.item_condition || 'normal',
       }));
     },
     enabled: filters.itemType !== "media_player" && filters.itemType !== "tools",
@@ -231,6 +235,7 @@ export default function InventoryReport() {
         locations: item.locations as InventoryItem["locations"],
         subcategories: null,
         item_type: 'tools' as const,
+        item_condition: 'normal',
       }));
     },
     enabled: filters.itemType !== "equipment" && filters.itemType !== "media_player",
@@ -259,6 +264,7 @@ export default function InventoryReport() {
           company_id,
           location_id,
           warranty_expiry_date,
+          item_condition,
           companies:company_id (id, name, code),
           locations:location_id (id, name, code, warehouse_id, warehouses:warehouse_id (id, name, code))
         `)
@@ -305,6 +311,7 @@ export default function InventoryReport() {
         locations: item.locations as InventoryItem["locations"],
         subcategories: null,
         item_type: 'media_player' as const,
+        item_condition: item.item_condition || 'normal',
       }));
     },
     enabled: filters.itemType !== "equipment" && filters.itemType !== "tools",
@@ -536,6 +543,11 @@ export default function InventoryReport() {
         if (filters.issueStatus === "partial" && item.issue_status !== "partial") return false;
       }
 
+      // Filter by item condition
+      if (filters.itemCondition) {
+        if (item.item_condition !== filters.itemCondition) return false;
+      }
+
       return true;
     });
   }, [combinedData, filters, categoryMap, advanceDays]);
@@ -620,6 +632,7 @@ export default function InventoryReport() {
         ราคาต่อหน่วย: item.unit_price,
         มูลค่ารวม: item.quantity_in_stock * item.unit_price,
         "สถานะ Stock": status.label,
+        "สภาพสินค้า": getConditionLabel(item.item_condition),
         สถานะการเบิก: issueStatusLabel,
         จำนวนที่เบิก: item.issued_quantity || 0,
         วัตถุประสงค์: item.issue_purpose || "-",
@@ -757,6 +770,7 @@ export default function InventoryReport() {
                     <TableHead className="text-right">จำนวน</TableHead>
                     <TableHead className="text-right">Min</TableHead>
                     <TableHead>สถานะ Stock</TableHead>
+                    <TableHead>สภาพสินค้า</TableHead>
                     <TableHead>สถานะการเบิก</TableHead>
                     <TableHead>วัตถุประสงค์</TableHead>
                     <TableHead>ป้าย/Billboard</TableHead>
@@ -765,13 +779,13 @@ export default function InventoryReport() {
                 <TableBody>
                   {isLoading ? (
                     <TableRow>
-                      <TableCell colSpan={16} className="text-center py-8">
+                       <TableCell colSpan={17} className="text-center py-8">
                         กำลังโหลด...
                       </TableCell>
                     </TableRow>
                   ) : paginatedData.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={16} className="text-center py-8 text-muted-foreground">
+                      <TableCell colSpan={17} className="text-center py-8 text-muted-foreground">
                         ไม่พบข้อมูล
                       </TableCell>
                     </TableRow>
@@ -903,6 +917,12 @@ export default function InventoryReport() {
                                 </Badge>
                               )}
                             </div>
+                          </TableCell>
+                          {/* Item Condition Column */}
+                          <TableCell>
+                            <Badge variant="outline" className={`text-xs ${getConditionBadgeClass(item.item_condition)}`}>
+                              {getConditionLabel(item.item_condition)}
+                            </Badge>
                           </TableCell>
                           {/* Issue Status Column */}
                           <TableCell>

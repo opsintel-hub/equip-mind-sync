@@ -131,6 +131,7 @@ export default function StockMovementLog() {
                 <SelectItem value="transfer_out">โอนออก</SelectItem>
                 <SelectItem value="return_from_billboard">คืนจากป้าย</SelectItem>
                 <SelectItem value="install_to_billboard">ติดตั้งป้าย</SelectItem>
+                <SelectItem value="defective_return">นำของเสียเข้า</SelectItem>
               </SelectContent>
             </Select>
           </div>

@@ -49,6 +49,7 @@ interface Equipment {
   serial_number?: string | null;
   unit_price: number;
   warehouse_entry_date: string;
+  item_condition?: string;
   notes?: string | null;
   volt?: number | null;
   amp?: number | null;
@@ -151,6 +152,13 @@ export function EquipmentList({ refresh }: EquipmentListProps) {
   } = useTablePagination(filteredEquipment, 20);
 
   const handleExport = () => {
+    const conditionLabel = (c: string) => {
+      switch (c) {
+        case 'defective': return 'เสีย/ชำรุด';
+        case 'pending_inspection': return 'รอตรวจสอบ';
+        default: return 'ปกติ';
+      }
+    };
     const exportData = filteredEquipment.map((item: any) => ({
       "รหัสอุปกรณ์": item.code,
       "ชื่ออุปกรณ์": item.name,
@@ -161,6 +169,7 @@ export function EquipmentList({ refresh }: EquipmentListProps) {
       "จำนวน": item.quantity_in_stock,
       "หน่วย": item.unit,
       "ตำแหน่งจัดเก็บ": item.locations?.name || "-",
+      "สภาพสินค้า": conditionLabel(item.item_condition || 'normal'),
       "โวลท์ (V)": item.volt || "-",
       "แอมป์ (A)": item.amp || "-",
       "วัตต์ (W)": item.watt || "-",
@@ -222,6 +231,7 @@ export function EquipmentList({ refresh }: EquipmentListProps) {
               <TableHead>จำนวน</TableHead>
               <TableHead>หน่วย</TableHead>
               <TableHead>ตำแหน่ง</TableHead>
+              <TableHead>สภาพ</TableHead>
               <TableHead>วันหมดอายุ</TableHead>
               <TableHead>วันหมดรับประกัน</TableHead>
               <TableHead className="text-right">จัดการ</TableHead>
@@ -254,6 +264,15 @@ export function EquipmentList({ refresh }: EquipmentListProps) {
                 <TableCell>{item.unit}</TableCell>
                 <TableCell>
                   {item.locations ? `${item.locations.code}` : "-"}
+                </TableCell>
+                <TableCell>
+                  <Badge variant="outline" className={`text-xs ${
+                    item.item_condition === 'defective' ? 'bg-destructive/10 text-destructive border-destructive/30' :
+                    item.item_condition === 'pending_inspection' ? 'bg-warning/10 text-warning border-warning/30' :
+                    'bg-green-500/10 text-green-600 border-green-500/30'
+                  }`}>
+                    {item.item_condition === 'defective' ? 'เสีย/ชำรุด' : item.item_condition === 'pending_inspection' ? 'รอตรวจสอบ' : 'ปกติ'}
+                  </Badge>
                 </TableCell>
                 <TableCell>
                   {item.expiry_date ? format(new Date(item.expiry_date), "dd/MM/yyyy") : "-"}

@@ -29,6 +29,7 @@ export interface InventoryFiltersState {
   statusFilters: string[]; // Multi-select: expired, warranty_expired, near_expiry, near_warranty, out_of_stock
   advanceDays?: number; // Custom days for near expiry/warranty calculation
   issueStatus: string; // '' | 'in_stock' | 'issued' | 'partial'
+  itemCondition: string; // '' | 'normal' | 'defective' | 'pending_inspection'
 }
 
 export const STATUS_FILTER_OPTIONS = [
@@ -59,6 +60,30 @@ export const ISSUE_STATUS_OPTIONS = [
   { value: "issued", label: "ถูกเบิกออก" },
   { value: "partial", label: "เบิกบางส่วน" },
 ];
+
+export const ITEM_CONDITION_OPTIONS = [
+  { value: "all", label: "ทุกสภาพ" },
+  { value: "normal", label: "ปกติ" },
+  { value: "defective", label: "เสีย/ชำรุด" },
+  { value: "pending_inspection", label: "รอตรวจสอบ" },
+];
+
+export const getConditionLabel = (condition: string) => {
+  switch (condition) {
+    case 'normal': return 'ปกติ';
+    case 'defective': return 'เสีย/ชำรุด';
+    case 'pending_inspection': return 'รอตรวจสอบ';
+    default: return condition || 'ปกติ';
+  }
+};
+
+export const getConditionBadgeClass = (condition: string) => {
+  switch (condition) {
+    case 'defective': return 'bg-destructive/10 text-destructive border-destructive/30';
+    case 'pending_inspection': return 'bg-warning/10 text-warning border-warning/30';
+    default: return 'bg-green-500/10 text-green-600 border-green-500/30';
+  }
+};
 
 interface InventoryFiltersProps {
   filters: InventoryFiltersState;
@@ -197,6 +222,7 @@ export function InventoryFilters({ filters, onFiltersChange }: InventoryFiltersP
       statusFilters: [],
       advanceDays: 30,
       issueStatus: "",
+      itemCondition: "",
     });
   };
 
@@ -481,6 +507,24 @@ export function InventoryFilters({ filters, onFiltersChange }: InventoryFiltersP
           </SelectTrigger>
           <SelectContent>
             {ISSUE_STATUS_OPTIONS.map((option) => (
+              <SelectItem key={option.value} value={option.value}>
+                {option.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <Select
+          value={filters.itemCondition || "all"}
+          onValueChange={(value) =>
+            onFiltersChange({ ...filters, itemCondition: value === "all" ? "" : value })
+          }
+        >
+          <SelectTrigger className="w-[180px]">
+            <SelectValue placeholder="สภาพสินค้า" />
+          </SelectTrigger>
+          <SelectContent>
+            {ITEM_CONDITION_OPTIONS.map((option) => (
               <SelectItem key={option.value} value={option.value}>
                 {option.label}
               </SelectItem>

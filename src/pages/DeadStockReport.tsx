@@ -22,6 +22,7 @@ interface Equipment {
   unit_price: number;
   warehouse_entry_date: string;
   location_id: string | null;
+  item_condition: string;
 }
 
 interface Location {
@@ -75,6 +76,7 @@ const DeadStockReport = () => {
   const [selectedDepartment, setSelectedDepartment] = useState<string>("all");
   const [selectedAgeGroup, setSelectedAgeGroup] = useState<string>("all");
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
+  const [selectedCondition, setSelectedCondition] = useState<string>("all");
   const [allDepartments, setAllDepartments] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -103,7 +105,7 @@ const DeadStockReport = () => {
     const [equipmentRes, locationsRes, deptRes, catRes] = await Promise.all([
       supabase
         .from("equipment")
-        .select("id, code, name, category, department, quantity_in_stock, unit, unit_price, warehouse_entry_date, location_id")
+        .select("id, code, name, category, department, quantity_in_stock, unit, unit_price, warehouse_entry_date, location_id, item_condition")
         .eq("is_active", true)
         .gt("quantity_in_stock", 0),
       supabase
@@ -156,10 +158,11 @@ const DeadStockReport = () => {
   const filteredEquipment = equipment.filter(item => {
     const matchesDept = selectedDepartment === "all" || item.department === selectedDepartment;
     const matchesCategory = selectedCategory === "all" || item.category === selectedCategory;
+    const matchesCondition = selectedCondition === "all" || (item.item_condition || 'normal') === selectedCondition;
     const days = getAgeDays(item.warehouse_entry_date);
     const ageGroup = AGE_GROUPS.find(g => days >= g.minDays && days <= g.maxDays);
     const matchesAge = selectedAgeGroup === "all" || ageGroup?.label === selectedAgeGroup;
-    return matchesDept && matchesAge && matchesCategory;
+    return matchesDept && matchesAge && matchesCategory && matchesCondition;
   });
 
   const ageGroupSummary: AgeGroup[] = AGE_GROUPS.map(group => {
@@ -202,12 +205,14 @@ const DeadStockReport = () => {
   };
 
   const exportToExcel = () => {
+    const conditionLabel = (c: string) => c === 'defective' ? 'เสีย/ชำรุด' : c === 'pending_inspection' ? 'รอตรวจสอบ' : 'ปกติ';
     const exportData = filteredEquipment.map(item => ({
       "รหัสสินค้า": item.code,
       "ชื่อสินค้า": item.name,
       "หมวดหมู่": item.category,
       "ฝ่าย": item.department || "-",
       "คลังสินค้า": getLocationName(item.location_id),
+      "สภาพสินค้า": conditionLabel(item.item_condition || 'normal'),
       "จำนวน": item.quantity_in_stock,
       "หน่วย": item.unit,
       "ราคา/ชิ้น": item.unit_price,
@@ -312,7 +317,7 @@ const DeadStockReport = () => {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div className="space-y-2">
               <label className="text-sm font-medium">ฝ่าย</label>
               <Select value={selectedDepartment} onValueChange={setSelectedDepartment} disabled={isSingleDepartment}>
@@ -352,6 +357,20 @@ const DeadStockReport = () => {
                   {AGE_GROUPS.map(group => (
                     <SelectItem key={group.label} value={group.label}>{group.label}</SelectItem>
                   ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">สภาพสินค้า</label>
+              <Select value={selectedCondition} onValueChange={setSelectedCondition}>
+                <SelectTrigger>
+                  <SelectValue placeholder="เลือกสภาพ" />
+                </SelectTrigger>
+                <SelectContent position="popper" sideOffset={4} className="bg-background z-[200] max-h-60 overflow-y-auto">
+                  <SelectItem value="all">ทั้งหมด</SelectItem>
+                  <SelectItem value="normal">ปกติ</SelectItem>
+                  <SelectItem value="defective">เสีย/ชำรุด</SelectItem>
+                  <SelectItem value="pending_inspection">รอตรวจสอบ</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -491,6 +510,7 @@ const DeadStockReport = () => {
                   <TableHead>หมวดหมู่</TableHead>
                   <TableHead>ฝ่าย</TableHead>
                   <TableHead>คลัง</TableHead>
+                  <TableHead>สภาพ</TableHead>
                   <TableHead className="text-right">จำนวน</TableHead>
                   <TableHead className="text-right">ราคา/ชิ้น</TableHead>
                   <TableHead className="text-right">มูลค่ารวม</TableHead>
@@ -501,7 +521,7 @@ const DeadStockReport = () => {
               <TableBody>
                 {isLoading ? (
                   <TableRow>
-                    <TableCell colSpan={10} className="text-center py-8">
+                    <TableCell colSpan={11} className="text-center py-8">
                       กำลังโหลด...
                     </TableCell>
                   </TableRow>
@@ -516,6 +536,15 @@ const DeadStockReport = () => {
                           <TableCell>{item.category}</TableCell>
                           <TableCell>{item.department || "-"}</TableCell>
                           <TableCell>{getLocationName(item.location_id)}</TableCell>
+                          <TableCell>
+                            <Badge variant="outline" className={`text-xs ${
+                              (item.item_condition || 'normal') === 'defective' ? 'bg-destructive/10 text-destructive border-destructive/30' :
+                              (item.item_condition || 'normal') === 'pending_inspection' ? 'bg-warning/10 text-warning border-warning/30' :
+                              'bg-green-500/10 text-green-600 border-green-500/30'
+                            }`}>
+                              {(item.item_condition || 'normal') === 'defective' ? 'เสีย/ชำรุด' : (item.item_condition || 'normal') === 'pending_inspection' ? 'รอตรวจสอบ' : 'ปกติ'}
+                            </Badge>
+                          </TableCell>
                           <TableCell className="text-right">{item.quantity_in_stock} {item.unit}</TableCell>
                           <TableCell className="text-right">{formatCurrency(item.unit_price)}</TableCell>
                           <TableCell className="text-right font-medium">{formatCurrency(item.quantity_in_stock * item.unit_price)}</TableCell>
@@ -530,7 +559,7 @@ const DeadStockReport = () => {
                     })}
                 {!isLoading && filteredEquipment.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={11} className="text-center py-8 text-muted-foreground">
                       ไม่พบข้อมูล
                     </TableCell>
                   </TableRow>
