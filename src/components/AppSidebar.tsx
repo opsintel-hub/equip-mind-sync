@@ -121,7 +121,13 @@ const menuGroups: MenuGroup[] = [
         functionName: "goods_issue",
       },
       { 
-        title: "รอระบุป้าย/รอคืน", 
+        title: "นำของเสียเข้าระบบ", 
+        url: "/defective-return",
+        icon: AlertTriangleIcon,
+        functionName: "goods_receipt",
+      },
+      { 
+        title: "รอระบุป้าย/รอคืน/รอเข้าคลัง", 
         url: "/incomplete-issues",
         icon: Clock,
         functionName: "goods_issue",

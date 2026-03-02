@@ -361,6 +361,7 @@ export type Database = {
           equipment_id: string
           id: string
           installation_date: string | null
+          item_condition: string
           notes: string | null
           quantity: number
         }
@@ -371,6 +372,7 @@ export type Database = {
           equipment_id: string
           id?: string
           installation_date?: string | null
+          item_condition?: string
           notes?: string | null
           quantity: number
         }
@@ -381,6 +383,7 @@ export type Database = {
           equipment_id?: string
           id?: string
           installation_date?: string | null
+          item_condition?: string
           notes?: string | null
           quantity?: number
         }
@@ -838,6 +841,95 @@ export type Database = {
         }
         Relationships: []
       }
+      defective_returns: {
+        Row: {
+          billboard_id: string | null
+          created_at: string
+          created_by: string | null
+          document_no: string
+          equipment_id: string | null
+          id: string
+          is_media_player: boolean
+          item_condition: string
+          media_player_id: string | null
+          quantity: number
+          reason: string | null
+          receive_location_id: string | null
+          received_at: string | null
+          received_by: string | null
+          source_type: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          billboard_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          document_no?: string
+          equipment_id?: string | null
+          id?: string
+          is_media_player?: boolean
+          item_condition?: string
+          media_player_id?: string | null
+          quantity?: number
+          reason?: string | null
+          receive_location_id?: string | null
+          received_at?: string | null
+          received_by?: string | null
+          source_type?: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          billboard_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          document_no?: string
+          equipment_id?: string | null
+          id?: string
+          is_media_player?: boolean
+          item_condition?: string
+          media_player_id?: string | null
+          quantity?: number
+          reason?: string | null
+          receive_location_id?: string | null
+          received_at?: string | null
+          received_by?: string | null
+          source_type?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "defective_returns_billboard_id_fkey"
+            columns: ["billboard_id"]
+            isOneToOne: false
+            referencedRelation: "billboards"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "defective_returns_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "equipment"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "defective_returns_media_player_id_fkey"
+            columns: ["media_player_id"]
+            isOneToOne: false
+            referencedRelation: "media_players"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "defective_returns_receive_location_id_fkey"
+            columns: ["receive_location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       departments: {
         Row: {
           created_at: string
@@ -888,6 +980,7 @@ export type Database = {
           id: string
           is_active: boolean | null
           is_asset: boolean | null
+          item_condition: string
           location_id: string | null
           lumen: number | null
           lux: number | null
@@ -927,6 +1020,7 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           is_asset?: boolean | null
+          item_condition?: string
           location_id?: string | null
           lumen?: number | null
           lux?: number | null
@@ -966,6 +1060,7 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           is_asset?: boolean | null
+          item_condition?: string
           location_id?: string | null
           lumen?: number | null
           lux?: number | null
@@ -1519,6 +1614,7 @@ export type Database = {
           issued_by: string | null
           issued_location_id: string | null
           issued_quantity: number | null
+          item_condition: string | null
           last_partial_issue_at: string | null
           media_player_id: string | null
           notes: string | null
@@ -1555,6 +1651,7 @@ export type Database = {
           issued_by?: string | null
           issued_location_id?: string | null
           issued_quantity?: number | null
+          item_condition?: string | null
           last_partial_issue_at?: string | null
           media_player_id?: string | null
           notes?: string | null
@@ -1591,6 +1688,7 @@ export type Database = {
           issued_by?: string | null
           issued_location_id?: string | null
           issued_quantity?: number | null
+          item_condition?: string | null
           last_partial_issue_at?: string | null
           media_player_id?: string | null
           notes?: string | null
@@ -2357,6 +2455,7 @@ export type Database = {
           invoice_number: string | null
           is_active: boolean | null
           is_asset: boolean | null
+          item_condition: string
           location_id: string | null
           model_id: string | null
           name: string
@@ -2403,6 +2502,7 @@ export type Database = {
           invoice_number?: string | null
           is_active?: boolean | null
           is_asset?: boolean | null
+          item_condition?: string
           location_id?: string | null
           model_id?: string | null
           name: string
@@ -2449,6 +2549,7 @@ export type Database = {
           invoice_number?: string | null
           is_active?: boolean | null
           is_asset?: boolean | null
+          item_condition?: string
           location_id?: string | null
           model_id?: string | null
           name?: string
@@ -3019,6 +3120,7 @@ export type Database = {
           equipment_id: string
           equipment_name: string
           id: string
+          item_condition: string | null
           location_id: string | null
           movement_type: string
           notes: string | null
@@ -3037,6 +3139,7 @@ export type Database = {
           equipment_id: string
           equipment_name: string
           id?: string
+          item_condition?: string | null
           location_id?: string | null
           movement_type: string
           notes?: string | null
@@ -3055,6 +3158,7 @@ export type Database = {
           equipment_id?: string
           equipment_name?: string
           id?: string
+          item_condition?: string | null
           location_id?: string | null
           movement_type?: string
           notes?: string | null

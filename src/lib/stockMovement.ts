@@ -21,6 +21,7 @@ export interface StockMovementData {
   reference_document?: string;
   location_id?: string | null;
   notes?: string;
+  item_condition?: string;
 }
 
 export async function logStockMovement(data: StockMovementData) {
@@ -39,6 +40,7 @@ export async function logStockMovement(data: StockMovementData) {
     reference_document: data.reference_document,
     location_id: data.location_id,
     notes: data.notes,
+    item_condition: data.item_condition,
     created_by: userData?.user?.id,
   });
 
