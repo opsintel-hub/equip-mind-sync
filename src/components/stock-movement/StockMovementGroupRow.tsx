@@ -1,12 +1,12 @@
 import { useState } from "react";
-import { ChevronDown, ChevronRight, FileText, TrendingUp, TrendingDown, ArrowRightLeft, RotateCcw, Package } from "lucide-react";
+import { ChevronDown, ChevronRight, FileText, TrendingUp, TrendingDown, ArrowRightLeft, RotateCcw, Package, AlertTriangle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { TableCell, TableRow } from "@/components/ui/table";
 import { format } from "date-fns";
 import { th } from "date-fns/locale";
 
-type MovementType = 'receive' | 'issue' | 'transfer_in' | 'transfer_out' | 'return_from_billboard' | 'install_to_billboard';
+type MovementType = 'receive' | 'issue' | 'transfer_in' | 'transfer_out' | 'return_from_billboard' | 'install_to_billboard' | 'defective_return';
 
 const movementTypeConfig: Record<MovementType, { label: string; icon: React.ComponentType<{ className?: string }>; variant: "default" | "secondary" | "destructive" | "outline" }> = {
   receive: { label: "รับเข้า", icon: TrendingUp, variant: "default" },
@@ -15,6 +15,7 @@ const movementTypeConfig: Record<MovementType, { label: string; icon: React.Comp
   transfer_out: { label: "โอนออก", icon: ArrowRightLeft, variant: "outline" },
   return_from_billboard: { label: "คืนจากป้าย", icon: RotateCcw, variant: "default" },
   install_to_billboard: { label: "ติดตั้งป้าย", icon: Package, variant: "outline" },
+  defective_return: { label: "นำของเสียเข้า", icon: AlertTriangle, variant: "destructive" },
 };
 
 export interface StockMovementItem {
