@@ -62,6 +62,7 @@ export function AdIssueList({ refresh, onUpdated }: AdIssueListProps) {
   const [confirmIssue, setConfirmIssue] = useState<IssueRequest | null>(null);
   const [confirmComplete, setConfirmComplete] = useState<IssueRequest | null>(null);
   const [processing, setProcessing] = useState(false);
+  const { paginatedData, currentPage, pageSize, totalPages, totalItems, handlePageChange, handlePageSizeChange } = useTablePagination(requests);
 
   useEffect(() => {
     fetchIssueRequests();
@@ -166,7 +167,6 @@ export function AdIssueList({ refresh, onUpdated }: AdIssueListProps) {
     );
   }
 
-  const { paginatedData, currentPage, pageSize, totalPages, totalItems, handlePageChange, handlePageSizeChange } = useTablePagination(requests);
 
   return (
     <div className="space-y-4">
