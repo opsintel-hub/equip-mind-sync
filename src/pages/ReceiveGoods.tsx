@@ -103,6 +103,7 @@ const ReceiveGoods = () => {
   // Form state for editing - only editable fields
   const [editNotes, setEditNotes] = useState("");
   const [storageVolumeCm3, setStorageVolumeCm3] = useState<string>("");
+  const [itemCondition, setItemCondition] = useState("normal");
   const [locationCapacity, setLocationCapacity] = useState<LocationCapacity | null>(null);
   const [selectedWarehouseId, setSelectedWarehouseId] = useState("");
   const [storageLocation, setStorageLocation] = useState<{
@@ -268,6 +269,7 @@ const ReceiveGoods = () => {
     setLocationCapacity(null);
     setSelectedWarehouseId("");
     setStorageLocation({ locationId: "" });
+    setItemCondition("normal");
     setIsDialogOpen(true);
   };
 
@@ -278,6 +280,7 @@ const ReceiveGoods = () => {
     setLocationCapacity(null);
     setSelectedWarehouseId("");
     setStorageLocation({ locationId: "" });
+    setItemCondition("normal");
     setIsBatchDialogOpen(true);
   };
 
@@ -449,31 +452,33 @@ const ReceiveGoods = () => {
 
         // Update Media Player stock and location (same as equipment)
         const { error: mpError } = await supabase
-          .from("media_players")
-          .update({
-            quantity: newStock,
-            location_id: storageLocation.locationId,
-          })
-          .eq("id", (selectedReceipt as any).media_player_id);
+              .from("media_players")
+              .update({
+                quantity: newStock,
+                location_id: storageLocation.locationId,
+                item_condition: itemCondition,
+              })
+              .eq("id", (selectedReceipt as any).media_player_id);
 
         if (mpError) {
           console.error("Media Player update error:", mpError);
           toast.warning("รับสินค้าสำเร็จแต่ไม่สามารถอัปเดต Stock Media Player ได้");
         } else {
           // Log stock movement for Media Player
-          await logStockMovement({
-            equipment_id: (selectedReceipt as any).media_player_id!,
-            equipment_code: currentMediaPlayer?.code || selectedReceipt.equipment_code || "",
-            equipment_name: currentMediaPlayer?.name || selectedReceipt.equipment_name || "",
-            movement_type: "receive",
-            quantity: receivedQuantity,
-            stock_before: currentStock,
-            stock_after: newStock,
-            reference_type: "goods_receipt",
-            reference_document: selectedReceipt.document_no,
-            location_id: storageLocation.locationId,
-            notes: `Media Player - ${editNotes || ""}`.trim(),
-          });
+              await logStockMovement({
+                equipment_id: (selectedReceipt as any).media_player_id!,
+                equipment_code: currentMediaPlayer?.code || selectedReceipt.equipment_code || "",
+                equipment_name: currentMediaPlayer?.name || selectedReceipt.equipment_name || "",
+                movement_type: "receive",
+                quantity: receivedQuantity,
+                stock_before: currentStock,
+                stock_after: newStock,
+                reference_type: "goods_receipt",
+                reference_document: selectedReceipt.document_no,
+                location_id: storageLocation.locationId,
+                notes: `Media Player - ${editNotes || ""}`.trim(),
+                item_condition: itemCondition,
+              });
           toast.success(`รับ Media Player เข้าคลังสำเร็จ (Stock: ${currentStock} → ${newStock})`);
         }
       } else {
@@ -513,7 +518,8 @@ const ReceiveGoods = () => {
           .update({
             quantity_in_stock: newStock,
             location_id: storageLocation.locationId,
-            expiry_date: selectedReceipt.expiry_date || null
+            expiry_date: selectedReceipt.expiry_date || null,
+            item_condition: itemCondition,
           })
           .eq("id", selectedReceipt.equipment_id);
 
@@ -535,6 +541,7 @@ const ReceiveGoods = () => {
             reference_document: selectedReceipt.document_no,
             location_id: storageLocation.locationId,
             notes: editNotes || undefined,
+            item_condition: itemCondition,
           });
           toast.success(`รับสินค้าเข้าคลังสำเร็จ (Stock: ${currentStock} → ${newStock})`);
         }
@@ -617,6 +624,7 @@ const ReceiveGoods = () => {
               .update({
                 quantity: newMpStock,
                 location_id: storageLocation.locationId,
+                item_condition: itemCondition,
               })
               .eq("id", (receipt as any).media_player_id);
 
@@ -634,6 +642,7 @@ const ReceiveGoods = () => {
                 reference_document: receipt.document_no,
                 location_id: storageLocation.locationId,
                 notes: `Media Player - ${editNotes || ""}`.trim(),
+                item_condition: itemCondition,
               });
             }
           } else {
@@ -673,7 +682,8 @@ const ReceiveGoods = () => {
               .update({
                 quantity_in_stock: newStock,
                 location_id: storageLocation.locationId,
-                expiry_date: receipt.expiry_date || null
+                expiry_date: receipt.expiry_date || null,
+                item_condition: itemCondition,
               })
               .eq("id", receipt.equipment_id!);
 
@@ -691,6 +701,7 @@ const ReceiveGoods = () => {
                 reference_document: receipt.document_no,
                 location_id: storageLocation.locationId,
                 notes: editNotes || undefined,
+                item_condition: itemCondition,
               });
             }
           }
@@ -1251,6 +1262,21 @@ const ReceiveGoods = () => {
                 />
               </div>
 
+              {/* Item Condition */}
+              <div className="space-y-2">
+                <Label>สถานะการใช้งาน *</Label>
+                <Select value={itemCondition} onValueChange={setItemCondition}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="normal">ใช้งานปกติ</SelectItem>
+                    <SelectItem value="defective">เสีย/ชำรุด</SelectItem>
+                    <SelectItem value="pending_inspection">รอตรวจสอบการใช้งาน</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
               {/* Notes */}
               <div className="space-y-2">
                 <Label>หมายเหตุ</Label>
@@ -1346,6 +1372,21 @@ const ReceiveGoods = () => {
                 />
               </div>
             )}
+
+            {/* Item Condition */}
+            <div className="space-y-2">
+              <Label>สถานะการใช้งาน *</Label>
+              <Select value={itemCondition} onValueChange={setItemCondition}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="normal">ใช้งานปกติ</SelectItem>
+                  <SelectItem value="defective">เสีย/ชำรุด</SelectItem>
+                  <SelectItem value="pending_inspection">รอตรวจสอบการใช้งาน</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
 
             {/* Notes */}
             <div className="space-y-2">
