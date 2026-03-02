@@ -81,10 +81,16 @@ const menuGroups: MenuGroup[] = [
     label: "คลังสินค้า",
     items: [
       { 
-        title: "นำสินค้าเข้า", 
+        title: "นำสินค้าใหม่เข้าระบบ", 
         url: "/delivery-entry",
         icon: Truck,
         functionName: "delivery_entry",
+      },
+      { 
+        title: "นำของเสียเข้าระบบ", 
+        url: "/defective-return",
+        icon: AlertTriangleIcon,
+        functionName: "goods_receipt",
       },
       { 
         title: "รับสินค้าเข้า (GR)", 
@@ -119,12 +125,6 @@ const menuGroups: MenuGroup[] = [
         url: "/equipment-loans",
         icon: ArrowLeftRight,
         functionName: "goods_issue",
-      },
-      { 
-        title: "นำของเสียเข้าระบบ", 
-        url: "/defective-return",
-        icon: AlertTriangleIcon,
-        functionName: "goods_receipt",
       },
       { 
         title: "รอระบุป้าย/รอคืน/รอเข้าคลัง", 
