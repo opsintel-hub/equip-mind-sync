@@ -12,7 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Search, AlertTriangle, MapPin, Package, RefreshCw, Clock, ChevronDown, ChevronRight, ShoppingCart, Edit } from "lucide-react";
+import { Search, AlertTriangle, MapPin, Package, RefreshCw, Clock, ChevronDown, ChevronRight, ShoppingCart, Edit, Warehouse } from "lucide-react";
 import { format } from "date-fns";
 import { th } from "date-fns/locale";
 import { useAuth } from "@/hooks/useAuth";
@@ -124,6 +124,20 @@ const IncompleteIssues = () => {
       });
 
       return { issues: incomplete as (IncompleteIssue & { companies: { name: string } | null })[], purposes };
+    },
+  });
+
+  // Fetch defective returns pending warehouse entry
+  const { data: defectiveReturns = [] } = useQuery({
+    queryKey: ["defective-returns-pending"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("defective_returns")
+        .select("*")
+        .eq("status", "pending_warehouse_entry")
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data || [];
     },
   });
 
@@ -420,7 +434,7 @@ const IncompleteIssues = () => {
               <AlertTriangle className="w-6 h-6 text-warning" />
               รายการเบิกที่ยังไม่สมบูรณ์
             </h1>
-            <p className="text-muted-foreground">รายการเบิกที่รอระบุป้ายโฆษณา หรือรอรับคืนจากการเคลม</p>
+            <p className="text-muted-foreground">รายการเบิกที่รอระบุป้ายโฆษณา, รอรับคืน, หรือรอเข้าคลัง</p>
           </div>
           <div className="flex gap-2">
             {billboardIssues.length > 0 && (
@@ -433,6 +447,12 @@ const IncompleteIssues = () => {
               <Badge variant="secondary" className="text-lg px-4 py-2 bg-orange-100 text-orange-800">
                 <RefreshCw className="w-4 h-4 mr-1" />
                 รอรับคืน: {returnIssues.length}
+              </Badge>
+            )}
+            {defectiveReturns.length > 0 && (
+              <Badge variant="secondary" className="text-lg px-4 py-2">
+                <Warehouse className="w-4 h-4 mr-1" />
+                รอเข้าคลัง: {defectiveReturns.length}
               </Badge>
             )}
           </div>
@@ -457,7 +477,7 @@ const IncompleteIssues = () => {
             </div>
 
             <Tabs defaultValue="billboard" className="w-full">
-              <TabsList className="mb-4">
+              <TabsList className="mb-4 overflow-x-auto whitespace-nowrap">
                 <TabsTrigger value="billboard" className="gap-2">
                   <MapPin className="w-4 h-4" />
                   รอระบุป้าย ({billboardIssues.length})
@@ -465,6 +485,10 @@ const IncompleteIssues = () => {
                 <TabsTrigger value="return" className="gap-2">
                   <RefreshCw className="w-4 h-4" />
                   รอรับคืน ({returnIssues.length})
+                </TabsTrigger>
+                <TabsTrigger value="warehouse" className="gap-2">
+                  <Warehouse className="w-4 h-4" />
+                  รอเข้าคลัง ({defectiveReturns.length})
                 </TabsTrigger>
               </TabsList>
 
@@ -662,6 +686,62 @@ const IncompleteIssues = () => {
                             </TableRow>
                           );
                         })
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+              </TabsContent>
+
+              <TabsContent value="warehouse">
+                <div className="rounded-md border overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>เลขที่เอกสาร</TableHead>
+                        <TableHead>ประเภท</TableHead>
+                        <TableHead>สถานะ</TableHead>
+                        <TableHead>จำนวน</TableHead>
+                        <TableHead>แหล่งที่มา</TableHead>
+                        <TableHead>สาเหตุ</TableHead>
+                        <TableHead>วันที่บันทึก</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {defectiveReturns.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                            ไม่มีรายการรอเข้าคลัง
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        defectiveReturns.map((dr: any) => (
+                          <TableRow key={dr.id}>
+                            <TableCell className="font-medium">{dr.document_no}</TableCell>
+                            <TableCell>
+                              <Badge variant="outline" className="text-xs">
+                                {dr.is_media_player ? "Media Player" : "สินค้า/อะไหล่"}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant={dr.item_condition === "defective" ? "destructive" : "secondary"} className="text-xs">
+                                {dr.item_condition === "defective" ? "เสีย/ชำรุด" : "รอตรวจสอบ"}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>{dr.quantity}</TableCell>
+                            <TableCell>
+                              {dr.source_type === "billboard" ? (
+                                <Badge variant="outline" className="text-xs">
+                                  <MapPin className="w-3 h-3 mr-1" />
+                                  ป้ายโฆษณา
+                                </Badge>
+                              ) : dr.source_type}
+                            </TableCell>
+                            <TableCell className="max-w-[200px] truncate">{dr.reason || "-"}</TableCell>
+                            <TableCell className="text-sm text-muted-foreground">
+                              {format(new Date(dr.created_at), "d MMM yy HH:mm", { locale: th })}
+                            </TableCell>
+                          </TableRow>
+                        ))
                       )}
                     </TableBody>
                   </Table>
