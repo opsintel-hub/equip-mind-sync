@@ -2,9 +2,10 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { ShoppingCart, Trash2, Package, Eye, Pencil } from "lucide-react";
+import { ShoppingCart, Trash2, Package, Eye, Pencil, Send, CheckSquare } from "lucide-react";
 
 export interface DeliveryCartItem {
   id: string;
@@ -32,12 +33,10 @@ export interface DeliveryCartItem {
   waiting_equipment_id: boolean;
   depreciation_months: string;
   notes: string;
-  // Temp fields for new products not in system
   temp_category_id?: string | null;
   temp_subcategory_id?: string | null;
   temp_product_images?: string[];
   temp_min_stock_level?: number;
-  // Media Player specific fields
   is_media_player?: boolean;
   media_player_id?: string | null;
   cms_type_id?: string;
@@ -49,9 +48,11 @@ interface DeliveryCartProps {
   onRemoveItem: (itemId: string) => void;
   onClearCart: () => void;
   onEditItem?: (item: DeliveryCartItem) => void;
+  selectedIds: Set<string>;
+  onSelectedIdsChange: (ids: Set<string>) => void;
 }
 
-export function DeliveryCart({ items, onRemoveItem, onClearCart, onEditItem }: DeliveryCartProps) {
+export function DeliveryCart({ items, onRemoveItem, onClearCart, onEditItem, selectedIds, onSelectedIdsChange }: DeliveryCartProps) {
   const [viewItem, setViewItem] = useState<DeliveryCartItem | null>(null);
   const [showViewDialog, setShowViewDialog] = useState(false);
 
@@ -61,11 +62,40 @@ export function DeliveryCart({ items, onRemoveItem, onClearCart, onEditItem }: D
 
   const totalQuantity = items.reduce((sum, item) => sum + item.quantity, 0);
   const totalValue = items.reduce((sum, item) => sum + (item.unit_price || 0) * item.quantity, 0);
+  const selectedCount = selectedIds.size;
+  const allSelected = selectedCount === items.length;
+
+  const handleToggleAll = () => {
+    if (allSelected) {
+      onSelectedIdsChange(new Set());
+    } else {
+      onSelectedIdsChange(new Set(items.map(i => i.id)));
+    }
+  };
+
+  const handleToggleItem = (itemId: string) => {
+    const next = new Set(selectedIds);
+    if (next.has(itemId)) {
+      next.delete(itemId);
+    } else {
+      next.add(itemId);
+    }
+    onSelectedIdsChange(next);
+  };
+
+  const handleDeleteSelected = () => {
+    selectedIds.forEach(id => onRemoveItem(id));
+    onSelectedIdsChange(new Set());
+  };
 
   const handleViewItem = (item: DeliveryCartItem) => {
     setViewItem(item);
     setShowViewDialog(true);
   };
+
+  const selectedItems = items.filter(i => selectedIds.has(i.id));
+  const selectedTotalQty = selectedItems.reduce((s, i) => s + i.quantity, 0);
+  const selectedTotalValue = selectedItems.reduce((s, i) => s + (i.unit_price || 0) * i.quantity, 0);
 
   return (
     <>
@@ -76,15 +106,28 @@ export function DeliveryCart({ items, onRemoveItem, onClearCart, onEditItem }: D
               <ShoppingCart className="h-5 w-5" />
               ตะกร้าสินค้านำเข้า ({items.length} รายการ)
             </CardTitle>
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              onClick={onClearCart}
-              className="text-destructive hover:text-destructive"
-            >
-              <Trash2 className="h-4 w-4 mr-1" />
-              ล้างตะกร้า
-            </Button>
+            <div className="flex items-center gap-2">
+              {selectedCount > 0 && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleDeleteSelected}
+                  className="text-destructive hover:text-destructive"
+                >
+                  <Trash2 className="h-4 w-4 mr-1" />
+                  ลบที่เลือก ({selectedCount})
+                </Button>
+              )}
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={onClearCart}
+                className="text-destructive hover:text-destructive"
+              >
+                <Trash2 className="h-4 w-4 mr-1" />
+                ล้างตะกร้า
+              </Button>
+            </div>
           </div>
         </CardHeader>
         <CardContent>
@@ -92,6 +135,13 @@ export function DeliveryCart({ items, onRemoveItem, onClearCart, onEditItem }: D
             <Table>
               <TableHeader>
                 <TableRow className="bg-muted/50">
+                  <TableHead className="w-[40px]">
+                    <Checkbox
+                      checked={allSelected}
+                      onCheckedChange={handleToggleAll}
+                      aria-label="เลือกทั้งหมด"
+                    />
+                  </TableHead>
                   <TableHead className="w-[40px]">#</TableHead>
                   <TableHead>สินค้า</TableHead>
                   <TableHead>จำนวน</TableHead>
@@ -104,7 +154,13 @@ export function DeliveryCart({ items, onRemoveItem, onClearCart, onEditItem }: D
               </TableHeader>
               <TableBody>
                 {items.map((item, index) => (
-                  <TableRow key={item.id}>
+                  <TableRow key={item.id} className={selectedIds.has(item.id) ? "bg-primary/5" : ""}>
+                    <TableCell>
+                      <Checkbox
+                        checked={selectedIds.has(item.id)}
+                        onCheckedChange={() => handleToggleItem(item.id)}
+                      />
+                    </TableCell>
                     <TableCell className="font-medium">{index + 1}</TableCell>
                     <TableCell>
                       <div className="flex flex-col">
@@ -184,7 +240,12 @@ export function DeliveryCart({ items, onRemoveItem, onClearCart, onEditItem }: D
                           variant="ghost"
                           size="icon"
                           className="h-8 w-8 text-destructive hover:text-destructive"
-                          onClick={() => onRemoveItem(item.id)}
+                          onClick={() => {
+                            onRemoveItem(item.id);
+                            const next = new Set(selectedIds);
+                            next.delete(item.id);
+                            onSelectedIdsChange(next);
+                          }}
                           title="ลบ"
                         >
                           <Trash2 className="h-4 w-4" />
@@ -198,23 +259,41 @@ export function DeliveryCart({ items, onRemoveItem, onClearCart, onEditItem }: D
           </div>
           
           {/* Summary */}
-          <div className="mt-4 flex justify-between items-center p-3 bg-muted rounded-lg">
-            <div className="flex gap-6">
-              <div className="text-sm">
-                <span className="text-muted-foreground">รวม: </span>
-                <span className="font-semibold">{items.length} รายการ</span>
-              </div>
-              <div className="text-sm">
-                <span className="text-muted-foreground">จำนวนรวม: </span>
-                <span className="font-semibold">{totalQuantity} ชิ้น</span>
-              </div>
-              {totalValue > 0 && (
+          <div className="mt-4 flex flex-col gap-2 p-3 bg-muted rounded-lg">
+            <div className="flex justify-between items-center">
+              <div className="flex gap-6">
                 <div className="text-sm">
-                  <span className="text-muted-foreground">มูลค่ารวม: </span>
-                  <span className="font-semibold text-primary">฿{totalValue.toLocaleString()}</span>
+                  <span className="text-muted-foreground">ทั้งหมด: </span>
+                  <span className="font-semibold">{items.length} รายการ</span>
                 </div>
-              )}
+                <div className="text-sm">
+                  <span className="text-muted-foreground">จำนวนรวม: </span>
+                  <span className="font-semibold">{totalQuantity} ชิ้น</span>
+                </div>
+                {totalValue > 0 && (
+                  <div className="text-sm">
+                    <span className="text-muted-foreground">มูลค่ารวม: </span>
+                    <span className="font-semibold text-primary">฿{totalValue.toLocaleString()}</span>
+                  </div>
+                )}
+              </div>
             </div>
+            {selectedCount > 0 && (
+              <div className="flex items-center gap-4 pt-2 border-t border-border">
+                <Badge variant="outline" className="text-primary border-primary">
+                  <CheckSquare className="w-3 h-3 mr-1" />
+                  เลือก {selectedCount} รายการ
+                </Badge>
+                <span className="text-sm text-muted-foreground">
+                  จำนวน {selectedTotalQty} ชิ้น
+                </span>
+                {selectedTotalValue > 0 && (
+                  <span className="text-sm font-medium text-primary">
+                    มูลค่า ฿{selectedTotalValue.toLocaleString()}
+                  </span>
+                )}
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -231,7 +310,6 @@ export function DeliveryCart({ items, onRemoveItem, onClearCart, onEditItem }: D
           
           {viewItem && (
             <div className="space-y-4 py-4">
-              {/* Product Info */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="text-xs text-muted-foreground">รหัสสินค้า</label>
@@ -270,7 +348,6 @@ export function DeliveryCart({ items, onRemoveItem, onClearCart, onEditItem }: D
                 </div>
               </div>
 
-              {/* Lot & Serial */}
               <div className="grid grid-cols-3 gap-4 p-3 bg-muted/50 rounded-lg">
                 <div>
                   <label className="text-xs text-muted-foreground">Lot Number 1</label>
@@ -286,7 +363,6 @@ export function DeliveryCart({ items, onRemoveItem, onClearCart, onEditItem }: D
                 </div>
               </div>
 
-              {/* Supplier & Dates */}
               <div className="grid grid-cols-3 gap-4">
                 <div>
                   <label className="text-xs text-muted-foreground">ผู้จัดจำหน่าย</label>
@@ -302,7 +378,6 @@ export function DeliveryCart({ items, onRemoveItem, onClearCart, onEditItem }: D
                 </div>
               </div>
 
-              {/* Dimensions */}
               <div className="grid grid-cols-4 gap-4 p-3 bg-muted/50 rounded-lg">
                 <div>
                   <label className="text-xs text-muted-foreground">กว้าง (m)</label>
@@ -322,7 +397,6 @@ export function DeliveryCart({ items, onRemoveItem, onClearCart, onEditItem }: D
                 </div>
               </div>
 
-              {/* Asset Info */}
               {viewItem.is_asset && (
                 <div className="p-3 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-lg">
                   <h4 className="font-medium text-amber-700 dark:text-amber-400 mb-3 flex items-center gap-2">
@@ -357,7 +431,6 @@ export function DeliveryCart({ items, onRemoveItem, onClearCart, onEditItem }: D
                 </div>
               )}
 
-              {/* Notes */}
               {viewItem.notes && (
                 <div>
                   <label className="text-xs text-muted-foreground">หมายเหตุ</label>
