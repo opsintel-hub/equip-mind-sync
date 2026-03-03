@@ -104,6 +104,7 @@ const DeliveryEntry = () => {
 
   // Cart items
   const [cartItems, setCartItems] = useState<DeliveryCartItem[]>([]);
+  const [selectedCartIds, setSelectedCartIds] = useState<Set<string>>(new Set());
   const [editingItem, setEditingItem] = useState<DeliveryCartItem | null>(null);
   const [showEditDialog, setShowEditDialog] = useState(false);
 
@@ -487,6 +488,7 @@ const DeliveryEntry = () => {
         serial_number_2: serialNumber2
       };
       setCartItems([...cartItems, newItem]);
+      setSelectedCartIds(prev => new Set([...prev, newItem.id]));
     } else {
       // Regular equipment validation
       if (!selectedEquipmentId) {
@@ -547,6 +549,7 @@ const DeliveryEntry = () => {
         temp_min_stock_level: !selectedEquipmentId ? (parseInt(minStockLevel) || 0) : undefined,
       };
       setCartItems([...cartItems, newItem]);
+      setSelectedCartIds(prev => new Set([...prev, newItem.id]));
     }
 
     // Reset item form
@@ -592,6 +595,11 @@ const DeliveryEntry = () => {
   };
   const handleRemoveFromCart = (itemId: string) => {
     setCartItems(cartItems.filter(item => item.id !== itemId));
+    setSelectedCartIds(prev => {
+      const next = new Set(prev);
+      next.delete(itemId);
+      return next;
+    });
     toast.success("ลบรายการออกจากตะกร้าแล้ว");
   };
   const handleEditItem = (item: DeliveryCartItem) => {
@@ -603,11 +611,16 @@ const DeliveryEntry = () => {
   };
   const handleClearCart = () => {
     setCartItems([]);
+    setSelectedCartIds(new Set());
     toast.success("ล้างตะกร้าแล้ว");
   };
   const handleSubmitAll = async () => {
-    if (cartItems.length === 0) {
-      toast.error("กรุณาเพิ่มสินค้าลงตะกร้าอย่างน้อย 1 รายการ");
+    const itemsToSubmit = selectedCartIds.size > 0 
+      ? cartItems.filter(item => selectedCartIds.has(item.id))
+      : cartItems;
+    
+    if (itemsToSubmit.length === 0) {
+      toast.error("กรุณาเลือกรายการที่ต้องการส่งเข้าระบบ");
       return;
     }
     if (!deliveryPersonName || !selectedCompanyId || !selectedDepartmentId) {
@@ -650,7 +663,7 @@ const DeliveryEntry = () => {
       const allDocumentUrls = [additionalDocUrl, additionalImageUrl].filter(Boolean).join(', ');
 
       // Insert all items with the same document number
-      const itemsToInsert = cartItems.map((item, index) => ({
+      const itemsToInsert = itemsToSubmit.map((item, index) => ({
         document_no: `${docNo}-${(index + 1).toString().padStart(2, "0")}`,
         department_id: selectedDepartmentId,
         company_id: selectedCompanyId,
@@ -701,25 +714,32 @@ const DeliveryEntry = () => {
         error
       } = await supabase.from("goods_receipt_pending").insert(itemsToInsert as any);
       if (error) throw error;
-      toast.success(`บันทึกข้อมูลสินค้าสำเร็จ ${cartItems.length} รายการ รอเจ้าหน้าที่คลังรับเข้า`);
+      toast.success(`บันทึกข้อมูลสินค้าสำเร็จ ${itemsToSubmit.length} รายการ รอเจ้าหน้าที่คลังรับเข้า`);
 
-      // Reset all forms
-      setCartItems([]);
-      setSelectedReceiptPurposeId("");
-      setSelectedDepartmentId("");
-      setSelectedCompanyId("");
-      setDeliveryPersonName("");
-      setDeliveryPersonPhone("");
-      setPoNumber("");
-      setPrNumber("");
-      setPurchaseDocumentFile(null);
-      setAdditionalDocumentFile(null);
-      setAdditionalImageFile(null);
-      setHeaderNotes("");
+      // Remove submitted items from cart, keep unsubmitted
+      const submittedIds = new Set(itemsToSubmit.map(i => i.id));
+      const remainingItems = cartItems.filter(i => !submittedIds.has(i.id));
+      setCartItems(remainingItems);
+      setSelectedCartIds(new Set());
+      
+      // Only reset header fields if all items were submitted (cart is now empty)
+      if (remainingItems.length === 0) {
+        setSelectedReceiptPurposeId("");
+        setSelectedDepartmentId("");
+        setSelectedCompanyId("");
+        setDeliveryPersonName("");
+        setDeliveryPersonPhone("");
+        setPoNumber("");
+        setPrNumber("");
+        setPurchaseDocumentFile(null);
+        setAdditionalDocumentFile(null);
+        setAdditionalImageFile(null);
+        setHeaderNotes("");
+        if (additionalDocFileInputRef.current) additionalDocFileInputRef.current.value = "";
+        if (additionalImageFileInputRef.current) additionalImageFileInputRef.current.value = "";
+        if (purchaseFileInputRef.current) purchaseFileInputRef.current.value = "";
+      }
       resetItemForm();
-      if (additionalDocFileInputRef.current) additionalDocFileInputRef.current.value = "";
-      if (additionalImageFileInputRef.current) additionalImageFileInputRef.current.value = "";
-      if (purchaseFileInputRef.current) purchaseFileInputRef.current.value = "";
       fetchPendingReceipts();
     } catch (error) {
       console.error("Error:", error);
@@ -765,7 +785,7 @@ const DeliveryEntry = () => {
       <DeliveryCartItemEditDialog item={editingItem} open={showEditDialog} onOpenChange={setShowEditDialog} onSave={handleSaveEditItem} equipment={equipment} suppliers={suppliers} />
 
       {/* Cart Display */}
-      <DeliveryCart items={cartItems} onRemoveItem={handleRemoveFromCart} onClearCart={handleClearCart} onEditItem={handleEditItem} />
+      <DeliveryCart items={cartItems} onRemoveItem={handleRemoveFromCart} onClearCart={handleClearCart} onEditItem={handleEditItem} selectedIds={selectedCartIds} onSelectedIdsChange={setSelectedCartIds} />
 
       <Card>
         <CardHeader>
@@ -1112,8 +1132,8 @@ const DeliveryEntry = () => {
                 </div>
               </div>
 
-              {/* Serial Number & Unit Price */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Serial Number & Unit Price & Total Amount */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="serialNumber">Serial Number</Label>
                   <Input id="serialNumber" placeholder="SN-xxxxx" value={serialNumber} onChange={e => setSerialNumber(e.target.value)} />
@@ -1121,6 +1141,23 @@ const DeliveryEntry = () => {
                 <div className="space-y-2">
                   <Label htmlFor="unitPrice">ราคาต่อชิ้น (บาท) *</Label>
                   <Input id="unitPrice" type="number" step="0.01" placeholder="0.00" value={unitPrice} onChange={e => setUnitPrice(e.target.value)} required />
+                </div>
+                <div className="space-y-2">
+                  <Label>จำนวนเงินทั้งหมด (บาท)</Label>
+                  <Input 
+                    readOnly 
+                    value={
+                      (parseFloat(unitPrice) || 0) > 0 && (parseInt(quantity) || 0) > 0
+                        ? `฿${((parseFloat(unitPrice) || 0) * (parseInt(quantity) || 0)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                        : "-"
+                    } 
+                    className="bg-muted font-medium text-primary" 
+                  />
+                  {(parseInt(quantity) || 0) > 1 && (parseFloat(unitPrice) || 0) > 0 && (
+                    <p className="text-xs text-muted-foreground">
+                      {parseInt(quantity)} ชิ้น × ฿{parseFloat(unitPrice).toLocaleString()} = ฿{((parseFloat(unitPrice) || 0) * (parseInt(quantity) || 0)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </p>
+                  )}
                 </div>
               </div>
 
@@ -1303,8 +1340,8 @@ const DeliveryEntry = () => {
               <Textarea id="headerNotes" placeholder="รายละเอียดเพิ่มเติมสำหรับเอกสารนี้..." value={headerNotes} onChange={e => setHeaderNotes(e.target.value)} rows={2} />
             </div>
 
-            {/* Submit All Button */}
-            <Button type="button" className="w-full" disabled={isLoading || isUploadingFile || cartItems.length === 0} onClick={handleSubmitAll}>
+            {/* Submit Button */}
+            <Button type="button" className="w-full" disabled={isLoading || isUploadingFile || cartItems.length === 0 || (selectedCartIds.size === 0 && cartItems.length > 0)} onClick={handleSubmitAll}>
               {isUploadingFile ? <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                   กำลังอัปโหลดเอกสาร...
@@ -1313,7 +1350,10 @@ const DeliveryEntry = () => {
                   กำลังบันทึก...
                 </> : <>
                   <Send className="w-4 h-4 mr-2" />
-                  ส่งทั้งหมด ({cartItems.length} รายการ)
+                  {selectedCartIds.size > 0 
+                    ? `ส่งรายการที่เลือก (${selectedCartIds.size} รายการ)`
+                    : `กรุณาเลือกรายการในตะกร้า`
+                  }
                 </>}
             </Button>
           </div>
