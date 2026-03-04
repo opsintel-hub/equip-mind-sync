@@ -21,6 +21,7 @@ import { useTablePagination } from "@/hooks/useTablePagination";
 import { TablePagination } from "@/components/TablePagination";
 import { DeliveryCart, DeliveryCartItem } from "@/components/delivery/DeliveryCart";
 import { DeliveryCartItemEditDialog } from "@/components/delivery/DeliveryCartItemEditDialog";
+import { DocumentUploadField } from "@/components/media-player/DocumentUploadField";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { useAllowedDepartments } from "@/hooks/useAllowedDepartments";
 interface Equipment {
@@ -115,9 +116,13 @@ const DeliveryEntry = () => {
   const [deliveryPersonName, setDeliveryPersonName] = useState("");
   const [deliveryPersonPhone, setDeliveryPersonPhone] = useState("");
 
-  // PO/PR fields for "นำเข้าจากการซื้อ"
+  // PO/PR/Invoice fields for "นำเข้าจากการซื้อ"
   const [poNumber, setPoNumber] = useState("");
   const [prNumber, setPrNumber] = useState("");
+  const [invoiceNumber, setInvoiceNumber] = useState("");
+  const [poDocumentUrl, setPoDocumentUrl] = useState("");
+  const [prDocumentUrl, setPrDocumentUrl] = useState("");
+  const [invoiceDocumentUrl, setInvoiceDocumentUrl] = useState("");
   const [purchaseDocumentFile, setPurchaseDocumentFile] = useState<File | null>(null);
   const purchaseFileInputRef = useRef<HTMLInputElement>(null);
 
@@ -634,9 +639,9 @@ const DeliveryEntry = () => {
       return;
     }
 
-    // Validate PO/PR for "นำเข้าจากการซื้อ"
-    if (isPurchaseReceipt && !poNumber && !prNumber) {
-      toast.error("กรุณากรอกเลข PO หรือเลข PR อย่างน้อย 1 รายการ");
+    // Validate PO/PR/Invoice for "นำเข้าจากการซื้อ"
+    if (isPurchaseReceipt && !poNumber && !prNumber && !invoiceNumber) {
+      toast.error("กรุณากรอกเลข PO, PR หรือ Invoice อย่างน้อย 1 รายการ");
       return;
     }
     setIsLoading(true);
@@ -659,8 +664,8 @@ const DeliveryEntry = () => {
       }
       setIsUploadingFile(false);
 
-      // Combine all document URLs
-      const allDocumentUrls = [additionalDocUrl, additionalImageUrl].filter(Boolean).join(', ');
+      // Combine all document URLs (including PO/PR/Invoice uploaded URLs)
+      const allDocumentUrls = [additionalDocUrl, additionalImageUrl, poDocumentUrl, prDocumentUrl, invoiceDocumentUrl].filter(Boolean).join(', ');
 
       // Insert all items with the same document number
       const itemsToInsert = itemsToSubmit.map((item, index) => ({
@@ -700,7 +705,7 @@ const DeliveryEntry = () => {
         depreciation_months: item.depreciation_months ? parseInt(item.depreciation_months) : null,
         po_number: poNumber || null,
         pr_number: prNumber || null,
-        purchase_document_url: purchaseDocumentUrl,
+        purchase_document_url: purchaseDocumentUrl || (poDocumentUrl || prDocumentUrl || invoiceDocumentUrl ? [poDocumentUrl, prDocumentUrl, invoiceDocumentUrl].filter(Boolean).join(', ') : null),
         // Media Player specific fields
         is_media_player: item.is_media_player || false,
         media_player_id: item.media_player_id || null,
@@ -731,6 +736,10 @@ const DeliveryEntry = () => {
         setDeliveryPersonPhone("");
         setPoNumber("");
         setPrNumber("");
+        setInvoiceNumber("");
+        setPoDocumentUrl("");
+        setPrDocumentUrl("");
+        setInvoiceDocumentUrl("");
         setPurchaseDocumentFile(null);
         setAdditionalDocumentFile(null);
         setAdditionalImageFile(null);
@@ -784,8 +793,7 @@ const DeliveryEntry = () => {
       {/* Edit Item Dialog */}
       <DeliveryCartItemEditDialog item={editingItem} open={showEditDialog} onOpenChange={setShowEditDialog} onSave={handleSaveEditItem} equipment={equipment} suppliers={suppliers} />
 
-      {/* Cart Display */}
-      <DeliveryCart items={cartItems} onRemoveItem={handleRemoveFromCart} onClearCart={handleClearCart} onEditItem={handleEditItem} selectedIds={selectedCartIds} onSelectedIdsChange={setSelectedCartIds} />
+      {/* Cart Display - moved to just above submit button */}
 
       <Card>
         <CardHeader>
@@ -865,39 +873,42 @@ const DeliveryEntry = () => {
                 {!selectedReceiptPurposeId && <p className="text-xs text-destructive">กรุณาเลือกวัตถุประสงค์การนำสินค้าเข้า</p>}
               </div>
               
-              {/* PO/PR fields for "นำเข้าจากการซื้อ" */}
+              {/* PO/PR/Invoice fields for "นำเข้าจากการซื้อ" */}
               {isPurchaseReceipt && <div className="mt-4 p-4 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-lg space-y-4">
                   <h4 className="font-medium text-sm text-amber-700 dark:text-amber-400">
-                    ข้อมูล PO/PR (กรอกอย่างน้อย 1 รายการ) *
+                    PO / PR / Invoice (กรอกอย่างน้อย 1 รายการ) *
                   </h4>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="poNumber">เลข PO (Purchase Order)</Label>
-                      <Input id="poNumber" placeholder="กรอกเลข PO..." value={poNumber} onChange={e => setPoNumber(e.target.value)} />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="prNumber">เลข PR (Purchase Request)</Label>
-                      <Input id="prNumber" placeholder="กรอกเลข PR..." value={prNumber} onChange={e => setPrNumber(e.target.value)} />
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>เอกสาร PO/PR (รองรับ PDF และรูปภาพ)</Label>
-                    <div className="flex items-center gap-2">
-                      <input type="file" ref={purchaseFileInputRef} onChange={handlePurchaseFileSelect} accept=".pdf,.jpg,.jpeg,.png" className="hidden" />
-                      <Button type="button" variant="outline" onClick={() => purchaseFileInputRef.current?.click()} className="flex items-center gap-2">
-                        <Upload className="w-4 h-4" />
-                        เลือกไฟล์เอกสาร
-                      </Button>
-                      {purchaseDocumentFile && <div className="flex items-center gap-2 px-3 py-1.5 bg-muted rounded-md">
-                          <FileText className="w-4 h-4 text-muted-foreground" />
-                          <span className="text-sm truncate max-w-[200px]">
-                            {purchaseDocumentFile.name}
-                          </span>
-                          <Button type="button" variant="ghost" size="icon" className="h-6 w-6" onClick={removePurchaseFile}>
-                            <X className="w-4 h-4" />
-                          </Button>
-                        </div>}
-                    </div>
+                  <p className="text-xs text-amber-600/80 dark:text-amber-500/80">
+                    💡 กรอกเลขที่เอกสารก่อนแล้วค่อยอัปโหลดไฟล์ ระบบจะตั้งชื่อไฟล์ตามเลขที่กรอกโดยอัตโนมัติ
+                  </p>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <DocumentUploadField
+                      label="เลข PO"
+                      numberValue={poNumber}
+                      onNumberChange={setPoNumber}
+                      documentUrl={poDocumentUrl}
+                      onDocumentUploaded={setPoDocumentUrl}
+                      onDocumentRemoved={() => setPoDocumentUrl("")}
+                      placeholder="PO Number"
+                    />
+                    <DocumentUploadField
+                      label="เลข PR"
+                      numberValue={prNumber}
+                      onNumberChange={setPrNumber}
+                      documentUrl={prDocumentUrl}
+                      onDocumentUploaded={setPrDocumentUrl}
+                      onDocumentRemoved={() => setPrDocumentUrl("")}
+                      placeholder="PR Number"
+                    />
+                    <DocumentUploadField
+                      label="Invoice No."
+                      numberValue={invoiceNumber}
+                      onNumberChange={setInvoiceNumber}
+                      documentUrl={invoiceDocumentUrl}
+                      onDocumentUploaded={setInvoiceDocumentUrl}
+                      onDocumentRemoved={() => setInvoiceDocumentUrl("")}
+                      placeholder="Invoice Number"
+                    />
                   </div>
                 </div>}
             </div>
@@ -1339,6 +1350,9 @@ const DeliveryEntry = () => {
               <Label htmlFor="headerNotes">หมายเหตุเอกสาร</Label>
               <Textarea id="headerNotes" placeholder="รายละเอียดเพิ่มเติมสำหรับเอกสารนี้..." value={headerNotes} onChange={e => setHeaderNotes(e.target.value)} rows={2} />
             </div>
+
+            {/* Cart Display - just above submit */}
+            <DeliveryCart items={cartItems} onRemoveItem={handleRemoveFromCart} onClearCart={handleClearCart} onEditItem={handleEditItem} selectedIds={selectedCartIds} onSelectedIdsChange={setSelectedCartIds} />
 
             {/* Submit Button */}
             <Button type="button" className="w-full" disabled={isLoading || isUploadingFile || cartItems.length === 0 || (selectedCartIds.size === 0 && cartItems.length > 0)} onClick={handleSubmitAll}>
