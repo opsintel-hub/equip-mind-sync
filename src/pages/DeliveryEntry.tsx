@@ -15,7 +15,7 @@ import { EquipmentImageUpload } from "@/components/equipment/EquipmentImageUploa
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
-import { CompanySelect } from "@/components/company/CompanySelect";
+
 import { DeliveryImport } from "@/components/delivery/DeliveryImport";
 import { useTablePagination } from "@/hooks/useTablePagination";
 import { TablePagination } from "@/components/TablePagination";
@@ -629,7 +629,7 @@ const DeliveryEntry = () => {
       return;
     }
     if (!deliveryPersonName || !selectedCompanyId || !selectedDepartmentId) {
-      toast.error("กรุณากรอกข้อมูลให้ครบถ้วน (ฝ่าย, บริษัท, ชื่อผู้ส่ง)");
+      toast.error("กรุณากรอกข้อมูลให้ครบถ้วน (ฝ่าย, ผู้จัดจำหน่าย, ชื่อผู้ส่ง)");
       return;
     }
 
@@ -671,7 +671,7 @@ const DeliveryEntry = () => {
       const itemsToInsert = itemsToSubmit.map((item, index) => ({
         document_no: `${docNo}-${(index + 1).toString().padStart(2, "0")}`,
         department_id: selectedDepartmentId,
-        company_id: selectedCompanyId,
+        company_id: null,
         warehouse_id: null,
         receipt_purpose_id: selectedReceiptPurposeId || null,
         equipment_id: item.is_media_player ? null : item.equipment_id,
@@ -679,8 +679,8 @@ const DeliveryEntry = () => {
         equipment_name: item.equipment_name || null,
         quantity: item.quantity,
         unit: item.unit,
-        supplier_id: item.supplier_id,
-        supplier_name: item.supplier_name || null,
+        supplier_id: selectedCompanyId || item.supplier_id,
+        supplier_name: (selectedCompanyId ? suppliers.find(s => s.id === selectedCompanyId)?.name : item.supplier_name) || null,
         lot_number: item.lot_number_1 || null,
         lot_number_2: item.lot_number_2 || null,
         serial_number: item.serial_number || null,
@@ -825,8 +825,19 @@ const DeliveryEntry = () => {
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="company">บริษัทที่สั่งซื้อ *</Label>
-                  <CompanySelect value={selectedCompanyId} onChange={setSelectedCompanyId} placeholder="เลือกบริษัท..." required departmentId={selectedDepartmentId || undefined} />
+                  <Label htmlFor="company">ผู้จัดจำหน่าย *</Label>
+                  <SearchableSelect
+                    options={suppliers.map(s => ({
+                      value: s.id,
+                      label: `${s.code} - ${s.name}`,
+                      description: s.vendor_code ? `Vendor: ${s.vendor_code}` : undefined,
+                    }))}
+                    value={selectedCompanyId}
+                    onValueChange={setSelectedCompanyId}
+                    placeholder="เลือกผู้จัดจำหน่าย..."
+                    searchPlaceholder="ค้นหาด้วยรหัส, ชื่อ, หรือ Vendor Code..."
+                    emptyMessage="ไม่พบผู้จัดจำหน่าย"
+                  />
                 </div>
               </div>
               
