@@ -766,65 +766,67 @@ export default function StockCard() {
                 <p>ไม่พบข้อมูลความเคลื่อนไหว</p>
               </div>
             ) : (
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="w-[120px]">วันที่</TableHead>
-                      <TableHead className="w-[140px]">ประเภท</TableHead>
-                      <TableHead>รายละเอียด</TableHead>
-                      <TableHead className="text-right w-[70px]">จำนวน</TableHead>
-                      <TableHead className="text-center w-[120px]">สต็อก ก่อน→หลัง</TableHead>
-                      <TableHead className="w-[90px]">สภาพ</TableHead>
-                      <TableHead className="text-right w-[80px]">ระยะเวลา</TableHead>
-                      <TableHead className="w-[130px]">เอกสาร</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {paginatedTimeline.map((ev, idx) => {
-                      const meta = getMovementMeta(ev.type === "install" ? "install_to_billboard" : ev.type === "uninstall" ? "return_from_billboard" : ev.type);
-                      const condMeta = ev.condition ? getConditionMeta(ev.condition) : null;
-                      return (
-                        <TableRow key={idx}>
-                          <TableCell className="text-xs font-mono whitespace-nowrap">
-                            {format(parseISO(ev.date), "dd/MM/yy HH:mm", { locale: th })}
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant="outline" className={`text-xs gap-1 ${meta.color}`}>
-                              <meta.icon className="w-3 h-3" />
-                              {meta.label}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="text-sm max-w-[200px] truncate">{ev.detail}</TableCell>
-                          <TableCell className="text-right font-medium">{ev.quantity}</TableCell>
-                          <TableCell className="text-center text-xs font-mono">
-                            {ev.stock_before !== undefined ? `${ev.stock_before} → ${ev.stock_after}` : "-"}
-                          </TableCell>
-                          <TableCell>
-                            {condMeta ? (
-                              <Badge variant="outline" className={`text-xs ${condMeta.color}`}>{condMeta.label}</Badge>
-                            ) : <span className="text-muted-foreground text-xs">-</span>}
-                          </TableCell>
-                          <TableCell className="text-right text-xs">
-                            {ev.duration_days !== null && ev.duration_days !== undefined ? (
-                              <span className="text-muted-foreground">{ev.duration_days} วัน</span>
-                            ) : "-"}
-                          </TableCell>
-                          <TableCell className="text-xs truncate max-w-[130px]">{ev.document || "-"}</TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
-              </div>
-              <TablePagination
-                currentPage={tlPage}
-                totalPages={tlTotalPages}
-                totalItems={tlTotalItems}
-                pageSize={tlPageSize}
-                onPageChange={tlPageChange}
-                onPageSizeChange={tlPageSizeChange}
-              />
+              <>
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="w-[120px]">วันที่</TableHead>
+                        <TableHead className="w-[140px]">ประเภท</TableHead>
+                        <TableHead>รายละเอียด</TableHead>
+                        <TableHead className="text-right w-[70px]">จำนวน</TableHead>
+                        <TableHead className="text-center w-[120px]">สต็อก ก่อน→หลัง</TableHead>
+                        <TableHead className="w-[90px]">สภาพ</TableHead>
+                        <TableHead className="text-right w-[80px]">ระยะเวลา</TableHead>
+                        <TableHead className="w-[130px]">เอกสาร</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {paginatedTimeline.map((ev, idx) => {
+                        const meta = getMovementMeta(ev.type === "install" ? "install_to_billboard" : ev.type === "uninstall" ? "return_from_billboard" : ev.type);
+                        const condMeta = ev.condition ? getConditionMeta(ev.condition) : null;
+                        return (
+                          <TableRow key={idx}>
+                            <TableCell className="text-xs font-mono whitespace-nowrap">
+                              {format(parseISO(ev.date), "dd/MM/yy HH:mm", { locale: th })}
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant="outline" className={`text-xs gap-1 ${meta.color}`}>
+                                <meta.icon className="w-3 h-3" />
+                                {meta.label}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="text-sm max-w-[200px] truncate">{ev.detail}</TableCell>
+                            <TableCell className="text-right font-medium">{ev.quantity}</TableCell>
+                            <TableCell className="text-center text-xs font-mono">
+                              {ev.stock_before !== undefined ? `${ev.stock_before} → ${ev.stock_after}` : "-"}
+                            </TableCell>
+                            <TableCell>
+                              {condMeta ? (
+                                <Badge variant="outline" className={`text-xs ${condMeta.color}`}>{condMeta.label}</Badge>
+                              ) : <span className="text-muted-foreground text-xs">-</span>}
+                            </TableCell>
+                            <TableCell className="text-right text-xs">
+                              {ev.duration_days !== null && ev.duration_days !== undefined ? (
+                                <span className="text-muted-foreground">{ev.duration_days} วัน</span>
+                              ) : "-"}
+                            </TableCell>
+                            <TableCell className="text-xs truncate max-w-[130px]">{ev.document || "-"}</TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </div>
+                <TablePagination
+                  currentPage={tlPage}
+                  totalPages={tlTotalPages}
+                  totalItems={tlTotalItems}
+                  pageSize={tlPageSize}
+                  onPageChange={tlPageChange}
+                  onPageSizeChange={tlPageSizeChange}
+                />
+              </>
             )}
           </CardContent>
         </Card>
