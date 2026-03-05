@@ -31,6 +31,9 @@ interface ImportRow {
   expiry_date?: string;
   warranty_expiry_date?: string;
   notes?: string;
+  is_asset?: boolean;
+  asset_code?: string;
+  equipment_id_code?: string;
 }
 
 export function EquipmentImport({ onSuccess }: EquipmentImportProps) {
