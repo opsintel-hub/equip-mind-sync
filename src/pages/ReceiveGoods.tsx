@@ -441,7 +441,7 @@ const ReceiveGoods = () => {
         // Fetch current Media Player stock FIRST
         const { data: currentMediaPlayer, error: fetchMpError } = await supabase
           .from("media_players")
-          .select("quantity, code, name")
+          .select("quantity, code, name, department")
           .eq("id", (selectedReceipt as any).media_player_id)
           .single();
 
@@ -451,13 +451,19 @@ const ReceiveGoods = () => {
         const newStock = currentStock + receivedQuantity;
 
         // Update Media Player stock and location (same as equipment)
-        const { error: mpError } = await supabase
-              .from("media_players")
-              .update({
+        const mpDeptName = getDepartmentName(selectedReceipt.department_id);
+        const mpUpdatePayload: Record<string, any> = {
                 quantity: newStock,
                 location_id: storageLocation.locationId,
                 item_condition: itemCondition,
-              })
+              };
+        // Propagate department if item currently has none
+        if (!currentMediaPlayer?.department && mpDeptName) {
+          mpUpdatePayload.department = mpDeptName;
+        }
+        const { error: mpError } = await supabase
+              .from("media_players")
+              .update(mpUpdatePayload)
               .eq("id", (selectedReceipt as any).media_player_id);
 
         if (mpError) {
@@ -485,7 +491,7 @@ const ReceiveGoods = () => {
         // Fetch current equipment stock FIRST
         const { data: currentEquipment, error: fetchError } = await supabase
           .from("equipment")
-          .select("quantity_in_stock")
+          .select("quantity_in_stock, department")
           .eq("id", selectedReceipt.equipment_id)
           .single();
 
@@ -513,14 +519,19 @@ const ReceiveGoods = () => {
         if (grError) throw grError;
 
         // Update equipment stock - ADD to existing stock
-        const { error: stockError } = await supabase
-          .from("equipment")
-          .update({
+        const eqDeptName = getDepartmentName(selectedReceipt.department_id);
+        const eqUpdatePayload: Record<string, any> = {
             quantity_in_stock: newStock,
             location_id: storageLocation.locationId,
             expiry_date: selectedReceipt.expiry_date || null,
             item_condition: itemCondition,
-          })
+          };
+        if (!currentEquipment?.department && eqDeptName) {
+          eqUpdatePayload.department = eqDeptName;
+        }
+        const { error: stockError } = await supabase
+          .from("equipment")
+          .update(eqUpdatePayload)
           .eq("id", selectedReceipt.equipment_id);
 
         if (stockError) {
@@ -609,7 +620,7 @@ const ReceiveGoods = () => {
             // Fetch current Media Player stock
             const { data: currentMediaPlayer, error: fetchMpError } = await supabase
               .from("media_players")
-              .select("quantity, code, name")
+              .select("quantity, code, name, department")
               .eq("id", (receipt as any).media_player_id)
               .single();
 
@@ -618,14 +629,18 @@ const ReceiveGoods = () => {
             const currentMpStock = currentMediaPlayer?.quantity || 0;
             const newMpStock = currentMpStock + receivedQuantity;
 
-            // Update Media Player stock and location (same as equipment)
-            const { error: mpError } = await supabase
-              .from("media_players")
-              .update({
+            const batchMpDept = getDepartmentName(receipt.department_id);
+            const batchMpPayload: Record<string, any> = {
                 quantity: newMpStock,
                 location_id: storageLocation.locationId,
                 item_condition: itemCondition,
-              })
+              };
+            if (!currentMediaPlayer?.department && batchMpDept) {
+              batchMpPayload.department = batchMpDept;
+            }
+            const { error: mpError } = await supabase
+              .from("media_players")
+              .update(batchMpPayload)
               .eq("id", (receipt as any).media_player_id);
 
             if (!mpError) {
@@ -649,7 +664,7 @@ const ReceiveGoods = () => {
             // Fetch current equipment stock
             const { data: currentEquipment, error: fetchError } = await supabase
               .from("equipment")
-              .select("quantity_in_stock")
+              .select("quantity_in_stock, department")
               .eq("id", receipt.equipment_id!)
               .single();
 
@@ -676,15 +691,19 @@ const ReceiveGoods = () => {
 
             if (grError) throw grError;
 
-            // Update equipment stock
-            const { error: stockError } = await supabase
-              .from("equipment")
-              .update({
+            const batchEqDept = getDepartmentName(receipt.department_id);
+            const batchEqPayload: Record<string, any> = {
                 quantity_in_stock: newStock,
                 location_id: storageLocation.locationId,
                 expiry_date: receipt.expiry_date || null,
                 item_condition: itemCondition,
-              })
+              };
+            if (!currentEquipment?.department && batchEqDept) {
+              batchEqPayload.department = batchEqDept;
+            }
+            const { error: stockError } = await supabase
+              .from("equipment")
+              .update(batchEqPayload)
               .eq("id", receipt.equipment_id!);
 
             if (!stockError) {
