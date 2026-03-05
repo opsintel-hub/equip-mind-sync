@@ -79,6 +79,7 @@ const IssueRequest = () => {
   
   // Cart items - multiple items per request
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
+  const [selectedCartIds, setSelectedCartIds] = useState<Set<string>>(new Set());
   
   // Header form data
   const [headerData, setHeaderData] = useState({
