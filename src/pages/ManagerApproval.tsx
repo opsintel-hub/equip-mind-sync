@@ -17,6 +17,7 @@ import { th } from "date-fns/locale";
 import { useAuth } from "@/hooks/useAuth";
 import { DatePickerWithRange } from "@/components/ui/date-range-picker";
 import { DateRange } from "react-day-picker";
+import { DepartmentMultiFilter } from "@/components/DepartmentMultiFilter";
 
 const ManagerApproval = () => {
   const queryClient = useQueryClient();
@@ -27,18 +28,10 @@ const ManagerApproval = () => {
   const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
   const [approvalNotes, setApprovalNotes] = useState("");
   const [expandedRequests, setExpandedRequests] = useState<Set<string>>(new Set());
-  const [departmentFilter, setDepartmentFilter] = useState("all");
+  const [departmentFilter, setDepartmentFilter] = useState<string[]>([]);
   const [companyFilter, setCompanyFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
-
-  const { data: departments } = useQuery({
-    queryKey: ["ma-departments"],
-    queryFn: async () => {
-      const { data } = await supabase.from("departments").select("name").eq("is_active", true).order("name");
-      return data?.map((d: any) => d.name) || [];
-    },
-  });
 
   const { data: companies } = useQuery({
     queryKey: ["ma-companies"],
@@ -187,7 +180,7 @@ const ManagerApproval = () => {
             !req.requester_name?.toLowerCase().includes(term) &&
             !req.equipment_name?.toLowerCase().includes(term)) return false;
       }
-      if (departmentFilter !== "all" && req.requester_department !== departmentFilter) return false;
+      if (departmentFilter.length > 0 && !departmentFilter.includes(req.requester_department)) return false;
       if (companyFilter !== "all" && req.company_id !== companyFilter) return false;
       if (dateRange?.from) {
         const d = new Date(req.created_at);
@@ -326,13 +319,7 @@ const ManagerApproval = () => {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input placeholder="ค้นหา..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-10" />
             </div>
-            <Select value={departmentFilter} onValueChange={setDepartmentFilter}>
-              <SelectTrigger><SelectValue placeholder="ฝ่าย" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">ทุกฝ่าย</SelectItem>
-                {departments?.map((d: string) => <SelectItem key={d} value={d}>{d}</SelectItem>)}
-              </SelectContent>
-            </Select>
+            <DepartmentMultiFilter value={departmentFilter} onChange={setDepartmentFilter} />
             <Select value={companyFilter} onValueChange={setCompanyFilter}>
               <SelectTrigger><SelectValue placeholder="บริษัท" /></SelectTrigger>
               <SelectContent>

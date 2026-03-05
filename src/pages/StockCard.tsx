@@ -24,6 +24,10 @@ import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
 import { toast } from "@/hooks/use-toast";
+import { useTablePagination } from "@/hooks/useTablePagination";
+import { TablePagination } from "@/components/TablePagination";
+import { DepartmentMultiFilter } from "@/components/DepartmentMultiFilter";
+import { useDepartmentPermissions } from "@/hooks/useDepartmentPermissions";
 
 // ── Types ──────────────────────────────────────────────────────
 interface EquipmentItem {
@@ -148,6 +152,9 @@ export default function StockCard() {
   const [filterTypes, setFilterTypes] = useState<string[]>([]);
   const [filterMovements, setFilterMovements] = useState<string[]>([]);
   const [filterConditions, setFilterConditions] = useState<string[]>([]);
+  const [filterDepartments, setFilterDepartments] = useState<string[]>([]);
+  const { getViewableDepartments, isAdmin } = useDepartmentPermissions();
+  const viewableDepts = getViewableDepartments();
 
   // ── Fetch all items for search ──
   const { data: allItems = [] } = useQuery({
@@ -191,13 +198,17 @@ export default function StockCard() {
     return allItems
       .filter(i => {
         if (filterTypes.length > 0 && !filterTypes.includes(i.type)) return false;
+        // Department permission filter
+        if (!isAdmin && i.department && !viewableDepts.includes(i.department)) return false;
+        // Department multi-select filter
+        if (filterDepartments.length > 0 && (!i.department || !filterDepartments.includes(i.department))) return false;
         const match = i.code.toLowerCase().includes(q) || i.name.toLowerCase().includes(q) ||
           (i.serial_number && i.serial_number.toLowerCase().includes(q)) ||
           (i.serial_number_2 && i.serial_number_2.toLowerCase().includes(q));
         return match;
       })
       .slice(0, 20);
-  }, [searchText, allItems, filterTypes]);
+  }, [searchText, allItems, filterTypes, filterDepartments, isAdmin, viewableDepts]);
 
   const selectedItem = useMemo(() => {
     if (!selectedItemId) return null;
@@ -322,7 +333,17 @@ export default function StockCard() {
     });
   }, [timeline, filterMovements, filterConditions]);
 
-  // ── Billboard Journey ──
+  // ── Timeline pagination ──
+  const {
+    paginatedData: paginatedTimeline,
+    currentPage: tlPage,
+    pageSize: tlPageSize,
+    totalPages: tlTotalPages,
+    totalItems: tlTotalItems,
+    handlePageChange: tlPageChange,
+    handlePageSizeChange: tlPageSizeChange,
+  } = useTablePagination(filteredTimeline, 20);
+
   const journeys: BillboardJourney[] = useMemo(() => {
     return billboardHistory.map((h: any) => {
       const bbName = h.billboards?.equipment_id || h.billboards?.location_name || "-";
@@ -610,7 +631,7 @@ export default function StockCard() {
           </div>
 
           {/* Filters row */}
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+          <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
             <MultiSelectFilter
               label="ประเภทสินค้า"
               options={ITEM_TYPES.map(t => ({ value: t.value, label: t.label }))}
@@ -629,6 +650,10 @@ export default function StockCard() {
               selected={filterConditions}
               onChange={setFilterConditions}
             />
+            <div>
+              <Label className="text-xs font-medium text-muted-foreground mb-1 block">ฝ่าย</Label>
+              <DepartmentMultiFilter value={filterDepartments} onChange={setFilterDepartments} />
+            </div>
             <div className="col-span-2">
               <Label className="text-xs font-medium text-muted-foreground mb-1 block">ช่วงวันที่</Label>
               <DatePickerWithRange date={dateRange} onDateChange={setDateRange} />
@@ -741,57 +766,67 @@ export default function StockCard() {
                 <p>ไม่พบข้อมูลความเคลื่อนไหว</p>
               </div>
             ) : (
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="w-[120px]">วันที่</TableHead>
-                      <TableHead className="w-[140px]">ประเภท</TableHead>
-                      <TableHead>รายละเอียด</TableHead>
-                      <TableHead className="text-right w-[70px]">จำนวน</TableHead>
-                      <TableHead className="text-center w-[120px]">สต็อก ก่อน→หลัง</TableHead>
-                      <TableHead className="w-[90px]">สภาพ</TableHead>
-                      <TableHead className="text-right w-[80px]">ระยะเวลา</TableHead>
-                      <TableHead className="w-[130px]">เอกสาร</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredTimeline.map((ev, idx) => {
-                      const meta = getMovementMeta(ev.type === "install" ? "install_to_billboard" : ev.type === "uninstall" ? "return_from_billboard" : ev.type);
-                      const condMeta = ev.condition ? getConditionMeta(ev.condition) : null;
-                      return (
-                        <TableRow key={idx}>
-                          <TableCell className="text-xs font-mono whitespace-nowrap">
-                            {format(parseISO(ev.date), "dd/MM/yy HH:mm", { locale: th })}
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant="outline" className={`text-xs gap-1 ${meta.color}`}>
-                              <meta.icon className="w-3 h-3" />
-                              {meta.label}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="text-sm max-w-[200px] truncate">{ev.detail}</TableCell>
-                          <TableCell className="text-right font-medium">{ev.quantity}</TableCell>
-                          <TableCell className="text-center text-xs font-mono">
-                            {ev.stock_before !== undefined ? `${ev.stock_before} → ${ev.stock_after}` : "-"}
-                          </TableCell>
-                          <TableCell>
-                            {condMeta ? (
-                              <Badge variant="outline" className={`text-xs ${condMeta.color}`}>{condMeta.label}</Badge>
-                            ) : <span className="text-muted-foreground text-xs">-</span>}
-                          </TableCell>
-                          <TableCell className="text-right text-xs">
-                            {ev.duration_days !== null && ev.duration_days !== undefined ? (
-                              <span className="text-muted-foreground">{ev.duration_days} วัน</span>
-                            ) : "-"}
-                          </TableCell>
-                          <TableCell className="text-xs truncate max-w-[130px]">{ev.document || "-"}</TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
-              </div>
+              <>
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="w-[120px]">วันที่</TableHead>
+                        <TableHead className="w-[140px]">ประเภท</TableHead>
+                        <TableHead>รายละเอียด</TableHead>
+                        <TableHead className="text-right w-[70px]">จำนวน</TableHead>
+                        <TableHead className="text-center w-[120px]">สต็อก ก่อน→หลัง</TableHead>
+                        <TableHead className="w-[90px]">สภาพ</TableHead>
+                        <TableHead className="text-right w-[80px]">ระยะเวลา</TableHead>
+                        <TableHead className="w-[130px]">เอกสาร</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {paginatedTimeline.map((ev, idx) => {
+                        const meta = getMovementMeta(ev.type === "install" ? "install_to_billboard" : ev.type === "uninstall" ? "return_from_billboard" : ev.type);
+                        const condMeta = ev.condition ? getConditionMeta(ev.condition) : null;
+                        return (
+                          <TableRow key={idx}>
+                            <TableCell className="text-xs font-mono whitespace-nowrap">
+                              {format(parseISO(ev.date), "dd/MM/yy HH:mm", { locale: th })}
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant="outline" className={`text-xs gap-1 ${meta.color}`}>
+                                <meta.icon className="w-3 h-3" />
+                                {meta.label}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="text-sm max-w-[200px] truncate">{ev.detail}</TableCell>
+                            <TableCell className="text-right font-medium">{ev.quantity}</TableCell>
+                            <TableCell className="text-center text-xs font-mono">
+                              {ev.stock_before !== undefined ? `${ev.stock_before} → ${ev.stock_after}` : "-"}
+                            </TableCell>
+                            <TableCell>
+                              {condMeta ? (
+                                <Badge variant="outline" className={`text-xs ${condMeta.color}`}>{condMeta.label}</Badge>
+                              ) : <span className="text-muted-foreground text-xs">-</span>}
+                            </TableCell>
+                            <TableCell className="text-right text-xs">
+                              {ev.duration_days !== null && ev.duration_days !== undefined ? (
+                                <span className="text-muted-foreground">{ev.duration_days} วัน</span>
+                              ) : "-"}
+                            </TableCell>
+                            <TableCell className="text-xs truncate max-w-[130px]">{ev.document || "-"}</TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </div>
+                <TablePagination
+                  currentPage={tlPage}
+                  totalPages={tlTotalPages}
+                  totalItems={tlTotalItems}
+                  pageSize={tlPageSize}
+                  onPageChange={tlPageChange}
+                  onPageSizeChange={tlPageSizeChange}
+                />
+              </>
             )}
           </CardContent>
         </Card>

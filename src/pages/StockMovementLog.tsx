@@ -12,23 +12,16 @@ import { useTablePagination } from "@/hooks/useTablePagination";
 import { TablePagination } from "@/components/TablePagination";
 import { DatePickerWithRange } from "@/components/ui/date-range-picker";
 import { DateRange } from "react-day-picker";
+import { DepartmentMultiFilter } from "@/components/DepartmentMultiFilter";
 
 export default function StockMovementLog() {
   const [searchTerm, setSearchTerm] = useState("");
   const [typeFilter, setTypeFilter] = useState<string>("all");
-  const [departmentFilter, setDepartmentFilter] = useState("all");
+  const [departmentFilter, setDepartmentFilter] = useState<string[]>([]);
   const [companyFilter, setCompanyFilter] = useState("all");
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
   const [selectedGroup, setSelectedGroup] = useState<GroupedMovement | null>(null);
   const [isDocumentDialogOpen, setIsDocumentDialogOpen] = useState(false);
-
-  const { data: departments } = useQuery({
-    queryKey: ["sml-departments"],
-    queryFn: async () => {
-      const { data } = await supabase.from("departments").select("name").eq("is_active", true).order("name");
-      return data?.map((d: any) => d.name) || [];
-    },
-  });
 
   const { data: companiesList } = useQuery({
     queryKey: ["sml-companies"],
@@ -64,8 +57,8 @@ export default function StockMovementLog() {
 
     // Apply client-side filters
     let filtered = movements;
-    if (departmentFilter !== "all") {
-      filtered = filtered.filter((m: any) => m.department === departmentFilter);
+    if (departmentFilter.length > 0) {
+      filtered = filtered.filter((m: any) => departmentFilter.includes(m.department));
     }
     if (companyFilter !== "all") {
       filtered = filtered.filter((m: any) => m.company_id === companyFilter);
@@ -147,13 +140,7 @@ export default function StockMovementLog() {
                 <SelectItem value="defective_return">นำของเสียเข้า</SelectItem>
               </SelectContent>
             </Select>
-            <Select value={departmentFilter} onValueChange={(v) => { setDepartmentFilter(v); handlePageChange(1); }}>
-              <SelectTrigger><SelectValue placeholder="ฝ่าย" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">ทุกฝ่าย</SelectItem>
-                {departments?.map((d: string) => <SelectItem key={d} value={d}>{d}</SelectItem>)}
-              </SelectContent>
-            </Select>
+            <DepartmentMultiFilter value={departmentFilter} onChange={(v) => { setDepartmentFilter(v); handlePageChange(1); }} />
             <Select value={companyFilter} onValueChange={(v) => { setCompanyFilter(v); handlePageChange(1); }}>
               <SelectTrigger><SelectValue placeholder="บริษัท" /></SelectTrigger>
               <SelectContent>

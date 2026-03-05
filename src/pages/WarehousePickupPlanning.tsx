@@ -11,10 +11,11 @@ import { format, isToday, isTomorrow, parseISO } from "date-fns";
 import { th } from "date-fns/locale";
 import { DatePickerWithRange } from "@/components/ui/date-range-picker";
 import { DateRange } from "react-day-picker";
+import { DepartmentMultiFilter } from "@/components/DepartmentMultiFilter";
 
 const WarehousePickupPlanning = () => {
   const [pickupTypeFilter, setPickupTypeFilter] = useState("all");
-  const [departmentFilter, setDepartmentFilter] = useState("all");
+  const [departmentFilter, setDepartmentFilter] = useState<string[]>([]);
   const [statusFilter, setStatusFilter] = useState("all");
   const [searchTerm, setSearchTerm] = useState("");
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
@@ -32,13 +33,6 @@ const WarehousePickupPlanning = () => {
     },
   });
 
-  const { data: departments } = useQuery({
-    queryKey: ["planning-departments"],
-    queryFn: async () => {
-      const { data } = await supabase.from("departments").select("name").eq("is_active", true).order("name");
-      return data?.map((d: any) => d.name) || [];
-    },
-  });
 
   // Items per request
   const { data: allItems } = useQuery({
@@ -70,7 +64,7 @@ const WarehousePickupPlanning = () => {
     let filtered = [...requests];
 
     if (pickupTypeFilter !== "all") filtered = filtered.filter((r: any) => r.pickup_type === pickupTypeFilter);
-    if (departmentFilter !== "all") filtered = filtered.filter((r: any) => r.requester_department === departmentFilter);
+    if (departmentFilter.length > 0) filtered = filtered.filter((r: any) => departmentFilter.includes(r.requester_department));
     if (statusFilter !== "all") filtered = filtered.filter((r: any) => r.status === statusFilter);
     if (searchTerm) {
       const term = searchTerm.toLowerCase();
@@ -196,13 +190,7 @@ const WarehousePickupPlanning = () => {
                 <SelectItem value="delivery">จัดส่ง</SelectItem>
               </SelectContent>
             </Select>
-            <Select value={departmentFilter} onValueChange={setDepartmentFilter}>
-              <SelectTrigger><SelectValue placeholder="ฝ่าย" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">ทุกฝ่าย</SelectItem>
-                {departments?.map((d: string) => <SelectItem key={d} value={d}>{d}</SelectItem>)}
-              </SelectContent>
-            </Select>
+            <DepartmentMultiFilter value={departmentFilter} onChange={setDepartmentFilter} />
             <Select value={statusFilter} onValueChange={setStatusFilter}>
               <SelectTrigger><SelectValue placeholder="สถานะ" /></SelectTrigger>
               <SelectContent>
