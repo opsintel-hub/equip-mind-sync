@@ -86,6 +86,7 @@ interface MediaPlayer {
 }
 
 const MediaPlayerEntry = () => {
+  const { getViewableDepartments, isAdmin, loading: deptLoading } = useDepartmentPermissions();
   const [searchTerm, setSearchTerm] = useState("");
   const [mediaPlayers, setMediaPlayers] = useState<MediaPlayer[]>([]);
   const [isLoading, setIsLoading] = useState(false);
