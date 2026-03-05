@@ -12,6 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Search, CheckCircle, AlertTriangle, Camera, Upload, Package, Truck, Eye, X, Store, CalendarClock } from "lucide-react";
+import { DepartmentMultiFilter } from "@/components/DepartmentMultiFilter";
 import { format } from "date-fns";
 import { th } from "date-fns/locale";
 import { useAuth } from "@/hooks/useAuth";
