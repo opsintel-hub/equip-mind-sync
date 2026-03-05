@@ -389,11 +389,16 @@ const WaitingStockRequests = () => {
   };
 
   const filteredRequests = waitingRequests?.filter(
-    (req) =>
-      req.document_no?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      req.equipment_code?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      req.equipment_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      req.requester_name?.toLowerCase().includes(searchTerm.toLowerCase())
+    (req) => {
+      const term = searchTerm.toLowerCase();
+      if (!term) return true;
+      if (req.document_no?.toLowerCase().includes(term) ||
+          req.equipment_code?.toLowerCase().includes(term) ||
+          req.equipment_name?.toLowerCase().includes(term) ||
+          req.requester_name?.toLowerCase().includes(term)) return true;
+      const items = itemsByRequest.get(req.id) || [];
+      return items.some((item: any) => item.serial_number?.toLowerCase().includes(term));
+    }
   );
 
   const requestsWithStock = useMemo(() => {
@@ -451,7 +456,7 @@ const WaitingStockRequests = () => {
             <div className="relative flex-1 max-w-sm">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="ค้นหาเลขที่เอกสาร, รหัส, ชื่อสินค้า..."
+                placeholder="ค้นหาเลขที่เอกสาร, รหัส, ชื่อสินค้า, S/N..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-10"

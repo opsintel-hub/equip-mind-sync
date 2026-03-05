@@ -405,11 +405,16 @@ const IncompleteIssues = () => {
   };
 
   const filteredIssues = incompleteIssues?.issues.filter(
-    (issue) =>
-      issue.document_no?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      issue.equipment_code?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      issue.equipment_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      issue.requester_name?.toLowerCase().includes(searchTerm.toLowerCase())
+    (issue) => {
+      const term = searchTerm.toLowerCase();
+      if (!term) return true;
+      if (issue.document_no?.toLowerCase().includes(term) ||
+          issue.equipment_code?.toLowerCase().includes(term) ||
+          issue.equipment_name?.toLowerCase().includes(term) ||
+          issue.requester_name?.toLowerCase().includes(term)) return true;
+      const items = itemsByIssue.get(issue.id) || [];
+      return items.some((item: any) => item.serial_number?.toLowerCase().includes(term));
+    }
   ) || [];
 
   const billboardIssues = filteredIssues.filter(i => getIssueType(i) === "billboard");
@@ -468,7 +473,7 @@ const IncompleteIssues = () => {
               <div className="relative flex-1 max-w-sm">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder="ค้นหาเลขที่เอกสาร, รหัส, ชื่อสินค้า..."
+                  placeholder="ค้นหาเลขที่เอกสาร, รหัส, ชื่อสินค้า, S/N..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-10"
