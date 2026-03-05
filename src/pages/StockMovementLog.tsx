@@ -58,6 +58,18 @@ export default function StockMovementLog() {
 
     // Apply client-side filters
     let filtered = movements;
+    // Client-side S/N search (since serial_number is on the joined equipment table)
+    if (searchTerm) {
+      const term = searchTerm.toLowerCase();
+      filtered = filtered.filter((m: any) => {
+        const sn = m.equipment?.serial_number || "";
+        return sn.toLowerCase().includes(term) ||
+          m.equipment_code?.toLowerCase().includes(term) ||
+          m.equipment_name?.toLowerCase().includes(term) ||
+          m.reference_document?.toLowerCase().includes(term) ||
+          m.notes?.toLowerCase().includes(term);
+      });
+    }
     if (departmentFilter.length > 0) {
       filtered = filtered.filter((m: any) => departmentFilter.includes(m.department));
     }

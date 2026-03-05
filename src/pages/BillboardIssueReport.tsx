@@ -102,7 +102,8 @@ const BillboardIssueReport = () => {
     const matchesSearch = 
       item.equipment?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       item.equipment?.code?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.billboard?.equipment_id?.toLowerCase().includes(searchTerm.toLowerCase());
+      item.billboard?.equipment_id?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (item.equipment as any)?.serial_number?.toLowerCase().includes(searchTerm.toLowerCase());
     return matchesBillboard && matchesRegion && matchesSearch;
   });
 
