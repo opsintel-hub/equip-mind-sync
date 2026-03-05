@@ -501,6 +501,7 @@ const IssueRequest = () => {
           requester_phone: "",
           requester_department: "",
           notes: "",
+          pickup_type: "scheduled",
           pickup_date: "",
           pickup_time: "",
         });
