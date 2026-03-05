@@ -457,25 +457,30 @@ export default function InventoryReport() {
     return map;
   }, [issueData, billboards, billboardEquipment]);
 
-  // Combine equipment, tools and media player data with issue information
+  // Combine equipment, tools and media player data with issue information + serial fallback
   const combinedData = useMemo(() => {
     const allData = [...equipmentData, ...toolsData, ...mediaPlayerData];
-    
-    // Enhance with issue data
+
     return allData.map((item): InventoryItem => {
       const issueInfo = issueMap[item.id];
-      
-      let issueStatus: 'in_stock' | 'issued' | 'partial' = 'in_stock';
+      const fallbackSerial = item.item_type === "equipment"
+        ? receiptSerialMaps.equipmentSerialMap[item.id]
+        : item.item_type === "media_player"
+          ? receiptSerialMaps.mediaSerialMap[item.id]
+          : null;
+
+      let issueStatus: "in_stock" | "issued" | "partial" = "in_stock";
       if (issueInfo) {
         if (issueInfo.issued_quantity >= item.quantity_in_stock + issueInfo.issued_quantity) {
-          issueStatus = 'issued';
+          issueStatus = "issued";
         } else if (issueInfo.issued_quantity > 0) {
-          issueStatus = 'partial';
+          issueStatus = "partial";
         }
       }
-      
+
       return {
         ...item,
+        serial_number: item.serial_number || fallbackSerial || null,
         issue_status: issueStatus,
         issue_purpose: issueInfo?.purpose || null,
         issue_billboard_code: issueInfo?.billboard_code || null,
@@ -483,7 +488,7 @@ export default function InventoryReport() {
         issued_quantity: issueInfo?.issued_quantity || 0,
       };
     });
-  }, [equipmentData, toolsData, mediaPlayerData, issueMap]);
+  }, [equipmentData, toolsData, mediaPlayerData, issueMap, receiptSerialMaps]);
 
   const isLoading = isLoadingEquipment || isLoadingTools || isLoadingMediaPlayers;
 
