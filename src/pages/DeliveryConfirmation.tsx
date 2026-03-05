@@ -198,7 +198,7 @@ const DeliveryConfirmation = () => {
           <Truck className="h-6 w-6" />
           ยืนยันรับสินค้า
         </h1>
-        <p className="text-muted-foreground">ยืนยันการรับสินค้าที่จัดส่ง พร้อมแจ้งปัญหาและแนบหลักฐาน</p>
+        <p className="text-muted-foreground">ยืนยันการรับสินค้าหลังจ่ายทุกกรณี พร้อมแจ้งปัญหาและแนบหลักฐาน</p>
       </div>
 
       <Card>
