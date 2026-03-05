@@ -519,14 +519,19 @@ const ReceiveGoods = () => {
         if (grError) throw grError;
 
         // Update equipment stock - ADD to existing stock
-        const { error: stockError } = await supabase
-          .from("equipment")
-          .update({
+        const eqDeptName = getDepartmentName(selectedReceipt.department_id);
+        const eqUpdatePayload: Record<string, any> = {
             quantity_in_stock: newStock,
             location_id: storageLocation.locationId,
             expiry_date: selectedReceipt.expiry_date || null,
             item_condition: itemCondition,
-          })
+          };
+        if (!currentEquipment?.department && eqDeptName) {
+          eqUpdatePayload.department = eqDeptName;
+        }
+        const { error: stockError } = await supabase
+          .from("equipment")
+          .update(eqUpdatePayload)
           .eq("id", selectedReceipt.equipment_id);
 
         if (stockError) {
