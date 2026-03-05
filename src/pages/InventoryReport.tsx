@@ -29,6 +29,7 @@ interface InventoryItem {
   id: string;
   code: string;
   name: string;
+  serial_number?: string | null;
   category: string;
   brand: string | null;
   department: string | null;
@@ -108,6 +109,7 @@ export default function InventoryReport() {
           id,
           code,
           name,
+          serial_number,
           category,
           brand,
           department,
@@ -179,6 +181,7 @@ export default function InventoryReport() {
           id,
           code,
           name,
+          serial_number,
           brand,
           department,
           current_quantity,
@@ -219,6 +222,7 @@ export default function InventoryReport() {
         id: item.id,
         code: item.code,
         name: item.name,
+        serial_number: item.serial_number || null,
         category: item.tool_categories?.name || "เครื่องมือ",
         brand: item.brand,
         department: item.department,
@@ -256,6 +260,8 @@ export default function InventoryReport() {
           id,
           code,
           name,
+          serial_number_1,
+          serial_number_2,
           brand,
           department,
           quantity,
@@ -291,28 +297,33 @@ export default function InventoryReport() {
       if (error) throw error;
       
       // Transform to unified format
-      return (data || []).map((item): InventoryItem => ({
-        id: item.id,
-        code: item.code,
-        name: item.name,
-        category: "Media Player",
-        brand: item.brand,
-        department: item.department,
-        quantity_in_stock: item.quantity || 0,
-        min_stock_level: 0, // Media players don't have min stock
-        unit: item.unit,
-        unit_price: item.unit_price || 0,
-        company_id: item.company_id,
-        location_id: item.location_id,
-        subcategory_id: null,
-        expiry_date: null, // Media players don't have expiry date
-        warranty_expiry_date: item.warranty_expiry_date,
-        companies: item.companies as InventoryItem["companies"],
-        locations: item.locations as InventoryItem["locations"],
-        subcategories: null,
-        item_type: 'media_player' as const,
-        item_condition: item.item_condition || 'normal',
-      }));
+      return (data || []).map((item: any): InventoryItem => {
+        const snParts = [item.serial_number_1, item.serial_number_2].filter(Boolean);
+        const serial_number = snParts.length > 0 ? snParts.join(' / ') : null;
+        return {
+          id: item.id,
+          code: item.code,
+          name: item.name,
+          serial_number,
+          category: "Media Player",
+          brand: item.brand,
+          department: item.department,
+          quantity_in_stock: item.quantity || 0,
+          min_stock_level: 0,
+          unit: item.unit,
+          unit_price: item.unit_price || 0,
+          company_id: item.company_id,
+          location_id: item.location_id,
+          subcategory_id: null,
+          expiry_date: null,
+          warranty_expiry_date: item.warranty_expiry_date,
+          companies: item.companies as InventoryItem["companies"],
+          locations: item.locations as InventoryItem["locations"],
+          subcategories: null,
+          item_type: 'media_player' as const,
+          item_condition: item.item_condition || 'normal',
+        };
+      });
     },
     enabled: filters.itemType !== "equipment" && filters.itemType !== "tools",
   });
@@ -617,6 +628,7 @@ export default function InventoryReport() {
         ประเภท: itemTypeLabel,
         รหัส: item.code,
         ชื่อ: item.name,
+        "S/N": item.serial_number || "-",
         หมวดหมู่: item.category,
         หมวดหมู่ย่อย: subcategory?.name || "-",
         ยี่ห้อ: item.brand || "-",
@@ -761,6 +773,7 @@ export default function InventoryReport() {
                     <TableHead>ประเภท</TableHead>
                     <TableHead>รหัส</TableHead>
                     <TableHead>ชื่อ</TableHead>
+                    <TableHead>S/N</TableHead>
                     <TableHead>หมวดหมู่</TableHead>
                     <TableHead>หมวดหมู่ย่อย</TableHead>
                     <TableHead>บริษัท</TableHead>
@@ -779,13 +792,13 @@ export default function InventoryReport() {
                 <TableBody>
                   {isLoading ? (
                     <TableRow>
-                       <TableCell colSpan={17} className="text-center py-8">
+                       <TableCell colSpan={18} className="text-center py-8">
                         กำลังโหลด...
                       </TableCell>
                     </TableRow>
                   ) : paginatedData.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={17} className="text-center py-8 text-muted-foreground">
+                      <TableCell colSpan={18} className="text-center py-8 text-muted-foreground">
                         ไม่พบข้อมูล
                       </TableCell>
                     </TableRow>
@@ -842,6 +855,9 @@ export default function InventoryReport() {
                                 <div className="text-xs text-muted-foreground">{item.brand}</div>
                               )}
                             </div>
+                          </TableCell>
+                          <TableCell className="font-mono text-xs">
+                            {item.serial_number || <span className="text-muted-foreground">-</span>}
                           </TableCell>
                           <TableCell>{item.category}</TableCell>
                           <TableCell>
