@@ -28,18 +28,10 @@ const ManagerApproval = () => {
   const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
   const [approvalNotes, setApprovalNotes] = useState("");
   const [expandedRequests, setExpandedRequests] = useState<Set<string>>(new Set());
-  const [departmentFilter, setDepartmentFilter] = useState("all");
+  const [departmentFilter, setDepartmentFilter] = useState<string[]>([]);
   const [companyFilter, setCompanyFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
-
-  const { data: departments } = useQuery({
-    queryKey: ["ma-departments"],
-    queryFn: async () => {
-      const { data } = await supabase.from("departments").select("name").eq("is_active", true).order("name");
-      return data?.map((d: any) => d.name) || [];
-    },
-  });
 
   const { data: companies } = useQuery({
     queryKey: ["ma-companies"],
