@@ -421,6 +421,22 @@ const IssueRequest = () => {
       
       // Check if first item is a Media Player
       const firstItemIsMediaPlayer = itemsToSubmit[0]?.is_media_player || false;
+
+      // Check if any item is an asset (is_asset = true) to determine if approval is needed
+      let requiresApproval = false;
+      for (const item of itemsToSubmit) {
+        if (!item.is_media_player && item.equipment_id) {
+          const { data: eqData } = await supabase
+            .from("equipment")
+            .select("is_asset")
+            .eq("id", item.equipment_id)
+            .single();
+          if (eqData?.is_asset) {
+            requiresApproval = true;
+            break;
+          }
+        }
+      }
       
       // Create header record
       const { data: headerRecord, error: headerError } = await supabase
@@ -447,6 +463,9 @@ const IssueRequest = () => {
           is_complete: !selectedPurpose?.requires_billboard || itemsToSubmit.every(item => !!item.billboard_id),
           pickup_date: headerData.pickup_date || null,
           pickup_time: headerData.pickup_time || null,
+          requires_approval: requiresApproval,
+          approval_status: requiresApproval ? "pending" : "not_required",
+          status: requiresApproval ? "pending_approval" : "pending",
         } as any)
         .select()
         .single();
