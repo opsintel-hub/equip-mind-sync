@@ -1619,6 +1619,8 @@ export type Database = {
           media_player_id: string | null
           notes: string | null
           partial_issue_count: number | null
+          pickup_date: string | null
+          pickup_time: string | null
           purpose: string | null
           purpose_id: string | null
           quantity: number
@@ -1656,6 +1658,8 @@ export type Database = {
           media_player_id?: string | null
           notes?: string | null
           partial_issue_count?: number | null
+          pickup_date?: string | null
+          pickup_time?: string | null
           purpose?: string | null
           purpose_id?: string | null
           quantity: number
@@ -1693,6 +1697,8 @@ export type Database = {
           media_player_id?: string | null
           notes?: string | null
           partial_issue_count?: number | null
+          pickup_date?: string | null
+          pickup_time?: string | null
           purpose?: string | null
           purpose_id?: string | null
           quantity?: number
