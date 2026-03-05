@@ -596,6 +596,11 @@ export default function InventoryReport() {
         if (filters.issueStatus === "partial" && item.issue_status !== "partial") return false;
       }
 
+      // Filter by item condition
+      if (filters.itemCondition) {
+        if (item.item_condition !== filters.itemCondition) return false;
+      }
+
       // Global search across all key columns shown in report
       if (filters.search.trim()) {
         const term = filters.search.trim().toLowerCase();
