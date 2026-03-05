@@ -163,6 +163,15 @@ const MediaPlayerEntry = () => {
     fetchFiltersData();
   }, []);
 
+  // Auto-set department based on user permissions
+  useEffect(() => {
+    if (deptLoading) return;
+    const viewable = getViewableDepartments();
+    if (viewable.length === 1 && !formData.department) {
+      setFormData(prev => ({ ...prev, department: viewable[0] }));
+    }
+  }, [deptLoading, getViewableDepartments, formData.department]);
+
   const fetchFiltersData = async () => {
     const [cmsRes, compRes, statusRes, modelRes, deptRes] = await Promise.all([
       supabase.from("cms_types").select("id, name").eq("is_active", true).order("name"),
