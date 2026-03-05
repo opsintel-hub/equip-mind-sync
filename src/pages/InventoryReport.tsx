@@ -181,6 +181,7 @@ export default function InventoryReport() {
           id,
           code,
           name,
+          serial_number,
           brand,
           department,
           current_quantity,
