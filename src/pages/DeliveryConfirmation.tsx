@@ -47,13 +47,6 @@ const DeliveryConfirmation = () => {
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
   const [viewConfirmation, setViewConfirmation] = useState<any>(null);
 
-  const { data: departments } = useQuery({
-    queryKey: ["dc-departments"],
-    queryFn: async () => {
-      const { data } = await supabase.from("departments").select("name").eq("is_active", true).order("name");
-      return data?.map((d: any) => d.name) || [];
-    },
-  });
 
   // Fetch issued requests with delivery pickup_type
   const { data: deliveryRequests, isLoading } = useQuery({
