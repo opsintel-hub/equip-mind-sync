@@ -289,11 +289,12 @@ export default function InventoryReport() {
 
       const { data, error } = await query;
       if (error) throw error;
-      
+
       // Transform to unified format
       return (data || []).map((item: any): InventoryItem => {
         const snParts = [item.serial_number_1, item.serial_number_2].filter(Boolean);
-        const serial_number = snParts.length > 0 ? snParts.join(' / ') : null;
+        const serial_number = snParts.length > 0 ? snParts.join(" / ") : null;
+
         return {
           id: item.id,
           code: item.code,
@@ -314,9 +315,14 @@ export default function InventoryReport() {
           companies: item.companies as InventoryItem["companies"],
           locations: item.locations as InventoryItem["locations"],
           subcategories: null,
-          item_type: 'media_player' as const,
-          item_condition: item.item_condition || 'normal',
+          item_type: "media_player" as const,
+          item_condition: item.item_condition || "normal",
         };
+      });
+    },
+    enabled: filters.itemType !== "equipment" && filters.itemType !== "tools",
+  });
+
   // Fetch latest received serials for fallback (covers legacy rows where master serial was not updated)
   const { data: receivedSerials = [] } = useQuery({
     queryKey: ["inventory-received-serials"],
@@ -358,9 +364,6 @@ export default function InventoryReport() {
 
     return { equipmentSerialMap, mediaSerialMap };
   }, [receivedSerials]);
-    },
-    enabled: filters.itemType !== "equipment" && filters.itemType !== "tools",
-  });
 
   // Fetch issue data for equipment
   const { data: issueData = [] } = useQuery({
