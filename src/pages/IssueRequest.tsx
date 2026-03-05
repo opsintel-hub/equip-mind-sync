@@ -94,6 +94,8 @@ const IssueRequest = () => {
     requester_phone: "",
     requester_department: "",
     notes: "",
+    pickup_date: "",
+    pickup_time: "",
   });
 
   // Current item form data
@@ -441,7 +443,9 @@ const IssueRequest = () => {
           unit: itemsToSubmit[0]?.unit || "ชิ้น",
           billboard_id: itemsToSubmit[0]?.billboard_id || null,
           is_complete: !selectedPurpose?.requires_billboard || itemsToSubmit.every(item => !!item.billboard_id),
-        })
+          pickup_date: headerData.pickup_date || null,
+          pickup_time: headerData.pickup_time || null,
+        } as any)
         .select()
         .single();
 
@@ -495,6 +499,8 @@ const IssueRequest = () => {
           requester_phone: "",
           requester_department: "",
           notes: "",
+          pickup_date: "",
+          pickup_time: "",
         });
       }
     },
@@ -956,6 +962,31 @@ const IssueRequest = () => {
                     placeholder="ระบุจุดหมาย/สถานที่"
                   />
                 </div>
+                <div className="space-y-2">
+                  <Label htmlFor="pickup_date">วันที่ต้องการรับสินค้า</Label>
+                  <Input
+                    id="pickup_date"
+                    type="date"
+                    value={headerData.pickup_date}
+                    onChange={(e) => setHeaderData({ ...headerData, pickup_date: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="pickup_time">เวลาที่ต้องการรับสินค้า</Label>
+                  <Input
+                    id="pickup_time"
+                    type="time"
+                    value={headerData.pickup_time}
+                    onChange={(e) => setHeaderData({ ...headerData, pickup_time: e.target.value })}
+                  />
+                </div>
+                {(headerData.pickup_date || headerData.pickup_time) && (
+                  <div className="md:col-span-3">
+                    <p className="text-xs text-muted-foreground bg-muted/50 rounded-md px-3 py-2">
+                      💡 ระบุวันที่และเวลาล่วงหน้า เพื่อให้เจ้าหน้าที่คลังมีเวลาจัดเตรียมสินค้าให้พร้อมก่อนถึงเวลารับ
+                    </p>
+                  </div>
+                )}
                 <div className="space-y-2 md:col-span-2">
                   <Label htmlFor="notes">หมายเหตุ</Label>
                   <Textarea
@@ -1018,7 +1049,7 @@ const IssueRequest = () => {
                   </div>
                 </div>
                 <div className="space-y-2 md:col-span-2">
-                  <Label>ค้นหาจาก Serial Number</Label>
+                   <Label>ระบุ Serial Number เพื่อค้นหาสินค้าเฉพาะชิ้น</Label>
                   <SerialNumberSelect
                     value={currentItem.serial_number ? `equipment:${currentItem.equipment_id}:${currentItem.serial_number}` : ""}
                     onChange={handleSerialNumberSelect}
@@ -1313,6 +1344,11 @@ const IssueRequest = () => {
                             <div>{req.requester_name}</div>
                             {req.requester_department && (
                               <div className="text-sm text-muted-foreground">{req.requester_department}</div>
+                            )}
+                            {((req as any).pickup_date || (req as any).pickup_time) && (
+                              <div className="text-xs text-primary mt-1">
+                                📅 {(req as any).pickup_date ? format(new Date((req as any).pickup_date), "dd/MM/yyyy") : ""} {(req as any).pickup_time || ""}
+                              </div>
                             )}
                           </TableCell>
                           <TableCell>{req.purpose || "-"}</TableCell>
