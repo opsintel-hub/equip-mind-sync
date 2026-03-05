@@ -203,11 +203,6 @@ export default function InventoryReport() {
       if (filters.locationId) {
         query = query.eq("location_id", filters.locationId);
       }
-      if (filters.search) {
-        query = query.or(
-          `code.ilike.%${filters.search}%,name.ilike.%${filters.search}%,brand.ilike.%${filters.search}%,serial_number.ilike.%${filters.search}%`
-        );
-      }
 
       const { data, error } = await query;
       if (error) throw error;
