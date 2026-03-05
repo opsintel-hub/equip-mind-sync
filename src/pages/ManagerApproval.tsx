@@ -319,13 +319,7 @@ const ManagerApproval = () => {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input placeholder="ค้นหา..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-10" />
             </div>
-            <Select value={departmentFilter} onValueChange={setDepartmentFilter}>
-              <SelectTrigger><SelectValue placeholder="ฝ่าย" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">ทุกฝ่าย</SelectItem>
-                {departments?.map((d: string) => <SelectItem key={d} value={d}>{d}</SelectItem>)}
-              </SelectContent>
-            </Select>
+            <DepartmentMultiFilter value={departmentFilter} onChange={setDepartmentFilter} />
             <Select value={companyFilter} onValueChange={setCompanyFilter}>
               <SelectTrigger><SelectValue placeholder="บริษัท" /></SelectTrigger>
               <SelectContent>
