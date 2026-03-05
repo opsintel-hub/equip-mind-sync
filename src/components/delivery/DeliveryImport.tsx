@@ -224,6 +224,9 @@ export function DeliveryImport({ onSuccess }: DeliveryImportProps) {
           storage_width_cm: row["กว้าง (cm)"] ? Number(row["กว้าง (cm)"]) : undefined,
           storage_height_cm: row["สูง (cm)"] ? Number(row["สูง (cm)"]) : undefined,
           storage_depth_cm: row["ลึก (cm)"] ? Number(row["ลึก (cm)"]) : undefined,
+          invoice_number: row["เลขที่ Invoice"] || undefined,
+          delivery_note_number: row["เลขที่ใบส่งของ"] || undefined,
+          order_for_project: row["Order For Project"] || undefined,
           notes: row["หมายเหตุ"] || undefined
         });
       });
