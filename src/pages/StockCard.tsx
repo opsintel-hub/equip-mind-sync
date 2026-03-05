@@ -333,7 +333,17 @@ export default function StockCard() {
     });
   }, [timeline, filterMovements, filterConditions]);
 
-  // ── Billboard Journey ──
+  // ── Timeline pagination ──
+  const {
+    paginatedData: paginatedTimeline,
+    currentPage: tlPage,
+    pageSize: tlPageSize,
+    totalPages: tlTotalPages,
+    totalItems: tlTotalItems,
+    handlePageChange: tlPageChange,
+    handlePageSizeChange: tlPageSizeChange,
+  } = useTablePagination(filteredTimeline, 20);
+
   const journeys: BillboardJourney[] = useMemo(() => {
     return billboardHistory.map((h: any) => {
       const bbName = h.billboards?.equipment_id || h.billboards?.location_name || "-";
