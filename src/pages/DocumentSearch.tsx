@@ -80,6 +80,7 @@ export default function DocumentSearch() {
       const issueDocs: DocumentRecord[] = (issueData || []).map((item: any) => ({
         id: item.id, document_no: item.document_no, document_url: null,
         equipment_code: item.equipment_code, equipment_name: item.equipment_name,
+        serial_number: null,
         supplier_name: null, delivery_person_name: item.requester_name,
         quantity: 0, unit: "-", created_at: item.created_at,
         status: item.status, source: "issue" as const,
@@ -88,6 +89,7 @@ export default function DocumentSearch() {
       const dcDocs: DocumentRecord[] = (dcData || []).map((item: any) => ({
         id: item.id, document_no: item.document_no, document_url: null,
         equipment_code: null, equipment_name: null,
+        serial_number: null,
         supplier_name: null, delivery_person_name: null,
         quantity: 0, unit: "-", created_at: item.created_at,
         status: item.status, source: "delivery_confirm" as const,
