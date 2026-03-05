@@ -24,6 +24,10 @@ import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
 import { toast } from "@/hooks/use-toast";
+import { useTablePagination } from "@/hooks/useTablePagination";
+import { TablePagination } from "@/components/TablePagination";
+import { DepartmentMultiFilter } from "@/components/DepartmentMultiFilter";
+import { useDepartmentPermissions } from "@/hooks/useDepartmentPermissions";
 
 // ── Types ──────────────────────────────────────────────────────
 interface EquipmentItem {
