@@ -53,6 +53,7 @@ import BillboardPMPage from "./pages/BillboardPMPage";
 import DefectiveReturnEntry from "./pages/DefectiveReturnEntry";
 import DeliveryConfirmation from "./pages/DeliveryConfirmation";
 import ManagerApproval from "./pages/ManagerApproval";
+import WarehousePickupPlanning from "./pages/WarehousePickupPlanning";
 import DashboardLayout from "./components/DashboardLayout";
 import ProtectedRoute from "./components/ProtectedRoute";
 import NotFound from "./pages/NotFound";
