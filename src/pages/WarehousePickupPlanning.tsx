@@ -15,7 +15,7 @@ import { DepartmentMultiFilter } from "@/components/DepartmentMultiFilter";
 
 const WarehousePickupPlanning = () => {
   const [pickupTypeFilter, setPickupTypeFilter] = useState("all");
-  const [departmentFilter, setDepartmentFilter] = useState("all");
+  const [departmentFilter, setDepartmentFilter] = useState<string[]>([]);
   const [statusFilter, setStatusFilter] = useState("all");
   const [searchTerm, setSearchTerm] = useState("");
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
