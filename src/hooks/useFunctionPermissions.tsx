@@ -22,6 +22,8 @@ export const SYSTEM_FUNCTIONS = [
   { name: "ad_issue_request", label: "เบิกภาพโฆษณา", description: "สร้างคำขอเบิกภาพโฆษณา (สำหรับผู้เบิก)" },
   { name: "ad_warehouse", label: "คลังภาพโฆษณา", description: "รับเข้าคลัง + จ่ายภาพโฆษณาออก (สำหรับเจ้าหน้าที่คลัง)" },
   { name: "admin", label: "จัดการระบบ", description: "จัดการผู้ใช้และสิทธิ์" },
+  { name: "delivery_confirm", label: "ยืนยันรับสินค้า", description: "ยืนยันการรับสินค้าที่จัดส่งพร้อมแจ้งปัญหา" },
+  { name: "manager_approval", label: "อนุมัติเบิกทรัพย์สิน", description: "อนุมัติคำขอเบิกสินค้าที่เป็นทรัพย์สิน (เฉพาะ Manager)" },
 ];
 
 export function useFunctionPermissions() {

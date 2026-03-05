@@ -112,6 +112,8 @@ const App = () => (
              <Route path="/equipment-tracking" element={<ProtectedRoute><DashboardLayout><EquipmentTrackingReport /></DashboardLayout></ProtectedRoute>} />
             <Route path="/pm-billboard" element={<ProtectedRoute><DashboardLayout><BillboardPMPage /></DashboardLayout></ProtectedRoute>} />
             <Route path="/defective-return" element={<ProtectedRoute><DashboardLayout><DefectiveReturnEntry /></DashboardLayout></ProtectedRoute>} />
+            <Route path="/delivery-confirmation" element={<ProtectedRoute><DashboardLayout><DeliveryConfirmation /></DashboardLayout></ProtectedRoute>} />
+            <Route path="/manager-approval" element={<ProtectedRoute><DashboardLayout><ManagerApproval /></DashboardLayout></ProtectedRoute>} />
             {/* Public billboard view - no auth required */}
             <Route path="/billboard-view/:id" element={<BillboardPublicView />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

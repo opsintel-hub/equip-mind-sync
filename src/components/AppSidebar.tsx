@@ -138,6 +138,18 @@ const menuGroups: MenuGroup[] = [
         icon: Clock,
         functionName: "goods_issue",
       },
+      { 
+        title: "ยืนยันรับสินค้า", 
+        url: "/delivery-confirmation",
+        icon: Truck,
+        functionName: "delivery_confirm",
+      },
+      { 
+        title: "อนุมัติเบิกทรัพย์สิน", 
+        url: "/manager-approval",
+        icon: Shield,
+        functionName: "manager_approval",
+      },
       { title: "ประวัติการย้าย", url: "/transfer-history", icon: History, functionName: "transfer" },
     ]
   },
