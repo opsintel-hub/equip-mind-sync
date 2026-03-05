@@ -494,21 +494,14 @@ const IssueRequest = () => {
         .insert(itemsToInsert);
 
       if (itemsError) throw itemsError;
+      
+      return { requiresApproval };
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
       const submittedCount = selectedCartIds.size;
       const remainingItems = cartItems.filter(item => !selectedCartIds.has(item.id));
-      // Check if this request requires approval
-      const lastInsert = await supabase
-        .from("goods_issue_pending")
-        .select("requires_approval")
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .single();
       
-      const needsApproval = lastInsert.data?.requires_approval;
-      
-      if (needsApproval) {
+      if (result?.requiresApproval) {
         toast.success(`ส่งคำขอเบิกสำเร็จ (${submittedCount} รายการ) — รอผู้มีอำนาจอนุมัติ`, { duration: 5000 });
       } else {
         toast.success(`ส่งคำขอเบิกสำเร็จ (${submittedCount} รายการ)`);
