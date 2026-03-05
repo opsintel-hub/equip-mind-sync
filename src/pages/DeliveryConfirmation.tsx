@@ -223,13 +223,7 @@ const DeliveryConfirmation = () => {
                 <SelectItem value="issue_reported">แจ้งปัญหา</SelectItem>
               </SelectContent>
             </Select>
-            <Select value={departmentFilter} onValueChange={setDepartmentFilter}>
-              <SelectTrigger><SelectValue placeholder="ฝ่าย" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">ทุกฝ่าย</SelectItem>
-                {departments?.map((d: string) => <SelectItem key={d} value={d}>{d}</SelectItem>)}
-              </SelectContent>
-            </Select>
+            <DepartmentMultiFilter value={departmentFilter} onChange={setDepartmentFilter} />
             <DatePickerWithRange date={dateRange} onDateChange={setDateRange} />
           </div>
 
