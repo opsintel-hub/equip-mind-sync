@@ -417,7 +417,7 @@ const IssueRequest = () => {
       const purposeName = purposes?.find((p) => p.id === headerData.purpose_id)?.name || headerData.purpose;
       
       // Check if first item is a Media Player
-      const firstItemIsMediaPlayer = cartItems[0]?.is_media_player || false;
+      const firstItemIsMediaPlayer = itemsToSubmit[0]?.is_media_player || false;
       
       // Create header record
       const { data: headerRecord, error: headerError } = await supabase
@@ -430,18 +430,17 @@ const IssueRequest = () => {
           requester_phone: headerData.requester_phone || null,
           requester_department: headerData.requester_department || null,
           notes: headerData.notes || null,
-          total_items: cartItems.length,
+          total_items: itemsToSubmit.length,
           company_id: headerData.company_id || null,
-          // Keep first item's data for backward compatibility (null for Media Player)
-          equipment_id: firstItemIsMediaPlayer ? null : (cartItems[0]?.equipment_id || null),
-          media_player_id: firstItemIsMediaPlayer ? cartItems[0]?.media_player_id : null,
+          equipment_id: firstItemIsMediaPlayer ? null : (itemsToSubmit[0]?.equipment_id || null),
+          media_player_id: firstItemIsMediaPlayer ? itemsToSubmit[0]?.media_player_id : null,
           is_media_player: firstItemIsMediaPlayer,
-          equipment_code: cartItems[0]?.equipment_code || null,
-          equipment_name: cartItems[0]?.equipment_name || null,
-          quantity: cartItems.reduce((sum, item) => sum + item.quantity, 0),
-          unit: cartItems[0]?.unit || "ชิ้น",
-          billboard_id: cartItems[0]?.billboard_id || null,
-          is_complete: !selectedPurpose?.requires_billboard || cartItems.every(item => !!item.billboard_id),
+          equipment_code: itemsToSubmit[0]?.equipment_code || null,
+          equipment_name: itemsToSubmit[0]?.equipment_name || null,
+          quantity: itemsToSubmit.reduce((sum, item) => sum + item.quantity, 0),
+          unit: itemsToSubmit[0]?.unit || "ชิ้น",
+          billboard_id: itemsToSubmit[0]?.billboard_id || null,
+          is_complete: !selectedPurpose?.requires_billboard || itemsToSubmit.every(item => !!item.billboard_id),
         })
         .select()
         .single();
@@ -449,7 +448,7 @@ const IssueRequest = () => {
       if (headerError) throw headerError;
 
       // Create item records
-      const itemsToInsert = cartItems.map(item => ({
+      const itemsToInsert = itemsToSubmit.map(item => ({
         pending_id: headerRecord.id,
         equipment_id: item.is_media_player ? null : (item.equipment_id || null),
         media_player_id: item.is_media_player ? item.media_player_id : null,
@@ -472,24 +471,32 @@ const IssueRequest = () => {
       if (itemsError) throw itemsError;
     },
     onSuccess: () => {
-      toast.success(`ส่งคำขอเบิกสำเร็จ (${cartItems.length} รายการ)`);
+      const submittedCount = selectedCartIds.size;
+      const remainingItems = cartItems.filter(item => !selectedCartIds.has(item.id));
+      
+      toast.success(`ส่งคำขอเบิกสำเร็จ (${submittedCount} รายการ)`);
       queryClient.invalidateQueries({ queryKey: ["goods-issue-pending"] });
       queryClient.invalidateQueries({ queryKey: ["goods-issue-pending-items"] });
       
-      // Reset form
-      setCartItems([]);
-      setHeaderData({
-        company_id: "",
-        department_id: "",
-        section: "",
-        purpose_id: "",
-        purpose: "",
-        destination: "",
-        requester_name: "",
-        requester_phone: "",
-        requester_department: "",
-        notes: "",
-      });
+      // Keep unselected items in cart, reset selected
+      setCartItems(remainingItems);
+      setSelectedCartIds(new Set());
+      
+      // Only reset header if cart is now empty
+      if (remainingItems.length === 0) {
+        setHeaderData({
+          company_id: "",
+          department_id: "",
+          section: "",
+          purpose_id: "",
+          purpose: "",
+          destination: "",
+          requester_name: "",
+          requester_phone: "",
+          requester_department: "",
+          notes: "",
+        });
+      }
     },
     onError: (error) => {
       toast.error("เกิดข้อผิดพลาด: " + error.message);
