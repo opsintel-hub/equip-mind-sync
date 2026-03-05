@@ -22,6 +22,9 @@ interface ImportRow {
   department?: string;
   po_number?: string;
   pr_number?: string;
+  invoice_number?: string;
+  delivery_note_number?: string;
+  order_for_project?: string;
   purpose?: string;
   lot_number_1?: string;
   lot_number_2?: string;
