@@ -962,6 +962,24 @@ const IssueRequest = () => {
                     placeholder="ระบุจุดหมาย/สถานที่"
                   />
                 </div>
+                <div className="space-y-2">
+                  <Label htmlFor="pickup_date">วันที่ต้องการรับสินค้า</Label>
+                  <Input
+                    id="pickup_date"
+                    type="date"
+                    value={headerData.pickup_date}
+                    onChange={(e) => setHeaderData({ ...headerData, pickup_date: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="pickup_time">เวลาที่ต้องการรับสินค้า</Label>
+                  <Input
+                    id="pickup_time"
+                    type="time"
+                    value={headerData.pickup_time}
+                    onChange={(e) => setHeaderData({ ...headerData, pickup_time: e.target.value })}
+                  />
+                </div>
                 <div className="space-y-2 md:col-span-2">
                   <Label htmlFor="notes">หมายเหตุ</Label>
                   <Textarea
