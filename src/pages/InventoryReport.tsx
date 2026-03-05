@@ -222,6 +222,7 @@ export default function InventoryReport() {
         id: item.id,
         code: item.code,
         name: item.name,
+        serial_number: item.serial_number || null,
         category: item.tool_categories?.name || "เครื่องมือ",
         brand: item.brand,
         department: item.department,
