@@ -707,7 +707,11 @@ const DeliveryEntry = () => {
         depreciation_months: item.depreciation_months ? parseInt(item.depreciation_months) : null,
         po_number: poNumber || null,
         pr_number: prNumber || null,
-        purchase_document_url: purchaseDocumentUrl || (poDocumentUrl || prDocumentUrl || invoiceDocumentUrl ? [poDocumentUrl, prDocumentUrl, invoiceDocumentUrl].filter(Boolean).join(', ') : null),
+        invoice_number: invoiceNumber || null,
+        delivery_note_number: deliveryNoteNumber || null,
+        invoice_document_url: invoiceDocumentUrl || null,
+        delivery_note_document_url: deliveryNoteDocumentUrl || null,
+        purchase_document_url: purchaseDocumentUrl || (poDocumentUrl || prDocumentUrl || invoiceDocumentUrl || deliveryNoteDocumentUrl ? [poDocumentUrl, prDocumentUrl, invoiceDocumentUrl, deliveryNoteDocumentUrl].filter(Boolean).join(', ') : null),
         // Media Player specific fields
         is_media_player: item.is_media_player || false,
         media_player_id: item.media_player_id || null,
