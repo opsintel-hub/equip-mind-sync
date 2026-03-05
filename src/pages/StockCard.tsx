@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -18,9 +18,12 @@ import { th } from "date-fns/locale";
 import {
   Search, Package, Monitor, Wrench, MapPin, ChevronDown,
   ArrowDownToLine, ArrowUpFromLine, ArrowLeftRight, Hammer, RotateCcw, AlertTriangle,
-  Fingerprint, Hash, Clock, BarChart3
+  Fingerprint, Hash, Clock, BarChart3, FileSpreadsheet, FileText
 } from "lucide-react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
+import * as XLSX from "xlsx";
+import jsPDF from "jspdf";
+import { toast } from "@/hooks/use-toast";
 
 // ── Types ──────────────────────────────────────────────────────
 interface EquipmentItem {
