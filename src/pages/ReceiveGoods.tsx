@@ -638,7 +638,7 @@ const ReceiveGoods = () => {
             // Fetch current Media Player stock
             const { data: currentMediaPlayer, error: fetchMpError } = await supabase
               .from("media_players")
-              .select("quantity, code, name, department")
+              .select("quantity, code, name, department, serial_number_1, serial_number_2")
               .eq("id", (receipt as any).media_player_id)
               .single();
 
