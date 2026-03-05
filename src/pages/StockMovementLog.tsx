@@ -140,13 +140,7 @@ export default function StockMovementLog() {
                 <SelectItem value="defective_return">นำของเสียเข้า</SelectItem>
               </SelectContent>
             </Select>
-            <Select value={departmentFilter} onValueChange={(v) => { setDepartmentFilter(v); handlePageChange(1); }}>
-              <SelectTrigger><SelectValue placeholder="ฝ่าย" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">ทุกฝ่าย</SelectItem>
-                {departments?.map((d: string) => <SelectItem key={d} value={d}>{d}</SelectItem>)}
-              </SelectContent>
-            </Select>
+            <DepartmentMultiFilter value={departmentFilter} onChange={(v) => { setDepartmentFilter(v); handlePageChange(1); }} />
             <Select value={companyFilter} onValueChange={(v) => { setCompanyFilter(v); handlePageChange(1); }}>
               <SelectTrigger><SelectValue placeholder="บริษัท" /></SelectTrigger>
               <SelectContent>
