@@ -772,6 +772,7 @@ export default function InventoryReport() {
                     <TableHead>ประเภท</TableHead>
                     <TableHead>รหัส</TableHead>
                     <TableHead>ชื่อ</TableHead>
+                    <TableHead>S/N</TableHead>
                     <TableHead>หมวดหมู่</TableHead>
                     <TableHead>หมวดหมู่ย่อย</TableHead>
                     <TableHead>บริษัท</TableHead>
