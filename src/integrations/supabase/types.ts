@@ -930,6 +930,59 @@ export type Database = {
           },
         ]
       }
+      delivery_confirmations: {
+        Row: {
+          confirmed_at: string | null
+          confirmed_by: string | null
+          created_at: string
+          document_no: string
+          goods_issue_pending_id: string
+          id: string
+          issue_description: string | null
+          issue_type: string | null
+          notes: string | null
+          photo_urls: string[] | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          confirmed_at?: string | null
+          confirmed_by?: string | null
+          created_at?: string
+          document_no: string
+          goods_issue_pending_id: string
+          id?: string
+          issue_description?: string | null
+          issue_type?: string | null
+          notes?: string | null
+          photo_urls?: string[] | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          confirmed_at?: string | null
+          confirmed_by?: string | null
+          created_at?: string
+          document_no?: string
+          goods_issue_pending_id?: string
+          id?: string
+          issue_description?: string | null
+          issue_type?: string | null
+          notes?: string | null
+          photo_urls?: string[] | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "delivery_confirmations_goods_issue_pending_id_fkey"
+            columns: ["goods_issue_pending_id"]
+            isOneToOne: false
+            referencedRelation: "goods_issue_pending"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       departments: {
         Row: {
           created_at: string
@@ -1599,6 +1652,10 @@ export type Database = {
       }
       goods_issue_pending: {
         Row: {
+          approval_notes: string | null
+          approval_status: string | null
+          approved_at: string | null
+          approved_by: string | null
           billboard_id: string | null
           company_id: string | null
           created_at: string
@@ -1630,6 +1687,7 @@ export type Database = {
           requester_department: string | null
           requester_name: string
           requester_phone: string | null
+          requires_approval: boolean | null
           return_quantity: number | null
           returned_at: string | null
           returned_by: string | null
@@ -1639,6 +1697,10 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          approval_notes?: string | null
+          approval_status?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
           billboard_id?: string | null
           company_id?: string | null
           created_at?: string
@@ -1670,6 +1732,7 @@ export type Database = {
           requester_department?: string | null
           requester_name: string
           requester_phone?: string | null
+          requires_approval?: boolean | null
           return_quantity?: number | null
           returned_at?: string | null
           returned_by?: string | null
@@ -1679,6 +1742,10 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          approval_notes?: string | null
+          approval_status?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
           billboard_id?: string | null
           company_id?: string | null
           created_at?: string
@@ -1710,6 +1777,7 @@ export type Database = {
           requester_department?: string | null
           requester_name?: string
           requester_phone?: string | null
+          requires_approval?: boolean | null
           return_quantity?: number | null
           returned_at?: string | null
           returned_by?: string | null
