@@ -433,6 +433,7 @@ const IssueRequest = () => {
           requester_phone: headerData.requester_phone || null,
           requester_department: headerData.requester_department || null,
           notes: headerData.notes || null,
+          pickup_type: headerData.pickup_type || 'scheduled',
           total_items: itemsToSubmit.length,
           company_id: headerData.company_id || null,
           equipment_id: firstItemIsMediaPlayer ? null : (itemsToSubmit[0]?.equipment_id || null),
