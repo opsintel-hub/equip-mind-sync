@@ -595,11 +595,17 @@ const IssueGoods = () => {
   };
 
   const filteredRequests = pendingRequests?.filter(
-    (req) =>
-      req.document_no?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      req.equipment_code?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      req.equipment_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      req.requester_name?.toLowerCase().includes(searchTerm.toLowerCase())
+    (req) => {
+      const term = searchTerm.toLowerCase();
+      if (!term) return true;
+      if (req.document_no?.toLowerCase().includes(term) ||
+          req.equipment_code?.toLowerCase().includes(term) ||
+          req.equipment_name?.toLowerCase().includes(term) ||
+          req.requester_name?.toLowerCase().includes(term)) return true;
+      // Search in items' serial_number
+      const items = getItemsForRequest(req.id);
+      return items.some(item => item.serial_number?.toLowerCase().includes(term));
+    }
   );
 
   const pendingCount = pendingRequests?.filter((r) => r.status === "pending" || r.status === "waiting_stock").length || 0;
