@@ -168,9 +168,12 @@ const DeliveryConfirmation = () => {
     // Search
     if (searchTerm) {
       const term = searchTerm.toLowerCase();
+      const items = getItemsForRequest(req.id);
+      const matchesSN = items.some((item: any) => item.serial_number?.toLowerCase().includes(term));
       if (!req.document_no?.toLowerCase().includes(term) &&
           !req.equipment_name?.toLowerCase().includes(term) &&
-          !req.requester_name?.toLowerCase().includes(term)) return false;
+          !req.requester_name?.toLowerCase().includes(term) &&
+          !matchesSN) return false;
     }
     // Status filter
     if (statusFilter !== "all") {
