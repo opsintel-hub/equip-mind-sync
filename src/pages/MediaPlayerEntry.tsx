@@ -216,6 +216,11 @@ const MediaPlayerEntry = () => {
       return;
     }
 
+    if (!formData.department) {
+      toast.error("กรุณาเลือกฝ่าย");
+      return;
+    }
+
     if (!selectedPrefix) {
       toast.error("กรุณาเลือก Prefix รหัส");
       return;
