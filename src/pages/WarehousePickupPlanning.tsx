@@ -64,7 +64,7 @@ const WarehousePickupPlanning = () => {
     let filtered = [...requests];
 
     if (pickupTypeFilter !== "all") filtered = filtered.filter((r: any) => r.pickup_type === pickupTypeFilter);
-    if (departmentFilter !== "all") filtered = filtered.filter((r: any) => r.requester_department === departmentFilter);
+    if (departmentFilter.length > 0) filtered = filtered.filter((r: any) => departmentFilter.includes(r.requester_department));
     if (statusFilter !== "all") filtered = filtered.filter((r: any) => r.status === statusFilter);
     if (searchTerm) {
       const term = searchTerm.toLowerCase();
