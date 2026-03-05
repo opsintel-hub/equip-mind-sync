@@ -937,9 +937,18 @@ const DeliveryEntry = () => {
                       onDocumentRemoved={() => setDeliveryNoteDocumentUrl("")}
                       placeholder="เลขที่ใบส่งของ"
                     />
-                  </div>
-                </div>}
-            </div>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>Order For Project</Label>
+                        <Input
+                          value={orderForProject}
+                          onChange={(e) => setOrderForProject(e.target.value)}
+                          placeholder="ชื่อโปรเจค"
+                        />
+                      </div>
+                    </div>
+                  </div>}
 
             {/* Item Form Section */}
             <div className="p-4 bg-muted/30 border rounded-lg space-y-4">
