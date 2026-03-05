@@ -143,7 +143,7 @@ export default function InventoryReport() {
       }
       if (filters.search) {
         query = query.or(
-          `code.ilike.%${filters.search}%,name.ilike.%${filters.search}%,brand.ilike.%${filters.search}%`
+          `code.ilike.%${filters.search}%,name.ilike.%${filters.search}%,brand.ilike.%${filters.search}%,serial_number.ilike.%${filters.search}%`
         );
       }
 
@@ -207,7 +207,7 @@ export default function InventoryReport() {
       }
       if (filters.search) {
         query = query.or(
-          `code.ilike.%${filters.search}%,name.ilike.%${filters.search}%,brand.ilike.%${filters.search}%`
+          `code.ilike.%${filters.search}%,name.ilike.%${filters.search}%,brand.ilike.%${filters.search}%,serial_number.ilike.%${filters.search}%`
         );
       }
 
@@ -283,7 +283,7 @@ export default function InventoryReport() {
       }
       if (filters.search) {
         query = query.or(
-          `code.ilike.%${filters.search}%,name.ilike.%${filters.search}%,brand.ilike.%${filters.search}%`
+          `code.ilike.%${filters.search}%,name.ilike.%${filters.search}%,brand.ilike.%${filters.search}%,serial_number_1.ilike.%${filters.search}%,serial_number_2.ilike.%${filters.search}%`
         );
       }
 
