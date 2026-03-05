@@ -855,6 +855,9 @@ export default function InventoryReport() {
                               )}
                             </div>
                           </TableCell>
+                          <TableCell className="font-mono text-xs">
+                            {item.serial_number || <span className="text-muted-foreground">-</span>}
+                          </TableCell>
                           <TableCell>{item.category}</TableCell>
                           <TableCell>
                             {subcategory ? (
