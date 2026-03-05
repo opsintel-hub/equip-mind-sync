@@ -498,8 +498,21 @@ const IssueRequest = () => {
     onSuccess: () => {
       const submittedCount = selectedCartIds.size;
       const remainingItems = cartItems.filter(item => !selectedCartIds.has(item.id));
+      // Check if this request requires approval
+      const lastInsert = await supabase
+        .from("goods_issue_pending")
+        .select("requires_approval")
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .single();
       
-      toast.success(`ส่งคำขอเบิกสำเร็จ (${submittedCount} รายการ)`);
+      const needsApproval = lastInsert.data?.requires_approval;
+      
+      if (needsApproval) {
+        toast.success(`ส่งคำขอเบิกสำเร็จ (${submittedCount} รายการ) — รอผู้มีอำนาจอนุมัติ`, { duration: 5000 });
+      } else {
+        toast.success(`ส่งคำขอเบิกสำเร็จ (${submittedCount} รายการ)`);
+      }
       queryClient.invalidateQueries({ queryKey: ["goods-issue-pending"] });
       queryClient.invalidateQueries({ queryKey: ["goods-issue-pending-items"] });
       

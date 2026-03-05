@@ -573,6 +573,8 @@ const IssueGoods = () => {
     switch (status) {
       case "pending":
         return <Badge variant="secondary" className="bg-yellow-100 text-yellow-800"><Clock className="h-3 w-3 mr-1" />รอดำเนินการ</Badge>;
+      case "pending_approval":
+        return <Badge variant="secondary" className="bg-amber-100 text-amber-800"><AlertTriangle className="h-3 w-3 mr-1" />รออนุมัติ</Badge>;
       case "issued":
         return <Badge variant="default" className="bg-green-100 text-green-800"><CheckCircle className="h-3 w-3 mr-1" />จ่ายครบแล้ว</Badge>;
       case "waiting_stock":
