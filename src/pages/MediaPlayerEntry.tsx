@@ -268,7 +268,7 @@ const MediaPlayerEntry = () => {
           model_id: formData.model_id || null,
           quantity: formData.quantity,
           unit: formData.unit,
-          unit_price: formData.unit_price,
+          unit_price: formData.unit_price || 0,
           depreciation_months: formData.depreciation_months,
           usage_lifespan_months: formData.usage_lifespan_months || null,
           warranty_expiry_date: formData.warranty_expiry_date || null,
