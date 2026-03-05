@@ -55,6 +55,15 @@ interface InventoryItem {
   issued_quantity?: number;
 }
 
+interface ReceivedSerialItem {
+  equipment_id: string | null;
+  media_player_id: string | null;
+  is_media_player: boolean | null;
+  serial_number: string | null;
+  received_at: string | null;
+  created_at: string;
+}
+
 export default function InventoryReport() {
   const [filters, setFilters] = useState<InventoryFiltersState>({
     companyId: "",
