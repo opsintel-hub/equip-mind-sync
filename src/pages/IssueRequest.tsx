@@ -346,7 +346,7 @@ const IssueRequest = () => {
     };
 
     setCartItems([...cartItems, newItem]);
-    
+    setSelectedCartIds(prev => new Set(prev).add(newItem.id));
     // Reset current item form
     setCurrentItem({
       equipment_id: "",
