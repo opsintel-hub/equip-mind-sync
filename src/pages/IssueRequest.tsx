@@ -421,6 +421,22 @@ const IssueRequest = () => {
       
       // Check if first item is a Media Player
       const firstItemIsMediaPlayer = itemsToSubmit[0]?.is_media_player || false;
+
+      // Check if any item is an asset (is_asset = true) to determine if approval is needed
+      let requiresApproval = false;
+      for (const item of itemsToSubmit) {
+        if (!item.is_media_player && item.equipment_id) {
+          const { data: eqData } = await supabase
+            .from("equipment")
+            .select("is_asset")
+            .eq("id", item.equipment_id)
+            .single();
+          if (eqData?.is_asset) {
+            requiresApproval = true;
+            break;
+          }
+        }
+      }
       
       // Create header record
       const { data: headerRecord, error: headerError } = await supabase
@@ -447,6 +463,9 @@ const IssueRequest = () => {
           is_complete: !selectedPurpose?.requires_billboard || itemsToSubmit.every(item => !!item.billboard_id),
           pickup_date: headerData.pickup_date || null,
           pickup_time: headerData.pickup_time || null,
+          requires_approval: requiresApproval,
+          approval_status: requiresApproval ? "pending" : "not_required",
+          status: requiresApproval ? "pending_approval" : "pending",
         } as any)
         .select()
         .single();
@@ -475,12 +494,18 @@ const IssueRequest = () => {
         .insert(itemsToInsert);
 
       if (itemsError) throw itemsError;
+      
+      return { requiresApproval };
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
       const submittedCount = selectedCartIds.size;
       const remainingItems = cartItems.filter(item => !selectedCartIds.has(item.id));
       
-      toast.success(`ส่งคำขอเบิกสำเร็จ (${submittedCount} รายการ)`);
+      if (result?.requiresApproval) {
+        toast.success(`ส่งคำขอเบิกสำเร็จ (${submittedCount} รายการ) — รอผู้มีอำนาจอนุมัติ`, { duration: 5000 });
+      } else {
+        toast.success(`ส่งคำขอเบิกสำเร็จ (${submittedCount} รายการ)`);
+      }
       queryClient.invalidateQueries({ queryKey: ["goods-issue-pending"] });
       queryClient.invalidateQueries({ queryKey: ["goods-issue-pending-items"] });
       
@@ -640,6 +665,8 @@ const IssueRequest = () => {
     switch (status) {
       case "pending":
         return <Badge variant="secondary" className="bg-yellow-100 text-yellow-800"><Clock className="h-3 w-3 mr-1" />รอดำเนินการ</Badge>;
+      case "pending_approval":
+        return <Badge variant="secondary" className="bg-amber-100 text-amber-800"><Lock className="h-3 w-3 mr-1" />รออนุมัติ</Badge>;
       case "issued":
         return <Badge variant="default" className="bg-green-100 text-green-800"><CheckCircle className="h-3 w-3 mr-1" />จ่ายแล้ว</Badge>;
       case "rejected":
