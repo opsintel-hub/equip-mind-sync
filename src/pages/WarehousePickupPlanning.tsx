@@ -33,13 +33,6 @@ const WarehousePickupPlanning = () => {
     },
   });
 
-  const { data: departments } = useQuery({
-    queryKey: ["planning-departments"],
-    queryFn: async () => {
-      const { data } = await supabase.from("departments").select("name").eq("is_active", true).order("name");
-      return data?.map((d: any) => d.name) || [];
-    },
-  });
 
   // Items per request
   const { data: allItems } = useQuery({
