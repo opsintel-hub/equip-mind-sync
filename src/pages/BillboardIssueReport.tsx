@@ -72,7 +72,7 @@ const BillboardIssueReport = () => {
         equipment_id,
         quantity,
         installation_date,
-        equipment:equipment_id (code, name, unit, unit_price, category),
+        equipment:equipment_id (code, name, unit, unit_price, category, serial_number),
         billboard:billboard_id (equipment_id, location_name, region)
       `)
       .order("installation_date", { ascending: false });
@@ -102,7 +102,8 @@ const BillboardIssueReport = () => {
     const matchesSearch = 
       item.equipment?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       item.equipment?.code?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.billboard?.equipment_id?.toLowerCase().includes(searchTerm.toLowerCase());
+      item.billboard?.equipment_id?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (item.equipment as any)?.serial_number?.toLowerCase().includes(searchTerm.toLowerCase());
     return matchesBillboard && matchesRegion && matchesSearch;
   });
 
@@ -258,7 +259,7 @@ const BillboardIssueReport = () => {
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder="ค้นหารหัสป้าย, สินค้า..."
+                  placeholder="ค้นหารหัสป้าย, สินค้า, S/N..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-10"

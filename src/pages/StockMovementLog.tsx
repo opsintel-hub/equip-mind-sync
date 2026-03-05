@@ -36,11 +36,12 @@ export default function StockMovementLog() {
     queryFn: async () => {
       let query = supabase
         .from("stock_movements")
-        .select(`*, equipment:equipment_id(code, name), location:location_id(name), companies:company_id(name)`)
+        .select(`*, equipment:equipment_id(code, name, serial_number), location:location_id(name), companies:company_id(name)`)
         .order("created_at", { ascending: false });
 
       if (searchTerm) {
         query = query.or(`equipment_code.ilike.%${searchTerm}%,equipment_name.ilike.%${searchTerm}%,reference_document.ilike.%${searchTerm}%,notes.ilike.%${searchTerm}%`);
+        // Note: S/N search is done client-side via equipment join
       }
       if (typeFilter !== "all") {
         query = query.eq("movement_type", typeFilter);
@@ -57,6 +58,18 @@ export default function StockMovementLog() {
 
     // Apply client-side filters
     let filtered = movements;
+    // Client-side S/N search (since serial_number is on the joined equipment table)
+    if (searchTerm) {
+      const term = searchTerm.toLowerCase();
+      filtered = filtered.filter((m: any) => {
+        const sn = m.equipment?.serial_number || "";
+        return sn.toLowerCase().includes(term) ||
+          m.equipment_code?.toLowerCase().includes(term) ||
+          m.equipment_name?.toLowerCase().includes(term) ||
+          m.reference_document?.toLowerCase().includes(term) ||
+          m.notes?.toLowerCase().includes(term);
+      });
+    }
     if (departmentFilter.length > 0) {
       filtered = filtered.filter((m: any) => departmentFilter.includes(m.department));
     }
@@ -121,7 +134,7 @@ export default function StockMovementLog() {
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="ค้นหา รหัส/ชื่ออุปกรณ์ หรือเลขเอกสาร..."
+                placeholder="ค้นหา รหัส/ชื่ออุปกรณ์/S/N หรือเลขเอกสาร..."
                 value={searchTerm}
                 onChange={(e) => { setSearchTerm(e.target.value); handlePageChange(1); }}
                 className="pl-10"

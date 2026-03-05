@@ -20,6 +20,7 @@ interface DocumentRecord {
   document_url: string | null;
   equipment_code: string | null;
   equipment_name: string | null;
+  serial_number: string | null;
   supplier_name: string | null;
   delivery_person_name: string | null;
   quantity: number;
@@ -61,6 +62,7 @@ export default function DocumentSearch() {
       const pendingDocs: DocumentRecord[] = (pendingData || []).map((item: any) => ({
         id: item.id, document_no: item.document_no, document_url: item.document_url,
         equipment_code: item.equipment_code, equipment_name: item.equipment_name,
+        serial_number: item.serial_number || null,
         supplier_name: item.supplier_name, delivery_person_name: item.delivery_person_name,
         quantity: item.quantity, unit: item.unit, created_at: item.created_at,
         status: item.status, source: "pending" as const,
@@ -69,6 +71,7 @@ export default function DocumentSearch() {
       const receiptDocs: DocumentRecord[] = (receiptData || []).map((item: any) => ({
         id: item.id, document_no: item.document_no, document_url: item.document_url,
         equipment_code: item.equipment?.code || null, equipment_name: item.equipment?.name || null,
+        serial_number: null,
         supplier_name: item.supplier, delivery_person_name: null,
         quantity: item.quantity, unit: "ชิ้น", created_at: item.created_at,
         status: item.status, source: "received" as const,
@@ -77,6 +80,7 @@ export default function DocumentSearch() {
       const issueDocs: DocumentRecord[] = (issueData || []).map((item: any) => ({
         id: item.id, document_no: item.document_no, document_url: null,
         equipment_code: item.equipment_code, equipment_name: item.equipment_name,
+        serial_number: null,
         supplier_name: null, delivery_person_name: item.requester_name,
         quantity: 0, unit: "-", created_at: item.created_at,
         status: item.status, source: "issue" as const,
@@ -85,6 +89,7 @@ export default function DocumentSearch() {
       const dcDocs: DocumentRecord[] = (dcData || []).map((item: any) => ({
         id: item.id, document_no: item.document_no, document_url: null,
         equipment_code: null, equipment_name: null,
+        serial_number: null,
         supplier_name: null, delivery_person_name: null,
         quantity: 0, unit: "-", created_at: item.created_at,
         status: item.status, source: "delivery_confirm" as const,
@@ -109,12 +114,12 @@ export default function DocumentSearch() {
     const term = searchTerm.toLowerCase();
     switch (searchType) {
       case "supplier": return doc.supplier_name?.toLowerCase().includes(term);
-      case "equipment": return doc.equipment_code?.toLowerCase().includes(term) || doc.equipment_name?.toLowerCase().includes(term);
+      case "equipment": return doc.equipment_code?.toLowerCase().includes(term) || doc.equipment_name?.toLowerCase().includes(term) || doc.serial_number?.toLowerCase().includes(term);
       case "document": return doc.document_no.toLowerCase().includes(term);
       default:
         return doc.supplier_name?.toLowerCase().includes(term) || doc.equipment_code?.toLowerCase().includes(term) ||
           doc.equipment_name?.toLowerCase().includes(term) || doc.document_no.toLowerCase().includes(term) ||
-          doc.delivery_person_name?.toLowerCase().includes(term);
+          doc.delivery_person_name?.toLowerCase().includes(term) || doc.serial_number?.toLowerCase().includes(term);
     }
   });
 
