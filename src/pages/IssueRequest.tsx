@@ -12,7 +12,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Plus, Search, FileText, Clock, CheckCircle, XCircle, AlertTriangle, MapPin, RotateCcw, Image, Filter, X, Trash2, ShoppingCart, ChevronDown, ChevronUp, Lock, Layers } from "lucide-react";
+import { Plus, Search, FileText, Clock, CheckCircle, XCircle, AlertTriangle, MapPin, RotateCcw, Image, Filter, X, Trash2, ShoppingCart, ChevronDown, ChevronUp, Lock, Layers, Eye, Pencil } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 import { format, differenceInDays } from "date-fns";
 import { th } from "date-fns/locale";
 import BillboardSelect from "@/components/billboard/BillboardSelect";
@@ -79,6 +80,7 @@ const IssueRequest = () => {
   
   // Cart items - multiple items per request
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
+  const [selectedCartIds, setSelectedCartIds] = useState<Set<string>>(new Set());
   
   // Header form data
   const [headerData, setHeaderData] = useState({
@@ -345,7 +347,7 @@ const IssueRequest = () => {
     };
 
     setCartItems([...cartItems, newItem]);
-    
+    setSelectedCartIds(prev => new Set(prev).add(newItem.id));
     // Reset current item form
     setCurrentItem({
       equipment_id: "",
@@ -381,19 +383,41 @@ const IssueRequest = () => {
   // Remove item from cart
   const handleRemoveFromCart = (itemId: string) => {
     setCartItems(cartItems.filter(item => item.id !== itemId));
+    setSelectedCartIds(prev => {
+      const next = new Set(prev);
+      next.delete(itemId);
+      return next;
+    });
+  };
+
+  // Remove selected items from cart
+  const handleRemoveSelected = () => {
+    if (selectedCartIds.size === 0) return;
+    setCartItems(cartItems.filter(item => !selectedCartIds.has(item.id)));
+    setSelectedCartIds(new Set());
+  };
+
+  // Toggle select all cart items
+  const handleToggleSelectAll = () => {
+    if (selectedCartIds.size === cartItems.length) {
+      setSelectedCartIds(new Set());
+    } else {
+      setSelectedCartIds(new Set(cartItems.map(item => item.id)));
+    }
   };
 
   // Create request mutation
   const createRequest = useMutation({
     mutationFn: async () => {
-      if (cartItems.length === 0) {
-        throw new Error("กรุณาเพิ่มรายการสินค้าอย่างน้อย 1 รายการ");
+      const itemsToSubmit = cartItems.filter(item => selectedCartIds.has(item.id));
+      if (itemsToSubmit.length === 0) {
+        throw new Error("กรุณาเลือกรายการสินค้าอย่างน้อย 1 รายการ");
       }
 
       const purposeName = purposes?.find((p) => p.id === headerData.purpose_id)?.name || headerData.purpose;
       
       // Check if first item is a Media Player
-      const firstItemIsMediaPlayer = cartItems[0]?.is_media_player || false;
+      const firstItemIsMediaPlayer = itemsToSubmit[0]?.is_media_player || false;
       
       // Create header record
       const { data: headerRecord, error: headerError } = await supabase
@@ -406,18 +430,17 @@ const IssueRequest = () => {
           requester_phone: headerData.requester_phone || null,
           requester_department: headerData.requester_department || null,
           notes: headerData.notes || null,
-          total_items: cartItems.length,
+          total_items: itemsToSubmit.length,
           company_id: headerData.company_id || null,
-          // Keep first item's data for backward compatibility (null for Media Player)
-          equipment_id: firstItemIsMediaPlayer ? null : (cartItems[0]?.equipment_id || null),
-          media_player_id: firstItemIsMediaPlayer ? cartItems[0]?.media_player_id : null,
+          equipment_id: firstItemIsMediaPlayer ? null : (itemsToSubmit[0]?.equipment_id || null),
+          media_player_id: firstItemIsMediaPlayer ? itemsToSubmit[0]?.media_player_id : null,
           is_media_player: firstItemIsMediaPlayer,
-          equipment_code: cartItems[0]?.equipment_code || null,
-          equipment_name: cartItems[0]?.equipment_name || null,
-          quantity: cartItems.reduce((sum, item) => sum + item.quantity, 0),
-          unit: cartItems[0]?.unit || "ชิ้น",
-          billboard_id: cartItems[0]?.billboard_id || null,
-          is_complete: !selectedPurpose?.requires_billboard || cartItems.every(item => !!item.billboard_id),
+          equipment_code: itemsToSubmit[0]?.equipment_code || null,
+          equipment_name: itemsToSubmit[0]?.equipment_name || null,
+          quantity: itemsToSubmit.reduce((sum, item) => sum + item.quantity, 0),
+          unit: itemsToSubmit[0]?.unit || "ชิ้น",
+          billboard_id: itemsToSubmit[0]?.billboard_id || null,
+          is_complete: !selectedPurpose?.requires_billboard || itemsToSubmit.every(item => !!item.billboard_id),
         })
         .select()
         .single();
@@ -425,7 +448,7 @@ const IssueRequest = () => {
       if (headerError) throw headerError;
 
       // Create item records
-      const itemsToInsert = cartItems.map(item => ({
+      const itemsToInsert = itemsToSubmit.map(item => ({
         pending_id: headerRecord.id,
         equipment_id: item.is_media_player ? null : (item.equipment_id || null),
         media_player_id: item.is_media_player ? item.media_player_id : null,
@@ -448,24 +471,32 @@ const IssueRequest = () => {
       if (itemsError) throw itemsError;
     },
     onSuccess: () => {
-      toast.success(`ส่งคำขอเบิกสำเร็จ (${cartItems.length} รายการ)`);
+      const submittedCount = selectedCartIds.size;
+      const remainingItems = cartItems.filter(item => !selectedCartIds.has(item.id));
+      
+      toast.success(`ส่งคำขอเบิกสำเร็จ (${submittedCount} รายการ)`);
       queryClient.invalidateQueries({ queryKey: ["goods-issue-pending"] });
       queryClient.invalidateQueries({ queryKey: ["goods-issue-pending-items"] });
       
-      // Reset form
-      setCartItems([]);
-      setHeaderData({
-        company_id: "",
-        department_id: "",
-        section: "",
-        purpose_id: "",
-        purpose: "",
-        destination: "",
-        requester_name: "",
-        requester_phone: "",
-        requester_department: "",
-        notes: "",
-      });
+      // Keep unselected items in cart, reset selected
+      setCartItems(remainingItems);
+      setSelectedCartIds(new Set());
+      
+      // Only reset header if cart is now empty
+      if (remainingItems.length === 0) {
+        setHeaderData({
+          company_id: "",
+          department_id: "",
+          section: "",
+          purpose_id: "",
+          purpose: "",
+          destination: "",
+          requester_name: "",
+          requester_phone: "",
+          requester_department: "",
+          notes: "",
+        });
+      }
     },
     onError: (error) => {
       toast.error("เกิดข้อผิดพลาด: " + error.message);
@@ -482,8 +513,8 @@ const IssueRequest = () => {
       toast.error("กรุณาเลือกวัตถุประสงค์");
       return;
     }
-    if (cartItems.length === 0) {
-      toast.error("กรุณาเพิ่มรายการสินค้าอย่างน้อย 1 รายการ");
+    if (selectedCartIds.size === 0) {
+      toast.error("กรุณาเลือกรายการสินค้าอย่างน้อย 1 รายการ");
       return;
     }
     createRequest.mutate();
@@ -1075,25 +1106,72 @@ const IssueRequest = () => {
             {/* Cart Items */}
             {cartItems.length > 0 && (
               <div className="p-4 border border-primary/30 bg-primary/5 rounded-lg space-y-4">
-                <h3 className="font-medium flex items-center gap-2">
-                  <ShoppingCart className="h-4 w-4" />
-                  รายการที่จะเบิก ({cartItems.length} รายการ)
-                </h3>
+                <div className="flex items-center justify-between">
+                  <h3 className="font-medium flex items-center gap-2">
+                    <ShoppingCart className="h-4 w-4" />
+                    ตะกร้าสินค้าขอเบิก ({cartItems.length} รายการ)
+                  </h3>
+                  <div className="flex items-center gap-2">
+                    {selectedCartIds.size > 0 && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={handleRemoveSelected}
+                        className="text-destructive hover:text-destructive gap-1"
+                      >
+                        <Trash2 className="h-3 w-3" />
+                        ลบที่เลือก ({selectedCartIds.size})
+                      </Button>
+                    )}
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => { setCartItems([]); setSelectedCartIds(new Set()); }}
+                      className="text-destructive hover:text-destructive gap-1"
+                    >
+                      <Trash2 className="h-3 w-3" />
+                      ล้างตะกร้า
+                    </Button>
+                  </div>
+                </div>
                 <ScrollArea className="max-h-60">
                   <Table>
                     <TableHeader>
                       <TableRow>
+                        <TableHead className="w-10">
+                          <Checkbox
+                            checked={cartItems.length > 0 && selectedCartIds.size === cartItems.length}
+                            onCheckedChange={handleToggleSelectAll}
+                          />
+                        </TableHead>
+                        <TableHead>#</TableHead>
                         <TableHead>รหัส/ชื่อสินค้า</TableHead>
                         <TableHead>S/N</TableHead>
                         <TableHead className="text-right">จำนวน</TableHead>
                         <TableHead>ป้ายโฆษณา</TableHead>
                         <TableHead>หมายเหตุ</TableHead>
-                        <TableHead className="w-10"></TableHead>
+                        <TableHead className="w-10">จัดการ</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {cartItems.map((item) => (
-                        <TableRow key={item.id}>
+                      {cartItems.map((item, index) => (
+                        <TableRow key={item.id} className={selectedCartIds.has(item.id) ? "bg-primary/5" : ""}>
+                          <TableCell>
+                            <Checkbox
+                              checked={selectedCartIds.has(item.id)}
+                              onCheckedChange={(checked) => {
+                                setSelectedCartIds(prev => {
+                                  const next = new Set(prev);
+                                  if (checked) next.add(item.id);
+                                  else next.delete(item.id);
+                                  return next;
+                                });
+                              }}
+                            />
+                          </TableCell>
+                          <TableCell className="text-muted-foreground">{index + 1}</TableCell>
                           <TableCell>
                             {item.equipment_code && <div className="font-medium">{item.equipment_code}</div>}
                             <div className="text-sm text-muted-foreground">{item.equipment_name}</div>
@@ -1125,12 +1203,31 @@ const IssueRequest = () => {
                     </TableBody>
                   </Table>
                 </ScrollArea>
+
+                {/* Summary */}
+                <div className="flex flex-wrap items-center gap-4 text-sm pt-2 border-t">
+                  <span className="text-muted-foreground">
+                    ทั้งหมด: <strong className="text-foreground">{cartItems.length} รายการ</strong>
+                  </span>
+                  <span className="text-muted-foreground">
+                    จำนวนรวม: <strong className="text-foreground">{cartItems.reduce((s, i) => s + i.quantity, 0)} ชิ้น</strong>
+                  </span>
+                </div>
+                <div className="flex flex-wrap items-center gap-4 text-sm">
+                  <Badge variant="outline" className="bg-primary/10 text-primary border-primary/30">
+                    <CheckCircle className="h-3 w-3 mr-1" />
+                    เลือก {selectedCartIds.size} รายการ
+                  </Badge>
+                  <span className="text-muted-foreground">
+                    จำนวน: <strong className="text-foreground">{cartItems.filter(i => selectedCartIds.has(i.id)).reduce((s, i) => s + i.quantity, 0)} ชิ้น</strong>
+                  </span>
+                </div>
               </div>
             )}
 
-            <Button type="submit" disabled={createRequest.isPending || cartItems.length === 0}>
+            <Button type="submit" disabled={createRequest.isPending || selectedCartIds.size === 0}>
               <Plus className="h-4 w-4 mr-2" />
-              {createRequest.isPending ? "กำลังส่ง..." : `ส่งคำขอเบิก (${cartItems.length} รายการ)`}
+              {createRequest.isPending ? "กำลังส่ง..." : `ส่งรายการที่เลือก (${selectedCartIds.size} รายการ)`}
             </Button>
           </form>
         </CardContent>
