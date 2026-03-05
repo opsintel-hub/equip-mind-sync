@@ -122,7 +122,7 @@ function MultiSelectFilter({ label, options, selected, onChange }: {
           </Button>
         </PopoverTrigger>
         <PopoverContent className="w-56 p-2 z-[200]" align="start">
-          <ScrollArea className="max-h-48">
+          <div className="max-h-52 overflow-y-auto pr-1">
             <div className="space-y-1">
               {options.map(opt => (
                 <label key={opt.value} className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-accent cursor-pointer text-sm">
@@ -131,7 +131,7 @@ function MultiSelectFilter({ label, options, selected, onChange }: {
                 </label>
               ))}
             </div>
-          </ScrollArea>
+          </div>
           {selected.length > 0 && (
             <Button variant="ghost" size="sm" className="w-full mt-1 text-xs" onClick={() => onChange([])}>
               ล้างทั้งหมด
