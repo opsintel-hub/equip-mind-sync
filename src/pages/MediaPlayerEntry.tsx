@@ -326,7 +326,7 @@ const MediaPlayerEntry = () => {
       model_id: "",
       quantity: 1,
       unit: "เครื่อง",
-      unit_price: 0,
+      unit_price: "" as unknown as number,
       depreciation_months: 60,
       usage_lifespan_months: 0,
       warranty_expiry_date: "",
