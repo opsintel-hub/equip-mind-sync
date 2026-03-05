@@ -491,7 +491,7 @@ const ReceiveGoods = () => {
         // Fetch current equipment stock FIRST
         const { data: currentEquipment, error: fetchError } = await supabase
           .from("equipment")
-          .select("quantity_in_stock")
+          .select("quantity_in_stock, department")
           .eq("id", selectedReceipt.equipment_id)
           .single();
 
