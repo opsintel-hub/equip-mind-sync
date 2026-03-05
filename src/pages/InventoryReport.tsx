@@ -55,6 +55,15 @@ interface InventoryItem {
   issued_quantity?: number;
 }
 
+interface ReceivedSerialItem {
+  equipment_id: string | null;
+  media_player_id: string | null;
+  is_media_player: boolean | null;
+  serial_number: string | null;
+  received_at: string | null;
+  created_at: string;
+}
+
 export default function InventoryReport() {
   const [filters, setFilters] = useState<InventoryFiltersState>({
     companyId: "",
@@ -143,11 +152,6 @@ export default function InventoryReport() {
       if (filters.locationId) {
         query = query.eq("location_id", filters.locationId);
       }
-      if (filters.search) {
-        query = query.or(
-          `code.ilike.%${filters.search}%,name.ilike.%${filters.search}%,brand.ilike.%${filters.search}%,serial_number.ilike.%${filters.search}%`
-        );
-      }
 
       const { data, error } = await query;
       if (error) throw error;
@@ -207,11 +211,6 @@ export default function InventoryReport() {
       }
       if (filters.locationId) {
         query = query.eq("location_id", filters.locationId);
-      }
-      if (filters.search) {
-        query = query.or(
-          `code.ilike.%${filters.search}%,name.ilike.%${filters.search}%,brand.ilike.%${filters.search}%,serial_number.ilike.%${filters.search}%`
-        );
       }
 
       const { data, error } = await query;
@@ -287,19 +286,15 @@ export default function InventoryReport() {
       if (filters.locationId) {
         query = query.eq("location_id", filters.locationId);
       }
-      if (filters.search) {
-        query = query.or(
-          `code.ilike.%${filters.search}%,name.ilike.%${filters.search}%,brand.ilike.%${filters.search}%,serial_number_1.ilike.%${filters.search}%,serial_number_2.ilike.%${filters.search}%`
-        );
-      }
 
       const { data, error } = await query;
       if (error) throw error;
-      
+
       // Transform to unified format
       return (data || []).map((item: any): InventoryItem => {
         const snParts = [item.serial_number_1, item.serial_number_2].filter(Boolean);
-        const serial_number = snParts.length > 0 ? snParts.join(' / ') : null;
+        const serial_number = snParts.length > 0 ? snParts.join(" / ") : null;
+
         return {
           id: item.id,
           code: item.code,
@@ -320,13 +315,55 @@ export default function InventoryReport() {
           companies: item.companies as InventoryItem["companies"],
           locations: item.locations as InventoryItem["locations"],
           subcategories: null,
-          item_type: 'media_player' as const,
-          item_condition: item.item_condition || 'normal',
+          item_type: "media_player" as const,
+          item_condition: item.item_condition || "normal",
         };
       });
     },
     enabled: filters.itemType !== "equipment" && filters.itemType !== "tools",
   });
+
+  // Fetch latest received serials for fallback (covers legacy rows where master serial was not updated)
+  const { data: receivedSerials = [] } = useQuery({
+    queryKey: ["inventory-received-serials"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("goods_receipt_pending")
+        .select("equipment_id, media_player_id, is_media_player, serial_number, received_at, created_at")
+        .eq("status", "received")
+        .not("serial_number", "is", null)
+        .neq("serial_number", "");
+
+      if (error) throw error;
+      return (data || []) as ReceivedSerialItem[];
+    },
+  });
+
+  const receiptSerialMaps = useMemo(() => {
+    const equipmentSerialMap: Record<string, string> = {};
+    const mediaSerialMap: Record<string, string> = {};
+
+    const sorted = [...receivedSerials].sort((a, b) => {
+      const aDate = new Date(a.received_at || a.created_at).getTime();
+      const bDate = new Date(b.received_at || b.created_at).getTime();
+      return bDate - aDate;
+    });
+
+    sorted.forEach((row) => {
+      const serial = row.serial_number?.trim();
+      if (!serial) return;
+
+      if (row.is_media_player && row.media_player_id && !mediaSerialMap[row.media_player_id]) {
+        mediaSerialMap[row.media_player_id] = serial;
+      }
+
+      if (!row.is_media_player && row.equipment_id && !equipmentSerialMap[row.equipment_id]) {
+        equipmentSerialMap[row.equipment_id] = serial;
+      }
+    });
+
+    return { equipmentSerialMap, mediaSerialMap };
+  }, [receivedSerials]);
 
   // Fetch issue data for equipment
   const { data: issueData = [] } = useQuery({
@@ -423,25 +460,30 @@ export default function InventoryReport() {
     return map;
   }, [issueData, billboards, billboardEquipment]);
 
-  // Combine equipment, tools and media player data with issue information
+  // Combine equipment, tools and media player data with issue information + serial fallback
   const combinedData = useMemo(() => {
     const allData = [...equipmentData, ...toolsData, ...mediaPlayerData];
-    
-    // Enhance with issue data
+
     return allData.map((item): InventoryItem => {
       const issueInfo = issueMap[item.id];
-      
-      let issueStatus: 'in_stock' | 'issued' | 'partial' = 'in_stock';
+      const fallbackSerial = item.item_type === "equipment"
+        ? receiptSerialMaps.equipmentSerialMap[item.id]
+        : item.item_type === "media_player"
+          ? receiptSerialMaps.mediaSerialMap[item.id]
+          : null;
+
+      let issueStatus: "in_stock" | "issued" | "partial" = "in_stock";
       if (issueInfo) {
         if (issueInfo.issued_quantity >= item.quantity_in_stock + issueInfo.issued_quantity) {
-          issueStatus = 'issued';
+          issueStatus = "issued";
         } else if (issueInfo.issued_quantity > 0) {
-          issueStatus = 'partial';
+          issueStatus = "partial";
         }
       }
-      
+
       return {
         ...item,
+        serial_number: item.serial_number || fallbackSerial || null,
         issue_status: issueStatus,
         issue_purpose: issueInfo?.purpose || null,
         issue_billboard_code: issueInfo?.billboard_code || null,
@@ -449,7 +491,7 @@ export default function InventoryReport() {
         issued_quantity: issueInfo?.issued_quantity || 0,
       };
     });
-  }, [equipmentData, toolsData, mediaPlayerData, issueMap]);
+  }, [equipmentData, toolsData, mediaPlayerData, issueMap, receiptSerialMaps]);
 
   const isLoading = isLoadingEquipment || isLoadingTools || isLoadingMediaPlayers;
 
@@ -557,6 +599,40 @@ export default function InventoryReport() {
       // Filter by item condition
       if (filters.itemCondition) {
         if (item.item_condition !== filters.itemCondition) return false;
+      }
+
+      // Global search across all key columns shown in report
+      if (filters.search.trim()) {
+        const term = filters.search.trim().toLowerCase();
+        const searchableValues = [
+          item.code,
+          item.name,
+          item.serial_number,
+          item.category,
+          item.subcategories?.name,
+          item.brand,
+          item.department,
+          item.companies?.code,
+          item.companies?.name,
+          item.locations?.warehouses?.code,
+          item.locations?.warehouses?.name,
+          item.locations?.code,
+          item.locations?.name,
+          item.unit,
+          item.issue_purpose,
+          item.issue_billboard_code,
+          item.issue_requester,
+          getConditionLabel(item.item_condition),
+          String(item.quantity_in_stock),
+          String(item.min_stock_level),
+          String(item.issued_quantity || 0),
+        ];
+
+        const matchesSearch = searchableValues.some(
+          (value) => value?.toString().toLowerCase().includes(term)
+        );
+
+        if (!matchesSearch) return false;
       }
 
       return true;

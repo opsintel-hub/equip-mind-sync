@@ -441,7 +441,7 @@ const ReceiveGoods = () => {
         // Fetch current Media Player stock FIRST
         const { data: currentMediaPlayer, error: fetchMpError } = await supabase
           .from("media_players")
-          .select("quantity, code, name, department")
+          .select("quantity, code, name, department, serial_number_1, serial_number_2")
           .eq("id", (selectedReceipt as any).media_player_id)
           .single();
 
@@ -457,6 +457,18 @@ const ReceiveGoods = () => {
                 location_id: storageLocation.locationId,
                 item_condition: itemCondition,
               };
+
+        const singleReceiptSerial = selectedReceipt.serial_number?.trim();
+        const currentMpSerial1 = currentMediaPlayer?.serial_number_1?.trim();
+        const currentMpSerial2 = currentMediaPlayer?.serial_number_2?.trim();
+        if (singleReceiptSerial) {
+          if (!currentMpSerial1) {
+            mpUpdatePayload.serial_number_1 = singleReceiptSerial;
+          } else if (currentMpSerial1 !== singleReceiptSerial && !currentMpSerial2) {
+            mpUpdatePayload.serial_number_2 = singleReceiptSerial;
+          }
+        }
+
         // Always update department from receipt (authoritative source)
         if (mpDeptName) {
           mpUpdatePayload.department = mpDeptName;
@@ -491,7 +503,7 @@ const ReceiveGoods = () => {
         // Fetch current equipment stock FIRST
         const { data: currentEquipment, error: fetchError } = await supabase
           .from("equipment")
-          .select("quantity_in_stock, department")
+          .select("quantity_in_stock, department, serial_number")
           .eq("id", selectedReceipt.equipment_id)
           .single();
 
@@ -526,6 +538,12 @@ const ReceiveGoods = () => {
             expiry_date: selectedReceipt.expiry_date || null,
             item_condition: itemCondition,
           };
+
+        const singleEqSerial = selectedReceipt.serial_number?.trim();
+        if (singleEqSerial && !currentEquipment?.serial_number?.trim()) {
+          eqUpdatePayload.serial_number = singleEqSerial;
+        }
+
         if (eqDeptName) {
           eqUpdatePayload.department = eqDeptName;
         }
@@ -620,7 +638,7 @@ const ReceiveGoods = () => {
             // Fetch current Media Player stock
             const { data: currentMediaPlayer, error: fetchMpError } = await supabase
               .from("media_players")
-              .select("quantity, code, name, department")
+              .select("quantity, code, name, department, serial_number_1, serial_number_2")
               .eq("id", (receipt as any).media_player_id)
               .single();
 
@@ -635,6 +653,17 @@ const ReceiveGoods = () => {
                 location_id: storageLocation.locationId,
                 item_condition: itemCondition,
               };
+
+            const batchReceiptSerial = receipt.serial_number?.trim();
+            const batchCurrentMpSerial1 = currentMediaPlayer?.serial_number_1?.trim();
+            const batchCurrentMpSerial2 = currentMediaPlayer?.serial_number_2?.trim();
+            if (batchReceiptSerial) {
+              if (!batchCurrentMpSerial1) {
+                batchMpPayload.serial_number_1 = batchReceiptSerial;
+              } else if (batchCurrentMpSerial1 !== batchReceiptSerial && !batchCurrentMpSerial2) {
+                batchMpPayload.serial_number_2 = batchReceiptSerial;
+              }
+            }
             if (batchMpDept) {
               batchMpPayload.department = batchMpDept;
             }
@@ -664,7 +693,7 @@ const ReceiveGoods = () => {
             // Fetch current equipment stock
             const { data: currentEquipment, error: fetchError } = await supabase
               .from("equipment")
-              .select("quantity_in_stock, department")
+              .select("quantity_in_stock, department, serial_number")
               .eq("id", receipt.equipment_id!)
               .single();
 
@@ -698,6 +727,10 @@ const ReceiveGoods = () => {
                 expiry_date: receipt.expiry_date || null,
                 item_condition: itemCondition,
               };
+            const batchEqSerial = receipt.serial_number?.trim();
+            if (batchEqSerial && !currentEquipment?.serial_number?.trim()) {
+              batchEqPayload.serial_number = batchEqSerial;
+            }
             if (batchEqDept) {
               batchEqPayload.department = batchEqDept;
             }
