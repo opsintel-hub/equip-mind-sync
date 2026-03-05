@@ -1,97 +1,104 @@
 
 
-## แผนปรับปรุง 4 ส่วนหลัก
+## แผนออกแบบ Process "ของเสีย/ชำรุด" (Defective Items Management)
 
-### ส่วนที่ 1: Dashboard สำหรับเจ้าหน้าที่คลัง (หน้าวางแผนจัดเตรียมสินค้า)
+### สรุปปัญหา
+ระบบปัจจุบันรองรับเฉพาะสินค้า "ของดี" เท่านั้น ไม่มี field สถานะการใช้งาน (usable/defective) ทำให้ไม่สามารถแยกของดี-ของเสียในคลังได้ และไม่มี process สำหรับนำของเสียจากป้ายโฆษณากลับเข้าคลัง
 
-สร้างหน้าใหม่ **"แผนจัดเตรียมสินค้า"** (Warehouse Pickup Planning) ให้เจ้าหน้าที่คลังดูภาพรวมงานที่ต้องเตรียมได้ง่ายๆ
+### Process ที่เสนอ (เรียบง่ายแต่ครอบคลุม)
 
-**แนวทาง:**
-- สร้างหน้าใหม่ `src/pages/WarehousePickupPlanning.tsx`
-- เพิ่มเมนูในหมวด "คลังสินค้า" ของ Sidebar พร้อมสิทธิ์ `goods_issue`
-- ดึงข้อมูลจาก `goods_issue_pending` ที่ status = `pending` หรือ `approved`
+```text
+┌─────────────────────────────────────────────────────────────┐
+│                   PROCESS ภาพรวม                            │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  1. นำของเสียเข้าระบบ (Defective Return Entry)              │
+│     ├─ เลือกสินค้า → ข้อมูลเดิมขึ้นมาอัตโนมัติ              │
+│     ├─ ระบุป้ายโฆษณา (ถ้ามาจากป้าย)                         │
+│     │   └─ ระบบนำออกจาก billboard_equipment ทันที             │
+│     ├─ เลือกสถานะ: เสีย/ชำรุด หรือ รอตรวจสอบ                │
+│     └─ สถานะ → "รอนำเข้าคลัง"                               │
+│                                                             │
+│  2. หน้า "รอระบุป้าย/รอคืน/รอเข้าคลัง"                      │
+│     └─ Tab ใหม่: "รอเข้าคลัง" แสดงรายการที่รอรับเข้า         │
+│                                                             │
+│  3. รับเข้าคลัง (Receive Goods - ปรับปรุง)                   │
+│     ├─ เลือกสถานะการใช้งาน: ใช้งานปกติ / เสีย / รอตรวจสอบ   │
+│     ├─ เลือกตำแหน่งจัดเก็บ                                   │
+│     └─ อัปเดต stock + บันทึก stock_movement                  │
+│                                                             │
+│  4. สถานะการใช้งาน ติดตามได้ทุกที่                            │
+│     └─ equipment / media_players มี field item_condition     │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
+```
 
-**UI ประกอบด้วย:**
-1. **Summary Cards** — แสดง 3 กล่องสรุป:
-   - 🏪 รอรับที่คลัง (ด่วน!) — จำนวนรายการ wait_onsite ที่ต้องเตรียมทันที
-   - 📅 นัดรับวันนี้/พรุ่งนี้ — จำนวนรายการ scheduled ที่ pickup_date ใกล้ถึง
-   - 🚚 รอจัดส่ง — จำนวนรายการ delivery ที่ยังไม่ได้จ่าย
-
-2. **ตาราง Timeline** — เรียงตามความเร่งด่วน:
-   - `wait_onsite` → แสดงสีแดง (ด่วนสุด)
-   - `scheduled` ที่ pickup_date = วันนี้ → สีส้ม
-   - `scheduled` ที่ pickup_date = พรุ่งนี้ → สีเหลือง
-   - `delivery` → สีม่วง
-   - Columns: รูปแบบการรับ | วันเวลานัดรับ | เลขที่เอกสาร | ผู้ขอเบิก/ฝ่าย | จำนวนรายการ | ปลายทาง | สถานะ
-
-3. **Filters** — กรองตาม: รูปแบบการรับ, วันที่, ฝ่าย, สถานะ
-
----
-
-### ส่วนที่ 2: เพิ่ม Columns & Filters ในหน้ายืนยันรับสินค้า + อนุมัติเบิกทรัพย์สิน
-
-**DeliveryConfirmation.tsx — เพิ่ม:**
-- Columns: ฝ่ายผู้ขอ, จำนวน/หน่วย, วันที่ขอเบิก, รูปแบบการรับ (pickup_type badge)
-- Filters: กรองตามสถานะ (รอยืนยัน/ยืนยันแล้ว/แจ้งปัญหา), กรองตามฝ่าย, กรองตามช่วงวันที่
-
-**ManagerApproval.tsx — เพิ่ม:**
-- Columns: รูปแบบการรับ (pickup_type badge), วันที่นัดรับ, จำนวนรายการทรัพย์สิน, ชื่อผู้อนุมัติ (ในประวัติ), วันที่อนุมัติ
-- Filters: กรองตามฝ่าย, กรองตามบริษัท, กรองตามช่วงวันที่, กรองตามสถานะ (รออนุมัติ/อนุมัติแล้ว/ไม่อนุมัติ)
+### รายละเอียดการปรับปรุง
 
 ---
 
-### ส่วนที่ 3: Update หน้ารายงานทั้งหมดให้เป็นปัจจุบัน
+#### 1. Database Migration
 
-**3.1 InventoryReport.tsx** — เพิ่ม:
-- Column: รูปแบบการรับ (pickup_type), สถานะอนุมัติ (approval_status)
-- Filter: pickup_type, approval_status
+**เพิ่ม field ใหม่:**
+- `equipment` table → `item_condition` (text, default `'normal'`, values: `normal`, `defective`, `pending_inspection`)
+- `media_players` table → `item_condition` (text, default `'normal'`)
+- `goods_receipt_pending` table → `item_condition` (text, default `'normal'`)
+- `goods_issue_pending` table → `item_condition` (text, nullable)
+- `goods_issue_pending_items` table → `item_condition` (text, nullable)
+- `stock_movements` table → `item_condition` (text, nullable) — เพื่อบันทึกว่า movement นั้นเป็นของดีหรือของเสีย
+- `billboard_equipment` table → `item_condition` (text, default `'normal'`)
 
-**3.2 StockMovementLog.tsx** — เพิ่ม:
-- Filter: ช่วงวันที่ (date range picker), กรองตามฝ่าย, กรองตามบริษัท
-- Column: ฝ่าย
-
-**3.3 DocumentSearch.tsx** — เพิ่ม:
-- ค้นหาเอกสารจาก `goods_issue_pending` (เอกสารเบิก) และ `delivery_confirmations` (เอกสารยืนยันรับ)
-- Filter: ประเภทเอกสาร (เพิ่มตัวเลือก "เอกสารเบิก", "เอกสารยืนยันรับ")
-
-**3.4 BillboardIssueReport.tsx** — เพิ่ม:
-- Column: pickup_type, สถานะอนุมัติ
-- Filter: pickup_type
-
----
-
-### ส่วนที่ 4: Update หน้าจัดการผู้ใช้ให้เป็นปัจจุบัน
-
-**4.1 UserPermissionManager.tsx:**
-- ตาราง Users: เพิ่ม column แสดง role "Manager" ด้วย badge สีม่วง
-- Role descriptions: อัปเดตคำอธิบาย Manager role ให้ระบุว่าสามารถ "อนุมัติเบิกทรัพย์สินเฉพาะฝ่ายที่รับผิดชอบ"
-- Function permissions: ตรวจสอบว่า `delivery_confirm` และ `manager_approval` แสดงถูกต้องในรายการฟังก์ชัน
-
-**4.2 RoleDescriptions.tsx:**
-- อัปเดต ROLE_DETAILS ของ Manager ให้มี capabilities ใหม่: "อนุมัติเบิกทรัพย์สิน", "ดูเฉพาะฝ่ายที่รับผิดชอบ"
-- เพิ่ม defaultFunctions: `manager_approval`
-
-**4.3 FunctionDescriptions.tsx:**
-- เพิ่มรายการ `delivery_confirm` และ `manager_approval` ใน FUNCTION_DETAILS
-- ระบุ relatedPages ที่เกี่ยวข้อง
+**ตาราง defective_returns (ใหม่):**
+- `id`, `document_no`, `equipment_id`, `media_player_id`, `is_media_player`
+- `quantity`, `billboard_id` (ถ้ามาจากป้าย)
+- `item_condition` (defective / pending_inspection)
+- `reason` (เหตุผลที่เสีย/ชำรุด)
+- `status` (pending_warehouse_entry → received → closed)
+- `source_type` (billboard / warehouse / field)
+- `created_by`, `created_at`, timestamps
 
 ---
 
-### ไฟล์ที่ต้องสร้าง/แก้ไข
+#### 2. หน้าที่ต้องปรับปรุง/สร้างใหม่ (รวม 5 หน้า)
 
-| ไฟล์ | การเปลี่ยนแปลง |
-|------|----------------|
-| `src/pages/WarehousePickupPlanning.tsx` | **สร้างใหม่** — Dashboard วางแผนจัดเตรียมสินค้า |
-| `src/App.tsx` | เพิ่ม route `/warehouse-planning` |
-| `src/components/AppSidebar.tsx` | เพิ่มเมนู "แผนจัดเตรียมสินค้า" |
-| `src/pages/DeliveryConfirmation.tsx` | เพิ่ม columns + filters |
-| `src/pages/ManagerApproval.tsx` | เพิ่ม columns + filters |
-| `src/pages/StockMovementLog.tsx` | เพิ่ม filters (date range, ฝ่าย, บริษัท) |
-| `src/pages/DocumentSearch.tsx` | เพิ่มแหล่งข้อมูลเอกสารเบิก/ยืนยันรับ |
-| `src/components/admin/UserPermissionManager.tsx` | อัปเดต ROLES description + แสดง Manager badge |
-| `src/components/admin/RoleDescriptions.tsx` | อัปเดต Manager capabilities + defaultFunctions |
-| `src/components/admin/FunctionDescriptions.tsx` | เพิ่ม delivery_confirm + manager_approval |
-| `src/hooks/useFunctionPermissions.tsx` | ไม่ต้องแก้ (มี delivery_confirm, manager_approval แล้ว) |
+| # | หน้า | การเปลี่ยนแปลง |
+|---|------|----------------|
+| 1 | **DefectiveReturnEntry (ใหม่)** | ฟอร์มนำของเสียเข้าระบบ — ค้นหาสินค้าจาก equipment/media_players แล้ว auto-fill ข้อมูล, เลือกป้ายโฆษณา (ถ้ามี), ระบุสาเหตุ, สร้าง defective_return + นำออกจาก billboard_equipment ทันที |
+| 2 | **IncompleteIssues (ปรับ)** | เพิ่ม Tab "รอเข้าคลัง" แสดง defective_returns ที่ status = pending_warehouse_entry |
+| 3 | **ReceiveGoods (ปรับ)** | เพิ่มตัวเลือก "สถานะการใช้งาน" (ใช้งานปกติ/เสีย/รอตรวจสอบ) ในขั้นตอนรับเข้าคลัง, อัปเดต item_condition ใน equipment/media_players |
+| 4 | **DeliveryEntry (ปรับเล็กน้อย)** | เพิ่ม field สถานะการใช้งานในตะกร้า (default = ใช้งานปกติ) |
+| 5 | **AppSidebar (ปรับ)** | เปลี่ยนชื่อเมนูเป็น "รอระบุป้าย/รอคืน/รอเข้าคลัง", เพิ่มเมนู "นำของเสียเข้าระบบ" |
 
-**ไม่ต้อง Migration** — ใช้ข้อมูลที่มีอยู่แล้วในตาราง `goods_issue_pending` (pickup_type, pickup_date, pickup_time, approval_status)
+---
+
+#### 3. วัตถุประสงค์การนำสินค้าเข้า (Receipt Purposes) — ใช้ซ้ำได้
+
+ใช้ `receipt_purposes` ที่มีอยู่แล้ว โดยเพิ่มวัตถุประสงค์ใหม่ในหน้า Master Data:
+- "นำเข้าของเสีย/ชำรุด" (purpose_type = `defective`)
+- "นำเข้ารอตรวจสอบ" (purpose_type = `inspection`)
+
+ระบบจะ auto-detect จาก purpose ว่าเป็นของเสียหรือไม่ และตั้ง item_condition ให้อัตโนมัติ
+
+---
+
+#### 4. Process Flow ของเสียจากป้ายโฆษณา
+
+1. ผู้ใช้เปิดหน้า "นำของเสียเข้าระบบ"
+2. เลือกสินค้า (พิมพ์รหัส/ชื่อ → auto-fill ทุก field จาก DB)
+3. เลือก "มาจากป้ายโฆษณา" → เลือกป้าย → ระบบนำออกจาก `billboard_equipment` ทันที
+4. เลือกสถานะ: เสีย/ชำรุด หรือ รอตรวจสอบ
+5. ระบุเหตุผล + จำนวน
+6. บันทึก → สร้าง `defective_returns` (status = `pending_warehouse_entry`)
+7. รายการปรากฏใน Tab "รอเข้าคลัง" ของหน้า IncompleteIssues
+8. เจ้าหน้าที่คลังรับเข้าคลังผ่านหน้า ReceiveGoods (หรือปุ่มในหน้า IncompleteIssues)
+9. อัปเดต stock + item_condition + log stock_movement
+
+---
+
+#### 5. รายละเอียดทางเทคนิค
+
+- **Auto-fill**: Query จาก `equipment` / `media_players` โดย code หรือ name แล้ว populate ทุก field (code, name, unit, category, brand, serial_number, location, billboard ที่ติดตั้งอยู่)
+- **Billboard removal**: เมื่อเลือกป้ายโฆษณา ระบบ DELETE จาก `billboard_equipment` + INSERT เข้า `billboard_equipment_history` พร้อม uninstall_reason
+- **Stock movement**: บันทึกเป็น movement_type = `return_from_billboard` (ถ้ามาจากป้าย) หรือ `receive` (ถ้ามาจากที่อื่น) พร้อม item_condition
+- **IncompleteIssues Tab**: Query `defective_returns WHERE status = 'pending_warehouse_entry'` แสดงจำนวนใน Badge
 

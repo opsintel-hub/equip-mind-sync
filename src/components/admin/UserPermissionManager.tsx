@@ -40,7 +40,7 @@ type UserRole = Database["public"]["Enums"]["app_role"];
 
 const ROLES: { value: UserRole; label: string; description: string; color: string }[] = [
   { value: "admin", label: "Admin", description: "สิทธิ์เต็มทุกอย่าง", color: "bg-red-500" },
-  { value: "manager", label: "Manager", description: "ดูแลภาพรวม ดูรายงาน", color: "bg-purple-500" },
+  { value: "manager", label: "Manager", description: "อนุมัติเบิกทรัพย์สิน (เฉพาะฝ่ายที่รับผิดชอบ)", color: "bg-purple-500" },
   { value: "warehouse_staff", label: "เจ้าหน้าที่คลัง", description: "รับเข้า-จ่ายสินค้า", color: "bg-blue-500" },
   { value: "receiver", label: "ผู้รับเข้า", description: "รับสินค้าเข้าคลัง", color: "bg-green-500" },
   { value: "requester", label: "ผู้เบิก", description: "ขอเบิกสินค้า", color: "bg-orange-500" },

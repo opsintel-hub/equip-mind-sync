@@ -49,12 +49,14 @@ const ROLE_DETAILS: RoleInfo[] = [
     color: "bg-purple-500/10 text-purple-600 border-purple-200",
     description: "ดูแลภาพรวม อนุมัติรายการ และดูรายงาน",
     capabilities: [
+      "อนุมัติเบิกทรัพย์สิน (เฉพาะฝ่ายที่รับผิดชอบ)",
       "ดูรายงานและสถิติการเคลื่อนไหวสต็อก",
       "ติดตามคำขอเบิกสินค้าของทีม",
       "ดูข้อมูลคลังสินค้าตามฝ่ายที่ได้รับสิทธิ์",
-      "ตรวจสอบประวัติการทำรายการ"
+      "ตรวจสอบประวัติการทำรายการ",
+      "ดูเฉพาะข้อมูลของฝ่ายที่รับผิดชอบ"
     ],
-    defaultFunctions: ["reports"],
+    defaultFunctions: ["reports", "manager_approval"],
   },
   {
     value: "warehouse_staff",

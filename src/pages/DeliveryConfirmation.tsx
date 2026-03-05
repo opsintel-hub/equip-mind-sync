@@ -11,10 +11,12 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Search, CheckCircle, AlertTriangle, Camera, Upload, Package, Truck, Eye, X } from "lucide-react";
+import { Search, CheckCircle, AlertTriangle, Camera, Upload, Package, Truck, Eye, X, Store, CalendarClock } from "lucide-react";
 import { format } from "date-fns";
 import { th } from "date-fns/locale";
 import { useAuth } from "@/hooks/useAuth";
+import { DatePickerWithRange } from "@/components/ui/date-range-picker";
+import { DateRange } from "react-day-picker";
 
 const ISSUE_TYPES = [
   { value: "damaged_in_transit", label: "สินค้าชำรุดระหว่างการจัดส่ง" },
@@ -30,6 +32,9 @@ const DeliveryConfirmation = () => {
   const queryClient = useQueryClient();
   const { user } = useAuth();
   const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [departmentFilter, setDepartmentFilter] = useState("all");
+  const [dateRange, setDateRange] = useState<DateRange | undefined>();
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState<any>(null);
   const [hasIssue, setHasIssue] = useState(false);
@@ -40,6 +45,14 @@ const DeliveryConfirmation = () => {
   const [uploading, setUploading] = useState(false);
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
   const [viewConfirmation, setViewConfirmation] = useState<any>(null);
+
+  const { data: departments } = useQuery({
+    queryKey: ["dc-departments"],
+    queryFn: async () => {
+      const { data } = await supabase.from("departments").select("name").eq("is_active", true).order("name");
+      return data?.map((d: any) => d.name) || [];
+    },
+  });
 
   // Fetch issued requests with delivery pickup_type
   const { data: deliveryRequests, isLoading } = useQuery({
@@ -56,7 +69,6 @@ const DeliveryConfirmation = () => {
     },
   });
 
-  // Fetch existing confirmations
   const { data: existingConfirmations } = useQuery({
     queryKey: ["existing-delivery-confirmations"],
     queryFn: async () => {
@@ -69,7 +81,6 @@ const DeliveryConfirmation = () => {
     },
   });
 
-  // Fetch items for requests
   const { data: allItems } = useQuery({
     queryKey: ["delivery-confirmation-items"],
     queryFn: async () => {
@@ -97,31 +108,16 @@ const DeliveryConfirmation = () => {
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
-
     setUploading(true);
     const newUrls: string[] = [];
-
     for (const file of Array.from(files)) {
       const fileExt = file.name.split('.').pop();
       const fileName = `${selectedRequest?.document_no || 'dc'}-${Date.now()}-${Math.random().toString(36).slice(2)}.${fileExt}`;
-      const filePath = `${fileName}`;
-
-      const { error } = await supabase.storage
-        .from("delivery-confirmations")
-        .upload(filePath, file);
-
-      if (error) {
-        toast.error(`อัปโหลดไฟล์ ${file.name} ไม่สำเร็จ`);
-        continue;
-      }
-
-      const { data: urlData } = supabase.storage
-        .from("delivery-confirmations")
-        .getPublicUrl(filePath);
-
+      const { error } = await supabase.storage.from("delivery-confirmations").upload(fileName, file);
+      if (error) { toast.error(`อัปโหลดไฟล์ ${file.name} ไม่สำเร็จ`); continue; }
+      const { data: urlData } = supabase.storage.from("delivery-confirmations").getPublicUrl(fileName);
       newUrls.push(urlData.publicUrl);
     }
-
     setUploadedFiles(prev => [...prev, ...newUrls]);
     setUploading(false);
     toast.success(`อัปโหลดสำเร็จ ${newUrls.length} ไฟล์`);
@@ -134,20 +130,16 @@ const DeliveryConfirmation = () => {
   const confirmDelivery = useMutation({
     mutationFn: async () => {
       if (!selectedRequest || !user) throw new Error("Missing data");
-
-      const { error } = await supabase
-        .from("delivery_confirmations")
-        .insert({
-          goods_issue_pending_id: selectedRequest.id,
-          document_no: selectedRequest.document_no,
-          confirmed_by: user.id,
-          status: hasIssue ? "issue_reported" : "confirmed",
-          issue_type: hasIssue ? issueType : null,
-          issue_description: hasIssue ? issueDescription : null,
-          notes: notes || null,
-          photo_urls: uploadedFiles.length > 0 ? uploadedFiles : null,
-        } as any);
-
+      const { error } = await supabase.from("delivery_confirmations").insert({
+        goods_issue_pending_id: selectedRequest.id,
+        document_no: selectedRequest.document_no,
+        confirmed_by: user.id,
+        status: hasIssue ? "issue_reported" : "confirmed",
+        issue_type: hasIssue ? issueType : null,
+        issue_description: hasIssue ? issueDescription : null,
+        notes: notes || null,
+        photo_urls: uploadedFiles.length > 0 ? uploadedFiles : null,
+      } as any);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -156,9 +148,7 @@ const DeliveryConfirmation = () => {
       queryClient.invalidateQueries({ queryKey: ["existing-delivery-confirmations"] });
       resetForm();
     },
-    onError: (error) => {
-      toast.error("เกิดข้อผิดพลาด: " + error.message);
-    },
+    onError: (error) => toast.error("เกิดข้อผิดพลาด: " + error.message),
   });
 
   const resetForm = () => {
@@ -171,23 +161,42 @@ const DeliveryConfirmation = () => {
     setUploadedFiles([]);
   };
 
-  const handleOpenConfirm = (request: any) => {
-    setSelectedRequest(request);
-    setConfirmDialogOpen(true);
+  const getPickupBadge = (type: string) => {
+    switch (type) {
+      case "wait_onsite": return <Badge variant="destructive" className="gap-1"><Store className="h-3 w-3" />รอรับที่คลัง</Badge>;
+      case "scheduled": return <Badge className="bg-blue-100 text-blue-800 gap-1"><CalendarClock className="h-3 w-3" />นัดรับ</Badge>;
+      case "delivery": return <Badge className="bg-purple-100 text-purple-800 gap-1"><Truck className="h-3 w-3" />จัดส่ง</Badge>;
+      default: return <Badge variant="secondary">-</Badge>;
+    }
   };
 
-  const handleViewConfirmation = (request: any) => {
-    const confirmation = getConfirmation(request.id);
-    setViewConfirmation(confirmation);
-    setViewDialogOpen(true);
-  };
-
-  const filteredRequests = deliveryRequests?.filter(
-    (req: any) =>
-      req.document_no?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      req.equipment_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      req.requester_name?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // Filter logic
+  const filteredRequests = deliveryRequests?.filter((req: any) => {
+    // Search
+    if (searchTerm) {
+      const term = searchTerm.toLowerCase();
+      if (!req.document_no?.toLowerCase().includes(term) &&
+          !req.equipment_name?.toLowerCase().includes(term) &&
+          !req.requester_name?.toLowerCase().includes(term)) return false;
+    }
+    // Status filter
+    if (statusFilter !== "all") {
+      const confirmed = isAlreadyConfirmed(req.id);
+      const confirmation = getConfirmation(req.id);
+      if (statusFilter === "pending" && confirmed) return false;
+      if (statusFilter === "confirmed" && (!confirmed || confirmation?.status === "issue_reported")) return false;
+      if (statusFilter === "issue_reported" && (!confirmed || confirmation?.status !== "issue_reported")) return false;
+    }
+    // Department filter
+    if (departmentFilter !== "all" && req.requester_department !== departmentFilter) return false;
+    // Date range
+    if (dateRange?.from) {
+      const d = new Date(req.created_at);
+      if (d < dateRange.from) return false;
+      if (dateRange.to && d > dateRange.to) return false;
+    }
+    return true;
+  });
 
   return (
     <div className="space-y-6">
@@ -201,23 +210,33 @@ const DeliveryConfirmation = () => {
 
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Package className="h-5 w-5" />
-            รายการรอยืนยันรับ
-          </CardTitle>
+          <CardTitle className="flex items-center gap-2"><Package className="h-5 w-5" />รายการรอยืนยันรับ</CardTitle>
           <CardDescription>แสดงเฉพาะรายการที่เลือก "จัดส่ง" และจ่ายสินค้าแล้ว</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="flex items-center gap-2 mb-4">
-            <div className="relative flex-1 max-w-sm">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="ค้นหาเลขที่เอกสาร, ชื่อสินค้า..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
-              />
+          {/* Filters */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input placeholder="ค้นหาเลขที่เอกสาร, ชื่อสินค้า..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-10" />
             </div>
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger><SelectValue placeholder="สถานะ" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">ทุกสถานะ</SelectItem>
+                <SelectItem value="pending">รอยืนยัน</SelectItem>
+                <SelectItem value="confirmed">ยืนยันแล้ว</SelectItem>
+                <SelectItem value="issue_reported">แจ้งปัญหา</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={departmentFilter} onValueChange={setDepartmentFilter}>
+              <SelectTrigger><SelectValue placeholder="ฝ่าย" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">ทุกฝ่าย</SelectItem>
+                {departments?.map((d: string) => <SelectItem key={d} value={d}>{d}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            <DatePickerWithRange date={dateRange} onDateChange={setDateRange} />
           </div>
 
           <div className="rounded-md border">
@@ -227,7 +246,8 @@ const DeliveryConfirmation = () => {
                   <TableHead>เลขที่เอกสาร</TableHead>
                   <TableHead>วันที่จ่าย</TableHead>
                   <TableHead>บริษัท</TableHead>
-                  <TableHead>ผู้ขอเบิก</TableHead>
+                  <TableHead>ผู้ขอเบิก / ฝ่าย</TableHead>
+                  <TableHead>รูปแบบการรับ</TableHead>
                   <TableHead>ปลายทาง</TableHead>
                   <TableHead>รายการ</TableHead>
                   <TableHead>สถานะ</TableHead>
@@ -236,32 +256,24 @@ const DeliveryConfirmation = () => {
               </TableHeader>
               <TableBody>
                 {isLoading ? (
-                  <TableRow>
-                    <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">กำลังโหลด...</TableCell>
-                  </TableRow>
+                  <TableRow><TableCell colSpan={9} className="text-center py-8 text-muted-foreground">กำลังโหลด...</TableCell></TableRow>
                 ) : filteredRequests?.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">ไม่พบรายการจัดส่งที่รอยืนยัน</TableCell>
-                  </TableRow>
+                  <TableRow><TableCell colSpan={9} className="text-center py-8 text-muted-foreground">ไม่พบรายการ</TableCell></TableRow>
                 ) : (
                   filteredRequests?.map((req: any) => {
                     const confirmed = isAlreadyConfirmed(req.id);
                     const confirmation = getConfirmation(req.id);
                     const items = getItemsForRequest(req.id);
-                    
                     return (
                       <TableRow key={req.id}>
                         <TableCell className="font-medium">{req.document_no}</TableCell>
-                        <TableCell>
-                          {req.issued_at ? format(new Date(req.issued_at), "dd/MM/yyyy HH:mm", { locale: th }) : "-"}
-                        </TableCell>
+                        <TableCell>{req.issued_at ? format(new Date(req.issued_at), "dd/MM/yyyy HH:mm", { locale: th }) : "-"}</TableCell>
                         <TableCell>{req.companies?.name || "-"}</TableCell>
                         <TableCell>
                           <div>{req.requester_name}</div>
-                          {req.requester_department && (
-                            <div className="text-xs text-muted-foreground">{req.requester_department}</div>
-                          )}
+                          {req.requester_department && <div className="text-xs text-muted-foreground">{req.requester_department}</div>}
                         </TableCell>
+                        <TableCell>{getPickupBadge(req.pickup_type)}</TableCell>
                         <TableCell>{req.destination || "-"}</TableCell>
                         <TableCell>
                           {items.length > 0 ? (
@@ -273,32 +285,22 @@ const DeliveryConfirmation = () => {
                         <TableCell>
                           {confirmed ? (
                             confirmation?.status === "issue_reported" ? (
-                              <Badge variant="destructive" className="gap-1">
-                                <AlertTriangle className="h-3 w-3" />
-                                แจ้งปัญหา
-                              </Badge>
+                              <Badge variant="destructive" className="gap-1"><AlertTriangle className="h-3 w-3" />แจ้งปัญหา</Badge>
                             ) : (
-                              <Badge className="bg-green-100 text-green-800 gap-1">
-                                <CheckCircle className="h-3 w-3" />
-                                ยืนยันแล้ว
-                              </Badge>
+                              <Badge className="bg-green-100 text-green-800 gap-1"><CheckCircle className="h-3 w-3" />ยืนยันแล้ว</Badge>
                             )
                           ) : (
-                            <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">
-                              รอยืนยัน
-                            </Badge>
+                            <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">รอยืนยัน</Badge>
                           )}
                         </TableCell>
                         <TableCell className="text-center">
                           {confirmed ? (
-                            <Button size="sm" variant="outline" onClick={() => handleViewConfirmation(req)}>
-                              <Eye className="h-4 w-4 mr-1" />
-                              ดูรายละเอียด
+                            <Button size="sm" variant="outline" onClick={() => { setViewConfirmation(getConfirmation(req.id)); setViewDialogOpen(true); }}>
+                              <Eye className="h-4 w-4 mr-1" />ดูรายละเอียด
                             </Button>
                           ) : (
-                            <Button size="sm" onClick={() => handleOpenConfirm(req)}>
-                              <CheckCircle className="h-4 w-4 mr-1" />
-                              ยืนยันรับ
+                            <Button size="sm" onClick={() => { setSelectedRequest(req); setConfirmDialogOpen(true); }}>
+                              <CheckCircle className="h-4 w-4 mr-1" />ยืนยันรับ
                             </Button>
                           )}
                         </TableCell>
@@ -316,14 +318,9 @@ const DeliveryConfirmation = () => {
       <Dialog open={confirmDialogOpen} onOpenChange={(open) => { if (!open) resetForm(); }}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <CheckCircle className="h-5 w-5" />
-              ยืนยันรับสินค้า - {selectedRequest?.document_no}
-            </DialogTitle>
+            <DialogTitle className="flex items-center gap-2"><CheckCircle className="h-5 w-5" />ยืนยันรับสินค้า - {selectedRequest?.document_no}</DialogTitle>
           </DialogHeader>
-
           <div className="space-y-6">
-            {/* Request Info (auto-filled) */}
             <Card className="bg-muted/30">
               <CardContent className="pt-4">
                 <div className="grid grid-cols-2 gap-3 text-sm">
@@ -332,8 +329,6 @@ const DeliveryConfirmation = () => {
                   <div><span className="text-muted-foreground">ปลายทาง:</span> <span className="font-medium">{selectedRequest?.destination || "-"}</span></div>
                   <div><span className="text-muted-foreground">สินค้า:</span> <span className="font-medium">{selectedRequest?.equipment_name || "-"}</span></div>
                 </div>
-
-                {/* Items list */}
                 {selectedRequest && getItemsForRequest(selectedRequest.id).length > 0 && (
                   <div className="mt-3 border-t pt-3">
                     <p className="font-medium mb-2">รายการสินค้า:</p>
@@ -350,85 +345,46 @@ const DeliveryConfirmation = () => {
               </CardContent>
             </Card>
 
-            {/* Issue Toggle */}
             <div className="space-y-3">
               <Label className="text-base font-medium">มีปัญหากับสินค้าที่ได้รับหรือไม่?</Label>
               <div className="flex gap-3">
-                <Button
-                  type="button"
-                  variant={!hasIssue ? "default" : "outline"}
-                  onClick={() => setHasIssue(false)}
-                  className="flex-1"
-                >
-                  <CheckCircle className="h-4 w-4 mr-2" />
-                  รับสินค้าครบถ้วน
+                <Button type="button" variant={!hasIssue ? "default" : "outline"} onClick={() => setHasIssue(false)} className="flex-1">
+                  <CheckCircle className="h-4 w-4 mr-2" />รับสินค้าครบถ้วน
                 </Button>
-                <Button
-                  type="button"
-                  variant={hasIssue ? "destructive" : "outline"}
-                  onClick={() => setHasIssue(true)}
-                  className="flex-1"
-                >
-                  <AlertTriangle className="h-4 w-4 mr-2" />
-                  แจ้งปัญหา
+                <Button type="button" variant={hasIssue ? "destructive" : "outline"} onClick={() => setHasIssue(true)} className="flex-1">
+                  <AlertTriangle className="h-4 w-4 mr-2" />แจ้งปัญหา
                 </Button>
               </div>
             </div>
 
-            {/* Issue Details */}
             {hasIssue && (
               <div className="space-y-4 p-4 border border-destructive/30 rounded-lg bg-destructive/5">
                 <div className="space-y-2">
                   <Label>ประเภทปัญหา *</Label>
                   <Select value={issueType} onValueChange={setIssueType}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="เลือกประเภทปัญหา" />
-                    </SelectTrigger>
+                    <SelectTrigger><SelectValue placeholder="เลือกประเภทปัญหา" /></SelectTrigger>
                     <SelectContent>
-                      {ISSUE_TYPES.map((type) => (
-                        <SelectItem key={type.value} value={type.value}>{type.label}</SelectItem>
-                      ))}
+                      {ISSUE_TYPES.map((type) => <SelectItem key={type.value} value={type.value}>{type.label}</SelectItem>)}
                     </SelectContent>
                   </Select>
                 </div>
                 <div className="space-y-2">
                   <Label>รายละเอียดปัญหา</Label>
-                  <Textarea
-                    value={issueDescription}
-                    onChange={(e) => setIssueDescription(e.target.value)}
-                    placeholder="อธิบายรายละเอียดปัญหาที่พบ..."
-                    rows={3}
-                  />
+                  <Textarea value={issueDescription} onChange={(e) => setIssueDescription(e.target.value)} placeholder="อธิบายรายละเอียดปัญหาที่พบ..." rows={3} />
                 </div>
               </div>
             )}
 
-            {/* Photo/Video Upload */}
             <div className="space-y-3">
-              <Label className="text-base font-medium flex items-center gap-2">
-                <Camera className="h-4 w-4" />
-                แนบหลักฐาน (รูปภาพ/วิดีโอ)
-              </Label>
+              <Label className="text-base font-medium flex items-center gap-2"><Camera className="h-4 w-4" />แนบหลักฐาน (รูปภาพ/วิดีโอ)</Label>
               <div className="border-2 border-dashed border-muted-foreground/30 rounded-lg p-6 text-center hover:border-primary/50 transition-colors">
-                <input
-                  type="file"
-                  multiple
-                  accept="image/*,video/*"
-                  onChange={handleFileUpload}
-                  className="hidden"
-                  id="delivery-file-upload"
-                  disabled={uploading}
-                />
+                <input type="file" multiple accept="image/*,video/*" onChange={handleFileUpload} className="hidden" id="delivery-file-upload" disabled={uploading} />
                 <label htmlFor="delivery-file-upload" className="cursor-pointer">
                   <Upload className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
-                  <p className="text-sm text-muted-foreground">
-                    {uploading ? "กำลังอัปโหลด..." : "คลิกเพื่ออัปโหลดรูปภาพหรือวิดีโอ"}
-                  </p>
+                  <p className="text-sm text-muted-foreground">{uploading ? "กำลังอัปโหลด..." : "คลิกเพื่ออัปโหลดรูปภาพหรือวิดีโอ"}</p>
                   <p className="text-xs text-muted-foreground mt-1">รองรับ JPG, PNG, MP4, MOV</p>
                 </label>
               </div>
-
-              {/* Preview uploaded files */}
               {uploadedFiles.length > 0 && (
                 <div className="grid grid-cols-3 gap-2">
                   {uploadedFiles.map((url, index) => (
@@ -438,10 +394,7 @@ const DeliveryConfirmation = () => {
                       ) : (
                         <img src={url} alt={`หลักฐาน ${index + 1}`} className="w-full h-24 object-cover rounded-lg" />
                       )}
-                      <button
-                        onClick={() => removeFile(index)}
-                        className="absolute top-1 right-1 bg-destructive text-destructive-foreground rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                      >
+                      <button onClick={() => removeFile(index)} className="absolute top-1 right-1 bg-destructive text-destructive-foreground rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity">
                         <X className="h-3 w-3" />
                       </button>
                     </div>
@@ -450,31 +403,15 @@ const DeliveryConfirmation = () => {
               )}
             </div>
 
-            {/* Notes */}
             <div className="space-y-2">
               <Label>หมายเหตุเพิ่มเติม</Label>
-              <Textarea
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                placeholder="หมายเหตุ (ถ้ามี)..."
-                rows={2}
-              />
+              <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="หมายเหตุ (ถ้ามี)..." rows={2} />
             </div>
           </div>
-
           <DialogFooter>
             <Button variant="outline" onClick={resetForm}>ยกเลิก</Button>
-            <Button
-              onClick={() => {
-                if (hasIssue && !issueType) {
-                  toast.error("กรุณาเลือกประเภทปัญหา");
-                  return;
-                }
-                confirmDelivery.mutate();
-              }}
-              disabled={confirmDelivery.isPending}
-              variant={hasIssue ? "destructive" : "default"}
-            >
+            <Button onClick={() => { if (hasIssue && !issueType) { toast.error("กรุณาเลือกประเภทปัญหา"); return; } confirmDelivery.mutate(); }}
+              disabled={confirmDelivery.isPending} variant={hasIssue ? "destructive" : "default"}>
               {confirmDelivery.isPending ? "กำลังบันทึก..." : hasIssue ? "บันทึกปัญหา" : "ยืนยันรับสินค้า"}
             </Button>
           </DialogFooter>
@@ -484,9 +421,7 @@ const DeliveryConfirmation = () => {
       {/* View Confirmation Dialog */}
       <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
         <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>รายละเอียดการยืนยัน</DialogTitle>
-          </DialogHeader>
+          <DialogHeader><DialogTitle>รายละเอียดการยืนยัน</DialogTitle></DialogHeader>
           {viewConfirmation && (
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-3 text-sm">
@@ -494,32 +429,18 @@ const DeliveryConfirmation = () => {
                 <div><span className="text-muted-foreground">วันที่ยืนยัน:</span> <span className="font-medium">{format(new Date(viewConfirmation.confirmed_at), "dd/MM/yyyy HH:mm", { locale: th })}</span></div>
                 <div className="col-span-2">
                   <span className="text-muted-foreground">สถานะ:</span>{" "}
-                  {viewConfirmation.status === "issue_reported" ? (
-                    <Badge variant="destructive">แจ้งปัญหา</Badge>
-                  ) : (
-                    <Badge className="bg-green-100 text-green-800">ยืนยันแล้ว</Badge>
-                  )}
+                  {viewConfirmation.status === "issue_reported" ? <Badge variant="destructive">แจ้งปัญหา</Badge> : <Badge className="bg-green-100 text-green-800">ยืนยันแล้ว</Badge>}
                 </div>
               </div>
-
               {viewConfirmation.issue_type && (
                 <div className="p-3 bg-destructive/5 border border-destructive/20 rounded-lg">
-                  <p className="text-sm font-medium text-destructive mb-1">
-                    ปัญหา: {ISSUE_TYPES.find(t => t.value === viewConfirmation.issue_type)?.label || viewConfirmation.issue_type}
-                  </p>
-                  {viewConfirmation.issue_description && (
-                    <p className="text-sm text-muted-foreground">{viewConfirmation.issue_description}</p>
-                  )}
+                  <p className="text-sm font-medium text-destructive mb-1">ปัญหา: {ISSUE_TYPES.find(t => t.value === viewConfirmation.issue_type)?.label || viewConfirmation.issue_type}</p>
+                  {viewConfirmation.issue_description && <p className="text-sm text-muted-foreground">{viewConfirmation.issue_description}</p>}
                 </div>
               )}
-
               {viewConfirmation.notes && (
-                <div>
-                  <p className="text-sm text-muted-foreground">หมายเหตุ:</p>
-                  <p className="text-sm">{viewConfirmation.notes}</p>
-                </div>
+                <div><p className="text-sm text-muted-foreground">หมายเหตุ:</p><p className="text-sm">{viewConfirmation.notes}</p></div>
               )}
-
               {viewConfirmation.photo_urls?.length > 0 && (
                 <div>
                   <p className="text-sm font-medium mb-2">หลักฐาน ({viewConfirmation.photo_urls.length} ไฟล์)</p>
