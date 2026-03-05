@@ -1151,7 +1151,6 @@ const MediaPlayerEntry = () => {
                           <TableHead className="whitespace-nowrap">Invoice</TableHead>
                           <TableHead className="whitespace-nowrap text-center">ไฟล์ Invoice</TableHead>
                           <TableHead className="whitespace-nowrap text-center">รูปภาพ</TableHead>
-                          <TableHead className="whitespace-nowrap">วันที่รับสินค้า</TableHead>
                           <TableHead className="whitespace-nowrap">หมายเหตุ</TableHead>
                           <TableHead className="text-right whitespace-nowrap">จัดการ</TableHead>
                         </TableRow>
