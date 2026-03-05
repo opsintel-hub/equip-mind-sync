@@ -1,5 +1,5 @@
 import { useRef } from "react";
-import { Download, X, FileText, TrendingUp, TrendingDown, ArrowRightLeft, RotateCcw, Package } from "lucide-react";
+import { Download, FileText, TrendingUp, TrendingDown, ArrowRightLeft, RotateCcw, Package } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
