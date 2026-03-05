@@ -743,9 +743,11 @@ const DeliveryEntry = () => {
         setPoNumber("");
         setPrNumber("");
         setInvoiceNumber("");
+        setDeliveryNoteNumber("");
         setPoDocumentUrl("");
         setPrDocumentUrl("");
         setInvoiceDocumentUrl("");
+        setDeliveryNoteDocumentUrl("");
         setPurchaseDocumentFile(null);
         setAdditionalDocumentFile(null);
         setAdditionalImageFile(null);
