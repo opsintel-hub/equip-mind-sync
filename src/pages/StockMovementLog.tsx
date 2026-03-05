@@ -57,8 +57,8 @@ export default function StockMovementLog() {
 
     // Apply client-side filters
     let filtered = movements;
-    if (departmentFilter !== "all") {
-      filtered = filtered.filter((m: any) => m.department === departmentFilter);
+    if (departmentFilter.length > 0) {
+      filtered = filtered.filter((m: any) => departmentFilter.includes(m.department));
     }
     if (companyFilter !== "all") {
       filtered = filtered.filter((m: any) => m.company_id === companyFilter);
