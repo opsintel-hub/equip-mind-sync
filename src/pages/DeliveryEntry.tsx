@@ -125,6 +125,7 @@ const DeliveryEntry = () => {
   const [prDocumentUrl, setPrDocumentUrl] = useState("");
   const [invoiceDocumentUrl, setInvoiceDocumentUrl] = useState("");
   const [deliveryNoteDocumentUrl, setDeliveryNoteDocumentUrl] = useState("");
+  const [orderForProject, setOrderForProject] = useState("");
   const [purchaseDocumentFile, setPurchaseDocumentFile] = useState<File | null>(null);
   const purchaseFileInputRef = useRef<HTMLInputElement>(null);
 
