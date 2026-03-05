@@ -12,6 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Search, CheckCircle, AlertTriangle, Camera, Upload, Package, Truck, Eye, X, Store, CalendarClock } from "lucide-react";
+import { DepartmentMultiFilter } from "@/components/DepartmentMultiFilter";
 import { format } from "date-fns";
 import { th } from "date-fns/locale";
 import { useAuth } from "@/hooks/useAuth";
@@ -33,7 +34,7 @@ const DeliveryConfirmation = () => {
   const { user } = useAuth();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
-  const [departmentFilter, setDepartmentFilter] = useState("all");
+  const [departmentFilter, setDepartmentFilter] = useState<string[]>([]);
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState<any>(null);
@@ -46,13 +47,6 @@ const DeliveryConfirmation = () => {
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
   const [viewConfirmation, setViewConfirmation] = useState<any>(null);
 
-  const { data: departments } = useQuery({
-    queryKey: ["dc-departments"],
-    queryFn: async () => {
-      const { data } = await supabase.from("departments").select("name").eq("is_active", true).order("name");
-      return data?.map((d: any) => d.name) || [];
-    },
-  });
 
   // Fetch issued requests with delivery pickup_type
   const { data: deliveryRequests, isLoading } = useQuery({
@@ -188,7 +182,7 @@ const DeliveryConfirmation = () => {
       if (statusFilter === "issue_reported" && (!confirmed || confirmation?.status !== "issue_reported")) return false;
     }
     // Department filter
-    if (departmentFilter !== "all" && req.requester_department !== departmentFilter) return false;
+    if (departmentFilter.length > 0 && !departmentFilter.includes(req.requester_department)) return false;
     // Date range
     if (dateRange?.from) {
       const d = new Date(req.created_at);
@@ -218,7 +212,7 @@ const DeliveryConfirmation = () => {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input placeholder="ค้นหาเลขที่เอกสาร, ชื่อสินค้า..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-10" />
+              <Input placeholder="ค้นหาเลขที่เอกสาร, ชื่อสินค้า, ชื่อผู้เบิก..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-10" />
             </div>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
               <SelectTrigger><SelectValue placeholder="สถานะ" /></SelectTrigger>
@@ -229,13 +223,7 @@ const DeliveryConfirmation = () => {
                 <SelectItem value="issue_reported">แจ้งปัญหา</SelectItem>
               </SelectContent>
             </Select>
-            <Select value={departmentFilter} onValueChange={setDepartmentFilter}>
-              <SelectTrigger><SelectValue placeholder="ฝ่าย" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">ทุกฝ่าย</SelectItem>
-                {departments?.map((d: string) => <SelectItem key={d} value={d}>{d}</SelectItem>)}
-              </SelectContent>
-            </Select>
+            <DepartmentMultiFilter value={departmentFilter} onChange={setDepartmentFilter} />
             <DatePickerWithRange date={dateRange} onDateChange={setDateRange} />
           </div>
 
