@@ -190,13 +190,7 @@ const WarehousePickupPlanning = () => {
                 <SelectItem value="delivery">จัดส่ง</SelectItem>
               </SelectContent>
             </Select>
-            <Select value={departmentFilter} onValueChange={setDepartmentFilter}>
-              <SelectTrigger><SelectValue placeholder="ฝ่าย" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">ทุกฝ่าย</SelectItem>
-                {departments?.map((d: string) => <SelectItem key={d} value={d}>{d}</SelectItem>)}
-              </SelectContent>
-            </Select>
+            <DepartmentMultiFilter value={departmentFilter} onChange={setDepartmentFilter} />
             <Select value={statusFilter} onValueChange={setStatusFilter}>
               <SelectTrigger><SelectValue placeholder="สถานะ" /></SelectTrigger>
               <SelectContent>
