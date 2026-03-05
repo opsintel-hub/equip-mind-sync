@@ -30,6 +30,7 @@ import { WarehouseLocationSelect } from "@/components/location/WarehouseLocation
 import { SupplierSelect } from "@/components/supplier/SupplierSelect";
 import { SimpleDepartmentSelect } from "@/components/equipment/SimpleDepartmentSelect";
 import { BrandSelect } from "@/components/equipment/BrandSelect";
+import { useDepartmentPermissions } from "@/hooks/useDepartmentPermissions";
 
 interface Billboard {
   id: string;
