@@ -55,7 +55,6 @@ const DeliveryConfirmation = () => {
       const { data, error } = await supabase
         .from("goods_issue_pending")
         .select("*, companies(name)")
-        .eq("pickup_type", "delivery")
         .in("status", ["issued", "partial_issued"])
         .order("issued_at", { ascending: false });
       if (error) throw error;
