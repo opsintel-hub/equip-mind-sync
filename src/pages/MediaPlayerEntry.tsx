@@ -969,14 +969,6 @@ const MediaPlayerEntry = () => {
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label>วันที่รับสินค้า</Label>
-                    <Input
-                      type="date"
-                      value={formData.date_of_receipt}
-                      onChange={(e) => setFormData({ ...formData, date_of_receipt: e.target.value })}
-                    />
-                  </div>
-                  <div className="space-y-2">
                     <Label>Order For Project</Label>
                     <Input
                       value={formData.order_for_project}
