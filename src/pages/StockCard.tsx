@@ -781,7 +781,7 @@ export default function StockCard() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredTimeline.map((ev, idx) => {
+                    {paginatedTimeline.map((ev, idx) => {
                       const meta = getMovementMeta(ev.type === "install" ? "install_to_billboard" : ev.type === "uninstall" ? "return_from_billboard" : ev.type);
                       const condMeta = ev.condition ? getConditionMeta(ev.condition) : null;
                       return (
@@ -817,6 +817,14 @@ export default function StockCard() {
                   </TableBody>
                 </Table>
               </div>
+              <TablePagination
+                currentPage={tlPage}
+                totalPages={tlTotalPages}
+                totalItems={tlTotalItems}
+                pageSize={tlPageSize}
+                onPageChange={tlPageChange}
+                onPageSizeChange={tlPageSizeChange}
+              />
             )}
           </CardContent>
         </Card>
