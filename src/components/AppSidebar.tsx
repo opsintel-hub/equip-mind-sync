@@ -210,6 +210,7 @@ const menuGroups: MenuGroup[] = [
       { title: "รายงานเบิกตามป้าย", url: "/billboard-issue-report", icon: MapPin, functionName: "reports" },
       { title: "ใบขอซื้อ (PR)", url: "/purchase-requests", icon: ClipboardList, functionName: "reports" },
       { title: "ค้นหาอุปกรณ์ป้าย", url: "/equipment-tracking", icon: Search, functionName: "reports" },
+      { title: "Stock Card", url: "/stock-card", icon: ClipboardList, functionName: "reports" },
     ]
   },
   {
