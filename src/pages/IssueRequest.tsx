@@ -980,6 +980,13 @@ const IssueRequest = () => {
                     onChange={(e) => setHeaderData({ ...headerData, pickup_time: e.target.value })}
                   />
                 </div>
+                {(headerData.pickup_date || headerData.pickup_time) && (
+                  <div className="md:col-span-3">
+                    <p className="text-xs text-muted-foreground bg-muted/50 rounded-md px-3 py-2">
+                      💡 ระบุวันที่และเวลาล่วงหน้า เพื่อให้เจ้าหน้าที่คลังมีเวลาจัดเตรียมสินค้าให้พร้อมก่อนถึงเวลารับ
+                    </p>
+                  </div>
+                )}
                 <div className="space-y-2 md:col-span-2">
                   <Label htmlFor="notes">หมายเหตุ</Label>
                   <Textarea
