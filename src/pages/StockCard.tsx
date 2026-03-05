@@ -368,12 +368,197 @@ export default function StockCard() {
     return t ? <t.icon className="w-4 h-4" /> : null;
   };
 
+  // ── Export to Excel ──
+  const handleExportExcel = useCallback(() => {
+    if (!selectedItem) return;
+    const wb = XLSX.utils.book_new();
+
+    // Sheet 1: ข้อมูลสินค้า
+    const infoRows = [
+      ["Stock Card — ข้อมูลสินค้า"],
+      [],
+      ["รหัส", selectedItem.code],
+      ["ชื่อ", selectedItem.name],
+      ["ประเภท", ITEM_TYPES.find(t => t.value === selectedItem.type)?.label || ""],
+      ["S/N", selectedItem.serial_number || "-"],
+      ...(selectedItem.serial_number_2 ? [["S/N 2", selectedItem.serial_number_2]] : []),
+      ["หมวดหมู่", selectedItem.category || "-"],
+      ["ยี่ห้อ", selectedItem.brand || "-"],
+      ["ฝ่าย", selectedItem.department || "-"],
+      ["สต็อกปัจจุบัน", selectedItem.quantity_in_stock ?? 0],
+      ["สภาพ", getConditionMeta(selectedItem.item_condition).label],
+      ["ติดตั้งอยู่ (ป้าย)", currentInstallations.length],
+      ["จำนวนครั้งติดตั้ง", journeys.length],
+    ];
+    const wsInfo = XLSX.utils.aoa_to_sheet(infoRows);
+    wsInfo["!cols"] = [{ wch: 20 }, { wch: 40 }];
+    XLSX.utils.book_append_sheet(wb, wsInfo, "ข้อมูลสินค้า");
+
+    // Sheet 2: Timeline
+    if (filteredTimeline.length > 0) {
+      const tlHeaders = ["วันที่", "ประเภท", "รายละเอียด", "จำนวน", "สต็อกก่อน", "สต็อกหลัง", "สภาพ", "ระยะเวลา (วัน)", "เลขที่เอกสาร"];
+      const tlRows = filteredTimeline.map(ev => [
+        format(parseISO(ev.date), "dd/MM/yyyy HH:mm"),
+        getMovementMeta(ev.type === "install" ? "install_to_billboard" : ev.type === "uninstall" ? "return_from_billboard" : ev.type).label,
+        ev.detail,
+        ev.quantity,
+        ev.stock_before ?? "-",
+        ev.stock_after ?? "-",
+        ev.condition ? getConditionMeta(ev.condition).label : "-",
+        ev.duration_days ?? "-",
+        ev.document || "-",
+      ]);
+      const wsTl = XLSX.utils.aoa_to_sheet([tlHeaders, ...tlRows]);
+      wsTl["!cols"] = [{ wch: 18 }, { wch: 14 }, { wch: 30 }, { wch: 8 }, { wch: 10 }, { wch: 10 }, { wch: 12 }, { wch: 14 }, { wch: 20 }];
+      XLSX.utils.book_append_sheet(wb, wsTl, "ความเคลื่อนไหว");
+    }
+
+    // Sheet 3: Billboard Journey
+    if (journeys.length > 0) {
+      const bjHeaders = ["ป้ายโฆษณา", "ติดตั้งเมื่อ", "ถอดเมื่อ", "ระยะเวลา (วัน)", "จำนวน", "เหตุผล"];
+      const bjRows = journeys.map(j => [
+        j.billboard_name,
+        j.installation_date ? format(parseISO(j.installation_date), "dd/MM/yyyy") : "-",
+        j.uninstall_date ? format(parseISO(j.uninstall_date), "dd/MM/yyyy") : "-",
+        j.duration_days ?? "-",
+        j.quantity,
+        j.uninstall_reason || "-",
+      ]);
+      const wsBj = XLSX.utils.aoa_to_sheet([bjHeaders, ...bjRows]);
+      wsBj["!cols"] = [{ wch: 20 }, { wch: 14 }, { wch: 14 }, { wch: 14 }, { wch: 8 }, { wch: 30 }];
+      XLSX.utils.book_append_sheet(wb, wsBj, "ประวัติติดตั้งป้าย");
+    }
+
+    XLSX.writeFile(wb, `StockCard_${selectedItem.code}_${format(new Date(), "yyyyMMdd")}.xlsx`);
+    toast({ title: "ส่งออก Excel สำเร็จ" });
+  }, [selectedItem, filteredTimeline, journeys, currentInstallations]);
+
+  // ── Export to PDF ──
+  const handleExportPDF = useCallback(() => {
+    if (!selectedItem) return;
+    const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
+    const pageW = doc.internal.pageSize.getWidth();
+    let y = 15;
+
+    // Title
+    doc.setFontSize(16);
+    doc.text("Stock Card", 14, y);
+    doc.setFontSize(9);
+    doc.text(`Export: ${format(new Date(), "dd/MM/yyyy HH:mm")}`, pageW - 14, y, { align: "right" });
+    y += 10;
+
+    // Item info
+    doc.setFontSize(11);
+    doc.text(`${selectedItem.code} - ${selectedItem.name}`, 14, y);
+    y += 6;
+    doc.setFontSize(9);
+    const infoLine = [
+      selectedItem.serial_number ? `S/N: ${selectedItem.serial_number}` : null,
+      selectedItem.category ? `Category: ${selectedItem.category}` : null,
+      selectedItem.brand ? `Brand: ${selectedItem.brand}` : null,
+      `Stock: ${selectedItem.quantity_in_stock ?? 0}`,
+      `Condition: ${getConditionMeta(selectedItem.item_condition).label}`,
+    ].filter(Boolean).join("  |  ");
+    doc.text(infoLine, 14, y);
+    y += 8;
+
+    // Timeline table
+    if (filteredTimeline.length > 0) {
+      doc.setFontSize(10);
+      doc.text("Timeline", 14, y);
+      y += 5;
+
+      const headers = ["Date", "Type", "Detail", "Qty", "Before", "After", "Condition", "Days", "Document"];
+      const colWidths = [28, 22, 60, 14, 16, 16, 20, 14, 40];
+      const startX = 14;
+
+      // Header row
+      doc.setFillColor(240, 240, 240);
+      doc.rect(startX, y - 3.5, colWidths.reduce((a, b) => a + b, 0), 6, "F");
+      doc.setFontSize(7);
+      let x = startX;
+      headers.forEach((h, i) => { doc.text(h, x + 1, y); x += colWidths[i]; });
+      y += 5;
+
+      // Data rows
+      doc.setFontSize(7);
+      filteredTimeline.forEach(ev => {
+        if (y > 190) { doc.addPage(); y = 15; }
+        const meta = getMovementMeta(ev.type === "install" ? "install_to_billboard" : ev.type === "uninstall" ? "return_from_billboard" : ev.type);
+        const row = [
+          format(parseISO(ev.date), "dd/MM/yy HH:mm"),
+          meta.label,
+          (ev.detail || "-").substring(0, 40),
+          String(ev.quantity),
+          ev.stock_before !== undefined ? String(ev.stock_before) : "-",
+          ev.stock_after !== undefined ? String(ev.stock_after) : "-",
+          ev.condition ? getConditionMeta(ev.condition).label : "-",
+          ev.duration_days !== null && ev.duration_days !== undefined ? String(ev.duration_days) : "-",
+          (ev.document || "-").substring(0, 28),
+        ];
+        x = startX;
+        row.forEach((val, i) => { doc.text(val, x + 1, y); x += colWidths[i]; });
+        y += 4;
+      });
+      y += 4;
+    }
+
+    // Billboard Journey table
+    if (journeys.length > 0) {
+      if (y > 170) { doc.addPage(); y = 15; }
+      doc.setFontSize(10);
+      doc.text("Billboard Journey", 14, y);
+      y += 5;
+
+      const bjHeaders = ["Billboard", "Installed", "Removed", "Days", "Qty", "Reason"];
+      const bjWidths = [40, 24, 24, 16, 14, 60];
+      const startX = 14;
+
+      doc.setFillColor(240, 240, 240);
+      doc.rect(startX, y - 3.5, bjWidths.reduce((a, b) => a + b, 0), 6, "F");
+      doc.setFontSize(7);
+      let x = startX;
+      bjHeaders.forEach((h, i) => { doc.text(h, x + 1, y); x += bjWidths[i]; });
+      y += 5;
+
+      journeys.forEach(j => {
+        if (y > 190) { doc.addPage(); y = 15; }
+        const row = [
+          j.billboard_name.substring(0, 25),
+          j.installation_date ? format(parseISO(j.installation_date), "dd/MM/yyyy") : "-",
+          j.uninstall_date ? format(parseISO(j.uninstall_date), "dd/MM/yyyy") : "-",
+          j.duration_days !== null ? String(j.duration_days) : "-",
+          String(j.quantity),
+          (j.uninstall_reason || "-").substring(0, 40),
+        ];
+        x = startX;
+        row.forEach((val, i) => { doc.text(val, x + 1, y); x += bjWidths[i]; });
+        y += 4;
+      });
+    }
+
+    doc.save(`StockCard_${selectedItem.code}_${format(new Date(), "yyyyMMdd")}.pdf`);
+    toast({ title: "ส่งออก PDF สำเร็จ" });
+  }, [selectedItem, filteredTimeline, journeys]);
+
   return (
     <div className="space-y-6">
       {/* Page Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-foreground">Stock Card</h1>
-        <p className="text-sm text-muted-foreground">ประวัติชีวิตสินค้า — ติดตามการเคลื่อนไหว ติดตั้ง ถอด และสภาพ</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">Stock Card</h1>
+          <p className="text-sm text-muted-foreground">ประวัติชีวิตสินค้า — ติดตามการเคลื่อนไหว ติดตั้ง ถอด และสภาพ</p>
+        </div>
+        {selectedItem && (
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={handleExportExcel} className="gap-1.5">
+              <FileSpreadsheet className="w-4 h-4" /> Excel
+            </Button>
+            <Button variant="outline" size="sm" onClick={handleExportPDF} className="gap-1.5">
+              <FileText className="w-4 h-4" /> PDF
+            </Button>
+          </div>
+        )}
       </div>
 
       {/* ── Section 1: Search & Filters ── */}
