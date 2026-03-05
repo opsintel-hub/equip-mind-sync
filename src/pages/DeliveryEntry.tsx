@@ -712,6 +712,7 @@ const DeliveryEntry = () => {
         delivery_note_number: deliveryNoteNumber || null,
         invoice_document_url: invoiceDocumentUrl || null,
         delivery_note_document_url: deliveryNoteDocumentUrl || null,
+        order_for_project: orderForProject || null,
         purchase_document_url: purchaseDocumentUrl || (poDocumentUrl || prDocumentUrl || invoiceDocumentUrl || deliveryNoteDocumentUrl ? [poDocumentUrl, prDocumentUrl, invoiceDocumentUrl, deliveryNoteDocumentUrl].filter(Boolean).join(', ') : null),
         // Media Player specific fields
         is_media_player: item.is_media_player || false,
