@@ -256,6 +256,7 @@ const FUNCTION_DETAILS: FunctionInfo[] = [
     ],
     relatedPages: ["อนุมัติเบิกทรัพย์สิน"]
   }
+];
 
 export function FunctionDescriptions() {
   const [openFunctions, setOpenFunctions] = useState<string[]>([]);
