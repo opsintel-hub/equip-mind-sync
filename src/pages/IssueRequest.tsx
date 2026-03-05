@@ -94,6 +94,7 @@ const IssueRequest = () => {
     requester_phone: "",
     requester_department: "",
     notes: "",
+    pickup_type: "scheduled",
     pickup_date: "",
     pickup_time: "",
   });
@@ -432,6 +433,7 @@ const IssueRequest = () => {
           requester_phone: headerData.requester_phone || null,
           requester_department: headerData.requester_department || null,
           notes: headerData.notes || null,
+          pickup_type: headerData.pickup_type || 'scheduled',
           total_items: itemsToSubmit.length,
           company_id: headerData.company_id || null,
           equipment_id: firstItemIsMediaPlayer ? null : (itemsToSubmit[0]?.equipment_id || null),
@@ -499,6 +501,7 @@ const IssueRequest = () => {
           requester_phone: "",
           requester_department: "",
           notes: "",
+          pickup_type: "scheduled",
           pickup_date: "",
           pickup_time: "",
         });
@@ -954,36 +957,73 @@ const IssueRequest = () => {
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="destination">ส่งไปที่</Label>
-                  <Input
-                    id="destination"
-                    value={headerData.destination}
-                    onChange={(e) => setHeaderData({ ...headerData, destination: e.target.value })}
-                    placeholder="ระบุจุดหมาย/สถานที่"
-                  />
+                  <Label htmlFor="pickup_type">รูปแบบการรับสินค้า</Label>
+                  <Select
+                    value={headerData.pickup_type}
+                    onValueChange={(value) => setHeaderData({ 
+                      ...headerData, 
+                      pickup_type: value,
+                      // Clear date/time when switching away from scheduled
+                      pickup_date: value === "scheduled" ? headerData.pickup_date : "",
+                      pickup_time: value === "scheduled" ? headerData.pickup_time : "",
+                      // Clear destination when switching away from delivery
+                      destination: value === "delivery" ? headerData.destination : "",
+                    })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="เลือกรูปแบบ" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="wait_onsite">🏪 รอรับที่คลัง (รับทันที)</SelectItem>
+                      <SelectItem value="scheduled">📅 นัดรับล่วงหน้า</SelectItem>
+                      <SelectItem value="delivery">🚚 จัดส่ง</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="pickup_date">วันที่ต้องการรับสินค้า</Label>
-                  <Input
-                    id="pickup_date"
-                    type="date"
-                    value={headerData.pickup_date}
-                    onChange={(e) => setHeaderData({ ...headerData, pickup_date: e.target.value })}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="pickup_time">เวลาที่ต้องการรับสินค้า</Label>
-                  <Input
-                    id="pickup_time"
-                    type="time"
-                    value={headerData.pickup_time}
-                    onChange={(e) => setHeaderData({ ...headerData, pickup_time: e.target.value })}
-                  />
-                </div>
-                {(headerData.pickup_date || headerData.pickup_time) && (
+                {headerData.pickup_type === "delivery" && (
+                  <div className="space-y-2">
+                    <Label htmlFor="destination">จุดหมายจัดส่ง</Label>
+                    <Input
+                      id="destination"
+                      value={headerData.destination}
+                      onChange={(e) => setHeaderData({ ...headerData, destination: e.target.value })}
+                      placeholder="ระบุจุดหมาย/สถานที่จัดส่ง"
+                    />
+                  </div>
+                )}
+                {headerData.pickup_type === "scheduled" && (
+                  <>
+                    <div className="space-y-2">
+                      <Label htmlFor="pickup_date">วันที่ต้องการรับสินค้า</Label>
+                      <Input
+                        id="pickup_date"
+                        type="date"
+                        value={headerData.pickup_date}
+                        onChange={(e) => setHeaderData({ ...headerData, pickup_date: e.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="pickup_time">เวลาที่ต้องการรับสินค้า</Label>
+                      <Input
+                        id="pickup_time"
+                        type="time"
+                        value={headerData.pickup_time}
+                        onChange={(e) => setHeaderData({ ...headerData, pickup_time: e.target.value })}
+                      />
+                    </div>
+                  </>
+                )}
+                {headerData.pickup_type === "scheduled" && (headerData.pickup_date || headerData.pickup_time) && (
                   <div className="md:col-span-3">
                     <p className="text-xs text-muted-foreground bg-muted/50 rounded-md px-3 py-2">
                       💡 ระบุวันที่และเวลาล่วงหน้า เพื่อให้เจ้าหน้าที่คลังมีเวลาจัดเตรียมสินค้าให้พร้อมก่อนถึงเวลารับ
+                    </p>
+                  </div>
+                )}
+                {headerData.pickup_type === "wait_onsite" && (
+                  <div className="md:col-span-3">
+                    <p className="text-xs text-primary bg-primary/5 rounded-md px-3 py-2">
+                      🏪 ผู้ขอเบิกจะรอรับสินค้าที่คลัง — เจ้าหน้าที่คลังจะได้รับแจ้งให้จัดเตรียมสินค้าทันที
                     </p>
                   </div>
                 )}
@@ -1345,9 +1385,21 @@ const IssueRequest = () => {
                             {req.requester_department && (
                               <div className="text-sm text-muted-foreground">{req.requester_department}</div>
                             )}
-                            {((req as any).pickup_date || (req as any).pickup_time) && (
-                              <div className="text-xs text-primary mt-1">
-                                📅 {(req as any).pickup_date ? format(new Date((req as any).pickup_date), "dd/MM/yyyy") : ""} {(req as any).pickup_time || ""}
+                            {(req as any).pickup_type && (
+                              <div className="mt-1">
+                                {(req as any).pickup_type === "wait_onsite" && (
+                                  <Badge variant="secondary" className="text-xs bg-emerald-100 text-emerald-800">🏪 รอรับที่คลัง</Badge>
+                                )}
+                                {(req as any).pickup_type === "scheduled" && (
+                                  <Badge variant="secondary" className="text-xs bg-blue-100 text-blue-800">
+                                    📅 {(req as any).pickup_date ? format(new Date((req as any).pickup_date), "dd/MM/yyyy") : "นัดรับ"} {(req as any).pickup_time || ""}
+                                  </Badge>
+                                )}
+                                {(req as any).pickup_type === "delivery" && (
+                                  <Badge variant="secondary" className="text-xs bg-purple-100 text-purple-800">
+                                    🚚 จัดส่ง{(req as any).destination ? `: ${(req as any).destination}` : ""}
+                                  </Badge>
+                                )}
                               </div>
                             )}
                           </TableCell>
