@@ -816,8 +816,8 @@ const MediaPlayerEntry = () => {
                     <Label>ราคาต่อหน่วย (บาท)</Label>
                     <Input
                       type="number"
-                      value={formData.unit_price}
-                      onChange={(e) => setFormData({ ...formData, unit_price: parseFloat(e.target.value) || 0 })}
+                      value={formData.unit_price === ('' as unknown as number) ? '' : formData.unit_price}
+                      onChange={(e) => setFormData({ ...formData, unit_price: e.target.value === '' ? ('' as unknown as number) : (parseFloat(e.target.value) || 0) })}
                       placeholder="0.00"
                     />
                   </div>
