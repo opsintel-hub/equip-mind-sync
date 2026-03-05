@@ -133,7 +133,8 @@ export function EquipmentList({ refresh }: EquipmentListProps) {
           item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
           item.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
           (item.department && item.department.toLowerCase().includes(searchTerm.toLowerCase())) ||
-          (item.brand && item.brand.toLowerCase().includes(searchTerm.toLowerCase()))
+          (item.brand && item.brand.toLowerCase().includes(searchTerm.toLowerCase())) ||
+          (item.serial_number && item.serial_number.toLowerCase().includes(searchTerm.toLowerCase()))
       );
       setFilteredEquipment(filtered);
     } else {
