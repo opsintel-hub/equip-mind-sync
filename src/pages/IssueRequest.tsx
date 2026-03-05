@@ -497,6 +497,8 @@ const IssueRequest = () => {
           requester_phone: "",
           requester_department: "",
           notes: "",
+          pickup_date: "",
+          pickup_time: "",
         });
       }
     },
