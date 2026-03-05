@@ -268,12 +268,14 @@ const MediaPlayerEntry = () => {
           po_number: formData.po_number || null,
           pr_number: formData.pr_number || null,
           invoice_number: formData.invoice_number || null,
+          delivery_note_number: formData.delivery_note_number || null,
           date_of_receipt: formData.date_of_receipt || null,
           order_for_project: formData.order_for_project || null,
           image_url: formData.image_url || null,
           po_document_url: formData.po_document_url || null,
           pr_document_url: formData.pr_document_url || null,
           invoice_document_url: formData.invoice_document_url || null,
+          delivery_note_document_url: formData.delivery_note_document_url || null,
         } as any);
 
       if (error) throw error;
