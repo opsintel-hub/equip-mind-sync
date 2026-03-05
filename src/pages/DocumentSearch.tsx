@@ -62,6 +62,7 @@ export default function DocumentSearch() {
       const pendingDocs: DocumentRecord[] = (pendingData || []).map((item: any) => ({
         id: item.id, document_no: item.document_no, document_url: item.document_url,
         equipment_code: item.equipment_code, equipment_name: item.equipment_name,
+        serial_number: item.serial_number || null,
         supplier_name: item.supplier_name, delivery_person_name: item.delivery_person_name,
         quantity: item.quantity, unit: item.unit, created_at: item.created_at,
         status: item.status, source: "pending" as const,
