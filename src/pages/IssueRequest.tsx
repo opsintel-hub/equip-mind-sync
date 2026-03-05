@@ -1385,9 +1385,21 @@ const IssueRequest = () => {
                             {req.requester_department && (
                               <div className="text-sm text-muted-foreground">{req.requester_department}</div>
                             )}
-                            {((req as any).pickup_date || (req as any).pickup_time) && (
-                              <div className="text-xs text-primary mt-1">
-                                📅 {(req as any).pickup_date ? format(new Date((req as any).pickup_date), "dd/MM/yyyy") : ""} {(req as any).pickup_time || ""}
+                            {(req as any).pickup_type && (
+                              <div className="mt-1">
+                                {(req as any).pickup_type === "wait_onsite" && (
+                                  <Badge variant="secondary" className="text-xs bg-emerald-100 text-emerald-800">🏪 รอรับที่คลัง</Badge>
+                                )}
+                                {(req as any).pickup_type === "scheduled" && (
+                                  <Badge variant="secondary" className="text-xs bg-blue-100 text-blue-800">
+                                    📅 {(req as any).pickup_date ? format(new Date((req as any).pickup_date), "dd/MM/yyyy") : "นัดรับ"} {(req as any).pickup_time || ""}
+                                  </Badge>
+                                )}
+                                {(req as any).pickup_type === "delivery" && (
+                                  <Badge variant="secondary" className="text-xs bg-purple-100 text-purple-800">
+                                    🚚 จัดส่ง{(req as any).destination ? `: ${(req as any).destination}` : ""}
+                                  </Badge>
+                                )}
                               </div>
                             )}
                           </TableCell>
