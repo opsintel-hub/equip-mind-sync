@@ -297,28 +297,33 @@ export default function InventoryReport() {
       if (error) throw error;
       
       // Transform to unified format
-      return (data || []).map((item): InventoryItem => ({
-        id: item.id,
-        code: item.code,
-        name: item.name,
-        category: "Media Player",
-        brand: item.brand,
-        department: item.department,
-        quantity_in_stock: item.quantity || 0,
-        min_stock_level: 0, // Media players don't have min stock
-        unit: item.unit,
-        unit_price: item.unit_price || 0,
-        company_id: item.company_id,
-        location_id: item.location_id,
-        subcategory_id: null,
-        expiry_date: null, // Media players don't have expiry date
-        warranty_expiry_date: item.warranty_expiry_date,
-        companies: item.companies as InventoryItem["companies"],
-        locations: item.locations as InventoryItem["locations"],
-        subcategories: null,
-        item_type: 'media_player' as const,
-        item_condition: item.item_condition || 'normal',
-      }));
+      return (data || []).map((item: any): InventoryItem => {
+        const snParts = [item.serial_number_1, item.serial_number_2].filter(Boolean);
+        const serial_number = snParts.length > 0 ? snParts.join(' / ') : null;
+        return {
+          id: item.id,
+          code: item.code,
+          name: item.name,
+          serial_number,
+          category: "Media Player",
+          brand: item.brand,
+          department: item.department,
+          quantity_in_stock: item.quantity || 0,
+          min_stock_level: 0,
+          unit: item.unit,
+          unit_price: item.unit_price || 0,
+          company_id: item.company_id,
+          location_id: item.location_id,
+          subcategory_id: null,
+          expiry_date: null,
+          warranty_expiry_date: item.warranty_expiry_date,
+          companies: item.companies as InventoryItem["companies"],
+          locations: item.locations as InventoryItem["locations"],
+          subcategories: null,
+          item_type: 'media_player' as const,
+          item_condition: item.item_condition || 'normal',
+        };
+      });
     },
     enabled: filters.itemType !== "equipment" && filters.itemType !== "tools",
   });
