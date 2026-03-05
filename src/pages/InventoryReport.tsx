@@ -628,6 +628,7 @@ export default function InventoryReport() {
         ประเภท: itemTypeLabel,
         รหัส: item.code,
         ชื่อ: item.name,
+        "S/N": item.serial_number || "-",
         หมวดหมู่: item.category,
         หมวดหมู่ย่อย: subcategory?.name || "-",
         ยี่ห้อ: item.brand || "-",
