@@ -1231,7 +1231,6 @@ const MediaPlayerEntry = () => {
                                   </a>
                                 ) : <span className="text-muted-foreground">-</span>}
                               </TableCell>
-                              <TableCell className="text-sm whitespace-nowrap">{player.date_of_receipt || "-"}</TableCell>
                               <TableCell className="text-sm whitespace-nowrap max-w-[150px] truncate">{player.description || "-"}</TableCell>
                               <TableCell className="text-right">
                                 <div className="flex items-center justify-end gap-1">
