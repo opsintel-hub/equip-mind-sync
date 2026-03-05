@@ -664,7 +664,7 @@ const ReceiveGoods = () => {
             // Fetch current equipment stock
             const { data: currentEquipment, error: fetchError } = await supabase
               .from("equipment")
-              .select("quantity_in_stock")
+              .select("quantity_in_stock, department")
               .eq("id", receipt.equipment_id!)
               .single();
 
@@ -691,15 +691,19 @@ const ReceiveGoods = () => {
 
             if (grError) throw grError;
 
-            // Update equipment stock
-            const { error: stockError } = await supabase
-              .from("equipment")
-              .update({
+            const batchEqDept = getDepartmentName(receipt.department_id);
+            const batchEqPayload: Record<string, any> = {
                 quantity_in_stock: newStock,
                 location_id: storageLocation.locationId,
                 expiry_date: receipt.expiry_date || null,
                 item_condition: itemCondition,
-              })
+              };
+            if (!currentEquipment?.department && batchEqDept) {
+              batchEqPayload.department = batchEqDept;
+            }
+            const { error: stockError } = await supabase
+              .from("equipment")
+              .update(batchEqPayload)
               .eq("id", receipt.equipment_id!);
 
             if (!stockError) {
