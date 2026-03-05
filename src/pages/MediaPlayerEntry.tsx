@@ -30,6 +30,7 @@ import { WarehouseLocationSelect } from "@/components/location/WarehouseLocation
 import { SupplierSelect } from "@/components/supplier/SupplierSelect";
 import { SimpleDepartmentSelect } from "@/components/equipment/SimpleDepartmentSelect";
 import { BrandSelect } from "@/components/equipment/BrandSelect";
+import { useDepartmentPermissions } from "@/hooks/useDepartmentPermissions";
 
 interface Billboard {
   id: string;
@@ -85,6 +86,7 @@ interface MediaPlayer {
 }
 
 const MediaPlayerEntry = () => {
+  const { getViewableDepartments, isAdmin, loading: deptLoading } = useDepartmentPermissions();
   const [searchTerm, setSearchTerm] = useState("");
   const [mediaPlayers, setMediaPlayers] = useState<MediaPlayer[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -130,7 +132,7 @@ const MediaPlayerEntry = () => {
     model_id: "",
     quantity: 1,
     unit: "เครื่อง",
-    unit_price: 0,
+    unit_price: "" as unknown as number,
     depreciation_months: 60,
     usage_lifespan_months: 0,
     warranty_expiry_date: "",
@@ -160,6 +162,15 @@ const MediaPlayerEntry = () => {
     fetchMediaPlayers();
     fetchFiltersData();
   }, []);
+
+  // Auto-set department based on user permissions
+  useEffect(() => {
+    if (deptLoading) return;
+    const viewable = getViewableDepartments();
+    if (viewable.length === 1 && !formData.department) {
+      setFormData(prev => ({ ...prev, department: viewable[0] }));
+    }
+  }, [deptLoading, getViewableDepartments, formData.department]);
 
   const fetchFiltersData = async () => {
     const [cmsRes, compRes, statusRes, modelRes, deptRes] = await Promise.all([
@@ -202,6 +213,11 @@ const MediaPlayerEntry = () => {
     
     if (!formData.name || !formData.company_id || !formData.depreciation_months) {
       toast.error("กรุณากรอกข้อมูลที่จำเป็น (ชื่อ, บริษัท, ระยะเวลาค่าเสื่อม)");
+      return;
+    }
+
+    if (!formData.department) {
+      toast.error("กรุณาเลือกฝ่าย");
       return;
     }
 
@@ -252,7 +268,7 @@ const MediaPlayerEntry = () => {
           model_id: formData.model_id || null,
           quantity: formData.quantity,
           unit: formData.unit,
-          unit_price: formData.unit_price,
+          unit_price: formData.unit_price || 0,
           depreciation_months: formData.depreciation_months,
           usage_lifespan_months: formData.usage_lifespan_months || null,
           warranty_expiry_date: formData.warranty_expiry_date || null,
@@ -310,7 +326,7 @@ const MediaPlayerEntry = () => {
       model_id: "",
       quantity: 1,
       unit: "เครื่อง",
-      unit_price: 0,
+      unit_price: "" as unknown as number,
       depreciation_months: 60,
       usage_lifespan_months: 0,
       warranty_expiry_date: "",
@@ -586,7 +602,7 @@ const MediaPlayerEntry = () => {
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="space-y-2">
-                    <Label>ฝ่าย</Label>
+                     <Label>ฝ่าย *</Label>
                     <SimpleDepartmentSelect
                       value={formData.department}
                       onChange={(value) => setFormData((prev) => ({ ...prev, department: value }))}
@@ -800,8 +816,8 @@ const MediaPlayerEntry = () => {
                     <Label>ราคาต่อหน่วย (บาท)</Label>
                     <Input
                       type="number"
-                      value={formData.unit_price}
-                      onChange={(e) => setFormData({ ...formData, unit_price: parseFloat(e.target.value) || 0 })}
+                      value={formData.unit_price === ('' as unknown as number) ? '' : formData.unit_price}
+                      onChange={(e) => setFormData({ ...formData, unit_price: e.target.value === '' ? ('' as unknown as number) : (parseFloat(e.target.value) || 0) })}
                       placeholder="0.00"
                     />
                   </div>
