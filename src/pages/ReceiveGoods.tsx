@@ -457,6 +457,18 @@ const ReceiveGoods = () => {
                 location_id: storageLocation.locationId,
                 item_condition: itemCondition,
               };
+
+        const singleReceiptSerial = selectedReceipt.serial_number?.trim();
+        const currentMpSerial1 = currentMediaPlayer?.serial_number_1?.trim();
+        const currentMpSerial2 = currentMediaPlayer?.serial_number_2?.trim();
+        if (singleReceiptSerial) {
+          if (!currentMpSerial1) {
+            mpUpdatePayload.serial_number_1 = singleReceiptSerial;
+          } else if (currentMpSerial1 !== singleReceiptSerial && !currentMpSerial2) {
+            mpUpdatePayload.serial_number_2 = singleReceiptSerial;
+          }
+        }
+
         // Always update department from receipt (authoritative source)
         if (mpDeptName) {
           mpUpdatePayload.department = mpDeptName;
