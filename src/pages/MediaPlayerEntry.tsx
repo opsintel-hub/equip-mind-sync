@@ -324,12 +324,14 @@ const MediaPlayerEntry = () => {
       po_number: "",
       pr_number: "",
       invoice_number: "",
+      delivery_note_number: "",
       date_of_receipt: "",
       order_for_project: "",
       image_url: "",
       po_document_url: "",
       pr_document_url: "",
       invoice_document_url: "",
+      delivery_note_document_url: "",
     });
     setSelectedPrefix("");
     setCodePreview("");
