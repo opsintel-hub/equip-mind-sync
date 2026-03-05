@@ -17,6 +17,7 @@ import { th } from "date-fns/locale";
 import { useAuth } from "@/hooks/useAuth";
 import { DatePickerWithRange } from "@/components/ui/date-range-picker";
 import { DateRange } from "react-day-picker";
+import { DepartmentMultiFilter } from "@/components/DepartmentMultiFilter";
 
 const ManagerApproval = () => {
   const queryClient = useQueryClient();
