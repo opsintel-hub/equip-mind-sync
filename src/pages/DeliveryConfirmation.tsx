@@ -55,7 +55,6 @@ const DeliveryConfirmation = () => {
       const { data, error } = await supabase
         .from("goods_issue_pending")
         .select("*, companies(name)")
-        .eq("pickup_type", "delivery")
         .in("status", ["issued", "partial_issued"])
         .order("issued_at", { ascending: false });
       if (error) throw error;
@@ -199,13 +198,13 @@ const DeliveryConfirmation = () => {
           <Truck className="h-6 w-6" />
           ยืนยันรับสินค้า
         </h1>
-        <p className="text-muted-foreground">ยืนยันการรับสินค้าที่จัดส่ง พร้อมแจ้งปัญหาและแนบหลักฐาน</p>
+        <p className="text-muted-foreground">ยืนยันการรับสินค้าหลังจ่ายทุกกรณี พร้อมแจ้งปัญหาและแนบหลักฐาน</p>
       </div>
 
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2"><Package className="h-5 w-5" />รายการรอยืนยันรับ</CardTitle>
-          <CardDescription>แสดงเฉพาะรายการที่เลือก "จัดส่ง" และจ่ายสินค้าแล้ว</CardDescription>
+          <CardDescription>แสดงรายการทั้งหมดที่จ่ายสินค้าแล้วและรอการยืนยันรับ</CardDescription>
         </CardHeader>
         <CardContent>
           {/* Filters */}
