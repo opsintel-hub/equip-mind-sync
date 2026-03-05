@@ -451,13 +451,19 @@ const ReceiveGoods = () => {
         const newStock = currentStock + receivedQuantity;
 
         // Update Media Player stock and location (same as equipment)
-        const { error: mpError } = await supabase
-              .from("media_players")
-              .update({
+        const mpDeptName = getDepartmentName(selectedReceipt.department_id);
+        const mpUpdatePayload: Record<string, any> = {
                 quantity: newStock,
                 location_id: storageLocation.locationId,
                 item_condition: itemCondition,
-              })
+              };
+        // Propagate department if item currently has none
+        if (!currentMediaPlayer?.department && mpDeptName) {
+          mpUpdatePayload.department = mpDeptName;
+        }
+        const { error: mpError } = await supabase
+              .from("media_players")
+              .update(mpUpdatePayload)
               .eq("id", (selectedReceipt as any).media_player_id);
 
         if (mpError) {
