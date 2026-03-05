@@ -389,11 +389,16 @@ const WaitingStockRequests = () => {
   };
 
   const filteredRequests = waitingRequests?.filter(
-    (req) =>
-      req.document_no?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      req.equipment_code?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      req.equipment_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      req.requester_name?.toLowerCase().includes(searchTerm.toLowerCase())
+    (req) => {
+      const term = searchTerm.toLowerCase();
+      if (!term) return true;
+      if (req.document_no?.toLowerCase().includes(term) ||
+          req.equipment_code?.toLowerCase().includes(term) ||
+          req.equipment_name?.toLowerCase().includes(term) ||
+          req.requester_name?.toLowerCase().includes(term)) return true;
+      const items = itemsByRequest.get(req.id) || [];
+      return items.some((item: any) => item.serial_number?.toLowerCase().includes(term));
+    }
   );
 
   const requestsWithStock = useMemo(() => {

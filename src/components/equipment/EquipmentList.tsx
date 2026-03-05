@@ -208,7 +208,7 @@ export function EquipmentList({ refresh }: EquipmentListProps) {
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="ค้นหาด้วยรหัส, ชื่อ, หมวดหมู่, ฝ่าย, หรือยี่ห้อ..."
+            placeholder="ค้นหาด้วยรหัส, ชื่อ, S/N, หมวดหมู่, ฝ่าย, หรือยี่ห้อ..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="pl-10"

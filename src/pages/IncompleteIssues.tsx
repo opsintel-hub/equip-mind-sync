@@ -405,11 +405,16 @@ const IncompleteIssues = () => {
   };
 
   const filteredIssues = incompleteIssues?.issues.filter(
-    (issue) =>
-      issue.document_no?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      issue.equipment_code?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      issue.equipment_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      issue.requester_name?.toLowerCase().includes(searchTerm.toLowerCase())
+    (issue) => {
+      const term = searchTerm.toLowerCase();
+      if (!term) return true;
+      if (issue.document_no?.toLowerCase().includes(term) ||
+          issue.equipment_code?.toLowerCase().includes(term) ||
+          issue.equipment_name?.toLowerCase().includes(term) ||
+          issue.requester_name?.toLowerCase().includes(term)) return true;
+      const items = itemsByIssue.get(issue.id) || [];
+      return items.some((item: any) => item.serial_number?.toLowerCase().includes(term));
+    }
   ) || [];
 
   const billboardIssues = filteredIssues.filter(i => getIssueType(i) === "billboard");
