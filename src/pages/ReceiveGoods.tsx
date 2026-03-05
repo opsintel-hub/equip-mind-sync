@@ -538,6 +538,12 @@ const ReceiveGoods = () => {
             expiry_date: selectedReceipt.expiry_date || null,
             item_condition: itemCondition,
           };
+
+        const singleEqSerial = selectedReceipt.serial_number?.trim();
+        if (singleEqSerial && !currentEquipment?.serial_number?.trim()) {
+          eqUpdatePayload.serial_number = singleEqSerial;
+        }
+
         if (eqDeptName) {
           eqUpdatePayload.department = eqDeptName;
         }
