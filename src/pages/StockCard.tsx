@@ -198,13 +198,17 @@ export default function StockCard() {
     return allItems
       .filter(i => {
         if (filterTypes.length > 0 && !filterTypes.includes(i.type)) return false;
+        // Department permission filter
+        if (!isAdmin && i.department && !viewableDepts.includes(i.department)) return false;
+        // Department multi-select filter
+        if (filterDepartments.length > 0 && (!i.department || !filterDepartments.includes(i.department))) return false;
         const match = i.code.toLowerCase().includes(q) || i.name.toLowerCase().includes(q) ||
           (i.serial_number && i.serial_number.toLowerCase().includes(q)) ||
           (i.serial_number_2 && i.serial_number_2.toLowerCase().includes(q));
         return match;
       })
       .slice(0, 20);
-  }, [searchText, allItems, filterTypes]);
+  }, [searchText, allItems, filterTypes, filterDepartments, isAdmin, viewableDepts]);
 
   const selectedItem = useMemo(() => {
     if (!selectedItemId) return null;
