@@ -457,8 +457,8 @@ const ReceiveGoods = () => {
                 location_id: storageLocation.locationId,
                 item_condition: itemCondition,
               };
-        // Propagate department if item currently has none
-        if (!currentMediaPlayer?.department && mpDeptName) {
+        // Always update department from receipt (authoritative source)
+        if (mpDeptName) {
           mpUpdatePayload.department = mpDeptName;
         }
         const { error: mpError } = await supabase
