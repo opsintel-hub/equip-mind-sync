@@ -635,7 +635,7 @@ const ReceiveGoods = () => {
                 location_id: storageLocation.locationId,
                 item_condition: itemCondition,
               };
-            if (!currentMediaPlayer?.department && batchMpDept) {
+            if (batchMpDept) {
               batchMpPayload.department = batchMpDept;
             }
             const { error: mpError } = await supabase
