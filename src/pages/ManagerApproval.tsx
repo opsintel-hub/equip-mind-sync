@@ -180,7 +180,7 @@ const ManagerApproval = () => {
             !req.requester_name?.toLowerCase().includes(term) &&
             !req.equipment_name?.toLowerCase().includes(term)) return false;
       }
-      if (departmentFilter !== "all" && req.requester_department !== departmentFilter) return false;
+      if (departmentFilter.length > 0 && !departmentFilter.includes(req.requester_department)) return false;
       if (companyFilter !== "all" && req.company_id !== companyFilter) return false;
       if (dateRange?.from) {
         const d = new Date(req.created_at);
