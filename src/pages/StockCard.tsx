@@ -621,7 +621,7 @@ export default function StockCard() {
           </div>
 
           {/* Filters row */}
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+          <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
             <MultiSelectFilter
               label="ประเภทสินค้า"
               options={ITEM_TYPES.map(t => ({ value: t.value, label: t.label }))}
@@ -640,6 +640,10 @@ export default function StockCard() {
               selected={filterConditions}
               onChange={setFilterConditions}
             />
+            <div>
+              <Label className="text-xs font-medium text-muted-foreground mb-1 block">ฝ่าย</Label>
+              <DepartmentMultiFilter value={filterDepartments} onChange={setFilterDepartments} />
+            </div>
             <div className="col-span-2">
               <Label className="text-xs font-medium text-muted-foreground mb-1 block">ช่วงวันที่</Label>
               <DatePickerWithRange date={dateRange} onDateChange={setDateRange} />
