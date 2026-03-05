@@ -121,6 +121,12 @@ const menuGroups: MenuGroup[] = [
         functionName: "goods_issue",
       },
       { 
+        title: "แผนจัดเตรียมสินค้า", 
+        url: "/warehouse-planning",
+        icon: ClipboardList,
+        functionName: "goods_issue",
+      },
+      { 
         title: "ยืมข้ามบริษัท", 
         url: "/equipment-loans",
         icon: ArrowLeftRight,
