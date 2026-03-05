@@ -642,8 +642,8 @@ const DeliveryEntry = () => {
     }
 
     // Validate PO/PR/Invoice for "นำเข้าจากการซื้อ"
-    if (isPurchaseReceipt && !poNumber && !prNumber && !invoiceNumber) {
-      toast.error("กรุณากรอกเลข PO, PR หรือ Invoice อย่างน้อย 1 รายการ");
+    if (isPurchaseReceipt && !poNumber && !prNumber && !invoiceNumber && !deliveryNoteNumber) {
+      toast.error("กรุณากรอกเลข PO, PR, Invoice หรือ ใบส่งของ อย่างน้อย 1 รายการ");
       return;
     }
     setIsLoading(true);
