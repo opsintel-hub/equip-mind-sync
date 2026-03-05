@@ -1106,25 +1106,72 @@ const IssueRequest = () => {
             {/* Cart Items */}
             {cartItems.length > 0 && (
               <div className="p-4 border border-primary/30 bg-primary/5 rounded-lg space-y-4">
-                <h3 className="font-medium flex items-center gap-2">
-                  <ShoppingCart className="h-4 w-4" />
-                  รายการที่จะเบิก ({cartItems.length} รายการ)
-                </h3>
+                <div className="flex items-center justify-between">
+                  <h3 className="font-medium flex items-center gap-2">
+                    <ShoppingCart className="h-4 w-4" />
+                    ตะกร้าสินค้าขอเบิก ({cartItems.length} รายการ)
+                  </h3>
+                  <div className="flex items-center gap-2">
+                    {selectedCartIds.size > 0 && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={handleRemoveSelected}
+                        className="text-destructive hover:text-destructive gap-1"
+                      >
+                        <Trash2 className="h-3 w-3" />
+                        ลบที่เลือก ({selectedCartIds.size})
+                      </Button>
+                    )}
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => { setCartItems([]); setSelectedCartIds(new Set()); }}
+                      className="text-destructive hover:text-destructive gap-1"
+                    >
+                      <Trash2 className="h-3 w-3" />
+                      ล้างตะกร้า
+                    </Button>
+                  </div>
+                </div>
                 <ScrollArea className="max-h-60">
                   <Table>
                     <TableHeader>
                       <TableRow>
+                        <TableHead className="w-10">
+                          <Checkbox
+                            checked={cartItems.length > 0 && selectedCartIds.size === cartItems.length}
+                            onCheckedChange={handleToggleSelectAll}
+                          />
+                        </TableHead>
+                        <TableHead>#</TableHead>
                         <TableHead>รหัส/ชื่อสินค้า</TableHead>
                         <TableHead>S/N</TableHead>
                         <TableHead className="text-right">จำนวน</TableHead>
                         <TableHead>ป้ายโฆษณา</TableHead>
                         <TableHead>หมายเหตุ</TableHead>
-                        <TableHead className="w-10"></TableHead>
+                        <TableHead className="w-10">จัดการ</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {cartItems.map((item) => (
-                        <TableRow key={item.id}>
+                      {cartItems.map((item, index) => (
+                        <TableRow key={item.id} className={selectedCartIds.has(item.id) ? "bg-primary/5" : ""}>
+                          <TableCell>
+                            <Checkbox
+                              checked={selectedCartIds.has(item.id)}
+                              onCheckedChange={(checked) => {
+                                setSelectedCartIds(prev => {
+                                  const next = new Set(prev);
+                                  if (checked) next.add(item.id);
+                                  else next.delete(item.id);
+                                  return next;
+                                });
+                              }}
+                            />
+                          </TableCell>
+                          <TableCell className="text-muted-foreground">{index + 1}</TableCell>
                           <TableCell>
                             {item.equipment_code && <div className="font-medium">{item.equipment_code}</div>}
                             <div className="text-sm text-muted-foreground">{item.equipment_name}</div>
@@ -1156,12 +1203,31 @@ const IssueRequest = () => {
                     </TableBody>
                   </Table>
                 </ScrollArea>
+
+                {/* Summary */}
+                <div className="flex flex-wrap items-center gap-4 text-sm pt-2 border-t">
+                  <span className="text-muted-foreground">
+                    ทั้งหมด: <strong className="text-foreground">{cartItems.length} รายการ</strong>
+                  </span>
+                  <span className="text-muted-foreground">
+                    จำนวนรวม: <strong className="text-foreground">{cartItems.reduce((s, i) => s + i.quantity, 0)} ชิ้น</strong>
+                  </span>
+                </div>
+                <div className="flex flex-wrap items-center gap-4 text-sm">
+                  <Badge variant="outline" className="bg-primary/10 text-primary border-primary/30">
+                    <CheckCircle className="h-3 w-3 mr-1" />
+                    เลือก {selectedCartIds.size} รายการ
+                  </Badge>
+                  <span className="text-muted-foreground">
+                    จำนวน: <strong className="text-foreground">{cartItems.filter(i => selectedCartIds.has(i.id)).reduce((s, i) => s + i.quantity, 0)} ชิ้น</strong>
+                  </span>
+                </div>
               </div>
             )}
 
-            <Button type="submit" disabled={createRequest.isPending || cartItems.length === 0}>
+            <Button type="submit" disabled={createRequest.isPending || selectedCartIds.size === 0}>
               <Plus className="h-4 w-4 mr-2" />
-              {createRequest.isPending ? "กำลังส่ง..." : `ส่งคำขอเบิก (${cartItems.length} รายการ)`}
+              {createRequest.isPending ? "กำลังส่ง..." : `ส่งรายการที่เลือก (${selectedCartIds.size} รายการ)`}
             </Button>
           </form>
         </CardContent>
