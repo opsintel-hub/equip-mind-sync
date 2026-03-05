@@ -534,7 +534,7 @@ export function InventoryFilters({ filters, onFiltersChange }: InventoryFiltersP
 
         <div className="flex gap-2 flex-1 max-w-md">
           <Input
-            placeholder="ค้นหารหัส, ชื่อ, ยี่ห้อ..."
+            placeholder="ค้นหารหัส, ชื่อ, ยี่ห้อ, S/N..."
             value={localSearch}
             onChange={(e) => setLocalSearch(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleSearchSubmit()}
