@@ -1,0 +1,1 @@
+ALTER TABLE public.goods_issue_pending ADD COLUMN pickup_type text DEFAULT 'scheduled';

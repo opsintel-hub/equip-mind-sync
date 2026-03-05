@@ -1621,6 +1621,7 @@ export type Database = {
           partial_issue_count: number | null
           pickup_date: string | null
           pickup_time: string | null
+          pickup_type: string | null
           purpose: string | null
           purpose_id: string | null
           quantity: number
@@ -1660,6 +1661,7 @@ export type Database = {
           partial_issue_count?: number | null
           pickup_date?: string | null
           pickup_time?: string | null
+          pickup_type?: string | null
           purpose?: string | null
           purpose_id?: string | null
           quantity: number
@@ -1699,6 +1701,7 @@ export type Database = {
           partial_issue_count?: number | null
           pickup_date?: string | null
           pickup_time?: string | null
+          pickup_type?: string | null
           purpose?: string | null
           purpose_id?: string | null
           quantity?: number
