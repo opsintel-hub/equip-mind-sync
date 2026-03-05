@@ -23,6 +23,8 @@ interface ImportRow {
   warranty_expiry_date?: string;
   asset_code?: string;
   equipment_id_code?: string;
+  invoice_number?: string;
+  delivery_note_number?: string;
   notes?: string;
   status?: "valid" | "error";
   error?: string;
