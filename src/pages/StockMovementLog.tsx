@@ -36,7 +36,7 @@ export default function StockMovementLog() {
     queryFn: async () => {
       let query = supabase
         .from("stock_movements")
-        .select(`*, equipment:equipment_id(code, name), location:location_id(name), companies:company_id(name)`)
+        .select(`*, equipment:equipment_id(code, name, serial_number), location:location_id(name), companies:company_id(name)`)
         .order("created_at", { ascending: false });
 
       if (searchTerm) {
