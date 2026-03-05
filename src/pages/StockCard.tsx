@@ -152,8 +152,8 @@ export default function StockCard() {
   const [filterTypes, setFilterTypes] = useState<string[]>([]);
   const [filterMovements, setFilterMovements] = useState<string[]>([]);
   const [filterConditions, setFilterConditions] = useState<string[]>([]);
-
-  // ── Fetch all items for search ──
+  const [filterDepartments, setFilterDepartments] = useState<string[]>([]);
+  const { getViewableDepartments, isAdmin } = useDepartmentPermissions();
   const { data: allItems = [] } = useQuery({
     queryKey: ["stock-card-items"],
     queryFn: async () => {
