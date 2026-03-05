@@ -750,6 +750,7 @@ const DeliveryEntry = () => {
         setPrDocumentUrl("");
         setInvoiceDocumentUrl("");
         setDeliveryNoteDocumentUrl("");
+        setOrderForProject("");
         setPurchaseDocumentFile(null);
         setAdditionalDocumentFile(null);
         setAdditionalImageFile(null);
