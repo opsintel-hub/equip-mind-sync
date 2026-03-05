@@ -593,9 +593,38 @@ export default function InventoryReport() {
         if (filters.issueStatus === "partial" && item.issue_status !== "partial") return false;
       }
 
-      // Filter by item condition
-      if (filters.itemCondition) {
-        if (item.item_condition !== filters.itemCondition) return false;
+      // Global search across all key columns shown in report
+      if (filters.search.trim()) {
+        const term = filters.search.trim().toLowerCase();
+        const searchableValues = [
+          item.code,
+          item.name,
+          item.serial_number,
+          item.category,
+          item.subcategories?.name,
+          item.brand,
+          item.department,
+          item.companies?.code,
+          item.companies?.name,
+          item.locations?.warehouses?.code,
+          item.locations?.warehouses?.name,
+          item.locations?.code,
+          item.locations?.name,
+          item.unit,
+          item.issue_purpose,
+          item.issue_billboard_code,
+          item.issue_requester,
+          getConditionLabel(item.item_condition),
+          String(item.quantity_in_stock),
+          String(item.min_stock_level),
+          String(item.issued_quantity || 0),
+        ];
+
+        const matchesSearch = searchableValues.some(
+          (value) => value?.toString().toLowerCase().includes(term)
+        );
+
+        if (!matchesSearch) return false;
       }
 
       return true;

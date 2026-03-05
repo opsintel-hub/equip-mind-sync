@@ -727,6 +727,10 @@ const ReceiveGoods = () => {
                 expiry_date: receipt.expiry_date || null,
                 item_condition: itemCondition,
               };
+            const batchEqSerial = receipt.serial_number?.trim();
+            if (batchEqSerial && !currentEquipment?.serial_number?.trim()) {
+              batchEqPayload.serial_number = batchEqSerial;
+            }
             if (batchEqDept) {
               batchEqPayload.department = batchEqDept;
             }
