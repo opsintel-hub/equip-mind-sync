@@ -41,6 +41,7 @@ export default function StockMovementLog() {
 
       if (searchTerm) {
         query = query.or(`equipment_code.ilike.%${searchTerm}%,equipment_name.ilike.%${searchTerm}%,reference_document.ilike.%${searchTerm}%,notes.ilike.%${searchTerm}%`);
+        // Note: S/N search is done client-side via equipment join
       }
       if (typeFilter !== "all") {
         query = query.eq("movement_type", typeFilter);
