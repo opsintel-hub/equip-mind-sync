@@ -296,6 +296,9 @@ export function DeliveryImport({ onSuccess }: DeliveryImportProps) {
           ? row.storage_width_cm * row.storage_height_cm * row.storage_depth_cm
           : null,
         notes: row.notes || null,
+        invoice_number: row.invoice_number || null,
+        delivery_note_number: row.delivery_note_number || null,
+        order_for_project: row.order_for_project || null,
         status: "pending"
       }));
 

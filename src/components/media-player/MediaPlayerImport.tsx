@@ -166,6 +166,8 @@ const MediaPlayerImport = ({ onImportSuccess }: MediaPlayerImportProps) => {
           warranty_expiry_date: row.warranty_expiry_date || null,
           asset_code: row.asset_code || null,
           equipment_id_code: row.equipment_id_code || null,
+          invoice_number: row.invoice_number || null,
+          delivery_note_number: row.delivery_note_number || null,
           notes: row.notes || null,
           quantity: 1,
           is_asset: true,
