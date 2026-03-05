@@ -51,6 +51,7 @@ import AdIssue from "./pages/AdIssue";
 import EquipmentTrackingReport from "./pages/EquipmentTrackingReport";
 import BillboardPMPage from "./pages/BillboardPMPage";
 import DefectiveReturnEntry from "./pages/DefectiveReturnEntry";
+import StockCard from "./pages/StockCard";
 import DeliveryConfirmation from "./pages/DeliveryConfirmation";
 import ManagerApproval from "./pages/ManagerApproval";
 import WarehousePickupPlanning from "./pages/WarehousePickupPlanning";
