@@ -94,20 +94,15 @@ export const StockMovementDocumentDialog = ({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between pr-6">
             <DialogTitle className="flex items-center gap-2">
               <Icon className="h-5 w-5" />
               {config.thaiLabel}
             </DialogTitle>
-            <div className="flex gap-2">
-              <Button variant="outline" size="sm" onClick={handleDownload} className="gap-1">
-                <Download className="h-4 w-4" />
-                ดาวน์โหลด PDF
-              </Button>
-              <Button variant="ghost" size="sm" onClick={() => onOpenChange(false)}>
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
+            <Button variant="outline" size="sm" onClick={handleDownload} className="gap-1">
+              <Download className="h-4 w-4" />
+              ดาวน์โหลด PDF
+            </Button>
           </div>
         </DialogHeader>
 

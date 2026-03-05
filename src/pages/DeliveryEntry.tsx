@@ -895,12 +895,12 @@ const DeliveryEntry = () => {
               {/* PO/PR/Invoice fields for "นำเข้าจากการซื้อ" */}
               {isPurchaseReceipt && <div className="mt-4 p-4 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-lg space-y-4">
                   <h4 className="font-medium text-sm text-amber-700 dark:text-amber-400">
-                    PO / PR / Invoice (กรอกอย่างน้อย 1 รายการ) *
+                    PO / PR / Invoice / ใบส่งของ (กรอกอย่างน้อย 1 รายการ) *
                   </h4>
                   <p className="text-xs text-amber-600/80 dark:text-amber-500/80">
                     💡 กรอกเลขที่เอกสารก่อนแล้วค่อยอัปโหลดไฟล์ ระบบจะตั้งชื่อไฟล์ตามเลขที่กรอกโดยอัตโนมัติ
                   </p>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                     <DocumentUploadField
                       label="เลข PO"
                       numberValue={poNumber}
@@ -927,6 +927,15 @@ const DeliveryEntry = () => {
                       onDocumentUploaded={setInvoiceDocumentUrl}
                       onDocumentRemoved={() => setInvoiceDocumentUrl("")}
                       placeholder="Invoice Number"
+                    />
+                    <DocumentUploadField
+                      label="ใบส่งของ"
+                      numberValue={deliveryNoteNumber}
+                      onNumberChange={setDeliveryNoteNumber}
+                      documentUrl={deliveryNoteDocumentUrl}
+                      onDocumentUploaded={setDeliveryNoteDocumentUrl}
+                      onDocumentRemoved={() => setDeliveryNoteDocumentUrl("")}
+                      placeholder="เลขที่ใบส่งของ"
                     />
                   </div>
                 </div>}
