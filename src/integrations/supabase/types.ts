@@ -1984,6 +1984,8 @@ export type Database = {
           asset_code: string | null
           company_id: string | null
           created_at: string
+          delivery_note_document_url: string | null
+          delivery_note_number: string | null
           delivery_person_name: string
           delivery_person_phone: string | null
           department_id: string | null
@@ -1997,6 +1999,8 @@ export type Database = {
           equipment_name: string | null
           expiry_date: string | null
           id: string
+          invoice_document_url: string | null
+          invoice_number: string | null
           is_asset: boolean | null
           is_media_player: boolean | null
           lot_number: string | null
@@ -2037,6 +2041,8 @@ export type Database = {
           asset_code?: string | null
           company_id?: string | null
           created_at?: string
+          delivery_note_document_url?: string | null
+          delivery_note_number?: string | null
           delivery_person_name: string
           delivery_person_phone?: string | null
           department_id?: string | null
@@ -2050,6 +2056,8 @@ export type Database = {
           equipment_name?: string | null
           expiry_date?: string | null
           id?: string
+          invoice_document_url?: string | null
+          invoice_number?: string | null
           is_asset?: boolean | null
           is_media_player?: boolean | null
           lot_number?: string | null
@@ -2090,6 +2098,8 @@ export type Database = {
           asset_code?: string | null
           company_id?: string | null
           created_at?: string
+          delivery_note_document_url?: string | null
+          delivery_note_number?: string | null
           delivery_person_name?: string
           delivery_person_phone?: string | null
           department_id?: string | null
@@ -2103,6 +2113,8 @@ export type Database = {
           equipment_name?: string | null
           expiry_date?: string | null
           id?: string
+          invoice_document_url?: string | null
+          invoice_number?: string | null
           is_asset?: boolean | null
           is_media_player?: boolean | null
           lot_number?: string | null
@@ -2521,6 +2533,8 @@ export type Database = {
           created_at: string
           created_by: string | null
           date_of_receipt: string | null
+          delivery_note_document_url: string | null
+          delivery_note_number: string | null
           department: string | null
           depreciation_months: number | null
           description: string | null
@@ -2568,6 +2582,8 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           date_of_receipt?: string | null
+          delivery_note_document_url?: string | null
+          delivery_note_number?: string | null
           department?: string | null
           depreciation_months?: number | null
           description?: string | null
@@ -2615,6 +2631,8 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           date_of_receipt?: string | null
+          delivery_note_document_url?: string | null
+          delivery_note_number?: string | null
           department?: string | null
           depreciation_months?: number | null
           description?: string | null

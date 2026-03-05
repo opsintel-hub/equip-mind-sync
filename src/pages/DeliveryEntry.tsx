@@ -116,13 +116,15 @@ const DeliveryEntry = () => {
   const [deliveryPersonName, setDeliveryPersonName] = useState("");
   const [deliveryPersonPhone, setDeliveryPersonPhone] = useState("");
 
-  // PO/PR/Invoice fields for "นำเข้าจากการซื้อ"
+  // PO/PR/Invoice/ใบส่งของ fields for "นำเข้าจากการซื้อ"
   const [poNumber, setPoNumber] = useState("");
   const [prNumber, setPrNumber] = useState("");
   const [invoiceNumber, setInvoiceNumber] = useState("");
+  const [deliveryNoteNumber, setDeliveryNoteNumber] = useState("");
   const [poDocumentUrl, setPoDocumentUrl] = useState("");
   const [prDocumentUrl, setPrDocumentUrl] = useState("");
   const [invoiceDocumentUrl, setInvoiceDocumentUrl] = useState("");
+  const [deliveryNoteDocumentUrl, setDeliveryNoteDocumentUrl] = useState("");
   const [purchaseDocumentFile, setPurchaseDocumentFile] = useState<File | null>(null);
   const purchaseFileInputRef = useRef<HTMLInputElement>(null);
 
@@ -640,8 +642,8 @@ const DeliveryEntry = () => {
     }
 
     // Validate PO/PR/Invoice for "นำเข้าจากการซื้อ"
-    if (isPurchaseReceipt && !poNumber && !prNumber && !invoiceNumber) {
-      toast.error("กรุณากรอกเลข PO, PR หรือ Invoice อย่างน้อย 1 รายการ");
+    if (isPurchaseReceipt && !poNumber && !prNumber && !invoiceNumber && !deliveryNoteNumber) {
+      toast.error("กรุณากรอกเลข PO, PR, Invoice หรือ ใบส่งของ อย่างน้อย 1 รายการ");
       return;
     }
     setIsLoading(true);
@@ -705,7 +707,11 @@ const DeliveryEntry = () => {
         depreciation_months: item.depreciation_months ? parseInt(item.depreciation_months) : null,
         po_number: poNumber || null,
         pr_number: prNumber || null,
-        purchase_document_url: purchaseDocumentUrl || (poDocumentUrl || prDocumentUrl || invoiceDocumentUrl ? [poDocumentUrl, prDocumentUrl, invoiceDocumentUrl].filter(Boolean).join(', ') : null),
+        invoice_number: invoiceNumber || null,
+        delivery_note_number: deliveryNoteNumber || null,
+        invoice_document_url: invoiceDocumentUrl || null,
+        delivery_note_document_url: deliveryNoteDocumentUrl || null,
+        purchase_document_url: purchaseDocumentUrl || (poDocumentUrl || prDocumentUrl || invoiceDocumentUrl || deliveryNoteDocumentUrl ? [poDocumentUrl, prDocumentUrl, invoiceDocumentUrl, deliveryNoteDocumentUrl].filter(Boolean).join(', ') : null),
         // Media Player specific fields
         is_media_player: item.is_media_player || false,
         media_player_id: item.media_player_id || null,
@@ -737,9 +743,11 @@ const DeliveryEntry = () => {
         setPoNumber("");
         setPrNumber("");
         setInvoiceNumber("");
+        setDeliveryNoteNumber("");
         setPoDocumentUrl("");
         setPrDocumentUrl("");
         setInvoiceDocumentUrl("");
+        setDeliveryNoteDocumentUrl("");
         setPurchaseDocumentFile(null);
         setAdditionalDocumentFile(null);
         setAdditionalImageFile(null);
@@ -887,12 +895,12 @@ const DeliveryEntry = () => {
               {/* PO/PR/Invoice fields for "นำเข้าจากการซื้อ" */}
               {isPurchaseReceipt && <div className="mt-4 p-4 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-lg space-y-4">
                   <h4 className="font-medium text-sm text-amber-700 dark:text-amber-400">
-                    PO / PR / Invoice (กรอกอย่างน้อย 1 รายการ) *
+                    PO / PR / Invoice / ใบส่งของ (กรอกอย่างน้อย 1 รายการ) *
                   </h4>
                   <p className="text-xs text-amber-600/80 dark:text-amber-500/80">
                     💡 กรอกเลขที่เอกสารก่อนแล้วค่อยอัปโหลดไฟล์ ระบบจะตั้งชื่อไฟล์ตามเลขที่กรอกโดยอัตโนมัติ
                   </p>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                     <DocumentUploadField
                       label="เลข PO"
                       numberValue={poNumber}
@@ -919,6 +927,15 @@ const DeliveryEntry = () => {
                       onDocumentUploaded={setInvoiceDocumentUrl}
                       onDocumentRemoved={() => setInvoiceDocumentUrl("")}
                       placeholder="Invoice Number"
+                    />
+                    <DocumentUploadField
+                      label="ใบส่งของ"
+                      numberValue={deliveryNoteNumber}
+                      onNumberChange={setDeliveryNoteNumber}
+                      documentUrl={deliveryNoteDocumentUrl}
+                      onDocumentUploaded={setDeliveryNoteDocumentUrl}
+                      onDocumentRemoved={() => setDeliveryNoteDocumentUrl("")}
+                      placeholder="เลขที่ใบส่งของ"
                     />
                   </div>
                 </div>}
