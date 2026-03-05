@@ -409,8 +409,9 @@ const IssueRequest = () => {
   // Create request mutation
   const createRequest = useMutation({
     mutationFn: async () => {
-      if (cartItems.length === 0) {
-        throw new Error("กรุณาเพิ่มรายการสินค้าอย่างน้อย 1 รายการ");
+      const itemsToSubmit = cartItems.filter(item => selectedCartIds.has(item.id));
+      if (itemsToSubmit.length === 0) {
+        throw new Error("กรุณาเลือกรายการสินค้าอย่างน้อย 1 รายการ");
       }
 
       const purposeName = purposes?.find((p) => p.id === headerData.purpose_id)?.name || headerData.purpose;
