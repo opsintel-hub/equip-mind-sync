@@ -1,0 +1,1 @@
+ALTER TABLE public.goods_receipt_pending ADD COLUMN IF NOT EXISTS order_for_project text;

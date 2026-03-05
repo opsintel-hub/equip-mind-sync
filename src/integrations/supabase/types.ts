@@ -2007,6 +2007,7 @@ export type Database = {
           lot_number_2: string | null
           media_player_id: string | null
           notes: string | null
+          order_for_project: string | null
           po_number: string | null
           pr_number: string | null
           purchase_document_url: string | null
@@ -2064,6 +2065,7 @@ export type Database = {
           lot_number_2?: string | null
           media_player_id?: string | null
           notes?: string | null
+          order_for_project?: string | null
           po_number?: string | null
           pr_number?: string | null
           purchase_document_url?: string | null
@@ -2121,6 +2123,7 @@ export type Database = {
           lot_number_2?: string | null
           media_player_id?: string | null
           notes?: string | null
+          order_for_project?: string | null
           po_number?: string | null
           pr_number?: string | null
           purchase_document_url?: string | null

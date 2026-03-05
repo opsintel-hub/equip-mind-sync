@@ -539,7 +539,7 @@ const MediaPlayerEntry = () => {
       "PO": p.po_number || "-",
       "PR": p.pr_number || "-",
       "Invoice": p.invoice_number || "-",
-      "วันที่รับสินค้า": p.date_of_receipt || "-",
+      "Order For Project": p.order_for_project || "-",
       "หมายเหตุ": p.description || "-",
     }));
     const ws = XLSX.utils.json_to_sheet(exportData);
