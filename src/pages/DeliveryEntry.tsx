@@ -949,6 +949,7 @@ const DeliveryEntry = () => {
                       </div>
                     </div>
                   </div>}
+            </div>
 
             {/* Item Form Section */}
             <div className="p-4 bg-muted/30 border rounded-lg space-y-4">
