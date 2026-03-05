@@ -457,8 +457,8 @@ const ReceiveGoods = () => {
                 location_id: storageLocation.locationId,
                 item_condition: itemCondition,
               };
-        // Propagate department if item currently has none
-        if (!currentMediaPlayer?.department && mpDeptName) {
+        // Always update department from receipt (authoritative source)
+        if (mpDeptName) {
           mpUpdatePayload.department = mpDeptName;
         }
         const { error: mpError } = await supabase
@@ -526,7 +526,7 @@ const ReceiveGoods = () => {
             expiry_date: selectedReceipt.expiry_date || null,
             item_condition: itemCondition,
           };
-        if (!currentEquipment?.department && eqDeptName) {
+        if (eqDeptName) {
           eqUpdatePayload.department = eqDeptName;
         }
         const { error: stockError } = await supabase
@@ -635,7 +635,7 @@ const ReceiveGoods = () => {
                 location_id: storageLocation.locationId,
                 item_condition: itemCondition,
               };
-            if (!currentMediaPlayer?.department && batchMpDept) {
+            if (batchMpDept) {
               batchMpPayload.department = batchMpDept;
             }
             const { error: mpError } = await supabase
@@ -698,7 +698,7 @@ const ReceiveGoods = () => {
                 expiry_date: receipt.expiry_date || null,
                 item_condition: itemCondition,
               };
-            if (!currentEquipment?.department && batchEqDept) {
+            if (batchEqDept) {
               batchEqPayload.department = batchEqDept;
             }
             const { error: stockError } = await supabase
