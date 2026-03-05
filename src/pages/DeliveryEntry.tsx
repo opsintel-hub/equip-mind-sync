@@ -116,13 +116,15 @@ const DeliveryEntry = () => {
   const [deliveryPersonName, setDeliveryPersonName] = useState("");
   const [deliveryPersonPhone, setDeliveryPersonPhone] = useState("");
 
-  // PO/PR/Invoice fields for "นำเข้าจากการซื้อ"
+  // PO/PR/Invoice/ใบส่งของ fields for "นำเข้าจากการซื้อ"
   const [poNumber, setPoNumber] = useState("");
   const [prNumber, setPrNumber] = useState("");
   const [invoiceNumber, setInvoiceNumber] = useState("");
+  const [deliveryNoteNumber, setDeliveryNoteNumber] = useState("");
   const [poDocumentUrl, setPoDocumentUrl] = useState("");
   const [prDocumentUrl, setPrDocumentUrl] = useState("");
   const [invoiceDocumentUrl, setInvoiceDocumentUrl] = useState("");
+  const [deliveryNoteDocumentUrl, setDeliveryNoteDocumentUrl] = useState("");
   const [purchaseDocumentFile, setPurchaseDocumentFile] = useState<File | null>(null);
   const purchaseFileInputRef = useRef<HTMLInputElement>(null);
 
