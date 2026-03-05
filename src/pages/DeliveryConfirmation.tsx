@@ -34,7 +34,7 @@ const DeliveryConfirmation = () => {
   const { user } = useAuth();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
-  const [departmentFilter, setDepartmentFilter] = useState("all");
+  const [departmentFilter, setDepartmentFilter] = useState<string[]>([]);
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState<any>(null);
