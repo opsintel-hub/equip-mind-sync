@@ -382,6 +382,27 @@ const IssueRequest = () => {
   // Remove item from cart
   const handleRemoveFromCart = (itemId: string) => {
     setCartItems(cartItems.filter(item => item.id !== itemId));
+    setSelectedCartIds(prev => {
+      const next = new Set(prev);
+      next.delete(itemId);
+      return next;
+    });
+  };
+
+  // Remove selected items from cart
+  const handleRemoveSelected = () => {
+    if (selectedCartIds.size === 0) return;
+    setCartItems(cartItems.filter(item => !selectedCartIds.has(item.id)));
+    setSelectedCartIds(new Set());
+  };
+
+  // Toggle select all cart items
+  const handleToggleSelectAll = () => {
+    if (selectedCartIds.size === cartItems.length) {
+      setSelectedCartIds(new Set());
+    } else {
+      setSelectedCartIds(new Set(cartItems.map(item => item.id)));
+    }
   };
 
   // Create request mutation
