@@ -1020,7 +1020,7 @@ const IssueRequest = () => {
                   </div>
                 </div>
                 <div className="space-y-2 md:col-span-2">
-                  <Label>ค้นหาจาก Serial Number</Label>
+                   <Label>ระบุ Serial Number เพื่อค้นหาสินค้าเฉพาะชิ้น</Label>
                   <SerialNumberSelect
                     value={currentItem.serial_number ? `equipment:${currentItem.equipment_id}:${currentItem.serial_number}` : ""}
                     onChange={handleSerialNumberSelect}
