@@ -23,6 +23,8 @@ interface ImportRow {
   warranty_expiry_date?: string;
   asset_code?: string;
   equipment_id_code?: string;
+  invoice_number?: string;
+  delivery_note_number?: string;
   notes?: string;
   status?: "valid" | "error";
   error?: string;
@@ -56,6 +58,8 @@ const MediaPlayerImport = ({ onImportSuccess }: MediaPlayerImportProps) => {
         warranty_expiry_date: "2025-12-31",
         asset_code: "AC001",
         equipment_id_code: "EQ001",
+        invoice_number: "INV-001",
+        delivery_note_number: "DN-001",
         notes: "หมายเหตุ",
       },
     ];
@@ -162,6 +166,8 @@ const MediaPlayerImport = ({ onImportSuccess }: MediaPlayerImportProps) => {
           warranty_expiry_date: row.warranty_expiry_date || null,
           asset_code: row.asset_code || null,
           equipment_id_code: row.equipment_id_code || null,
+          invoice_number: row.invoice_number || null,
+          delivery_note_number: row.delivery_note_number || null,
           notes: row.notes || null,
           quantity: 1,
           is_asset: true,

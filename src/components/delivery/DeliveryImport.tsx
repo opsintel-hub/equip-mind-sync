@@ -22,6 +22,9 @@ interface ImportRow {
   department?: string;
   po_number?: string;
   pr_number?: string;
+  invoice_number?: string;
+  delivery_note_number?: string;
+  order_for_project?: string;
   purpose?: string;
   lot_number_1?: string;
   lot_number_2?: string;
@@ -103,6 +106,9 @@ export function DeliveryImport({ onSuccess }: DeliveryImportProps) {
         "กว้าง (cm)": 50,
         "สูง (cm)": 30,
         "ลึก (cm)": 40,
+        "เลขที่ Invoice": "",
+        "เลขที่ใบส่งของ": "",
+        "Order For Project": "",
         "หมายเหตุ": ""
       }
     ];
@@ -218,6 +224,9 @@ export function DeliveryImport({ onSuccess }: DeliveryImportProps) {
           storage_width_cm: row["กว้าง (cm)"] ? Number(row["กว้าง (cm)"]) : undefined,
           storage_height_cm: row["สูง (cm)"] ? Number(row["สูง (cm)"]) : undefined,
           storage_depth_cm: row["ลึก (cm)"] ? Number(row["ลึก (cm)"]) : undefined,
+          invoice_number: row["เลขที่ Invoice"] || undefined,
+          delivery_note_number: row["เลขที่ใบส่งของ"] || undefined,
+          order_for_project: row["Order For Project"] || undefined,
           notes: row["หมายเหตุ"] || undefined
         });
       });
@@ -287,6 +296,9 @@ export function DeliveryImport({ onSuccess }: DeliveryImportProps) {
           ? row.storage_width_cm * row.storage_height_cm * row.storage_depth_cm
           : null,
         notes: row.notes || null,
+        invoice_number: row.invoice_number || null,
+        delivery_note_number: row.delivery_note_number || null,
+        order_for_project: row.order_for_project || null,
         status: "pending"
       }));
 

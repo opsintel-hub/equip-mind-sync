@@ -13,9 +13,10 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { format } from "date-fns";
 import { th } from "date-fns/locale";
-import { Search, Package, Clock, CheckCircle, XCircle, Bell, FileText, AlertTriangle, Ban, ChevronDown, ChevronRight, ShoppingCart, CalendarIcon, X } from "lucide-react";
+import { Search, Package, Clock, CheckCircle, XCircle, Bell, FileText, AlertTriangle, Ban, ChevronDown, ChevronRight, ShoppingCart, CalendarIcon, X, BarChart3 } from "lucide-react";
 import { toast } from "sonner";
 import { TablePagination } from "@/components/TablePagination";
 import { useTablePagination } from "@/hooks/useTablePagination";
@@ -37,6 +38,27 @@ interface PendingItem {
   notes: string | null;
 }
 
+interface ProductSummary {
+  equipment_code: string;
+  equipment_name: string;
+  total_issued: number;
+  issue_count: number;
+  last_requester: string;
+  last_approver: string;
+  last_date: string;
+  details: ProductDetail[];
+}
+
+interface ProductDetail {
+  requester_name: string;
+  requester_department: string;
+  quantity: number;
+  created_at: string;
+  document_no: string;
+  status: string;
+  approved_by: string | null;
+}
+
 export default function RequesterDashboard() {
   const [searchName, setSearchName] = useState("");
   const [searchedName, setSearchedName] = useState("");
@@ -45,6 +67,12 @@ export default function RequesterDashboard() {
   const [dateFrom, setDateFrom] = useState<Date | undefined>(undefined);
   const [dateTo, setDateTo] = useState<Date | undefined>(undefined);
   const queryClient = useQueryClient();
+
+  // Product view state
+  const [productDateFrom, setProductDateFrom] = useState<Date | undefined>(undefined);
+  const [productDateTo, setProductDateTo] = useState<Date | undefined>(undefined);
+  const [productDeptFilter, setProductDeptFilter] = useState<string>("all");
+  const [expandedProducts, setExpandedProducts] = useState<Set<string>>(new Set());
 
   const { data: requests = [], isLoading: requestsLoading, refetch: refetchRequests } = useQuery({
     queryKey: ["requester-requests", searchedName],
@@ -82,6 +110,191 @@ export default function RequesterDashboard() {
     },
     enabled: requestIds.length > 0,
   });
+
+  // Product view: fetch ALL issued data (not filtered by requester)
+  const { data: productViewData = [], isLoading: productViewLoading } = useQuery({
+    queryKey: ["product-view-data"],
+    queryFn: async () => {
+      // Fetch goods_issue_pending with items joined
+      const { data, error } = await supabase
+        .from("goods_issue_pending")
+        .select("id, requester_name, requester_department, document_no, status, created_at, approved_by, quantity, equipment_code, equipment_name, issued_quantity")
+        .in("status", ["issued", "partially_issued", "approved", "pending"])
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
+  const { data: productViewItems = [] } = useQuery({
+    queryKey: ["product-view-items"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("goods_issue_pending_items")
+        .select("*, goods_issue_pending:pending_id(requester_name, requester_department, document_no, status, created_at, approved_by)")
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
+  // Fetch profiles for approver name resolution
+  const { data: profiles = [] } = useQuery({
+    queryKey: ["profiles-for-approvers"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("id, full_name");
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
+  const profileMap = useMemo(() => {
+    const map = new Map<string, string>();
+    profiles.forEach(p => map.set(p.id, p.full_name || ""));
+    return map;
+  }, [profiles]);
+
+  // Fetch departments for filter
+  const { data: departments = [] } = useQuery({
+    queryKey: ["departments-list"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("departments")
+        .select("id, name")
+        .eq("is_active", true)
+        .order("name");
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
+  // Build product summary
+  const productSummaries = useMemo(() => {
+    const summaryMap = new Map<string, ProductSummary>();
+
+    // Process items from goods_issue_pending_items
+    productViewItems.forEach((item: any) => {
+      const parent = item.goods_issue_pending as any;
+      if (!parent || !item.equipment_code) return;
+
+      const createdAt = new Date(parent.created_at);
+      
+      // Date filter
+      if (productDateFrom) {
+        const from = new Date(productDateFrom);
+        from.setHours(0, 0, 0, 0);
+        if (createdAt < from) return;
+      }
+      if (productDateTo) {
+        const to = new Date(productDateTo);
+        to.setHours(23, 59, 59, 999);
+        if (createdAt > to) return;
+      }
+      // Dept filter
+      if (productDeptFilter !== "all" && parent.requester_department !== productDeptFilter) return;
+
+      const key = item.equipment_code;
+      const qty = item.issued_quantity || item.quantity || 0;
+      const approverName = parent.approved_by ? (profileMap.get(parent.approved_by) || parent.approved_by) : "-";
+
+      if (!summaryMap.has(key)) {
+        summaryMap.set(key, {
+          equipment_code: item.equipment_code,
+          equipment_name: item.equipment_name || "-",
+          total_issued: 0,
+          issue_count: 0,
+          last_requester: "",
+          last_approver: "",
+          last_date: "",
+          details: [],
+        });
+      }
+
+      const summary = summaryMap.get(key)!;
+      summary.total_issued += qty;
+      summary.issue_count += 1;
+      summary.details.push({
+        requester_name: parent.requester_name,
+        requester_department: parent.requester_department || "-",
+        quantity: qty,
+        created_at: parent.created_at,
+        document_no: parent.document_no,
+        status: parent.status,
+        approved_by: approverName,
+      });
+    });
+
+    // Also process header-level records (old format without items)
+    productViewData.forEach((req: any) => {
+      if (!req.equipment_code) return;
+      
+      const createdAt = new Date(req.created_at);
+      if (productDateFrom) {
+        const from = new Date(productDateFrom);
+        from.setHours(0, 0, 0, 0);
+        if (createdAt < from) return;
+      }
+      if (productDateTo) {
+        const to = new Date(productDateTo);
+        to.setHours(23, 59, 59, 999);
+        if (createdAt > to) return;
+      }
+      if (productDeptFilter !== "all" && req.requester_department !== productDeptFilter) return;
+
+      // Check if this request already has items (to avoid double-counting)
+      const hasItems = productViewItems.some((item: any) => item.pending_id === req.id);
+      if (hasItems) return;
+
+      const key = req.equipment_code;
+      const qty = req.issued_quantity || req.quantity || 0;
+      const approverName = req.approved_by ? (profileMap.get(req.approved_by) || req.approved_by) : "-";
+
+      if (!summaryMap.has(key)) {
+        summaryMap.set(key, {
+          equipment_code: req.equipment_code,
+          equipment_name: req.equipment_name || "-",
+          total_issued: 0,
+          issue_count: 0,
+          last_requester: "",
+          last_approver: "",
+          last_date: "",
+          details: [],
+        });
+      }
+
+      const summary = summaryMap.get(key)!;
+      summary.total_issued += qty;
+      summary.issue_count += 1;
+      summary.details.push({
+        requester_name: req.requester_name,
+        requester_department: req.requester_department || "-",
+        quantity: qty,
+        created_at: req.created_at,
+        document_no: req.document_no,
+        status: req.status,
+        approved_by: approverName,
+      });
+    });
+
+    // Set last requester/approver/date
+    summaryMap.forEach((summary) => {
+      summary.details.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+      if (summary.details.length > 0) {
+        summary.last_requester = summary.details[0].requester_name;
+        summary.last_approver = summary.details[0].approved_by || "-";
+        summary.last_date = summary.details[0].created_at;
+      }
+    });
+
+    // Sort by total_issued desc
+    return Array.from(summaryMap.values()).sort((a, b) => b.total_issued - a.total_issued);
+  }, [productViewData, productViewItems, productDateFrom, productDateTo, productDeptFilter, profileMap]);
+
+  const productPagination = useTablePagination(productSummaries, 20);
 
   // Group items by pending_id
   const itemsByRequest = useMemo(() => {
@@ -124,6 +337,18 @@ export default function RequesterDashboard() {
         next.delete(requestId);
       } else {
         next.add(requestId);
+      }
+      return next;
+    });
+  };
+
+  const toggleProductExpand = (code: string) => {
+    setExpandedProducts(prev => {
+      const next = new Set(prev);
+      if (next.has(code)) {
+        next.delete(code);
+      } else {
+        next.add(code);
       }
       return next;
     });
@@ -363,12 +588,16 @@ export default function RequesterDashboard() {
               )}
             </div>
 
-            {/* Tabs for Requests and Notifications */}
+            {/* Tabs for Requests, Product View, and Notifications */}
             <Tabs defaultValue="requests" className="space-y-4">
               <TabsList>
                 <TabsTrigger value="requests" className="flex items-center gap-2">
                   <FileText className="w-4 h-4" />
                   คำขอเบิก ({requests.length})
+                </TabsTrigger>
+                <TabsTrigger value="product-view" className="flex items-center gap-2">
+                  <BarChart3 className="w-4 h-4" />
+                  มุมมองตามสินค้า
                 </TabsTrigger>
                 <TabsTrigger value="notifications" className="flex items-center gap-2">
                   <Bell className="w-4 h-4" />
@@ -598,6 +827,157 @@ export default function RequesterDashboard() {
                           pageSize={pageSize}
                           onPageChange={handlePageChange}
                           onPageSizeChange={handlePageSizeChange}
+                        />
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              {/* Product View Tab */}
+              <TabsContent value="product-view">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <BarChart3 className="w-5 h-5" />
+                      สรุปยอดเบิกตามสินค้า/อะไหล่
+                    </CardTitle>
+                    <p className="text-sm text-muted-foreground">
+                      แสดงข้อมูลสินค้าที่ถูกเบิกทั้งหมด เรียงจากจำนวนมากไปน้อย กดที่แถวเพื่อดูรายละเอียดผู้เบิก
+                    </p>
+                  </CardHeader>
+                  <CardContent>
+                    {/* Filters */}
+                    <div className="flex flex-wrap items-center gap-3 mb-4">
+                      <span className="text-sm font-medium text-muted-foreground">กรอง:</span>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button variant="outline" size="sm" className={cn("w-[150px] justify-start text-left font-normal", !productDateFrom && "text-muted-foreground")}>
+                            <CalendarIcon className="mr-2 h-4 w-4" />
+                            {productDateFrom ? format(productDateFrom, "d MMM yy", { locale: th }) : "จากวันที่"}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar mode="single" selected={productDateFrom} onSelect={setProductDateFrom} initialFocus />
+                        </PopoverContent>
+                      </Popover>
+                      <span className="text-muted-foreground">-</span>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button variant="outline" size="sm" className={cn("w-[150px] justify-start text-left font-normal", !productDateTo && "text-muted-foreground")}>
+                            <CalendarIcon className="mr-2 h-4 w-4" />
+                            {productDateTo ? format(productDateTo, "d MMM yy", { locale: th }) : "ถึงวันที่"}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar mode="single" selected={productDateTo} onSelect={setProductDateTo} initialFocus />
+                        </PopoverContent>
+                      </Popover>
+                      <Select value={productDeptFilter} onValueChange={setProductDeptFilter}>
+                        <SelectTrigger className="w-[180px]">
+                          <SelectValue placeholder="ฝ่าย" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">ทุกฝ่าย</SelectItem>
+                          {departments.map(d => (
+                            <SelectItem key={d.id} value={d.name}>{d.name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {(productDateFrom || productDateTo || productDeptFilter !== "all") && (
+                        <Button variant="ghost" size="sm" onClick={() => { setProductDateFrom(undefined); setProductDateTo(undefined); setProductDeptFilter("all"); }}>
+                          <X className="w-4 h-4 mr-1" />
+                          ล้าง
+                        </Button>
+                      )}
+                    </div>
+
+                    {productViewLoading ? (
+                      <div className="text-center py-8 text-muted-foreground">กำลังโหลด...</div>
+                    ) : productSummaries.length === 0 ? (
+                      <div className="text-center py-8 text-muted-foreground">ไม่พบข้อมูลการเบิกสินค้า</div>
+                    ) : (
+                      <div>
+                        <div className="space-y-2">
+                          {productPagination.paginatedData.map((product) => {
+                            const isExpanded = expandedProducts.has(product.equipment_code);
+                            return (
+                              <Collapsible key={product.equipment_code} open={isExpanded} onOpenChange={() => toggleProductExpand(product.equipment_code)}>
+                                <div className="border rounded-lg">
+                                  <CollapsibleTrigger asChild>
+                                    <div className="flex items-center gap-4 p-4 hover:bg-muted/50 cursor-pointer">
+                                      <div className="flex items-center gap-2">
+                                        {isExpanded ? <ChevronDown className="w-4 h-4 text-muted-foreground" /> : <ChevronRight className="w-4 h-4 text-muted-foreground" />}
+                                        <div className="font-mono text-sm font-medium">{product.equipment_code}</div>
+                                      </div>
+                                      <div className="flex-1 min-w-0 truncate">{product.equipment_name}</div>
+                                      <div className="flex items-center gap-6 text-sm">
+                                        <div className="text-center">
+                                          <div className="text-xs text-muted-foreground">จำนวนรวม</div>
+                                          <div className="font-bold text-lg">{product.total_issued}</div>
+                                        </div>
+                                        <div className="text-center">
+                                          <div className="text-xs text-muted-foreground">ครั้งที่เบิก</div>
+                                          <div className="font-semibold">{product.issue_count}</div>
+                                        </div>
+                                        <div className="text-center hidden md:block">
+                                          <div className="text-xs text-muted-foreground">ผู้เบิกล่าสุด</div>
+                                          <div className="truncate max-w-[120px]">{product.last_requester}</div>
+                                        </div>
+                                        <div className="text-center hidden lg:block">
+                                          <div className="text-xs text-muted-foreground">ผู้อนุมัติ</div>
+                                          <div className="truncate max-w-[120px]">{product.last_approver}</div>
+                                        </div>
+                                        <div className="text-center hidden md:block">
+                                          <div className="text-xs text-muted-foreground">วันที่ล่าสุด</div>
+                                          <div>{product.last_date ? format(new Date(product.last_date), "d MMM yy", { locale: th }) : "-"}</div>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </CollapsibleTrigger>
+
+                                  <CollapsibleContent>
+                                    <div className="border-t bg-muted/30 p-4">
+                                      <Table>
+                                        <TableHeader>
+                                          <TableRow>
+                                            <TableHead>ผู้เบิก</TableHead>
+                                            <TableHead>ฝ่าย</TableHead>
+                                            <TableHead className="text-right">จำนวน</TableHead>
+                                            <TableHead>วันที่</TableHead>
+                                            <TableHead>เลขที่เอกสาร</TableHead>
+                                            <TableHead>สถานะ</TableHead>
+                                            <TableHead>ผู้อนุมัติ</TableHead>
+                                          </TableRow>
+                                        </TableHeader>
+                                        <TableBody>
+                                          {product.details.map((detail, idx) => (
+                                            <TableRow key={idx}>
+                                              <TableCell>{detail.requester_name}</TableCell>
+                                              <TableCell>{detail.requester_department}</TableCell>
+                                              <TableCell className="text-right font-medium">{detail.quantity}</TableCell>
+                                              <TableCell>{format(new Date(detail.created_at), "d MMM yy HH:mm", { locale: th })}</TableCell>
+                                              <TableCell className="font-mono text-sm">{detail.document_no}</TableCell>
+                                              <TableCell>{getStatusBadge(detail.status)}</TableCell>
+                                              <TableCell>{detail.approved_by || "-"}</TableCell>
+                                            </TableRow>
+                                          ))}
+                                        </TableBody>
+                                      </Table>
+                                    </div>
+                                  </CollapsibleContent>
+                                </div>
+                              </Collapsible>
+                            );
+                          })}
+                        </div>
+                        <TablePagination
+                          currentPage={productPagination.currentPage}
+                          totalPages={productPagination.totalPages}
+                          totalItems={productPagination.totalItems}
+                          pageSize={productPagination.pageSize}
+                          onPageChange={productPagination.handlePageChange}
+                          onPageSizeChange={productPagination.handlePageSizeChange}
                         />
                       </div>
                     )}

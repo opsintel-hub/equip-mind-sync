@@ -31,6 +31,9 @@ interface ImportRow {
   expiry_date?: string;
   warranty_expiry_date?: string;
   notes?: string;
+  is_asset?: boolean;
+  asset_code?: string;
+  equipment_id_code?: string;
 }
 
 export function EquipmentImport({ onSuccess }: EquipmentImportProps) {
@@ -63,6 +66,9 @@ export function EquipmentImport({ onSuccess }: EquipmentImportProps) {
         "ลักซ์ (lux)": 500,
         "วันหมดอายุ (expiry_date)": "2025-12-31",
         "วันหมดประกัน (warranty_expiry_date)": "2026-06-30",
+        "เป็นสินทรัพย์ (is_asset)": "ไม่",
+        "รหัสสินทรัพย์ (asset_code)": "",
+        "รหัส Equipment ID (equipment_id_code)": "",
         "หมายเหตุ (notes)": "หมายเหตุเพิ่มเติม",
       },
     ];
@@ -177,6 +183,9 @@ export function EquipmentImport({ onSuccess }: EquipmentImportProps) {
           expiry_date: parseDate(row["วันหมดอายุ (expiry_date)"] || row["expiry_date"]),
           warranty_expiry_date: parseDate(row["วันหมดประกัน (warranty_expiry_date)"] || row["warranty_expiry_date"]),
           notes: row["หมายเหตุ (notes)"] || row["notes"] || undefined,
+          is_asset: row["เป็นสินทรัพย์ (is_asset)"] === "ใช่" || row["เป็นสินทรัพย์ (is_asset)"] === "yes" || row["is_asset"] === true,
+          asset_code: row["รหัสสินทรัพย์ (asset_code)"] || row["asset_code"] || undefined,
+          equipment_id_code: row["รหัส Equipment ID (equipment_id_code)"] || row["equipment_id_code"] || undefined,
         };
 
         const existingId = existingCodeMap.get(equipmentData.code);
