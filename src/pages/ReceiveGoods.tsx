@@ -653,6 +653,17 @@ const ReceiveGoods = () => {
                 location_id: storageLocation.locationId,
                 item_condition: itemCondition,
               };
+
+            const batchReceiptSerial = receipt.serial_number?.trim();
+            const batchCurrentMpSerial1 = currentMediaPlayer?.serial_number_1?.trim();
+            const batchCurrentMpSerial2 = currentMediaPlayer?.serial_number_2?.trim();
+            if (batchReceiptSerial) {
+              if (!batchCurrentMpSerial1) {
+                batchMpPayload.serial_number_1 = batchReceiptSerial;
+              } else if (batchCurrentMpSerial1 !== batchReceiptSerial && !batchCurrentMpSerial2) {
+                batchMpPayload.serial_number_2 = batchReceiptSerial;
+              }
+            }
             if (batchMpDept) {
               batchMpPayload.department = batchMpDept;
             }
