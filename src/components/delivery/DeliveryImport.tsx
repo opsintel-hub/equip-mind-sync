@@ -103,6 +103,9 @@ export function DeliveryImport({ onSuccess }: DeliveryImportProps) {
         "กว้าง (cm)": 50,
         "สูง (cm)": 30,
         "ลึก (cm)": 40,
+        "เลขที่ Invoice": "",
+        "เลขที่ใบส่งของ": "",
+        "Order For Project": "",
         "หมายเหตุ": ""
       }
     ];

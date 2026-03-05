@@ -56,6 +56,8 @@ const MediaPlayerImport = ({ onImportSuccess }: MediaPlayerImportProps) => {
         warranty_expiry_date: "2025-12-31",
         asset_code: "AC001",
         equipment_id_code: "EQ001",
+        invoice_number: "INV-001",
+        delivery_note_number: "DN-001",
         notes: "หมายเหตุ",
       },
     ];

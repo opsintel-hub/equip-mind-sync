@@ -67,6 +67,12 @@ const BillboardExport = ({ currentFilters }: BillboardExportProps) => {
         return;
       }
 
+      const statusMap: Record<string, string> = {
+        active: "ใช้งาน",
+        maintenance: "บำรุงรักษา",
+        inactive: "ไม่ใช้งาน",
+      };
+
       // Map to Excel format - using column names that match import template
       const exportData = data.map((b) => ({
         OldCode: b.old_code || "",
@@ -89,7 +95,7 @@ const BillboardExport = ({ currentFilters }: BillboardExportProps) => {
         RouteInstallAndDemolish: b.route_install_demolish || "",
         RouteReportPhoto: b.route_report_photo || "",
         RoutePM: b.route_pm || "",
-        Status: b.status,
+        "สถานะ": statusMap[b.status] || b.status,
         Notes: b.notes || "",
         Size: (b as any).size || "",
       }));

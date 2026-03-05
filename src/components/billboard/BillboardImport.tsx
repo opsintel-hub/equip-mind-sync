@@ -345,7 +345,7 @@ const BillboardImport = ({ onSuccess, onCancel }: BillboardImportProps) => {
         RouteInstallAndDemolish: "",
         RouteReportPhoto: "",
         RoutePM: "",
-        Status: "active",
+        "สถานะ": "ใช้งาน",
         Notes: "หมายเหตุ",
         Size: "512x320 px",
       },

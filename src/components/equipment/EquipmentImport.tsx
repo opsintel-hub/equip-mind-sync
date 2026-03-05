@@ -63,6 +63,9 @@ export function EquipmentImport({ onSuccess }: EquipmentImportProps) {
         "ลักซ์ (lux)": 500,
         "วันหมดอายุ (expiry_date)": "2025-12-31",
         "วันหมดประกัน (warranty_expiry_date)": "2026-06-30",
+        "เป็นสินทรัพย์ (is_asset)": "ไม่",
+        "รหัสสินทรัพย์ (asset_code)": "",
+        "รหัส Equipment ID (equipment_id_code)": "",
         "หมายเหตุ (notes)": "หมายเหตุเพิ่มเติม",
       },
     ];
