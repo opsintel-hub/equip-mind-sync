@@ -1345,6 +1345,11 @@ const IssueRequest = () => {
                             {req.requester_department && (
                               <div className="text-sm text-muted-foreground">{req.requester_department}</div>
                             )}
+                            {((req as any).pickup_date || (req as any).pickup_time) && (
+                              <div className="text-xs text-primary mt-1">
+                                📅 {(req as any).pickup_date ? format(new Date((req as any).pickup_date), "dd/MM/yyyy") : ""} {(req as any).pickup_time || ""}
+                              </div>
+                            )}
                           </TableCell>
                           <TableCell>{req.purpose || "-"}</TableCell>
                           <TableCell>{getStatusBadge(req.status)}</TableCell>
