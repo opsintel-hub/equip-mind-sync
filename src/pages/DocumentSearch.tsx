@@ -71,6 +71,7 @@ export default function DocumentSearch() {
       const receiptDocs: DocumentRecord[] = (receiptData || []).map((item: any) => ({
         id: item.id, document_no: item.document_no, document_url: item.document_url,
         equipment_code: item.equipment?.code || null, equipment_name: item.equipment?.name || null,
+        serial_number: null,
         supplier_name: item.supplier, delivery_person_name: null,
         quantity: item.quantity, unit: "ชิ้น", created_at: item.created_at,
         status: item.status, source: "received" as const,
