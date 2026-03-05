@@ -10,30 +10,45 @@ import { StockMovementGroupRow, GroupedMovement, StockMovementItem } from "@/com
 import { StockMovementDocumentDialog } from "@/components/stock-movement/StockMovementDocumentDialog";
 import { useTablePagination } from "@/hooks/useTablePagination";
 import { TablePagination } from "@/components/TablePagination";
+import { DatePickerWithRange } from "@/components/ui/date-range-picker";
+import { DateRange } from "react-day-picker";
 
 export default function StockMovementLog() {
   const [searchTerm, setSearchTerm] = useState("");
   const [typeFilter, setTypeFilter] = useState<string>("all");
+  const [departmentFilter, setDepartmentFilter] = useState("all");
+  const [companyFilter, setCompanyFilter] = useState("all");
+  const [dateRange, setDateRange] = useState<DateRange | undefined>();
   const [selectedGroup, setSelectedGroup] = useState<GroupedMovement | null>(null);
   const [isDocumentDialogOpen, setIsDocumentDialogOpen] = useState(false);
+
+  const { data: departments } = useQuery({
+    queryKey: ["sml-departments"],
+    queryFn: async () => {
+      const { data } = await supabase.from("departments").select("name").eq("is_active", true).order("name");
+      return data?.map((d: any) => d.name) || [];
+    },
+  });
+
+  const { data: companiesList } = useQuery({
+    queryKey: ["sml-companies"],
+    queryFn: async () => {
+      const { data } = await supabase.from("companies").select("id, name").eq("is_active", true).order("name");
+      return data || [];
+    },
+  });
 
   const { data: movements, isLoading } = useQuery({
     queryKey: ["stock-movements", searchTerm, typeFilter],
     queryFn: async () => {
       let query = supabase
         .from("stock_movements")
-        .select(`
-          *,
-          equipment:equipment_id(code, name),
-          location:location_id(name),
-          companies:company_id(name)
-        `)
+        .select(`*, equipment:equipment_id(code, name), location:location_id(name), companies:company_id(name)`)
         .order("created_at", { ascending: false });
 
       if (searchTerm) {
         query = query.or(`equipment_code.ilike.%${searchTerm}%,equipment_name.ilike.%${searchTerm}%,reference_document.ilike.%${searchTerm}%,notes.ilike.%${searchTerm}%`);
       }
-
       if (typeFilter !== "all") {
         query = query.eq("movement_type", typeFilter);
       }
@@ -44,15 +59,29 @@ export default function StockMovementLog() {
     },
   });
 
-  // Group movements by reference_document
   const groupedMovements = useMemo(() => {
     if (!movements) return [];
 
-    const groups = new Map<string, GroupedMovement>();
+    // Apply client-side filters
+    let filtered = movements;
+    if (departmentFilter !== "all") {
+      filtered = filtered.filter((m: any) => m.department === departmentFilter);
+    }
+    if (companyFilter !== "all") {
+      filtered = filtered.filter((m: any) => m.company_id === companyFilter);
+    }
+    if (dateRange?.from) {
+      filtered = filtered.filter((m: any) => {
+        const d = new Date(m.created_at);
+        if (dateRange.from && d < dateRange.from) return false;
+        if (dateRange.to && d > dateRange.to) return false;
+        return true;
+      });
+    }
 
-    movements.forEach((movement: any) => {
-      const key = movement.reference_document || movement.id; // Use id if no document
-      
+    const groups = new Map<string, GroupedMovement>();
+    filtered.forEach((movement: any) => {
+      const key = movement.reference_document || movement.id;
       if (groups.has(key)) {
         const group = groups.get(key)!;
         group.items.push(movement);
@@ -70,17 +99,11 @@ export default function StockMovementLog() {
     });
 
     return Array.from(groups.values());
-  }, [movements]);
+  }, [movements, departmentFilter, companyFilter, dateRange]);
 
-  // Paginate grouped data
   const {
-    paginatedData: paginatedGroups,
-    currentPage,
-    pageSize,
-    totalPages,
-    totalItems,
-    handlePageChange,
-    handlePageSizeChange,
+    paginatedData: paginatedGroups, currentPage, pageSize, totalPages, totalItems,
+    handlePageChange, handlePageSizeChange,
   } = useTablePagination(groupedMovements, 20);
 
   const handleViewDocument = (group: GroupedMovement) => {
@@ -98,31 +121,21 @@ export default function StockMovementLog() {
       <Card>
         <CardHeader>
           <CardTitle>ประวัติการเคลื่อนไหว</CardTitle>
-          <CardDescription>
-            แสดงรายการเปลี่ยนแปลง stock พร้อม stock ก่อน-หลังทุกรายการ (จัดกลุ่มตามเอกสาร)
-          </CardDescription>
+          <CardDescription>แสดงรายการเปลี่ยนแปลง stock พร้อม stock ก่อน-หลังทุกรายการ (จัดกลุ่มตามเอกสาร)</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="flex flex-col sm:flex-row gap-4 mb-6">
-            <div className="relative flex-1">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 mb-6">
+            <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="ค้นหา รหัส/ชื่ออุปกรณ์ หรือเลขเอกสาร..."
                 value={searchTerm}
-                onChange={(e) => {
-                  setSearchTerm(e.target.value);
-                  handlePageChange(1);
-                }}
+                onChange={(e) => { setSearchTerm(e.target.value); handlePageChange(1); }}
                 className="pl-10"
               />
             </div>
-            <Select value={typeFilter} onValueChange={(value) => {
-              setTypeFilter(value);
-              handlePageChange(1);
-            }}>
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="ประเภท" />
-              </SelectTrigger>
+            <Select value={typeFilter} onValueChange={(value) => { setTypeFilter(value); handlePageChange(1); }}>
+              <SelectTrigger><SelectValue placeholder="ประเภท" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">ทั้งหมด</SelectItem>
                 <SelectItem value="receive">รับเข้า</SelectItem>
@@ -134,16 +147,27 @@ export default function StockMovementLog() {
                 <SelectItem value="defective_return">นำของเสียเข้า</SelectItem>
               </SelectContent>
             </Select>
+            <Select value={departmentFilter} onValueChange={(v) => { setDepartmentFilter(v); handlePageChange(1); }}>
+              <SelectTrigger><SelectValue placeholder="ฝ่าย" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">ทุกฝ่าย</SelectItem>
+                {departments?.map((d: string) => <SelectItem key={d} value={d}>{d}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            <Select value={companyFilter} onValueChange={(v) => { setCompanyFilter(v); handlePageChange(1); }}>
+              <SelectTrigger><SelectValue placeholder="บริษัท" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">ทุกบริษัท</SelectItem>
+                {companiesList?.map((c: any) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            <DatePickerWithRange date={dateRange} onDateChange={(d) => { setDateRange(d); handlePageChange(1); }} />
           </div>
 
           {isLoading ? (
-            <div className="flex items-center justify-center py-8">
-              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-            </div>
+            <div className="flex items-center justify-center py-8"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>
           ) : paginatedGroups.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              ไม่พบข้อมูลการเคลื่อนไหว stock
-            </div>
+            <div className="text-center py-8 text-muted-foreground">ไม่พบข้อมูลการเคลื่อนไหว stock</div>
           ) : (
             <>
               <div className="overflow-x-auto">
@@ -164,35 +188,18 @@ export default function StockMovementLog() {
                   </TableHeader>
                   <TableBody>
                     {paginatedGroups.map((group) => (
-                      <StockMovementGroupRow
-                        key={group.reference_document}
-                        group={group}
-                        onViewDocument={handleViewDocument}
-                      />
+                      <StockMovementGroupRow key={group.reference_document} group={group} onViewDocument={handleViewDocument} />
                     ))}
                   </TableBody>
                 </Table>
               </div>
-
-              <TablePagination
-                currentPage={currentPage}
-                totalPages={totalPages}
-                totalItems={totalItems}
-                pageSize={pageSize}
-                onPageChange={handlePageChange}
-                onPageSizeChange={handlePageSizeChange}
-              />
+              <TablePagination currentPage={currentPage} totalPages={totalPages} totalItems={totalItems} pageSize={pageSize} onPageChange={handlePageChange} onPageSizeChange={handlePageSizeChange} />
             </>
           )}
         </CardContent>
       </Card>
 
-      {/* Document Viewer Dialog */}
-      <StockMovementDocumentDialog
-        open={isDocumentDialogOpen}
-        onOpenChange={setIsDocumentDialogOpen}
-        group={selectedGroup}
-      />
+      <StockMovementDocumentDialog open={isDocumentDialogOpen} onOpenChange={setIsDocumentDialogOpen} group={selectedGroup} />
     </div>
   );
 }

@@ -5,15 +5,18 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Search, CheckCircle, XCircle, Shield, Clock, ShoppingCart, ChevronDown, ChevronUp, Package } from "lucide-react";
+import { Search, CheckCircle, XCircle, Shield, Clock, ShoppingCart, ChevronDown, ChevronUp, Package, Store, CalendarClock, Truck } from "lucide-react";
 import { format } from "date-fns";
 import { th } from "date-fns/locale";
 import { useAuth } from "@/hooks/useAuth";
+import { DatePickerWithRange } from "@/components/ui/date-range-picker";
+import { DateRange } from "react-day-picker";
 
 const ManagerApproval = () => {
   const queryClient = useQueryClient();
@@ -24,17 +27,32 @@ const ManagerApproval = () => {
   const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
   const [approvalNotes, setApprovalNotes] = useState("");
   const [expandedRequests, setExpandedRequests] = useState<Set<string>>(new Set());
+  const [departmentFilter, setDepartmentFilter] = useState("all");
+  const [companyFilter, setCompanyFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [dateRange, setDateRange] = useState<DateRange | undefined>();
 
-  // Check user's manager role and department
+  const { data: departments } = useQuery({
+    queryKey: ["ma-departments"],
+    queryFn: async () => {
+      const { data } = await supabase.from("departments").select("name").eq("is_active", true).order("name");
+      return data?.map((d: any) => d.name) || [];
+    },
+  });
+
+  const { data: companies } = useQuery({
+    queryKey: ["ma-companies"],
+    queryFn: async () => {
+      const { data } = await supabase.from("companies").select("id, name").eq("is_active", true).order("name");
+      return data || [];
+    },
+  });
+
   const { data: userRole } = useQuery({
     queryKey: ["user-manager-role", user?.id],
     queryFn: async () => {
       if (!user) return null;
-      const { data } = await supabase
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", user.id)
-        .in("role", ["manager", "admin"]);
+      const { data } = await supabase.from("user_roles").select("role").eq("user_id", user.id).in("role", ["manager", "admin"]);
       return data;
     },
     enabled: !!user,
@@ -44,34 +62,37 @@ const ManagerApproval = () => {
     queryKey: ["user-manager-departments", user?.id],
     queryFn: async () => {
       if (!user) return null;
-      const { data } = await supabase
-        .from("user_departments")
-        .select("department")
-        .eq("user_id", user.id);
+      const { data } = await supabase.from("user_departments").select("department").eq("user_id", user.id);
       return data;
     },
     enabled: !!user,
+  });
+
+  // Profiles for approver names
+  const { data: profiles } = useQuery({
+    queryKey: ["ma-profiles"],
+    queryFn: async () => {
+      const { data } = await supabase.from("profiles").select("id, full_name");
+      const map: Record<string, string> = {};
+      data?.forEach((p: any) => { map[p.id] = p.full_name; });
+      return map;
+    },
   });
 
   const isAdmin = userRole?.some((r: any) => r.role === "admin");
   const isManager = userRole?.some((r: any) => r.role === "manager") || isAdmin;
   const managerDepartments = userDepartments?.map((d: any) => d.department) || [];
 
-  // Fetch pending approval requests
   const { data: pendingApprovals, isLoading } = useQuery({
     queryKey: ["pending-approvals"],
     queryFn: async () => {
-      let query = supabase
+      const { data, error } = await supabase
         .from("goods_issue_pending")
         .select("*, companies(name)")
         .eq("requires_approval", true)
         .eq("approval_status", "pending")
         .order("created_at", { ascending: true });
-
-      const { data, error } = await query;
       if (error) throw error;
-
-      // Filter by manager's departments (unless admin)
       if (!isAdmin && managerDepartments.length > 0) {
         return data?.filter((req: any) => managerDepartments.includes(req.requester_department)) || [];
       }
@@ -80,7 +101,6 @@ const ManagerApproval = () => {
     enabled: isManager,
   });
 
-  // Fetch all approval history
   const { data: approvalHistory } = useQuery({
     queryKey: ["approval-history"],
     queryFn: async () => {
@@ -90,50 +110,34 @@ const ManagerApproval = () => {
         .eq("requires_approval", true)
         .neq("approval_status", "pending")
         .order("approved_at", { ascending: false })
-        .limit(50);
+        .limit(100);
       if (error) throw error;
       return data;
     },
     enabled: isManager,
   });
 
-  // Fetch items
   const { data: allItems } = useQuery({
     queryKey: ["approval-items"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("goods_issue_pending_items")
-        .select("*");
+      const { data, error } = await supabase.from("goods_issue_pending_items").select("*");
       if (error) throw error;
       return data;
     },
   });
 
-  const getItemsForRequest = (requestId: string) => {
-    return allItems?.filter((item: any) => item.pending_id === requestId) || [];
-  };
+  const getItemsForRequest = (requestId: string) => allItems?.filter((item: any) => item.pending_id === requestId) || [];
 
   const toggleExpand = (id: string) => {
-    setExpandedRequests(prev => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
+    setExpandedRequests(prev => { const next = new Set(prev); if (next.has(id)) next.delete(id); else next.add(id); return next; });
   };
 
   const approveMutation = useMutation({
     mutationFn: async () => {
       if (!selectedRequest || !user) throw new Error("Missing data");
-      const { error } = await supabase
-        .from("goods_issue_pending")
-        .update({
-          approval_status: "approved",
-          approved_by: user.id,
-          approved_at: new Date().toISOString(),
-          approval_notes: approvalNotes || null,
-        } as any)
-        .eq("id", selectedRequest.id);
+      const { error } = await supabase.from("goods_issue_pending").update({
+        approval_status: "approved", approved_by: user.id, approved_at: new Date().toISOString(), approval_notes: approvalNotes || null,
+      } as any).eq("id", selectedRequest.id);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -141,9 +145,7 @@ const ManagerApproval = () => {
       queryClient.invalidateQueries({ queryKey: ["pending-approvals"] });
       queryClient.invalidateQueries({ queryKey: ["approval-history"] });
       queryClient.invalidateQueries({ queryKey: ["goods-issue-pending-staff"] });
-      setApproveDialogOpen(false);
-      setSelectedRequest(null);
-      setApprovalNotes("");
+      setApproveDialogOpen(false); setSelectedRequest(null); setApprovalNotes("");
     },
     onError: (error) => toast.error("เกิดข้อผิดพลาด: " + error.message),
   });
@@ -151,35 +153,57 @@ const ManagerApproval = () => {
   const rejectMutation = useMutation({
     mutationFn: async () => {
       if (!selectedRequest || !user) throw new Error("Missing data");
-      const { error } = await supabase
-        .from("goods_issue_pending")
-        .update({
-          approval_status: "rejected",
-          approved_by: user.id,
-          approved_at: new Date().toISOString(),
-          approval_notes: approvalNotes || null,
-          status: "rejected",
-          reject_reason: "ผู้มีอำนาจไม่อนุมัติ: " + (approvalNotes || "ไม่ระบุเหตุผล"),
-        } as any)
-        .eq("id", selectedRequest.id);
+      const { error } = await supabase.from("goods_issue_pending").update({
+        approval_status: "rejected", approved_by: user.id, approved_at: new Date().toISOString(),
+        approval_notes: approvalNotes || null, status: "rejected",
+        reject_reason: "ผู้มีอำนาจไม่อนุมัติ: " + (approvalNotes || "ไม่ระบุเหตุผล"),
+      } as any).eq("id", selectedRequest.id);
       if (error) throw error;
     },
     onSuccess: () => {
       toast.success("ปฏิเสธคำขอเบิกสำเร็จ");
       queryClient.invalidateQueries({ queryKey: ["pending-approvals"] });
       queryClient.invalidateQueries({ queryKey: ["approval-history"] });
-      setRejectDialogOpen(false);
-      setSelectedRequest(null);
-      setApprovalNotes("");
+      setRejectDialogOpen(false); setSelectedRequest(null); setApprovalNotes("");
     },
     onError: (error) => toast.error("เกิดข้อผิดพลาด: " + error.message),
   });
 
-  const filteredPending = pendingApprovals?.filter(
-    (req: any) =>
-      req.document_no?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      req.requester_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      req.equipment_name?.toLowerCase().includes(searchTerm.toLowerCase())
+  const getPickupBadge = (type: string) => {
+    switch (type) {
+      case "wait_onsite": return <Badge variant="destructive" className="gap-1"><Store className="h-3 w-3" />รอรับที่คลัง</Badge>;
+      case "scheduled": return <Badge className="bg-blue-100 text-blue-800 gap-1"><CalendarClock className="h-3 w-3" />นัดรับ</Badge>;
+      case "delivery": return <Badge className="bg-purple-100 text-purple-800 gap-1"><Truck className="h-3 w-3" />จัดส่ง</Badge>;
+      default: return <Badge variant="secondary">-</Badge>;
+    }
+  };
+
+  const applyFilters = (data: any[] | undefined) => {
+    if (!data) return [];
+    return data.filter((req: any) => {
+      if (searchTerm) {
+        const term = searchTerm.toLowerCase();
+        if (!req.document_no?.toLowerCase().includes(term) &&
+            !req.requester_name?.toLowerCase().includes(term) &&
+            !req.equipment_name?.toLowerCase().includes(term)) return false;
+      }
+      if (departmentFilter !== "all" && req.requester_department !== departmentFilter) return false;
+      if (companyFilter !== "all" && req.company_id !== companyFilter) return false;
+      if (dateRange?.from) {
+        const d = new Date(req.created_at);
+        if (d < dateRange.from) return false;
+        if (dateRange.to && d > dateRange.to) return false;
+      }
+      return true;
+    });
+  };
+
+  const filteredPending = applyFilters(pendingApprovals);
+  const filteredHistory = applyFilters(
+    statusFilter === "all" ? approvalHistory :
+    statusFilter === "approved" ? approvalHistory?.filter((r: any) => r.approval_status === "approved") :
+    statusFilter === "rejected" ? approvalHistory?.filter((r: any) => r.approval_status === "rejected") :
+    approvalHistory
   );
 
   if (!isManager) {
@@ -199,14 +223,9 @@ const ManagerApproval = () => {
   const renderRequestRow = (req: any, showActions: boolean) => {
     const items = getItemsForRequest(req.id);
     const isExpanded = expandedRequests.has(req.id);
-
     return (
       <>
-        <TableRow
-          key={req.id}
-          className="cursor-pointer hover:bg-muted/50"
-          onClick={() => items.length > 0 && toggleExpand(req.id)}
-        >
+        <TableRow key={req.id} className="cursor-pointer hover:bg-muted/50" onClick={() => items.length > 0 && toggleExpand(req.id)}>
           <TableCell>
             {items.length > 0 && (
               <Button variant="ghost" size="sm" className="p-0 h-6 w-6">
@@ -219,58 +238,55 @@ const ManagerApproval = () => {
           <TableCell>{req.companies?.name || "-"}</TableCell>
           <TableCell>
             <div>{req.requester_name}</div>
-            {req.requester_department && (
-              <div className="text-xs text-muted-foreground">{req.requester_department}</div>
-            )}
+            {req.requester_department && <div className="text-xs text-muted-foreground">{req.requester_department}</div>}
+          </TableCell>
+          <TableCell>{getPickupBadge(req.pickup_type)}</TableCell>
+          <TableCell>
+            {req.pickup_date ? format(new Date(req.pickup_date), "dd/MM/yyyy", { locale: th }) : "-"}
+            {req.pickup_time && <div className="text-xs text-muted-foreground">{req.pickup_time}</div>}
           </TableCell>
           <TableCell>
             {items.length > 0 ? (
-              <Badge variant="outline" className="gap-1">
-                <ShoppingCart className="h-3 w-3" />
-                {items.length} รายการ
-              </Badge>
+              <Badge variant="outline" className="gap-1"><ShoppingCart className="h-3 w-3" />{items.length} รายการ</Badge>
             ) : (
               <div className="text-sm">{req.equipment_name || "-"}</div>
             )}
           </TableCell>
-          <TableCell>{req.purpose || "-"}</TableCell>
           <TableCell>
             {showActions ? (
-              <Badge variant="secondary" className="bg-amber-100 text-amber-800 gap-1">
-                <Clock className="h-3 w-3" />
-                รออนุมัติ
-              </Badge>
+              <Badge variant="secondary" className="bg-amber-100 text-amber-800 gap-1"><Clock className="h-3 w-3" />รออนุมัติ</Badge>
             ) : req.approval_status === "approved" ? (
-              <Badge className="bg-green-100 text-green-800 gap-1">
-                <CheckCircle className="h-3 w-3" />
-                อนุมัติแล้ว
-              </Badge>
+              <Badge className="bg-green-100 text-green-800 gap-1"><CheckCircle className="h-3 w-3" />อนุมัติแล้ว</Badge>
             ) : (
-              <Badge variant="destructive" className="gap-1">
-                <XCircle className="h-3 w-3" />
-                ไม่อนุมัติ
-              </Badge>
+              <Badge variant="destructive" className="gap-1"><XCircle className="h-3 w-3" />ไม่อนุมัติ</Badge>
             )}
           </TableCell>
+          {!showActions && (
+            <TableCell>
+              {req.approved_by && profiles ? (
+                <div>
+                  <div className="text-sm">{profiles[req.approved_by] || "-"}</div>
+                  {req.approved_at && <div className="text-xs text-muted-foreground">{format(new Date(req.approved_at), "dd/MM/yy HH:mm", { locale: th })}</div>}
+                </div>
+              ) : "-"}
+            </TableCell>
+          )}
           <TableCell className="text-center">
             {showActions && (
               <div className="flex gap-1 justify-center">
                 <Button size="sm" onClick={(e) => { e.stopPropagation(); setSelectedRequest(req); setApproveDialogOpen(true); }}>
-                  <CheckCircle className="h-4 w-4 mr-1" />
-                  อนุมัติ
+                  <CheckCircle className="h-4 w-4 mr-1" />อนุมัติ
                 </Button>
                 <Button size="sm" variant="destructive" onClick={(e) => { e.stopPropagation(); setSelectedRequest(req); setRejectDialogOpen(true); }}>
-                  <XCircle className="h-4 w-4 mr-1" />
-                  ไม่อนุมัติ
+                  <XCircle className="h-4 w-4 mr-1" />ไม่อนุมัติ
                 </Button>
               </div>
             )}
           </TableCell>
         </TableRow>
-
         {isExpanded && items.length > 0 && (
           <TableRow key={`${req.id}-items`}>
-            <TableCell colSpan={9} className="bg-muted/20 p-4">
+            <TableCell colSpan={showActions ? 10 : 11} className="bg-muted/20 p-4">
               <div className="space-y-2">
                 {items.map((item: any) => (
                   <div key={item.id} className="flex justify-between items-center bg-background rounded-lg px-4 py-2 border">
@@ -294,40 +310,55 @@ const ManagerApproval = () => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
-            <Shield className="h-6 w-6" />
-            อนุมัติเบิกทรัพย์สิน
-          </h1>
+          <h1 className="text-2xl font-bold text-foreground flex items-center gap-2"><Shield className="h-6 w-6" />อนุมัติเบิกทรัพย์สิน</h1>
           <p className="text-muted-foreground">อนุมัติคำขอเบิกสินค้าที่เป็นทรัพย์สิน (เฉพาะฝ่ายที่รับผิดชอบ)</p>
         </div>
         {pendingApprovals && pendingApprovals.length > 0 && (
-          <Badge variant="destructive" className="text-lg px-4 py-2">
-            รออนุมัติ: {pendingApprovals.length} รายการ
-          </Badge>
+          <Badge variant="destructive" className="text-lg px-4 py-2">รออนุมัติ: {pendingApprovals.length} รายการ</Badge>
         )}
       </div>
 
-      {/* Pending Approvals */}
+      {/* Filters */}
+      <Card>
+        <CardContent className="pt-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input placeholder="ค้นหา..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-10" />
+            </div>
+            <Select value={departmentFilter} onValueChange={setDepartmentFilter}>
+              <SelectTrigger><SelectValue placeholder="ฝ่าย" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">ทุกฝ่าย</SelectItem>
+                {departments?.map((d: string) => <SelectItem key={d} value={d}>{d}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            <Select value={companyFilter} onValueChange={setCompanyFilter}>
+              <SelectTrigger><SelectValue placeholder="บริษัท" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">ทุกบริษัท</SelectItem>
+                {companies?.map((c: any) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger><SelectValue placeholder="สถานะ (ประวัติ)" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">ทุกสถานะ</SelectItem>
+                <SelectItem value="approved">อนุมัติแล้ว</SelectItem>
+                <SelectItem value="rejected">ไม่อนุมัติ</SelectItem>
+              </SelectContent>
+            </Select>
+            <DatePickerWithRange date={dateRange} onDateChange={setDateRange} />
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Pending */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Clock className="h-5 w-5" />
-            รายการรออนุมัติ
-          </CardTitle>
+          <CardTitle className="flex items-center gap-2"><Clock className="h-5 w-5" />รายการรออนุมัติ</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="flex items-center gap-2 mb-4">
-            <div className="relative flex-1 max-w-sm">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="ค้นหา..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
-              />
-            </div>
-          </div>
-
           <div className="rounded-md border">
             <Table>
               <TableHeader>
@@ -337,19 +368,20 @@ const ManagerApproval = () => {
                   <TableHead>วันที่ขอ</TableHead>
                   <TableHead>บริษัท</TableHead>
                   <TableHead>ผู้ขอเบิก</TableHead>
+                  <TableHead>รูปแบบการรับ</TableHead>
+                  <TableHead>วันนัดรับ</TableHead>
                   <TableHead>รายการ</TableHead>
-                  <TableHead>วัตถุประสงค์</TableHead>
                   <TableHead>สถานะ</TableHead>
                   <TableHead className="text-center">จัดการ</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {isLoading ? (
-                  <TableRow><TableCell colSpan={9} className="text-center py-8 text-muted-foreground">กำลังโหลด...</TableCell></TableRow>
-                ) : filteredPending?.length === 0 ? (
-                  <TableRow><TableCell colSpan={9} className="text-center py-8 text-muted-foreground">ไม่มีรายการรออนุมัติ</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={10} className="text-center py-8 text-muted-foreground">กำลังโหลด...</TableCell></TableRow>
+                ) : filteredPending.length === 0 ? (
+                  <TableRow><TableCell colSpan={10} className="text-center py-8 text-muted-foreground">ไม่มีรายการรออนุมัติ</TableCell></TableRow>
                 ) : (
-                  filteredPending?.map((req: any) => renderRequestRow(req, true))
+                  filteredPending.map((req: any) => renderRequestRow(req, true))
                 )}
               </TableBody>
             </Table>
@@ -357,13 +389,10 @@ const ManagerApproval = () => {
         </CardContent>
       </Card>
 
-      {/* Approval History */}
+      {/* History */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Package className="h-5 w-5" />
-            ประวัติการอนุมัติ
-          </CardTitle>
+          <CardTitle className="flex items-center gap-2"><Package className="h-5 w-5" />ประวัติการอนุมัติ</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="rounded-md border">
@@ -375,17 +404,19 @@ const ManagerApproval = () => {
                   <TableHead>วันที่ขอ</TableHead>
                   <TableHead>บริษัท</TableHead>
                   <TableHead>ผู้ขอเบิก</TableHead>
+                  <TableHead>รูปแบบการรับ</TableHead>
+                  <TableHead>วันนัดรับ</TableHead>
                   <TableHead>รายการ</TableHead>
-                  <TableHead>วัตถุประสงค์</TableHead>
                   <TableHead>สถานะ</TableHead>
+                  <TableHead>ผู้อนุมัติ</TableHead>
                   <TableHead></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {approvalHistory?.length === 0 ? (
-                  <TableRow><TableCell colSpan={9} className="text-center py-8 text-muted-foreground">ไม่มีประวัติ</TableCell></TableRow>
+                {filteredHistory.length === 0 ? (
+                  <TableRow><TableCell colSpan={11} className="text-center py-8 text-muted-foreground">ไม่มีประวัติ</TableCell></TableRow>
                 ) : (
-                  approvalHistory?.map((req: any) => renderRequestRow(req, false))
+                  filteredHistory.map((req: any) => renderRequestRow(req, false))
                 )}
               </TableBody>
             </Table>
@@ -396,9 +427,7 @@ const ManagerApproval = () => {
       {/* Approve Dialog */}
       <Dialog open={approveDialogOpen} onOpenChange={(o) => { if (!o) { setApproveDialogOpen(false); setApprovalNotes(""); } }}>
         <DialogContent>
-          <DialogHeader>
-            <DialogTitle>อนุมัติคำขอเบิก - {selectedRequest?.document_no}</DialogTitle>
-          </DialogHeader>
+          <DialogHeader><DialogTitle>อนุมัติคำขอเบิก - {selectedRequest?.document_no}</DialogTitle></DialogHeader>
           <div className="space-y-4">
             <div className="p-3 bg-muted/30 rounded-lg text-sm">
               <p><span className="text-muted-foreground">ผู้ขอ:</span> {selectedRequest?.requester_name}</p>
@@ -422,9 +451,7 @@ const ManagerApproval = () => {
       {/* Reject Dialog */}
       <Dialog open={rejectDialogOpen} onOpenChange={(o) => { if (!o) { setRejectDialogOpen(false); setApprovalNotes(""); } }}>
         <DialogContent>
-          <DialogHeader>
-            <DialogTitle>ไม่อนุมัติคำขอเบิก - {selectedRequest?.document_no}</DialogTitle>
-          </DialogHeader>
+          <DialogHeader><DialogTitle>ไม่อนุมัติคำขอเบิก - {selectedRequest?.document_no}</DialogTitle></DialogHeader>
           <div className="space-y-4">
             <div className="p-3 bg-muted/30 rounded-lg text-sm">
               <p><span className="text-muted-foreground">ผู้ขอ:</span> {selectedRequest?.requester_name}</p>
