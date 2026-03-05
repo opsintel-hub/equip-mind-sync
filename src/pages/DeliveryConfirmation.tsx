@@ -182,7 +182,7 @@ const DeliveryConfirmation = () => {
       if (statusFilter === "issue_reported" && (!confirmed || confirmation?.status !== "issue_reported")) return false;
     }
     // Department filter
-    if (departmentFilter !== "all" && req.requester_department !== departmentFilter) return false;
+    if (departmentFilter.length > 0 && !departmentFilter.includes(req.requester_department)) return false;
     // Date range
     if (dateRange?.from) {
       const d = new Date(req.created_at);
