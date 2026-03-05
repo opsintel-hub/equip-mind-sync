@@ -716,7 +716,22 @@ const IssueGoods = () => {
                                 <div className="text-sm text-muted-foreground">{req.requester_department}</div>
                               )}
                             </TableCell>
-                            <TableCell>{req.destination || "-"}</TableCell>
+                            <TableCell>
+                              {req.destination || "-"}
+                              {(req as any).pickup_type && (
+                                <div className="mt-1">
+                                  {(req as any).pickup_type === "wait_onsite" && (
+                                    <Badge variant="outline" className="text-xs bg-red-100 text-red-700">🏪 รอรับที่คลัง</Badge>
+                                  )}
+                                  {(req as any).pickup_type === "scheduled" && (
+                                    <Badge variant="outline" className="text-xs bg-blue-100 text-blue-700">📅 นัดรับ{(req as any).pickup_date ? ` ${(req as any).pickup_date}` : ""}</Badge>
+                                  )}
+                                  {(req as any).pickup_type === "delivery" && (
+                                    <Badge variant="outline" className="text-xs bg-purple-100 text-purple-700">🚚 จัดส่ง</Badge>
+                                  )}
+                                </div>
+                              )}
+                            </TableCell>
                             <TableCell>{getStatusBadge(req.status)}</TableCell>
                             <TableCell>
                               {req.status === "pending" && (
