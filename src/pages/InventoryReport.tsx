@@ -29,6 +29,7 @@ interface InventoryItem {
   id: string;
   code: string;
   name: string;
+  serial_number?: string | null;
   category: string;
   brand: string | null;
   department: string | null;
