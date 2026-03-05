@@ -317,7 +317,47 @@ export default function InventoryReport() {
           item_type: 'media_player' as const,
           item_condition: item.item_condition || 'normal',
         };
-      });
+  // Fetch latest received serials for fallback (covers legacy rows where master serial was not updated)
+  const { data: receivedSerials = [] } = useQuery({
+    queryKey: ["inventory-received-serials"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("goods_receipt_pending")
+        .select("equipment_id, media_player_id, is_media_player, serial_number, received_at, created_at")
+        .eq("status", "received")
+        .not("serial_number", "is", null)
+        .neq("serial_number", "");
+
+      if (error) throw error;
+      return (data || []) as ReceivedSerialItem[];
+    },
+  });
+
+  const receiptSerialMaps = useMemo(() => {
+    const equipmentSerialMap: Record<string, string> = {};
+    const mediaSerialMap: Record<string, string> = {};
+
+    const sorted = [...receivedSerials].sort((a, b) => {
+      const aDate = new Date(a.received_at || a.created_at).getTime();
+      const bDate = new Date(b.received_at || b.created_at).getTime();
+      return bDate - aDate;
+    });
+
+    sorted.forEach((row) => {
+      const serial = row.serial_number?.trim();
+      if (!serial) return;
+
+      if (row.is_media_player && row.media_player_id && !mediaSerialMap[row.media_player_id]) {
+        mediaSerialMap[row.media_player_id] = serial;
+      }
+
+      if (!row.is_media_player && row.equipment_id && !equipmentSerialMap[row.equipment_id]) {
+        equipmentSerialMap[row.equipment_id] = serial;
+      }
+    });
+
+    return { equipmentSerialMap, mediaSerialMap };
+  }, [receivedSerials]);
     },
     enabled: filters.itemType !== "equipment" && filters.itemType !== "tools",
   });
