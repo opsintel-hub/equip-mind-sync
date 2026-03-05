@@ -513,8 +513,8 @@ const IssueRequest = () => {
       toast.error("กรุณาเลือกวัตถุประสงค์");
       return;
     }
-    if (cartItems.length === 0) {
-      toast.error("กรุณาเพิ่มรายการสินค้าอย่างน้อย 1 รายการ");
+    if (selectedCartIds.size === 0) {
+      toast.error("กรุณาเลือกรายการสินค้าอย่างน้อย 1 รายการ");
       return;
     }
     createRequest.mutate();
