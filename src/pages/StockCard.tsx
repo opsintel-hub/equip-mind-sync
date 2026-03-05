@@ -219,14 +219,25 @@ export default function StockCard() {
 
   // ── Fetch stock movements ──
   const { data: movements = [] } = useQuery({
-    queryKey: ["stock-card-movements", selectedItemId, dateRange],
+    queryKey: ["stock-card-movements", selectedItemId, selectedItemType, dateRange],
     enabled: !!selectedItemId,
     queryFn: async () => {
-      if (!selectedItemId) return [];
-      let query = supabase.from("stock_movements")
-        .select("*")
-        .eq("equipment_id", selectedItemId)
-        .order("created_at", { ascending: true });
+      if (!selectedItemId || !selectedItem) return [];
+      
+      // For equipment, query by equipment_id (FK match)
+      // For media_players/tools, query by equipment_code (no FK to those tables)
+      let query;
+      if (selectedItemType === "equipment") {
+        query = supabase.from("stock_movements")
+          .select("*")
+          .eq("equipment_id", selectedItemId)
+          .order("created_at", { ascending: true });
+      } else {
+        query = supabase.from("stock_movements")
+          .select("*")
+          .eq("equipment_code", selectedItem.code)
+          .order("created_at", { ascending: true });
+      }
 
       if (dateRange?.from) query = query.gte("created_at", dateRange.from.toISOString());
       if (dateRange?.to) query = query.lte("created_at", dateRange.to.toISOString());
