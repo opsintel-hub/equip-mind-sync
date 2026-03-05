@@ -125,6 +125,7 @@ const DeliveryEntry = () => {
   const [prDocumentUrl, setPrDocumentUrl] = useState("");
   const [invoiceDocumentUrl, setInvoiceDocumentUrl] = useState("");
   const [deliveryNoteDocumentUrl, setDeliveryNoteDocumentUrl] = useState("");
+  const [orderForProject, setOrderForProject] = useState("");
   const [purchaseDocumentFile, setPurchaseDocumentFile] = useState<File | null>(null);
   const purchaseFileInputRef = useRef<HTMLInputElement>(null);
 
@@ -711,6 +712,7 @@ const DeliveryEntry = () => {
         delivery_note_number: deliveryNoteNumber || null,
         invoice_document_url: invoiceDocumentUrl || null,
         delivery_note_document_url: deliveryNoteDocumentUrl || null,
+        order_for_project: orderForProject || null,
         purchase_document_url: purchaseDocumentUrl || (poDocumentUrl || prDocumentUrl || invoiceDocumentUrl || deliveryNoteDocumentUrl ? [poDocumentUrl, prDocumentUrl, invoiceDocumentUrl, deliveryNoteDocumentUrl].filter(Boolean).join(', ') : null),
         // Media Player specific fields
         is_media_player: item.is_media_player || false,
@@ -748,6 +750,7 @@ const DeliveryEntry = () => {
         setPrDocumentUrl("");
         setInvoiceDocumentUrl("");
         setDeliveryNoteDocumentUrl("");
+        setOrderForProject("");
         setPurchaseDocumentFile(null);
         setAdditionalDocumentFile(null);
         setAdditionalImageFile(null);
@@ -937,8 +940,18 @@ const DeliveryEntry = () => {
                       onDocumentRemoved={() => setDeliveryNoteDocumentUrl("")}
                       placeholder="เลขที่ใบส่งของ"
                     />
-                  </div>
-                </div>}
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>Order For Project</Label>
+                        <Input
+                          value={orderForProject}
+                          onChange={(e) => setOrderForProject(e.target.value)}
+                          placeholder="ชื่อโปรเจค"
+                        />
+                      </div>
+                    </div>
+                  </div>}
             </div>
 
             {/* Item Form Section */}

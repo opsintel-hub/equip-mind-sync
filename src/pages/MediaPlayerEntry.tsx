@@ -539,7 +539,7 @@ const MediaPlayerEntry = () => {
       "PO": p.po_number || "-",
       "PR": p.pr_number || "-",
       "Invoice": p.invoice_number || "-",
-      "วันที่รับสินค้า": p.date_of_receipt || "-",
+      "Order For Project": p.order_for_project || "-",
       "หมายเหตุ": p.description || "-",
     }));
     const ws = XLSX.utils.json_to_sheet(exportData);
@@ -969,14 +969,6 @@ const MediaPlayerEntry = () => {
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label>วันที่รับสินค้า</Label>
-                    <Input
-                      type="date"
-                      value={formData.date_of_receipt}
-                      onChange={(e) => setFormData({ ...formData, date_of_receipt: e.target.value })}
-                    />
-                  </div>
-                  <div className="space-y-2">
                     <Label>Order For Project</Label>
                     <Input
                       value={formData.order_for_project}
@@ -1159,7 +1151,6 @@ const MediaPlayerEntry = () => {
                           <TableHead className="whitespace-nowrap">Invoice</TableHead>
                           <TableHead className="whitespace-nowrap text-center">ไฟล์ Invoice</TableHead>
                           <TableHead className="whitespace-nowrap text-center">รูปภาพ</TableHead>
-                          <TableHead className="whitespace-nowrap">วันที่รับสินค้า</TableHead>
                           <TableHead className="whitespace-nowrap">หมายเหตุ</TableHead>
                           <TableHead className="text-right whitespace-nowrap">จัดการ</TableHead>
                         </TableRow>
@@ -1240,7 +1231,6 @@ const MediaPlayerEntry = () => {
                                   </a>
                                 ) : <span className="text-muted-foreground">-</span>}
                               </TableCell>
-                              <TableCell className="text-sm whitespace-nowrap">{player.date_of_receipt || "-"}</TableCell>
                               <TableCell className="text-sm whitespace-nowrap max-w-[150px] truncate">{player.description || "-"}</TableCell>
                               <TableCell className="text-right">
                                 <div className="flex items-center justify-end gap-1">
