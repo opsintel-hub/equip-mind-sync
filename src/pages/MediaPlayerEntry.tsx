@@ -929,7 +929,7 @@ const MediaPlayerEntry = () => {
                 <CardTitle className="text-lg">PO / PR</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                   <DocumentUploadField
                     label="เลข PO"
                     numberValue={formData.po_number}
@@ -956,6 +956,15 @@ const MediaPlayerEntry = () => {
                     onDocumentUploaded={(url) => setFormData({ ...formData, invoice_document_url: url })}
                     onDocumentRemoved={() => setFormData({ ...formData, invoice_document_url: "" })}
                     placeholder="Invoice Number"
+                  />
+                  <DocumentUploadField
+                    label="ใบส่งของ"
+                    numberValue={formData.delivery_note_number}
+                    onNumberChange={(value) => setFormData({ ...formData, delivery_note_number: value })}
+                    documentUrl={formData.delivery_note_document_url}
+                    onDocumentUploaded={(url) => setFormData({ ...formData, delivery_note_document_url: url })}
+                    onDocumentRemoved={() => setFormData({ ...formData, delivery_note_document_url: "" })}
+                    placeholder="เลขที่ใบส่งของ"
                   />
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
