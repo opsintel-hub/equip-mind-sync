@@ -603,6 +603,7 @@ const MediaPlayerEntry = () => {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="space-y-2">
                      <Label>ฝ่าย *</Label>
+                     <p className="text-xs text-muted-foreground">ฝ่ายอาจถูกอัปเดตเมื่อรับสินค้าเข้าคลัง</p>
                     <SimpleDepartmentSelect
                       value={formData.department}
                       onChange={(value) => setFormData((prev) => ({ ...prev, department: value }))}

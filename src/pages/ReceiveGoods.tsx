@@ -698,7 +698,7 @@ const ReceiveGoods = () => {
                 expiry_date: receipt.expiry_date || null,
                 item_condition: itemCondition,
               };
-            if (!currentEquipment?.department && batchEqDept) {
+            if (batchEqDept) {
               batchEqPayload.department = batchEqDept;
             }
             const { error: stockError } = await supabase
