@@ -20,6 +20,7 @@ interface DocumentRecord {
   document_url: string | null;
   equipment_code: string | null;
   equipment_name: string | null;
+  serial_number: string | null;
   supplier_name: string | null;
   delivery_person_name: string | null;
   quantity: number;
