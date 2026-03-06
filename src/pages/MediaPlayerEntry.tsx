@@ -812,6 +812,15 @@ const MediaPlayerEntry = () => {
         </TabsContent>
       </Tabs>
 
+      {/* Image Upload Dialog */}
+      {imageUploadPlayer && (
+        <MediaPlayerImageUpload
+          mediaPlayerId={imageUploadPlayer.id}
+          mediaPlayerCode={imageUploadPlayer.code}
+          onClose={() => setImageUploadPlayer(null)}
+        />
+      )}
+
       {/* Install to Billboard Dialog */}
       <Dialog open={isInstallDialogOpen} onOpenChange={setIsInstallDialogOpen}>
         <DialogContent>
