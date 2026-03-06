@@ -4,33 +4,23 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Monitor, Search, Loader2, MapPin, Unplug, Plus, Download, Image, FileText, ExternalLink } from "lucide-react";
+import { Monitor, Search, Loader2, MapPin, Unplug, Plus, Download, Image, FileText } from "lucide-react";
 import * as XLSX from "xlsx";
 import MediaPlayerDashboard from "@/components/media-player/MediaPlayerDashboard";
 import { MediaPlayerCodePrefixSelect } from "@/components/media-player/MediaPlayerCodePrefixSelect";
 import { CMSTypeSelect } from "@/components/media-player/CMSTypeSelect";
-import { ModelSelect } from "@/components/media-player/ModelSelect";
-import { StatusSelect } from "@/components/media-player/StatusSelect";
-import { MediaPlayerImageUpload } from "@/components/media-player/MediaPlayerImageUpload";
-import { DocumentUploadField } from "@/components/media-player/DocumentUploadField";
+import { MediaPlayerNameSelect } from "@/components/media-player/MediaPlayerNameSelect";
+import { SpecificationSelect } from "@/components/media-player/SpecificationSelect";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { format, addMonths } from "date-fns";
+import { format } from "date-fns";
 import { formatBillboardLabel } from "@/lib/billboardUtils";
-import { CompanySelect } from "@/components/company/CompanySelect";
 import BillboardSelect from "@/components/billboard/BillboardSelect";
-import { WarehouseLocationSelect } from "@/components/location/WarehouseLocationSelect";
-import { SupplierSelect } from "@/components/supplier/SupplierSelect";
-import { SimpleDepartmentSelect } from "@/components/equipment/SimpleDepartmentSelect";
 import { BrandSelect } from "@/components/equipment/BrandSelect";
-import { useDepartmentPermissions } from "@/hooks/useDepartmentPermissions";
 
 interface Billboard {
   id: string;
@@ -86,7 +76,6 @@ interface MediaPlayer {
 }
 
 const MediaPlayerEntry = () => {
-  const { getViewableDepartments, isAdmin, loading: deptLoading } = useDepartmentPermissions();
   const [searchTerm, setSearchTerm] = useState("");
   const [mediaPlayers, setMediaPlayers] = useState<MediaPlayer[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -107,70 +96,25 @@ const MediaPlayerEntry = () => {
   const [filterAlert, setFilterAlert] = useState("all");
   const [alertDays, setAlertDays] = useState(30);
 
-  // CMS types for filter dropdown
+  // Filter data
   const [cmsTypesForFilter, setCmsTypesForFilter] = useState<{id: string; name: string}[]>([]);
   const [companiesForFilter, setCompaniesForFilter] = useState<{id: string; name: string}[]>([]);
   const [statusesForFilter, setStatusesForFilter] = useState<{value: string; label: string}[]>([]);
   const [modelsForFilter, setModelsForFilter] = useState<{id: string; name: string}[]>([]);
   const [departmentsForFilter, setDepartmentsForFilter] = useState<{id: string; name: string}[]>([]);
   
+  // Simplified form - only setup fields
   const [formData, setFormData] = useState({
-    name: "",
-    description: "",
+    name: "",       // now stores media_player_names id
     cms_type_id: "",
-    specification: "",
-    serial_number_1: "",
-    serial_number_2: "",
-    billboard_id: "",
-    install_date: "",
-    company_id: "",
-    location_id: "",
-    warehouse_id: "",
-    department: "",
+    specification: "", // now stores media_player_specifications id
     brand: "",
-    supplier_id: "",
-    model_id: "",
-    quantity: 1,
-    unit: "เครื่อง",
-    unit_price: "" as unknown as number,
-    depreciation_months: 60,
-    usage_lifespan_months: 0,
-    warranty_expiry_date: "",
-    is_asset: true,
-    asset_code: "",
-    equipment_id_code: "",
-    waiting_asset_code: false,
-    waiting_equipment_id: false,
-    notes: "",
-    status: "active",
-    remote_name: "",
-    activate_windows: "",
-    po_number: "",
-    pr_number: "",
-    invoice_number: "",
-    delivery_note_number: "",
-    date_of_receipt: "",
-    order_for_project: "",
-    image_url: "",
-    po_document_url: "",
-    pr_document_url: "",
-    invoice_document_url: "",
-    delivery_note_document_url: "",
   });
 
   useEffect(() => {
     fetchMediaPlayers();
     fetchFiltersData();
   }, []);
-
-  // Auto-set department based on user permissions
-  useEffect(() => {
-    if (deptLoading) return;
-    const viewable = getViewableDepartments();
-    if (viewable.length === 1 && !formData.department) {
-      setFormData(prev => ({ ...prev, department: viewable[0] }));
-    }
-  }, [deptLoading, getViewableDepartments, formData.department]);
 
   const fetchFiltersData = async () => {
     const [cmsRes, compRes, statusRes, modelRes, deptRes] = await Promise.all([
@@ -186,6 +130,22 @@ const MediaPlayerEntry = () => {
     if (modelRes.data) setModelsForFilter(modelRes.data);
     if (deptRes.data) setDepartmentsForFilter(deptRes.data);
   };
+
+  // Fetch media_player_names for display in table
+  const [mediaPlayerNames, setMediaPlayerNames] = useState<{id: string; name: string}[]>([]);
+  const [mediaPlayerSpecs, setMediaPlayerSpecs] = useState<{id: string; name: string}[]>([]);
+
+  useEffect(() => {
+    const fetchLookups = async () => {
+      const [namesRes, specsRes] = await Promise.all([
+        supabase.from("media_player_names" as any).select("id, name").eq("is_active", true),
+        supabase.from("media_player_specifications" as any).select("id, name").eq("is_active", true),
+      ]);
+      if (namesRes.data) setMediaPlayerNames(namesRes.data as any);
+      if (specsRes.data) setMediaPlayerSpecs(specsRes.data as any);
+    };
+    fetchLookups();
+  }, []);
 
   const fetchMediaPlayers = async () => {
     setIsLoading(true);
@@ -211,13 +171,8 @@ const MediaPlayerEntry = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.name || !formData.company_id || !formData.depreciation_months) {
-      toast.error("กรุณากรอกข้อมูลที่จำเป็น (ชื่อ, บริษัท, ระยะเวลาค่าเสื่อม)");
-      return;
-    }
-
-    if (!formData.department) {
-      toast.error("กรุณาเลือกฝ่าย");
+    if (!formData.name) {
+      toast.error("กรุณาเลือกชื่อสินค้า");
       return;
     }
 
@@ -226,21 +181,12 @@ const MediaPlayerEntry = () => {
       return;
     }
 
-    // Validate asset codes if is_asset
-    if (formData.is_asset) {
-      if (!formData.asset_code && !formData.waiting_asset_code) {
-        toast.error("กรุณาระบุรหัสทรัพย์สิน หรือเลือก 'รอรหัสทรัพย์สิน'");
-        return;
-      }
-      if (!formData.equipment_id_code && !formData.waiting_equipment_id) {
-        toast.error("กรุณาระบุ Equipment ID หรือเลือก 'รอ Equipment ID'");
-        return;
-      }
-    }
+    // Resolve name from media_player_names
+    const selectedName = mediaPlayerNames.find(n => n.id === formData.name);
+    const selectedSpec = mediaPlayerSpecs.find(s => s.id === formData.specification);
 
     setIsSaving(true);
     try {
-      // Generate code using prefix function
       const { data: codeData, error: codeError } = await supabase.rpc("get_next_media_player_code", {
         p_prefix: selectedPrefix,
       });
@@ -252,46 +198,12 @@ const MediaPlayerEntry = () => {
         .from("media_players")
         .insert({
           code,
-          name: formData.name,
-          description: formData.description || null,
+          name: selectedName?.name || "",
           cms_type_id: formData.cms_type_id || null,
-          specification: formData.specification || null,
-          serial_number_1: formData.serial_number_1 || null,
-          serial_number_2: formData.serial_number_2 || null,
-          billboard_id: formData.billboard_id || null,
-          install_date: formData.install_date || null,
-          company_id: formData.company_id || null,
-          location_id: formData.location_id || null,
-          department: formData.department || null,
+          specification: selectedSpec?.name || null,
           brand: formData.brand || null,
-          supplier_id: formData.supplier_id || null,
-          model_id: formData.model_id || null,
-          quantity: formData.quantity,
-          unit: formData.unit,
-          unit_price: formData.unit_price || 0,
-          depreciation_months: formData.depreciation_months,
-          usage_lifespan_months: formData.usage_lifespan_months || null,
-          warranty_expiry_date: formData.warranty_expiry_date || null,
-          is_asset: formData.is_asset,
-          asset_code: formData.asset_code || null,
-          equipment_id_code: formData.equipment_id_code || null,
-          waiting_asset_code: formData.waiting_asset_code,
-          waiting_equipment_id: formData.waiting_equipment_id,
-          notes: formData.notes || null,
-          status: formData.status || "active",
-          remote_name: formData.remote_name || null,
-          activate_windows: formData.activate_windows || null,
-          po_number: formData.po_number || null,
-          pr_number: formData.pr_number || null,
-          invoice_number: formData.invoice_number || null,
-          delivery_note_number: formData.delivery_note_number || null,
-          date_of_receipt: formData.date_of_receipt || null,
-          order_for_project: formData.order_for_project || null,
-          image_url: formData.image_url || null,
-          po_document_url: formData.po_document_url || null,
-          pr_document_url: formData.pr_document_url || null,
-          invoice_document_url: formData.invoice_document_url || null,
-          delivery_note_document_url: formData.delivery_note_document_url || null,
+          quantity: 1,
+          unit: "เครื่อง",
         } as any);
 
       if (error) throw error;
@@ -310,46 +222,9 @@ const MediaPlayerEntry = () => {
   const resetForm = () => {
     setFormData({
       name: "",
-      description: "",
       cms_type_id: "",
       specification: "",
-      serial_number_1: "",
-      serial_number_2: "",
-      billboard_id: "",
-      install_date: "",
-      company_id: "",
-      location_id: "",
-      warehouse_id: "",
-      department: "",
       brand: "",
-      supplier_id: "",
-      model_id: "",
-      quantity: 1,
-      unit: "เครื่อง",
-      unit_price: "" as unknown as number,
-      depreciation_months: 60,
-      usage_lifespan_months: 0,
-      warranty_expiry_date: "",
-      is_asset: true,
-      asset_code: "",
-      equipment_id_code: "",
-      waiting_asset_code: false,
-      waiting_equipment_id: false,
-      notes: "",
-      status: "active",
-      remote_name: "",
-      activate_windows: "",
-      po_number: "",
-      pr_number: "",
-      invoice_number: "",
-      delivery_note_number: "",
-      date_of_receipt: "",
-      order_for_project: "",
-      image_url: "",
-      po_document_url: "",
-      pr_document_url: "",
-      invoice_document_url: "",
-      delivery_note_document_url: "",
     });
     setSelectedPrefix("");
     setCodePreview("");
@@ -373,7 +248,6 @@ const MediaPlayerEntry = () => {
       const matchDepartment = filterDepartment === "all" || player.department === filterDepartment;
       const matchModel = filterModel === "all" || player.model_id === filterModel;
 
-      // Alert filter
       let matchAlert = true;
       if (filterAlert === "warranty_expired") {
         matchAlert = !!player.warranty_expiry_date && new Date(player.warranty_expiry_date) < today;
@@ -391,7 +265,6 @@ const MediaPlayerEntry = () => {
     });
   }, [mediaPlayers, searchTerm, filterCompany, filterStatus, filterCmsType, filterDepartment, filterModel, filterAlert, alertDays]);
 
-  // Dashboard statistics computed from ALL media players (unfiltered)
   const dashboardStats = useMemo(() => {
     const today = new Date();
     const total = mediaPlayers.length;
@@ -411,18 +284,15 @@ const MediaPlayerEntry = () => {
         if (diff < 0) warrantyExpired++;
         else if (diff <= alertDays) warrantyExpiring++;
       }
-      // Model
       const modelId = p.model_id;
       if (modelId) {
         const modelName = modelsForFilter.find(m => m.id === modelId)?.name || "ไม่ระบุ";
         modelMap[modelName] = (modelMap[modelName] || 0) + 1;
       }
-      // Department
       const dept = p.department || "ไม่ระบุ";
       deptMap[dept] = (deptMap[dept] || 0) + 1;
     });
 
-    // Map status counts - detect by value patterns
     const active = statusMap["active"] || 0;
     const claim = statusMap["claim"] || 0;
     const fixOrBreak = Object.entries(statusMap)
@@ -432,7 +302,6 @@ const MediaPlayerEntry = () => {
       .filter(([k]) => k.includes("spare"))
       .reduce((sum, [, v]) => sum + v, 0);
 
-    const statusColors: Record<string, string> = {};
     const colorList = ["#22c55e", "#3b82f6", "#f97316", "#eab308", "#8b5cf6", "#ec4899", "#14b8a6", "#f43f5e"];
     const statusDistribution = Object.entries(statusMap)
       .filter(([, v]) => v > 0)
@@ -579,7 +448,7 @@ const MediaPlayerEntry = () => {
           <Monitor className="w-8 h-8" />
           จัดการ Media Player
         </h1>
-        <p className="text-muted-foreground">บันทึกและจัดการเครื่อง Media Player สำหรับป้ายโฆษณา</p>
+        <p className="text-muted-foreground">ตั้งค่าและลงทะเบียน Media Player ในระบบ</p>
       </div>
 
       <Tabs defaultValue="add" className="w-full">
@@ -591,7 +460,7 @@ const MediaPlayerEntry = () => {
           <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
         </TabsList>
 
-        {/* Tab 1: Add Form */}
+        {/* Tab 1: Simplified Add Form */}
         <TabsContent value="add">
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* ข้อมูลทั่วไป */}
@@ -600,33 +469,6 @@ const MediaPlayerEntry = () => {
                 <CardTitle className="text-lg">ข้อมูลทั่วไป</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="space-y-2">
-                     <Label>ฝ่าย *</Label>
-                     <p className="text-xs text-muted-foreground">ฝ่ายอาจถูกอัปเดตเมื่อรับสินค้าเข้าคลัง</p>
-                    <SimpleDepartmentSelect
-                      value={formData.department}
-                      onChange={(value) => setFormData((prev) => ({ ...prev, department: value }))}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>บริษัทที่สั่งซื้อ *</Label>
-                    <CompanySelect
-                      value={formData.company_id}
-                      onChange={(value) => setFormData({ ...formData, company_id: value })}
-                      placeholder="เลือกบริษัท"
-                    />
-                  </div>
-                </div>
-                <WarehouseLocationSelect
-                  department={formData.department}
-                  warehouseId={formData.warehouse_id || ""}
-                  onWarehouseChange={(value) => setFormData((prev) => ({ ...prev, warehouse_id: value }))}
-                  locationId={formData.location_id}
-                  onLocationChange={(value) => setFormData((prev) => ({ ...prev, location_id: value }))}
-                />
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                </div>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="space-y-2">
                     <Label>Prefix รหัส *</Label>
@@ -643,11 +485,9 @@ const MediaPlayerEntry = () => {
                   </div>
                   <div className="space-y-2">
                     <Label>ชื่อสินค้า *</Label>
-                    <Input
+                    <MediaPlayerNameSelect
                       value={formData.name}
-                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                      placeholder="ชื่อเครื่อง"
-                      required
+                      onChange={(value) => setFormData({ ...formData, name: value })}
                     />
                   </div>
                   <div className="space-y-2">
@@ -656,13 +496,6 @@ const MediaPlayerEntry = () => {
                       value={formData.brand}
                       onChange={(value) => setFormData({ ...formData, brand: value })}
                       brandType="media_player"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>ผู้จัดจำหน่าย</Label>
-                    <SupplierSelect
-                      value={formData.supplier_id}
-                      onChange={(value) => setFormData({ ...formData, supplier_id: value })}
                     />
                   </div>
                 </div>
@@ -685,330 +518,12 @@ const MediaPlayerEntry = () => {
                   </div>
                   <div className="space-y-2">
                     <Label>Specification</Label>
-                    <Input
+                    <SpecificationSelect
                       value={formData.specification}
-                      onChange={(e) => setFormData({ ...formData, specification: e.target.value })}
-                      placeholder="รายละเอียด Spec"
+                      onChange={(value) => setFormData({ ...formData, specification: value })}
                     />
                   </div>
                 </div>
-              </CardContent>
-            </Card>
-
-            {/* ข้อมูลเฉพาะ Media Player */}
-            <Card className="border-primary/30 bg-primary/5">
-              <CardHeader>
-                <CardTitle className="text-lg text-primary">ข้อมูลเฉพาะ Media Player</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>Model</Label>
-                    <ModelSelect
-                      value={formData.model_id}
-                      onChange={(value) => setFormData({ ...formData, model_id: value })}
-                    />
-                  </div>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>S/N 1</Label>
-                    <Input
-                      value={formData.serial_number_1}
-                      onChange={(e) => setFormData({ ...formData, serial_number_1: e.target.value })}
-                      placeholder="Serial Number 1"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>S/N 2</Label>
-                    <Input
-                      value={formData.serial_number_2}
-                      onChange={(e) => setFormData({ ...formData, serial_number_2: e.target.value })}
-                      placeholder="Serial Number 2"
-                    />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label>Activate Windows</Label>
-                  <Input
-                    value={formData.activate_windows}
-                    onChange={(e) => setFormData({ ...formData, activate_windows: e.target.value })}
-                    placeholder="Product Key / Status"
-                  />
-                </div>
-                <MediaPlayerImageUpload
-                  serialNumber1={formData.serial_number_1}
-                  imageUrl={formData.image_url || null}
-                  onImageUploaded={(url) => setFormData({ ...formData, image_url: url })}
-                  onImageRemoved={() => setFormData({ ...formData, image_url: "" })}
-                />
-                <div className="space-y-2">
-                  <Label>Note</Label>
-                  <Input
-                    value={formData.description}
-                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                    placeholder="หมายเหตุเฉพาะ"
-                  />
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* ข้อมูลเพิ่มเติม */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">ข้อมูลเพิ่มเติม</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="space-y-2">
-                    <Label>Status</Label>
-                    <StatusSelect
-                      value={formData.status}
-                      onChange={(value) => setFormData({ ...formData, status: value })}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Name</Label>
-                    <Input
-                      value={formData.remote_name}
-                      onChange={(e) => setFormData({ ...formData, remote_name: e.target.value })}
-                      placeholder="Name / Remote"
-                    />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* ผูกกับป้ายโฆษณา */}
-            <Card className="border-primary/30 bg-primary/5">
-              <CardHeader>
-                <CardTitle className="text-lg text-primary">ผูกกับป้ายโฆษณา</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>ป้ายโฆษณา</Label>
-                    <BillboardSelect
-                      value={formData.billboard_id}
-                      onChange={(value) => setFormData({ ...formData, billboard_id: value })}
-                      placeholder="เลือกป้ายโฆษณา"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>วันที่ติดตั้ง</Label>
-                    <Input
-                      type="date"
-                      value={formData.install_date}
-                      onChange={(e) => setFormData({ ...formData, install_date: e.target.value })}
-                    />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* ราคาและค่าเสื่อม */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">ราคาและค่าเสื่อม</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                  <div className="space-y-2">
-                    <Label>ราคาต่อหน่วย (บาท)</Label>
-                    <Input
-                      type="number"
-                      value={formData.unit_price === ('' as unknown as number) ? '' : formData.unit_price}
-                      onChange={(e) => setFormData({ ...formData, unit_price: e.target.value === '' ? ('' as unknown as number) : (parseFloat(e.target.value) || 0) })}
-                      placeholder="0.00"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>ระยะเวลาค่าเสื่อม (เดือน) *</Label>
-                    <Input
-                      type="number"
-                      value={formData.depreciation_months}
-                      onChange={(e) => setFormData({ ...formData, depreciation_months: parseInt(e.target.value) || 0 })}
-                      placeholder="60"
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>อายุการใช้งาน (เดือน)</Label>
-                    <Input
-                      type="number"
-                      value={formData.usage_lifespan_months || ""}
-                      onChange={(e) => setFormData({ ...formData, usage_lifespan_months: parseInt(e.target.value) || 0 })}
-                      placeholder="เช่น 60"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>วันหมดอายุการใช้งาน</Label>
-                    <Input
-                      value={
-                        formData.usage_lifespan_months > 0
-                          ? format(addMonths(new Date(), formData.usage_lifespan_months), "dd/MM/yyyy")
-                          : "-"
-                      }
-                      disabled
-                      className="bg-muted"
-                    />
-                    {formData.usage_lifespan_months > 0 && (
-                      <p className="text-xs text-muted-foreground">
-                        คำนวณจากวันที่คีย์ข้อมูล + {formData.usage_lifespan_months} เดือน
-                      </p>
-                    )}
-                  </div>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-                  <div className="space-y-2">
-                    <Label>วันสิ้นสุดการรับประกัน</Label>
-                    <Input
-                      type="date"
-                      value={formData.warranty_expiry_date}
-                      onChange={(e) => setFormData({ ...formData, warranty_expiry_date: e.target.value })}
-                    />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* ทรัพย์สิน */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">ทรัพย์สิน</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Label className="text-base font-medium">เป็นทรัพย์สิน</Label>
-                    <p className="text-sm text-muted-foreground">ถ้าเป็นทรัพย์สิน ต้องระบุรหัสทรัพย์สินและ Equipment ID</p>
-                  </div>
-                  <Switch
-                    checked={formData.is_asset}
-                    onCheckedChange={(checked) => setFormData({ ...formData, is_asset: checked })}
-                  />
-                </div>
-
-                {formData.is_asset && (
-                  <div className="space-y-4 pt-4 border-t">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label>รหัสทรัพย์สิน</Label>
-                        <Input
-                          value={formData.asset_code}
-                          onChange={(e) => setFormData({ ...formData, asset_code: e.target.value, waiting_asset_code: false })}
-                          placeholder="ระบุรหัสทรัพย์สิน"
-                          disabled={formData.waiting_asset_code}
-                        />
-                        <div className="flex items-center gap-2">
-                          <Checkbox
-                            id="waitingAsset"
-                            checked={formData.waiting_asset_code}
-                            onCheckedChange={(checked) => setFormData({
-                              ...formData,
-                              waiting_asset_code: checked as boolean,
-                              asset_code: checked ? "" : formData.asset_code
-                            })}
-                          />
-                          <Label htmlFor="waitingAsset" className="text-sm text-muted-foreground">รอรหัสทรัพย์สิน</Label>
-                        </div>
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Equipment ID</Label>
-                        <Input
-                          value={formData.equipment_id_code}
-                          onChange={(e) => setFormData({ ...formData, equipment_id_code: e.target.value, waiting_equipment_id: false })}
-                          placeholder="ระบุ Equipment ID"
-                          disabled={formData.waiting_equipment_id}
-                        />
-                        <div className="flex items-center gap-2">
-                          <Checkbox
-                            id="waitingEquipment"
-                            checked={formData.waiting_equipment_id}
-                            onCheckedChange={(checked) => setFormData({
-                              ...formData,
-                              waiting_equipment_id: checked as boolean,
-                              equipment_id_code: checked ? "" : formData.equipment_id_code
-                            })}
-                          />
-                          <Label htmlFor="waitingEquipment" className="text-sm text-muted-foreground">รอ Equipment ID</Label>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* PO/PR */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">PO / PR</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                  <DocumentUploadField
-                    label="เลข PO"
-                    numberValue={formData.po_number}
-                    onNumberChange={(value) => setFormData({ ...formData, po_number: value })}
-                    documentUrl={formData.po_document_url}
-                    onDocumentUploaded={(url) => setFormData({ ...formData, po_document_url: url })}
-                    onDocumentRemoved={() => setFormData({ ...formData, po_document_url: "" })}
-                    placeholder="PO Number"
-                  />
-                  <DocumentUploadField
-                    label="เลข PR"
-                    numberValue={formData.pr_number}
-                    onNumberChange={(value) => setFormData({ ...formData, pr_number: value })}
-                    documentUrl={formData.pr_document_url}
-                    onDocumentUploaded={(url) => setFormData({ ...formData, pr_document_url: url })}
-                    onDocumentRemoved={() => setFormData({ ...formData, pr_document_url: "" })}
-                    placeholder="PR Number"
-                  />
-                  <DocumentUploadField
-                    label="Invoice No."
-                    numberValue={formData.invoice_number}
-                    onNumberChange={(value) => setFormData({ ...formData, invoice_number: value })}
-                    documentUrl={formData.invoice_document_url}
-                    onDocumentUploaded={(url) => setFormData({ ...formData, invoice_document_url: url })}
-                    onDocumentRemoved={() => setFormData({ ...formData, invoice_document_url: "" })}
-                    placeholder="Invoice Number"
-                  />
-                  <DocumentUploadField
-                    label="ใบส่งของ"
-                    numberValue={formData.delivery_note_number}
-                    onNumberChange={(value) => setFormData({ ...formData, delivery_note_number: value })}
-                    documentUrl={formData.delivery_note_document_url}
-                    onDocumentUploaded={(url) => setFormData({ ...formData, delivery_note_document_url: url })}
-                    onDocumentRemoved={() => setFormData({ ...formData, delivery_note_document_url: "" })}
-                    placeholder="เลขที่ใบส่งของ"
-                  />
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>Order For Project</Label>
-                    <Input
-                      value={formData.order_for_project}
-                      onChange={(e) => setFormData({ ...formData, order_for_project: e.target.value })}
-                      placeholder="ชื่อโปรเจค"
-                    />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* หมายเหตุ */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">หมายเหตุ</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <Textarea
-                  value={formData.notes}
-                  onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                  placeholder="รายละเอียดเพิ่มเติม"
-                  rows={3}
-                />
               </CardContent>
             </Card>
 
@@ -1175,7 +690,7 @@ const MediaPlayerEntry = () => {
                       <TableBody>
                         {filteredPlayers.length === 0 ? (
                           <TableRow>
-                            <TableCell colSpan={33} className="text-center py-8 text-muted-foreground">
+                            <TableCell colSpan={29} className="text-center py-8 text-muted-foreground">
                               ยังไม่มีข้อมูล Media Player
                             </TableCell>
                           </TableRow>
