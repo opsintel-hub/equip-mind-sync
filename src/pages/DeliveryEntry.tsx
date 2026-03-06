@@ -52,10 +52,7 @@ interface Supplier {
   name: string;
   vendor_code: string | null;
 }
-interface CMSType {
-  id: string;
-  name: string;
-}
+// CMSType removed - no longer used
 interface ReceiptPurpose {
   id: string;
   name: string;
