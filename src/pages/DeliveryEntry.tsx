@@ -1323,7 +1323,20 @@ const DeliveryEntry = () => {
               <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="quantity">จำนวน *</Label>
-                  <Input id="quantity" type="number" placeholder="กรอกจำนวน" value={quantity} onChange={e => setQuantity(e.target.value)} required />
+                  {isMediaPlayerEntry ? (
+                    <Input 
+                      id="quantity" 
+                      type="number" 
+                      value={mediaPlayerDevices.filter(d => d.serial_number_1.trim()).length || mediaPlayerDevices.length} 
+                      readOnly 
+                      className="bg-muted font-medium"
+                    />
+                  ) : (
+                    <Input id="quantity" type="number" placeholder="กรอกจำนวน" value={quantity} onChange={e => setQuantity(e.target.value)} required />
+                  )}
+                  {isMediaPlayerEntry && (
+                    <p className="text-xs text-muted-foreground">คำนวณจากจำนวนเครื่องที่เพิ่ม</p>
+                  )}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="unit">หน่วย</Label>
