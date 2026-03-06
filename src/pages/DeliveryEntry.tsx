@@ -222,7 +222,7 @@ const DeliveryEntry = () => {
     fetchSuppliers();
     fetchReceiptPurposes();
     fetchPendingReceipts();
-    fetchCmsTypes();
+    // fetchCmsTypes removed
     fetchMediaPlayers();
     fetchCategories();
     fetchSubcategories();
