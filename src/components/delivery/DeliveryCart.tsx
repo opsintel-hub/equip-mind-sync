@@ -186,6 +186,7 @@ export function DeliveryCart({ items, onRemoveItem, onClearCart, onEditItem, sel
                         {item.lot_number_1 && <span>Lot1: {item.lot_number_1}</span>}
                         {item.lot_number_2 && <span>Lot2: {item.lot_number_2}</span>}
                         {item.serial_number && <span>SN: {item.serial_number}</span>}
+                        {item.activate_windows && <span>AW: {item.activate_windows}</span>}
                       </div>
                     </TableCell>
                     <TableCell>
