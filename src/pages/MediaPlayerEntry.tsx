@@ -270,6 +270,30 @@ const MediaPlayerEntry = () => {
     });
     setSelectedPrefix("");
     setCodePreview("");
+    // Clean up image previews
+    formImagePreviews.forEach(url => URL.revokeObjectURL(url));
+    setFormImages([]);
+    setFormImagePreviews([]);
+  };
+
+  const handleFormImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+    const maxNew = 10 - formImages.length;
+    if (maxNew <= 0) {
+      toast.error("อัปโหลดได้สูงสุด 10 รูป");
+      return;
+    }
+    const newFiles = files.slice(0, maxNew);
+    const newPreviews = newFiles.map(file => URL.createObjectURL(file));
+    setFormImages(prev => [...prev, ...newFiles]);
+    setFormImagePreviews(prev => [...prev, ...newPreviews]);
+  };
+
+  const removeFormImage = (index: number) => {
+    URL.revokeObjectURL(formImagePreviews[index]);
+    setFormImages(prev => prev.filter((_, i) => i !== index));
+    setFormImagePreviews(prev => prev.filter((_, i) => i !== index));
   };
 
   const filteredPlayers = useMemo(() => {
