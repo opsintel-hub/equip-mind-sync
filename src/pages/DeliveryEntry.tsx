@@ -470,17 +470,26 @@ const DeliveryEntry = () => {
         toast.error("กรุณาระบุราคาต่อชิ้น");
         return;
       }
+      // Validate each device entry has at least S/N
+      const validDevices = mediaPlayerDevices.filter(d => d.serial_number_1.trim());
+      if (validDevices.length === 0) {
+        toast.error("กรุณากรอก Serial Number อย่างน้อย 1 เครื่อง");
+        return;
+      }
+      
       const selectedMP = mediaPlayers.find(mp => mp.id === selectedMediaPlayerId);
-      const newItem: DeliveryCartItem = {
+      
+      // Create one cart item per device entry
+      const newItems: DeliveryCartItem[] = validDevices.map(device => ({
         id: crypto.randomUUID(),
         equipment_id: null,
         equipment_code: selectedMP?.code || equipmentCode,
         equipment_name: selectedMP?.name || equipmentName,
-        quantity: parseInt(quantity),
+        quantity: 1, // Each device = 1 unit
         unit: unit || "เครื่อง",
         lot_number_1: lotNumber1,
         lot_number_2: lotNumber2,
-        serial_number: serialNumber,
+        serial_number: device.serial_number_1,
         unit_price: unitPrice ? parseFloat(unitPrice) : null,
         supplier_id: selectedSupplierId || null,
         supplier_name: supplierName || selectedSupplier?.name || "",
@@ -497,14 +506,19 @@ const DeliveryEntry = () => {
         waiting_equipment_id: waitingEquipmentId,
         depreciation_months: depreciationMonths,
         notes: itemNotes,
-        // Media Player specific
         is_media_player: true,
         media_player_id: selectedMediaPlayerId || null,
-        cms_type_id: selectedCmsTypeId,
-        serial_number_2: serialNumber2
-      };
-      setCartItems([...cartItems, newItem]);
-      setSelectedCartIds(prev => new Set([...prev, newItem.id]));
+        activate_windows: device.activate_windows,
+        media_player_image_file: device.image_file || undefined,
+      }));
+      
+      setCartItems([...cartItems, ...newItems]);
+      setSelectedCartIds(prev => {
+        const next = new Set(prev);
+        newItems.forEach(item => next.add(item.id));
+        return next;
+      });
+      toast.success(`เพิ่ม ${validDevices.length} เครื่องลงตะกร้าแล้ว`);
     } else {
       // Regular equipment validation
       if (!selectedEquipmentId) {
