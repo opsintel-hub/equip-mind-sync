@@ -1091,16 +1091,29 @@ const DeliveryEntry = () => {
                               </Button>
                             )}
                           </div>
-                          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                          <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
                             {/* Serial Number 1 */}
                             <div className="space-y-1">
                               <Label className="text-xs">Serial Number 1 *</Label>
                               <Input
-                                placeholder="กรอก S/N..."
+                                placeholder="กรอก S/N 1..."
                                 value={device.serial_number_1}
                                 onChange={e => {
                                   setMediaPlayerDevices(prev => prev.map(d =>
                                     d.id === device.id ? { ...d, serial_number_1: e.target.value } : d
+                                  ));
+                                }}
+                              />
+                            </div>
+                            {/* Serial Number 2 */}
+                            <div className="space-y-1">
+                              <Label className="text-xs">Serial Number 2</Label>
+                              <Input
+                                placeholder="กรอก S/N 2..."
+                                value={device.serial_number_2}
+                                onChange={e => {
+                                  setMediaPlayerDevices(prev => prev.map(d =>
+                                    d.id === device.id ? { ...d, serial_number_2: e.target.value } : d
                                   ));
                                 }}
                               />
@@ -1114,6 +1127,19 @@ const DeliveryEntry = () => {
                                 onChange={e => {
                                   setMediaPlayerDevices(prev => prev.map(d =>
                                     d.id === device.id ? { ...d, activate_windows: e.target.value } : d
+                                  ));
+                                }}
+                              />
+                            </div>
+                            {/* Name */}
+                            <div className="space-y-1">
+                              <Label className="text-xs">Name</Label>
+                              <Input
+                                placeholder="ชื่อเครื่อง..."
+                                value={device.device_name}
+                                onChange={e => {
+                                  setMediaPlayerDevices(prev => prev.map(d =>
+                                    d.id === device.id ? { ...d, device_name: e.target.value } : d
                                   ));
                                 }}
                               />
