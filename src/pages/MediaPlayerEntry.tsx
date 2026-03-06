@@ -8,7 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Monitor, Search, Loader2, MapPin, Unplug, Plus, Download, Image, FileText, Camera } from "lucide-react";
+import { Monitor, Search, Loader2, MapPin, Unplug, Plus, Download, Image as ImageIcon, FileText, Camera, X } from "lucide-react";
 import { MediaPlayerImageUpload } from "@/components/media-player/MediaPlayerImageUpload";
 import * as XLSX from "xlsx";
 import MediaPlayerDashboard from "@/components/media-player/MediaPlayerDashboard";
@@ -113,6 +113,10 @@ const MediaPlayerEntry = () => {
     brand: "",
   });
 
+  // Image upload in form
+  const [formImages, setFormImages] = useState<File[]>([]);
+  const [formImagePreviews, setFormImagePreviews] = useState<string[]>([]);
+
   useEffect(() => {
     fetchMediaPlayers();
     fetchFiltersData();
@@ -183,6 +187,11 @@ const MediaPlayerEntry = () => {
       return;
     }
 
+    if (formImages.length === 0) {
+      toast.error("กรุณาอัปโหลดรูปภาพอย่างน้อย 1 รูป");
+      return;
+    }
+
     // Resolve name from media_player_names
     const selectedName = mediaPlayerNames.find(n => n.id === formData.name);
     const selectedSpec = mediaPlayerSpecs.find(s => s.id === formData.specification);
@@ -196,7 +205,7 @@ const MediaPlayerEntry = () => {
       if (codeError) throw codeError;
       const code = codeData as string;
       
-      const { error } = await supabase
+      const { data: insertData, error } = await supabase
         .from("media_players")
         .insert({
           code,
@@ -206,11 +215,42 @@ const MediaPlayerEntry = () => {
           brand: formData.brand || null,
           quantity: 1,
           unit: "เครื่อง",
-        } as any);
+        } as any)
+        .select("id")
+        .single();
 
       if (error) throw error;
 
-      toast.success(`บันทึกข้อมูล Media Player สำเร็จ (${code})`);
+      // Upload images
+      const mediaPlayerId = (insertData as any).id;
+      for (let i = 0; i < formImages.length; i++) {
+        const file = formImages[i];
+        const ext = file.name.split(".").pop() || "jpg";
+        const fileName = `${mediaPlayerId}/${Date.now()}_${Math.random().toString(36).substr(2, 9)}.${ext}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from("media-player-images")
+          .upload(fileName, file);
+
+        if (uploadError) {
+          console.warn("Storage upload failed:", uploadError);
+          continue;
+        }
+
+        const { data: urlData } = supabase.storage
+          .from("media-player-images")
+          .getPublicUrl(fileName);
+
+        await supabase
+          .from("media_player_images" as any)
+          .insert({
+            media_player_id: mediaPlayerId,
+            image_url: urlData.publicUrl,
+            display_order: i,
+          });
+      }
+
+      toast.success(`บันทึกข้อมูล Media Player สำเร็จ (${code}) พร้อมรูปภาพ ${formImages.length} รูป`);
       resetForm();
       fetchMediaPlayers();
     } catch (error) {
@@ -230,6 +270,30 @@ const MediaPlayerEntry = () => {
     });
     setSelectedPrefix("");
     setCodePreview("");
+    // Clean up image previews
+    formImagePreviews.forEach(url => URL.revokeObjectURL(url));
+    setFormImages([]);
+    setFormImagePreviews([]);
+  };
+
+  const handleFormImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+    const maxNew = 10 - formImages.length;
+    if (maxNew <= 0) {
+      toast.error("อัปโหลดได้สูงสุด 10 รูป");
+      return;
+    }
+    const newFiles = files.slice(0, maxNew);
+    const newPreviews = newFiles.map(file => URL.createObjectURL(file));
+    setFormImages(prev => [...prev, ...newFiles]);
+    setFormImagePreviews(prev => [...prev, ...newPreviews]);
+  };
+
+  const removeFormImage = (index: number) => {
+    URL.revokeObjectURL(formImagePreviews[index]);
+    setFormImages(prev => prev.filter((_, i) => i !== index));
+    setFormImagePreviews(prev => prev.filter((_, i) => i !== index));
   };
 
   const filteredPlayers = useMemo(() => {
@@ -529,6 +593,62 @@ const MediaPlayerEntry = () => {
               </CardContent>
             </Card>
 
+            {/* Upload ภาพ Media Player * */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Camera className="w-5 h-5" />
+                  Upload ภาพ Media Player *
+                </CardTitle>
+                <CardDescription>
+                  อัปโหลดรูปภาพเครื่อง Media Player (สูงสุด 10 รูป) — จำเป็นต้องมีอย่างน้อย 1 รูป
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <Input
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  onChange={handleFormImageSelect}
+                  className="hidden"
+                  id="form-mp-image-upload"
+                  disabled={formImages.length >= 10}
+                />
+                <label htmlFor="form-mp-image-upload">
+                  <div className="border-2 border-dashed rounded-lg p-6 text-center cursor-pointer hover:bg-muted/50 transition-colors">
+                    <ImageIcon className="h-10 w-10 mx-auto text-muted-foreground mb-2" />
+                    <p className="text-sm text-muted-foreground">
+                      คลิกเพื่อเลือกรูปภาพ (เพิ่มได้อีก {10 - formImages.length} รูป)
+                    </p>
+                  </div>
+                </label>
+
+                {formImagePreviews.length > 0 && (
+                  <div className="grid grid-cols-5 gap-3">
+                    {formImagePreviews.map((preview, index) => (
+                      <div key={index} className="relative group">
+                        <img
+                          src={preview}
+                          alt={`Preview ${index + 1}`}
+                          className="w-full h-28 object-cover rounded-lg border"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => removeFormImage(index)}
+                          className="absolute top-1 right-1 p-1 bg-destructive rounded-full text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                        <span className="absolute bottom-1 left-1 bg-black/60 text-white text-[10px] px-1.5 py-0.5 rounded">
+                          {index + 1}/{formImages.length}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
             {/* Action Buttons */}
             <div className="flex justify-end gap-3">
               <Button type="button" variant="outline" onClick={resetForm}>
@@ -540,44 +660,6 @@ const MediaPlayerEntry = () => {
               </Button>
             </div>
           </form>
-
-          {/* Upload ภาพ Media Player - Quick Access */}
-          {mediaPlayers.length > 0 && (
-            <Card className="mt-6">
-              <CardHeader>
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <Camera className="w-5 h-5" />
-                  Upload ภาพ Media Player
-                </CardTitle>
-                <CardDescription>
-                  เลือก Media Player ที่ต้องการอัปโหลดรูปภาพ (สูงสุด 10 รูปต่อเครื่อง)
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-                  {mediaPlayers.slice(0, 20).map((player) => (
-                    <Button
-                      key={player.id}
-                      variant="outline"
-                      className="justify-start gap-2 h-auto py-3"
-                      onClick={() => setImageUploadPlayer(player)}
-                    >
-                      <Camera className="w-4 h-4 text-primary flex-shrink-0" />
-                      <div className="text-left truncate">
-                        <div className="font-mono text-xs">{player.code}</div>
-                        <div className="text-xs text-muted-foreground truncate">{player.name}</div>
-                      </div>
-                    </Button>
-                  ))}
-                </div>
-                {mediaPlayers.length > 20 && (
-                  <p className="text-xs text-muted-foreground mt-2">
-                    แสดง 20 จาก {mediaPlayers.length} รายการ — ดูทั้งหมดได้ที่แท็บ Dashboard
-                  </p>
-                )}
-              </CardContent>
-            </Card>
-          )}
         </TabsContent>
 
         {/* Tab 2: Dashboard */}
@@ -799,7 +881,7 @@ const MediaPlayerEntry = () => {
                               <TableCell className="text-center">
                                 {player.image_url ? (
                                   <a href={player.image_url} target="_blank" rel="noopener noreferrer" title="ดูรูปภาพ">
-                                    <Image className="w-4 h-4 text-primary hover:text-primary/80 mx-auto" />
+                                    <ImageIcon className="w-4 h-4 text-primary hover:text-primary/80 mx-auto" />
                                   </a>
                                 ) : <span className="text-muted-foreground">-</span>}
                               </TableCell>
