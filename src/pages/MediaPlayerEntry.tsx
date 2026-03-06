@@ -832,15 +832,23 @@ const MediaPlayerEntry = () => {
                           filteredPlayers.map((player) => (
                             <TableRow key={player.id} className="hover:bg-muted/30">
                               <TableCell className="font-mono text-sm whitespace-nowrap">{player.code}</TableCell>
-                              <TableCell className="text-sm whitespace-nowrap">{player.department || "-"}</TableCell>
-                              <TableCell className="text-sm whitespace-nowrap">{getCompanyName(player.company_id)}</TableCell>
                               <TableCell className="whitespace-nowrap">{player.name}</TableCell>
                               <TableCell className="text-sm whitespace-nowrap">
                                 {modelsForFilter.find(m => m.id === player.model_id)?.name || "-"}
                               </TableCell>
-                              <TableCell className="text-sm whitespace-nowrap">{player.remote_name || "-"}</TableCell>
+                              <TableCell className="text-sm whitespace-nowrap">{player.brand || "-"}</TableCell>
                               <TableCell className="text-sm whitespace-nowrap">{getCMSTypeName(player.cms_type_id)}</TableCell>
                               <TableCell className="text-sm whitespace-nowrap">{player.specification || "-"}</TableCell>
+                              <TableCell className="text-center">
+                                {player.image_url ? (
+                                  <a href={player.image_url} target="_blank" rel="noopener noreferrer" title="ดูรูปภาพ">
+                                    <ImageIcon className="w-4 h-4 text-primary hover:text-primary/80 mx-auto" />
+                                  </a>
+                                ) : <span className="text-muted-foreground">-</span>}
+                              </TableCell>
+                              <TableCell className="text-sm whitespace-nowrap">{player.department || "-"}</TableCell>
+                              <TableCell className="text-sm whitespace-nowrap">{getCompanyName(player.company_id)}</TableCell>
+                              <TableCell className="text-sm whitespace-nowrap">{player.remote_name || "-"}</TableCell>
                               <TableCell className="text-sm whitespace-nowrap">{player.serial_number_1 || "-"}</TableCell>
                               <TableCell className="text-sm whitespace-nowrap">{player.serial_number_2 || "-"}</TableCell>
                               <TableCell className="text-sm whitespace-nowrap">{player.activate_windows || "-"}</TableCell>
@@ -887,13 +895,6 @@ const MediaPlayerEntry = () => {
                                 {player.invoice_document_url ? (
                                   <a href={player.invoice_document_url} target="_blank" rel="noopener noreferrer" title="ดูไฟล์ Invoice">
                                     <FileText className="w-4 h-4 text-primary hover:text-primary/80 mx-auto" />
-                                  </a>
-                                ) : <span className="text-muted-foreground">-</span>}
-                              </TableCell>
-                              <TableCell className="text-center">
-                                {player.image_url ? (
-                                  <a href={player.image_url} target="_blank" rel="noopener noreferrer" title="ดูรูปภาพ">
-                                    <ImageIcon className="w-4 h-4 text-primary hover:text-primary/80 mx-auto" />
                                   </a>
                                 ) : <span className="text-muted-foreground">-</span>}
                               </TableCell>
