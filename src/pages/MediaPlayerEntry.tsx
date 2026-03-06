@@ -538,7 +538,7 @@ const MediaPlayerEntry = () => {
                 <CardTitle className="text-lg">ข้อมูลทั่วไป</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                   <div className="space-y-2">
                     <Label>Prefix รหัส *</Label>
                     <MediaPlayerCodePrefixSelect
@@ -557,6 +557,13 @@ const MediaPlayerEntry = () => {
                     <MediaPlayerNameSelect
                       value={formData.name}
                       onChange={(value) => setFormData({ ...formData, name: value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>โมเดล</Label>
+                    <ModelSelect
+                      value={formData.model_id}
+                      onChange={(value) => setFormData({ ...formData, model_id: value })}
                     />
                   </div>
                   <div className="space-y-2">
