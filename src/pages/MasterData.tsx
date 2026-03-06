@@ -120,7 +120,7 @@ const MasterData = () => {
               จัดการ Media Player
             </TabsTrigger>
           </TabsList>
-        </ScrollArea>
+        </div>
 
         <TabsContent value="equipment" className="space-y-4">
           <Card>
