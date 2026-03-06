@@ -593,6 +593,62 @@ const MediaPlayerEntry = () => {
               </CardContent>
             </Card>
 
+            {/* Upload ภาพ Media Player * */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Camera className="w-5 h-5" />
+                  Upload ภาพ Media Player *
+                </CardTitle>
+                <CardDescription>
+                  อัปโหลดรูปภาพเครื่อง Media Player (สูงสุด 10 รูป) — จำเป็นต้องมีอย่างน้อย 1 รูป
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <Input
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  onChange={handleFormImageSelect}
+                  className="hidden"
+                  id="form-mp-image-upload"
+                  disabled={formImages.length >= 10}
+                />
+                <label htmlFor="form-mp-image-upload">
+                  <div className="border-2 border-dashed rounded-lg p-6 text-center cursor-pointer hover:bg-muted/50 transition-colors">
+                    <ImageIcon className="h-10 w-10 mx-auto text-muted-foreground mb-2" />
+                    <p className="text-sm text-muted-foreground">
+                      คลิกเพื่อเลือกรูปภาพ (เพิ่มได้อีก {10 - formImages.length} รูป)
+                    </p>
+                  </div>
+                </label>
+
+                {formImagePreviews.length > 0 && (
+                  <div className="grid grid-cols-5 gap-3">
+                    {formImagePreviews.map((preview, index) => (
+                      <div key={index} className="relative group">
+                        <img
+                          src={preview}
+                          alt={`Preview ${index + 1}`}
+                          className="w-full h-28 object-cover rounded-lg border"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => removeFormImage(index)}
+                          className="absolute top-1 right-1 p-1 bg-destructive rounded-full text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                        <span className="absolute bottom-1 left-1 bg-black/60 text-white text-[10px] px-1.5 py-0.5 rounded">
+                          {index + 1}/{formImages.length}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
             {/* Action Buttons */}
             <div className="flex justify-end gap-3">
               <Button type="button" variant="outline" onClick={resetForm}>
@@ -604,44 +660,6 @@ const MediaPlayerEntry = () => {
               </Button>
             </div>
           </form>
-
-          {/* Upload ภาพ Media Player - Quick Access */}
-          {mediaPlayers.length > 0 && (
-            <Card className="mt-6">
-              <CardHeader>
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <Camera className="w-5 h-5" />
-                  Upload ภาพ Media Player
-                </CardTitle>
-                <CardDescription>
-                  เลือก Media Player ที่ต้องการอัปโหลดรูปภาพ (สูงสุด 10 รูปต่อเครื่อง)
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-                  {mediaPlayers.slice(0, 20).map((player) => (
-                    <Button
-                      key={player.id}
-                      variant="outline"
-                      className="justify-start gap-2 h-auto py-3"
-                      onClick={() => setImageUploadPlayer(player)}
-                    >
-                      <Camera className="w-4 h-4 text-primary flex-shrink-0" />
-                      <div className="text-left truncate">
-                        <div className="font-mono text-xs">{player.code}</div>
-                        <div className="text-xs text-muted-foreground truncate">{player.name}</div>
-                      </div>
-                    </Button>
-                  ))}
-                </div>
-                {mediaPlayers.length > 20 && (
-                  <p className="text-xs text-muted-foreground mt-2">
-                    แสดง 20 จาก {mediaPlayers.length} รายการ — ดูทั้งหมดได้ที่แท็บ Dashboard
-                  </p>
-                )}
-              </CardContent>
-            </Card>
-          )}
         </TabsContent>
 
         {/* Tab 2: Dashboard */}
