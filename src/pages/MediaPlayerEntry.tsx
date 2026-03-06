@@ -215,6 +215,7 @@ const MediaPlayerEntry = () => {
           cms_type_id: formData.cms_type_id || null,
           specification: selectedSpec?.name || null,
           brand: formData.brand || null,
+          model_id: formData.model_id || null,
           quantity: 1,
           unit: "เครื่อง",
         } as any)
