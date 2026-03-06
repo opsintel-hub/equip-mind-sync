@@ -289,15 +289,7 @@ const DeliveryEntry = () => {
       setPendingReceipts(data as PendingReceipt[]);
     }
   };
-  const fetchCmsTypes = async () => {
-    const {
-      data,
-      error
-    } = await supabase.from("cms_types").select("id, name").eq("is_active", true).order("name");
-    if (!error && data) {
-      setCmsTypes(data);
-    }
-  };
+  // fetchCmsTypes removed - CMS type field no longer used
   const fetchMediaPlayers = async () => {
     const {
       data,
