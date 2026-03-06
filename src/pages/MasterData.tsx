@@ -38,6 +38,8 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { TechnicianForm } from "@/components/tools/TechnicianForm";
 import { TechnicianList } from "@/components/tools/TechnicianList";
 
+const MediaPlayerEntry = lazy(() => import("@/pages/MediaPlayerEntry"));
+
 const MasterData = () => {
   const [refreshKey, setRefreshKey] = useState(0);
 
