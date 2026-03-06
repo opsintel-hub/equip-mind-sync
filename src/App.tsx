@@ -106,7 +106,7 @@ const App = () => (
             <Route path="/tool-pm-schedule" element={<ProtectedRoute><DashboardLayout><ToolPMSchedule /></DashboardLayout></ProtectedRoute>} />
             <Route path="/tool-management" element={<ProtectedRoute><DashboardLayout><ToolManagement /></DashboardLayout></ProtectedRoute>} />
             <Route path="/pending-asset-codes" element={<ProtectedRoute><DashboardLayout><PendingAssetCodes /></DashboardLayout></ProtectedRoute>} />
-            <Route path="/media-player-entry" element={<ProtectedRoute><DashboardLayout><MediaPlayerEntry /></DashboardLayout></ProtectedRoute>} />
+            {/* Media Player is now inside Master Data */}
             <Route path="/ad-entry" element={<ProtectedRoute><DashboardLayout><AdEntry /></DashboardLayout></ProtectedRoute>} />
             <Route path="/ad-receive" element={<ProtectedRoute><DashboardLayout><AdManagement /></DashboardLayout></ProtectedRoute>} />
             <Route path="/ad-request" element={<ProtectedRoute><DashboardLayout><AdRequest /></DashboardLayout></ProtectedRoute>} />
