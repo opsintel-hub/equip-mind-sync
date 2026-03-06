@@ -1025,34 +1025,144 @@ const DeliveryEntry = () => {
                     </div>
                   </div>
                   
-                  {/* Media Player Specific Fields */}
+                  {/* Media Player Device Entries - Dynamic List */}
                   <div className="p-3 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg space-y-4">
-                    <h4 className="font-medium text-sm text-blue-700 dark:text-blue-400 flex items-center gap-2">
-                      <Monitor className="w-4 h-4" />
-                      ข้อมูลเฉพาะ Media Player
-                    </h4>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="cmsType">ประเภท CMS</Label>
-                        <Select value={selectedCmsTypeId} onValueChange={setSelectedCmsTypeId}>
-                          <SelectTrigger id="cmsType">
-                            <SelectValue placeholder="เลือก CMS..." />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {cmsTypes.map(cms => <SelectItem key={cms.id} value={cms.id}>{cms.name}</SelectItem>)}
-                          </SelectContent>
-                        </Select>
-                      </div>
+                    <div className="flex items-center justify-between">
+                      <h4 className="font-medium text-sm text-blue-700 dark:text-blue-400 flex items-center gap-2">
+                        <Monitor className="w-4 h-4" />
+                        ข้อมูลเฉพาะ Media Player ({mediaPlayerDevices.length} เครื่อง)
+                      </h4>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setMediaPlayerDevices(prev => [...prev, {
+                            id: crypto.randomUUID(),
+                            serial_number_1: "",
+                            activate_windows: "",
+                            image_file: null,
+                            image_preview: null,
+                          }]);
+                        }}
+                        className="gap-1 text-blue-700 border-blue-300 hover:bg-blue-100 dark:text-blue-400 dark:border-blue-700 dark:hover:bg-blue-900/30"
+                      >
+                        <PlusCircle className="w-4 h-4" />
+                        เพิ่มเครื่อง
+                      </Button>
                     </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="serialNumber1">Serial Number 1</Label>
-                        <Input id="serialNumber1" placeholder="SN-1" value={serialNumber} onChange={e => setSerialNumber(e.target.value)} />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="serialNumber2">Serial Number 2</Label>
-                        <Input id="serialNumber2" placeholder="SN-2" value={serialNumber2} onChange={e => setSerialNumber2(e.target.value)} />
-                      </div>
+                    <p className="text-xs text-blue-600/80 dark:text-blue-500/80">
+                      💡 กรอก S/N แต่ละเครื่อง — ระบบจะสร้างรายการในตะกร้าอัตโนมัติ 1 รายการต่อ 1 เครื่อง
+                    </p>
+                    
+                    <div className="space-y-3">
+                      {mediaPlayerDevices.map((device, idx) => (
+                        <div key={device.id} className="p-3 bg-background border rounded-lg space-y-3">
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm font-medium text-foreground">เครื่องที่ {idx + 1}</span>
+                            {mediaPlayerDevices.length > 1 && (
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                className="h-7 text-destructive hover:text-destructive"
+                                onClick={() => {
+                                  // Clean up preview URL
+                                  if (device.image_preview) URL.revokeObjectURL(device.image_preview);
+                                  setMediaPlayerDevices(prev => prev.filter(d => d.id !== device.id));
+                                }}
+                              >
+                                <X className="w-3 h-3 mr-1" />
+                                ลบ
+                              </Button>
+                            )}
+                          </div>
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                            {/* Serial Number 1 */}
+                            <div className="space-y-1">
+                              <Label className="text-xs">Serial Number 1 *</Label>
+                              <Input
+                                placeholder="กรอก S/N..."
+                                value={device.serial_number_1}
+                                onChange={e => {
+                                  setMediaPlayerDevices(prev => prev.map(d =>
+                                    d.id === device.id ? { ...d, serial_number_1: e.target.value } : d
+                                  ));
+                                }}
+                              />
+                            </div>
+                            {/* Active Windows */}
+                            <div className="space-y-1">
+                              <Label className="text-xs">Active Windows</Label>
+                              <Input
+                                placeholder="Active Windows..."
+                                value={device.activate_windows}
+                                onChange={e => {
+                                  setMediaPlayerDevices(prev => prev.map(d =>
+                                    d.id === device.id ? { ...d, activate_windows: e.target.value } : d
+                                  ));
+                                }}
+                              />
+                            </div>
+                            {/* Upload Image */}
+                            <div className="space-y-1">
+                              <Label className="text-xs">รูป Media Player</Label>
+                              <div className="flex items-center gap-2">
+                                <input
+                                  type="file"
+                                  accept="image/*"
+                                  className="hidden"
+                                  id={`mp-image-${device.id}`}
+                                  onChange={e => {
+                                    const file = e.target.files?.[0];
+                                    if (file) {
+                                      if (file.size > 10 * 1024 * 1024) {
+                                        toast.error("ไฟล์มีขนาดใหญ่เกินไป (สูงสุด 10MB)");
+                                        return;
+                                      }
+                                      if (device.image_preview) URL.revokeObjectURL(device.image_preview);
+                                      const preview = URL.createObjectURL(file);
+                                      setMediaPlayerDevices(prev => prev.map(d =>
+                                        d.id === device.id ? { ...d, image_file: file, image_preview: preview } : d
+                                      ));
+                                    }
+                                  }}
+                                />
+                                {device.image_preview ? (
+                                  <div className="flex items-center gap-2">
+                                    <img src={device.image_preview} alt="Preview" className="w-10 h-10 rounded object-cover border" />
+                                    <Button
+                                      type="button"
+                                      variant="ghost"
+                                      size="sm"
+                                      className="h-7"
+                                      onClick={() => {
+                                        if (device.image_preview) URL.revokeObjectURL(device.image_preview);
+                                        setMediaPlayerDevices(prev => prev.map(d =>
+                                          d.id === device.id ? { ...d, image_file: null, image_preview: null } : d
+                                        ));
+                                      }}
+                                    >
+                                      <X className="w-3 h-3" />
+                                    </Button>
+                                  </div>
+                                ) : (
+                                  <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    className="h-9 w-full"
+                                    onClick={() => document.getElementById(`mp-image-${device.id}`)?.click()}
+                                  >
+                                    <ImagePlus className="w-4 h-4 mr-1" />
+                                    เลือกรูป
+                                  </Button>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   </div>
                 </> : <>
