@@ -112,6 +112,7 @@ const MediaPlayerEntry = () => {
     cms_type_id: "",
     specification: "", // now stores media_player_specifications id
     brand: "",
+    model_id: "",
   });
 
   // Image upload in form
