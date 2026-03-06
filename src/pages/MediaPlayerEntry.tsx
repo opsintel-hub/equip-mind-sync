@@ -269,6 +269,7 @@ const MediaPlayerEntry = () => {
       cms_type_id: "",
       specification: "",
       brand: "",
+      model_id: "",
     });
     setSelectedPrefix("");
     setCodePreview("");
