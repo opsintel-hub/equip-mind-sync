@@ -115,6 +115,10 @@ const MasterData = () => {
               <Zap className="h-3.5 w-3.5" />
               PM Action Types
             </TabsTrigger>
+            <TabsTrigger value="media_player" className="gap-1.5 text-xs px-3">
+              <Monitor className="h-3.5 w-3.5" />
+              จัดการ Media Player
+            </TabsTrigger>
           </TabsList>
         </ScrollArea>
 
