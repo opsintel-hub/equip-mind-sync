@@ -686,6 +686,25 @@ const DeliveryEntry = () => {
       if (purchaseDocumentFile) {
         purchaseDocumentUrl = await uploadPurchaseDocument(docNo);
       }
+      
+      // Upload media player images for items that have them
+      for (const item of itemsToSubmit) {
+        if (item.media_player_image_file) {
+          try {
+            const file = item.media_player_image_file;
+            const fileExt = file.name.split('.').pop();
+            const fileName = `mp-${docNo}-${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+            const filePath = `media-player-entry/${fileName}`;
+            const { error: uploadError } = await supabase.storage.from('media-player-images').upload(filePath, file);
+            if (!uploadError) {
+              const { data: { publicUrl } } = supabase.storage.from('media-player-images').getPublicUrl(filePath);
+              item.media_player_image_url = publicUrl;
+            }
+          } catch (err) {
+            console.error('Error uploading media player image:', err);
+          }
+        }
+      }
       setIsUploadingFile(false);
 
       // Combine all document URLs (including PO/PR/Invoice uploaded URLs)
@@ -738,6 +757,8 @@ const DeliveryEntry = () => {
         // Media Player specific fields
         is_media_player: item.is_media_player || false,
         media_player_id: item.media_player_id || null,
+        activate_windows: item.activate_windows || null,
+        media_player_image_url: item.media_player_image_url || null,
         // Temp fields for new products
         temp_category_id: item.temp_category_id || null,
         temp_subcategory_id: item.temp_subcategory_id || null,
