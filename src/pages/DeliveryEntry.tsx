@@ -604,7 +604,7 @@ const DeliveryEntry = () => {
     setDepreciationMonths("");
     setItemNotes("");
     // Media Player specific - reset device entries
-    setMediaPlayerDevices([{ id: crypto.randomUUID(), serial_number_1: "", activate_windows: "", image_file: null, image_preview: null }]);
+    setMediaPlayerDevices([{ id: crypto.randomUUID(), serial_number_1: "", serial_number_2: "", device_name: "", activate_windows: "", image_file: null, image_preview: null }]);
     // Category/Subcategory
     setSelectedCategoryId("");
     setSelectedSubcategoryId("");
