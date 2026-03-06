@@ -85,6 +85,7 @@ const MediaPlayerEntry = () => {
   const [selectedPlayer, setSelectedPlayer] = useState<MediaPlayer | null>(null);
   const [installBillboardId, setInstallBillboardId] = useState("");
   const [installDate, setInstallDate] = useState("");
+  const [imageUploadPlayer, setImageUploadPlayer] = useState<MediaPlayer | null>(null);
   const [selectedPrefix, setSelectedPrefix] = useState("");
   const [codePreview, setCodePreview] = useState("");
   
