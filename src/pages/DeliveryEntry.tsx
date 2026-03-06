@@ -85,7 +85,7 @@ const DeliveryEntry = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [equipment, setEquipment] = useState<Equipment[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
-  const [cmsTypes, setCmsTypes] = useState<CMSType[]>([]);
+  // cmsTypes removed - no longer used
   const { allowedDepartments, isSingleDepartment, loading: deptLoading } = useAllowedDepartments("create");
   const [mediaPlayers, setMediaPlayers] = useState<{
     id: string;
