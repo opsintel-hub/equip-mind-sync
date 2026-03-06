@@ -881,7 +881,7 @@ const MediaPlayerEntry = () => {
                               <TableCell className="text-center">
                                 {player.image_url ? (
                                   <a href={player.image_url} target="_blank" rel="noopener noreferrer" title="ดูรูปภาพ">
-                                    <Image className="w-4 h-4 text-primary hover:text-primary/80 mx-auto" />
+                                    <ImageIcon className="w-4 h-4 text-primary hover:text-primary/80 mx-auto" />
                                   </a>
                                 ) : <span className="text-muted-foreground">-</span>}
                               </TableCell>
