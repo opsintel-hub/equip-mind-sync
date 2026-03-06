@@ -160,12 +160,14 @@ const DeliveryEntry = () => {
   interface MediaPlayerDeviceEntry {
     id: string;
     serial_number_1: string;
+    serial_number_2: string;
+    device_name: string;
     activate_windows: string;
     image_file: File | null;
     image_preview: string | null;
   }
   const [mediaPlayerDevices, setMediaPlayerDevices] = useState<MediaPlayerDeviceEntry[]>([
-    { id: crypto.randomUUID(), serial_number_1: "", activate_windows: "", image_file: null, image_preview: null }
+    { id: crypto.randomUUID(), serial_number_1: "", serial_number_2: "", device_name: "", activate_windows: "", image_file: null, image_preview: null }
   ]);
 
   // Storage dimensions
