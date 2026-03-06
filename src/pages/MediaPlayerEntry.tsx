@@ -768,6 +768,14 @@ const MediaPlayerEntry = () => {
                               <TableCell className="text-sm whitespace-nowrap max-w-[150px] truncate">{player.description || "-"}</TableCell>
                               <TableCell className="text-right">
                                 <div className="flex items-center justify-end gap-1">
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => setImageUploadPlayer(player)}
+                                    title="Upload ภาพ"
+                                  >
+                                    <Camera className="w-4 h-4 text-primary" />
+                                  </Button>
                                   {player.billboard_id ? (
                                     <Button
                                       variant="ghost"
