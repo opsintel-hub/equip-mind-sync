@@ -447,7 +447,7 @@ const DeliveryEntry = () => {
 
   // Add item to cart
   const handleAddToCart = () => {
-    if (!quantity || parseInt(quantity) < 1) {
+    if (!isMediaPlayerEntry && (!quantity || parseInt(quantity) < 1)) {
       toast.error("กรุณาระบุจำนวน");
       return;
     }
