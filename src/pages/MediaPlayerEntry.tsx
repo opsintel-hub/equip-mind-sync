@@ -16,6 +16,7 @@ import { MediaPlayerCodePrefixSelect } from "@/components/media-player/MediaPlay
 import { CMSTypeSelect } from "@/components/media-player/CMSTypeSelect";
 import { MediaPlayerNameSelect } from "@/components/media-player/MediaPlayerNameSelect";
 import { SpecificationSelect } from "@/components/media-player/SpecificationSelect";
+import { ModelSelect } from "@/components/media-player/ModelSelect";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
