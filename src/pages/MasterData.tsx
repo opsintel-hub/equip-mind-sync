@@ -57,8 +57,8 @@ const MasterData = () => {
       </div>
 
       <Tabs defaultValue="equipment" className="w-full">
-        <ScrollArea className="w-full" type="scroll">
-          <TabsList className="flex w-max h-10 mb-0">
+        <div className="w-full overflow-x-auto pb-2">
+          <TabsList className="inline-flex w-max h-10 mb-0">
             <TabsTrigger value="equipment" className="gap-1.5 text-xs px-3">
               <Package className="h-3.5 w-3.5" />
               อุปกรณ์
@@ -120,7 +120,7 @@ const MasterData = () => {
               จัดการ Media Player
             </TabsTrigger>
           </TabsList>
-        </ScrollArea>
+        </div>
 
         <TabsContent value="equipment" className="space-y-4">
           <Card>

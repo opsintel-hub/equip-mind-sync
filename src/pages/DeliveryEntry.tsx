@@ -160,12 +160,14 @@ const DeliveryEntry = () => {
   interface MediaPlayerDeviceEntry {
     id: string;
     serial_number_1: string;
+    serial_number_2: string;
+    device_name: string;
     activate_windows: string;
     image_file: File | null;
     image_preview: string | null;
   }
   const [mediaPlayerDevices, setMediaPlayerDevices] = useState<MediaPlayerDeviceEntry[]>([
-    { id: crypto.randomUUID(), serial_number_1: "", activate_windows: "", image_file: null, image_preview: null }
+    { id: crypto.randomUUID(), serial_number_1: "", serial_number_2: "", device_name: "", activate_windows: "", image_file: null, image_preview: null }
   ]);
 
   // Storage dimensions
@@ -445,7 +447,7 @@ const DeliveryEntry = () => {
 
   // Add item to cart
   const handleAddToCart = () => {
-    if (!quantity || parseInt(quantity) < 1) {
+    if (!isMediaPlayerEntry && (!quantity || parseInt(quantity) < 1)) {
       toast.error("กรุณาระบุจำนวน");
       return;
     }
@@ -602,7 +604,7 @@ const DeliveryEntry = () => {
     setDepreciationMonths("");
     setItemNotes("");
     // Media Player specific - reset device entries
-    setMediaPlayerDevices([{ id: crypto.randomUUID(), serial_number_1: "", activate_windows: "", image_file: null, image_preview: null }]);
+    setMediaPlayerDevices([{ id: crypto.randomUUID(), serial_number_1: "", serial_number_2: "", device_name: "", activate_windows: "", image_file: null, image_preview: null }]);
     // Category/Subcategory
     setSelectedCategoryId("");
     setSelectedSubcategoryId("");
@@ -1050,6 +1052,8 @@ const DeliveryEntry = () => {
                           setMediaPlayerDevices(prev => [...prev, {
                             id: crypto.randomUUID(),
                             serial_number_1: "",
+                            serial_number_2: "",
+                            device_name: "",
                             activate_windows: "",
                             image_file: null,
                             image_preview: null,
@@ -1087,16 +1091,29 @@ const DeliveryEntry = () => {
                               </Button>
                             )}
                           </div>
-                          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                          <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
                             {/* Serial Number 1 */}
                             <div className="space-y-1">
                               <Label className="text-xs">Serial Number 1 *</Label>
                               <Input
-                                placeholder="กรอก S/N..."
+                                placeholder="กรอก S/N 1..."
                                 value={device.serial_number_1}
                                 onChange={e => {
                                   setMediaPlayerDevices(prev => prev.map(d =>
                                     d.id === device.id ? { ...d, serial_number_1: e.target.value } : d
+                                  ));
+                                }}
+                              />
+                            </div>
+                            {/* Serial Number 2 */}
+                            <div className="space-y-1">
+                              <Label className="text-xs">Serial Number 2</Label>
+                              <Input
+                                placeholder="กรอก S/N 2..."
+                                value={device.serial_number_2}
+                                onChange={e => {
+                                  setMediaPlayerDevices(prev => prev.map(d =>
+                                    d.id === device.id ? { ...d, serial_number_2: e.target.value } : d
                                   ));
                                 }}
                               />
@@ -1110,6 +1127,19 @@ const DeliveryEntry = () => {
                                 onChange={e => {
                                   setMediaPlayerDevices(prev => prev.map(d =>
                                     d.id === device.id ? { ...d, activate_windows: e.target.value } : d
+                                  ));
+                                }}
+                              />
+                            </div>
+                            {/* Name */}
+                            <div className="space-y-1">
+                              <Label className="text-xs">Name</Label>
+                              <Input
+                                placeholder="ชื่อเครื่อง..."
+                                value={device.device_name}
+                                onChange={e => {
+                                  setMediaPlayerDevices(prev => prev.map(d =>
+                                    d.id === device.id ? { ...d, device_name: e.target.value } : d
                                   ));
                                 }}
                               />
@@ -1293,7 +1323,20 @@ const DeliveryEntry = () => {
               <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="quantity">จำนวน *</Label>
-                  <Input id="quantity" type="number" placeholder="กรอกจำนวน" value={quantity} onChange={e => setQuantity(e.target.value)} required />
+                  {isMediaPlayerEntry ? (
+                    <Input 
+                      id="quantity" 
+                      type="number" 
+                      value={mediaPlayerDevices.filter(d => d.serial_number_1.trim()).length || mediaPlayerDevices.length} 
+                      readOnly 
+                      className="bg-muted font-medium"
+                    />
+                  ) : (
+                    <Input id="quantity" type="number" placeholder="กรอกจำนวน" value={quantity} onChange={e => setQuantity(e.target.value)} required />
+                  )}
+                  {isMediaPlayerEntry && (
+                    <p className="text-xs text-muted-foreground">คำนวณจากจำนวนเครื่องที่เพิ่ม</p>
+                  )}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="unit">หน่วย</Label>
@@ -1325,32 +1368,43 @@ const DeliveryEntry = () => {
                 </div>
               </div>
 
-              {/* Serial Number & Unit Price & Total Amount */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="serialNumber">Serial Number</Label>
-                  <Input id="serialNumber" placeholder="SN-xxxxx" value={serialNumber} onChange={e => setSerialNumber(e.target.value)} />
-                </div>
+              {/* Serial Number (only for non-Media Player) & Unit Price & Total Amount */}
+              <div className={`grid grid-cols-1 ${isMediaPlayerEntry ? 'md:grid-cols-2' : 'md:grid-cols-3'} gap-4`}>
+                {!isMediaPlayerEntry && (
+                  <div className="space-y-2">
+                    <Label htmlFor="serialNumber">Serial Number</Label>
+                    <Input id="serialNumber" placeholder="SN-xxxxx" value={serialNumber} onChange={e => setSerialNumber(e.target.value)} />
+                  </div>
+                )}
                 <div className="space-y-2">
                   <Label htmlFor="unitPrice">ราคาต่อชิ้น (บาท) *</Label>
                   <Input id="unitPrice" type="number" step="0.01" placeholder="0.00" value={unitPrice} onChange={e => setUnitPrice(e.target.value)} required />
                 </div>
                 <div className="space-y-2">
                   <Label>จำนวนเงินทั้งหมด (บาท)</Label>
-                  <Input 
-                    readOnly 
-                    value={
-                      (parseFloat(unitPrice) || 0) > 0 && (parseInt(quantity) || 0) > 0
-                        ? `฿${((parseFloat(unitPrice) || 0) * (parseInt(quantity) || 0)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-                        : "-"
-                    } 
-                    className="bg-muted font-medium text-primary" 
-                  />
-                  {(parseInt(quantity) || 0) > 1 && (parseFloat(unitPrice) || 0) > 0 && (
-                    <p className="text-xs text-muted-foreground">
-                      {parseInt(quantity)} ชิ้น × ฿{parseFloat(unitPrice).toLocaleString()} = ฿{((parseFloat(unitPrice) || 0) * (parseInt(quantity) || 0)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                    </p>
-                  )}
+                  {(() => {
+                    const effectiveQty = isMediaPlayerEntry 
+                      ? (mediaPlayerDevices.filter(d => d.serial_number_1.trim()).length || mediaPlayerDevices.length)
+                      : (parseInt(quantity) || 0);
+                    return (
+                      <>
+                        <Input 
+                          readOnly 
+                          value={
+                            (parseFloat(unitPrice) || 0) > 0 && effectiveQty > 0
+                              ? `฿${((parseFloat(unitPrice) || 0) * effectiveQty).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                              : "-"
+                          } 
+                          className="bg-muted font-medium text-primary" 
+                        />
+                        {effectiveQty > 1 && (parseFloat(unitPrice) || 0) > 0 && (
+                          <p className="text-xs text-muted-foreground">
+                            {effectiveQty} ชิ้น × ฿{parseFloat(unitPrice).toLocaleString()} = ฿{((parseFloat(unitPrice) || 0) * effectiveQty).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </p>
+                        )}
+                      </>
+                    );
+                  })()}
                 </div>
               </div>
 

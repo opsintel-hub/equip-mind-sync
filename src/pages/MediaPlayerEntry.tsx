@@ -16,6 +16,7 @@ import { MediaPlayerCodePrefixSelect } from "@/components/media-player/MediaPlay
 import { CMSTypeSelect } from "@/components/media-player/CMSTypeSelect";
 import { MediaPlayerNameSelect } from "@/components/media-player/MediaPlayerNameSelect";
 import { SpecificationSelect } from "@/components/media-player/SpecificationSelect";
+import { ModelSelect } from "@/components/media-player/ModelSelect";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
@@ -111,6 +112,7 @@ const MediaPlayerEntry = () => {
     cms_type_id: "",
     specification: "", // now stores media_player_specifications id
     brand: "",
+    model_id: "",
   });
 
   // Image upload in form
@@ -213,6 +215,7 @@ const MediaPlayerEntry = () => {
           cms_type_id: formData.cms_type_id || null,
           specification: selectedSpec?.name || null,
           brand: formData.brand || null,
+          model_id: formData.model_id || null,
           quantity: 1,
           unit: "เครื่อง",
         } as any)
@@ -267,6 +270,7 @@ const MediaPlayerEntry = () => {
       cms_type_id: "",
       specification: "",
       brand: "",
+      model_id: "",
     });
     setSelectedPrefix("");
     setCodePreview("");
@@ -535,7 +539,7 @@ const MediaPlayerEntry = () => {
                 <CardTitle className="text-lg">ข้อมูลทั่วไป</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                   <div className="space-y-2">
                     <Label>Prefix รหัส *</Label>
                     <MediaPlayerCodePrefixSelect
@@ -554,6 +558,13 @@ const MediaPlayerEntry = () => {
                     <MediaPlayerNameSelect
                       value={formData.name}
                       onChange={(value) => setFormData({ ...formData, name: value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>โมเดล</Label>
+                    <ModelSelect
+                      value={formData.model_id}
+                      onChange={(value) => setFormData({ ...formData, model_id: value })}
                     />
                   </div>
                   <div className="space-y-2">
@@ -779,13 +790,15 @@ const MediaPlayerEntry = () => {
                       <TableHeader>
                         <TableRow className="bg-muted/50">
                           <TableHead className="whitespace-nowrap">รหัส</TableHead>
-                          <TableHead className="whitespace-nowrap">ฝ่าย</TableHead>
-                          <TableHead className="whitespace-nowrap">บริษัท</TableHead>
-                          <TableHead className="whitespace-nowrap">ยี่ห้อสินค้า</TableHead>
-                          <TableHead className="whitespace-nowrap">Model</TableHead>
-                          <TableHead className="whitespace-nowrap">ชื่อ</TableHead>
+                          <TableHead className="whitespace-nowrap">ชื่อสินค้า</TableHead>
+                          <TableHead className="whitespace-nowrap">โมเดล</TableHead>
+                          <TableHead className="whitespace-nowrap">ยี่ห้อ</TableHead>
                           <TableHead className="whitespace-nowrap">ประเภทสินค้า</TableHead>
                           <TableHead className="whitespace-nowrap">Specification</TableHead>
+                          <TableHead className="whitespace-nowrap text-center">รูปภาพ</TableHead>
+                          <TableHead className="whitespace-nowrap">ฝ่าย</TableHead>
+                          <TableHead className="whitespace-nowrap">บริษัท</TableHead>
+                          <TableHead className="whitespace-nowrap">ชื่อ</TableHead>
                           <TableHead className="whitespace-nowrap">S/N 1</TableHead>
                           <TableHead className="whitespace-nowrap">S/N 2</TableHead>
                           <TableHead className="whitespace-nowrap">Activate Windows</TableHead>
@@ -804,7 +817,6 @@ const MediaPlayerEntry = () => {
                           <TableHead className="whitespace-nowrap text-center">ไฟล์ PR</TableHead>
                           <TableHead className="whitespace-nowrap">Invoice</TableHead>
                           <TableHead className="whitespace-nowrap text-center">ไฟล์ Invoice</TableHead>
-                          <TableHead className="whitespace-nowrap text-center">รูปภาพ</TableHead>
                           <TableHead className="whitespace-nowrap">หมายเหตุ</TableHead>
                           <TableHead className="text-right whitespace-nowrap">จัดการ</TableHead>
                         </TableRow>
@@ -820,15 +832,23 @@ const MediaPlayerEntry = () => {
                           filteredPlayers.map((player) => (
                             <TableRow key={player.id} className="hover:bg-muted/30">
                               <TableCell className="font-mono text-sm whitespace-nowrap">{player.code}</TableCell>
-                              <TableCell className="text-sm whitespace-nowrap">{player.department || "-"}</TableCell>
-                              <TableCell className="text-sm whitespace-nowrap">{getCompanyName(player.company_id)}</TableCell>
                               <TableCell className="whitespace-nowrap">{player.name}</TableCell>
                               <TableCell className="text-sm whitespace-nowrap">
                                 {modelsForFilter.find(m => m.id === player.model_id)?.name || "-"}
                               </TableCell>
-                              <TableCell className="text-sm whitespace-nowrap">{player.remote_name || "-"}</TableCell>
+                              <TableCell className="text-sm whitespace-nowrap">{player.brand || "-"}</TableCell>
                               <TableCell className="text-sm whitespace-nowrap">{getCMSTypeName(player.cms_type_id)}</TableCell>
                               <TableCell className="text-sm whitespace-nowrap">{player.specification || "-"}</TableCell>
+                              <TableCell className="text-center">
+                                {player.image_url ? (
+                                  <a href={player.image_url} target="_blank" rel="noopener noreferrer" title="ดูรูปภาพ">
+                                    <ImageIcon className="w-4 h-4 text-primary hover:text-primary/80 mx-auto" />
+                                  </a>
+                                ) : <span className="text-muted-foreground">-</span>}
+                              </TableCell>
+                              <TableCell className="text-sm whitespace-nowrap">{player.department || "-"}</TableCell>
+                              <TableCell className="text-sm whitespace-nowrap">{getCompanyName(player.company_id)}</TableCell>
+                              <TableCell className="text-sm whitespace-nowrap">{player.remote_name || "-"}</TableCell>
                               <TableCell className="text-sm whitespace-nowrap">{player.serial_number_1 || "-"}</TableCell>
                               <TableCell className="text-sm whitespace-nowrap">{player.serial_number_2 || "-"}</TableCell>
                               <TableCell className="text-sm whitespace-nowrap">{player.activate_windows || "-"}</TableCell>
@@ -875,13 +895,6 @@ const MediaPlayerEntry = () => {
                                 {player.invoice_document_url ? (
                                   <a href={player.invoice_document_url} target="_blank" rel="noopener noreferrer" title="ดูไฟล์ Invoice">
                                     <FileText className="w-4 h-4 text-primary hover:text-primary/80 mx-auto" />
-                                  </a>
-                                ) : <span className="text-muted-foreground">-</span>}
-                              </TableCell>
-                              <TableCell className="text-center">
-                                {player.image_url ? (
-                                  <a href={player.image_url} target="_blank" rel="noopener noreferrer" title="ดูรูปภาพ">
-                                    <ImageIcon className="w-4 h-4 text-primary hover:text-primary/80 mx-auto" />
                                   </a>
                                 ) : <span className="text-muted-foreground">-</span>}
                               </TableCell>
