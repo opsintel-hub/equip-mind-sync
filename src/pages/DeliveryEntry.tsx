@@ -1052,6 +1052,8 @@ const DeliveryEntry = () => {
                           setMediaPlayerDevices(prev => [...prev, {
                             id: crypto.randomUUID(),
                             serial_number_1: "",
+                            serial_number_2: "",
+                            device_name: "",
                             activate_windows: "",
                             image_file: null,
                             image_preview: null,
