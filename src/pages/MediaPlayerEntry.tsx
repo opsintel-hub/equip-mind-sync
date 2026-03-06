@@ -8,7 +8,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Monitor, Search, Loader2, MapPin, Unplug, Plus, Download, Image, FileText } from "lucide-react";
+import { Monitor, Search, Loader2, MapPin, Unplug, Plus, Download, Image, FileText, Camera } from "lucide-react";
+import { MediaPlayerImageUpload } from "@/components/media-player/MediaPlayerImageUpload";
 import * as XLSX from "xlsx";
 import MediaPlayerDashboard from "@/components/media-player/MediaPlayerDashboard";
 import { MediaPlayerCodePrefixSelect } from "@/components/media-player/MediaPlayerCodePrefixSelect";
@@ -84,6 +85,7 @@ const MediaPlayerEntry = () => {
   const [selectedPlayer, setSelectedPlayer] = useState<MediaPlayer | null>(null);
   const [installBillboardId, setInstallBillboardId] = useState("");
   const [installDate, setInstallDate] = useState("");
+  const [imageUploadPlayer, setImageUploadPlayer] = useState<MediaPlayer | null>(null);
   const [selectedPrefix, setSelectedPrefix] = useState("");
   const [codePreview, setCodePreview] = useState("");
   
@@ -766,6 +768,14 @@ const MediaPlayerEntry = () => {
                               <TableCell className="text-sm whitespace-nowrap max-w-[150px] truncate">{player.description || "-"}</TableCell>
                               <TableCell className="text-right">
                                 <div className="flex items-center justify-end gap-1">
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => setImageUploadPlayer(player)}
+                                    title="Upload ภาพ"
+                                  >
+                                    <Camera className="w-4 h-4 text-primary" />
+                                  </Button>
                                   {player.billboard_id ? (
                                     <Button
                                       variant="ghost"
@@ -801,6 +811,15 @@ const MediaPlayerEntry = () => {
           </div>
         </TabsContent>
       </Tabs>
+
+      {/* Image Upload Dialog */}
+      {imageUploadPlayer && (
+        <MediaPlayerImageUpload
+          mediaPlayerId={imageUploadPlayer.id}
+          mediaPlayerCode={imageUploadPlayer.code}
+          onClose={() => setImageUploadPlayer(null)}
+        />
+      )}
 
       {/* Install to Billboard Dialog */}
       <Dialog open={isInstallDialogOpen} onOpenChange={setIsInstallDialogOpen}>

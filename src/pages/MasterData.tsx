@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useState, lazy, Suspense } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Package, MapPin, Truck, Warehouse, Building2, Target, Building, Wrench, PackageOpen, HardHat, Layers, FolderTree, Zap, Users } from "lucide-react";
+import { Package, MapPin, Truck, Warehouse, Building2, Target, Building, Wrench, PackageOpen, HardHat, Layers, FolderTree, Zap, Users, Monitor } from "lucide-react";
 import { PMActionTypeList } from "@/components/pm/PMActionTypeList";
 import { PMActionTypeForm } from "@/components/pm/PMActionTypeForm";
 import { EquipmentForm } from "@/components/equipment/EquipmentForm";
@@ -37,6 +37,8 @@ import { SubcategoryForm } from "@/components/category/SubcategoryForm";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { TechnicianForm } from "@/components/tools/TechnicianForm";
 import { TechnicianList } from "@/components/tools/TechnicianList";
+
+const MediaPlayerEntry = lazy(() => import("@/pages/MediaPlayerEntry"));
 
 const MasterData = () => {
   const [refreshKey, setRefreshKey] = useState(0);
@@ -112,6 +114,10 @@ const MasterData = () => {
             <TabsTrigger value="pm_action_types" className="gap-1.5 text-xs px-3">
               <Zap className="h-3.5 w-3.5" />
               PM Action Types
+            </TabsTrigger>
+            <TabsTrigger value="media_player" className="gap-1.5 text-xs px-3">
+              <Monitor className="h-3.5 w-3.5" />
+              จัดการ Media Player
             </TabsTrigger>
           </TabsList>
         </ScrollArea>
@@ -424,6 +430,12 @@ const MasterData = () => {
               <PMActionTypeList refresh={refreshKey} />
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="media_player" className="space-y-4">
+          <Suspense fallback={<div className="flex justify-center py-8"><div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full" /></div>}>
+            <MediaPlayerEntry />
+          </Suspense>
         </TabsContent>
       </Tabs>
     </div>
