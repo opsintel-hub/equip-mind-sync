@@ -113,6 +113,10 @@ const MediaPlayerEntry = () => {
     brand: "",
   });
 
+  // Image upload in form
+  const [formImages, setFormImages] = useState<File[]>([]);
+  const [formImagePreviews, setFormImagePreviews] = useState<string[]>([]);
+
   useEffect(() => {
     fetchMediaPlayers();
     fetchFiltersData();
