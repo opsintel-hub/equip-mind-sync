@@ -612,9 +612,8 @@ const DeliveryEntry = () => {
     setWaitingEquipmentId(false);
     setDepreciationMonths("");
     setItemNotes("");
-    // Media Player specific
-    setSelectedCmsTypeId("");
-  setSerialNumber2("");
+    // Media Player specific - reset device entries
+    setMediaPlayerDevices([{ id: crypto.randomUUID(), serial_number_1: "", activate_windows: "", image_file: null, image_preview: null }]);
     // Category/Subcategory
     setSelectedCategoryId("");
     setSelectedSubcategoryId("");
