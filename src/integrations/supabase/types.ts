@@ -2467,6 +2467,44 @@ export type Database = {
         }
         Relationships: []
       }
+      media_player_images: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          description: string | null
+          display_order: number | null
+          id: string
+          image_url: string
+          media_player_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          display_order?: number | null
+          id?: string
+          image_url: string
+          media_player_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          display_order?: number | null
+          id?: string
+          image_url?: string
+          media_player_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "media_player_images_media_player_id_fkey"
+            columns: ["media_player_id"]
+            isOneToOne: false
+            referencedRelation: "media_players"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       media_player_models: {
         Row: {
           created_at: string | null
