@@ -1981,6 +1981,7 @@ export type Database = {
       }
       goods_receipt_pending: {
         Row: {
+          activate_windows: string | null
           asset_code: string | null
           company_id: string | null
           created_at: string
@@ -2006,6 +2007,7 @@ export type Database = {
           lot_number: string | null
           lot_number_2: string | null
           media_player_id: string | null
+          media_player_image_url: string | null
           notes: string | null
           order_for_project: string | null
           po_number: string | null
@@ -2039,6 +2041,7 @@ export type Database = {
           warranty_expiry_date: string | null
         }
         Insert: {
+          activate_windows?: string | null
           asset_code?: string | null
           company_id?: string | null
           created_at?: string
@@ -2064,6 +2067,7 @@ export type Database = {
           lot_number?: string | null
           lot_number_2?: string | null
           media_player_id?: string | null
+          media_player_image_url?: string | null
           notes?: string | null
           order_for_project?: string | null
           po_number?: string | null
@@ -2097,6 +2101,7 @@ export type Database = {
           warranty_expiry_date?: string | null
         }
         Update: {
+          activate_windows?: string | null
           asset_code?: string | null
           company_id?: string | null
           created_at?: string
@@ -2122,6 +2127,7 @@ export type Database = {
           lot_number?: string | null
           lot_number_2?: string | null
           media_player_id?: string | null
+          media_player_image_url?: string | null
           notes?: string | null
           order_for_project?: string | null
           po_number?: string | null

@@ -52,10 +52,7 @@ interface Supplier {
   name: string;
   vendor_code: string | null;
 }
-interface CMSType {
-  id: string;
-  name: string;
-}
+// CMSType removed - no longer used
 interface ReceiptPurpose {
   id: string;
   name: string;
@@ -88,7 +85,7 @@ const DeliveryEntry = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [equipment, setEquipment] = useState<Equipment[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
-  const [cmsTypes, setCmsTypes] = useState<CMSType[]>([]);
+  // cmsTypes removed - no longer used
   const { allowedDepartments, isSingleDepartment, loading: deptLoading } = useAllowedDepartments("create");
   const [mediaPlayers, setMediaPlayers] = useState<{
     id: string;
@@ -159,9 +156,17 @@ const DeliveryEntry = () => {
   const [warrantyExpiryDate, setWarrantyExpiryDate] = useState("");
   const [itemNotes, setItemNotes] = useState("");
 
-  // Media Player specific fields
-  const [selectedCmsTypeId, setSelectedCmsTypeId] = useState("");
-  const [serialNumber2, setSerialNumber2] = useState("");
+  // Media Player specific fields - dynamic device entries
+  interface MediaPlayerDeviceEntry {
+    id: string;
+    serial_number_1: string;
+    activate_windows: string;
+    image_file: File | null;
+    image_preview: string | null;
+  }
+  const [mediaPlayerDevices, setMediaPlayerDevices] = useState<MediaPlayerDeviceEntry[]>([
+    { id: crypto.randomUUID(), serial_number_1: "", activate_windows: "", image_file: null, image_preview: null }
+  ]);
 
   // Storage dimensions
   const [storageWidthCm, setStorageWidthCm] = useState("");
@@ -217,7 +222,7 @@ const DeliveryEntry = () => {
     fetchSuppliers();
     fetchReceiptPurposes();
     fetchPendingReceipts();
-    fetchCmsTypes();
+    // fetchCmsTypes removed
     fetchMediaPlayers();
     fetchCategories();
     fetchSubcategories();
@@ -284,15 +289,7 @@ const DeliveryEntry = () => {
       setPendingReceipts(data as PendingReceipt[]);
     }
   };
-  const fetchCmsTypes = async () => {
-    const {
-      data,
-      error
-    } = await supabase.from("cms_types").select("id, name").eq("is_active", true).order("name");
-    if (!error && data) {
-      setCmsTypes(data);
-    }
-  };
+  // fetchCmsTypes removed - CMS type field no longer used
   const fetchMediaPlayers = async () => {
     const {
       data,
@@ -462,17 +459,26 @@ const DeliveryEntry = () => {
         toast.error("กรุณาระบุราคาต่อชิ้น");
         return;
       }
+      // Validate each device entry has at least S/N
+      const validDevices = mediaPlayerDevices.filter(d => d.serial_number_1.trim());
+      if (validDevices.length === 0) {
+        toast.error("กรุณากรอก Serial Number อย่างน้อย 1 เครื่อง");
+        return;
+      }
+      
       const selectedMP = mediaPlayers.find(mp => mp.id === selectedMediaPlayerId);
-      const newItem: DeliveryCartItem = {
+      
+      // Create one cart item per device entry
+      const newItems: DeliveryCartItem[] = validDevices.map(device => ({
         id: crypto.randomUUID(),
         equipment_id: null,
         equipment_code: selectedMP?.code || equipmentCode,
         equipment_name: selectedMP?.name || equipmentName,
-        quantity: parseInt(quantity),
+        quantity: 1, // Each device = 1 unit
         unit: unit || "เครื่อง",
         lot_number_1: lotNumber1,
         lot_number_2: lotNumber2,
-        serial_number: serialNumber,
+        serial_number: device.serial_number_1,
         unit_price: unitPrice ? parseFloat(unitPrice) : null,
         supplier_id: selectedSupplierId || null,
         supplier_name: supplierName || selectedSupplier?.name || "",
@@ -489,14 +495,19 @@ const DeliveryEntry = () => {
         waiting_equipment_id: waitingEquipmentId,
         depreciation_months: depreciationMonths,
         notes: itemNotes,
-        // Media Player specific
         is_media_player: true,
         media_player_id: selectedMediaPlayerId || null,
-        cms_type_id: selectedCmsTypeId,
-        serial_number_2: serialNumber2
-      };
-      setCartItems([...cartItems, newItem]);
-      setSelectedCartIds(prev => new Set([...prev, newItem.id]));
+        activate_windows: device.activate_windows,
+        media_player_image_file: device.image_file || undefined,
+      }));
+      
+      setCartItems([...cartItems, ...newItems]);
+      setSelectedCartIds(prev => {
+        const next = new Set(prev);
+        newItems.forEach(item => next.add(item.id));
+        return next;
+      });
+      toast.success(`เพิ่ม ${validDevices.length} เครื่องลงตะกร้าแล้ว`);
     } else {
       // Regular equipment validation
       if (!selectedEquipmentId) {
@@ -590,9 +601,8 @@ const DeliveryEntry = () => {
     setWaitingEquipmentId(false);
     setDepreciationMonths("");
     setItemNotes("");
-    // Media Player specific
-    setSelectedCmsTypeId("");
-  setSerialNumber2("");
+    // Media Player specific - reset device entries
+    setMediaPlayerDevices([{ id: crypto.randomUUID(), serial_number_1: "", activate_windows: "", image_file: null, image_preview: null }]);
     // Category/Subcategory
     setSelectedCategoryId("");
     setSelectedSubcategoryId("");
@@ -665,6 +675,25 @@ const DeliveryEntry = () => {
       if (purchaseDocumentFile) {
         purchaseDocumentUrl = await uploadPurchaseDocument(docNo);
       }
+      
+      // Upload media player images for items that have them
+      for (const item of itemsToSubmit) {
+        if (item.media_player_image_file) {
+          try {
+            const file = item.media_player_image_file;
+            const fileExt = file.name.split('.').pop();
+            const fileName = `mp-${docNo}-${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+            const filePath = `media-player-entry/${fileName}`;
+            const { error: uploadError } = await supabase.storage.from('media-player-images').upload(filePath, file);
+            if (!uploadError) {
+              const { data: { publicUrl } } = supabase.storage.from('media-player-images').getPublicUrl(filePath);
+              item.media_player_image_url = publicUrl;
+            }
+          } catch (err) {
+            console.error('Error uploading media player image:', err);
+          }
+        }
+      }
       setIsUploadingFile(false);
 
       // Combine all document URLs (including PO/PR/Invoice uploaded URLs)
@@ -717,6 +746,8 @@ const DeliveryEntry = () => {
         // Media Player specific fields
         is_media_player: item.is_media_player || false,
         media_player_id: item.media_player_id || null,
+        activate_windows: item.activate_windows || null,
+        media_player_image_url: item.media_player_image_url || null,
         // Temp fields for new products
         temp_category_id: item.temp_category_id || null,
         temp_subcategory_id: item.temp_subcategory_id || null,
@@ -1004,34 +1035,144 @@ const DeliveryEntry = () => {
                     </div>
                   </div>
                   
-                  {/* Media Player Specific Fields */}
+                  {/* Media Player Device Entries - Dynamic List */}
                   <div className="p-3 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg space-y-4">
-                    <h4 className="font-medium text-sm text-blue-700 dark:text-blue-400 flex items-center gap-2">
-                      <Monitor className="w-4 h-4" />
-                      ข้อมูลเฉพาะ Media Player
-                    </h4>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="cmsType">ประเภท CMS</Label>
-                        <Select value={selectedCmsTypeId} onValueChange={setSelectedCmsTypeId}>
-                          <SelectTrigger id="cmsType">
-                            <SelectValue placeholder="เลือก CMS..." />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {cmsTypes.map(cms => <SelectItem key={cms.id} value={cms.id}>{cms.name}</SelectItem>)}
-                          </SelectContent>
-                        </Select>
-                      </div>
+                    <div className="flex items-center justify-between">
+                      <h4 className="font-medium text-sm text-blue-700 dark:text-blue-400 flex items-center gap-2">
+                        <Monitor className="w-4 h-4" />
+                        ข้อมูลเฉพาะ Media Player ({mediaPlayerDevices.length} เครื่อง)
+                      </h4>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setMediaPlayerDevices(prev => [...prev, {
+                            id: crypto.randomUUID(),
+                            serial_number_1: "",
+                            activate_windows: "",
+                            image_file: null,
+                            image_preview: null,
+                          }]);
+                        }}
+                        className="gap-1 text-blue-700 border-blue-300 hover:bg-blue-100 dark:text-blue-400 dark:border-blue-700 dark:hover:bg-blue-900/30"
+                      >
+                        <PlusCircle className="w-4 h-4" />
+                        เพิ่มเครื่อง
+                      </Button>
                     </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="serialNumber1">Serial Number 1</Label>
-                        <Input id="serialNumber1" placeholder="SN-1" value={serialNumber} onChange={e => setSerialNumber(e.target.value)} />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="serialNumber2">Serial Number 2</Label>
-                        <Input id="serialNumber2" placeholder="SN-2" value={serialNumber2} onChange={e => setSerialNumber2(e.target.value)} />
-                      </div>
+                    <p className="text-xs text-blue-600/80 dark:text-blue-500/80">
+                      💡 กรอก S/N แต่ละเครื่อง — ระบบจะสร้างรายการในตะกร้าอัตโนมัติ 1 รายการต่อ 1 เครื่อง
+                    </p>
+                    
+                    <div className="space-y-3">
+                      {mediaPlayerDevices.map((device, idx) => (
+                        <div key={device.id} className="p-3 bg-background border rounded-lg space-y-3">
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm font-medium text-foreground">เครื่องที่ {idx + 1}</span>
+                            {mediaPlayerDevices.length > 1 && (
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                className="h-7 text-destructive hover:text-destructive"
+                                onClick={() => {
+                                  // Clean up preview URL
+                                  if (device.image_preview) URL.revokeObjectURL(device.image_preview);
+                                  setMediaPlayerDevices(prev => prev.filter(d => d.id !== device.id));
+                                }}
+                              >
+                                <X className="w-3 h-3 mr-1" />
+                                ลบ
+                              </Button>
+                            )}
+                          </div>
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                            {/* Serial Number 1 */}
+                            <div className="space-y-1">
+                              <Label className="text-xs">Serial Number 1 *</Label>
+                              <Input
+                                placeholder="กรอก S/N..."
+                                value={device.serial_number_1}
+                                onChange={e => {
+                                  setMediaPlayerDevices(prev => prev.map(d =>
+                                    d.id === device.id ? { ...d, serial_number_1: e.target.value } : d
+                                  ));
+                                }}
+                              />
+                            </div>
+                            {/* Active Windows */}
+                            <div className="space-y-1">
+                              <Label className="text-xs">Active Windows</Label>
+                              <Input
+                                placeholder="Active Windows..."
+                                value={device.activate_windows}
+                                onChange={e => {
+                                  setMediaPlayerDevices(prev => prev.map(d =>
+                                    d.id === device.id ? { ...d, activate_windows: e.target.value } : d
+                                  ));
+                                }}
+                              />
+                            </div>
+                            {/* Upload Image */}
+                            <div className="space-y-1">
+                              <Label className="text-xs">รูป Media Player</Label>
+                              <div className="flex items-center gap-2">
+                                <input
+                                  type="file"
+                                  accept="image/*"
+                                  className="hidden"
+                                  id={`mp-image-${device.id}`}
+                                  onChange={e => {
+                                    const file = e.target.files?.[0];
+                                    if (file) {
+                                      if (file.size > 10 * 1024 * 1024) {
+                                        toast.error("ไฟล์มีขนาดใหญ่เกินไป (สูงสุด 10MB)");
+                                        return;
+                                      }
+                                      if (device.image_preview) URL.revokeObjectURL(device.image_preview);
+                                      const preview = URL.createObjectURL(file);
+                                      setMediaPlayerDevices(prev => prev.map(d =>
+                                        d.id === device.id ? { ...d, image_file: file, image_preview: preview } : d
+                                      ));
+                                    }
+                                  }}
+                                />
+                                {device.image_preview ? (
+                                  <div className="flex items-center gap-2">
+                                    <img src={device.image_preview} alt="Preview" className="w-10 h-10 rounded object-cover border" />
+                                    <Button
+                                      type="button"
+                                      variant="ghost"
+                                      size="sm"
+                                      className="h-7"
+                                      onClick={() => {
+                                        if (device.image_preview) URL.revokeObjectURL(device.image_preview);
+                                        setMediaPlayerDevices(prev => prev.map(d =>
+                                          d.id === device.id ? { ...d, image_file: null, image_preview: null } : d
+                                        ));
+                                      }}
+                                    >
+                                      <X className="w-3 h-3" />
+                                    </Button>
+                                  </div>
+                                ) : (
+                                  <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    className="h-9 w-full"
+                                    onClick={() => document.getElementById(`mp-image-${device.id}`)?.click()}
+                                  >
+                                    <ImagePlus className="w-4 h-4 mr-1" />
+                                    เลือกรูป
+                                  </Button>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   </div>
                 </> : <>
