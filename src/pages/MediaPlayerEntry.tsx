@@ -187,6 +187,11 @@ const MediaPlayerEntry = () => {
       return;
     }
 
+    if (formImages.length === 0) {
+      toast.error("กรุณาอัปโหลดรูปภาพอย่างน้อย 1 รูป");
+      return;
+    }
+
     // Resolve name from media_player_names
     const selectedName = mediaPlayerNames.find(n => n.id === formData.name);
     const selectedSpec = mediaPlayerSpecs.find(s => s.id === formData.specification);
@@ -200,7 +205,7 @@ const MediaPlayerEntry = () => {
       if (codeError) throw codeError;
       const code = codeData as string;
       
-      const { error } = await supabase
+      const { data: insertData, error } = await supabase
         .from("media_players")
         .insert({
           code,
@@ -210,11 +215,42 @@ const MediaPlayerEntry = () => {
           brand: formData.brand || null,
           quantity: 1,
           unit: "เครื่อง",
-        } as any);
+        } as any)
+        .select("id")
+        .single();
 
       if (error) throw error;
 
-      toast.success(`บันทึกข้อมูล Media Player สำเร็จ (${code})`);
+      // Upload images
+      const mediaPlayerId = (insertData as any).id;
+      for (let i = 0; i < formImages.length; i++) {
+        const file = formImages[i];
+        const ext = file.name.split(".").pop() || "jpg";
+        const fileName = `${mediaPlayerId}/${Date.now()}_${Math.random().toString(36).substr(2, 9)}.${ext}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from("media-player-images")
+          .upload(fileName, file);
+
+        if (uploadError) {
+          console.warn("Storage upload failed:", uploadError);
+          continue;
+        }
+
+        const { data: urlData } = supabase.storage
+          .from("media-player-images")
+          .getPublicUrl(fileName);
+
+        await supabase
+          .from("media_player_images" as any)
+          .insert({
+            media_player_id: mediaPlayerId,
+            image_url: urlData.publicUrl,
+            display_order: i,
+          });
+      }
+
+      toast.success(`บันทึกข้อมูล Media Player สำเร็จ (${code}) พร้อมรูปภาพ ${formImages.length} รูป`);
       resetForm();
       fetchMediaPlayers();
     } catch (error) {
