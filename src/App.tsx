@@ -43,7 +43,7 @@ import Testing from "./pages/Testing";
 import StockMovementLog from "./pages/StockMovementLog";
 import InventoryReport from "./pages/InventoryReport";
 import PendingAssetCodes from "./pages/PendingAssetCodes";
-import MediaPlayerEntry from "./pages/MediaPlayerEntry";
+// MediaPlayerEntry is now embedded in MasterData
 import AdManagement from "./pages/AdManagement";
 import AdEntry from "./pages/AdEntry";
 import AdRequest from "./pages/AdRequest";
