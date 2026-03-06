@@ -1368,32 +1368,43 @@ const DeliveryEntry = () => {
                 </div>
               </div>
 
-              {/* Serial Number & Unit Price & Total Amount */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="serialNumber">Serial Number</Label>
-                  <Input id="serialNumber" placeholder="SN-xxxxx" value={serialNumber} onChange={e => setSerialNumber(e.target.value)} />
-                </div>
+              {/* Serial Number (only for non-Media Player) & Unit Price & Total Amount */}
+              <div className={`grid grid-cols-1 ${isMediaPlayerEntry ? 'md:grid-cols-2' : 'md:grid-cols-3'} gap-4`}>
+                {!isMediaPlayerEntry && (
+                  <div className="space-y-2">
+                    <Label htmlFor="serialNumber">Serial Number</Label>
+                    <Input id="serialNumber" placeholder="SN-xxxxx" value={serialNumber} onChange={e => setSerialNumber(e.target.value)} />
+                  </div>
+                )}
                 <div className="space-y-2">
                   <Label htmlFor="unitPrice">ราคาต่อชิ้น (บาท) *</Label>
                   <Input id="unitPrice" type="number" step="0.01" placeholder="0.00" value={unitPrice} onChange={e => setUnitPrice(e.target.value)} required />
                 </div>
                 <div className="space-y-2">
                   <Label>จำนวนเงินทั้งหมด (บาท)</Label>
-                  <Input 
-                    readOnly 
-                    value={
-                      (parseFloat(unitPrice) || 0) > 0 && (parseInt(quantity) || 0) > 0
-                        ? `฿${((parseFloat(unitPrice) || 0) * (parseInt(quantity) || 0)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-                        : "-"
-                    } 
-                    className="bg-muted font-medium text-primary" 
-                  />
-                  {(parseInt(quantity) || 0) > 1 && (parseFloat(unitPrice) || 0) > 0 && (
-                    <p className="text-xs text-muted-foreground">
-                      {parseInt(quantity)} ชิ้น × ฿{parseFloat(unitPrice).toLocaleString()} = ฿{((parseFloat(unitPrice) || 0) * (parseInt(quantity) || 0)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                    </p>
-                  )}
+                  {(() => {
+                    const effectiveQty = isMediaPlayerEntry 
+                      ? (mediaPlayerDevices.filter(d => d.serial_number_1.trim()).length || mediaPlayerDevices.length)
+                      : (parseInt(quantity) || 0);
+                    return (
+                      <>
+                        <Input 
+                          readOnly 
+                          value={
+                            (parseFloat(unitPrice) || 0) > 0 && effectiveQty > 0
+                              ? `฿${((parseFloat(unitPrice) || 0) * effectiveQty).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                              : "-"
+                          } 
+                          className="bg-muted font-medium text-primary" 
+                        />
+                        {effectiveQty > 1 && (parseFloat(unitPrice) || 0) > 0 && (
+                          <p className="text-xs text-muted-foreground">
+                            {effectiveQty} ชิ้น × ฿{parseFloat(unitPrice).toLocaleString()} = ฿{((parseFloat(unitPrice) || 0) * effectiveQty).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </p>
+                        )}
+                      </>
+                    );
+                  })()}
                 </div>
               </div>
 
