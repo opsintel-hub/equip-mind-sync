@@ -41,6 +41,9 @@ export interface DeliveryCartItem {
   media_player_id?: string | null;
   cms_type_id?: string;
   serial_number_2?: string;
+  activate_windows?: string;
+  media_player_image_url?: string;
+  media_player_image_file?: File;
 }
 
 interface DeliveryCartProps {

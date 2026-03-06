@@ -159,9 +159,17 @@ const DeliveryEntry = () => {
   const [warrantyExpiryDate, setWarrantyExpiryDate] = useState("");
   const [itemNotes, setItemNotes] = useState("");
 
-  // Media Player specific fields
-  const [selectedCmsTypeId, setSelectedCmsTypeId] = useState("");
-  const [serialNumber2, setSerialNumber2] = useState("");
+  // Media Player specific fields - dynamic device entries
+  interface MediaPlayerDeviceEntry {
+    id: string;
+    serial_number_1: string;
+    activate_windows: string;
+    image_file: File | null;
+    image_preview: string | null;
+  }
+  const [mediaPlayerDevices, setMediaPlayerDevices] = useState<MediaPlayerDeviceEntry[]>([
+    { id: crypto.randomUUID(), serial_number_1: "", activate_windows: "", image_file: null, image_preview: null }
+  ]);
 
   // Storage dimensions
   const [storageWidthCm, setStorageWidthCm] = useState("");
