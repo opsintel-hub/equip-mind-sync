@@ -790,13 +790,15 @@ const MediaPlayerEntry = () => {
                       <TableHeader>
                         <TableRow className="bg-muted/50">
                           <TableHead className="whitespace-nowrap">รหัส</TableHead>
-                          <TableHead className="whitespace-nowrap">ฝ่าย</TableHead>
-                          <TableHead className="whitespace-nowrap">บริษัท</TableHead>
-                          <TableHead className="whitespace-nowrap">ยี่ห้อสินค้า</TableHead>
-                          <TableHead className="whitespace-nowrap">Model</TableHead>
-                          <TableHead className="whitespace-nowrap">ชื่อ</TableHead>
+                          <TableHead className="whitespace-nowrap">ชื่อสินค้า</TableHead>
+                          <TableHead className="whitespace-nowrap">โมเดล</TableHead>
+                          <TableHead className="whitespace-nowrap">ยี่ห้อ</TableHead>
                           <TableHead className="whitespace-nowrap">ประเภทสินค้า</TableHead>
                           <TableHead className="whitespace-nowrap">Specification</TableHead>
+                          <TableHead className="whitespace-nowrap text-center">รูปภาพ</TableHead>
+                          <TableHead className="whitespace-nowrap">ฝ่าย</TableHead>
+                          <TableHead className="whitespace-nowrap">บริษัท</TableHead>
+                          <TableHead className="whitespace-nowrap">ชื่อ</TableHead>
                           <TableHead className="whitespace-nowrap">S/N 1</TableHead>
                           <TableHead className="whitespace-nowrap">S/N 2</TableHead>
                           <TableHead className="whitespace-nowrap">Activate Windows</TableHead>
@@ -815,7 +817,6 @@ const MediaPlayerEntry = () => {
                           <TableHead className="whitespace-nowrap text-center">ไฟล์ PR</TableHead>
                           <TableHead className="whitespace-nowrap">Invoice</TableHead>
                           <TableHead className="whitespace-nowrap text-center">ไฟล์ Invoice</TableHead>
-                          <TableHead className="whitespace-nowrap text-center">รูปภาพ</TableHead>
                           <TableHead className="whitespace-nowrap">หมายเหตุ</TableHead>
                           <TableHead className="text-right whitespace-nowrap">จัดการ</TableHead>
                         </TableRow>
