@@ -1182,16 +1182,13 @@ const IssueRequest = () => {
                     placeholder="หน่วย"
                   />
                 </div>
-                {selectedPurpose?.requires_billboard && (
-                  <div className="space-y-2 md:col-span-2">
-                    <Label>ป้ายโฆษณา (สำหรับรายการนี้)</Label>
+                <div className="space-y-2 md:col-span-2">
+                    <Label>ป้ายโฆษณา (สำหรับรายการนี้) {selectedPurpose?.requires_billboard ? "*" : ""}</Label>
                     <BillboardSelect
                       value={currentItem.billboard_id}
                       onChange={(value) => setCurrentItem({ ...currentItem, billboard_id: value })}
-                      department={headerData.requester_department}
                     />
                   </div>
-                )}
                 <div className="space-y-2 md:col-span-4">
                   <Label>หมายเหตุรายการ</Label>
                   <Input
