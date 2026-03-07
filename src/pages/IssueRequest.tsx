@@ -1124,7 +1124,7 @@ const IssueRequest = () => {
                 <div className="space-y-2 md:col-span-2">
                    <Label>ระบุ Serial Number เพื่อค้นหาสินค้าเฉพาะชิ้น</Label>
                   <SerialNumberSelect
-                    value={currentItem.serial_number ? `equipment:${currentItem.equipment_id}:${currentItem.serial_number}` : ""}
+                    value={currentItem.serial_number && currentItem.serial_number_source ? `${currentItem.serial_number_source}:${currentItem.equipment_id}:${currentItem.serial_number}` : ""}
                     onChange={handleSerialNumberSelect}
                     disabled={false}
                     placeholder={currentItem.equipment_id ? "ค้นหา S/N ของสินค้าที่เลือก..." : "ค้นหา S/N จาก Equipment และ Media Player..."}
