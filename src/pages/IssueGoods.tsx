@@ -915,7 +915,7 @@ const IssueGoods = () => {
                 <p className="text-sm">{selectedItem?.equipment_name || "-"}</p>
               </div>
               <div>
-                <Label className="text-muted-foreground">Serial Number</Label>
+                <Label className="text-muted-foreground">Serial Number (จากคำขอ)</Label>
                 <p className="font-medium">{selectedItem?.serial_number || "-"}</p>
               </div>
               <div>
@@ -931,6 +931,30 @@ const IssueGoods = () => {
                   {selectedItem?.equipment_id ? getAvailableStock(selectedItem.equipment_id) : "-"}
                 </p>
               </div>
+            </div>
+
+            {/* Serial Number - Warehouse staff can assign or override */}
+            <div className="space-y-2">
+              <Label className="flex items-center gap-1">
+                <Hash className="h-3 w-3" />
+                Serial Number ที่จ่าย {selectedItem?.serial_number ? "(ระบุมาจากผู้เบิก)" : "(เจ้าหน้าที่คลังระบุ)"}
+              </Label>
+              <SerialNumberSelect
+                value={issueData.serial_number ? `equipment:${selectedItem?.equipment_id || ""}:${issueData.serial_number}` : ""}
+                onChange={(item: SerialNumberItem | null) => {
+                  setIssueData({
+                    ...issueData,
+                    serial_number: item?.serial_number || "",
+                  });
+                }}
+                equipmentId={selectedItem?.equipment_id || undefined}
+                placeholder={selectedItem?.serial_number ? selectedItem.serial_number : "เลือก S/N ที่จะจ่าย..."}
+              />
+              {selectedItem?.serial_number && (
+                <p className="text-xs text-muted-foreground">
+                  ผู้เบิกระบุ S/N: <strong>{selectedItem.serial_number}</strong> — สามารถเปลี่ยนได้หากจำเป็น
+                </p>
+              )}
             </div>
 
             {/* FIFO & Expiry Info */}
