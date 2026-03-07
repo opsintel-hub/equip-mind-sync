@@ -12,13 +12,14 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Search, Package, Clock, CheckCircle, XCircle, MapPin, AlertTriangle, Calendar, Image, Warehouse, ChevronDown, ChevronUp, ShoppingCart } from "lucide-react";
+import { Search, Package, Clock, CheckCircle, XCircle, MapPin, AlertTriangle, Calendar, Image, Warehouse, ChevronDown, ChevronUp, ShoppingCart, Hash } from "lucide-react";
 import { format, differenceInDays } from "date-fns";
 import { th } from "date-fns/locale";
 import { useAuth } from "@/hooks/useAuth";
 import BillboardDisplay from "@/components/billboard/BillboardDisplay";
 import BillboardSelect from "@/components/billboard/BillboardSelect";
 import { logStockMovement } from "@/lib/stockMovement";
+import { SerialNumberSelect, SerialNumberItem } from "@/components/equipment/SerialNumberSelect";
 
 interface EquipmentWithDetails {
   id: string;
@@ -89,6 +90,7 @@ const IssueGoods = () => {
     issued_quantity: "",
     notes: "",
     billboard_id: "",
+    serial_number: "",
   });
   const [rejectReason, setRejectReason] = useState("");
   const [imageDialogOpen, setImageDialogOpen] = useState(false);
@@ -457,7 +459,7 @@ const IssueGoods = () => {
       queryClient.invalidateQueries({ queryKey: ["billboard-equipment"] });
       setItemIssueDialogOpen(false);
       setSelectedItem(null);
-      setIssueData({ issued_quantity: "", notes: "", billboard_id: "" });
+      setIssueData({ issued_quantity: "", notes: "", billboard_id: "", serial_number: "" });
     },
     onError: (error) => {
       toast.error("เกิดข้อผิดพลาด: " + error.message);
@@ -560,6 +562,7 @@ const IssueGoods = () => {
       issued_quantity: qtyToIssue.toString(),
       notes: item.notes || "",
       billboard_id: item.billboard_id || "",
+      serial_number: item.serial_number || "",
     });
     setItemIssueDialogOpen(true);
   };
@@ -912,7 +915,7 @@ const IssueGoods = () => {
                 <p className="text-sm">{selectedItem?.equipment_name || "-"}</p>
               </div>
               <div>
-                <Label className="text-muted-foreground">Serial Number</Label>
+                <Label className="text-muted-foreground">Serial Number (จากคำขอ)</Label>
                 <p className="font-medium">{selectedItem?.serial_number || "-"}</p>
               </div>
               <div>
@@ -928,6 +931,30 @@ const IssueGoods = () => {
                   {selectedItem?.equipment_id ? getAvailableStock(selectedItem.equipment_id) : "-"}
                 </p>
               </div>
+            </div>
+
+            {/* Serial Number - Warehouse staff can assign or override */}
+            <div className="space-y-2">
+              <Label className="flex items-center gap-1">
+                <Hash className="h-3 w-3" />
+                Serial Number ที่จ่าย {selectedItem?.serial_number ? "(ระบุมาจากผู้เบิก)" : "(เจ้าหน้าที่คลังระบุ)"}
+              </Label>
+              <SerialNumberSelect
+                value={issueData.serial_number ? `equipment:${selectedItem?.equipment_id || ""}:${issueData.serial_number}` : ""}
+                onChange={(item: SerialNumberItem | null) => {
+                  setIssueData({
+                    ...issueData,
+                    serial_number: item?.serial_number || "",
+                  });
+                }}
+                equipmentId={selectedItem?.equipment_id || undefined}
+                placeholder={selectedItem?.serial_number ? selectedItem.serial_number : "เลือก S/N ที่จะจ่าย..."}
+              />
+              {selectedItem?.serial_number && (
+                <p className="text-xs text-muted-foreground">
+                  ผู้เบิกระบุ S/N: <strong>{selectedItem.serial_number}</strong> — สามารถเปลี่ยนได้หากจำเป็น
+                </p>
+              )}
             </div>
 
             {/* FIFO & Expiry Info */}

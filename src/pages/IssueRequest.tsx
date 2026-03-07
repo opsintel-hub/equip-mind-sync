@@ -62,6 +62,7 @@ interface CartItem {
   notes: string;
   is_media_player?: boolean;
   media_player_id?: string;
+  serial_number_source?: string; // Track the source prefix for S/N select value
 }
 
 const IssueRequest = () => {
@@ -105,6 +106,7 @@ const IssueRequest = () => {
     equipment_code: "",
     equipment_name: "",
     serial_number: "",
+    serial_number_source: "", // Track source for SerialNumberSelect value
     quantity: "1",
     unit: "ชิ้น",
     billboard_id: "",
@@ -357,6 +359,7 @@ const IssueRequest = () => {
       equipment_code: "",
       equipment_name: "",
       serial_number: "",
+      serial_number_source: "",
       quantity: "1",
       unit: "ชิ้น",
       billboard_id: "",
@@ -537,8 +540,50 @@ const IssueRequest = () => {
     },
   });
 
+  // Handle editing a rejected request - load its data back into the form
+  const handleEditRejectedRequest = (req: any, items: any[]) => {
+    // Load header data
+    setHeaderData({
+      company_id: req.company_id || "",
+      department_id: "",
+      section: "",
+      purpose_id: req.purpose_id || "",
+      purpose: req.purpose || "",
+      destination: req.destination || "",
+      requester_name: req.requester_name || "",
+      requester_phone: req.requester_phone || "",
+      requester_department: req.requester_department || "",
+      notes: req.notes || "",
+      pickup_type: req.pickup_type || "scheduled",
+      pickup_date: req.pickup_date || "",
+      pickup_time: req.pickup_time || "",
+    });
+
+    // Load items back into cart
+    const restoredItems: CartItem[] = items.map((item: any) => ({
+      id: crypto.randomUUID(),
+      equipment_id: item.is_media_player ? "" : (item.equipment_id || ""),
+      equipment_code: item.equipment_code || "",
+      equipment_name: item.equipment_name || "",
+      quantity: item.quantity || 1,
+      unit: item.unit || "ชิ้น",
+      serial_number: item.serial_number || "",
+      billboard_id: item.billboard_id || "",
+      notes: item.notes || "",
+      is_media_player: item.is_media_player || false,
+      media_player_id: item.is_media_player ? item.media_player_id : undefined,
+    }));
+
+    setCartItems(restoredItems);
+    setSelectedCartIds(new Set(restoredItems.map(i => i.id)));
+
+    toast.info("โหลดข้อมูลจากคำขอที่ถูกปฏิเสธแล้ว — แก้ไขและส่งใหม่ได้เลย");
+    
+    // Scroll to form
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
     if (!headerData.requester_name) {
       toast.error("กรุณากรอกชื่อผู้ขอเบิก");
       return;
@@ -564,6 +609,7 @@ const IssueRequest = () => {
         equipment_name: selected.name,
         unit: selected.unit,
         serial_number: "", // Clear S/N when changing equipment
+        serial_number_source: "",
       });
       setIsQuantityLocked(false); // Reset lock when selecting via equipment dropdown
       // Update stock info
@@ -588,6 +634,7 @@ const IssueRequest = () => {
         equipment_name: item.name,
         unit: item.unit,
         serial_number: item.serial_number,
+        serial_number_source: item.source, // Store the source for value matching
         quantity: "1", // Lock quantity to 1
       });
       setIsQuantityLocked(true); // Lock quantity when selected via S/N
@@ -606,6 +653,7 @@ const IssueRequest = () => {
         equipment_code: "",
         equipment_name: "",
         serial_number: "",
+        serial_number_source: "",
         quantity: "1",
       });
       setIsQuantityLocked(false);
@@ -1118,7 +1166,7 @@ const IssueRequest = () => {
                 <div className="space-y-2 md:col-span-2">
                    <Label>ระบุ Serial Number เพื่อค้นหาสินค้าเฉพาะชิ้น</Label>
                   <SerialNumberSelect
-                    value={currentItem.serial_number ? `equipment:${currentItem.equipment_id}:${currentItem.serial_number}` : ""}
+                    value={currentItem.serial_number && currentItem.serial_number_source ? `${currentItem.serial_number_source}:${currentItem.equipment_id}:${currentItem.serial_number}` : ""}
                     onChange={handleSerialNumberSelect}
                     disabled={false}
                     placeholder={currentItem.equipment_id ? "ค้นหา S/N ของสินค้าที่เลือก..." : "ค้นหา S/N จาก Equipment และ Media Player..."}
@@ -1176,16 +1224,13 @@ const IssueRequest = () => {
                     placeholder="หน่วย"
                   />
                 </div>
-                {selectedPurpose?.requires_billboard && (
-                  <div className="space-y-2 md:col-span-2">
-                    <Label>ป้ายโฆษณา (สำหรับรายการนี้)</Label>
+                <div className="space-y-2 md:col-span-2">
+                    <Label>ป้ายโฆษณา (สำหรับรายการนี้) {selectedPurpose?.requires_billboard ? "*" : ""}</Label>
                     <BillboardSelect
                       value={currentItem.billboard_id}
                       onChange={(value) => setCurrentItem({ ...currentItem, billboard_id: value })}
-                      department={headerData.requester_department}
                     />
                   </div>
-                )}
                 <div className="space-y-2 md:col-span-4">
                   <Label>หมายเหตุรายการ</Label>
                   <Input
@@ -1363,18 +1408,19 @@ const IssueRequest = () => {
                   <TableHead>ผู้ขอเบิก</TableHead>
                   <TableHead>วัตถุประสงค์</TableHead>
                   <TableHead>สถานะ</TableHead>
+                  <TableHead className="text-center">จัดการ</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {isLoading ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
                       กำลังโหลด...
                     </TableCell>
                   </TableRow>
                 ) : filteredRequests?.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
                       ไม่พบข้อมูล
                     </TableCell>
                   </TableRow>
@@ -1432,10 +1478,26 @@ const IssueRequest = () => {
                           </TableCell>
                           <TableCell>{req.purpose || "-"}</TableCell>
                           <TableCell>{getStatusBadge(req.status)}</TableCell>
+                          <TableCell className="text-center">
+                            {req.status === "rejected" && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="gap-1"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleEditRejectedRequest(req, items);
+                                }}
+                              >
+                                <Pencil className="h-3 w-3" />
+                                แก้ไข/ส่งใหม่
+                              </Button>
+                            )}
+                          </TableCell>
                         </TableRow>
                         {isExpanded && items.length > 0 && (
                           <TableRow>
-                            <TableCell colSpan={7} className="bg-muted/30 p-0">
+                            <TableCell colSpan={8} className="bg-muted/30 p-0">
                               <div className="p-4">
                                 <Table>
                                   <TableHeader>
