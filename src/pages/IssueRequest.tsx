@@ -1372,8 +1372,10 @@ const IssueRequest = () => {
               <TableBody>
                 {isLoading ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
                       กำลังโหลด...
+                    </TableCell>
+                  </TableRow>
                     </TableCell>
                   </TableRow>
                 ) : filteredRequests?.length === 0 ? (
