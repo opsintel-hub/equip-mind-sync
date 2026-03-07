@@ -592,6 +592,7 @@ const IssueRequest = () => {
         equipment_name: item.name,
         unit: item.unit,
         serial_number: item.serial_number,
+        serial_number_source: item.source, // Store the source for value matching
         quantity: "1", // Lock quantity to 1
       });
       setIsQuantityLocked(true); // Lock quantity when selected via S/N
