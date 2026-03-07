@@ -583,7 +583,7 @@ const IssueRequest = () => {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-    e.preventDefault();
+  const handleSubmit = (e: React.FormEvent) => {
     if (!headerData.requester_name) {
       toast.error("กรุณากรอกชื่อผู้ขอเบิก");
       return;
