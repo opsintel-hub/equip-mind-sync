@@ -567,6 +567,7 @@ const IssueRequest = () => {
         equipment_name: selected.name,
         unit: selected.unit,
         serial_number: "", // Clear S/N when changing equipment
+        serial_number_source: "",
       });
       setIsQuantityLocked(false); // Reset lock when selecting via equipment dropdown
       // Update stock info
