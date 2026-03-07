@@ -1436,10 +1436,26 @@ const IssueRequest = () => {
                           </TableCell>
                           <TableCell>{req.purpose || "-"}</TableCell>
                           <TableCell>{getStatusBadge(req.status)}</TableCell>
+                          <TableCell className="text-center">
+                            {req.status === "rejected" && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="gap-1"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleEditRejectedRequest(req, items);
+                                }}
+                              >
+                                <Pencil className="h-3 w-3" />
+                                แก้ไข/ส่งใหม่
+                              </Button>
+                            )}
+                          </TableCell>
                         </TableRow>
                         {isExpanded && items.length > 0 && (
                           <TableRow>
-                            <TableCell colSpan={7} className="bg-muted/30 p-0">
+                            <TableCell colSpan={8} className="bg-muted/30 p-0">
                               <div className="p-4">
                                 <Table>
                                   <TableHeader>
