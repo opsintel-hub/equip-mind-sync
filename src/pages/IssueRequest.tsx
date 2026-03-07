@@ -540,7 +540,49 @@ const IssueRequest = () => {
     },
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // Handle editing a rejected request - load its data back into the form
+  const handleEditRejectedRequest = (req: any, items: any[]) => {
+    // Load header data
+    setHeaderData({
+      company_id: req.company_id || "",
+      department_id: "",
+      section: "",
+      purpose_id: req.purpose_id || "",
+      purpose: req.purpose || "",
+      destination: req.destination || "",
+      requester_name: req.requester_name || "",
+      requester_phone: req.requester_phone || "",
+      requester_department: req.requester_department || "",
+      notes: req.notes || "",
+      pickup_type: req.pickup_type || "scheduled",
+      pickup_date: req.pickup_date || "",
+      pickup_time: req.pickup_time || "",
+    });
+
+    // Load items back into cart
+    const restoredItems: CartItem[] = items.map((item: any) => ({
+      id: crypto.randomUUID(),
+      equipment_id: item.is_media_player ? "" : (item.equipment_id || ""),
+      equipment_code: item.equipment_code || "",
+      equipment_name: item.equipment_name || "",
+      quantity: item.quantity || 1,
+      unit: item.unit || "ชิ้น",
+      serial_number: item.serial_number || "",
+      billboard_id: item.billboard_id || "",
+      notes: item.notes || "",
+      is_media_player: item.is_media_player || false,
+      media_player_id: item.is_media_player ? item.media_player_id : undefined,
+    }));
+
+    setCartItems(restoredItems);
+    setSelectedCartIds(new Set(restoredItems.map(i => i.id)));
+
+    toast.info("โหลดข้อมูลจากคำขอที่ถูกปฏิเสธแล้ว — แก้ไขและส่งใหม่ได้เลย");
+    
+    // Scroll to form
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
     e.preventDefault();
     if (!headerData.requester_name) {
       toast.error("กรุณากรอกชื่อผู้ขอเบิก");
