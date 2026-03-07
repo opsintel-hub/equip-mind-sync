@@ -562,6 +562,7 @@ const IssueGoods = () => {
       issued_quantity: qtyToIssue.toString(),
       notes: item.notes || "",
       billboard_id: item.billboard_id || "",
+      serial_number: item.serial_number || "",
     });
     setItemIssueDialogOpen(true);
   };
