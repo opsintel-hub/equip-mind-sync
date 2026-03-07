@@ -611,6 +611,7 @@ const IssueRequest = () => {
         equipment_code: "",
         equipment_name: "",
         serial_number: "",
+        serial_number_source: "",
         quantity: "1",
       });
       setIsQuantityLocked(false);
