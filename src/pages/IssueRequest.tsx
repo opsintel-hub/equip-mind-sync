@@ -1366,6 +1366,7 @@ const IssueRequest = () => {
                   <TableHead>ผู้ขอเบิก</TableHead>
                   <TableHead>วัตถุประสงค์</TableHead>
                   <TableHead>สถานะ</TableHead>
+                  <TableHead className="text-center">จัดการ</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
