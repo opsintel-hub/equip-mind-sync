@@ -276,7 +276,21 @@ export function AppSidebar() {
     
     return menuGroups.map(group => ({
       ...group,
-      items: group.items.filter(item => {
+      items: group.items.map(item => {
+        // Filter sub-items by their own functionName
+        if (item.subItems) {
+          const filteredSubItems = item.subItems.filter(sub => {
+            if (!sub.functionName) return true;
+            if (isAdmin) return true;
+            return hasFunctionAccess(sub.functionName);
+          });
+          return { ...item, subItems: filteredSubItems };
+        }
+        return item;
+      }).filter(item => {
+        // Hide parent if it has subItems but none are visible
+        if (item.subItems && item.subItems.length === 0) return false;
+        // Check parent-level functionName
         if (!item.functionName) return true;
         if (isAdmin) return true;
         return hasFunctionAccess(item.functionName);
