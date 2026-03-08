@@ -543,65 +543,137 @@ const DeliveryEntry = () => {
       toast.success(`เพิ่ม ${validDevices.length} เครื่องลงตะกร้าแล้ว`);
     } else {
       // Regular equipment validation
-      if (!selectedEquipmentId) {
-        // New product manual entry validation
-        if (!manualEquipmentName.trim()) {
-          toast.error("กรุณาเลือกสินค้าจากระบบ หรือกรอกชื่อสินค้า/อะไหล่ใหม่");
+      if (perUnitMode) {
+        // Per-unit mode: validate each unit has at least S/N
+        const validUnits = equipmentUnits.filter(u => u.serial_number.trim());
+        if (validUnits.length === 0) {
+          toast.error("กรุณากรอก Serial Number อย่างน้อย 1 ชิ้น");
           return;
         }
-        if (!selectedCategoryId) {
-          toast.error("กรุณาเลือกหมวดหมู่");
+        if (!unitPrice) {
+          toast.error("กรุณาระบุราคาต่อชิ้น");
           return;
         }
-        if (!selectedSubcategoryId) {
-          toast.error("กรุณาเลือกหมวดหมู่ย่อย");
+        if (!selectedEquipmentId) {
+          if (!manualEquipmentName.trim()) {
+            toast.error("กรุณาเลือกสินค้าจากระบบ หรือกรอกชื่อสินค้า/อะไหล่ใหม่");
+            return;
+          }
+          if (!selectedCategoryId || !selectedSubcategoryId) {
+            toast.error("กรุณาเลือกหมวดหมู่และหมวดหมู่ย่อย");
+            return;
+          }
+          if (newProductImages.length === 0) {
+            toast.error("กรุณาอัปโหลดรูปภาพสินค้าอย่างน้อย 1 รูป");
+            return;
+          }
+        }
+
+        // Create one cart item per unit
+        const newItems: DeliveryCartItem[] = validUnits.map(unitEntry => ({
+          id: crypto.randomUUID(),
+          equipment_id: selectedEquipmentId || null,
+          equipment_code: selectedEquipmentId ? equipmentCode : generateTempCode(),
+          equipment_name: selectedEquipmentId 
+            ? (equipmentName || selectedEquipment?.name || "") 
+            : manualEquipmentName.trim(),
+          quantity: 1,
+          unit: unit,
+          lot_number_1: lotNumber1,
+          lot_number_2: lotNumber2,
+          serial_number: unitEntry.serial_number,
+          unit_price: unitPrice ? parseFloat(unitPrice) : null,
+          supplier_id: selectedSupplierId || null,
+          supplier_name: supplierName || selectedSupplier?.name || "",
+          expiry_date: expiryDate,
+          warranty_expiry_date: warrantyExpiryDate,
+          storage_width_cm: storageWidthCm,
+          storage_height_cm: storageHeightCm,
+          storage_depth_cm: storageDepthCm,
+          storage_volume_cm3: calculatedVolume,
+          is_asset: isAsset,
+          asset_code: assetCode,
+          equipment_id_code: equipmentIdCode,
+          waiting_asset_code: waitingAssetCode,
+          waiting_equipment_id: waitingEquipmentId,
+          depreciation_months: depreciationMonths,
+          notes: itemNotes,
+          is_media_player: false,
+          temp_category_id: !selectedEquipmentId ? (selectedCategoryId || null) : null,
+          temp_subcategory_id: !selectedEquipmentId ? (selectedSubcategoryId || null) : null,
+          temp_product_images: !selectedEquipmentId ? newProductImages : undefined,
+          temp_min_stock_level: !selectedEquipmentId ? (parseInt(minStockLevel) || 0) : undefined,
+          media_player_image_file: unitEntry.image_file || undefined,
+        }));
+        
+        setCartItems([...cartItems, ...newItems]);
+        setSelectedCartIds(prev => {
+          const next = new Set(prev);
+          newItems.forEach(item => next.add(item.id));
+          return next;
+        });
+        toast.success(`เพิ่ม ${validUnits.length} ชิ้นลงตะกร้าแล้ว`);
+      } else {
+        // Standard single entry mode
+        if (!selectedEquipmentId) {
+          if (!manualEquipmentName.trim()) {
+            toast.error("กรุณาเลือกสินค้าจากระบบ หรือกรอกชื่อสินค้า/อะไหล่ใหม่");
+            return;
+          }
+          if (!selectedCategoryId) {
+            toast.error("กรุณาเลือกหมวดหมู่");
+            return;
+          }
+          if (!selectedSubcategoryId) {
+            toast.error("กรุณาเลือกหมวดหมู่ย่อย");
+            return;
+          }
+          if (newProductImages.length === 0) {
+            toast.error("กรุณาอัปโหลดรูปภาพสินค้าอย่างน้อย 1 รูป");
+            return;
+          }
+        }
+        if (!unitPrice) {
+          toast.error("กรุณาระบุราคาต่อชิ้น");
           return;
         }
-        if (newProductImages.length === 0) {
-          toast.error("กรุณาอัปโหลดรูปภาพสินค้าอย่างน้อย 1 รูป");
-          return;
-        }
+        const newItem: DeliveryCartItem = {
+          id: crypto.randomUUID(),
+          equipment_id: selectedEquipmentId || null,
+          equipment_code: selectedEquipmentId ? equipmentCode : generateTempCode(),
+          equipment_name: selectedEquipmentId 
+            ? (equipmentName || selectedEquipment?.name || "") 
+            : manualEquipmentName.trim(),
+          quantity: parseInt(quantity),
+          unit: unit,
+          lot_number_1: lotNumber1,
+          lot_number_2: lotNumber2,
+          serial_number: serialNumber,
+          unit_price: unitPrice ? parseFloat(unitPrice) : null,
+          supplier_id: selectedSupplierId || null,
+          supplier_name: supplierName || selectedSupplier?.name || "",
+          expiry_date: expiryDate,
+          warranty_expiry_date: warrantyExpiryDate,
+          storage_width_cm: storageWidthCm,
+          storage_height_cm: storageHeightCm,
+          storage_depth_cm: storageDepthCm,
+          storage_volume_cm3: calculatedVolume,
+          is_asset: isAsset,
+          asset_code: assetCode,
+          equipment_id_code: equipmentIdCode,
+          waiting_asset_code: waitingAssetCode,
+          waiting_equipment_id: waitingEquipmentId,
+          depreciation_months: depreciationMonths,
+          notes: itemNotes,
+          is_media_player: false,
+          temp_category_id: !selectedEquipmentId ? (selectedCategoryId || null) : null,
+          temp_subcategory_id: !selectedEquipmentId ? (selectedSubcategoryId || null) : null,
+          temp_product_images: !selectedEquipmentId ? newProductImages : undefined,
+          temp_min_stock_level: !selectedEquipmentId ? (parseInt(minStockLevel) || 0) : undefined,
+        };
+        setCartItems([...cartItems, newItem]);
+        setSelectedCartIds(prev => new Set([...prev, newItem.id]));
       }
-      if (!unitPrice) {
-        toast.error("กรุณาระบุราคาต่อชิ้น");
-        return;
-      }
-      const newItem: DeliveryCartItem = {
-        id: crypto.randomUUID(),
-        equipment_id: selectedEquipmentId || null,
-        equipment_code: selectedEquipmentId ? equipmentCode : generateTempCode(),
-        equipment_name: selectedEquipmentId 
-          ? (equipmentName || selectedEquipment?.name || "") 
-          : manualEquipmentName.trim(),
-        quantity: parseInt(quantity),
-        unit: unit,
-        lot_number_1: lotNumber1,
-        lot_number_2: lotNumber2,
-        serial_number: serialNumber,
-        unit_price: unitPrice ? parseFloat(unitPrice) : null,
-        supplier_id: selectedSupplierId || null,
-        supplier_name: supplierName || selectedSupplier?.name || "",
-        expiry_date: expiryDate,
-        warranty_expiry_date: warrantyExpiryDate,
-        storage_width_cm: storageWidthCm,
-        storage_height_cm: storageHeightCm,
-        storage_depth_cm: storageDepthCm,
-        storage_volume_cm3: calculatedVolume,
-        is_asset: isAsset,
-        asset_code: assetCode,
-        equipment_id_code: equipmentIdCode,
-        waiting_asset_code: waitingAssetCode,
-        waiting_equipment_id: waitingEquipmentId,
-        depreciation_months: depreciationMonths,
-        notes: itemNotes,
-        is_media_player: false,
-        temp_category_id: !selectedEquipmentId ? (selectedCategoryId || null) : null,
-        temp_subcategory_id: !selectedEquipmentId ? (selectedSubcategoryId || null) : null,
-        temp_product_images: !selectedEquipmentId ? newProductImages : undefined,
-        temp_min_stock_level: !selectedEquipmentId ? (parseInt(minStockLevel) || 0) : undefined,
-      };
-      setCartItems([...cartItems, newItem]);
-      setSelectedCartIds(prev => new Set([...prev, newItem.id]));
     }
 
     // Reset item form
