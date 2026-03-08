@@ -45,6 +45,7 @@ export default function DirectShippingProcurement() {
 
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("approved");
+  const [dateRange, setDateRange] = useState<DateRange | undefined>();
   const [processDialog, setProcessDialog] = useState<any>(null);
   const [viewDetail, setViewDetail] = useState<any>(null);
 
