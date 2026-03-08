@@ -419,7 +419,7 @@ const ToolPMReport = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredSummaries.map((summary) => (
+                  {paginatedSummaries.map((summary) => (
                     <TableRow 
                       key={summary.tool.id}
                       className={summary.isOverdue ? "bg-red-50 dark:bg-red-900/10" : ""}
