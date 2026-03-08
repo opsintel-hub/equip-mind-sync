@@ -440,7 +440,7 @@ const UserManual = () => {
           </div>
 
           <div>
-            <h4 className="font-semibold mb-2">5.6 สินค้าประเภททรัพย์สิน (Asset)</h4>
+            <h4 className="font-semibold mb-2">5.7 สินค้าประเภททรัพย์สิน (Asset)</h4>
             <p className="text-xs text-muted-foreground">
               สินค้าที่ทำเครื่องหมาย "เป็นทรัพย์สิน" (is_asset = true) จะต้องผ่านการอนุมัติจาก Manager ก่อนจ่าย
               สามารถระบุ Asset Code และ Equipment ID Code ได้ภายหลังผ่านหน้า "รายการรอรหัส"
