@@ -104,11 +104,17 @@ const DeliveryConfirmation = () => {
     return allItems?.filter((item: any) => item.pending_id === requestId) || [];
   };
 
-  const isAlreadyConfirmed = (requestId: string) => {
+  const isAlreadyConfirmed = (requestId: string, isDirectShipment = false) => {
+    if (isDirectShipment) {
+      return existingConfirmations?.some((c: any) => c.direct_shipment_id === requestId);
+    }
     return existingConfirmations?.some((c: any) => c.goods_issue_pending_id === requestId);
   };
 
-  const getConfirmation = (requestId: string) => {
+  const getConfirmation = (requestId: string, isDirectShipment = false) => {
+    if (isDirectShipment) {
+      return existingConfirmations?.find((c: any) => c.direct_shipment_id === requestId);
+    }
     return existingConfirmations?.find((c: any) => c.goods_issue_pending_id === requestId);
   };
 
