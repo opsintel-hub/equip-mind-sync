@@ -247,7 +247,7 @@ export default function StockCard() {
         query = supabase.from("stock_movements")
           .select("*")
           .eq("equipment_code", selectedItem.code)
-          .order("created_at", { ascending: true });
+          .order("created_at", { ascending: false });
       }
 
       if (dateRange?.from) query = query.gte("created_at", dateRange.from.toISOString());
