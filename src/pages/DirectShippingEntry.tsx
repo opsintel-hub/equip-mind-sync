@@ -491,6 +491,7 @@ export default function DirectShippingEntry() {
                   )}
                 </div>
               )}
+              {viewDetail.notes && (
                 <div><span className="text-muted-foreground">หมายเหตุ:</span> {viewDetail.notes}</div>
               )}
               {viewDetail.rejection_reason && (
