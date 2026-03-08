@@ -7,7 +7,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
-import GoodsReceipt from "./pages/GoodsReceipt";
+// GoodsReceipt removed - replaced by DeliveryEntry + ReceiveGoods flow
 import DeliveryEntry from "./pages/DeliveryEntry";
 import ReceiveGoods from "./pages/ReceiveGoods";
 import GoodsIssue from "./pages/GoodsIssue";
@@ -74,7 +74,7 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Login />} />
             <Route path="/dashboard" element={<ProtectedRoute><DashboardLayout><Dashboard /></DashboardLayout></ProtectedRoute>} />
-            <Route path="/goods-receipt" element={<ProtectedRoute><DashboardLayout><GoodsReceipt /></DashboardLayout></ProtectedRoute>} />
+            {/* /goods-receipt removed - replaced by /delivery-entry + /receive-goods */}
             <Route path="/delivery-entry" element={<ProtectedRoute><DashboardLayout><DeliveryEntry /></DashboardLayout></ProtectedRoute>} />
             <Route path="/receive-goods" element={<ProtectedRoute><DashboardLayout><ReceiveGoods /></DashboardLayout></ProtectedRoute>} />
             <Route path="/goods-issue" element={<ProtectedRoute><DashboardLayout><GoodsIssue /></DashboardLayout></ProtectedRoute>} />
