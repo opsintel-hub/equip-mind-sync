@@ -423,7 +423,7 @@ const UserManual = () => {
           </div>
 
           <div>
-            <h4 className="font-semibold mb-2">5.4 Import/Export Excel</h4>
+            <h4 className="font-semibold mb-2">5.5 Import/Export Excel</h4>
             <p className="text-xs text-muted-foreground">
               <strong>Import:</strong> ดาวน์โหลด Template Excel → กรอกข้อมูล → อัปโหลด ระบบจะตรวจสอบข้อมูลและนำเข้าอัตโนมัติ
               <br /><strong>Export:</strong> กดปุ่ม Export เพื่อดาวน์โหลดรายการสินค้าทั้งหมดเป็นไฟล์ Excel
