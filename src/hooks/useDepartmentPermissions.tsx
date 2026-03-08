@@ -17,6 +17,7 @@ export function useDepartmentPermissions() {
   const [permissions, setPermissions] = useState<DepartmentPermission[]>([]);
   const [allDepartmentNames, setAllDepartmentNames] = useState<string[]>([]);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -24,20 +25,24 @@ export function useDepartmentPermissions() {
       setLoading(false);
       setPermissions([]);
       setIsAdmin(false);
+      setIsSuperAdmin(false);
       return;
     }
 
     const fetchPermissions = async () => {
       try {
-        // Check if user is admin + fetch permissions + fetch all departments in parallel
+        // Check if user is admin/super_admin + fetch permissions + fetch all departments in parallel
         const [roleRes, permsRes, deptRes] = await Promise.all([
-          supabase.from("user_roles").select("role").eq("user_id", user.id).eq("role", "admin").maybeSingle(),
+          supabase.from("user_roles").select("role").eq("user_id", user.id).in("role", ["admin", "super_admin"]),
           supabase.from("user_departments").select("*").eq("user_id", user.id),
           supabase.from("departments").select("name").eq("is_active", true).order("name"),
         ]);
 
-        const isAdminUser = !!roleRes.data;
-        setIsAdmin(isAdminUser);
+        const roles = (roleRes.data || []).map(r => r.role);
+        const hasSuperAdmin = roles.includes("super_admin");
+        const hasAdmin = roles.includes("admin") || hasSuperAdmin;
+        setIsAdmin(hasAdmin);
+        setIsSuperAdmin(hasSuperAdmin);
         setPermissions(permsRes.data || []);
         setAllDepartmentNames((deptRes.data || []).map(d => d.name));
       } catch (error) {
