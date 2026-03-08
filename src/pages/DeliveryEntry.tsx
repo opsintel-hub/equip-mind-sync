@@ -887,18 +887,20 @@ const DeliveryEntry = () => {
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="company">ผู้จัดจำหน่าย *</Label>
+                  <Label htmlFor="company">ชื่อบริษัทที่สั่งซื้อ *</Label>
                   <SearchableSelect
-                    options={suppliers.map(s => ({
-                      value: s.id,
-                      label: `${s.code} - ${s.name}`,
-                      description: s.vendor_code ? `Vendor: ${s.vendor_code}` : undefined,
+                    options={(selectedDepartmentId
+                      ? companies.filter(c => c.department_id === selectedDepartmentId)
+                      : companies
+                    ).map(c => ({
+                      value: c.id,
+                      label: `${c.code} - ${c.name}`,
                     }))}
                     value={selectedCompanyId}
                     onValueChange={setSelectedCompanyId}
-                    placeholder="เลือกผู้จัดจำหน่าย..."
-                    searchPlaceholder="ค้นหาด้วยรหัส, ชื่อ, หรือ Vendor Code..."
-                    emptyMessage="ไม่พบผู้จัดจำหน่าย"
+                    placeholder="เลือกบริษัทที่สั่งซื้อ..."
+                    searchPlaceholder="ค้นหาด้วยรหัสหรือชื่อบริษัท..."
+                    emptyMessage="ไม่พบบริษัท"
                   />
                 </div>
               </div>
