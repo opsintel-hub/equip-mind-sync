@@ -732,7 +732,7 @@ const DeliveryEntry = () => {
         quantity: item.quantity,
         unit: item.unit,
         supplier_id: selectedCompanyId || item.supplier_id,
-        supplier_name: (selectedCompanyId ? suppliers.find(s => s.id === selectedCompanyId)?.name : item.supplier_name) || null,
+        supplier_name: (selectedCompanyId ? companies.find(c => c.id === selectedCompanyId)?.name : item.supplier_name) || null,
         lot_number: item.lot_number_1 || null,
         lot_number_2: item.lot_number_2 || null,
         serial_number: item.serial_number || null,
