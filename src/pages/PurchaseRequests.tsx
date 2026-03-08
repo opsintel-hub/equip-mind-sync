@@ -224,6 +224,7 @@ export default function PurchaseRequests() {
                 <p className="text-muted-foreground">ไม่พบใบขอซื้อ</p>
               </div>
             ) : (
+              <>
               <Table>
                 <TableHeader>
                   <TableRow>
