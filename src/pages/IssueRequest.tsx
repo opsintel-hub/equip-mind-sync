@@ -176,13 +176,13 @@ const IssueRequest = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("media_players")
-        .select("id, code, name, unit, quantity, serial_number_1, serial_number_2, warranty_expiry_date, created_at")
+        .select("id, code, name, unit, quantity, serial_number_1, serial_number_2, warranty_expiry_date, created_at, location_id, locations:location_id(id, code, name, warehouse_id, warehouses(id, code, name))")
         .eq("is_active", true)
         .gt("quantity", 0)
         .order("created_at", { ascending: true });
       if (error) throw error;
       // Map to EquipmentWithDetails format
-      return data.map(mp => ({
+      return data.map((mp: any) => ({
         id: mp.id,
         code: mp.code,
         name: mp.name,
@@ -194,6 +194,10 @@ const IssueRequest = () => {
         warranty_expiry_date: mp.warranty_expiry_date,
         warehouse_entry_date: mp.created_at?.split('T')[0] || new Date().toISOString().split('T')[0],
         is_media_player: true,
+        warehouse_name: mp.locations?.warehouses?.name || null,
+        warehouse_code: mp.locations?.warehouses?.code || null,
+        location_name: mp.locations?.name || null,
+        location_code: mp.locations?.code || null,
       })) as EquipmentWithDetails[];
     },
   });
