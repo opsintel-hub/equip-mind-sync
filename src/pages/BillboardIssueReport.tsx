@@ -137,6 +137,8 @@ const BillboardIssueReport = () => {
   summaryMap.forEach(value => billboardSummary.push(value));
   billboardSummary.sort((a, b) => b.totalCost - a.totalCost);
 
+  const { paginatedData: paginatedBillboards, currentPage, pageSize, totalPages, totalItems, handlePageChange, handlePageSizeChange } = useTablePagination(billboardSummary, 20);
+
   // Chart data - top 10 billboards by cost
   const chartData = billboardSummary.slice(0, 10).map((item, index) => ({
     name: item.billboard_code || item.billboard_id.slice(0, 8),
