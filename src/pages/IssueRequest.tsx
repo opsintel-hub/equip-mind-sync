@@ -29,6 +29,7 @@ interface EquipmentWithDetails {
   unit: string;
   quantity_in_stock: number;
   serial_number: string | null;
+  serial_number_2?: string | null;
   expiry_date: string | null;
   warranty_expiry_date: string | null;
   warehouse_entry_date: string;
