@@ -1664,7 +1664,9 @@ const DeliveryEntry = () => {
                   {(() => {
                     const effectiveQty = isMediaPlayerEntry 
                       ? (mediaPlayerDevices.filter(d => d.serial_number_1.trim()).length || mediaPlayerDevices.length)
-                      : (parseInt(quantity) || 0);
+                      : perUnitMode
+                        ? (equipmentUnits.filter(u => u.serial_number.trim()).length || equipmentUnits.length)
+                        : (parseInt(quantity) || 0);
                     return (
                       <>
                         <Input 
