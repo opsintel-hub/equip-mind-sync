@@ -163,7 +163,7 @@ const IssueRequest = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("media_players")
-        .select("id, code, name, unit, quantity, serial_number_1, warranty_expiry_date, created_at")
+        .select("id, code, name, unit, quantity, serial_number_1, serial_number_2, warranty_expiry_date, created_at")
         .eq("is_active", true)
         .gt("quantity", 0)
         .order("created_at", { ascending: true });
