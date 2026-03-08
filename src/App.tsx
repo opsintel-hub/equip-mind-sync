@@ -7,7 +7,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
-import GoodsReceipt from "./pages/GoodsReceipt";
+// GoodsReceipt removed - replaced by DeliveryEntry + ReceiveGoods flow
 import DeliveryEntry from "./pages/DeliveryEntry";
 import ReceiveGoods from "./pages/ReceiveGoods";
 import GoodsIssue from "./pages/GoodsIssue";
