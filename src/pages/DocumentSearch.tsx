@@ -95,7 +95,24 @@ export default function DocumentSearch() {
         status: item.status, source: "delivery_confirm" as const,
       }));
 
-      setDocuments([...pendingDocs, ...receiptDocs, ...issueDocs, ...dcDocs]);
+      // Fetch from direct_shipments
+      const { data: dsData } = await supabase
+        .from("direct_shipments").select("*, direct_shipment_items(equipment_code, equipment_name, serial_number, quantity, unit)")
+        .order("created_at", { ascending: false });
+
+      const dsDocs: DocumentRecord[] = (dsData || []).map((item: any) => ({
+        id: item.id, document_no: item.document_no, document_url: null,
+        equipment_code: item.direct_shipment_items?.[0]?.equipment_code || null,
+        equipment_name: item.direct_shipment_items?.map((i: any) => i.equipment_name).join(", ") || null,
+        serial_number: item.direct_shipment_items?.[0]?.serial_number || null,
+        supplier_name: item.supplier_name, delivery_person_name: item.delivery_person_name,
+        quantity: item.direct_shipment_items?.reduce((sum: number, i: any) => sum + (i.quantity || 0), 0) || 0,
+        unit: item.direct_shipment_items?.[0]?.unit || "-",
+        created_at: item.created_at,
+        status: item.status, source: "direct_shipping" as const,
+      }));
+
+      setDocuments([...pendingDocs, ...receiptDocs, ...issueDocs, ...dcDocs, ...dsDocs]);
     } catch (error) {
       console.error("Error fetching documents:", error);
       toast.error("ไม่สามารถโหลดเอกสารได้");
