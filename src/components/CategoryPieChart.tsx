@@ -170,8 +170,9 @@ export const CategoryPieChart = ({ companyId }: CategoryPieChartProps) => {
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <Filter className="w-4 h-4 text-muted-foreground" />
+            <span className="text-xs text-muted-foreground font-medium">ฝ่าย:</span>
             <Select value={selectedDepartment} onValueChange={setSelectedDepartment}>
-              <SelectTrigger className="w-[150px]">
+              <SelectTrigger className="w-[160px] h-9">
                 <SelectValue placeholder="เลือกฝ่าย" />
               </SelectTrigger>
               <SelectContent>
@@ -184,11 +185,14 @@ export const CategoryPieChart = ({ companyId }: CategoryPieChartProps) => {
               </SelectContent>
             </Select>
             
+            <div className="h-5 w-px bg-border" />
+            <span className="text-xs text-muted-foreground font-medium">ช่วงเวลา:</span>
+            
             <Popover>
               <PopoverTrigger asChild>
-                <Button variant="outline" className={cn("w-[140px] justify-start text-left font-normal", !startDate && "text-muted-foreground")}>
+                <Button variant="outline" size="sm" className={cn("h-9 justify-start text-left font-normal", !startDate && "text-muted-foreground")}>
                   <CalendarIcon className="mr-2 h-4 w-4" />
-                  {startDate ? format(startDate, "dd/MM/yy") : "วันที่เริ่ม"}
+                  {startDate ? format(startDate, "dd MMM yy", { locale: th }) : "วันที่เริ่ม"}
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="start">
@@ -200,9 +204,9 @@ export const CategoryPieChart = ({ companyId }: CategoryPieChartProps) => {
 
             <Popover>
               <PopoverTrigger asChild>
-                <Button variant="outline" className={cn("w-[140px] justify-start text-left font-normal", !endDate && "text-muted-foreground")}>
+                <Button variant="outline" size="sm" className={cn("h-9 justify-start text-left font-normal", !endDate && "text-muted-foreground")}>
                   <CalendarIcon className="mr-2 h-4 w-4" />
-                  {endDate ? format(endDate, "dd/MM/yy") : "วันที่สิ้นสุด"}
+                  {endDate ? format(endDate, "dd MMM yy", { locale: th }) : "วันที่สิ้นสุด"}
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="start">
@@ -211,9 +215,12 @@ export const CategoryPieChart = ({ companyId }: CategoryPieChartProps) => {
             </Popover>
 
             {(selectedDepartment !== "all" || startDate || endDate) && (
-              <Button variant="ghost" size="sm" onClick={clearFilters}>
-                ล้างตัวกรอง
-              </Button>
+              <>
+                <div className="h-5 w-px bg-border" />
+                <Button variant="ghost" size="sm" onClick={clearFilters} className="h-9">
+                  ล้างตัวกรอง
+                </Button>
+              </>
             )}
           </div>
         </div>
