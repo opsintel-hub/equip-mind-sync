@@ -38,6 +38,7 @@ export default function DocumentSearch() {
   const [searchTerm, setSearchTerm] = useState("");
   const [searchType, setSearchType] = useState<string>("all");
   const [sourceFilter, setSourceFilter] = useState<string>("all");
+  const [dateRange, setDateRange] = useState<DateRange | undefined>();
   const [hasSearched, setHasSearched] = useState(false);
 
   const fetchDocuments = async () => {
