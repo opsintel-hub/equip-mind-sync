@@ -143,17 +143,41 @@ export default function DirectShippingEntry() {
 
     setIsSubmitting(true);
     try {
+      let normalizedSectionId: string | null = null;
+      const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+      if (sectionId) {
+        if (uuidPattern.test(sectionId)) {
+          normalizedSectionId = sectionId;
+        } else {
+          const { data: matchedSection, error: sectionLookupError } = await supabase
+            .from("sections")
+            .select("id")
+            .eq("name", sectionId)
+            .limit(1)
+            .maybeSingle();
+
+          if (sectionLookupError) throw sectionLookupError;
+          normalizedSectionId = matchedSection?.id ?? null;
+
+          if (!normalizedSectionId) {
+            toast.error("กรุณาเลือกแผนกใหม่อีกครั้ง");
+            return;
+          }
+        }
+      }
+
       const { data: shipment, error } = await supabase
         .from("direct_shipments")
         .insert({
           department: selectedDepartment,
           company_id: companyId || null,
-          section_id: sectionId || null,
+          section_id: normalizedSectionId,
           requester_name: requesterName,
           requester_phone: requesterPhone || null,
           purpose: purpose || null,
           requested_items_description: requestedItemsDescription,
-           destination_description: destinationDescription,
+          destination_description: destinationDescription,
            receiver_name: receiverName || null,
            receiver_phone: receiverPhone || null,
            expected_arrival_date: expectedArrivalDate || null,
