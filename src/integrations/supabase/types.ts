@@ -1024,10 +1024,13 @@ export type Database = {
           equipment_id: string | null
           equipment_name: string | null
           id: string
+          is_media_player: boolean
           lot_number: string | null
+          media_player_id: string | null
           notes: string | null
           quantity: number
           serial_number: string | null
+          serial_number_2: string | null
           unit: string
           unit_price: number | null
         }
@@ -1038,10 +1041,13 @@ export type Database = {
           equipment_id?: string | null
           equipment_name?: string | null
           id?: string
+          is_media_player?: boolean
           lot_number?: string | null
+          media_player_id?: string | null
           notes?: string | null
           quantity?: number
           serial_number?: string | null
+          serial_number_2?: string | null
           unit?: string
           unit_price?: number | null
         }
@@ -1052,10 +1058,13 @@ export type Database = {
           equipment_id?: string | null
           equipment_name?: string | null
           id?: string
+          is_media_player?: boolean
           lot_number?: string | null
+          media_player_id?: string | null
           notes?: string | null
           quantity?: number
           serial_number?: string | null
+          serial_number_2?: string | null
           unit?: string
           unit_price?: number | null
         }
@@ -1074,10 +1083,20 @@ export type Database = {
             referencedRelation: "equipment"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "direct_shipment_items_media_player_id_fkey"
+            columns: ["media_player_id"]
+            isOneToOne: false
+            referencedRelation: "media_players"
+            referencedColumns: ["id"]
+          },
         ]
       }
       direct_shipments: {
         Row: {
+          cancel_reason: string | null
+          cancelled_at: string | null
+          cancelled_by: string | null
           company_id: string | null
           confirmed_at: string | null
           confirmed_by: string | null
@@ -1099,6 +1118,9 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          cancel_reason?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
           company_id?: string | null
           confirmed_at?: string | null
           confirmed_by?: string | null
@@ -1120,6 +1142,9 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          cancel_reason?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
           company_id?: string | null
           confirmed_at?: string | null
           confirmed_by?: string | null
