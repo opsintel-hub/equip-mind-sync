@@ -56,6 +56,8 @@ import DeliveryConfirmation from "./pages/DeliveryConfirmation";
 import ManagerApproval from "./pages/ManagerApproval";
 import WarehousePickupPlanning from "./pages/WarehousePickupPlanning";
 import DirectShippingEntry from "./pages/DirectShippingEntry";
+import DirectShippingApproval from "./pages/DirectShippingApproval";
+import DirectShippingProcurement from "./pages/DirectShippingProcurement";
 import DashboardLayout from "./components/DashboardLayout";
 import ProtectedRoute from "./components/ProtectedRoute";
 import NotFound from "./pages/NotFound";
