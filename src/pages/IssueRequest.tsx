@@ -35,6 +35,10 @@ interface EquipmentWithDetails {
   warehouse_entry_date: string;
   is_media_player?: boolean;
   category?: string;
+  warehouse_name?: string | null;
+  warehouse_code?: string | null;
+  location_name?: string | null;
+  location_code?: string | null;
 }
 
 interface IssuePurpose {
