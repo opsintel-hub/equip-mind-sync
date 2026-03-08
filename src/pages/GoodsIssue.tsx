@@ -127,7 +127,7 @@ const GoodsIssue = () => {
     return result;
   }, [issueRequests, searchTerm, statusFilter, dateRange, issueItems]);
 
-  const { paginatedData, ...pagination } = useTablePagination({ data: filtered, defaultPageSize: 20 });
+  const { paginatedData, currentPage, pageSize, totalPages, totalItems, handlePageChange, handlePageSizeChange } = useTablePagination(filtered, 20);
 
   const getStatusBadge = (status: string) => {
     switch (status) {
