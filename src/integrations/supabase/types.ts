@@ -935,11 +935,13 @@ export type Database = {
       }
       delivery_confirmations: {
         Row: {
+          actual_quantity: number | null
           confirmed_at: string | null
           confirmed_by: string | null
           created_at: string
           direct_shipment_id: string | null
           document_no: string
+          document_urls: string[] | null
           goods_issue_pending_id: string | null
           id: string
           issue_description: string | null
@@ -950,11 +952,13 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          actual_quantity?: number | null
           confirmed_at?: string | null
           confirmed_by?: string | null
           created_at?: string
           direct_shipment_id?: string | null
           document_no: string
+          document_urls?: string[] | null
           goods_issue_pending_id?: string | null
           id?: string
           issue_description?: string | null
@@ -965,11 +969,13 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          actual_quantity?: number | null
           confirmed_at?: string | null
           confirmed_by?: string | null
           created_at?: string
           direct_shipment_id?: string | null
           document_no?: string
+          document_urls?: string[] | null
           goods_issue_pending_id?: string | null
           id?: string
           issue_description?: string | null
@@ -1104,6 +1110,8 @@ export type Database = {
       }
       direct_shipments: {
         Row: {
+          approved_at: string | null
+          approved_by: string | null
           cancel_reason: string | null
           cancelled_at: string | null
           cancelled_by: string | null
@@ -1120,6 +1128,13 @@ export type Database = {
           id: string
           notes: string | null
           po_number: string | null
+          processed_at: string | null
+          processed_by: string | null
+          purpose: string | null
+          rejection_reason: string | null
+          requested_items_description: string | null
+          requester_name: string | null
+          requester_phone: string | null
           section_id: string | null
           shipping_date: string | null
           status: string
@@ -1128,6 +1143,8 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
           cancel_reason?: string | null
           cancelled_at?: string | null
           cancelled_by?: string | null
@@ -1144,6 +1161,13 @@ export type Database = {
           id?: string
           notes?: string | null
           po_number?: string | null
+          processed_at?: string | null
+          processed_by?: string | null
+          purpose?: string | null
+          rejection_reason?: string | null
+          requested_items_description?: string | null
+          requester_name?: string | null
+          requester_phone?: string | null
           section_id?: string | null
           shipping_date?: string | null
           status?: string
@@ -1152,6 +1176,8 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          approved_at?: string | null
+          approved_by?: string | null
           cancel_reason?: string | null
           cancelled_at?: string | null
           cancelled_by?: string | null
@@ -1168,6 +1194,13 @@ export type Database = {
           id?: string
           notes?: string | null
           po_number?: string | null
+          processed_at?: string | null
+          processed_by?: string | null
+          purpose?: string | null
+          rejection_reason?: string | null
+          requested_items_description?: string | null
+          requester_name?: string | null
+          requester_phone?: string | null
           section_id?: string | null
           shipping_date?: string | null
           status?: string

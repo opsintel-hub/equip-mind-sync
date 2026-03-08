@@ -43,6 +43,8 @@ const DeliveryConfirmation = () => {
   const [issueDescription, setIssueDescription] = useState("");
   const [notes, setNotes] = useState("");
   const [uploadedFiles, setUploadedFiles] = useState<string[]>([]);
+  const [uploadedDocFiles, setUploadedDocFiles] = useState<string[]>([]);
+  const [actualQuantity, setActualQuantity] = useState("");
   const [uploading, setUploading] = useState(false);
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
   const [viewConfirmation, setViewConfirmation] = useState<any>(null);
@@ -149,11 +151,14 @@ const DeliveryConfirmation = () => {
         direct_shipment_id: isDS ? selectedRequest.id : null,
         document_no: selectedRequest.document_no,
         confirmed_by: user.id,
+        confirmed_at: new Date().toISOString(),
         status: hasIssue ? "issue_reported" : "confirmed",
         issue_type: hasIssue ? issueType : null,
         issue_description: hasIssue ? issueDescription : null,
         notes: notes || null,
         photo_urls: uploadedFiles.length > 0 ? uploadedFiles : null,
+        document_urls: uploadedDocFiles.length > 0 ? uploadedDocFiles : null,
+        actual_quantity: actualQuantity ? parseInt(actualQuantity) : null,
       } as any);
       if (error) throw error;
 
@@ -183,6 +188,8 @@ const DeliveryConfirmation = () => {
     setIssueDescription("");
     setNotes("");
     setUploadedFiles([]);
+    setUploadedDocFiles([]);
+    setActualQuantity("");
   };
 
   const getPickupBadge = (type: string) => {
@@ -494,8 +501,16 @@ const DeliveryConfirmation = () => {
               </div>
             )}
 
+            {/* Actual quantity (for DS) */}
+            {selectedRequest?._isDirectShipment && (
+              <div className="space-y-2">
+                <Label className="text-base font-medium">จำนวนที่ได้รับจริง</Label>
+                <Input type="number" min="0" value={actualQuantity} onChange={e => setActualQuantity(e.target.value)} placeholder="ระบุจำนวนรวมที่ได้รับจริง" />
+              </div>
+            )}
+
             <div className="space-y-3">
-              <Label className="text-base font-medium flex items-center gap-2"><Camera className="h-4 w-4" />แนบหลักฐาน (รูปภาพ/วิดีโอ)</Label>
+              <Label className="text-base font-medium flex items-center gap-2"><Camera className="h-4 w-4" />ภาพถ่ายสินค้าจริง</Label>
               <div className="border-2 border-dashed border-muted-foreground/30 rounded-lg p-6 text-center hover:border-primary/50 transition-colors">
                 <input type="file" multiple accept="image/*,video/*" onChange={handleFileUpload} className="hidden" id="delivery-file-upload" disabled={uploading} />
                 <label htmlFor="delivery-file-upload" className="cursor-pointer">
@@ -516,6 +531,44 @@ const DeliveryConfirmation = () => {
                       <button onClick={() => removeFile(index)} className="absolute top-1 right-1 bg-destructive text-destructive-foreground rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity">
                         <X className="h-3 w-3" />
                       </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Document upload (delivery note) */}
+            <div className="space-y-3">
+              <Label className="text-base font-medium flex items-center gap-2"><Upload className="h-4 w-4" />เอกสารใบส่งของ</Label>
+              <div className="border-2 border-dashed border-muted-foreground/30 rounded-lg p-4 text-center hover:border-primary/50 transition-colors">
+                <input type="file" multiple accept="image/*,application/pdf" onChange={async (e) => {
+                  const files = e.target.files;
+                  if (!files || files.length === 0) return;
+                  setUploading(true);
+                  const newUrls: string[] = [];
+                  for (const file of Array.from(files)) {
+                    const fileExt = file.name.split('.').pop();
+                    const fileName = `doc-${selectedRequest?.document_no || 'dc'}-${Date.now()}.${fileExt}`;
+                    const { error } = await supabase.storage.from("delivery-confirmations").upload(fileName, file);
+                    if (error) { toast.error(`อัปโหลดไม่สำเร็จ`); continue; }
+                    const { data: urlData } = supabase.storage.from("delivery-confirmations").getPublicUrl(fileName);
+                    newUrls.push(urlData.publicUrl);
+                  }
+                  setUploadedDocFiles(prev => [...prev, ...newUrls]);
+                  setUploading(false);
+                  if (newUrls.length > 0) toast.success(`อัปโหลดเอกสารสำเร็จ ${newUrls.length} ไฟล์`);
+                }} className="hidden" id="delivery-doc-upload" disabled={uploading} />
+                <label htmlFor="delivery-doc-upload" className="cursor-pointer">
+                  <p className="text-sm text-muted-foreground">{uploading ? "กำลังอัปโหลด..." : "คลิกเพื่ออัปโหลดเอกสารใบส่งของ"}</p>
+                  <p className="text-xs text-muted-foreground mt-1">รองรับ JPG, PNG, PDF</p>
+                </label>
+              </div>
+              {uploadedDocFiles.length > 0 && (
+                <div className="space-y-1">
+                  {uploadedDocFiles.map((url, i) => (
+                    <div key={i} className="flex items-center gap-2 text-sm bg-muted/50 px-3 py-2 rounded">
+                      <a href={url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline flex-1 truncate">เอกสาร {i + 1}</a>
+                      <button onClick={() => setUploadedDocFiles(prev => prev.filter((_, idx) => idx !== i))} className="text-destructive hover:text-destructive/80"><X className="h-3 w-3" /></button>
                     </div>
                   ))}
                 </div>

@@ -88,10 +88,14 @@ const menuGroups: MenuGroup[] = [
         functionName: "delivery_entry",
       },
       { 
-        title: "Direct Shipping", 
-        url: "/direct-shipping",
+        title: "ส่งตรง (Direct Shipping)", 
         icon: Send,
-        functionName: "delivery_entry",
+        functionName: "direct_shipping_request",
+        subItems: [
+          { title: "ขอส่งตรง", url: "/direct-shipping", icon: Send },
+          { title: "อนุมัติส่งตรง", url: "/direct-shipping-approval", icon: Shield },
+          { title: "จัดซื้อ-ดำเนินการ", url: "/direct-shipping-procurement", icon: Package },
+        ]
       },
       { 
         title: "นำของเสียเข้าระบบ", 

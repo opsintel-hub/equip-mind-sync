@@ -56,6 +56,8 @@ import DeliveryConfirmation from "./pages/DeliveryConfirmation";
 import ManagerApproval from "./pages/ManagerApproval";
 import WarehousePickupPlanning from "./pages/WarehousePickupPlanning";
 import DirectShippingEntry from "./pages/DirectShippingEntry";
+import DirectShippingApproval from "./pages/DirectShippingApproval";
+import DirectShippingProcurement from "./pages/DirectShippingProcurement";
 import DashboardLayout from "./components/DashboardLayout";
 import ProtectedRoute from "./components/ProtectedRoute";
 import NotFound from "./pages/NotFound";
@@ -120,6 +122,8 @@ const App = () => (
             <Route path="/manager-approval" element={<ProtectedRoute><DashboardLayout><ManagerApproval /></DashboardLayout></ProtectedRoute>} />
             <Route path="/warehouse-planning" element={<ProtectedRoute><DashboardLayout><WarehousePickupPlanning /></DashboardLayout></ProtectedRoute>} />
             <Route path="/direct-shipping" element={<ProtectedRoute><DashboardLayout><DirectShippingEntry /></DashboardLayout></ProtectedRoute>} />
+            <Route path="/direct-shipping-approval" element={<ProtectedRoute><DashboardLayout><DirectShippingApproval /></DashboardLayout></ProtectedRoute>} />
+            <Route path="/direct-shipping-procurement" element={<ProtectedRoute><DashboardLayout><DirectShippingProcurement /></DashboardLayout></ProtectedRoute>} />
             {/* Public billboard view - no auth required */}
             <Route path="/billboard-view/:id" element={<BillboardPublicView />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
