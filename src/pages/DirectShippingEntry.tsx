@@ -471,7 +471,26 @@ export default function DirectShippingEntry() {
                 <p className="text-muted-foreground mb-1">สินค้าที่ต้องการ:</p>
                 <p className="whitespace-pre-wrap">{viewDetail.requested_items_description || "-"}</p>
               </div>
-              {viewDetail.notes && (
+              {(viewDetail.pr_number || viewDetail.po_number) && (
+                <div className="grid grid-cols-2 gap-3">
+                  {viewDetail.pr_number && (
+                    <div>
+                      <span className="text-muted-foreground">PR:</span> {viewDetail.pr_number}
+                      {viewDetail.pr_document_url && (
+                        <a href={viewDetail.pr_document_url} target="_blank" rel="noopener noreferrer" className="ml-2 text-xs text-primary hover:underline">ดูไฟล์</a>
+                      )}
+                    </div>
+                  )}
+                  {viewDetail.po_number && (
+                    <div>
+                      <span className="text-muted-foreground">PO:</span> {viewDetail.po_number}
+                      {viewDetail.po_document_url && (
+                        <a href={viewDetail.po_document_url} target="_blank" rel="noopener noreferrer" className="ml-2 text-xs text-primary hover:underline">ดูไฟล์</a>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
                 <div><span className="text-muted-foreground">หมายเหตุ:</span> {viewDetail.notes}</div>
               )}
               {viewDetail.rejection_reason && (
