@@ -372,11 +372,11 @@ export default function DirectShippingEntry() {
             <div className="space-y-2">
               <Label>ฝ่าย *</Label>
               <SearchableSelect
-                options={departments.map((d) => ({ value: d, label: d }))}
+                options={departmentNames.map((d) => ({ value: d, label: d }))}
                 value={selectedDepartment}
                 onValueChange={setSelectedDepartment}
                 placeholder="เลือกฝ่าย..."
-                disabled={isLocked}
+                disabled={isSingleDepartment}
               />
             </div>
             <div className="space-y-2">
