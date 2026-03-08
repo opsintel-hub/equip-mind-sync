@@ -276,6 +276,7 @@ export default function StockCard() {
   // ── Fetch current billboard installations ──
   const { data: currentInstallations = [] } = useQuery({
     queryKey: ["stock-card-current-install", selectedItemId],
+    staleTime: 2 * 60 * 1000,
     enabled: !!selectedItemId,
     queryFn: async () => {
       if (!selectedItemId) return [];
