@@ -202,7 +202,7 @@ export default function DocumentSearch() {
           <CardDescription>ค้นหาจากผู้จำหน่าย รหัสอุปกรณ์ หรือเลขที่เอกสาร</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
             <div className="space-y-2">
               <Label>ค้นหา</Label>
               <div className="relative">
@@ -235,6 +235,10 @@ export default function DocumentSearch() {
                   <SelectItem value="direct_shipping">Direct Shipping</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>ช่วงวันที่</Label>
+              <DatePickerWithRange date={dateRange} onDateChange={setDateRange} />
             </div>
             <div className="flex items-end">
               <Button onClick={fetchDocuments} disabled={loading}>
