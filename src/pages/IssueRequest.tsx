@@ -425,6 +425,7 @@ const IssueRequest = () => {
       
       // Check if first item is a Media Player
       const firstItemIsMediaPlayer = itemsToSubmit[0]?.is_media_player || false;
+      const totalRequestedQty = itemsToSubmit.reduce((sum, item) => sum + item.quantity, 0);
 
       // Check if any item is an asset (is_asset = true) to determine if approval is needed
       let requiresApproval = false;
