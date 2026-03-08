@@ -375,7 +375,7 @@ const BillboardIssueReport = () => {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  billboardSummary.map((item) => (
+                  paginatedBillboards.map((item) => (
                     <TableRow key={item.billboard_id}>
                       <TableCell className="font-mono font-medium">{item.billboard_code}</TableCell>
                       <TableCell>{item.location_name || "-"}</TableCell>
