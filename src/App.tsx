@@ -127,6 +127,7 @@ const App = () => (
             <Route path="/direct-shipping-procurement" element={<ProtectedRoute><DashboardLayout><DirectShippingProcurement /></DashboardLayout></ProtectedRoute>} />
             {/* Public billboard view - no auth required */}
             <Route path="/billboard-view/:id" element={<BillboardPublicView />} />
+            <Route path="/ds-view/:id" element={<DirectShippingPublicView />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
