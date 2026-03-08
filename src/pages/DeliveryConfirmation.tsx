@@ -166,7 +166,6 @@ const DeliveryConfirmation = () => {
         }).eq("id", selectedRequest.id);
       }
     },
-    },
     onSuccess: () => {
       toast.success(hasIssue ? "บันทึกปัญหาการรับสินค้าสำเร็จ" : "ยืนยันรับสินค้าสำเร็จ");
       queryClient.invalidateQueries({ queryKey: ["delivery-confirmation-requests"] });
