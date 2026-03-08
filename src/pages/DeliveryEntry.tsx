@@ -708,6 +708,9 @@ const DeliveryEntry = () => {
     setItemNotes("");
     // Media Player specific - reset device entries
     setMediaPlayerDevices([{ id: crypto.randomUUID(), serial_number_1: "", serial_number_2: "", device_name: "", activate_windows: "", image_file: null, image_preview: null }]);
+    // Per-unit equipment entries
+    setPerUnitMode(false);
+    setEquipmentUnits([{ id: crypto.randomUUID(), serial_number: "", device_name: "", image_file: null, image_preview: null }]);
     // Category/Subcategory
     setSelectedCategoryId("");
     setSelectedSubcategoryId("");
