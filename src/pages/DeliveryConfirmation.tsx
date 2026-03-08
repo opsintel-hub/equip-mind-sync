@@ -62,6 +62,20 @@ const DeliveryConfirmation = () => {
     },
   });
 
+  // Fetch direct shipments pending confirmation
+  const { data: directShipments, isLoading: dsLoading } = useQuery({
+    queryKey: ["ds-delivery-confirmation"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("direct_shipments")
+        .select("*, companies(name), direct_shipment_items(id, equipment_code, equipment_name, quantity, unit, serial_number, serial_number_2, is_media_player)")
+        .eq("status", "pending_confirmation")
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data;
+    },
+  });
+
   const { data: existingConfirmations } = useQuery({
     queryKey: ["existing-delivery-confirmations"],
     queryFn: async () => {
