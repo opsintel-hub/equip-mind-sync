@@ -153,6 +153,7 @@ export default function StockCard() {
   const [filterMovements, setFilterMovements] = useState<string[]>([]);
   const [filterConditions, setFilterConditions] = useState<string[]>([]);
   const [filterDepartments, setFilterDepartments] = useState<string[]>([]);
+  const [filterBrands, setFilterBrands] = useState<string[]>([]);
   const { getViewableDepartments, isAdmin } = useDepartmentPermissions();
   const viewableDepts = getViewableDepartments();
 
@@ -198,6 +199,8 @@ export default function StockCard() {
     return allItems
       .filter(i => {
         if (filterTypes.length > 0 && !filterTypes.includes(i.type)) return false;
+        // Brand filter
+        if (filterBrands.length > 0 && (!i.brand || !filterBrands.includes(i.brand))) return false;
         // Department permission filter
         if (!isAdmin && i.department && !viewableDepts.includes(i.department)) return false;
         // Department multi-select filter
@@ -208,7 +211,14 @@ export default function StockCard() {
         return match;
       })
       .slice(0, 20);
-  }, [searchText, allItems, filterTypes, filterDepartments, isAdmin, viewableDepts]);
+  }, [searchText, allItems, filterTypes, filterBrands, filterDepartments, isAdmin, viewableDepts]);
+
+  // ── Available brands for filter ──
+  const availableBrands = useMemo(() => {
+    const brands = new Set<string>();
+    allItems.forEach(i => { if (i.brand) brands.add(i.brand); });
+    return Array.from(brands).sort().map(b => ({ value: b, label: b }));
+  }, [allItems]);
 
   const selectedItem = useMemo(() => {
     if (!selectedItemId) return null;
@@ -674,13 +684,7 @@ export default function StockCard() {
           </div>
 
           {/* Filters row */}
-          <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
-            <MultiSelectFilter
-              label="ประเภทสินค้า"
-              options={ITEM_TYPES.map(t => ({ value: t.value, label: t.label }))}
-              selected={filterTypes}
-              onChange={setFilterTypes}
-            />
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
             <MultiSelectFilter
               label="ประเภทเคลื่อนไหว"
               options={MOVEMENT_TYPES.map(m => ({ value: m.value, label: m.label }))}
@@ -693,11 +697,17 @@ export default function StockCard() {
               selected={filterConditions}
               onChange={setFilterConditions}
             />
+            <MultiSelectFilter
+              label="ยี่ห้อ"
+              options={availableBrands}
+              selected={filterBrands}
+              onChange={setFilterBrands}
+            />
             <div>
               <Label className="text-xs font-medium text-muted-foreground mb-1 block">ฝ่าย</Label>
               <DepartmentMultiFilter value={filterDepartments} onChange={setFilterDepartments} />
             </div>
-            <div className="col-span-2">
+            <div>
               <Label className="text-xs font-medium text-muted-foreground mb-1 block">ช่วงวันที่</Label>
               <DatePickerWithRange date={dateRange} onDateChange={setDateRange} />
             </div>
