@@ -95,7 +95,7 @@ const WaitingStockRequests = () => {
         .from("goods_issue_pending")
         .select("*, companies(name)")
         .eq("status", "waiting_stock")
-        .order("created_at", { ascending: true });
+        .order("created_at", { ascending: false });
       if (error) throw error;
       return data as (WaitingRequest & { companies: { name: string } | null })[];
     },
