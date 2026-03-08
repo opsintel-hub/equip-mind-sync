@@ -264,6 +264,16 @@ const DeliveryEntry = () => {
       setSubcategories(data);
     }
   };
+  const fetchCompanies = async () => {
+    const { data, error } = await supabase
+      .from("companies")
+      .select("id, code, name, department_id")
+      .eq("is_active", true)
+      .order("code");
+    if (!error && data) {
+      setCompanies(data);
+    }
+  };
   const fetchSuppliers = async () => {
     const {
       data,
