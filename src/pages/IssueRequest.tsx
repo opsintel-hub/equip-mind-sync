@@ -68,6 +68,8 @@ interface CartItem {
   is_media_player?: boolean;
   media_player_id?: string;
   serial_number_source?: string; // Track the source prefix for S/N select value
+  warehouse_name?: string;
+  location_name?: string;
 }
 
 const IssueRequest = () => {
