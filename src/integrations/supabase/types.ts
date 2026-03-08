@@ -1134,6 +1134,8 @@ export type Database = {
           processed_at: string | null
           processed_by: string | null
           purpose: string | null
+          receiver_name: string | null
+          receiver_phone: string | null
           rejection_reason: string | null
           requested_items_description: string | null
           requester_name: string | null
@@ -1170,6 +1172,8 @@ export type Database = {
           processed_at?: string | null
           processed_by?: string | null
           purpose?: string | null
+          receiver_name?: string | null
+          receiver_phone?: string | null
           rejection_reason?: string | null
           requested_items_description?: string | null
           requester_name?: string | null
@@ -1206,6 +1210,8 @@ export type Database = {
           processed_at?: string | null
           processed_by?: string | null
           purpose?: string | null
+          receiver_name?: string | null
+          receiver_phone?: string | null
           rejection_reason?: string | null
           requested_items_description?: string | null
           requester_name?: string | null
