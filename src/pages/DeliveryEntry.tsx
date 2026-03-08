@@ -228,6 +228,7 @@ const DeliveryEntry = () => {
 
   useEffect(() => {
     fetchEquipment();
+    fetchCompanies();
     fetchSuppliers();
     fetchReceiptPurposes();
     fetchPendingReceipts();
