@@ -355,6 +355,7 @@ export default function DirectShippingEntry() {
           <DialogHeader><DialogTitle>รายละเอียดคำขอส่งตรง</DialogTitle></DialogHeader>
           {viewDetail && (
             <div className="space-y-4 text-sm">
+              <DSTimeline shipment={viewDetail} />
               <div className="grid grid-cols-2 gap-3">
                 <div><span className="text-muted-foreground">เลขที่:</span> <span className="font-mono font-medium">{viewDetail.document_no}</span></div>
                 <div><span className="text-muted-foreground">สถานะ:</span> {getStatusBadge(viewDetail.status)}</div>
