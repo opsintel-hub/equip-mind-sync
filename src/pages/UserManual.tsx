@@ -719,6 +719,14 @@ const UserManual = () => {
               <li>กดบันทึก → ระบบทำ Virtual Receipt + Virtual Issue อัตโนมัติ → บันทึก Stock Movement</li>
               <li>สถานะเปลี่ยนเป็น "pending_confirmation" → รอผู้รับปลายทางยืนยัน</li>
             </ul>
+
+            <div className="mt-3 p-3 border rounded-lg bg-accent/20">
+              <h5 className="font-semibold text-xs mb-2 flex items-center gap-1">📤 แชร์ข้อมูลให้ Supplier</h5>
+              <ul className="list-disc list-inside text-xs text-muted-foreground space-y-1">
+                <li><strong>คัดลอกข้อมูลส่ง LINE:</strong> กดปุ่ม 📋 ในแถวรายการ หรือในหน้ารายละเอียด → ระบบคัดลอกข้อความสรุป (รายการสินค้า, ปลายทาง, ลิงก์แผนที่ Google Maps, ข้อมูลผู้รับ) → วางส่งใน LINE หรือแชทอื่นได้ทันที</li>
+                <li><strong>คัดลอกลิงก์แชร์:</strong> กดปุ่ม 🔗 → ระบบคัดลอก URL หน้าดูข้อมูลสาธารณะ → Supplier เปิดดูรายละเอียดได้โดยไม่ต้อง Login (แสดงรายการสินค้า, แผนที่ปลายทาง, ข้อมูลติดต่อผู้รับ)</li>
+              </ul>
+            </div>
           </div>
 
           <Separator />
