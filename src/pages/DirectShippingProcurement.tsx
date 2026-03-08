@@ -282,7 +282,7 @@ export default function DirectShippingProcurement() {
       toast.success("คัดลอกลิงก์แล้ว");
     }).catch(() => toast.error("ไม่สามารถคัดลอกได้"));
   };
-
+  const getStatusBadge = (status: string) => {
     switch (status) {
       case "approved": return <Badge className="bg-blue-100 text-blue-800"><CheckCircle2 className="w-3 h-3 mr-1" />อนุมัติ-รอดำเนินการ</Badge>;
       case "pending_confirmation": return <Badge className="bg-purple-100 text-purple-800"><Truck className="w-3 h-3 mr-1" />ส่งแล้ว-รอยืนยัน</Badge>;
