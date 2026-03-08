@@ -58,6 +58,7 @@ import WarehousePickupPlanning from "./pages/WarehousePickupPlanning";
 import DirectShippingEntry from "./pages/DirectShippingEntry";
 import DirectShippingApproval from "./pages/DirectShippingApproval";
 import DirectShippingProcurement from "./pages/DirectShippingProcurement";
+import DirectShippingPublicView from "./pages/DirectShippingPublicView";
 import DashboardLayout from "./components/DashboardLayout";
 import ProtectedRoute from "./components/ProtectedRoute";
 import NotFound from "./pages/NotFound";
@@ -126,6 +127,7 @@ const App = () => (
             <Route path="/direct-shipping-procurement" element={<ProtectedRoute><DashboardLayout><DirectShippingProcurement /></DashboardLayout></ProtectedRoute>} />
             {/* Public billboard view - no auth required */}
             <Route path="/billboard-view/:id" element={<BillboardPublicView />} />
+            <Route path="/ds-view/:id" element={<DirectShippingPublicView />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

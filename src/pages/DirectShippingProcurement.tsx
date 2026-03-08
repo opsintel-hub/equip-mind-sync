@@ -10,7 +10,7 @@ import { Switch } from "@/components/ui/switch";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { ShoppingCart, Search, Loader2, Eye, Plus, Package, X, Send, Monitor, Clock, CheckCircle2, Ban, AlertTriangle, Truck, MapPin } from "lucide-react";
+import { ShoppingCart, Search, Loader2, Eye, Plus, Package, X, Send, Monitor, Clock, CheckCircle2, Ban, AlertTriangle, Truck, MapPin, Copy, Share2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
@@ -250,6 +250,38 @@ export default function DirectShippingProcurement() {
     }
   };
 
+  const copyShipmentInfo = (r: any) => {
+    const mapsLink = r.destination_lat && r.destination_lng
+      ? `https://www.google.com/maps?q=${r.destination_lat},${r.destination_lng}`
+      : null;
+    const publicLink = `${window.location.origin}/ds-view/${r.id}`;
+
+    let text = `📦 คำขอส่งตรง: ${r.document_no}\n`;
+    text += `━━━━━━━━━━━━━━━━\n`;
+    text += `👤 ผู้ขอ: ${r.requester_name || "-"}\n`;
+    text += `📱 เบอร์ผู้ขอ: ${r.requester_phone || "-"}\n`;
+    text += `🏢 ฝ่าย: ${r.department || "-"}\n`;
+    if (r.purpose) text += `📝 วัตถุประสงค์: ${r.purpose}\n`;
+    text += `\n📋 สินค้าที่ต้องการ:\n${r.requested_items_description || "-"}\n`;
+    text += `\n📍 ปลายทาง: ${r.destination_description || "-"}\n`;
+    if (r.receiver_name) text += `👤 ผู้รับ: ${r.receiver_name}\n`;
+    if (r.receiver_phone) text += `📱 เบอร์ผู้รับ: ${r.receiver_phone}\n`;
+    if (mapsLink) text += `🗺️ แผนที่: ${mapsLink}\n`;
+    if (r.expected_arrival_date) text += `📅 ต้องการก่อน: ${format(new Date(r.expected_arrival_date), "dd/MM/yyyy")}\n`;
+    if (r.notes) text += `💬 หมายเหตุ: ${r.notes}\n`;
+    text += `\n🔗 ดูรายละเอียดเพิ่มเติม: ${publicLink}`;
+
+    navigator.clipboard.writeText(text).then(() => {
+      toast.success("คัดลอกข้อมูลแล้ว พร้อมส่งผ่าน LINE/Chat");
+    }).catch(() => toast.error("ไม่สามารถคัดลอกได้"));
+  };
+
+  const copyShareLink = (r: any) => {
+    const publicLink = `${window.location.origin}/ds-view/${r.id}`;
+    navigator.clipboard.writeText(publicLink).then(() => {
+      toast.success("คัดลอกลิงก์แล้ว");
+    }).catch(() => toast.error("ไม่สามารถคัดลอกได้"));
+  };
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "approved": return <Badge className="bg-blue-100 text-blue-800"><CheckCircle2 className="w-3 h-3 mr-1" />อนุมัติ-รอดำเนินการ</Badge>;
@@ -328,7 +360,9 @@ export default function DirectShippingProcurement() {
                         <TableCell>{getStatusBadge(r.status)}</TableCell>
                         <TableCell className="text-center">
                           <div className="flex items-center justify-center gap-1">
-                            <Button variant="ghost" size="icon" onClick={() => setViewDetail(r)}><Eye className="w-4 h-4" /></Button>
+                            <Button variant="ghost" size="icon" onClick={() => setViewDetail(r)} title="ดูรายละเอียด"><Eye className="w-4 h-4" /></Button>
+                            <Button variant="ghost" size="icon" onClick={() => copyShipmentInfo(r)} title="คัดลอกข้อมูลส่ง LINE"><Copy className="w-4 h-4" /></Button>
+                            <Button variant="ghost" size="icon" onClick={() => copyShareLink(r)} title="คัดลอกลิงก์แชร์"><Share2 className="w-4 h-4" /></Button>
                             {r.status === "approved" && (
                               <>
                                 <Button size="sm" onClick={() => { setProcessDialog(r); setCart([]); setSupplierId(""); setPoNumber(""); setProcessNotes(""); }}>
@@ -597,6 +631,16 @@ export default function DirectShippingProcurement() {
                   </Table>
                 </div>
               )}
+
+              {/* Copy & Share buttons */}
+              <div className="flex gap-2 pt-2 border-t">
+                <Button variant="outline" size="sm" className="flex-1" onClick={() => copyShipmentInfo(viewDetail)}>
+                  <Copy className="w-4 h-4 mr-1" />คัดลอกข้อมูลส่ง LINE
+                </Button>
+                <Button variant="outline" size="sm" className="flex-1" onClick={() => copyShareLink(viewDetail)}>
+                  <Share2 className="w-4 h-4 mr-1" />คัดลอกลิงก์แชร์
+                </Button>
+              </div>
             </div>
           )}
         </DialogContent>
