@@ -1123,6 +1123,8 @@ export type Database = {
           delivery_person_name: string | null
           department: string | null
           destination_description: string | null
+          destination_lat: number | null
+          destination_lng: number | null
           document_no: string
           expected_arrival_date: string | null
           id: string
@@ -1161,6 +1163,8 @@ export type Database = {
           delivery_person_name?: string | null
           department?: string | null
           destination_description?: string | null
+          destination_lat?: number | null
+          destination_lng?: number | null
           document_no?: string
           expected_arrival_date?: string | null
           id?: string
@@ -1199,6 +1203,8 @@ export type Database = {
           delivery_person_name?: string | null
           department?: string | null
           destination_description?: string | null
+          destination_lat?: number | null
+          destination_lng?: number | null
           document_no?: string
           expected_arrival_date?: string | null
           id?: string

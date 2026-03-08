@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { DSTimeline } from "@/components/direct-shipping/DSTimeline";
+import { DestinationMapPreview } from "@/components/direct-shipping/DestinationMapPreview";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -40,6 +41,8 @@ export default function DirectShippingEntry() {
   const [receiverPhone, setReceiverPhone] = useState("");
   const [expectedArrivalDate, setExpectedArrivalDate] = useState("");
   const [notes, setNotes] = useState("");
+  const [destinationLat, setDestinationLat] = useState("");
+  const [destinationLng, setDestinationLng] = useState("");
   const [prNumber, setPrNumber] = useState("");
   const [poNumber, setPoNumber] = useState("");
   const [prDocUrl, setPrDocUrl] = useState("");
@@ -178,6 +181,8 @@ export default function DirectShippingEntry() {
           purpose: purpose || null,
           requested_items_description: requestedItemsDescription,
           destination_description: destinationDescription,
+          destination_lat: destinationLat ? parseFloat(destinationLat) : null,
+          destination_lng: destinationLng ? parseFloat(destinationLng) : null,
            receiver_name: receiverName || null,
            receiver_phone: receiverPhone || null,
            expected_arrival_date: expectedArrivalDate || null,
@@ -212,7 +217,8 @@ export default function DirectShippingEntry() {
 
       // Reset form
       setPurpose(""); setRequestedItemsDescription("");
-      setDestinationDescription(""); setReceiverName(""); setReceiverPhone("");
+      setDestinationDescription(""); setDestinationLat(""); setDestinationLng("");
+      setReceiverName(""); setReceiverPhone("");
       setExpectedArrivalDate(""); setNotes("");
       setPrNumber(""); setPoNumber(""); setPrDocUrl(""); setPoDocUrl("");
     } catch (error: any) {
@@ -305,13 +311,34 @@ export default function DirectShippingEntry() {
             />
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label>สถานที่ปลายทาง *</Label>
+            <Input
+              value={destinationDescription}
+              onChange={e => setDestinationDescription(e.target.value)}
+              placeholder="ระบุที่อยู่/ไซต์งาน/สถานที่ที่ต้องการให้ส่งไป"
+            />
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-2">
-              <Label>สถานที่ปลายทาง *</Label>
+              <Label>Latitude (ละติจูด)</Label>
               <Input
-                value={destinationDescription}
-                onChange={e => setDestinationDescription(e.target.value)}
-                placeholder="ระบุที่อยู่/ไซต์งาน/สถานที่ที่ต้องการให้ส่งไป"
+                type="number"
+                step="any"
+                value={destinationLat}
+                onChange={e => setDestinationLat(e.target.value)}
+                placeholder="เช่น 13.756331"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Longitude (ลองจิจูด)</Label>
+              <Input
+                type="number"
+                step="any"
+                value={destinationLng}
+                onChange={e => setDestinationLng(e.target.value)}
+                placeholder="เช่น 100.501762"
               />
             </div>
             <div className="space-y-2">
@@ -319,6 +346,10 @@ export default function DirectShippingEntry() {
               <Input type="date" value={expectedArrivalDate} onChange={e => setExpectedArrivalDate(e.target.value)} />
             </div>
           </div>
+
+          {destinationLat && destinationLng && !isNaN(parseFloat(destinationLat)) && !isNaN(parseFloat(destinationLng)) && (
+            <DestinationMapPreview lat={parseFloat(destinationLat)} lng={parseFloat(destinationLng)} />
+          )}
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
@@ -508,6 +539,11 @@ export default function DirectShippingEntry() {
                 <div><span className="text-muted-foreground">ผู้ขอ:</span> {viewDetail.requester_name || "-"}</div>
                 <div><span className="text-muted-foreground">เบอร์:</span> {viewDetail.requester_phone || "-"}</div>
                 <div className="col-span-2"><span className="text-muted-foreground">ปลายทาง:</span> {viewDetail.destination_description || "-"}</div>
+                {viewDetail.destination_lat && viewDetail.destination_lng && (
+                  <div className="col-span-2">
+                    <DestinationMapPreview lat={viewDetail.destination_lat} lng={viewDetail.destination_lng} />
+                  </div>
+                )}
                 <div><span className="text-muted-foreground">ผู้รับปลายทาง:</span> {viewDetail.receiver_name || "-"}</div>
                 <div><span className="text-muted-foreground">เบอร์ผู้รับ:</span> {viewDetail.receiver_phone || "-"}</div>
                 {viewDetail.expected_arrival_date && (
