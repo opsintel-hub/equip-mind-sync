@@ -98,15 +98,84 @@ const UserManual = () => {
 
           <Separator />
           <h4 className="font-semibold">รหัสเอกสารในระบบ</h4>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs text-muted-foreground">
-            <div className="p-2 border rounded"><strong>PD-YYYYMMDD-XXXX</strong> — ใบนำสินค้าเข้า (Delivery Entry)</div>
-            <div className="p-2 border rounded"><strong>GI-YYYYMMDD-XXXX</strong> — ใบเบิกสินค้า (Goods Issue)</div>
-            <div className="p-2 border rounded"><strong>DS-YYYYMMDD-XXXX</strong> — ใบส่งตรง (Direct Shipping)</div>
-            <div className="p-2 border rounded"><strong>DC-YYYYMMDD-XXXX</strong> — ใบยืนยันรับสินค้า (Delivery Confirmation)</div>
-            <div className="p-2 border rounded"><strong>AD-YYYYMMDD-XXXX</strong> — ใบนำเข้าภาพโฆษณา</div>
-            <div className="p-2 border rounded"><strong>DR-YYYYMMDD-XXXX</strong> — ใบนำของเสียเข้า (Defective Return)</div>
-            <div className="p-2 border rounded"><strong>TEMP-YYYYMMDD-XXX</strong> — รหัสสินค้าชั่วคราว (รอรหัสถาวร)</div>
-            <div className="p-2 border rounded"><strong>PMT-YYYYMMDD-XXXX</strong> — รหัสงาน PM Task</div>
+          <p className="text-xs text-muted-foreground mb-2">
+            ทุกเอกสารในระบบจะได้รับรหัสอัตโนมัติเมื่อสร้าง ในรูปแบบ <strong>[PREFIX]-[YYYYMMDD]-[XXXX]</strong> โดย YYYYMMDD = วันที่สร้าง และ XXXX = ลำดับเลข 4 หลัก (รันต่อเนื่องอัตโนมัติ)
+          </p>
+          <div className="space-y-2 text-xs text-muted-foreground">
+            <div className="overflow-x-auto">
+              <table className="w-full border">
+                <thead className="bg-muted">
+                  <tr>
+                    <th className="border p-2 text-left w-48">รูปแบบรหัส</th>
+                    <th className="border p-2 text-left w-40">ย่อมาจาก</th>
+                    <th className="border p-2 text-left">คำอธิบาย</th>
+                    <th className="border p-2 text-left w-56">สร้างเมื่อ / Trigger</th>
+                    <th className="border p-2 text-left w-36">ดูได้ที่</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td className="border p-2 font-mono font-bold">PD-YYYYMMDD-XXXX</td>
+                    <td className="border p-2"><strong>P</strong>roduct <strong>D</strong>elivery</td>
+                    <td className="border p-2">ใบนำสินค้าเข้า</td>
+                    <td className="border p-2">สร้างอัตโนมัติเมื่อกด "ส่งข้อมูลทั้งหมด" ในหน้า นำสินค้าเข้า</td>
+                    <td className="border p-2">ค้นหาเอกสาร, รับเข้าคลัง</td>
+                  </tr>
+                  <tr>
+                    <td className="border p-2 font-mono font-bold">GI-YYYYMMDD-XXXX</td>
+                    <td className="border p-2"><strong>G</strong>oods <strong>I</strong>ssue</td>
+                    <td className="border p-2">ใบเบิกสินค้า</td>
+                    <td className="border p-2">สร้างอัตโนมัติเมื่อผู้เบิกกด "ส่งคำขอเบิก" ในหน้า ขอเบิกสินค้า</td>
+                    <td className="border p-2">ค้นหาเอกสาร, จ่ายสินค้า, Dashboard ผู้เบิก</td>
+                  </tr>
+                  <tr>
+                    <td className="border p-2 font-mono font-bold">DS-YYYYMMDD-XXXX</td>
+                    <td className="border p-2"><strong>D</strong>irect <strong>S</strong>hipping</td>
+                    <td className="border p-2">ใบส่งตรง</td>
+                    <td className="border p-2">สร้างอัตโนมัติเมื่อกด "ส่งคำขอส่งตรง" ในหน้า ขอส่งตรง</td>
+                    <td className="border p-2">ค้นหาเอกสาร, อนุมัติส่งตรง, จัดซื้อ</td>
+                  </tr>
+                  <tr>
+                    <td className="border p-2 font-mono font-bold">DC-YYYYMMDD-XXXX</td>
+                    <td className="border p-2"><strong>D</strong>elivery <strong>C</strong>onfirmation</td>
+                    <td className="border p-2">ใบยืนยันรับสินค้า</td>
+                    <td className="border p-2">สร้างอัตโนมัติเมื่อเจ้าหน้าที่คลังจ่ายสินค้าสำเร็จ (GI) หรือเจ้าหน้าที่จัดซื้อบันทึกการส่งตรง (DS)</td>
+                    <td className="border p-2">ยืนยันรับสินค้า</td>
+                  </tr>
+                  <tr>
+                    <td className="border p-2 font-mono font-bold">AD-YYYYMMDD-XXXX</td>
+                    <td className="border p-2"><strong>Ad</strong>vertisement</td>
+                    <td className="border p-2">ใบนำเข้าภาพโฆษณา</td>
+                    <td className="border p-2">สร้างอัตโนมัติเมื่อกดบันทึกในหน้า นำเข้าภาพโฆษณา</td>
+                    <td className="border p-2">รับเข้าคลังภาพ, เบิกภาพ, จ่ายภาพ</td>
+                  </tr>
+                  <tr>
+                    <td className="border p-2 font-mono font-bold">DR-YYYYMMDD-XXXX</td>
+                    <td className="border p-2"><strong>D</strong>efective <strong>R</strong>eturn</td>
+                    <td className="border p-2">ใบนำของเสียเข้า</td>
+                    <td className="border p-2">สร้างอัตโนมัติเมื่อกดบันทึกในหน้า นำของเสียเข้าระบบ</td>
+                    <td className="border p-2">ค้นหาเอกสาร</td>
+                  </tr>
+                  <tr>
+                    <td className="border p-2 font-mono font-bold">TEMP-YYYYMMDD-XXX</td>
+                    <td className="border p-2"><strong>Temp</strong>orary</td>
+                    <td className="border p-2">รหัสสินค้าชั่วคราว (รอรหัสถาวร)</td>
+                    <td className="border p-2">สร้างอัตโนมัติเมื่อเพิ่มสินค้าใหม่ใน Delivery Entry ที่ยังไม่มีในระบบ → เจ้าหน้าที่คลังกำหนดรหัสจริงตอนรับเข้าคลัง</td>
+                    <td className="border p-2">รายการรอรหัส, รับเข้าคลัง</td>
+                  </tr>
+                  <tr>
+                    <td className="border p-2 font-mono font-bold">PMT-YYYYMMDD-XXXX</td>
+                    <td className="border p-2"><strong>PM</strong> <strong>T</strong>ask</td>
+                    <td className="border p-2">รหัสงาน PM Task</td>
+                    <td className="border p-2">สร้างอัตโนมัติเมื่อระบบสร้าง Task PM ตามกำหนดรอบ หรือเมื่อ Complete Task แล้วสร้าง Task ถัดไป</td>
+                    <td className="border p-2">งาน PM อุปกรณ์, งาน PM เครื่องมือ</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <p className="text-xs text-muted-foreground mt-2">
+              <strong>ตัวอย่าง:</strong> PD-20260308-0001 = ใบนำสินค้าเข้า วันที่ 8 มี.ค. 2569 ลำดับที่ 1 ของวัน
+            </p>
           </div>
         </div>
       ),
