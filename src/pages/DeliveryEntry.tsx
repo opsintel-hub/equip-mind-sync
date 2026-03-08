@@ -1602,11 +1602,19 @@ const DeliveryEntry = () => {
                       readOnly 
                       className="bg-muted font-medium"
                     />
+                  ) : perUnitMode ? (
+                    <Input 
+                      id="quantity" 
+                      type="number" 
+                      value={equipmentUnits.filter(u => u.serial_number.trim()).length || equipmentUnits.length} 
+                      readOnly 
+                      className="bg-muted font-medium"
+                    />
                   ) : (
                     <Input id="quantity" type="number" placeholder="กรอกจำนวน" value={quantity} onChange={e => setQuantity(e.target.value)} required />
                   )}
-                  {isMediaPlayerEntry && (
-                    <p className="text-xs text-muted-foreground">คำนวณจากจำนวนเครื่องที่เพิ่ม</p>
+                  {(isMediaPlayerEntry || perUnitMode) && (
+                    <p className="text-xs text-muted-foreground">คำนวณจากจำนวนชิ้นที่เพิ่ม</p>
                   )}
                 </div>
                 <div className="space-y-2">
