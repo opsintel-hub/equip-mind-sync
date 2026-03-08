@@ -55,7 +55,7 @@ export function SectionSelect({
   });
 
   const options = sections.map((section) => ({
-    value: section.name,
+    value: section.id,
     label: section.name,
     description: section.departments?.name || undefined,
   }));
