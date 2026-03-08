@@ -647,6 +647,8 @@ const IssueGoods = () => {
     }
   );
 
+  const { paginatedData, currentPage, pageSize, totalPages, totalItems, handlePageChange, handlePageSizeChange } = useTablePagination(filteredRequests || [], 20);
+
   const pendingCount = pendingRequests?.filter((r) => r.status === "pending" || r.status === "waiting_stock").length || 0;
   const waitingStockCount = pendingRequests?.filter((r) => r.status === "waiting_stock").length || 0;
 
