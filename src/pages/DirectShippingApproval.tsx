@@ -159,8 +159,8 @@ export default function DirectShippingApproval() {
           <CardTitle className="text-lg">คำขอส่งตรงที่รอพิจารณา</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex flex-col sm:flex-row gap-3">
-            <div className="relative flex-1">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input placeholder="ค้นหา..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="pl-9" />
             </div>
@@ -174,6 +174,7 @@ export default function DirectShippingApproval() {
               <option value="rejected">ไม่อนุมัติ</option>
               <option value="all">ทั้งหมด</option>
             </select>
+            <DatePickerWithRange date={dateRange} onDateChange={setDateRange} />
           </div>
 
           {isLoading ? (
