@@ -33,6 +33,7 @@ interface Loan {
   notes: string | null;
   return_notes: string | null;
   created_at: string;
+  is_cross_department?: boolean;
   equipment?: { code: string; name: string } | null;
   from_company?: { code: string; name: string } | null;
   to_company?: { code: string; name: string } | null;
