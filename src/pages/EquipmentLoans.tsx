@@ -40,7 +40,9 @@ interface Loan {
 }
 
 const EquipmentLoans = () => {
+  const { user } = useAuth();
   const [loans, setLoans] = useState<Loan[]>([]);
+  const [userRoles, setUserRoles] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
