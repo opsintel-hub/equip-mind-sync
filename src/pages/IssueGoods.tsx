@@ -460,7 +460,7 @@ const IssueGoods = () => {
       queryClient.invalidateQueries({ queryKey: ["billboard-equipment"] });
       setItemIssueDialogOpen(false);
       setSelectedItem(null);
-      setIssueData({ issued_quantity: "", notes: "", billboard_id: "", serial_number: "" });
+      setIssueData({ issued_quantity: "", notes: "", billboard_id: "", serial_number: "", serial_number_source: "" });
     },
     onError: (error) => {
       toast.error("เกิดข้อผิดพลาด: " + error.message);
