@@ -211,7 +211,7 @@ export default function StockCard() {
         return match;
       })
       .slice(0, 20);
-  }, [searchText, allItems, filterTypes, filterDepartments, isAdmin, viewableDepts]);
+  }, [searchText, allItems, filterTypes, filterBrands, filterDepartments, isAdmin, viewableDepts]);
 
   const selectedItem = useMemo(() => {
     if (!selectedItemId) return null;
