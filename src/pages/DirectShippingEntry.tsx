@@ -484,6 +484,8 @@ export default function DirectShippingEntry() {
                 <div><span className="text-muted-foreground">ผู้ขอ:</span> {viewDetail.requester_name || "-"}</div>
                 <div><span className="text-muted-foreground">เบอร์:</span> {viewDetail.requester_phone || "-"}</div>
                 <div className="col-span-2"><span className="text-muted-foreground">ปลายทาง:</span> {viewDetail.destination_description || "-"}</div>
+                <div><span className="text-muted-foreground">ผู้รับปลายทาง:</span> {viewDetail.receiver_name || "-"}</div>
+                <div><span className="text-muted-foreground">เบอร์ผู้รับ:</span> {viewDetail.receiver_phone || "-"}</div>
                 {viewDetail.expected_arrival_date && (
                   <div><span className="text-muted-foreground">ต้องการก่อน:</span> {format(new Date(viewDetail.expected_arrival_date), "dd/MM/yyyy")}</div>
                 )}
