@@ -184,6 +184,8 @@ const ToolPMReport = () => {
     });
   }, [pmSummaries, searchTerm, selectedDepartment]);
 
+  const { paginatedData: paginatedSummaries, currentPage, pageSize, totalPages, totalItems, handlePageChange, handlePageSizeChange } = useTablePagination(filteredSummaries, 20);
+
   const overdueSummaries = filteredSummaries.filter(s => s.isOverdue);
   const completedSummaries = filteredSummaries.filter(s => s.completionRate >= 100);
   const totalTarget = filteredSummaries.reduce((sum, s) => sum + s.targetCount, 0);

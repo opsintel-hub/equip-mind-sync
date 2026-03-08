@@ -223,6 +223,7 @@ const WarehousePickupPlanning = () => {
           ) : filteredAndSorted.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">ไม่มีรายการรอจัดเตรียม 🎉</div>
           ) : (
+            <>
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
@@ -273,7 +274,8 @@ const WarehousePickupPlanning = () => {
                 </TableBody>
               </Table>
             </div>
-              <TablePagination currentPage={currentPage} totalPages={totalPages} totalItems={totalItems} pageSize={pageSize} onPageChange={handlePageChange} onPageSizeChange={handlePageSizeChange} />
+            <TablePagination currentPage={currentPage} totalPages={totalPages} totalItems={totalItems} pageSize={pageSize} onPageChange={handlePageChange} onPageSizeChange={handlePageSizeChange} />
+            </>
           )}
         </CardContent>
       </Card>
