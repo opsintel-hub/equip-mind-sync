@@ -217,7 +217,8 @@ export default function DirectShippingEntry() {
 
       // Reset form
       setPurpose(""); setRequestedItemsDescription("");
-      setDestinationDescription(""); setReceiverName(""); setReceiverPhone("");
+      setDestinationDescription(""); setDestinationLat(""); setDestinationLng("");
+      setReceiverName(""); setReceiverPhone("");
       setExpectedArrivalDate(""); setNotes("");
       setPrNumber(""); setPoNumber(""); setPrDocUrl(""); setPoDocUrl("");
     } catch (error: any) {
