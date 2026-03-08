@@ -33,6 +33,7 @@ export function useFunctionPermissions() {
   const { user } = useAuth();
   const [permissions, setPermissions] = useState<FunctionPermission[]>([]);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -40,21 +41,24 @@ export function useFunctionPermissions() {
       setLoading(false);
       setPermissions([]);
       setIsAdmin(false);
+      setIsSuperAdmin(false);
       return;
     }
 
     const fetchPermissions = async () => {
       try {
-        // Check if user is admin
+        // Check if user is admin or super_admin
         const { data: roleData } = await supabase
           .from("user_roles")
           .select("role")
           .eq("user_id", user.id)
-          .eq("role", "admin")
-          .maybeSingle();
+          .in("role", ["admin", "super_admin"]);
 
-        const isAdminUser = !!roleData;
-        setIsAdmin(isAdminUser);
+        const roles = (roleData || []).map(r => r.role);
+        const hasSuperAdmin = roles.includes("super_admin");
+        const hasAdmin = roles.includes("admin") || hasSuperAdmin;
+        setIsAdmin(hasAdmin);
+        setIsSuperAdmin(hasSuperAdmin);
 
         // Fetch function permissions
         const { data: perms, error } = await supabase
