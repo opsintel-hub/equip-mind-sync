@@ -212,7 +212,8 @@ const UserManual = () => {
                   </tr>
                 </thead>
                 <tbody className="text-muted-foreground">
-                  <tr><td className="border p-2 font-medium text-foreground">Admin</td><td className="border p-2">เข้าถึงทุกฟังก์ชัน, จัดการผู้ใช้/สิทธิ์, แก้ไข Master Data, ดูรายงานทุกแผนก, ลบข้อมูลได้</td><td className="border p-2">ผู้ดูแลระบบ, IT Admin</td></tr>
+                  <tr><td className="border p-2 font-medium text-foreground">Super Admin</td><td className="border p-2">สิทธิ์สูงสุด — ทุกอย่างเหมือน Admin + จัดการ Tab ที่จำกัดในหน้าข้อมูลหลัก (อุปกรณ์, เครื่องมือ, คลังสินค้า, ตำแหน่งจัดเก็บ, Media Player)</td><td className="border p-2">ผู้ดูแลระบบระดับสูง</td></tr>
+                  <tr><td className="border p-2 font-medium text-foreground">Admin</td><td className="border p-2">เข้าถึงทุกฟังก์ชัน, จัดการผู้ใช้/สิทธิ์, แก้ไข Master Data (ยกเว้นอุปกรณ์/คลัง/ตำแหน่ง/Media Player), ดูรายงานทุกแผนก, ลบข้อมูลได้</td><td className="border p-2">ผู้ดูแลระบบ, IT Admin</td></tr>
                   <tr><td className="border p-2 font-medium text-foreground">Manager</td><td className="border p-2">อนุมัติ/ปฏิเสธคำขอเบิกทรัพย์สิน (เฉพาะฝ่ายที่ดูแล), อนุมัติ/ปฏิเสธคำขอส่งตรง, ดูรายงานและสต็อกตามฝ่ายที่ดูแล</td><td className="border p-2">ผู้จัดการฝ่าย, หัวหน้างาน</td></tr>
                   <tr><td className="border p-2 font-medium text-foreground">Warehouse Staff</td><td className="border p-2">รับเข้าคลัง, จ่ายสินค้า, โอนย้าย, จัดเตรียมสินค้า, จัดการสถานที่จัดเก็บ, PM, จัดการยืมข้ามบริษัท</td><td className="border p-2">เจ้าหน้าที่คลังสินค้า</td></tr>
                   <tr><td className="border p-2 font-medium text-foreground">Receiver</td><td className="border p-2">บันทึกการนำสินค้าเข้า (Delivery Entry), นำของเสียเข้าระบบ, สร้างรายการสินค้าใหม่</td><td className="border p-2">ผู้รับสินค้าหน้าคลัง</td></tr>
@@ -228,11 +229,11 @@ const UserManual = () => {
             <div className="space-y-3">
               <div className="p-3 border rounded-lg">
                 <h5 className="font-medium text-sm">ชั้นที่ 1: บทบาท (Role)</h5>
-                <p className="text-xs text-muted-foreground mt-1">กำหนดระดับสิทธิ์พื้นฐาน เช่น Admin มีสิทธิ์สูงสุด, Requester มีสิทธิ์แค่เบิกสินค้า — บทบาทแสดงเป็น Badge สีต่างกัน (Admin=แดง, Manager=ม่วง, Warehouse=เขียว, Receiver=น้ำเงิน, Requester=เทา)</p>
+                <p className="text-xs text-muted-foreground mt-1">กำหนดระดับสิทธิ์พื้นฐาน เช่น Super Admin มีสิทธิ์สูงสุด (จัดการข้อมูลหลักทั้งหมด), Admin จัดการระบบทั่วไป (ยกเว้น Tab อุปกรณ์/คลัง/ตำแหน่ง/Media Player ในหน้าข้อมูลหลัก), Requester มีสิทธิ์แค่เบิกสินค้า — บทบาทแสดงเป็น Badge สีต่างกัน (Super Admin=ทอง, Admin=แดง, Manager=ม่วง, Warehouse=น้ำเงิน, Receiver=เขียว, Requester=ส้ม)</p>
               </div>
               <div className="p-3 border rounded-lg">
                 <h5 className="font-medium text-sm">ชั้นที่ 2: สิทธิ์ตามฝ่าย (Department Permissions)</h5>
-                <p className="text-xs text-muted-foreground mt-1">กำหนดว่าผู้ใช้สามารถ ดู/สร้าง/แก้ไข/ลบ ข้อมูลของฝ่ายใดบ้าง — สิทธิ์ "ลบ" สงวนไว้เฉพาะ Admin เท่านั้น (ระบบล็อคอัตโนมัติ) ฝ่ายถูกดึงจากฐานข้อมูลแบบไดนามิก</p>
+                <p className="text-xs text-muted-foreground mt-1">กำหนดว่าผู้ใช้สามารถ ดู/สร้าง/แก้ไข/ลบ ข้อมูลของฝ่ายใดบ้าง — สิทธิ์ "ลบ" สงวนไว้เฉพาะ Admin และ Super Admin เท่านั้น (ระบบล็อคอัตโนมัติ) ฝ่ายถูกดึงจากฐานข้อมูลแบบไดนามิก</p>
               </div>
               <div className="p-3 border rounded-lg">
                 <h5 className="font-medium text-sm">ชั้นที่ 3: สิทธิ์ตามฟังก์ชัน (Function Permissions)</h5>
@@ -308,6 +309,16 @@ const UserManual = () => {
             Master Data คือข้อมูลพื้นฐานที่ใช้ร่วมกันทุกส่วนของระบบ การตั้งค่าที่ถูกต้องจะทำให้ข้อมูลทั้งระบบมีความสม่ำเสมอ
             เมนู Master Data แบ่งเป็น Tab ย่อยหลายส่วน:
           </p>
+          <div className="p-3 border rounded-lg bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800">
+            <h5 className="font-medium text-sm text-amber-800 dark:text-amber-200 flex items-center gap-2">
+              <Lock className="h-4 w-4" /> Tab ที่จำกัดเฉพาะ Super Admin
+            </h5>
+            <p className="text-xs text-amber-700 dark:text-amber-300 mt-1">
+              Tab ต่อไปนี้จะมองเห็นและจัดการได้เฉพาะผู้ที่มีบทบาท <strong>Super Admin</strong> เท่านั้น: 
+              <strong> อุปกรณ์, เครื่องมือ, คลังสินค้า, ตำแหน่งจัดเก็บ, Media Player</strong> — 
+              ผู้ใช้ที่มีบทบาท Admin ปกติจะไม่เห็น Tab เหล่านี้ แต่ยังสามารถจัดการ Tab อื่นๆ ได้ตามปกติ
+            </p>
+          </div>
           <div className="space-y-3">
             {[
               { num: "4.1", title: "หมวดหมู่ (Categories)", desc: "เพิ่ม/แก้ไข/ลบ หมวดหมู่หลักของสินค้า เช่น อุปกรณ์ไฟฟ้า, วัสดุสิ้นเปลือง, อะไหล่ป้าย ฯลฯ ใช้ในการจัดกลุ่มสินค้าและควบคุมวัตถุประสงค์การเบิก" },
