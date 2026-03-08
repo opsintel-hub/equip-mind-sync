@@ -130,6 +130,13 @@ export default function DocumentSearch() {
     // Source filter
     if (sourceFilter !== "all" && doc.source !== sourceFilter) return false;
 
+    // Date range filter
+    if (dateRange?.from) {
+      const d = new Date(doc.created_at);
+      if (d < dateRange.from) return false;
+      if (dateRange.to && d > new Date(dateRange.to.getTime() + 86400000)) return false;
+    }
+
     if (!searchTerm) return true;
     const term = searchTerm.toLowerCase();
     switch (searchType) {
