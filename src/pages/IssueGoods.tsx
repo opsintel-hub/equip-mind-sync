@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { useTablePagination } from "@/hooks/useTablePagination";
+import { TablePagination } from "@/components/TablePagination";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -645,6 +647,8 @@ const IssueGoods = () => {
     }
   );
 
+  const { paginatedData, currentPage, pageSize, totalPages, totalItems, handlePageChange, handlePageSizeChange } = useTablePagination(filteredRequests || [], 20);
+
   const pendingCount = pendingRequests?.filter((r) => r.status === "pending" || r.status === "waiting_stock").length || 0;
   const waitingStockCount = pendingRequests?.filter((r) => r.status === "waiting_stock").length || 0;
 
@@ -712,14 +716,14 @@ const IssueGoods = () => {
                         กำลังโหลด...
                       </TableCell>
                     </TableRow>
-                  ) : filteredRequests?.length === 0 ? (
+                  ) : paginatedData?.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
                         ไม่พบข้อมูล
                       </TableCell>
                     </TableRow>
                   ) : (
-                    filteredRequests?.map((req) => {
+                    paginatedData?.map((req) => {
                       const items = getItemsForRequest(req.id);
                       const isExpanded = expandedRequests.has(req.id);
                       const hasMultipleItems = items.length > 0;
@@ -931,6 +935,14 @@ const IssueGoods = () => {
                 </TableBody>
               </Table>
             </div>
+            <TablePagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              totalItems={totalItems}
+              pageSize={pageSize}
+              onPageChange={handlePageChange}
+              onPageSizeChange={handlePageSizeChange}
+            />
           </CardContent>
         </Card>
       </div>
