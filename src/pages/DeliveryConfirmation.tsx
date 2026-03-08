@@ -62,6 +62,20 @@ const DeliveryConfirmation = () => {
     },
   });
 
+  // Fetch direct shipments pending confirmation
+  const { data: directShipments, isLoading: dsLoading } = useQuery({
+    queryKey: ["ds-delivery-confirmation"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("direct_shipments")
+        .select("*, companies(name), direct_shipment_items(id, equipment_code, equipment_name, quantity, unit, serial_number, serial_number_2, is_media_player)")
+        .eq("status", "pending_confirmation")
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data;
+    },
+  });
+
   const { data: existingConfirmations } = useQuery({
     queryKey: ["existing-delivery-confirmations"],
     queryFn: async () => {
@@ -90,11 +104,17 @@ const DeliveryConfirmation = () => {
     return allItems?.filter((item: any) => item.pending_id === requestId) || [];
   };
 
-  const isAlreadyConfirmed = (requestId: string) => {
+  const isAlreadyConfirmed = (requestId: string, isDirectShipment = false) => {
+    if (isDirectShipment) {
+      return existingConfirmations?.some((c: any) => c.direct_shipment_id === requestId);
+    }
     return existingConfirmations?.some((c: any) => c.goods_issue_pending_id === requestId);
   };
 
-  const getConfirmation = (requestId: string) => {
+  const getConfirmation = (requestId: string, isDirectShipment = false) => {
+    if (isDirectShipment) {
+      return existingConfirmations?.find((c: any) => c.direct_shipment_id === requestId);
+    }
     return existingConfirmations?.find((c: any) => c.goods_issue_pending_id === requestId);
   };
 
@@ -123,8 +143,10 @@ const DeliveryConfirmation = () => {
   const confirmDelivery = useMutation({
     mutationFn: async () => {
       if (!selectedRequest || !user) throw new Error("Missing data");
+      const isDS = !!selectedRequest._isDirectShipment;
       const { error } = await supabase.from("delivery_confirmations").insert({
-        goods_issue_pending_id: selectedRequest.id,
+        goods_issue_pending_id: isDS ? null : selectedRequest.id,
+        direct_shipment_id: isDS ? selectedRequest.id : null,
         document_no: selectedRequest.document_no,
         confirmed_by: user.id,
         status: hasIssue ? "issue_reported" : "confirmed",
@@ -134,6 +156,15 @@ const DeliveryConfirmation = () => {
         photo_urls: uploadedFiles.length > 0 ? uploadedFiles : null,
       } as any);
       if (error) throw error;
+
+      // Update direct shipment status
+      if (isDS) {
+        await supabase.from("direct_shipments").update({
+          status: hasIssue ? "issue_reported" : "confirmed",
+          confirmed_at: new Date().toISOString(),
+          confirmed_by: user.id,
+        }).eq("id", selectedRequest.id);
+      }
     },
     onSuccess: () => {
       toast.success(hasIssue ? "บันทึกปัญหาการรับสินค้าสำเร็จ" : "ยืนยันรับสินค้าสำเร็จ");
@@ -245,58 +276,108 @@ const DeliveryConfirmation = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {isLoading ? (
+                {(isLoading || dsLoading) ? (
                   <TableRow><TableCell colSpan={9} className="text-center py-8 text-muted-foreground">กำลังโหลด...</TableCell></TableRow>
-                ) : filteredRequests?.length === 0 ? (
+                ) : (filteredRequests?.length === 0 && (!directShipments || directShipments.length === 0)) ? (
                   <TableRow><TableCell colSpan={9} className="text-center py-8 text-muted-foreground">ไม่พบรายการ</TableCell></TableRow>
                 ) : (
-                  filteredRequests?.map((req: any) => {
-                    const confirmed = isAlreadyConfirmed(req.id);
-                    const confirmation = getConfirmation(req.id);
-                    const items = getItemsForRequest(req.id);
-                    return (
-                      <TableRow key={req.id}>
-                        <TableCell className="font-medium">{req.document_no}</TableCell>
-                        <TableCell>{req.issued_at ? format(new Date(req.issued_at), "dd/MM/yyyy HH:mm", { locale: th }) : "-"}</TableCell>
-                        <TableCell>{req.companies?.name || "-"}</TableCell>
-                        <TableCell>
-                          <div>{req.requester_name}</div>
-                          {req.requester_department && <div className="text-xs text-muted-foreground">{req.requester_department}</div>}
-                        </TableCell>
-                        <TableCell>{getPickupBadge(req.pickup_type)}</TableCell>
-                        <TableCell>{req.destination || "-"}</TableCell>
-                        <TableCell>
-                          {items.length > 0 ? (
-                            <Badge variant="outline">{items.length} รายการ</Badge>
-                          ) : (
-                            <div className="text-sm">{req.equipment_name || "-"}</div>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          {confirmed ? (
-                            confirmation?.status === "issue_reported" ? (
-                              <Badge variant="destructive" className="gap-1"><AlertTriangle className="h-3 w-3" />แจ้งปัญหา</Badge>
+                  <>
+                    {filteredRequests?.map((req: any) => {
+                      const confirmed = isAlreadyConfirmed(req.id);
+                      const confirmation = getConfirmation(req.id);
+                      const items = getItemsForRequest(req.id);
+                      return (
+                        <TableRow key={req.id}>
+                          <TableCell className="font-medium">{req.document_no}</TableCell>
+                          <TableCell>{req.issued_at ? format(new Date(req.issued_at), "dd/MM/yyyy HH:mm", { locale: th }) : "-"}</TableCell>
+                          <TableCell>{req.companies?.name || "-"}</TableCell>
+                          <TableCell>
+                            <div>{req.requester_name}</div>
+                            {req.requester_department && <div className="text-xs text-muted-foreground">{req.requester_department}</div>}
+                          </TableCell>
+                          <TableCell>{getPickupBadge(req.pickup_type)}</TableCell>
+                          <TableCell>{req.destination || "-"}</TableCell>
+                          <TableCell>
+                            {items.length > 0 ? (
+                              <Badge variant="outline">{items.length} รายการ</Badge>
                             ) : (
-                              <Badge className="bg-green-100 text-green-800 gap-1"><CheckCircle className="h-3 w-3" />ยืนยันแล้ว</Badge>
-                            )
-                          ) : (
-                            <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">รอยืนยัน</Badge>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-center">
-                          {confirmed ? (
-                            <Button size="sm" variant="outline" onClick={() => { setViewConfirmation(getConfirmation(req.id)); setViewDialogOpen(true); }}>
-                              <Eye className="h-4 w-4 mr-1" />ดูรายละเอียด
-                            </Button>
-                          ) : (
-                            <Button size="sm" onClick={() => { setSelectedRequest(req); setConfirmDialogOpen(true); }}>
-                              <CheckCircle className="h-4 w-4 mr-1" />ยืนยันรับ
-                            </Button>
-                          )}
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })
+                              <div className="text-sm">{req.equipment_name || "-"}</div>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            {confirmed ? (
+                              confirmation?.status === "issue_reported" ? (
+                                <Badge variant="destructive" className="gap-1"><AlertTriangle className="h-3 w-3" />แจ้งปัญหา</Badge>
+                              ) : (
+                                <Badge variant="default" className="gap-1"><CheckCircle className="h-3 w-3" />ยืนยันแล้ว</Badge>
+                              )
+                            ) : (
+                              <Badge variant="secondary">รอยืนยัน</Badge>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-center">
+                            {confirmed ? (
+                              <Button size="sm" variant="outline" onClick={() => { setViewConfirmation(getConfirmation(req.id)); setViewDialogOpen(true); }}>
+                                <Eye className="h-4 w-4 mr-1" />ดูรายละเอียด
+                              </Button>
+                            ) : (
+                              <Button size="sm" onClick={() => { setSelectedRequest(req); setConfirmDialogOpen(true); }}>
+                                <CheckCircle className="h-4 w-4 mr-1" />ยืนยันรับ
+                              </Button>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                    {/* Direct Shipping rows */}
+                    {directShipments?.map((ds: any) => {
+                      const confirmed = isAlreadyConfirmed(ds.id, true);
+                      const confirmation = getConfirmation(ds.id, true);
+                      const dsItems = ds.direct_shipment_items || [];
+                      return (
+                        <TableRow key={`ds-${ds.id}`}>
+                          <TableCell className="font-medium">
+                            <div className="flex items-center gap-1">
+                              <Badge variant="outline" className="text-xs">DS</Badge>
+                              {ds.document_no}
+                            </div>
+                          </TableCell>
+                          <TableCell>{ds.shipping_date ? format(new Date(ds.shipping_date), "dd/MM/yyyy") : "-"}</TableCell>
+                          <TableCell>{ds.companies?.name || "-"}</TableCell>
+                          <TableCell>
+                            <div>{ds.supplier_name || "Direct Shipping"}</div>
+                            {ds.department && <div className="text-xs text-muted-foreground">{ds.department}</div>}
+                          </TableCell>
+                          <TableCell><Badge variant="outline" className="gap-1"><Truck className="h-3 w-3" />Direct</Badge></TableCell>
+                          <TableCell>{ds.destination_description || "-"}</TableCell>
+                          <TableCell><Badge variant="outline">{dsItems.length} รายการ</Badge></TableCell>
+                          <TableCell>
+                            {confirmed ? (
+                              confirmation?.status === "issue_reported" ? (
+                                <Badge variant="destructive" className="gap-1"><AlertTriangle className="h-3 w-3" />แจ้งปัญหา</Badge>
+                              ) : (
+                                <Badge variant="default" className="gap-1"><CheckCircle className="h-3 w-3" />ยืนยันแล้ว</Badge>
+                              )
+                            ) : (
+                              <Badge variant="secondary">รอยืนยัน</Badge>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-center">
+                            {confirmed ? (
+                              <Button size="sm" variant="outline" onClick={() => { setViewConfirmation(getConfirmation(ds.id, true)); setViewDialogOpen(true); }}>
+                                <Eye className="h-4 w-4 mr-1" />ดูรายละเอียด
+                              </Button>
+                            ) : (
+                              <Button size="sm" onClick={() => { setSelectedRequest({ ...ds, _isDirectShipment: true }); setConfirmDialogOpen(true); }}>
+                                <CheckCircle className="h-4 w-4 mr-1" />ยืนยันรับ
+                              </Button>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </>
+                
                 )}
               </TableBody>
             </Table>

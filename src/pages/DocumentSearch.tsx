@@ -27,7 +27,7 @@ interface DocumentRecord {
   unit: string;
   created_at: string;
   status: string;
-  source: "pending" | "received" | "issue" | "delivery_confirm";
+  source: "pending" | "received" | "issue" | "delivery_confirm" | "direct_shipping";
 }
 
 export default function DocumentSearch() {
@@ -95,7 +95,24 @@ export default function DocumentSearch() {
         status: item.status, source: "delivery_confirm" as const,
       }));
 
-      setDocuments([...pendingDocs, ...receiptDocs, ...issueDocs, ...dcDocs]);
+      // Fetch from direct_shipments
+      const { data: dsData } = await supabase
+        .from("direct_shipments").select("*, direct_shipment_items(equipment_code, equipment_name, serial_number, quantity, unit)")
+        .order("created_at", { ascending: false });
+
+      const dsDocs: DocumentRecord[] = (dsData || []).map((item: any) => ({
+        id: item.id, document_no: item.document_no, document_url: null,
+        equipment_code: item.direct_shipment_items?.[0]?.equipment_code || null,
+        equipment_name: item.direct_shipment_items?.map((i: any) => i.equipment_name).join(", ") || null,
+        serial_number: item.direct_shipment_items?.[0]?.serial_number || null,
+        supplier_name: item.supplier_name, delivery_person_name: item.delivery_person_name,
+        quantity: item.direct_shipment_items?.reduce((sum: number, i: any) => sum + (i.quantity || 0), 0) || 0,
+        unit: item.direct_shipment_items?.[0]?.unit || "-",
+        created_at: item.created_at,
+        status: item.status, source: "direct_shipping" as const,
+      }));
+
+      setDocuments([...pendingDocs, ...receiptDocs, ...issueDocs, ...dcDocs, ...dsDocs]);
     } catch (error) {
       console.error("Error fetching documents:", error);
       toast.error("ไม่สามารถโหลดเอกสารได้");
@@ -137,6 +154,12 @@ export default function DocumentSearch() {
       if (status === "issue_reported") return <Badge variant="destructive">แจ้งปัญหา</Badge>;
       return <Badge variant="secondary">{status}</Badge>;
     }
+    if (source === "direct_shipping") {
+      if (status === "pending_confirmation") return <Badge variant="secondary">รอยืนยัน</Badge>;
+      if (status === "confirmed") return <Badge className="bg-green-100 text-green-800">ยืนยันแล้ว</Badge>;
+      if (status === "cancelled") return <Badge variant="outline">ยกเลิก</Badge>;
+      return <Badge variant="secondary">{status}</Badge>;
+    }
     switch (status) {
       case "pending": return <Badge variant="secondary">รอรับเข้าคลัง</Badge>;
       case "received": return <Badge className="bg-green-100 text-green-800">รับแล้ว</Badge>;
@@ -151,6 +174,7 @@ export default function DocumentSearch() {
       case "received": return <Badge variant="outline" className="border-green-300 text-green-700">รับเข้าคลัง</Badge>;
       case "issue": return <Badge variant="outline" className="border-blue-300 text-blue-700">เอกสารเบิก</Badge>;
       case "delivery_confirm": return <Badge variant="outline" className="border-purple-300 text-purple-700">ยืนยันรับ</Badge>;
+      case "direct_shipping": return <Badge variant="outline" className="border-cyan-300 text-cyan-700">Direct Shipping</Badge>;
       default: return <Badge variant="outline">{source}</Badge>;
     }
   };
@@ -198,6 +222,7 @@ export default function DocumentSearch() {
                   <SelectItem value="received">รับเข้าคลังแล้ว</SelectItem>
                   <SelectItem value="issue">เอกสารเบิก</SelectItem>
                   <SelectItem value="delivery_confirm">เอกสารยืนยันรับ</SelectItem>
+                  <SelectItem value="direct_shipping">Direct Shipping</SelectItem>
                 </SelectContent>
               </Select>
             </div>
