@@ -17,6 +17,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useDepartmentPermissions } from "@/hooks/useDepartmentPermissions";
 import { useTablePagination } from "@/hooks/useTablePagination";
 import { TablePagination } from "@/components/TablePagination";
+import { DestinationMapPreview } from "@/components/direct-shipping/DestinationMapPreview";
 
 export default function DirectShippingApproval() {
   const queryClient = useQueryClient();
