@@ -27,6 +27,7 @@ export default function DirectShippingApproval() {
 
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("pending_approval");
+  const [dateRange, setDateRange] = useState<DateRange | undefined>();
   const [selectedRequest, setSelectedRequest] = useState<any>(null);
   const [actionType, setActionType] = useState<"approve" | "reject" | null>(null);
   const [rejectionReason, setRejectionReason] = useState("");
