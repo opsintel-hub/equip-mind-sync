@@ -233,7 +233,7 @@ const UserManual = () => {
               </div>
               <div className="p-3 border rounded-lg">
                 <h5 className="font-medium text-sm">ชั้นที่ 2: สิทธิ์ตามฝ่าย (Department Permissions)</h5>
-                <p className="text-xs text-muted-foreground mt-1">กำหนดว่าผู้ใช้สามารถ ดู/สร้าง/แก้ไข/ลบ ข้อมูลของฝ่ายใดบ้าง — สิทธิ์ "ลบ" สงวนไว้เฉพาะ Admin เท่านั้น (ระบบล็อคอัตโนมัติ) ฝ่ายถูกดึงจากฐานข้อมูลแบบไดนามิก</p>
+                <p className="text-xs text-muted-foreground mt-1">กำหนดว่าผู้ใช้สามารถ ดู/สร้าง/แก้ไข/ลบ ข้อมูลของฝ่ายใดบ้าง — สิทธิ์ "ลบ" สงวนไว้เฉพาะ Admin และ Super Admin เท่านั้น (ระบบล็อคอัตโนมัติ) ฝ่ายถูกดึงจากฐานข้อมูลแบบไดนามิก</p>
               </div>
               <div className="p-3 border rounded-lg">
                 <h5 className="font-medium text-sm">ชั้นที่ 3: สิทธิ์ตามฟังก์ชัน (Function Permissions)</h5>
