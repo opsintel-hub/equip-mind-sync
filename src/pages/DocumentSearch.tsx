@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { DateRange } from "react-day-picker";
 import { Search, FileText, Download, ExternalLink, Loader2 } from "lucide-react";
 import { useTablePagination } from "@/hooks/useTablePagination";
 import { TablePagination } from "@/components/TablePagination";

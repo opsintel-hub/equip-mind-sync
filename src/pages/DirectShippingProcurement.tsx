@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { DateRange } from "react-day-picker";
 import { DSTimeline } from "@/components/direct-shipping/DSTimeline";
 import { DestinationMapPreview } from "@/components/direct-shipping/DestinationMapPreview";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
