@@ -129,7 +129,16 @@ const EquipmentLoans = () => {
 
     switch (loan.status) {
       case "pending":
-        return <Badge variant="secondary">รออนุมัติ</Badge>;
+        return (
+          <div className="flex flex-col gap-1">
+            <Badge variant="secondary">รออนุมัติ</Badge>
+            {loan.is_cross_department && (
+              <Badge variant="outline" className="text-[10px] border-amber-500 text-amber-600">
+                <ShieldAlert className="w-3 h-3 mr-1" />ข้ามฝ่าย
+              </Badge>
+            )}
+          </div>
+        );
       case "approved":
         if (loan.returned_quantity >= loan.quantity) {
           return <Badge className="bg-success text-success-foreground">คืนครบแล้ว</Badge>;
