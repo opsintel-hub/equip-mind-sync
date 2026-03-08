@@ -364,6 +364,7 @@ export type Database = {
           item_condition: string
           notes: string | null
           quantity: number
+          serial_number: string | null
         }
         Insert: {
           billboard_id: string
@@ -375,6 +376,7 @@ export type Database = {
           item_condition?: string
           notes?: string | null
           quantity: number
+          serial_number?: string | null
         }
         Update: {
           billboard_id?: string
@@ -386,6 +388,7 @@ export type Database = {
           item_condition?: string
           notes?: string | null
           quantity?: number
+          serial_number?: string | null
         }
         Relationships: [
           {

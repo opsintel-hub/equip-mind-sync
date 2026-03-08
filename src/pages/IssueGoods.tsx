@@ -261,7 +261,7 @@ const IssueGoods = () => {
         newStatus = selectedItem.status;
       }
       
-      // Update item record
+      // Update item record (including serial_number selected by warehouse staff)
       const { error: updateError } = await supabase
         .from("goods_issue_pending_items")
         .update({
@@ -270,6 +270,7 @@ const IssueGoods = () => {
           remaining_quantity: Math.max(0, remainingQty),
           billboard_id: issueData.billboard_id || selectedItem.billboard_id,
           notes: issueData.notes || selectedItem.notes,
+          serial_number: issueData.serial_number || selectedItem.serial_number || null,
         })
         .eq("id", selectedItem.id);
 
@@ -318,6 +319,20 @@ const IssueGoods = () => {
         // If installing to billboard for Media Player
         const billboardId = issueData.billboard_id || selectedItem.billboard_id;
         if (billboardId) {
+          // Create billboard_equipment record for Media Player
+          const { error: billboardMpError } = await supabase
+            .from("billboard_equipment")
+            .insert({
+              billboard_id: billboardId,
+              equipment_id: selectedItem.media_player_id,
+              quantity: issuedQty,
+              installation_date: new Date().toISOString().split('T')[0],
+              notes: issueData.notes || `Media Player เบิกจากเอกสาร ${parentRequest?.document_no}`,
+              created_by: user.id,
+              serial_number: issueData.serial_number || null,
+            });
+          if (billboardMpError) console.error("Error creating billboard_equipment for MP:", billboardMpError);
+
           await logStockMovement({
             equipment_id: selectedItem.media_player_id,
             equipment_code: currentMediaPlayer?.code || selectedItem.equipment_code || "",
@@ -329,7 +344,7 @@ const IssueGoods = () => {
             reference_type: "billboard_equipment",
             reference_document: parentRequest?.document_no || "",
             location_id: currentMediaPlayer?.location_id || undefined,
-            notes: `Media Player ติดตั้งที่ป้าย ${billboardId}`,
+            notes: `Media Player ติดตั้งที่ป้าย ${billboardId} S/N: ${issueData.serial_number || "-"}`,
           });
         }
       } else if (selectedItem.equipment_id && issuedQty > 0) {
@@ -397,6 +412,7 @@ const IssueGoods = () => {
               installation_date: new Date().toISOString().split('T')[0],
               notes: issueData.notes || `เบิกจากเอกสาร ${parentRequest?.document_no}`,
               created_by: user.id,
+              serial_number: issueData.serial_number || null,
             });
           if (billboardError) throw billboardError;
 
