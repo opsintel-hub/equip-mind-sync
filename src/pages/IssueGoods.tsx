@@ -398,6 +398,7 @@ const IssueGoods = () => {
               installation_date: new Date().toISOString().split('T')[0],
               notes: issueData.notes || `เบิกจากเอกสาร ${parentRequest?.document_no}`,
               created_by: user.id,
+              serial_number: issueData.serial_number || null,
             });
           if (billboardError) throw billboardError;
 
