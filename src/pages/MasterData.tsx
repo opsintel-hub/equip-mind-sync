@@ -172,6 +172,7 @@ const MasterData = () => {
         </TabsContent>
         )}
 
+        {isSuperAdmin && (
         <TabsContent value="tools" className="space-y-4">
           <Card>
             <CardHeader>
@@ -197,6 +198,7 @@ const MasterData = () => {
             </CardContent>
           </Card>
         </TabsContent>
+        )}
 
         <TabsContent value="categories" className="space-y-4">
           <Card>
