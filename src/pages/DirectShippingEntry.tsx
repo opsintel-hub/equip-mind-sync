@@ -185,6 +185,7 @@ export default function DirectShippingEntry() {
       // Reset form
       setPurpose(""); setRequestedItemsDescription("");
       setDestinationDescription(""); setExpectedArrivalDate(""); setNotes("");
+      setPrNumber(""); setPoNumber(""); setPrDocUrl(""); setPoDocUrl("");
     } catch (error: any) {
       console.error("Error creating DS request:", error);
       toast.error("เกิดข้อผิดพลาด: " + error.message);
