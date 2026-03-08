@@ -370,7 +370,14 @@ const GoodsIssue = () => {
             </Table>
           </div>
 
-          <TablePagination {...pagination} />
+          <TablePagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            totalItems={totalItems}
+            pageSize={pageSize}
+            onPageChange={handlePageChange}
+            onPageSizeChange={handlePageSizeChange}
+          />
         </CardContent>
       </Card>
     </div>
