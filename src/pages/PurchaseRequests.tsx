@@ -136,6 +136,8 @@ export default function PurchaseRequests() {
     return matchesSearch && matchesStatus;
   });
 
+  const { paginatedData: paginatedRequests, currentPage, pageSize, totalPages, totalItems, handlePageChange, handlePageSizeChange } = useTablePagination(filteredRequests, 20);
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "pending":
