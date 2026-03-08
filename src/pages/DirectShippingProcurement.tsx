@@ -502,6 +502,7 @@ export default function DirectShippingProcurement() {
           <DialogHeader><DialogTitle>รายละเอียด - {viewDetail?.document_no}</DialogTitle></DialogHeader>
           {viewDetail && (
             <div className="space-y-4 text-sm">
+              <DSTimeline shipment={viewDetail} />
               <div className="grid grid-cols-2 gap-3">
                 <div><span className="text-muted-foreground">ผู้ขอ:</span> {viewDetail.requester_name || "-"}</div>
                 <div><span className="text-muted-foreground">ฝ่าย:</span> {viewDetail.department}</div>
