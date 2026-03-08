@@ -465,6 +465,7 @@ const IssueRequest = () => {
           quantity: totalRequestedQty,
           issued_quantity: 0,
           remaining_quantity: totalRequestedQty,
+          unit: itemsToSubmit[0]?.unit || "ชิ้น",
           billboard_id: itemsToSubmit[0]?.billboard_id || null,
           is_complete: !selectedPurpose?.requires_billboard || itemsToSubmit.every(item => !!item.billboard_id),
           pickup_date: headerData.pickup_date || null,
