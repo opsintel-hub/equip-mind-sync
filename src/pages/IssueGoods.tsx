@@ -261,7 +261,7 @@ const IssueGoods = () => {
         newStatus = selectedItem.status;
       }
       
-      // Update item record
+      // Update item record (including serial_number selected by warehouse staff)
       const { error: updateError } = await supabase
         .from("goods_issue_pending_items")
         .update({
@@ -270,6 +270,7 @@ const IssueGoods = () => {
           remaining_quantity: Math.max(0, remainingQty),
           billboard_id: issueData.billboard_id || selectedItem.billboard_id,
           notes: issueData.notes || selectedItem.notes,
+          serial_number: issueData.serial_number || selectedItem.serial_number || null,
         })
         .eq("id", selectedItem.id);
 
