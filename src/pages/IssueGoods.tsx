@@ -564,6 +564,7 @@ const IssueGoods = () => {
       notes: item.notes || "",
       billboard_id: item.billboard_id || "",
       serial_number: item.serial_number || "",
+      serial_number_source: item.is_media_player ? "media_player_sn1" : "equipment",
     });
     setItemIssueDialogOpen(true);
   };
