@@ -208,6 +208,18 @@ export default function DirectShippingProcurement() {
         }
       }
 
+      // Create notification for requester
+      await supabase.from("notifications").insert({
+        title: `สินค้าส่งตรงแล้ว - ${processDialog.document_no}`,
+        message: `คำขอ ${processDialog.document_no} ถูกส่งแล้ว จาก ${selectedSupplier?.name || "Supplier"} ไปยัง ${processDialog.destination_description} — กรุณายืนยันการรับสินค้า`,
+        type: "info",
+        category: "stock",
+        department: processDialog.department,
+        reference_id: processDialog.id,
+        reference_type: "direct_shipment",
+        user_id: processDialog.created_by,
+      });
+
       toast.success(`ดำเนินการส่งตรงสำเร็จ: ${processDialog.document_no}`);
       queryClient.invalidateQueries({ queryKey: ["ds-procurement-requests"] });
       setProcessDialog(null);
