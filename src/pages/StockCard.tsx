@@ -159,6 +159,7 @@ export default function StockCard() {
   // ── Fetch all items for search ──
   const { data: allItems = [] } = useQuery({
     queryKey: ["stock-card-items"],
+    staleTime: 5 * 60 * 1000, // 5 min cache
     queryFn: async () => {
       const items: EquipmentItem[] = [];
 
