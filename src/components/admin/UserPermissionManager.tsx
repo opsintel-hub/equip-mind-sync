@@ -341,11 +341,12 @@ export function UserPermissionManager() {
     }
   };
 
-  const isAdmin = (userId: string) => userRoles[userId]?.includes('admin');
+  const isAdmin = (userId: string) => userRoles[userId]?.includes('admin') || userRoles[userId]?.includes('super_admin');
 
   const getRoleSummary = (userId: string) => {
     const roles = userRoles[userId] || [];
     if (roles.length === 0) return null;
+    if (roles.includes('super_admin')) return <Badge className="bg-amber-600 hover:bg-amber-700">Super Admin</Badge>;
     if (roles.includes('admin')) return <Badge className="bg-red-500 hover:bg-red-600">Admin</Badge>;
     return roles.map(role => {
       const roleInfo = ROLES.find(r => r.value === role);
