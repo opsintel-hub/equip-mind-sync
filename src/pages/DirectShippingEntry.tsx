@@ -154,6 +154,10 @@ export default function DirectShippingEntry() {
           destination_description: destinationDescription,
           expected_arrival_date: expectedArrivalDate || null,
           notes: notes || null,
+          pr_number: prNumber || null,
+          po_number: poNumber || null,
+          pr_document_url: prDocUrl || null,
+          po_document_url: poDocUrl || null,
           created_by: user?.id,
           status: "pending_approval",
         } as any)
