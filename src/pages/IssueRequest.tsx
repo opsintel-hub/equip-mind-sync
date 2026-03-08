@@ -179,7 +179,7 @@ const IssueRequest = () => {
         .select("id, code, name, unit, quantity, serial_number_1, serial_number_2, warranty_expiry_date, created_at, location_id, locations:location_id(id, code, name, warehouse_id, warehouses(id, code, name))")
         .eq("is_active", true)
         .gt("quantity", 0)
-        .order("created_at", { ascending: true });
+        .order("created_at", { ascending: false });
       if (error) throw error;
       // Map to EquipmentWithDetails format
       return data.map((mp: any) => ({
