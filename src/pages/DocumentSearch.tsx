@@ -154,6 +154,12 @@ export default function DocumentSearch() {
       if (status === "issue_reported") return <Badge variant="destructive">แจ้งปัญหา</Badge>;
       return <Badge variant="secondary">{status}</Badge>;
     }
+    if (source === "direct_shipping") {
+      if (status === "pending_confirmation") return <Badge variant="secondary">รอยืนยัน</Badge>;
+      if (status === "confirmed") return <Badge className="bg-green-100 text-green-800">ยืนยันแล้ว</Badge>;
+      if (status === "cancelled") return <Badge variant="outline">ยกเลิก</Badge>;
+      return <Badge variant="secondary">{status}</Badge>;
+    }
     switch (status) {
       case "pending": return <Badge variant="secondary">รอรับเข้าคลัง</Badge>;
       case "received": return <Badge className="bg-green-100 text-green-800">รับแล้ว</Badge>;
