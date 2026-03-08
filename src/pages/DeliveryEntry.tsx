@@ -1649,7 +1649,7 @@ const DeliveryEntry = () => {
 
               {/* Serial Number (only for non-Media Player) & Unit Price & Total Amount */}
               <div className={`grid grid-cols-1 ${isMediaPlayerEntry ? 'md:grid-cols-2' : 'md:grid-cols-3'} gap-4`}>
-                {!isMediaPlayerEntry && (
+                {!isMediaPlayerEntry && !perUnitMode && (
                   <div className="space-y-2">
                     <Label htmlFor="serialNumber">Serial Number</Label>
                     <Input id="serialNumber" placeholder="SN-xxxxx" value={serialNumber} onChange={e => setSerialNumber(e.target.value)} />
