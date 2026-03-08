@@ -177,6 +177,7 @@ const IssueRequest = () => {
         unit: mp.unit,
         quantity_in_stock: mp.quantity,
         serial_number: mp.serial_number_1,
+        serial_number_2: mp.serial_number_2,
         expiry_date: null,
         warranty_expiry_date: mp.warranty_expiry_date,
         warehouse_entry_date: mp.created_at?.split('T')[0] || new Date().toISOString().split('T')[0],
