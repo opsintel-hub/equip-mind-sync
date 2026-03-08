@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { DateRange } from "react-day-picker";
 import { Search, FileText, Download, ExternalLink, Loader2 } from "lucide-react";
 import { useTablePagination } from "@/hooks/useTablePagination";
 import { TablePagination } from "@/components/TablePagination";
@@ -13,6 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { th } from "date-fns/locale";
+import { DatePickerWithRange } from "@/components/ui/date-range-picker";
 
 interface DocumentRecord {
   id: string;
@@ -36,6 +38,7 @@ export default function DocumentSearch() {
   const [searchTerm, setSearchTerm] = useState("");
   const [searchType, setSearchType] = useState<string>("all");
   const [sourceFilter, setSourceFilter] = useState<string>("all");
+  const [dateRange, setDateRange] = useState<DateRange | undefined>();
   const [hasSearched, setHasSearched] = useState(false);
 
   const fetchDocuments = async () => {
@@ -127,6 +130,13 @@ export default function DocumentSearch() {
     // Source filter
     if (sourceFilter !== "all" && doc.source !== sourceFilter) return false;
 
+    // Date range filter
+    if (dateRange?.from) {
+      const d = new Date(doc.created_at);
+      if (d < dateRange.from) return false;
+      if (dateRange.to && d > new Date(dateRange.to.getTime() + 86400000)) return false;
+    }
+
     if (!searchTerm) return true;
     const term = searchTerm.toLowerCase();
     switch (searchType) {
@@ -192,7 +202,7 @@ export default function DocumentSearch() {
           <CardDescription>ค้นหาจากผู้จำหน่าย รหัสอุปกรณ์ หรือเลขที่เอกสาร</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
             <div className="space-y-2">
               <Label>ค้นหา</Label>
               <div className="relative">
@@ -225,6 +235,10 @@ export default function DocumentSearch() {
                   <SelectItem value="direct_shipping">Direct Shipping</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>ช่วงวันที่</Label>
+              <DatePickerWithRange date={dateRange} onDateChange={setDateRange} />
             </div>
             <div className="flex items-end">
               <Button onClick={fetchDocuments} disabled={loading}>

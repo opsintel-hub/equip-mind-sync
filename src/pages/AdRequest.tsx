@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { DateRange } from "react-day-picker";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useTablePagination } from "@/hooks/useTablePagination";
 import { TablePagination } from "@/components/TablePagination";
@@ -13,6 +14,7 @@ import { toast } from "sonner";
 import { FileOutput, Clock } from "lucide-react";
 import { format } from "date-fns";
 import { formatBillboardLabel } from "@/lib/billboardUtils";
+import { DatePickerWithRange } from "@/components/ui/date-range-picker";
 
 interface MyIssueRequest {
   id: string;
@@ -52,6 +54,7 @@ const AdRequest = () => {
   const { user } = useAuth();
   const [requests, setRequests] = useState<MyIssueRequest[]>([]);
   const [loading, setLoading] = useState(true);
+  const [dateRange, setDateRange] = useState<DateRange | undefined>();
   const [refreshKey, setRefreshKey] = useState(0);
 
   const handleRefresh = () => setRefreshKey((k) => k + 1);
@@ -84,7 +87,16 @@ const AdRequest = () => {
     }
   };
 
-  const { paginatedData: paginatedRequests, currentPage, pageSize, totalPages, totalItems, handlePageChange, handlePageSizeChange } = useTablePagination(requests, 20);
+  const filteredRequests = requests.filter((r) => {
+    if (dateRange?.from) {
+      const d = new Date(r.created_at);
+      if (d < dateRange.from) return false;
+      if (dateRange.to && d > new Date(dateRange.to.getTime() + 86400000)) return false;
+    }
+    return true;
+  });
+
+  const { paginatedData: paginatedRequests, currentPage, pageSize, totalPages, totalItems, handlePageChange, handlePageSizeChange } = useTablePagination(filteredRequests, 20);
 
   return (
     <div className="space-y-6">
@@ -115,6 +127,11 @@ const AdRequest = () => {
           </div>
         </CardHeader>
         <CardContent>
+          <div className="flex flex-col sm:flex-row gap-3 mb-4">
+            <div className="flex-1">
+              <DatePickerWithRange date={dateRange} onDateChange={setDateRange} />
+            </div>
+          </div>
           {loading ? (
             <div className="text-center py-8 text-muted-foreground">กำลังโหลด...</div>
           ) : requests.length === 0 ? (

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { DateRange } from "react-day-picker";
 import { DSTimeline } from "@/components/direct-shipping/DSTimeline";
 import { DestinationMapPreview } from "@/components/direct-shipping/DestinationMapPreview";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -16,6 +17,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { th } from "date-fns/locale";
 import { SearchableSelect } from "@/components/ui/searchable-select";
+import { DatePickerWithRange } from "@/components/ui/date-range-picker";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { useTablePagination } from "@/hooks/useTablePagination";
@@ -44,6 +46,7 @@ export default function DirectShippingProcurement() {
 
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("approved");
+  const [dateRange, setDateRange] = useState<DateRange | undefined>();
   const [processDialog, setProcessDialog] = useState<any>(null);
   const [viewDetail, setViewDetail] = useState<any>(null);
 
@@ -111,9 +114,16 @@ export default function DirectShippingProcurement() {
   });
 
   const filtered = requests.filter((r: any) => {
-    if (!searchTerm) return true;
-    const term = searchTerm.toLowerCase();
-    return r.document_no?.toLowerCase().includes(term) || r.requester_name?.toLowerCase().includes(term) || r.destination_description?.toLowerCase().includes(term) || r.supplier_name?.toLowerCase().includes(term);
+    if (searchTerm) {
+      const term = searchTerm.toLowerCase();
+      if (!(r.document_no?.toLowerCase().includes(term) || r.requester_name?.toLowerCase().includes(term) || r.destination_description?.toLowerCase().includes(term) || r.supplier_name?.toLowerCase().includes(term))) return false;
+    }
+    if (dateRange?.from) {
+      const d = new Date(r.created_at);
+      if (d < dateRange.from) return false;
+      if (dateRange.to && d > new Date(dateRange.to.getTime() + 86400000)) return false;
+    }
+    return true;
   });
 
   const { currentPage, totalPages, paginatedData, handlePageChange, totalItems, pageSize, handlePageSizeChange } = useTablePagination(filtered);
@@ -308,8 +318,8 @@ export default function DirectShippingProcurement() {
           <CardTitle className="text-lg">รายการคำขอส่งตรง</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex flex-col sm:flex-row gap-3">
-            <div className="relative flex-1">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input placeholder="ค้นหา..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="pl-9" />
             </div>
@@ -321,6 +331,7 @@ export default function DirectShippingProcurement() {
               <option value="cancelled">ยกเลิก</option>
               <option value="all">ทั้งหมด</option>
             </select>
+            <DatePickerWithRange date={dateRange} onDateChange={setDateRange} />
           </div>
 
           {isLoading ? (

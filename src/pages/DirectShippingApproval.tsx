@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { DateRange } from "react-day-picker";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,6 +19,7 @@ import { useDepartmentPermissions } from "@/hooks/useDepartmentPermissions";
 import { useTablePagination } from "@/hooks/useTablePagination";
 import { TablePagination } from "@/components/TablePagination";
 import { DestinationMapPreview } from "@/components/direct-shipping/DestinationMapPreview";
+import { DatePickerWithRange } from "@/components/ui/date-range-picker";
 
 export default function DirectShippingApproval() {
   const queryClient = useQueryClient();
@@ -26,6 +28,7 @@ export default function DirectShippingApproval() {
 
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("pending_approval");
+  const [dateRange, setDateRange] = useState<DateRange | undefined>();
   const [selectedRequest, setSelectedRequest] = useState<any>(null);
   const [actionType, setActionType] = useState<"approve" | "reject" | null>(null);
   const [rejectionReason, setRejectionReason] = useState("");
@@ -59,14 +62,19 @@ export default function DirectShippingApproval() {
   });
 
   const filtered = requests.filter((r: any) => {
-    if (!searchTerm) return true;
-    const term = searchTerm.toLowerCase();
-    return (
-      r.document_no?.toLowerCase().includes(term) ||
-      r.requester_name?.toLowerCase().includes(term) ||
-      r.requested_items_description?.toLowerCase().includes(term) ||
-      r.destination_description?.toLowerCase().includes(term)
-    );
+    if (searchTerm) {
+      const term = searchTerm.toLowerCase();
+      if (!(r.document_no?.toLowerCase().includes(term) ||
+        r.requester_name?.toLowerCase().includes(term) ||
+        r.requested_items_description?.toLowerCase().includes(term) ||
+        r.destination_description?.toLowerCase().includes(term))) return false;
+    }
+    if (dateRange?.from) {
+      const d = new Date(r.created_at);
+      if (d < dateRange.from) return false;
+      if (dateRange.to && d > new Date(dateRange.to.getTime() + 86400000)) return false;
+    }
+    return true;
   });
 
   const { currentPage, totalPages, paginatedData, handlePageChange, totalItems, pageSize, handlePageSizeChange } = useTablePagination(filtered);
@@ -151,8 +159,8 @@ export default function DirectShippingApproval() {
           <CardTitle className="text-lg">คำขอส่งตรงที่รอพิจารณา</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex flex-col sm:flex-row gap-3">
-            <div className="relative flex-1">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input placeholder="ค้นหา..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="pl-9" />
             </div>
@@ -166,6 +174,7 @@ export default function DirectShippingApproval() {
               <option value="rejected">ไม่อนุมัติ</option>
               <option value="all">ทั้งหมด</option>
             </select>
+            <DatePickerWithRange date={dateRange} onDateChange={setDateRange} />
           </div>
 
           {isLoading ? (
