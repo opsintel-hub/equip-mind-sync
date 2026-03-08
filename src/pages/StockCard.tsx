@@ -213,6 +213,13 @@ export default function StockCard() {
       .slice(0, 20);
   }, [searchText, allItems, filterTypes, filterBrands, filterDepartments, isAdmin, viewableDepts]);
 
+  // ── Available brands for filter ──
+  const availableBrands = useMemo(() => {
+    const brands = new Set<string>();
+    allItems.forEach(i => { if (i.brand) brands.add(i.brand); });
+    return Array.from(brands).sort().map(b => ({ value: b, label: b }));
+  }, [allItems]);
+
   const selectedItem = useMemo(() => {
     if (!selectedItemId) return null;
     return allItems.find(i => i.id === selectedItemId) || null;
