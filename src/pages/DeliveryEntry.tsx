@@ -1427,6 +1427,169 @@ const DeliveryEntry = () => {
                   </div>
                 </>}
 
+              {/* Per-Unit Equipment Entry (when not Media Player) */}
+              {!isMediaPlayerEntry && (
+                <div className="p-3 bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800 rounded-lg space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <Checkbox 
+                        id="perUnitMode" 
+                        checked={perUnitMode} 
+                        onCheckedChange={(checked) => {
+                          setPerUnitMode(checked === true);
+                          if (checked) {
+                            setSerialNumber("");
+                            setQuantity("");
+                          } else {
+                            setEquipmentUnits([{ id: crypto.randomUUID(), serial_number: "", device_name: "", image_file: null, image_preview: null }]);
+                          }
+                        }}
+                      />
+                      <Label htmlFor="perUnitMode" className="text-sm font-medium text-emerald-700 dark:text-emerald-400 flex items-center gap-2">
+                        <Package className="w-4 h-4" />
+                        ระบุข้อมูลรายชิ้น (Serial Number, ชื่อ, รูปภาพ)
+                      </Label>
+                    </div>
+                    {perUnitMode && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setEquipmentUnits(prev => [...prev, {
+                            id: crypto.randomUUID(),
+                            serial_number: "",
+                            device_name: "",
+                            image_file: null,
+                            image_preview: null,
+                          }]);
+                        }}
+                        className="gap-1 text-emerald-700 border-emerald-300 hover:bg-emerald-100 dark:text-emerald-400 dark:border-emerald-700 dark:hover:bg-emerald-900/30"
+                      >
+                        <PlusCircle className="w-4 h-4" />
+                        เพิ่มชิ้น
+                      </Button>
+                    )}
+                  </div>
+                  
+                  {perUnitMode && (
+                    <>
+                      <p className="text-xs text-emerald-600/80 dark:text-emerald-500/80">
+                        💡 กรอก S/N แต่ละชิ้น — ระบบจะสร้างรายการในตะกร้าอัตโนมัติ 1 รายการต่อ 1 ชิ้น ({equipmentUnits.length} ชิ้น)
+                      </p>
+                      <div className="space-y-3">
+                        {equipmentUnits.map((unitEntry, idx) => (
+                          <div key={unitEntry.id} className="p-3 bg-background border rounded-lg space-y-3">
+                            <div className="flex items-center justify-between">
+                              <span className="text-sm font-medium text-foreground">ชิ้นที่ {idx + 1}</span>
+                              {equipmentUnits.length > 1 && (
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-7 text-destructive hover:text-destructive"
+                                  onClick={() => {
+                                    if (unitEntry.image_preview) URL.revokeObjectURL(unitEntry.image_preview);
+                                    setEquipmentUnits(prev => prev.filter(u => u.id !== unitEntry.id));
+                                  }}
+                                >
+                                  <X className="w-3 h-3 mr-1" />
+                                  ลบ
+                                </Button>
+                              )}
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                              {/* Serial Number */}
+                              <div className="space-y-1">
+                                <Label className="text-xs">Serial Number *</Label>
+                                <Input
+                                  placeholder="กรอก S/N..."
+                                  value={unitEntry.serial_number}
+                                  onChange={e => {
+                                    setEquipmentUnits(prev => prev.map(u =>
+                                      u.id === unitEntry.id ? { ...u, serial_number: e.target.value } : u
+                                    ));
+                                  }}
+                                />
+                              </div>
+                              {/* Name */}
+                              <div className="space-y-1">
+                                <Label className="text-xs">ชื่อ/รายละเอียดชิ้น</Label>
+                                <Input
+                                  placeholder="ชื่อเฉพาะชิ้น..."
+                                  value={unitEntry.device_name}
+                                  onChange={e => {
+                                    setEquipmentUnits(prev => prev.map(u =>
+                                      u.id === unitEntry.id ? { ...u, device_name: e.target.value } : u
+                                    ));
+                                  }}
+                                />
+                              </div>
+                              {/* Upload Image */}
+                              <div className="space-y-1">
+                                <Label className="text-xs">รูปภาพ</Label>
+                                <div className="flex items-center gap-2">
+                                  <input
+                                    type="file"
+                                    accept="image/*"
+                                    className="hidden"
+                                    id={`eq-unit-image-${unitEntry.id}`}
+                                    onChange={e => {
+                                      const file = e.target.files?.[0];
+                                      if (file) {
+                                        if (file.size > 10 * 1024 * 1024) {
+                                          toast.error("ไฟล์มีขนาดใหญ่เกินไป (สูงสุด 10MB)");
+                                          return;
+                                        }
+                                        if (unitEntry.image_preview) URL.revokeObjectURL(unitEntry.image_preview);
+                                        const preview = URL.createObjectURL(file);
+                                        setEquipmentUnits(prev => prev.map(u =>
+                                          u.id === unitEntry.id ? { ...u, image_file: file, image_preview: preview } : u
+                                        ));
+                                      }
+                                    }}
+                                  />
+                                  {unitEntry.image_preview ? (
+                                    <div className="flex items-center gap-2">
+                                      <img src={unitEntry.image_preview} alt="Preview" className="w-10 h-10 rounded object-cover border" />
+                                      <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="sm"
+                                        className="h-7 text-destructive"
+                                        onClick={() => {
+                                          if (unitEntry.image_preview) URL.revokeObjectURL(unitEntry.image_preview);
+                                          setEquipmentUnits(prev => prev.map(u =>
+                                            u.id === unitEntry.id ? { ...u, image_file: null, image_preview: null } : u
+                                          ));
+                                        }}
+                                      >
+                                        <X className="w-3 h-3" />
+                                      </Button>
+                                    </div>
+                                  ) : (
+                                    <Button
+                                      type="button"
+                                      variant="outline"
+                                      size="sm"
+                                      className="h-9 w-full"
+                                      onClick={() => document.getElementById(`eq-unit-image-${unitEntry.id}`)?.click()}
+                                    >
+                                      <ImagePlus className="w-4 h-4 mr-1" />
+                                      เลือกรูป
+                                    </Button>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
+
               {/* Quantity, Unit, Min Stock Level & Lot Numbers */}
               <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
                 <div className="space-y-2">
