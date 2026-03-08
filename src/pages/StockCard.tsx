@@ -21,9 +21,8 @@ import {
   Fingerprint, Hash, Clock, BarChart3, FileSpreadsheet, FileText
 } from "lucide-react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
-import * as XLSX from "xlsx";
-import jsPDF from "jspdf";
 import { toast } from "@/hooks/use-toast";
+import { exportStockCardExcel, exportStockCardPDF } from "@/lib/stockCardExport";
 import { useTablePagination } from "@/hooks/useTablePagination";
 import { TablePagination } from "@/components/TablePagination";
 import { DepartmentMultiFilter } from "@/components/DepartmentMultiFilter";
