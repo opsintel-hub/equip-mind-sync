@@ -716,14 +716,14 @@ const IssueGoods = () => {
                         กำลังโหลด...
                       </TableCell>
                     </TableRow>
-                  ) : filteredRequests?.length === 0 ? (
+                  ) : paginatedData?.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
                         ไม่พบข้อมูล
                       </TableCell>
                     </TableRow>
                   ) : (
-                    filteredRequests?.map((req) => {
+                    paginatedData?.map((req) => {
                       const items = getItemsForRequest(req.id);
                       const isExpanded = expandedRequests.has(req.id);
                       const hasMultipleItems = items.length > 0;
