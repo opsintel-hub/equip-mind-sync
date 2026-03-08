@@ -36,6 +36,8 @@ export default function DirectShippingEntry() {
   const [purpose, setPurpose] = useState("");
   const [requestedItemsDescription, setRequestedItemsDescription] = useState("");
   const [destinationDescription, setDestinationDescription] = useState("");
+  const [receiverName, setReceiverName] = useState("");
+  const [receiverPhone, setReceiverPhone] = useState("");
   const [expectedArrivalDate, setExpectedArrivalDate] = useState("");
   const [notes, setNotes] = useState("");
   const [prNumber, setPrNumber] = useState("");
