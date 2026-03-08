@@ -52,7 +52,19 @@ const EquipmentLoans = () => {
 
   useEffect(() => {
     fetchLoans();
-  }, []);
+    fetchUserRoles();
+  }, [user]);
+
+  const fetchUserRoles = async () => {
+    if (!user) return;
+    const { data } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", user.id);
+    setUserRoles((data || []).map((r: any) => r.role));
+  };
+
+  const isManagerOrAdmin = userRoles.some(r => ["admin", "super_admin", "manager"].includes(r));
 
   const fetchLoans = async () => {
     setIsLoading(true);
