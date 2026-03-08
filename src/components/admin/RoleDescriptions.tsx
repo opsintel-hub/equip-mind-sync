@@ -27,20 +27,36 @@ interface RoleInfo {
 
 const ROLE_DETAILS: RoleInfo[] = [
   {
+    value: "super_admin",
+    label: "Super Admin (ผู้ดูแลระบบสูงสุด)",
+    icon: <Shield className="h-5 w-5" />,
+    color: "bg-amber-500/10 text-amber-700 border-amber-200",
+    description: "สิทธิ์สูงสุดในระบบ จัดการข้อมูลหลักทั้งหมดรวมถึงอุปกรณ์ คลังสินค้า ตำแหน่งจัดเก็บ",
+    capabilities: [
+      "ทุกสิทธิ์ของ Admin",
+      "จัดการ Tab อุปกรณ์/อะไหล่ ในหน้าข้อมูลหลัก",
+      "จัดการ Tab เครื่องมือ ในหน้าข้อมูลหลัก",
+      "จัดการ Tab คลังสินค้า ในหน้าข้อมูลหลัก",
+      "จัดการ Tab ตำแหน่งจัดเก็บ ในหน้าข้อมูลหลัก",
+      "จัดการ Tab Media Player ในหน้าข้อมูลหลัก",
+    ],
+    defaultFunctions: SYSTEM_FUNCTIONS.map(f => f.name),
+  },
+  {
     value: "admin",
     label: "Admin (ผู้ดูแลระบบ)",
     icon: <Shield className="h-5 w-5" />,
     color: "bg-red-500/10 text-red-600 border-red-200",
-    description: "สิทธิ์สูงสุดในระบบ สามารถจัดการทุกอย่างได้",
+    description: "จัดการระบบทั่วไป ยกเว้นข้อมูลหลักบางส่วนที่สงวนให้ Super Admin",
     capabilities: [
       "จัดการผู้ใช้งานและกำหนดสิทธิ์ทั้งหมด",
       "เข้าถึงข้อมูลทุกฝ่ายโดยไม่มีข้อจำกัด",
       "ใช้งานทุกฟังก์ชันในระบบ",
       "รีเซ็ตรหัสผ่านผู้ใช้อื่น",
-      "จัดการข้อมูลหลัก (Master Data) ทั้งหมด",
+      "จัดการข้อมูลหลัก (ยกเว้น อุปกรณ์/คลัง/ตำแหน่ง/Media Player)",
       "ลบข้อมูลสินค้าและรายการต่างๆ"
     ],
-    defaultFunctions: SYSTEM_FUNCTIONS.map(f => f.name), // all functions
+    defaultFunctions: SYSTEM_FUNCTIONS.map(f => f.name),
   },
   {
     value: "manager",
