@@ -222,6 +222,7 @@ export default function DocumentSearch() {
                   <SelectItem value="received">รับเข้าคลังแล้ว</SelectItem>
                   <SelectItem value="issue">เอกสารเบิก</SelectItem>
                   <SelectItem value="delivery_confirm">เอกสารยืนยันรับ</SelectItem>
+                  <SelectItem value="direct_shipping">Direct Shipping</SelectItem>
                 </SelectContent>
               </Select>
             </div>
