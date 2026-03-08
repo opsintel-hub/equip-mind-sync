@@ -498,6 +498,13 @@ const BillboardDetail = () => {
                             <TableRow key={item.id}>
                               <TableCell className="font-medium">{item.equipment?.code || "-"}</TableCell>
                               <TableCell>{item.equipment?.name || "-"}</TableCell>
+                              <TableCell>
+                                {(item as any).serial_number ? (
+                                  <Badge variant="outline" className="font-mono text-xs">
+                                    {(item as any).serial_number}
+                                  </Badge>
+                                ) : "-"}
+                              </TableCell>
                               <TableCell>{item.equipment?.category || "-"}</TableCell>
                               <TableCell className="text-right">
                                 {item.quantity} {item.equipment?.unit || "ชิ้น"}
