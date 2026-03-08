@@ -177,6 +177,19 @@ const DeliveryEntry = () => {
     { id: crypto.randomUUID(), serial_number_1: "", serial_number_2: "", device_name: "", activate_windows: "", image_file: null, image_preview: null }
   ]);
 
+  // Per-unit equipment entries (similar to Media Player dynamic list)
+  interface EquipmentUnitEntry {
+    id: string;
+    serial_number: string;
+    device_name: string;
+    image_file: File | null;
+    image_preview: string | null;
+  }
+  const [perUnitMode, setPerUnitMode] = useState(false);
+  const [equipmentUnits, setEquipmentUnits] = useState<EquipmentUnitEntry[]>([
+    { id: crypto.randomUUID(), serial_number: "", device_name: "", image_file: null, image_preview: null }
+  ]);
+
   // Storage dimensions
   const [storageWidthCm, setStorageWidthCm] = useState("");
   const [storageHeightCm, setStorageHeightCm] = useState("");
