@@ -167,6 +167,8 @@ const DeadStockReport = () => {
     return matchesDept && matchesAge && matchesCategory && matchesCondition;
   });
 
+  const { paginatedData: paginatedEquipment, currentPage, pageSize, totalPages, totalItems, handlePageChange, handlePageSizeChange } = useTablePagination(filteredEquipment, 20);
+
   const ageGroupSummary: AgeGroup[] = AGE_GROUPS.map(group => {
     const items = equipment.filter(item => {
       const days = getAgeDays(item.warehouse_entry_date);
