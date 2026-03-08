@@ -6,9 +6,10 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Search, ArrowLeftRight, RotateCcw, Clock, CheckCircle, XCircle } from "lucide-react";
+import { Plus, Search, ArrowLeftRight, RotateCcw, Clock, CheckCircle, XCircle, ShieldAlert } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useAuth } from "@/hooks/useAuth";
 import { format } from "date-fns";
 import { th } from "date-fns/locale";
 import { LoanRequestForm } from "@/components/loan/LoanRequestForm";
@@ -32,13 +33,16 @@ interface Loan {
   notes: string | null;
   return_notes: string | null;
   created_at: string;
+  is_cross_department?: boolean;
   equipment?: { code: string; name: string } | null;
   from_company?: { code: string; name: string } | null;
   to_company?: { code: string; name: string } | null;
 }
 
 const EquipmentLoans = () => {
+  const { user } = useAuth();
   const [loans, setLoans] = useState<Loan[]>([]);
+  const [userRoles, setUserRoles] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
@@ -48,7 +52,19 @@ const EquipmentLoans = () => {
 
   useEffect(() => {
     fetchLoans();
-  }, []);
+    fetchUserRoles();
+  }, [user]);
+
+  const fetchUserRoles = async () => {
+    if (!user) return;
+    const { data } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", user.id);
+    setUserRoles((data || []).map((r: any) => r.role));
+  };
+
+  const isManagerOrAdmin = userRoles.some(r => ["admin", "super_admin", "manager"].includes(r));
 
   const fetchLoans = async () => {
     setIsLoading(true);
@@ -113,7 +129,16 @@ const EquipmentLoans = () => {
 
     switch (loan.status) {
       case "pending":
-        return <Badge variant="secondary">รออนุมัติ</Badge>;
+        return (
+          <div className="flex flex-col gap-1">
+            <Badge variant="secondary">รออนุมัติ</Badge>
+            {loan.is_cross_department && (
+              <Badge variant="outline" className="text-[10px] border-amber-500 text-amber-600">
+                <ShieldAlert className="w-3 h-3 mr-1" />ข้ามฝ่าย
+              </Badge>
+            )}
+          </div>
+        );
       case "approved":
         if (loan.returned_quantity >= loan.quantity) {
           return <Badge className="bg-success text-success-foreground">คืนครบแล้ว</Badge>;
@@ -343,14 +368,18 @@ const EquipmentLoans = () => {
                         <TableCell className="text-right">
                           <div className="flex items-center justify-end gap-2">
                             {loan.status === "pending" && (
-                              <>
-                                <Button size="sm" variant="outline" onClick={() => handleApprove(loan.id)}>
-                                  อนุมัติ
-                                </Button>
-                                <Button size="sm" variant="destructive" onClick={() => handleReject(loan.id)}>
-                                  ปฏิเสธ
-                                </Button>
-                              </>
+                              loan.is_cross_department && !isManagerOrAdmin ? (
+                                <span className="text-xs text-muted-foreground">ต้อง Manager/Admin อนุมัติ</span>
+                              ) : (
+                                <>
+                                  <Button size="sm" variant="outline" onClick={() => handleApprove(loan.id)}>
+                                    อนุมัติ
+                                  </Button>
+                                  <Button size="sm" variant="destructive" onClick={() => handleReject(loan.id)}>
+                                    ปฏิเสธ
+                                  </Button>
+                                </>
+                              )
                             )}
                             {loan.status === "approved" && loan.returned_quantity < loan.quantity && (
                               <Button

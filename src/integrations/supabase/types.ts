@@ -1477,6 +1477,7 @@ export type Database = {
           equipment_id: string | null
           from_company_id: string
           id: string
+          is_cross_department: boolean
           loan_date: string
           notes: string | null
           quantity: number
@@ -1499,6 +1500,7 @@ export type Database = {
           equipment_id?: string | null
           from_company_id: string
           id?: string
+          is_cross_department?: boolean
           loan_date?: string
           notes?: string | null
           quantity: number
@@ -1521,6 +1523,7 @@ export type Database = {
           equipment_id?: string | null
           from_company_id?: string
           id?: string
+          is_cross_department?: boolean
           loan_date?: string
           notes?: string | null
           quantity?: number

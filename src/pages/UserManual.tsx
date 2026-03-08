@@ -399,7 +399,31 @@ const UserManual = () => {
           </div>
 
           <div>
-            <h4 className="font-semibold mb-2">5.4 Import/Export Excel</h4>
+            <h4 className="font-semibold mb-2">5.4 ยืมอะไหล่ข้ามบริษัท (Equipment Loans)</h4>
+            <p className="text-xs text-muted-foreground mb-2">
+              รองรับการยืมอะไหล่ระหว่างบริษัทภายในองค์กร ทั้งในฝ่ายเดียวกันและข้ามฝ่าย
+            </p>
+            <ol className="list-decimal list-inside text-xs text-muted-foreground space-y-1">
+              <li>กดปุ่ม "ขอยืมอะไหล่" → เลือกบริษัทผู้ให้ยืม (ต้นทาง) และบริษัทผู้ยืม (ปลายทาง)</li>
+              <li>เลือกอะไหล่ที่ต้องการ (กรองตามหมวดหมู่ได้) → ระบุจำนวน (ต้องไม่เกินสต็อก)</li>
+              <li>กำหนดวันครบกำหนดคืน, กรอกชื่อ-เบอร์ผู้ขอ → กดส่งคำขอ</li>
+              <li>ระบบตรวจสอบฝ่ายอัตโนมัติ:
+                <ul className="list-disc list-inside ml-4 mt-1 space-y-0.5">
+                  <li><strong>ยืมในฝ่ายเดียวกัน:</strong> Warehouse Staff / Admin อนุมัติได้ปกติ</li>
+                  <li><strong>ยืมข้ามฝ่าย:</strong> ต้อง Manager หรือ Admin อนุมัติเท่านั้น (แสดง Badge "ข้ามฝ่าย" สีส้ม)</li>
+                </ul>
+              </li>
+              <li>เมื่ออนุมัติแล้ว สถานะเปลี่ยนเป็น "กำลังยืม" → ติดตามจำนวนที่คืนแล้ว/คงค้าง</li>
+              <li>กดปุ่ม "บันทึกคืน" → ระบุจำนวนที่คืน + หมายเหตุ → คืนได้ทั้งบางส่วนและทั้งหมด</li>
+              <li>หากเกินกำหนดคืน ระบบจะแสดงสถานะ "เกินกำหนด" เป็นสีแดงอัตโนมัติ</li>
+            </ol>
+            <div className="mt-2 p-2 rounded bg-muted text-xs">
+              <strong>สถานะการยืม:</strong> รออนุมัติ → กำลังยืม → คืนบางส่วน → คืนครบแล้ว | ปฏิเสธ | เกินกำหนด
+            </div>
+          </div>
+
+          <div>
+            <h4 className="font-semibold mb-2">5.5 Import/Export Excel</h4>
             <p className="text-xs text-muted-foreground">
               <strong>Import:</strong> ดาวน์โหลด Template Excel → กรอกข้อมูล → อัปโหลด ระบบจะตรวจสอบข้อมูลและนำเข้าอัตโนมัติ
               <br /><strong>Export:</strong> กดปุ่ม Export เพื่อดาวน์โหลดรายการสินค้าทั้งหมดเป็นไฟล์ Excel
@@ -407,7 +431,7 @@ const UserManual = () => {
           </div>
 
           <div>
-            <h4 className="font-semibold mb-2">5.5 Media Player</h4>
+            <h4 className="font-semibold mb-2">5.6 Media Player</h4>
             <p className="text-xs text-muted-foreground">
               Media Player จัดการในหน้า Master Data → Tab Media Player — มีข้อมูลเพิ่มเติม: CMS Type, Model, Specification, สถานะ (ใช้งาน/ซ่อม/ว่าง),
               Serial Number 2 ตัว (S/N 1 และ S/N 2), เอกสารแนบ สามารถนำเข้า/รับเข้าคลัง/เบิกจ่ายได้เช่นเดียวกับสินค้าทั่วไป
@@ -416,7 +440,7 @@ const UserManual = () => {
           </div>
 
           <div>
-            <h4 className="font-semibold mb-2">5.6 สินค้าประเภททรัพย์สิน (Asset)</h4>
+            <h4 className="font-semibold mb-2">5.7 สินค้าประเภททรัพย์สิน (Asset)</h4>
             <p className="text-xs text-muted-foreground">
               สินค้าที่ทำเครื่องหมาย "เป็นทรัพย์สิน" (is_asset = true) จะต้องผ่านการอนุมัติจาก Manager ก่อนจ่าย
               สามารถระบุ Asset Code และ Equipment ID Code ได้ภายหลังผ่านหน้า "รายการรอรหัส"
