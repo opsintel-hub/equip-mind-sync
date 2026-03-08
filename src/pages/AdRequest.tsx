@@ -139,7 +139,7 @@ const AdRequest = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {requests.map((req) => {
+                  {paginatedRequests.map((req) => {
                     const status = statusLabels[req.status] || { label: req.status, variant: "secondary" as const };
                     return (
                       <TableRow key={req.id}>
