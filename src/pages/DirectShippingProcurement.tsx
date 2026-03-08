@@ -360,7 +360,9 @@ export default function DirectShippingProcurement() {
                         <TableCell>{getStatusBadge(r.status)}</TableCell>
                         <TableCell className="text-center">
                           <div className="flex items-center justify-center gap-1">
-                            <Button variant="ghost" size="icon" onClick={() => setViewDetail(r)}><Eye className="w-4 h-4" /></Button>
+                            <Button variant="ghost" size="icon" onClick={() => setViewDetail(r)} title="ดูรายละเอียด"><Eye className="w-4 h-4" /></Button>
+                            <Button variant="ghost" size="icon" onClick={() => copyShipmentInfo(r)} title="คัดลอกข้อมูลส่ง LINE"><Copy className="w-4 h-4" /></Button>
+                            <Button variant="ghost" size="icon" onClick={() => copyShareLink(r)} title="คัดลอกลิงก์แชร์"><Share2 className="w-4 h-4" /></Button>
                             {r.status === "approved" && (
                               <>
                                 <Button size="sm" onClick={() => { setProcessDialog(r); setCart([]); setSupplierId(""); setPoNumber(""); setProcessNotes(""); }}>
