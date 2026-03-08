@@ -143,8 +143,10 @@ const DeliveryConfirmation = () => {
   const confirmDelivery = useMutation({
     mutationFn: async () => {
       if (!selectedRequest || !user) throw new Error("Missing data");
+      const isDS = !!selectedRequest._isDirectShipment;
       const { error } = await supabase.from("delivery_confirmations").insert({
-        goods_issue_pending_id: selectedRequest.id,
+        goods_issue_pending_id: isDS ? null : selectedRequest.id,
+        direct_shipment_id: isDS ? selectedRequest.id : null,
         document_no: selectedRequest.document_no,
         confirmed_by: user.id,
         status: hasIssue ? "issue_reported" : "confirmed",
@@ -153,6 +155,17 @@ const DeliveryConfirmation = () => {
         notes: notes || null,
         photo_urls: uploadedFiles.length > 0 ? uploadedFiles : null,
       } as any);
+      if (error) throw error;
+
+      // Update direct shipment status
+      if (isDS) {
+        await supabase.from("direct_shipments").update({
+          status: hasIssue ? "issue_reported" : "confirmed",
+          confirmed_at: new Date().toISOString(),
+          confirmed_by: user.id,
+        }).eq("id", selectedRequest.id);
+      }
+    },
       if (error) throw error;
     },
     onSuccess: () => {
