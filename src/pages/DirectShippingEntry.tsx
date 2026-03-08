@@ -296,6 +296,25 @@ export default function DirectShippingEntry() {
             </div>
           </div>
 
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>ผู้รับปลายทาง</Label>
+              <Input
+                value={receiverName}
+                onChange={e => setReceiverName(e.target.value)}
+                placeholder="ชื่อผู้รับสินค้า"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>เบอร์ติดต่อผู้รับ</Label>
+              <Input
+                value={receiverPhone}
+                onChange={e => setReceiverPhone(e.target.value)}
+                placeholder="เบอร์โทรผู้รับ"
+              />
+            </div>
+          </div>
+
           {/* PR / PO */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
