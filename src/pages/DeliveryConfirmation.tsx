@@ -43,6 +43,8 @@ const DeliveryConfirmation = () => {
   const [issueDescription, setIssueDescription] = useState("");
   const [notes, setNotes] = useState("");
   const [uploadedFiles, setUploadedFiles] = useState<string[]>([]);
+  const [uploadedDocFiles, setUploadedDocFiles] = useState<string[]>([]);
+  const [actualQuantity, setActualQuantity] = useState("");
   const [uploading, setUploading] = useState(false);
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
   const [viewConfirmation, setViewConfirmation] = useState<any>(null);
