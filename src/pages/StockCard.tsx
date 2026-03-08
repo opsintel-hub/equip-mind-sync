@@ -596,6 +596,38 @@ export default function StockCard() {
       {/* ── Section 1: Search & Filters ── */}
       <Card>
         <CardContent className="pt-6 space-y-4">
+          {/* Quick type toggle buttons */}
+          <div className="flex flex-wrap gap-2">
+            {ITEM_TYPES.map(t => {
+              const Icon = t.icon;
+              const isActive = filterTypes.length === 1 && filterTypes[0] === t.value;
+              return (
+                <Button
+                  key={t.value}
+                  variant={isActive ? "default" : "outline"}
+                  size="sm"
+                  className="gap-1.5 transition-all"
+                  onClick={() => {
+                    if (isActive) {
+                      setFilterTypes([]);
+                    } else {
+                      setFilterTypes([t.value]);
+                    }
+                    if (selectedItemId) { setSelectedItemId(null); setSelectedItemType(null); }
+                  }}
+                >
+                  <Icon className="w-4 h-4" />
+                  {t.label}
+                </Button>
+              );
+            })}
+            {filterTypes.length > 0 && (
+              <Button variant="ghost" size="sm" className="text-muted-foreground" onClick={() => setFilterTypes([])}>
+                แสดงทั้งหมด
+              </Button>
+            )}
+          </div>
+
           {/* Search */}
           <div className="relative">
             <Label className="text-sm font-medium mb-1 block">ค้นหาสินค้า</Label>
