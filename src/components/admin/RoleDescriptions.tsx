@@ -151,8 +151,8 @@ export function RoleDescriptions() {
   };
 
   const handleFunctionsChange = (roleValue: string, newValues: string[]) => {
-    // Admin always has all functions - don't allow change
-    if (roleValue === "admin") return;
+    // Admin and Super Admin always have all functions - don't allow change
+    if (roleValue === "admin" || roleValue === "super_admin") return;
     setSelectedByRole(prev => ({ ...prev, [roleValue]: newValues }));
   };
 
