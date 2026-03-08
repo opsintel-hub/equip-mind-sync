@@ -250,7 +250,39 @@ export default function DirectShippingProcurement() {
     }
   };
 
-  const getStatusBadge = (status: string) => {
+  const copyShipmentInfo = (r: any) => {
+    const mapsLink = r.destination_lat && r.destination_lng
+      ? `https://www.google.com/maps?q=${r.destination_lat},${r.destination_lng}`
+      : null;
+    const publicLink = `${window.location.origin}/ds-view/${r.id}`;
+
+    let text = `📦 คำขอส่งตรง: ${r.document_no}\n`;
+    text += `━━━━━━━━━━━━━━━━\n`;
+    text += `👤 ผู้ขอ: ${r.requester_name || "-"}\n`;
+    text += `📱 เบอร์ผู้ขอ: ${r.requester_phone || "-"}\n`;
+    text += `🏢 ฝ่าย: ${r.department || "-"}\n`;
+    if (r.purpose) text += `📝 วัตถุประสงค์: ${r.purpose}\n`;
+    text += `\n📋 สินค้าที่ต้องการ:\n${r.requested_items_description || "-"}\n`;
+    text += `\n📍 ปลายทาง: ${r.destination_description || "-"}\n`;
+    if (r.receiver_name) text += `👤 ผู้รับ: ${r.receiver_name}\n`;
+    if (r.receiver_phone) text += `📱 เบอร์ผู้รับ: ${r.receiver_phone}\n`;
+    if (mapsLink) text += `🗺️ แผนที่: ${mapsLink}\n`;
+    if (r.expected_arrival_date) text += `📅 ต้องการก่อน: ${format(new Date(r.expected_arrival_date), "dd/MM/yyyy")}\n`;
+    if (r.notes) text += `💬 หมายเหตุ: ${r.notes}\n`;
+    text += `\n🔗 ดูรายละเอียดเพิ่มเติม: ${publicLink}`;
+
+    navigator.clipboard.writeText(text).then(() => {
+      toast.success("คัดลอกข้อมูลแล้ว พร้อมส่งผ่าน LINE/Chat");
+    }).catch(() => toast.error("ไม่สามารถคัดลอกได้"));
+  };
+
+  const copyShareLink = (r: any) => {
+    const publicLink = `${window.location.origin}/ds-view/${r.id}`;
+    navigator.clipboard.writeText(publicLink).then(() => {
+      toast.success("คัดลอกลิงก์แล้ว");
+    }).catch(() => toast.error("ไม่สามารถคัดลอกได้"));
+  };
+
     switch (status) {
       case "approved": return <Badge className="bg-blue-100 text-blue-800"><CheckCircle2 className="w-3 h-3 mr-1" />อนุมัติ-รอดำเนินการ</Badge>;
       case "pending_confirmation": return <Badge className="bg-purple-100 text-purple-800"><Truck className="w-3 h-3 mr-1" />ส่งแล้ว-รอยืนยัน</Badge>;
