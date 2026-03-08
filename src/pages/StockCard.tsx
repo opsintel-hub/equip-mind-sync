@@ -153,6 +153,7 @@ export default function StockCard() {
   const [filterMovements, setFilterMovements] = useState<string[]>([]);
   const [filterConditions, setFilterConditions] = useState<string[]>([]);
   const [filterDepartments, setFilterDepartments] = useState<string[]>([]);
+  const [filterBrands, setFilterBrands] = useState<string[]>([]);
   const { getViewableDepartments, isAdmin } = useDepartmentPermissions();
   const viewableDepts = getViewableDepartments();
 
