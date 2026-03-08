@@ -16,6 +16,7 @@ interface Company {
   id: string;
   code: string;
   name: string;
+  department_id: string | null;
 }
 
 interface Equipment {
