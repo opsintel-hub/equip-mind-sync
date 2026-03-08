@@ -10,7 +10,7 @@ import { Switch } from "@/components/ui/switch";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { ShoppingCart, Search, Loader2, Eye, Plus, Package, X, Send, Monitor, Clock, CheckCircle2, Ban, AlertTriangle, Truck, MapPin } from "lucide-react";
+import { ShoppingCart, Search, Loader2, Eye, Plus, Package, X, Send, Monitor, Clock, CheckCircle2, Ban, AlertTriangle, Truck, MapPin, Copy, Share2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
