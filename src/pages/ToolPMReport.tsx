@@ -479,6 +479,7 @@ const ToolPMReport = () => {
                 </TableBody>
               </Table>
             </div>
+            <TablePagination currentPage={currentPage} totalPages={totalPages} totalItems={totalItems} pageSize={pageSize} onPageChange={handlePageChange} onPageSizeChange={handlePageSizeChange} />
           )}
         </CardContent>
       </Card>
