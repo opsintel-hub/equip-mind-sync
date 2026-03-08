@@ -12,7 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Plus, Search, FileText, Clock, CheckCircle, XCircle, AlertTriangle, MapPin, RotateCcw, Image, Filter, X, Trash2, ShoppingCart, ChevronDown, ChevronUp, Lock, Layers, Eye, Pencil } from "lucide-react";
+import { Plus, Search, FileText, Clock, CheckCircle, XCircle, AlertTriangle, MapPin, RotateCcw, Image, Filter, X, Trash2, ShoppingCart, ChevronDown, ChevronUp, Lock, Layers, Eye, Pencil, Warehouse } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { format, differenceInDays } from "date-fns";
 import { th } from "date-fns/locale";
