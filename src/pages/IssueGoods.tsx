@@ -91,6 +91,7 @@ const IssueGoods = () => {
     notes: "",
     billboard_id: "",
     serial_number: "",
+    serial_number_source: "",
   });
   const [rejectReason, setRejectReason] = useState("");
   const [imageDialogOpen, setImageDialogOpen] = useState(false);
