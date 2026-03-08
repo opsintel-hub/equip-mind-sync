@@ -544,6 +544,18 @@ const IssueRequest = () => {
     },
   });
 
+  const inferSerialSource = (item: any): string => {
+    if (!item?.serial_number) return "";
+    if (item?.is_media_player) {
+      const mediaPlayer = mediaPlayersData?.find((mp) => mp.id === item.media_player_id);
+      if (mediaPlayer?.serial_number_2 && mediaPlayer.serial_number_2 === item.serial_number) {
+        return "media_player_sn2";
+      }
+      return "media_player_sn1";
+    }
+    return "equipment";
+  };
+
   // Handle editing a rejected request - load its data back into the form
   const handleEditRejectedRequest = (req: any, items: any[]) => {
     // Load header data
@@ -566,12 +578,13 @@ const IssueRequest = () => {
     // Load items back into cart
     const restoredItems: CartItem[] = items.map((item: any) => ({
       id: crypto.randomUUID(),
-      equipment_id: item.is_media_player ? "" : (item.equipment_id || ""),
+      equipment_id: item.is_media_player ? (item.media_player_id || "") : (item.equipment_id || ""),
       equipment_code: item.equipment_code || "",
       equipment_name: item.equipment_name || "",
       quantity: item.quantity || 1,
       unit: item.unit || "ชิ้น",
       serial_number: item.serial_number || "",
+      serial_number_source: inferSerialSource(item),
       billboard_id: item.billboard_id || "",
       notes: item.notes || "",
       is_media_player: item.is_media_player || false,
@@ -581,8 +594,25 @@ const IssueRequest = () => {
     setCartItems(restoredItems);
     setSelectedCartIds(new Set(restoredItems.map(i => i.id)));
 
-    toast.info("โหลดข้อมูลจากคำขอที่ถูกปฏิเสธแล้ว — แก้ไขและส่งใหม่ได้เลย");
-    
+    // Prefill "เพิ่มรายการสินค้า" with the first restored item for easier correction
+    const firstItem = restoredItems[0];
+    if (firstItem) {
+      setCurrentItem({
+        equipment_id: firstItem.equipment_id,
+        equipment_code: firstItem.equipment_code,
+        equipment_name: firstItem.equipment_name,
+        serial_number: firstItem.serial_number,
+        serial_number_source: firstItem.serial_number_source || "",
+        quantity: String(firstItem.quantity || 1),
+        unit: firstItem.unit || "ชิ้น",
+        billboard_id: firstItem.billboard_id || "",
+        notes: firstItem.notes || "",
+      });
+      setIsQuantityLocked(Boolean(firstItem.serial_number));
+    }
+
+    toast.info("โหลดข้อมูลคำขอเดิมแล้ว — แก้ไขที่ฟอร์ม/ตะกร้าและส่งใหม่ได้ทันที");
+
     // Scroll to form
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
