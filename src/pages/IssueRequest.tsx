@@ -339,12 +339,13 @@ const IssueRequest = () => {
   const addItemToCartInternal = (isMediaPlayer: boolean) => {
     const newItem: CartItem = {
       id: crypto.randomUUID(),
-      equipment_id: isMediaPlayer ? "" : currentItem.equipment_id,
+      equipment_id: currentItem.equipment_id,
       equipment_code: currentItem.equipment_code,
       equipment_name: currentItem.equipment_name,
       quantity: parseInt(currentItem.quantity),
       unit: currentItem.unit,
       serial_number: currentItem.serial_number,
+      serial_number_source: currentItem.serial_number_source,
       billboard_id: currentItem.billboard_id,
       notes: currentItem.notes,
       is_media_player: isMediaPlayer,
