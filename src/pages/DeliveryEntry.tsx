@@ -46,6 +46,12 @@ interface Subcategory {
   name: string;
   category_id: string;
 }
+interface Company {
+  id: string;
+  code: string;
+  name: string;
+  department_id: string | null;
+}
 interface Supplier {
   id: string;
   code: string;
