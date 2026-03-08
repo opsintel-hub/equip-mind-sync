@@ -311,13 +311,34 @@ export default function DirectShippingEntry() {
             />
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label>สถานที่ปลายทาง *</Label>
+            <Input
+              value={destinationDescription}
+              onChange={e => setDestinationDescription(e.target.value)}
+              placeholder="ระบุที่อยู่/ไซต์งาน/สถานที่ที่ต้องการให้ส่งไป"
+            />
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-2">
-              <Label>สถานที่ปลายทาง *</Label>
+              <Label>Latitude (ละติจูด)</Label>
               <Input
-                value={destinationDescription}
-                onChange={e => setDestinationDescription(e.target.value)}
-                placeholder="ระบุที่อยู่/ไซต์งาน/สถานที่ที่ต้องการให้ส่งไป"
+                type="number"
+                step="any"
+                value={destinationLat}
+                onChange={e => setDestinationLat(e.target.value)}
+                placeholder="เช่น 13.756331"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Longitude (ลองจิจูด)</Label>
+              <Input
+                type="number"
+                step="any"
+                value={destinationLng}
+                onChange={e => setDestinationLng(e.target.value)}
+                placeholder="เช่น 100.501762"
               />
             </div>
             <div className="space-y-2">
@@ -325,6 +346,10 @@ export default function DirectShippingEntry() {
               <Input type="date" value={expectedArrivalDate} onChange={e => setExpectedArrivalDate(e.target.value)} />
             </div>
           </div>
+
+          {destinationLat && destinationLng && !isNaN(parseFloat(destinationLat)) && !isNaN(parseFloat(destinationLng)) && (
+            <DestinationMapPreview lat={parseFloat(destinationLat)} lng={parseFloat(destinationLng)} />
+          )}
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
