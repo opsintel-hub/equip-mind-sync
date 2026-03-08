@@ -132,7 +132,7 @@ export default function DirectShippingEntry() {
       setUploading(false);
     }
   };
-
+  const handleSubmit = async () => {
 
     if (!selectedDepartment) { toast.error("กรุณาเลือกฝ่าย"); return; }
     if (!requesterName) { toast.error("กรุณาระบุชื่อผู้ขอ"); return; }
