@@ -363,14 +363,49 @@ export default function DirectShippingProcurement() {
           {processDialog && (
             <div className="space-y-6">
               {/* Request info summary */}
-              <Card className="bg-muted/30">
-                <CardContent className="pt-4">
+               <Card className="bg-muted/30">
+                <CardContent className="pt-4 space-y-3">
                   <div className="grid grid-cols-2 gap-3 text-sm">
                     <div><span className="text-muted-foreground">ผู้ขอ:</span> <span className="font-medium">{processDialog.requester_name}</span></div>
+                    <div><span className="text-muted-foreground">เบอร์ผู้ขอ:</span> {processDialog.requester_phone || "-"}</div>
                     <div><span className="text-muted-foreground">ฝ่าย:</span> {processDialog.department}</div>
+                    <div><span className="text-muted-foreground">บริษัท:</span> {processDialog.companies?.name || "-"}</div>
                     <div className="col-span-2"><span className="text-muted-foreground">ปลายทาง:</span> {processDialog.destination_description}</div>
+                    {processDialog.receiver_name && (
+                      <div><span className="text-muted-foreground">ผู้รับ:</span> {processDialog.receiver_name}</div>
+                    )}
+                    {processDialog.receiver_phone && (
+                      <div><span className="text-muted-foreground">เบอร์ผู้รับ:</span> {processDialog.receiver_phone}</div>
+                    )}
+                    {processDialog.expected_arrival_date && (
+                      <div><span className="text-muted-foreground">ต้องการก่อน:</span> {format(new Date(processDialog.expected_arrival_date), "dd/MM/yyyy")}</div>
+                    )}
+                    {processDialog.purpose && (
+                      <div className="col-span-2"><span className="text-muted-foreground">วัตถุประสงค์:</span> {processDialog.purpose}</div>
+                    )}
+                    {processDialog.pr_number && (
+                      <div><span className="text-muted-foreground">เลขที่ PR:</span> {processDialog.pr_number}</div>
+                    )}
+                    {processDialog.po_number && (
+                      <div><span className="text-muted-foreground">เลขที่ PO:</span> {processDialog.po_number}</div>
+                    )}
                     <div className="col-span-2 p-2 bg-background rounded border"><span className="text-muted-foreground">สินค้าที่ขอ:</span> {processDialog.requested_items_description}</div>
                   </div>
+                  {/* PR/PO Documents */}
+                  {(processDialog.pr_document_url || processDialog.po_document_url) && (
+                    <div className="flex gap-3">
+                      {processDialog.pr_document_url && (
+                        <a href={processDialog.pr_document_url} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline">📄 เอกสาร PR</a>
+                      )}
+                      {processDialog.po_document_url && (
+                        <a href={processDialog.po_document_url} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline">📄 เอกสาร PO</a>
+                      )}
+                    </div>
+                  )}
+                  {/* Map Preview */}
+                  {processDialog.destination_lat && processDialog.destination_lng && (
+                    <DestinationMapPreview lat={processDialog.destination_lat} lng={processDialog.destination_lng} />
+                  )}
                 </CardContent>
               </Card>
 
