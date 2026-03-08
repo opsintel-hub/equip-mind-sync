@@ -155,12 +155,18 @@ const IssueRequest = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("equipment")
-        .select("id, code, name, unit, quantity_in_stock, serial_number, expiry_date, warranty_expiry_date, warehouse_entry_date, category")
+        .select("id, code, name, unit, quantity_in_stock, serial_number, expiry_date, warranty_expiry_date, warehouse_entry_date, category, location_id, locations(id, code, name, warehouse_id, warehouses(id, code, name))")
         .eq("is_active", true)
         .gt("quantity_in_stock", 0)
         .order("warehouse_entry_date", { ascending: true });
       if (error) throw error;
-      return data as (EquipmentWithDetails & { category?: string })[];
+      return (data || []).map((eq: any) => ({
+        ...eq,
+        warehouse_name: eq.locations?.warehouses?.name || null,
+        warehouse_code: eq.locations?.warehouses?.code || null,
+        location_name: eq.locations?.name || null,
+        location_code: eq.locations?.code || null,
+      })) as (EquipmentWithDetails & { category?: string })[];
     },
   });
 
