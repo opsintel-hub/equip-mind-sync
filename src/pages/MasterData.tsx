@@ -1,6 +1,7 @@
 import { useState, lazy, Suspense } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useDepartmentPermissions } from "@/hooks/useDepartmentPermissions";
 import { Package, MapPin, Truck, Warehouse, Building2, Target, Building, Wrench, PackageOpen, HardHat, Layers, FolderTree, Zap, Users, Monitor } from "lucide-react";
 import { PMActionTypeList } from "@/components/pm/PMActionTypeList";
 import { PMActionTypeForm } from "@/components/pm/PMActionTypeForm";
@@ -42,10 +43,21 @@ const MediaPlayerEntry = lazy(() => import("@/pages/MediaPlayerEntry"));
 
 const MasterData = () => {
   const [refreshKey, setRefreshKey] = useState(0);
+  const { isSuperAdmin, isAdmin, loading: permLoading } = useDepartmentPermissions();
 
   const handleSuccess = () => {
     setRefreshKey((prev) => prev + 1);
   };
+
+  // Tabs restricted to Super Admin only
+  const superAdminTabs = ["equipment", "tools", "warehouses", "locations", "media_player"];
+
+  if (permLoading) {
+    return <div className="flex items-center justify-center h-64">กำลังโหลด...</div>;
+  }
+
+  // Determine default tab based on access
+  const defaultTab = isSuperAdmin ? "equipment" : "categories";
 
   return (
     <div className="space-y-6">
@@ -56,29 +68,37 @@ const MasterData = () => {
         </p>
       </div>
 
-      <Tabs defaultValue="equipment" className="w-full">
+      <Tabs defaultValue={defaultTab} className="w-full">
         <div className="w-full overflow-x-auto pb-2">
           <TabsList className="inline-flex w-max h-10 mb-0">
-            <TabsTrigger value="equipment" className="gap-1.5 text-xs px-3">
-              <Package className="h-3.5 w-3.5" />
-              อุปกรณ์
-            </TabsTrigger>
-            <TabsTrigger value="tools" className="gap-1.5 text-xs px-3">
-              <Wrench className="h-3.5 w-3.5" />
-              เครื่องมือ
-            </TabsTrigger>
+            {isSuperAdmin && (
+              <TabsTrigger value="equipment" className="gap-1.5 text-xs px-3">
+                <Package className="h-3.5 w-3.5" />
+                อุปกรณ์
+              </TabsTrigger>
+            )}
+            {isSuperAdmin && (
+              <TabsTrigger value="tools" className="gap-1.5 text-xs px-3">
+                <Wrench className="h-3.5 w-3.5" />
+                เครื่องมือ
+              </TabsTrigger>
+            )}
             <TabsTrigger value="categories" className="gap-1.5 text-xs px-3">
               <FolderTree className="h-3.5 w-3.5" />
               หมวดหมู่
             </TabsTrigger>
-            <TabsTrigger value="warehouses" className="gap-1.5 text-xs px-3">
-              <Warehouse className="h-3.5 w-3.5" />
-              คลังสินค้า
-            </TabsTrigger>
-            <TabsTrigger value="locations" className="gap-1.5 text-xs px-3">
-              <MapPin className="h-3.5 w-3.5" />
-              ตำแหน่ง
-            </TabsTrigger>
+            {isSuperAdmin && (
+              <TabsTrigger value="warehouses" className="gap-1.5 text-xs px-3">
+                <Warehouse className="h-3.5 w-3.5" />
+                คลังสินค้า
+              </TabsTrigger>
+            )}
+            {isSuperAdmin && (
+              <TabsTrigger value="locations" className="gap-1.5 text-xs px-3">
+                <MapPin className="h-3.5 w-3.5" />
+                ตำแหน่ง
+              </TabsTrigger>
+            )}
             <TabsTrigger value="suppliers" className="gap-1.5 text-xs px-3">
               <Truck className="h-3.5 w-3.5" />
               ผู้จัดจำหน่าย
@@ -115,13 +135,16 @@ const MasterData = () => {
               <Zap className="h-3.5 w-3.5" />
               PM Action Types
             </TabsTrigger>
-            <TabsTrigger value="media_player" className="gap-1.5 text-xs px-3">
-              <Monitor className="h-3.5 w-3.5" />
-              จัดการ Media Player
-            </TabsTrigger>
+            {isSuperAdmin && (
+              <TabsTrigger value="media_player" className="gap-1.5 text-xs px-3">
+                <Monitor className="h-3.5 w-3.5" />
+                จัดการ Media Player
+              </TabsTrigger>
+            )}
           </TabsList>
         </div>
 
+        {isSuperAdmin && (
         <TabsContent value="equipment" className="space-y-4">
           <Card>
             <CardHeader>
@@ -147,7 +170,9 @@ const MasterData = () => {
             </CardContent>
           </Card>
         </TabsContent>
+        )}
 
+        {isSuperAdmin && (
         <TabsContent value="tools" className="space-y-4">
           <Card>
             <CardHeader>
@@ -173,6 +198,7 @@ const MasterData = () => {
             </CardContent>
           </Card>
         </TabsContent>
+        )}
 
         <TabsContent value="categories" className="space-y-4">
           <Card>
@@ -210,6 +236,7 @@ const MasterData = () => {
           </Card>
         </TabsContent>
 
+        {isSuperAdmin && (
         <TabsContent value="warehouses" className="space-y-4">
           <Card>
             <CardHeader>
@@ -228,7 +255,9 @@ const MasterData = () => {
             </CardContent>
           </Card>
         </TabsContent>
+        )}
 
+        {isSuperAdmin && (
         <TabsContent value="locations" className="space-y-4">
           <Card>
             <CardHeader>
@@ -250,6 +279,7 @@ const MasterData = () => {
             </CardContent>
           </Card>
         </TabsContent>
+        )}
 
         <TabsContent value="suppliers" className="space-y-4">
           <Card>
@@ -432,11 +462,13 @@ const MasterData = () => {
           </Card>
         </TabsContent>
 
+        {isSuperAdmin && (
         <TabsContent value="media_player" className="space-y-4">
           <Suspense fallback={<div className="flex justify-center py-8"><div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full" /></div>}>
             <MediaPlayerEntry />
           </Suspense>
         </TabsContent>
+        )}
       </Tabs>
     </div>
   );
