@@ -1016,6 +1016,154 @@ export type Database = {
         }
         Relationships: []
       }
+      direct_shipment_items: {
+        Row: {
+          created_at: string
+          direct_shipment_id: string
+          equipment_code: string | null
+          equipment_id: string | null
+          equipment_name: string | null
+          id: string
+          lot_number: string | null
+          notes: string | null
+          quantity: number
+          serial_number: string | null
+          unit: string
+          unit_price: number | null
+        }
+        Insert: {
+          created_at?: string
+          direct_shipment_id: string
+          equipment_code?: string | null
+          equipment_id?: string | null
+          equipment_name?: string | null
+          id?: string
+          lot_number?: string | null
+          notes?: string | null
+          quantity?: number
+          serial_number?: string | null
+          unit?: string
+          unit_price?: number | null
+        }
+        Update: {
+          created_at?: string
+          direct_shipment_id?: string
+          equipment_code?: string | null
+          equipment_id?: string | null
+          equipment_name?: string | null
+          id?: string
+          lot_number?: string | null
+          notes?: string | null
+          quantity?: number
+          serial_number?: string | null
+          unit?: string
+          unit_price?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "direct_shipment_items_direct_shipment_id_fkey"
+            columns: ["direct_shipment_id"]
+            isOneToOne: false
+            referencedRelation: "direct_shipments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "direct_shipment_items_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "equipment"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      direct_shipments: {
+        Row: {
+          company_id: string | null
+          confirmed_at: string | null
+          confirmed_by: string | null
+          created_at: string
+          created_by: string | null
+          delivery_person_name: string | null
+          department: string | null
+          destination_description: string | null
+          document_no: string
+          expected_arrival_date: string | null
+          id: string
+          notes: string | null
+          po_number: string | null
+          section_id: string | null
+          shipping_date: string | null
+          status: string
+          supplier_id: string | null
+          supplier_name: string | null
+          updated_at: string
+        }
+        Insert: {
+          company_id?: string | null
+          confirmed_at?: string | null
+          confirmed_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          delivery_person_name?: string | null
+          department?: string | null
+          destination_description?: string | null
+          document_no?: string
+          expected_arrival_date?: string | null
+          id?: string
+          notes?: string | null
+          po_number?: string | null
+          section_id?: string | null
+          shipping_date?: string | null
+          status?: string
+          supplier_id?: string | null
+          supplier_name?: string | null
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string | null
+          confirmed_at?: string | null
+          confirmed_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          delivery_person_name?: string | null
+          department?: string | null
+          destination_description?: string | null
+          document_no?: string
+          expected_arrival_date?: string | null
+          id?: string
+          notes?: string | null
+          po_number?: string | null
+          section_id?: string | null
+          shipping_date?: string | null
+          status?: string
+          supplier_id?: string | null
+          supplier_name?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "direct_shipments_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "direct_shipments_section_id_fkey"
+            columns: ["section_id"]
+            isOneToOne: false
+            referencedRelation: "sections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "direct_shipments_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       equipment: {
         Row: {
           amp: number | null

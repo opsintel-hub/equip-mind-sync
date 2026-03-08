@@ -29,6 +29,7 @@ import {
   PackageCheck as PackageCheckIcon,
   FileOutput,
   AlertTriangle as AlertTriangleIcon,
+  Send,
 } from "lucide-react";
 import {
   Sidebar,
@@ -84,6 +85,12 @@ const menuGroups: MenuGroup[] = [
         title: "นำสินค้าใหม่เข้าระบบ", 
         url: "/delivery-entry",
         icon: Truck,
+        functionName: "delivery_entry",
+      },
+      { 
+        title: "Direct Shipping", 
+        url: "/direct-shipping",
+        icon: Send,
         functionName: "delivery_entry",
       },
       { 
