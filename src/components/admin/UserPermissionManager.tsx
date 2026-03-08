@@ -283,7 +283,7 @@ export function UserPermissionManager() {
 
       // Save department permissions - force can_delete = false for non-admin
       await supabase.from("user_departments").delete().eq("user_id", selectedUser.id);
-      const isUserAdmin = selectedUserRoles.includes('admin');
+      const isUserAdmin = selectedUserRoles.includes('admin') || selectedUserRoles.includes('super_admin');
       const deptPermsToInsert = userPermissions
         .map(p => ({
           ...p,
