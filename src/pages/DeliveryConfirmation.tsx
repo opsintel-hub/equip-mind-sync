@@ -54,7 +54,7 @@ const DeliveryConfirmation = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("goods_issue_pending")
-        .select("*, companies(name)")
+        .select("*, companies(name), equipment(code, name, serial_number, unit), media_players(code, name, serial_number_1, serial_number_2, unit), billboards(equipment_id, location_name)")
         .in("status", ["issued", "partial_issued"])
         .order("issued_at", { ascending: false });
       if (error) throw error;
@@ -79,7 +79,7 @@ const DeliveryConfirmation = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("goods_issue_pending_items")
-        .select("*")
+        .select("*, equipment(code, name, serial_number, unit), media_players(code, name, serial_number_1, serial_number_2, unit), billboards(equipment_id, location_name)")
         .order("created_at", { ascending: true });
       if (error) throw error;
       return data;
@@ -317,16 +317,64 @@ const DeliveryConfirmation = () => {
                   <div><span className="text-muted-foreground">ผู้ขอเบิก:</span> <span className="font-medium">{selectedRequest?.requester_name}</span></div>
                   <div><span className="text-muted-foreground">ฝ่าย:</span> <span className="font-medium">{selectedRequest?.requester_department || "-"}</span></div>
                   <div><span className="text-muted-foreground">ปลายทาง:</span> <span className="font-medium">{selectedRequest?.destination || "-"}</span></div>
-                  <div><span className="text-muted-foreground">สินค้า:</span> <span className="font-medium">{selectedRequest?.equipment_name || "-"}</span></div>
+                  <div><span className="text-muted-foreground">สินค้า:</span> <span className="font-medium">{selectedRequest?.equipment_name || selectedRequest?.equipment?.name || "-"}</span></div>
+                  {selectedRequest?.equipment_code && (
+                    <div><span className="text-muted-foreground">รหัสสินค้า:</span> <span className="font-medium font-mono">{selectedRequest.equipment_code}</span></div>
+                  )}
+                  {selectedRequest?.billboards && (
+                    <div><span className="text-muted-foreground">ป้าย:</span> <span className="font-medium">{selectedRequest.billboards.equipment_id} {selectedRequest.billboards.location_name ? `- ${selectedRequest.billboards.location_name}` : ""}</span></div>
+                  )}
+                  {selectedRequest?.purpose && (
+                    <div><span className="text-muted-foreground">วัตถุประสงค์:</span> <span className="font-medium">{selectedRequest.purpose}</span></div>
+                  )}
+                  {selectedRequest?.pickup_type && (
+                    <div><span className="text-muted-foreground">รูปแบบรับ:</span> {getPickupBadge(selectedRequest.pickup_type)}</div>
+                  )}
+                  <div><span className="text-muted-foreground">จำนวนขอ:</span> <span className="font-medium">{selectedRequest?.quantity} {selectedRequest?.unit}</span></div>
+                  <div><span className="text-muted-foreground">จำนวนจ่าย:</span> <span className="font-medium">{selectedRequest?.issued_quantity || 0} {selectedRequest?.unit}</span></div>
+                  {selectedRequest?.item_condition && selectedRequest.item_condition !== "new" && (
+                    <div><span className="text-muted-foreground">สภาพ:</span> <span className="font-medium">{selectedRequest.item_condition}</span></div>
+                  )}
+                  {/* Serial Number from header */}
+                  {(selectedRequest?.equipment?.serial_number || selectedRequest?.media_players?.serial_number_1) && (
+                    <div className="col-span-2">
+                      <span className="text-muted-foreground">Serial Number:</span>{" "}
+                      <span className="font-medium font-mono">
+                        {selectedRequest?.is_media_player 
+                          ? [selectedRequest?.media_players?.serial_number_1, selectedRequest?.media_players?.serial_number_2].filter(Boolean).join(" / ")
+                          : selectedRequest?.equipment?.serial_number}
+                      </span>
+                    </div>
+                  )}
+                  {selectedRequest?.notes && (
+                    <div className="col-span-2"><span className="text-muted-foreground">หมายเหตุ:</span> <span className="font-medium">{selectedRequest.notes}</span></div>
+                  )}
                 </div>
                 {selectedRequest && getItemsForRequest(selectedRequest.id).length > 0 && (
                   <div className="mt-3 border-t pt-3">
                     <p className="font-medium mb-2">รายการสินค้า:</p>
-                    <div className="space-y-1">
+                    <div className="space-y-2">
                       {getItemsForRequest(selectedRequest.id).map((item: any) => (
-                        <div key={item.id} className="flex justify-between text-sm bg-background rounded px-2 py-1">
-                          <span>{item.equipment_code} - {item.equipment_name}</span>
-                          <span className="font-medium">{item.issued_quantity || item.quantity} {item.unit}</span>
+                        <div key={item.id} className="text-sm bg-background rounded-lg px-3 py-2 border">
+                          <div className="flex justify-between items-center">
+                            <span className="font-medium">{item.equipment_code} - {item.equipment_name}</span>
+                            <span className="font-medium">{item.issued_quantity || item.quantity} {item.unit}</span>
+                          </div>
+                          {/* Item-level serial number */}
+                          {item.serial_number && (
+                            <div className="text-xs text-muted-foreground mt-1">
+                              S/N: <span className="font-mono">{item.serial_number}</span>
+                            </div>
+                          )}
+                          {/* Item-level billboard */}
+                          {item.billboards && (
+                            <div className="text-xs text-muted-foreground">
+                              ป้าย: {item.billboards.equipment_id} {item.billboards.location_name ? `- ${item.billboards.location_name}` : ""}
+                            </div>
+                          )}
+                          {item.item_condition && item.item_condition !== "new" && (
+                            <div className="text-xs text-muted-foreground">สภาพ: {item.item_condition}</div>
+                          )}
                         </div>
                       ))}
                     </div>
