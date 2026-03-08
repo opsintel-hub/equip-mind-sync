@@ -87,7 +87,16 @@ const AdRequest = () => {
     }
   };
 
-  const { paginatedData: paginatedRequests, currentPage, pageSize, totalPages, totalItems, handlePageChange, handlePageSizeChange } = useTablePagination(requests, 20);
+  const filteredRequests = requests.filter((r) => {
+    if (dateRange?.from) {
+      const d = new Date(r.created_at);
+      if (d < dateRange.from) return false;
+      if (dateRange.to && d > new Date(dateRange.to.getTime() + 86400000)) return false;
+    }
+    return true;
+  });
+
+  const { paginatedData: paginatedRequests, currentPage, pageSize, totalPages, totalItems, handlePageChange, handlePageSizeChange } = useTablePagination(filteredRequests, 20);
 
   return (
     <div className="space-y-6">
