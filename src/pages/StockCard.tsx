@@ -684,7 +684,7 @@ export default function StockCard() {
           </div>
 
           {/* Filters row */}
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3">
             <MultiSelectFilter
               label="ประเภทเคลื่อนไหว"
               options={MOVEMENT_TYPES.map(m => ({ value: m.value, label: m.label }))}
