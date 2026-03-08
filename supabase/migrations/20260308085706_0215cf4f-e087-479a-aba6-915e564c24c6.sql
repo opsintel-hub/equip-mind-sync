@@ -1,0 +1,1 @@
+ALTER TABLE public.billboard_equipment ADD COLUMN serial_number text;
