@@ -1347,6 +1347,8 @@ const IssueRequest = () => {
                         <TableHead>#</TableHead>
                         <TableHead>รหัส/ชื่อสินค้า</TableHead>
                         <TableHead>S/N</TableHead>
+                        <TableHead>คลังสินค้า</TableHead>
+                        <TableHead>ตำแหน่งจัดเก็บ</TableHead>
                         <TableHead className="text-right">จำนวน</TableHead>
                         <TableHead>ป้ายโฆษณา</TableHead>
                         <TableHead>หมายเหตุ</TableHead>
@@ -1375,6 +1377,22 @@ const IssueRequest = () => {
                             <div className="text-sm text-muted-foreground">{item.equipment_name}</div>
                           </TableCell>
                           <TableCell>{item.serial_number || "-"}</TableCell>
+                          <TableCell>
+                            {item.warehouse_name ? (
+                              <div className="flex items-center gap-1">
+                                <Warehouse className="h-3 w-3 text-muted-foreground" />
+                                <span className="text-sm">{item.warehouse_name}</span>
+                              </div>
+                            ) : <span className="text-muted-foreground text-sm">-</span>}
+                          </TableCell>
+                          <TableCell>
+                            {item.location_name ? (
+                              <div className="flex items-center gap-1">
+                                <MapPin className="h-3 w-3 text-muted-foreground" />
+                                <span className="text-sm">{item.location_name}</span>
+                              </div>
+                            ) : <span className="text-muted-foreground text-sm">-</span>}
+                          </TableCell>
                           <TableCell className="text-right">{item.quantity} {item.unit}</TableCell>
                           <TableCell>
                             {item.billboard_id ? (
