@@ -49,7 +49,8 @@ interface CartItem {
 
 export default function DirectShippingEntry() {
   const queryClient = useQueryClient();
-  const { departments, selectedDepartment, setSelectedDepartment, isLocked } = useAllowedDepartments();
+  const { allowedDepartments, isAdmin, isSingleDepartment } = useAllowedDepartments();
+  const [selectedDepartment, setSelectedDepartment] = useState("");
 
   // Form state
   const [supplierId, setSupplierId] = useState("");
