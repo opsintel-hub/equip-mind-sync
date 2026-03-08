@@ -19,6 +19,7 @@ import { useDepartmentPermissions } from "@/hooks/useDepartmentPermissions";
 import { useTablePagination } from "@/hooks/useTablePagination";
 import { TablePagination } from "@/components/TablePagination";
 import { DestinationMapPreview } from "@/components/direct-shipping/DestinationMapPreview";
+import { DatePickerWithRange } from "@/components/ui/date-range-picker";
 
 export default function DirectShippingApproval() {
   const queryClient = useQueryClient();
