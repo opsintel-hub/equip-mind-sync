@@ -12,7 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Plus, Search, FileText, Clock, CheckCircle, XCircle, AlertTriangle, MapPin, RotateCcw, Image, Filter, X, Trash2, ShoppingCart, ChevronDown, ChevronUp, Lock, Layers, Eye, Pencil } from "lucide-react";
+import { Plus, Search, FileText, Clock, CheckCircle, XCircle, AlertTriangle, MapPin, RotateCcw, Image, Filter, X, Trash2, ShoppingCart, ChevronDown, ChevronUp, Lock, Layers, Eye, Pencil, Warehouse } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { format, differenceInDays } from "date-fns";
 import { th } from "date-fns/locale";
@@ -35,6 +35,10 @@ interface EquipmentWithDetails {
   warehouse_entry_date: string;
   is_media_player?: boolean;
   category?: string;
+  warehouse_name?: string | null;
+  warehouse_code?: string | null;
+  location_name?: string | null;
+  location_code?: string | null;
 }
 
 interface IssuePurpose {
@@ -64,6 +68,8 @@ interface CartItem {
   is_media_player?: boolean;
   media_player_id?: string;
   serial_number_source?: string; // Track the source prefix for S/N select value
+  warehouse_name?: string;
+  location_name?: string;
 }
 
 const IssueRequest = () => {
@@ -149,12 +155,18 @@ const IssueRequest = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("equipment")
-        .select("id, code, name, unit, quantity_in_stock, serial_number, expiry_date, warranty_expiry_date, warehouse_entry_date, category")
+        .select("id, code, name, unit, quantity_in_stock, serial_number, expiry_date, warranty_expiry_date, warehouse_entry_date, category, location_id, locations(id, code, name, warehouse_id, warehouses(id, code, name))")
         .eq("is_active", true)
         .gt("quantity_in_stock", 0)
         .order("warehouse_entry_date", { ascending: true });
       if (error) throw error;
-      return data as (EquipmentWithDetails & { category?: string })[];
+      return (data || []).map((eq: any) => ({
+        ...eq,
+        warehouse_name: eq.locations?.warehouses?.name || null,
+        warehouse_code: eq.locations?.warehouses?.code || null,
+        location_name: eq.locations?.name || null,
+        location_code: eq.locations?.code || null,
+      })) as (EquipmentWithDetails & { category?: string })[];
     },
   });
 
@@ -164,13 +176,13 @@ const IssueRequest = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("media_players")
-        .select("id, code, name, unit, quantity, serial_number_1, serial_number_2, warranty_expiry_date, created_at")
+        .select("id, code, name, unit, quantity, serial_number_1, serial_number_2, warranty_expiry_date, created_at, location_id, locations:location_id(id, code, name, warehouse_id, warehouses(id, code, name))")
         .eq("is_active", true)
         .gt("quantity", 0)
         .order("created_at", { ascending: true });
       if (error) throw error;
       // Map to EquipmentWithDetails format
-      return data.map(mp => ({
+      return data.map((mp: any) => ({
         id: mp.id,
         code: mp.code,
         name: mp.name,
@@ -182,6 +194,10 @@ const IssueRequest = () => {
         warranty_expiry_date: mp.warranty_expiry_date,
         warehouse_entry_date: mp.created_at?.split('T')[0] || new Date().toISOString().split('T')[0],
         is_media_player: true,
+        warehouse_name: mp.locations?.warehouses?.name || null,
+        warehouse_code: mp.locations?.warehouses?.code || null,
+        location_name: mp.locations?.name || null,
+        location_code: mp.locations?.code || null,
       })) as EquipmentWithDetails[];
     },
   });
@@ -339,6 +355,7 @@ const IssueRequest = () => {
 
   // Internal function to add item to cart
   const addItemToCartInternal = (isMediaPlayer: boolean) => {
+    const selectedEquipment = equipment?.find(e => e.id === currentItem.equipment_id);
     const newItem: CartItem = {
       id: crypto.randomUUID(),
       equipment_id: currentItem.equipment_id,
@@ -352,6 +369,8 @@ const IssueRequest = () => {
       notes: currentItem.notes,
       is_media_player: isMediaPlayer,
       media_player_id: isMediaPlayer ? currentItem.equipment_id : undefined,
+      warehouse_name: selectedEquipment?.warehouse_name || undefined,
+      location_name: selectedEquipment?.location_name || undefined,
     };
 
     setCartItems([...cartItems, newItem]);
@@ -1328,6 +1347,8 @@ const IssueRequest = () => {
                         <TableHead>#</TableHead>
                         <TableHead>รหัส/ชื่อสินค้า</TableHead>
                         <TableHead>S/N</TableHead>
+                        <TableHead>คลังสินค้า</TableHead>
+                        <TableHead>ตำแหน่งจัดเก็บ</TableHead>
                         <TableHead className="text-right">จำนวน</TableHead>
                         <TableHead>ป้ายโฆษณา</TableHead>
                         <TableHead>หมายเหตุ</TableHead>
@@ -1356,6 +1377,22 @@ const IssueRequest = () => {
                             <div className="text-sm text-muted-foreground">{item.equipment_name}</div>
                           </TableCell>
                           <TableCell>{item.serial_number || "-"}</TableCell>
+                          <TableCell>
+                            {item.warehouse_name ? (
+                              <div className="flex items-center gap-1">
+                                <Warehouse className="h-3 w-3 text-muted-foreground" />
+                                <span className="text-sm">{item.warehouse_name}</span>
+                              </div>
+                            ) : <span className="text-muted-foreground text-sm">-</span>}
+                          </TableCell>
+                          <TableCell>
+                            {item.location_name ? (
+                              <div className="flex items-center gap-1">
+                                <MapPin className="h-3 w-3 text-muted-foreground" />
+                                <span className="text-sm">{item.location_name}</span>
+                              </div>
+                            ) : <span className="text-muted-foreground text-sm">-</span>}
+                          </TableCell>
                           <TableCell className="text-right">{item.quantity} {item.unit}</TableCell>
                           <TableCell>
                             {item.billboard_id ? (
