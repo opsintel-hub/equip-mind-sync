@@ -29,6 +29,7 @@ import {
   PackageCheck as PackageCheckIcon,
   FileOutput,
   AlertTriangle as AlertTriangleIcon,
+  Send,
 } from "lucide-react";
 import {
   Sidebar,
