@@ -338,11 +338,11 @@ export default function DirectShippingEntry() {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "pending_confirmation":
-        return <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200"><Clock className="w-3 h-3 mr-1" />รอยืนยัน</Badge>;
+        return <Badge variant="secondary"><Clock className="w-3 h-3 mr-1" />รอยืนยัน</Badge>;
       case "confirmed":
-        return <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200"><CheckCircle2 className="w-3 h-3 mr-1" />ยืนยันแล้ว</Badge>;
+        return <Badge variant="default"><CheckCircle2 className="w-3 h-3 mr-1" />ยืนยันแล้ว</Badge>;
       case "issue_reported":
-        return <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200"><X className="w-3 h-3 mr-1" />มีปัญหา</Badge>;
+        return <Badge variant="destructive"><X className="w-3 h-3 mr-1" />มีปัญหา</Badge>;
       default:
         return <Badge variant="outline">{status}</Badge>;
     }

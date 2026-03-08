@@ -87,6 +87,15 @@ const menuGroups: MenuGroup[] = [
         functionName: "delivery_entry",
       },
       { 
+        title: "Direct Shipping", 
+        url: "/direct-shipping",
+        icon: Send,
+        functionName: "delivery_entry",
+      },
+        icon: Truck,
+        functionName: "delivery_entry",
+      },
+      { 
         title: "นำของเสียเข้าระบบ", 
         url: "/defective-return",
         icon: AlertTriangleIcon,

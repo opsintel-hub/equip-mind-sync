@@ -119,6 +119,7 @@ const App = () => (
             <Route path="/delivery-confirmation" element={<ProtectedRoute><DashboardLayout><DeliveryConfirmation /></DashboardLayout></ProtectedRoute>} />
             <Route path="/manager-approval" element={<ProtectedRoute><DashboardLayout><ManagerApproval /></DashboardLayout></ProtectedRoute>} />
             <Route path="/warehouse-planning" element={<ProtectedRoute><DashboardLayout><WarehousePickupPlanning /></DashboardLayout></ProtectedRoute>} />
+            <Route path="/direct-shipping" element={<ProtectedRoute><DashboardLayout><DirectShippingEntry /></DashboardLayout></ProtectedRoute>} />
             {/* Public billboard view - no auth required */}
             <Route path="/billboard-view/:id" element={<BillboardPublicView />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
