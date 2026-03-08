@@ -629,6 +629,16 @@ export default function DirectShippingProcurement() {
                   </Table>
                 </div>
               )}
+
+              {/* Copy & Share buttons */}
+              <div className="flex gap-2 pt-2 border-t">
+                <Button variant="outline" size="sm" className="flex-1" onClick={() => copyShipmentInfo(viewDetail)}>
+                  <Copy className="w-4 h-4 mr-1" />คัดลอกข้อมูลส่ง LINE
+                </Button>
+                <Button variant="outline" size="sm" className="flex-1" onClick={() => copyShareLink(viewDetail)}>
+                  <Share2 className="w-4 h-4 mr-1" />คัดลอกลิงก์แชร์
+                </Button>
+              </div>
             </div>
           )}
         </DialogContent>
