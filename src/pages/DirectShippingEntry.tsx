@@ -36,6 +36,8 @@ export default function DirectShippingEntry() {
   const [purpose, setPurpose] = useState("");
   const [requestedItemsDescription, setRequestedItemsDescription] = useState("");
   const [destinationDescription, setDestinationDescription] = useState("");
+  const [receiverName, setReceiverName] = useState("");
+  const [receiverPhone, setReceiverPhone] = useState("");
   const [expectedArrivalDate, setExpectedArrivalDate] = useState("");
   const [notes, setNotes] = useState("");
   const [prNumber, setPrNumber] = useState("");
@@ -151,8 +153,10 @@ export default function DirectShippingEntry() {
           requester_phone: requesterPhone || null,
           purpose: purpose || null,
           requested_items_description: requestedItemsDescription,
-          destination_description: destinationDescription,
-          expected_arrival_date: expectedArrivalDate || null,
+           destination_description: destinationDescription,
+           receiver_name: receiverName || null,
+           receiver_phone: receiverPhone || null,
+           expected_arrival_date: expectedArrivalDate || null,
           notes: notes || null,
           pr_number: prNumber || null,
           po_number: poNumber || null,
@@ -184,7 +188,8 @@ export default function DirectShippingEntry() {
 
       // Reset form
       setPurpose(""); setRequestedItemsDescription("");
-      setDestinationDescription(""); setExpectedArrivalDate(""); setNotes("");
+      setDestinationDescription(""); setReceiverName(""); setReceiverPhone("");
+      setExpectedArrivalDate(""); setNotes("");
       setPrNumber(""); setPoNumber(""); setPrDocUrl(""); setPoDocUrl("");
     } catch (error: any) {
       console.error("Error creating DS request:", error);
@@ -288,6 +293,25 @@ export default function DirectShippingEntry() {
             <div className="space-y-2">
               <Label>วันที่ต้องการได้รับ</Label>
               <Input type="date" value={expectedArrivalDate} onChange={e => setExpectedArrivalDate(e.target.value)} />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>ผู้รับปลายทาง</Label>
+              <Input
+                value={receiverName}
+                onChange={e => setReceiverName(e.target.value)}
+                placeholder="ชื่อผู้รับสินค้า"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>เบอร์ติดต่อผู้รับ</Label>
+              <Input
+                value={receiverPhone}
+                onChange={e => setReceiverPhone(e.target.value)}
+                placeholder="เบอร์โทรผู้รับ"
+              />
             </div>
           </div>
 
@@ -460,6 +484,8 @@ export default function DirectShippingEntry() {
                 <div><span className="text-muted-foreground">ผู้ขอ:</span> {viewDetail.requester_name || "-"}</div>
                 <div><span className="text-muted-foreground">เบอร์:</span> {viewDetail.requester_phone || "-"}</div>
                 <div className="col-span-2"><span className="text-muted-foreground">ปลายทาง:</span> {viewDetail.destination_description || "-"}</div>
+                <div><span className="text-muted-foreground">ผู้รับปลายทาง:</span> {viewDetail.receiver_name || "-"}</div>
+                <div><span className="text-muted-foreground">เบอร์ผู้รับ:</span> {viewDetail.receiver_phone || "-"}</div>
                 {viewDetail.expected_arrival_date && (
                   <div><span className="text-muted-foreground">ต้องการก่อน:</span> {format(new Date(viewDetail.expected_arrival_date), "dd/MM/yyyy")}</div>
                 )}
