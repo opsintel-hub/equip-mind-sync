@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { ShieldCheck, Search, Loader2, Eye, CheckCircle2, X, Clock } from "lucide-react";
+import { ShieldCheck, Search, Loader2, Eye, CheckCircle2, X, Clock, MapPin } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
@@ -17,6 +17,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useDepartmentPermissions } from "@/hooks/useDepartmentPermissions";
 import { useTablePagination } from "@/hooks/useTablePagination";
 import { TablePagination } from "@/components/TablePagination";
+import { DestinationMapPreview } from "@/components/direct-shipping/DestinationMapPreview";
 
 export default function DirectShippingApproval() {
   const queryClient = useQueryClient();
@@ -232,7 +233,7 @@ export default function DirectShippingApproval() {
 
       {/* View / Action Dialog */}
       <Dialog open={!!selectedRequest} onOpenChange={() => { setSelectedRequest(null); setActionType(null); setRejectionReason(""); }}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
               {actionType === "approve" ? "อนุมัติคำขอ" : actionType === "reject" ? "ปฏิเสธคำขอ" : "รายละเอียดคำขอ"} - {selectedRequest?.document_no}
@@ -242,17 +243,41 @@ export default function DirectShippingApproval() {
             <div className="space-y-4 text-sm">
               <div className="grid grid-cols-2 gap-3">
                 <div><span className="text-muted-foreground">ผู้ขอ:</span> <span className="font-medium">{selectedRequest.requester_name}</span></div>
-                <div><span className="text-muted-foreground">เบอร์:</span> {selectedRequest.requester_phone || "-"}</div>
+                <div><span className="text-muted-foreground">เบอร์ผู้ขอ:</span> {selectedRequest.requester_phone || "-"}</div>
                 <div><span className="text-muted-foreground">ฝ่าย:</span> {selectedRequest.department}</div>
                 <div><span className="text-muted-foreground">บริษัท:</span> {selectedRequest.companies?.name || "-"}</div>
                 <div className="col-span-2"><span className="text-muted-foreground">ปลายทาง:</span> {selectedRequest.destination_description}</div>
+                {selectedRequest.receiver_name && (
+                  <div><span className="text-muted-foreground">ผู้รับ:</span> {selectedRequest.receiver_name}</div>
+                )}
+                {selectedRequest.receiver_phone && (
+                  <div><span className="text-muted-foreground">เบอร์ผู้รับ:</span> {selectedRequest.receiver_phone}</div>
+                )}
                 {selectedRequest.expected_arrival_date && (
                   <div><span className="text-muted-foreground">ต้องการก่อน:</span> {format(new Date(selectedRequest.expected_arrival_date), "dd/MM/yyyy")}</div>
                 )}
                 {selectedRequest.purpose && (
                   <div className="col-span-2"><span className="text-muted-foreground">วัตถุประสงค์:</span> {selectedRequest.purpose}</div>
                 )}
+                {selectedRequest.pr_number && (
+                  <div><span className="text-muted-foreground">เลขที่ PR:</span> {selectedRequest.pr_number}</div>
+                )}
+                {selectedRequest.po_number && (
+                  <div><span className="text-muted-foreground">เลขที่ PO:</span> {selectedRequest.po_number}</div>
+                )}
               </div>
+
+              {/* PR/PO Documents */}
+              {(selectedRequest.pr_document_url || selectedRequest.po_document_url) && (
+                <div className="flex gap-3">
+                  {selectedRequest.pr_document_url && (
+                    <a href={selectedRequest.pr_document_url} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline">📄 เอกสาร PR</a>
+                  )}
+                  {selectedRequest.po_document_url && (
+                    <a href={selectedRequest.po_document_url} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline">📄 เอกสาร PO</a>
+                  )}
+                </div>
+              )}
 
               <div className="p-3 bg-muted/50 rounded-lg">
                 <p className="text-muted-foreground mb-1 font-medium">สินค้าที่ต้องการ:</p>
@@ -261,6 +286,11 @@ export default function DirectShippingApproval() {
 
               {selectedRequest.notes && (
                 <div><span className="text-muted-foreground">หมายเหตุ:</span> {selectedRequest.notes}</div>
+              )}
+
+              {/* Map Preview */}
+              {selectedRequest.destination_lat && selectedRequest.destination_lng && (
+                <DestinationMapPreview lat={selectedRequest.destination_lat} lng={selectedRequest.destination_lng} />
               )}
 
               {actionType === "reject" && (
