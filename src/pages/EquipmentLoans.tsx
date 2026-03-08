@@ -368,14 +368,18 @@ const EquipmentLoans = () => {
                         <TableCell className="text-right">
                           <div className="flex items-center justify-end gap-2">
                             {loan.status === "pending" && (
-                              <>
-                                <Button size="sm" variant="outline" onClick={() => handleApprove(loan.id)}>
-                                  อนุมัติ
-                                </Button>
-                                <Button size="sm" variant="destructive" onClick={() => handleReject(loan.id)}>
-                                  ปฏิเสธ
-                                </Button>
-                              </>
+                              loan.is_cross_department && !isManagerOrAdmin ? (
+                                <span className="text-xs text-muted-foreground">ต้อง Manager/Admin อนุมัติ</span>
+                              ) : (
+                                <>
+                                  <Button size="sm" variant="outline" onClick={() => handleApprove(loan.id)}>
+                                    อนุมัติ
+                                  </Button>
+                                  <Button size="sm" variant="destructive" onClick={() => handleReject(loan.id)}>
+                                    ปฏิเสธ
+                                  </Button>
+                                </>
+                              )
                             )}
                             {loan.status === "approved" && loan.returned_quantity < loan.quantity && (
                               <Button
