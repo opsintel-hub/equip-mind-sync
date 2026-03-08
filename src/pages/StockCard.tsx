@@ -230,6 +230,7 @@ export default function StockCard() {
   // ── Fetch stock movements ──
   const { data: movements = [] } = useQuery({
     queryKey: ["stock-card-movements", selectedItemId, selectedItemType, dateRange],
+    staleTime: 2 * 60 * 1000,
     enabled: !!selectedItemId && !!selectedItem,
     queryFn: async () => {
       if (!selectedItemId || !selectedItem) return [];
