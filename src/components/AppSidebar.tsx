@@ -93,11 +93,10 @@ const menuGroups: MenuGroup[] = [
       { 
         title: "ส่งตรง (Direct Shipping)", 
         icon: Send,
-        functionName: "direct_shipping_request",
         subItems: [
-          { title: "ขอส่งตรง", url: "/direct-shipping", icon: Send },
-          { title: "อนุมัติส่งตรง", url: "/direct-shipping-approval", icon: Shield },
-          { title: "จัดซื้อ-ดำเนินการ", url: "/direct-shipping-procurement", icon: Package },
+          { title: "ขอส่งตรง", url: "/direct-shipping", icon: Send, functionName: "direct_shipping_request" },
+          { title: "อนุมัติส่งตรง", url: "/direct-shipping-approval", icon: Shield, functionName: "direct_shipping_approval" },
+          { title: "จัดซื้อ-ดำเนินการ", url: "/direct-shipping-procurement", icon: Package, functionName: "direct_shipping_procurement" },
         ]
       },
       { 
