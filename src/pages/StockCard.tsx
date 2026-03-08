@@ -261,6 +261,7 @@ export default function StockCard() {
   // ── Fetch billboard equipment history ──
   const { data: billboardHistory = [] } = useQuery({
     queryKey: ["stock-card-billboard-history", selectedItemId],
+    staleTime: 2 * 60 * 1000,
     enabled: !!selectedItemId,
     queryFn: async () => {
       if (!selectedItemId) return [];
