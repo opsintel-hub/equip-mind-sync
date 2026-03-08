@@ -127,6 +127,11 @@ const AdRequest = () => {
           </div>
         </CardHeader>
         <CardContent>
+          <div className="flex flex-col sm:flex-row gap-3 mb-4">
+            <div className="flex-1">
+              <DatePickerWithRange date={dateRange} onDateChange={setDateRange} />
+            </div>
+          </div>
           {loading ? (
             <div className="text-center py-8 text-muted-foreground">กำลังโหลด...</div>
           ) : requests.length === 0 ? (
