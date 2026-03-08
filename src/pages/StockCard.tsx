@@ -825,19 +825,21 @@ export default function StockCard() {
                     <TableHeader>
                       <TableRow>
                         <TableHead className="w-[120px]">วันที่</TableHead>
-                        <TableHead className="w-[140px]">ประเภท</TableHead>
+                        <TableHead className="w-[130px]">ประเภท</TableHead>
                         <TableHead>รายละเอียด</TableHead>
+                        <TableHead className="w-[150px]">ป้ายโฆษณา</TableHead>
                         <TableHead className="text-right w-[70px]">จำนวน</TableHead>
-                        <TableHead className="text-center w-[120px]">สต็อก ก่อน→หลัง</TableHead>
-                        <TableHead className="w-[90px]">สภาพ</TableHead>
-                        <TableHead className="text-right w-[80px]">ระยะเวลา</TableHead>
-                        <TableHead className="w-[130px]">เอกสาร</TableHead>
+                        <TableHead className="text-center w-[110px]">สต็อก ก่อน→หลัง</TableHead>
+                        <TableHead className="w-[80px]">สภาพ</TableHead>
+                        <TableHead className="text-right w-[70px]">ระยะเวลา</TableHead>
+                        <TableHead className="w-[120px]">เอกสาร</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {paginatedTimeline.map((ev, idx) => {
                         const meta = getMovementMeta(ev.type === "install" ? "install_to_billboard" : ev.type === "uninstall" ? "return_from_billboard" : ev.type);
                         const condMeta = ev.condition ? getConditionMeta(ev.condition) : null;
+                        const isBillboardRelated = ev.type === "install" || ev.type === "uninstall" || ev.type === "install_to_billboard" || ev.type === "return_from_billboard";
                         return (
                           <TableRow key={idx}>
                             <TableCell className="text-xs font-mono whitespace-nowrap">
@@ -850,6 +852,18 @@ export default function StockCard() {
                               </Badge>
                             </TableCell>
                             <TableCell className="text-sm max-w-[200px] truncate">{ev.detail}</TableCell>
+                            <TableCell>
+                              {ev.billboard_name ? (
+                                <Badge variant="outline" className="text-xs gap-1 bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-800/30">
+                                  <MapPin className="w-3 h-3" />
+                                  {ev.billboard_name}
+                                </Badge>
+                              ) : isBillboardRelated ? (
+                                <span className="text-xs text-muted-foreground">-</span>
+                              ) : (
+                                <span className="text-xs text-muted-foreground">—</span>
+                              )}
+                            </TableCell>
                             <TableCell className="text-right font-medium">{ev.quantity}</TableCell>
                             <TableCell className="text-center text-xs font-mono">
                               {ev.stock_before !== undefined ? `${ev.stock_before} → ${ev.stock_after}` : "-"}
@@ -864,7 +878,7 @@ export default function StockCard() {
                                 <span className="text-muted-foreground">{ev.duration_days} วัน</span>
                               ) : "-"}
                             </TableCell>
-                            <TableCell className="text-xs truncate max-w-[130px]">{ev.document || "-"}</TableCell>
+                            <TableCell className="text-xs truncate max-w-[120px]">{ev.document || "-"}</TableCell>
                           </TableRow>
                         );
                       })}
