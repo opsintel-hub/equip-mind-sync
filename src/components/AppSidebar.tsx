@@ -54,16 +54,19 @@ import { useState, useMemo, useCallback, useEffect } from "react";
 import { useFunctionPermissions } from "@/hooks/useFunctionPermissions";
 import { useLocation } from "react-router-dom";
 import { Skeleton } from "@/components/ui/skeleton";
+interface SubMenuItem {
+  title: string;
+  url: string;
+  icon: React.ComponentType<{ className?: string }>;
+  functionName?: string;
+}
+
 interface MenuItem {
   title: string;
   url?: string;
   icon: React.ComponentType<{ className?: string }>;
   functionName?: string;
-  subItems?: {
-    title: string;
-    url: string;
-    icon: React.ComponentType<{ className?: string }>;
-  }[];
+  subItems?: SubMenuItem[];
 }
 
 interface MenuGroup {
