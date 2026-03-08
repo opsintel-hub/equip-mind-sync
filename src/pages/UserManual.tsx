@@ -309,6 +309,16 @@ const UserManual = () => {
             Master Data คือข้อมูลพื้นฐานที่ใช้ร่วมกันทุกส่วนของระบบ การตั้งค่าที่ถูกต้องจะทำให้ข้อมูลทั้งระบบมีความสม่ำเสมอ
             เมนู Master Data แบ่งเป็น Tab ย่อยหลายส่วน:
           </p>
+          <div className="p-3 border rounded-lg bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800">
+            <h5 className="font-medium text-sm text-amber-800 dark:text-amber-200 flex items-center gap-2">
+              <Lock className="h-4 w-4" /> Tab ที่จำกัดเฉพาะ Super Admin
+            </h5>
+            <p className="text-xs text-amber-700 dark:text-amber-300 mt-1">
+              Tab ต่อไปนี้จะมองเห็นและจัดการได้เฉพาะผู้ที่มีบทบาท <strong>Super Admin</strong> เท่านั้น: 
+              <strong> อุปกรณ์, เครื่องมือ, คลังสินค้า, ตำแหน่งจัดเก็บ, Media Player</strong> — 
+              ผู้ใช้ที่มีบทบาท Admin ปกติจะไม่เห็น Tab เหล่านี้ แต่ยังสามารถจัดการ Tab อื่นๆ ได้ตามปกติ
+            </p>
+          </div>
           <div className="space-y-3">
             {[
               { num: "4.1", title: "หมวดหมู่ (Categories)", desc: "เพิ่ม/แก้ไข/ลบ หมวดหมู่หลักของสินค้า เช่น อุปกรณ์ไฟฟ้า, วัสดุสิ้นเปลือง, อะไหล่ป้าย ฯลฯ ใช้ในการจัดกลุ่มสินค้าและควบคุมวัตถุประสงค์การเบิก" },
