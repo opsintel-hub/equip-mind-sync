@@ -177,6 +177,19 @@ const DeliveryEntry = () => {
     { id: crypto.randomUUID(), serial_number_1: "", serial_number_2: "", device_name: "", activate_windows: "", image_file: null, image_preview: null }
   ]);
 
+  // Per-unit equipment entries (similar to Media Player dynamic list)
+  interface EquipmentUnitEntry {
+    id: string;
+    serial_number: string;
+    device_name: string;
+    image_file: File | null;
+    image_preview: string | null;
+  }
+  const [perUnitMode, setPerUnitMode] = useState(false);
+  const [equipmentUnits, setEquipmentUnits] = useState<EquipmentUnitEntry[]>([
+    { id: crypto.randomUUID(), serial_number: "", device_name: "", image_file: null, image_preview: null }
+  ]);
+
   // Storage dimensions
   const [storageWidthCm, setStorageWidthCm] = useState("");
   const [storageHeightCm, setStorageHeightCm] = useState("");
@@ -530,65 +543,137 @@ const DeliveryEntry = () => {
       toast.success(`เพิ่ม ${validDevices.length} เครื่องลงตะกร้าแล้ว`);
     } else {
       // Regular equipment validation
-      if (!selectedEquipmentId) {
-        // New product manual entry validation
-        if (!manualEquipmentName.trim()) {
-          toast.error("กรุณาเลือกสินค้าจากระบบ หรือกรอกชื่อสินค้า/อะไหล่ใหม่");
+      if (perUnitMode) {
+        // Per-unit mode: validate each unit has at least S/N
+        const validUnits = equipmentUnits.filter(u => u.serial_number.trim());
+        if (validUnits.length === 0) {
+          toast.error("กรุณากรอก Serial Number อย่างน้อย 1 ชิ้น");
           return;
         }
-        if (!selectedCategoryId) {
-          toast.error("กรุณาเลือกหมวดหมู่");
+        if (!unitPrice) {
+          toast.error("กรุณาระบุราคาต่อชิ้น");
           return;
         }
-        if (!selectedSubcategoryId) {
-          toast.error("กรุณาเลือกหมวดหมู่ย่อย");
+        if (!selectedEquipmentId) {
+          if (!manualEquipmentName.trim()) {
+            toast.error("กรุณาเลือกสินค้าจากระบบ หรือกรอกชื่อสินค้า/อะไหล่ใหม่");
+            return;
+          }
+          if (!selectedCategoryId || !selectedSubcategoryId) {
+            toast.error("กรุณาเลือกหมวดหมู่และหมวดหมู่ย่อย");
+            return;
+          }
+          if (newProductImages.length === 0) {
+            toast.error("กรุณาอัปโหลดรูปภาพสินค้าอย่างน้อย 1 รูป");
+            return;
+          }
+        }
+
+        // Create one cart item per unit
+        const newItems: DeliveryCartItem[] = validUnits.map(unitEntry => ({
+          id: crypto.randomUUID(),
+          equipment_id: selectedEquipmentId || null,
+          equipment_code: selectedEquipmentId ? equipmentCode : generateTempCode(),
+          equipment_name: selectedEquipmentId 
+            ? (equipmentName || selectedEquipment?.name || "") 
+            : manualEquipmentName.trim(),
+          quantity: 1,
+          unit: unit,
+          lot_number_1: lotNumber1,
+          lot_number_2: lotNumber2,
+          serial_number: unitEntry.serial_number,
+          unit_price: unitPrice ? parseFloat(unitPrice) : null,
+          supplier_id: selectedSupplierId || null,
+          supplier_name: supplierName || selectedSupplier?.name || "",
+          expiry_date: expiryDate,
+          warranty_expiry_date: warrantyExpiryDate,
+          storage_width_cm: storageWidthCm,
+          storage_height_cm: storageHeightCm,
+          storage_depth_cm: storageDepthCm,
+          storage_volume_cm3: calculatedVolume,
+          is_asset: isAsset,
+          asset_code: assetCode,
+          equipment_id_code: equipmentIdCode,
+          waiting_asset_code: waitingAssetCode,
+          waiting_equipment_id: waitingEquipmentId,
+          depreciation_months: depreciationMonths,
+          notes: itemNotes,
+          is_media_player: false,
+          temp_category_id: !selectedEquipmentId ? (selectedCategoryId || null) : null,
+          temp_subcategory_id: !selectedEquipmentId ? (selectedSubcategoryId || null) : null,
+          temp_product_images: !selectedEquipmentId ? newProductImages : undefined,
+          temp_min_stock_level: !selectedEquipmentId ? (parseInt(minStockLevel) || 0) : undefined,
+          media_player_image_file: unitEntry.image_file || undefined,
+        }));
+        
+        setCartItems([...cartItems, ...newItems]);
+        setSelectedCartIds(prev => {
+          const next = new Set(prev);
+          newItems.forEach(item => next.add(item.id));
+          return next;
+        });
+        toast.success(`เพิ่ม ${validUnits.length} ชิ้นลงตะกร้าแล้ว`);
+      } else {
+        // Standard single entry mode
+        if (!selectedEquipmentId) {
+          if (!manualEquipmentName.trim()) {
+            toast.error("กรุณาเลือกสินค้าจากระบบ หรือกรอกชื่อสินค้า/อะไหล่ใหม่");
+            return;
+          }
+          if (!selectedCategoryId) {
+            toast.error("กรุณาเลือกหมวดหมู่");
+            return;
+          }
+          if (!selectedSubcategoryId) {
+            toast.error("กรุณาเลือกหมวดหมู่ย่อย");
+            return;
+          }
+          if (newProductImages.length === 0) {
+            toast.error("กรุณาอัปโหลดรูปภาพสินค้าอย่างน้อย 1 รูป");
+            return;
+          }
+        }
+        if (!unitPrice) {
+          toast.error("กรุณาระบุราคาต่อชิ้น");
           return;
         }
-        if (newProductImages.length === 0) {
-          toast.error("กรุณาอัปโหลดรูปภาพสินค้าอย่างน้อย 1 รูป");
-          return;
-        }
+        const newItem: DeliveryCartItem = {
+          id: crypto.randomUUID(),
+          equipment_id: selectedEquipmentId || null,
+          equipment_code: selectedEquipmentId ? equipmentCode : generateTempCode(),
+          equipment_name: selectedEquipmentId 
+            ? (equipmentName || selectedEquipment?.name || "") 
+            : manualEquipmentName.trim(),
+          quantity: parseInt(quantity),
+          unit: unit,
+          lot_number_1: lotNumber1,
+          lot_number_2: lotNumber2,
+          serial_number: serialNumber,
+          unit_price: unitPrice ? parseFloat(unitPrice) : null,
+          supplier_id: selectedSupplierId || null,
+          supplier_name: supplierName || selectedSupplier?.name || "",
+          expiry_date: expiryDate,
+          warranty_expiry_date: warrantyExpiryDate,
+          storage_width_cm: storageWidthCm,
+          storage_height_cm: storageHeightCm,
+          storage_depth_cm: storageDepthCm,
+          storage_volume_cm3: calculatedVolume,
+          is_asset: isAsset,
+          asset_code: assetCode,
+          equipment_id_code: equipmentIdCode,
+          waiting_asset_code: waitingAssetCode,
+          waiting_equipment_id: waitingEquipmentId,
+          depreciation_months: depreciationMonths,
+          notes: itemNotes,
+          is_media_player: false,
+          temp_category_id: !selectedEquipmentId ? (selectedCategoryId || null) : null,
+          temp_subcategory_id: !selectedEquipmentId ? (selectedSubcategoryId || null) : null,
+          temp_product_images: !selectedEquipmentId ? newProductImages : undefined,
+          temp_min_stock_level: !selectedEquipmentId ? (parseInt(minStockLevel) || 0) : undefined,
+        };
+        setCartItems([...cartItems, newItem]);
+        setSelectedCartIds(prev => new Set([...prev, newItem.id]));
       }
-      if (!unitPrice) {
-        toast.error("กรุณาระบุราคาต่อชิ้น");
-        return;
-      }
-      const newItem: DeliveryCartItem = {
-        id: crypto.randomUUID(),
-        equipment_id: selectedEquipmentId || null,
-        equipment_code: selectedEquipmentId ? equipmentCode : generateTempCode(),
-        equipment_name: selectedEquipmentId 
-          ? (equipmentName || selectedEquipment?.name || "") 
-          : manualEquipmentName.trim(),
-        quantity: parseInt(quantity),
-        unit: unit,
-        lot_number_1: lotNumber1,
-        lot_number_2: lotNumber2,
-        serial_number: serialNumber,
-        unit_price: unitPrice ? parseFloat(unitPrice) : null,
-        supplier_id: selectedSupplierId || null,
-        supplier_name: supplierName || selectedSupplier?.name || "",
-        expiry_date: expiryDate,
-        warranty_expiry_date: warrantyExpiryDate,
-        storage_width_cm: storageWidthCm,
-        storage_height_cm: storageHeightCm,
-        storage_depth_cm: storageDepthCm,
-        storage_volume_cm3: calculatedVolume,
-        is_asset: isAsset,
-        asset_code: assetCode,
-        equipment_id_code: equipmentIdCode,
-        waiting_asset_code: waitingAssetCode,
-        waiting_equipment_id: waitingEquipmentId,
-        depreciation_months: depreciationMonths,
-        notes: itemNotes,
-        is_media_player: false,
-        temp_category_id: !selectedEquipmentId ? (selectedCategoryId || null) : null,
-        temp_subcategory_id: !selectedEquipmentId ? (selectedSubcategoryId || null) : null,
-        temp_product_images: !selectedEquipmentId ? newProductImages : undefined,
-        temp_min_stock_level: !selectedEquipmentId ? (parseInt(minStockLevel) || 0) : undefined,
-      };
-      setCartItems([...cartItems, newItem]);
-      setSelectedCartIds(prev => new Set([...prev, newItem.id]));
     }
 
     // Reset item form
@@ -623,6 +708,9 @@ const DeliveryEntry = () => {
     setItemNotes("");
     // Media Player specific - reset device entries
     setMediaPlayerDevices([{ id: crypto.randomUUID(), serial_number_1: "", serial_number_2: "", device_name: "", activate_windows: "", image_file: null, image_preview: null }]);
+    // Per-unit equipment entries
+    setPerUnitMode(false);
+    setEquipmentUnits([{ id: crypto.randomUUID(), serial_number: "", device_name: "", image_file: null, image_preview: null }]);
     // Category/Subcategory
     setSelectedCategoryId("");
     setSelectedSubcategoryId("");
@@ -1339,6 +1427,169 @@ const DeliveryEntry = () => {
                   </div>
                 </>}
 
+              {/* Per-Unit Equipment Entry (when not Media Player) */}
+              {!isMediaPlayerEntry && (
+                <div className="p-3 bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800 rounded-lg space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <Checkbox 
+                        id="perUnitMode" 
+                        checked={perUnitMode} 
+                        onCheckedChange={(checked) => {
+                          setPerUnitMode(checked === true);
+                          if (checked) {
+                            setSerialNumber("");
+                            setQuantity("");
+                          } else {
+                            setEquipmentUnits([{ id: crypto.randomUUID(), serial_number: "", device_name: "", image_file: null, image_preview: null }]);
+                          }
+                        }}
+                      />
+                      <Label htmlFor="perUnitMode" className="text-sm font-medium text-emerald-700 dark:text-emerald-400 flex items-center gap-2">
+                        <Package className="w-4 h-4" />
+                        ระบุข้อมูลรายชิ้น (Serial Number, ชื่อ, รูปภาพ)
+                      </Label>
+                    </div>
+                    {perUnitMode && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setEquipmentUnits(prev => [...prev, {
+                            id: crypto.randomUUID(),
+                            serial_number: "",
+                            device_name: "",
+                            image_file: null,
+                            image_preview: null,
+                          }]);
+                        }}
+                        className="gap-1 text-emerald-700 border-emerald-300 hover:bg-emerald-100 dark:text-emerald-400 dark:border-emerald-700 dark:hover:bg-emerald-900/30"
+                      >
+                        <PlusCircle className="w-4 h-4" />
+                        เพิ่มชิ้น
+                      </Button>
+                    )}
+                  </div>
+                  
+                  {perUnitMode && (
+                    <>
+                      <p className="text-xs text-emerald-600/80 dark:text-emerald-500/80">
+                        💡 กรอก S/N แต่ละชิ้น — ระบบจะสร้างรายการในตะกร้าอัตโนมัติ 1 รายการต่อ 1 ชิ้น ({equipmentUnits.length} ชิ้น)
+                      </p>
+                      <div className="space-y-3">
+                        {equipmentUnits.map((unitEntry, idx) => (
+                          <div key={unitEntry.id} className="p-3 bg-background border rounded-lg space-y-3">
+                            <div className="flex items-center justify-between">
+                              <span className="text-sm font-medium text-foreground">ชิ้นที่ {idx + 1}</span>
+                              {equipmentUnits.length > 1 && (
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-7 text-destructive hover:text-destructive"
+                                  onClick={() => {
+                                    if (unitEntry.image_preview) URL.revokeObjectURL(unitEntry.image_preview);
+                                    setEquipmentUnits(prev => prev.filter(u => u.id !== unitEntry.id));
+                                  }}
+                                >
+                                  <X className="w-3 h-3 mr-1" />
+                                  ลบ
+                                </Button>
+                              )}
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                              {/* Serial Number */}
+                              <div className="space-y-1">
+                                <Label className="text-xs">Serial Number *</Label>
+                                <Input
+                                  placeholder="กรอก S/N..."
+                                  value={unitEntry.serial_number}
+                                  onChange={e => {
+                                    setEquipmentUnits(prev => prev.map(u =>
+                                      u.id === unitEntry.id ? { ...u, serial_number: e.target.value } : u
+                                    ));
+                                  }}
+                                />
+                              </div>
+                              {/* Name */}
+                              <div className="space-y-1">
+                                <Label className="text-xs">ชื่อ/รายละเอียดชิ้น</Label>
+                                <Input
+                                  placeholder="ชื่อเฉพาะชิ้น..."
+                                  value={unitEntry.device_name}
+                                  onChange={e => {
+                                    setEquipmentUnits(prev => prev.map(u =>
+                                      u.id === unitEntry.id ? { ...u, device_name: e.target.value } : u
+                                    ));
+                                  }}
+                                />
+                              </div>
+                              {/* Upload Image */}
+                              <div className="space-y-1">
+                                <Label className="text-xs">รูปภาพ</Label>
+                                <div className="flex items-center gap-2">
+                                  <input
+                                    type="file"
+                                    accept="image/*"
+                                    className="hidden"
+                                    id={`eq-unit-image-${unitEntry.id}`}
+                                    onChange={e => {
+                                      const file = e.target.files?.[0];
+                                      if (file) {
+                                        if (file.size > 10 * 1024 * 1024) {
+                                          toast.error("ไฟล์มีขนาดใหญ่เกินไป (สูงสุด 10MB)");
+                                          return;
+                                        }
+                                        if (unitEntry.image_preview) URL.revokeObjectURL(unitEntry.image_preview);
+                                        const preview = URL.createObjectURL(file);
+                                        setEquipmentUnits(prev => prev.map(u =>
+                                          u.id === unitEntry.id ? { ...u, image_file: file, image_preview: preview } : u
+                                        ));
+                                      }
+                                    }}
+                                  />
+                                  {unitEntry.image_preview ? (
+                                    <div className="flex items-center gap-2">
+                                      <img src={unitEntry.image_preview} alt="Preview" className="w-10 h-10 rounded object-cover border" />
+                                      <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="sm"
+                                        className="h-7 text-destructive"
+                                        onClick={() => {
+                                          if (unitEntry.image_preview) URL.revokeObjectURL(unitEntry.image_preview);
+                                          setEquipmentUnits(prev => prev.map(u =>
+                                            u.id === unitEntry.id ? { ...u, image_file: null, image_preview: null } : u
+                                          ));
+                                        }}
+                                      >
+                                        <X className="w-3 h-3" />
+                                      </Button>
+                                    </div>
+                                  ) : (
+                                    <Button
+                                      type="button"
+                                      variant="outline"
+                                      size="sm"
+                                      className="h-9 w-full"
+                                      onClick={() => document.getElementById(`eq-unit-image-${unitEntry.id}`)?.click()}
+                                    >
+                                      <ImagePlus className="w-4 h-4 mr-1" />
+                                      เลือกรูป
+                                    </Button>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
+
               {/* Quantity, Unit, Min Stock Level & Lot Numbers */}
               <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
                 <div className="space-y-2">
@@ -1351,11 +1602,19 @@ const DeliveryEntry = () => {
                       readOnly 
                       className="bg-muted font-medium"
                     />
+                  ) : perUnitMode ? (
+                    <Input 
+                      id="quantity" 
+                      type="number" 
+                      value={equipmentUnits.filter(u => u.serial_number.trim()).length || equipmentUnits.length} 
+                      readOnly 
+                      className="bg-muted font-medium"
+                    />
                   ) : (
                     <Input id="quantity" type="number" placeholder="กรอกจำนวน" value={quantity} onChange={e => setQuantity(e.target.value)} required />
                   )}
-                  {isMediaPlayerEntry && (
-                    <p className="text-xs text-muted-foreground">คำนวณจากจำนวนเครื่องที่เพิ่ม</p>
+                  {(isMediaPlayerEntry || perUnitMode) && (
+                    <p className="text-xs text-muted-foreground">คำนวณจากจำนวนชิ้นที่เพิ่ม</p>
                   )}
                 </div>
                 <div className="space-y-2">
@@ -1389,8 +1648,8 @@ const DeliveryEntry = () => {
               </div>
 
               {/* Serial Number (only for non-Media Player) & Unit Price & Total Amount */}
-              <div className={`grid grid-cols-1 ${isMediaPlayerEntry ? 'md:grid-cols-2' : 'md:grid-cols-3'} gap-4`}>
-                {!isMediaPlayerEntry && (
+              <div className={`grid grid-cols-1 ${(isMediaPlayerEntry || perUnitMode) ? 'md:grid-cols-2' : 'md:grid-cols-3'} gap-4`}>
+                {!isMediaPlayerEntry && !perUnitMode && (
                   <div className="space-y-2">
                     <Label htmlFor="serialNumber">Serial Number</Label>
                     <Input id="serialNumber" placeholder="SN-xxxxx" value={serialNumber} onChange={e => setSerialNumber(e.target.value)} />
@@ -1405,7 +1664,9 @@ const DeliveryEntry = () => {
                   {(() => {
                     const effectiveQty = isMediaPlayerEntry 
                       ? (mediaPlayerDevices.filter(d => d.serial_number_1.trim()).length || mediaPlayerDevices.length)
-                      : (parseInt(quantity) || 0);
+                      : perUnitMode
+                        ? (equipmentUnits.filter(u => u.serial_number.trim()).length || equipmentUnits.length)
+                        : (parseInt(quantity) || 0);
                     return (
                       <>
                         <Input 
