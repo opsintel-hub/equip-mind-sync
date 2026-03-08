@@ -29,6 +29,7 @@ interface EquipmentWithDetails {
   unit: string;
   quantity_in_stock: number;
   serial_number: string | null;
+  serial_number_2?: string | null;
   expiry_date: string | null;
   warranty_expiry_date: string | null;
   warehouse_entry_date: string;
@@ -163,7 +164,7 @@ const IssueRequest = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("media_players")
-        .select("id, code, name, unit, quantity, serial_number_1, warranty_expiry_date, created_at")
+        .select("id, code, name, unit, quantity, serial_number_1, serial_number_2, warranty_expiry_date, created_at")
         .eq("is_active", true)
         .gt("quantity", 0)
         .order("created_at", { ascending: true });
@@ -176,6 +177,7 @@ const IssueRequest = () => {
         unit: mp.unit,
         quantity_in_stock: mp.quantity,
         serial_number: mp.serial_number_1,
+        serial_number_2: mp.serial_number_2,
         expiry_date: null,
         warranty_expiry_date: mp.warranty_expiry_date,
         warehouse_entry_date: mp.created_at?.split('T')[0] || new Date().toISOString().split('T')[0],
@@ -339,12 +341,13 @@ const IssueRequest = () => {
   const addItemToCartInternal = (isMediaPlayer: boolean) => {
     const newItem: CartItem = {
       id: crypto.randomUUID(),
-      equipment_id: isMediaPlayer ? "" : currentItem.equipment_id,
+      equipment_id: currentItem.equipment_id,
       equipment_code: currentItem.equipment_code,
       equipment_name: currentItem.equipment_name,
       quantity: parseInt(currentItem.quantity),
       unit: currentItem.unit,
       serial_number: currentItem.serial_number,
+      serial_number_source: currentItem.serial_number_source,
       billboard_id: currentItem.billboard_id,
       notes: currentItem.notes,
       is_media_player: isMediaPlayer,
@@ -424,6 +427,7 @@ const IssueRequest = () => {
       
       // Check if first item is a Media Player
       const firstItemIsMediaPlayer = itemsToSubmit[0]?.is_media_player || false;
+      const totalRequestedQty = itemsToSubmit.reduce((sum, item) => sum + item.quantity, 0);
 
       // Check if any item is an asset (is_asset = true) to determine if approval is needed
       let requiresApproval = false;
@@ -460,7 +464,9 @@ const IssueRequest = () => {
           is_media_player: firstItemIsMediaPlayer,
           equipment_code: itemsToSubmit[0]?.equipment_code || null,
           equipment_name: itemsToSubmit[0]?.equipment_name || null,
-          quantity: itemsToSubmit.reduce((sum, item) => sum + item.quantity, 0),
+          quantity: totalRequestedQty,
+          issued_quantity: 0,
+          remaining_quantity: totalRequestedQty,
           unit: itemsToSubmit[0]?.unit || "ชิ้น",
           billboard_id: itemsToSubmit[0]?.billboard_id || null,
           is_complete: !selectedPurpose?.requires_billboard || itemsToSubmit.every(item => !!item.billboard_id),
@@ -540,6 +546,18 @@ const IssueRequest = () => {
     },
   });
 
+  const inferSerialSource = (item: any): string => {
+    if (!item?.serial_number) return "";
+    if (item?.is_media_player) {
+      const mediaPlayer = mediaPlayersData?.find((mp) => mp.id === item.media_player_id);
+      if (mediaPlayer?.serial_number_2 && mediaPlayer.serial_number_2 === item.serial_number) {
+        return "media_player_sn2";
+      }
+      return "media_player_sn1";
+    }
+    return "equipment";
+  };
+
   // Handle editing a rejected request - load its data back into the form
   const handleEditRejectedRequest = (req: any, items: any[]) => {
     // Load header data
@@ -562,12 +580,13 @@ const IssueRequest = () => {
     // Load items back into cart
     const restoredItems: CartItem[] = items.map((item: any) => ({
       id: crypto.randomUUID(),
-      equipment_id: item.is_media_player ? "" : (item.equipment_id || ""),
+      equipment_id: item.is_media_player ? (item.media_player_id || "") : (item.equipment_id || ""),
       equipment_code: item.equipment_code || "",
       equipment_name: item.equipment_name || "",
       quantity: item.quantity || 1,
       unit: item.unit || "ชิ้น",
       serial_number: item.serial_number || "",
+      serial_number_source: inferSerialSource(item),
       billboard_id: item.billboard_id || "",
       notes: item.notes || "",
       is_media_player: item.is_media_player || false,
@@ -577,8 +596,25 @@ const IssueRequest = () => {
     setCartItems(restoredItems);
     setSelectedCartIds(new Set(restoredItems.map(i => i.id)));
 
-    toast.info("โหลดข้อมูลจากคำขอที่ถูกปฏิเสธแล้ว — แก้ไขและส่งใหม่ได้เลย");
-    
+    // Prefill "เพิ่มรายการสินค้า" with the first restored item for easier correction
+    const firstItem = restoredItems[0];
+    if (firstItem) {
+      setCurrentItem({
+        equipment_id: firstItem.equipment_id,
+        equipment_code: firstItem.equipment_code,
+        equipment_name: firstItem.equipment_name,
+        serial_number: firstItem.serial_number,
+        serial_number_source: firstItem.serial_number_source || "",
+        quantity: String(firstItem.quantity || 1),
+        unit: firstItem.unit || "ชิ้น",
+        billboard_id: firstItem.billboard_id || "",
+        notes: firstItem.notes || "",
+      });
+      setIsQuantityLocked(Boolean(firstItem.serial_number));
+    }
+
+    toast.info("โหลดข้อมูลคำขอเดิมแล้ว — แก้ไขที่ฟอร์ม/ตะกร้าและส่งใหม่ได้ทันที");
+
     // Scroll to form
     window.scrollTo({ top: 0, behavior: "smooth" });
   };

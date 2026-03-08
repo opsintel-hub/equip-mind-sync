@@ -91,6 +91,7 @@ const IssueGoods = () => {
     notes: "",
     billboard_id: "",
     serial_number: "",
+    serial_number_source: "",
   });
   const [rejectReason, setRejectReason] = useState("");
   const [imageDialogOpen, setImageDialogOpen] = useState(false);
@@ -415,19 +416,32 @@ const IssueGoods = () => {
         }
       }
 
-      // Update parent request status based on all items
-      const allItems = pendingItems?.filter(item => item.pending_id === selectedItem.pending_id) || [];
-      const allIssued = allItems.every(item => 
-        item.id === selectedItem.id ? newStatus === "issued" : item.status === "issued"
-      );
-      const anyWaiting = allItems.some(item => 
-        item.id === selectedItem.id ? newStatus === "waiting_stock" : item.status === "waiting_stock"
+      // Recalculate header totals + status from latest item rows
+      const { data: latestItems, error: latestItemsError } = await supabase
+        .from("goods_issue_pending_items")
+        .select("quantity, issued_quantity, remaining_quantity, status")
+        .eq("pending_id", selectedItem.pending_id);
+
+      if (latestItemsError) throw latestItemsError;
+
+      const headerQuantity = (latestItems || []).reduce((sum, item) => sum + (item.quantity || 0), 0);
+      const headerIssued = (latestItems || []).reduce((sum, item) => sum + (item.issued_quantity || 0), 0);
+      const headerRemaining = (latestItems || []).reduce(
+        (sum, item) => sum + (item.remaining_quantity ?? Math.max(0, (item.quantity || 0) - (item.issued_quantity || 0))),
+        0
       );
 
+      const allRejected = (latestItems || []).length > 0 && (latestItems || []).every(item => item.status === "rejected");
+      const allIssued = (latestItems || []).length > 0 && (latestItems || []).every(item => item.status === "issued");
+      const anyIssued = (latestItems || []).some(item => (item.issued_quantity || 0) > 0);
+      const anyWaiting = (latestItems || []).some(item => item.status === "waiting_stock");
+
       let parentStatus = "pending";
-      if (allIssued) {
+      if (allRejected) {
+        parentStatus = "rejected";
+      } else if (allIssued) {
         parentStatus = "issued";
-      } else if (anyWaiting || newStatus === "waiting_stock") {
+      } else if (anyIssued || anyWaiting) {
         parentStatus = "waiting_stock";
       }
 
@@ -435,8 +449,11 @@ const IssueGoods = () => {
         .from("goods_issue_pending")
         .update({
           status: parentStatus,
-          issued_at: new Date().toISOString(),
-          issued_by: user.id,
+          issued_at: anyIssued ? new Date().toISOString() : null,
+          issued_by: anyIssued ? user.id : null,
+          quantity: headerQuantity,
+          issued_quantity: headerIssued,
+          remaining_quantity: headerRemaining,
         })
         .eq("id", selectedItem.pending_id);
 
@@ -459,7 +476,7 @@ const IssueGoods = () => {
       queryClient.invalidateQueries({ queryKey: ["billboard-equipment"] });
       setItemIssueDialogOpen(false);
       setSelectedItem(null);
-      setIssueData({ issued_quantity: "", notes: "", billboard_id: "", serial_number: "" });
+      setIssueData({ issued_quantity: "", notes: "", billboard_id: "", serial_number: "", serial_number_source: "" });
     },
     onError: (error) => {
       toast.error("เกิดข้อผิดพลาด: " + error.message);
@@ -563,6 +580,7 @@ const IssueGoods = () => {
       notes: item.notes || "",
       billboard_id: item.billboard_id || "",
       serial_number: item.serial_number || "",
+      serial_number_source: item.is_media_player ? "media_player_sn1" : "equipment",
     });
     setItemIssueDialogOpen(true);
   };
@@ -940,14 +958,17 @@ const IssueGoods = () => {
                 Serial Number ที่จ่าย {selectedItem?.serial_number ? "(ระบุมาจากผู้เบิก)" : "(เจ้าหน้าที่คลังระบุ)"}
               </Label>
               <SerialNumberSelect
-                value={issueData.serial_number ? `equipment:${selectedItem?.equipment_id || ""}:${issueData.serial_number}` : ""}
+                value={issueData.serial_number
+                  ? `${issueData.serial_number_source || (selectedItem?.is_media_player ? "media_player_sn1" : "equipment")}:${selectedItem?.is_media_player ? (selectedItem?.media_player_id || "") : (selectedItem?.equipment_id || "")}:${issueData.serial_number}`
+                  : ""}
                 onChange={(item: SerialNumberItem | null) => {
                   setIssueData({
                     ...issueData,
                     serial_number: item?.serial_number || "",
+                    serial_number_source: item?.source || "",
                   });
                 }}
-                equipmentId={selectedItem?.equipment_id || undefined}
+                equipmentId={selectedItem?.is_media_player ? (selectedItem?.media_player_id || undefined) : (selectedItem?.equipment_id || undefined)}
                 placeholder={selectedItem?.serial_number ? selectedItem.serial_number : "เลือก S/N ที่จะจ่าย..."}
               />
               {selectedItem?.serial_number && (
