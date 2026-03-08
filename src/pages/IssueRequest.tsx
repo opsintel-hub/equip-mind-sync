@@ -491,7 +491,7 @@ const IssueRequest = () => {
         equipment_name: item.equipment_name || null,
         quantity: item.quantity,
         unit: item.unit,
-        serial_number: item.serial_number || null,
+        serial_number_source: item.serial_number_source || "",
         billboard_id: item.billboard_id || null,
         remaining_quantity: item.quantity,
         status: "pending",

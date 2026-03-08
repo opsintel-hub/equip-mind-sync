@@ -942,14 +942,17 @@ const IssueGoods = () => {
                 Serial Number ที่จ่าย {selectedItem?.serial_number ? "(ระบุมาจากผู้เบิก)" : "(เจ้าหน้าที่คลังระบุ)"}
               </Label>
               <SerialNumberSelect
-                value={issueData.serial_number ? `equipment:${selectedItem?.equipment_id || ""}:${issueData.serial_number}` : ""}
+                value={issueData.serial_number
+                  ? `${issueData.serial_number_source || (selectedItem?.is_media_player ? "media_player_sn1" : "equipment")}:${selectedItem?.is_media_player ? (selectedItem?.media_player_id || "") : (selectedItem?.equipment_id || "")}:${issueData.serial_number}`
+                  : ""}
                 onChange={(item: SerialNumberItem | null) => {
                   setIssueData({
                     ...issueData,
                     serial_number: item?.serial_number || "",
+                    serial_number_source: item?.source || "",
                   });
                 }}
-                equipmentId={selectedItem?.equipment_id || undefined}
+                equipmentId={selectedItem?.is_media_player ? (selectedItem?.media_player_id || undefined) : (selectedItem?.equipment_id || undefined)}
                 placeholder={selectedItem?.serial_number ? selectedItem.serial_number : "เลือก S/N ที่จะจ่าย..."}
               />
               {selectedItem?.serial_number && (
