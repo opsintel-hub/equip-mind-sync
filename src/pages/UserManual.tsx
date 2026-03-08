@@ -229,7 +229,7 @@ const UserManual = () => {
             <div className="space-y-3">
               <div className="p-3 border rounded-lg">
                 <h5 className="font-medium text-sm">ชั้นที่ 1: บทบาท (Role)</h5>
-                <p className="text-xs text-muted-foreground mt-1">กำหนดระดับสิทธิ์พื้นฐาน เช่น Admin มีสิทธิ์สูงสุด, Requester มีสิทธิ์แค่เบิกสินค้า — บทบาทแสดงเป็น Badge สีต่างกัน (Admin=แดง, Manager=ม่วง, Warehouse=เขียว, Receiver=น้ำเงิน, Requester=เทา)</p>
+                <p className="text-xs text-muted-foreground mt-1">กำหนดระดับสิทธิ์พื้นฐาน เช่น Super Admin มีสิทธิ์สูงสุด (จัดการข้อมูลหลักทั้งหมด), Admin จัดการระบบทั่วไป (ยกเว้น Tab อุปกรณ์/คลัง/ตำแหน่ง/Media Player ในหน้าข้อมูลหลัก), Requester มีสิทธิ์แค่เบิกสินค้า — บทบาทแสดงเป็น Badge สีต่างกัน (Super Admin=ทอง, Admin=แดง, Manager=ม่วง, Warehouse=น้ำเงิน, Receiver=เขียว, Requester=ส้ม)</p>
               </div>
               <div className="p-3 border rounded-lg">
                 <h5 className="font-medium text-sm">ชั้นที่ 2: สิทธิ์ตามฝ่าย (Department Permissions)</h5>
