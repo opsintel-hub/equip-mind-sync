@@ -82,28 +82,13 @@ const menuGroups: MenuGroup[] = [
     ]
   },
   {
-    label: "คลังสินค้า",
+    label: "รับเข้า",
     items: [
       { 
         title: "นำสินค้าใหม่เข้าระบบ", 
         url: "/delivery-entry",
         icon: Truck,
         functionName: "delivery_entry",
-      },
-      { 
-        title: "ส่งตรง (Direct Shipping)", 
-        icon: Send,
-        subItems: [
-          { title: "ขอส่งตรง", url: "/direct-shipping", icon: Send, functionName: "direct_shipping_request" },
-          { title: "อนุมัติส่งตรง", url: "/direct-shipping-approval", icon: Shield, functionName: "direct_shipping_approval" },
-          { title: "จัดซื้อ-ดำเนินการ", url: "/direct-shipping-procurement", icon: Package, functionName: "direct_shipping_procurement" },
-        ]
-      },
-      { 
-        title: "นำของเสียเข้าระบบ", 
-        url: "/defective-return",
-        icon: AlertTriangleIcon,
-        functionName: "goods_receipt",
       },
       { 
         title: "รับสินค้าเข้า (GR)", 
@@ -115,16 +100,27 @@ const menuGroups: MenuGroup[] = [
         ]
       },
       { 
+        title: "นำของเสียเข้าระบบ", 
+        url: "/defective-return",
+        icon: AlertTriangleIcon,
+        functionName: "goods_receipt",
+      },
+    ]
+  },
+  {
+    label: "เบิก-จ่าย",
+    items: [
+      { 
         title: "ขอเบิกสินค้า", 
         url: "/issue-request",
         icon: Package,
         functionName: "issue_request",
       },
       { 
-        title: "Dashboard ผู้เบิก", 
-        url: "/requester-dashboard",
-        icon: User,
-        functionName: "issue_request",
+        title: "อนุมัติเบิกทรัพย์สิน", 
+        url: "/manager-approval",
+        icon: Shield,
+        functionName: "manager_approval",
       },
       { 
         title: "จ่ายสินค้า", 
@@ -139,16 +135,16 @@ const menuGroups: MenuGroup[] = [
         functionName: "goods_issue",
       },
       { 
-        title: "ยืมข้ามบริษัท", 
-        url: "/equipment-loans",
-        icon: ArrowLeftRight,
-        functionName: "goods_issue",
+        title: "ยืนยันรับสินค้า", 
+        url: "/delivery-confirmation",
+        icon: Truck,
+        functionName: "delivery_confirm",
       },
       { 
-        title: "รอระบุป้าย/รอคืน/รอเข้าคลัง", 
-        url: "/incomplete-issues",
-        icon: Clock,
-        functionName: "goods_issue",
+        title: "Dashboard ผู้เบิก", 
+        url: "/requester-dashboard",
+        icon: User,
+        functionName: "issue_request",
       },
       { 
         title: "คำขอรอสินค้า", 
@@ -157,18 +153,31 @@ const menuGroups: MenuGroup[] = [
         functionName: "goods_issue",
       },
       { 
-        title: "ยืนยันรับสินค้า", 
-        url: "/delivery-confirmation",
-        icon: Truck,
-        functionName: "delivery_confirm",
+        title: "รอระบุป้าย/รอคืน/รอเข้าคลัง", 
+        url: "/incomplete-issues",
+        icon: Clock,
+        functionName: "goods_issue",
       },
-      { 
-        title: "อนุมัติเบิกทรัพย์สิน", 
-        url: "/manager-approval",
-        icon: Shield,
-        functionName: "manager_approval",
-      },
+    ]
+  },
+  {
+    label: "ส่งตรง",
+    items: [
+      { title: "ขอส่งตรง", url: "/direct-shipping", icon: Send, functionName: "direct_shipping_request" },
+      { title: "อนุมัติส่งตรง", url: "/direct-shipping-approval", icon: Shield, functionName: "direct_shipping_approval" },
+      { title: "จัดซื้อ-ดำเนินการ", url: "/direct-shipping-procurement", icon: Package, functionName: "direct_shipping_procurement" },
+    ]
+  },
+  {
+    label: "โอนย้ายและยืม",
+    items: [
       { title: "ประวัติการย้าย", url: "/transfer-history", icon: History, functionName: "transfer" },
+      { 
+        title: "ยืมข้ามบริษัท", 
+        url: "/equipment-loans",
+        icon: ArrowLeftRight,
+        functionName: "goods_issue",
+      },
     ]
   },
   {
@@ -213,16 +222,16 @@ const menuGroups: MenuGroup[] = [
     ]
   },
   {
-  label: "รายงาน",
+    label: "รายงาน",
     items: [
       { title: "รายงานสินค้าคงคลัง", url: "/inventory-report", icon: Package, functionName: "reports" },
-      { title: "ค้นหาเอกสาร", url: "/document-search", icon: FileSearch, functionName: "reports" },
+      { title: "Stock Card", url: "/stock-card", icon: ClipboardList, functionName: "reports" },
       { title: "Stock Movement Log", url: "/stock-movement-log", icon: History, functionName: "reports" },
+      { title: "ค้นหาเอกสาร", url: "/document-search", icon: FileSearch, functionName: "reports" },
       { title: "รายงาน Dead Stock", url: "/dead-stock", icon: Archive, functionName: "reports" },
       { title: "รายงานเบิกตามป้าย", url: "/billboard-issue-report", icon: MapPin, functionName: "reports" },
-      { title: "ใบขอซื้อ (PR)", url: "/purchase-requests", icon: ClipboardList, functionName: "reports" },
       { title: "ค้นหาอุปกรณ์ป้าย", url: "/equipment-tracking", icon: Search, functionName: "reports" },
-      { title: "Stock Card", url: "/stock-card", icon: ClipboardList, functionName: "reports" },
+      { title: "ใบขอซื้อ (PR)", url: "/purchase-requests", icon: ClipboardList, functionName: "reports" },
     ]
   },
   {
