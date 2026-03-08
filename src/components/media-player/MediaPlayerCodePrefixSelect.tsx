@@ -299,7 +299,7 @@ export function MediaPlayerCodePrefixSelect({ value, onChange, disabled, onCodeG
       </Dialog>
 
       <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
-        <AlertDialogContent>
+        <AlertDialogContent className="z-[10000]">
           <AlertDialogHeader>
             <AlertDialogTitle>ยืนยันการลบ</AlertDialogTitle>
             <AlertDialogDescription>คุณแน่ใจหรือไม่ว่าต้องการลบ Prefix นี้?</AlertDialogDescription>

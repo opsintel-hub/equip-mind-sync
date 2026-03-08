@@ -46,6 +46,12 @@ interface Subcategory {
   name: string;
   category_id: string;
 }
+interface Company {
+  id: string;
+  code: string;
+  name: string;
+  department_id: string | null;
+}
 interface Supplier {
   id: string;
   code: string;
@@ -84,6 +90,7 @@ interface PendingReceipt {
 const DeliveryEntry = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [equipment, setEquipment] = useState<Equipment[]>([]);
+  const [companies, setCompanies] = useState<Company[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   // cmsTypes removed - no longer used
   const { allowedDepartments, isSingleDepartment, loading: deptLoading } = useAllowedDepartments("create");
@@ -221,6 +228,7 @@ const DeliveryEntry = () => {
 
   useEffect(() => {
     fetchEquipment();
+    fetchCompanies();
     fetchSuppliers();
     fetchReceiptPurposes();
     fetchPendingReceipts();
@@ -254,6 +262,16 @@ const DeliveryEntry = () => {
     } = await supabase.from("subcategories").select("id, name, category_id").eq("is_active", true).order("name");
     if (!error && data) {
       setSubcategories(data);
+    }
+  };
+  const fetchCompanies = async () => {
+    const { data, error } = await supabase
+      .from("companies")
+      .select("id, code, name, department_id")
+      .eq("is_active", true)
+      .order("code");
+    if (!error && data) {
+      setCompanies(data);
     }
   };
   const fetchSuppliers = async () => {
@@ -644,7 +662,7 @@ const DeliveryEntry = () => {
       return;
     }
     if (!deliveryPersonName || !selectedCompanyId || !selectedDepartmentId) {
-      toast.error("กรุณากรอกข้อมูลให้ครบถ้วน (ฝ่าย, ผู้จัดจำหน่าย, ชื่อผู้ส่ง)");
+      toast.error("กรุณากรอกข้อมูลให้ครบถ้วน (ฝ่าย, บริษัทที่สั่งซื้อ, ชื่อผู้ส่ง)");
       return;
     }
 
@@ -714,7 +732,7 @@ const DeliveryEntry = () => {
         quantity: item.quantity,
         unit: item.unit,
         supplier_id: selectedCompanyId || item.supplier_id,
-        supplier_name: (selectedCompanyId ? suppliers.find(s => s.id === selectedCompanyId)?.name : item.supplier_name) || null,
+        supplier_name: (selectedCompanyId ? companies.find(c => c.id === selectedCompanyId)?.name : item.supplier_name) || null,
         lot_number: item.lot_number_1 || null,
         lot_number_2: item.lot_number_2 || null,
         serial_number: item.serial_number || null,
@@ -869,18 +887,20 @@ const DeliveryEntry = () => {
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="company">ผู้จัดจำหน่าย *</Label>
+                  <Label htmlFor="company">ชื่อบริษัทที่สั่งซื้อ *</Label>
                   <SearchableSelect
-                    options={suppliers.map(s => ({
-                      value: s.id,
-                      label: `${s.code} - ${s.name}`,
-                      description: s.vendor_code ? `Vendor: ${s.vendor_code}` : undefined,
+                    options={(selectedDepartmentId
+                      ? companies.filter(c => c.department_id === selectedDepartmentId)
+                      : companies
+                    ).map(c => ({
+                      value: c.id,
+                      label: `${c.code} - ${c.name}`,
                     }))}
                     value={selectedCompanyId}
                     onValueChange={setSelectedCompanyId}
-                    placeholder="เลือกผู้จัดจำหน่าย..."
-                    searchPlaceholder="ค้นหาด้วยรหัส, ชื่อ, หรือ Vendor Code..."
-                    emptyMessage="ไม่พบผู้จัดจำหน่าย"
+                    placeholder="เลือกบริษัทที่สั่งซื้อ..."
+                    searchPlaceholder="ค้นหาด้วยรหัสหรือชื่อบริษัท..."
+                    emptyMessage="ไม่พบบริษัท"
                   />
                 </div>
               </div>
@@ -1633,7 +1653,7 @@ const DeliveryEntry = () => {
                   <TableHead>วันที่</TableHead>
                   <TableHead>ชื่อสินค้า</TableHead>
                   <TableHead>จำนวน</TableHead>
-                  <TableHead>ผู้จัดจำหน่าย</TableHead>
+                  <TableHead>บริษัทที่สั่งซื้อ</TableHead>
                   <TableHead>ผู้ส่ง</TableHead>
                   <TableHead>เอกสาร</TableHead>
                   <TableHead>สถานะ</TableHead>
