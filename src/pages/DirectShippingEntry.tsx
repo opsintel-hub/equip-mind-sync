@@ -690,7 +690,10 @@ export default function DirectShippingEntry() {
                 <TablePagination
                   currentPage={currentPage}
                   totalPages={totalPages}
+                  totalItems={totalItems}
+                  pageSize={pageSize}
                   onPageChange={handlePageChange}
+                  onPageSizeChange={handlePageSizeChange}
                 />
               )}
             </>
