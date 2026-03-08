@@ -25,6 +25,7 @@ export const SYSTEM_FUNCTIONS = [
   { name: "delivery_confirm", label: "ยืนยันรับสินค้า", description: "ยืนยันการรับสินค้าที่จัดส่งพร้อมแจ้งปัญหา" },
   { name: "manager_approval", label: "อนุมัติเบิกทรัพย์สิน", description: "อนุมัติคำขอเบิกสินค้าที่เป็นทรัพย์สิน (เฉพาะ Manager)" },
   { name: "direct_shipping_request", label: "ขอส่งตรง", description: "สร้างคำขอส่งสินค้าตรงจาก Supplier ไปปลายทาง (สำหรับผู้ขอ)" },
+  { name: "direct_shipping_approval", label: "อนุมัติส่งตรง", description: "อนุมัติ/ปฏิเสธคำขอส่งตรง (สำหรับ Manager)" },
   { name: "direct_shipping_procurement", label: "จัดซื้อ-ส่งตรง", description: "ดำเนินการจัดซื้อและบันทึกการส่งตรง (สำหรับเจ้าหน้าที่จัดซื้อ)" },
 ];
 

@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { DSTimeline } from "@/components/direct-shipping/DSTimeline";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -129,7 +130,20 @@ export default function DirectShippingEntry() {
 
       if (error) throw error;
 
-      toast.success(`สร้างคำขอส่งตรงสำเร็จ: ${(shipment as any).document_no}`);
+      const docNo = (shipment as any).document_no;
+
+      // Create notification for managers
+      await supabase.from("notifications").insert({
+        title: `คำขอส่งตรงใหม่ - ${docNo}`,
+        message: `${requesterName} (${selectedDepartment}) ขอส่งตรง: ${requestedItemsDescription.substring(0, 100)} → ${destinationDescription}`,
+        type: "info",
+        category: "stock",
+        department: selectedDepartment,
+        reference_id: (shipment as any).id,
+        reference_type: "direct_shipment",
+      });
+
+      toast.success(`สร้างคำขอส่งตรงสำเร็จ: ${docNo}`);
       queryClient.invalidateQueries({ queryKey: ["my-ds-requests"] });
 
       // Reset form
@@ -342,6 +356,7 @@ export default function DirectShippingEntry() {
           <DialogHeader><DialogTitle>รายละเอียดคำขอส่งตรง</DialogTitle></DialogHeader>
           {viewDetail && (
             <div className="space-y-4 text-sm">
+              <DSTimeline shipment={viewDetail} />
               <div className="grid grid-cols-2 gap-3">
                 <div><span className="text-muted-foreground">เลขที่:</span> <span className="font-mono font-medium">{viewDetail.document_no}</span></div>
                 <div><span className="text-muted-foreground">สถานะ:</span> {getStatusBadge(viewDetail.status)}</div>

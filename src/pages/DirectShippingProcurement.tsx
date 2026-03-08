@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { DSTimeline } from "@/components/direct-shipping/DSTimeline";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -207,6 +208,18 @@ export default function DirectShippingProcurement() {
           });
         }
       }
+
+      // Create notification for requester
+      await supabase.from("notifications").insert({
+        title: `สินค้าส่งตรงแล้ว - ${processDialog.document_no}`,
+        message: `คำขอ ${processDialog.document_no} ถูกส่งแล้ว จาก ${selectedSupplier?.name || "Supplier"} ไปยัง ${processDialog.destination_description} — กรุณายืนยันการรับสินค้า`,
+        type: "info",
+        category: "stock",
+        department: processDialog.department,
+        reference_id: processDialog.id,
+        reference_type: "direct_shipment",
+        user_id: processDialog.created_by,
+      });
 
       toast.success(`ดำเนินการส่งตรงสำเร็จ: ${processDialog.document_no}`);
       queryClient.invalidateQueries({ queryKey: ["ds-procurement-requests"] });
@@ -489,6 +502,7 @@ export default function DirectShippingProcurement() {
           <DialogHeader><DialogTitle>รายละเอียด - {viewDetail?.document_no}</DialogTitle></DialogHeader>
           {viewDetail && (
             <div className="space-y-4 text-sm">
+              <DSTimeline shipment={viewDetail} />
               <div className="grid grid-cols-2 gap-3">
                 <div><span className="text-muted-foreground">ผู้ขอ:</span> {viewDetail.requester_name || "-"}</div>
                 <div><span className="text-muted-foreground">ฝ่าย:</span> {viewDetail.department}</div>

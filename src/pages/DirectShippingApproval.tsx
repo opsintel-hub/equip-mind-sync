@@ -95,6 +95,25 @@ export default function DirectShippingApproval() {
 
       if (error) throw error;
 
+      // Create notification
+      const notifTitle = actionType === "approve" 
+        ? `คำขอส่งตรงอนุมัติแล้ว - ${selectedRequest.document_no}`
+        : `คำขอส่งตรงไม่อนุมัติ - ${selectedRequest.document_no}`;
+      const notifMsg = actionType === "approve"
+        ? `คำขอ ${selectedRequest.document_no} ของ ${selectedRequest.requester_name} ได้รับอนุมัติแล้ว รอจัดซื้อดำเนินการ`
+        : `คำขอ ${selectedRequest.document_no} ถูกปฏิเสธ: ${rejectionReason}`;
+      
+      await supabase.from("notifications").insert({
+        title: notifTitle,
+        message: notifMsg,
+        type: actionType === "approve" ? "success" : "warning",
+        category: "stock",
+        department: selectedRequest.department,
+        reference_id: selectedRequest.id,
+        reference_type: "direct_shipment",
+        user_id: selectedRequest.created_by,
+      });
+
       toast.success(actionType === "approve" ? "อนุมัติคำขอส่งตรงเรียบร้อย" : "ปฏิเสธคำขอส่งตรงเรียบร้อย");
       queryClient.invalidateQueries({ queryKey: ["ds-approval-requests"] });
       setSelectedRequest(null);

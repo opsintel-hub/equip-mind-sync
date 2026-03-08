@@ -54,16 +54,19 @@ import { useState, useMemo, useCallback, useEffect } from "react";
 import { useFunctionPermissions } from "@/hooks/useFunctionPermissions";
 import { useLocation } from "react-router-dom";
 import { Skeleton } from "@/components/ui/skeleton";
+interface SubMenuItem {
+  title: string;
+  url: string;
+  icon: React.ComponentType<{ className?: string }>;
+  functionName?: string;
+}
+
 interface MenuItem {
   title: string;
   url?: string;
   icon: React.ComponentType<{ className?: string }>;
   functionName?: string;
-  subItems?: {
-    title: string;
-    url: string;
-    icon: React.ComponentType<{ className?: string }>;
-  }[];
+  subItems?: SubMenuItem[];
 }
 
 interface MenuGroup {
@@ -90,11 +93,10 @@ const menuGroups: MenuGroup[] = [
       { 
         title: "ส่งตรง (Direct Shipping)", 
         icon: Send,
-        functionName: "direct_shipping_request",
         subItems: [
-          { title: "ขอส่งตรง", url: "/direct-shipping", icon: Send },
-          { title: "อนุมัติส่งตรง", url: "/direct-shipping-approval", icon: Shield },
-          { title: "จัดซื้อ-ดำเนินการ", url: "/direct-shipping-procurement", icon: Package },
+          { title: "ขอส่งตรง", url: "/direct-shipping", icon: Send, functionName: "direct_shipping_request" },
+          { title: "อนุมัติส่งตรง", url: "/direct-shipping-approval", icon: Shield, functionName: "direct_shipping_approval" },
+          { title: "จัดซื้อ-ดำเนินการ", url: "/direct-shipping-procurement", icon: Package, functionName: "direct_shipping_procurement" },
         ]
       },
       { 
@@ -274,7 +276,21 @@ export function AppSidebar() {
     
     return menuGroups.map(group => ({
       ...group,
-      items: group.items.filter(item => {
+      items: group.items.map(item => {
+        // Filter sub-items by their own functionName
+        if (item.subItems) {
+          const filteredSubItems = item.subItems.filter(sub => {
+            if (!sub.functionName) return true;
+            if (isAdmin) return true;
+            return hasFunctionAccess(sub.functionName);
+          });
+          return { ...item, subItems: filteredSubItems };
+        }
+        return item;
+      }).filter(item => {
+        // Hide parent if it has subItems but none are visible
+        if (item.subItems && item.subItems.length === 0) return false;
+        // Check parent-level functionName
         if (!item.functionName) return true;
         if (isAdmin) return true;
         return hasFunctionAccess(item.functionName);
