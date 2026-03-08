@@ -61,14 +61,19 @@ export default function DirectShippingApproval() {
   });
 
   const filtered = requests.filter((r: any) => {
-    if (!searchTerm) return true;
-    const term = searchTerm.toLowerCase();
-    return (
-      r.document_no?.toLowerCase().includes(term) ||
-      r.requester_name?.toLowerCase().includes(term) ||
-      r.requested_items_description?.toLowerCase().includes(term) ||
-      r.destination_description?.toLowerCase().includes(term)
-    );
+    if (searchTerm) {
+      const term = searchTerm.toLowerCase();
+      if (!(r.document_no?.toLowerCase().includes(term) ||
+        r.requester_name?.toLowerCase().includes(term) ||
+        r.requested_items_description?.toLowerCase().includes(term) ||
+        r.destination_description?.toLowerCase().includes(term))) return false;
+    }
+    if (dateRange?.from) {
+      const d = new Date(r.created_at);
+      if (d < dateRange.from) return false;
+      if (dateRange.to && d > new Date(dateRange.to.getTime() + 86400000)) return false;
+    }
+    return true;
   });
 
   const { currentPage, totalPages, paginatedData, handlePageChange, totalItems, pageSize, handlePageSizeChange } = useTablePagination(filtered);

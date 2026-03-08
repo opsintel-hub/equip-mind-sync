@@ -53,6 +53,7 @@ const AdRequest = () => {
   const { user } = useAuth();
   const [requests, setRequests] = useState<MyIssueRequest[]>([]);
   const [loading, setLoading] = useState(true);
+  const [dateRange, setDateRange] = useState<DateRange | undefined>();
   const [refreshKey, setRefreshKey] = useState(0);
 
   const handleRefresh = () => setRefreshKey((k) => k + 1);
