@@ -256,16 +256,12 @@ export function UserPermissionManager() {
     if (!selectedUser) return;
 
     try {
-      // Save roles
-      await supabase.from("user_roles").delete().eq("user_id", selectedUser.id);
-      if (selectedUserRoles.length > 0) {
-        const rolesToInsert = selectedUserRoles.map(role => ({
-          user_id: selectedUser.id,
-          role: role
-        }));
-        const { error: roleError } = await supabase.from("user_roles").insert(rolesToInsert);
-        if (roleError) throw roleError;
-      }
+      // Save roles using atomic RPC to prevent self-locking
+      const { error: roleError } = await supabase.rpc('save_user_roles' as any, {
+        _target_user_id: selectedUser.id,
+        _roles: selectedUserRoles
+      });
+      if (roleError) throw roleError;
 
       // Save function permissions
       await supabase.from("user_function_permissions").delete().eq("user_id", selectedUser.id);
