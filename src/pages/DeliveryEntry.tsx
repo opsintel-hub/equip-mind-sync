@@ -662,7 +662,7 @@ const DeliveryEntry = () => {
       return;
     }
     if (!deliveryPersonName || !selectedCompanyId || !selectedDepartmentId) {
-      toast.error("กรุณากรอกข้อมูลให้ครบถ้วน (ฝ่าย, ผู้จัดจำหน่าย, ชื่อผู้ส่ง)");
+      toast.error("กรุณากรอกข้อมูลให้ครบถ้วน (ฝ่าย, บริษัทที่สั่งซื้อ, ชื่อผู้ส่ง)");
       return;
     }
 
