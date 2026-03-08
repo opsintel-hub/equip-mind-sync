@@ -151,6 +151,11 @@ export function LoanRequestForm({ onSuccess }: LoanRequestFormProps) {
     setIsLoading(true);
     const { data: { user } } = await supabase.auth.getUser();
 
+    // Check if cross-department
+    const fromCompany = companies.find(c => c.id === fromCompanyId);
+    const toCompany = companies.find(c => c.id === toCompanyId);
+    const isCrossDept = !!(fromCompany?.department_id && toCompany?.department_id && fromCompany.department_id !== toCompany.department_id);
+
     const { error } = await supabase.from("equipment_loans").insert({
       equipment_id: equipmentId,
       from_company_id: fromCompanyId,
@@ -160,8 +165,9 @@ export function LoanRequestForm({ onSuccess }: LoanRequestFormProps) {
       requester_name: requesterName,
       requester_phone: requesterPhone || null,
       notes: notes || null,
-      created_by: user?.id
-    });
+      created_by: user?.id,
+      is_cross_department: isCrossDept,
+    } as any);
 
     setIsLoading(false);
 
@@ -169,7 +175,10 @@ export function LoanRequestForm({ onSuccess }: LoanRequestFormProps) {
       console.error(error);
       toast.error("ไม่สามารถบันทึกได้");
     } else {
-      toast.success("ส่งคำขอยืมสำเร็จ รอการอนุมัติ");
+      toast.success(isCrossDept 
+        ? "ส่งคำขอยืมข้ามฝ่ายสำเร็จ — ต้องรอ Manager/Admin อนุมัติ" 
+        : "ส่งคำขอยืมสำเร็จ รอการอนุมัติ"
+      );
       onSuccess();
     }
   };
