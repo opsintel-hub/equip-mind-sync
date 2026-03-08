@@ -149,11 +149,14 @@ const DeliveryConfirmation = () => {
         direct_shipment_id: isDS ? selectedRequest.id : null,
         document_no: selectedRequest.document_no,
         confirmed_by: user.id,
+        confirmed_at: new Date().toISOString(),
         status: hasIssue ? "issue_reported" : "confirmed",
         issue_type: hasIssue ? issueType : null,
         issue_description: hasIssue ? issueDescription : null,
         notes: notes || null,
         photo_urls: uploadedFiles.length > 0 ? uploadedFiles : null,
+        document_urls: uploadedDocFiles.length > 0 ? uploadedDocFiles : null,
+        actual_quantity: actualQuantity ? parseInt(actualQuantity) : null,
       } as any);
       if (error) throw error;
 
