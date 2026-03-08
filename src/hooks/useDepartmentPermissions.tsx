@@ -80,6 +80,7 @@ export function useDepartmentPermissions() {
   return {
     permissions,
     isAdmin,
+    isSuperAdmin,
     loading,
     hasPermission,
     getViewableDepartments

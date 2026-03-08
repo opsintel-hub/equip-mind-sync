@@ -96,6 +96,7 @@ export function useFunctionPermissions() {
   return {
     permissions,
     isAdmin,
+    isSuperAdmin,
     loading,
     hasFunctionAccess,
     getAccessibleFunctions
