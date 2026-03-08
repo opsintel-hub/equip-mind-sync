@@ -1653,7 +1653,7 @@ const DeliveryEntry = () => {
                   <TableHead>วันที่</TableHead>
                   <TableHead>ชื่อสินค้า</TableHead>
                   <TableHead>จำนวน</TableHead>
-                  <TableHead>ผู้จัดจำหน่าย</TableHead>
+                  <TableHead>บริษัทที่สั่งซื้อ</TableHead>
                   <TableHead>ผู้ส่ง</TableHead>
                   <TableHead>เอกสาร</TableHead>
                   <TableHead>สถานะ</TableHead>
