@@ -6,7 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Search, ArrowLeftRight, RotateCcw, Clock, CheckCircle, XCircle, ShieldAlert } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Plus, Search, ArrowLeftRight, RotateCcw, Clock, CheckCircle, XCircle, ShieldAlert, Info, ChevronDown, ChevronUp, ShieldCheck, Users, CalendarClock, AlertTriangle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
@@ -220,6 +221,64 @@ const EquipmentLoans = () => {
           </DialogContent>
         </Dialog>
       </div>
+
+      <Card className="border-primary/20 bg-primary/5">
+        <Collapsible>
+          <CollapsibleTrigger className="flex w-full items-center justify-between p-4 font-medium [&[data-state=open]>svg]:rotate-180">
+            <div className="flex items-center gap-2 text-primary">
+              <Info className="w-5 h-5" />
+              เงื่อนไขและนโยบายการใช้งานระบบยืมอะไหล่
+            </div>
+            <ChevronDown className="w-5 h-5 text-primary transition-transform duration-200" />
+          </CollapsibleTrigger>
+          <CollapsibleContent className="px-4 pb-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm text-muted-foreground mt-2 border-t border-primary/10 pt-4">
+              <div className="space-y-4">
+                <div>
+                  <h4 className="flex items-center gap-2 font-semibold text-foreground mb-1">
+                    <ShieldCheck className="w-4 h-4 text-primary" /> ระดับการอนุมัติ (Approval Flow)
+                  </h4>
+                  <ul className="list-disc pl-5 space-y-1">
+                    <li><strong className="text-foreground">ยืมภายในฝ่ายเดียวกัน:</strong> อนุมัติโดยเจ้าหน้าที่คลัง (Warehouse) หรือ Admin</li>
+                    <li><strong className="text-foreground">ยืมข้ามฝ่าย:</strong> ต้องได้รับการอนุมัติจากหัวหน้างาน (Manager) หรือ Admin เท่านั้น (ระบบจะติดป้าย <Badge variant="outline" className="text-[10px] border-warning text-warning ml-1 leading-none py-0">ข้ามฝ่าย</Badge> ให้โดยอัตโนมัติ)</li>
+                  </ul>
+                </div>
+                <div>
+                  <h4 className="flex items-center gap-2 font-semibold text-foreground mb-1">
+                    <Users className="w-4 h-4 text-primary" /> สิทธิ์การจัดการ (Permissions)
+                  </h4>
+                  <ul className="list-disc pl-5 space-y-1">
+                    <li><strong>ฝ่ายคลัง/Admin:</strong> สามารถทำรายการคืนอะไหล่ได้เมื่อมีการส่งคืนจริง</li>
+                    <li><strong>พนักงานทั่วไป:</strong> สามารถส่งคำขอยืมและดูสถานะคำขอของตนเองได้</li>
+                  </ul>
+                </div>
+              </div>
+              
+              <div className="space-y-4">
+                <div>
+                  <h4 className="flex items-center gap-2 font-semibold text-foreground mb-1">
+                    <CalendarClock className="w-4 h-4 text-primary" /> ระยะเวลาและการคืน (Timelines)
+                  </h4>
+                  <ul className="list-disc pl-5 space-y-1">
+                    <li>ต้องระบุ <strong className="text-foreground">กำหนดคืน</strong> ทุกครั้งที่ทำรายการยืม</li>
+                    <li>ระบบสามารถรับคืน <strong className="text-foreground">แบบบางส่วนได้ (Partial Return)</strong></li>
+                    <li>เมื่อถึงกำหนดคืน ระบบจะแจ้งเตือนสถานะ <Badge variant="destructive" className="text-[10px] ml-1 leading-none py-0">เกินกำหนด</Badge> ทันที</li>
+                  </ul>
+                </div>
+                <div>
+                  <h4 className="flex items-center gap-2 font-semibold text-foreground mb-1">
+                    <AlertTriangle className="w-4 h-4 text-primary" /> ข้อควรระวัง
+                  </h4>
+                  <ul className="list-disc pl-5 space-y-1">
+                    <li>อะไหล่ที่ถูกยืมจะถูกตัดออกจากสต็อกของบริษัทต้นทางทันทีที่รายการได้รับการอนุมัติ</li>
+                    <li>กรุณาตรวจสอบสภาพอะไหล่ทั้งตอนรับและตอนคืนทุกครั้ง พร้อมระบุหมายเหตุหากพบความเสียหาย</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </CollapsibleContent>
+        </Collapsible>
+      </Card>
 
       {/* Summary Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
