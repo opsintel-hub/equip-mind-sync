@@ -384,7 +384,7 @@ export default function DirectShippingEntry() {
               <CompanySelect
                 value={companyId}
                 onChange={setCompanyId}
-                departmentId={departments.length === 1 ? undefined : undefined}
+                departmentId={undefined}
               />
             </div>
             <div className="space-y-2">
