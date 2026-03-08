@@ -462,11 +462,13 @@ const MasterData = () => {
           </Card>
         </TabsContent>
 
+        {isSuperAdmin && (
         <TabsContent value="media_player" className="space-y-4">
           <Suspense fallback={<div className="flex justify-center py-8"><div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full" /></div>}>
             <MediaPlayerEntry />
           </Suspense>
         </TabsContent>
+        )}
       </Tabs>
     </div>
   );
