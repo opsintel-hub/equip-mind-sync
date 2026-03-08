@@ -166,7 +166,6 @@ const DeliveryConfirmation = () => {
         }).eq("id", selectedRequest.id);
       }
     },
-      if (error) throw error;
     },
     onSuccess: () => {
       toast.success(hasIssue ? "บันทึกปัญหาการรับสินค้าสำเร็จ" : "ยืนยันรับสินค้าสำเร็จ");
