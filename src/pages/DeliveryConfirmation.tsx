@@ -188,6 +188,8 @@ const DeliveryConfirmation = () => {
     setIssueDescription("");
     setNotes("");
     setUploadedFiles([]);
+    setUploadedDocFiles([]);
+    setActualQuantity("");
   };
 
   const getPickupBadge = (type: string) => {
