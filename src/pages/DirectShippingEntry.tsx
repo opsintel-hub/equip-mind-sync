@@ -107,7 +107,33 @@ export default function DirectShippingEntry() {
     handlePageChange, totalItems, pageSize, handlePageSizeChange,
   } = useTablePagination(filteredRequests);
 
-  const handleSubmit = async () => {
+  const handleFileUpload = async (
+    file: File,
+    type: "pr" | "po",
+    setUrl: (url: string) => void,
+    setUploading: (v: boolean) => void
+  ) => {
+    setUploading(true);
+    try {
+      const ext = file.name.split(".").pop();
+      const fileName = `ds-${type}-${Date.now()}.${ext}`;
+      const { data, error } = await supabase.storage
+        .from("delivery-documents")
+        .upload(`direct-shipping/${fileName}`, file);
+      if (error) throw error;
+      const { data: urlData } = supabase.storage
+        .from("delivery-documents")
+        .getPublicUrl(data.path);
+      setUrl(urlData.publicUrl);
+      toast.success(`อัปโหลดไฟล์ ${type.toUpperCase()} สำเร็จ`);
+    } catch (err: any) {
+      toast.error("อัปโหลดไม่สำเร็จ: " + err.message);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+
     if (!selectedDepartment) { toast.error("กรุณาเลือกฝ่าย"); return; }
     if (!requesterName) { toast.error("กรุณาระบุชื่อผู้ขอ"); return; }
     if (!requestedItemsDescription) { toast.error("กรุณาระบุรายละเอียดสินค้าที่ต้องการ"); return; }
