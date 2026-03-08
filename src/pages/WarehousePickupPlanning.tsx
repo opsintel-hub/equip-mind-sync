@@ -235,7 +235,7 @@ const WarehousePickupPlanning = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredAndSorted.map((req: any) => (
+                  {paginatedPlanning.map((req: any) => (
                     <TableRow key={req.id} className={req.pickup_type === "wait_onsite" ? "bg-red-50/50" : ""}>
                       <TableCell>{getPickupBadge(req)}</TableCell>
                       <TableCell>
