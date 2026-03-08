@@ -214,12 +214,12 @@ export function RoleDescriptions() {
                     placeholder="เลือกฟังก์ชันที่เข้าถึงได้..."
                     searchPlaceholder="ค้นหาฟังก์ชัน..."
                     emptyMessage="ไม่พบฟังก์ชัน"
-                    disabled={role.value === "admin"}
+                    disabled={role.value === "admin" || role.value === "super_admin"}
                     maxDisplay={3}
                   />
-                  {role.value === "admin" && (
+                  {(role.value === "admin" || role.value === "super_admin") && (
                     <p className="text-xs text-muted-foreground mt-1">
-                      * Admin มีสิทธิ์เข้าถึงทุกฟังก์ชันโดยอัตโนมัติ
+                      * {role.value === "super_admin" ? "Super Admin" : "Admin"} มีสิทธิ์เข้าถึงทุกฟังก์ชันโดยอัตโนมัติ
                     </p>
                   )}
                 </div>
