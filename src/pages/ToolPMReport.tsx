@@ -405,6 +405,7 @@ const ToolPMReport = () => {
           ) : filteredSummaries.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">ไม่พบข้อมูล</div>
           ) : (
+            <>
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
@@ -482,6 +483,7 @@ const ToolPMReport = () => {
               </Table>
             </div>
             <TablePagination currentPage={currentPage} totalPages={totalPages} totalItems={totalItems} pageSize={pageSize} onPageChange={handlePageChange} onPageSizeChange={handlePageSizeChange} />
+            </>
           )}
         </CardContent>
       </Card>
