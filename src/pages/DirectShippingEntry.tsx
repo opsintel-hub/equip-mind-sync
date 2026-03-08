@@ -156,12 +156,17 @@ export default function DirectShippingEntry() {
     );
   });
 
+  const departmentNames = allowedDepartments.map(d => d.name);
+
   const {
     currentPage,
     totalPages,
     paginatedData: paginatedShipments,
     handlePageChange,
-  } = useTablePagination({ data: filteredShipments, itemsPerPage: 10 });
+    totalItems,
+    pageSize,
+    handlePageSizeChange,
+  } = useTablePagination(filteredShipments);
 
   const addToCart = () => {
     if (!itemEquipmentId) {
