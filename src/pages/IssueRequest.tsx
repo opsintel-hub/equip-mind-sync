@@ -355,6 +355,7 @@ const IssueRequest = () => {
 
   // Internal function to add item to cart
   const addItemToCartInternal = (isMediaPlayer: boolean) => {
+    const selectedEquipment = equipment?.find(e => e.id === currentItem.equipment_id);
     const newItem: CartItem = {
       id: crypto.randomUUID(),
       equipment_id: currentItem.equipment_id,
@@ -368,6 +369,8 @@ const IssueRequest = () => {
       notes: currentItem.notes,
       is_media_player: isMediaPlayer,
       media_player_id: isMediaPlayer ? currentItem.equipment_id : undefined,
+      warehouse_name: selectedEquipment?.warehouse_name || undefined,
+      location_name: selectedEquipment?.location_name || undefined,
     };
 
     setCartItems([...cartItems, newItem]);
