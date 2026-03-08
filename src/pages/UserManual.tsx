@@ -212,7 +212,8 @@ const UserManual = () => {
                   </tr>
                 </thead>
                 <tbody className="text-muted-foreground">
-                  <tr><td className="border p-2 font-medium text-foreground">Admin</td><td className="border p-2">เข้าถึงทุกฟังก์ชัน, จัดการผู้ใช้/สิทธิ์, แก้ไข Master Data, ดูรายงานทุกแผนก, ลบข้อมูลได้</td><td className="border p-2">ผู้ดูแลระบบ, IT Admin</td></tr>
+                  <tr><td className="border p-2 font-medium text-foreground">Super Admin</td><td className="border p-2">สิทธิ์สูงสุด — ทุกอย่างเหมือน Admin + จัดการ Tab ที่จำกัดในหน้าข้อมูลหลัก (อุปกรณ์, เครื่องมือ, คลังสินค้า, ตำแหน่งจัดเก็บ, Media Player)</td><td className="border p-2">ผู้ดูแลระบบระดับสูง</td></tr>
+                  <tr><td className="border p-2 font-medium text-foreground">Admin</td><td className="border p-2">เข้าถึงทุกฟังก์ชัน, จัดการผู้ใช้/สิทธิ์, แก้ไข Master Data (ยกเว้นอุปกรณ์/คลัง/ตำแหน่ง/Media Player), ดูรายงานทุกแผนก, ลบข้อมูลได้</td><td className="border p-2">ผู้ดูแลระบบ, IT Admin</td></tr>
                   <tr><td className="border p-2 font-medium text-foreground">Manager</td><td className="border p-2">อนุมัติ/ปฏิเสธคำขอเบิกทรัพย์สิน (เฉพาะฝ่ายที่ดูแล), อนุมัติ/ปฏิเสธคำขอส่งตรง, ดูรายงานและสต็อกตามฝ่ายที่ดูแล</td><td className="border p-2">ผู้จัดการฝ่าย, หัวหน้างาน</td></tr>
                   <tr><td className="border p-2 font-medium text-foreground">Warehouse Staff</td><td className="border p-2">รับเข้าคลัง, จ่ายสินค้า, โอนย้าย, จัดเตรียมสินค้า, จัดการสถานที่จัดเก็บ, PM, จัดการยืมข้ามบริษัท</td><td className="border p-2">เจ้าหน้าที่คลังสินค้า</td></tr>
                   <tr><td className="border p-2 font-medium text-foreground">Receiver</td><td className="border p-2">บันทึกการนำสินค้าเข้า (Delivery Entry), นำของเสียเข้าระบบ, สร้างรายการสินค้าใหม่</td><td className="border p-2">ผู้รับสินค้าหน้าคลัง</td></tr>
