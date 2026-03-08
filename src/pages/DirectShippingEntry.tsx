@@ -181,6 +181,8 @@ export default function DirectShippingEntry() {
           purpose: purpose || null,
           requested_items_description: requestedItemsDescription,
           destination_description: destinationDescription,
+          destination_lat: destinationLat ? parseFloat(destinationLat) : null,
+          destination_lng: destinationLng ? parseFloat(destinationLng) : null,
            receiver_name: receiverName || null,
            receiver_phone: receiverPhone || null,
            expected_arrival_date: expectedArrivalDate || null,
