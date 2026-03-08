@@ -291,6 +291,64 @@ export default function DirectShippingEntry() {
             </div>
           </div>
 
+          {/* PR / PO */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>เลขที่ PR</Label>
+              <div className="flex gap-2">
+                <Input value={prNumber} onChange={e => setPrNumber(e.target.value)} placeholder="เช่น PR-20260301-0001" className="flex-1" />
+                <div className="relative">
+                  <input
+                    type="file"
+                    accept="image/*,.pdf,.doc,.docx"
+                    className="absolute inset-0 opacity-0 cursor-pointer"
+                    onChange={e => {
+                      const file = e.target.files?.[0];
+                      if (file) handleFileUpload(file, "pr", setPrDocUrl, setUploadingPr);
+                      e.target.value = "";
+                    }}
+                    disabled={uploadingPr}
+                  />
+                  <Button type="button" variant="outline" size="icon" disabled={uploadingPr} title="แนบไฟล์ PR">
+                    {uploadingPr ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+                  </Button>
+                </div>
+              </div>
+              {prDocUrl && (
+                <a href={prDocUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline flex items-center gap-1">
+                  <FileText className="w-3 h-3" /> ดูไฟล์ PR ที่แนบ
+                </a>
+              )}
+            </div>
+            <div className="space-y-2">
+              <Label>เลขที่ PO</Label>
+              <div className="flex gap-2">
+                <Input value={poNumber} onChange={e => setPoNumber(e.target.value)} placeholder="เช่น PO-20260301-0001" className="flex-1" />
+                <div className="relative">
+                  <input
+                    type="file"
+                    accept="image/*,.pdf,.doc,.docx"
+                    className="absolute inset-0 opacity-0 cursor-pointer"
+                    onChange={e => {
+                      const file = e.target.files?.[0];
+                      if (file) handleFileUpload(file, "po", setPoDocUrl, setUploadingPo);
+                      e.target.value = "";
+                    }}
+                    disabled={uploadingPo}
+                  />
+                  <Button type="button" variant="outline" size="icon" disabled={uploadingPo} title="แนบไฟล์ PO">
+                    {uploadingPo ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+                  </Button>
+                </div>
+              </div>
+              {poDocUrl && (
+                <a href={poDocUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline flex items-center gap-1">
+                  <FileText className="w-3 h-3" /> ดูไฟล์ PO ที่แนบ
+                </a>
+              )}
+            </div>
+          </div>
+
           <div className="space-y-2">
             <Label>วัตถุประสงค์/เหตุผล</Label>
             <Input value={purpose} onChange={e => setPurpose(e.target.value)} placeholder="เช่น ติดตั้งป้ายใหม่, ซ่อมบำรุง, โปรเจค..." />
