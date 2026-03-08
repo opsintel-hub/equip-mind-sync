@@ -1,5 +1,7 @@
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useTablePagination } from "@/hooks/useTablePagination";
+import { TablePagination } from "@/components/TablePagination";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -100,6 +102,8 @@ const WarehousePickupPlanning = () => {
 
     return filtered;
   }, [requests, pickupTypeFilter, departmentFilter, statusFilter, searchTerm, dateRange]);
+
+  const { paginatedData: paginatedPlanning, currentPage, pageSize, totalPages, totalItems, handlePageChange, handlePageSizeChange } = useTablePagination(filteredAndSorted, 20);
 
   const getPickupBadge = (req: any) => {
     switch (req.pickup_type) {
@@ -219,6 +223,7 @@ const WarehousePickupPlanning = () => {
           ) : filteredAndSorted.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">ไม่มีรายการรอจัดเตรียม 🎉</div>
           ) : (
+            <>
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
@@ -233,7 +238,7 @@ const WarehousePickupPlanning = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredAndSorted.map((req: any) => (
+                  {paginatedPlanning.map((req: any) => (
                     <TableRow key={req.id} className={req.pickup_type === "wait_onsite" ? "bg-red-50/50" : ""}>
                       <TableCell>{getPickupBadge(req)}</TableCell>
                       <TableCell>
@@ -269,6 +274,8 @@ const WarehousePickupPlanning = () => {
                 </TableBody>
               </Table>
             </div>
+            <TablePagination currentPage={currentPage} totalPages={totalPages} totalItems={totalItems} pageSize={pageSize} onPageChange={handlePageChange} onPageSizeChange={handlePageSizeChange} />
+            </>
           )}
         </CardContent>
       </Card>

@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { useTablePagination } from "@/hooks/useTablePagination";
+import { TablePagination } from "@/components/TablePagination";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -134,6 +136,8 @@ export default function PurchaseRequests() {
     return matchesSearch && matchesStatus;
   });
 
+  const { paginatedData: paginatedRequests, currentPage, pageSize, totalPages, totalItems, handlePageChange, handlePageSizeChange } = useTablePagination(filteredRequests, 20);
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "pending":
@@ -220,6 +224,7 @@ export default function PurchaseRequests() {
                 <p className="text-muted-foreground">ไม่พบใบขอซื้อ</p>
               </div>
             ) : (
+              <>
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -235,7 +240,7 @@ export default function PurchaseRequests() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredRequests.map((pr) => (
+                  {paginatedRequests.map((pr) => (
                     <TableRow key={pr.id}>
                       <TableCell className="font-medium">{pr.pr_number}</TableCell>
                       <TableCell>{pr.equipment_code}</TableCell>
@@ -292,6 +297,8 @@ export default function PurchaseRequests() {
                   ))}
                 </TableBody>
               </Table>
+              <TablePagination currentPage={currentPage} totalPages={totalPages} totalItems={totalItems} pageSize={pageSize} onPageChange={handlePageChange} onPageSizeChange={handlePageSizeChange} />
+              </>
             )}
           </CardContent>
         </Card>

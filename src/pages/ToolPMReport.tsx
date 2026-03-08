@@ -1,4 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
+import { useTablePagination } from "@/hooks/useTablePagination";
+import { TablePagination } from "@/components/TablePagination";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -181,6 +183,8 @@ const ToolPMReport = () => {
       return matchSearch && matchDept;
     });
   }, [pmSummaries, searchTerm, selectedDepartment]);
+
+  const { paginatedData: paginatedSummaries, currentPage, pageSize, totalPages, totalItems, handlePageChange, handlePageSizeChange } = useTablePagination(filteredSummaries, 20);
 
   const overdueSummaries = filteredSummaries.filter(s => s.isOverdue);
   const completedSummaries = filteredSummaries.filter(s => s.completionRate >= 100);
@@ -401,6 +405,7 @@ const ToolPMReport = () => {
           ) : filteredSummaries.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">ไม่พบข้อมูล</div>
           ) : (
+            <>
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
@@ -417,7 +422,7 @@ const ToolPMReport = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredSummaries.map((summary) => (
+                  {paginatedSummaries.map((summary) => (
                     <TableRow 
                       key={summary.tool.id}
                       className={summary.isOverdue ? "bg-red-50 dark:bg-red-900/10" : ""}
@@ -477,6 +482,8 @@ const ToolPMReport = () => {
                 </TableBody>
               </Table>
             </div>
+            <TablePagination currentPage={currentPage} totalPages={totalPages} totalItems={totalItems} pageSize={pageSize} onPageChange={handlePageChange} onPageSizeChange={handlePageSizeChange} />
+            </>
           )}
         </CardContent>
       </Card>

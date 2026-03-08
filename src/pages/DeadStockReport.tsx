@@ -1,4 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
+import { useTablePagination } from "@/hooks/useTablePagination";
+import { TablePagination } from "@/components/TablePagination";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -164,6 +166,8 @@ const DeadStockReport = () => {
     const matchesAge = selectedAgeGroup === "all" || ageGroup?.label === selectedAgeGroup;
     return matchesDept && matchesAge && matchesCategory && matchesCondition;
   });
+
+  const { paginatedData: paginatedEquipment, currentPage, pageSize, totalPages, totalItems, handlePageChange, handlePageSizeChange } = useTablePagination(filteredEquipment, 20);
 
   const ageGroupSummary: AgeGroup[] = AGE_GROUPS.map(group => {
     const items = equipment.filter(item => {
@@ -557,7 +561,7 @@ const DeadStockReport = () => {
                         </TableRow>
                       );
                     })}
-                {!isLoading && filteredEquipment.length === 0 && (
+                {!isLoading && paginatedEquipment.length === 0 && (
                   <TableRow>
                     <TableCell colSpan={11} className="text-center py-8 text-muted-foreground">
                       ไม่พบข้อมูล
@@ -567,6 +571,7 @@ const DeadStockReport = () => {
               </TableBody>
             </Table>
           </div>
+          <TablePagination currentPage={currentPage} totalPages={totalPages} totalItems={totalItems} pageSize={pageSize} onPageChange={handlePageChange} onPageSizeChange={handlePageSizeChange} />
         </CardContent>
       </Card>
     </div>

@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { useTablePagination } from "@/hooks/useTablePagination";
+import { TablePagination } from "@/components/TablePagination";
 import { Badge } from "@/components/ui/badge";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
@@ -82,6 +84,8 @@ const AdRequest = () => {
     }
   };
 
+  const { paginatedData: paginatedRequests, currentPage, pageSize, totalPages, totalItems, handlePageChange, handlePageSizeChange } = useTablePagination(requests, 20);
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
@@ -135,7 +139,7 @@ const AdRequest = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {requests.map((req) => {
+                  {paginatedRequests.map((req) => {
                     const status = statusLabels[req.status] || { label: req.status, variant: "secondary" as const };
                     return (
                       <TableRow key={req.id}>
@@ -172,6 +176,7 @@ const AdRequest = () => {
               </Table>
             </div>
           )}
+          <TablePagination currentPage={currentPage} totalPages={totalPages} totalItems={totalItems} pageSize={pageSize} onPageChange={handlePageChange} onPageSizeChange={handlePageSizeChange} />
         </CardContent>
       </Card>
     </div>

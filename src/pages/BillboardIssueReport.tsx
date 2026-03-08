@@ -1,4 +1,6 @@
 import { useState, useEffect } from "react";
+import { useTablePagination } from "@/hooks/useTablePagination";
+import { TablePagination } from "@/components/TablePagination";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -134,6 +136,8 @@ const BillboardIssueReport = () => {
 
   summaryMap.forEach(value => billboardSummary.push(value));
   billboardSummary.sort((a, b) => b.totalCost - a.totalCost);
+
+  const { paginatedData: paginatedBillboards, currentPage, pageSize, totalPages, totalItems, handlePageChange, handlePageSizeChange } = useTablePagination(billboardSummary, 20);
 
   // Chart data - top 10 billboards by cost
   const chartData = billboardSummary.slice(0, 10).map((item, index) => ({
@@ -371,7 +375,7 @@ const BillboardIssueReport = () => {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  billboardSummary.map((item) => (
+                  paginatedBillboards.map((item) => (
                     <TableRow key={item.billboard_id}>
                       <TableCell className="font-mono font-medium">{item.billboard_code}</TableCell>
                       <TableCell>{item.location_name || "-"}</TableCell>
@@ -387,6 +391,7 @@ const BillboardIssueReport = () => {
               </TableBody>
             </Table>
           </div>
+          <TablePagination currentPage={currentPage} totalPages={totalPages} totalItems={totalItems} pageSize={pageSize} onPageChange={handlePageChange} onPageSizeChange={handlePageSizeChange} />
         </CardContent>
       </Card>
     </div>
