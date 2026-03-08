@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Truck, Send, Package, Clock, CheckCircle2, X, Eye, Search, Loader2, Ban, ShieldCheck, ShoppingCart, AlertTriangle } from "lucide-react";
+import { Truck, Send, Package, Clock, CheckCircle2, X, Eye, Search, Loader2, Ban, ShieldCheck, ShoppingCart, AlertTriangle, Upload, FileText } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
@@ -38,6 +38,12 @@ export default function DirectShippingEntry() {
   const [destinationDescription, setDestinationDescription] = useState("");
   const [expectedArrivalDate, setExpectedArrivalDate] = useState("");
   const [notes, setNotes] = useState("");
+  const [prNumber, setPrNumber] = useState("");
+  const [poNumber, setPoNumber] = useState("");
+  const [prDocUrl, setPrDocUrl] = useState("");
+  const [poDocUrl, setPoDocUrl] = useState("");
+  const [uploadingPr, setUploadingPr] = useState(false);
+  const [uploadingPo, setUploadingPo] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // View detail
@@ -101,7 +107,33 @@ export default function DirectShippingEntry() {
     handlePageChange, totalItems, pageSize, handlePageSizeChange,
   } = useTablePagination(filteredRequests);
 
-  const handleSubmit = async () => {
+  const handleFileUpload = async (
+    file: File,
+    type: "pr" | "po",
+    setUrl: (url: string) => void,
+    setUploading: (v: boolean) => void
+  ) => {
+    setUploading(true);
+    try {
+      const ext = file.name.split(".").pop();
+      const fileName = `ds-${type}-${Date.now()}.${ext}`;
+      const { data, error } = await supabase.storage
+        .from("delivery-documents")
+        .upload(`direct-shipping/${fileName}`, file);
+      if (error) throw error;
+      const { data: urlData } = supabase.storage
+        .from("delivery-documents")
+        .getPublicUrl(data.path);
+      setUrl(urlData.publicUrl);
+      toast.success(`อัปโหลดไฟล์ ${type.toUpperCase()} สำเร็จ`);
+    } catch (err: any) {
+      toast.error("อัปโหลดไม่สำเร็จ: " + err.message);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+
     if (!selectedDepartment) { toast.error("กรุณาเลือกฝ่าย"); return; }
     if (!requesterName) { toast.error("กรุณาระบุชื่อผู้ขอ"); return; }
     if (!requestedItemsDescription) { toast.error("กรุณาระบุรายละเอียดสินค้าที่ต้องการ"); return; }
@@ -122,6 +154,10 @@ export default function DirectShippingEntry() {
           destination_description: destinationDescription,
           expected_arrival_date: expectedArrivalDate || null,
           notes: notes || null,
+          pr_number: prNumber || null,
+          po_number: poNumber || null,
+          pr_document_url: prDocUrl || null,
+          po_document_url: poDocUrl || null,
           created_by: user?.id,
           status: "pending_approval",
         } as any)
@@ -149,6 +185,7 @@ export default function DirectShippingEntry() {
       // Reset form
       setPurpose(""); setRequestedItemsDescription("");
       setDestinationDescription(""); setExpectedArrivalDate(""); setNotes("");
+      setPrNumber(""); setPoNumber(""); setPrDocUrl(""); setPoDocUrl("");
     } catch (error: any) {
       console.error("Error creating DS request:", error);
       toast.error("เกิดข้อผิดพลาด: " + error.message);
@@ -251,6 +288,64 @@ export default function DirectShippingEntry() {
             <div className="space-y-2">
               <Label>วันที่ต้องการได้รับ</Label>
               <Input type="date" value={expectedArrivalDate} onChange={e => setExpectedArrivalDate(e.target.value)} />
+            </div>
+          </div>
+
+          {/* PR / PO */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>เลขที่ PR</Label>
+              <div className="flex gap-2">
+                <Input value={prNumber} onChange={e => setPrNumber(e.target.value)} placeholder="เช่น PR-20260301-0001" className="flex-1" />
+                <div className="relative">
+                  <input
+                    type="file"
+                    accept="image/*,.pdf,.doc,.docx"
+                    className="absolute inset-0 opacity-0 cursor-pointer"
+                    onChange={e => {
+                      const file = e.target.files?.[0];
+                      if (file) handleFileUpload(file, "pr", setPrDocUrl, setUploadingPr);
+                      e.target.value = "";
+                    }}
+                    disabled={uploadingPr}
+                  />
+                  <Button type="button" variant="outline" size="icon" disabled={uploadingPr} title="แนบไฟล์ PR">
+                    {uploadingPr ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+                  </Button>
+                </div>
+              </div>
+              {prDocUrl && (
+                <a href={prDocUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline flex items-center gap-1">
+                  <FileText className="w-3 h-3" /> ดูไฟล์ PR ที่แนบ
+                </a>
+              )}
+            </div>
+            <div className="space-y-2">
+              <Label>เลขที่ PO</Label>
+              <div className="flex gap-2">
+                <Input value={poNumber} onChange={e => setPoNumber(e.target.value)} placeholder="เช่น PO-20260301-0001" className="flex-1" />
+                <div className="relative">
+                  <input
+                    type="file"
+                    accept="image/*,.pdf,.doc,.docx"
+                    className="absolute inset-0 opacity-0 cursor-pointer"
+                    onChange={e => {
+                      const file = e.target.files?.[0];
+                      if (file) handleFileUpload(file, "po", setPoDocUrl, setUploadingPo);
+                      e.target.value = "";
+                    }}
+                    disabled={uploadingPo}
+                  />
+                  <Button type="button" variant="outline" size="icon" disabled={uploadingPo} title="แนบไฟล์ PO">
+                    {uploadingPo ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+                  </Button>
+                </div>
+              </div>
+              {poDocUrl && (
+                <a href={poDocUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline flex items-center gap-1">
+                  <FileText className="w-3 h-3" /> ดูไฟล์ PO ที่แนบ
+                </a>
+              )}
             </div>
           </div>
 
@@ -376,6 +471,26 @@ export default function DirectShippingEntry() {
                 <p className="text-muted-foreground mb-1">สินค้าที่ต้องการ:</p>
                 <p className="whitespace-pre-wrap">{viewDetail.requested_items_description || "-"}</p>
               </div>
+              {(viewDetail.pr_number || viewDetail.po_number) && (
+                <div className="grid grid-cols-2 gap-3">
+                  {viewDetail.pr_number && (
+                    <div>
+                      <span className="text-muted-foreground">PR:</span> {viewDetail.pr_number}
+                      {viewDetail.pr_document_url && (
+                        <a href={viewDetail.pr_document_url} target="_blank" rel="noopener noreferrer" className="ml-2 text-xs text-primary hover:underline">ดูไฟล์</a>
+                      )}
+                    </div>
+                  )}
+                  {viewDetail.po_number && (
+                    <div>
+                      <span className="text-muted-foreground">PO:</span> {viewDetail.po_number}
+                      {viewDetail.po_document_url && (
+                        <a href={viewDetail.po_document_url} target="_blank" rel="noopener noreferrer" className="ml-2 text-xs text-primary hover:underline">ดูไฟล์</a>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
               {viewDetail.notes && (
                 <div><span className="text-muted-foreground">หมายเหตุ:</span> {viewDetail.notes}</div>
               )}

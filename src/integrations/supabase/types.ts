@@ -1127,7 +1127,10 @@ export type Database = {
           expected_arrival_date: string | null
           id: string
           notes: string | null
+          po_document_url: string | null
           po_number: string | null
+          pr_document_url: string | null
+          pr_number: string | null
           processed_at: string | null
           processed_by: string | null
           purpose: string | null
@@ -1160,7 +1163,10 @@ export type Database = {
           expected_arrival_date?: string | null
           id?: string
           notes?: string | null
+          po_document_url?: string | null
           po_number?: string | null
+          pr_document_url?: string | null
+          pr_number?: string | null
           processed_at?: string | null
           processed_by?: string | null
           purpose?: string | null
@@ -1193,7 +1199,10 @@ export type Database = {
           expected_arrival_date?: string | null
           id?: string
           notes?: string | null
+          po_document_url?: string | null
           po_number?: string | null
+          pr_document_url?: string | null
+          pr_number?: string | null
           processed_at?: string | null
           processed_by?: string | null
           purpose?: string | null
