@@ -541,14 +541,44 @@ export default function DirectShippingProcurement() {
               <DSTimeline shipment={viewDetail} />
               <div className="grid grid-cols-2 gap-3">
                 <div><span className="text-muted-foreground">ผู้ขอ:</span> {viewDetail.requester_name || "-"}</div>
+                <div><span className="text-muted-foreground">เบอร์ผู้ขอ:</span> {viewDetail.requester_phone || "-"}</div>
                 <div><span className="text-muted-foreground">ฝ่าย:</span> {viewDetail.department}</div>
+                <div><span className="text-muted-foreground">บริษัท:</span> {viewDetail.companies?.name || "-"}</div>
                 <div className="col-span-2"><span className="text-muted-foreground">ปลายทาง:</span> {viewDetail.destination_description}</div>
+                {viewDetail.receiver_name && (
+                  <div><span className="text-muted-foreground">ผู้รับ:</span> {viewDetail.receiver_name}</div>
+                )}
+                {viewDetail.receiver_phone && (
+                  <div><span className="text-muted-foreground">เบอร์ผู้รับ:</span> {viewDetail.receiver_phone}</div>
+                )}
+                {viewDetail.expected_arrival_date && (
+                  <div><span className="text-muted-foreground">ต้องการก่อน:</span> {format(new Date(viewDetail.expected_arrival_date), "dd/MM/yyyy")}</div>
+                )}
                 {viewDetail.purpose && <div className="col-span-2"><span className="text-muted-foreground">วัตถุประสงค์:</span> {viewDetail.purpose}</div>}
                 <div className="col-span-2"><span className="text-muted-foreground">สินค้าที่ขอ:</span> {viewDetail.requested_items_description}</div>
+                {viewDetail.pr_number && <div><span className="text-muted-foreground">เลขที่ PR:</span> {viewDetail.pr_number}</div>}
+                {viewDetail.po_number && <div><span className="text-muted-foreground">เลขที่ PO:</span> {viewDetail.po_number}</div>}
                 {viewDetail.supplier_name && <div><span className="text-muted-foreground">Supplier:</span> {viewDetail.supplier_name}</div>}
-                {viewDetail.po_number && <div><span className="text-muted-foreground">PO:</span> {viewDetail.po_number}</div>}
                 {viewDetail.shipping_date && <div><span className="text-muted-foreground">วันที่ส่ง:</span> {format(new Date(viewDetail.shipping_date), "dd/MM/yyyy")}</div>}
               </div>
+              {/* PR/PO Documents */}
+              {(viewDetail.pr_document_url || viewDetail.po_document_url) && (
+                <div className="flex gap-3">
+                  {viewDetail.pr_document_url && (
+                    <a href={viewDetail.pr_document_url} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline">📄 เอกสาร PR</a>
+                  )}
+                  {viewDetail.po_document_url && (
+                    <a href={viewDetail.po_document_url} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline">📄 เอกสาร PO</a>
+                  )}
+                </div>
+              )}
+              {viewDetail.notes && (
+                <div><span className="text-muted-foreground">หมายเหตุ:</span> {viewDetail.notes}</div>
+              )}
+              {/* Map Preview */}
+              {viewDetail.destination_lat && viewDetail.destination_lng && (
+                <DestinationMapPreview lat={viewDetail.destination_lat} lng={viewDetail.destination_lng} />
+              )}
               {viewDetail.direct_shipment_items?.length > 0 && (
                 <div>
                   <h4 className="font-semibold mb-2">รายการสินค้าจริง</h4>
