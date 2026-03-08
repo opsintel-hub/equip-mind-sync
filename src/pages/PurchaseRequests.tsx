@@ -239,7 +239,7 @@ export default function PurchaseRequests() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredRequests.map((pr) => (
+                  {paginatedRequests.map((pr) => (
                     <TableRow key={pr.id}>
                       <TableCell className="font-medium">{pr.pr_number}</TableCell>
                       <TableCell>{pr.equipment_code}</TableCell>
