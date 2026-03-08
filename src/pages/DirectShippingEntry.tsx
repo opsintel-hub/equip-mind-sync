@@ -392,7 +392,7 @@ export default function DirectShippingEntry() {
               <SectionSelect
                 value={sectionId}
                 onChange={setSectionId}
-                departmentId={selectedDepartment ? departments.indexOf(selectedDepartment) >= 0 ? undefined : undefined : undefined}
+                departmentId={undefined}
               />
             </div>
           </div>
