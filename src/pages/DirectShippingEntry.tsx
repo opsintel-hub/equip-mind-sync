@@ -539,6 +539,11 @@ export default function DirectShippingEntry() {
                 <div><span className="text-muted-foreground">ผู้ขอ:</span> {viewDetail.requester_name || "-"}</div>
                 <div><span className="text-muted-foreground">เบอร์:</span> {viewDetail.requester_phone || "-"}</div>
                 <div className="col-span-2"><span className="text-muted-foreground">ปลายทาง:</span> {viewDetail.destination_description || "-"}</div>
+                {viewDetail.destination_lat && viewDetail.destination_lng && (
+                  <div className="col-span-2">
+                    <DestinationMapPreview lat={viewDetail.destination_lat} lng={viewDetail.destination_lng} />
+                  </div>
+                )}
                 <div><span className="text-muted-foreground">ผู้รับปลายทาง:</span> {viewDetail.receiver_name || "-"}</div>
                 <div><span className="text-muted-foreground">เบอร์ผู้รับ:</span> {viewDetail.receiver_phone || "-"}</div>
                 {viewDetail.expected_arrival_date && (
