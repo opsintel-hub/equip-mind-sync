@@ -75,7 +75,7 @@ export function LoanRequestForm({ onSuccess }: LoanRequestFormProps) {
   const fetchCompanies = async () => {
     const { data, error } = await supabase
       .from("companies")
-      .select("id, code, name")
+      .select("id, code, name, department_id")
       .eq("is_active", true)
       .order("code");
     
