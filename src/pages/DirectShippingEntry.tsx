@@ -1,13 +1,15 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Truck, Plus, Send, Package, Clock, CheckCircle2, X, Eye, Search, Loader2 } from "lucide-react";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { Truck, Plus, Send, Package, Clock, CheckCircle2, X, Eye, Search, Loader2, Monitor, Pencil, Ban } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
@@ -28,6 +30,15 @@ interface Equipment {
   quantity_in_stock: number;
 }
 
+interface MediaPlayer {
+  id: string;
+  code: string;
+  name: string;
+  unit: string;
+  serial_number_1: string | null;
+  serial_number_2: string | null;
+}
+
 interface Supplier {
   id: string;
   code: string;
@@ -37,11 +48,14 @@ interface Supplier {
 interface CartItem {
   id: string;
   equipment_id: string | null;
+  media_player_id: string | null;
+  is_media_player: boolean;
   equipment_code: string;
   equipment_name: string;
   quantity: number;
   unit: string;
   serial_number: string;
+  serial_number_2: string;
   lot_number: string;
   unit_price: number | null;
   notes: string;
@@ -67,19 +81,27 @@ export default function DirectShippingEntry() {
 
   // Item form
   const [showItemForm, setShowItemForm] = useState(false);
+  const [isMediaPlayerItem, setIsMediaPlayerItem] = useState(false);
   const [itemEquipmentId, setItemEquipmentId] = useState("");
+  const [itemMediaPlayerId, setItemMediaPlayerId] = useState("");
   const [itemQuantity, setItemQuantity] = useState("1");
   const [itemSerialNumber, setItemSerialNumber] = useState("");
+  const [itemSerialNumber2, setItemSerialNumber2] = useState("");
   const [itemLotNumber, setItemLotNumber] = useState("");
   const [itemUnitPrice, setItemUnitPrice] = useState("");
   const [itemNotes, setItemNotes] = useState("");
 
-  // View detail dialog
+  // View/Edit/Cancel
   const [viewDetail, setViewDetail] = useState<any>(null);
+  const [editingShipment, setEditingShipment] = useState<any>(null);
+  const [cancelShipmentId, setCancelShipmentId] = useState<string | null>(null);
+  const [cancelReason, setCancelReason] = useState("");
 
-  // Search & filter for history
+  // Search & filter
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+
+  const departmentNames = allowedDepartments.map(d => d.name);
 
   // Fetch equipment
   const { data: equipment = [] } = useQuery({
@@ -91,6 +113,19 @@ export default function DirectShippingEntry() {
         .eq("is_active", true)
         .order("code");
       return (data || []) as Equipment[];
+    },
+  });
+
+  // Fetch media players
+  const { data: mediaPlayers = [] } = useQuery({
+    queryKey: ["media-players-for-ds"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("media_players")
+        .select("id, code, name, unit, serial_number_1, serial_number_2")
+        .eq("is_active", true)
+        .order("code");
+      return (data || []) as MediaPlayer[];
     },
   });
 
@@ -107,7 +142,7 @@ export default function DirectShippingEntry() {
     },
   });
 
-  // Fetch direct shipments history
+  // Fetch history
   const { data: shipments = [], isLoading: shipmentsLoading } = useQuery({
     queryKey: ["direct-shipments", statusFilter],
     queryFn: async () => {
@@ -115,11 +150,9 @@ export default function DirectShippingEntry() {
         .from("direct_shipments")
         .select("*, companies(name), suppliers(name)")
         .order("created_at", { ascending: false });
-
       if (statusFilter !== "all") {
         query = query.eq("status", statusFilter);
       }
-
       const { data, error } = await query;
       if (error) throw error;
       return data || [];
@@ -142,9 +175,10 @@ export default function DirectShippingEntry() {
   });
 
   const selectedEquipment = equipment.find((e) => e.id === itemEquipmentId);
+  const selectedMediaPlayer = mediaPlayers.find((m) => m.id === itemMediaPlayerId);
   const selectedSupplier = suppliers.find((s) => s.id === supplierId);
 
-  // Filter shipments by search
+  // Filter
   const filteredShipments = shipments.filter((s: any) => {
     if (!searchTerm) return true;
     const term = searchTerm.toLowerCase();
@@ -156,56 +190,68 @@ export default function DirectShippingEntry() {
     );
   });
 
-  const departmentNames = allowedDepartments.map(d => d.name);
-
   const {
-    currentPage,
-    totalPages,
-    paginatedData: paginatedShipments,
-    handlePageChange,
-    totalItems,
-    pageSize,
-    handlePageSizeChange,
+    currentPage, totalPages, paginatedData: paginatedShipments,
+    handlePageChange, totalItems, pageSize, handlePageSizeChange,
   } = useTablePagination(filteredShipments);
 
   const addToCart = () => {
-    if (!itemEquipmentId) {
-      toast.error("กรุณาเลือกสินค้า");
-      return;
+    if (isMediaPlayerItem) {
+      if (!itemMediaPlayerId) { toast.error("กรุณาเลือก Media Player"); return; }
+      const mp = mediaPlayers.find((m) => m.id === itemMediaPlayerId);
+      if (!mp) return;
+      const newItem: CartItem = {
+        id: crypto.randomUUID(),
+        equipment_id: null,
+        media_player_id: mp.id,
+        is_media_player: true,
+        equipment_code: mp.code,
+        equipment_name: mp.name,
+        quantity: parseInt(itemQuantity) || 1,
+        unit: mp.unit,
+        serial_number: itemSerialNumber || mp.serial_number_1 || "",
+        serial_number_2: itemSerialNumber2 || mp.serial_number_2 || "",
+        lot_number: itemLotNumber,
+        unit_price: itemUnitPrice ? parseFloat(itemUnitPrice) : null,
+        notes: itemNotes,
+      };
+      setCart((prev) => [...prev, newItem]);
+    } else {
+      if (!itemEquipmentId) { toast.error("กรุณาเลือกสินค้า"); return; }
+      if (!itemQuantity || parseInt(itemQuantity) < 1) { toast.error("กรุณาระบุจำนวน"); return; }
+      const eq = equipment.find((e) => e.id === itemEquipmentId);
+      if (!eq) return;
+      const newItem: CartItem = {
+        id: crypto.randomUUID(),
+        equipment_id: eq.id,
+        media_player_id: null,
+        is_media_player: false,
+        equipment_code: eq.code,
+        equipment_name: eq.name,
+        quantity: parseInt(itemQuantity),
+        unit: eq.unit,
+        serial_number: itemSerialNumber,
+        serial_number_2: "",
+        lot_number: itemLotNumber,
+        unit_price: itemUnitPrice ? parseFloat(itemUnitPrice) : null,
+        notes: itemNotes,
+      };
+      setCart((prev) => [...prev, newItem]);
     }
-    if (!itemQuantity || parseInt(itemQuantity) < 1) {
-      toast.error("กรุณาระบุจำนวน");
-      return;
-    }
-
-    const eq = equipment.find((e) => e.id === itemEquipmentId);
-    if (!eq) return;
-
-    const newItem: CartItem = {
-      id: crypto.randomUUID(),
-      equipment_id: eq.id,
-      equipment_code: eq.code,
-      equipment_name: eq.name,
-      quantity: parseInt(itemQuantity),
-      unit: eq.unit,
-      serial_number: itemSerialNumber,
-      lot_number: itemLotNumber,
-      unit_price: itemUnitPrice ? parseFloat(itemUnitPrice) : null,
-      notes: itemNotes,
-    };
-
-    setCart((prev) => [...prev, newItem]);
     resetItemForm();
     toast.success("เพิ่มรายการแล้ว");
   };
 
   const resetItemForm = () => {
     setItemEquipmentId("");
+    setItemMediaPlayerId("");
     setItemQuantity("1");
     setItemSerialNumber("");
+    setItemSerialNumber2("");
     setItemLotNumber("");
     setItemUnitPrice("");
     setItemNotes("");
+    setIsMediaPlayerItem(false);
     setShowItemForm(false);
   };
 
@@ -214,20 +260,13 @@ export default function DirectShippingEntry() {
   };
 
   const handleSubmit = async () => {
-    if (!selectedDepartment) {
-      toast.error("กรุณาเลือกฝ่าย");
-      return;
-    }
-    if (cart.length === 0) {
-      toast.error("กรุณาเพิ่มรายการสินค้าอย่างน้อย 1 รายการ");
-      return;
-    }
+    if (!selectedDepartment) { toast.error("กรุณาเลือกฝ่าย"); return; }
+    if (cart.length === 0) { toast.error("กรุณาเพิ่มรายการสินค้าอย่างน้อย 1 รายการ"); return; }
 
     setIsSubmitting(true);
     try {
       const { data: userData } = await supabase.auth.getUser();
 
-      // Create header
       const { data: shipment, error: headerError } = await supabase
         .from("direct_shipments")
         .insert({
@@ -249,39 +288,32 @@ export default function DirectShippingEntry() {
 
       if (headerError) throw headerError;
 
-      // Create items
       const items = cart.map((item) => ({
         direct_shipment_id: shipment.id,
         equipment_id: item.equipment_id,
+        media_player_id: item.media_player_id,
+        is_media_player: item.is_media_player,
         equipment_code: item.equipment_code,
         equipment_name: item.equipment_name,
         quantity: item.quantity,
         unit: item.unit,
         serial_number: item.serial_number || null,
+        serial_number_2: item.serial_number_2 || null,
         lot_number: item.lot_number || null,
         unit_price: item.unit_price || 0,
         notes: item.notes || null,
       }));
 
-      const { error: itemsError } = await supabase
-        .from("direct_shipment_items")
-        .insert(items);
-
+      const { error: itemsError } = await supabase.from("direct_shipment_items").insert(items);
       if (itemsError) throw itemsError;
 
-      // Log stock movements (virtual receive + virtual issue for each item)
+      // Log virtual stock movements
       for (const item of cart) {
         if (item.equipment_id) {
-          // Fetch current stock
           const { data: eqData } = await supabase
-            .from("equipment")
-            .select("quantity_in_stock")
-            .eq("id", item.equipment_id)
-            .single();
-
+            .from("equipment").select("quantity_in_stock").eq("id", item.equipment_id).single();
           const currentStock = eqData?.quantity_in_stock || 0;
 
-          // Virtual receive
           await logStockMovement({
             equipment_id: item.equipment_id,
             equipment_code: item.equipment_code,
@@ -296,7 +328,6 @@ export default function DirectShippingEntry() {
             notes: `[Direct Shipping] รับเข้าเสมือน - ${destinationDescription || selectedDepartment}`,
           });
 
-          // Virtual issue
           await logStockMovement({
             equipment_id: item.equipment_id,
             equipment_code: item.equipment_code,
@@ -317,21 +348,39 @@ export default function DirectShippingEntry() {
       queryClient.invalidateQueries({ queryKey: ["direct-shipments"] });
 
       // Reset form
-      setSupplierId("");
-      setCompanyId("");
-      setSectionId("");
-      setPoNumber("");
-      setShippingDate(format(new Date(), "yyyy-MM-dd"));
-      setExpectedArrivalDate("");
-      setDeliveryPersonName("");
-      setDestinationDescription("");
-      setNotes("");
-      setCart([]);
+      setSupplierId(""); setCompanyId(""); setSectionId(""); setPoNumber("");
+      setShippingDate(format(new Date(), "yyyy-MM-dd")); setExpectedArrivalDate("");
+      setDeliveryPersonName(""); setDestinationDescription(""); setNotes(""); setCart([]);
     } catch (error: any) {
       console.error("Error creating direct shipment:", error);
       toast.error("เกิดข้อผิดพลาด: " + error.message);
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  // Cancel shipment
+  const handleCancel = async () => {
+    if (!cancelShipmentId) return;
+    try {
+      const { data: userData } = await supabase.auth.getUser();
+      const { error } = await supabase
+        .from("direct_shipments")
+        .update({
+          status: "cancelled",
+          cancelled_at: new Date().toISOString(),
+          cancelled_by: userData?.user?.id,
+          cancel_reason: cancelReason || null,
+        })
+        .eq("id", cancelShipmentId);
+      if (error) throw error;
+      toast.success("ยกเลิก Direct Shipping เรียบร้อยแล้ว");
+      queryClient.invalidateQueries({ queryKey: ["direct-shipments"] });
+    } catch (error: any) {
+      toast.error("เกิดข้อผิดพลาด: " + error.message);
+    } finally {
+      setCancelShipmentId(null);
+      setCancelReason("");
     }
   };
 
@@ -343,6 +392,8 @@ export default function DirectShippingEntry() {
         return <Badge variant="default"><CheckCircle2 className="w-3 h-3 mr-1" />ยืนยันแล้ว</Badge>;
       case "issue_reported":
         return <Badge variant="destructive"><X className="w-3 h-3 mr-1" />มีปัญหา</Badge>;
+      case "cancelled":
+        return <Badge variant="outline" className="text-muted-foreground"><Ban className="w-3 h-3 mr-1" />ยกเลิก</Badge>;
       default:
         return <Badge variant="outline">{status}</Badge>;
     }
@@ -367,7 +418,6 @@ export default function DirectShippingEntry() {
           <CardDescription>Supplier ส่งสินค้าไปยังหน่วยงานปลายทางโดยตรง ระบบจะบันทึก virtual receipt + issue อัตโนมัติ</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          {/* Header info */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-2">
               <Label>ฝ่าย *</Label>
@@ -381,19 +431,11 @@ export default function DirectShippingEntry() {
             </div>
             <div className="space-y-2">
               <Label>บริษัท</Label>
-              <CompanySelect
-                value={companyId}
-                onChange={setCompanyId}
-                departmentId={undefined}
-              />
+              <CompanySelect value={companyId} onChange={setCompanyId} />
             </div>
             <div className="space-y-2">
               <Label>แผนก</Label>
-              <SectionSelect
-                value={sectionId}
-                onChange={setSectionId}
-                departmentId={undefined}
-              />
+              <SectionSelect value={sectionId} onChange={setSectionId} />
             </div>
           </div>
 
@@ -401,70 +443,39 @@ export default function DirectShippingEntry() {
             <div className="space-y-2">
               <Label>ผู้จัดจำหน่าย (Supplier)</Label>
               <SearchableSelect
-                options={suppliers.map((s) => ({
-                  value: s.id,
-                  label: `${s.code} - ${s.name}`,
-                  searchableText: `${s.code} ${s.name}`,
-                }))}
-                value={supplierId}
-                onValueChange={setSupplierId}
-                placeholder="เลือก Supplier..."
-                searchPlaceholder="ค้นหา..."
-                emptyMessage="ไม่พบ Supplier"
+                options={suppliers.map((s) => ({ value: s.id, label: `${s.code} - ${s.name}`, searchableText: `${s.code} ${s.name}` }))}
+                value={supplierId} onValueChange={setSupplierId}
+                placeholder="เลือก Supplier..." searchPlaceholder="ค้นหา..." emptyMessage="ไม่พบ Supplier"
               />
             </div>
             <div className="space-y-2">
               <Label>เลขที่ PO</Label>
-              <Input
-                placeholder="PO Number"
-                value={poNumber}
-                onChange={(e) => setPoNumber(e.target.value)}
-              />
+              <Input placeholder="PO Number" value={poNumber} onChange={(e) => setPoNumber(e.target.value)} />
             </div>
             <div className="space-y-2">
               <Label>ผู้ส่งสินค้า</Label>
-              <Input
-                placeholder="ชื่อผู้ส่ง/ผู้ขนส่ง"
-                value={deliveryPersonName}
-                onChange={(e) => setDeliveryPersonName(e.target.value)}
-              />
+              <Input placeholder="ชื่อผู้ส่ง/ผู้ขนส่ง" value={deliveryPersonName} onChange={(e) => setDeliveryPersonName(e.target.value)} />
             </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-2">
               <Label>วันที่ส่ง</Label>
-              <Input
-                type="date"
-                value={shippingDate}
-                onChange={(e) => setShippingDate(e.target.value)}
-              />
+              <Input type="date" value={shippingDate} onChange={(e) => setShippingDate(e.target.value)} />
             </div>
             <div className="space-y-2">
               <Label>วันที่คาดว่าจะถึง</Label>
-              <Input
-                type="date"
-                value={expectedArrivalDate}
-                onChange={(e) => setExpectedArrivalDate(e.target.value)}
-              />
+              <Input type="date" value={expectedArrivalDate} onChange={(e) => setExpectedArrivalDate(e.target.value)} />
             </div>
             <div className="space-y-2">
               <Label>สถานที่ปลายทาง</Label>
-              <Input
-                placeholder="ระบุที่อยู่/สถานที่ปลายทาง"
-                value={destinationDescription}
-                onChange={(e) => setDestinationDescription(e.target.value)}
-              />
+              <Input placeholder="ระบุที่อยู่/สถานที่ปลายทาง" value={destinationDescription} onChange={(e) => setDestinationDescription(e.target.value)} />
             </div>
           </div>
 
           <div className="space-y-2">
             <Label>หมายเหตุ</Label>
-            <Textarea
-              placeholder="หมายเหตุเพิ่มเติม..."
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-            />
+            <Textarea placeholder="หมายเหตุเพิ่มเติม..." value={notes} onChange={(e) => setNotes(e.target.value)} />
           </div>
 
           {/* Cart items */}
@@ -475,8 +486,7 @@ export default function DirectShippingEntry() {
                 รายการสินค้า ({cart.length} รายการ)
               </h3>
               <Button size="sm" onClick={() => setShowItemForm(true)}>
-                <Plus className="w-4 h-4 mr-1" />
-                เพิ่มรายการ
+                <Plus className="w-4 h-4 mr-1" /> เพิ่มรายการ
               </Button>
             </div>
 
@@ -484,12 +494,11 @@ export default function DirectShippingEntry() {
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead>ประเภท</TableHead>
                     <TableHead>รหัส</TableHead>
                     <TableHead>ชื่อสินค้า</TableHead>
                     <TableHead className="text-center">จำนวน</TableHead>
-                    <TableHead>หน่วย</TableHead>
                     <TableHead>S/N</TableHead>
-                    <TableHead>Lot</TableHead>
                     <TableHead className="text-right">ราคา/ชิ้น</TableHead>
                     <TableHead></TableHead>
                   </TableRow>
@@ -497,12 +506,20 @@ export default function DirectShippingEntry() {
                 <TableBody>
                   {cart.map((item) => (
                     <TableRow key={item.id}>
+                      <TableCell>
+                        {item.is_media_player ? (
+                          <Badge variant="outline" className="gap-1"><Monitor className="w-3 h-3" />MP</Badge>
+                        ) : (
+                          <Badge variant="outline">อุปกรณ์</Badge>
+                        )}
+                      </TableCell>
                       <TableCell className="font-mono text-sm">{item.equipment_code}</TableCell>
                       <TableCell>{item.equipment_name}</TableCell>
-                      <TableCell className="text-center">{item.quantity}</TableCell>
-                      <TableCell>{item.unit}</TableCell>
-                      <TableCell className="text-sm text-muted-foreground">{item.serial_number || "-"}</TableCell>
-                      <TableCell className="text-sm text-muted-foreground">{item.lot_number || "-"}</TableCell>
+                      <TableCell className="text-center">{item.quantity} {item.unit}</TableCell>
+                      <TableCell className="text-sm text-muted-foreground">
+                        {item.serial_number || "-"}
+                        {item.serial_number_2 && ` / ${item.serial_number_2}`}
+                      </TableCell>
                       <TableCell className="text-right">{item.unit_price ? `฿${item.unit_price.toLocaleString()}` : "-"}</TableCell>
                       <TableCell>
                         <Button variant="ghost" size="icon" onClick={() => removeFromCart(item.id)}>
@@ -539,71 +556,74 @@ export default function DirectShippingEntry() {
             <DialogTitle>เพิ่มรายการสินค้า</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-2">
-            <div className="space-y-2">
-              <Label>สินค้า *</Label>
-              <SearchableSelect
-                options={equipment.map((eq) => ({
-                  value: eq.id,
-                  label: `${eq.code} - ${eq.name}`,
-                  searchableText: `${eq.code} ${eq.name}`,
-                }))}
-                value={itemEquipmentId}
-                onValueChange={setItemEquipmentId}
-                placeholder="เลือกสินค้า..."
-                searchPlaceholder="พิมพ์รหัสหรือชื่อ..."
-                emptyMessage="ไม่พบสินค้า"
-              />
+            {/* Toggle Media Player */}
+            <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
+              <Switch checked={isMediaPlayerItem} onCheckedChange={(v) => { setIsMediaPlayerItem(v); setItemEquipmentId(""); setItemMediaPlayerId(""); setItemSerialNumber(""); setItemSerialNumber2(""); }} />
+              <Label className="flex items-center gap-2">
+                <Monitor className="w-4 h-4" /> เป็น Media Player
+              </Label>
             </div>
+
+            {isMediaPlayerItem ? (
+              <div className="space-y-2">
+                <Label>Media Player *</Label>
+                <SearchableSelect
+                  options={mediaPlayers.map((mp) => ({ value: mp.id, label: `${mp.code} - ${mp.name}`, searchableText: `${mp.code} ${mp.name} ${mp.serial_number_1 || ""} ${mp.serial_number_2 || ""}` }))}
+                  value={itemMediaPlayerId} onValueChange={(v) => {
+                    setItemMediaPlayerId(v);
+                    const mp = mediaPlayers.find(m => m.id === v);
+                    if (mp) { setItemSerialNumber(mp.serial_number_1 || ""); setItemSerialNumber2(mp.serial_number_2 || ""); }
+                  }}
+                  placeholder="เลือก Media Player..." searchPlaceholder="ค้นหา..." emptyMessage="ไม่พบ Media Player"
+                />
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <Label>สินค้า *</Label>
+                <SearchableSelect
+                  options={equipment.map((eq) => ({ value: eq.id, label: `${eq.code} - ${eq.name}`, searchableText: `${eq.code} ${eq.name}` }))}
+                  value={itemEquipmentId} onValueChange={setItemEquipmentId}
+                  placeholder="เลือกสินค้า..." searchPlaceholder="พิมพ์รหัสหรือชื่อ..." emptyMessage="ไม่พบสินค้า"
+                />
+              </div>
+            )}
+
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>จำนวน *</Label>
-                <Input
-                  type="number"
-                  min="1"
-                  value={itemQuantity}
-                  onChange={(e) => setItemQuantity(e.target.value)}
-                />
+                <Input type="number" min="1" value={itemQuantity} onChange={(e) => setItemQuantity(e.target.value)} />
               </div>
               <div className="space-y-2">
                 <Label>หน่วย</Label>
-                <Input value={selectedEquipment?.unit || "ชิ้น"} readOnly className="bg-muted" />
+                <Input value={isMediaPlayerItem ? (selectedMediaPlayer?.unit || "เครื่อง") : (selectedEquipment?.unit || "ชิ้น")} readOnly className="bg-muted" />
               </div>
             </div>
+
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>Serial Number</Label>
-                <Input
-                  placeholder="S/N"
-                  value={itemSerialNumber}
-                  onChange={(e) => setItemSerialNumber(e.target.value)}
-                />
+                <Label>{isMediaPlayerItem ? "S/N 1" : "Serial Number"}</Label>
+                <Input placeholder="S/N" value={itemSerialNumber} onChange={(e) => setItemSerialNumber(e.target.value)} />
               </div>
-              <div className="space-y-2">
-                <Label>Lot Number</Label>
-                <Input
-                  placeholder="Lot"
-                  value={itemLotNumber}
-                  onChange={(e) => setItemLotNumber(e.target.value)}
-                />
-              </div>
+              {isMediaPlayerItem ? (
+                <div className="space-y-2">
+                  <Label>S/N 2</Label>
+                  <Input placeholder="S/N 2" value={itemSerialNumber2} onChange={(e) => setItemSerialNumber2(e.target.value)} />
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <Label>Lot Number</Label>
+                  <Input placeholder="Lot" value={itemLotNumber} onChange={(e) => setItemLotNumber(e.target.value)} />
+                </div>
+              )}
             </div>
+
             <div className="space-y-2">
               <Label>ราคาต่อชิ้น (฿)</Label>
-              <Input
-                type="number"
-                step="0.01"
-                placeholder="0.00"
-                value={itemUnitPrice}
-                onChange={(e) => setItemUnitPrice(e.target.value)}
-              />
+              <Input type="number" step="0.01" placeholder="0.00" value={itemUnitPrice} onChange={(e) => setItemUnitPrice(e.target.value)} />
             </div>
             <div className="space-y-2">
               <Label>หมายเหตุ</Label>
-              <Input
-                placeholder="หมายเหตุ..."
-                value={itemNotes}
-                onChange={(e) => setItemNotes(e.target.value)}
-              />
+              <Input placeholder="หมายเหตุ..." value={itemNotes} onChange={(e) => setItemNotes(e.target.value)} />
             </div>
           </div>
           <DialogFooter>
@@ -622,12 +642,7 @@ export default function DirectShippingEntry() {
           <div className="flex flex-col sm:flex-row gap-3">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input
-                placeholder="ค้นหาเลขที่เอกสาร, Supplier, PO..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-9"
-              />
+              <Input placeholder="ค้นหาเลขที่เอกสาร, Supplier, PO..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-9" />
             </div>
             <SearchableSelect
               options={[
@@ -635,17 +650,14 @@ export default function DirectShippingEntry() {
                 { value: "pending_confirmation", label: "รอยืนยัน" },
                 { value: "confirmed", label: "ยืนยันแล้ว" },
                 { value: "issue_reported", label: "มีปัญหา" },
+                { value: "cancelled", label: "ยกเลิก" },
               ]}
-              value={statusFilter}
-              onValueChange={setStatusFilter}
-              placeholder="สถานะ"
+              value={statusFilter} onValueChange={setStatusFilter} placeholder="สถานะ"
             />
           </div>
 
           {shipmentsLoading ? (
-            <div className="text-center py-8">
-              <Loader2 className="w-6 h-6 animate-spin mx-auto text-muted-foreground" />
-            </div>
+            <div className="text-center py-8"><Loader2 className="w-6 h-6 animate-spin mx-auto text-muted-foreground" /></div>
           ) : (
             <>
               <Table>
@@ -657,29 +669,34 @@ export default function DirectShippingEntry() {
                     <TableHead>ปลายทาง</TableHead>
                     <TableHead>วันที่ส่ง</TableHead>
                     <TableHead>สถานะ</TableHead>
-                    <TableHead></TableHead>
+                    <TableHead className="text-center">จัดการ</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {paginatedShipments.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
-                        ยังไม่มีรายการ Direct Shipping
-                      </TableCell>
+                      <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">ยังไม่มีรายการ</TableCell>
                     </TableRow>
                   ) : (
                     paginatedShipments.map((s: any) => (
-                      <TableRow key={s.id}>
+                      <TableRow key={s.id} className={s.status === "cancelled" ? "opacity-60" : ""}>
                         <TableCell className="font-mono text-sm font-medium">{s.document_no}</TableCell>
                         <TableCell>{s.supplier_name || s.suppliers?.name || "-"}</TableCell>
                         <TableCell>{s.department || "-"}</TableCell>
                         <TableCell className="max-w-[200px] truncate">{s.destination_description || "-"}</TableCell>
                         <TableCell>{s.shipping_date ? format(new Date(s.shipping_date), "dd/MM/yyyy") : "-"}</TableCell>
                         <TableCell>{getStatusBadge(s.status)}</TableCell>
-                        <TableCell>
-                          <Button variant="ghost" size="icon" onClick={() => setViewDetail(s)}>
-                            <Eye className="w-4 h-4" />
-                          </Button>
+                        <TableCell className="text-center">
+                          <div className="flex items-center justify-center gap-1">
+                            <Button variant="ghost" size="icon" onClick={() => setViewDetail(s)} title="ดูรายละเอียด">
+                              <Eye className="w-4 h-4" />
+                            </Button>
+                            {s.status === "pending_confirmation" && (
+                              <Button variant="ghost" size="icon" onClick={() => { setCancelShipmentId(s.id); setCancelReason(""); }} title="ยกเลิก">
+                                <Ban className="w-4 h-4 text-destructive" />
+                              </Button>
+                            )}
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))
@@ -688,12 +705,8 @@ export default function DirectShippingEntry() {
               </Table>
               {totalPages > 1 && (
                 <TablePagination
-                  currentPage={currentPage}
-                  totalPages={totalPages}
-                  totalItems={totalItems}
-                  pageSize={pageSize}
-                  onPageChange={handlePageChange}
-                  onPageSizeChange={handlePageSizeChange}
+                  currentPage={currentPage} totalPages={totalPages} totalItems={totalItems}
+                  pageSize={pageSize} onPageChange={handlePageChange} onPageSizeChange={handlePageSizeChange}
                 />
               )}
             </>
@@ -719,15 +732,15 @@ export default function DirectShippingEntry() {
                 <div><span className="text-muted-foreground">วันที่ส่ง:</span> {viewDetail.shipping_date ? format(new Date(viewDetail.shipping_date), "dd/MM/yyyy") : "-"}</div>
                 <div><span className="text-muted-foreground">คาดว่าจะถึง:</span> {viewDetail.expected_arrival_date ? format(new Date(viewDetail.expected_arrival_date), "dd/MM/yyyy") : "-"}</div>
               </div>
-              {viewDetail.notes && (
-                <div className="text-sm"><span className="text-muted-foreground">หมายเหตุ:</span> {viewDetail.notes}</div>
-              )}
+              {viewDetail.notes && <div className="text-sm"><span className="text-muted-foreground">หมายเหตุ:</span> {viewDetail.notes}</div>}
+              {viewDetail.cancel_reason && <div className="text-sm"><span className="text-muted-foreground">เหตุผลยกเลิก:</span> {viewDetail.cancel_reason}</div>}
 
               <div>
                 <h4 className="font-semibold mb-2">รายการสินค้า</h4>
                 <Table>
                   <TableHeader>
                     <TableRow>
+                      <TableHead>ประเภท</TableHead>
                       <TableHead>รหัส</TableHead>
                       <TableHead>ชื่อ</TableHead>
                       <TableHead className="text-center">จำนวน</TableHead>
@@ -738,10 +751,16 @@ export default function DirectShippingEntry() {
                   <TableBody>
                     {detailItems.map((item: any) => (
                       <TableRow key={item.id}>
+                        <TableCell>
+                          {item.is_media_player ? <Badge variant="outline" className="gap-1"><Monitor className="w-3 h-3" />MP</Badge> : <Badge variant="outline">อุปกรณ์</Badge>}
+                        </TableCell>
                         <TableCell className="font-mono text-sm">{item.equipment_code}</TableCell>
                         <TableCell>{item.equipment_name}</TableCell>
                         <TableCell className="text-center">{item.quantity} {item.unit}</TableCell>
-                        <TableCell className="text-sm">{item.serial_number || "-"}</TableCell>
+                        <TableCell className="text-sm">
+                          {item.serial_number || "-"}
+                          {item.serial_number_2 && ` / ${item.serial_number_2}`}
+                        </TableCell>
                         <TableCell className="text-right">{item.unit_price ? `฿${Number(item.unit_price).toLocaleString()}` : "-"}</TableCell>
                       </TableRow>
                     ))}
@@ -752,6 +771,24 @@ export default function DirectShippingEntry() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Cancel Dialog */}
+      <AlertDialog open={!!cancelShipmentId} onOpenChange={() => setCancelShipmentId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>ยกเลิก Direct Shipping</AlertDialogTitle>
+            <AlertDialogDescription>คุณต้องการยกเลิกรายการ Direct Shipping นี้หรือไม่? การยกเลิกจะไม่สามารถย้อนกลับได้</AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="space-y-2 py-2">
+            <Label>เหตุผลในการยกเลิก</Label>
+            <Textarea placeholder="ระบุเหตุผล..." value={cancelReason} onChange={(e) => setCancelReason(e.target.value)} />
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel>ไม่ยกเลิก</AlertDialogCancel>
+            <AlertDialogAction onClick={handleCancel} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">ยืนยันยกเลิก</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

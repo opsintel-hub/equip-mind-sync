@@ -27,7 +27,7 @@ interface DocumentRecord {
   unit: string;
   created_at: string;
   status: string;
-  source: "pending" | "received" | "issue" | "delivery_confirm";
+  source: "pending" | "received" | "issue" | "delivery_confirm" | "direct_shipping";
 }
 
 export default function DocumentSearch() {
