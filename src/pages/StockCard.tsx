@@ -199,6 +199,8 @@ export default function StockCard() {
     return allItems
       .filter(i => {
         if (filterTypes.length > 0 && !filterTypes.includes(i.type)) return false;
+        // Brand filter
+        if (filterBrands.length > 0 && (!i.brand || !filterBrands.includes(i.brand))) return false;
         // Department permission filter
         if (!isAdmin && i.department && !viewableDepts.includes(i.department)) return false;
         // Department multi-select filter
