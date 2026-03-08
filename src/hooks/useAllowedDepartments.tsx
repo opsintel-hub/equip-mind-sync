@@ -36,7 +36,7 @@ export function useAllowedDepartments(permission: "view" | "create" | "edit" | "
         // Fetch all active departments + check admin role + fetch user department permissions in parallel
         const [deptRes, roleRes, permRes] = await Promise.all([
           supabase.from("departments").select("id, name, description").eq("is_active", true).order("name"),
-          supabase.from("user_roles").select("role").eq("user_id", user.id).eq("role", "admin").maybeSingle(),
+          supabase.from("user_roles").select("role").eq("user_id", user.id).in("role", ["admin", "super_admin"]).maybeSingle(),
           supabase.from("user_departments").select("department, can_view, can_create, can_edit, can_delete").eq("user_id", user.id),
         ]);
 
