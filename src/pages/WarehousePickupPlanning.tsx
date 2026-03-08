@@ -103,6 +103,8 @@ const WarehousePickupPlanning = () => {
     return filtered;
   }, [requests, pickupTypeFilter, departmentFilter, statusFilter, searchTerm, dateRange]);
 
+  const { paginatedData: paginatedPlanning, currentPage, pageSize, totalPages, totalItems, handlePageChange, handlePageSizeChange } = useTablePagination(filteredAndSorted, 20);
+
   const getPickupBadge = (req: any) => {
     switch (req.pickup_type) {
       case "wait_onsite":
