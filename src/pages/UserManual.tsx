@@ -974,7 +974,7 @@ const UserManual = () => {
       number: "13",
       title: "รายงาน (Reports)",
       icon: <FileSearch className="h-5 w-5" />,
-      description: "สรุปสต็อก เอกสาร Stock Movement Stock Card Dead Stock ใบขอซื้อ",
+      description: "สรุปสต็อก เอกสาร Stock Movement Stock Card Dead Stock ใบขอซื้อ QR Code ประวัติโอนย้าย",
       content: (
         <div className="space-y-4">
           {[
