@@ -58,7 +58,7 @@ export function IssuePurposeList({ refresh }: IssuePurposeListProps) {
       const { data: purposesData, error: purposesError } = await supabase
         .from("issue_purposes")
         .select("*")
-        .order("created_at", { ascending: true });
+        .order("created_at", { ascending: false });
 
       if (purposesError) throw purposesError;
       setPurposes(purposesData || []);

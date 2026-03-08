@@ -242,12 +242,12 @@ export default function StockCard() {
         query = supabase.from("stock_movements")
           .select("*")
           .eq("equipment_id", selectedItemId)
-          .order("created_at", { ascending: true });
+          .order("created_at", { ascending: false });
       } else {
         query = supabase.from("stock_movements")
           .select("*")
           .eq("equipment_code", selectedItem.code)
-          .order("created_at", { ascending: true });
+          .order("created_at", { ascending: false });
       }
 
       if (dateRange?.from) query = query.gte("created_at", dateRange.from.toISOString());
@@ -268,7 +268,7 @@ export default function StockCard() {
       const { data } = await supabase.from("billboard_equipment_history")
         .select("*, billboards(equipment_id, location_name, description)")
         .eq("equipment_id", selectedItemId)
-        .order("uninstall_date", { ascending: true });
+        .order("uninstall_date", { ascending: false });
       return data || [];
     },
   });

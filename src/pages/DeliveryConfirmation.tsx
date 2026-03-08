@@ -98,7 +98,7 @@ const DeliveryConfirmation = () => {
       const { data, error } = await supabase
         .from("goods_issue_pending_items")
         .select("*, equipment(code, name, serial_number, unit), media_players(code, name, serial_number_1, serial_number_2, unit), billboards(equipment_id, location_name)")
-        .order("created_at", { ascending: true });
+        .order("created_at", { ascending: false });
       if (error) throw error;
       return data;
     },
