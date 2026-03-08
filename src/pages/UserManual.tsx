@@ -431,7 +431,7 @@ const UserManual = () => {
           </div>
 
           <div>
-            <h4 className="font-semibold mb-2">5.5 Media Player</h4>
+            <h4 className="font-semibold mb-2">5.6 Media Player</h4>
             <p className="text-xs text-muted-foreground">
               Media Player จัดการในหน้า Master Data → Tab Media Player — มีข้อมูลเพิ่มเติม: CMS Type, Model, Specification, สถานะ (ใช้งาน/ซ่อม/ว่าง),
               Serial Number 2 ตัว (S/N 1 และ S/N 2), เอกสารแนบ สามารถนำเข้า/รับเข้าคลัง/เบิกจ่ายได้เช่นเดียวกับสินค้าทั่วไป
