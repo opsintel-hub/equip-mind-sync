@@ -43,10 +43,21 @@ const MediaPlayerEntry = lazy(() => import("@/pages/MediaPlayerEntry"));
 
 const MasterData = () => {
   const [refreshKey, setRefreshKey] = useState(0);
+  const { isSuperAdmin, isAdmin, loading: permLoading } = useDepartmentPermissions();
 
   const handleSuccess = () => {
     setRefreshKey((prev) => prev + 1);
   };
+
+  // Tabs restricted to Super Admin only
+  const superAdminTabs = ["equipment", "tools", "warehouses", "locations", "media_player"];
+
+  if (permLoading) {
+    return <div className="flex items-center justify-center h-64">กำลังโหลด...</div>;
+  }
+
+  // Determine default tab based on access
+  const defaultTab = isSuperAdmin ? "equipment" : "categories";
 
   return (
     <div className="space-y-6">
