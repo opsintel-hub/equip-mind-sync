@@ -209,8 +209,9 @@ export const StockMovementChart = ({ companyId }: StockMovementChartProps) => {
             <CardDescription>แยกตามประเภท (รับเข้า/เบิกออก/โอน/คืนจากป้าย)</CardDescription>
           </div>
           <div className="flex flex-wrap items-center gap-2">
+            <span className="text-xs text-muted-foreground font-medium">มุมมอง:</span>
             <Select value={viewMode} onValueChange={(v) => setViewMode(v as "daily" | "monthly")}>
-              <SelectTrigger className="w-[120px]">
+              <SelectTrigger className="w-[120px] h-9">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -218,8 +219,10 @@ export const StockMovementChart = ({ companyId }: StockMovementChartProps) => {
                 <SelectItem value="monthly">รายเดือน</SelectItem>
               </SelectContent>
             </Select>
+            <div className="h-5 w-px bg-border" />
+            <span className="text-xs text-muted-foreground font-medium">ช่วงเวลา:</span>
             <Select value={dateRange} onValueChange={(v) => setDateRange(v as "7d" | "30d" | "3m" | "6m")}>
-              <SelectTrigger className="w-[120px]">
+              <SelectTrigger className="w-[120px] h-9">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
