@@ -174,6 +174,7 @@ export default function DocumentSearch() {
       case "received": return <Badge variant="outline" className="border-green-300 text-green-700">รับเข้าคลัง</Badge>;
       case "issue": return <Badge variant="outline" className="border-blue-300 text-blue-700">เอกสารเบิก</Badge>;
       case "delivery_confirm": return <Badge variant="outline" className="border-purple-300 text-purple-700">ยืนยันรับ</Badge>;
+      case "direct_shipping": return <Badge variant="outline" className="border-cyan-300 text-cyan-700">Direct Shipping</Badge>;
       default: return <Badge variant="outline">{source}</Badge>;
     }
   };
