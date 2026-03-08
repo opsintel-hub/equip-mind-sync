@@ -46,7 +46,7 @@ export function ReceiptPurposeList({ refresh, onRefresh }: ReceiptPurposeListPro
         .from("receipt_purposes")
         .select("*")
         .order("purpose_type", { ascending: true })
-        .order("created_at", { ascending: true });
+        .order("created_at", { ascending: false });
 
       if (error) throw error;
       setPurposes(data || []);

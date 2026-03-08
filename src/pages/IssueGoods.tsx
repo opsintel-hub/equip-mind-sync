@@ -122,7 +122,7 @@ const IssueGoods = () => {
       const { data, error } = await supabase
         .from("goods_issue_pending_items")
         .select("*")
-        .order("created_at", { ascending: true });
+        .order("created_at", { ascending: false });
       if (error) throw error;
       return data as PendingItem[];
     },

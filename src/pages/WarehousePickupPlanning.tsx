@@ -29,7 +29,7 @@ const WarehousePickupPlanning = () => {
         .from("goods_issue_pending")
         .select("*, companies(name)")
         .in("status", ["pending", "approved"])
-        .order("created_at", { ascending: true });
+        .order("created_at", { ascending: false });
       if (error) throw error;
       return data || [];
     },

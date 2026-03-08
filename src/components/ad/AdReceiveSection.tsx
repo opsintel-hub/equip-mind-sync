@@ -64,7 +64,7 @@ export function AdReceiveSection({ refresh, onReceived }: AdReceiveSectionProps)
         `)
         .eq("status", "pending")
         .eq("is_active", true)
-        .order("created_at", { ascending: true });
+        .order("created_at", { ascending: false });
 
       if (error) throw error;
       setAds((data as unknown as PendingAd[]) || []);

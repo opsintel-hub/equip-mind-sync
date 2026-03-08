@@ -86,7 +86,7 @@ const ManagerApproval = () => {
         .select("*, companies(name)")
         .eq("requires_approval", true)
         .eq("approval_status", "pending")
-        .order("created_at", { ascending: true });
+        .order("created_at", { ascending: false });
       if (error) throw error;
       if (!isAdmin && managerDepartments.length > 0) {
         return data?.filter((req: any) => managerDepartments.includes(req.requester_department)) || [];

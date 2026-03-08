@@ -268,7 +268,7 @@ export default function StockCard() {
       const { data } = await supabase.from("billboard_equipment_history")
         .select("*, billboards(equipment_id, location_name, description)")
         .eq("equipment_id", selectedItemId)
-        .order("uninstall_date", { ascending: true });
+        .order("uninstall_date", { ascending: false });
       return data || [];
     },
   });
