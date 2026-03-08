@@ -90,6 +90,7 @@ interface PendingReceipt {
 const DeliveryEntry = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [equipment, setEquipment] = useState<Equipment[]>([]);
+  const [companies, setCompanies] = useState<Company[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   // cmsTypes removed - no longer used
   const { allowedDepartments, isSingleDepartment, loading: deptLoading } = useAllowedDepartments("create");
