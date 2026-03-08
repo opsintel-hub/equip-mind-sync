@@ -242,7 +242,7 @@ export default function StockCard() {
         query = supabase.from("stock_movements")
           .select("*")
           .eq("equipment_id", selectedItemId)
-          .order("created_at", { ascending: true });
+          .order("created_at", { ascending: false });
       } else {
         query = supabase.from("stock_movements")
           .select("*")
