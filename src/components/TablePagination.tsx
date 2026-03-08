@@ -43,14 +43,14 @@ export function TablePagination({
   if (totalItems === 0) return null;
 
   return (
-    <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4">
-      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+    <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-5 border-t border-border/40 mt-4">
+      <div className="flex items-center gap-2 text-xs text-muted-foreground">
         <span>แสดง</span>
         <Select
           value={String(pageSize)}
           onValueChange={(v) => onPageSizeChange(Number(v) as PageSize)}
         >
-          <SelectTrigger className="h-8 w-[70px]">
+          <SelectTrigger className="h-8 w-[70px] text-xs">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -61,8 +61,8 @@ export function TablePagination({
             ))}
           </SelectContent>
         </Select>
-        <span>
-          รายการ | {startItem}-{endItem} จาก {totalItems} รายการ
+        <span className="tabular-nums">
+          รายการ · {startItem}–{endItem} จาก {totalItems} รายการ
         </span>
       </div>
 

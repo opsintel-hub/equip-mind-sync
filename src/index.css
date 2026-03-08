@@ -7,7 +7,7 @@
 @layer base {
   :root {
     /* Core Colors - Clean Modern Palette */
-    --background: 0 0% 99%;
+    --background: 0 0% 98.5%;
     --foreground: 220 20% 20%;
 
     --card: 0 0% 100%;
@@ -40,6 +40,27 @@
 
     --warning: 38 92% 50%;
     --warning-foreground: 0 0% 100%;
+
+    /* Status semantic colors */
+    --status-pending: 38 92% 50%;
+    --status-pending-bg: 38 92% 95%;
+    --status-pending-text: 38 80% 30%;
+    
+    --status-success: 152 69% 40%;
+    --status-success-bg: 152 69% 95%;
+    --status-success-text: 152 60% 28%;
+    
+    --status-info: 221 83% 53%;
+    --status-info-bg: 221 83% 96%;
+    --status-info-text: 221 75% 38%;
+    
+    --status-error: 0 72% 51%;
+    --status-error-bg: 0 72% 96%;
+    --status-error-text: 0 65% 38%;
+    
+    --status-purple: 280 65% 60%;
+    --status-purple-bg: 280 65% 96%;
+    --status-purple-text: 280 55% 38%;
 
     --border: 220 13% 91%;
     --input: 220 13% 91%;
@@ -99,6 +120,17 @@
     --sidebar-accent-foreground: 213 31% 91%;
     --sidebar-border: 222 47% 14%;
     --sidebar-ring: 221 83% 53%;
+
+    --status-pending-bg: 38 60% 18%;
+    --status-pending-text: 38 80% 70%;
+    --status-success-bg: 152 40% 16%;
+    --status-success-text: 152 60% 65%;
+    --status-info-bg: 221 50% 18%;
+    --status-info-text: 221 75% 70%;
+    --status-error-bg: 0 50% 18%;
+    --status-error-text: 0 65% 70%;
+    --status-purple-bg: 280 40% 18%;
+    --status-purple-text: 280 55% 70%;
 
     --shadow-sm: 0 1px 2px 0 hsl(0 0% 0% / 0.3);
     --shadow-md: 0 4px 6px -1px hsl(0 0% 0% / 0.4), 0 2px 4px -2px hsl(0 0% 0% / 0.4);
@@ -169,6 +201,55 @@
     @apply bg-destructive;
   }
 
+  /* Enhanced table styles */
+  .table-container {
+    @apply rounded-xl border border-border/60 overflow-hidden;
+    box-shadow: var(--shadow-sm);
+  }
+
+  /* Semantic status badge classes */
+  .badge-pending {
+    background-color: hsl(var(--status-pending-bg));
+    color: hsl(var(--status-pending-text));
+    border-color: transparent;
+  }
+
+  .badge-success {
+    background-color: hsl(var(--status-success-bg));
+    color: hsl(var(--status-success-text));
+    border-color: transparent;
+  }
+
+  .badge-info {
+    background-color: hsl(var(--status-info-bg));
+    color: hsl(var(--status-info-text));
+    border-color: transparent;
+  }
+
+  .badge-error {
+    background-color: hsl(var(--status-error-bg));
+    color: hsl(var(--status-error-text));
+    border-color: transparent;
+  }
+
+  .badge-purple {
+    background-color: hsl(var(--status-purple-bg));
+    color: hsl(var(--status-purple-text));
+    border-color: transparent;
+  }
+
+  /* Page header styling */
+  .page-header {
+    @apply flex flex-col gap-1;
+  }
+
+  .page-header h1 {
+    @apply text-2xl font-bold tracking-tight text-foreground;
+  }
+
+  .page-header p {
+    @apply text-sm text-muted-foreground;
+  }
 
   /* Sidebar Overlay Scrollbar */
   .sidebar-scrollbar {
@@ -216,6 +297,13 @@
   .animate-scale-in {
     animation: scaleIn 0.2s ease-out;
   }
+
+  /* Staggered animation delays */
+  .stagger-1 { animation-delay: 50ms; }
+  .stagger-2 { animation-delay: 100ms; }
+  .stagger-3 { animation-delay: 150ms; }
+  .stagger-4 { animation-delay: 200ms; }
+  .stagger-5 { animation-delay: 250ms; }
 
   @keyframes fadeIn {
     from {
