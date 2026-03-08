@@ -938,8 +938,9 @@ export type Database = {
           confirmed_at: string | null
           confirmed_by: string | null
           created_at: string
+          direct_shipment_id: string | null
           document_no: string
-          goods_issue_pending_id: string
+          goods_issue_pending_id: string | null
           id: string
           issue_description: string | null
           issue_type: string | null
@@ -952,8 +953,9 @@ export type Database = {
           confirmed_at?: string | null
           confirmed_by?: string | null
           created_at?: string
+          direct_shipment_id?: string | null
           document_no: string
-          goods_issue_pending_id: string
+          goods_issue_pending_id?: string | null
           id?: string
           issue_description?: string | null
           issue_type?: string | null
@@ -966,8 +968,9 @@ export type Database = {
           confirmed_at?: string | null
           confirmed_by?: string | null
           created_at?: string
+          direct_shipment_id?: string | null
           document_no?: string
-          goods_issue_pending_id?: string
+          goods_issue_pending_id?: string | null
           id?: string
           issue_description?: string | null
           issue_type?: string | null
@@ -977,6 +980,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "delivery_confirmations_direct_shipment_id_fkey"
+            columns: ["direct_shipment_id"]
+            isOneToOne: false
+            referencedRelation: "direct_shipments"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "delivery_confirmations_goods_issue_pending_id_fkey"
             columns: ["goods_issue_pending_id"]
