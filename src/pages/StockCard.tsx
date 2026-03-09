@@ -682,33 +682,36 @@ export default function StockCard() {
               if (hasSN) {
                 // S/N items: show install lifecycle
                 if (hasInstall || isCurrentlyInstalled) {
+                  const lastInstall = [...timeline].reverse().find(e => e.type === "install" || e.type === "install_to_billboard");
+                  const lastUninstall = [...timeline].reverse().find(e => e.type === "uninstall" || e.type === "return_from_billboard");
                   steps.push({
                     label: "ติดตั้งป้าย",
                     status: isCurrentlyInstalled ? "current" : hasInstall ? "done" : "pending",
                     date: isCurrentlyInstalled 
                       ? currentInstallations[0]?.installation_date 
-                      : timeline.findLast(e => e.type === "install" || e.type === "install_to_billboard")?.date,
+                      : lastInstall?.date,
                   });
                   steps.push({
                     label: "ถอด/คืนคลัง",
-                    status: hasUninstall && !isCurrentlyInstalled ? "done" : isCurrentlyInstalled ? "pending" : "pending",
-                    date: hasUninstall ? timeline.findLast(e => e.type === "uninstall" || e.type === "return_from_billboard")?.date : undefined,
+                    status: hasUninstall && !isCurrentlyInstalled ? "done" : "pending",
+                    date: hasUninstall ? lastUninstall?.date : undefined,
                   });
                 } else if (hasIssue) {
+                  const lastIssue = [...timeline].reverse().find(e => e.type === "issue");
                   steps.push({
                     label: "เบิกจ่าย",
                     status: "done",
-                    date: timeline.findLast(e => e.type === "issue")?.date,
+                    date: lastIssue?.date,
                   });
                 } else {
                   steps.push({ label: "เบิก/ติดตั้ง", status: inStock ? "pending" : "current" });
                 }
               } else {
-                // Non-S/N: simpler flow
+                const lastIssue = [...timeline].reverse().find(e => e.type === "issue");
                 steps.push({
                   label: "เบิกจ่าย",
                   status: hasIssue ? "done" : "pending",
-                  date: hasIssue ? timeline.findLast(e => e.type === "issue")?.date : undefined,
+                  date: hasIssue ? lastIssue?.date : undefined,
                 });
               }
 
