@@ -239,7 +239,7 @@ const GoodsIssue = () => {
                   <TableHead>รายการ</TableHead>
                   <TableHead className="text-right">จำนวนรวม</TableHead>
                   <TableHead className="text-right">จ่ายแล้ว</TableHead>
-                  <TableHead>สถานะ</TableHead>
+                  <TableHead className="min-w-[220px]">ความคืบหน้า</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
