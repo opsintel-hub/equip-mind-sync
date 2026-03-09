@@ -382,7 +382,7 @@ export function ToolImport({ onSuccess }: ToolImportProps) {
           const { error } = await supabase.from("tools").update({ ...data, updated_at: new Date().toISOString() }).eq("id", _existingId);
           if (error) { errors.push(`แถวที่ ${row.rowNum}: ${error.message}`); failedCount++; } else { successCount++; }
         } else {
-          const { error } = await supabase.from("tools").insert({ ...data, created_by: userData?.user?.id });
+          const { error } = await supabase.from("tools").insert([{ ...data, created_by: userData?.user?.id }]);
           if (error) { errors.push(`แถวที่ ${row.rowNum}: ${error.message}`); failedCount++; } else { successCount++; }
         }
       } catch (e: any) {
