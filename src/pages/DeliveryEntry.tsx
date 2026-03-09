@@ -876,7 +876,7 @@ const DeliveryEntry = () => {
           status: 'pending',
           receipt_document_no: item.document_no,
           notes: item.notes || null,
-          created_by: user?.id || null,
+          created_by: null,
         }));
       if (snInserts.length > 0) {
         await supabase.from("equipment_serial_numbers").insert(snInserts as any);
