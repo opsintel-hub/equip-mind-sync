@@ -15,6 +15,7 @@ import { format } from "date-fns";
 import { th } from "date-fns/locale";
 import { LoanRequestForm } from "@/components/loan/LoanRequestForm";
 import { LoanReturnDialog } from "@/components/loan/LoanReturnDialog";
+import { ProcessTracker, getEquipmentLoanSteps } from "@/components/ProcessTracker";
 import { useTablePagination } from "@/hooks/useTablePagination";
 import { TablePagination } from "@/components/TablePagination";
 
@@ -372,8 +373,8 @@ const EquipmentLoans = () => {
                     <TableHead>วันยืม</TableHead>
                     <TableHead>กำหนดคืน</TableHead>
                     <TableHead>ผู้ขอ</TableHead>
-                    <TableHead>สถานะ</TableHead>
-                    <TableHead className="text-right">จัดการ</TableHead>
+                     <TableHead className="min-w-[220px]">ความคืบหน้า</TableHead>
+                     <TableHead className="text-right">จัดการ</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -423,7 +424,9 @@ const EquipmentLoans = () => {
                             <p className="text-sm text-muted-foreground">{loan.requester_phone}</p>
                           )}
                         </TableCell>
-                        <TableCell>{getStatusBadge(loan)}</TableCell>
+                        <TableCell>
+                          <ProcessTracker steps={getEquipmentLoanSteps(loan)} size="sm" />
+                        </TableCell>
                         <TableCell className="text-right">
                           <div className="flex items-center justify-end gap-2">
                             {loan.status === "pending" && (

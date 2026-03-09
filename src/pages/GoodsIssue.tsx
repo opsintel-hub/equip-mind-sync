@@ -15,6 +15,7 @@ import { TablePagination } from "@/components/TablePagination";
 import { DatePickerWithRange } from "@/components/ui/date-range-picker";
 import { DateRange } from "react-day-picker";
 import BillboardDisplay from "@/components/billboard/BillboardDisplay";
+import { ProcessTracker, getGoodsIssueSteps } from "@/components/ProcessTracker";
 
 interface IssuedItem {
   id: string;
@@ -238,7 +239,7 @@ const GoodsIssue = () => {
                   <TableHead>รายการ</TableHead>
                   <TableHead className="text-right">จำนวนรวม</TableHead>
                   <TableHead className="text-right">จ่ายแล้ว</TableHead>
-                  <TableHead>สถานะ</TableHead>
+                  <TableHead className="min-w-[220px]">ความคืบหน้า</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -298,7 +299,9 @@ const GoodsIssue = () => {
                               {req.issued_quantity || 0}
                             </span>
                           </TableCell>
-                          <TableCell>{getStatusBadge(req.status)}</TableCell>
+                          <TableCell>
+                            <ProcessTracker steps={getGoodsIssueSteps(req)} size="sm" />
+                          </TableCell>
                         </TableRow>
 
                         {/* Expanded Items */}
