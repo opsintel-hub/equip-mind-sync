@@ -918,7 +918,16 @@ const DeliveryEntry = () => {
         return <Badge variant="secondary">{status}</Badge>;
     }
   };
-  const filteredReceipts = pendingReceipts.filter(receipt => receipt.document_no.toLowerCase().includes(searchTerm.toLowerCase()) || receipt.equipment_name?.toLowerCase().includes(searchTerm.toLowerCase()) || receipt.delivery_person_name.toLowerCase().includes(searchTerm.toLowerCase()));
+  const filteredReceipts = pendingReceipts.filter(receipt => {
+    const term = searchTerm.toLowerCase();
+    if (!term) return true;
+    return receipt.document_no.toLowerCase().includes(term) ||
+      receipt.equipment_name?.toLowerCase().includes(term) ||
+      receipt.delivery_person_name.toLowerCase().includes(term) ||
+      receipt.equipment_code?.toLowerCase().includes(term) ||
+      (receipt as any).serial_number?.toLowerCase().includes(term) ||
+      (receipt as any).lot_number?.toLowerCase().includes(term);
+  });
   const {
     paginatedData: paginatedReceipts,
     currentPage: historyPage,
