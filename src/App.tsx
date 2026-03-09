@@ -59,6 +59,7 @@ import DirectShippingEntry from "./pages/DirectShippingEntry";
 import DirectShippingApproval from "./pages/DirectShippingApproval";
 import DirectShippingProcurement from "./pages/DirectShippingProcurement";
 import DirectShippingPublicView from "./pages/DirectShippingPublicView";
+import MediaPlayerProfile from "./pages/MediaPlayerProfile";
 import DashboardLayout from "./components/DashboardLayout";
 import ProtectedRoute from "./components/ProtectedRoute";
 import NotFound from "./pages/NotFound";
@@ -110,7 +111,8 @@ const App = () => (
             <Route path="/tool-pm-schedule" element={<ProtectedRoute><DashboardLayout><ToolPMSchedule /></DashboardLayout></ProtectedRoute>} />
             <Route path="/tool-management" element={<ProtectedRoute><DashboardLayout><ToolManagement /></DashboardLayout></ProtectedRoute>} />
             <Route path="/pending-asset-codes" element={<ProtectedRoute><DashboardLayout><PendingAssetCodes /></DashboardLayout></ProtectedRoute>} />
-            {/* Media Player is now inside Master Data */}
+            {/* Media Player Profile */}
+            <Route path="/media-player/:id" element={<ProtectedRoute><DashboardLayout><MediaPlayerProfile /></DashboardLayout></ProtectedRoute>} />
             <Route path="/ad-entry" element={<ProtectedRoute><DashboardLayout><AdEntry /></DashboardLayout></ProtectedRoute>} />
             <Route path="/ad-receive" element={<ProtectedRoute><DashboardLayout><AdManagement /></DashboardLayout></ProtectedRoute>} />
             <Route path="/ad-request" element={<ProtectedRoute><DashboardLayout><AdRequest /></DashboardLayout></ProtectedRoute>} />

@@ -8,7 +8,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Monitor, Search, Loader2, MapPin, Unplug, Plus, Download, Image as ImageIcon, FileText, Camera, X } from "lucide-react";
+import { Monitor, Search, Loader2, MapPin, Unplug, Plus, Download, Image as ImageIcon, FileText, Camera, X, Eye } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { MediaPlayerImageUpload } from "@/components/media-player/MediaPlayerImageUpload";
 import * as XLSX from "xlsx";
 import MediaPlayerDashboard from "@/components/media-player/MediaPlayerDashboard";
@@ -78,6 +79,7 @@ interface MediaPlayer {
 }
 
 const MediaPlayerEntry = () => {
+  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
   const [mediaPlayers, setMediaPlayers] = useState<MediaPlayer[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -901,6 +903,14 @@ const MediaPlayerEntry = () => {
                               <TableCell className="text-sm whitespace-nowrap max-w-[150px] truncate">{player.description || "-"}</TableCell>
                               <TableCell className="text-right">
                                 <div className="flex items-center justify-end gap-1">
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => navigate(`/media-player/${player.id}`)}
+                                    title="ดูรายละเอียด"
+                                  >
+                                    <Eye className="w-4 h-4 text-primary" />
+                                  </Button>
                                   <Button
                                     variant="ghost"
                                     size="sm"
