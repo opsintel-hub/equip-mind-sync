@@ -281,28 +281,25 @@ export default function DocumentSearch() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <div>
         <h1 className="text-2xl font-bold tracking-tight">ค้นหาเอกสาร</h1>
-        <p className="text-muted-foreground">ค้นหาเอกสารจากการรับสินค้า, เบิกสินค้า และยืนยันรับสินค้า พร้อมติดตามความคืบหน้า</p>
+        <p className="text-sm text-muted-foreground mt-1">ค้นหาจากผู้จำหน่าย รหัสอุปกรณ์ เลขที่เอกสาร หรือ Serial Number</p>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2"><Search className="h-5 w-5" />ค้นหาเอกสาร</CardTitle>
-          <CardDescription>ค้นหาจากผู้จำหน่าย รหัสอุปกรณ์ เลขที่เอกสาร หรือ Serial Number</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-            <div className="space-y-2">
-              <Label>ค้นหา</Label>
+      {/* Search filters */}
+      <Card className="border-border/60">
+        <CardContent className="pt-5 pb-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 items-end">
+            <div className="space-y-1.5">
+              <Label className="text-xs text-muted-foreground">ค้นหา</Label>
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input placeholder="พิมพ์คำค้นหา..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-9" />
               </div>
             </div>
-            <div className="space-y-2">
-              <Label>ประเภทการค้นหา</Label>
+            <div className="space-y-1.5">
+              <Label className="text-xs text-muted-foreground">ประเภทการค้นหา</Label>
               <Select value={searchType} onValueChange={setSearchType}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
@@ -313,8 +310,8 @@ export default function DocumentSearch() {
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-2">
-              <Label>ประเภทเอกสาร</Label>
+            <div className="space-y-1.5">
+              <Label className="text-xs text-muted-foreground">ประเภทเอกสาร</Label>
               <Select value={sourceFilter} onValueChange={setSourceFilter}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
@@ -327,91 +324,101 @@ export default function DocumentSearch() {
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-2">
-              <Label>ช่วงวันที่</Label>
+            <div className="space-y-1.5">
+              <Label className="text-xs text-muted-foreground">ช่วงวันที่</Label>
               <DatePickerWithRange date={dateRange} onDateChange={setDateRange} />
             </div>
-            <div className="flex items-end">
-              <Button onClick={fetchDocuments} disabled={loading}>
-                {loading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Search className="h-4 w-4 mr-2" />}
-                รีเฟรช
-              </Button>
-            </div>
+            <Button onClick={fetchDocuments} disabled={loading} className="w-full sm:w-auto">
+              {loading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Search className="h-4 w-4 mr-2" />}
+              รีเฟรช
+            </Button>
           </div>
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2"><FileText className="h-5 w-5" />รายการเอกสาร</CardTitle>
-          <CardDescription>พบ {filteredDocuments.length} รายการ — แสดงความคืบหน้าแบบเรียลไทม์</CardDescription>
+      {/* Results */}
+      <Card className="border-border/60">
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <FileText className="h-4 w-4 text-muted-foreground" />
+              <CardTitle className="text-base">รายการเอกสาร</CardTitle>
+            </div>
+            <span className="text-xs text-muted-foreground">พบ {filteredDocuments.length} รายการ</span>
+          </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="px-0 pb-2">
           {loading ? (
-            <div className="flex items-center justify-center py-10"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>
+            <div className="flex items-center justify-center py-16"><Loader2 className="h-7 w-7 animate-spin text-muted-foreground" /></div>
           ) : filteredDocuments.length === 0 ? (
-            <div className="text-center py-10 text-muted-foreground">
+            <div className="text-center py-16 text-muted-foreground text-sm">
               {hasSearched ? (searchTerm ? <p>ไม่พบเอกสารที่ตรงกับคำค้นหา "{searchTerm}"</p> : <p>ไม่พบเอกสารในระบบ</p>) : <p>กำลังโหลด...</p>}
             </div>
           ) : (
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
-                  <TableRow>
-                    <TableHead>เลขที่เอกสาร</TableHead>
-                    <TableHead>ประเภท</TableHead>
-                    <TableHead>รหัส/ชื่ออุปกรณ์</TableHead>
-                    <TableHead>ผู้จำหน่าย/ผู้ขอ</TableHead>
-                    <TableHead className="text-right">จำนวน</TableHead>
-                    <TableHead>วันที่</TableHead>
-                    <TableHead className="min-w-[260px]">ความคืบหน้า</TableHead>
-                    <TableHead className="text-center">เอกสาร</TableHead>
+                  <TableRow className="hover:bg-transparent border-border/40">
+                    <TableHead className="text-xs font-semibold text-muted-foreground pl-6">เลขที่เอกสาร</TableHead>
+                    <TableHead className="text-xs font-semibold text-muted-foreground">ประเภท</TableHead>
+                    <TableHead className="text-xs font-semibold text-muted-foreground">รหัส/ชื่ออุปกรณ์</TableHead>
+                    <TableHead className="text-xs font-semibold text-muted-foreground">ผู้จำหน่าย/ผู้ขอ</TableHead>
+                    <TableHead className="text-xs font-semibold text-muted-foreground text-right">จำนวน</TableHead>
+                    <TableHead className="text-xs font-semibold text-muted-foreground">วันที่</TableHead>
+                    <TableHead className="text-xs font-semibold text-muted-foreground min-w-[240px]">ความคืบหน้า</TableHead>
+                    <TableHead className="text-xs font-semibold text-muted-foreground text-center pr-6">เอกสาร</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {paginatedData.map((doc) => {
                     const trackerSteps = getDocumentProcessSteps(doc);
                     return (
-                      <TableRow key={`${doc.source}-${doc.id}`}>
-                        <TableCell className="font-medium font-mono text-sm">{doc.document_no}</TableCell>
+                      <TableRow key={`${doc.source}-${doc.id}`} className="border-border/30 hover:bg-muted/30">
+                        <TableCell className="font-mono text-xs font-medium pl-6 whitespace-nowrap">{doc.document_no}</TableCell>
                         <TableCell>{getSourceBadge(doc.source)}</TableCell>
                         <TableCell>
                           {doc.equipment_code || doc.equipment_name ? (
-                            <div>
-                              {doc.equipment_code && <div className="font-medium text-sm">{doc.equipment_code}</div>}
-                              {doc.equipment_name && <div className="text-xs text-muted-foreground truncate max-w-[180px]">{doc.equipment_name}</div>}
+                            <div className="space-y-0.5">
+                              {doc.equipment_code && <div className="font-semibold text-sm leading-tight">{doc.equipment_code}</div>}
+                              {doc.equipment_name && <div className="text-xs text-muted-foreground truncate max-w-[160px] leading-tight">{doc.equipment_name}</div>}
                               {doc.serial_number && (
-                                <Badge variant="outline" className="font-mono text-[10px] mt-0.5 bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/30 dark:text-blue-400 dark:border-blue-800">
+                                <Badge variant="outline" className="font-mono text-[10px] px-1.5 py-0 h-[18px] bg-accent/50 text-accent-foreground/70 border-border">
                                   S/N: {doc.serial_number}
                                 </Badge>
                               )}
                             </div>
-                          ) : "-"}
+                          ) : <span className="text-muted-foreground/40">-</span>}
                         </TableCell>
-                        <TableCell className="text-sm">{doc.supplier_name || doc.delivery_person_name || "-"}</TableCell>
-                        <TableCell className="text-right text-sm">{doc.quantity > 0 ? `${doc.quantity} ${doc.unit}` : "-"}</TableCell>
-                        <TableCell className="text-sm">{format(new Date(doc.created_at), "dd/MM/yyyy", { locale: th })}</TableCell>
-                        <TableCell>
+                        <TableCell className="text-sm max-w-[140px] truncate">{doc.supplier_name || doc.delivery_person_name || <span className="text-muted-foreground/40">-</span>}</TableCell>
+                        <TableCell className="text-right text-sm tabular-nums whitespace-nowrap">{doc.quantity > 0 ? `${doc.quantity} ${doc.unit}` : <span className="text-muted-foreground/40">-</span>}</TableCell>
+                        <TableCell className="text-sm tabular-nums whitespace-nowrap">{format(new Date(doc.created_at), "dd/MM/yyyy", { locale: th })}</TableCell>
+                        <TableCell className="py-3">
                           {trackerSteps ? (
                             <ProcessTracker steps={trackerSteps} size="sm" />
                           ) : (
                             getStatusBadgeFallback(doc.status, doc.source)
                           )}
                         </TableCell>
-                        <TableCell className="text-center">
+                        <TableCell className="text-center pr-6">
                           {doc.document_url ? (
-                            <div className="flex gap-1 justify-center">
-                              <Button variant="ghost" size="sm" asChild><a href={doc.document_url} target="_blank" rel="noopener noreferrer"><ExternalLink className="h-4 w-4" /></a></Button>
-                              <Button variant="ghost" size="sm" asChild><a href={doc.document_url} download><Download className="h-4 w-4" /></a></Button>
+                            <div className="flex gap-0.5 justify-center">
+                              <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground" asChild>
+                                <a href={doc.document_url} target="_blank" rel="noopener noreferrer"><ExternalLink className="h-3.5 w-3.5" /></a>
+                              </Button>
+                              <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground" asChild>
+                                <a href={doc.document_url} download><Download className="h-3.5 w-3.5" /></a>
+                              </Button>
                             </div>
-                          ) : <span className="text-muted-foreground text-sm">-</span>}
+                          ) : <span className="text-muted-foreground/30">-</span>}
                         </TableCell>
                       </TableRow>
                     );
                   })}
                 </TableBody>
               </Table>
-              <TablePagination currentPage={currentPage} totalPages={totalPages} totalItems={totalItems} pageSize={pageSize} onPageChange={handlePageChange} onPageSizeChange={handlePageSizeChange} />
+              <div className="px-6 pt-2">
+                <TablePagination currentPage={currentPage} totalPages={totalPages} totalItems={totalItems} pageSize={pageSize} onPageChange={handlePageChange} onPageSizeChange={handlePageSizeChange} />
+              </div>
             </div>
           )}
         </CardContent>
