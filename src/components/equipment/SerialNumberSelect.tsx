@@ -11,7 +11,8 @@ interface SerialNumberItem {
   unit: string;
   quantity_in_stock: number;
   is_media_player: boolean;
-  source: "equipment" | "media_player_sn1" | "media_player_sn2" | "media_player_serial";
+  source: "equipment" | "equipment_sn_table" | "media_player_sn1" | "media_player_sn2" | "media_player_serial";
+  sn_record_id?: string;
 }
 
 interface SerialNumberSelectProps {
@@ -30,7 +31,24 @@ export function SerialNumberSelect({
   placeholder = "ค้นหา Serial Number...",
   equipmentId,
 }: SerialNumberSelectProps) {
-  // Fetch equipment with serial numbers
+  // Fetch from equipment_serial_numbers table (primary source - in_stock only)
+  const { data: snTableData, isLoading: loadingSnTable } = useQuery({
+    queryKey: ["equipment-sn-table", equipmentId],
+    queryFn: async () => {
+      let query = supabase
+        .from("equipment_serial_numbers")
+        .select("id, equipment_id, serial_number, status, location_id, equipment:equipment!inner(id, code, name, unit, quantity_in_stock, is_active)")
+        .eq("status", "in_stock");
+
+      if (equipmentId) query = query.eq("equipment_id", equipmentId);
+
+      const { data, error } = await query;
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
+  // Fallback: Fetch equipment with serial_number field (legacy records)
   const { data: equipmentData, isLoading: loadingEquipment } = useQuery({
     queryKey: ["equipment-serial-numbers", equipmentId],
     queryFn: async () => {
@@ -97,7 +115,7 @@ export function SerialNumberSelect({
     },
   });
 
-  // Fallback for legacy Media Player rows (before received serial tracking)
+  // Fallback for legacy Media Player rows
   const { data: mediaPlayersData, isLoading: loadingMediaPlayers } = useQuery({
     queryKey: ["media-players-legacy-serial-fallback", equipmentId],
     queryFn: async () => {
@@ -119,23 +137,47 @@ export function SerialNumberSelect({
   // Combine all serial numbers into a unified list
   const serialNumberItems = useMemo<SerialNumberItem[]>(() => {
     const items: SerialNumberItem[] = [];
+    const seenKeys = new Set<string>();
 
-    // Add equipment serial numbers
-    equipmentData?.forEach((eq) => {
-      if (eq.serial_number) {
-        items.push({
-          id: eq.id,
-          serial_number: eq.serial_number,
-          code: eq.code,
-          name: eq.name,
-          unit: eq.unit,
-          quantity_in_stock: eq.quantity_in_stock,
-          is_media_player: false,
-          source: "equipment",
-        });
-      }
+    // Priority 1: equipment_serial_numbers table (most reliable)
+    (snTableData || []).forEach((sn: any) => {
+      const eq = sn.equipment;
+      if (!eq || !eq.is_active) return;
+      const key = `eq::${eq.id}::${sn.serial_number}`;
+      if (seenKeys.has(key)) return;
+      seenKeys.add(key);
+      items.push({
+        id: eq.id,
+        serial_number: sn.serial_number,
+        code: eq.code,
+        name: eq.name,
+        unit: eq.unit,
+        quantity_in_stock: eq.quantity_in_stock,
+        is_media_player: false,
+        source: "equipment_sn_table",
+        sn_record_id: sn.id,
+      });
     });
 
+    // Priority 2: Legacy equipment serial_number field (fallback)
+    equipmentData?.forEach((eq) => {
+      if (!eq.serial_number) return;
+      const key = `eq::${eq.id}::${eq.serial_number}`;
+      if (seenKeys.has(key)) return;
+      seenKeys.add(key);
+      items.push({
+        id: eq.id,
+        serial_number: eq.serial_number,
+        code: eq.code,
+        name: eq.name,
+        unit: eq.unit,
+        quantity_in_stock: eq.quantity_in_stock,
+        is_media_player: false,
+        source: "equipment",
+      });
+    });
+
+    // Media Player serials (unchanged logic)
     const consumedMediaSerialKeys = new Set(
       (issuedMediaSerials || [])
         .filter((row: any) => row.media_player_id && row.serial_number)
@@ -206,7 +248,7 @@ export function SerialNumberSelect({
     }
 
     return items;
-  }, [equipmentData, receivedMediaSerials, issuedMediaSerials, mediaPlayersData, equipmentId]);
+  }, [snTableData, equipmentData, receivedMediaSerials, issuedMediaSerials, mediaPlayersData, equipmentId]);
 
   // Map serial number items to dropdown options
   const options: SearchableSelectOption[] = useMemo(() => {
@@ -234,7 +276,7 @@ export function SerialNumberSelect({
     onChange(selectedItem || null);
   };
 
-  const isLoading = loadingEquipment || loadingReceivedMediaSerials || loadingIssuedMediaSerials || loadingMediaPlayers;
+  const isLoading = loadingSnTable || loadingEquipment || loadingReceivedMediaSerials || loadingIssuedMediaSerials || loadingMediaPlayers;
 
   return (
     <SearchableSelect
