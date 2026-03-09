@@ -6,6 +6,10 @@ import { useTablePagination } from "@/hooks/useTablePagination";
 import { TablePagination } from "@/components/TablePagination";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel,
   AlertDialogContent, AlertDialogDescription, AlertDialogFooter,
@@ -13,7 +17,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { CheckCircle2, FileOutput, Clock } from "lucide-react";
+import { CheckCircle2, FileOutput, Search } from "lucide-react";
 import { format } from "date-fns";
 import { formatBillboardLabel } from "@/lib/billboardUtils";
 
@@ -62,7 +66,8 @@ export function AdIssueList({ refresh, onUpdated }: AdIssueListProps) {
   const [confirmIssue, setConfirmIssue] = useState<IssueRequest | null>(null);
   const [confirmComplete, setConfirmComplete] = useState<IssueRequest | null>(null);
   const [processing, setProcessing] = useState(false);
-  const { paginatedData, currentPage, pageSize, totalPages, totalItems, handlePageChange, handlePageSizeChange } = useTablePagination(requests);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
 
   useEffect(() => {
     fetchIssueRequests();
@@ -89,6 +94,17 @@ export function AdIssueList({ refresh, onUpdated }: AdIssueListProps) {
       setLoading(false);
     }
   };
+
+  const filteredRequests = requests.filter((req) => {
+    const matchSearch = !searchTerm ||
+      req.document_no.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (req.advertisement?.code || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (req.advertisement?.name || "").toLowerCase().includes(searchTerm.toLowerCase());
+    const matchStatus = statusFilter === "all" || req.status === statusFilter;
+    return matchSearch && matchStatus;
+  });
+
+  const { paginatedData, currentPage, pageSize, totalPages, totalItems, handlePageChange, handlePageSizeChange } = useTablePagination(filteredRequests);
 
   const handleIssue = async (req: IssueRequest) => {
     setProcessing(true);
@@ -133,7 +149,6 @@ export function AdIssueList({ refresh, onUpdated }: AdIssueListProps) {
 
       if (issueError) throw issueError;
 
-      // Update advertisement status to installed
       if (req.advertisement) {
         const { error: adError } = await supabase
           .from("advertisements")
@@ -167,10 +182,77 @@ export function AdIssueList({ refresh, onUpdated }: AdIssueListProps) {
     );
   }
 
-
   return (
     <div className="space-y-4">
-      <div className="rounded-lg border">
+      {/* Filters */}
+      <div className="flex flex-col sm:flex-row gap-3">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="ค้นหาเลขที่เอกสาร, รหัส หรือชื่อภาพ..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-10"
+          />
+        </div>
+        <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <SelectTrigger className="w-full sm:w-[140px]">
+            <SelectValue placeholder="ทุกสถานะ" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">ทุกสถานะ</SelectItem>
+            <SelectItem value="pending">รอเบิก</SelectItem>
+            <SelectItem value="issued">เบิกแล้ว</SelectItem>
+            <SelectItem value="completed">เสร็จสิ้น</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      {/* Mobile card view */}
+      <div className="block sm:hidden space-y-3">
+        {paginatedData.map((req) => {
+          const status = statusLabels[req.status] || { label: req.status, variant: "secondary" as const };
+          return (
+            <div key={req.id} className="rounded-lg border p-4 space-y-3">
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <p className="font-mono text-sm font-medium">{req.document_no}</p>
+                  <p className="text-sm text-foreground truncate">{req.advertisement?.name || "-"}</p>
+                </div>
+                <Badge variant={status.variant}>{status.label}</Badge>
+              </div>
+              <div className="grid grid-cols-2 gap-1.5 text-xs text-muted-foreground">
+                <div>รหัสภาพ: <span className="font-mono">{req.advertisement?.code || "-"}</span></div>
+                <div>จำนวน: <span className="font-medium text-foreground">{req.issued_quantity || 0}</span></div>
+                <div>วัตถุประสงค์: {purposeLabels[req.issue_purpose] || req.issue_purpose}</div>
+                <div>{format(new Date(req.created_at), "dd/MM/yyyy")}</div>
+                {req.target_billboard && (
+                  <div className="col-span-2 truncate">
+                    ป้าย: {formatBillboardLabel(req.target_billboard.old_code, req.target_billboard.location_name, req.target_billboard.equipment_id)}
+                  </div>
+                )}
+              </div>
+              {(req.status === "pending" || req.status === "issued") && (
+                <div>
+                  {req.status === "pending" && (
+                    <Button size="sm" className="w-full gap-1" onClick={() => setConfirmIssue(req)}>
+                      <FileOutput className="h-3.5 w-3.5" /> เบิก
+                    </Button>
+                  )}
+                  {req.status === "issued" && (
+                    <Button size="sm" variant="outline" className="w-full gap-1" onClick={() => setConfirmComplete(req)}>
+                      <CheckCircle2 className="h-3.5 w-3.5" /> ติดตั้งแล้ว
+                    </Button>
+                  )}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Desktop table view */}
+      <div className="hidden sm:block rounded-lg border overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow>
@@ -218,24 +300,13 @@ export function AdIssueList({ refresh, onUpdated }: AdIssueListProps) {
                   </TableCell>
                   <TableCell className="text-right">
                     {req.status === "pending" && (
-                      <Button
-                        size="sm"
-                        onClick={() => setConfirmIssue(req)}
-                        className="gap-1"
-                      >
-                        <FileOutput className="h-3.5 w-3.5" />
-                        เบิก
+                      <Button size="sm" onClick={() => setConfirmIssue(req)} className="gap-1">
+                        <FileOutput className="h-3.5 w-3.5" /> เบิก
                       </Button>
                     )}
                     {req.status === "issued" && (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => setConfirmComplete(req)}
-                        className="gap-1"
-                      >
-                        <CheckCircle2 className="h-3.5 w-3.5" />
-                        ติดตั้งแล้ว
+                      <Button size="sm" variant="outline" onClick={() => setConfirmComplete(req)} className="gap-1">
+                        <CheckCircle2 className="h-3.5 w-3.5" /> ติดตั้งแล้ว
                       </Button>
                     )}
                   </TableCell>
@@ -256,7 +327,7 @@ export function AdIssueList({ refresh, onUpdated }: AdIssueListProps) {
 
       {/* Issue Confirm */}
       <AlertDialog open={!!confirmIssue} onOpenChange={(o) => !o && setConfirmIssue(null)}>
-        <AlertDialogContent>
+        <AlertDialogContent className="max-w-[95vw] sm:max-w-lg">
           <AlertDialogHeader>
             <AlertDialogTitle>ยืนยันเบิกภาพโฆษณา</AlertDialogTitle>
             <AlertDialogDescription>
@@ -282,7 +353,7 @@ export function AdIssueList({ refresh, onUpdated }: AdIssueListProps) {
 
       {/* Complete Confirm */}
       <AlertDialog open={!!confirmComplete} onOpenChange={(o) => !o && setConfirmComplete(null)}>
-        <AlertDialogContent>
+        <AlertDialogContent className="max-w-[95vw] sm:max-w-lg">
           <AlertDialogHeader>
             <AlertDialogTitle>ยืนยันติดตั้งเสร็จสิ้น</AlertDialogTitle>
             <AlertDialogDescription>

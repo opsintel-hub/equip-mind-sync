@@ -4,6 +4,10 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel,
   AlertDialogContent, AlertDialogDescription, AlertDialogFooter,
@@ -11,7 +15,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { CheckCircle2, XCircle, Package, ImageIcon, Clock } from "lucide-react";
+import { CheckCircle2, XCircle, Package, ImageIcon, Clock, Search } from "lucide-react";
 import { format } from "date-fns";
 
 interface PendingAd {
@@ -45,6 +49,8 @@ export function AdReceiveSection({ refresh, onReceived }: AdReceiveSectionProps)
   const [confirmAd, setConfirmAd] = useState<PendingAd | null>(null);
   const [rejectAd, setRejectAd] = useState<PendingAd | null>(null);
   const [processing, setProcessing] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [typeFilter, setTypeFilter] = useState("all");
 
   useEffect(() => {
     fetchPendingAds();
@@ -87,7 +93,6 @@ export function AdReceiveSection({ refresh, onReceived }: AdReceiveSectionProps)
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { toast.error("กรุณาเข้าสู่ระบบ"); return; }
 
-      // Update advertisement status to in_storage
       const { error: updateError } = await supabase
         .from("advertisements")
         .update({ status: "in_storage", updated_at: new Date().toISOString() })
@@ -95,12 +100,10 @@ export function AdReceiveSection({ refresh, onReceived }: AdReceiveSectionProps)
 
       if (updateError) throw updateError;
 
-      // Auto-create issue document for "new" type ads
       if (ad.entry_type === "new") {
         const targetBillboards = ad.ad_target_billboards || [];
         
         if (targetBillboards.length > 0) {
-          // Create one issue request per target billboard
           const issueInserts = targetBillboards.map((tb) => ({
             document_no: generateIssueDocNo(),
             advertisement_id: ad.id,
@@ -119,11 +122,10 @@ export function AdReceiveSection({ refresh, onReceived }: AdReceiveSectionProps)
           if (issueError) throw issueError;
 
           toast.success(
-            `รับเข้าคลัง ${ad.code} สำเร็จ — สร้างเอกสารเบิก ${issueInserts.length} รายการอัตโนมัติ`,
-            { duration: 5000 }
+            `รับเข้าคลัง ${ad.code} สำเร็จ — สร้างเอกสารเบิก ${issueInserts.length} รายการ`,
+            { duration: 5000, action: { label: "ดูเอกสารเบิก", onClick: () => window.location.href = "/ad-issue" } }
           );
         } else {
-          // No target billboards, create single issue request without billboard
           const { error: issueError } = await supabase
             .from("ad_issue_requests")
             .insert({
@@ -139,8 +141,8 @@ export function AdReceiveSection({ refresh, onReceived }: AdReceiveSectionProps)
           if (issueError) throw issueError;
 
           toast.success(
-            `รับเข้าคลัง ${ad.code} สำเร็จ — สร้างเอกสารเบิก 1 รายการอัตโนมัติ`,
-            { duration: 5000 }
+            `รับเข้าคลัง ${ad.code} สำเร็จ — สร้างเอกสารเบิก 1 รายการ`,
+            { duration: 5000, action: { label: "ดูเอกสารเบิก", onClick: () => window.location.href = "/ad-issue" } }
           );
         }
       } else {
@@ -177,6 +179,14 @@ export function AdReceiveSection({ refresh, onReceived }: AdReceiveSectionProps)
     }
   };
 
+  const filteredAds = ads.filter((ad) => {
+    const matchSearch = !searchTerm ||
+      ad.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      ad.name.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchType = typeFilter === "all" || ad.entry_type === typeFilter;
+    return matchSearch && matchType;
+  });
+
   if (loading) {
     return <div className="text-center py-8 text-muted-foreground">กำลังโหลด...</div>;
   }
@@ -192,12 +202,72 @@ export function AdReceiveSection({ refresh, onReceived }: AdReceiveSectionProps)
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-        <Clock className="h-4 w-4" />
-        <span>รอรับเข้าคลัง {ads.length} รายการ</span>
+      {/* Filters */}
+      <div className="flex flex-col sm:flex-row gap-3">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="ค้นหารหัส หรือชื่อภาพ..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-10"
+          />
+        </div>
+        <Select value={typeFilter} onValueChange={setTypeFilter}>
+          <SelectTrigger className="w-full sm:w-[140px]">
+            <SelectValue placeholder="ทุกประเภท" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">ทุกประเภท</SelectItem>
+            <SelectItem value="new">ภาพใหม่</SelectItem>
+            <SelectItem value="temporary">ฝากชั่วคราว</SelectItem>
+            <SelectItem value="old">ภาพเก่า</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
-      <div className="rounded-lg border">
+      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+        <Clock className="h-4 w-4" />
+        <span>พบ {filteredAds.length} รายการ</span>
+      </div>
+
+      {/* Mobile card view */}
+      <div className="block sm:hidden space-y-3">
+        {filteredAds.map((ad) => (
+          <div key={ad.id} className="rounded-lg border p-4 space-y-3">
+            <div className="flex items-start justify-between gap-2">
+              <div className="min-w-0">
+                <p className="font-mono text-sm font-medium">{ad.code}</p>
+                <p className="text-sm text-foreground truncate">{ad.name}</p>
+              </div>
+              <Badge variant={ad.entry_type === "new" ? "default" : ad.entry_type === "temporary" ? "secondary" : "outline"}>
+                {entryTypeLabels[ad.entry_type] || ad.entry_type}
+              </Badge>
+            </div>
+            <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
+              <div>จำนวน: <span className="font-medium text-foreground">{ad.total_quantity || 0}</span></div>
+              <div>ทีม: {ad.installation_team?.name || "-"}</div>
+              <div className="col-span-2">
+                เวอร์ชัน: {ad.ad_versions.length > 0 ? ad.ad_versions.map(v => `${v.version_name}(${v.quantity})`).join(", ") : "-"}
+              </div>
+              <div className="col-span-2">
+                {format(new Date(ad.created_at), "dd/MM/yyyy HH:mm")}
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <Button size="sm" className="flex-1 gap-1" onClick={() => setConfirmAd(ad)}>
+                <CheckCircle2 className="h-4 w-4" /> รับเข้า
+              </Button>
+              <Button size="sm" variant="outline" className="gap-1 text-destructive border-destructive/50" onClick={() => setRejectAd(ad)}>
+                <XCircle className="h-4 w-4" /> ปฏิเสธ
+              </Button>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Desktop table view */}
+      <div className="hidden sm:block rounded-lg border overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow>
@@ -213,7 +283,7 @@ export function AdReceiveSection({ refresh, onReceived }: AdReceiveSectionProps)
             </TableRow>
           </TableHeader>
           <TableBody>
-            {ads.map((ad) => (
+            {filteredAds.map((ad) => (
               <TableRow key={ad.id}>
                 <TableCell className="font-mono text-sm">{ad.code}</TableCell>
                 <TableCell>
@@ -252,22 +322,11 @@ export function AdReceiveSection({ refresh, onReceived }: AdReceiveSectionProps)
                 </TableCell>
                 <TableCell className="text-right">
                   <div className="flex items-center justify-end gap-2">
-                    <Button
-                      size="sm"
-                      onClick={() => setConfirmAd(ad)}
-                      className="gap-1"
-                    >
-                      <CheckCircle2 className="h-4 w-4" />
-                      รับเข้า
+                    <Button size="sm" onClick={() => setConfirmAd(ad)} className="gap-1">
+                      <CheckCircle2 className="h-4 w-4" /> รับเข้า
                     </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="gap-1 text-destructive border-destructive/50 hover:bg-destructive/10"
-                      onClick={() => setRejectAd(ad)}
-                    >
-                      <XCircle className="h-4 w-4" />
-                      ปฏิเสธ
+                    <Button size="sm" variant="outline" className="gap-1 text-destructive border-destructive/50 hover:bg-destructive/10" onClick={() => setRejectAd(ad)}>
+                      <XCircle className="h-4 w-4" /> ปฏิเสธ
                     </Button>
                   </div>
                 </TableCell>
@@ -279,7 +338,7 @@ export function AdReceiveSection({ refresh, onReceived }: AdReceiveSectionProps)
 
       {/* Receive Confirm Dialog */}
       <AlertDialog open={!!confirmAd} onOpenChange={(open) => !open && setConfirmAd(null)}>
-        <AlertDialogContent>
+        <AlertDialogContent className="max-w-[95vw] sm:max-w-lg">
           <AlertDialogHeader>
             <AlertDialogTitle>ยืนยันรับเข้าคลัง</AlertDialogTitle>
             <AlertDialogDescription className="space-y-2">
@@ -314,7 +373,7 @@ export function AdReceiveSection({ refresh, onReceived }: AdReceiveSectionProps)
 
       {/* Reject Confirm Dialog */}
       <AlertDialog open={!!rejectAd} onOpenChange={(open) => !open && setRejectAd(null)}>
-        <AlertDialogContent>
+        <AlertDialogContent className="max-w-[95vw] sm:max-w-lg">
           <AlertDialogHeader>
             <AlertDialogTitle>ยืนยันปฏิเสธ</AlertDialogTitle>
             <AlertDialogDescription>

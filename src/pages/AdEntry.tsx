@@ -24,10 +24,10 @@ const AdEntry = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+      <div className="flex flex-col gap-3">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">นำเข้าภาพโฆษณา</h1>
-          <p className="text-muted-foreground mt-1">
+          <h1 className="text-2xl sm:text-3xl font-bold text-foreground">นำเข้าภาพโฆษณา</h1>
+          <p className="text-muted-foreground mt-1 text-sm">
             กรอกข้อมูลภาพโฆษณาใหม่ ฝากชั่วคราว หรือภาพเก่า
           </p>
         </div>
@@ -57,20 +57,20 @@ const AdEntry = () => {
 
       {/* Ad List */}
       <Card>
-        <CardHeader>
+        <CardHeader className="px-4 sm:px-6">
           <div className="flex items-center gap-3">
             <div className="p-2 rounded-lg bg-primary/10">
               <ImageIcon className="h-5 w-5 text-primary" />
             </div>
             <div>
-              <CardTitle>รายการภาพโฆษณา</CardTitle>
-              <CardDescription>
+              <CardTitle className="text-base sm:text-lg">รายการภาพโฆษณา</CardTitle>
+              <CardDescription className="text-xs sm:text-sm">
                 รายการภาพโฆษณาทั้งหมดในระบบ
               </CardDescription>
             </div>
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="px-4 sm:px-6">
           <AdList
             refresh={refreshKey}
             filterType={filterType}
