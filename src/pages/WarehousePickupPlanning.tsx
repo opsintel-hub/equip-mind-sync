@@ -73,7 +73,9 @@ const WarehousePickupPlanning = () => {
       filtered = filtered.filter((r: any) =>
         r.document_no?.toLowerCase().includes(term) ||
         r.requester_name?.toLowerCase().includes(term) ||
-        r.equipment_name?.toLowerCase().includes(term)
+        r.equipment_name?.toLowerCase().includes(term) ||
+        r.equipment_code?.toLowerCase().includes(term) ||
+        r.serial_number?.toLowerCase().includes(term)
       );
     }
     if (dateRange?.from) {
