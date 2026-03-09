@@ -21,23 +21,24 @@ interface ProcessTrackerProps {
 }
 
 export function ProcessTracker({ steps, size = "md", className }: ProcessTrackerProps) {
-  const circleSize = size === "sm" ? "w-7 h-7" : "w-9 h-9";
-  const iconSize = size === "sm" ? "w-3.5 h-3.5" : "w-4 h-4";
-  const fontSize = size === "sm" ? "text-[10px]" : "text-xs";
-  const dateFontSize = size === "sm" ? "text-[9px]" : "text-[10px]";
+  const isSm = size === "sm";
+  const circleSize = isSm ? "w-6 h-6" : "w-9 h-9";
+  const iconSize = isSm ? "w-3 h-3" : "w-4 h-4";
+  const fontSize = isSm ? "text-[10px]" : "text-xs";
+  const dateFontSize = isSm ? "text-[9px]" : "text-[10px]";
+  const connectorTop = isSm ? "top-[11px]" : "top-[18px]";
+  const connectorH = isSm ? "h-[2px]" : "h-[3px]";
+  const borderWidth = isSm ? "border-2" : "border-[3px]";
 
   return (
-    <div className={cn("flex items-start w-full", className)}>
+    <div className={cn("flex items-start", isSm ? "min-w-[200px] gap-0" : "w-full", className)}>
       {steps.map((step, idx) => (
         <div key={idx} className="flex-1 flex flex-col items-center relative">
-          {/* Connector line (before this step) */}
+          {/* Connector line */}
           {idx > 0 && (
             <div
-              className="absolute top-[18px] h-[3px] z-0"
-              style={{
-                right: "50%",
-                width: "100%",
-              }}
+              className={cn("absolute z-0", connectorTop, connectorH)}
+              style={{ right: "50%", width: "100%" }}
             >
               <div className={cn(
                 "h-full w-full transition-all",
@@ -47,11 +48,9 @@ export function ProcessTracker({ steps, size = "md", className }: ProcessTracker
                     ? "bg-destructive"
                     : "bg-muted-foreground/20",
                 step.status === "current" && "bg-gradient-to-r from-primary to-primary/40",
-                step.status === "pending" && (steps[idx - 1]?.status === "current"
-                  ? "bg-gradient-to-r from-primary/40 to-muted-foreground/20"
-                  : ""),
+                step.status === "pending" && steps[idx - 1]?.status === "current"
+                  && "bg-gradient-to-r from-primary/40 to-muted-foreground/20",
               )} style={{
-                // dashed for pending
                 ...(step.status === "pending" && steps[idx - 1]?.status !== "done" && steps[idx - 1]?.status !== "current"
                   ? { backgroundImage: "repeating-linear-gradient(90deg, hsl(var(--muted-foreground)/0.2) 0, hsl(var(--muted-foreground)/0.2) 6px, transparent 6px, transparent 12px)", backgroundColor: "transparent", backgroundSize: "12px 100%" }
                   : {})
@@ -61,17 +60,17 @@ export function ProcessTracker({ steps, size = "md", className }: ProcessTracker
 
           {/* Circle */}
           <div className={cn(
-            "relative z-10 rounded-full flex items-center justify-center border-[3px] transition-all shadow-sm",
-            circleSize,
+            "relative z-10 rounded-full flex items-center justify-center transition-all",
+            borderWidth, circleSize,
             step.status === "done"
-              ? "bg-primary border-primary text-primary-foreground"
+              ? "bg-primary border-primary text-primary-foreground shadow-sm"
               : step.status === "current"
-                ? "bg-background border-primary text-primary ring-4 ring-primary/20"
+                ? cn("bg-background border-primary text-primary", !isSm && "ring-4 ring-primary/20")
                 : step.status === "rejected"
-                  ? "bg-destructive border-destructive text-destructive-foreground"
+                  ? "bg-destructive border-destructive text-destructive-foreground shadow-sm"
                   : step.status === "warning"
-                    ? "bg-background border-orange-500 text-orange-500 ring-4 ring-orange-500/20"
-                    : "bg-background border-muted-foreground/30 text-muted-foreground/40"
+                    ? cn("bg-background border-orange-500 text-orange-500", !isSm && "ring-4 ring-orange-500/20")
+                    : "bg-muted border-muted-foreground/25 text-muted-foreground/30"
           )}>
             {step.status === "done" ? (
               <Check className={iconSize} strokeWidth={3} />
@@ -84,14 +83,15 @@ export function ProcessTracker({ steps, size = "md", className }: ProcessTracker
             ) : step.icon ? (
               step.icon
             ) : (
-              <div className={cn("rounded-full bg-muted-foreground/20", size === "sm" ? "w-2 h-2" : "w-2.5 h-2.5")} />
+              <div className={cn("rounded-full bg-muted-foreground/20", isSm ? "w-1.5 h-1.5" : "w-2.5 h-2.5")} />
             )}
           </div>
 
           {/* Label */}
           <span className={cn(
-            "mt-1.5 text-center font-medium leading-tight max-w-[80px]",
+            "mt-1 text-center font-medium leading-tight",
             fontSize,
+            isSm ? "max-w-[60px]" : "max-w-[80px]",
             step.status === "done" || step.status === "current"
               ? "text-foreground"
               : step.status === "rejected"
@@ -110,7 +110,7 @@ export function ProcessTracker({ steps, size = "md", className }: ProcessTracker
 
           {/* Date */}
           {step.date && (
-            <span className={cn("text-muted-foreground mt-0.5", dateFontSize)}>
+            <span className={cn("text-muted-foreground/70 mt-0.5 tabular-nums", dateFontSize)}>
               {format(new Date(step.date), "dd/MM/yy", { locale: th })}
             </span>
           )}
