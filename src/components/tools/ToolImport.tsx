@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { Upload, Download, FileSpreadsheet, AlertCircle, CheckCircle2 } from "lucide-react";
 import * as XLSX from "xlsx";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Progress } from "@/components/ui/progress";
 
 interface ToolImportProps {
   onSuccess: () => void;
@@ -15,9 +16,11 @@ interface ToolImportProps {
 export function ToolImport({ onSuccess }: ToolImportProps) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [progress, setProgress] = useState(0);
   const [importResult, setImportResult] = useState<{
     success: number;
     failed: number;
+    total: number;
     errors: string[];
   } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -25,35 +28,101 @@ export function ToolImport({ onSuccess }: ToolImportProps) {
   const downloadTemplate = () => {
     const templateData = [
       {
-        "รหัสเครื่องมือ (code)*": "TL-001",
-        "ชื่อเครื่องมือ (name)*": "ตัวอย่างเครื่องมือ",
-        "รายละเอียด (description)": "รายละเอียดเครื่องมือ",
-        "ฝ่าย (department)": "ฝ่ายปฏิบัติการ",
-        "ยี่ห้อ (brand)": "ยี่ห้อตัวอย่าง",
-        "หน่วย (unit)*": "ชิ้น",
-        "จำนวนเริ่มต้น (initial_quantity)*": 10,
-        "จำนวนปัจจุบัน (current_quantity)*": 10,
-        "หมายเลขซีเรียล (serial_number)": "SN-TL-001",
-        "ราคาต่อหน่วย (unit_price)": 1500,
-        "ระยะเวลา PM (วัน) (pm_interval_days)*": 30,
-        "เป็นทรัพย์สิน (is_asset)": "ไม่ใช่",
-        "เลขที่ทรัพย์สิน (asset_code)": "",
-        "ผู้รับผิดชอบ (responsible_person)": "สมชาย ใจดี",
-        "เครื่องมือประจำตัวช่าง (is_personal_tool)": "ไม่ใช่",
-        "มีประกัน (has_warranty)": "ใช่",
-        "วันหมดประกัน (warranty_expiry_date)": "2026-06-30",
-        "วันหมดอายุ (expiry_date)": "2027-12-31",
-        "หมายเหตุ (notes)": "หมายเหตุเพิ่มเติม",
+        "รหัสเครื่องมือ*": "TL-0001",
+        "ชื่อเครื่องมือ*": "สว่านกระแทก Bosch",
+        "หมวดหมู่": "เครื่องมือไฟฟ้า",
+        "ฝ่าย": "ฝ่ายปฏิบัติการ",
+        "บริษัท": "",
+        "ยี่ห้อ": "Bosch",
+        "หน่วย*": "ชิ้น",
+        "จำนวน*": 1,
+        "Serial Number": "SN-DRILL-001",
+        "ราคาต่อชิ้น (บาท)": 4500,
+        "ระยะเวลา PM (วัน)*": 30,
+        "เป็นทรัพย์สิน": "ไม่ใช่",
+        "เลขที่ทรัพย์สิน": "",
+        "ผู้รับผิดชอบ": "สมชาย ใจดี",
+        "ประจำตัวช่าง": "ไม่ใช่",
+        "มีประกัน": "ใช่",
+        "วันหมดประกัน (yyyy-mm-dd)": "2026-12-31",
+        "วันหมดอายุ (yyyy-mm-dd)": "",
+        "วันที่นำเข้าคลัง (yyyy-mm-dd)": "2025-01-15",
+        "หมายเหตุ": "",
+      },
+      {
+        "รหัสเครื่องมือ*": "TL-0002",
+        "ชื่อเครื่องมือ*": "ประแจเลื่อน 10 นิ้ว",
+        "หมวดหมู่": "เครื่องมือมือ",
+        "ฝ่าย": "ฝ่ายซ่อมบำรุง",
+        "บริษัท": "",
+        "ยี่ห้อ": "STANLEY",
+        "หน่วย*": "ชิ้น",
+        "จำนวน*": 5,
+        "Serial Number": "",
+        "ราคาต่อชิ้น (บาท)": 350,
+        "ระยะเวลา PM (วัน)*": 90,
+        "เป็นทรัพย์สิน": "ไม่ใช่",
+        "เลขที่ทรัพย์สิน": "",
+        "ผู้รับผิดชอบ": "",
+        "ประจำตัวช่าง": "ไม่ใช่",
+        "มีประกัน": "ไม่ใช่",
+        "วันหมดประกัน (yyyy-mm-dd)": "",
+        "วันหมดอายุ (yyyy-mm-dd)": "",
+        "วันที่นำเข้าคลัง (yyyy-mm-dd)": "2025-03-01",
+        "หมายเหตุ": "ซื้อมาชุดเดียวกัน",
       },
     ];
 
     const ws = XLSX.utils.json_to_sheet(templateData);
+
+    // Set column widths
+    ws["!cols"] = [
+      { wch: 18 }, { wch: 28 }, { wch: 18 }, { wch: 18 }, { wch: 15 },
+      { wch: 15 }, { wch: 10 }, { wch: 10 }, { wch: 20 }, { wch: 18 },
+      { wch: 18 }, { wch: 14 }, { wch: 18 }, { wch: 18 }, { wch: 14 },
+      { wch: 12 }, { wch: 25 }, { wch: 25 }, { wch: 25 }, { wch: 20 },
+    ];
+
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Tools");
+    XLSX.utils.book_append_sheet(wb, ws, "เครื่องมือ");
 
-    ws["!cols"] = Array(19).fill({ wch: 22 });
+    // Add instruction sheet
+    const instructions = [
+      ["คำอธิบายการกรอกข้อมูล"],
+      [""],
+      ["คอลัมน์", "คำอธิบาย", "จำเป็น"],
+      ["รหัสเครื่องมือ*", "รหัสที่ใช้ในระบบ เช่น TL-0001 (ห้ามซ้ำกัน ถ้าซ้ำจะอัปเดตข้อมูลเดิม)", "ใช่"],
+      ["ชื่อเครื่องมือ*", "ชื่อเครื่องมือ", "ใช่"],
+      ["หมวดหมู่", "ชื่อหมวดหมู่ ถ้าไม่มีในระบบจะข้ามการผูกข้อมูล", "ไม่"],
+      ["ฝ่าย", "ชื่อฝ่ายที่ดูแล", "ไม่"],
+      ["บริษัท", "ชื่อบริษัทเจ้าของ (ต้องตรงกับข้อมูลในระบบ)", "ไม่"],
+      ["ยี่ห้อ", "ยี่ห้อเครื่องมือ", "ไม่"],
+      ["หน่วย*", "หน่วยนับ เช่น ชิ้น, อัน, ตัว", "ใช่"],
+      ["จำนวน*", "จำนวนที่มี", "ใช่"],
+      ["Serial Number", "หมายเลขซีเรียล", "ไม่"],
+      ["ราคาต่อชิ้น (บาท)", "ราคาต่อหน่วย", "ไม่"],
+      ["ระยะเวลา PM (วัน)*", "15, 30, 60, 90, 180 หรือ 365", "ใช่"],
+      ["เป็นทรัพย์สิน", "ใช่ / ไม่ใช่", "ไม่"],
+      ["เลขที่ทรัพย์สิน", "กรอกเมื่อเป็นทรัพย์สิน", "ไม่"],
+      ["ผู้รับผิดชอบ", "ชื่อผู้ดูแลเครื่องมือ", "ไม่"],
+      ["ประจำตัวช่าง", "ใช่ / ไม่ใช่", "ไม่"],
+      ["มีประกัน", "ใช่ / ไม่ใช่", "ไม่"],
+      ["วันหมดประกัน", "รูปแบบ yyyy-mm-dd เช่น 2026-12-31", "ไม่"],
+      ["วันหมดอายุ", "รูปแบบ yyyy-mm-dd", "ไม่"],
+      ["วันที่นำเข้าคลัง", "รูปแบบ yyyy-mm-dd (ถ้าไม่กรอกจะใช้วันที่นำเข้า)", "ไม่"],
+      ["หมายเหตุ", "หมายเหตุเพิ่มเติม", "ไม่"],
+      [""],
+      ["หมายเหตุ:"],
+      ["- คอลัมน์ที่มี * คือต้องกรอก"],
+      ["- ถ้ารหัสเครื่องมือซ้ำกับที่มีในระบบแล้ว ข้อมูลจะถูกอัปเดต"],
+      ["- ค่า '-', '#N/A', 'N/A' จะถูกเปลี่ยนเป็นค่าว่าง"],
+    ];
 
-    XLSX.writeFile(wb, "tool_import_template.xlsx");
+    const wsInst = XLSX.utils.aoa_to_sheet(instructions);
+    wsInst["!cols"] = [{ wch: 25 }, { wch: 55 }, { wch: 10 }];
+    XLSX.utils.book_append_sheet(wb, wsInst, "คำอธิบาย");
+
+    XLSX.writeFile(wb, "template_นำเข้าเครื่องมือ.xlsx");
     toast.success("ดาวน์โหลด Template สำเร็จ");
   };
 
@@ -105,6 +174,7 @@ export function ToolImport({ onSuccess }: ToolImportProps) {
 
     setLoading(true);
     setImportResult(null);
+    setProgress(0);
 
     try {
       const data = await file.arrayBuffer();
@@ -115,17 +185,31 @@ export function ToolImport({ onSuccess }: ToolImportProps) {
 
       if (jsonData.length === 0) {
         toast.error("ไฟล์ไม่มีข้อมูล");
+        setLoading(false);
         return;
       }
 
       const { data: userData } = await supabase.auth.getUser();
+
+      // Pre-fetch categories and companies for mapping
+      const [catRes, compRes] = await Promise.all([
+        supabase.from("tool_categories").select("id, name").eq("is_active", true),
+        supabase.from("companies").select("id, name").eq("is_active", true),
+      ]);
+      const catMap = new Map((catRes.data || []).map(c => [c.name.toLowerCase(), c.id]));
+      const compMap = new Map((compRes.data || []).map(c => [c.name.toLowerCase(), c.id]));
+
       let successCount = 0;
       let failedCount = 0;
       const errors: string[] = [];
+      const total = jsonData.length;
 
-      // Detect format: check if first row has simplified columns
+      // Detect format
       const firstRow = jsonData[0] as Record<string, any>;
       const isSimplifiedFormat = !!(firstRow["ประเภทเครื่องมือ"] || firstRow["รายการเครื่องมือ"] || firstRow["ความถี่ PM"]);
+      const isNewTemplate = !!(firstRow["รหัสเครื่องมือ*"] || firstRow["ชื่อเครื่องมือ*"]);
+
+      const BATCH_SIZE = 20;
 
       for (let i = 0; i < jsonData.length; i++) {
         const row = jsonData[i] as Record<string, any>;
@@ -134,8 +218,7 @@ export function ToolImport({ onSuccess }: ToolImportProps) {
         let code: string;
         let name: string;
         let unit: string;
-        let initialQty: number;
-        let currentQty: number;
+        let quantity: number;
         let pmDays: number;
         let department: string | undefined;
         let description: string | undefined;
@@ -150,54 +233,70 @@ export function ToolImport({ onSuccess }: ToolImportProps) {
         let assetCode: string | undefined;
         let responsiblePerson: string | undefined;
         let isPersonalTool: boolean;
+        let categoryName: string | undefined;
+        let companyName: string | undefined;
+        let warehouseEntryDate: string | undefined;
 
         if (isSimplifiedFormat) {
-          // Simplified 4-column format
           name = cleanValue(row["รายการเครื่องมือ"] || row["ชื่อเครื่องมือ"]) || "";
-          if (!name) {
-            errors.push(`แถวที่ ${rowNum}: ต้องระบุชื่อเครื่องมือ`);
-            failedCount++;
-            continue;
-          }
+          if (!name) { errors.push(`แถวที่ ${rowNum}: ต้องระบุชื่อเครื่องมือ`); failedCount++; continue; }
           code = `IMPORT-${rowNum}`;
           unit = "ชิ้น";
-          initialQty = 1;
-          currentQty = 1;
+          quantity = 1;
           pmDays = parsePMInterval(row["ความถี่ PM"] || row["ความถี่PM"] || 30);
           department = cleanValue(row["ฝ่าย"] || row["Department"]);
           description = cleanValue(row["ประเภทเครื่องมือ"]);
-          brand = undefined;
-          serialNumber = undefined;
-          unitPrice = undefined;
-          hasWarranty = false;
-          warrantyExpiryDate = undefined;
-          expiryDate = undefined;
-          notes = undefined;
-          isAsset = false;
-          assetCode = undefined;
-          responsiblePerson = undefined;
-          isPersonalTool = false;
+          brand = undefined; serialNumber = undefined; unitPrice = undefined;
+          hasWarranty = false; warrantyExpiryDate = undefined; expiryDate = undefined;
+          notes = undefined; isAsset = false; assetCode = undefined;
+          responsiblePerson = undefined; isPersonalTool = false;
+          categoryName = undefined; companyName = undefined; warehouseEntryDate = undefined;
+        } else if (isNewTemplate) {
+          const rawCode = row["รหัสเครื่องมือ*"];
+          const rawName = row["ชื่อเครื่องมือ*"];
+          const rawUnit = row["หน่วย*"];
+          const rawQty = row["จำนวน*"];
+          const rawPm = row["ระยะเวลา PM (วัน)*"];
+
+          if (!rawCode || !rawName) {
+            errors.push(`แถวที่ ${rowNum}: ต้องระบุ รหัส และชื่อเครื่องมือ`);
+            failedCount++; continue;
+          }
+          code = String(rawCode).trim();
+          name = String(rawName).trim();
+          unit = cleanValue(rawUnit) || "ชิ้น";
+          quantity = Number(rawQty) || 1;
+          pmDays = parsePMInterval(rawPm || 30);
+          categoryName = cleanValue(row["หมวดหมู่"]);
+          department = cleanValue(row["ฝ่าย"]);
+          companyName = cleanValue(row["บริษัท"]);
+          brand = cleanValue(row["ยี่ห้อ"]);
+          serialNumber = cleanValue(row["Serial Number"]);
+          unitPrice = row["ราคาต่อชิ้น (บาท)"] != null ? Number(row["ราคาต่อชิ้น (บาท)"]) : undefined;
+          isAsset = parseBoolean(row["เป็นทรัพย์สิน"]);
+          assetCode = cleanValue(row["เลขที่ทรัพย์สิน"]);
+          responsiblePerson = cleanValue(row["ผู้รับผิดชอบ"]);
+          isPersonalTool = parseBoolean(row["ประจำตัวช่าง"]);
+          hasWarranty = parseBoolean(row["มีประกัน"]);
+          warrantyExpiryDate = parseDate(row["วันหมดประกัน (yyyy-mm-dd)"]);
+          expiryDate = parseDate(row["วันหมดอายุ (yyyy-mm-dd)"]);
+          warehouseEntryDate = parseDate(row["วันที่นำเข้าคลัง (yyyy-mm-dd)"]);
+          notes = cleanValue(row["หมายเหตุ"]);
+          description = undefined;
         } else {
-          // Full format
+          // Old format fallback
           const rawCode = row["รหัสเครื่องมือ (code)*"] || row["code"];
           const rawName = row["ชื่อเครื่องมือ (name)*"] || row["name"];
           const rawUnit = row["หน่วย (unit)*"] || row["unit"];
-          const rawInitQty = row["จำนวนเริ่มต้น (initial_quantity)*"] ?? row["initial_quantity"];
-          const rawCurQty = row["จำนวนปัจจุบัน (current_quantity)*"] ?? row["current_quantity"];
-          const rawPmDays = row["ระยะเวลา PM (วัน) (pm_interval_days)*"] ?? row["pm_interval_days"];
+          const rawQty = row["จำนวนเริ่มต้น (initial_quantity)*"] ?? row["initial_quantity"] ?? row["จำนวนปัจจุบัน (current_quantity)*"] ?? row["current_quantity"];
+          const rawPm = row["ระยะเวลา PM (วัน) (pm_interval_days)*"] ?? row["pm_interval_days"];
 
-          if (!rawCode || !rawName || !rawUnit || rawInitQty === undefined || rawCurQty === undefined || rawPmDays === undefined) {
-            errors.push(`แถวที่ ${rowNum}: ต้องระบุ รหัส, ชื่อ, หน่วย, จำนวนเริ่มต้น, จำนวนปัจจุบัน และระยะเวลา PM`);
-            failedCount++;
-            continue;
-          }
-
+          if (!rawCode || !rawName) { errors.push(`แถวที่ ${rowNum}: ต้องระบุ รหัส และชื่อ`); failedCount++; continue; }
           code = String(rawCode).trim();
           name = String(rawName).trim();
-          unit = String(rawUnit).trim();
-          initialQty = Number(rawInitQty) || 0;
-          currentQty = Number(rawCurQty) || 0;
-          pmDays = parsePMInterval(rawPmDays);
+          unit = String(rawUnit || "ชิ้น").trim();
+          quantity = Number(rawQty) || 1;
+          pmDays = parsePMInterval(rawPm || 30);
           department = cleanValue(row["ฝ่าย (department)"] || row["department"]);
           description = cleanValue(row["รายละเอียด (description)"] || row["description"]);
           brand = cleanValue(row["ยี่ห้อ (brand)"] || row["brand"]);
@@ -211,7 +310,12 @@ export function ToolImport({ onSuccess }: ToolImportProps) {
           assetCode = cleanValue(row["เลขที่ทรัพย์สิน (asset_code)"] || row["asset_code"]);
           responsiblePerson = cleanValue(row["ผู้รับผิดชอบ (responsible_person)"] || row["responsible_person"]);
           isPersonalTool = parseBoolean(row["เครื่องมือประจำตัวช่าง (is_personal_tool)"] ?? row["is_personal_tool"]);
+          categoryName = undefined; companyName = undefined; warehouseEntryDate = undefined;
         }
+
+        // Map category & company
+        const toolCategoryId = categoryName ? catMap.get(categoryName.toLowerCase()) || null : null;
+        const companyId = companyName ? compMap.get(companyName.toLowerCase()) || null : null;
 
         const toolData = {
           code,
@@ -220,8 +324,8 @@ export function ToolImport({ onSuccess }: ToolImportProps) {
           department: department || null,
           brand: brand || null,
           unit,
-          initial_quantity: initialQty,
-          current_quantity: currentQty,
+          initial_quantity: quantity,
+          current_quantity: quantity,
           serial_number: serialNumber || null,
           unit_price: unitPrice != null ? Number(unitPrice) : 0,
           pm_interval_days: pmDays,
@@ -233,6 +337,9 @@ export function ToolImport({ onSuccess }: ToolImportProps) {
           asset_code: isAsset ? assetCode || null : null,
           responsible_person: responsiblePerson || null,
           is_personal_tool: isPersonalTool,
+          tool_category_id: toolCategoryId,
+          company_id: companyId,
+          warehouse_entry_date: warehouseEntryDate || new Date().toISOString().split("T")[0],
         };
 
         const { data: existing } = await supabase
@@ -250,15 +357,20 @@ export function ToolImport({ onSuccess }: ToolImportProps) {
         } else {
           const { error } = await supabase.from("tools").insert({
             ...toolData,
-            warehouse_entry_date: new Date().toISOString().split("T")[0],
             created_by: userData?.user?.id,
           });
           if (error) { errors.push(`แถวที่ ${rowNum}: ${error.message}`); failedCount++; } else { successCount++; }
         }
+
+        // Update progress
+        if (i % BATCH_SIZE === 0 || i === jsonData.length - 1) {
+          setProgress(Math.round(((i + 1) / total) * 100));
+          await new Promise(r => setTimeout(r, 0)); // yield to UI thread
+        }
       }
 
-      setImportResult({ success: successCount, failed: failedCount, errors });
-      if (successCount > 0) { toast.success(`นำเข้าข้อมูลสำเร็จ ${successCount} รายการ`); onSuccess(); }
+      setImportResult({ success: successCount, failed: failedCount, total, errors });
+      if (successCount > 0) { toast.success(`นำเข้าข้อมูลสำเร็จ ${successCount}/${total} รายการ`); onSuccess(); }
       if (failedCount > 0) { toast.error(`นำเข้าไม่สำเร็จ ${failedCount} รายการ`); }
     } catch (error: any) {
       toast.error("เกิดข้อผิดพลาดในการอ่านไฟล์: " + error.message);
@@ -273,9 +385,12 @@ export function ToolImport({ onSuccess }: ToolImportProps) {
       <DialogTrigger asChild>
         <Button variant="outline"><Upload className="h-4 w-4 mr-2" />Import Excel</Button>
       </DialogTrigger>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-lg max-w-[95vw] sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>นำเข้าข้อมูลเครื่องมือ</DialogTitle>
+          <DialogTitle className="flex items-center gap-2">
+            <FileSpreadsheet className="h-5 w-5" />
+            นำเข้าข้อมูลเครื่องมือ
+          </DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4">
@@ -285,36 +400,43 @@ export function ToolImport({ onSuccess }: ToolImportProps) {
               ขั้นตอนการนำเข้า
             </h4>
             <ol className="text-sm text-muted-foreground space-y-1 list-decimal list-inside">
-              <li>ดาวน์โหลด Template Excel</li>
-              <li>กรอกข้อมูลตาม Template (ห้ามเปลี่ยนชื่อหัวคอลัมน์)</li>
-              <li>บันทึกไฟล์เป็น .xlsx หรือ .csv</li>
+              <li>ดาวน์โหลด Template Excel ด้านล่าง</li>
+              <li>กรอกข้อมูลตาม Template (ดูแท็บ "คำอธิบาย" ในไฟล์)</li>
+              <li>บันทึกไฟล์เป็น .xlsx</li>
               <li>อัปโหลดไฟล์เพื่อนำเข้าข้อมูล</li>
             </ol>
-            <p className="text-xs text-muted-foreground mt-2">
-              💡 รองรับ 2 รูปแบบ: แบบเต็ม (Template) และแบบย่อ (ฝ่าย, ประเภท, ชื่อ, ความถี่ PM)
+            <p className="text-xs text-muted-foreground">
+              💡 ถ้ารหัสเครื่องมือซ้ำกับที่มีในระบบ จะอัปเดตข้อมูลเดิมให้อัตโนมัติ
             </p>
           </div>
 
-          <Button onClick={downloadTemplate} variant="secondary" className="w-full">
-            <Download className="h-4 w-4 mr-2" />
+          <Button onClick={downloadTemplate} variant="secondary" className="w-full gap-2">
+            <Download className="h-4 w-4" />
             ดาวน์โหลด Template Excel
           </Button>
 
           <div className="border-t pt-4">
             <label className="block">
-              <span className="text-sm font-medium">อัปโหลดไฟล์ Excel/CSV</span>
+              <span className="text-sm font-medium">อัปโหลดไฟล์ Excel</span>
               <Input ref={fileInputRef} type="file" accept=".xlsx,.xls,.csv" onChange={handleFileUpload} disabled={loading} className="mt-2" />
             </label>
           </div>
 
-          {loading && <div className="text-center py-4 text-muted-foreground">กำลังนำเข้าข้อมูล...</div>}
+          {loading && (
+            <div className="space-y-2">
+              <p className="text-sm text-muted-foreground text-center">กำลังนำเข้าข้อมูล... {progress}%</p>
+              <Progress value={progress} className="h-2" />
+            </div>
+          )}
 
           {importResult && (
             <div className="space-y-3">
               {importResult.success > 0 && (
-                <Alert className="bg-green-50 border-green-200">
-                  <CheckCircle2 className="h-4 w-4 text-green-600" />
-                  <AlertDescription className="text-green-800">นำเข้าสำเร็จ {importResult.success} รายการ</AlertDescription>
+                <Alert className="border-success/30 bg-success/5">
+                  <CheckCircle2 className="h-4 w-4 text-success" />
+                  <AlertDescription className="text-success">
+                    นำเข้าสำเร็จ {importResult.success}/{importResult.total} รายการ
+                  </AlertDescription>
                 </Alert>
               )}
               {importResult.failed > 0 && (
