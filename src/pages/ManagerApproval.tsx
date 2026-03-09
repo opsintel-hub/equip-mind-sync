@@ -178,9 +178,18 @@ const ManagerApproval = () => {
     return data.filter((req: any) => {
       if (searchTerm) {
         const term = searchTerm.toLowerCase();
-        if (!req.document_no?.toLowerCase().includes(term) &&
-            !req.requester_name?.toLowerCase().includes(term) &&
-            !req.equipment_name?.toLowerCase().includes(term)) return false;
+        const matchDirect = req.document_no?.toLowerCase().includes(term) ||
+            req.requester_name?.toLowerCase().includes(term) ||
+            req.equipment_name?.toLowerCase().includes(term) ||
+            req.equipment_code?.toLowerCase().includes(term);
+        // Also search in items' serial_number
+        const items = getItemsForRequest(req.id);
+        const matchItems = items.some((item: any) => 
+          item.serial_number?.toLowerCase().includes(term) ||
+          item.equipment_code?.toLowerCase().includes(term) ||
+          item.equipment_name?.toLowerCase().includes(term)
+        );
+        if (!matchDirect && !matchItems) return false;
       }
       if (departmentFilter.length > 0 && !departmentFilter.includes(req.requester_department)) return false;
       if (companyFilter !== "all" && req.company_id !== companyFilter) return false;
