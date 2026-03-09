@@ -886,9 +886,9 @@ const UserManual = () => {
         <div className="space-y-4">
           {[
             { title: "13.1 รายงานสินค้าคงคลัง", desc: "แสดงรายการทั้งหมด กรองตามฝ่าย/หมวด/สถานะ/สถานที่ ค้นหาจาก S/N ได้ Export Excel" },
-            { title: "13.2 ค้นหาเอกสาร", desc: "ค้นหาเอกสารทุกประเภท (PD/GI/DS/DC/DR) ตามเลขเอกสาร, ชื่อ, S/N, ช่วงวันที่ ดูรายละเอียดในเอกสาร" },
+            { title: "13.2 ค้นหาเอกสาร + ติดตามความคืบหน้า", desc: "ค้นหาเอกสารทุกประเภท (PD/GI/DS/DC/DR) ตามเลขเอกสาร, ชื่อ, S/N, ช่วงวันที่ — แสดง Process Tracker แบบ Visual สำหรับเอกสารเบิก (4 ขั้นตอน: ส่งคำขอ→อนุมัติ→จ่ายสินค้า→ยืนยันรับ), Direct Shipping (4 ขั้นตอน: สร้างคำขอ→อนุมัติ→จัดซื้อส่งของ→ผู้รับยืนยัน) และรับเข้าคลัง (3 ขั้นตอน: สร้างเอกสาร→ตรวจรับ→เข้าคลัง) พร้อมแสดงวันที่จริงและสถานะปัจจุบัน (กำลังดำเนินการ, ปฏิเสธ, รอสินค้า)" },
             { title: "13.3 Stock Movement Log", desc: "ประวัติความเคลื่อนไหวสต็อก 7 ประเภท Master-Detail จัดกลุ่มตามเอกสาร กรองขั้นสูง Export PDF/Excel" },
-            { title: "13.4 Stock Card (บัตรสต็อก)", desc: "ติดตามประวัติชีวิตรายชิ้น — S/N: Granular + Billboard Journey / ไม่มี S/N: Aggregate Export Excel/PDF" },
+            { title: "13.4 Stock Card (บัตรสต็อก) + Lifecycle Tracker", desc: "ติดตามประวัติชีวิตรายชิ้น — แสดง Process Tracker สรุปวงจรชีวิตสินค้า: สินค้ามี S/N แสดง 4 ขั้นตอน (รับเข้าคลัง→จัดเก็บ→ติดตั้งป้าย→ถอด/คืนคลัง) สินค้าไม่มี S/N แสดง 3 ขั้นตอน (รับเข้าคลัง→จัดเก็บ→เบิกจ่าย) พร้อมวันที่จริงจากข้อมูลระบบ + Billboard Journey + Export Excel/PDF" },
             { title: "13.5 Dead Stock", desc: "สินค้าไม่มีเคลื่อนไหวเกินกำหนด กรองตามฝ่าย/หมวดหมู่" },
             { title: "13.6 รายงานเบิกตามป้าย", desc: "สรุปอุปกรณ์ที่เบิกไปติดตั้งแต่ละป้าย กรองตามป้าย/ช่วงเวลา/ฝ่าย" },
             { title: "13.7 ใบขอซื้อ (PR)", desc: "สร้าง PR อัตโนมัติเมื่อสต็อกต่ำกว่า Min Stock แสดงสถานะและจำนวนแนะนำ" },
@@ -901,6 +901,33 @@ const UserManual = () => {
               <p className="text-xs text-muted-foreground mt-1">{item.desc}</p>
             </div>
           ))}
+
+          <Separator />
+          <h4 className="font-semibold text-sm">Process Tracker — ระบบติดตามความคืบหน้าแบบ Visual</h4>
+          <p className="text-xs text-muted-foreground">
+            ระบบแสดงสถานะแต่ละขั้นตอนด้วยไอคอนวงกลมและเส้นเชื่อม โดยมีสีตามสถานะ:
+          </p>
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
+            {[
+              { color: "bg-primary", label: "เสร็จสิ้น", desc: "✓ เครื่องหมายถูก + วันที่" },
+              { color: "bg-blue-500", label: "กำลังดำเนินการ", desc: "🕐 กระพริบ" },
+              { color: "bg-muted", label: "รอดำเนินการ", desc: "○ วงกลมเปล่า" },
+              { color: "bg-destructive", label: "ปฏิเสธ/ยกเลิก", desc: "✗ กากบาทแดง" },
+              { color: "bg-orange-500", label: "มีปัญหา/เตือน", desc: "⚠ สามเหลี่ยมส้ม" },
+            ].map((item, i) => (
+              <div key={i} className="flex items-center gap-2 p-2 border rounded text-xs">
+                <div className={`w-3 h-3 rounded-full ${item.color} flex-shrink-0`} />
+                <div>
+                  <div className="font-medium">{item.label}</div>
+                  <div className="text-muted-foreground">{item.desc}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Process Tracker ใช้งานใน 4 จุดหลัก: <strong>ค้นหาเอกสาร</strong> (ทุกเอกสาร GI/DS/PD), <strong>Stock Card</strong> (วงจรชีวิตสินค้า), 
+            <strong>ประวัติเบิกจ่าย</strong> (GoodsIssue) และ <strong>การยืมอุปกรณ์</strong> (EquipmentLoans) — ข้อมูลทั้งหมดดึงจากฐานข้อมูลจริงแบบเรียลไทม์
+          </p>
         </div>
       ),
     },
