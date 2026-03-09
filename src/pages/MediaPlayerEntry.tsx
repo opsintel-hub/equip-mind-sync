@@ -906,6 +906,14 @@ const MediaPlayerEntry = () => {
                                   <Button
                                     variant="ghost"
                                     size="sm"
+                                    onClick={() => navigate(`/media-player/${player.id}`)}
+                                    title="ดูรายละเอียด"
+                                  >
+                                    <Eye className="w-4 h-4 text-primary" />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
                                     onClick={() => setImageUploadPlayer(player)}
                                     title="Upload ภาพ"
                                   >
