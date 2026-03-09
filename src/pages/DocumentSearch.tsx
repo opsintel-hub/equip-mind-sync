@@ -15,6 +15,7 @@ import { toast } from "sonner";
 import { format } from "date-fns";
 import { th } from "date-fns/locale";
 import { DatePickerWithRange } from "@/components/ui/date-range-picker";
+import { ProcessTracker, ProcessStep } from "@/components/ProcessTracker";
 
 interface DocumentRecord {
   id: string;
@@ -30,6 +31,113 @@ interface DocumentRecord {
   created_at: string;
   status: string;
   source: "pending" | "received" | "issue" | "delivery_confirm" | "direct_shipping";
+  // Extended fields for ProcessTracker
+  raw?: any;
+}
+
+function getDocumentProcessSteps(doc: DocumentRecord): ProcessStep[] | null {
+  const raw = doc.raw;
+  if (!raw) return null;
+
+  if (doc.source === "issue") {
+    const status = doc.status;
+    const hasApproval = status === "pending_approval" || raw.approval_status === "pending" || raw.approved_at;
+
+    const steps: ProcessStep[] = [
+      { label: "ส่งคำขอ", status: "done", date: raw.created_at },
+    ];
+
+    if (hasApproval || status === "pending_approval") {
+      if (status === "rejected") {
+        steps.push({ label: "อนุมัติ", status: "rejected", sublabel: "ไม่อนุมัติ" });
+      } else if (raw.approved_at || status === "issued" || status === "approved") {
+        steps.push({ label: "อนุมัติ", status: "done", date: raw.approved_at });
+      } else {
+        steps.push({ label: "รออนุมัติ", status: "current" });
+      }
+    }
+
+    if (status === "rejected") {
+      steps.push({ label: "จ่ายสินค้า", status: "pending" });
+    } else if (status === "issued") {
+      steps.push({ label: "จ่ายสินค้า", status: "done", date: raw.issued_at });
+    } else if (status === "waiting_stock") {
+      steps.push({ label: "รอสินค้า", status: "warning" });
+    } else if (status === "approved" || (status === "pending" && !hasApproval)) {
+      steps.push({ label: "จ่ายสินค้า", status: "current" });
+    } else {
+      steps.push({ label: "จ่ายสินค้า", status: "pending" });
+    }
+
+    if (status === "issued") {
+      steps.push({ label: "ยืนยันรับ", status: raw.confirmed_at ? "done" : "current", date: raw.confirmed_at });
+    } else {
+      steps.push({ label: "ยืนยันรับ", status: "pending" });
+    }
+
+    return steps;
+  }
+
+  if (doc.source === "direct_shipping") {
+    const status = doc.status;
+    const steps: ProcessStep[] = [
+      { label: "สร้างคำขอ", status: "done", date: raw.created_at },
+    ];
+
+    if (status === "rejected") {
+      steps.push({ label: "อนุมัติ", status: "rejected", sublabel: "ไม่อนุมัติ" });
+    } else if (status === "cancelled") {
+      steps.push({ label: "ยกเลิก", status: "rejected", date: raw.cancelled_at });
+    } else if (["approved", "pending_confirmation", "confirmed", "issue_reported"].includes(status)) {
+      steps.push({ label: "อนุมัติ", status: "done", date: raw.approved_at });
+    } else {
+      steps.push({ label: "รออนุมัติ", status: "current" });
+    }
+
+    if (status === "rejected" || status === "cancelled") {
+      steps.push({ label: "จัดซื้อ-ส่งของ", status: "pending" });
+    } else if (["pending_confirmation", "confirmed", "issue_reported"].includes(status)) {
+      steps.push({ label: "จัดซื้อ-ส่งของ", status: "done", date: raw.processed_at || raw.shipping_date });
+    } else if (status === "approved") {
+      steps.push({ label: "จัดซื้อ-ส่งของ", status: "current" });
+    } else {
+      steps.push({ label: "จัดซื้อ-ส่งของ", status: "pending" });
+    }
+
+    if (status === "confirmed") {
+      steps.push({ label: "ผู้รับยืนยัน", status: "done", date: raw.confirmed_at });
+    } else if (status === "issue_reported") {
+      steps.push({ label: "มีปัญหา", status: "warning" });
+    } else if (status === "pending_confirmation") {
+      steps.push({ label: "ผู้รับยืนยัน", status: "current" });
+    } else {
+      steps.push({ label: "ผู้รับยืนยัน", status: "pending" });
+    }
+
+    return steps;
+  }
+
+  // Goods receipt flow (pending/received)
+  if (doc.source === "pending" || doc.source === "received") {
+    const steps: ProcessStep[] = [
+      { label: "สร้างเอกสาร", status: "done", date: raw.created_at },
+    ];
+
+    if (doc.source === "received" || doc.status === "received") {
+      steps.push({ label: "ตรวจรับ", status: "done", date: raw.received_at || raw.created_at });
+      steps.push({ label: "เข้าคลัง", status: "done" });
+    } else if (doc.status === "rejected") {
+      steps.push({ label: "ตรวจรับ", status: "rejected", sublabel: "ปฏิเสธ" });
+      steps.push({ label: "เข้าคลัง", status: "pending" });
+    } else {
+      steps.push({ label: "รอตรวจรับ", status: "current" });
+      steps.push({ label: "เข้าคลัง", status: "pending" });
+    }
+
+    return steps;
+  }
+
+  return null;
 }
 
 export default function DocumentSearch() {
@@ -53,14 +161,21 @@ export default function DocumentSearch() {
       const { data: receiptData } = await supabase
         .from("goods_receipt").select("*, equipment:equipment_id(code, name)").not("document_url", "is", null).order("created_at", { ascending: false });
 
-      // Fetch from goods_issue_pending (issue documents)
+      // Fetch from goods_issue_pending (with extended fields for tracker)
       const { data: issueData } = await supabase
-        .from("goods_issue_pending").select("id, document_no, created_at, status, equipment_name, equipment_code, requester_name, requester_department")
+        .from("goods_issue_pending")
+        .select("id, document_no, created_at, status, equipment_name, equipment_code, requester_name, requester_department, approval_status, approved_at, issued_at, pickup_type, serial_number")
         .order("created_at", { ascending: false }).limit(500);
 
       // Fetch from delivery_confirmations
       const { data: dcData } = await supabase
         .from("delivery_confirmations").select("*").order("created_at", { ascending: false });
+
+      // Fetch from direct_shipments (with extended fields for tracker)
+      const { data: dsData } = await supabase
+        .from("direct_shipments")
+        .select("*, direct_shipment_items(equipment_code, equipment_name, serial_number, quantity, unit)")
+        .order("created_at", { ascending: false });
 
       const pendingDocs: DocumentRecord[] = (pendingData || []).map((item: any) => ({
         id: item.id, document_no: item.document_no, document_url: item.document_url,
@@ -68,7 +183,7 @@ export default function DocumentSearch() {
         serial_number: item.serial_number || null,
         supplier_name: item.supplier_name, delivery_person_name: item.delivery_person_name,
         quantity: item.quantity, unit: item.unit, created_at: item.created_at,
-        status: item.status, source: "pending" as const,
+        status: item.status, source: "pending" as const, raw: item,
       }));
 
       const receiptDocs: DocumentRecord[] = (receiptData || []).map((item: any) => ({
@@ -77,16 +192,16 @@ export default function DocumentSearch() {
         serial_number: null,
         supplier_name: item.supplier, delivery_person_name: null,
         quantity: item.quantity, unit: "ชิ้น", created_at: item.created_at,
-        status: item.status, source: "received" as const,
+        status: item.status, source: "received" as const, raw: item,
       }));
 
       const issueDocs: DocumentRecord[] = (issueData || []).map((item: any) => ({
         id: item.id, document_no: item.document_no, document_url: null,
         equipment_code: item.equipment_code, equipment_name: item.equipment_name,
-        serial_number: null,
+        serial_number: item.serial_number || null,
         supplier_name: null, delivery_person_name: item.requester_name,
         quantity: 0, unit: "-", created_at: item.created_at,
-        status: item.status, source: "issue" as const,
+        status: item.status, source: "issue" as const, raw: item,
       }));
 
       const dcDocs: DocumentRecord[] = (dcData || []).map((item: any) => ({
@@ -95,13 +210,8 @@ export default function DocumentSearch() {
         serial_number: null,
         supplier_name: null, delivery_person_name: null,
         quantity: 0, unit: "-", created_at: item.created_at,
-        status: item.status, source: "delivery_confirm" as const,
+        status: item.status, source: "delivery_confirm" as const, raw: item,
       }));
-
-      // Fetch from direct_shipments
-      const { data: dsData } = await supabase
-        .from("direct_shipments").select("*, direct_shipment_items(equipment_code, equipment_name, serial_number, quantity, unit)")
-        .order("created_at", { ascending: false });
 
       const dsDocs: DocumentRecord[] = (dsData || []).map((item: any) => ({
         id: item.id, document_no: item.document_no, document_url: null,
@@ -112,7 +222,7 @@ export default function DocumentSearch() {
         quantity: item.direct_shipment_items?.reduce((sum: number, i: any) => sum + (i.quantity || 0), 0) || 0,
         unit: item.direct_shipment_items?.[0]?.unit || "-",
         created_at: item.created_at,
-        status: item.status, source: "direct_shipping" as const,
+        status: item.status, source: "direct_shipping" as const, raw: item,
       }));
 
       setDocuments([...pendingDocs, ...receiptDocs, ...issueDocs, ...dcDocs, ...dsDocs]);
@@ -127,10 +237,8 @@ export default function DocumentSearch() {
   useEffect(() => { fetchDocuments(); }, []);
 
   const filteredDocuments = documents.filter((doc) => {
-    // Source filter
     if (sourceFilter !== "all" && doc.source !== sourceFilter) return false;
 
-    // Date range filter
     if (dateRange?.from) {
       const d = new Date(doc.created_at);
       if (d < dateRange.from) return false;
@@ -152,54 +260,37 @@ export default function DocumentSearch() {
 
   const { paginatedData, currentPage, pageSize, totalPages, totalItems, handlePageChange, handlePageSizeChange } = useTablePagination(filteredDocuments);
 
-  const getStatusBadge = (status: string, source: string) => {
-    if (source === "received") return <Badge className="bg-green-100 text-green-800">รับเข้าคลังแล้ว</Badge>;
-    if (source === "issue") {
-      if (status === "issued") return <Badge className="bg-blue-100 text-blue-800">จ่ายแล้ว</Badge>;
-      if (status === "pending_approval") return <Badge className="bg-amber-100 text-amber-800">รออนุมัติ</Badge>;
-      return <Badge variant="secondary">{status}</Badge>;
-    }
-    if (source === "delivery_confirm") {
-      if (status === "confirmed") return <Badge className="bg-green-100 text-green-800">ยืนยันแล้ว</Badge>;
-      if (status === "issue_reported") return <Badge variant="destructive">แจ้งปัญหา</Badge>;
-      return <Badge variant="secondary">{status}</Badge>;
-    }
-    if (source === "direct_shipping") {
-      if (status === "pending_confirmation") return <Badge variant="secondary">รอยืนยัน</Badge>;
-      if (status === "confirmed") return <Badge className="bg-green-100 text-green-800">ยืนยันแล้ว</Badge>;
-      if (status === "cancelled") return <Badge variant="outline">ยกเลิก</Badge>;
-      return <Badge variant="secondary">{status}</Badge>;
-    }
-    switch (status) {
-      case "pending": return <Badge variant="secondary">รอรับเข้าคลัง</Badge>;
-      case "received": return <Badge className="bg-green-100 text-green-800">รับแล้ว</Badge>;
-      case "rejected": return <Badge variant="destructive">ปฏิเสธ</Badge>;
-      default: return <Badge variant="outline">{status}</Badge>;
-    }
-  };
-
   const getSourceBadge = (source: string) => {
     switch (source) {
       case "pending": return <Badge variant="outline">รอรับเข้าคลัง</Badge>;
-      case "received": return <Badge variant="outline" className="border-green-300 text-green-700">รับเข้าคลัง</Badge>;
-      case "issue": return <Badge variant="outline" className="border-blue-300 text-blue-700">เอกสารเบิก</Badge>;
-      case "delivery_confirm": return <Badge variant="outline" className="border-purple-300 text-purple-700">ยืนยันรับ</Badge>;
-      case "direct_shipping": return <Badge variant="outline" className="border-cyan-300 text-cyan-700">Direct Shipping</Badge>;
+      case "received": return <Badge variant="outline" className="border-green-300 text-green-700 dark:border-green-700 dark:text-green-400">รับเข้าคลัง</Badge>;
+      case "issue": return <Badge variant="outline" className="border-blue-300 text-blue-700 dark:border-blue-700 dark:text-blue-400">เอกสารเบิก</Badge>;
+      case "delivery_confirm": return <Badge variant="outline" className="border-purple-300 text-purple-700 dark:border-purple-700 dark:text-purple-400">ยืนยันรับ</Badge>;
+      case "direct_shipping": return <Badge variant="outline" className="border-cyan-300 text-cyan-700 dark:border-cyan-700 dark:text-cyan-400">Direct Shipping</Badge>;
       default: return <Badge variant="outline">{source}</Badge>;
     }
+  };
+
+  const getStatusBadgeFallback = (status: string, source: string) => {
+    if (source === "delivery_confirm") {
+      if (status === "confirmed") return <Badge className="bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-400">ยืนยันแล้ว</Badge>;
+      if (status === "issue_reported") return <Badge variant="destructive">แจ้งปัญหา</Badge>;
+      return <Badge variant="secondary">{status}</Badge>;
+    }
+    return <Badge variant="outline">{status}</Badge>;
   };
 
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold tracking-tight">ค้นหาเอกสาร</h1>
-        <p className="text-muted-foreground">ค้นหาเอกสารจากการรับสินค้า, เบิกสินค้า และยืนยันรับสินค้า</p>
+        <p className="text-muted-foreground">ค้นหาเอกสารจากการรับสินค้า, เบิกสินค้า และยืนยันรับสินค้า พร้อมติดตามความคืบหน้า</p>
       </div>
 
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2"><Search className="h-5 w-5" />ค้นหาเอกสาร</CardTitle>
-          <CardDescription>ค้นหาจากผู้จำหน่าย รหัสอุปกรณ์ หรือเลขที่เอกสาร</CardDescription>
+          <CardDescription>ค้นหาจากผู้จำหน่าย รหัสอุปกรณ์ เลขที่เอกสาร หรือ Serial Number</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
@@ -253,7 +344,7 @@ export default function DocumentSearch() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2"><FileText className="h-5 w-5" />รายการเอกสาร</CardTitle>
-          <CardDescription>พบ {filteredDocuments.length} รายการ</CardDescription>
+          <CardDescription>พบ {filteredDocuments.length} รายการ — แสดงความคืบหน้าแบบเรียลไทม์</CardDescription>
         </CardHeader>
         <CardContent>
           {loading ? (
@@ -269,36 +360,55 @@ export default function DocumentSearch() {
                   <TableRow>
                     <TableHead>เลขที่เอกสาร</TableHead>
                     <TableHead>ประเภท</TableHead>
-                    <TableHead>รหัสอุปกรณ์</TableHead>
-                    <TableHead>ชื่ออุปกรณ์</TableHead>
+                    <TableHead>รหัส/ชื่ออุปกรณ์</TableHead>
                     <TableHead>ผู้จำหน่าย/ผู้ขอ</TableHead>
                     <TableHead className="text-right">จำนวน</TableHead>
                     <TableHead>วันที่</TableHead>
-                    <TableHead>สถานะ</TableHead>
+                    <TableHead className="min-w-[260px]">ความคืบหน้า</TableHead>
                     <TableHead className="text-center">เอกสาร</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {paginatedData.map((doc) => (
-                    <TableRow key={`${doc.source}-${doc.id}`}>
-                      <TableCell className="font-medium">{doc.document_no}</TableCell>
-                      <TableCell>{getSourceBadge(doc.source)}</TableCell>
-                      <TableCell>{doc.equipment_code || "-"}</TableCell>
-                      <TableCell>{doc.equipment_name || "-"}</TableCell>
-                      <TableCell>{doc.supplier_name || doc.delivery_person_name || "-"}</TableCell>
-                      <TableCell className="text-right">{doc.quantity > 0 ? `${doc.quantity} ${doc.unit}` : "-"}</TableCell>
-                      <TableCell>{format(new Date(doc.created_at), "dd/MM/yyyy", { locale: th })}</TableCell>
-                      <TableCell>{getStatusBadge(doc.status, doc.source)}</TableCell>
-                      <TableCell className="text-center">
-                        {doc.document_url ? (
-                          <div className="flex gap-1 justify-center">
-                            <Button variant="ghost" size="sm" asChild><a href={doc.document_url} target="_blank" rel="noopener noreferrer"><ExternalLink className="h-4 w-4" /></a></Button>
-                            <Button variant="ghost" size="sm" asChild><a href={doc.document_url} download><Download className="h-4 w-4" /></a></Button>
-                          </div>
-                        ) : <span className="text-muted-foreground text-sm">-</span>}
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                  {paginatedData.map((doc) => {
+                    const trackerSteps = getDocumentProcessSteps(doc);
+                    return (
+                      <TableRow key={`${doc.source}-${doc.id}`}>
+                        <TableCell className="font-medium font-mono text-sm">{doc.document_no}</TableCell>
+                        <TableCell>{getSourceBadge(doc.source)}</TableCell>
+                        <TableCell>
+                          {doc.equipment_code || doc.equipment_name ? (
+                            <div>
+                              {doc.equipment_code && <div className="font-medium text-sm">{doc.equipment_code}</div>}
+                              {doc.equipment_name && <div className="text-xs text-muted-foreground truncate max-w-[180px]">{doc.equipment_name}</div>}
+                              {doc.serial_number && (
+                                <Badge variant="outline" className="font-mono text-[10px] mt-0.5 bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/30 dark:text-blue-400 dark:border-blue-800">
+                                  S/N: {doc.serial_number}
+                                </Badge>
+                              )}
+                            </div>
+                          ) : "-"}
+                        </TableCell>
+                        <TableCell className="text-sm">{doc.supplier_name || doc.delivery_person_name || "-"}</TableCell>
+                        <TableCell className="text-right text-sm">{doc.quantity > 0 ? `${doc.quantity} ${doc.unit}` : "-"}</TableCell>
+                        <TableCell className="text-sm">{format(new Date(doc.created_at), "dd/MM/yyyy", { locale: th })}</TableCell>
+                        <TableCell>
+                          {trackerSteps ? (
+                            <ProcessTracker steps={trackerSteps} size="sm" />
+                          ) : (
+                            getStatusBadgeFallback(doc.status, doc.source)
+                          )}
+                        </TableCell>
+                        <TableCell className="text-center">
+                          {doc.document_url ? (
+                            <div className="flex gap-1 justify-center">
+                              <Button variant="ghost" size="sm" asChild><a href={doc.document_url} target="_blank" rel="noopener noreferrer"><ExternalLink className="h-4 w-4" /></a></Button>
+                              <Button variant="ghost" size="sm" asChild><a href={doc.document_url} download><Download className="h-4 w-4" /></a></Button>
+                            </div>
+                          ) : <span className="text-muted-foreground text-sm">-</span>}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
               <TablePagination currentPage={currentPage} totalPages={totalPages} totalItems={totalItems} pageSize={pageSize} onPageChange={handlePageChange} onPageSizeChange={handlePageSizeChange} />
