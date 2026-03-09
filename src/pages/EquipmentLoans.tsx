@@ -373,8 +373,8 @@ const EquipmentLoans = () => {
                     <TableHead>วันยืม</TableHead>
                     <TableHead>กำหนดคืน</TableHead>
                     <TableHead>ผู้ขอ</TableHead>
-                    <TableHead>สถานะ</TableHead>
-                    <TableHead className="text-right">จัดการ</TableHead>
+                     <TableHead className="min-w-[220px]">ความคืบหน้า</TableHead>
+                     <TableHead className="text-right">จัดการ</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
