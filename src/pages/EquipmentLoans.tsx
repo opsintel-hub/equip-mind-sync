@@ -15,6 +15,7 @@ import { format } from "date-fns";
 import { th } from "date-fns/locale";
 import { LoanRequestForm } from "@/components/loan/LoanRequestForm";
 import { LoanReturnDialog } from "@/components/loan/LoanReturnDialog";
+import { ProcessTracker, getEquipmentLoanSteps } from "@/components/ProcessTracker";
 import { useTablePagination } from "@/hooks/useTablePagination";
 import { TablePagination } from "@/components/TablePagination";
 
