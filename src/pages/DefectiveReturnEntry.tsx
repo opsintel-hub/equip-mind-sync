@@ -142,7 +142,16 @@ const DefectiveReturnEntry = () => {
             item_condition: unitEntry.item_condition, reason: `S/N: ${unitEntry.serial_number} - ${unitEntry.reason}`,
             status: "pending_warehouse_entry", source_type: isFromBillboard ? "billboard" : "warehouse", created_by: user?.id,
           });
-          if (!error) successCount++;
+          if (!error) {
+            successCount++;
+            // Update equipment_serial_numbers status to defective
+            if (!isMediaPlayer && unitEntry.serial_number.trim()) {
+              await supabase.from("equipment_serial_numbers").update({ status: "defective" })
+                .eq("equipment_id", selectedItemId)
+                .eq("serial_number", unitEntry.serial_number.trim())
+                .eq("status", "in_stock");
+            }
+          }
         }
         if (isFromBillboard && !isMediaPlayer) {
           const be = detectedBillboards.find(b => b.id === selectedBillboardEquipmentId);
