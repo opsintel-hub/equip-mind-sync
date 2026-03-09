@@ -73,7 +73,9 @@ const WarehousePickupPlanning = () => {
       filtered = filtered.filter((r: any) =>
         r.document_no?.toLowerCase().includes(term) ||
         r.requester_name?.toLowerCase().includes(term) ||
-        r.equipment_name?.toLowerCase().includes(term)
+        r.equipment_name?.toLowerCase().includes(term) ||
+        r.equipment_code?.toLowerCase().includes(term) ||
+        r.serial_number?.toLowerCase().includes(term)
       );
     }
     if (dateRange?.from) {
@@ -183,7 +185,7 @@ const WarehousePickupPlanning = () => {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input placeholder="ค้นหาเลขที่เอกสาร, ชื่อสินค้า, ชื่อผู้เบิก..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-9" />
+              <Input placeholder="ค้นหาเลขที่เอกสาร, ชื่อสินค้า, S/N, ชื่อผู้เบิก..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-9" />
             </div>
             <Select value={pickupTypeFilter} onValueChange={setPickupTypeFilter}>
               <SelectTrigger><SelectValue placeholder="รูปแบบการรับ" /></SelectTrigger>

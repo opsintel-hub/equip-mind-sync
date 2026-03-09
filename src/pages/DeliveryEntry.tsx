@@ -918,7 +918,16 @@ const DeliveryEntry = () => {
         return <Badge variant="secondary">{status}</Badge>;
     }
   };
-  const filteredReceipts = pendingReceipts.filter(receipt => receipt.document_no.toLowerCase().includes(searchTerm.toLowerCase()) || receipt.equipment_name?.toLowerCase().includes(searchTerm.toLowerCase()) || receipt.delivery_person_name.toLowerCase().includes(searchTerm.toLowerCase()));
+  const filteredReceipts = pendingReceipts.filter(receipt => {
+    const term = searchTerm.toLowerCase();
+    if (!term) return true;
+    return receipt.document_no.toLowerCase().includes(term) ||
+      receipt.equipment_name?.toLowerCase().includes(term) ||
+      receipt.delivery_person_name.toLowerCase().includes(term) ||
+      receipt.equipment_code?.toLowerCase().includes(term) ||
+      (receipt as any).serial_number?.toLowerCase().includes(term) ||
+      (receipt as any).lot_number?.toLowerCase().includes(term);
+  });
   const {
     paginatedData: paginatedReceipts,
     currentPage: historyPage,
@@ -1901,7 +1910,7 @@ const DeliveryEntry = () => {
             </div>
             <div className="relative w-72">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input placeholder="ค้นหา..." className="pl-10" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
+              <Input placeholder="ค้นหาเลขที่เอกสาร, ชื่อสินค้า, S/N, ผู้ส่ง..." className="pl-10" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
             </div>
           </div>
         </CardHeader>

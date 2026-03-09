@@ -178,9 +178,18 @@ const ManagerApproval = () => {
     return data.filter((req: any) => {
       if (searchTerm) {
         const term = searchTerm.toLowerCase();
-        if (!req.document_no?.toLowerCase().includes(term) &&
-            !req.requester_name?.toLowerCase().includes(term) &&
-            !req.equipment_name?.toLowerCase().includes(term)) return false;
+        const matchDirect = req.document_no?.toLowerCase().includes(term) ||
+            req.requester_name?.toLowerCase().includes(term) ||
+            req.equipment_name?.toLowerCase().includes(term) ||
+            req.equipment_code?.toLowerCase().includes(term);
+        // Also search in items' serial_number
+        const items = getItemsForRequest(req.id);
+        const matchItems = items.some((item: any) => 
+          item.serial_number?.toLowerCase().includes(term) ||
+          item.equipment_code?.toLowerCase().includes(term) ||
+          item.equipment_name?.toLowerCase().includes(term)
+        );
+        if (!matchDirect && !matchItems) return false;
       }
       if (departmentFilter.length > 0 && !departmentFilter.includes(req.requester_department)) return false;
       if (companyFilter !== "all" && req.company_id !== companyFilter) return false;
@@ -319,7 +328,7 @@ const ManagerApproval = () => {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input placeholder="ค้นหาเลขที่เอกสาร, ชื่อสินค้า, ชื่อผู้เบิก..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-10" />
+              <Input placeholder="ค้นหาเลขที่เอกสาร, ชื่อสินค้า, S/N, ชื่อผู้เบิก..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-10" />
             </div>
             <DepartmentMultiFilter value={departmentFilter} onChange={setDepartmentFilter} />
             <Select value={companyFilter} onValueChange={setCompanyFilter}>
