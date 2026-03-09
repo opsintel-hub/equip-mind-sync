@@ -299,7 +299,9 @@ const GoodsIssue = () => {
                               {req.issued_quantity || 0}
                             </span>
                           </TableCell>
-                          <TableCell>{getStatusBadge(req.status)}</TableCell>
+                          <TableCell>
+                            <ProcessTracker steps={getGoodsIssueSteps(req)} size="sm" />
+                          </TableCell>
                         </TableRow>
 
                         {/* Expanded Items */}

@@ -424,7 +424,9 @@ const EquipmentLoans = () => {
                             <p className="text-sm text-muted-foreground">{loan.requester_phone}</p>
                           )}
                         </TableCell>
-                        <TableCell>{getStatusBadge(loan)}</TableCell>
+                        <TableCell>
+                          <ProcessTracker steps={getEquipmentLoanSteps(loan)} size="sm" />
+                        </TableCell>
                         <TableCell className="text-right">
                           <div className="flex items-center justify-end gap-2">
                             {loan.status === "pending" && (
