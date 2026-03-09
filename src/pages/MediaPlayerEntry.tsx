@@ -79,6 +79,7 @@ interface MediaPlayer {
 }
 
 const MediaPlayerEntry = () => {
+  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
   const [mediaPlayers, setMediaPlayers] = useState<MediaPlayer[]>([]);
   const [isLoading, setIsLoading] = useState(false);
