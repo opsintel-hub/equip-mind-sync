@@ -283,7 +283,8 @@ export function EquipmentList({ refresh }: EquipmentListProps) {
                   {item.warranty_expiry_date ? format(new Date(item.warranty_expiry_date), "dd/MM/yyyy") : "-"}
                 </TableCell>
                 <TableCell className="text-right">
-                  <div className="flex justify-end gap-2">
+                  <div className="flex justify-end gap-1">
+                    <EquipmentSNViewer equipmentId={item.id} equipmentCode={item.code} equipmentName={item.name} />
                     <EquipmentTransferForm
                       equipment={item}
                       onSuccess={fetchEquipment}
