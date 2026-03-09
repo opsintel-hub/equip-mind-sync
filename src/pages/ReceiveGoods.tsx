@@ -787,6 +787,27 @@ const ReceiveGoods = () => {
                 notes: editNotes || undefined,
                 item_condition: itemCondition,
               });
+
+              // Update equipment_serial_numbers for batch receive
+              if (batchEqSerial && receipt.equipment_id) {
+                const { data: existingSN } = await supabase
+                  .from("equipment_serial_numbers")
+                  .select("id")
+                  .eq("equipment_id", receipt.equipment_id)
+                  .eq("serial_number", batchEqSerial)
+                  .eq("status", "pending")
+                  .maybeSingle();
+                if (existingSN) {
+                  await supabase.from("equipment_serial_numbers").update({
+                    status: "in_stock", location_id: storageLocation.locationId, received_at: new Date().toISOString(),
+                  } as any).eq("id", existingSN.id);
+                } else {
+                  await supabase.from("equipment_serial_numbers").insert({
+                    equipment_id: receipt.equipment_id, serial_number: batchEqSerial, status: "in_stock",
+                    receipt_document_no: receipt.document_no, location_id: storageLocation.locationId, received_at: new Date().toISOString(),
+                  } as any);
+                }
+              }
             }
           }
 
