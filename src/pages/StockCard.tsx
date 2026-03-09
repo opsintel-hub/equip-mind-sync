@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { ProcessTracker, ProcessStep } from "@/components/ProcessTracker";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -656,7 +657,71 @@ export default function StockCard() {
               <Badge variant="secondary" className="ml-auto">{filteredTimeline.length} รายการ</Badge>
             </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-4">
+            {/* Lifecycle ProcessTracker */}
+            {(() => {
+              const hasReceive = timeline.some(e => e.type === "receive");
+              const hasIssue = timeline.some(e => e.type === "issue");
+              const hasInstall = timeline.some(e => e.type === "install" || e.type === "install_to_billboard");
+              const hasUninstall = timeline.some(e => e.type === "uninstall" || e.type === "return_from_billboard");
+              const isCurrentlyInstalled = currentInstallations.length > 0;
+              const inStock = (selectedItem?.quantity_in_stock || 0) > 0;
+
+              const steps: ProcessStep[] = [
+                {
+                  label: "รับเข้าคลัง",
+                  status: hasReceive ? "done" : "pending",
+                  date: hasReceive ? timeline.find(e => e.type === "receive")?.date : undefined,
+                },
+                {
+                  label: "จัดเก็บ",
+                  status: hasReceive ? (inStock && !isCurrentlyInstalled ? "current" : "done") : "pending",
+                },
+              ];
+
+              if (hasSN) {
+                // S/N items: show install lifecycle
+                if (hasInstall || isCurrentlyInstalled) {
+                  const lastInstall = [...timeline].reverse().find(e => e.type === "install" || e.type === "install_to_billboard");
+                  const lastUninstall = [...timeline].reverse().find(e => e.type === "uninstall" || e.type === "return_from_billboard");
+                  steps.push({
+                    label: "ติดตั้งป้าย",
+                    status: isCurrentlyInstalled ? "current" : hasInstall ? "done" : "pending",
+                    date: isCurrentlyInstalled 
+                      ? currentInstallations[0]?.installation_date 
+                      : lastInstall?.date,
+                  });
+                  steps.push({
+                    label: "ถอด/คืนคลัง",
+                    status: hasUninstall && !isCurrentlyInstalled ? "done" : "pending",
+                    date: hasUninstall ? lastUninstall?.date : undefined,
+                  });
+                } else if (hasIssue) {
+                  const lastIssue = [...timeline].reverse().find(e => e.type === "issue");
+                  steps.push({
+                    label: "เบิกจ่าย",
+                    status: "done",
+                    date: lastIssue?.date,
+                  });
+                } else {
+                  steps.push({ label: "เบิก/ติดตั้ง", status: inStock ? "pending" : "current" });
+                }
+              } else {
+                const lastIssue = [...timeline].reverse().find(e => e.type === "issue");
+                steps.push({
+                  label: "เบิกจ่าย",
+                  status: hasIssue ? "done" : "pending",
+                  date: hasIssue ? lastIssue?.date : undefined,
+                });
+              }
+
+              return (
+                <div className="bg-muted/30 rounded-lg px-6 py-4">
+                  <ProcessTracker steps={steps} size="md" />
+                </div>
+              );
+            })()}
+
             {filteredTimeline.length === 0 ? (
               <div className="text-center py-12 text-muted-foreground">
                 <Package className="w-10 h-10 mx-auto mb-2 opacity-30" />
