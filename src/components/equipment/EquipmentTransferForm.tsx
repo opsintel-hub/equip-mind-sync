@@ -102,6 +102,11 @@ export function EquipmentTransferForm({ equipment, onSuccess }: EquipmentTransfe
 
       if (updateError) throw updateError;
 
+      // Update equipment_serial_numbers location for all in_stock S/Ns of this equipment
+      await supabase.from("equipment_serial_numbers").update({
+        location_id: formData.to_location_id,
+      }).eq("equipment_id", equipment.id).eq("status", "in_stock");
+
       // Log stock movement for transfer (transfer_out from source, conceptually - stock doesn't change)
       await logStockMovement({
         equipment_id: equipment.id,

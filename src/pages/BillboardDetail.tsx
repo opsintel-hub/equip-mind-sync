@@ -170,6 +170,28 @@ const BillboardDetail = () => {
           location_id: uninstallData.return_location_id || undefined,
           notes: uninstallData.uninstall_reason || undefined,
         });
+
+
+        // Update equipment_serial_numbers: set status back to in_stock for returned S/Ns
+        if (selectedEquipment.serial_number) {
+          await supabase.from("equipment_serial_numbers").update({
+            status: "in_stock",
+            location_id: uninstallData.return_location_id || null,
+            billboard_id: null,
+          }).eq("equipment_id", selectedEquipment.equipment_id)
+            .eq("serial_number", selectedEquipment.serial_number)
+            .in("status", ["installed", "issued"]);
+        }
+      } else {
+        // Not returning to stock - just clear billboard_id on S/N records
+        if (selectedEquipment.serial_number) {
+          await supabase.from("equipment_serial_numbers").update({
+            status: "returned",
+            billboard_id: null,
+          }).eq("equipment_id", selectedEquipment.equipment_id)
+            .eq("serial_number", selectedEquipment.serial_number)
+            .eq("status", "installed");
+        }
       }
 
       // 3. Delete from billboard_equipment
