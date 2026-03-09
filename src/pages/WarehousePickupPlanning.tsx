@@ -8,12 +8,15 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import { Store, CalendarClock, Truck, Search, Loader2, Package, AlertCircle } from "lucide-react";
+import { Store, CalendarClock, Truck, Search, Loader2, Package, AlertCircle, List, CalendarDays, Clock } from "lucide-react";
 import { format, isToday, isTomorrow, parseISO } from "date-fns";
 import { th } from "date-fns/locale";
 import { DatePickerWithRange } from "@/components/ui/date-range-picker";
 import { DateRange } from "react-day-picker";
 import { DepartmentMultiFilter } from "@/components/DepartmentMultiFilter";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { PlanningCalendarView } from "@/components/warehouse-planning/PlanningCalendarView";
+import { PlanningDailyView } from "@/components/warehouse-planning/PlanningDailyView";
 
 const WarehousePickupPlanning = () => {
   const [pickupTypeFilter, setPickupTypeFilter] = useState("all");
@@ -21,6 +24,8 @@ const WarehousePickupPlanning = () => {
   const [statusFilter, setStatusFilter] = useState("all");
   const [searchTerm, setSearchTerm] = useState("");
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
+  const [selectedDailyDate, setSelectedDailyDate] = useState(new Date());
+  const [activeTab, setActiveTab] = useState("list");
 
   const { data: requests, isLoading } = useQuery({
     queryKey: ["warehouse-planning-requests"],
@@ -35,8 +40,6 @@ const WarehousePickupPlanning = () => {
     },
   });
 
-
-  // Items per request
   const { data: allItems } = useQuery({
     queryKey: ["planning-items"],
     queryFn: async () => {
@@ -87,7 +90,6 @@ const WarehousePickupPlanning = () => {
       });
     }
 
-    // Sort by urgency
     filtered.sort((a: any, b: any) => {
       const urgencyOrder = (r: any) => {
         if (r.pickup_type === "wait_onsite") return 0;
@@ -129,6 +131,11 @@ const WarehousePickupPlanning = () => {
     }
   };
 
+  const handleCalendarSelectDate = (date: Date) => {
+    setSelectedDailyDate(date);
+    setActiveTab("daily");
+  };
+
   return (
     <div className="space-y-6">
       <div>
@@ -141,146 +148,199 @@ const WarehousePickupPlanning = () => {
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <Card className="border-red-200 bg-red-50/50">
+        <Card className="border-red-200 bg-red-50/50 dark:bg-red-950/20 dark:border-red-800">
           <CardContent className="pt-4 pb-3">
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-red-100"><Store className="h-5 w-5 text-red-600" /></div>
+              <div className="p-2 rounded-lg bg-red-100 dark:bg-red-900/50"><Store className="h-5 w-5 text-red-600" /></div>
               <div>
-                <p className="text-2xl font-bold text-red-700">{summary.waitOnsite}</p>
-                <p className="text-xs text-red-600 font-medium">🏪 รอรับที่คลัง (ด่วน!)</p>
+                <p className="text-2xl font-bold text-red-700 dark:text-red-400">{summary.waitOnsite}</p>
+                <p className="text-xs text-red-600 dark:text-red-400 font-medium">🏪 รอรับที่คลัง (ด่วน!)</p>
               </div>
             </div>
           </CardContent>
         </Card>
-        <Card className="border-orange-200 bg-orange-50/50">
+        <Card className="border-orange-200 bg-orange-50/50 dark:bg-orange-950/20 dark:border-orange-800">
           <CardContent className="pt-4 pb-3">
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-orange-100"><CalendarClock className="h-5 w-5 text-orange-600" /></div>
+              <div className="p-2 rounded-lg bg-orange-100 dark:bg-orange-900/50"><CalendarClock className="h-5 w-5 text-orange-600" /></div>
               <div>
-                <p className="text-2xl font-bold text-orange-700">{summary.scheduledSoon}</p>
-                <p className="text-xs text-orange-600 font-medium">📅 นัดรับวันนี้/พรุ่งนี้</p>
+                <p className="text-2xl font-bold text-orange-700 dark:text-orange-400">{summary.scheduledSoon}</p>
+                <p className="text-xs text-orange-600 dark:text-orange-400 font-medium">📅 นัดรับวันนี้/พรุ่งนี้</p>
               </div>
             </div>
           </CardContent>
         </Card>
-        <Card className="border-purple-200 bg-purple-50/50">
+        <Card className="border-purple-200 bg-purple-50/50 dark:bg-purple-950/20 dark:border-purple-800">
           <CardContent className="pt-4 pb-3">
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-purple-100"><Truck className="h-5 w-5 text-purple-600" /></div>
+              <div className="p-2 rounded-lg bg-purple-100 dark:bg-purple-900/50"><Truck className="h-5 w-5 text-purple-600" /></div>
               <div>
-                <p className="text-2xl font-bold text-purple-700">{summary.delivery}</p>
-                <p className="text-xs text-purple-600 font-medium">🚚 รอจัดส่ง</p>
+                <p className="text-2xl font-bold text-purple-700 dark:text-purple-400">{summary.delivery}</p>
+                <p className="text-xs text-purple-600 dark:text-purple-400 font-medium">🚚 รอจัดส่ง</p>
               </div>
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Filters */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base">กรองรายการ</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input placeholder="ค้นหาเลขที่เอกสาร, ชื่อสินค้า, S/N, ชื่อผู้เบิก..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-9" />
-            </div>
-            <Select value={pickupTypeFilter} onValueChange={setPickupTypeFilter}>
-              <SelectTrigger><SelectValue placeholder="รูปแบบการรับ" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">ทุกรูปแบบ</SelectItem>
-                <SelectItem value="wait_onsite">รอรับที่คลัง</SelectItem>
-                <SelectItem value="scheduled">นัดรับล่วงหน้า</SelectItem>
-                <SelectItem value="delivery">จัดส่ง</SelectItem>
-              </SelectContent>
-            </Select>
-            <DepartmentMultiFilter value={departmentFilter} onChange={setDepartmentFilter} />
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger><SelectValue placeholder="สถานะ" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">ทุกสถานะ</SelectItem>
-                <SelectItem value="pending">รอดำเนินการ</SelectItem>
-                <SelectItem value="approved">อนุมัติแล้ว</SelectItem>
-              </SelectContent>
-            </Select>
-            <DatePickerWithRange date={dateRange} onDateChange={setDateRange} />
-          </div>
-        </CardContent>
-      </Card>
+      {/* View Tabs */}
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <TabsList className="w-full sm:w-auto">
+          <TabsTrigger value="list" className="gap-1.5">
+            <List className="h-4 w-4" />
+            รายการ
+          </TabsTrigger>
+          <TabsTrigger value="calendar" className="gap-1.5">
+            <CalendarDays className="h-4 w-4" />
+            ปฏิทิน
+          </TabsTrigger>
+          <TabsTrigger value="daily" className="gap-1.5">
+            <Clock className="h-4 w-4" />
+            รายวัน
+          </TabsTrigger>
+        </TabsList>
 
-      {/* Timeline Table */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <AlertCircle className="h-5 w-5" />
-            รายการรอจัดเตรียม ({filteredAndSorted.length})
-          </CardTitle>
-          <CardDescription>เรียงจากเร่งด่วนที่สุด → น้อยที่สุด</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {isLoading ? (
-            <div className="flex items-center justify-center py-8"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>
-          ) : filteredAndSorted.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">ไม่มีรายการรอจัดเตรียม 🎉</div>
-          ) : (
-            <>
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>รูปแบบการรับ</TableHead>
-                    <TableHead>วันเวลานัดรับ</TableHead>
-                    <TableHead>เลขที่เอกสาร</TableHead>
-                    <TableHead>ผู้ขอเบิก / ฝ่าย</TableHead>
-                    <TableHead className="text-center">รายการ</TableHead>
-                    <TableHead>ปลายทาง</TableHead>
-                    <TableHead>สถานะ</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {paginatedPlanning.map((req: any) => (
-                    <TableRow key={req.id} className={req.pickup_type === "wait_onsite" ? "bg-red-50/50" : ""}>
-                      <TableCell>{getPickupBadge(req)}</TableCell>
-                      <TableCell>
-                        {req.pickup_date ? (
-                          <div>
-                            <div className="font-medium">{format(parseISO(req.pickup_date), "dd/MM/yyyy", { locale: th })}</div>
-                            {req.pickup_time && <div className="text-xs text-muted-foreground">{req.pickup_time}</div>}
-                          </div>
-                        ) : (
-                          <span className="text-muted-foreground">ทันที</span>
-                        )}
-                      </TableCell>
-                      <TableCell className="font-medium">{req.document_no}</TableCell>
-                      <TableCell>
-                        <div>{req.requester_name}</div>
-                        {req.requester_department && <div className="text-xs text-muted-foreground">{req.requester_department}</div>}
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <Badge variant="outline">{getItemCount(req.id) || 1}</Badge>
-                      </TableCell>
-                      <TableCell>{req.destination || "-"}</TableCell>
-                      <TableCell>
-                        {req.status === "approved" ? (
-                          <Badge className="bg-green-100 text-green-800">อนุมัติแล้ว</Badge>
-                        ) : req.approval_status === "pending" ? (
-                          <Badge className="bg-amber-100 text-amber-800">รออนุมัติ</Badge>
-                        ) : (
-                          <Badge variant="secondary">รอดำเนินการ</Badge>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-            <TablePagination currentPage={currentPage} totalPages={totalPages} totalItems={totalItems} pageSize={pageSize} onPageChange={handlePageChange} onPageSizeChange={handlePageSizeChange} />
-            </>
-          )}
-        </CardContent>
-      </Card>
+        {/* === LIST VIEW === */}
+        <TabsContent value="list">
+          {/* Filters */}
+          <Card className="mb-4">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">กรองรายการ</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input placeholder="ค้นหาเลขที่เอกสาร, ชื่อสินค้า, S/N, ชื่อผู้เบิก..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-9" />
+                </div>
+                <Select value={pickupTypeFilter} onValueChange={setPickupTypeFilter}>
+                  <SelectTrigger><SelectValue placeholder="รูปแบบการรับ" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">ทุกรูปแบบ</SelectItem>
+                    <SelectItem value="wait_onsite">รอรับที่คลัง</SelectItem>
+                    <SelectItem value="scheduled">นัดรับล่วงหน้า</SelectItem>
+                    <SelectItem value="delivery">จัดส่ง</SelectItem>
+                  </SelectContent>
+                </Select>
+                <DepartmentMultiFilter value={departmentFilter} onChange={setDepartmentFilter} />
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <SelectTrigger><SelectValue placeholder="สถานะ" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">ทุกสถานะ</SelectItem>
+                    <SelectItem value="pending">รอดำเนินการ</SelectItem>
+                    <SelectItem value="approved">อนุมัติแล้ว</SelectItem>
+                  </SelectContent>
+                </Select>
+                <DatePickerWithRange date={dateRange} onDateChange={setDateRange} />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <AlertCircle className="h-5 w-5" />
+                รายการรอจัดเตรียม ({filteredAndSorted.length})
+              </CardTitle>
+              <CardDescription>เรียงจากเร่งด่วนที่สุด → น้อยที่สุด</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {isLoading ? (
+                <div className="flex items-center justify-center py-8"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>
+              ) : filteredAndSorted.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">ไม่มีรายการรอจัดเตรียม 🎉</div>
+              ) : (
+                <>
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>รูปแบบการรับ</TableHead>
+                          <TableHead>วันเวลานัดรับ</TableHead>
+                          <TableHead>เลขที่เอกสาร</TableHead>
+                          <TableHead>ผู้ขอเบิก / ฝ่าย</TableHead>
+                          <TableHead className="text-center">รายการ</TableHead>
+                          <TableHead>ปลายทาง</TableHead>
+                          <TableHead>สถานะ</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {paginatedPlanning.map((req: any) => (
+                          <TableRow key={req.id} className={req.pickup_type === "wait_onsite" ? "bg-red-50/50 dark:bg-red-950/10" : ""}>
+                            <TableCell>{getPickupBadge(req)}</TableCell>
+                            <TableCell>
+                              {req.pickup_date ? (
+                                <div>
+                                  <div className="font-medium">{format(parseISO(req.pickup_date), "dd/MM/yyyy", { locale: th })}</div>
+                                  {req.pickup_time && <div className="text-xs text-muted-foreground">{req.pickup_time}</div>}
+                                </div>
+                              ) : (
+                                <span className="text-muted-foreground">ทันที</span>
+                              )}
+                            </TableCell>
+                            <TableCell className="font-medium">{req.document_no}</TableCell>
+                            <TableCell>
+                              <div>{req.requester_name}</div>
+                              {req.requester_department && <div className="text-xs text-muted-foreground">{req.requester_department}</div>}
+                            </TableCell>
+                            <TableCell className="text-center">
+                              <Badge variant="outline">{getItemCount(req.id) || 1}</Badge>
+                            </TableCell>
+                            <TableCell>{req.destination || "-"}</TableCell>
+                            <TableCell>
+                              {req.status === "approved" ? (
+                                <Badge className="bg-green-100 text-green-800">อนุมัติแล้ว</Badge>
+                              ) : req.approval_status === "pending" ? (
+                                <Badge className="bg-amber-100 text-amber-800">รออนุมัติ</Badge>
+                              ) : (
+                                <Badge variant="secondary">รอดำเนินการ</Badge>
+                              )}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                  <TablePagination currentPage={currentPage} totalPages={totalPages} totalItems={totalItems} pageSize={pageSize} onPageChange={handlePageChange} onPageSizeChange={handlePageSizeChange} />
+                </>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* === CALENDAR VIEW === */}
+        <TabsContent value="calendar">
+          <Card>
+            <CardContent className="pt-6">
+              {isLoading ? (
+                <div className="flex items-center justify-center py-8"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>
+              ) : (
+                <PlanningCalendarView
+                  requests={requests || []}
+                  onSelectDate={handleCalendarSelectDate}
+                />
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* === DAILY VIEW === */}
+        <TabsContent value="daily">
+          <Card>
+            <CardContent className="pt-6">
+              {isLoading ? (
+                <div className="flex items-center justify-center py-8"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>
+              ) : (
+                <PlanningDailyView
+                  requests={requests || []}
+                  selectedDate={selectedDailyDate}
+                  onDateChange={setSelectedDailyDate}
+                />
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };
