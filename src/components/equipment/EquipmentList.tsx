@@ -1,11 +1,12 @@
 import { useState, useEffect } from "react";
 import { format } from "date-fns";
-import { Trash2, AlertCircle, Download, Search } from "lucide-react";
+import { Trash2, AlertCircle, Download, Search, Hash } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { EquipmentTransferForm } from "./EquipmentTransferForm";
 import { EquipmentEditForm } from "./EquipmentEditForm";
+import { EquipmentSNViewer } from "./EquipmentSNViewer";
 import { useTablePagination } from "@/hooks/useTablePagination";
 import { TablePagination } from "@/components/TablePagination";
 import * as XLSX from "xlsx";
@@ -282,7 +283,8 @@ export function EquipmentList({ refresh }: EquipmentListProps) {
                   {item.warranty_expiry_date ? format(new Date(item.warranty_expiry_date), "dd/MM/yyyy") : "-"}
                 </TableCell>
                 <TableCell className="text-right">
-                  <div className="flex justify-end gap-2">
+                  <div className="flex justify-end gap-1">
+                    <EquipmentSNViewer equipmentId={item.id} equipmentCode={item.code} equipmentName={item.name} />
                     <EquipmentTransferForm
                       equipment={item}
                       onSuccess={fetchEquipment}

@@ -386,6 +386,29 @@ const IssueGoods = () => {
           notes: issueData.notes || undefined,
         });
 
+        // Update equipment_serial_numbers status to issued
+        if (issueData.serial_number) {
+          const billboardId = issueData.billboard_id || selectedItem.billboard_id;
+          const newSnStatus = billboardId ? "installed" : "issued";
+          // Try updating from equipment_serial_numbers table
+          const { data: snRecord } = await supabase
+            .from("equipment_serial_numbers")
+            .select("id")
+            .eq("equipment_id", selectedItem.equipment_id)
+            .eq("serial_number", issueData.serial_number)
+            .eq("status", "in_stock")
+            .maybeSingle();
+
+          if (snRecord) {
+            await supabase.from("equipment_serial_numbers").update({
+              status: newSnStatus,
+              issue_document_no: parentRequest?.document_no || null,
+              billboard_id: billboardId || null,
+              issued_at: new Date().toISOString(),
+            } as any).eq("id", snRecord.id);
+          }
+        }
+
         // Create goods_issue record
         const { error: issueError } = await supabase
           .from("goods_issue")

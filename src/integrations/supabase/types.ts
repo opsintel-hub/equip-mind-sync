@@ -1765,6 +1765,79 @@ export type Database = {
           },
         ]
       }
+      equipment_serial_numbers: {
+        Row: {
+          billboard_id: string | null
+          created_at: string
+          created_by: string | null
+          equipment_id: string
+          id: string
+          issue_document_no: string | null
+          issued_at: string | null
+          location_id: string | null
+          notes: string | null
+          receipt_document_no: string | null
+          received_at: string | null
+          serial_number: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          billboard_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          equipment_id: string
+          id?: string
+          issue_document_no?: string | null
+          issued_at?: string | null
+          location_id?: string | null
+          notes?: string | null
+          receipt_document_no?: string | null
+          received_at?: string | null
+          serial_number: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          billboard_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          equipment_id?: string
+          id?: string
+          issue_document_no?: string | null
+          issued_at?: string | null
+          location_id?: string | null
+          notes?: string | null
+          receipt_document_no?: string | null
+          received_at?: string | null
+          serial_number?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "equipment_serial_numbers_billboard_id_fkey"
+            columns: ["billboard_id"]
+            isOneToOne: false
+            referencedRelation: "billboards"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "equipment_serial_numbers_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "equipment"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "equipment_serial_numbers_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       equipment_transfers: {
         Row: {
           created_at: string

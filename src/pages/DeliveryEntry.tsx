@@ -866,6 +866,22 @@ const DeliveryEntry = () => {
         error
       } = await supabase.from("goods_receipt_pending").insert(itemsToInsert as any);
       if (error) throw error;
+
+      // Register serial numbers in equipment_serial_numbers table
+      const snInserts = itemsToInsert
+        .filter((item: any) => item.serial_number && item.serial_number.trim() && !item.is_media_player && item.equipment_id)
+        .map((item: any) => ({
+          equipment_id: item.equipment_id,
+          serial_number: item.serial_number.trim(),
+          status: 'pending',
+          receipt_document_no: item.document_no,
+          notes: item.notes || null,
+          created_by: null,
+        }));
+      if (snInserts.length > 0) {
+        await supabase.from("equipment_serial_numbers").insert(snInserts as any);
+      }
+
       toast.success(`บันทึกข้อมูลสินค้าสำเร็จ ${itemsToSubmit.length} รายการ รอเจ้าหน้าที่คลังรับเข้า`);
 
       // Remove submitted items from cart, keep unsubmitted
