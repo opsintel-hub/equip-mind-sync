@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { EquipmentTransferForm } from "./EquipmentTransferForm";
 import { EquipmentEditForm } from "./EquipmentEditForm";
+import { EquipmentSNViewer } from "./EquipmentSNViewer";
 import { useTablePagination } from "@/hooks/useTablePagination";
 import { TablePagination } from "@/components/TablePagination";
 import * as XLSX from "xlsx";
