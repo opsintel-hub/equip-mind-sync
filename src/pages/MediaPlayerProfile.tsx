@@ -14,8 +14,10 @@ import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from "recha
 import {
   Search, Monitor, Shield, ShieldAlert, MapPin, Clock, Package, Loader2,
   ArrowDownToLine, ArrowUpFromLine, ArrowLeftRight, Hammer, RotateCcw, AlertTriangle,
-  FileText, ExternalLink, ChevronLeft, Info
+  FileText, ExternalLink, ChevronLeft, Info, QrCode, Download, Printer
 } from "lucide-react";
+import QRCodeSVG from "react-qr-code";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { formatBillboardLabel } from "@/lib/billboardUtils";
 
