@@ -435,6 +435,81 @@ const MediaPlayerProfile = () => {
                     <Badge variant={player.item_condition === "normal" ? "secondary" : "destructive"}>
                       {player.item_condition === "normal" ? "ปกติ" : player.item_condition === "defective" ? "ชำรุด" : player.item_condition}
                     </Badge>
+                    {/* QR Code */}
+                    <Dialog>
+                      <DialogTrigger asChild>
+                        <Button variant="outline" size="sm" className="gap-1.5">
+                          <QrCode className="w-4 h-4" />
+                          QR Code
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="sm:max-w-md">
+                        <DialogHeader>
+                          <DialogTitle>QR Code — {player.code}</DialogTitle>
+                        </DialogHeader>
+                        <div className="flex flex-col items-center gap-4 py-4">
+                          <div className="bg-white p-4 rounded-xl">
+                            <QRCodeSVG
+                              id="media-player-qr-code"
+                              value={`${window.location.origin}/media-player/${player.id}`}
+                              size={220}
+                              level="H"
+                            />
+                          </div>
+                          <p className="text-sm text-muted-foreground text-center">
+                            สแกนเพื่อเปิดหน้า Profile ของ <span className="font-mono font-semibold">{player.code}</span>
+                          </p>
+                          {player.serial_number_1 && (
+                            <p className="text-xs text-muted-foreground font-mono">S/N: {player.serial_number_1}</p>
+                          )}
+                          <div className="flex gap-2">
+                            <Button variant="outline" size="sm" onClick={() => {
+                              const svg = document.getElementById("media-player-qr-code");
+                              if (!svg) return;
+                              const svgData = new XMLSerializer().serializeToString(svg);
+                              const canvas = document.createElement("canvas");
+                              const ctx = canvas.getContext("2d");
+                              const img = new Image();
+                              img.onload = () => {
+                                canvas.width = img.width;
+                                canvas.height = img.height;
+                                ctx?.drawImage(img, 0, 0);
+                                const link = document.createElement("a");
+                                link.download = `qr-media-player-${player.code}.png`;
+                                link.href = canvas.toDataURL("image/png");
+                                link.click();
+                              };
+                              img.src = "data:image/svg+xml;base64," + btoa(unescape(encodeURIComponent(svgData)));
+                            }}>
+                              <Download className="w-4 h-4 mr-1" />
+                              ดาวน์โหลด
+                            </Button>
+                            <Button variant="outline" size="sm" onClick={() => {
+                              const printWindow = window.open("", "_blank");
+                              if (!printWindow) return;
+                              const svg = document.getElementById("media-player-qr-code");
+                              if (!svg) return;
+                              const svgData = new XMLSerializer().serializeToString(svg);
+                              printWindow.document.write(`
+                                <html><head><title>QR Code - ${player.code}</title>
+                                <style>body{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;font-family:sans-serif;}</style>
+                                </head><body>
+                                <h2>${player.code}</h2>
+                                <p>${player.name}</p>
+                                ${player.serial_number_1 ? `<p style="font-family:monospace">S/N: ${player.serial_number_1}</p>` : ""}
+                                ${svgData}
+                                <script>setTimeout(()=>window.print(),300)</script>
+                                </body></html>
+                              `);
+                              printWindow.document.close();
+                            }}>
+                              <Printer className="w-4 h-4 mr-1" />
+                              พิมพ์
+                            </Button>
+                          </div>
+                        </div>
+                      </DialogContent>
+                    </Dialog>
                   </div>
                   <p className="text-lg text-muted-foreground mt-1">{player.name} {modelName !== "-" ? `• ${modelName}` : ""}</p>
                   {player.serial_number_1 && (

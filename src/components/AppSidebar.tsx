@@ -222,6 +222,13 @@ const menuGroups: MenuGroup[] = [
     ]
   },
   {
+    label: "Media Player",
+    items: [
+      { title: "ข้อมูล Media Player", url: "/master-data?tab=media-player", icon: Monitor, functionName: "master_data" },
+      { title: "Media Player Profile", url: "/media-player/search", icon: Search, functionName: "master_data" },
+    ]
+  },
+  {
     label: "รายงาน",
     items: [
       { title: "รายงานสินค้าคงคลัง", url: "/inventory-report", icon: Package, functionName: "reports" },
