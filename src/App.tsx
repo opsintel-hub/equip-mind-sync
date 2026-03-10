@@ -112,6 +112,7 @@ const App = () => (
             <Route path="/tool-management" element={<ProtectedRoute><DashboardLayout><ToolManagement /></DashboardLayout></ProtectedRoute>} />
             <Route path="/pending-asset-codes" element={<ProtectedRoute><DashboardLayout><PendingAssetCodes /></DashboardLayout></ProtectedRoute>} />
             {/* Media Player Profile */}
+            <Route path="/media-player/search" element={<ProtectedRoute><DashboardLayout><MediaPlayerProfile /></DashboardLayout></ProtectedRoute>} />
             <Route path="/media-player/:id" element={<ProtectedRoute><DashboardLayout><MediaPlayerProfile /></DashboardLayout></ProtectedRoute>} />
             <Route path="/ad-entry" element={<ProtectedRoute><DashboardLayout><AdEntry /></DashboardLayout></ProtectedRoute>} />
             <Route path="/ad-receive" element={<ProtectedRoute><DashboardLayout><AdManagement /></DashboardLayout></ProtectedRoute>} />
