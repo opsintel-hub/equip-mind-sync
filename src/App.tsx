@@ -60,6 +60,7 @@ import DirectShippingApproval from "./pages/DirectShippingApproval";
 import DirectShippingProcurement from "./pages/DirectShippingProcurement";
 import DirectShippingPublicView from "./pages/DirectShippingPublicView";
 import MediaPlayerProfile from "./pages/MediaPlayerProfile";
+import MediaPlayerReport from "./pages/MediaPlayerReport";
 import DashboardLayout from "./components/DashboardLayout";
 import ProtectedRoute from "./components/ProtectedRoute";
 import NotFound from "./pages/NotFound";
@@ -114,6 +115,7 @@ const App = () => (
             {/* Media Player Profile */}
             <Route path="/media-player/search" element={<ProtectedRoute><DashboardLayout><MediaPlayerProfile /></DashboardLayout></ProtectedRoute>} />
             <Route path="/media-player/:id" element={<ProtectedRoute><DashboardLayout><MediaPlayerProfile /></DashboardLayout></ProtectedRoute>} />
+            <Route path="/media-player-report" element={<ProtectedRoute><DashboardLayout><MediaPlayerReport /></DashboardLayout></ProtectedRoute>} />
             <Route path="/ad-entry" element={<ProtectedRoute><DashboardLayout><AdEntry /></DashboardLayout></ProtectedRoute>} />
             <Route path="/ad-receive" element={<ProtectedRoute><DashboardLayout><AdManagement /></DashboardLayout></ProtectedRoute>} />
             <Route path="/ad-request" element={<ProtectedRoute><DashboardLayout><AdRequest /></DashboardLayout></ProtectedRoute>} />
