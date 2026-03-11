@@ -224,8 +224,8 @@ const menuGroups: MenuGroup[] = [
   {
     label: "Media Player",
     items: [
-      { title: "ข้อมูล Media Player", url: "/master-data?tab=media-player", icon: Monitor, functionName: "master_data" },
       { title: "Media Player Profile", url: "/media-player/search", icon: Search, functionName: "master_data" },
+      { title: "รายงาน Media Player", url: "/media-player-report", icon: Monitor, functionName: "reports" },
     ]
   },
   {
