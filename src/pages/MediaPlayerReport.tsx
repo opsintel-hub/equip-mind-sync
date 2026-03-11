@@ -394,9 +394,9 @@ function MediaPlayerProfileDialog({
   const [movements, setMovements] = useState<StockMovement[]>([]);
   const [modelName, setModelName] = useState("-");
 
-  useState(() => {
+  useEffect(() => {
     loadPlayer();
-  });
+  }, [playerId]);
 
   async function loadPlayer() {
     setIsLoading(true);
