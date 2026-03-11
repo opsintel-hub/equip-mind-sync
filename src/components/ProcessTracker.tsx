@@ -42,12 +42,13 @@ export function ProcessTracker({ steps, size = "md", className }: ProcessTracker
             >
               <div className={cn(
                 "h-full w-full transition-all",
-                step.status === "done" || step.status === "current"
+                // Blue if current step OR previous step is done/current
+                (step.status === "done" || step.status === "current" || steps[idx - 1]?.status === "done")
                   ? "bg-primary"
                   : step.status === "rejected"
                     ? "bg-destructive"
                     : "bg-muted-foreground/20",
-                step.status === "current" && "bg-gradient-to-r from-primary to-primary/40",
+                step.status === "current" && steps[idx - 1]?.status !== "done" && "bg-gradient-to-r from-primary to-primary/40",
                 step.status === "pending" && steps[idx - 1]?.status === "current"
                   && "bg-gradient-to-r from-primary/40 to-muted-foreground/20",
               )} style={{
