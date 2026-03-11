@@ -60,6 +60,7 @@ import DirectShippingApproval from "./pages/DirectShippingApproval";
 import DirectShippingProcurement from "./pages/DirectShippingProcurement";
 import DirectShippingPublicView from "./pages/DirectShippingPublicView";
 import MediaPlayerProfile from "./pages/MediaPlayerProfile";
+import MediaPlayerReport from "./pages/MediaPlayerReport";
 import DashboardLayout from "./components/DashboardLayout";
 import ProtectedRoute from "./components/ProtectedRoute";
 import NotFound from "./pages/NotFound";
