@@ -40,6 +40,8 @@ export const useChartExport = () => {
       const canvas = await html2canvas(elementRef, {
         backgroundColor: '#ffffff',
         scale: 2,
+        useCORS: true,
+        allowTaint: false,
       });
       
       const imgData = canvas.toDataURL('image/png');
