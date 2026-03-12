@@ -108,11 +108,46 @@ export default function MediaPlayerReport() {
     },
   });
 
+  // Extract unique code prefixes
+  const codePrefixes = useMemo(() => {
+    const prefixes = new Set<string>();
+    players.forEach((p) => {
+      const match = p.code?.match(/^([A-Za-z-]+)/);
+      if (match) prefixes.add(match[1]);
+    });
+    return Array.from(prefixes).sort();
+  }, [players]);
+
+  // Extract unique brands
+  const brands = useMemo(() => {
+    const set = new Set<string>();
+    players.forEach((p) => { if (p.brand) set.add(p.brand); });
+    return Array.from(set).sort();
+  }, [players]);
+
+  // Extract unique companies
+  const companyNames = useMemo(() => {
+    const set = new Set<string>();
+    players.forEach((p) => { if (p.companies?.name) set.add(p.companies.name); });
+    return Array.from(set).sort();
+  }, [players]);
+
   // Filter
   const filtered = useMemo(() => {
     return players.filter((p) => {
       if (conditionFilter !== "all" && p.item_condition !== conditionFilter) return false;
       if (departmentFilter !== "all" && p.department !== departmentFilter) return false;
+      if (statusFilter !== "all") {
+        const isInstalled = !!p.billboard_id;
+        if (statusFilter === "installed" && !isInstalled) return false;
+        if (statusFilter === "in_stock" && isInstalled) return false;
+      }
+      if (companyFilter !== "all" && (p.companies?.name || "") !== companyFilter) return false;
+      if (brandFilter !== "all" && (p.brand || "") !== brandFilter) return false;
+      if (codePrefixFilter !== "all") {
+        const match = p.code?.match(/^([A-Za-z-]+)/);
+        if (!match || match[1] !== codePrefixFilter) return false;
+      }
       if (search) {
         const s = search.toLowerCase();
         const match =
@@ -125,7 +160,7 @@ export default function MediaPlayerReport() {
       }
       return true;
     });
-  }, [players, search, conditionFilter, departmentFilter]);
+  }, [players, search, conditionFilter, departmentFilter, statusFilter, companyFilter, brandFilter, codePrefixFilter]);
 
   const {
     paginatedData,
