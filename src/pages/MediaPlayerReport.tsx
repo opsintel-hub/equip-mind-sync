@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ProcessTracker, ProcessStep } from "@/components/ProcessTracker";
-import { Monitor, Search, Download, Eye, Package, AlertTriangle, CheckCircle, Loader2, FileDown } from "lucide-react";
+import { Monitor, Search, Download, Eye, Package, AlertTriangle, CheckCircle, Loader2, FileDown, Tag, Building2, Wrench, Shield } from "lucide-react";
 import { differenceInDays, parseISO, format } from "date-fns";
 import { formatBillboardLabel } from "@/lib/billboardUtils";
 import { toast } from "sonner";
