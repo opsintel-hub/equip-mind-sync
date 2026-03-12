@@ -178,8 +178,16 @@ export default function MediaPlayerReport() {
     const installed = players.filter((p) => !!p.billboard_id).length;
     const inStock = players.filter((p) => !p.billboard_id).length;
     const defective = players.filter((p) => p.item_condition === "defective").length;
-    return { total, installed, inStock, defective };
-  }, [players]);
+    const repaired = players.filter((p) => p.item_condition === "repaired").length;
+    const uniquePrefixes = codePrefixes.length;
+    const uniqueBrands = brands.length;
+    const warrantyExpiring = players.filter((p) => {
+      if (!p.warranty_expiry_date) return false;
+      const days = differenceInDays(parseISO(p.warranty_expiry_date), new Date());
+      return days >= 0 && days <= 90;
+    }).length;
+    return { total, installed, inStock, defective, repaired, uniquePrefixes, uniqueBrands, warrantyExpiring };
+  }, [players, codePrefixes, brands]);
 
   // Export Excel
   const handleExport = () => {
@@ -216,7 +224,7 @@ export default function MediaPlayerReport() {
             <Monitor className="w-8 h-8" />
             รายงาน Media Player
           </h1>
-          <p className="text-muted-foreground">แสดงรายการ Media Player ทั้งหมดพร้อมดู Profile แต่ละเครื่อง</p>
+          <p className="text-muted-foreground">แสดงรายการ Media Player ทั้งหมด 1 เครื่องต่อ 1 แถว พร้อมดู Profile แต่ละเครื่อง</p>
         </div>
         <Button variant="outline" onClick={handleExport}>
           <Download className="w-4 h-4 mr-2" />
@@ -224,7 +232,7 @@ export default function MediaPlayerReport() {
         </Button>
       </div>
 
-      {/* Summary Cards */}
+      {/* Summary Cards - Row 1 */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Card>
           <CardContent className="p-4 flex items-center gap-3">
@@ -239,8 +247,19 @@ export default function MediaPlayerReport() {
         </Card>
         <Card>
           <CardContent className="p-4 flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-green-500/10 flex items-center justify-center">
-              <CheckCircle className="w-5 h-5 text-green-600" />
+            <div className="w-10 h-10 rounded-lg bg-accent flex items-center justify-center">
+              <Tag className="w-5 h-5 text-primary" />
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground">จำนวนรหัส (Prefix)</p>
+              <p className="text-2xl font-bold">{stats.uniquePrefixes}</p>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4 flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg bg-accent flex items-center justify-center">
+              <CheckCircle className="w-5 h-5 text-chart-2" />
             </div>
             <div>
               <p className="text-sm text-muted-foreground">ติดตั้งแล้ว</p>
@@ -250,8 +269,8 @@ export default function MediaPlayerReport() {
         </Card>
         <Card>
           <CardContent className="p-4 flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-blue-500/10 flex items-center justify-center">
-              <Package className="w-5 h-5 text-blue-600" />
+            <div className="w-10 h-10 rounded-lg bg-accent flex items-center justify-center">
+              <Package className="w-5 h-5 text-chart-1" />
             </div>
             <div>
               <p className="text-sm text-muted-foreground">ในคลัง</p>
@@ -259,14 +278,51 @@ export default function MediaPlayerReport() {
             </div>
           </CardContent>
         </Card>
+      </div>
+
+      {/* Summary Cards - Row 2 */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Card>
           <CardContent className="p-4 flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-red-500/10 flex items-center justify-center">
-              <AlertTriangle className="w-5 h-5 text-red-600" />
+            <div className="w-10 h-10 rounded-lg bg-destructive/10 flex items-center justify-center">
+              <AlertTriangle className="w-5 h-5 text-destructive" />
             </div>
             <div>
               <p className="text-sm text-muted-foreground">ชำรุด</p>
               <p className="text-2xl font-bold">{stats.defective}</p>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4 flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg bg-accent flex items-center justify-center">
+              <Wrench className="w-5 h-5 text-chart-4" />
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground">ซ่อมแล้ว</p>
+              <p className="text-2xl font-bold">{stats.repaired}</p>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4 flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg bg-accent flex items-center justify-center">
+              <Building2 className="w-5 h-5 text-chart-3" />
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground">จำนวนยี่ห้อ</p>
+              <p className="text-2xl font-bold">{stats.uniqueBrands}</p>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4 flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg bg-accent flex items-center justify-center">
+              <Shield className="w-5 h-5 text-chart-5" />
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground">ประกันใกล้หมด (90 วัน)</p>
+              <p className="text-2xl font-bold">{stats.warrantyExpiring}</p>
             </div>
           </CardContent>
         </Card>
@@ -287,8 +343,19 @@ export default function MediaPlayerReport() {
                 />
               </div>
             </div>
+            <Select value={codePrefixFilter} onValueChange={setCodePrefixFilter}>
+              <SelectTrigger className="w-[160px]">
+                <SelectValue placeholder="รหัส (Prefix)" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">ทุกรหัส</SelectItem>
+                {codePrefixes.map((prefix) => (
+                  <SelectItem key={prefix} value={prefix}>{prefix}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             <Select value={conditionFilter} onValueChange={setConditionFilter}>
-              <SelectTrigger className="w-[150px]">
+              <SelectTrigger className="w-[130px]">
                 <SelectValue placeholder="สภาพ" />
               </SelectTrigger>
               <SelectContent>
@@ -298,14 +365,46 @@ export default function MediaPlayerReport() {
                 <SelectItem value="repaired">ซ่อมแล้ว</SelectItem>
               </SelectContent>
             </Select>
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-[130px]">
+                <SelectValue placeholder="สถานะ" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">ทุกสถานะ</SelectItem>
+                <SelectItem value="installed">ติดตั้ง</SelectItem>
+                <SelectItem value="in_stock">ในคลัง</SelectItem>
+              </SelectContent>
+            </Select>
             <Select value={departmentFilter} onValueChange={setDepartmentFilter}>
-              <SelectTrigger className="w-[180px]">
+              <SelectTrigger className="w-[160px]">
                 <SelectValue placeholder="ฝ่าย" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">ทุกฝ่าย</SelectItem>
                 {departments.map((d: string) => (
                   <SelectItem key={d} value={d}>{d}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select value={companyFilter} onValueChange={setCompanyFilter}>
+              <SelectTrigger className="w-[160px]">
+                <SelectValue placeholder="บริษัท" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">ทุกบริษัท</SelectItem>
+                {companyNames.map((c) => (
+                  <SelectItem key={c} value={c}>{c}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select value={brandFilter} onValueChange={setBrandFilter}>
+              <SelectTrigger className="w-[140px]">
+                <SelectValue placeholder="ยี่ห้อ" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">ทุกยี่ห้อ</SelectItem>
+                {brands.map((b) => (
+                  <SelectItem key={b} value={b}>{b}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
