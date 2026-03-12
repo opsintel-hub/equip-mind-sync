@@ -172,22 +172,26 @@ export default function MediaPlayerReport() {
     handlePageSizeChange,
   } = useTablePagination(filtered, 20);
 
-  // Summary stats
+  // Summary stats - based on filtered data
   const stats = useMemo(() => {
-    const total = players.length;
-    const installed = players.filter((p) => !!p.billboard_id).length;
-    const inStock = players.filter((p) => !p.billboard_id).length;
-    const defective = players.filter((p) => p.item_condition === "defective").length;
-    const repaired = players.filter((p) => p.item_condition === "repaired").length;
-    const uniquePrefixes = codePrefixes.length;
-    const uniqueBrands = brands.length;
-    const warrantyExpiring = players.filter((p) => {
+    const total = filtered.length;
+    const installed = filtered.filter((p) => !!p.billboard_id).length;
+    const inStock = filtered.filter((p) => !p.billboard_id).length;
+    const defective = filtered.filter((p) => p.item_condition === "defective").length;
+    const repaired = filtered.filter((p) => p.item_condition === "repaired").length;
+    const filteredPrefixes = new Set<string>();
+    filtered.forEach((p) => { const m = p.code?.match(/^([A-Za-z-]+)/); if (m) filteredPrefixes.add(m[1]); });
+    const uniquePrefixes = filteredPrefixes.size;
+    const filteredBrands = new Set<string>();
+    filtered.forEach((p) => { if (p.brand) filteredBrands.add(p.brand); });
+    const uniqueBrands = filteredBrands.size;
+    const warrantyExpiring = filtered.filter((p) => {
       if (!p.warranty_expiry_date) return false;
       const days = differenceInDays(parseISO(p.warranty_expiry_date), new Date());
       return days >= 0 && days <= 90;
     }).length;
     return { total, installed, inStock, defective, repaired, uniquePrefixes, uniqueBrands, warrantyExpiring };
-  }, [players, codePrefixes, brands]);
+  }, [filtered]);
 
   // Export Excel
   const handleExport = () => {
