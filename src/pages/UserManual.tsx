@@ -17,6 +17,8 @@ import { saveAs } from "file-saver";
 import { toast } from "sonner";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { WorkflowDiagram } from "@/components/manual/WorkflowDiagram";
+import { FlowStepDetail, DecisionBox, AutomationBadges, MenuTags } from "@/components/manual/FlowAnnotations";
+import { TrainingContent } from "@/components/manual/TrainingSection";
 
 interface ManualSection {
   id: string;
