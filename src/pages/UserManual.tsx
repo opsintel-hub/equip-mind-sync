@@ -99,6 +99,53 @@ const UserManual = () => {
               },
             ]}
           />
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 mt-2">
+            <FlowStepDetail
+              title="📦 นำสินค้าเข้า"
+              menus={[{ menu: "คลังสินค้า > นำสินค้าเข้า" }]}
+              automations={[
+                { type: "auto-create", label: "สร้างเอกสาร PD", description: "เลขเอกสาร PD-YYYYMMDD-XXXX สร้างอัตโนมัติ" },
+                { type: "auto-create", label: "สร้างรหัส TEMP", description: "สินค้าใหม่ได้รหัส TEMP ชั่วคราว" },
+                { type: "auto-fill", label: "ดึง S/N", description: "S/N ถูกบันทึกสถานะ pending อัตโนมัติ" },
+              ]}
+            />
+            <FlowStepDetail
+              title="✅ รับเข้าคลัง"
+              menus={[{ menu: "คลังสินค้า > รับเข้าคลัง" }]}
+              automations={[
+                { type: "auto-update", label: "เพิ่มสต็อก", description: "จำนวนสต็อกเพิ่มอัตโนมัติ" },
+                { type: "auto-update", label: "S/N → in_stock", description: "S/N อัปเดตสถานะ + location" },
+                { type: "auto-create", label: "Stock Movement", description: "บันทึก Movement ประเภท receive" },
+              ]}
+            />
+            <FlowStepDetail
+              title="📋 ขอเบิกสินค้า"
+              menus={[{ menu: "คลังสินค้า > ขอเบิกสินค้า" }]}
+              automations={[
+                { type: "auto-create", label: "สร้างเอกสาร GI", description: "GI-YYYYMMDD-XXXX สร้างอัตโนมัติ" },
+                { type: "auto-fill", label: "ข้อมูลผู้เบิก", description: "ชื่อ+ฝ่าย ดึงจาก Profile อัตโนมัติ" },
+                { type: "auto-fill", label: "FIFO + S/N", description: "เรียงสินค้าตาม FIFO + แสดง S/N in_stock" },
+                { type: "auto-notify", label: "แจ้งคลัง", description: "คำขอแสดงที่หน้าจ่ายสินค้าทันที" },
+              ]}
+              decision={{
+                condition: "สินค้าเป็นทรัพย์สิน (is_asset)?",
+                yesLabel: "ใช่",
+                yesTarget: "→ ส่งไป 'อนุมัติ' ก่อน",
+                noLabel: "ไม่",
+                noTarget: "→ ข้ามไป 'จ่ายสินค้า' เลย",
+              }}
+            />
+            <FlowStepDetail
+              title="🛒 จ่ายสินค้า"
+              menus={[{ menu: "คลังสินค้า > จ่ายสินค้า" }]}
+              automations={[
+                { type: "auto-fill", label: "ดึงคำขอ", description: "คำขอจากผู้เบิกแสดงอัตโนมัติ" },
+                { type: "auto-update", label: "ตัดสต็อก", description: "สต็อกลดตามจำนวนที่จ่าย" },
+                { type: "auto-update", label: "S/N → issued", description: "S/N อัปเดตสถานะอัตโนมัติ" },
+                { type: "auto-create", label: "DC + Stock Movement", description: "สร้างเอกสาร DC + บันทึก Movement" },
+              ]}
+            />
+          </div>
 
           {/* ── Direct Shipping Flow ── */}
           <WorkflowDiagram
@@ -115,6 +162,38 @@ const UserManual = () => {
               },
             ]}
           />
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 mt-2">
+            <FlowStepDetail
+              title="📨 ขอส่งตรง"
+              menus={[{ menu: "ส่งตรง > สร้างคำขอส่งตรง" }]}
+              automations={[
+                { type: "auto-create", label: "สร้าง DS", description: "DS-YYYYMMDD-XXXX สร้างอัตโนมัติ" },
+                { type: "auto-fill", label: "ข้อมูลผู้ขอ", description: "ชื่อ+ฝ่าย ดึงจาก Profile" },
+              ]}
+            />
+            <FlowStepDetail
+              title="✓ อนุมัติ"
+              menus={[{ menu: "ส่งตรง > อนุมัติส่งตรง" }]}
+              automations={[
+                { type: "auto-fill", label: "กรองตามฝ่าย", description: "แสดงเฉพาะคำขอของฝ่ายที่ดูแล" },
+              ]}
+              decision={{
+                condition: "Manager อนุมัติ?",
+                yesLabel: "อนุมัติ",
+                yesTarget: "→ ส่งไปจัดซื้อ",
+                noLabel: "ปฏิเสธ",
+                noTarget: "→ แจ้งผู้ขอพร้อมเหตุผล",
+              }}
+            />
+            <FlowStepDetail
+              title="🛒 จัดซื้อ-ส่งของ"
+              menus={[{ menu: "ส่งตรง > จัดซื้อส่งตรง" }]}
+              automations={[
+                { type: "auto-create", label: "Virtual Receipt+Issue", description: "รับเข้า+จ่ายออก Virtual เมื่อกดจัดส่ง" },
+                { type: "auto-create", label: "ลิงก์สาธารณะ", description: "สร้าง Public Link ให้ Supplier ดูได้" },
+              ]}
+            />
+          </div>
 
           {/* ── Serial Number Lifecycle ── */}
           <WorkflowDiagram
@@ -138,6 +217,10 @@ const UserManual = () => {
             ]}
             connectorBetweenRows
           />
+          <AutomationBadges items={[
+            { type: "auto-update", label: "ทุกขั้นตอน", description: "S/N สถานะอัปเดตอัตโนมัติเมื่อมีธุรกรรม (รับ, เบิก, ติดตั้ง, ถอด, ของเสีย)" },
+            { type: "auto-detect", label: "ถอดจากป้าย", description: "Defective Entry ตรวจจับอัตโนมัติว่า S/N อยู่บนป้ายไหน → ถอดให้อัตโนมัติ" },
+          ]} />
 
           {/* ── Ad Flow ── */}
           <WorkflowDiagram
@@ -153,6 +236,22 @@ const UserManual = () => {
               },
             ]}
           />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mt-2">
+            <FlowStepDetail
+              title="🖼️ นำเข้าภาพ"
+              menus={[{ menu: "ภาพโฆษณา > นำเข้าภาพโฆษณา" }]}
+              automations={[
+                { type: "auto-create", label: "สร้าง AD", description: "AD-YYYYMMDD-XXXX สร้างอัตโนมัติ" },
+              ]}
+            />
+            <FlowStepDetail
+              title="✅ รับเข้าคลัง + สร้างเบิก"
+              menus={[{ menu: "ภาพโฆษณา > รับเข้าคลังภาพ" }]}
+              automations={[
+                { type: "auto-create", label: "สร้างใบเบิกอัตโนมัติ", description: "รับเข้าคลังแล้วสร้างคำขอเบิกให้อัตโนมัติ" },
+              ]}
+            />
+          </div>
 
           {/* ── Defective Flow ── */}
           <WorkflowDiagram
@@ -168,6 +267,22 @@ const UserManual = () => {
               },
             ]}
           />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mt-2">
+            <FlowStepDetail
+              title="⚠️ บันทึกของเสีย"
+              menus={[{ menu: "คลังสินค้า > นำของเสียเข้าระบบ" }]}
+              automations={[
+                { type: "auto-detect", label: "ตรวจจับป้าย", description: "ตรวจอัตโนมัติว่า S/N ติดตั้งอยู่ที่ป้ายไหน → ถอดให้" },
+                { type: "auto-update", label: "S/N → defective", description: "อัปเดตสถานะ S/N เป็น defective อัตโนมัติ" },
+                { type: "auto-create", label: "สร้าง DR", description: "DR-YYYYMMDD-XXXX สร้างอัตโนมัติ" },
+              ]}
+            />
+            <FlowStepDetail
+              title="📦 รอเข้าคลัง → รับเข้าสต็อก"
+              menus={[{ menu: "คลังสินค้า > รายการรอดำเนินการ" }]}
+              notes={["ของเสียที่รอรับเข้าคลังจะแสดงในแท็บ 'รอเข้าคลัง'", "เจ้าหน้าที่คลังรับเข้าเพื่ออัปเดตสต็อก"]}
+            />
+          </div>
 
           {/* ── Billboard PM Flow ── */}
           <WorkflowDiagram
@@ -184,6 +299,15 @@ const UserManual = () => {
               },
             ]}
           />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mt-2">
+            <FlowStepDetail
+              title="🔧 PM ป้ายโฆษณา"
+              menus={[{ menu: "ป้ายโฆษณา > PM ป้ายโฆษณา" }, { menu: "ป้ายโฆษณา > ประวัติ PM" }]}
+              automations={[
+                { type: "auto-fill", label: "Snapshot อุปกรณ์", description: "ดึงรายการอุปกรณ์ที่ติดตั้งอยู่บนป้ายมา Snapshot อัตโนมัติ" },
+              ]}
+            />
+          </div>
 
           {/* ── Tool PM Flow ── */}
           <WorkflowDiagram
@@ -200,6 +324,16 @@ const UserManual = () => {
               },
             ]}
           />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mt-2">
+            <FlowStepDetail
+              title="🔩 PM เครื่องมือ"
+              menus={[{ menu: "เครื่องมือ > ตาราง PM" }, { menu: "เครื่องมือ > งาน PM" }]}
+              automations={[
+                { type: "auto-create", label: "Task อัตโนมัติ", description: "PMT-YYYYMMDD-XXXX สร้างตามรอบ PM ที่กำหนด" },
+                { type: "auto-create", label: "Task ถัดไป", description: "Complete แล้วสร้าง Task ถัดไปอัตโนมัติ" },
+              ]}
+            />
+          </div>
 
           {/* ── Equipment Loan Flow ── */}
           <WorkflowDiagram
@@ -216,6 +350,22 @@ const UserManual = () => {
               },
             ]}
           />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mt-2">
+            <FlowStepDetail
+              title="🔄 ยืมอะไหล่ข้ามบริษัท"
+              menus={[{ menu: "คลังสินค้า > ยืมอุปกรณ์" }]}
+              decision={{
+                condition: "ยืมข้ามฝ่าย?",
+                yesLabel: "ข้ามฝ่าย",
+                yesTarget: "→ ต้อง Manager อนุมัติ",
+                noLabel: "ภายในฝ่าย",
+                noTarget: "→ อนุมัติอัตโนมัติ",
+              }}
+              automations={[
+                { type: "auto-notify", label: "แจ้งเตือนเกินกำหนด", description: "ระบบแจ้งเมื่อยืมเกินวันกำหนดคืน" },
+              ]}
+            />
+          </div>
 
           <Separator />
           <h4 className="font-semibold">รหัสเอกสารในระบบ</h4>
