@@ -1143,6 +1143,16 @@ const UserManual = () => {
         </div>
       ),
     },
+
+    // ──────────────── 16. แบบฝึกอบรม & UAT ────────────────
+    {
+      id: "training",
+      number: "16",
+      title: "แบบฝึกอบรม & UAT (Training & Testing)",
+      icon: <FileKey className="h-5 w-5" />,
+      description: "แบบฝึก Step-by-Step สำหรับ Admin, Manager, Super Admin พร้อม Export เอกสารสำหรับตรวจผล",
+      content: <TrainingContent />,
+    },
   ];
 
   // ──────────────── Word Export ────────────────
