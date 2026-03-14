@@ -916,9 +916,10 @@ const DeliveryEntry = () => {
       }
       resetItemForm();
       fetchPendingReceipts();
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error:", error);
-      toast.error("เกิดข้อผิดพลาดในการบันทึกข้อมูล");
+      const errMsg = error?.message || error?.details || "เกิดข้อผิดพลาดที่ไม่ทราบสาเหตุ";
+      toast.error(`เกิดข้อผิดพลาดในการบันทึกข้อมูล: ${errMsg}`);
     } finally {
       setIsLoading(false);
       setIsUploadingFile(false);
