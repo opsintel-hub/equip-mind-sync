@@ -6,9 +6,10 @@ import { Separator } from "@/components/ui/separator";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import {
   Download, ChevronDown, CheckCircle, FileText, GraduationCap,
-  ClipboardCheck, Package, Truck, ShoppingCart, Shield, Users, Eye
+  ClipboardCheck, Package, Truck, ShoppingCart, Shield, Users, Eye,
+  AlertTriangle, Monitor, BarChart3, Search, RotateCcw
 } from "lucide-react";
-import { Document, Packer, Paragraph, TextRun, HeadingLevel, Table, TableRow, TableCell, WidthType, AlignmentType, BorderStyle } from "docx";
+import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, BorderStyle } from "docx";
 import { saveAs } from "file-saver";
 import { toast } from "sonner";
 
@@ -21,6 +22,7 @@ interface Exercise {
   expectedResult: string;
   checkItems: string[];
   fillField?: string;
+  scenario?: string;
 }
 
 interface TrainingModule {
@@ -32,82 +34,330 @@ interface TrainingModule {
   exercises: Exercise[];
 }
 
-// ── Admin Training: Full Warehouse Flow ──
+// ═══════════════════════════════════════════════════
+// ADMIN MODULE 1: Full Warehouse Flow (ปกติ)
+// ═══════════════════════════════════════════════════
 const adminFullFlowExercises: Exercise[] = [
   {
-    id: "a1", step: 1, title: "นำสินค้าเข้าระบบ (Delivery Entry)",
-    instruction: "ไปที่เมนู 'นำสินค้าเข้า' → เลือกสินค้าจากระบบ → กรอกจำนวน 10 ชิ้น, ระบุ Supplier, ใส่ S/N 3 ตัว → กด 'เพิ่มลงตะกร้า' → กด 'ส่งข้อมูลทั้งหมด'",
-    menu: "คลังสินค้า > นำสินค้าเข้า",
-    expectedResult: "ระบบสร้างเอกสาร PD-XXXXXXXX-XXXX อัตโนมัติ และ S/N ทั้ง 3 ตัวมีสถานะ 'pending'",
+    id: "a1", step: 1, title: "นำสินค้าใหม่เข้าระบบ (สินค้ามีในระบบแล้ว)",
+    scenario: "สินค้า LED 200W มีอยู่ในระบบแล้ว ต้องการนำเข้า 10 ชิ้น พร้อมระบุ Supplier",
+    instruction: "ไปที่เมนู 'นำสินค้าใหม่เข้าระบบ' → เลือกวัตถุประสงค์ → เลือกฝ่าย → เลือกบริษัทที่สั่งซื้อ → กรอกชื่อผู้ส่ง → เลือกสินค้าจากรายการ 'เลือกสินค้าจากระบบ' → ระบุจำนวน 10, ราคาต่อชิ้น → เลือก Supplier → กด 'เพิ่มลงตะกร้า' → ตรวจสอบตะกร้า → กด 'ส่งรายการที่เลือก'",
+    menu: "รับเข้า > นำสินค้าใหม่เข้าระบบ",
+    expectedResult: "ระบบสร้างเอกสาร PD-XXXXXXXX-XXX-01 อัตโนมัติ แสดงในประวัติการนำสินค้าเข้าด้านล่าง สถานะ 'รอรับเข้า'",
     checkItems: [
-      "ได้รับเลขเอกสาร PD ขึ้นมาบนหน้าจอ",
-      "ค้นหาเอกสาร PD ที่ได้ในเมนู 'ค้นหาเอกสาร' → พบเอกสาร",
-      "เช็ค S/N ในหน้า Equipment List → สถานะ pending",
-      "สต็อกยังไม่เพิ่ม (ยังไม่รับเข้าคลัง)"
+      "ได้รับเลขเอกสาร PD บนหน้าจอ (ในส่วน 'ประวัติการนำสินค้าเข้า')",
+      "เอกสารในประวัติแสดงสถานะ 'รอรับเข้า' (สีเหลือง)",
+      "ตะกร้าถูกล้างหลังส่งสำเร็จ",
+      "สต็อกยังไม่เพิ่ม (ยังไม่ผ่านขั้นตอนรับเข้าคลัง)",
+      "ค้นหาเลขเอกสาร PD ที่ได้ ในเมนู 'ค้นหาเอกสาร' → ต้องพบเอกสาร"
     ],
     fillField: "เลขเอกสาร PD ที่ได้: ____________"
   },
   {
-    id: "a2", step: 2, title: "รับเข้าคลัง (Receive Goods)",
-    instruction: "ไปที่เมนู 'รับเข้าคลัง' → ค้นหาเอกสาร PD จากขั้นตอนที่ 1 → เลือกสถานที่จัดเก็บ (คลัง → ตำแหน่ง) → ตรวจสอบ S/N → กด 'รับเข้าคลัง'",
-    menu: "คลังสินค้า > รับเข้าคลัง",
-    expectedResult: "สต็อกเพิ่มขึ้น 10 ชิ้น, S/N เปลี่ยนเป็น 'in_stock', บันทึก Stock Movement อัตโนมัติ",
+    id: "a2", step: 2, title: "รับสินค้าเข้าคลัง",
+    scenario: "นำเอกสาร PD จากขั้นตอนที่ 1 มารับเข้าคลังจริง",
+    instruction: "ไปที่เมนู 'รับเข้าคลัง' → ค้นหาเอกสาร PD จากขั้นตอนที่ 1 → กดปุ่ม 'รับเข้าคลัง' ที่แถวเอกสาร → เลือกสถานที่จัดเก็บ (คลัง / ตำแหน่ง / ช่องจัดเก็บ) → กด 'ยืนยันรับเข้าคลัง'",
+    menu: "รับเข้า > รับสินค้าเข้า (GR) > รับเข้าคลัง",
+    expectedResult: "สต็อกเพิ่มขึ้น 10 ชิ้น, สถานะเอกสาร PD เปลี่ยนเป็น 'รับเข้าแล้ว', บันทึก Stock Movement อัตโนมัติ",
     checkItems: [
-      "สต็อกในหน้า Equipment List เพิ่มขึ้น 10",
-      "S/N ทั้ง 3 ตัว → สถานะ in_stock",
-      "Stock Movement Log → มีรายการ 'receive' ของเอกสารนี้",
-      "Stock Card ของสินค้านี้ → แสดง Lifecycle 'รับเข้าคลัง' สำเร็จ"
+      "สถานะเอกสาร PD เปลี่ยนเป็น 'รับเข้าแล้ว' (สีเขียว)",
+      "ไปที่เมนู 'รายงานสินค้าคงคลัง' → สต็อกของสินค้านี้เพิ่มขึ้น 10",
+      "ไปที่เมนู 'Stock Movement Log' → มีรายการ 'receive' ของเอกสารนี้",
+      "ไปที่เมนู 'Stock Card' → ค้นหาสินค้านี้ → แสดงรายการรับเข้าล่าสุด",
+      "ไปที่เมนู 'ค้นหาเอกสาร' → ค้นเลข PD → Process Tracker แสดง 'สร้างเอกสาร ✓ → ตรวจรับ ✓ → เข้าคลัง ✓'"
     ],
     fillField: "จำนวนสต็อกหลังรับเข้า: ____________"
   },
   {
-    id: "a3", step: 3, title: "ขอเบิกสินค้า (Issue Request)",
-    instruction: "ไปที่เมนู 'ขอเบิกสินค้า' → กรอกชื่อผู้ขอ, เลือกบริษัท, เลือกวัตถุประสงค์ → เลือกสินค้าจากขั้นตอนที่ 2 จำนวน 3 ชิ้น → เลือก S/N จากรายการ in_stock → กด 'ส่งคำขอเบิก'",
-    menu: "คลังสินค้า > ขอเบิกสินค้า",
-    expectedResult: "ระบบสร้างเอกสาร GI-XXXXXXXX-XXXX, คำขอแสดงในหน้า 'จ่ายสินค้า' ให้เจ้าหน้าที่คลัง",
+    id: "a3", step: 3, title: "ขอเบิกสินค้า",
+    scenario: "ผู้ใช้ต้องการเบิกสินค้า 3 ชิ้นจากสินค้าที่รับเข้าในขั้นตอนที่ 2",
+    instruction: "ไปที่เมนู 'ขอเบิกสินค้า' → กรอกชื่อผู้ขอ, เบอร์โทร → เลือกฝ่าย, บริษัท → เลือกวัตถุประสงค์ → ค้นหาสินค้าจากขั้นตอนที่ 2 → ระบุจำนวน 3 ชิ้น → เลือก S/N (ถ้ามี) → กด 'เพิ่มลงตะกร้า' → ตรวจสอบตะกร้า → กด 'ส่งคำขอเบิก'",
+    menu: "เบิก-จ่าย > ขอเบิกสินค้า",
+    expectedResult: "ระบบสร้างเอกสาร GI-XXXXXXXX-XXXX, Auto Fill: สต็อกปัจจุบันแสดงในรายการสินค้า, ตะกร้ามีผลรวมจำนวนและมูลค่า",
     checkItems: [
       "ได้รับเลขเอกสาร GI",
-      "ค้นหาเอกสาร GI → Process Tracker แสดง 'ส่งคำขอ ✓' และ 'จ่ายสินค้า กำลังดำเนินการ'",
+      "ตะกร้าแสดงผลรวม: จำนวน 3 ชิ้น + มูลค่ารวม",
+      "Auto Fill: สต็อกปัจจุบันแสดงข้างรายการสินค้า",
+      "ไปที่ 'แดชบอร์ดผู้เบิก' → แสดงคำขอสถานะ 'รอดำเนินการ'",
       "สต็อกยังไม่ถูกตัด (รอจ่ายจริง)",
-      "ถ้าสินค้าเป็นทรัพย์สิน → คำขอจะไปรออนุมัติก่อน",
-      "Dashboard ผู้เบิก → แสดงคำขอสถานะ 'รอดำเนินการ'"
+      "ไปที่ 'ค้นหาเอกสาร' → ค้นเลข GI → Process Tracker แสดง 'ส่งคำขอ ✓' และ 'จ่ายสินค้า กำลังดำเนินการ'"
     ],
     fillField: "เลขเอกสาร GI ที่ได้: ____________"
   },
   {
-    id: "a4", step: 4, title: "จ่ายสินค้า (Issue Goods)",
-    instruction: "ไปที่เมนู 'จ่ายสินค้า' → ค้นหาเอกสาร GI จากขั้นตอนที่ 3 → ตรวจสอบ/แก้ไข S/N ที่จะจ่าย → กด 'จ่ายสินค้า'",
-    menu: "คลังสินค้า > จ่ายสินค้า",
-    expectedResult: "สต็อกลดลง 3 ชิ้น, S/N เปลี่ยนเป็น 'issued', สร้างเอกสาร DC (Delivery Confirmation) อัตโนมัติ",
+    id: "a4", step: 4, title: "จ่ายสินค้า",
+    scenario: "เจ้าหน้าที่คลังเห็นคำขอเบิกจากขั้นตอนที่ 3 และทำการจ่ายสินค้า",
+    instruction: "ไปที่เมนู 'จ่ายสินค้า' → ค้นหาเอกสาร GI จากขั้นตอนที่ 3 (Auto Fill: ข้อมูลผู้เบิกแสดงอัตโนมัติ) → ตรวจสอบ/แก้ไข S/N ที่จะจ่าย → กด 'จ่ายสินค้า'",
+    menu: "เบิก-จ่าย > จ่ายสินค้า",
+    expectedResult: "สต็อกลดลง 3 ชิ้น, Auto Create: เอกสาร DC (Delivery Confirmation) สร้างอัตโนมัติ, Auto Update: สถานะ S/N เปลี่ยนเป็น 'issued'",
     checkItems: [
-      "สต็อกลดลงจากขั้นตอนที่ 2 = 3 ชิ้น (เหลือ 7)",
-      "S/N ที่จ่าย → สถานะ issued",
-      "Stock Movement → มีรายการ 'issue'",
-      "Auto Create: เอกสาร DC สร้างอัตโนมัติ → ดูได้ที่ 'ยืนยันรับสินค้า'",
-      "Process Tracker → 'จ่ายสินค้า ✓'"
+      "ไปที่ 'รายงานสินค้าคงคลัง' → สต็อกลดลง 3 ชิ้น (เหลือ 7)",
+      "ไปที่ 'Stock Movement Log' → มีรายการ 'issue' ของเอกสาร GI นี้",
+      "Auto Create: เอกสาร DC สร้างอัตโนมัติ → ดูได้ที่เมนู 'ยืนยันรับสินค้า'",
+      "ไปที่ 'ค้นหาเอกสาร' → ค้นเลข GI → Process Tracker: 'ส่งคำขอ ✓ → จ่ายสินค้า ✓ → ยืนยันรับ (กำลังดำเนินการ)'",
+      "Auto Update: S/N ที่จ่าย → สถานะเปลี่ยนเป็น 'issued'"
     ],
     fillField: "จำนวนสต็อกคงเหลือ: ____________"
   },
   {
-    id: "a5", step: 5, title: "ยืนยันรับสินค้า (Delivery Confirmation)",
-    instruction: "ไปที่เมนู 'ยืนยันรับสินค้า' → ค้นหาเอกสาร DC ที่สร้างอัตโนมัติ → ตรวจสอบจำนวน → กด 'ยืนยันรับ' (หรือรายงานปัญหา)",
-    menu: "คลังสินค้า > ยืนยันรับสินค้า",
-    expectedResult: "Process Tracker แสดงครบทุกขั้นตอน ✓, สถานะเอกสารเปลี่ยนเป็น 'confirmed'",
+    id: "a5", step: 5, title: "ยืนยันรับสินค้า",
+    scenario: "ผู้รับสินค้ายืนยันว่าได้รับสินค้าครบถ้วน",
+    instruction: "ไปที่เมนู 'ยืนยันรับสินค้า' → ค้นหาเอกสาร DC ที่สร้างอัตโนมัติจากขั้นตอนที่ 4 → ตรวจสอบจำนวน → กด 'ยืนยันรับ'",
+    menu: "เบิก-จ่าย > ยืนยันรับสินค้า",
+    expectedResult: "Process Tracker แสดงครบทุกขั้นตอน ✓, สถานะเปลี่ยนเป็น 'confirmed', วงจรชีวิตเอกสาร GI สมบูรณ์",
     checkItems: [
-      "Process Tracker: ส่งคำขอ ✓ → จ่ายสินค้า ✓ → ยืนยันรับ ✓",
-      "ค้นหาเอกสาร GI → สถานะ 'issued' + ยืนยันรับแล้ว",
-      "Stock Card → วงจรชีวิตสินค้าแสดงครบ"
+      "ไปที่ 'ค้นหาเอกสาร' → ค้นเลข GI → Process Tracker: ส่งคำขอ ✓ → จ่ายสินค้า ✓ → ยืนยันรับ ✓",
+      "ไปที่ 'Stock Card' → ค้นหาสินค้า → วงจรชีวิตแสดงครบ (รับเข้า → เบิกจ่าย)",
+      "สต็อกคงเหลือยังคงเป็น 7 (ไม่มีการเปลี่ยนแปลงเพิ่ม)"
     ],
-    fillField: "สถานะสุดท้ายของเอกสาร: ____________"
+    fillField: "สถานะสุดท้ายของเอกสาร DC: ____________"
   },
 ];
 
-// ── Manager Training ──
+// ═══════════════════════════════════════════════════
+// ADMIN MODULE 2: สินค้าใหม่ (ไม่มีในระบบ) + ไฟล์แนบ
+// ═══════════════════════════════════════════════════
+const adminNewProductExercises: Exercise[] = [
+  {
+    id: "an1", step: 1, title: "นำสินค้าใหม่เข้าระบบ (สินค้าใหม่ที่ยังไม่มีในระบบ)",
+    scenario: "มีสินค้าใหม่ที่ยังไม่เคยลงทะเบียนในระบบ เช่น 'สายไฟ NYY 3x4' ต้องการนำเข้า 20 ชิ้น พร้อมแนบเอกสาร PO",
+    instruction: "ไปที่เมนู 'นำสินค้าใหม่เข้าระบบ' → เลือกวัตถุประสงค์เป็น 'นำเข้าจากการซื้อ' → กรอกข้อมูลหลัก (ฝ่าย, บริษัท, ผู้ส่ง) → ในส่วนรายละเอียดสินค้า ไม่ต้องเลือกจากระบบ → กรอกชื่อสินค้าใหม่ → เลือกหมวดหมู่ + หมวดหมู่ย่อย → อัปโหลดรูปภาพสินค้า → ระบุจำนวน 20, ราคา → กรอกเลข PO → กดปุ่ม 'เลือกเอกสาร' แนบไฟล์ PO → กด 'เพิ่มลงตะกร้า' → กด 'ส่งรายการที่เลือก'",
+    menu: "รับเข้า > นำสินค้าใหม่เข้าระบบ",
+    expectedResult: "ระบบสร้างเอกสาร PD พร้อมรหัสชั่วคราว TEMP-XXXXXXXX-XXX, รูปภาพและเอกสาร PO แนบไปด้วย",
+    checkItems: [
+      "ได้รับเลขเอกสาร PD ในประวัติ",
+      "สินค้าแสดงชื่อที่กรอกใหม่ + รหัสชั่วคราว TEMP-",
+      "เอกสาร PO ถูกแนบ (มีลิงก์ดาวน์โหลด)",
+      "กรณีเลือก 'นำเข้าจากการซื้อ' ต้องกรอก PO/PR/Invoice อย่างน้อย 1 ช่อง",
+      "ไปที่ 'ค้นหาเอกสาร' → ค้นเลข PD → พบเอกสาร"
+    ],
+    fillField: "เลขเอกสาร PD: ____________ / รหัสชั่วคราว TEMP: ____________"
+  },
+  {
+    id: "an2", step: 2, title: "รับสินค้าใหม่เข้าคลัง + สร้างรหัสสินค้า",
+    scenario: "เจ้าหน้าที่คลังรับสินค้าใหม่ที่มีรหัสชั่วคราว ต้องสร้างรหัสสินค้าจริงในระบบ",
+    instruction: "ไปที่ 'รับเข้าคลัง' → ค้นหาเอกสาร PD → สินค้าใหม่จะแสดงปุ่ม 'สร้างรหัสสินค้า' → กดเพื่อเปิด Quick Create Dialog → ข้อมูลจากการนำเข้า (ชื่อ, หมวดหมู่, รูปภาพ, จำนวนขั้นต่ำ) จะถูก Auto Fill → เลือกรหัสนำหน้า → กด 'สร้าง' → เลือกสถานที่จัดเก็บ → กด 'รับเข้าคลัง'",
+    menu: "รับเข้า > รับสินค้าเข้า (GR) > รับเข้าคลัง",
+    expectedResult: "Auto Fill: ข้อมูลจากการนำเข้าถูกเติมอัตโนมัติใน Quick Create, สินค้าได้รหัสจริง + สต็อก 20 ชิ้น",
+    checkItems: [
+      "Quick Create Dialog แสดงข้อมูลที่ Auto Fill จากการนำเข้า (ชื่อ, หมวดหมู่, รูปภาพ)",
+      "สินค้าได้รหัสจริง (ไม่ใช่ TEMP-)",
+      "ไปที่ 'รายงานสินค้าคงคลัง' → สินค้าใหม่ปรากฏในรายการ สต็อก 20",
+      "รูปภาพสินค้าแสดงในระบบ"
+    ],
+    fillField: "รหัสสินค้าจริงที่ได้: ____________"
+  },
+];
+
+// ═══════════════════════════════════════════════════
+// ADMIN MODULE 3: Media Player Entry
+// ═══════════════════════════════════════════════════
+const adminMediaPlayerExercises: Exercise[] = [
+  {
+    id: "amp1", step: 1, title: "นำ Media Player เข้าระบบ (หลายเครื่องพร้อมกัน)",
+    scenario: "ได้รับ Media Player 3 เครื่องจาก Supplier ต้องลงทะเบียนเข้าระบบพร้อม S/N แต่ละเครื่อง",
+    instruction: "ไปที่ 'นำสินค้าใหม่เข้าระบบ' → กรอกข้อมูลหลัก → เปิดสวิตช์ 'Media Player' → เลือก Media Player จากรายการ → กรอกราคาต่อชิ้น → ในส่วน 'รายละเอียดแต่ละเครื่อง' → กรอก S/N เครื่อง 1 + ชื่อเครื่อง → กดปุ่ม '+' เพิ่มเครื่อง 2, 3 → อัปโหลดรูปภาพแต่ละเครื่อง → กด 'เพิ่มลงตะกร้า'",
+    menu: "รับเข้า > นำสินค้าใหม่เข้าระบบ",
+    expectedResult: "ตะกร้าแสดง 3 รายการ (1 เครื่องต่อ 1 แถว) รวมจำนวน 3 เครื่อง, แต่ละรายการมี S/N แตกต่างกัน",
+    checkItems: [
+      "ตะกร้าแสดง 3 แถว (1 แถว = 1 เครื่อง)",
+      "แต่ละแถวแสดง S/N ที่แตกต่างกัน",
+      "ผลรวมตะกร้า: 3 เครื่อง",
+      "กด 'ส่งรายการที่เลือก' → ได้เลขเอกสาร PD 3 รายการ (PD-xxx-01, PD-xxx-02, PD-xxx-03)"
+    ],
+    fillField: "เลขเอกสาร PD ที่ได้ (3 เลข): ____________"
+  },
+  {
+    id: "amp2", step: 2, title: "รับ Media Player เข้าคลัง",
+    scenario: "รับ Media Player 3 เครื่องเข้าคลัง",
+    instruction: "ไปที่ 'รับเข้าคลัง' → ค้นหาเลขเอกสาร PD → รับเข้าคลังทั้ง 3 รายการ",
+    menu: "รับเข้า > รับสินค้าเข้า (GR) > รับเข้าคลัง",
+    expectedResult: "Media Player 3 เครื่องเข้าคลังสำเร็จ, แต่ละเครื่องมีสถานะ 'in_stock'",
+    checkItems: [
+      "ไปที่เมนู 'รายงาน Media Player' → เห็นเครื่องทั้ง 3 สถานะ 'ในคลัง'",
+      "ไปที่ 'Media Player Profile' → ค้นหาด้วย S/N → เห็นข้อมูลเครื่องครบ (รูปภาพ, S/N, ประวัติ)",
+      "Stock Movement Log → มีรายการ receive ของ Media Player"
+    ],
+    fillField: "S/N ของ Media Player ที่รับเข้า: ____________"
+  },
+];
+
+// ═══════════════════════════════════════════════════
+// ADMIN MODULE 4: Scenario ไม่ปกติ - การปฏิเสธ
+// ═══════════════════════════════════════════════════
+const adminRejectionExercises: Exercise[] = [
+  {
+    id: "ar1", step: 1, title: "ปฏิเสธการรับสินค้าเข้าคลัง",
+    scenario: "สินค้าที่นำเข้ามาไม่ตรงกับเอกสาร ต้องปฏิเสธ",
+    instruction: "ไปที่ 'รับเข้าคลัง' → ค้นหาเอกสาร PD ที่ต้องการปฏิเสธ → กดปุ่ม 'ปฏิเสธ' → ระบุเหตุผล → กด 'ยืนยันปฏิเสธ'",
+    menu: "รับเข้า > รับสินค้าเข้า (GR) > รับเข้าคลัง",
+    expectedResult: "สถานะ PD เปลี่ยนเป็น 'rejected', สต็อกไม่เพิ่ม, Process Tracker แสดงกากบาทแดง",
+    checkItems: [
+      "สถานะเอกสาร PD = 'rejected'",
+      "ไปที่ 'รายงานสินค้าคงคลัง' → สต็อกไม่เปลี่ยนแปลง (ยืนยันว่าไม่เพิ่มเข้าคลัง)",
+      "ไปที่ 'ค้นหาเอกสาร' → ค้นเลข PD → Process Tracker: สร้างเอกสาร ✓ → ตรวจรับ ✗ (ปฏิเสธ)",
+      "ไม่มีรายการ Stock Movement ของเอกสารนี้"
+    ],
+    fillField: "เลขเอกสาร PD ที่ปฏิเสธ: ____________"
+  },
+  {
+    id: "ar2", step: 2, title: "เบิกสินค้าที่สต็อกไม่เพียงพอ (รอสินค้า)",
+    scenario: "ผู้เบิกขอเบิกจำนวนมากกว่าสต็อกที่มี",
+    instruction: "ไปที่ 'ขอเบิกสินค้า' → เลือกสินค้าที่มีสต็อกน้อย → ระบุจำนวนมากกว่าสต็อกปัจจุบัน → ส่งคำขอ → ไปที่ 'จ่ายสินค้า' → ดูสถานะคำขอ",
+    menu: "เบิก-จ่าย > ขอเบิกสินค้า → เบิก-จ่าย > จ่ายสินค้า",
+    expectedResult: "คำขอถูกส่งแต่เจ้าหน้าที่คลังเห็นว่าสต็อกไม่พอ สามารถตั้งสถานะ 'รอสินค้า' ได้",
+    checkItems: [
+      "Auto Fill: สต็อกปัจจุบันแสดงตอนเลือกสินค้า → ผู้เบิกรู้ก่อนว่าเหลือเท่าไร",
+      "เจ้าหน้าที่คลังเห็นจำนวนที่ขอ vs สต็อก",
+      "ไปที่ 'ค้นหาเอกสาร' → ค้นเลข GI → สถานะ 'waiting_stock' / Process Tracker แสดง 'รอสินค้า' (สีส้ม)",
+      "ไปที่เมนู 'คำขอเบิกรอสินค้า' → แสดงรายการที่รอ"
+    ],
+    fillField: "เลขเอกสาร GI ที่รอสินค้า: ____________"
+  },
+  {
+    id: "ar3", step: 3, title: "ยืนยันรับสินค้า - แจ้งปัญหา",
+    scenario: "ผู้รับสินค้าพบว่าได้รับไม่ครบหรือสินค้าเสียหาย",
+    instruction: "ไปที่ 'ยืนยันรับสินค้า' → ค้นหาเอกสาร DC → กดปุ่ม 'แจ้งปัญหา' → เลือกประเภทปัญหา (ได้รับไม่ครบ/สินค้าเสียหาย) → ระบุรายละเอียด → กด 'ส่งรายงาน'",
+    menu: "เบิก-จ่าย > ยืนยันรับสินค้า",
+    expectedResult: "สถานะเอกสาร DC เปลี่ยนเป็น 'issue_reported', Process Tracker แสดง 'มีปัญหา' (สีส้ม)",
+    checkItems: [
+      "สถานะเอกสาร DC = 'issue_reported'",
+      "ไปที่ 'ค้นหาเอกสาร' → ค้นเลข GI → Process Tracker: ส่งคำขอ ✓ → จ่ายสินค้า ✓ → ยืนยันรับ ⚠️ (มีปัญหา)",
+      "เจ้าหน้าที่คลังเห็นรายงานปัญหา"
+    ],
+    fillField: "เลขเอกสาร DC ที่แจ้งปัญหา: ____________"
+  },
+  {
+    id: "ar4", step: 4, title: "นำของเสียเข้าระบบ",
+    scenario: "ถอดอุปกรณ์เสียจากป้ายโฆษณากลับคลัง",
+    instruction: "ไปที่ 'นำของเสียเข้าระบบ' → เลือกแหล่งที่มา → เลือกสินค้า → ระบุจำนวน, เหตุผล, สภาพสินค้า → ระบุ S/N (ถ้ามี) → อัปโหลดรูปภาพ → กด 'บันทึก'",
+    menu: "รับเข้า > นำของเสียเข้าระบบ",
+    expectedResult: "สร้างเอกสาร DR อัตโนมัติ, สินค้ารอตรวจสอบ, Auto Detect: ถ้าสินค้าติดตั้งอยู่ที่ป้าย → ถอดออกอัตโนมัติ",
+    checkItems: [
+      "ได้เลขเอกสาร DR",
+      "Auto Detect: ถ้า S/N ที่ระบุกำลังติดตั้งอยู่ที่ป้าย → ระบบถอดออกจากป้ายให้อัตโนมัติ",
+      "ไปที่ 'ค้นหาเอกสาร' → ค้นเลข DR → พบเอกสาร",
+      "สต็อกของเสียไม่นับรวมในสต็อกปกติ"
+    ],
+    fillField: "เลขเอกสาร DR: ____________"
+  },
+];
+
+// ═══════════════════════════════════════════════════
+// ADMIN MODULE 5: รายงานและการตรวจสอบสต็อก
+// ═══════════════════════════════════════════════════
+const adminReportExercises: Exercise[] = [
+  {
+    id: "arpt1", step: 1, title: "ตรวจสอบรายงานสินค้าคงคลัง",
+    scenario: "ผู้จัดการต้องการดูสินค้าคงคลังทั้งหมดพร้อมกรองตามฝ่าย",
+    instruction: "ไปที่เมนู 'รายงานสินค้าคงคลัง' → ดูข้อมูลภาพรวม → กรองตามฝ่ายที่ต้องการ → ตรวจสอบยอดคงเหลือ → กรองด้วยตำแหน่งจัดเก็บ → กดปุ่ม Export",
+    menu: "รายงาน > รายงานสินค้าคงคลัง",
+    expectedResult: "แสดงรายการสินค้าทั้งหมดพร้อมยอดคงเหลือ, กรองตามฝ่ายได้, ส่งออก Excel/PDF ได้",
+    checkItems: [
+      "แสดงจำนวนรายการสินค้าทั้งหมด",
+      "กรองตามฝ่าย → แสดงเฉพาะสินค้าของฝ่ายนั้น",
+      "ยอดคงเหลือตรงกับที่ทำแบบฝึกมา",
+      "กด Export → ได้ไฟล์ Excel/PDF"
+    ],
+    fillField: "จำนวนสินค้าทั้งหมดในฝ่ายที่เลือก: ____________"
+  },
+  {
+    id: "arpt2", step: 2, title: "ตรวจสอบ Stock Card",
+    scenario: "ต้องการดูประวัติความเคลื่อนไหวของสินค้ารายตัว",
+    instruction: "ไปที่เมนู 'Stock Card' → ค้นหาสินค้าที่ใช้ในแบบฝึก → ดูรายการรับเข้า/เบิกจ่าย → ตรวจสอบยอดสต็อกก่อน/หลังแต่ละรายการ → กด Export",
+    menu: "รายงาน > Stock Card",
+    expectedResult: "แสดงประวัติทุกรายการ (receive, issue) พร้อมยอดสต็อกก่อน/หลังแต่ละรายการ, มี Lifecycle Tracker",
+    checkItems: [
+      "มีรายการ 'receive' จากขั้นตอนรับเข้าคลัง",
+      "มีรายการ 'issue' จากขั้นตอนจ่ายสินค้า",
+      "ยอดสต็อกก่อน/หลังถูกต้องตามลำดับเวลา",
+      "กด Export → ได้ไฟล์รายงาน Stock Card"
+    ],
+    fillField: "ยอดคงเหลือล่าสุดใน Stock Card: ____________"
+  },
+  {
+    id: "arpt3", step: 3, title: "ตรวจสอบ Stock Movement Log",
+    scenario: "ต้องการตรวจสอบความเคลื่อนไหวคลังในช่วงเวลาหนึ่ง",
+    instruction: "ไปที่เมนู 'Stock Movement Log' → กรองตามช่วงวันที่ (วันที่ทำแบบฝึก) → กรองตามฝ่าย → ขยายรายการเพื่อดูรายละเอียด → กด Export",
+    menu: "รายงาน > Stock Movement Log",
+    expectedResult: "แสดงรายการ receive และ issue ที่ทำในแบบฝึก, จัดกลุ่มตามเลขเอกสาร",
+    checkItems: [
+      "พบรายการ receive ของเอกสาร PD ที่ทำ",
+      "พบรายการ issue ของเอกสาร GI ที่ทำ",
+      "รายการจัดกลุ่มตามเลขเอกสาร",
+      "กด Export → ได้ไฟล์ Excel/PDF"
+    ],
+    fillField: "จำนวนรายการ Movement ทั้งหมดในวันนี้: ____________"
+  },
+  {
+    id: "arpt4", step: 4, title: "Scenario: สงสัยว่าของหาย - ตรวจสอบสต็อก",
+    scenario: "นับสินค้าจริงในคลังได้ 5 ชิ้น แต่ระบบแสดง 7 ชิ้น → สงสัยว่าอาจโดนขโมยหรือบันทึกผิด",
+    instruction: "1) ไปที่ 'Stock Card' → ค้นหาสินค้า → ดูยอดล่าสุด (ระบบแสดง 7)\n2) ไปที่ 'Stock Movement Log' → กรองสินค้านี้ → ดูทุกรายการ receive/issue → ตรวจสอบว่ามีรายการจ่ายที่ผิดปกติไหม\n3) ไปที่ 'ค้นหาเอกสาร' → ค้นเลขเอกสาร GI ที่น่าสงสัย → ดูรายละเอียดผู้เบิก\n4) ไปที่ 'รายงานสินค้าคงคลัง' → ตรวจสอบตำแหน่งจัดเก็บ",
+    menu: "รายงาน > Stock Card → Stock Movement Log → ค้นหาเอกสาร → รายงานสินค้าคงคลัง",
+    expectedResult: "สามารถ Trace Back ได้ว่าสินค้าถูกจ่ายเมื่อไร, ให้ใคร, เอกสารอะไร → ระบุสาเหตุความแตกต่างได้",
+    checkItems: [
+      "Stock Card แสดงยอดปัจจุบันตรงกับระบบ",
+      "Stock Movement ย้อนดูได้ทุกรายการ receive/issue",
+      "สามารถดูรายละเอียดผู้เบิกในแต่ละเอกสาร GI",
+      "ระบุได้ว่ารายการใดเป็นสาเหตุ (หรือยังหาไม่ได้ให้บันทึกไว้)"
+    ],
+    fillField: "สาเหตุที่วิเคราะห์ได้: ____________"
+  },
+  {
+    id: "arpt5", step: 5, title: "ดูรายงาน Dead Stock",
+    scenario: "ต้องการหาสินค้าที่ไม่มีการเคลื่อนไหวนานเกินไป",
+    instruction: "ไปที่เมนู 'รายงาน Dead Stock' → ดูสินค้าที่ไม่มีการเบิกจ่ายเกิน 90 วัน → กรองตามฝ่าย",
+    menu: "รายงาน > รายงาน Dead Stock",
+    expectedResult: "แสดงรายการสินค้าที่ไม่เคลื่อนไหวเกินกำหนด พร้อมจำนวนวันที่ไม่เคลื่อนไหว",
+    checkItems: [
+      "แสดงรายการ Dead Stock (ถ้ามี)",
+      "แสดงจำนวนวันที่ไม่มี Movement",
+      "กรองตามฝ่ายได้"
+    ],
+    fillField: "จำนวน Dead Stock ที่พบ: ____________"
+  },
+];
+
+// ═══════════════════════════════════════════════════
+// ADMIN MODULE 6: Direct Shipping Flow
+// ═══════════════════════════════════════════════════
+const adminDSExercises: Exercise[] = [
+  {
+    id: "ads1", step: 1, title: "สร้างคำขอส่งตรง",
+    scenario: "ต้องการให้ Supplier ส่งสินค้าตรงไปหน้างาน ไม่ผ่านคลัง",
+    instruction: "ไปที่ 'ขอส่งตรง' → กรอกชื่อผู้ขอ, เบอร์โทร → เลือกฝ่าย, บริษัท → เลือก Supplier → ระบุจุดหมาย (ที่อยู่หรือพิน GPS) → เพิ่มรายการสินค้า → กด 'ส่งคำขอ'",
+    menu: "ส่งตรง > ขอส่งตรง",
+    expectedResult: "ระบบสร้างเอกสาร DS-XXXXXXXX-XXXX, Auto Notify: ส่งแจ้งเตือนไปยัง Manager เพื่ออนุมัติ",
+    checkItems: [
+      "ได้เลขเอกสาร DS",
+      "ไปที่ 'ค้นหาเอกสาร' → ค้นเลข DS → Process Tracker: สร้างคำขอ ✓ → รออนุมัติ",
+      "มีแจ้งเตือนในกระดิ่ง (Notification) สำหรับ Manager"
+    ],
+    fillField: "เลขเอกสาร DS: ____________"
+  },
+  {
+    id: "ads2", step: 2, title: "จัดซื้อ-ดำเนินการส่งตรง",
+    scenario: "หลังจาก Manager อนุมัติ เจ้าหน้าที่จัดซื้อดำเนินการ",
+    instruction: "ไปที่ 'จัดซื้อ-ดำเนินการ' → ค้นหาเอกสาร DS ที่อนุมัติแล้ว → กรอกข้อมูลการจัดส่ง (เลข PO, ชื่อผู้ส่ง, วันส่ง) → กด 'ยืนยันจัดส่ง'",
+    menu: "ส่งตรง > จัดซื้อ-ดำเนินการ",
+    expectedResult: "สถานะ DS เปลี่ยนเป็น 'pending_confirmation', Auto Create: สร้างลิงก์ให้ผู้รับยืนยัน",
+    checkItems: [
+      "สถานะ DS = 'pending_confirmation'",
+      "ไปที่ 'ค้นหาเอกสาร' → DS → Process Tracker: สร้างคำขอ ✓ → อนุมัติ ✓ → จัดซื้อ-ส่งของ ✓ → ผู้รับยืนยัน (รอ)"
+    ],
+    fillField: "สถานะ DS หลังจัดส่ง: ____________"
+  },
+];
+
+// ═══════════════════════════════════════════════════
+// MANAGER MODULE
+// ═══════════════════════════════════════════════════
 const managerExercises: Exercise[] = [
   {
     id: "m1", step: 1, title: "ตรวจสอบคำขอที่รออนุมัติ",
-    instruction: "ไปที่เมนู 'อนุมัติคำขอ' → ดูรายการคำขอเบิกทรัพย์สินที่รออนุมัติ → คำขอจะแสดงเฉพาะฝ่ายที่คุณดูแล",
-    menu: "คลังสินค้า > อนุมัติคำขอ",
+    scenario: "มีคำขอเบิกทรัพย์สินรออนุมัติจากเจ้าหน้าที่",
+    instruction: "ไปที่เมนู 'อนุมัติเบิกทรัพย์สิน' → ดูรายการคำขอที่รออนุมัติ → คำขอจะแสดงเฉพาะฝ่ายที่คุณดูแล",
+    menu: "เบิก-จ่าย > อนุมัติเบิกทรัพย์สิน",
     expectedResult: "แสดงรายการคำขอเบิกที่มีสถานะ 'pending_approval' เฉพาะฝ่ายของตน",
     checkItems: [
       "เห็นเฉพาะคำขอของฝ่ายที่ตนดูแล",
@@ -118,128 +368,191 @@ const managerExercises: Exercise[] = [
   },
   {
     id: "m2", step: 2, title: "อนุมัติคำขอเบิกทรัพย์สิน",
+    scenario: "คำขอเบิกถูกต้อง ต้องการอนุมัติ",
     instruction: "เลือกคำขอ 1 รายการ → ตรวจสอบรายละเอียด → กด 'อนุมัติ'",
-    menu: "คลังสินค้า > อนุมัติคำขอ",
-    expectedResult: "สถานะเปลี่ยนเป็น 'approved', คำขอถูกส่งไปยังเจ้าหน้าที่คลังในหน้า 'จ่ายสินค้า'",
+    menu: "เบิก-จ่าย > อนุมัติเบิกทรัพย์สิน",
+    expectedResult: "สถานะเปลี่ยนเป็น 'approved', คำขอถูกส่งไปยังเจ้าหน้าที่คลังในเมนู 'จ่ายสินค้า'",
     checkItems: [
-      "Process Tracker: ส่งคำขอ ✓ → อนุมัติ ✓ → จ่ายสินค้า (กำลังดำเนินการ)",
-      "ค้นหาเอกสาร → สถานะ approved",
-      "คำขอหายจากรายการรออนุมัติ"
+      "ไปที่ 'ค้นหาเอกสาร' → ค้นเลข GI → Process Tracker: ส่งคำขอ ✓ → อนุมัติ ✓ → จ่ายสินค้า (รอ)",
+      "คำขอหายจากรายการรออนุมัติ",
+      "เจ้าหน้าที่คลังเห็นคำขอในเมนู 'จ่ายสินค้า'"
     ],
-    fillField: "เลขเอกสารที่อนุมัติ: ____________"
+    fillField: "เลขเอกสาร GI ที่อนุมัติ: ____________"
   },
   {
-    id: "m3", step: 3, title: "ปฏิเสธคำขอเบิก",
-    instruction: "เลือกคำขออีก 1 รายการ → กด 'ปฏิเสธ' → ระบุเหตุผล",
-    menu: "คลังสินค้า > อนุมัติคำขอ",
-    expectedResult: "สถานะเปลี่ยนเป็น 'rejected', Process Tracker แสดงกากบาทแดง, ผู้ขอเห็นเหตุผลการปฏิเสธ",
+    id: "m3", step: 3, title: "ปฏิเสธคำขอเบิกทรัพย์สิน",
+    scenario: "คำขอเบิกไม่เหมาะสม ต้องการปฏิเสธพร้อมเหตุผล",
+    instruction: "เลือกคำขออีก 1 รายการ → กด 'ปฏิเสธ' → ระบุเหตุผลการปฏิเสธ → กด 'ยืนยัน'",
+    menu: "เบิก-จ่าย > อนุมัติเบิกทรัพย์สิน",
+    expectedResult: "สถานะเปลี่ยนเป็น 'rejected', ผู้เบิกเห็นเหตุผลการปฏิเสธ, สต็อกไม่ถูกตัด",
     checkItems: [
-      "Process Tracker: ส่งคำขอ ✓ → อนุมัติ ✗ (ปฏิเสธ)",
-      "Dashboard ผู้เบิก → แสดงสถานะ 'ปฏิเสธ' + เหตุผล",
-      "ค้นหาเอกสาร → สถานะ rejected"
+      "ไปที่ 'ค้นหาเอกสาร' → ค้นเลข GI → Process Tracker: ส่งคำขอ ✓ → อนุมัติ ✗ (ปฏิเสธ)",
+      "ไปที่ 'แดชบอร์ดผู้เบิก' → แสดงสถานะ 'ปฏิเสธ' + เหตุผล",
+      "ไปที่ 'รายงานสินค้าคงคลัง' → สต็อกไม่เปลี่ยนแปลง"
     ],
-    fillField: "เลขเอกสารที่ปฏิเสธ: ____________"
+    fillField: "เลขเอกสาร GI ที่ปฏิเสธ: ____________ / เหตุผล: ____________"
   },
   {
     id: "m4", step: 4, title: "อนุมัติคำขอส่งตรง (Direct Shipping)",
-    instruction: "ไปที่เมนู 'อนุมัติส่งตรง' → ตรวจสอบคำขอ DS → อนุมัติ/ปฏิเสธ",
+    scenario: "มีคำขอส่งตรงรออนุมัติ",
+    instruction: "ไปที่เมนู 'อนุมัติส่งตรง' → ตรวจสอบคำขอ DS → ตรวจสอบรายละเอียดการส่ง (จุดหมาย, สินค้า) → อนุมัติ",
     menu: "ส่งตรง > อนุมัติส่งตรง",
-    expectedResult: "คำขอ DS ที่อนุมัติจะส่งไปยังขั้นตอน 'จัดซื้อ' ในหน้า Procurement",
+    expectedResult: "DS ที่อนุมัติจะส่งไปยังขั้นตอน 'จัดซื้อ-ดำเนินการ'",
     checkItems: [
-      "DS Process Tracker: สร้างคำขอ ✓ → อนุมัติ ✓ → จัดซื้อ (กำลังดำเนินการ)",
-      "ค้นหาเอกสาร DS → สถานะ approved"
+      "ไปที่ 'ค้นหาเอกสาร' → ค้น DS → Process Tracker: สร้างคำขอ ✓ → อนุมัติ ✓ → จัดซื้อ-ส่งของ (รอ)",
+      "คำขอ DS หายจากรายการรออนุมัติ"
     ],
     fillField: "เลขเอกสาร DS ที่อนุมัติ: ____________"
   },
+  {
+    id: "m5", step: 5, title: "ปฏิเสธคำขอส่งตรง",
+    scenario: "คำขอส่งตรงไม่เหมาะสม ต้องปฏิเสธ",
+    instruction: "เลือกคำขอ DS อีก 1 รายการ → กด 'ปฏิเสธ' → ระบุเหตุผล → กด 'ยืนยัน'",
+    menu: "ส่งตรง > อนุมัติส่งตรง",
+    expectedResult: "DS ถูกปฏิเสธ, ผู้ขอได้รับแจ้งเตือน + เหตุผล",
+    checkItems: [
+      "ไปที่ 'ค้นหาเอกสาร' → ค้น DS → Process Tracker: สร้างคำขอ ✓ → อนุมัติ ✗ (ปฏิเสธ)",
+      "ผู้ขอเห็นเหตุผลการปฏิเสธ",
+      "ไม่มีขั้นตอนจัดซื้อเกิดขึ้น"
+    ],
+    fillField: "เลขเอกสาร DS ที่ปฏิเสธ: ____________"
+  },
 ];
 
-// ── Super Admin Training ──
+// ═══════════════════════════════════════════════════
+// SUPER ADMIN MODULE
+// ═══════════════════════════════════════════════════
 const superAdminExercises: Exercise[] = [
   {
     id: "s1", step: 1, title: "จัดการบทบาทผู้ใช้",
-    instruction: "ไปที่เมนู 'จัดการผู้ใช้' → เลือกผู้ใช้ 1 คน → เปลี่ยนบทบาทเป็น 'Warehouse Staff'",
+    instruction: "ไปที่เมนู 'จัดการผู้ใช้' → เลือกผู้ใช้ 1 คน → เปลี่ยนบทบาทเป็น 'Warehouse Staff' → บันทึก",
     menu: "ระบบ > จัดการผู้ใช้",
     expectedResult: "Badge สีของผู้ใช้เปลี่ยน, เมนูที่แสดงจะเปลี่ยนตามบทบาทใหม่",
     checkItems: [
-      "Badge เปลี่ยนเป็นสีน้ำเงิน (Warehouse Staff)",
-      "ผู้ใช้เห็นเมนูคลังสินค้า",
+      "Badge เปลี่ยนเป็นสีตามบทบาทใหม่",
+      "ผู้ใช้ Login ใหม่ → เห็นเมนูตามบทบาท Warehouse Staff",
       "ผู้ใช้ไม่เห็นเมนู 'จัดการผู้ใช้'"
     ],
     fillField: "ชื่อผู้ใช้ที่แก้ไข: ____________"
   },
   {
     id: "s2", step: 2, title: "กำหนดสิทธิ์ตามฝ่าย",
-    instruction: "ไปที่ Tab 'สิทธิ์ตามฝ่าย' → เลือกผู้ใช้ → เปิดสิทธิ์ 'ดู' และ 'สร้าง' ของฝ่ายที่ต้องการ → ปิดสิทธิ์ 'ลบ'",
+    instruction: "ไปที่เมนู 'จัดการผู้ใช้' → Tab 'สิทธิ์ตามฝ่าย' → เลือกผู้ใช้ → เปิดสิทธิ์ 'ดู' และ 'สร้าง' ของฝ่ายที่ต้องการ → ปิดสิทธิ์ 'ลบ'",
     menu: "ระบบ > จัดการผู้ใช้ > สิทธิ์ตามฝ่าย",
     expectedResult: "ผู้ใช้สามารถดูและสร้างข้อมูลเฉพาะฝ่ายที่เปิดสิทธิ์ ไม่สามารถลบได้",
     checkItems: [
       "Toggle 'ดู' และ 'สร้าง' เป็น ON",
-      "Toggle 'ลบ' เป็น OFF (ล็อคสำหรับ Non-Admin)",
+      "Toggle 'ลบ' เป็น OFF",
       "ผู้ใช้เข้าหน้าข้อมูลของฝ่ายอื่น → ไม่แสดงข้อมูล"
     ],
     fillField: "ฝ่ายที่เปิดสิทธิ์: ____________"
   },
   {
     id: "s3", step: 3, title: "กำหนดสิทธิ์ตามฟังก์ชัน",
-    instruction: "ไปที่ Tab 'สิทธิ์ตามฟังก์ชัน' → เลือกผู้ใช้ → เปิด/ปิดเมนูที่ต้องการ",
+    instruction: "ไปที่เมนู 'จัดการผู้ใช้' → Tab 'สิทธิ์ตามฟังก์ชัน' → เลือกผู้ใช้ → เปิด/ปิดเมนูที่ต้องการ",
     menu: "ระบบ > จัดการผู้ใช้ > สิทธิ์ตามฟังก์ชัน",
     expectedResult: "เมนูที่ปิดจะหายจากแถบเมนูด้านซ้ายของผู้ใช้",
     checkItems: [
-      "เมนูที่ปิด → ไม่แสดงใน Sidebar",
-      "ผู้ใช้พยายามเข้า URL ตรง → ถูก Redirect",
+      "เมนูที่ปิด → ไม่แสดงใน Sidebar ของผู้ใช้",
       "เปิดเมนูกลับ → แสดงอีกครั้ง"
     ],
     fillField: "ฟังก์ชันที่ปิด: ____________"
   },
   {
-    id: "s4", step: 4, title: "จัดการ Master Data ขั้นสูง",
-    instruction: "ไปที่เมนู 'ข้อมูลหลัก' → เข้า Tab 'อุปกรณ์' (Super Admin Only) → เพิ่มรหัสนำหน้าใหม่ → เข้า Tab 'คลังสินค้า' → เพิ่มคลังสินค้าและตำแหน่งจัดเก็บ",
-    menu: "ข้อมูลหลัก > อุปกรณ์ / คลังสินค้า / ตำแหน่งจัดเก็บ",
-    expectedResult: "รหัสนำหน้าใหม่พร้อมใช้ในการสร้างสินค้า, คลังสินค้าใหม่แสดงในระบบ",
+    id: "s4", step: 4, title: "จัดการ Master Data",
+    scenario: "ต้องการเพิ่มรหัสนำหน้าสินค้าใหม่ และเพิ่มตำแหน่งจัดเก็บ",
+    instruction: "ไปที่เมนู 'ข้อมูลหลัก' → Tab 'อุปกรณ์' → เพิ่มรหัสนำหน้าใหม่ (เช่น NEW-) → Tab 'ตำแหน่งจัดเก็บ' → เพิ่มตำแหน่งใหม่ + ช่องจัดเก็บ + ช่องย่อย → Tab 'คลังสินค้า' → เพิ่มคลังใหม่",
+    menu: "ข้อมูลหลัก > อุปกรณ์ / ตำแหน่งจัดเก็บ / คลังสินค้า",
+    expectedResult: "รหัสนำหน้าใหม่พร้อมใช้ในการสร้างสินค้า, ตำแหน่งจัดเก็บใหม่แสดงในระบบ",
     checkItems: [
-      "Prefix ใหม่แสดงในรายการเลือกตอนสร้างสินค้า",
-      "คลังสินค้าใหม่แสดงในตัวเลือก Location",
-      "Tab เหล่านี้ไม่แสดงสำหรับ Admin ปกติ"
+      "ไปที่ 'นำสินค้าใหม่เข้าระบบ' → สร้างสินค้าใหม่ → รหัสนำหน้าใหม่แสดงในรายการเลือก",
+      "ไปที่ 'รับเข้าคลัง' → ตำแหน่งจัดเก็บใหม่แสดงในตัวเลือก",
+      "ไปที่ 'ข้อมูลหลัก' → คลังสินค้าใหม่แสดงในรายการ"
     ],
-    fillField: "รหัสนำหน้าที่สร้าง: ____________"
+    fillField: "รหัสนำหน้าที่สร้าง: ____________ / ตำแหน่งที่สร้าง: ____________"
   },
   {
-    id: "s5", step: 5, title: "ตรวจสอบ Stock Movement และรายงาน",
-    instruction: "ไปที่เมนู 'Stock Movement' → กรองตามช่วงเวลา → ตรวจสอบรายการทั้งหมดจากแบบฝึกของ Admin → ไปที่ 'Stock Card' → ค้นหาสินค้าที่ใช้ฝึก",
-    menu: "รายงาน > Stock Movement / Stock Card",
-    expectedResult: "เห็นประวัติทุกรายการ (receive, issue) + Stock Card แสดง Lifecycle ครบ",
+    id: "s5", step: 5, title: "ตรวจสอบรายงานภาพรวมระบบ",
+    scenario: "ต้องการดูภาพรวมทั้งหมดของระบบ",
+    instruction: "ไปที่ 'แดชบอร์ด' → ดูจำนวนสินค้ารวม, รายการเบิกจ่ายเดือนนี้ → ตรวจสอบแจ้งเตือนประกันหมดอายุ → ไปที่ 'รายงาน Media Player' → ดูสรุปเครื่องทั้งหมด",
+    menu: "แดชบอร์ด → รายงาน > รายงาน Media Player",
+    expectedResult: "เห็นภาพรวมระบบทั้งหมดในหน้าเดียว, แจ้งเตือนสินค้าใกล้หมดอายุ",
     checkItems: [
-      "Stock Movement แสดงรายการ receive จากขั้นตอนรับเข้าคลัง",
-      "Stock Movement แสดงรายการ issue จากขั้นตอนจ่ายสินค้า",
-      "Stock Card แสดง Lifecycle Tracker ครบ + ยอดคงเหลือถูกต้อง"
+      "แดชบอร์ดแสดงจำนวนสินค้ารวม, ตำแหน่งจัดเก็บ, รายการเบิกจ่าย",
+      "แสดงแจ้งเตือนประกันหมดอายุ (ถ้ามี)",
+      "รายงาน Media Player แสดง Summary Card ทั้ง 8 ใบ",
+      "กรอง Filter แล้ว Summary Card เปลี่ยนตาม"
     ],
-    fillField: "ยอดคงเหลือสุดท้ายใน Stock Card: ____________"
+    fillField: "จำนวนสินค้ารวมในแดชบอร์ด: ____________"
   },
 ];
 
+// ═══════════════════════════════════════════════════
+// MODULES ARRAY
+// ═══════════════════════════════════════════════════
 const trainingModules: TrainingModule[] = [
   {
-    id: "admin-training",
-    title: "แบบฝึก Admin: Full Warehouse Flow",
+    id: "admin-full-flow",
+    title: "แบบฝึก 1: Full Warehouse Flow (ปกติ)",
     icon: <Package className="h-5 w-5" />,
     role: "Admin / Warehouse Staff",
-    description: "ฝึกการนำสินค้าเข้า → รับเข้าคลัง → ขอเบิก → จ่ายสินค้า → ยืนยันรับ ครบทุกขั้นตอน (UAT Ready)",
+    description: "ฝึกการนำสินค้าเข้า (มีในระบบแล้ว) → รับเข้าคลัง → ขอเบิก → จ่ายสินค้า → ยืนยันรับ ครบทุกขั้นตอน",
     exercises: adminFullFlowExercises,
   },
   {
+    id: "admin-new-product",
+    title: "แบบฝึก 2: สินค้าใหม่ + เอกสารแนบ (ไฟล์ PO/PR)",
+    icon: <FileText className="h-5 w-5" />,
+    role: "Admin / Warehouse Staff",
+    description: "ฝึกนำสินค้าใหม่ที่ยังไม่มีในระบบเข้า พร้อมแนบเอกสาร PO/PR/Invoice → รับเข้าคลัง + สร้างรหัสสินค้าจริง",
+    exercises: adminNewProductExercises,
+  },
+  {
+    id: "admin-media-player",
+    title: "แบบฝึก 3: Media Player Entry (หลายเครื่อง)",
+    icon: <Monitor className="h-5 w-5" />,
+    role: "Admin / Warehouse Staff",
+    description: "ฝึกนำ Media Player หลายเครื่องเข้าระบบพร้อมกัน พร้อม S/N, รูปภาพแต่ละเครื่อง → รับเข้าคลัง → ดู Profile",
+    exercises: adminMediaPlayerExercises,
+  },
+  {
+    id: "admin-rejection",
+    title: "แบบฝึก 4: Scenario ไม่ปกติ (ปฏิเสธ / รอสินค้า / แจ้งปัญหา / ของเสีย)",
+    icon: <AlertTriangle className="h-5 w-5" />,
+    role: "Admin / Warehouse Staff",
+    description: "ฝึกจัดการกรณีที่ไม่ปกติ: ปฏิเสธการรับ, สต็อกไม่พอ, แจ้งปัญหาการรับสินค้า, นำของเสียเข้าระบบ",
+    exercises: adminRejectionExercises,
+  },
+  {
+    id: "admin-reports",
+    title: "แบบฝึก 5: รายงานและการตรวจสอบสต็อก",
+    icon: <BarChart3 className="h-5 w-5" />,
+    role: "Admin / Warehouse Staff",
+    description: "ฝึกดูรายงานสินค้าคงคลัง, Stock Card, Stock Movement Log, Dead Stock รวมถึง Scenario ตรวจสอบของหาย",
+    exercises: adminReportExercises,
+  },
+  {
+    id: "admin-ds",
+    title: "แบบฝึก 6: Direct Shipping Flow",
+    icon: <Truck className="h-5 w-5" />,
+    role: "Admin / Warehouse Staff",
+    description: "ฝึกสร้างคำขอส่งตรง → จัดซื้อ-ดำเนินการ ครบวงจร",
+    exercises: adminDSExercises,
+  },
+  {
     id: "manager-training",
-    title: "แบบฝึก Manager: การอนุมัติ",
+    title: "แบบฝึก 7: Manager - การอนุมัติ/ปฏิเสธ",
     icon: <Shield className="h-5 w-5" />,
     role: "Manager",
-    description: "ฝึกการอนุมัติ/ปฏิเสธคำขอเบิกทรัพย์สิน และคำขอส่งตรง ตรวจสอบผลลัพธ์ทุกขั้นตอน",
+    description: "ฝึกอนุมัติ/ปฏิเสธคำขอเบิกทรัพย์สินและคำขอส่งตรง ตรวจสอบผลลัพธ์ทุกขั้นตอน",
     exercises: managerExercises,
   },
   {
     id: "superadmin-training",
-    title: "แบบฝึก Super Admin: การจัดการระบบ",
+    title: "แบบฝึก 8: Super Admin - จัดการระบบ + รายงาน",
     icon: <Users className="h-5 w-5" />,
     role: "Super Admin",
-    description: "ฝึกจัดการผู้ใช้ สิทธิ์ตามฝ่าย สิทธิ์ตามฟังก์ชัน Master Data ขั้นสูง และตรวจสอบรายงาน",
+    description: "ฝึกจัดการผู้ใช้, สิทธิ์ตามฝ่าย/ฟังก์ชัน, Master Data, และตรวจสอบรายงานภาพรวม",
     exercises: superAdminExercises,
   },
 ];
@@ -247,13 +560,6 @@ const trainingModules: TrainingModule[] = [
 // ── Export Word Function ──
 async function exportTrainingDoc(module: TrainingModule) {
   try {
-    const cellBorder = {
-      top: { style: BorderStyle.SINGLE, size: 1 },
-      bottom: { style: BorderStyle.SINGLE, size: 1 },
-      left: { style: BorderStyle.SINGLE, size: 1 },
-      right: { style: BorderStyle.SINGLE, size: 1 },
-    };
-
     const doc = new Document({
       sections: [{
         properties: {},
@@ -286,6 +592,13 @@ async function exportTrainingDoc(module: TrainingModule) {
               heading: HeadingLevel.HEADING_2,
               spacing: { before: 300, after: 100 },
             }),
+            ...(ex.scenario ? [new Paragraph({
+              children: [
+                new TextRun({ text: "📋 สถานการณ์: ", bold: true, size: 20 }),
+                new TextRun({ text: ex.scenario, italics: true, size: 20 }),
+              ],
+              spacing: { after: 50 },
+            })] : []),
             new Paragraph({
               children: [
                 new TextRun({ text: "เมนู: ", bold: true, size: 20 }),
@@ -308,9 +621,8 @@ async function exportTrainingDoc(module: TrainingModule) {
               spacing: { after: 100 },
             }),
             new Paragraph({
-              text: "รายการตรวจสอบ (Checklist):",
-              spacing: { after: 50 },
               children: [new TextRun({ text: "รายการตรวจสอบ (Checklist):", bold: true, size: 20 })],
+              spacing: { after: 50 },
             }),
             ...ex.checkItems.map(item =>
               new Paragraph({
@@ -373,8 +685,8 @@ async function exportTrainingDoc(module: TrainingModule) {
     });
 
     const blob = await Packer.toBlob(doc);
-    saveAs(blob, `แบบฝึกอบรม-${module.role}.docx`);
-    toast.success(`ดาวน์โหลดแบบฝึก ${module.role} สำเร็จ`);
+    saveAs(blob, `แบบฝึกอบรม-${module.role}-${module.id}.docx`);
+    toast.success(`ดาวน์โหลดแบบฝึก ${module.title} สำเร็จ`);
   } catch (error) {
     console.error(error);
     toast.error("เกิดข้อผิดพลาดในการสร้างเอกสาร");
@@ -403,9 +715,17 @@ export function TrainingContent() {
         </div>
         <p className="text-xs text-muted-foreground">
           แบบฝึกนี้ออกแบบมาเพื่อให้ผู้ใช้ทดลองใช้งานระบบจริงแบบ Step-by-Step พร้อม Checklist ตรวจสอบผลลัพธ์ทุกขั้นตอน
+          ครอบคลุมทั้ง <strong>Flow ปกติ</strong> (นำเข้า → รับ → เบิก → จ่าย → ยืนยัน) และ <strong>Flow ไม่ปกติ</strong> (ปฏิเสธ, รอสินค้า, แจ้งปัญหา, ของเสีย)
+          รวมถึง <strong>การตรวจสอบรายงาน</strong> (Stock Card, Movement Log, Dead Stock, Scenario ของหาย)
           สามารถใช้เป็น <strong>User Acceptance Test (UAT)</strong> ได้ โดยกดปุ่ม "Export แบบฝึก" เพื่อดาวน์โหลดเอกสาร Word
           ที่มีช่องให้กรอกคำตอบ + ลงนาม แล้วนำส่งผู้ตรวจ
         </p>
+        <div className="flex flex-wrap gap-2 mt-3">
+          <Badge variant="outline" className="text-[10px]">🟢 Admin: 6 แบบฝึก</Badge>
+          <Badge variant="outline" className="text-[10px]">🔵 Manager: 1 แบบฝึก</Badge>
+          <Badge variant="outline" className="text-[10px]">🟣 Super Admin: 1 แบบฝึก</Badge>
+          <Badge variant="outline" className="text-[10px]">รวม {trainingModules.reduce((sum, m) => sum + m.exercises.length, 0)} ขั้นตอน</Badge>
+        </div>
       </div>
 
       {trainingModules.map((mod) => (
@@ -421,7 +741,8 @@ export function TrainingContent() {
                     <div>
                       <CardTitle className="text-base flex items-center gap-2">
                         {mod.title}
-                        <Badge variant="info" className="text-[10px]">{mod.role}</Badge>
+                        <Badge variant="secondary" className="text-[10px]">{mod.role}</Badge>
+                        <Badge variant="outline" className="text-[10px]">{mod.exercises.length} ขั้นตอน</Badge>
                       </CardTitle>
                       <p className="text-xs text-muted-foreground mt-1">{mod.description}</p>
                     </div>
@@ -457,6 +778,14 @@ export function TrainingContent() {
                       <h5 className="font-semibold text-sm">{ex.title}</h5>
                     </div>
 
+                    {/* Scenario */}
+                    {ex.scenario && (
+                      <div className="p-2.5 rounded bg-purple-50 dark:bg-purple-950/30 border border-purple-200 dark:border-purple-800">
+                        <p className="text-xs font-medium text-purple-700 dark:text-purple-300 mb-1">📋 สถานการณ์:</p>
+                        <p className="text-xs text-purple-600 dark:text-purple-400 italic">{ex.scenario}</p>
+                      </div>
+                    )}
+
                     {/* Menu */}
                     <div className="flex items-center gap-1.5">
                       <Badge variant="outline" className="text-[10px] px-1.5 bg-blue-50 dark:bg-blue-950/40 border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300">
@@ -467,7 +796,7 @@ export function TrainingContent() {
                     {/* Instruction */}
                     <div className="p-2.5 rounded bg-background border">
                       <p className="text-xs font-medium mb-1">📝 คำสั่ง:</p>
-                      <p className="text-xs text-muted-foreground">{ex.instruction}</p>
+                      <p className="text-xs text-muted-foreground whitespace-pre-line">{ex.instruction}</p>
                     </div>
 
                     {/* Expected Result */}

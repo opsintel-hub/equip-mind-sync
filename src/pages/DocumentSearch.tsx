@@ -155,11 +155,11 @@ export default function DocumentSearch() {
     try {
       // Fetch from goods_receipt_pending
       const { data: pendingData } = await supabase
-        .from("goods_receipt_pending").select("*").not("document_url", "is", null).order("created_at", { ascending: false });
+        .from("goods_receipt_pending").select("*").order("created_at", { ascending: false });
 
       // Fetch from goods_receipt
       const { data: receiptData } = await supabase
-        .from("goods_receipt").select("*, equipment:equipment_id(code, name)").not("document_url", "is", null).order("created_at", { ascending: false });
+        .from("goods_receipt").select("*, equipment:equipment_id(code, name)").order("created_at", { ascending: false });
 
       // Fetch from goods_issue_pending (with extended fields for tracker)
       const { data: issueData } = await supabase

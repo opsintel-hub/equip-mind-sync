@@ -811,7 +811,7 @@ const DeliveryEntry = () => {
       const itemsToInsert = itemsToSubmit.map((item, index) => ({
         document_no: `${docNo}-${(index + 1).toString().padStart(2, "0")}`,
         department_id: selectedDepartmentId,
-        company_id: null,
+        company_id: selectedCompanyId || null,
         warehouse_id: null,
         receipt_purpose_id: selectedReceiptPurposeId || null,
         equipment_id: item.is_media_player ? null : item.equipment_id,
@@ -819,8 +819,8 @@ const DeliveryEntry = () => {
         equipment_name: item.equipment_name || null,
         quantity: item.quantity,
         unit: item.unit,
-        supplier_id: selectedCompanyId || item.supplier_id,
-        supplier_name: (selectedCompanyId ? companies.find(c => c.id === selectedCompanyId)?.name : item.supplier_name) || null,
+        supplier_id: item.supplier_id || null,
+        supplier_name: item.supplier_name || (selectedCompanyId ? companies.find(c => c.id === selectedCompanyId)?.name : null) || null,
         lot_number: item.lot_number_1 || null,
         lot_number_2: item.lot_number_2 || null,
         serial_number: item.serial_number || null,
@@ -916,9 +916,10 @@ const DeliveryEntry = () => {
       }
       resetItemForm();
       fetchPendingReceipts();
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error:", error);
-      toast.error("เกิดข้อผิดพลาดในการบันทึกข้อมูล");
+      const errMsg = error?.message || error?.details || "เกิดข้อผิดพลาดที่ไม่ทราบสาเหตุ";
+      toast.error(`เกิดข้อผิดพลาดในการบันทึกข้อมูล: ${errMsg}`);
     } finally {
       setIsLoading(false);
       setIsUploadingFile(false);
