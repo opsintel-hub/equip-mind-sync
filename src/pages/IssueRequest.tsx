@@ -368,25 +368,51 @@ const IssueRequest = () => {
   // Internal function to add item to cart
   const addItemToCartInternal = (isMediaPlayer: boolean) => {
     const selectedEquipment = equipment?.find(e => e.id === currentItem.equipment_id);
-    const newItem: CartItem = {
-      id: crypto.randomUUID(),
-      equipment_id: currentItem.equipment_id,
-      equipment_code: currentItem.equipment_code,
-      equipment_name: currentItem.equipment_name,
-      quantity: parseInt(currentItem.quantity),
-      unit: currentItem.unit,
-      serial_number: currentItem.serial_number,
-      serial_number_source: currentItem.serial_number_source,
-      billboard_id: currentItem.billboard_id,
-      notes: currentItem.notes,
-      is_media_player: isMediaPlayer,
-      media_player_id: isMediaPlayer ? currentItem.equipment_id : undefined,
-      warehouse_name: selectedEquipment?.warehouse_name || undefined,
-      location_name: selectedEquipment?.location_name || undefined,
-    };
+    
+    if (editingCartItemId) {
+      // Update existing cart item
+      setCartItems(prev => prev.map(item => 
+        item.id === editingCartItemId ? {
+          ...item,
+          equipment_id: currentItem.equipment_id,
+          equipment_code: currentItem.equipment_code,
+          equipment_name: currentItem.equipment_name,
+          quantity: parseInt(currentItem.quantity),
+          unit: currentItem.unit,
+          serial_number: currentItem.serial_number,
+          serial_number_source: currentItem.serial_number_source,
+          billboard_id: currentItem.billboard_id,
+          notes: currentItem.notes,
+          is_media_player: isMediaPlayer,
+          media_player_id: isMediaPlayer ? currentItem.equipment_id : undefined,
+          warehouse_name: selectedEquipment?.warehouse_name || undefined,
+          location_name: selectedEquipment?.location_name || undefined,
+        } : item
+      ));
+      setEditingCartItemId(null);
+      toast.success("อัปเดตรายการเรียบร้อยแล้ว");
+    } else {
+      const newItem: CartItem = {
+        id: crypto.randomUUID(),
+        equipment_id: currentItem.equipment_id,
+        equipment_code: currentItem.equipment_code,
+        equipment_name: currentItem.equipment_name,
+        quantity: parseInt(currentItem.quantity),
+        unit: currentItem.unit,
+        serial_number: currentItem.serial_number,
+        serial_number_source: currentItem.serial_number_source,
+        billboard_id: currentItem.billboard_id,
+        notes: currentItem.notes,
+        is_media_player: isMediaPlayer,
+        media_player_id: isMediaPlayer ? currentItem.equipment_id : undefined,
+        warehouse_name: selectedEquipment?.warehouse_name || undefined,
+        location_name: selectedEquipment?.location_name || undefined,
+      };
 
-    setCartItems([...cartItems, newItem]);
-    setSelectedCartIds(prev => new Set(prev).add(newItem.id));
+      setCartItems([...cartItems, newItem]);
+      setSelectedCartIds(prev => new Set(prev).add(newItem.id));
+    }
+    
     // Reset current item form
     setCurrentItem({
       equipment_id: "",
@@ -402,7 +428,9 @@ const IssueRequest = () => {
     setIsQuantityLocked(false);
     setCurrentStockInfo(null);
 
-    toast.success("เพิ่มรายการลงตะกร้าแล้ว");
+    if (!editingCartItemId) {
+      toast.success("เพิ่มรายการลงตะกร้าแล้ว");
+    }
   };
 
   // Accept suggested quantity from warning dialog
