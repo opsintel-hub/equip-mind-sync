@@ -132,6 +132,9 @@ const IssueRequest = () => {
   
   // Track if quantity is locked (when selected via S/N)
   const [isQuantityLocked, setIsQuantityLocked] = useState(false);
+  
+  // Track editing cart item
+  const [editingCartItemId, setEditingCartItemId] = useState<string | null>(null);
 
   // Fetch notification settings for advance_days
   const { data: notificationSettings } = useQuery({
@@ -327,6 +330,15 @@ const IssueRequest = () => {
 
   // Add item to cart
   const handleAddToCart = () => {
+    // Validate header fields first
+    if (!headerData.requester_name.trim()) {
+      toast.error("กรุณากรอกชื่อผู้ขอเบิกก่อนเพิ่มสินค้า");
+      return;
+    }
+    if (!headerData.purpose_id) {
+      toast.error("กรุณาเลือกวัตถุประสงค์ก่อนเพิ่มสินค้า");
+      return;
+    }
     if (!currentItem.equipment_id && !currentItem.equipment_name) {
       toast.error("กรุณาเลือกสินค้า");
       return;
@@ -356,25 +368,51 @@ const IssueRequest = () => {
   // Internal function to add item to cart
   const addItemToCartInternal = (isMediaPlayer: boolean) => {
     const selectedEquipment = equipment?.find(e => e.id === currentItem.equipment_id);
-    const newItem: CartItem = {
-      id: crypto.randomUUID(),
-      equipment_id: currentItem.equipment_id,
-      equipment_code: currentItem.equipment_code,
-      equipment_name: currentItem.equipment_name,
-      quantity: parseInt(currentItem.quantity),
-      unit: currentItem.unit,
-      serial_number: currentItem.serial_number,
-      serial_number_source: currentItem.serial_number_source,
-      billboard_id: currentItem.billboard_id,
-      notes: currentItem.notes,
-      is_media_player: isMediaPlayer,
-      media_player_id: isMediaPlayer ? currentItem.equipment_id : undefined,
-      warehouse_name: selectedEquipment?.warehouse_name || undefined,
-      location_name: selectedEquipment?.location_name || undefined,
-    };
+    
+    if (editingCartItemId) {
+      // Update existing cart item
+      setCartItems(prev => prev.map(item => 
+        item.id === editingCartItemId ? {
+          ...item,
+          equipment_id: currentItem.equipment_id,
+          equipment_code: currentItem.equipment_code,
+          equipment_name: currentItem.equipment_name,
+          quantity: parseInt(currentItem.quantity),
+          unit: currentItem.unit,
+          serial_number: currentItem.serial_number,
+          serial_number_source: currentItem.serial_number_source,
+          billboard_id: currentItem.billboard_id,
+          notes: currentItem.notes,
+          is_media_player: isMediaPlayer,
+          media_player_id: isMediaPlayer ? currentItem.equipment_id : undefined,
+          warehouse_name: selectedEquipment?.warehouse_name || undefined,
+          location_name: selectedEquipment?.location_name || undefined,
+        } : item
+      ));
+      setEditingCartItemId(null);
+      toast.success("อัปเดตรายการเรียบร้อยแล้ว");
+    } else {
+      const newItem: CartItem = {
+        id: crypto.randomUUID(),
+        equipment_id: currentItem.equipment_id,
+        equipment_code: currentItem.equipment_code,
+        equipment_name: currentItem.equipment_name,
+        quantity: parseInt(currentItem.quantity),
+        unit: currentItem.unit,
+        serial_number: currentItem.serial_number,
+        serial_number_source: currentItem.serial_number_source,
+        billboard_id: currentItem.billboard_id,
+        notes: currentItem.notes,
+        is_media_player: isMediaPlayer,
+        media_player_id: isMediaPlayer ? currentItem.equipment_id : undefined,
+        warehouse_name: selectedEquipment?.warehouse_name || undefined,
+        location_name: selectedEquipment?.location_name || undefined,
+      };
 
-    setCartItems([...cartItems, newItem]);
-    setSelectedCartIds(prev => new Set(prev).add(newItem.id));
+      setCartItems([...cartItems, newItem]);
+      setSelectedCartIds(prev => new Set(prev).add(newItem.id));
+    }
+    
     // Reset current item form
     setCurrentItem({
       equipment_id: "",
@@ -390,7 +428,9 @@ const IssueRequest = () => {
     setIsQuantityLocked(false);
     setCurrentStockInfo(null);
 
-    toast.success("เพิ่มรายการลงตะกร้าแล้ว");
+    if (!editingCartItemId) {
+      toast.success("เพิ่มรายการลงตะกร้าแล้ว");
+    }
   };
 
   // Accept suggested quantity from warning dialog
@@ -408,7 +448,55 @@ const IssueRequest = () => {
     }
   };
 
-  // Remove item from cart
+  // Edit cart item - load data back into form
+  const handleEditCartItem = (item: CartItem) => {
+    setEditingCartItemId(item.id);
+    setCurrentItem({
+      equipment_id: item.equipment_id,
+      equipment_code: item.equipment_code,
+      equipment_name: item.equipment_name,
+      serial_number: item.serial_number || "",
+      serial_number_source: item.serial_number_source || "",
+      quantity: String(item.quantity),
+      unit: item.unit,
+      billboard_id: item.billboard_id || "",
+      notes: item.notes || "",
+    });
+    setIsQuantityLocked(Boolean(item.serial_number));
+    
+    // Update stock info
+    const selectedEquipment = equipment?.find(e => e.id === item.equipment_id);
+    if (selectedEquipment) {
+      setCurrentStockInfo({
+        currentStock: selectedEquipment.quantity_in_stock,
+        remainingAfterIssue: selectedEquipment.quantity_in_stock - item.quantity,
+      });
+    }
+    
+    // Scroll to form
+    window.scrollTo({ top: 0, behavior: "smooth" });
+    toast.info("กำลังแก้ไขรายการ — แก้ไขข้อมูลแล้วกดปุ่มบันทึก");
+  };
+
+  // Cancel editing
+  const handleCancelEdit = () => {
+    setEditingCartItemId(null);
+    setCurrentItem({
+      equipment_id: "",
+      equipment_code: "",
+      equipment_name: "",
+      serial_number: "",
+      serial_number_source: "",
+      quantity: "1",
+      unit: "ชิ้น",
+      billboard_id: "",
+      notes: "",
+    });
+    setIsQuantityLocked(false);
+    setCurrentStockInfo(null);
+  };
+
+
   const handleRemoveFromCart = (itemId: string) => {
     setCartItems(cartItems.filter(item => item.id !== itemId));
     setSelectedCartIds(prev => {
@@ -1173,8 +1261,17 @@ const IssueRequest = () => {
             {/* Add Item Section */}
             <div className="p-4 border rounded-lg space-y-4">
               <h3 className="font-medium flex items-center gap-2">
-                <ShoppingCart className="h-4 w-4" />
-                เพิ่มรายการสินค้า
+                {editingCartItemId ? (
+                  <>
+                    <Pencil className="h-4 w-4 text-primary" />
+                    <span className="text-primary">แก้ไขรายการสินค้า</span>
+                  </>
+                ) : (
+                  <>
+                    <ShoppingCart className="h-4 w-4" />
+                    เพิ่มรายการสินค้า
+                  </>
+                )}
               </h3>
               
               {/* Category restriction notice */}
@@ -1295,10 +1392,27 @@ const IssueRequest = () => {
                   />
                 </div>
               </div>
-              <Button type="button" variant="secondary" onClick={handleAddToCart}>
-                <Plus className="h-4 w-4 mr-2" />
-                เพิ่มลงตะกร้า
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button type="button" variant={editingCartItemId ? "default" : "secondary"} onClick={handleAddToCart}>
+                  {editingCartItemId ? (
+                    <>
+                      <CheckCircle className="h-4 w-4 mr-2" />
+                      บันทึกการแก้ไข
+                    </>
+                  ) : (
+                    <>
+                      <Plus className="h-4 w-4 mr-2" />
+                      เพิ่มลงตะกร้า
+                    </>
+                  )}
+                </Button>
+                {editingCartItemId && (
+                  <Button type="button" variant="outline" onClick={handleCancelEdit}>
+                    <X className="h-4 w-4 mr-2" />
+                    ยกเลิกแก้ไข
+                  </Button>
+                )}
+              </div>
             </div>
 
             {/* Cart Items */}
@@ -1352,7 +1466,7 @@ const IssueRequest = () => {
                         <TableHead className="text-right">จำนวน</TableHead>
                         <TableHead>ป้ายโฆษณา</TableHead>
                         <TableHead>หมายเหตุ</TableHead>
-                        <TableHead className="w-10">จัดการ</TableHead>
+                        <TableHead className="w-[80px]">จัดการ</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -1404,15 +1518,28 @@ const IssueRequest = () => {
                           </TableCell>
                           <TableCell className="text-sm text-muted-foreground">{item.notes || "-"}</TableCell>
                           <TableCell>
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleRemoveFromCart(item.id)}
-                              className="text-destructive hover:text-destructive"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
+                            <div className="flex items-center gap-1">
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleEditCartItem(item)}
+                                className="text-primary hover:text-primary"
+                                title="แก้ไข"
+                              >
+                                <Pencil className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleRemoveFromCart(item.id)}
+                                className="text-destructive hover:text-destructive"
+                                title="ลบ"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
                           </TableCell>
                         </TableRow>
                       ))}
