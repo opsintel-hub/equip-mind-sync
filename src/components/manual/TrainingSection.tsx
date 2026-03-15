@@ -183,6 +183,88 @@ const adminMediaPlayerExercises: Exercise[] = [
 ];
 
 // ═══════════════════════════════════════════════════
+// ADMIN MODULE 3.5: Media Player Full Lifecycle
+// ═══════════════════════════════════════════════════
+const adminMediaPlayerLifecycleExercises: Exercise[] = [
+  {
+    id: "ampl1", step: 1, title: "ตรวจสอบ Media Player Profile",
+    scenario: "หลังจากรับ Media Player เข้าคลังแล้ว ต้องการตรวจสอบข้อมูลรายเครื่อง",
+    instruction: "ไปที่เมนู 'Media Player Profile' → ค้นหาด้วย Serial Number ของเครื่องที่รับเข้าจากแบบฝึกที่ 3 → ตรวจสอบข้อมูลทุกแท็บ: ข้อมูลทั่วไป (General Info), ประวัติการติดตั้ง (Journey), ความเคลื่อนไหว (Movement)",
+    menu: "Media Player > Media Player Profile",
+    expectedResult: "แสดงข้อมูลเครื่องครบทุกด้าน: S/N, ยี่ห้อ, โมเดล, สถานะ 'ในคลัง', รูปภาพเครื่อง, อายุการใช้งาน, สถานะประกัน",
+    checkItems: [
+      "ค้นหาด้วย S/N → พบเครื่องที่ต้องการ",
+      "แท็บ 'ข้อมูลทั่วไป' แสดง S/N, ชื่อเครื่อง, ยี่ห้อ, โมเดล, สถานะ 'ในคลัง' (สีเขียว)",
+      "รูปภาพเครื่องแสดงถูกต้อง (กดขยายภาพ Lightbox ได้)",
+      "แท็บ 'ประวัติการติดตั้ง (Journey)' → ยังไม่มีข้อมูล (เครื่องใหม่)",
+      "แท็บ 'ความเคลื่อนไหว (Movement)' → มีรายการ receive",
+      "กดปุ่ม 'ดาวน์โหลด QR Code' → ได้ไฟล์ QR Code ประจำเครื่อง",
+      "กดปุ่ม 'Export PDF' → ได้ไฟล์ PDF Profile ครบถ้วน"
+    ],
+    fillField: "S/N ที่ค้นหา: ____________ / สถานะเครื่อง: ____________"
+  },
+  {
+    id: "ampl2", step: 2, title: "ดูรายงาน Media Player",
+    scenario: "ต้องการดูภาพรวม Media Player ทั้งหมดในระบบ พร้อมกรองตามเงื่อนไข",
+    instruction: "ไปที่เมนู 'รายงาน Media Player' → ดู Summary Cards 8 ใบ (จำนวนทั้งหมด, ติดตั้งแล้ว, ในคลัง, ชำรุด ฯลฯ) → ทดลองกรองตามฝ่าย → กรองตามยี่ห้อ → กรองตามสถานะประกัน → สังเกตว่า Summary Cards เปลี่ยนค่าตาม Filter",
+    menu: "Media Player > รายงาน Media Player",
+    expectedResult: "Summary Cards 8 ใบเปลี่ยนค่าแบบ Reactive ตามการกรอง, ตารางแสดงรายเครื่อง 1 แถว = 1 เครื่อง",
+    checkItems: [
+      "Summary Cards แสดง: จำนวนทั้งหมด, ติดตั้งแล้ว, ในคลัง, ชำรุด, ซ่อมแล้ว, จำนวนรหัส, จำนวนยี่ห้อ, แจ้งเตือนประกัน",
+      "กรองตามฝ่าย → Summary Cards เปลี่ยนค่าทันที",
+      "กรองตามยี่ห้อ → ตารางแสดงเฉพาะยี่ห้อนั้น",
+      "คลิกแถวรายการ → เปิดหน้า Media Player Profile ของเครื่องนั้น",
+      "เครื่องที่รับเข้าจากแบบฝึกที่ 3 ปรากฏในตาราง สถานะ 'ในคลัง'"
+    ],
+    fillField: "จำนวน Media Player ในคลังทั้งหมด: ____________"
+  },
+  {
+    id: "ampl3", step: 3, title: "เบิก Media Player ไปติดตั้งที่ป้ายโฆษณา",
+    scenario: "ต้องการเบิก Media Player 1 เครื่องเพื่อติดตั้งที่ป้ายโฆษณา",
+    instruction: "ไปที่เมนู 'ขอเบิกสินค้า' → กรอกข้อมูลผู้ขอเบิก → เลือกวัตถุประสงค์ที่ต้องระบุป้ายโฆษณา → เลือก Media Player จากรายการ (ค้นด้วย S/N ได้) → ระบุจำนวน 1 → เลือกป้ายโฆษณาปลายทาง → กด 'เพิ่มลงตะกร้า' → กด 'ส่งคำขอเบิก'",
+    menu: "เบิก-จ่าย > ขอเบิกสินค้า",
+    expectedResult: "ระบบสร้างเอกสาร GI, ตะกร้าแสดง Badge 'Media Player', Auto Fill: สต็อกปัจจุบันแสดงข้างรายการ",
+    checkItems: [
+      "ค้นหา Media Player ด้วย S/N ในรายการสินค้า → พบเครื่อง",
+      "ตะกร้าแสดง Badge '[Media Player]' ข้างชื่อรายการ",
+      "ป้ายโฆษณาที่เลือกแสดงในตะกร้า",
+      "ได้เลขเอกสาร GI",
+      "ไปที่ 'แดชบอร์ดผู้เบิก' → แสดงคำขอนี้"
+    ],
+    fillField: "เลขเอกสาร GI: ____________ / ป้ายโฆษณาที่เลือก: ____________"
+  },
+  {
+    id: "ampl4", step: 4, title: "จ่าย Media Player + ตรวจสอบ Profile หลังจ่าย",
+    scenario: "เจ้าหน้าที่คลังจ่าย Media Player ตามคำขอ และตรวจสอบผลลัพธ์ใน Profile",
+    instruction: "ไปที่ 'จ่ายสินค้า' → ค้นหาเอกสาร GI → ตรวจสอบ S/N → กด 'จ่ายสินค้า' → จากนั้นไปที่ 'Media Player Profile' → ค้นหาเครื่องที่จ่ายไป → ตรวจสอบสถานะและ Journey",
+    menu: "เบิก-จ่าย > จ่ายสินค้า → Media Player > Media Player Profile",
+    expectedResult: "สถานะ Media Player เปลี่ยนเป็น 'installed', Journey Tab แสดงป้ายโฆษณาที่ติดตั้ง, Movement Tab แสดงรายการ issue",
+    checkItems: [
+      "ไปที่ 'Media Player Profile' → สถานะเปลี่ยนจาก 'ในคลัง' เป็น 'ติดตั้งแล้ว'",
+      "แท็บ 'ประวัติการติดตั้ง (Journey)' → แสดงป้ายโฆษณาที่ติดตั้ง + วันที่ติดตั้ง",
+      "แท็บ 'ความเคลื่อนไหว (Movement)' → มีรายการ issue เพิ่ม",
+      "ไปที่ 'รายงาน Media Player' → เครื่องนี้สถานะ 'ติดตั้งแล้ว'",
+      "Summary Card 'ติดตั้งแล้ว' เพิ่มขึ้น 1, 'ในคลัง' ลดลง 1"
+    ],
+    fillField: "สถานะ Profile หลังจ่าย: ____________ / ป้ายที่แสดงใน Journey: ____________"
+  },
+  {
+    id: "ampl5", step: 5, title: "สแกน QR Code เข้าดู Profile (จำลอง)",
+    scenario: "ช่างติดตั้งอยู่หน้างาน ต้องการดูข้อมูลเครื่องที่ติดตั้งอยู่",
+    instruction: "ไปที่ 'Media Player Profile' → ค้นหาเครื่องที่ติดตั้งจากขั้นตอนที่ 4 → กดปุ่ม 'ดาวน์โหลด QR Code' → ใช้มือถือสแกน QR Code (หรือคัดลอก URL ไปเปิดในแท็บใหม่) → ตรวจสอบว่าเปิดหน้า Profile ของเครื่องนั้นถูกต้อง",
+    menu: "Media Player > Media Player Profile",
+    expectedResult: "QR Code นำไปสู่หน้า Profile ของเครื่องนั้นโดยตรง แสดงข้อมูลครบถ้วนพร้อมใช้งานบนมือถือ",
+    checkItems: [
+      "QR Code ดาวน์โหลดได้สำเร็จ",
+      "สแกนหรือเปิด URL → แสดงหน้า Profile ของเครื่องที่ถูกต้อง",
+      "ข้อมูลแสดงครบ: S/N, สถานะ, ป้ายโฆษณาที่ติดตั้ง",
+      "หน้าเว็บแสดงผลได้ดีบนมือถือ (Responsive)"
+    ],
+    fillField: "URL ที่ QR Code ชี้ไป: ____________"
+  },
+];
+
+// ═══════════════════════════════════════════════════
 // ADMIN MODULE 4: Scenario ไม่ปกติ - การปฏิเสธ
 // ═══════════════════════════════════════════════════
 const adminRejectionExercises: Exercise[] = [
@@ -516,8 +598,16 @@ const trainingModules: TrainingModule[] = [
     exercises: adminMediaPlayerExercises,
   },
   {
+    id: "admin-media-player-lifecycle",
+    title: "แบบฝึก 4: Media Player Full Lifecycle (Profile / รายงาน / เบิก-ติดตั้ง / QR Code)",
+    icon: <Eye className="h-5 w-5" />,
+    role: "Admin / Warehouse Staff",
+    description: "ฝึกตรวจสอบ Profile รายเครื่อง → ดูรายงานภาพรวม → เบิกติดตั้งที่ป้ายโฆษณา → ตรวจสอบ Journey และ Movement → สแกน QR Code",
+    exercises: adminMediaPlayerLifecycleExercises,
+  },
+  {
     id: "admin-rejection",
-    title: "แบบฝึก 4: Scenario ไม่ปกติ (ปฏิเสธ / รอสินค้า / แจ้งปัญหา / ของเสีย)",
+    title: "แบบฝึก 5: Scenario ไม่ปกติ (ปฏิเสธ / รอสินค้า / แจ้งปัญหา / ของเสีย)",
     icon: <AlertTriangle className="h-5 w-5" />,
     role: "Admin / Warehouse Staff",
     description: "ฝึกจัดการกรณีที่ไม่ปกติ: ปฏิเสธการรับ, สต็อกไม่พอ, แจ้งปัญหาการรับสินค้า, นำของเสียเข้าระบบ",
@@ -525,7 +615,7 @@ const trainingModules: TrainingModule[] = [
   },
   {
     id: "admin-reports",
-    title: "แบบฝึก 5: รายงานและการตรวจสอบสต็อก",
+    title: "แบบฝึก 6: รายงานและการตรวจสอบสต็อก",
     icon: <BarChart3 className="h-5 w-5" />,
     role: "Admin / Warehouse Staff",
     description: "ฝึกดูรายงานสินค้าคงคลัง, Stock Card, Stock Movement Log, Dead Stock รวมถึง Scenario ตรวจสอบของหาย",
@@ -533,7 +623,7 @@ const trainingModules: TrainingModule[] = [
   },
   {
     id: "admin-ds",
-    title: "แบบฝึก 6: Direct Shipping Flow",
+    title: "แบบฝึก 7: Direct Shipping Flow",
     icon: <Truck className="h-5 w-5" />,
     role: "Admin / Warehouse Staff",
     description: "ฝึกสร้างคำขอส่งตรง → จัดซื้อ-ดำเนินการ ครบวงจร",
@@ -541,7 +631,7 @@ const trainingModules: TrainingModule[] = [
   },
   {
     id: "manager-training",
-    title: "แบบฝึก 7: Manager - การอนุมัติ/ปฏิเสธ",
+    title: "แบบฝึก 8: Manager - การอนุมัติ/ปฏิเสธ",
     icon: <Shield className="h-5 w-5" />,
     role: "Manager",
     description: "ฝึกอนุมัติ/ปฏิเสธคำขอเบิกทรัพย์สินและคำขอส่งตรง ตรวจสอบผลลัพธ์ทุกขั้นตอน",
@@ -549,7 +639,7 @@ const trainingModules: TrainingModule[] = [
   },
   {
     id: "superadmin-training",
-    title: "แบบฝึก 8: Super Admin - จัดการระบบ + รายงาน",
+    title: "แบบฝึก 9: Super Admin - จัดการระบบ + รายงาน",
     icon: <Users className="h-5 w-5" />,
     role: "Super Admin",
     description: "ฝึกจัดการผู้ใช้, สิทธิ์ตามฝ่าย/ฟังก์ชัน, Master Data, และตรวจสอบรายงานภาพรวม",
