@@ -448,7 +448,55 @@ const IssueRequest = () => {
     }
   };
 
-  // Remove item from cart
+  // Edit cart item - load data back into form
+  const handleEditCartItem = (item: CartItem) => {
+    setEditingCartItemId(item.id);
+    setCurrentItem({
+      equipment_id: item.equipment_id,
+      equipment_code: item.equipment_code,
+      equipment_name: item.equipment_name,
+      serial_number: item.serial_number || "",
+      serial_number_source: item.serial_number_source || "",
+      quantity: String(item.quantity),
+      unit: item.unit,
+      billboard_id: item.billboard_id || "",
+      notes: item.notes || "",
+    });
+    setIsQuantityLocked(Boolean(item.serial_number));
+    
+    // Update stock info
+    const selectedEquipment = equipment?.find(e => e.id === item.equipment_id);
+    if (selectedEquipment) {
+      setCurrentStockInfo({
+        currentStock: selectedEquipment.quantity_in_stock,
+        remainingAfterIssue: selectedEquipment.quantity_in_stock - item.quantity,
+      });
+    }
+    
+    // Scroll to form
+    window.scrollTo({ top: 0, behavior: "smooth" });
+    toast.info("กำลังแก้ไขรายการ — แก้ไขข้อมูลแล้วกดปุ่มบันทึก");
+  };
+
+  // Cancel editing
+  const handleCancelEdit = () => {
+    setEditingCartItemId(null);
+    setCurrentItem({
+      equipment_id: "",
+      equipment_code: "",
+      equipment_name: "",
+      serial_number: "",
+      serial_number_source: "",
+      quantity: "1",
+      unit: "ชิ้น",
+      billboard_id: "",
+      notes: "",
+    });
+    setIsQuantityLocked(false);
+    setCurrentStockInfo(null);
+  };
+
+
   const handleRemoveFromCart = (itemId: string) => {
     setCartItems(cartItems.filter(item => item.id !== itemId));
     setSelectedCartIds(prev => {
