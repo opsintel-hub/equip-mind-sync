@@ -132,6 +132,9 @@ const IssueRequest = () => {
   
   // Track if quantity is locked (when selected via S/N)
   const [isQuantityLocked, setIsQuantityLocked] = useState(false);
+  
+  // Track editing cart item
+  const [editingCartItemId, setEditingCartItemId] = useState<string | null>(null);
 
   // Fetch notification settings for advance_days
   const { data: notificationSettings } = useQuery({
