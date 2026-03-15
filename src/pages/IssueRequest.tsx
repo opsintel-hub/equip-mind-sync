@@ -1383,10 +1383,27 @@ const IssueRequest = () => {
                   />
                 </div>
               </div>
-              <Button type="button" variant="secondary" onClick={handleAddToCart}>
-                <Plus className="h-4 w-4 mr-2" />
-                เพิ่มลงตะกร้า
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button type="button" variant={editingCartItemId ? "default" : "secondary"} onClick={handleAddToCart}>
+                  {editingCartItemId ? (
+                    <>
+                      <CheckCircle className="h-4 w-4 mr-2" />
+                      บันทึกการแก้ไข
+                    </>
+                  ) : (
+                    <>
+                      <Plus className="h-4 w-4 mr-2" />
+                      เพิ่มลงตะกร้า
+                    </>
+                  )}
+                </Button>
+                {editingCartItemId && (
+                  <Button type="button" variant="outline" onClick={handleCancelEdit}>
+                    <X className="h-4 w-4 mr-2" />
+                    ยกเลิกแก้ไข
+                  </Button>
+                )}
+              </div>
             </div>
 
             {/* Cart Items */}
