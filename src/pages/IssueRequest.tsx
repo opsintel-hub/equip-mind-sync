@@ -1261,8 +1261,17 @@ const IssueRequest = () => {
             {/* Add Item Section */}
             <div className="p-4 border rounded-lg space-y-4">
               <h3 className="font-medium flex items-center gap-2">
-                <ShoppingCart className="h-4 w-4" />
-                เพิ่มรายการสินค้า
+                {editingCartItemId ? (
+                  <>
+                    <Pencil className="h-4 w-4 text-primary" />
+                    <span className="text-primary">แก้ไขรายการสินค้า</span>
+                  </>
+                ) : (
+                  <>
+                    <ShoppingCart className="h-4 w-4" />
+                    เพิ่มรายการสินค้า
+                  </>
+                )}
               </h3>
               
               {/* Category restriction notice */}
