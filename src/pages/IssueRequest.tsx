@@ -1509,15 +1509,28 @@ const IssueRequest = () => {
                           </TableCell>
                           <TableCell className="text-sm text-muted-foreground">{item.notes || "-"}</TableCell>
                           <TableCell>
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleRemoveFromCart(item.id)}
-                              className="text-destructive hover:text-destructive"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
+                            <div className="flex items-center gap-1">
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleEditCartItem(item)}
+                                className="text-primary hover:text-primary"
+                                title="แก้ไข"
+                              >
+                                <Pencil className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleRemoveFromCart(item.id)}
+                                className="text-destructive hover:text-destructive"
+                                title="ลบ"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
                           </TableCell>
                         </TableRow>
                       ))}
