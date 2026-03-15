@@ -327,6 +327,15 @@ const IssueRequest = () => {
 
   // Add item to cart
   const handleAddToCart = () => {
+    // Validate header fields first
+    if (!headerData.requester_name.trim()) {
+      toast.error("กรุณากรอกชื่อผู้ขอเบิกก่อนเพิ่มสินค้า");
+      return;
+    }
+    if (!headerData.purpose_id) {
+      toast.error("กรุณาเลือกวัตถุประสงค์ก่อนเพิ่มสินค้า");
+      return;
+    }
     if (!currentItem.equipment_id && !currentItem.equipment_name) {
       toast.error("กรุณาเลือกสินค้า");
       return;

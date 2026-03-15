@@ -478,6 +478,19 @@ const DeliveryEntry = () => {
 
   // Add item to cart
   const handleAddToCart = () => {
+    // Validate header fields first
+    if (!selectedReceiptPurposeId) {
+      toast.error("กรุณาเลือกวัตถุประสงค์การนำเข้าก่อนเพิ่มสินค้า");
+      return;
+    }
+    if (!selectedDepartmentId) {
+      toast.error("กรุณาเลือกฝ่ายก่อนเพิ่มสินค้า");
+      return;
+    }
+    if (!deliveryPersonName.trim()) {
+      toast.error("กรุณากรอกชื่อผู้นำส่งก่อนเพิ่มสินค้า");
+      return;
+    }
     if (!isMediaPlayerEntry && (!quantity || parseInt(quantity) < 1)) {
       toast.error("กรุณาระบุจำนวน");
       return;
