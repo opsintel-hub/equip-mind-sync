@@ -1457,7 +1457,7 @@ const IssueRequest = () => {
                         <TableHead className="text-right">จำนวน</TableHead>
                         <TableHead>ป้ายโฆษณา</TableHead>
                         <TableHead>หมายเหตุ</TableHead>
-                        <TableHead className="w-10">จัดการ</TableHead>
+                        <TableHead className="w-[80px]">จัดการ</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
