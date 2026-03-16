@@ -233,6 +233,9 @@ export function AdIssueDialog({ onSuccess }: AdIssueDialogProps) {
                 onChange={setTargetBillboardId}
                 disabled={saving}
               />
+              <p className="text-xs text-muted-foreground">
+                หรือใช้เมนู "เลือกจาก Package" ในหน้า "นำเข้าภาพโฆษณา" เพื่อเลือกหลายป้ายพร้อมกัน
+              </p>
             </div>
           </div>
 
