@@ -59,6 +59,7 @@ import DirectShippingEntry from "./pages/DirectShippingEntry";
 import DirectShippingApproval from "./pages/DirectShippingApproval";
 import DirectShippingProcurement from "./pages/DirectShippingProcurement";
 import DirectShippingPublicView from "./pages/DirectShippingPublicView";
+import BillboardPackages from "./pages/BillboardPackages";
 import MediaPlayerProfile from "./pages/MediaPlayerProfile";
 import MediaPlayerReport from "./pages/MediaPlayerReport";
 import DashboardLayout from "./components/DashboardLayout";
