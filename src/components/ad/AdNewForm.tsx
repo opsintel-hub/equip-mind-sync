@@ -20,6 +20,7 @@ import { AdSizeSelect } from "./AdSizeSelect";
 import { AdMediaTypeSelect } from "./AdMediaTypeSelect";
 import { ContractorSelect } from "./ContractorSelect";
 import BillboardSelect from "@/components/billboard/BillboardSelect";
+import { BillboardPackageSelect } from "@/components/billboard/BillboardPackageSelect";
 import { SearchableMultiSelect } from "@/components/ui/searchable-select";
 import { useQuery } from "@tanstack/react-query";
 import { formatBillboardLabel } from "@/lib/billboardUtils";
