@@ -14,6 +14,7 @@ import { format } from "date-fns";
 import { useQuery } from "@tanstack/react-query";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import BillboardSelect from "@/components/billboard/BillboardSelect";
+import { BillboardPackageSelect } from "@/components/billboard/BillboardPackageSelect";
 
 interface AdIssueDialogProps {
   onSuccess: () => void;
@@ -232,6 +233,9 @@ export function AdIssueDialog({ onSuccess }: AdIssueDialogProps) {
                 onChange={setTargetBillboardId}
                 disabled={saving}
               />
+              <p className="text-xs text-muted-foreground">
+                หรือใช้เมนู "เลือกจาก Package" ในหน้า "นำเข้าภาพโฆษณา" เพื่อเลือกหลายป้ายพร้อมกัน
+              </p>
             </div>
           </div>
 

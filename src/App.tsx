@@ -59,6 +59,7 @@ import DirectShippingEntry from "./pages/DirectShippingEntry";
 import DirectShippingApproval from "./pages/DirectShippingApproval";
 import DirectShippingProcurement from "./pages/DirectShippingProcurement";
 import DirectShippingPublicView from "./pages/DirectShippingPublicView";
+import BillboardPackages from "./pages/BillboardPackages";
 import MediaPlayerProfile from "./pages/MediaPlayerProfile";
 import MediaPlayerReport from "./pages/MediaPlayerReport";
 import DashboardLayout from "./components/DashboardLayout";
@@ -122,6 +123,7 @@ const App = () => (
             <Route path="/ad-issue" element={<ProtectedRoute><DashboardLayout><AdIssue /></DashboardLayout></ProtectedRoute>} />
              <Route path="/equipment-tracking" element={<ProtectedRoute><DashboardLayout><EquipmentTrackingReport /></DashboardLayout></ProtectedRoute>} />
             <Route path="/pm-billboard" element={<ProtectedRoute><DashboardLayout><BillboardPMPage /></DashboardLayout></ProtectedRoute>} />
+            <Route path="/billboard-packages" element={<ProtectedRoute><DashboardLayout><BillboardPackages /></DashboardLayout></ProtectedRoute>} />
             <Route path="/defective-return" element={<ProtectedRoute><DashboardLayout><DefectiveReturnEntry /></DashboardLayout></ProtectedRoute>} />
             <Route path="/stock-card" element={<ProtectedRoute><DashboardLayout><StockCard /></DashboardLayout></ProtectedRoute>} />
             <Route path="/delivery-confirmation" element={<ProtectedRoute><DashboardLayout><DeliveryConfirmation /></DashboardLayout></ProtectedRoute>} />

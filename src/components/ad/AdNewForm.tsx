@@ -20,6 +20,7 @@ import { AdSizeSelect } from "./AdSizeSelect";
 import { AdMediaTypeSelect } from "./AdMediaTypeSelect";
 import { ContractorSelect } from "./ContractorSelect";
 import BillboardSelect from "@/components/billboard/BillboardSelect";
+import { BillboardPackageSelect } from "@/components/billboard/BillboardPackageSelect";
 import { SearchableMultiSelect } from "@/components/ui/searchable-select";
 import { useQuery } from "@tanstack/react-query";
 import { formatBillboardLabel } from "@/lib/billboardUtils";
@@ -260,18 +261,25 @@ export function AdNewForm({ onSuccess }: AdNewFormProps) {
             </div>
           </div>
 
-          {/* Target Billboards */}
+          {/* Target Billboards - with Package support */}
           <div className="space-y-1.5">
-            <Label>ตำแหน่งป้ายโฆษณา (เลือกได้หลายป้าย)</Label>
-            <SearchableMultiSelect
-              options={billboardOptions}
-              values={targetBillboardIds}
-              onValuesChange={setTargetBillboardIds}
-              placeholder="ค้นหาป้ายโฆษณา..."
-              searchPlaceholder="ค้นหาป้ายโฆษณา..."
-              emptyMessage="ไม่พบป้ายโฆษณา"
+            <Label>ตำแหน่งป้ายโฆษณา (เลือกได้หลายป้าย / เลือกจาก Package)</Label>
+            <BillboardPackageSelect
+              selectedBillboardIds={targetBillboardIds}
+              onChange={setTargetBillboardIds}
               disabled={saving}
             />
+            {targetBillboardIds.length > 0 && (
+              <SearchableMultiSelect
+                options={billboardOptions}
+                values={targetBillboardIds}
+                onValuesChange={setTargetBillboardIds}
+                placeholder="ค้นหาป้ายโฆษณาเพิ่มเติม..."
+                searchPlaceholder="ค้นหาป้ายโฆษณา..."
+                emptyMessage="ไม่พบป้ายโฆษณา"
+                disabled={saving}
+              />
+            )}
           </div>
 
           {/* Install Date & Team */}

@@ -455,6 +455,75 @@ export type Database = {
         }
         Relationships: []
       }
+      billboard_package_items: {
+        Row: {
+          billboard_id: string
+          created_at: string
+          id: string
+          package_id: string
+        }
+        Insert: {
+          billboard_id: string
+          created_at?: string
+          id?: string
+          package_id: string
+        }
+        Update: {
+          billboard_id?: string
+          created_at?: string
+          id?: string
+          package_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "billboard_package_items_billboard_id_fkey"
+            columns: ["billboard_id"]
+            isOneToOne: false
+            referencedRelation: "billboards"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "billboard_package_items_package_id_fkey"
+            columns: ["package_id"]
+            isOneToOne: false
+            referencedRelation: "billboard_packages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      billboard_packages: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          is_active: boolean | null
+          media_type: string | null
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          media_type?: string | null
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          media_type?: string | null
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       billboard_pm_actions: {
         Row: {
           action_type: string
