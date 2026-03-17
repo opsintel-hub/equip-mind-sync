@@ -96,8 +96,8 @@ export function AdIssueList({ refresh, onUpdated }: AdIssueListProps) {
         .from("ad_issue_requests")
         .select(`
           *,
-          advertisement:advertisements (code, name, total_quantity),
-          target_billboard:billboards!ad_issue_requests_target_billboard_id_fkey (old_code, equipment_id, location_name)
+          advertisement:advertisements (code, name, total_quantity, photo_urls, installation_details, target_installation_date),
+          target_billboard:billboards!ad_issue_requests_target_billboard_id_fkey (old_code, equipment_id, location_name, department, size)
         `)
         .order("created_at", { ascending: false })
         .limit(100);
