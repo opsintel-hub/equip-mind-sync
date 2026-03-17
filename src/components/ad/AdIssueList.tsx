@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { CheckCircle2, FileOutput, Search } from "lucide-react";
+import { CheckCircle2, FileOutput, Search, Copy, ExternalLink, ImageIcon, MapPin } from "lucide-react";
 import { format } from "date-fns";
 import { formatBillboardLabel } from "@/lib/billboardUtils";
 
