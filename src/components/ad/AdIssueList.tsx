@@ -31,15 +31,25 @@ interface IssueRequest {
   notes: string | null;
   created_at: string;
   issued_at: string | null;
+  confirmation_token: string | null;
+  confirmed_by_name: string | null;
+  confirmed_at: string | null;
+  issue_report_type: string | null;
+  issue_report_description: string | null;
   advertisement: {
     code: string;
     name: string;
     total_quantity: number | null;
+    photo_urls: string[] | null;
+    installation_details: string | null;
+    target_installation_date: string | null;
   } | null;
   target_billboard: {
     old_code: string | null;
     equipment_id: string;
     location_name: string | null;
+    department: string | null;
+    size: string | null;
   } | null;
 }
 
