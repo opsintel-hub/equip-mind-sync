@@ -3,13 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Clock } from "lucide-react";
@@ -139,7 +133,10 @@ export function AdTemporaryForm({ onSuccess }: AdTemporaryFormProps) {
 
           {/* Storage Location */}
           <div className="space-y-1.5">
-            <Label>พื้นที่รับฝาก *</Label>
+            <Label>
+              พื้นที่รับฝาก * : "คลังจัดพื้นที่ให้ฝากวางชั่วคราวเท่านั้น
+              โดยไม่รับผิดชอบต่อความเสียหายหรือสูญหายในทุกกรณี"
+            </Label>
             <Input
               placeholder="เช่น โซน A ชั้น 2"
               value={storageLocation}
@@ -195,12 +192,7 @@ export function AdTemporaryForm({ onSuccess }: AdTemporaryFormProps) {
 
           {/* Actions */}
           <div className="flex justify-end gap-2 pt-2">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setOpen(false)}
-              disabled={saving}
-            >
+            <Button type="button" variant="outline" onClick={() => setOpen(false)} disabled={saving}>
               ยกเลิก
             </Button>
             <Button onClick={handleSave} disabled={saving}>
