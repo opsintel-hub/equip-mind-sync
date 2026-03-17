@@ -315,9 +315,9 @@ export function AdIssueList({ refresh, onUpdated }: AdIssueListProps) {
                     {format(new Date(req.created_at), "dd/MM/yyyy")}
                   </TableCell>
                   <TableCell className="text-right">
-                    {req.status === "pending" && (
-                      <Button size="sm" onClick={() => setConfirmIssue(req)} className="gap-1">
-                        <FileOutput className="h-3.5 w-3.5" /> เบิก
+                     {req.status === "pending" && (
+                       <Button size="sm" onClick={() => setConfirmIssue(req)} className="gap-1">
+                         <FileOutput className="h-3.5 w-3.5" /> จ่ายภาพโฆษณา
                       </Button>
                     )}
                     {req.status === "issued" && (
