@@ -699,6 +699,39 @@ const BillboardDetail = () => {
           </CardContent>
         </Card>
 
+        {/* Installed Ads */}
+        {installedAds && installedAds.length > 0 && (
+          <Card className="lg:col-span-2">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <ImageIcon className="w-5 h-5" />
+                ภาพโฆษณาที่ติดตั้ง ({installedAds.length})
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {installedAds.map((item: any) => {
+                  const ad = item.advertisement;
+                  return (
+                    <div key={item.id} className="flex items-center gap-3 p-3 rounded-lg border">
+                      {ad?.photo_urls && ad.photo_urls.length > 0 && (
+                        <img src={ad.photo_urls[0]} alt={ad.name} className="w-12 h-12 rounded object-cover flex-shrink-0" />
+                      )}
+                      <div className="min-w-0 flex-1">
+                        <p className="font-medium text-sm truncate">{ad?.name || "-"}</p>
+                        <p className="text-xs text-muted-foreground font-mono">{ad?.code || "-"}</p>
+                      </div>
+                      <Badge variant={item.status === "completed" ? "default" : "secondary"}>
+                        {item.status === "completed" ? "ติดตั้งแล้ว" : "จ่ายแล้ว"}
+                      </Badge>
+                    </div>
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Notes */}
         {billboard.notes && (
           <Card className="lg:col-span-2">
