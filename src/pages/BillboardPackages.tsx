@@ -166,6 +166,9 @@ const BillboardPackages = () => {
           <Button variant="outline" onClick={() => setShowImport(true)} className="gap-1">
             <Upload className="h-4 w-4" /> Import จาก Excel
           </Button>
+          <Button variant="outline" onClick={handleExport} className="gap-1">
+            <Download className="h-4 w-4" /> Export Excel
+          </Button>
         </div>
       </div>
 
