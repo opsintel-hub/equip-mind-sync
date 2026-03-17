@@ -64,10 +64,16 @@ const purposeLabels: Record<string, string> = {
   csr: "CSR",
 };
 
+const oldAdActionLabels: Record<string, string> = {
+  return_to_warehouse: "ปลดภาพโฆษณาเก่ากลับเข้าคลัง",
+  no_return: "ไม่ต้องนำภาพโฆษณากลับ",
+  return_for_inspect: "ปลดภาพโฆษณาเก่ากลับเพื่อตรวจสอบ",
+};
+
 const statusLabels: Record<string, { label: string; variant: "default" | "secondary" | "outline" | "destructive" }> = {
-  pending: { label: "รอเบิก", variant: "secondary" },
-  issued: { label: "เบิกแล้ว", variant: "default" },
-  completed: { label: "เสร็จสิ้น", variant: "outline" },
+  pending: { label: "รอจ่าย", variant: "secondary" },
+  issued: { label: "จ่ายแล้ว - รอรับ", variant: "default" },
+  completed: { label: "รับเรียบร้อย", variant: "outline" },
 };
 
 export function AdIssueList({ refresh, onUpdated }: AdIssueListProps) {
