@@ -109,6 +109,26 @@ const BillboardDetail = () => {
     enabled: !!id,
   });
 
+  // Fetch installed ads on this billboard
+  const { data: installedAds } = useQuery({
+    queryKey: ["billboard-installed-ads", id],
+    queryFn: async () => {
+      // Find ad_issue_requests targeting this billboard with status completed/issued
+      const { data, error } = await supabase
+        .from("ad_issue_requests")
+        .select(`
+          id, document_no, issue_purpose, status, issued_at, received_at,
+          advertisement:advertisements (code, name, photo_urls, total_quantity)
+        `)
+        .eq("target_billboard_id", id)
+        .in("status", ["issued", "completed"])
+        .order("issued_at", { ascending: false });
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!id,
+  });
+
   const uninstallMutation = useMutation({
     mutationFn: async () => {
       if (!selectedEquipment || !user || !id) return;
