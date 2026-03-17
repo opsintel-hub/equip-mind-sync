@@ -707,7 +707,7 @@ const trainingModules: TrainingModule[] = [
   },
   {
     id: "manager-training",
-    title: "แบบฝึก 8: Manager - การอนุมัติ/ปฏิเสธ",
+    title: "แบบฝึก 9: Manager - การอนุมัติ/ปฏิเสธ",
     icon: <Shield className="h-5 w-5" />,
     role: "Manager",
     description: "ฝึกอนุมัติ/ปฏิเสธคำขอเบิกทรัพย์สินและคำขอส่งตรง ตรวจสอบผลลัพธ์ทุกขั้นตอน",
