@@ -699,7 +699,7 @@ const trainingModules: TrainingModule[] = [
   },
   {
     id: "admin-ds",
-    title: "แบบฝึก 7: Direct Shipping Flow",
+    title: "แบบฝึก 8: Direct Shipping Flow",
     icon: <Truck className="h-5 w-5" />,
     role: "Admin / Warehouse Staff",
     description: "ฝึกสร้างคำขอส่งตรง → จัดซื้อ-ดำเนินการ ครบวงจร",
