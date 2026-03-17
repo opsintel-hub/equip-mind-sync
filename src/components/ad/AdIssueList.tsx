@@ -315,16 +315,37 @@ export function AdIssueList({ refresh, onUpdated }: AdIssueListProps) {
                     {format(new Date(req.created_at), "dd/MM/yyyy")}
                   </TableCell>
                   <TableCell className="text-right">
-                     {req.status === "pending" && (
-                       <Button size="sm" onClick={() => setConfirmIssue(req)} className="gap-1">
-                         <FileOutput className="h-3.5 w-3.5" /> จ่ายภาพโฆษณา
-                      </Button>
-                    )}
-                    {req.status === "issued" && (
-                      <Button size="sm" variant="outline" onClick={() => setConfirmComplete(req)} className="gap-1">
-                        <CheckCircle2 className="h-3.5 w-3.5" /> ติดตั้งแล้ว
-                      </Button>
-                    )}
+                    <div className="flex items-center justify-end gap-1">
+                      {req.status === "pending" && (
+                        <Button size="sm" onClick={() => setConfirmIssue(req)} className="gap-1">
+                          <FileOutput className="h-3.5 w-3.5" /> จ่ายภาพโฆษณา
+                        </Button>
+                      )}
+                      {req.status === "issued" && req.confirmation_token && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="gap-1"
+                          onClick={() => {
+                            const url = `${window.location.origin}/ad-view/${req.confirmation_token}`;
+                            navigator.clipboard.writeText(url);
+                            toast.success("คัดลอกลิงก์รับภาพโฆษณาแล้ว");
+                          }}
+                        >
+                          <Copy className="h-3.5 w-3.5" /> คัดลอกลิงก์
+                        </Button>
+                      )}
+                      {req.status === "issued" && (
+                        <Button size="sm" variant="outline" onClick={() => setConfirmComplete(req)} className="gap-1">
+                          <CheckCircle2 className="h-3.5 w-3.5" /> ติดตั้งแล้ว
+                        </Button>
+                      )}
+                      {req.issue_report_type && (
+                        <Badge variant="destructive" className="text-xs">
+                          แจ้งปัญหา: {req.issue_report_type}
+                        </Badge>
+                      )}
+                    </div>
                   </TableCell>
                 </TableRow>
               );
@@ -341,18 +362,87 @@ export function AdIssueList({ refresh, onUpdated }: AdIssueListProps) {
         onPageSizeChange={handlePageSizeChange}
       />
 
-      {/* Issue Confirm */}
+      {/* Issue Confirm - Full detail */}
       <AlertDialog open={!!confirmIssue} onOpenChange={(o) => !o && setConfirmIssue(null)}>
-        <AlertDialogContent className="max-w-[95vw] sm:max-w-lg">
+        <AlertDialogContent className="max-w-[95vw] sm:max-w-2xl max-h-[85vh] overflow-y-auto">
           <AlertDialogHeader>
-            <AlertDialogTitle>ยืนยันเบิกภาพโฆษณา</AlertDialogTitle>
-            <AlertDialogDescription>
-              เบิก <strong>{confirmIssue?.document_no}</strong> —{" "}
-              {confirmIssue?.advertisement?.name} จำนวน{" "}
-              {confirmIssue?.issued_quantity} ชิ้น
-              {confirmIssue?.target_billboard && (
-                <> ไปป้าย <strong>{formatBillboardLabel(confirmIssue.target_billboard.old_code, confirmIssue.target_billboard.location_name, confirmIssue.target_billboard.equipment_id)}</strong></>
-              )}
+            <AlertDialogTitle>ยืนยันจ่ายภาพโฆษณา</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-3">
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div>
+                    <span className="text-muted-foreground">เลขที่เอกสาร:</span>
+                    <p className="font-mono font-medium">{confirmIssue?.document_no}</p>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">รหัสภาพ:</span>
+                    <p className="font-mono">{confirmIssue?.advertisement?.code || "-"}</p>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">ชื่อภาพ:</span>
+                    <p className="font-medium">{confirmIssue?.advertisement?.name || "-"}</p>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">จำนวน:</span>
+                    <p className="font-medium">{confirmIssue?.issued_quantity || 0} ชิ้น</p>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">วัตถุประสงค์:</span>
+                    <p><Badge variant="outline">{purposeLabels[confirmIssue?.issue_purpose || ""] || confirmIssue?.issue_purpose}</Badge></p>
+                  </div>
+                  {confirmIssue?.old_ad_action && (
+                    <div>
+                      <span className="text-muted-foreground">จัดการภาพเก่า:</span>
+                      <p className="text-xs">{oldAdActionLabels[confirmIssue.old_ad_action] || confirmIssue.old_ad_action}</p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Target Billboard */}
+                {confirmIssue?.target_billboard && (
+                  <div className="p-3 rounded-md bg-muted/50 border">
+                    <p className="text-xs font-medium text-muted-foreground mb-1 flex items-center gap-1">
+                      <MapPin className="h-3 w-3" /> ป้ายเป้าหมาย
+                    </p>
+                    <div className="grid grid-cols-2 gap-2 text-sm">
+                      <div>Old Code: <strong>{confirmIssue.target_billboard.old_code || "-"}</strong></div>
+                      <div>สถานที่: {confirmIssue.target_billboard.location_name || "-"}</div>
+                      <div>ฝ่าย: {confirmIssue.target_billboard.department || "-"}</div>
+                      <div>ขนาด: {confirmIssue.target_billboard.size || "-"}</div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Installation details */}
+                {confirmIssue?.advertisement?.installation_details && (
+                  <div className="p-3 rounded-md bg-primary/5 border border-primary/20">
+                    <p className="text-xs font-medium text-primary mb-1">📋 รายละเอียดการติดตั้ง:</p>
+                    <p className="text-sm">{confirmIssue.advertisement.installation_details}</p>
+                  </div>
+                )}
+
+                {/* Photos */}
+                {confirmIssue?.advertisement?.photo_urls && confirmIssue.advertisement.photo_urls.length > 0 && (
+                  <div className="flex gap-2 overflow-x-auto">
+                    {confirmIssue.advertisement.photo_urls.map((url: string, i: number) => (
+                      <img key={i} src={url} alt={`ภาพ ${i + 1}`} className="w-16 h-16 rounded border object-cover flex-shrink-0" />
+                    ))}
+                  </div>
+                )}
+
+                {confirmIssue?.notes && (
+                  <div>
+                    <span className="text-xs text-muted-foreground">หมายเหตุ:</span>
+                    <p className="text-sm">{confirmIssue.notes}</p>
+                  </div>
+                )}
+
+                <div className="p-3 rounded-md bg-primary/5 border border-primary/20">
+                  <p className="text-sm font-medium text-primary">
+                    หลังจ่ายแล้ว ระบบจะสร้างลิงก์ให้ผู้รับกดยืนยันรับภาพโฆษณา
+                  </p>
+                </div>
+              </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -361,7 +451,7 @@ export function AdIssueList({ refresh, onUpdated }: AdIssueListProps) {
               onClick={() => confirmIssue && handleIssue(confirmIssue)}
               disabled={processing}
             >
-              {processing ? "กำลังดำเนินการ..." : "ยืนยันเบิก"}
+              {processing ? "กำลังดำเนินการ..." : "ยืนยันจ่ายภาพโฆษณา"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
