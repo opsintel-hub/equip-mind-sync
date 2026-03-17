@@ -257,10 +257,24 @@ export function AdIssueList({ refresh, onUpdated }: AdIssueListProps) {
                 )}
               </div>
               {(req.status === "pending" || req.status === "issued") && (
-                <div>
+                <div className="space-y-1.5">
                   {req.status === "pending" && (
                      <Button size="sm" className="w-full gap-1" onClick={() => setConfirmIssue(req)}>
                        <FileOutput className="h-3.5 w-3.5" /> จ่ายภาพโฆษณา
+                    </Button>
+                  )}
+                  {req.status === "issued" && req.confirmation_token && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="w-full gap-1"
+                      onClick={() => {
+                        const url = `${window.location.origin}/ad-view/${req.confirmation_token}`;
+                        navigator.clipboard.writeText(url);
+                        toast.success("คัดลอกลิงก์รับภาพโฆษณาแล้ว");
+                      }}
+                    >
+                      <Copy className="h-3.5 w-3.5" /> คัดลอกลิงก์รับ
                     </Button>
                   )}
                   {req.status === "issued" && (
@@ -269,6 +283,11 @@ export function AdIssueList({ refresh, onUpdated }: AdIssueListProps) {
                     </Button>
                   )}
                 </div>
+              )}
+              {req.issue_report_type && (
+                <Badge variant="destructive" className="text-xs">
+                  แจ้งปัญหา: {req.issue_report_type}
+                </Badge>
               )}
             </div>
           );
