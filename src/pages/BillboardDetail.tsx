@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, MapPin, Building2, Monitor, Globe, Package, Calendar, AlertTriangle, Clock, Trash2, History, RotateCcw } from "lucide-react";
+import { ArrowLeft, MapPin, Building2, Monitor, Globe, Package, Calendar, AlertTriangle, Clock, Trash2, History, RotateCcw, ImageIcon } from "lucide-react";
 import BillboardQRCode from "@/components/billboard/BillboardQRCode";
 import { supabase } from "@/integrations/supabase/client";
 import { differenceInDays, format } from "date-fns";
@@ -105,6 +105,26 @@ const BillboardDetail = () => {
         ...h,
         equipment: equipmentMap.get(h.equipment_id) || null
       }));
+    },
+    enabled: !!id,
+  });
+
+  // Fetch installed ads on this billboard
+  const { data: installedAds } = useQuery({
+    queryKey: ["billboard-installed-ads", id],
+    queryFn: async () => {
+      // Find ad_issue_requests targeting this billboard with status completed/issued
+      const { data, error } = await supabase
+        .from("ad_issue_requests")
+        .select(`
+          id, document_no, issue_purpose, status, issued_at, received_at,
+          advertisement:advertisements (code, name, photo_urls, total_quantity)
+        `)
+        .eq("target_billboard_id", id)
+        .in("status", ["issued", "completed"])
+        .order("issued_at", { ascending: false });
+      if (error) throw error;
+      return data || [];
     },
     enabled: !!id,
   });
@@ -678,6 +698,39 @@ const BillboardDetail = () => {
             </Tabs>
           </CardContent>
         </Card>
+
+        {/* Installed Ads */}
+        {installedAds && installedAds.length > 0 && (
+          <Card className="lg:col-span-2">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <ImageIcon className="w-5 h-5" />
+                ภาพโฆษณาที่ติดตั้ง ({installedAds.length})
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {installedAds.map((item: any) => {
+                  const ad = item.advertisement;
+                  return (
+                    <div key={item.id} className="flex items-center gap-3 p-3 rounded-lg border">
+                      {ad?.photo_urls && ad.photo_urls.length > 0 && (
+                        <img src={ad.photo_urls[0]} alt={ad.name} className="w-12 h-12 rounded object-cover flex-shrink-0" />
+                      )}
+                      <div className="min-w-0 flex-1">
+                        <p className="font-medium text-sm truncate">{ad?.name || "-"}</p>
+                        <p className="text-xs text-muted-foreground font-mono">{ad?.code || "-"}</p>
+                      </div>
+                      <Badge variant={item.status === "completed" ? "default" : "secondary"}>
+                        {item.status === "completed" ? "ติดตั้งแล้ว" : "จ่ายแล้ว"}
+                      </Badge>
+                    </div>
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Notes */}
         {billboard.notes && (

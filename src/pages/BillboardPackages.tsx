@@ -10,7 +10,8 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { Plus, Pencil, Trash2, Search, Package, Eye, Upload } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, Package, Eye, Upload, Download } from "lucide-react";
+import * as XLSX from "xlsx";
 import { BillboardPackageDetail } from "@/components/billboard/BillboardPackageDetail";
 import { BillboardPackageImport } from "@/components/billboard/BillboardPackageImport";
 
@@ -149,6 +150,56 @@ const BillboardPackages = () => {
       (p.media_type && p.media_type.toLowerCase().includes(search.toLowerCase()))
   );
 
+  const handleExport = async () => {
+    try {
+      // Fetch all package items with billboard info
+      const { data: allItems, error } = await supabase
+        .from("billboard_package_items")
+        .select("package_id, billboards(old_code, location_name, department, size)")
+        .limit(10000);
+      if (error) throw error;
+
+      const rows: any[] = [];
+      for (const pkg of filtered) {
+        const pkgItems = (allItems || []).filter((i: any) => i.package_id === pkg.id);
+        if (pkgItems.length === 0) {
+          rows.push({
+            "ชื่อ Package": pkg.name,
+            "Media Type": pkg.media_type || "",
+            "สถานะ": pkg.is_active ? "ใช้งาน" : "ปิดใช้งาน",
+            "จำนวนป้าย": pkg.billboard_count || 0,
+            "Old Code": "",
+            "สถานที่": "",
+            "ฝ่าย": "",
+            "ขนาด": "",
+          });
+        } else {
+          pkgItems.forEach((item: any) => {
+            const bb = item.billboards || {};
+            rows.push({
+              "ชื่อ Package": pkg.name,
+              "Media Type": pkg.media_type || "",
+              "สถานะ": pkg.is_active ? "ใช้งาน" : "ปิดใช้งาน",
+              "จำนวนป้าย": pkg.billboard_count || 0,
+              "Old Code": bb.old_code || "",
+              "สถานที่": bb.location_name || "",
+              "ฝ่าย": bb.department || "",
+              "ขนาด": bb.size || "",
+            });
+          });
+        }
+      }
+
+      const ws = XLSX.utils.json_to_sheet(rows);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Packages");
+      XLSX.writeFile(wb, `billboard_packages_${new Date().toISOString().slice(0, 10)}.xlsx`);
+      toast.success(`Export สำเร็จ ${rows.length} รายการ`);
+    } catch (err: any) {
+      toast.error("Export ไม่สำเร็จ: " + err.message);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-3">
@@ -164,6 +215,9 @@ const BillboardPackages = () => {
           </Button>
           <Button variant="outline" onClick={() => setShowImport(true)} className="gap-1">
             <Upload className="h-4 w-4" /> Import จาก Excel
+          </Button>
+          <Button variant="outline" onClick={handleExport} className="gap-1">
+            <Download className="h-4 w-4" /> Export Excel
           </Button>
         </div>
       </div>

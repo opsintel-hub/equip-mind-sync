@@ -338,25 +338,92 @@ export function AdReceiveSection({ refresh, onReceived }: AdReceiveSectionProps)
 
       {/* Receive Confirm Dialog */}
       <AlertDialog open={!!confirmAd} onOpenChange={(open) => !open && setConfirmAd(null)}>
-        <AlertDialogContent className="max-w-[95vw] sm:max-w-lg">
+        <AlertDialogContent className="max-w-[95vw] sm:max-w-2xl max-h-[85vh] overflow-y-auto">
           <AlertDialogHeader>
             <AlertDialogTitle>ยืนยันรับเข้าคลัง</AlertDialogTitle>
-            <AlertDialogDescription className="space-y-2">
-              <p>
-                รับเข้าคลัง <strong>{confirmAd?.code}</strong> — {confirmAd?.name}
-              </p>
-              <p>จำนวนรวม: <strong>{confirmAd?.total_quantity}</strong> ชิ้น</p>
-              {confirmAd?.entry_type === "new" && (
-                <div className="mt-3 p-3 rounded-md bg-primary/5 border border-primary/20">
-                  <p className="text-sm font-medium text-primary flex items-center gap-1">
-                    <Package className="h-4 w-4" />
-                    ระบบจะสร้างเอกสารเบิกอัตโนมัติ
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    เอกสารเบิกจะถูกสร้างเพื่อนำไปติดตั้งตามป้ายเป้าหมายที่ระบุไว้
-                  </p>
+            <AlertDialogDescription asChild>
+              <div className="space-y-3">
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div>
+                    <span className="text-muted-foreground">รหัส:</span>
+                    <p className="font-mono font-medium">{confirmAd?.code}</p>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">ชื่อภาพ:</span>
+                    <p className="font-medium">{confirmAd?.name}</p>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">ประเภท:</span>
+                    <p><Badge variant="outline">{entryTypeLabels[confirmAd?.entry_type || ""] || confirmAd?.entry_type}</Badge></p>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">จำนวนรวม:</span>
+                    <p className="font-medium">{confirmAd?.total_quantity || 0} ชิ้น</p>
+                  </div>
+                  {confirmAd?.installation_team && (
+                    <div>
+                      <span className="text-muted-foreground">ทีมติดตั้ง:</span>
+                      <p>{confirmAd.installation_team.name}</p>
+                    </div>
+                  )}
+                  {confirmAd?.target_installation_date && (
+                    <div>
+                      <span className="text-muted-foreground">วันที่ติดตั้ง:</span>
+                      <p>{format(new Date(confirmAd.target_installation_date), "dd/MM/yyyy")}</p>
+                    </div>
+                  )}
                 </div>
-              )}
+
+                {/* Versions */}
+                {confirmAd?.ad_versions && confirmAd.ad_versions.length > 0 && (
+                  <div>
+                    <span className="text-sm text-muted-foreground">เวอร์ชัน:</span>
+                    <div className="flex flex-wrap gap-1 mt-1">
+                      {confirmAd.ad_versions.map((v, i) => (
+                        <Badge key={i} variant="secondary">{v.version_name} ({v.quantity})</Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Target Billboards */}
+                {confirmAd?.ad_target_billboards && confirmAd.ad_target_billboards.length > 0 && (
+                  <div>
+                    <span className="text-sm text-muted-foreground">ป้ายเป้าหมาย ({confirmAd.ad_target_billboards.length}):</span>
+                    <div className="flex flex-wrap gap-1 mt-1">
+                      {confirmAd.ad_target_billboards.slice(0, 10).map((tb, i) => (
+                        <Badge key={i} variant="outline" className="text-xs">
+                          {tb.billboards?.equipment_id || "-"} {tb.billboards?.location_name ? `- ${tb.billboards.location_name}` : ""}
+                        </Badge>
+                      ))}
+                      {confirmAd.ad_target_billboards.length > 10 && (
+                        <Badge variant="secondary" className="text-xs">+{confirmAd.ad_target_billboards.length - 10} ป้าย</Badge>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Photos preview */}
+                {confirmAd?.photo_urls && confirmAd.photo_urls.length > 0 && (
+                  <div className="flex gap-2 overflow-x-auto">
+                    {confirmAd.photo_urls.map((url, i) => (
+                      <img key={i} src={url} alt={`ภาพ ${i + 1}`} className="w-16 h-16 rounded border object-cover flex-shrink-0" />
+                    ))}
+                  </div>
+                )}
+
+                {confirmAd?.entry_type === "new" && (
+                  <div className="p-3 rounded-md bg-primary/5 border border-primary/20">
+                    <p className="text-sm font-medium text-primary flex items-center gap-1">
+                      <Package className="h-4 w-4" />
+                      ระบบจะสร้างเอกสารเบิกอัตโนมัติ
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      เอกสารเบิกจะถูกสร้างเพื่อนำไปติดตั้งตามป้ายเป้าหมายที่ระบุไว้
+                    </p>
+                  </div>
+                )}
+              </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

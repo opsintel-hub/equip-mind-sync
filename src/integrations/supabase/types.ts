@@ -17,11 +17,16 @@ export type Database = {
       ad_issue_requests: {
         Row: {
           advertisement_id: string
+          confirmation_token: string | null
+          confirmed_at: string | null
+          confirmed_by_name: string | null
           created_at: string
           created_by: string | null
           document_no: string
           id: string
           issue_purpose: string
+          issue_report_description: string | null
+          issue_report_type: string | null
           issued_at: string | null
           issued_by: string | null
           issued_quantity: number | null
@@ -34,11 +39,16 @@ export type Database = {
         }
         Insert: {
           advertisement_id: string
+          confirmation_token?: string | null
+          confirmed_at?: string | null
+          confirmed_by_name?: string | null
           created_at?: string
           created_by?: string | null
           document_no: string
           id?: string
           issue_purpose?: string
+          issue_report_description?: string | null
+          issue_report_type?: string | null
           issued_at?: string | null
           issued_by?: string | null
           issued_quantity?: number | null
@@ -51,11 +61,16 @@ export type Database = {
         }
         Update: {
           advertisement_id?: string
+          confirmation_token?: string | null
+          confirmed_at?: string | null
+          confirmed_by_name?: string | null
           created_at?: string
           created_by?: string | null
           document_no?: string
           id?: string
           issue_purpose?: string
+          issue_report_description?: string | null
+          issue_report_type?: string | null
           issued_at?: string | null
           issued_by?: string | null
           issued_quantity?: number | null
