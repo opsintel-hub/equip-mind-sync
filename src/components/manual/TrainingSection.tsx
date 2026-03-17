@@ -715,7 +715,7 @@ const trainingModules: TrainingModule[] = [
   },
   {
     id: "superadmin-training",
-    title: "แบบฝึก 9: Super Admin - จัดการระบบ + รายงาน",
+    title: "แบบฝึก 10: Super Admin - จัดการระบบ + รายงาน",
     icon: <Users className="h-5 w-5" />,
     role: "Super Admin",
     description: "ฝึกจัดการผู้ใช้, สิทธิ์ตามฝ่าย/ฟังก์ชัน, Master Data, และตรวจสอบรายงานภาพรวม",
