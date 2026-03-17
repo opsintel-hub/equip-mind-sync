@@ -251,8 +251,8 @@ export function AdIssueList({ refresh, onUpdated }: AdIssueListProps) {
               {(req.status === "pending" || req.status === "issued") && (
                 <div>
                   {req.status === "pending" && (
-                    <Button size="sm" className="w-full gap-1" onClick={() => setConfirmIssue(req)}>
-                      <FileOutput className="h-3.5 w-3.5" /> เบิก
+                     <Button size="sm" className="w-full gap-1" onClick={() => setConfirmIssue(req)}>
+                       <FileOutput className="h-3.5 w-3.5" /> จ่ายภาพโฆษณา
                     </Button>
                   )}
                   {req.status === "issued" && (
