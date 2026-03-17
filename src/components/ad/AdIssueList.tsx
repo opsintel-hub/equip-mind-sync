@@ -140,7 +140,15 @@ export function AdIssueList({ refresh, onUpdated }: AdIssueListProps) {
 
       if (error) throw error;
 
-      toast.success(`เบิก ${req.document_no} สำเร็จ`);
+      // Copy public link to clipboard
+      if (req.confirmation_token) {
+        const url = `${window.location.origin}/ad-view/${req.confirmation_token}`;
+        await navigator.clipboard.writeText(url);
+        toast.success(`จ่าย ${req.document_no} สำเร็จ — ลิงก์รับภาพโฆษณาถูกคัดลอกแล้ว`, { duration: 5000 });
+      } else {
+        toast.success(`จ่าย ${req.document_no} สำเร็จ`);
+      }
+
       setConfirmIssue(null);
       onUpdated();
       fetchIssueRequests();
