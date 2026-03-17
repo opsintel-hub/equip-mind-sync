@@ -690,6 +690,14 @@ const trainingModules: TrainingModule[] = [
     exercises: adminReportExercises,
   },
   {
+    id: "admin-ad-flow",
+    title: "แบบฝึก 7: ภาพโฆษณา Full Flow (รับเข้า → จ่าย → ลิงก์รับ → แจ้งปัญหา)",
+    icon: <ImageIcon className="h-5 w-5" />,
+    role: "Admin / Warehouse Staff",
+    description: "ฝึกรับภาพโฆษณาเข้าคลัง → จ่ายภาพพร้อมสร้างลิงก์รับ → ผู้รับยืนยัน/แจ้งปัญหา → ตรวจสอบภาพที่ติดตั้งบนป้าย",
+    exercises: adminAdFlowExercises,
+  },
+  {
     id: "admin-ds",
     title: "แบบฝึก 7: Direct Shipping Flow",
     icon: <Truck className="h-5 w-5" />,
