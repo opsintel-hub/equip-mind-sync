@@ -323,6 +323,36 @@ export default function InventoryReport() {
     enabled: filters.itemType !== "equipment" && filters.itemType !== "tools",
   });
 
+  // Fetch all serial numbers from equipment_serial_numbers table (authoritative source)
+  const { data: allEquipmentSNs = [] } = useQuery({
+    queryKey: ["inventory-equipment-sns"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("equipment_serial_numbers")
+        .select("equipment_id, serial_number, status")
+        .order("created_at", { ascending: true });
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
+  // Build maps: equipment_id -> all S/Ns (display) and in_stock count
+  const equipmentSNMap = useMemo(() => {
+    const map: Record<string, { allSNs: string[]; inStockSNs: string[]; inStockCount: number }> = {};
+    allEquipmentSNs.forEach((sn: any) => {
+      if (!sn.equipment_id) return;
+      if (!map[sn.equipment_id]) {
+        map[sn.equipment_id] = { allSNs: [], inStockSNs: [], inStockCount: 0 };
+      }
+      map[sn.equipment_id].allSNs.push(sn.serial_number);
+      if (sn.status === "in_stock") {
+        map[sn.equipment_id].inStockSNs.push(sn.serial_number);
+        map[sn.equipment_id].inStockCount++;
+      }
+    });
+    return map;
+  }, [allEquipmentSNs]);
+
   // Fetch latest received serials for fallback (covers legacy rows where master serial was not updated)
   const { data: receivedSerials = [] } = useQuery({
     queryKey: ["inventory-received-serials"],
