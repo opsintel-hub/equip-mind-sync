@@ -323,6 +323,36 @@ export default function InventoryReport() {
     enabled: filters.itemType !== "equipment" && filters.itemType !== "tools",
   });
 
+  // Fetch all serial numbers from equipment_serial_numbers table (authoritative source)
+  const { data: allEquipmentSNs = [] } = useQuery({
+    queryKey: ["inventory-equipment-sns"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("equipment_serial_numbers")
+        .select("equipment_id, serial_number, status")
+        .order("created_at", { ascending: true });
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
+  // Build maps: equipment_id -> all S/Ns (display) and in_stock count
+  const equipmentSNMap = useMemo(() => {
+    const map: Record<string, { allSNs: string[]; inStockSNs: string[]; inStockCount: number }> = {};
+    allEquipmentSNs.forEach((sn: any) => {
+      if (!sn.equipment_id) return;
+      if (!map[sn.equipment_id]) {
+        map[sn.equipment_id] = { allSNs: [], inStockSNs: [], inStockCount: 0 };
+      }
+      map[sn.equipment_id].allSNs.push(sn.serial_number);
+      if (sn.status === "in_stock") {
+        map[sn.equipment_id].inStockSNs.push(sn.serial_number);
+        map[sn.equipment_id].inStockCount++;
+      }
+    });
+    return map;
+  }, [allEquipmentSNs]);
+
   // Fetch latest received serials for fallback (covers legacy rows where master serial was not updated)
   const { data: receivedSerials = [] } = useQuery({
     queryKey: ["inventory-received-serials"],
@@ -460,17 +490,28 @@ export default function InventoryReport() {
     return map;
   }, [issueData, billboards, billboardEquipment]);
 
-  // Combine equipment, tools and media player data with issue information + serial fallback
+  // Combine equipment, tools and media player data with issue information + serial from equipment_serial_numbers
   const combinedData = useMemo(() => {
     const allData = [...equipmentData, ...toolsData, ...mediaPlayerData];
 
     return allData.map((item): InventoryItem => {
       const issueInfo = issueMap[item.id];
-      const fallbackSerial = item.item_type === "equipment"
-        ? receiptSerialMaps.equipmentSerialMap[item.id]
-        : item.item_type === "media_player"
-          ? receiptSerialMaps.mediaSerialMap[item.id]
-          : null;
+      
+      // For equipment items, use equipment_serial_numbers table as primary source
+      let displaySerial: string | null = null;
+      if (item.item_type === "equipment") {
+        const snData = equipmentSNMap[item.id];
+        if (snData && snData.allSNs.length > 0) {
+          displaySerial = snData.allSNs.join(", ");
+        } else {
+          // Fallback to master field or receipt data
+          displaySerial = item.serial_number || receiptSerialMaps.equipmentSerialMap[item.id] || null;
+        }
+      } else if (item.item_type === "media_player") {
+        displaySerial = item.serial_number || receiptSerialMaps.mediaSerialMap[item.id] || null;
+      } else {
+        displaySerial = item.serial_number || null;
+      }
 
       let issueStatus: "in_stock" | "issued" | "partial" = "in_stock";
       if (issueInfo) {
@@ -483,7 +524,7 @@ export default function InventoryReport() {
 
       return {
         ...item,
-        serial_number: item.serial_number || fallbackSerial || null,
+        serial_number: displaySerial,
         issue_status: issueStatus,
         issue_purpose: issueInfo?.purpose || null,
         issue_billboard_code: issueInfo?.billboard_code || null,
@@ -491,7 +532,7 @@ export default function InventoryReport() {
         issued_quantity: issueInfo?.issued_quantity || 0,
       };
     });
-  }, [equipmentData, toolsData, mediaPlayerData, issueMap, receiptSerialMaps]);
+  }, [equipmentData, toolsData, mediaPlayerData, issueMap, equipmentSNMap, receiptSerialMaps]);
 
   const isLoading = isLoadingEquipment || isLoadingTools || isLoadingMediaPlayers;
 
@@ -932,8 +973,21 @@ export default function InventoryReport() {
                               )}
                             </div>
                           </TableCell>
-                          <TableCell className="font-mono text-xs">
-                            {item.serial_number || <span className="text-muted-foreground">-</span>}
+                          <TableCell className="font-mono text-xs max-w-[200px]">
+                            {item.serial_number ? (
+                              <div className="space-y-0.5">
+                                <div className="truncate" title={item.serial_number}>
+                                  {item.serial_number}
+                                </div>
+                                {item.item_type === 'equipment' && equipmentSNMap[item.id] && equipmentSNMap[item.id].allSNs.length > 1 && (
+                                  <div className="text-[10px] text-muted-foreground">
+                                    ({equipmentSNMap[item.id].inStockCount} ในคลัง / {equipmentSNMap[item.id].allSNs.length} ทั้งหมด)
+                                  </div>
+                                )}
+                              </div>
+                            ) : (
+                              <span className="text-muted-foreground">-</span>
+                            )}
                           </TableCell>
                           <TableCell>{item.category}</TableCell>
                           <TableCell>
