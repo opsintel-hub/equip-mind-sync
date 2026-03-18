@@ -973,8 +973,21 @@ export default function InventoryReport() {
                               )}
                             </div>
                           </TableCell>
-                          <TableCell className="font-mono text-xs">
-                            {item.serial_number || <span className="text-muted-foreground">-</span>}
+                          <TableCell className="font-mono text-xs max-w-[200px]">
+                            {item.serial_number ? (
+                              <div className="space-y-0.5">
+                                <div className="truncate" title={item.serial_number}>
+                                  {item.serial_number}
+                                </div>
+                                {item.item_type === 'equipment' && equipmentSNMap[item.id] && equipmentSNMap[item.id].allSNs.length > 1 && (
+                                  <div className="text-[10px] text-muted-foreground">
+                                    ({equipmentSNMap[item.id].inStockCount} ในคลัง / {equipmentSNMap[item.id].allSNs.length} ทั้งหมด)
+                                  </div>
+                                )}
+                              </div>
+                            ) : (
+                              <span className="text-muted-foreground">-</span>
+                            )}
                           </TableCell>
                           <TableCell>{item.category}</TableCell>
                           <TableCell>
