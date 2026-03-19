@@ -112,9 +112,24 @@ const DeliveryConfirmation = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("goods_issue_pending_items")
-        .select("*, equipment(code, name, serial_number, unit), media_players(code, name, serial_number_1, serial_number_2, unit), billboards(equipment_id, location_name)")
+        .select("*, equipment(code, name, serial_number, unit), media_players(code, name, serial_number_1, serial_number_2, unit)")
         .order("created_at", { ascending: false });
       if (error) throw error;
+      
+      // Fetch billboard info separately
+      if (data && data.length > 0) {
+        const billboardIds = [...new Set(data.filter((d: any) => d.billboard_id).map((d: any) => d.billboard_id))];
+        if (billboardIds.length > 0) {
+          const { data: billboards } = await supabase
+            .from("billboards")
+            .select("id, equipment_id, location_name, old_code")
+            .in("id", billboardIds);
+          const bbMap = new Map((billboards || []).map((b: any) => [b.id, b]));
+          data.forEach((d: any) => {
+            if (d.billboard_id) d._billboard = bbMap.get(d.billboard_id) || null;
+          });
+        }
+      }
       return data;
     },
   });
