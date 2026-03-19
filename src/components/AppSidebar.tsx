@@ -79,6 +79,7 @@ const menuGroups: MenuGroup[] = [
     label: "หน้าหลัก",
     items: [
       { title: "แดชบอร์ด", url: "/dashboard", icon: LayoutDashboard },
+      { title: "ค้นหาเอกสาร", url: "/document-search", icon: FileSearch, functionName: "reports" },
     ]
   },
   {
