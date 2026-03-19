@@ -183,7 +183,7 @@ export default function DocumentSearch() {
         serial_number: item.serial_number || null,
         supplier_name: item.supplier_name, delivery_person_name: item.delivery_person_name,
         quantity: item.quantity, unit: item.unit, created_at: item.created_at,
-        status: item.status, source: "pending" as const, raw: item,
+        status: item.status, source: (item.status === "received" ? "received" : "pending") as "pending" | "received", raw: item,
       }));
 
       const receiptDocs: DocumentRecord[] = (receiptData || []).map((item: any) => ({
@@ -250,11 +250,12 @@ export default function DocumentSearch() {
     switch (searchType) {
       case "supplier": return doc.supplier_name?.toLowerCase().includes(term);
       case "equipment": return doc.equipment_code?.toLowerCase().includes(term) || doc.equipment_name?.toLowerCase().includes(term) || doc.serial_number?.toLowerCase().includes(term);
-      case "document": return doc.document_no.toLowerCase().includes(term);
+      case "document": return doc.document_no.toLowerCase().includes(term) || doc.raw?.po_number?.toLowerCase().includes(term) || doc.raw?.pr_number?.toLowerCase().includes(term);
       default:
         return doc.supplier_name?.toLowerCase().includes(term) || doc.equipment_code?.toLowerCase().includes(term) ||
           doc.equipment_name?.toLowerCase().includes(term) || doc.document_no.toLowerCase().includes(term) ||
-          doc.delivery_person_name?.toLowerCase().includes(term) || doc.serial_number?.toLowerCase().includes(term);
+          doc.delivery_person_name?.toLowerCase().includes(term) || doc.serial_number?.toLowerCase().includes(term) ||
+          doc.raw?.po_number?.toLowerCase().includes(term) || doc.raw?.pr_number?.toLowerCase().includes(term);
     }
   });
 
@@ -284,7 +285,7 @@ export default function DocumentSearch() {
     <div className="space-y-5">
       <div>
         <h1 className="text-2xl font-bold tracking-tight">ค้นหาเอกสาร</h1>
-        <p className="text-sm text-muted-foreground mt-1">ค้นหาจากผู้จำหน่าย รหัสอุปกรณ์ เลขที่เอกสาร หรือ Serial Number</p>
+        <p className="text-sm text-muted-foreground mt-1">ค้นหาจากผู้จำหน่าย รหัสอุปกรณ์ เลขที่เอกสาร เลขที่ PO/PR หรือ Serial Number</p>
       </div>
 
       {/* Search filters */}
