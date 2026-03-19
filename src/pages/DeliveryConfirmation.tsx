@@ -487,9 +487,9 @@ const DeliveryConfirmation = () => {
                             </div>
                           )}
                           {/* Item-level billboard */}
-                          {item.billboards && (
+                          {item._billboard && (
                             <div className="text-xs text-muted-foreground">
-                              ป้าย: {item.billboards.equipment_id} {item.billboards.location_name ? `- ${item.billboards.location_name}` : ""}
+                              ป้าย: {item._billboard.old_code || item._billboard.equipment_id} {item._billboard.location_name ? `- ${item._billboard.location_name}` : ""}
                             </div>
                           )}
                           {item.item_condition && item.item_condition !== "new" && (
