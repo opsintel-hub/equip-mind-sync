@@ -441,8 +441,8 @@ const DeliveryConfirmation = () => {
                   {selectedRequest?.equipment_code && (
                     <div><span className="text-muted-foreground">รหัสสินค้า:</span> <span className="font-medium font-mono">{selectedRequest.equipment_code}</span></div>
                   )}
-                  {selectedRequest?.billboards && (
-                    <div><span className="text-muted-foreground">ป้าย:</span> <span className="font-medium">{selectedRequest.billboards.equipment_id} {selectedRequest.billboards.location_name ? `- ${selectedRequest.billboards.location_name}` : ""}</span></div>
+                  {selectedRequest?._billboard && (
+                    <div><span className="text-muted-foreground">ป้าย:</span> <span className="font-medium">{selectedRequest._billboard.old_code || selectedRequest._billboard.equipment_id} {selectedRequest._billboard.location_name ? `- ${selectedRequest._billboard.location_name}` : ""}</span></div>
                   )}
                   {selectedRequest?.purpose && (
                     <div><span className="text-muted-foreground">วัตถุประสงค์:</span> <span className="font-medium">{selectedRequest.purpose}</span></div>
