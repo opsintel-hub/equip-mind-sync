@@ -285,7 +285,7 @@ export default function DocumentSearch() {
     <div className="space-y-5">
       <div>
         <h1 className="text-2xl font-bold tracking-tight">ค้นหาเอกสาร</h1>
-        <p className="text-sm text-muted-foreground mt-1">ค้นหาจากผู้จำหน่าย รหัสอุปกรณ์ เลขที่เอกสาร หรือ Serial Number</p>
+        <p className="text-sm text-muted-foreground mt-1">ค้นหาจากผู้จำหน่าย รหัสอุปกรณ์ เลขที่เอกสาร เลขที่ PO/PR หรือ Serial Number</p>
       </div>
 
       {/* Search filters */}
