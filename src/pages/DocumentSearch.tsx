@@ -250,11 +250,12 @@ export default function DocumentSearch() {
     switch (searchType) {
       case "supplier": return doc.supplier_name?.toLowerCase().includes(term);
       case "equipment": return doc.equipment_code?.toLowerCase().includes(term) || doc.equipment_name?.toLowerCase().includes(term) || doc.serial_number?.toLowerCase().includes(term);
-      case "document": return doc.document_no.toLowerCase().includes(term);
+      case "document": return doc.document_no.toLowerCase().includes(term) || doc.raw?.po_number?.toLowerCase().includes(term) || doc.raw?.pr_number?.toLowerCase().includes(term);
       default:
         return doc.supplier_name?.toLowerCase().includes(term) || doc.equipment_code?.toLowerCase().includes(term) ||
           doc.equipment_name?.toLowerCase().includes(term) || doc.document_no.toLowerCase().includes(term) ||
-          doc.delivery_person_name?.toLowerCase().includes(term) || doc.serial_number?.toLowerCase().includes(term);
+          doc.delivery_person_name?.toLowerCase().includes(term) || doc.serial_number?.toLowerCase().includes(term) ||
+          doc.raw?.po_number?.toLowerCase().includes(term) || doc.raw?.pr_number?.toLowerCase().includes(term);
     }
   });
 
