@@ -58,10 +58,25 @@ const DeliveryConfirmation = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("goods_issue_pending")
-        .select("*, companies(name), equipment(code, name, serial_number, unit), media_players(code, name, serial_number_1, serial_number_2, unit), billboards(equipment_id, location_name)")
+        .select("*, companies(name), equipment(code, name, serial_number, unit), media_players(code, name, serial_number_1, serial_number_2, unit)")
         .in("status", ["issued", "partial_issued"])
         .order("issued_at", { ascending: false });
       if (error) throw error;
+      
+      // Fetch billboard info separately for items that have billboard_id
+      if (data && data.length > 0) {
+        const billboardIds = [...new Set(data.filter((d: any) => d.billboard_id).map((d: any) => d.billboard_id))];
+        if (billboardIds.length > 0) {
+          const { data: billboards } = await supabase
+            .from("billboards")
+            .select("id, equipment_id, location_name, old_code")
+            .in("id", billboardIds);
+          const bbMap = new Map((billboards || []).map((b: any) => [b.id, b]));
+          data.forEach((d: any) => {
+            if (d.billboard_id) d._billboard = bbMap.get(d.billboard_id) || null;
+          });
+        }
+      }
       return data;
     },
   });
