@@ -183,7 +183,7 @@ export default function DocumentSearch() {
         serial_number: item.serial_number || null,
         supplier_name: item.supplier_name, delivery_person_name: item.delivery_person_name,
         quantity: item.quantity, unit: item.unit, created_at: item.created_at,
-        status: item.status, source: "pending" as const, raw: item,
+        status: item.status, source: (item.status === "received" ? "received" : "pending") as "pending" | "received", raw: item,
       }));
 
       const receiptDocs: DocumentRecord[] = (receiptData || []).map((item: any) => ({

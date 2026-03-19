@@ -178,10 +178,21 @@ const DeliveryConfirmation = () => {
     mutationFn: async () => {
       if (!selectedRequest || !user) throw new Error("Missing data");
       const isDS = !!selectedRequest._isDirectShipment;
+      
+      // Generate DC document number
+      const now = new Date();
+      const dateStr = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`;
+      const { count } = await supabase
+        .from("delivery_confirmations")
+        .select("id", { count: "exact", head: true })
+        .like("document_no", `DC-${dateStr}%`);
+      const seq = String((count || 0) + 1).padStart(4, '0');
+      const dcDocumentNo = `DC-${dateStr}-${seq}`;
+      
       const { error } = await supabase.from("delivery_confirmations").insert({
         goods_issue_pending_id: isDS ? null : selectedRequest.id,
         direct_shipment_id: isDS ? selectedRequest.id : null,
-        document_no: selectedRequest.document_no,
+        document_no: dcDocumentNo,
         confirmed_by: user.id,
         confirmed_at: new Date().toISOString(),
         status: hasIssue ? "issue_reported" : "confirmed",
