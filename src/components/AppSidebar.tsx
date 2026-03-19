@@ -79,6 +79,7 @@ const menuGroups: MenuGroup[] = [
     label: "หน้าหลัก",
     items: [
       { title: "แดชบอร์ด", url: "/dashboard", icon: LayoutDashboard },
+      { title: "ค้นหาเอกสาร", url: "/document-search", icon: FileSearch, functionName: "reports" },
     ]
   },
   {
@@ -235,7 +236,6 @@ const menuGroups: MenuGroup[] = [
       { title: "รายงานสินค้าคงคลัง", url: "/inventory-report", icon: Package, functionName: "reports" },
       { title: "Stock Card", url: "/stock-card", icon: ClipboardList, functionName: "reports" },
       { title: "Stock Movement Log", url: "/stock-movement-log", icon: History, functionName: "reports" },
-      { title: "ค้นหาเอกสาร", url: "/document-search", icon: FileSearch, functionName: "reports" },
       { title: "รายงาน Dead Stock", url: "/dead-stock", icon: Archive, functionName: "reports" },
       { title: "รายงานเบิกตามป้าย", url: "/billboard-issue-report", icon: MapPin, functionName: "reports" },
       { title: "ค้นหาอุปกรณ์ป้าย", url: "/equipment-tracking", icon: Search, functionName: "reports" },

@@ -58,10 +58,25 @@ const DeliveryConfirmation = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("goods_issue_pending")
-        .select("*, companies(name), equipment(code, name, serial_number, unit), media_players(code, name, serial_number_1, serial_number_2, unit), billboards(equipment_id, location_name)")
+        .select("*, companies(name), equipment(code, name, serial_number, unit), media_players(code, name, serial_number_1, serial_number_2, unit)")
         .in("status", ["issued", "partial_issued"])
         .order("issued_at", { ascending: false });
       if (error) throw error;
+      
+      // Fetch billboard info separately for items that have billboard_id
+      if (data && data.length > 0) {
+        const billboardIds = [...new Set(data.filter((d: any) => d.billboard_id).map((d: any) => d.billboard_id))];
+        if (billboardIds.length > 0) {
+          const { data: billboards } = await supabase
+            .from("billboards")
+            .select("id, equipment_id, location_name, old_code")
+            .in("id", billboardIds);
+          const bbMap = new Map((billboards || []).map((b: any) => [b.id, b]));
+          data.forEach((d: any) => {
+            if (d.billboard_id) d._billboard = bbMap.get(d.billboard_id) || null;
+          });
+        }
+      }
       return data;
     },
   });
@@ -97,9 +112,24 @@ const DeliveryConfirmation = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("goods_issue_pending_items")
-        .select("*, equipment(code, name, serial_number, unit), media_players(code, name, serial_number_1, serial_number_2, unit), billboards(equipment_id, location_name)")
+        .select("*, equipment(code, name, serial_number, unit), media_players(code, name, serial_number_1, serial_number_2, unit)")
         .order("created_at", { ascending: false });
       if (error) throw error;
+      
+      // Fetch billboard info separately
+      if (data && data.length > 0) {
+        const billboardIds = [...new Set(data.filter((d: any) => d.billboard_id).map((d: any) => d.billboard_id))];
+        if (billboardIds.length > 0) {
+          const { data: billboards } = await supabase
+            .from("billboards")
+            .select("id, equipment_id, location_name, old_code")
+            .in("id", billboardIds);
+          const bbMap = new Map((billboards || []).map((b: any) => [b.id, b]));
+          data.forEach((d: any) => {
+            if (d.billboard_id) d._billboard = bbMap.get(d.billboard_id) || null;
+          });
+        }
+      }
       return data;
     },
   });
@@ -411,8 +441,8 @@ const DeliveryConfirmation = () => {
                   {selectedRequest?.equipment_code && (
                     <div><span className="text-muted-foreground">รหัสสินค้า:</span> <span className="font-medium font-mono">{selectedRequest.equipment_code}</span></div>
                   )}
-                  {selectedRequest?.billboards && (
-                    <div><span className="text-muted-foreground">ป้าย:</span> <span className="font-medium">{selectedRequest.billboards.equipment_id} {selectedRequest.billboards.location_name ? `- ${selectedRequest.billboards.location_name}` : ""}</span></div>
+                  {selectedRequest?._billboard && (
+                    <div><span className="text-muted-foreground">ป้าย:</span> <span className="font-medium">{selectedRequest._billboard.old_code || selectedRequest._billboard.equipment_id} {selectedRequest._billboard.location_name ? `- ${selectedRequest._billboard.location_name}` : ""}</span></div>
                   )}
                   {selectedRequest?.purpose && (
                     <div><span className="text-muted-foreground">วัตถุประสงค์:</span> <span className="font-medium">{selectedRequest.purpose}</span></div>
@@ -457,9 +487,9 @@ const DeliveryConfirmation = () => {
                             </div>
                           )}
                           {/* Item-level billboard */}
-                          {item.billboards && (
+                          {item._billboard && (
                             <div className="text-xs text-muted-foreground">
-                              ป้าย: {item.billboards.equipment_id} {item.billboards.location_name ? `- ${item.billboards.location_name}` : ""}
+                              ป้าย: {item._billboard.old_code || item._billboard.equipment_id} {item._billboard.location_name ? `- ${item._billboard.location_name}` : ""}
                             </div>
                           )}
                           {item.item_condition && item.item_condition !== "new" && (
