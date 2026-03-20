@@ -71,7 +71,7 @@ const UserManual = () => {
               { label: "ป้ายโฆษณา", desc: "จัดการป้าย ติดตั้ง/ถอดอุปกรณ์ PM ป้ายโฆษณา" },
               { label: "ภาพโฆษณา", desc: "นำเข้า-รับเข้าคลัง-เบิก-จ่ายภาพโฆษณา (ใหม่/เก่า/ฝากชั่วคราว)" },
               { label: "เครื่องมือ", desc: "ข้อมูลเครื่องมือ PM เครื่องมือ ตาราง PM ประวัติ PM รายงาน PM" },
-              { label: "รายงาน", desc: "สรุปสต็อก Dead Stock เอกสาร Stock Card ใบขอซื้อ Stock Movement" },
+              { label: "รายงาน", desc: "สรุปสต็อก Dead Stock เอกสาร Stock Card (รวม Movement Log) ใบขอซื้อ" },
             ].map((item, i) => (
               <div key={i} className="p-3 border rounded-lg bg-muted/30">
                 <h4 className="font-semibold text-sm">{item.label}</h4>
