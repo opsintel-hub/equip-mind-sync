@@ -25,6 +25,7 @@ export interface InventoryFiltersState {
   locationId: string;
   stockStatus: string;
   search: string;
+  snSearch: string; // Dedicated S/N search field
   itemType: string; // 'all' | 'equipment' | 'media_player'
   statusFilters: string[]; // Multi-select: expired, warranty_expired, near_expiry, near_warranty, out_of_stock
   advanceDays?: number; // Custom days for near expiry/warranty calculation
