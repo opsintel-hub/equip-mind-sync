@@ -551,7 +551,7 @@ export default function StockCard() {
     });
 
     return Array.from(groups.values());
-  }, [allMovements, movDeptFilter, movCompanyFilter, movDateRange]);
+  }, [allMovements, movDeptFilter, movCompanyFilter, movDateRange, movSearchTerm, movSnSearchTerm]);
 
   const {
     paginatedData: movPaginatedGroups, currentPage: movPage, pageSize: movPageSize,
