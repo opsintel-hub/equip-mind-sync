@@ -477,12 +477,19 @@ export default function StockCard() {
     if (!allMovements) return [];
 
     let filtered = allMovements;
+    // Dedicated S/N search
+    if (movSnSearchTerm) {
+      const snTerm = movSnSearchTerm.toLowerCase();
+      filtered = filtered.filter((m: any) => {
+        const sn = m.equipment?.serial_number || "";
+        return sn.toLowerCase().includes(snTerm);
+      });
+    }
+    // General search (code, name, document, notes)
     if (movSearchTerm) {
       const term = movSearchTerm.toLowerCase();
       filtered = filtered.filter((m: any) => {
-        const sn = m.equipment?.serial_number || "";
-        return sn.toLowerCase().includes(term) ||
-          m.equipment_code?.toLowerCase().includes(term) ||
+        return m.equipment_code?.toLowerCase().includes(term) ||
           m.equipment_name?.toLowerCase().includes(term) ||
           m.reference_document?.toLowerCase().includes(term) ||
           m.notes?.toLowerCase().includes(term);
