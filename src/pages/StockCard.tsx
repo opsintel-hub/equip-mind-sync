@@ -1078,7 +1078,16 @@ export default function StockCard() {
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
-                    placeholder="ค้นหา รหัส/ชื่อ/S/N หรือเลขเอกสาร..."
+                    placeholder="ค้นหา S/N..."
+                    value={movSnSearchTerm}
+                    onChange={(e) => { setMovSnSearchTerm(e.target.value); movPageChange(1); }}
+                    className="pl-10"
+                  />
+                </div>
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="ค้นหา รหัส/ชื่อ หรือเลขเอกสาร..."
                     value={movSearchTerm}
                     onChange={(e) => { setMovSearchTerm(e.target.value); movPageChange(1); }}
                     className="pl-10"
