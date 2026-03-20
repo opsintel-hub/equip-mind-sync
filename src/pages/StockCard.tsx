@@ -441,21 +441,128 @@ export default function StockCard() {
     toast({ title: "ส่งออก PDF สำเร็จ" });
   }, [selectedItem, filteredTimeline, journeys]);
 
+  // ── All Movements Tab Data ──
+  const { data: movCompaniesList } = useQuery({
+    queryKey: ["stock-card-mov-companies"],
+    queryFn: async () => {
+      const { data } = await supabase.from("companies").select("id, name").eq("is_active", true).order("name");
+      return data || [];
+    },
+  });
+
+  const { data: allMovements, isLoading: movLoading } = useQuery({
+    queryKey: ["stock-card-all-movements", movSearchTerm, movTypeFilter],
+    enabled: activeTab === "all-movements",
+    queryFn: async () => {
+      let query = supabase
+        .from("stock_movements")
+        .select(`*, equipment:equipment_id(code, name, serial_number), location:location_id(name), companies:company_id(name)`)
+        .order("created_at", { ascending: false });
+
+      if (movSearchTerm) {
+        query = query.or(`equipment_code.ilike.%${movSearchTerm}%,equipment_name.ilike.%${movSearchTerm}%,reference_document.ilike.%${movSearchTerm}%,notes.ilike.%${movSearchTerm}%`);
+      }
+      if (movTypeFilter !== "all") {
+        query = query.eq("movement_type", movTypeFilter);
+      }
+
+      const { data, error } = await query;
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const groupedAllMovements = useMemo(() => {
+    if (!allMovements) return [];
+
+    let filtered = allMovements;
+    if (movSearchTerm) {
+      const term = movSearchTerm.toLowerCase();
+      filtered = filtered.filter((m: any) => {
+        const sn = m.equipment?.serial_number || "";
+        return sn.toLowerCase().includes(term) ||
+          m.equipment_code?.toLowerCase().includes(term) ||
+          m.equipment_name?.toLowerCase().includes(term) ||
+          m.reference_document?.toLowerCase().includes(term) ||
+          m.notes?.toLowerCase().includes(term);
+      });
+    }
+    if (movDeptFilter.length > 0) {
+      filtered = filtered.filter((m: any) => movDeptFilter.includes(m.department));
+    }
+    if (movCompanyFilter !== "all") {
+      filtered = filtered.filter((m: any) => m.company_id === movCompanyFilter);
+    }
+    if (movDateRange?.from) {
+      filtered = filtered.filter((m: any) => {
+        const d = new Date(m.created_at);
+        if (movDateRange.from && d < movDateRange.from) return false;
+        if (movDateRange.to && d > movDateRange.to) return false;
+        return true;
+      });
+    }
+
+    const groups = new Map<string, GroupedMovement>();
+    filtered.forEach((movement: any) => {
+      const key = movement.reference_document || movement.id;
+      if (groups.has(key)) {
+        const group = groups.get(key)!;
+        group.items.push(movement);
+        group.total_items = group.items.length;
+      } else {
+        groups.set(key, {
+          reference_document: movement.reference_document || `No-Doc-${movement.id.slice(0, 8)}`,
+          created_at: movement.created_at,
+          movement_type: movement.movement_type,
+          company_name: movement.companies?.name || null,
+          items: [movement],
+          total_items: 1,
+        });
+      }
+    });
+
+    return Array.from(groups.values());
+  }, [allMovements, movDeptFilter, movCompanyFilter, movDateRange]);
+
+  const {
+    paginatedData: movPaginatedGroups, currentPage: movPage, pageSize: movPageSize,
+    totalPages: movTotalPages, totalItems: movTotalItems,
+    handlePageChange: movPageChange, handlePageSizeChange: movPageSizeChange,
+  } = useTablePagination(groupedAllMovements, 20);
+
   return (
     <div className="space-y-6">
       {/* Page Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Stock Card</h1>
-          <p className="text-sm text-muted-foreground">ประวัติชีวิตสินค้า — ติดตามการเคลื่อนไหว ติดตั้ง ถอด และสภาพ</p>
+          <p className="text-sm text-muted-foreground">ประวัติชีวิตสินค้า & ภาพรวมการเคลื่อนไหวทั้งหมด</p>
         </div>
-        {selectedItem && (
+        {selectedItem && activeTab === "stock-card" && (
           <div className="flex gap-2">
             <Button variant="outline" size="sm" onClick={handleExportExcel} className="gap-1.5">
               <FileSpreadsheet className="w-4 h-4" /> Excel
             </Button>
             <Button variant="outline" size="sm" onClick={handleExportPDF} className="gap-1.5">
               <FileText className="w-4 h-4" /> PDF
+            </Button>
+          </div>
+        )}
+      </div>
+
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+        <TabsList className="grid w-full grid-cols-2 lg:w-auto lg:inline-grid lg:grid-cols-2">
+          <TabsTrigger value="stock-card" className="flex items-center gap-2">
+            <ClipboardList className="h-4 w-4" />
+            Stock Card (รายชิ้น)
+          </TabsTrigger>
+          <TabsTrigger value="all-movements" className="flex items-center gap-2">
+            <History className="h-4 w-4" />
+            ภาพรวมเคลื่อนไหว
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="stock-card" className="space-y-6">
             </Button>
           </div>
         )}
