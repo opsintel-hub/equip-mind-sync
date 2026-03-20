@@ -931,7 +931,7 @@ function EquipmentDetailDialog({ item, onClose, bbLookup }: { item: any; onClose
                 </TableBody>
               </Table>
             ) : (
-              <p className="text-sm text-muted-foreground p-3 border rounded-lg">ไม่มีข้อมูล Stock Movement</p>
+              <p className="text-sm text-muted-foreground p-3 border rounded-lg">ไม่มีข้อมูล Stock Card</p>
             )}
           </div>
         </div>

@@ -626,7 +626,7 @@ const UserManual = () => {
           <div>
             <h4 className="font-semibold mb-2">5.3 โอนย้าย / ยืมข้ามบริษัท / Import-Export</h4>
             <ul className="list-disc list-inside text-xs text-muted-foreground space-y-1">
-              <li><strong>โอนย้าย:</strong> เลือกสินค้า → ระบุจำนวน/ปลายทาง → อัปเดตสถานที่ + S/N location + Stock Movement</li>
+              <li><strong>โอนย้าย:</strong> เลือกสินค้า → ระบุจำนวน/ปลายทาง → อัปเดตสถานที่ + S/N location + Stock Card</li>
               <li><strong>ยืมข้ามบริษัท:</strong> ขอยืม → อนุมัติ (ข้ามฝ่ายต้อง Manager) → กำลังยืม → คืนบางส่วน/ทั้งหมด</li>
               <li><strong>Import/Export:</strong> ดาวน์โหลด Template Excel → กรอก → อัปโหลด / Export ทั้งหมดเป็น Excel</li>
             </ul>

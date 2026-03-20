@@ -176,7 +176,7 @@ const adminMediaPlayerExercises: Exercise[] = [
     checkItems: [
       "ไปที่เมนู 'รายงาน Media Player' → เห็นเครื่องทั้ง 3 สถานะ 'ในคลัง'",
       "ไปที่ 'Media Player Profile' → ค้นหาด้วย S/N → เห็นข้อมูลเครื่องครบ (รูปภาพ, S/N, ประวัติ)",
-      "Stock Movement Log → มีรายการ receive ของ Media Player"
+      "Stock Card → แท็บ 'ภาพรวมเคลื่อนไหว' → มีรายการ receive ของ Media Player"
     ],
     fillField: "S/N ของ Media Player ที่รับเข้า: ____________"
   },
