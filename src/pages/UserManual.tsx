@@ -115,7 +115,7 @@ const UserManual = () => {
               automations={[
                 { type: "auto-update", label: "เพิ่มสต็อก", description: "จำนวนสต็อกเพิ่มอัตโนมัติ" },
                 { type: "auto-update", label: "S/N → in_stock", description: "S/N อัปเดตสถานะ + location" },
-                { type: "auto-create", label: "Stock Movement", description: "บันทึก Movement ประเภท receive" },
+                { type: "auto-create", label: "Stock Card", description: "บันทึก Movement ประเภท receive" },
               ]}
             />
             <FlowStepDetail
