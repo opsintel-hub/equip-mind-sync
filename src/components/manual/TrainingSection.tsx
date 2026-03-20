@@ -92,7 +92,7 @@ const adminFullFlowExercises: Exercise[] = [
     expectedResult: "สต็อกลดลง 3 ชิ้น, Auto Create: เอกสาร DC (Delivery Confirmation) สร้างอัตโนมัติ, Auto Update: สถานะ S/N เปลี่ยนเป็น 'issued'",
     checkItems: [
       "ไปที่ 'รายงานสินค้าคงคลัง' → สต็อกลดลง 3 ชิ้น (เหลือ 7)",
-      "ไปที่ 'Stock Movement Log' → มีรายการ 'issue' ของเอกสาร GI นี้",
+      "ไปที่ 'Stock Card' → แท็บ 'ภาพรวมเคลื่อนไหว' → มีรายการ 'issue' ของเอกสาร GI นี้",
       "Auto Create: เอกสาร DC สร้างอัตโนมัติ → ดูได้ที่เมนู 'ยืนยันรับสินค้า'",
       "ไปที่ 'ค้นหาเอกสาร' → ค้นเลข GI → Process Tracker: 'ส่งคำขอ ✓ → จ่ายสินค้า ✓ → ยืนยันรับ (กำลังดำเนินการ)'",
       "Auto Update: S/N ที่จ่าย → สถานะเปลี่ยนเป็น 'issued'"
