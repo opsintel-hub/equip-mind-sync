@@ -910,7 +910,7 @@ function EquipmentDetailDialog({ item, onClose, bbLookup }: { item: any; onClose
             <Card>
               <CardContent className="p-3 text-center">
                 <div className="text-xs text-muted-foreground mb-1">S/N</div>
-                <div className="text-sm font-mono">{item.serialDisplay}</div>
+                <div className="text-sm font-mono whitespace-pre-line">{item.serialDisplay}</div>
               </CardContent>
             </Card>
           </div>
