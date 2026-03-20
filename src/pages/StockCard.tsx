@@ -31,6 +31,7 @@ import { DepartmentMultiFilter } from "@/components/DepartmentMultiFilter";
 import { useDepartmentPermissions } from "@/hooks/useDepartmentPermissions";
 import { StockMovementGroupRow, GroupedMovement } from "@/components/stock-movement/StockMovementGroupRow";
 import { StockMovementDocumentDialog } from "@/components/stock-movement/StockMovementDocumentDialog";
+import { buildReceivedSerialAliasMap, formatMergedSerials, matchesSerialSearch } from "@/lib/serialSearch";
 
 // ── Types ──────────────────────────────────────────────────────
 interface EquipmentItem {
