@@ -255,12 +255,8 @@ function BillboardViewTab() {
       if (!matchesSearch) return false;
       // Dedicated S/N search
       if (snSearch) {
-        const snTerm = snSearch.toLowerCase();
         const items = equipByBillboard[b.id] || [];
-        const matchesSN = items.some((item: any) => {
-          const eq = item.equipmentData;
-          return (eq?.serial_number || "").toLowerCase().includes(snTerm);
-        });
+        const matchesSN = items.some((item: any) => matchesSerialSearch(snSearch, item.equipmentData?.serial_number));
         if (!matchesSN) return false;
       }
       if (regionFilter !== "all" && b.region !== regionFilter) return false;

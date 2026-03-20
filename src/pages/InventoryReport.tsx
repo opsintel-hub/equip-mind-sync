@@ -644,11 +644,9 @@ export default function InventoryReport() {
         if (item.item_condition !== filters.itemCondition) return false;
       }
 
-      // Dedicated S/N search - searches serial_number field from equipment_serial_numbers
-      if (filters.snSearch?.trim()) {
-        const snTerm = filters.snSearch.trim().toLowerCase();
-        const serialNumber = item.serial_number?.toLowerCase() || "";
-        if (!serialNumber.includes(snTerm)) return false;
+      // Dedicated S/N search - searches merged serials from master + received aliases
+      if (filters.snSearch?.trim() && !matchesSerialSearch(filters.snSearch, item.serial_number)) {
+        return false;
       }
 
       // Global search across all key columns shown in report (excluding S/N)
