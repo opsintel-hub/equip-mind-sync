@@ -2400,6 +2400,7 @@ const DeliveryEntry = () => {
               <TableHeader>
                 <TableRow className="bg-muted/50">
                   <TableHead>เลขที่เอกสาร</TableHead>
+                  <TableHead>รหัสสินค้า</TableHead>
                   <TableHead>วันที่</TableHead>
                   <TableHead>ชื่อสินค้า</TableHead>
                   <TableHead>จำนวน</TableHead>
@@ -2412,7 +2413,7 @@ const DeliveryEntry = () => {
               <TableBody>
                 {paginatedReceipts.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
                       ยังไม่มีรายการ
                     </TableCell>
                   </TableRow>
@@ -2420,6 +2421,13 @@ const DeliveryEntry = () => {
                   paginatedReceipts.map((receipt) => (
                     <TableRow key={receipt.id} className="hover:bg-muted/30">
                       <TableCell className="font-medium">{receipt.document_no}</TableCell>
+                      <TableCell>
+                        {receipt.equipment_code ? (
+                          <span className={receipt.equipment_code.startsWith("TEMP-") ? "text-amber-600 dark:text-amber-400 font-mono text-xs" : "font-mono text-xs"}>
+                            {receipt.equipment_code}
+                          </span>
+                        ) : "-"}
+                      </TableCell>
                       <TableCell>{format(new Date(receipt.created_at), "dd/MM/yyyy HH:mm")}</TableCell>
                       <TableCell>{receipt.equipment_name || "-"}</TableCell>
                       <TableCell>

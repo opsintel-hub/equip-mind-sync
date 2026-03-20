@@ -1065,10 +1065,23 @@ const ReceiveGoods = () => {
                     } as EquipmentPrefillData}
                     onSuccess={async (newEquipmentId) => {
                       if (newEquipmentId) {
-                        // Update the pending receipt to link with new equipment
+                        // Fetch the newly created equipment to get its real code and name
+                        const { data: newEquip } = await supabase
+                          .from("equipment")
+                          .select("code, name")
+                          .eq("id", newEquipmentId)
+                          .single();
+
+                        // Update the pending receipt to link with new equipment AND update code/name
+                        const updatePayload: Record<string, any> = { equipment_id: newEquipmentId };
+                        if (newEquip) {
+                          updatePayload.equipment_code = newEquip.code;
+                          updatePayload.equipment_name = newEquip.name;
+                        }
+
                         const { error } = await supabase
                           .from("goods_receipt_pending")
-                          .update({ equipment_id: newEquipmentId })
+                          .update(updatePayload)
                           .eq("id", selectedReceipt.id);
 
                         if (error) {
@@ -1080,6 +1093,8 @@ const ReceiveGoods = () => {
                           setSelectedReceipt({
                             ...selectedReceipt,
                             equipment_id: newEquipmentId,
+                            equipment_code: newEquip?.code || selectedReceipt.equipment_code,
+                            equipment_name: newEquip?.name || selectedReceipt.equipment_name,
                           });
                         }
                         
