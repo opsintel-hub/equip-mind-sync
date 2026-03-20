@@ -82,6 +82,7 @@ const IssueGoods = () => {
   const queryClient = useQueryClient();
   const { user } = useAuth();
   const [searchTerm, setSearchTerm] = useState("");
+  const [snSearchTerm, setSnSearchTerm] = useState("");
   const [selectedRequest, setSelectedRequest] = useState<PendingRequest | null>(null);
   const [selectedItem, setSelectedItem] = useState<PendingItem | null>(null);
   const [issueDialogOpen, setIssueDialogOpen] = useState(false);
