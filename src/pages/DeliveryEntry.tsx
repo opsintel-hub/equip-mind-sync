@@ -1016,6 +1016,12 @@ const DeliveryEntry = () => {
     }
   };
   const filteredReceipts = pendingReceipts.filter((receipt) => {
+    // Dedicated S/N search
+    if (snSearchTerm) {
+      const snTerm = snSearchTerm.toLowerCase();
+      if (!(receipt as any).serial_number?.toLowerCase().includes(snTerm)) return false;
+    }
+    // General search
     const term = searchTerm.toLowerCase();
     if (!term) return true;
     return (
@@ -1023,7 +1029,6 @@ const DeliveryEntry = () => {
       receipt.equipment_name?.toLowerCase().includes(term) ||
       receipt.delivery_person_name.toLowerCase().includes(term) ||
       receipt.equipment_code?.toLowerCase().includes(term) ||
-      (receipt as any).serial_number?.toLowerCase().includes(term) ||
       (receipt as any).lot_number?.toLowerCase().includes(term)
     );
   });
