@@ -659,15 +659,20 @@ const IssueGoods = () => {
 
   const filteredRequests = pendingRequests?.filter(
     (req) => {
+      // Dedicated S/N search
+      if (snSearchTerm) {
+        const snTerm = snSearchTerm.toLowerCase();
+        const items = getItemsForRequest(req.id);
+        if (!items.some(item => item.serial_number?.toLowerCase().includes(snTerm))) return false;
+      }
+      // General search
       const term = searchTerm.toLowerCase();
       if (!term) return true;
       if (req.document_no?.toLowerCase().includes(term) ||
           req.equipment_code?.toLowerCase().includes(term) ||
           req.equipment_name?.toLowerCase().includes(term) ||
           req.requester_name?.toLowerCase().includes(term)) return true;
-      // Search in items' serial_number
-      const items = getItemsForRequest(req.id);
-      return items.some(item => item.serial_number?.toLowerCase().includes(term));
+      return false;
     }
   );
 
