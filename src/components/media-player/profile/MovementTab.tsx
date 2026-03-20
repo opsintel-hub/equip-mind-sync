@@ -14,7 +14,7 @@ export function MovementTab({ movements, playerCode }: MovementTabProps) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base">Stock Movement Timeline</CardTitle>
+        <CardTitle className="text-base">Stock Card Timeline</CardTitle>
         <CardDescription>ความเคลื่อนไหวของสินค้ารหัส {playerCode}</CardDescription>
       </CardHeader>
       <CardContent>
