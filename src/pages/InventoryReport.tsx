@@ -656,13 +656,19 @@ export default function InventoryReport() {
         if (item.item_condition !== filters.itemCondition) return false;
       }
 
-      // Global search across all key columns shown in report
+      // Dedicated S/N search - searches serial_number field from equipment_serial_numbers
+      if (filters.snSearch?.trim()) {
+        const snTerm = filters.snSearch.trim().toLowerCase();
+        const serialNumber = item.serial_number?.toLowerCase() || "";
+        if (!serialNumber.includes(snTerm)) return false;
+      }
+
+      // Global search across all key columns shown in report (excluding S/N)
       if (filters.search.trim()) {
         const term = filters.search.trim().toLowerCase();
         const searchableValues = [
           item.code,
           item.name,
-          item.serial_number,
           item.category,
           item.subcategories?.name,
           item.brand,
