@@ -134,7 +134,7 @@ const GoodsIssue = () => {
     }
 
     return result;
-  }, [issueRequests, searchTerm, statusFilter, dateRange, issueItems]);
+  }, [issueRequests, searchTerm, snSearchTerm, statusFilter, dateRange, issueItems]);
 
   const { paginatedData, currentPage, pageSize, totalPages, totalItems, handlePageChange, handlePageSizeChange } = useTablePagination(filtered, 20);
 
