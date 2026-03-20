@@ -737,7 +737,7 @@ export default function StockCard() {
                     <div><span className="text-muted-foreground">S/N:</span> <span className="font-medium whitespace-pre-line">{selectedItem.serial_number}</span></div>
                   )}
                   {selectedItem.serial_number_2 && (
-                    <div><span className="text-muted-foreground">S/N 2:</span> <span className="font-medium">{selectedItem.serial_number_2}</span></div>
+                    <div><span className="text-muted-foreground">S/N 2:</span> <span className="font-medium whitespace-pre-line">{selectedItem.serial_number_2}</span></div>
                   )}
                   {selectedItem.category && <div><span className="text-muted-foreground">หมวด:</span> <span className="font-medium">{selectedItem.category}</span></div>}
                   {selectedItem.brand && <div><span className="text-muted-foreground">ยี่ห้อ:</span> <span className="font-medium">{selectedItem.brand}</span></div>}
