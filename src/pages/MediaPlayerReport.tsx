@@ -673,7 +673,7 @@ function MediaPlayerProfileDialog({
               <TabsList className="grid w-full grid-cols-3 max-w-lg">
                 <TabsTrigger value="general">ข้อมูลทั่วไป</TabsTrigger>
                 <TabsTrigger value="journey">ประวัติติดตั้ง</TabsTrigger>
-                <TabsTrigger value="movements">Stock Movement</TabsTrigger>
+                <TabsTrigger value="movements">Stock Card</TabsTrigger>
               </TabsList>
               <TabsContent value="general">
                 <GeneralInfoTab player={player} modelName={modelName} />

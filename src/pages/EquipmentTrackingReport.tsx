@@ -898,9 +898,9 @@ function EquipmentDetailDialog({ item, onClose, bbLookup }: { item: any; onClose
             </div>
           )}
 
-          {/* Stock Movements - show for both equipment AND media_player */}
+          {/* Stock Card - show for both equipment AND media_player */}
           <div>
-            <h4 className="font-semibold mb-2 flex items-center gap-2"><AlertTriangle className="w-4 h-4" /> Stock Movement</h4>
+            <h4 className="font-semibold mb-2 flex items-center gap-2"><AlertTriangle className="w-4 h-4" /> Stock Card</h4>
             {loadingMov ? (
               <Skeleton className="h-20 w-full" />
             ) : (movements || []).length > 0 ? (
@@ -931,7 +931,7 @@ function EquipmentDetailDialog({ item, onClose, bbLookup }: { item: any; onClose
                 </TableBody>
               </Table>
             ) : (
-              <p className="text-sm text-muted-foreground p-3 border rounded-lg">ไม่มีข้อมูล Stock Movement</p>
+              <p className="text-sm text-muted-foreground p-3 border rounded-lg">ไม่มีข้อมูล Stock Card</p>
             )}
           </div>
         </div>

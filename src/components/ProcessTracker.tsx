@@ -35,29 +35,42 @@ export function ProcessTracker({ steps, size = "md", className }: ProcessTracker
       {steps.map((step, idx) => (
         <div key={idx} className="flex-1 flex flex-col items-center relative">
           {/* Connector line */}
-          {idx > 0 && (
-            <div
-              className={cn("absolute z-0", connectorTop, connectorH)}
-              style={{ right: "50%", width: "100%" }}
-            >
-              <div className={cn(
-                "h-full w-full transition-all",
-                // Blue if current step OR previous step is done/current
-                (step.status === "done" || step.status === "current" || steps[idx - 1]?.status === "done")
-                  ? "bg-primary"
-                  : step.status === "rejected"
-                    ? "bg-destructive"
-                    : "bg-muted-foreground/20",
-                step.status === "current" && steps[idx - 1]?.status !== "done" && "bg-gradient-to-r from-primary to-primary/40",
-                step.status === "pending" && steps[idx - 1]?.status === "current"
-                  && "bg-gradient-to-r from-primary/40 to-muted-foreground/20",
-              )} style={{
-                ...(step.status === "pending" && steps[idx - 1]?.status !== "done" && steps[idx - 1]?.status !== "current"
-                  ? { backgroundImage: "repeating-linear-gradient(90deg, hsl(var(--muted-foreground)/0.2) 0, hsl(var(--muted-foreground)/0.2) 6px, transparent 6px, transparent 12px)", backgroundColor: "transparent", backgroundSize: "12px 100%" }
-                  : {})
-              }} />
-            </div>
-          )}
+          {idx > 0 && (() => {
+            const prev = steps[idx - 1]?.status;
+            const curr = step.status;
+            // Connector is SOLID BLUE when either side is done/current
+            const eitherDone = curr === "done" || curr === "current" || prev === "done" || prev === "current";
+            const isRejected = curr === "rejected";
+            // Determine if we need a gradient transition (active→pending boundary)
+            const isTransition = (prev === "current" && curr === "pending") || (prev === "done" && curr === "pending" && !eitherDone);
+            
+            let bgClass: string;
+            if (isRejected) {
+              bgClass = "bg-destructive";
+            } else if (eitherDone) {
+              bgClass = "bg-primary";
+            } else {
+              bgClass = "bg-muted-foreground/20";
+            }
+
+            // Only use dashed style for fully inactive connections (both sides pending)
+            const bothPending = (prev === "pending" && curr === "pending");
+            const dashedStyle = bothPending
+              ? { backgroundImage: "repeating-linear-gradient(90deg, hsl(var(--muted-foreground)/0.2) 0, hsl(var(--muted-foreground)/0.2) 6px, transparent 6px, transparent 12px)", backgroundColor: "transparent", backgroundSize: "12px 100%" }
+              : {};
+
+            return (
+              <div
+                className={cn("absolute z-0", connectorTop, connectorH)}
+                style={{ right: "50%", width: "100%" }}
+              >
+                <div
+                  className={cn("h-full w-full transition-all", bgClass)}
+                  style={dashedStyle}
+                />
+              </div>
+            );
+          })()}
 
           {/* Circle */}
           <div className={cn(

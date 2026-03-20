@@ -115,7 +115,7 @@ const UserManual = () => {
               automations={[
                 { type: "auto-update", label: "เพิ่มสต็อก", description: "จำนวนสต็อกเพิ่มอัตโนมัติ" },
                 { type: "auto-update", label: "S/N → in_stock", description: "S/N อัปเดตสถานะ + location" },
-                { type: "auto-create", label: "Stock Movement", description: "บันทึก Movement ประเภท receive" },
+                { type: "auto-create", label: "Stock Card", description: "บันทึก Movement ประเภท receive" },
               ]}
             />
             <FlowStepDetail
@@ -142,7 +142,7 @@ const UserManual = () => {
                 { type: "auto-fill", label: "ดึงคำขอ", description: "คำขอจากผู้เบิกแสดงอัตโนมัติ" },
                 { type: "auto-update", label: "ตัดสต็อก", description: "สต็อกลดตามจำนวนที่จ่าย" },
                 { type: "auto-update", label: "S/N → issued", description: "S/N อัปเดตสถานะอัตโนมัติ" },
-                { type: "auto-create", label: "DC + Stock Movement", description: "สร้างเอกสาร DC + บันทึก Movement" },
+                { type: "auto-create", label: "DC + Stock Card", description: "สร้างเอกสาร DC + บันทึก Movement" },
               ]}
             />
           </div>
@@ -626,7 +626,7 @@ const UserManual = () => {
           <div>
             <h4 className="font-semibold mb-2">5.3 โอนย้าย / ยืมข้ามบริษัท / Import-Export</h4>
             <ul className="list-disc list-inside text-xs text-muted-foreground space-y-1">
-              <li><strong>โอนย้าย:</strong> เลือกสินค้า → ระบุจำนวน/ปลายทาง → อัปเดตสถานที่ + S/N location + Stock Movement</li>
+              <li><strong>โอนย้าย:</strong> เลือกสินค้า → ระบุจำนวน/ปลายทาง → อัปเดตสถานที่ + S/N location + Stock Card</li>
               <li><strong>ยืมข้ามบริษัท:</strong> ขอยืม → อนุมัติ (ข้ามฝ่ายต้อง Manager) → กำลังยืม → คืนบางส่วน/ทั้งหมด</li>
               <li><strong>Import/Export:</strong> ดาวน์โหลด Template Excel → กรอก → อัปโหลด / Export ทั้งหมดเป็น Excel</li>
             </ul>
@@ -676,7 +676,7 @@ const UserManual = () => {
             <ul className="list-disc list-inside text-xs text-muted-foreground space-y-1">
               <li>เลือกเอกสาร PD ที่รอรับ → ระบุสถานที่จัดเก็บ (คลัง → ตำแหน่ง → Slot)</li>
               <li>ตรวจสอบ/แก้ไข S/N ได้อีกครั้ง (ข้อมูลจากการรับเข้าจริงเป็น Authoritative Source)</li>
-              <li>กดรับเข้า → เพิ่มสต็อก + อัปเดต S/N เป็น <Badge variant="outline" className="text-[10px] px-1">in_stock</Badge> + บันทึก Stock Movement</li>
+              <li>กดรับเข้า → เพิ่มสต็อก + อัปเดต S/N เป็น <Badge variant="outline" className="text-[10px] px-1">in_stock</Badge> + บันทึก Stock Card</li>
               <li>สินค้ารหัส TEMP → เจ้าหน้าที่กำหนดรหัสจริงตอนรับเข้าคลัง</li>
               <li>รองรับรับเข้าแบบ Batch (เลือกหลายรายการพร้อมกัน)</li>
             </ul>
@@ -1040,7 +1040,7 @@ const UserManual = () => {
       number: "13",
       title: "รายงาน (Reports)",
       icon: <FileSearch className="h-5 w-5" />,
-      description: "สรุปสต็อก เอกสาร Stock Movement Stock Card Dead Stock QR Code ประวัติโอนย้าย",
+      description: "สรุปสต็อก เอกสาร Stock Card Dead Stock QR Code ประวัติโอนย้าย",
       content: (
         <div className="space-y-4">
           {[
