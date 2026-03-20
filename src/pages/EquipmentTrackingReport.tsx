@@ -95,6 +95,7 @@ function SimplePagination({ currentPage, totalPages, onPageChange }: { currentPa
 
 function BillboardViewTab() {
   const [search, setSearch] = useState("");
+  const [snSearch, setSnSearch] = useState("");
   const [regionFilter, setRegionFilter] = useState("all");
   const [deptFilter, setDeptFilter] = useState("all");
   const [mediaTypeFilter, setMediaTypeFilter] = useState("all");
