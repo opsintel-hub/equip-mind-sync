@@ -657,7 +657,7 @@ export default function StockCard() {
                         <div className="flex-1 min-w-0">
                           <div className="font-medium truncate">{item.code} — {item.name}</div>
                           <div className="text-xs text-muted-foreground flex items-center gap-2">
-                            {item.serial_number && <span className="flex items-center gap-0.5"><Fingerprint className="w-3 h-3" />{item.serial_number}</span>}
+                            {item.serial_number && <span className="flex items-center gap-0.5 whitespace-pre-line"><Fingerprint className="w-3 h-3 shrink-0" />{item.serial_number}</span>}
                             <span>{ITEM_TYPES.find(t => t.value === item.type)?.label}</span>
                             {item.department && <span>• {item.department}</span>}
                           </div>
