@@ -523,10 +523,10 @@ export default function InventoryReport() {
           continue;
         }
         // Single or no S/N
-        const displaySerial = snData?.allSNs[0] || item.serial_number || receiptSerialMaps.equipmentSerialMap[item.id] || null;
+        const displaySerial = formatMergedSerials(snData?.allSNs, item.serial_number, receiptSerialMaps.equipmentSerialMap[item.id]) || null;
         result.push({ ...item, serial_number: displaySerial, ...baseFields });
       } else if (item.item_type === "media_player") {
-        const displaySerial = item.serial_number || receiptSerialMaps.mediaSerialMap[item.id] || null;
+        const displaySerial = formatMergedSerials(item.serial_number, receiptSerialMaps.mediaSerialMap[item.id]) || null;
         result.push({ ...item, serial_number: displaySerial, ...baseFields });
       } else {
         result.push({ ...item, serial_number: item.serial_number || null, ...baseFields });
