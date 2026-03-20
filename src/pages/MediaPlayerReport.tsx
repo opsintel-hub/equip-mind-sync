@@ -173,12 +173,8 @@ export default function MediaPlayerReport() {
         if (!match || match[1] !== codePrefixFilter) return false;
       }
       // Dedicated S/N search
-      if (snSearch) {
-        const s = snSearch.toLowerCase();
-        const matchSN =
-          p.serial_number_1?.toLowerCase().includes(s) ||
-          p.serial_number_2?.toLowerCase().includes(s);
-        if (!matchSN) return false;
+      if (snSearch && !matchesSerialSearch(snSearch, p.serial_number_1, p.serial_number_2, mediaPlayerAliasMap[p.id])) {
+        return false;
       }
       // General search (code, name, brand)
       if (search) {
@@ -191,7 +187,7 @@ export default function MediaPlayerReport() {
       }
       return true;
     });
-  }, [players, search, snSearch, conditionFilter, departmentFilter, statusFilter, companyFilter, brandFilter, codePrefixFilter]);
+  }, [players, search, snSearch, conditionFilter, departmentFilter, statusFilter, companyFilter, brandFilter, codePrefixFilter, mediaPlayerAliasMap]);
 
   const {
     paginatedData,
