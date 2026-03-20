@@ -478,9 +478,9 @@ const DeliveryConfirmation = () => {
                   {(selectedRequest?.equipment?.serial_number || selectedRequest?.media_players?.serial_number_1) && (
                     <div className="col-span-2">
                       <span className="text-muted-foreground">Serial Number:</span>{" "}
-                      <span className="font-medium font-mono">
+                      <span className="font-medium font-mono whitespace-pre-line">
                         {selectedRequest?.is_media_player 
-                          ? [selectedRequest?.media_players?.serial_number_1, selectedRequest?.media_players?.serial_number_2].filter(Boolean).join(" / ")
+                          ? [selectedRequest?.media_players?.serial_number_1, selectedRequest?.media_players?.serial_number_2].filter(Boolean).join("\n")
                           : selectedRequest?.equipment?.serial_number}
                       </span>
                     </div>
