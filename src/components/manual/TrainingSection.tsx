@@ -358,10 +358,10 @@ const adminReportExercises: Exercise[] = [
     fillField: "ยอดคงเหลือล่าสุดใน Stock Card: ____________"
   },
   {
-    id: "arpt3", step: 3, title: "ตรวจสอบ Stock Movement Log",
+    id: "arpt3", step: 3, title: "ตรวจสอบ Stock Card (ภาพรวมเคลื่อนไหว)",
     scenario: "ต้องการตรวจสอบความเคลื่อนไหวคลังในช่วงเวลาหนึ่ง",
-    instruction: "ไปที่เมนู 'Stock Movement Log' → กรองตามช่วงวันที่ (วันที่ทำแบบฝึก) → กรองตามฝ่าย → ขยายรายการเพื่อดูรายละเอียด → กด Export",
-    menu: "รายงาน > Stock Movement Log",
+    instruction: "ไปที่เมนู 'Stock Card' → แท็บ 'ภาพรวมเคลื่อนไหว' → กรองตามช่วงวันที่ (วันที่ทำแบบฝึก) → กรองตามฝ่าย → ขยายรายการเพื่อดูรายละเอียด → กด Export",
+    menu: "รายงาน > Stock Card > แท็บ ภาพรวมเคลื่อนไหว",
     expectedResult: "แสดงรายการ receive และ issue ที่ทำในแบบฝึก, จัดกลุ่มตามเลขเอกสาร",
     checkItems: [
       "พบรายการ receive ของเอกสาร PD ที่ทำ",
