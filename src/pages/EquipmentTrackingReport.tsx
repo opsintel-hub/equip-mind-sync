@@ -17,6 +17,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Checkbox } from "@/components/ui/checkbox";
 import * as XLSX from "xlsx";
 import { useAllowedDepartments } from "@/hooks/useAllowedDepartments";
+import { buildReceivedSerialAliasMap, formatMergedSerials, matchesSerialSearch } from "@/lib/serialSearch";
 
 // ─── Helpers ─────────────────────────────────────────────
 

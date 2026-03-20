@@ -20,6 +20,7 @@ import { InventoryFilters, InventoryFiltersState, getConditionLabel, getConditio
 import { EquipmentImageViewer } from "@/components/equipment/EquipmentImageViewer";
 import * as XLSX from "xlsx";
 import { toast } from "sonner";
+import { buildReceivedSerialAliasMap, formatMergedSerials, matchesSerialSearch } from "@/lib/serialSearch";
 
 // Removed hardcoded ITEMS_PER_PAGE - now using useTablePagination hook
 const DEFAULT_ADVANCE_DAYS = 30; // Default days to consider as "near expiry/warranty"
