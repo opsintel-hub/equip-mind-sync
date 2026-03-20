@@ -676,7 +676,7 @@ const UserManual = () => {
             <ul className="list-disc list-inside text-xs text-muted-foreground space-y-1">
               <li>เลือกเอกสาร PD ที่รอรับ → ระบุสถานที่จัดเก็บ (คลัง → ตำแหน่ง → Slot)</li>
               <li>ตรวจสอบ/แก้ไข S/N ได้อีกครั้ง (ข้อมูลจากการรับเข้าจริงเป็น Authoritative Source)</li>
-              <li>กดรับเข้า → เพิ่มสต็อก + อัปเดต S/N เป็น <Badge variant="outline" className="text-[10px] px-1">in_stock</Badge> + บันทึก Stock Movement</li>
+              <li>กดรับเข้า → เพิ่มสต็อก + อัปเดต S/N เป็น <Badge variant="outline" className="text-[10px] px-1">in_stock</Badge> + บันทึก Stock Card</li>
               <li>สินค้ารหัส TEMP → เจ้าหน้าที่กำหนดรหัสจริงตอนรับเข้าคลัง</li>
               <li>รองรับรับเข้าแบบ Batch (เลือกหลายรายการพร้อมกัน)</li>
             </ul>
