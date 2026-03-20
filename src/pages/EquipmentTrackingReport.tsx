@@ -625,7 +625,7 @@ function EquipmentViewTab() {
         expiry_date: null,
         warranty_expiry_date: mp.warranty_expiry_date,
         itemType: "media_player",
-        serialDisplay: [mp.serial_number_1, mp.serial_number_2].filter(Boolean).join(" / ") || "-",
+        serialDisplay: [mp.serial_number_1, mp.serial_number_2].filter(Boolean).join("\n") || "-",
         installedBillboard: bb ? formatBillboardLabel(bb.old_code, bb.location_name) : null,
         isInstalled: !!mp.billboard_id,
         billboard_id: mp.billboard_id,
