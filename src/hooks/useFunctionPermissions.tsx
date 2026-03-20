@@ -92,7 +92,7 @@ export function useFunctionPermissions() {
   };
 
   const getAccessibleFunctions = (): string[] => {
-    if (isAdmin) return SYSTEM_FUNCTIONS.map(f => f.name);
+    if (isSuperAdmin) return SYSTEM_FUNCTIONS.map(f => f.name);
     return permissions.filter(p => p.can_access).map(p => p.function_name);
   };
 

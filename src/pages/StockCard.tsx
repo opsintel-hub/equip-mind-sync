@@ -2,7 +2,7 @@ import React, { useState, useMemo, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { ProcessTracker, ProcessStep } from "@/components/ProcessTracker";
 import { supabase } from "@/integrations/supabase/client";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,13 +13,14 @@ import { DatePickerWithRange } from "@/components/ui/date-range-picker";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DateRange } from "react-day-picker";
 import { format, differenceInDays, parseISO } from "date-fns";
 import { th } from "date-fns/locale";
 import {
   Search, Package, Monitor, Wrench, MapPin, ChevronDown,
   ArrowDownToLine, ArrowUpFromLine, ArrowLeftRight, Hammer, RotateCcw, AlertTriangle,
-  Fingerprint, Hash, Clock, BarChart3, FileSpreadsheet, FileText
+  Fingerprint, Hash, Clock, BarChart3, FileSpreadsheet, FileText, Loader2, History
 } from "lucide-react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import { toast } from "@/hooks/use-toast";
@@ -28,6 +29,8 @@ import { useTablePagination } from "@/hooks/useTablePagination";
 import { TablePagination } from "@/components/TablePagination";
 import { DepartmentMultiFilter } from "@/components/DepartmentMultiFilter";
 import { useDepartmentPermissions } from "@/hooks/useDepartmentPermissions";
+import { StockMovementGroupRow, GroupedMovement } from "@/components/stock-movement/StockMovementGroupRow";
+import { StockMovementDocumentDialog } from "@/components/stock-movement/StockMovementDocumentDialog";
 
 // ── Types ──────────────────────────────────────────────────────
 interface EquipmentItem {

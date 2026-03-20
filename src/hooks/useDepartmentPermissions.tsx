@@ -74,7 +74,8 @@ export function useDepartmentPermissions() {
   };
 
   const getViewableDepartments = (): string[] => {
-    if (isAdmin) return allDepartmentNames;
+    // Only Super Admin sees all departments automatically
+    if (isSuperAdmin) return allDepartmentNames;
     return permissions.filter(p => p.can_view).map(p => p.department);
   };
 

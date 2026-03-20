@@ -1695,8 +1695,25 @@ const DeliveryEntry = () => {
                   </div>
                 )}
                 <div className="space-y-2">
-                  <Label htmlFor="unitPrice">ราคาต่อชิ้น (บาท) *</Label>
-                  <Input id="unitPrice" type="number" step="0.01" placeholder="0.00" value={unitPrice} onChange={e => setUnitPrice(e.target.value)} required />
+                  <Label htmlFor="unitPrice">
+                    ราคาต่อชิ้น (บาท) {isPurchaseReceipt ? "*" : ""}
+                  </Label>
+                  {!isPurchaseReceipt && selectedEquipmentId ? (
+                    <Input 
+                      id="unitPrice" 
+                      type="number" 
+                      step="0.01" 
+                      value={unitPrice} 
+                      readOnly 
+                      className="bg-muted font-medium" 
+                      title="ราคาดึงจากข้อมูลสินค้าในระบบ"
+                    />
+                  ) : (
+                    <Input id="unitPrice" type="number" step="0.01" placeholder="0.00" value={unitPrice} onChange={e => setUnitPrice(e.target.value)} required={isPurchaseReceipt} />
+                  )}
+                  {!isPurchaseReceipt && selectedEquipmentId && (
+                    <p className="text-xs text-muted-foreground">ดึงราคาจากข้อมูลสินค้าในระบบ</p>
+                  )}
                 </div>
                 <div className="space-y-2">
                   <Label>จำนวนเงินทั้งหมด (บาท)</Label>
