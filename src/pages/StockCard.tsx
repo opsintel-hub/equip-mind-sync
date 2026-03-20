@@ -162,6 +162,7 @@ export default function StockCard() {
   
   // All Movements tab state
   const [movSearchTerm, setMovSearchTerm] = useState("");
+  const [movSnSearchTerm, setMovSnSearchTerm] = useState("");
   const [movTypeFilter, setMovTypeFilter] = useState("all");
   const [movDeptFilter, setMovDeptFilter] = useState<string[]>([]);
   const [movCompanyFilter, setMovCompanyFilter] = useState("all");
