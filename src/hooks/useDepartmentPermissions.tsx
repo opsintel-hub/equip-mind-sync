@@ -58,7 +58,8 @@ export function useDepartmentPermissions() {
   }, [user]);
 
   const hasPermission = (department: string, permission: "view" | "create" | "edit" | "delete"): boolean => {
-    if (isAdmin) return true;
+    // Only Super Admin bypasses all department checks
+    if (isSuperAdmin) return true;
     
     const deptPerm = permissions.find(p => p.department === department);
     if (!deptPerm) return false;
