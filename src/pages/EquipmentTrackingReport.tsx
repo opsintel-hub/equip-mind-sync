@@ -898,7 +898,7 @@ function EquipmentDetailDialog({ item, onClose, bbLookup }: { item: any; onClose
             </div>
           )}
 
-          {/* Stock Movements - show for both equipment AND media_player */}
+          {/* Stock Card - show for both equipment AND media_player */}
           <div>
             <h4 className="font-semibold mb-2 flex items-center gap-2"><AlertTriangle className="w-4 h-4" /> Stock Card</h4>
             {loadingMov ? (

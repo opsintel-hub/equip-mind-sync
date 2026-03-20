@@ -1040,7 +1040,7 @@ const UserManual = () => {
       number: "13",
       title: "รายงาน (Reports)",
       icon: <FileSearch className="h-5 w-5" />,
-      description: "สรุปสต็อก เอกสาร Stock Movement Stock Card Dead Stock QR Code ประวัติโอนย้าย",
+      description: "สรุปสต็อก เอกสาร Stock Card Dead Stock QR Code ประวัติโอนย้าย",
       content: (
         <div className="space-y-4">
           {[
