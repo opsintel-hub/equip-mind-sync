@@ -142,7 +142,7 @@ const UserManual = () => {
                 { type: "auto-fill", label: "ดึงคำขอ", description: "คำขอจากผู้เบิกแสดงอัตโนมัติ" },
                 { type: "auto-update", label: "ตัดสต็อก", description: "สต็อกลดตามจำนวนที่จ่าย" },
                 { type: "auto-update", label: "S/N → issued", description: "S/N อัปเดตสถานะอัตโนมัติ" },
-                { type: "auto-create", label: "DC + Stock Movement", description: "สร้างเอกสาร DC + บันทึก Movement" },
+                { type: "auto-create", label: "DC + Stock Card", description: "สร้างเอกสาร DC + บันทึก Movement" },
               ]}
             />
           </div>
