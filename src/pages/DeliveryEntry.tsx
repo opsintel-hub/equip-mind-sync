@@ -32,6 +32,7 @@ interface Equipment {
   category: string | null;
   subcategory_id: string | null;
   quantity_in_stock: number;
+  unit_price: number;
   width_cm: number | null;
   height_cm: number | null;
   depth_cm: number | null;
