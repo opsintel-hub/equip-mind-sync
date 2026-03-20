@@ -485,7 +485,7 @@ export default function MediaPlayerReport() {
                     </TableRow>
                   ) : (
                     paginatedData.map((p, idx) => {
-                      const sn = [p.serial_number_1, p.serial_number_2].filter(Boolean).join(" / ");
+                      const sn = formatMergedSerials(p.serial_number_1, p.serial_number_2, mediaPlayerAliasMap[p.id]);
                       const bbLabel = p.billboard
                         ? formatBillboardLabel(p.billboard.old_code, p.billboard.location_name, p.billboard.equipment_id)
                         : "-";
