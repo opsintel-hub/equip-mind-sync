@@ -74,6 +74,7 @@ export default function InventoryReport() {
     locationId: "",
     stockStatus: "",
     search: "",
+    snSearch: "",
     itemType: "",
     statusFilters: [],
     advanceDays: DEFAULT_ADVANCE_DAYS,

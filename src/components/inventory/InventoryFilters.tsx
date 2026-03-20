@@ -211,6 +211,7 @@ export function InventoryFilters({ filters, onFiltersChange }: InventoryFiltersP
 
   const handleClearFilters = () => {
     setLocalSearch("");
+    setLocalSnSearch("");
     onFiltersChange({
       companyId: "",
       department: "",
@@ -220,6 +221,7 @@ export function InventoryFilters({ filters, onFiltersChange }: InventoryFiltersP
       locationId: "",
       stockStatus: "",
       search: "",
+      snSearch: "",
       itemType: "",
       statusFilters: [],
       advanceDays: 30,
