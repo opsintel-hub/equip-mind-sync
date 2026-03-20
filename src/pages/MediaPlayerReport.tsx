@@ -229,8 +229,7 @@ export default function MediaPlayerReport() {
     const rows = filtered.map((p) => ({
       รหัส: p.code,
       ชื่อ: p.name,
-      "S/N 1": p.serial_number_1 || "",
-      "S/N 2": p.serial_number_2 || "",
+      "S/N": formatMergedSerials(p.serial_number_1, p.serial_number_2, mediaPlayerAliasMap[p.id]) || "",
       ยี่ห้อ: p.brand || "",
       ฝ่าย: p.department || "",
       สภาพ: p.item_condition === "normal" ? "ปกติ" : p.item_condition === "defective" ? "ชำรุด" : p.item_condition === "repaired" ? "ซ่อมแล้ว" : p.item_condition,
