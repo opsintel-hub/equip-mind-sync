@@ -563,10 +563,6 @@ export default function StockCard() {
         </TabsList>
 
         <TabsContent value="stock-card" className="space-y-6">
-            </Button>
-          </div>
-        )}
-      </div>
 
       {/* ── Section 1: Search & Filters ── */}
       <Card>
