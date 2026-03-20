@@ -372,29 +372,16 @@ export default function InventoryReport() {
   });
 
   const receiptSerialMaps = useMemo(() => {
-    const equipmentSerialMap: Record<string, string> = {};
-    const mediaSerialMap: Record<string, string> = {};
-
-    const sorted = [...receivedSerials].sort((a, b) => {
-      const aDate = new Date(a.received_at || a.created_at).getTime();
-      const bDate = new Date(b.received_at || b.created_at).getTime();
-      return bDate - aDate;
-    });
-
-    sorted.forEach((row) => {
-      const serial = row.serial_number?.trim();
-      if (!serial) return;
-
-      if (row.is_media_player && row.media_player_id && !mediaSerialMap[row.media_player_id]) {
-        mediaSerialMap[row.media_player_id] = serial;
-      }
-
-      if (!row.is_media_player && row.equipment_id && !equipmentSerialMap[row.equipment_id]) {
-        equipmentSerialMap[row.equipment_id] = serial;
-      }
-    });
-
-    return { equipmentSerialMap, mediaSerialMap };
+    return {
+      equipmentSerialMap: buildReceivedSerialAliasMap(
+        receivedSerials.filter((row) => !row.is_media_player),
+        "equipment_id",
+      ),
+      mediaSerialMap: buildReceivedSerialAliasMap(
+        receivedSerials.filter((row) => row.is_media_player),
+        "media_player_id",
+      ),
+    };
   }, [receivedSerials]);
 
   // Fetch issue data for equipment
