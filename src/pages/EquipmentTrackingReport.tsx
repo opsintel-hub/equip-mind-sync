@@ -141,6 +141,30 @@ function BillboardViewTab() {
     },
   });
 
+  const { data: billboardReceivedSerials = [] } = useQuery({
+    queryKey: ["billboard-tracking-received-serials"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("goods_receipt_pending")
+        .select("equipment_id, media_player_id, is_media_player, serial_number, received_at, created_at")
+        .eq("status", "received")
+        .not("serial_number", "is", null)
+        .neq("serial_number", "");
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
+  const billboardEquipmentAliasMap = useMemo(
+    () => buildReceivedSerialAliasMap(billboardReceivedSerials.filter((row: any) => !row.is_media_player), "equipment_id"),
+    [billboardReceivedSerials],
+  );
+
+  const billboardMediaAliasMap = useMemo(
+    () => buildReceivedSerialAliasMap(billboardReceivedSerials.filter((row: any) => row.is_media_player), "media_player_id"),
+    [billboardReceivedSerials],
+  );
+
   const regions = useMemo(() => [...new Set(billboards?.map(b => b.region).filter(Boolean) || [])].sort(), [billboards]);
   const { allowedDepartments, isAdmin: isAdminDept, isSingleDepartment } = useAllowedDepartments();
   const allowedDeptNames = useMemo(() => allowedDepartments.map(d => d.name), [allowedDepartments]);
@@ -164,7 +188,14 @@ function BillboardViewTab() {
       const eq = be.equipment as any;
       if (!eq) return;
       if (!map[be.billboard_id]) map[be.billboard_id] = [];
-      map[be.billboard_id].push({ ...be, equipmentData: eq, type: "equipment" });
+      map[be.billboard_id].push({
+        ...be,
+        equipmentData: {
+          ...eq,
+          serial_number: formatMergedSerials(eq.serial_number, billboardEquipmentAliasMap[eq.id]) || null,
+        },
+        type: "equipment",
+      });
     });
     (mediaPlayers || []).forEach(mp => {
       if (!mp.billboard_id) return;
@@ -182,13 +213,13 @@ function BillboardViewTab() {
           warranty_expiry_date: mp.warranty_expiry_date,
           category: "Media Player",
           brand: mp.brand,
-          serial_number: [mp.serial_number_1, mp.serial_number_2].filter(Boolean).join(" / "),
+          serial_number: formatMergedSerials(mp.serial_number_1, mp.serial_number_2, billboardMediaAliasMap[mp.id]) || null,
         },
         type: "media_player",
       });
     });
     return map;
-  }, [billboardEquipment, mediaPlayers]);
+  }, [billboardEquipment, mediaPlayers, billboardEquipmentAliasMap, billboardMediaAliasMap]);
 
   // Check if a billboard has any equipment matching status filter
   const matchesStatusFilter = (bbId: string) => {
