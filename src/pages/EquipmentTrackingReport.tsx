@@ -612,8 +612,14 @@ function EquipmentViewTab() {
 
   const filtered = useMemo(() => {
     return allItems.filter(item => {
+      // Dedicated S/N search
+      if (snSearch) {
+        const snTerm = snSearch.toLowerCase();
+        if (!(item.serialDisplay || "").toLowerCase().includes(snTerm)) return false;
+      }
+      // General search (name, code)
       const s = search.toLowerCase();
-      if (s && !(item.name || "").toLowerCase().includes(s) && !(item.code || "").toLowerCase().includes(s) && !(item.serialDisplay || "").toLowerCase().includes(s)) return false;
+      if (s && !(item.name || "").toLowerCase().includes(s) && !(item.code || "").toLowerCase().includes(s)) return false;
       if (typeFilter !== "all" && item.itemType !== typeFilter) return false;
       if (categoryFilter !== "all" && item.category !== categoryFilter) return false;
       if (brandFilter !== "all" && item.brand !== brandFilter) return false;
@@ -621,7 +627,7 @@ function EquipmentViewTab() {
       if (installFilter === "in_stock" && item.isInstalled) return false;
       return true;
     });
-  }, [allItems, search, typeFilter, categoryFilter, brandFilter, installFilter]);
+  }, [allItems, search, snSearch, typeFilter, categoryFilter, brandFilter, installFilter]);
 
   // Summary stats
   const summaryStats = useMemo(() => {
