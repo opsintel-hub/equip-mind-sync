@@ -447,7 +447,7 @@ function BillboardViewTab() {
                                     <TableRow key={item.id}>
                                       <TableCell className="font-medium">{eq.name}</TableCell>
                                       <TableCell className="text-xs font-mono">{eq.code}</TableCell>
-                                      <TableCell className="text-xs">{eq.serial_number || "-"}</TableCell>
+                                      <TableCell className="text-xs whitespace-pre-line">{eq.serial_number || "-"}</TableCell>
                                       <TableCell><Badge variant="outline" className="text-xs">{item.type === "media_player" ? "Media Player" : eq.category || "อุปกรณ์"}</Badge></TableCell>
                                       <TableCell className="text-center">{item.quantity}</TableCell>
                                       <TableCell className="text-xs">{fmtDate(item.installation_date)}</TableCell>

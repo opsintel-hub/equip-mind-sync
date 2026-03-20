@@ -38,7 +38,7 @@ export function mergeSerialValues(...groups: Array<string | string[] | null | un
 }
 
 export function formatMergedSerials(...groups: Array<string | string[] | null | undefined>): string {
-  return mergeSerialValues(...groups).join(" / ");
+  return mergeSerialValues(...groups).join("\n");
 }
 
 export function matchesSerialSearch(searchTerm: string, ...groups: Array<string | string[] | null | undefined>): boolean {

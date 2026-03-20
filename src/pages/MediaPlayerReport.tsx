@@ -496,7 +496,7 @@ export default function MediaPlayerReport() {
                           <TableCell className="text-muted-foreground">{rowNum}</TableCell>
                           <TableCell className="font-mono font-medium">{p.code}</TableCell>
                           <TableCell>{p.name}</TableCell>
-                          <TableCell className="text-sm text-muted-foreground">{sn || "-"}</TableCell>
+                          <TableCell className="text-sm text-muted-foreground whitespace-pre-line">{sn || "-"}</TableCell>
                           <TableCell>{getConditionBadge(p.item_condition)}</TableCell>
                           <TableCell>
                             {p.billboard_id ? (
