@@ -101,6 +101,28 @@ export default function MediaPlayerReport() {
     },
   });
 
+  const { data: receivedSerialAliases = [] } = useQuery({
+    queryKey: ["media-player-report-received-serials"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("goods_receipt_pending")
+        .select("media_player_id, serial_number, received_at, created_at")
+        .eq("status", "received")
+        .eq("is_media_player", true)
+        .not("media_player_id", "is", null)
+        .not("serial_number", "is", null)
+        .neq("serial_number", "");
+
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
+  const mediaPlayerAliasMap = useMemo(
+    () => buildReceivedSerialAliasMap(receivedSerialAliases, "media_player_id"),
+    [receivedSerialAliases],
+  );
+
   // Fetch departments for filter
   const { data: departments = [] } = useQuery({
     queryKey: ["departments-list"],
