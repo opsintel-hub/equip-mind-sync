@@ -148,6 +148,7 @@ function MultiSelectFilter({ label, options, selected, onChange }: {
 
 // ── Main Component ─────────────────────────────────────────────
 export default function StockCard() {
+  const [activeTab, setActiveTab] = useState("stock-card");
   const [searchText, setSearchText] = useState("");
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
   const [selectedItemType, setSelectedItemType] = useState<"equipment" | "media_player" | "tool" | null>(null);
@@ -157,7 +158,16 @@ export default function StockCard() {
   const [filterConditions, setFilterConditions] = useState<string[]>([]);
   const [filterDepartments, setFilterDepartments] = useState<string[]>([]);
   const [filterBrands, setFilterBrands] = useState<string[]>([]);
-  const { getViewableDepartments, isAdmin } = useDepartmentPermissions();
+  const { getViewableDepartments, isAdmin, isSuperAdmin } = useDepartmentPermissions();
+  
+  // All Movements tab state
+  const [movSearchTerm, setMovSearchTerm] = useState("");
+  const [movTypeFilter, setMovTypeFilter] = useState("all");
+  const [movDeptFilter, setMovDeptFilter] = useState<string[]>([]);
+  const [movCompanyFilter, setMovCompanyFilter] = useState("all");
+  const [movDateRange, setMovDateRange] = useState<DateRange | undefined>();
+  const [movSelectedGroup, setMovSelectedGroup] = useState<GroupedMovement | null>(null);
+  const [isDocDialogOpen, setIsDocDialogOpen] = useState(false);
   const viewableDepts = getViewableDepartments();
 
   // ── Fetch all items for search ──
