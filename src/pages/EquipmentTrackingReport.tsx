@@ -454,6 +454,7 @@ function BillboardViewTab() {
 
 function EquipmentViewTab() {
   const [search, setSearch] = useState("");
+  const [snSearch, setSnSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState("all");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [brandFilter, setBrandFilter] = useState("all");
