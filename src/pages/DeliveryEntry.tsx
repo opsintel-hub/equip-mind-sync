@@ -2377,7 +2377,16 @@ const DeliveryEntry = () => {
             <div className="relative w-72">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
-                placeholder="ค้นหาเลขที่เอกสาร, ชื่อสินค้า, S/N, ผู้ส่ง..."
+                placeholder="ค้นหา S/N..."
+                className="pl-10"
+                value={snSearchTerm}
+                onChange={(e) => setSnSearchTerm(e.target.value)}
+              />
+            </div>
+            <div className="relative w-72">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                placeholder="ค้นหาเลขที่เอกสาร, ชื่อสินค้า, ผู้ส่ง..."
                 className="pl-10"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
