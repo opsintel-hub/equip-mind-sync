@@ -2,7 +2,7 @@ import React, { useState, useMemo, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { ProcessTracker, ProcessStep } from "@/components/ProcessTracker";
 import { supabase } from "@/integrations/supabase/client";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,13 +13,14 @@ import { DatePickerWithRange } from "@/components/ui/date-range-picker";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DateRange } from "react-day-picker";
 import { format, differenceInDays, parseISO } from "date-fns";
 import { th } from "date-fns/locale";
 import {
   Search, Package, Monitor, Wrench, MapPin, ChevronDown,
   ArrowDownToLine, ArrowUpFromLine, ArrowLeftRight, Hammer, RotateCcw, AlertTriangle,
-  Fingerprint, Hash, Clock, BarChart3, FileSpreadsheet, FileText
+  Fingerprint, Hash, Clock, BarChart3, FileSpreadsheet, FileText, Loader2, History, ClipboardList
 } from "lucide-react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import { toast } from "@/hooks/use-toast";
@@ -28,6 +29,8 @@ import { useTablePagination } from "@/hooks/useTablePagination";
 import { TablePagination } from "@/components/TablePagination";
 import { DepartmentMultiFilter } from "@/components/DepartmentMultiFilter";
 import { useDepartmentPermissions } from "@/hooks/useDepartmentPermissions";
+import { StockMovementGroupRow, GroupedMovement } from "@/components/stock-movement/StockMovementGroupRow";
+import { StockMovementDocumentDialog } from "@/components/stock-movement/StockMovementDocumentDialog";
 
 // ── Types ──────────────────────────────────────────────────────
 interface EquipmentItem {
@@ -145,6 +148,7 @@ function MultiSelectFilter({ label, options, selected, onChange }: {
 
 // ── Main Component ─────────────────────────────────────────────
 export default function StockCard() {
+  const [activeTab, setActiveTab] = useState("stock-card");
   const [searchText, setSearchText] = useState("");
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
   const [selectedItemType, setSelectedItemType] = useState<"equipment" | "media_player" | "tool" | null>(null);
@@ -154,7 +158,16 @@ export default function StockCard() {
   const [filterConditions, setFilterConditions] = useState<string[]>([]);
   const [filterDepartments, setFilterDepartments] = useState<string[]>([]);
   const [filterBrands, setFilterBrands] = useState<string[]>([]);
-  const { getViewableDepartments, isAdmin } = useDepartmentPermissions();
+  const { getViewableDepartments, isAdmin, isSuperAdmin } = useDepartmentPermissions();
+  
+  // All Movements tab state
+  const [movSearchTerm, setMovSearchTerm] = useState("");
+  const [movTypeFilter, setMovTypeFilter] = useState("all");
+  const [movDeptFilter, setMovDeptFilter] = useState<string[]>([]);
+  const [movCompanyFilter, setMovCompanyFilter] = useState("all");
+  const [movDateRange, setMovDateRange] = useState<DateRange | undefined>();
+  const [movSelectedGroup, setMovSelectedGroup] = useState<GroupedMovement | null>(null);
+  const [isDocDialogOpen, setIsDocDialogOpen] = useState(false);
   const viewableDepts = getViewableDepartments();
 
   // ── Fetch all items for search ──
@@ -428,15 +441,104 @@ export default function StockCard() {
     toast({ title: "ส่งออก PDF สำเร็จ" });
   }, [selectedItem, filteredTimeline, journeys]);
 
+  // ── All Movements Tab Data ──
+  const { data: movCompaniesList } = useQuery({
+    queryKey: ["stock-card-mov-companies"],
+    queryFn: async () => {
+      const { data } = await supabase.from("companies").select("id, name").eq("is_active", true).order("name");
+      return data || [];
+    },
+  });
+
+  const { data: allMovements, isLoading: movLoading } = useQuery({
+    queryKey: ["stock-card-all-movements", movSearchTerm, movTypeFilter],
+    enabled: activeTab === "all-movements",
+    queryFn: async () => {
+      let query = supabase
+        .from("stock_movements")
+        .select(`*, equipment:equipment_id(code, name, serial_number), location:location_id(name), companies:company_id(name)`)
+        .order("created_at", { ascending: false });
+
+      if (movSearchTerm) {
+        query = query.or(`equipment_code.ilike.%${movSearchTerm}%,equipment_name.ilike.%${movSearchTerm}%,reference_document.ilike.%${movSearchTerm}%,notes.ilike.%${movSearchTerm}%`);
+      }
+      if (movTypeFilter !== "all") {
+        query = query.eq("movement_type", movTypeFilter);
+      }
+
+      const { data, error } = await query;
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const groupedAllMovements = useMemo(() => {
+    if (!allMovements) return [];
+
+    let filtered = allMovements;
+    if (movSearchTerm) {
+      const term = movSearchTerm.toLowerCase();
+      filtered = filtered.filter((m: any) => {
+        const sn = m.equipment?.serial_number || "";
+        return sn.toLowerCase().includes(term) ||
+          m.equipment_code?.toLowerCase().includes(term) ||
+          m.equipment_name?.toLowerCase().includes(term) ||
+          m.reference_document?.toLowerCase().includes(term) ||
+          m.notes?.toLowerCase().includes(term);
+      });
+    }
+    if (movDeptFilter.length > 0) {
+      filtered = filtered.filter((m: any) => movDeptFilter.includes(m.department));
+    }
+    if (movCompanyFilter !== "all") {
+      filtered = filtered.filter((m: any) => m.company_id === movCompanyFilter);
+    }
+    if (movDateRange?.from) {
+      filtered = filtered.filter((m: any) => {
+        const d = new Date(m.created_at);
+        if (movDateRange.from && d < movDateRange.from) return false;
+        if (movDateRange.to && d > movDateRange.to) return false;
+        return true;
+      });
+    }
+
+    const groups = new Map<string, GroupedMovement>();
+    filtered.forEach((movement: any) => {
+      const key = movement.reference_document || movement.id;
+      if (groups.has(key)) {
+        const group = groups.get(key)!;
+        group.items.push(movement);
+        group.total_items = group.items.length;
+      } else {
+        groups.set(key, {
+          reference_document: movement.reference_document || `No-Doc-${movement.id.slice(0, 8)}`,
+          created_at: movement.created_at,
+          movement_type: movement.movement_type,
+          company_name: movement.companies?.name || null,
+          items: [movement],
+          total_items: 1,
+        });
+      }
+    });
+
+    return Array.from(groups.values());
+  }, [allMovements, movDeptFilter, movCompanyFilter, movDateRange]);
+
+  const {
+    paginatedData: movPaginatedGroups, currentPage: movPage, pageSize: movPageSize,
+    totalPages: movTotalPages, totalItems: movTotalItems,
+    handlePageChange: movPageChange, handlePageSizeChange: movPageSizeChange,
+  } = useTablePagination(groupedAllMovements, 20);
+
   return (
     <div className="space-y-6">
       {/* Page Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Stock Card</h1>
-          <p className="text-sm text-muted-foreground">ประวัติชีวิตสินค้า — ติดตามการเคลื่อนไหว ติดตั้ง ถอด และสภาพ</p>
+          <p className="text-sm text-muted-foreground">ประวัติชีวิตสินค้า & ภาพรวมการเคลื่อนไหวทั้งหมด</p>
         </div>
-        {selectedItem && (
+        {selectedItem && activeTab === "stock-card" && (
           <div className="flex gap-2">
             <Button variant="outline" size="sm" onClick={handleExportExcel} className="gap-1.5">
               <FileSpreadsheet className="w-4 h-4" /> Excel
@@ -447,6 +549,20 @@ export default function StockCard() {
           </div>
         )}
       </div>
+
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+        <TabsList className="grid w-full grid-cols-2 lg:w-auto lg:inline-grid lg:grid-cols-2">
+          <TabsTrigger value="stock-card" className="flex items-center gap-2">
+            <ClipboardList className="h-4 w-4" />
+            Stock Card (รายชิ้น)
+          </TabsTrigger>
+          <TabsTrigger value="all-movements" className="flex items-center gap-2">
+            <History className="h-4 w-4" />
+            ภาพรวมเคลื่อนไหว
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="stock-card" className="space-y-6">
 
       {/* ── Section 1: Search & Filters ── */}
       <Card>
@@ -938,6 +1054,90 @@ export default function StockCard() {
           </CardContent>
         </Card>
       )}
+        </TabsContent>
+
+        {/* ── All Movements Tab ── */}
+        <TabsContent value="all-movements" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <History className="w-5 h-5" /> ภาพรวมการเคลื่อนไหว Stock ทั้งหมด
+              </CardTitle>
+              <CardDescription>แสดงรายการเปลี่ยนแปลง stock พร้อม stock ก่อน-หลังทุกรายการ (จัดกลุ่มตามเอกสาร)</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 mb-6">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="ค้นหา รหัส/ชื่อ/S/N หรือเลขเอกสาร..."
+                    value={movSearchTerm}
+                    onChange={(e) => { setMovSearchTerm(e.target.value); movPageChange(1); }}
+                    className="pl-10"
+                  />
+                </div>
+                <Select value={movTypeFilter} onValueChange={(v) => { setMovTypeFilter(v); movPageChange(1); }}>
+                  <SelectTrigger><SelectValue placeholder="ประเภท" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">ทั้งหมด</SelectItem>
+                    <SelectItem value="receive">รับเข้า</SelectItem>
+                    <SelectItem value="issue">เบิกออก</SelectItem>
+                    <SelectItem value="transfer_in">รับโอน</SelectItem>
+                    <SelectItem value="transfer_out">โอนออก</SelectItem>
+                    <SelectItem value="return_from_billboard">คืนจากป้าย</SelectItem>
+                    <SelectItem value="install_to_billboard">ติดตั้งป้าย</SelectItem>
+                    <SelectItem value="defective_return">นำของเสียเข้า</SelectItem>
+                  </SelectContent>
+                </Select>
+                <DepartmentMultiFilter value={movDeptFilter} onChange={(v) => { setMovDeptFilter(v); movPageChange(1); }} />
+                <Select value={movCompanyFilter} onValueChange={(v) => { setMovCompanyFilter(v); movPageChange(1); }}>
+                  <SelectTrigger><SelectValue placeholder="บริษัท" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">ทุกบริษัท</SelectItem>
+                    {movCompaniesList?.map((c: any) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+                <DatePickerWithRange date={movDateRange} onDateChange={(d) => { setMovDateRange(d); movPageChange(1); }} />
+              </div>
+
+              {movLoading ? (
+                <div className="flex items-center justify-center py-8"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>
+              ) : movPaginatedGroups.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">ไม่พบข้อมูลการเคลื่อนไหว stock</div>
+              ) : (
+                <>
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="w-8"></TableHead>
+                          <TableHead>วันที่/เวลา</TableHead>
+                          <TableHead>ประเภท</TableHead>
+                          <TableHead>บริษัท</TableHead>
+                          <TableHead>เลขเอกสาร / รหัสสินค้า</TableHead>
+                          <TableHead>รายการ / ชื่อสินค้า</TableHead>
+                          <TableHead className="text-right">จำนวน</TableHead>
+                          <TableHead className="text-right">ก่อน</TableHead>
+                          <TableHead className="text-right">หลัง</TableHead>
+                          <TableHead>ตำแหน่ง / การดำเนินการ</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {movPaginatedGroups.map((group) => (
+                          <StockMovementGroupRow key={group.reference_document} group={group} onViewDocument={(g) => { setMovSelectedGroup(g); setIsDocDialogOpen(true); }} />
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                  <TablePagination currentPage={movPage} totalPages={movTotalPages} totalItems={movTotalItems} pageSize={movPageSize} onPageChange={movPageChange} onPageSizeChange={movPageSizeChange} />
+                </>
+              )}
+            </CardContent>
+          </Card>
+
+          <StockMovementDocumentDialog open={isDocDialogOpen} onOpenChange={setIsDocDialogOpen} group={movSelectedGroup} />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

@@ -71,7 +71,7 @@ const UserManual = () => {
               { label: "ป้ายโฆษณา", desc: "จัดการป้าย ติดตั้ง/ถอดอุปกรณ์ PM ป้ายโฆษณา" },
               { label: "ภาพโฆษณา", desc: "นำเข้า-รับเข้าคลัง-เบิก-จ่ายภาพโฆษณา (ใหม่/เก่า/ฝากชั่วคราว)" },
               { label: "เครื่องมือ", desc: "ข้อมูลเครื่องมือ PM เครื่องมือ ตาราง PM ประวัติ PM รายงาน PM" },
-              { label: "รายงาน", desc: "สรุปสต็อก Dead Stock เอกสาร Stock Card ใบขอซื้อ Stock Movement" },
+              { label: "รายงาน", desc: "สรุปสต็อก Dead Stock เอกสาร Stock Card (รวม Movement Log) ใบขอซื้อ" },
             ].map((item, i) => (
               <div key={i} className="p-3 border rounded-lg bg-muted/30">
                 <h4 className="font-semibold text-sm">{item.label}</h4>
@@ -459,8 +459,8 @@ const UserManual = () => {
                   </tr>
                 </thead>
                 <tbody className="text-muted-foreground">
-                  <tr><td className="border p-2 font-medium text-foreground">Super Admin</td><td className="border p-2">สิทธิ์สูงสุด — ทุกอย่างเหมือน Admin + จัดการ Tab ที่จำกัดในหน้าข้อมูลหลัก</td><td className="border p-2">ผู้ดูแลระบบระดับสูง</td></tr>
-                  <tr><td className="border p-2 font-medium text-foreground">Admin</td><td className="border p-2">เข้าถึงทุกฟังก์ชัน, จัดการผู้ใช้/สิทธิ์, แก้ไข Master Data, ดูรายงานทุกแผนก</td><td className="border p-2">ผู้ดูแลระบบ, IT Admin</td></tr>
+                  <tr><td className="border p-2 font-medium text-foreground">Super Admin</td><td className="border p-2">สิทธิ์สูงสุด — เข้าถึงทุกฟังก์ชัน ทุกฝ่าย ทุกเมนู + จัดการ Tab ที่จำกัดในหน้าข้อมูลหลัก</td><td className="border p-2">ผู้ดูแลระบบระดับสูง</td></tr>
+                  <tr><td className="border p-2 font-medium text-foreground">Admin</td><td className="border p-2">จัดการผู้ใช้/สิทธิ์, แต่เข้าถึงฟังก์ชันและฝ่ายได้เฉพาะที่ได้รับมอบหมาย (ไม่ใช่ทุกเมนูอัตโนมัติ)</td><td className="border p-2">ผู้ดูแลระบบ, IT Admin</td></tr>
                   <tr><td className="border p-2 font-medium text-foreground">Manager</td><td className="border p-2">อนุมัติ/ปฏิเสธคำขอเบิกทรัพย์สิน + คำขอส่งตรง (เฉพาะฝ่ายที่ดูแล)</td><td className="border p-2">ผู้จัดการฝ่าย</td></tr>
                   <tr><td className="border p-2 font-medium text-foreground">Warehouse Staff</td><td className="border p-2">รับเข้าคลัง, จ่ายสินค้า, โอนย้าย, จัดเตรียมสินค้า, PM, ยืมข้ามบริษัท</td><td className="border p-2">เจ้าหน้าที่คลัง</td></tr>
                   <tr><td className="border p-2 font-medium text-foreground">Receiver</td><td className="border p-2">บันทึกการนำสินค้าเข้า (Delivery Entry), นำของเสียเข้าระบบ</td><td className="border p-2">ผู้รับสินค้าหน้าคลัง</td></tr>
@@ -480,7 +480,7 @@ const UserManual = () => {
               </div>
               <div className="p-3 border rounded-lg">
                 <h5 className="font-medium text-sm">ชั้นที่ 2: สิทธิ์ตามฝ่าย (Department Permissions)</h5>
-                <p className="text-xs text-muted-foreground mt-1">กำหนดว่าผู้ใช้สามารถ ดู/สร้าง/แก้ไข/ลบ ข้อมูลของฝ่ายใดบ้าง — สิทธิ์ "ลบ" สงวนไว้เฉพาะ Admin/Super Admin</p>
+                <p className="text-xs text-muted-foreground mt-1">กำหนดว่าผู้ใช้สามารถ ดู/สร้าง/แก้ไข/ลบ ข้อมูลของฝ่ายใดบ้าง — เฉพาะ Super Admin เท่านั้นที่ได้สิทธิ์ทุกฝ่ายอัตโนมัติ Admin ต้องกำหนดฝ่ายให้ชัดเจน — สิทธิ์ "ลบ" สงวนไว้เฉพาะ Admin/Super Admin</p>
               </div>
               <div className="p-3 border rounded-lg">
                 <h5 className="font-medium text-sm">ชั้นที่ 3: สิทธิ์ตามฟังก์ชัน (Function Permissions)</h5>
@@ -1046,13 +1046,12 @@ const UserManual = () => {
           {[
             { title: "13.1 รายงานสินค้าคงคลัง", desc: "แสดงรายการทั้งหมด กรองตามฝ่าย/หมวด/สถานะ/สถานที่ ค้นหาจาก S/N ได้ Export Excel" },
             { title: "13.2 ค้นหาเอกสาร + ติดตามความคืบหน้า", desc: "เมนูลัด: หน้าหลัก > ค้นหาเอกสาร — ค้นหาเอกสารทุกประเภท (PD/GI/DS/DC/DR) ตามเลขเอกสาร, ชื่อ, S/N, ช่วงวันที่ — แสดง Process Tracker แบบ Visual สำหรับเอกสารเบิก (4 ขั้นตอน: ส่งคำขอ→อนุมัติ→จ่ายสินค้า→ยืนยันรับ), Direct Shipping (4 ขั้นตอน: สร้างคำขอ→อนุมัติ→จัดซื้อส่งของ→ผู้รับยืนยัน) และรับเข้าคลัง (3 ขั้นตอน: สร้างเอกสาร→ตรวจรับ→เข้าคลัง) พร้อมแสดงวันที่จริงและสถานะปัจจุบัน (กำลังดำเนินการ, ปฏิเสธ, รอสินค้า)" },
-            { title: "13.3 Stock Movement Log", desc: "ประวัติความเคลื่อนไหวสต็อก 7 ประเภท Master-Detail จัดกลุ่มตามเอกสาร กรองขั้นสูง Export PDF/Excel" },
-            { title: "13.4 Stock Card (บัตรสต็อก) + Lifecycle Tracker", desc: "ติดตามประวัติชีวิตรายชิ้น — แสดง Process Tracker สรุปวงจรชีวิตสินค้า: สินค้ามี S/N แสดง 4 ขั้นตอน (รับเข้าคลัง→จัดเก็บ→ติดตั้งป้าย→ถอด/คืนคลัง) สินค้าไม่มี S/N แสดง 3 ขั้นตอน (รับเข้าคลัง→จัดเก็บ→เบิกจ่าย) พร้อมวันที่จริงจากข้อมูลระบบ + Billboard Journey + Export Excel/PDF" },
-            { title: "13.5 Dead Stock", desc: "สินค้าไม่มีเคลื่อนไหวเกินกำหนด กรองตามฝ่าย/หมวดหมู่" },
-            { title: "13.6 รายงานเบิกตามป้าย", desc: "สรุปอุปกรณ์ที่เบิกไปติดตั้งแต่ละป้าย กรองตามป้าย/ช่วงเวลา/ฝ่าย" },
-            { title: "13.7 ใบขอซื้อ (PR)", desc: "สร้าง PR อัตโนมัติเมื่อสต็อกต่ำกว่า Min Stock แสดงสถานะและจำนวนแนะนำ" },
-            { title: "13.8 ค้นหาอุปกรณ์ป้าย", desc: "อุปกรณ์ชิ้นใดอยู่ที่ป้ายไหน + S/N + สภาพ + วันติดตั้ง Export Excel" },
-            { title: "13.9 QR Code อุปกรณ์", desc: "สร้างและพิมพ์ QR Code สำหรับอุปกรณ์/ป้าย เลือกหลายรายการพร้อมพิมพ์เป็นชุด" },
+            { title: "13.3 Stock Card (บัตรสต็อก) + ภาพรวมเคลื่อนไหว", desc: "รวม 2 มุมมองในหน้าเดียว: (1) Stock Card รายชิ้น — ติดตามประวัติชีวิต Process Tracker Billboard Journey Export Excel/PDF (2) ภาพรวมเคลื่อนไหว — ประวัติความเคลื่อนไหวสต็อก 7 ประเภท Master-Detail จัดกลุ่มตามเอกสาร กรองตามฝ่าย/บริษัท/ช่วงวันที่ ดูเอกสาร PDF" },
+            { title: "13.4 Dead Stock", desc: "สินค้าไม่มีเคลื่อนไหวเกินกำหนด กรองตามฝ่าย/หมวดหมู่" },
+            { title: "13.5 รายงานเบิกตามป้าย", desc: "สรุปอุปกรณ์ที่เบิกไปติดตั้งแต่ละป้าย กรองตามป้าย/ช่วงเวลา/ฝ่าย" },
+            { title: "13.6 ใบขอซื้อ (PR)", desc: "สร้าง PR อัตโนมัติเมื่อสต็อกต่ำกว่า Min Stock แสดงสถานะและจำนวนแนะนำ" },
+            { title: "13.7 ค้นหาอุปกรณ์ป้าย", desc: "อุปกรณ์ชิ้นใดอยู่ที่ป้ายไหน + S/N + สภาพ + วันติดตั้ง Export Excel" },
+            { title: "13.8 QR Code อุปกรณ์", desc: "สร้างและพิมพ์ QR Code สำหรับอุปกรณ์/ป้าย เลือกหลายรายการพร้อมพิมพ์เป็นชุด" },
             { title: "13.10 ประวัติการโอนย้าย", desc: "ประวัติโอนย้ายสินค้าระหว่างสถานที่ ต้นทาง-ปลายทาง, จำนวน, วันที่, ผู้ดำเนินการ" },
           ].map((item, i) => (
             <div key={i} className="p-3 border rounded-lg">

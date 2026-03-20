@@ -32,6 +32,7 @@ interface Equipment {
   category: string | null;
   subcategory_id: string | null;
   quantity_in_stock: number;
+  unit_price: number;
   width_cm: number | null;
   height_cm: number | null;
   depth_cm: number | null;
@@ -254,7 +255,7 @@ const DeliveryEntry = () => {
     const {
       data,
       error
-    } = await supabase.from("equipment").select("id, code, name, unit, category, subcategory_id, quantity_in_stock, width_cm, height_cm, depth_cm, volume_cm3").eq("is_active", true).order("code");
+    } = await supabase.from("equipment").select("id, code, name, unit, category, subcategory_id, quantity_in_stock, unit_price, width_cm, height_cm, depth_cm, volume_cm3").eq("is_active", true).order("code");
     if (!error && data) {
       setEquipment(data as Equipment[]);
     }
@@ -343,6 +344,10 @@ const DeliveryEntry = () => {
       setUnit(selectedEquipment.unit);
       setEquipmentCode(selectedEquipment.code);
       setEquipmentName(selectedEquipment.name);
+      // Auto-fill unit price from existing equipment when NOT a purchase receipt
+      if (!isPurchaseReceipt && selectedEquipment.unit_price > 0) {
+        setUnitPrice(String(selectedEquipment.unit_price));
+      }
       // Auto-fill category and subcategory from existing equipment
       if (selectedEquipment.category) {
         const matchingCategory = categories.find(c => c.name === selectedEquipment.category);
@@ -371,7 +376,7 @@ const DeliveryEntry = () => {
       setStorageHeightCm("");
       setStorageDepthCm("");
     }
-  }, [selectedEquipment, categories]);
+  }, [selectedEquipment, categories, isPurchaseReceipt]);
 
   // Update supplier name when selected
   useEffect(() => {
@@ -1695,8 +1700,25 @@ const DeliveryEntry = () => {
                   </div>
                 )}
                 <div className="space-y-2">
-                  <Label htmlFor="unitPrice">ราคาต่อชิ้น (บาท) *</Label>
-                  <Input id="unitPrice" type="number" step="0.01" placeholder="0.00" value={unitPrice} onChange={e => setUnitPrice(e.target.value)} required />
+                  <Label htmlFor="unitPrice">
+                    ราคาต่อชิ้น (บาท) {isPurchaseReceipt ? "*" : ""}
+                  </Label>
+                  {!isPurchaseReceipt && selectedEquipmentId ? (
+                    <Input 
+                      id="unitPrice" 
+                      type="number" 
+                      step="0.01" 
+                      value={unitPrice} 
+                      readOnly 
+                      className="bg-muted font-medium" 
+                      title="ราคาดึงจากข้อมูลสินค้าในระบบ"
+                    />
+                  ) : (
+                    <Input id="unitPrice" type="number" step="0.01" placeholder="0.00" value={unitPrice} onChange={e => setUnitPrice(e.target.value)} required={isPurchaseReceipt} />
+                  )}
+                  {!isPurchaseReceipt && selectedEquipmentId && (
+                    <p className="text-xs text-muted-foreground">ดึงราคาจากข้อมูลสินค้าในระบบ</p>
+                  )}
                 </div>
                 <div className="space-y-2">
                   <Label>จำนวนเงินทั้งหมด (บาท)</Label>

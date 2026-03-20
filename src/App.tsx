@@ -40,7 +40,7 @@ import RequesterDashboard from "./pages/RequesterDashboard";
 import UserManual from "./pages/UserManual";
 import DocumentSearch from "./pages/DocumentSearch";
 import Testing from "./pages/Testing";
-import StockMovementLog from "./pages/StockMovementLog";
+// StockMovementLog merged into StockCard
 import InventoryReport from "./pages/InventoryReport";
 import PendingAssetCodes from "./pages/PendingAssetCodes";
 // MediaPlayerEntry is now embedded in MasterData
@@ -106,7 +106,8 @@ const App = () => (
             <Route path="/user-manual" element={<ProtectedRoute><DashboardLayout><UserManual /></DashboardLayout></ProtectedRoute>} />
             <Route path="/document-search" element={<ProtectedRoute><DashboardLayout><DocumentSearch /></DashboardLayout></ProtectedRoute>} />
             <Route path="/testing" element={<ProtectedRoute><DashboardLayout><Testing /></DashboardLayout></ProtectedRoute>} />
-            <Route path="/stock-movement-log" element={<ProtectedRoute><DashboardLayout><StockMovementLog /></DashboardLayout></ProtectedRoute>} />
+            {/* Stock Movement Log merged into Stock Card - redirect */}
+            <Route path="/stock-movement-log" element={<ProtectedRoute><DashboardLayout><StockCard /></DashboardLayout></ProtectedRoute>} />
             <Route path="/inventory-report" element={<ProtectedRoute><DashboardLayout><InventoryReport /></DashboardLayout></ProtectedRoute>} />
             <Route path="/tool-pm-tasks" element={<ProtectedRoute><DashboardLayout><ToolPMTasks /></DashboardLayout></ProtectedRoute>} />
             <Route path="/tool-pm-history" element={<ProtectedRoute><DashboardLayout><ToolPMHistory /></DashboardLayout></ProtectedRoute>} />
