@@ -491,28 +491,14 @@ export default function InventoryReport() {
   }, [issueData, billboards, billboardEquipment]);
 
   // Combine equipment, tools and media player data with issue information + serial from equipment_serial_numbers
+  // Items with multiple S/Ns are expanded into separate rows (one per S/N)
   const combinedData = useMemo(() => {
     const allData = [...equipmentData, ...toolsData, ...mediaPlayerData];
+    const result: InventoryItem[] = [];
 
-    return allData.map((item): InventoryItem => {
+    for (const item of allData) {
       const issueInfo = issueMap[item.id];
       
-      // For equipment items, use equipment_serial_numbers table as primary source
-      let displaySerial: string | null = null;
-      if (item.item_type === "equipment") {
-        const snData = equipmentSNMap[item.id];
-        if (snData && snData.allSNs.length > 0) {
-          displaySerial = snData.allSNs.join(", ");
-        } else {
-          // Fallback to master field or receipt data
-          displaySerial = item.serial_number || receiptSerialMaps.equipmentSerialMap[item.id] || null;
-        }
-      } else if (item.item_type === "media_player") {
-        displaySerial = item.serial_number || receiptSerialMaps.mediaSerialMap[item.id] || null;
-      } else {
-        displaySerial = item.serial_number || null;
-      }
-
       let issueStatus: "in_stock" | "issued" | "partial" = "in_stock";
       if (issueInfo) {
         if (issueInfo.issued_quantity >= item.quantity_in_stock + issueInfo.issued_quantity) {
@@ -522,16 +508,43 @@ export default function InventoryReport() {
         }
       }
 
-      return {
-        ...item,
-        serial_number: displaySerial,
+      const baseFields = {
         issue_status: issueStatus,
         issue_purpose: issueInfo?.purpose || null,
         issue_billboard_code: issueInfo?.billboard_code || null,
         issue_requester: issueInfo?.requester || null,
         issued_quantity: issueInfo?.issued_quantity || 0,
       };
-    });
+
+      // For equipment with multiple S/Ns, expand into separate rows
+      if (item.item_type === "equipment") {
+        const snData = equipmentSNMap[item.id];
+        if (snData && snData.allSNs.length > 1) {
+          // Create one row per S/N
+          for (const sn of snData.allSNs) {
+            const isInStock = snData.inStockSNs.includes(sn);
+            result.push({
+              ...item,
+              serial_number: sn,
+              quantity_in_stock: isInStock ? 1 : 0,
+              ...baseFields,
+              issue_status: isInStock ? "in_stock" : "issued",
+            });
+          }
+          continue;
+        }
+        // Single or no S/N
+        const displaySerial = snData?.allSNs[0] || item.serial_number || receiptSerialMaps.equipmentSerialMap[item.id] || null;
+        result.push({ ...item, serial_number: displaySerial, ...baseFields });
+      } else if (item.item_type === "media_player") {
+        const displaySerial = item.serial_number || receiptSerialMaps.mediaSerialMap[item.id] || null;
+        result.push({ ...item, serial_number: displaySerial, ...baseFields });
+      } else {
+        result.push({ ...item, serial_number: item.serial_number || null, ...baseFields });
+      }
+    }
+
+    return result;
   }, [equipmentData, toolsData, mediaPlayerData, issueMap, equipmentSNMap, receiptSerialMaps]);
 
   const isLoading = isLoadingEquipment || isLoadingTools || isLoadingMediaPlayers;

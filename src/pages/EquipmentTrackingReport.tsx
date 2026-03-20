@@ -460,6 +460,29 @@ function EquipmentViewTab() {
     },
   });
 
+  // Equipment serial numbers for per-S/N rows
+  const { data: equipmentSNs } = useQuery({
+    queryKey: ["eq-tracking-equipment-sns"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("equipment_serial_numbers")
+        .select("equipment_id, serial_number, status")
+        .order("created_at");
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
+  const eqSNMap = useMemo(() => {
+    const m: Record<string, { allSNs: string[]; inStockSNs: string[] }> = {};
+    (equipmentSNs || []).forEach(sn => {
+      if (!m[sn.equipment_id]) m[sn.equipment_id] = { allSNs: [], inStockSNs: [] };
+      m[sn.equipment_id].allSNs.push(sn.serial_number);
+      if (sn.status === "in_stock") m[sn.equipment_id].inStockSNs.push(sn.serial_number);
+    });
+    return m;
+  }, [equipmentSNs]);
+
   // Media Players
   const { data: mediaPlayers, isLoading: loadingMP } = useQuery({
     queryKey: ["eq-tracking-media-players-all"],
@@ -512,7 +535,7 @@ function EquipmentViewTab() {
     return m;
   }, [billboardEquipment]);
 
-  // Combine equipment + media players for unified list
+  // Combine equipment + media players for unified list (expand S/N into separate rows)
   const allItems = useMemo(() => {
     const items: any[] = [];
     (equipment || []).forEach(eq => {
@@ -520,13 +543,30 @@ function EquipmentViewTab() {
       const bbInfo = installed.length > 0
         ? installed.map(i => formatBillboardLabel((i.billboard as any)?.old_code, (i.billboard as any)?.location_name)).join(", ")
         : null;
-      items.push({
-        ...eq,
-        itemType: "equipment",
-        serialDisplay: eq.serial_number || "-",
-        installedBillboard: bbInfo,
-        isInstalled: installed.length > 0,
-      });
+      const snData = eqSNMap[eq.id];
+      
+      if (snData && snData.allSNs.length > 1) {
+        // Expand: one row per S/N
+        for (const sn of snData.allSNs) {
+          const isInStock = snData.inStockSNs.includes(sn);
+          items.push({
+            ...eq,
+            itemType: "equipment",
+            serialDisplay: sn,
+            installedBillboard: bbInfo,
+            isInstalled: installed.length > 0,
+            quantity_in_stock: isInStock ? 1 : 0,
+          });
+        }
+      } else {
+        items.push({
+          ...eq,
+          itemType: "equipment",
+          serialDisplay: snData?.allSNs[0] || eq.serial_number || "-",
+          installedBillboard: bbInfo,
+          isInstalled: installed.length > 0,
+        });
+      }
     });
     (mediaPlayers || []).forEach(mp => {
       const bb = mp.billboard_id ? bbLookup[mp.billboard_id] : null;

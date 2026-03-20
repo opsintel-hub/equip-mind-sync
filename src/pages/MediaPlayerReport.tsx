@@ -624,11 +624,16 @@ function MediaPlayerProfileDialog({
     const hasLocation = !!player.location_id;
     const isInstalled = !!player.billboard_id;
     const hasHistory = journeys.length > 0;
+
+    // Infer earlier steps as done if later steps are completed
+    const receiptDone = hasReceipt || hasLocation || isInstalled || hasHistory;
+    const storageDone = hasLocation || isInstalled || hasHistory;
+
     return [
       { label: "ลงทะเบียน", status: "done", date: player.created_at },
-      { label: "รับเข้าคลัง", status: hasReceipt ? "done" : "pending", date: player.date_of_receipt },
-      { label: "จัดเก็บ", status: hasLocation ? "done" : (hasReceipt ? "current" : "pending") },
-      { label: "ติดตั้งป้าย", status: isInstalled ? "done" : (hasHistory ? "done" : (hasLocation ? "current" : "pending")), date: player.install_date },
+      { label: "รับเข้าคลัง", status: receiptDone ? "done" : "pending", date: player.date_of_receipt },
+      { label: "จัดเก็บ", status: storageDone ? "done" : (hasReceipt ? "current" : "pending") },
+      { label: "ติดตั้งป้าย", status: isInstalled ? "done" : (hasHistory ? "done" : (storageDone ? "current" : "pending")), date: player.install_date },
       ...(hasHistory && !isInstalled ? [{ label: "ถอด/คืนคลัง", status: "done" as const }] : []),
     ];
   }, [player, journeys]);
