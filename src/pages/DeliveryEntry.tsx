@@ -1556,7 +1556,7 @@ const DeliveryEntry = () => {
                         <div className="flex items-center gap-2">
                           <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400" />
                           <span className="text-sm font-medium text-amber-700 dark:text-amber-400">
-                            ไม่พบสินค้าในระบบ? กรอกข้อมูลด้านล่างเพื่อนำเข้าสินค้าใหม่
+                            ไม่พบสินค้าในระบบ? ต้องกรอกชื่อสินค้าลงในข้อมูลด้านล่างเพื่อนำเข้าสินค้าใหม่
                           </span>
                         </div>
                         <p className="text-xs text-amber-600/80 dark:text-amber-500/80">
@@ -2423,10 +2423,18 @@ const DeliveryEntry = () => {
                       <TableCell className="font-medium">{receipt.document_no}</TableCell>
                       <TableCell>
                         {receipt.equipment_code ? (
-                          <span className={receipt.equipment_code.startsWith("TEMP-") ? "text-amber-600 dark:text-amber-400 font-mono text-xs" : "font-mono text-xs"}>
+                          <span
+                            className={
+                              receipt.equipment_code.startsWith("TEMP-")
+                                ? "text-amber-600 dark:text-amber-400 font-mono text-xs"
+                                : "font-mono text-xs"
+                            }
+                          >
                             {receipt.equipment_code}
                           </span>
-                        ) : "-"}
+                        ) : (
+                          "-"
+                        )}
                       </TableCell>
                       <TableCell>{format(new Date(receipt.created_at), "dd/MM/yyyy HH:mm")}</TableCell>
                       <TableCell>{receipt.equipment_name || "-"}</TableCell>
