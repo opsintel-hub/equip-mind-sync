@@ -20,7 +20,7 @@ import { th } from "date-fns/locale";
 import {
   Search, Package, Monitor, Wrench, MapPin, ChevronDown,
   ArrowDownToLine, ArrowUpFromLine, ArrowLeftRight, Hammer, RotateCcw, AlertTriangle,
-  Fingerprint, Hash, Clock, BarChart3, FileSpreadsheet, FileText, Loader2, History
+  Fingerprint, Hash, Clock, BarChart3, FileSpreadsheet, FileText, Loader2, History, ClipboardList
 } from "lucide-react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import { toast } from "@/hooks/use-toast";
