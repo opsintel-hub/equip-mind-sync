@@ -657,7 +657,7 @@ export default function StockCard() {
                         <div className="flex-1 min-w-0">
                           <div className="font-medium truncate">{item.code} — {item.name}</div>
                           <div className="text-xs text-muted-foreground flex items-center gap-2">
-                            {item.serial_number && <span className="flex items-center gap-0.5"><Fingerprint className="w-3 h-3" />{item.serial_number}</span>}
+                            {item.serial_number && <span className="flex items-center gap-0.5 whitespace-pre-line"><Fingerprint className="w-3 h-3 shrink-0" />{item.serial_number}</span>}
                             <span>{ITEM_TYPES.find(t => t.value === item.type)?.label}</span>
                             {item.department && <span>• {item.department}</span>}
                           </div>
@@ -734,10 +734,10 @@ export default function StockCard() {
 
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
                   {selectedItem.serial_number && (
-                    <div><span className="text-muted-foreground">S/N:</span> <span className="font-medium">{selectedItem.serial_number}</span></div>
+                    <div><span className="text-muted-foreground">S/N:</span> <span className="font-medium whitespace-pre-line">{selectedItem.serial_number}</span></div>
                   )}
                   {selectedItem.serial_number_2 && (
-                    <div><span className="text-muted-foreground">S/N 2:</span> <span className="font-medium">{selectedItem.serial_number_2}</span></div>
+                    <div><span className="text-muted-foreground">S/N 2:</span> <span className="font-medium whitespace-pre-line">{selectedItem.serial_number_2}</span></div>
                   )}
                   {selectedItem.category && <div><span className="text-muted-foreground">หมวด:</span> <span className="font-medium">{selectedItem.category}</span></div>}
                   {selectedItem.brand && <div><span className="text-muted-foreground">ยี่ห้อ:</span> <span className="font-medium">{selectedItem.brand}</span></div>}

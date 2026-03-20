@@ -295,7 +295,7 @@ export default function InventoryReport() {
       // Transform to unified format
       return (data || []).map((item: any): InventoryItem => {
         const snParts = [item.serial_number_1, item.serial_number_2].filter(Boolean);
-        const serial_number = snParts.length > 0 ? snParts.join(" / ") : null;
+        const serial_number = snParts.length > 0 ? snParts.join("\n") : null;
 
         return {
           id: item.id,
@@ -982,7 +982,7 @@ export default function InventoryReport() {
                           <TableCell className="font-mono text-xs max-w-[200px]">
                             {item.serial_number ? (
                               <div className="space-y-0.5">
-                                <div className="truncate" title={item.serial_number}>
+                                <div className="whitespace-pre-line" title={item.serial_number}>
                                   {item.serial_number}
                                 </div>
                                 {item.item_type === 'equipment' && equipmentSNMap[item.id] && equipmentSNMap[item.id].allSNs.length > 1 && (

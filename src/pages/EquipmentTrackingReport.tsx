@@ -447,7 +447,7 @@ function BillboardViewTab() {
                                     <TableRow key={item.id}>
                                       <TableCell className="font-medium">{eq.name}</TableCell>
                                       <TableCell className="text-xs font-mono">{eq.code}</TableCell>
-                                      <TableCell className="text-xs">{eq.serial_number || "-"}</TableCell>
+                                      <TableCell className="text-xs whitespace-pre-line">{eq.serial_number || "-"}</TableCell>
                                       <TableCell><Badge variant="outline" className="text-xs">{item.type === "media_player" ? "Media Player" : eq.category || "อุปกรณ์"}</Badge></TableCell>
                                       <TableCell className="text-center">{item.quantity}</TableCell>
                                       <TableCell className="text-xs">{fmtDate(item.installation_date)}</TableCell>
@@ -625,7 +625,7 @@ function EquipmentViewTab() {
         expiry_date: null,
         warranty_expiry_date: mp.warranty_expiry_date,
         itemType: "media_player",
-        serialDisplay: [mp.serial_number_1, mp.serial_number_2].filter(Boolean).join(" / ") || "-",
+        serialDisplay: [mp.serial_number_1, mp.serial_number_2].filter(Boolean).join("\n") || "-",
         installedBillboard: bb ? formatBillboardLabel(bb.old_code, bb.location_name) : null,
         isInstalled: !!mp.billboard_id,
         billboard_id: mp.billboard_id,
@@ -765,7 +765,7 @@ function EquipmentViewTab() {
                 <TableRow key={`${item.itemType}-${item.id}`}>
                   <TableCell className="font-mono text-xs">{item.code}</TableCell>
                   <TableCell className="font-medium">{item.name}</TableCell>
-                  <TableCell className="text-xs">{item.serialDisplay}</TableCell>
+                  <TableCell className="text-xs whitespace-pre-line">{item.serialDisplay}</TableCell>
                   <TableCell><Badge variant="outline" className="text-xs">{item.itemType === "media_player" ? "Media Player" : item.category}</Badge></TableCell>
                   <TableCell className="text-xs">{item.brand || "-"}</TableCell>
                   <TableCell className="text-center">{item.quantity_in_stock}</TableCell>
@@ -910,7 +910,7 @@ function EquipmentDetailDialog({ item, onClose, bbLookup }: { item: any; onClose
             <Card>
               <CardContent className="p-3 text-center">
                 <div className="text-xs text-muted-foreground mb-1">S/N</div>
-                <div className="text-sm font-mono">{item.serialDisplay}</div>
+                <div className="text-sm font-mono whitespace-pre-line">{item.serialDisplay}</div>
               </CardContent>
             </Card>
           </div>
