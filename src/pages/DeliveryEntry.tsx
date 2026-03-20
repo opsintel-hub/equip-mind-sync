@@ -344,6 +344,10 @@ const DeliveryEntry = () => {
       setUnit(selectedEquipment.unit);
       setEquipmentCode(selectedEquipment.code);
       setEquipmentName(selectedEquipment.name);
+      // Auto-fill unit price from existing equipment when NOT a purchase receipt
+      if (!isPurchaseReceipt && selectedEquipment.unit_price > 0) {
+        setUnitPrice(String(selectedEquipment.unit_price));
+      }
       // Auto-fill category and subcategory from existing equipment
       if (selectedEquipment.category) {
         const matchingCategory = categories.find(c => c.name === selectedEquipment.category);
@@ -372,7 +376,7 @@ const DeliveryEntry = () => {
       setStorageHeightCm("");
       setStorageDepthCm("");
     }
-  }, [selectedEquipment, categories]);
+  }, [selectedEquipment, categories, isPurchaseReceipt]);
 
   // Update supplier name when selected
   useEffect(() => {
