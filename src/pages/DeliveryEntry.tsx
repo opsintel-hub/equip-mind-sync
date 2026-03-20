@@ -109,6 +109,7 @@ interface PendingReceipt {
 }
 const DeliveryEntry = () => {
   const [searchTerm, setSearchTerm] = useState("");
+  const [snSearchTerm, setSnSearchTerm] = useState("");
   const [equipment, setEquipment] = useState<Equipment[]>([]);
   const [companies, setCompanies] = useState<Company[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
