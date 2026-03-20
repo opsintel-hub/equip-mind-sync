@@ -40,7 +40,7 @@ import RequesterDashboard from "./pages/RequesterDashboard";
 import UserManual from "./pages/UserManual";
 import DocumentSearch from "./pages/DocumentSearch";
 import Testing from "./pages/Testing";
-import StockMovementLog from "./pages/StockMovementLog";
+// StockMovementLog merged into StockCard
 import InventoryReport from "./pages/InventoryReport";
 import PendingAssetCodes from "./pages/PendingAssetCodes";
 // MediaPlayerEntry is now embedded in MasterData
