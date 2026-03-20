@@ -8,7 +8,7 @@ export interface ReceivedSerialAliasRow {
 
 function splitSerialParts(value: string): string[] {
   return value
-    .split("/")
+    .split(/[\/\n]/)
     .map((part) => part.trim())
     .filter(Boolean);
 }
