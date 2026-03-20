@@ -172,10 +172,35 @@ export default function StockCard() {
   const [isDocDialogOpen, setIsDocDialogOpen] = useState(false);
   const viewableDepts = getViewableDepartments();
 
+  const { data: receivedSerialAliases = [] } = useQuery({
+    queryKey: ["stock-card-received-serial-aliases"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("goods_receipt_pending")
+        .select("equipment_id, media_player_id, serial_number, received_at, created_at")
+        .eq("status", "received")
+        .not("serial_number", "is", null)
+        .neq("serial_number", "");
+
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
+  const equipmentAliasMap = useMemo(
+    () => buildReceivedSerialAliasMap(receivedSerialAliases, "equipment_id"),
+    [receivedSerialAliases],
+  );
+
+  const mediaPlayerAliasMap = useMemo(
+    () => buildReceivedSerialAliasMap(receivedSerialAliases, "media_player_id"),
+    [receivedSerialAliases],
+  );
+
   // ── Fetch all items for search ──
   const { data: allItems = [] } = useQuery({
     queryKey: ["stock-card-items"],
-    staleTime: 5 * 60 * 1000, // 5 min cache
+    staleTime: 5 * 60 * 1000,
     queryFn: async () => {
       const items: EquipmentItem[] = [];
 
@@ -186,14 +211,14 @@ export default function StockCard() {
       ]);
 
       eqRes.data?.forEach(e => items.push({
-        id: e.id, code: e.code, name: e.name, serial_number: e.serial_number,
+        id: e.id, code: e.code, name: e.name, serial_number: formatMergedSerials(e.serial_number, equipmentAliasMap[e.id]) || null,
         category: e.category, brand: e.brand, unit: e.unit, department: e.department,
         quantity_in_stock: e.quantity_in_stock, item_condition: e.item_condition, type: "equipment",
       }));
 
       mpRes.data?.forEach(m => items.push({
-        id: m.id, code: m.code, name: m.name, serial_number: m.serial_number_1,
-        serial_number_2: m.serial_number_2,
+        id: m.id, code: m.code, name: m.name, serial_number: formatMergedSerials(m.serial_number_1, mediaPlayerAliasMap[m.id]) || null,
+        serial_number_2: formatMergedSerials(m.serial_number_2) || null,
         brand: m.brand, unit: m.unit, department: m.department,
         quantity_in_stock: m.quantity, item_condition: m.item_condition, type: "media_player",
       }));
@@ -215,15 +240,11 @@ export default function StockCard() {
     return allItems
       .filter(i => {
         if (filterTypes.length > 0 && !filterTypes.includes(i.type)) return false;
-        // Brand filter
         if (filterBrands.length > 0 && (!i.brand || !filterBrands.includes(i.brand))) return false;
-        // Department permission filter
         if (!isAdmin && i.department && !viewableDepts.includes(i.department)) return false;
-        // Department multi-select filter
         if (filterDepartments.length > 0 && (!i.department || !filterDepartments.includes(i.department))) return false;
         const match = i.code.toLowerCase().includes(q) || i.name.toLowerCase().includes(q) ||
-          (i.serial_number && i.serial_number.toLowerCase().includes(q)) ||
-          (i.serial_number_2 && i.serial_number_2.toLowerCase().includes(q));
+          matchesSerialSearch(q, i.serial_number, i.serial_number_2);
         return match;
       })
       .slice(0, 20);
