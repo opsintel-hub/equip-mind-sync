@@ -38,6 +38,7 @@ interface IssuedItem {
 
 const GoodsIssue = () => {
   const [searchTerm, setSearchTerm] = useState("");
+  const [snSearchTerm, setSnSearchTerm] = useState("");
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [expandedRequests, setExpandedRequests] = useState<Set<string>>(new Set());
