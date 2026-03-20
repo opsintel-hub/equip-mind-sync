@@ -734,7 +734,7 @@ export default function StockCard() {
 
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
                   {selectedItem.serial_number && (
-                    <div><span className="text-muted-foreground">S/N:</span> <span className="font-medium">{selectedItem.serial_number}</span></div>
+                    <div><span className="text-muted-foreground">S/N:</span> <span className="font-medium whitespace-pre-line">{selectedItem.serial_number}</span></div>
                   )}
                   {selectedItem.serial_number_2 && (
                     <div><span className="text-muted-foreground">S/N 2:</span> <span className="font-medium">{selectedItem.serial_number_2}</span></div>
