@@ -17,13 +17,39 @@ export function ProfileSearch() {
     const timer = setTimeout(async () => {
       setIsSearching(true);
       const term = `%${searchTerm}%`;
-      const { data } = await supabase
+
+      // Search media_players directly
+      const { data: directResults } = await supabase
         .from("media_players")
         .select("id, code, name, serial_number_1, serial_number_2")
         .eq("is_active", true)
         .or(`code.ilike.${term},name.ilike.${term},serial_number_1.ilike.${term},serial_number_2.ilike.${term}`)
         .limit(10);
-      setSearchResults((data as any) || []);
+
+      // Also search goods_receipt_pending for delivery S/N
+      const { data: receiptMatches } = await supabase
+        .from("goods_receipt_pending")
+        .select("media_player_id, serial_number")
+        .not("media_player_id", "is", null)
+        .ilike("serial_number", term)
+        .limit(10);
+
+      const directIds = new Set((directResults || []).map((r: any) => r.id));
+      const extraIds = (receiptMatches || [])
+        .map((r: any) => r.media_player_id)
+        .filter((id: string) => !directIds.has(id));
+
+      let combined: SearchResult[] = (directResults as any) || [];
+
+      if (extraIds.length > 0) {
+        const { data: extraPlayers } = await supabase
+          .from("media_players")
+          .select("id, code, name, serial_number_1, serial_number_2")
+          .in("id", extraIds);
+        if (extraPlayers) combined = [...combined, ...(extraPlayers as any)];
+      }
+
+      setSearchResults(combined);
       setIsSearching(false);
     }, 300);
     return () => clearTimeout(timer);
