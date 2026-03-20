@@ -82,6 +82,7 @@ const IssueGoods = () => {
   const queryClient = useQueryClient();
   const { user } = useAuth();
   const [searchTerm, setSearchTerm] = useState("");
+  const [snSearchTerm, setSnSearchTerm] = useState("");
   const [selectedRequest, setSelectedRequest] = useState<PendingRequest | null>(null);
   const [selectedItem, setSelectedItem] = useState<PendingItem | null>(null);
   const [issueDialogOpen, setIssueDialogOpen] = useState(false);
@@ -658,15 +659,20 @@ const IssueGoods = () => {
 
   const filteredRequests = pendingRequests?.filter(
     (req) => {
+      // Dedicated S/N search
+      if (snSearchTerm) {
+        const snTerm = snSearchTerm.toLowerCase();
+        const items = getItemsForRequest(req.id);
+        if (!items.some(item => item.serial_number?.toLowerCase().includes(snTerm))) return false;
+      }
+      // General search
       const term = searchTerm.toLowerCase();
       if (!term) return true;
       if (req.document_no?.toLowerCase().includes(term) ||
           req.equipment_code?.toLowerCase().includes(term) ||
           req.equipment_name?.toLowerCase().includes(term) ||
           req.requester_name?.toLowerCase().includes(term)) return true;
-      // Search in items' serial_number
-      const items = getItemsForRequest(req.id);
-      return items.some(item => item.serial_number?.toLowerCase().includes(term));
+      return false;
     }
   );
 
@@ -706,10 +712,19 @@ const IssueGoods = () => {
           </CardHeader>
           <CardContent>
             <div className="flex items-center gap-2 mb-4">
+              <div className="relative flex-1 max-w-[180px]">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="ค้นหา S/N..."
+                  value={snSearchTerm}
+                  onChange={(e) => setSnSearchTerm(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
               <div className="relative flex-1 max-w-sm">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder="ค้นหาเลขที่เอกสาร, รหัส, ชื่อสินค้า, S/N..."
+                  placeholder="ค้นหาเลขที่เอกสาร, รหัส, ชื่อสินค้า..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-10"

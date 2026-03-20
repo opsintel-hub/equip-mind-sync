@@ -35,6 +35,7 @@ const DeliveryConfirmation = () => {
   const queryClient = useQueryClient();
   const { user } = useAuth();
   const [searchTerm, setSearchTerm] = useState("");
+  const [snSearchTerm, setSnSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [departmentFilter, setDepartmentFilter] = useState<string[]>([]);
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
@@ -246,15 +247,18 @@ const DeliveryConfirmation = () => {
 
   // Filter logic
   const filteredRequests = deliveryRequests?.filter((req: any) => {
-    // Search
+    // Dedicated S/N search
+    if (snSearchTerm) {
+      const snTerm = snSearchTerm.toLowerCase();
+      const items = getItemsForRequest(req.id);
+      if (!items.some((item: any) => item.serial_number?.toLowerCase().includes(snTerm))) return false;
+    }
+    // General search
     if (searchTerm) {
       const term = searchTerm.toLowerCase();
-      const items = getItemsForRequest(req.id);
-      const matchesSN = items.some((item: any) => item.serial_number?.toLowerCase().includes(term));
       if (!req.document_no?.toLowerCase().includes(term) &&
           !req.equipment_name?.toLowerCase().includes(term) &&
-          !req.requester_name?.toLowerCase().includes(term) &&
-          !matchesSN) return false;
+          !req.requester_name?.toLowerCase().includes(term)) return false;
     }
     // Status filter
     if (statusFilter !== "all") {
@@ -295,7 +299,11 @@ const DeliveryConfirmation = () => {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input placeholder="ค้นหาเลขที่เอกสาร, ชื่อสินค้า, ชื่อผู้เบิก, S/N..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-10" />
+              <Input placeholder="ค้นหา S/N..." value={snSearchTerm} onChange={(e) => setSnSearchTerm(e.target.value)} className="pl-10 w-[160px]" />
+            </div>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input placeholder="ค้นหาเลขที่เอกสาร, ชื่อสินค้า, ชื่อผู้เบิก..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-10" />
             </div>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
               <SelectTrigger><SelectValue placeholder="สถานะ" /></SelectTrigger>

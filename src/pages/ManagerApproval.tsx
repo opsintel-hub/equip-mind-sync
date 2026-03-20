@@ -25,6 +25,7 @@ const ManagerApproval = () => {
   const queryClient = useQueryClient();
   const { user } = useAuth();
   const [searchTerm, setSearchTerm] = useState("");
+  const [snSearchTerm, setSnSearchTerm] = useState("");
   const [selectedRequest, setSelectedRequest] = useState<any>(null);
   const [approveDialogOpen, setApproveDialogOpen] = useState(false);
   const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
@@ -176,16 +177,22 @@ const ManagerApproval = () => {
   const applyFilters = (data: any[] | undefined) => {
     if (!data) return [];
     return data.filter((req: any) => {
+      // Dedicated S/N search
+      if (snSearchTerm) {
+        const snTerm = snSearchTerm.toLowerCase();
+        const items = getItemsForRequest(req.id);
+        const matchSN = items.some((item: any) => item.serial_number?.toLowerCase().includes(snTerm));
+        if (!matchSN) return false;
+      }
+      // General search
       if (searchTerm) {
         const term = searchTerm.toLowerCase();
         const matchDirect = req.document_no?.toLowerCase().includes(term) ||
             req.requester_name?.toLowerCase().includes(term) ||
             req.equipment_name?.toLowerCase().includes(term) ||
             req.equipment_code?.toLowerCase().includes(term);
-        // Also search in items' serial_number
         const items = getItemsForRequest(req.id);
         const matchItems = items.some((item: any) => 
-          item.serial_number?.toLowerCase().includes(term) ||
           item.equipment_code?.toLowerCase().includes(term) ||
           item.equipment_name?.toLowerCase().includes(term)
         );
@@ -328,7 +335,11 @@ const ManagerApproval = () => {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input placeholder="ค้นหาเลขที่เอกสาร, ชื่อสินค้า, S/N, ชื่อผู้เบิก..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-10" />
+              <Input placeholder="ค้นหา S/N..." value={snSearchTerm} onChange={(e) => setSnSearchTerm(e.target.value)} className="pl-10 w-[160px]" />
+            </div>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input placeholder="ค้นหาเลขที่เอกสาร, ชื่อสินค้า, ชื่อผู้เบิก..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-10" />
             </div>
             <DepartmentMultiFilter value={departmentFilter} onChange={setDepartmentFilter} />
             <Select value={companyFilter} onValueChange={setCompanyFilter}>

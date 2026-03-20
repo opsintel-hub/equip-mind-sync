@@ -162,6 +162,7 @@ export default function StockCard() {
   
   // All Movements tab state
   const [movSearchTerm, setMovSearchTerm] = useState("");
+  const [movSnSearchTerm, setMovSnSearchTerm] = useState("");
   const [movTypeFilter, setMovTypeFilter] = useState("all");
   const [movDeptFilter, setMovDeptFilter] = useState<string[]>([]);
   const [movCompanyFilter, setMovCompanyFilter] = useState("all");
@@ -476,12 +477,19 @@ export default function StockCard() {
     if (!allMovements) return [];
 
     let filtered = allMovements;
+    // Dedicated S/N search
+    if (movSnSearchTerm) {
+      const snTerm = movSnSearchTerm.toLowerCase();
+      filtered = filtered.filter((m: any) => {
+        const sn = m.equipment?.serial_number || "";
+        return sn.toLowerCase().includes(snTerm);
+      });
+    }
+    // General search (code, name, document, notes)
     if (movSearchTerm) {
       const term = movSearchTerm.toLowerCase();
       filtered = filtered.filter((m: any) => {
-        const sn = m.equipment?.serial_number || "";
-        return sn.toLowerCase().includes(term) ||
-          m.equipment_code?.toLowerCase().includes(term) ||
+        return m.equipment_code?.toLowerCase().includes(term) ||
           m.equipment_name?.toLowerCase().includes(term) ||
           m.reference_document?.toLowerCase().includes(term) ||
           m.notes?.toLowerCase().includes(term);
@@ -1070,7 +1078,16 @@ export default function StockCard() {
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
-                    placeholder="ค้นหา รหัส/ชื่อ/S/N หรือเลขเอกสาร..."
+                    placeholder="ค้นหา S/N..."
+                    value={movSnSearchTerm}
+                    onChange={(e) => { setMovSnSearchTerm(e.target.value); movPageChange(1); }}
+                    className="pl-10"
+                  />
+                </div>
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="ค้นหา รหัส/ชื่อ หรือเลขเอกสาร..."
                     value={movSearchTerm}
                     onChange={(e) => { setMovSearchTerm(e.target.value); movPageChange(1); }}
                     className="pl-10"

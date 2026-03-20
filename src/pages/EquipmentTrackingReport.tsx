@@ -95,6 +95,7 @@ function SimplePagination({ currentPage, totalPages, onPageChange }: { currentPa
 
 function BillboardViewTab() {
   const [search, setSearch] = useState("");
+  const [snSearch, setSnSearch] = useState("");
   const [regionFilter, setRegionFilter] = useState("all");
   const [deptFilter, setDeptFilter] = useState("all");
   const [mediaTypeFilter, setMediaTypeFilter] = useState("all");
@@ -213,13 +214,23 @@ function BillboardViewTab() {
   const filtered = useMemo(() => {
     return (billboards || []).filter(b => {
       const s = search.toLowerCase();
-      // Search by billboard code, location, OR equipment S/N within the billboard
+      // General search: billboard code, location, equipment code/name
       const matchesSearch = !s || (b.old_code || "").toLowerCase().includes(s) || (b.location_name || "").toLowerCase().includes(s) ||
         (equipByBillboard[b.id] || []).some((item: any) => {
           const eq = item.equipmentData;
-          return (eq?.serial_number || "").toLowerCase().includes(s) || (eq?.code || "").toLowerCase().includes(s) || (eq?.name || "").toLowerCase().includes(s);
+          return (eq?.code || "").toLowerCase().includes(s) || (eq?.name || "").toLowerCase().includes(s);
         });
       if (!matchesSearch) return false;
+      // Dedicated S/N search
+      if (snSearch) {
+        const snTerm = snSearch.toLowerCase();
+        const items = equipByBillboard[b.id] || [];
+        const matchesSN = items.some((item: any) => {
+          const eq = item.equipmentData;
+          return (eq?.serial_number || "").toLowerCase().includes(snTerm);
+        });
+        if (!matchesSN) return false;
+      }
       if (regionFilter !== "all" && b.region !== regionFilter) return false;
       if (deptFilter !== "all" && b.department !== deptFilter) return false;
       if (mediaTypeFilter !== "all" && b.media_type !== mediaTypeFilter) return false;
@@ -227,7 +238,7 @@ function BillboardViewTab() {
       if (!showAllBillboards && !(equipByBillboard[b.id]?.length > 0)) return false;
       return true;
     });
-  }, [billboards, search, regionFilter, deptFilter, mediaTypeFilter, statusFilter, equipByBillboard, showAllBillboards]);
+  }, [billboards, search, snSearch, regionFilter, deptFilter, mediaTypeFilter, statusFilter, equipByBillboard, showAllBillboards]);
 
   // Summary stats
   const summaryStats = useMemo(() => {
@@ -295,9 +306,13 @@ function BillboardViewTab() {
 
       {/* Filters */}
       <div className="flex flex-wrap gap-3 items-center">
+        <div className="relative flex-1 min-w-[140px] max-w-[200px]">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Input placeholder="ค้นหา S/N..." value={snSearch} onChange={e => setSnSearch(e.target.value)} className="pl-9" />
+        </div>
         <div className="relative flex-1 min-w-[200px]">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input placeholder="ค้นหาป้าย (Old Code / Location) หรือ S/N อุปกรณ์..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
+          <Input placeholder="ค้นหาป้าย (Old Code / Location)..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
         </div>
         <Select value={regionFilter} onValueChange={setRegionFilter}>
           <SelectTrigger className="w-[160px]"><SelectValue placeholder="Region" /></SelectTrigger>
@@ -439,6 +454,7 @@ function BillboardViewTab() {
 
 function EquipmentViewTab() {
   const [search, setSearch] = useState("");
+  const [snSearch, setSnSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState("all");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [brandFilter, setBrandFilter] = useState("all");
@@ -596,8 +612,14 @@ function EquipmentViewTab() {
 
   const filtered = useMemo(() => {
     return allItems.filter(item => {
+      // Dedicated S/N search
+      if (snSearch) {
+        const snTerm = snSearch.toLowerCase();
+        if (!(item.serialDisplay || "").toLowerCase().includes(snTerm)) return false;
+      }
+      // General search (name, code)
       const s = search.toLowerCase();
-      if (s && !(item.name || "").toLowerCase().includes(s) && !(item.code || "").toLowerCase().includes(s) && !(item.serialDisplay || "").toLowerCase().includes(s)) return false;
+      if (s && !(item.name || "").toLowerCase().includes(s) && !(item.code || "").toLowerCase().includes(s)) return false;
       if (typeFilter !== "all" && item.itemType !== typeFilter) return false;
       if (categoryFilter !== "all" && item.category !== categoryFilter) return false;
       if (brandFilter !== "all" && item.brand !== brandFilter) return false;
@@ -605,7 +627,7 @@ function EquipmentViewTab() {
       if (installFilter === "in_stock" && item.isInstalled) return false;
       return true;
     });
-  }, [allItems, search, typeFilter, categoryFilter, brandFilter, installFilter]);
+  }, [allItems, search, snSearch, typeFilter, categoryFilter, brandFilter, installFilter]);
 
   // Summary stats
   const summaryStats = useMemo(() => {
@@ -647,9 +669,13 @@ function EquipmentViewTab() {
 
       {/* Filters */}
       <div className="flex flex-wrap gap-3">
+        <div className="relative flex-1 min-w-[140px] max-w-[200px]">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Input placeholder="ค้นหา S/N..." value={snSearch} onChange={e => setSnSearch(e.target.value)} className="pl-9" />
+        </div>
         <div className="relative flex-1 min-w-[200px]">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input placeholder="ค้นหา ชื่อ / Code / S/N..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
+          <Input placeholder="ค้นหา ชื่อ / Code..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
         </div>
         <Select value={typeFilter} onValueChange={setTypeFilter}>
           <SelectTrigger className="w-[160px]"><SelectValue placeholder="ประเภท" /></SelectTrigger>

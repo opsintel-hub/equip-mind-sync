@@ -25,6 +25,7 @@ export interface InventoryFiltersState {
   locationId: string;
   stockStatus: string;
   search: string;
+  snSearch: string; // Dedicated S/N search field
   itemType: string; // 'all' | 'equipment' | 'media_player'
   statusFilters: string[]; // Multi-select: expired, warranty_expired, near_expiry, near_warranty, out_of_stock
   advanceDays?: number; // Custom days for near expiry/warranty calculation
@@ -92,6 +93,7 @@ interface InventoryFiltersProps {
 
 export function InventoryFilters({ filters, onFiltersChange }: InventoryFiltersProps) {
   const [localSearch, setLocalSearch] = useState(filters.search);
+  const [localSnSearch, setLocalSnSearch] = useState(filters.snSearch || "");
 
   // Fetch companies
   const { data: companies = [] } = useQuery({
@@ -209,6 +211,7 @@ export function InventoryFilters({ filters, onFiltersChange }: InventoryFiltersP
 
   const handleClearFilters = () => {
     setLocalSearch("");
+    setLocalSnSearch("");
     onFiltersChange({
       companyId: "",
       department: "",
@@ -218,6 +221,7 @@ export function InventoryFilters({ filters, onFiltersChange }: InventoryFiltersP
       locationId: "",
       stockStatus: "",
       search: "",
+      snSearch: "",
       itemType: "",
       statusFilters: [],
       advanceDays: 30,
@@ -532,9 +536,29 @@ export function InventoryFilters({ filters, onFiltersChange }: InventoryFiltersP
           </SelectContent>
         </Select>
 
+        <div className="flex gap-2 flex-1 max-w-xs">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="ค้นหา S/N..."
+              value={localSnSearch}
+              onChange={(e) => setLocalSnSearch(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  onFiltersChange({ ...filters, snSearch: localSnSearch });
+                }
+              }}
+              className="pl-9"
+            />
+          </div>
+          <Button variant="outline" size="icon" onClick={() => onFiltersChange({ ...filters, snSearch: localSnSearch })}>
+            <Search className="h-4 w-4" />
+          </Button>
+        </div>
+
         <div className="flex gap-2 flex-1 max-w-md">
           <Input
-            placeholder="ค้นหารหัส, ชื่อ, ยี่ห้อ, S/N..."
+            placeholder="ค้นหารหัส, ชื่อ, ยี่ห้อ, เอกสาร..."
             value={localSearch}
             onChange={(e) => setLocalSearch(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleSearchSubmit()}

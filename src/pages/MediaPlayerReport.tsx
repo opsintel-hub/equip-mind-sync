@@ -70,6 +70,7 @@ interface MediaPlayerListItem {
 export default function MediaPlayerReport() {
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
+  const [snSearch, setSnSearch] = useState("");
   const [conditionFilter, setConditionFilter] = useState("all");
   const [departmentFilter, setDepartmentFilter] = useState("all");
   const [codePrefixFilter, setCodePrefixFilter] = useState("all");
@@ -148,19 +149,26 @@ export default function MediaPlayerReport() {
         const match = p.code?.match(/^([A-Za-z-]+)/);
         if (!match || match[1] !== codePrefixFilter) return false;
       }
+      // Dedicated S/N search
+      if (snSearch) {
+        const s = snSearch.toLowerCase();
+        const matchSN =
+          p.serial_number_1?.toLowerCase().includes(s) ||
+          p.serial_number_2?.toLowerCase().includes(s);
+        if (!matchSN) return false;
+      }
+      // General search (code, name, brand)
       if (search) {
         const s = search.toLowerCase();
         const match =
           p.code?.toLowerCase().includes(s) ||
           p.name?.toLowerCase().includes(s) ||
-          p.serial_number_1?.toLowerCase().includes(s) ||
-          p.serial_number_2?.toLowerCase().includes(s) ||
           p.brand?.toLowerCase().includes(s);
         if (!match) return false;
       }
       return true;
     });
-  }, [players, search, conditionFilter, departmentFilter, statusFilter, companyFilter, brandFilter, codePrefixFilter]);
+  }, [players, search, snSearch, conditionFilter, departmentFilter, statusFilter, companyFilter, brandFilter, codePrefixFilter]);
 
   const {
     paginatedData,
@@ -336,11 +344,22 @@ export default function MediaPlayerReport() {
       <Card>
         <CardContent className="p-4">
           <div className="flex flex-wrap gap-3">
+            <div className="flex-1 min-w-[160px]">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input
+                  placeholder="ค้นหา S/N..."
+                  value={snSearch}
+                  onChange={(e) => setSnSearch(e.target.value)}
+                  className="pl-9"
+                />
+              </div>
+            </div>
             <div className="flex-1 min-w-[200px]">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
-                  placeholder="ค้นหา รหัส, ชื่อ, S/N, ยี่ห้อ..."
+                  placeholder="ค้นหา รหัส, ชื่อ, ยี่ห้อ..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   className="pl-9"

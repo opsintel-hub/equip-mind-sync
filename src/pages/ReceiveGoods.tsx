@@ -76,6 +76,7 @@ interface Location {
 const ReceiveGoods = () => {
   const { user } = useAuth();
   const [searchTerm, setSearchTerm] = useState("");
+  const [snSearchTerm, setSnSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("pending");
   const [equipment, setEquipment] = useState<Equipment[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
@@ -837,13 +838,18 @@ const ReceiveGoods = () => {
   };
 
   const filteredReceipts = pendingReceipts.filter(receipt => {
+    // Dedicated S/N search
+    if (snSearchTerm) {
+      const snTerm = snSearchTerm.toLowerCase();
+      if (!(receipt as any).serial_number?.toLowerCase().includes(snTerm)) return false;
+    }
+    // General search
     const term = searchTerm.toLowerCase();
     if (!term) return true;
     return receipt.document_no.toLowerCase().includes(term) ||
       receipt.equipment_name?.toLowerCase().includes(term) ||
       receipt.delivery_person_name.toLowerCase().includes(term) ||
-      (receipt as any).equipment_code?.toLowerCase().includes(term) ||
-      (receipt as any).serial_number?.toLowerCase().includes(term);
+      (receipt as any).equipment_code?.toLowerCase().includes(term);
   });
 
   const pendingCount = pendingReceipts.filter(r => r.status === "pending").length;
@@ -896,10 +902,19 @@ const ReceiveGoods = () => {
                   <SelectItem value="all">ทั้งหมด</SelectItem>
                 </SelectContent>
               </Select>
+              <div className="relative w-48">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input
+                  placeholder="ค้นหา S/N..."
+                  className="pl-10"
+                  value={snSearchTerm}
+                  onChange={(e) => setSnSearchTerm(e.target.value)}
+                />
+              </div>
               <div className="relative w-64">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
-                  placeholder="ค้นหาเลขที่เอกสาร, ชื่อสินค้า, S/N, ผู้ส่ง..."
+                  placeholder="ค้นหาเลขที่เอกสาร, ชื่อสินค้า, ผู้ส่ง..."
                   className="pl-10"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}

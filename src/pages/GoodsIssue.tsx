@@ -38,6 +38,7 @@ interface IssuedItem {
 
 const GoodsIssue = () => {
   const [searchTerm, setSearchTerm] = useState("");
+  const [snSearchTerm, setSnSearchTerm] = useState("");
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [expandedRequests, setExpandedRequests] = useState<Set<string>>(new Set());
@@ -104,6 +105,14 @@ const GoodsIssue = () => {
       result = result.filter((r: any) => r.status === statusFilter);
     }
 
+    if (snSearchTerm) {
+      const snTerm = snSearchTerm.toLowerCase();
+      result = result.filter((r: any) => {
+        const items = getItemsForRequest(r.id);
+        return items.some(item => item.serial_number?.toLowerCase().includes(snTerm));
+      });
+    }
+
     if (searchTerm) {
       const term = searchTerm.toLowerCase();
       result = result.filter((r: any) => {
@@ -111,8 +120,7 @@ const GoodsIssue = () => {
         if (r.equipment_code?.toLowerCase().includes(term)) return true;
         if (r.equipment_name?.toLowerCase().includes(term)) return true;
         if (r.requester_name?.toLowerCase().includes(term)) return true;
-        const items = getItemsForRequest(r.id);
-        return items.some(item => item.serial_number?.toLowerCase().includes(term));
+        return false;
       });
     }
 
@@ -126,7 +134,7 @@ const GoodsIssue = () => {
     }
 
     return result;
-  }, [issueRequests, searchTerm, statusFilter, dateRange, issueItems]);
+  }, [issueRequests, searchTerm, snSearchTerm, statusFilter, dateRange, issueItems]);
 
   const { paginatedData, currentPage, pageSize, totalPages, totalItems, handlePageChange, handlePageSizeChange } = useTablePagination(filtered, 20);
 
@@ -208,10 +216,19 @@ const GoodsIssue = () => {
         </CardHeader>
         <CardContent>
           <div className="flex flex-col md:flex-row gap-3 mb-4">
+            <div className="relative flex-1 max-w-[180px]">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                placeholder="ค้นหา S/N..."
+                className="pl-10"
+                value={snSearchTerm}
+                onChange={(e) => setSnSearchTerm(e.target.value)}
+              />
+            </div>
             <div className="relative flex-1 max-w-sm">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
-                placeholder="ค้นหาเลขที่เอกสาร, รหัส, ชื่อ, S/N..."
+                placeholder="ค้นหาเลขที่เอกสาร, รหัส, ชื่อ..."
                 className="pl-10"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
