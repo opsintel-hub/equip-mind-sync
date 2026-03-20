@@ -255,7 +255,7 @@ const DeliveryEntry = () => {
     const {
       data,
       error
-    } = await supabase.from("equipment").select("id, code, name, unit, category, subcategory_id, quantity_in_stock, width_cm, height_cm, depth_cm, volume_cm3").eq("is_active", true).order("code");
+    } = await supabase.from("equipment").select("id, code, name, unit, category, subcategory_id, quantity_in_stock, unit_price, width_cm, height_cm, depth_cm, volume_cm3").eq("is_active", true).order("code");
     if (!error && data) {
       setEquipment(data as Equipment[]);
     }
