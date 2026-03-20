@@ -344,11 +344,22 @@ export default function MediaPlayerReport() {
       <Card>
         <CardContent className="p-4">
           <div className="flex flex-wrap gap-3">
+            <div className="flex-1 min-w-[160px]">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input
+                  placeholder="ค้นหา S/N..."
+                  value={snSearch}
+                  onChange={(e) => setSnSearch(e.target.value)}
+                  className="pl-9"
+                />
+              </div>
+            </div>
             <div className="flex-1 min-w-[200px]">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
-                  placeholder="ค้นหา รหัส, ชื่อ, S/N, ยี่ห้อ..."
+                  placeholder="ค้นหา รหัส, ชื่อ, ยี่ห้อ..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   className="pl-9"
