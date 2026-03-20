@@ -70,6 +70,7 @@ interface MediaPlayerListItem {
 export default function MediaPlayerReport() {
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
+  const [snSearch, setSnSearch] = useState("");
   const [conditionFilter, setConditionFilter] = useState("all");
   const [departmentFilter, setDepartmentFilter] = useState("all");
   const [codePrefixFilter, setCodePrefixFilter] = useState("all");
