@@ -214,13 +214,23 @@ function BillboardViewTab() {
   const filtered = useMemo(() => {
     return (billboards || []).filter(b => {
       const s = search.toLowerCase();
-      // Search by billboard code, location, OR equipment S/N within the billboard
+      // General search: billboard code, location, equipment code/name
       const matchesSearch = !s || (b.old_code || "").toLowerCase().includes(s) || (b.location_name || "").toLowerCase().includes(s) ||
         (equipByBillboard[b.id] || []).some((item: any) => {
           const eq = item.equipmentData;
-          return (eq?.serial_number || "").toLowerCase().includes(s) || (eq?.code || "").toLowerCase().includes(s) || (eq?.name || "").toLowerCase().includes(s);
+          return (eq?.code || "").toLowerCase().includes(s) || (eq?.name || "").toLowerCase().includes(s);
         });
       if (!matchesSearch) return false;
+      // Dedicated S/N search
+      if (snSearch) {
+        const snTerm = snSearch.toLowerCase();
+        const items = equipByBillboard[b.id] || [];
+        const matchesSN = items.some((item: any) => {
+          const eq = item.equipmentData;
+          return (eq?.serial_number || "").toLowerCase().includes(snTerm);
+        });
+        if (!matchesSN) return false;
+      }
       if (regionFilter !== "all" && b.region !== regionFilter) return false;
       if (deptFilter !== "all" && b.department !== deptFilter) return false;
       if (mediaTypeFilter !== "all" && b.media_type !== mediaTypeFilter) return false;
@@ -228,7 +238,7 @@ function BillboardViewTab() {
       if (!showAllBillboards && !(equipByBillboard[b.id]?.length > 0)) return false;
       return true;
     });
-  }, [billboards, search, regionFilter, deptFilter, mediaTypeFilter, statusFilter, equipByBillboard, showAllBillboards]);
+  }, [billboards, search, snSearch, regionFilter, deptFilter, mediaTypeFilter, statusFilter, equipByBillboard, showAllBillboards]);
 
   // Summary stats
   const summaryStats = useMemo(() => {
