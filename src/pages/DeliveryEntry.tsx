@@ -9,7 +9,26 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Truck, Search, Package, Clock, CheckCircle2, Upload, FileText, X, Loader2, Info, Plus, ShoppingCart, Send, PlusCircle, Monitor, ImagePlus, Eye, AlertTriangle } from "lucide-react";
+import {
+  Truck,
+  Search,
+  Package,
+  Clock,
+  CheckCircle2,
+  Upload,
+  FileText,
+  X,
+  Loader2,
+  Info,
+  Plus,
+  ShoppingCart,
+  Send,
+  PlusCircle,
+  Monitor,
+  ImagePlus,
+  Eye,
+  AlertTriangle,
+} from "lucide-react";
 import { EquipmentImageViewer } from "@/components/equipment/EquipmentImageViewer";
 import { EquipmentImageUpload } from "@/components/equipment/EquipmentImageUpload";
 import { toast } from "sonner";
@@ -95,11 +114,13 @@ const DeliveryEntry = () => {
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   // cmsTypes removed - no longer used
   const { allowedDepartments, isSingleDepartment, loading: deptLoading } = useAllowedDepartments("create");
-  const [mediaPlayers, setMediaPlayers] = useState<{
-    id: string;
-    code: string;
-    name: string;
-  }[]>([]);
+  const [mediaPlayers, setMediaPlayers] = useState<
+    {
+      id: string;
+      code: string;
+      name: string;
+    }[]
+  >([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [subcategories, setSubcategories] = useState<Subcategory[]>([]);
   const [receiptPurposes, setReceiptPurposes] = useState<ReceiptPurpose[]>([]);
@@ -175,7 +196,15 @@ const DeliveryEntry = () => {
     image_preview: string | null;
   }
   const [mediaPlayerDevices, setMediaPlayerDevices] = useState<MediaPlayerDeviceEntry[]>([
-    { id: crypto.randomUUID(), serial_number_1: "", serial_number_2: "", device_name: "", activate_windows: "", image_file: null, image_preview: null }
+    {
+      id: crypto.randomUUID(),
+      serial_number_1: "",
+      serial_number_2: "",
+      device_name: "",
+      activate_windows: "",
+      image_file: null,
+      image_preview: null,
+    },
   ]);
 
   // Per-unit equipment entries (similar to Media Player dynamic list)
@@ -188,7 +217,7 @@ const DeliveryEntry = () => {
   }
   const [perUnitMode, setPerUnitMode] = useState(false);
   const [equipmentUnits, setEquipmentUnits] = useState<EquipmentUnitEntry[]>([
-    { id: crypto.randomUUID(), serial_number: "", device_name: "", image_file: null, image_preview: null }
+    { id: crypto.randomUUID(), serial_number: "", device_name: "", image_file: null, image_preview: null },
   ]);
 
   // Storage dimensions
@@ -229,7 +258,7 @@ const DeliveryEntry = () => {
   const calculatedVolume = (() => {
     if (volumePerUnit > 0) {
       const qty = parseInt(quantity) || 1;
-      return (volumePerUnit * qty).toFixed(2).replace(/^0+/, '');
+      return (volumePerUnit * qty).toFixed(2).replace(/^0+/, "");
     }
     return "";
   })();
@@ -252,28 +281,29 @@ const DeliveryEntry = () => {
     fetchSubcategories();
   }, []);
   const fetchEquipment = async () => {
-    const {
-      data,
-      error
-    } = await supabase.from("equipment").select("id, code, name, unit, category, subcategory_id, quantity_in_stock, unit_price, width_cm, height_cm, depth_cm, volume_cm3").eq("is_active", true).order("code");
+    const { data, error } = await supabase
+      .from("equipment")
+      .select(
+        "id, code, name, unit, category, subcategory_id, quantity_in_stock, unit_price, width_cm, height_cm, depth_cm, volume_cm3",
+      )
+      .eq("is_active", true)
+      .order("code");
     if (!error && data) {
       setEquipment(data as Equipment[]);
     }
   };
   const fetchCategories = async () => {
-    const {
-      data,
-      error
-    } = await supabase.from("categories").select("id, name").eq("is_active", true).order("name");
+    const { data, error } = await supabase.from("categories").select("id, name").eq("is_active", true).order("name");
     if (!error && data) {
       setCategories(data);
     }
   };
   const fetchSubcategories = async () => {
-    const {
-      data,
-      error
-    } = await supabase.from("subcategories").select("id, name, category_id").eq("is_active", true).order("name");
+    const { data, error } = await supabase
+      .from("subcategories")
+      .select("id, name, category_id")
+      .eq("is_active", true)
+      .order("name");
     if (!error && data) {
       setSubcategories(data);
     }
@@ -289,35 +319,35 @@ const DeliveryEntry = () => {
     }
   };
   const fetchSuppliers = async () => {
-    const {
-      data,
-      error
-    } = await supabase.from("suppliers").select("id, code, name, vendor_code").eq("is_active", true).order("code");
+    const { data, error } = await supabase
+      .from("suppliers")
+      .select("id, code, name, vendor_code")
+      .eq("is_active", true)
+      .order("code");
     if (!error && data) {
       setSuppliers(data);
     }
   };
   // Department name lookup from allowedDepartments
-  const getDepartmentName = (id: string) => allowedDepartments.find(d => d.id === id)?.name || "";
+  const getDepartmentName = (id: string) => allowedDepartments.find((d) => d.id === id)?.name || "";
   const fetchReceiptPurposes = async () => {
-    const {
-      data,
-      error
-    } = await supabase.from("receipt_purposes").select("id, name, description, purpose_type, requires_location, max_storage_days").eq("is_active", true).order("purpose_type", {
-      ascending: true
-    }).order("name", {
-      ascending: true
-    });
+    const { data, error } = await supabase
+      .from("receipt_purposes")
+      .select("id, name, description, purpose_type, requires_location, max_storage_days")
+      .eq("is_active", true)
+      .order("purpose_type", {
+        ascending: true,
+      })
+      .order("name", {
+        ascending: true,
+      });
     if (!error && data) {
       setReceiptPurposes(data);
     }
   };
   const fetchPendingReceipts = async () => {
-    const {
-      data,
-      error
-    } = await supabase.from("goods_receipt_pending").select("*").order("created_at", {
-      ascending: false
+    const { data, error } = await supabase.from("goods_receipt_pending").select("*").order("created_at", {
+      ascending: false,
     });
     if (!error && data) {
       setPendingReceipts(data as PendingReceipt[]);
@@ -325,17 +355,18 @@ const DeliveryEntry = () => {
   };
   // fetchCmsTypes removed - CMS type field no longer used
   const fetchMediaPlayers = async () => {
-    const {
-      data,
-      error
-    } = await supabase.from("media_players").select("id, code, name").eq("is_active", true).order("code");
+    const { data, error } = await supabase
+      .from("media_players")
+      .select("id, code, name")
+      .eq("is_active", true)
+      .order("code");
     if (!error && data) {
       setMediaPlayers(data);
     }
   };
-  const selectedEquipment = equipment.find(e => e.id === selectedEquipmentId);
-  const selectedSupplier = suppliers.find(s => s.id === selectedSupplierId);
-  const selectedReceiptPurpose = receiptPurposes.find(p => p.id === selectedReceiptPurposeId);
+  const selectedEquipment = equipment.find((e) => e.id === selectedEquipmentId);
+  const selectedSupplier = suppliers.find((s) => s.id === selectedSupplierId);
+  const selectedReceiptPurpose = receiptPurposes.find((p) => p.id === selectedReceiptPurposeId);
   const isPurchaseReceipt = selectedReceiptPurpose?.name === "นำเข้าจากการซื้อ";
 
   // Update unit and category when equipment is selected
@@ -350,7 +381,7 @@ const DeliveryEntry = () => {
       }
       // Auto-fill category and subcategory from existing equipment
       if (selectedEquipment.category) {
-        const matchingCategory = categories.find(c => c.name === selectedEquipment.category);
+        const matchingCategory = categories.find((c) => c.name === selectedEquipment.category);
         if (matchingCategory) {
           setSelectedCategoryId(matchingCategory.id);
         }
@@ -387,7 +418,9 @@ const DeliveryEntry = () => {
   const generateDocumentNo = () => {
     const date = new Date();
     const dateStr = format(date, "yyyyMMdd");
-    const random = Math.floor(Math.random() * 1000).toString().padStart(3, "0");
+    const random = Math.floor(Math.random() * 1000)
+      .toString()
+      .padStart(3, "0");
     return `PD-${dateStr}-${random}`;
   };
 
@@ -409,7 +442,7 @@ const DeliveryEntry = () => {
         toast.error("ไฟล์มีขนาดใหญ่เกินไป (สูงสุด 10MB)");
         return;
       }
-      if (!file.type.startsWith('image/')) {
+      if (!file.type.startsWith("image/")) {
         toast.error("กรุณาเลือกไฟล์รูปภาพเท่านั้น");
         return;
       }
@@ -417,21 +450,17 @@ const DeliveryEntry = () => {
     }
   };
   const uploadDocumentFile = async (file: File, prefix: string, documentNo: string): Promise<string | null> => {
-    const fileExt = file.name.split('.').pop();
+    const fileExt = file.name.split(".").pop();
     const fileName = `${prefix}-${documentNo}-${Date.now()}.${fileExt}`;
     const filePath = `deliveries/${fileName}`;
-    const {
-      error: uploadError
-    } = await supabase.storage.from('delivery-documents').upload(filePath, file);
+    const { error: uploadError } = await supabase.storage.from("delivery-documents").upload(filePath, file);
     if (uploadError) {
-      console.error('Upload error:', uploadError);
-      throw new Error('ไม่สามารถอัปโหลดเอกสารได้');
+      console.error("Upload error:", uploadError);
+      throw new Error("ไม่สามารถอัปโหลดเอกสารได้");
     }
     const {
-      data: {
-        publicUrl
-      }
-    } = supabase.storage.from('delivery-documents').getPublicUrl(filePath);
+      data: { publicUrl },
+    } = supabase.storage.from("delivery-documents").getPublicUrl(filePath);
     return publicUrl;
   };
   const handlePurchaseFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -441,7 +470,7 @@ const DeliveryEntry = () => {
         toast.error("ไฟล์มีขนาดใหญ่เกินไป (สูงสุด 10MB)");
         return;
       }
-      const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png', 'image/jpg'];
+      const allowedTypes = ["application/pdf", "image/jpeg", "image/png", "image/jpg"];
       if (!allowedTypes.includes(file.type)) {
         toast.error("รองรับเฉพาะไฟล์ PDF และรูปภาพ (JPG, PNG) เท่านั้น");
         return;
@@ -457,27 +486,27 @@ const DeliveryEntry = () => {
   };
   const uploadPurchaseDocument = async (documentNo: string): Promise<string | null> => {
     if (!purchaseDocumentFile) return null;
-    const fileExt = purchaseDocumentFile.name.split('.').pop();
+    const fileExt = purchaseDocumentFile.name.split(".").pop();
     const fileName = `PO-PR-${documentNo}-${Date.now()}.${fileExt}`;
     const filePath = `purchase-documents/${fileName}`;
-    const {
-      error: uploadError
-    } = await supabase.storage.from('delivery-documents').upload(filePath, purchaseDocumentFile);
+    const { error: uploadError } = await supabase.storage
+      .from("delivery-documents")
+      .upload(filePath, purchaseDocumentFile);
     if (uploadError) {
-      console.error('Upload error:', uploadError);
-      throw new Error('ไม่สามารถอัปโหลดเอกสารได้');
+      console.error("Upload error:", uploadError);
+      throw new Error("ไม่สามารถอัปโหลดเอกสารได้");
     }
     const {
-      data: {
-        publicUrl
-      }
-    } = supabase.storage.from('delivery-documents').getPublicUrl(filePath);
+      data: { publicUrl },
+    } = supabase.storage.from("delivery-documents").getPublicUrl(filePath);
     return publicUrl;
   };
 
   const generateTempCode = () => {
     const dateStr = format(new Date(), "yyyyMMdd");
-    const random = Math.floor(Math.random() * 1000).toString().padStart(3, "0");
+    const random = Math.floor(Math.random() * 1000)
+      .toString()
+      .padStart(3, "0");
     return `TEMP-${dateStr}-${random}`;
   };
 
@@ -511,16 +540,16 @@ const DeliveryEntry = () => {
         return;
       }
       // Validate each device entry has at least S/N
-      const validDevices = mediaPlayerDevices.filter(d => d.serial_number_1.trim());
+      const validDevices = mediaPlayerDevices.filter((d) => d.serial_number_1.trim());
       if (validDevices.length === 0) {
         toast.error("กรุณากรอก Serial Number อย่างน้อย 1 เครื่อง");
         return;
       }
-      
-      const selectedMP = mediaPlayers.find(mp => mp.id === selectedMediaPlayerId);
-      
+
+      const selectedMP = mediaPlayers.find((mp) => mp.id === selectedMediaPlayerId);
+
       // Create one cart item per device entry
-      const newItems: DeliveryCartItem[] = validDevices.map(device => ({
+      const newItems: DeliveryCartItem[] = validDevices.map((device) => ({
         id: crypto.randomUUID(),
         equipment_id: null,
         equipment_code: selectedMP?.code || equipmentCode,
@@ -551,11 +580,11 @@ const DeliveryEntry = () => {
         activate_windows: device.activate_windows,
         media_player_image_file: device.image_file || undefined,
       }));
-      
+
       setCartItems([...cartItems, ...newItems]);
-      setSelectedCartIds(prev => {
+      setSelectedCartIds((prev) => {
         const next = new Set(prev);
-        newItems.forEach(item => next.add(item.id));
+        newItems.forEach((item) => next.add(item.id));
         return next;
       });
       toast.success(`เพิ่ม ${validDevices.length} เครื่องลงตะกร้าแล้ว`);
@@ -563,7 +592,7 @@ const DeliveryEntry = () => {
       // Regular equipment validation
       if (perUnitMode) {
         // Per-unit mode: validate each unit has at least S/N
-        const validUnits = equipmentUnits.filter(u => u.serial_number.trim());
+        const validUnits = equipmentUnits.filter((u) => u.serial_number.trim());
         if (validUnits.length === 0) {
           toast.error("กรุณากรอก Serial Number อย่างน้อย 1 ชิ้น");
           return;
@@ -588,12 +617,12 @@ const DeliveryEntry = () => {
         }
 
         // Create one cart item per unit
-        const newItems: DeliveryCartItem[] = validUnits.map(unitEntry => ({
+        const newItems: DeliveryCartItem[] = validUnits.map((unitEntry) => ({
           id: crypto.randomUUID(),
           equipment_id: selectedEquipmentId || null,
           equipment_code: selectedEquipmentId ? equipmentCode : generateTempCode(),
-          equipment_name: selectedEquipmentId 
-            ? (equipmentName || selectedEquipment?.name || "") 
+          equipment_name: selectedEquipmentId
+            ? equipmentName || selectedEquipment?.name || ""
             : manualEquipmentName.trim(),
           quantity: 1,
           unit: unit,
@@ -617,17 +646,17 @@ const DeliveryEntry = () => {
           depreciation_months: depreciationMonths,
           notes: itemNotes,
           is_media_player: false,
-          temp_category_id: !selectedEquipmentId ? (selectedCategoryId || null) : null,
-          temp_subcategory_id: !selectedEquipmentId ? (selectedSubcategoryId || null) : null,
+          temp_category_id: !selectedEquipmentId ? selectedCategoryId || null : null,
+          temp_subcategory_id: !selectedEquipmentId ? selectedSubcategoryId || null : null,
           temp_product_images: !selectedEquipmentId ? newProductImages : undefined,
-          temp_min_stock_level: !selectedEquipmentId ? (parseInt(minStockLevel) || 0) : undefined,
+          temp_min_stock_level: !selectedEquipmentId ? parseInt(minStockLevel) || 0 : undefined,
           media_player_image_file: unitEntry.image_file || undefined,
         }));
-        
+
         setCartItems([...cartItems, ...newItems]);
-        setSelectedCartIds(prev => {
+        setSelectedCartIds((prev) => {
           const next = new Set(prev);
-          newItems.forEach(item => next.add(item.id));
+          newItems.forEach((item) => next.add(item.id));
           return next;
         });
         toast.success(`เพิ่ม ${validUnits.length} ชิ้นลงตะกร้าแล้ว`);
@@ -659,8 +688,8 @@ const DeliveryEntry = () => {
           id: crypto.randomUUID(),
           equipment_id: selectedEquipmentId || null,
           equipment_code: selectedEquipmentId ? equipmentCode : generateTempCode(),
-          equipment_name: selectedEquipmentId 
-            ? (equipmentName || selectedEquipment?.name || "") 
+          equipment_name: selectedEquipmentId
+            ? equipmentName || selectedEquipment?.name || ""
             : manualEquipmentName.trim(),
           quantity: parseInt(quantity),
           unit: unit,
@@ -684,13 +713,13 @@ const DeliveryEntry = () => {
           depreciation_months: depreciationMonths,
           notes: itemNotes,
           is_media_player: false,
-          temp_category_id: !selectedEquipmentId ? (selectedCategoryId || null) : null,
-          temp_subcategory_id: !selectedEquipmentId ? (selectedSubcategoryId || null) : null,
+          temp_category_id: !selectedEquipmentId ? selectedCategoryId || null : null,
+          temp_subcategory_id: !selectedEquipmentId ? selectedSubcategoryId || null : null,
           temp_product_images: !selectedEquipmentId ? newProductImages : undefined,
-          temp_min_stock_level: !selectedEquipmentId ? (parseInt(minStockLevel) || 0) : undefined,
+          temp_min_stock_level: !selectedEquipmentId ? parseInt(minStockLevel) || 0 : undefined,
         };
         setCartItems([...cartItems, newItem]);
-        setSelectedCartIds(prev => new Set([...prev, newItem.id]));
+        setSelectedCartIds((prev) => new Set([...prev, newItem.id]));
       }
     }
 
@@ -725,10 +754,22 @@ const DeliveryEntry = () => {
     setDepreciationMonths("");
     setItemNotes("");
     // Media Player specific - reset device entries
-    setMediaPlayerDevices([{ id: crypto.randomUUID(), serial_number_1: "", serial_number_2: "", device_name: "", activate_windows: "", image_file: null, image_preview: null }]);
+    setMediaPlayerDevices([
+      {
+        id: crypto.randomUUID(),
+        serial_number_1: "",
+        serial_number_2: "",
+        device_name: "",
+        activate_windows: "",
+        image_file: null,
+        image_preview: null,
+      },
+    ]);
     // Per-unit equipment entries
     setPerUnitMode(false);
-    setEquipmentUnits([{ id: crypto.randomUUID(), serial_number: "", device_name: "", image_file: null, image_preview: null }]);
+    setEquipmentUnits([
+      { id: crypto.randomUUID(), serial_number: "", device_name: "", image_file: null, image_preview: null },
+    ]);
     // Category/Subcategory
     setSelectedCategoryId("");
     setSelectedSubcategoryId("");
@@ -738,8 +779,8 @@ const DeliveryEntry = () => {
     setMinStockLevel("");
   };
   const handleRemoveFromCart = (itemId: string) => {
-    setCartItems(cartItems.filter(item => item.id !== itemId));
-    setSelectedCartIds(prev => {
+    setCartItems(cartItems.filter((item) => item.id !== itemId));
+    setSelectedCartIds((prev) => {
       const next = new Set(prev);
       next.delete(itemId);
       return next;
@@ -751,7 +792,7 @@ const DeliveryEntry = () => {
     setShowEditDialog(true);
   };
   const handleSaveEditItem = (updatedItem: DeliveryCartItem) => {
-    setCartItems(cartItems.map(item => item.id === updatedItem.id ? updatedItem : item));
+    setCartItems(cartItems.map((item) => (item.id === updatedItem.id ? updatedItem : item)));
   };
   const handleClearCart = () => {
     setCartItems([]);
@@ -759,10 +800,9 @@ const DeliveryEntry = () => {
     toast.success("ล้างตะกร้าแล้ว");
   };
   const handleSubmitAll = async () => {
-    const itemsToSubmit = selectedCartIds.size > 0 
-      ? cartItems.filter(item => selectedCartIds.has(item.id))
-      : cartItems;
-    
+    const itemsToSubmit =
+      selectedCartIds.size > 0 ? cartItems.filter((item) => selectedCartIds.has(item.id)) : cartItems;
+
     if (itemsToSubmit.length === 0) {
       toast.error("กรุณาเลือกรายการที่ต้องการส่งเข้าระบบ");
       return;
@@ -793,37 +833,41 @@ const DeliveryEntry = () => {
       // Upload documents if exists
       setIsUploadingFile(true);
       if (additionalDocumentFile) {
-        additionalDocUrl = await uploadDocumentFile(additionalDocumentFile, 'DOC', docNo);
+        additionalDocUrl = await uploadDocumentFile(additionalDocumentFile, "DOC", docNo);
       }
       if (additionalImageFile) {
-        additionalImageUrl = await uploadDocumentFile(additionalImageFile, 'IMG', docNo);
+        additionalImageUrl = await uploadDocumentFile(additionalImageFile, "IMG", docNo);
       }
       if (purchaseDocumentFile) {
         purchaseDocumentUrl = await uploadPurchaseDocument(docNo);
       }
-      
+
       // Upload media player images for items that have them
       for (const item of itemsToSubmit) {
         if (item.media_player_image_file) {
           try {
             const file = item.media_player_image_file;
-            const fileExt = file.name.split('.').pop();
+            const fileExt = file.name.split(".").pop();
             const fileName = `mp-${docNo}-${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
             const filePath = `media-player-entry/${fileName}`;
-            const { error: uploadError } = await supabase.storage.from('media-player-images').upload(filePath, file);
+            const { error: uploadError } = await supabase.storage.from("media-player-images").upload(filePath, file);
             if (!uploadError) {
-              const { data: { publicUrl } } = supabase.storage.from('media-player-images').getPublicUrl(filePath);
+              const {
+                data: { publicUrl },
+              } = supabase.storage.from("media-player-images").getPublicUrl(filePath);
               item.media_player_image_url = publicUrl;
             }
           } catch (err) {
-            console.error('Error uploading media player image:', err);
+            console.error("Error uploading media player image:", err);
           }
         }
       }
       setIsUploadingFile(false);
 
       // Combine all document URLs (including PO/PR/Invoice uploaded URLs)
-      const allDocumentUrls = [additionalDocUrl, additionalImageUrl, poDocumentUrl, prDocumentUrl, invoiceDocumentUrl].filter(Boolean).join(', ');
+      const allDocumentUrls = [additionalDocUrl, additionalImageUrl, poDocumentUrl, prDocumentUrl, invoiceDocumentUrl]
+        .filter(Boolean)
+        .join(", ");
 
       // Insert all items with the same document number
       const itemsToInsert = itemsToSubmit.map((item, index) => ({
@@ -838,7 +882,10 @@ const DeliveryEntry = () => {
         quantity: item.quantity,
         unit: item.unit,
         supplier_id: item.supplier_id || null,
-        supplier_name: item.supplier_name || (selectedCompanyId ? companies.find(c => c.id === selectedCompanyId)?.name : null) || null,
+        supplier_name:
+          item.supplier_name ||
+          (selectedCompanyId ? companies.find((c) => c.id === selectedCompanyId)?.name : null) ||
+          null,
         lot_number: item.lot_number_1 || null,
         lot_number_2: item.lot_number_2 || null,
         serial_number: item.serial_number || null,
@@ -868,7 +915,11 @@ const DeliveryEntry = () => {
         invoice_document_url: invoiceDocumentUrl || null,
         delivery_note_document_url: deliveryNoteDocumentUrl || null,
         order_for_project: orderForProject || null,
-        purchase_document_url: purchaseDocumentUrl || (poDocumentUrl || prDocumentUrl || invoiceDocumentUrl || deliveryNoteDocumentUrl ? [poDocumentUrl, prDocumentUrl, invoiceDocumentUrl, deliveryNoteDocumentUrl].filter(Boolean).join(', ') : null),
+        purchase_document_url:
+          purchaseDocumentUrl ||
+          (poDocumentUrl || prDocumentUrl || invoiceDocumentUrl || deliveryNoteDocumentUrl
+            ? [poDocumentUrl, prDocumentUrl, invoiceDocumentUrl, deliveryNoteDocumentUrl].filter(Boolean).join(", ")
+            : null),
         // Media Player specific fields
         is_media_player: item.is_media_player || false,
         media_player_id: item.media_player_id || null,
@@ -880,18 +931,18 @@ const DeliveryEntry = () => {
         temp_product_images: item.temp_product_images || null,
         temp_min_stock_level: item.temp_min_stock_level ?? 0,
       }));
-      const {
-        error
-      } = await supabase.from("goods_receipt_pending").insert(itemsToInsert as any);
+      const { error } = await supabase.from("goods_receipt_pending").insert(itemsToInsert as any);
       if (error) throw error;
 
       // Register serial numbers in equipment_serial_numbers table
       const snInserts = itemsToInsert
-        .filter((item: any) => item.serial_number && item.serial_number.trim() && !item.is_media_player && item.equipment_id)
+        .filter(
+          (item: any) => item.serial_number && item.serial_number.trim() && !item.is_media_player && item.equipment_id,
+        )
         .map((item: any) => ({
           equipment_id: item.equipment_id,
           serial_number: item.serial_number.trim(),
-          status: 'pending',
+          status: "pending",
           receipt_document_no: item.document_no,
           notes: item.notes || null,
           created_by: null,
@@ -903,11 +954,11 @@ const DeliveryEntry = () => {
       toast.success(`บันทึกข้อมูลสินค้าสำเร็จ ${itemsToSubmit.length} รายการ รอเจ้าหน้าที่คลังรับเข้า`);
 
       // Remove submitted items from cart, keep unsubmitted
-      const submittedIds = new Set(itemsToSubmit.map(i => i.id));
-      const remainingItems = cartItems.filter(i => !submittedIds.has(i.id));
+      const submittedIds = new Set(itemsToSubmit.map((i) => i.id));
+      const remainingItems = cartItems.filter((i) => !submittedIds.has(i.id));
       setCartItems(remainingItems);
       setSelectedCartIds(new Set());
-      
+
       // Only reset header fields if all items were submitted (cart is now empty)
       if (remainingItems.length === 0) {
         setSelectedReceiptPurposeId("");
@@ -946,22 +997,34 @@ const DeliveryEntry = () => {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "pending":
-        return <Badge variant="secondary" className="bg-warning/10 text-warning"><Clock className="w-3 h-3 mr-1" />รอรับเข้า</Badge>;
+        return (
+          <Badge variant="secondary" className="bg-warning/10 text-warning">
+            <Clock className="w-3 h-3 mr-1" />
+            รอรับเข้า
+          </Badge>
+        );
       case "received":
-        return <Badge variant="secondary" className="bg-success/10 text-success"><CheckCircle2 className="w-3 h-3 mr-1" />รับเข้าแล้ว</Badge>;
+        return (
+          <Badge variant="secondary" className="bg-success/10 text-success">
+            <CheckCircle2 className="w-3 h-3 mr-1" />
+            รับเข้าแล้ว
+          </Badge>
+        );
       default:
         return <Badge variant="secondary">{status}</Badge>;
     }
   };
-  const filteredReceipts = pendingReceipts.filter(receipt => {
+  const filteredReceipts = pendingReceipts.filter((receipt) => {
     const term = searchTerm.toLowerCase();
     if (!term) return true;
-    return receipt.document_no.toLowerCase().includes(term) ||
+    return (
+      receipt.document_no.toLowerCase().includes(term) ||
       receipt.equipment_name?.toLowerCase().includes(term) ||
       receipt.delivery_person_name.toLowerCase().includes(term) ||
       receipt.equipment_code?.toLowerCase().includes(term) ||
       (receipt as any).serial_number?.toLowerCase().includes(term) ||
-      (receipt as any).lot_number?.toLowerCase().includes(term);
+      (receipt as any).lot_number?.toLowerCase().includes(term)
+    );
   });
   const {
     paginatedData: paginatedReceipts,
@@ -972,7 +1035,8 @@ const DeliveryEntry = () => {
     handlePageChange: handleHistoryPageChange,
     handlePageSizeChange: handleHistoryPageSizeChange,
   } = useTablePagination(filteredReceipts, 20);
-  return <div className="space-y-6">
+  return (
+    <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-semibold text-foreground mb-2 flex items-center gap-2">
@@ -985,7 +1049,14 @@ const DeliveryEntry = () => {
       </div>
 
       {/* Edit Item Dialog */}
-      <DeliveryCartItemEditDialog item={editingItem} open={showEditDialog} onOpenChange={setShowEditDialog} onSave={handleSaveEditItem} equipment={equipment} suppliers={suppliers} />
+      <DeliveryCartItemEditDialog
+        item={editingItem}
+        open={showEditDialog}
+        onOpenChange={setShowEditDialog}
+        onSave={handleSaveEditItem}
+        equipment={equipment}
+        suppliers={suppliers}
+      />
 
       {/* Cart Display - moved to just above submit button */}
 
@@ -995,9 +1066,7 @@ const DeliveryEntry = () => {
             <Package className="w-5 h-5" />
             บันทึกข้อมูลสินค้า
           </CardTitle>
-          <CardDescription>
-            กรอกข้อมูลสินค้าแล้วกด "เพิ่มลงตะกร้า" เมื่อครบทุกรายการแล้วกด "ส่งทั้งหมด"
-          </CardDescription>
+          <CardDescription>กรอกข้อมูลสินค้าแล้วกด "เพิ่มลงตะกร้า" เมื่อครบทุกรายการแล้วกด "ส่งทั้งหมด"</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-6">
@@ -1007,24 +1076,30 @@ const DeliveryEntry = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="department">ฝ่าย *</Label>
-                  <Select value={selectedDepartmentId} onValueChange={setSelectedDepartmentId} disabled={isSingleDepartment}>
+                  <Select
+                    value={selectedDepartmentId}
+                    onValueChange={setSelectedDepartmentId}
+                    disabled={isSingleDepartment}
+                  >
                     <SelectTrigger id="department">
                       <SelectValue placeholder={deptLoading ? "กำลังโหลด..." : "เลือกฝ่าย..."} />
                     </SelectTrigger>
                     <SelectContent position="popper" sideOffset={4} className="pointer-events-auto">
-                      {allowedDepartments.map(dept => <SelectItem key={dept.id} value={dept.id}>
+                      {allowedDepartments.map((dept) => (
+                        <SelectItem key={dept.id} value={dept.id}>
                           {dept.name}
-                        </SelectItem>)}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="company">ชื่อบริษัทที่สั่งซื้อ *</Label>
+                  <Label htmlFor="company">ชื่อบริษัทที่สั่งซื้อ(ตาม Budget) *</Label>
                   <SearchableSelect
                     options={(selectedDepartmentId
-                      ? companies.filter(c => c.department_id === selectedDepartmentId)
+                      ? companies.filter((c) => c.department_id === selectedDepartmentId)
                       : companies
-                    ).map(c => ({
+                    ).map((c) => ({
                       value: c.id,
                       label: `${c.code} - ${c.name}`,
                     }))}
@@ -1036,16 +1111,27 @@ const DeliveryEntry = () => {
                   />
                 </div>
               </div>
-              
+
               {/* Delivery Person Info */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 border-t border-primary/20">
                 <div className="space-y-2">
                   <Label htmlFor="deliveryPerson">ชื่อผู้ดำเนินการนำเข้าข้อมูล *</Label>
-                  <Input id="deliveryPerson" placeholder="ระบุชื่อผู้ดำเนินการนำเข้าข้อมูล" value={deliveryPersonName} onChange={e => setDeliveryPersonName(e.target.value)} required />
+                  <Input
+                    id="deliveryPerson"
+                    placeholder="ระบุชื่อผู้ดำเนินการนำเข้าข้อมูล"
+                    value={deliveryPersonName}
+                    onChange={(e) => setDeliveryPersonName(e.target.value)}
+                    required
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="phone">เบอร์โทรติดต่อ</Label>
-                  <Input id="phone" placeholder="เบอร์โทรศัพท์" value={deliveryPersonPhone} onChange={e => setDeliveryPersonPhone(e.target.value)} />
+                  <Input
+                    id="phone"
+                    placeholder="เบอร์โทรศัพท์"
+                    value={deliveryPersonPhone}
+                    onChange={(e) => setDeliveryPersonPhone(e.target.value)}
+                  />
                 </div>
               </div>
             </div>
@@ -1057,31 +1143,53 @@ const DeliveryEntry = () => {
                 วัตถุประสงค์การนำสินค้าเข้า <span className="text-destructive">*</span>
               </h3>
               <div className="space-y-2">
-                <Label htmlFor="receiptPurpose">วัตถุประสงค์ <span className="text-destructive">*</span></Label>
+                <Label htmlFor="receiptPurpose">
+                  วัตถุประสงค์ <span className="text-destructive">*</span>
+                </Label>
                 <Select value={selectedReceiptPurposeId} onValueChange={setSelectedReceiptPurposeId}>
-                  <SelectTrigger id="receiptPurpose" className={!selectedReceiptPurposeId ? "border-destructive/50" : ""}>
+                  <SelectTrigger
+                    id="receiptPurpose"
+                    className={!selectedReceiptPurposeId ? "border-destructive/50" : ""}
+                  >
                     <SelectValue placeholder="กรุณาเลือกวัตถุประสงค์..." />
                   </SelectTrigger>
                   <SelectContent position="popper" sideOffset={4} className="pointer-events-auto">
-                    {receiptPurposes.filter(p => p.purpose_type === 'regular').length > 0 && <>
+                    {receiptPurposes.filter((p) => p.purpose_type === "regular").length > 0 && (
+                      <>
                         <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">รับเข้าปกติ</div>
-                        {receiptPurposes.filter(p => p.purpose_type === 'regular').map(purpose => <SelectItem key={purpose.id} value={purpose.id}>
-                            {purpose.name}
-                          </SelectItem>)}
-                      </>}
-                    {receiptPurposes.filter(p => p.purpose_type === 'storage').length > 0 && <>
-                        <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground border-t mt-1">ฝากเก็บชั่วคราว</div>
-                        {receiptPurposes.filter(p => p.purpose_type === 'storage').map(purpose => <SelectItem key={purpose.id} value={purpose.id}>
-                            {purpose.name} {purpose.max_storage_days ? `(${purpose.max_storage_days} วัน)` : ''}
-                          </SelectItem>)}
-                      </>}
+                        {receiptPurposes
+                          .filter((p) => p.purpose_type === "regular")
+                          .map((purpose) => (
+                            <SelectItem key={purpose.id} value={purpose.id}>
+                              {purpose.name}
+                            </SelectItem>
+                          ))}
+                      </>
+                    )}
+                    {receiptPurposes.filter((p) => p.purpose_type === "storage").length > 0 && (
+                      <>
+                        <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground border-t mt-1">
+                          ฝากเก็บชั่วคราว
+                        </div>
+                        {receiptPurposes
+                          .filter((p) => p.purpose_type === "storage")
+                          .map((purpose) => (
+                            <SelectItem key={purpose.id} value={purpose.id}>
+                              {purpose.name} {purpose.max_storage_days ? `(${purpose.max_storage_days} วัน)` : ""}
+                            </SelectItem>
+                          ))}
+                      </>
+                    )}
                   </SelectContent>
                 </Select>
-                {!selectedReceiptPurposeId && <p className="text-xs text-destructive">กรุณาเลือกวัตถุประสงค์การนำสินค้าเข้า</p>}
+                {!selectedReceiptPurposeId && (
+                  <p className="text-xs text-destructive">กรุณาเลือกวัตถุประสงค์การนำสินค้าเข้า</p>
+                )}
               </div>
-              
+
               {/* PO/PR/Invoice fields for "นำเข้าจากการซื้อ" */}
-              {isPurchaseReceipt && <div className="mt-4 p-4 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-lg space-y-4">
+              {isPurchaseReceipt && (
+                <div className="mt-4 p-4 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-lg space-y-4">
                   <h4 className="font-medium text-sm text-amber-700 dark:text-amber-400">
                     PO / PR / Invoice / ใบส่งของ (กรอกอย่างน้อย 1 รายการ) *
                   </h4>
@@ -1125,18 +1233,19 @@ const DeliveryEntry = () => {
                       onDocumentRemoved={() => setDeliveryNoteDocumentUrl("")}
                       placeholder="เลขที่ใบส่งของ"
                     />
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Order For Project</Label>
+                      <Input
+                        value={orderForProject}
+                        onChange={(e) => setOrderForProject(e.target.value)}
+                        placeholder="ชื่อโปรเจค"
+                      />
                     </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label>Order For Project</Label>
-                        <Input
-                          value={orderForProject}
-                          onChange={(e) => setOrderForProject(e.target.value)}
-                          placeholder="ชื่อโปรเจค"
-                        />
-                      </div>
-                    </div>
-                  </div>}
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Item Form Section */}
@@ -1147,48 +1256,62 @@ const DeliveryEntry = () => {
                   ข้อมูลสินค้า (รายการที่ {cartItems.length + 1})
                 </h3>
                 <div className="flex items-center gap-4">
-                  {cartItems.length > 0 && <Badge variant="secondary" className="bg-primary/10 text-primary">
+                  {cartItems.length > 0 && (
+                    <Badge variant="secondary" className="bg-primary/10 text-primary">
                       <ShoppingCart className="w-3 h-3 mr-1" />
                       {cartItems.length} รายการในตะกร้า
-                    </Badge>}
+                    </Badge>
+                  )}
                   {/* Toggle Media Player */}
                   <div className="flex items-center gap-2">
                     <Label htmlFor="mediaPlayerToggle" className="text-sm flex items-center gap-1.5">
                       <Monitor className="w-4 h-4" />
                       Media Player
                     </Label>
-                    <Switch id="mediaPlayerToggle" checked={isMediaPlayerEntry} onCheckedChange={checked => {
-                    setIsMediaPlayerEntry(checked);
-                    resetItemForm();
-                    if (checked) {
-                      setUnit("เครื่อง");
-                      setIsAsset(true);
-                    }
-                  }} />
+                    <Switch
+                      id="mediaPlayerToggle"
+                      checked={isMediaPlayerEntry}
+                      onCheckedChange={(checked) => {
+                        setIsMediaPlayerEntry(checked);
+                        resetItemForm();
+                        if (checked) {
+                          setUnit("เครื่อง");
+                          setIsAsset(true);
+                        }
+                      }}
+                    />
                   </div>
                 </div>
               </div>
 
               {/* Media Player Selection (when toggle is on) */}
-              {isMediaPlayerEntry ? <>
+              {isMediaPlayerEntry ? (
+                <>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="mediaPlayer">เลือก Media Player (ถ้ามีในระบบ)</Label>
-                      <SearchableSelect options={mediaPlayers.map(mp => ({
-                    value: mp.id,
-                    label: `${mp.code} - ${mp.name}`,
-                    searchableText: `${mp.code} ${mp.name}`
-                  }))} value={selectedMediaPlayerId} onValueChange={val => {
-                    setSelectedMediaPlayerId(val);
-                    const mp = mediaPlayers.find(m => m.id === val);
-                    if (mp) {
-                      setEquipmentCode(mp.code);
-                      setEquipmentName(mp.name);
-                    }
-                  }} placeholder="เลือก Media Player..." searchPlaceholder="พิมพ์รหัสหรือชื่อ Media Player..." emptyMessage="ไม่พบ Media Player" />
+                      <SearchableSelect
+                        options={mediaPlayers.map((mp) => ({
+                          value: mp.id,
+                          label: `${mp.code} - ${mp.name}`,
+                          searchableText: `${mp.code} ${mp.name}`,
+                        }))}
+                        value={selectedMediaPlayerId}
+                        onValueChange={(val) => {
+                          setSelectedMediaPlayerId(val);
+                          const mp = mediaPlayers.find((m) => m.id === val);
+                          if (mp) {
+                            setEquipmentCode(mp.code);
+                            setEquipmentName(mp.name);
+                          }
+                        }}
+                        placeholder="เลือก Media Player..."
+                        searchPlaceholder="พิมพ์รหัสหรือชื่อ Media Player..."
+                        emptyMessage="ไม่พบ Media Player"
+                      />
                     </div>
                   </div>
-                  
+
                   {/* Media Player Device Entries - Dynamic List */}
                   <div className="p-3 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg space-y-4">
                     <div className="flex items-center justify-between">
@@ -1201,15 +1324,18 @@ const DeliveryEntry = () => {
                         variant="outline"
                         size="sm"
                         onClick={() => {
-                          setMediaPlayerDevices(prev => [...prev, {
-                            id: crypto.randomUUID(),
-                            serial_number_1: "",
-                            serial_number_2: "",
-                            device_name: "",
-                            activate_windows: "",
-                            image_file: null,
-                            image_preview: null,
-                          }]);
+                          setMediaPlayerDevices((prev) => [
+                            ...prev,
+                            {
+                              id: crypto.randomUUID(),
+                              serial_number_1: "",
+                              serial_number_2: "",
+                              device_name: "",
+                              activate_windows: "",
+                              image_file: null,
+                              image_preview: null,
+                            },
+                          ]);
                         }}
                         className="gap-1 text-blue-700 border-blue-300 hover:bg-blue-100 dark:text-blue-400 dark:border-blue-700 dark:hover:bg-blue-900/30"
                       >
@@ -1220,7 +1346,7 @@ const DeliveryEntry = () => {
                     <p className="text-xs text-blue-600/80 dark:text-blue-500/80">
                       💡 กรอก S/N แต่ละเครื่อง — ระบบจะสร้างรายการในตะกร้าอัตโนมัติ 1 รายการต่อ 1 เครื่อง
                     </p>
-                    
+
                     <div className="space-y-3">
                       {mediaPlayerDevices.map((device, idx) => (
                         <div key={device.id} className="p-3 bg-background border rounded-lg space-y-3">
@@ -1235,7 +1361,7 @@ const DeliveryEntry = () => {
                                 onClick={() => {
                                   // Clean up preview URL
                                   if (device.image_preview) URL.revokeObjectURL(device.image_preview);
-                                  setMediaPlayerDevices(prev => prev.filter(d => d.id !== device.id));
+                                  setMediaPlayerDevices((prev) => prev.filter((d) => d.id !== device.id));
                                 }}
                               >
                                 <X className="w-3 h-3 mr-1" />
@@ -1250,10 +1376,12 @@ const DeliveryEntry = () => {
                               <Input
                                 placeholder="กรอก S/N 1..."
                                 value={device.serial_number_1}
-                                onChange={e => {
-                                  setMediaPlayerDevices(prev => prev.map(d =>
-                                    d.id === device.id ? { ...d, serial_number_1: e.target.value } : d
-                                  ));
+                                onChange={(e) => {
+                                  setMediaPlayerDevices((prev) =>
+                                    prev.map((d) =>
+                                      d.id === device.id ? { ...d, serial_number_1: e.target.value } : d,
+                                    ),
+                                  );
                                 }}
                               />
                             </div>
@@ -1263,10 +1391,12 @@ const DeliveryEntry = () => {
                               <Input
                                 placeholder="กรอก S/N 2..."
                                 value={device.serial_number_2}
-                                onChange={e => {
-                                  setMediaPlayerDevices(prev => prev.map(d =>
-                                    d.id === device.id ? { ...d, serial_number_2: e.target.value } : d
-                                  ));
+                                onChange={(e) => {
+                                  setMediaPlayerDevices((prev) =>
+                                    prev.map((d) =>
+                                      d.id === device.id ? { ...d, serial_number_2: e.target.value } : d,
+                                    ),
+                                  );
                                 }}
                               />
                             </div>
@@ -1276,10 +1406,12 @@ const DeliveryEntry = () => {
                               <Input
                                 placeholder="Active Windows..."
                                 value={device.activate_windows}
-                                onChange={e => {
-                                  setMediaPlayerDevices(prev => prev.map(d =>
-                                    d.id === device.id ? { ...d, activate_windows: e.target.value } : d
-                                  ));
+                                onChange={(e) => {
+                                  setMediaPlayerDevices((prev) =>
+                                    prev.map((d) =>
+                                      d.id === device.id ? { ...d, activate_windows: e.target.value } : d,
+                                    ),
+                                  );
                                 }}
                               />
                             </div>
@@ -1289,10 +1421,10 @@ const DeliveryEntry = () => {
                               <Input
                                 placeholder="ชื่อเครื่อง..."
                                 value={device.device_name}
-                                onChange={e => {
-                                  setMediaPlayerDevices(prev => prev.map(d =>
-                                    d.id === device.id ? { ...d, device_name: e.target.value } : d
-                                  ));
+                                onChange={(e) => {
+                                  setMediaPlayerDevices((prev) =>
+                                    prev.map((d) => (d.id === device.id ? { ...d, device_name: e.target.value } : d)),
+                                  );
                                 }}
                               />
                             </div>
@@ -1305,7 +1437,7 @@ const DeliveryEntry = () => {
                                   accept="image/*"
                                   className="hidden"
                                   id={`mp-image-${device.id}`}
-                                  onChange={e => {
+                                  onChange={(e) => {
                                     const file = e.target.files?.[0];
                                     if (file) {
                                       if (file.size > 10 * 1024 * 1024) {
@@ -1314,15 +1446,21 @@ const DeliveryEntry = () => {
                                       }
                                       if (device.image_preview) URL.revokeObjectURL(device.image_preview);
                                       const preview = URL.createObjectURL(file);
-                                      setMediaPlayerDevices(prev => prev.map(d =>
-                                        d.id === device.id ? { ...d, image_file: file, image_preview: preview } : d
-                                      ));
+                                      setMediaPlayerDevices((prev) =>
+                                        prev.map((d) =>
+                                          d.id === device.id ? { ...d, image_file: file, image_preview: preview } : d,
+                                        ),
+                                      );
                                     }
                                   }}
                                 />
                                 {device.image_preview ? (
                                   <div className="flex items-center gap-2">
-                                    <img src={device.image_preview} alt="Preview" className="w-10 h-10 rounded object-cover border" />
+                                    <img
+                                      src={device.image_preview}
+                                      alt="Preview"
+                                      className="w-10 h-10 rounded object-cover border"
+                                    />
                                     <Button
                                       type="button"
                                       variant="ghost"
@@ -1330,9 +1468,11 @@ const DeliveryEntry = () => {
                                       className="h-7"
                                       onClick={() => {
                                         if (device.image_preview) URL.revokeObjectURL(device.image_preview);
-                                        setMediaPlayerDevices(prev => prev.map(d =>
-                                          d.id === device.id ? { ...d, image_file: null, image_preview: null } : d
-                                        ));
+                                        setMediaPlayerDevices((prev) =>
+                                          prev.map((d) =>
+                                            d.id === device.id ? { ...d, image_file: null, image_preview: null } : d,
+                                          ),
+                                        );
                                       }}
                                     >
                                       <X className="w-3 h-3" />
@@ -1357,7 +1497,9 @@ const DeliveryEntry = () => {
                       ))}
                     </div>
                   </div>
-                </> : <>
+                </>
+              ) : (
+                <>
                   {/* Equipment Selection */}
                   <div className="space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1365,18 +1507,32 @@ const DeliveryEntry = () => {
                         <Label htmlFor="equipment">เลือกสินค้า (ถ้ารู้รหัส)</Label>
                         <div className="flex gap-2">
                           <div className="flex-1">
-                            <SearchableSelect options={equipment.map(item => ({
-                          value: item.id,
-                          label: `${item.code} - ${item.name}`,
-                          searchableText: `${item.code} ${item.name}`
-                        }))} value={selectedEquipmentId} onValueChange={setSelectedEquipmentId} placeholder="เลือกสินค้าจากระบบ..." searchPlaceholder="พิมพ์รหัสหรือชื่อสินค้า..." emptyMessage="ไม่พบสินค้า" />
+                            <SearchableSelect
+                              options={equipment.map((item) => ({
+                                value: item.id,
+                                label: `${item.code} - ${item.name}`,
+                                searchableText: `${item.code} ${item.name}`,
+                              }))}
+                              value={selectedEquipmentId}
+                              onValueChange={setSelectedEquipmentId}
+                              placeholder="เลือกสินค้าจากระบบ..."
+                              searchPlaceholder="พิมพ์รหัสหรือชื่อสินค้า..."
+                              emptyMessage="ไม่พบสินค้า"
+                            />
                           </div>
-                          {selectedEquipmentId && <EquipmentImageViewer equipmentId={selectedEquipmentId} equipmentName={selectedEquipment?.name} variant="button" />}
+                          {selectedEquipmentId && (
+                            <EquipmentImageViewer
+                              equipmentId={selectedEquipmentId}
+                              equipmentName={selectedEquipment?.name}
+                              variant="button"
+                            />
+                          )}
                         </div>
                       </div>
-                      
+
                       {/* Current Stock Display */}
-                      {selectedEquipmentId && selectedEquipment && <div className="space-y-2">
+                      {selectedEquipmentId && selectedEquipment && (
+                        <div className="space-y-2">
                           <Label>จำนวนสินค้าที่มีเหลืออยู่ในคลัง</Label>
                           <div className="flex items-center gap-2 h-10 px-3 rounded-md border bg-muted">
                             <Package className="w-4 h-4 text-muted-foreground" />
@@ -1384,7 +1540,8 @@ const DeliveryEntry = () => {
                               {selectedEquipment.quantity_in_stock.toLocaleString()} {selectedEquipment.unit}
                             </span>
                           </div>
-                        </div>}
+                        </div>
+                      )}
                     </div>
 
                     {/* Manual Equipment Name - New Product Entry */}
@@ -1397,15 +1554,18 @@ const DeliveryEntry = () => {
                           </span>
                         </div>
                         <p className="text-xs text-amber-600/80 dark:text-amber-500/80">
-                          ระบบจะสร้างรหัสชั่วคราว (TEMP-XXXXXXXX-XXX) และรอเจ้าหน้าที่คลังสร้างรหัสสินค้าถาวรในขั้นตอนรับเข้าคลัง
+                          ระบบจะสร้างรหัสชั่วคราว (TEMP-XXXXXXXX-XXX)
+                          และรอเจ้าหน้าที่คลังสร้างรหัสสินค้าถาวรในขั้นตอนรับเข้าคลัง
                         </p>
                         <div className="space-y-2">
-                          <Label htmlFor="manualName">ชื่อสินค้า/อะไหล่ <span className="text-destructive">*</span></Label>
-                          <Input 
-                            id="manualName" 
+                          <Label htmlFor="manualName">
+                            ชื่อสินค้า/อะไหล่ <span className="text-destructive">*</span>
+                          </Label>
+                          <Input
+                            id="manualName"
                             placeholder="กรอกชื่อสินค้าหรืออะไหล่..."
-                            value={manualEquipmentName} 
-                            onChange={e => setManualEquipmentName(e.target.value)} 
+                            value={manualEquipmentName}
+                            onChange={(e) => setManualEquipmentName(e.target.value)}
                           />
                         </div>
                       </div>
@@ -1417,49 +1577,73 @@ const DeliveryEntry = () => {
                         <Label htmlFor="category">
                           หมวดหมู่ {!selectedEquipmentId && <span className="text-destructive">*</span>}
                         </Label>
-                        {selectedEquipmentId && selectedEquipment?.category ? <div className="flex items-center gap-2 h-10 px-3 rounded-md border bg-muted">
+                        {selectedEquipmentId && selectedEquipment?.category ? (
+                          <div className="flex items-center gap-2 h-10 px-3 rounded-md border bg-muted">
                             <span className="text-foreground">{selectedEquipment.category}</span>
-                          </div> : <Select value={selectedCategoryId} onValueChange={val => {
-                      setSelectedCategoryId(val);
-                      setSelectedSubcategoryId(""); // Reset subcategory when category changes
-                    }}>
+                          </div>
+                        ) : (
+                          <Select
+                            value={selectedCategoryId}
+                            onValueChange={(val) => {
+                              setSelectedCategoryId(val);
+                              setSelectedSubcategoryId(""); // Reset subcategory when category changes
+                            }}
+                          >
                             <SelectTrigger id="category">
                               <SelectValue placeholder="เลือกหมวดหมู่..." />
                             </SelectTrigger>
                             <SelectContent position="popper" sideOffset={4} className="pointer-events-auto">
-                              {categories.map(cat => <SelectItem key={cat.id} value={cat.id}>
+                              {categories.map((cat) => (
+                                <SelectItem key={cat.id} value={cat.id}>
                                   {cat.name}
-                                </SelectItem>)}
+                                </SelectItem>
+                              ))}
                             </SelectContent>
-                          </Select>}
+                          </Select>
+                        )}
                       </div>
-                      
+
                       <div className="space-y-2">
                         <Label htmlFor="subcategory">
                           หมวดหมู่ย่อย {!selectedEquipmentId && <span className="text-destructive">*</span>}
                         </Label>
-                        {selectedEquipmentId && selectedEquipment?.subcategory_id ? <div className="flex items-center gap-2 h-10 px-3 rounded-md border bg-muted">
+                        {selectedEquipmentId && selectedEquipment?.subcategory_id ? (
+                          <div className="flex items-center gap-2 h-10 px-3 rounded-md border bg-muted">
                             <span className="text-foreground">
-                              {subcategories.find(s => s.id === selectedEquipment.subcategory_id)?.name || '-'}
+                              {subcategories.find((s) => s.id === selectedEquipment.subcategory_id)?.name || "-"}
                             </span>
-                          </div> : <Select value={selectedSubcategoryId} onValueChange={setSelectedSubcategoryId} disabled={!selectedCategoryId}>
+                          </div>
+                        ) : (
+                          <Select
+                            value={selectedSubcategoryId}
+                            onValueChange={setSelectedSubcategoryId}
+                            disabled={!selectedCategoryId}
+                          >
                             <SelectTrigger id="subcategory">
-                              <SelectValue placeholder={selectedCategoryId ? "เลือกหมวดหมู่ย่อย..." : "เลือกหมวดหมู่ก่อน"} />
+                              <SelectValue
+                                placeholder={selectedCategoryId ? "เลือกหมวดหมู่ย่อย..." : "เลือกหมวดหมู่ก่อน"}
+                              />
                             </SelectTrigger>
                             <SelectContent position="popper" sideOffset={4} className="pointer-events-auto">
-                              {subcategories.filter(sub => {
-                          const selectedCat = categories.find(c => c.id === selectedCategoryId);
-                          return selectedCat && sub.category_id === selectedCategoryId;
-                        }).map(sub => <SelectItem key={sub.id} value={sub.id}>
+                              {subcategories
+                                .filter((sub) => {
+                                  const selectedCat = categories.find((c) => c.id === selectedCategoryId);
+                                  return selectedCat && sub.category_id === selectedCategoryId;
+                                })
+                                .map((sub) => (
+                                  <SelectItem key={sub.id} value={sub.id}>
                                     {sub.name}
-                                  </SelectItem>)}
+                                  </SelectItem>
+                                ))}
                             </SelectContent>
-                          </Select>}
+                          </Select>
+                        )}
                       </div>
                     </div>
 
                     {/* Image Upload for New Products */}
-                    {!selectedEquipmentId && <div className="p-4 bg-orange-50 dark:bg-orange-950/20 border border-orange-200 dark:border-orange-800 rounded-lg space-y-3">
+                    {!selectedEquipmentId && (
+                      <div className="p-4 bg-orange-50 dark:bg-orange-950/20 border border-orange-200 dark:border-orange-800 rounded-lg space-y-3">
                         <Label className="text-orange-700 dark:text-orange-400 text-sm font-medium">
                           รูปภาพสินค้า/อะไหล่ <span className="text-destructive">*</span> (บังคับอย่างน้อย 1 รูป)
                         </Label>
@@ -1467,29 +1651,42 @@ const DeliveryEntry = () => {
                           ใส่รูปภาพสินค้าเพื่อให้เจ้าหน้าที่คลังสามารถระบุตัวสินค้าได้
                         </p>
                         <EquipmentImageUpload images={newProductImages} onChange={setNewProductImages} maxImages={5} />
-                      </div>}
+                      </div>
+                    )}
                   </div>
-                </>}
+                </>
+              )}
 
               {/* Per-Unit Equipment Entry (when not Media Player) */}
               {!isMediaPlayerEntry && (
                 <div className="p-3 bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800 rounded-lg space-y-4">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <Checkbox 
-                        id="perUnitMode" 
-                        checked={perUnitMode} 
+                      <Checkbox
+                        id="perUnitMode"
+                        checked={perUnitMode}
                         onCheckedChange={(checked) => {
                           setPerUnitMode(checked === true);
                           if (checked) {
                             setSerialNumber("");
                             setQuantity("");
                           } else {
-                            setEquipmentUnits([{ id: crypto.randomUUID(), serial_number: "", device_name: "", image_file: null, image_preview: null }]);
+                            setEquipmentUnits([
+                              {
+                                id: crypto.randomUUID(),
+                                serial_number: "",
+                                device_name: "",
+                                image_file: null,
+                                image_preview: null,
+                              },
+                            ]);
                           }
                         }}
                       />
-                      <Label htmlFor="perUnitMode" className="text-sm font-medium text-emerald-700 dark:text-emerald-400 flex items-center gap-2">
+                      <Label
+                        htmlFor="perUnitMode"
+                        className="text-sm font-medium text-emerald-700 dark:text-emerald-400 flex items-center gap-2"
+                      >
                         <Package className="w-4 h-4" />
                         ระบุข้อมูลรายชิ้น (Serial Number, ชื่อ, รูปภาพ)
                       </Label>
@@ -1500,13 +1697,16 @@ const DeliveryEntry = () => {
                         variant="outline"
                         size="sm"
                         onClick={() => {
-                          setEquipmentUnits(prev => [...prev, {
-                            id: crypto.randomUUID(),
-                            serial_number: "",
-                            device_name: "",
-                            image_file: null,
-                            image_preview: null,
-                          }]);
+                          setEquipmentUnits((prev) => [
+                            ...prev,
+                            {
+                              id: crypto.randomUUID(),
+                              serial_number: "",
+                              device_name: "",
+                              image_file: null,
+                              image_preview: null,
+                            },
+                          ]);
                         }}
                         className="gap-1 text-emerald-700 border-emerald-300 hover:bg-emerald-100 dark:text-emerald-400 dark:border-emerald-700 dark:hover:bg-emerald-900/30"
                       >
@@ -1515,11 +1715,12 @@ const DeliveryEntry = () => {
                       </Button>
                     )}
                   </div>
-                  
+
                   {perUnitMode && (
                     <>
                       <p className="text-xs text-emerald-600/80 dark:text-emerald-500/80">
-                        💡 กรอก S/N แต่ละชิ้น — ระบบจะสร้างรายการในตะกร้าอัตโนมัติ 1 รายการต่อ 1 ชิ้น ({equipmentUnits.length} ชิ้น)
+                        💡 กรอก S/N แต่ละชิ้น — ระบบจะสร้างรายการในตะกร้าอัตโนมัติ 1 รายการต่อ 1 ชิ้น (
+                        {equipmentUnits.length} ชิ้น)
                       </p>
                       <div className="space-y-3">
                         {equipmentUnits.map((unitEntry, idx) => (
@@ -1534,7 +1735,7 @@ const DeliveryEntry = () => {
                                   className="h-7 text-destructive hover:text-destructive"
                                   onClick={() => {
                                     if (unitEntry.image_preview) URL.revokeObjectURL(unitEntry.image_preview);
-                                    setEquipmentUnits(prev => prev.filter(u => u.id !== unitEntry.id));
+                                    setEquipmentUnits((prev) => prev.filter((u) => u.id !== unitEntry.id));
                                   }}
                                 >
                                   <X className="w-3 h-3 mr-1" />
@@ -1549,10 +1750,12 @@ const DeliveryEntry = () => {
                                 <Input
                                   placeholder="กรอก S/N..."
                                   value={unitEntry.serial_number}
-                                  onChange={e => {
-                                    setEquipmentUnits(prev => prev.map(u =>
-                                      u.id === unitEntry.id ? { ...u, serial_number: e.target.value } : u
-                                    ));
+                                  onChange={(e) => {
+                                    setEquipmentUnits((prev) =>
+                                      prev.map((u) =>
+                                        u.id === unitEntry.id ? { ...u, serial_number: e.target.value } : u,
+                                      ),
+                                    );
                                   }}
                                 />
                               </div>
@@ -1562,10 +1765,12 @@ const DeliveryEntry = () => {
                                 <Input
                                   placeholder="ชื่อเฉพาะชิ้น..."
                                   value={unitEntry.device_name}
-                                  onChange={e => {
-                                    setEquipmentUnits(prev => prev.map(u =>
-                                      u.id === unitEntry.id ? { ...u, device_name: e.target.value } : u
-                                    ));
+                                  onChange={(e) => {
+                                    setEquipmentUnits((prev) =>
+                                      prev.map((u) =>
+                                        u.id === unitEntry.id ? { ...u, device_name: e.target.value } : u,
+                                      ),
+                                    );
                                   }}
                                 />
                               </div>
@@ -1578,7 +1783,7 @@ const DeliveryEntry = () => {
                                     accept="image/*"
                                     className="hidden"
                                     id={`eq-unit-image-${unitEntry.id}`}
-                                    onChange={e => {
+                                    onChange={(e) => {
                                       const file = e.target.files?.[0];
                                       if (file) {
                                         if (file.size > 10 * 1024 * 1024) {
@@ -1587,15 +1792,23 @@ const DeliveryEntry = () => {
                                         }
                                         if (unitEntry.image_preview) URL.revokeObjectURL(unitEntry.image_preview);
                                         const preview = URL.createObjectURL(file);
-                                        setEquipmentUnits(prev => prev.map(u =>
-                                          u.id === unitEntry.id ? { ...u, image_file: file, image_preview: preview } : u
-                                        ));
+                                        setEquipmentUnits((prev) =>
+                                          prev.map((u) =>
+                                            u.id === unitEntry.id
+                                              ? { ...u, image_file: file, image_preview: preview }
+                                              : u,
+                                          ),
+                                        );
                                       }
                                     }}
                                   />
                                   {unitEntry.image_preview ? (
                                     <div className="flex items-center gap-2">
-                                      <img src={unitEntry.image_preview} alt="Preview" className="w-10 h-10 rounded object-cover border" />
+                                      <img
+                                        src={unitEntry.image_preview}
+                                        alt="Preview"
+                                        className="w-10 h-10 rounded object-cover border"
+                                      />
                                       <Button
                                         type="button"
                                         variant="ghost"
@@ -1603,9 +1816,13 @@ const DeliveryEntry = () => {
                                         className="h-7 text-destructive"
                                         onClick={() => {
                                           if (unitEntry.image_preview) URL.revokeObjectURL(unitEntry.image_preview);
-                                          setEquipmentUnits(prev => prev.map(u =>
-                                            u.id === unitEntry.id ? { ...u, image_file: null, image_preview: null } : u
-                                          ));
+                                          setEquipmentUnits((prev) =>
+                                            prev.map((u) =>
+                                              u.id === unitEntry.id
+                                                ? { ...u, image_file: null, image_preview: null }
+                                                : u,
+                                            ),
+                                          );
                                         }}
                                       >
                                         <X className="w-3 h-3" />
@@ -1639,23 +1856,32 @@ const DeliveryEntry = () => {
                 <div className="space-y-2">
                   <Label htmlFor="quantity">จำนวน *</Label>
                   {isMediaPlayerEntry ? (
-                    <Input 
-                      id="quantity" 
-                      type="number" 
-                      value={mediaPlayerDevices.filter(d => d.serial_number_1.trim()).length || mediaPlayerDevices.length} 
-                      readOnly 
+                    <Input
+                      id="quantity"
+                      type="number"
+                      value={
+                        mediaPlayerDevices.filter((d) => d.serial_number_1.trim()).length || mediaPlayerDevices.length
+                      }
+                      readOnly
                       className="bg-muted font-medium"
                     />
                   ) : perUnitMode ? (
-                    <Input 
-                      id="quantity" 
-                      type="number" 
-                      value={equipmentUnits.filter(u => u.serial_number.trim()).length || equipmentUnits.length} 
-                      readOnly 
+                    <Input
+                      id="quantity"
+                      type="number"
+                      value={equipmentUnits.filter((u) => u.serial_number.trim()).length || equipmentUnits.length}
+                      readOnly
                       className="bg-muted font-medium"
                     />
                   ) : (
-                    <Input id="quantity" type="number" placeholder="กรอกจำนวน" value={quantity} onChange={e => setQuantity(e.target.value)} required />
+                    <Input
+                      id="quantity"
+                      type="number"
+                      placeholder="กรอกจำนวน"
+                      value={quantity}
+                      onChange={(e) => setQuantity(e.target.value)}
+                      required
+                    />
                   )}
                   {(isMediaPlayerEntry || perUnitMode) && (
                     <p className="text-xs text-muted-foreground">คำนวณจากจำนวนชิ้นที่เพิ่ม</p>
@@ -1663,58 +1889,84 @@ const DeliveryEntry = () => {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="unit">หน่วย</Label>
-                  <Input id="unit" value={unit} onChange={e => setUnit(e.target.value)} placeholder="ชิ้น, กล่อง, ..." />
+                  <Input
+                    id="unit"
+                    value={unit}
+                    onChange={(e) => setUnit(e.target.value)}
+                    placeholder="ชิ้น, กล่อง, ..."
+                  />
                 </div>
                 {!selectedEquipmentId && !isMediaPlayerEntry && (
                   <div className="space-y-2">
                     <Label htmlFor="minStockLevel">จำนวนขั้นต่ำ</Label>
-                    <Input 
-                      id="minStockLevel" 
-                      type="number" 
-                      placeholder="0" 
-                      value={minStockLevel} 
-                      onChange={e => setMinStockLevel(e.target.value)}
+                    <Input
+                      id="minStockLevel"
+                      type="number"
+                      placeholder="0"
+                      value={minStockLevel}
+                      onChange={(e) => setMinStockLevel(e.target.value)}
                       min="0"
                     />
-                    <p className="text-xs text-muted-foreground">
-                      ระบบจะแจ้งเตือนเมื่อสินค้าต่ำกว่าค่านี้
-                    </p>
+                    <p className="text-xs text-muted-foreground">ระบบจะแจ้งเตือนเมื่อสินค้าต่ำกว่าค่านี้</p>
                   </div>
                 )}
                 <div className="space-y-2">
                   <Label htmlFor="lotNumber1">Lot Number 1</Label>
-                  <Input id="lotNumber1" placeholder="Lot No. 1" value={lotNumber1} onChange={e => setLotNumber1(e.target.value)} />
+                  <Input
+                    id="lotNumber1"
+                    placeholder="Lot No. 1"
+                    value={lotNumber1}
+                    onChange={(e) => setLotNumber1(e.target.value)}
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="lotNumber2">Lot Number 2</Label>
-                  <Input id="lotNumber2" placeholder="Lot No. 2" value={lotNumber2} onChange={e => setLotNumber2(e.target.value)} />
+                  <Input
+                    id="lotNumber2"
+                    placeholder="Lot No. 2"
+                    value={lotNumber2}
+                    onChange={(e) => setLotNumber2(e.target.value)}
+                  />
                 </div>
               </div>
 
               {/* Serial Number (only for non-Media Player) & Unit Price & Total Amount */}
-              <div className={`grid grid-cols-1 ${(isMediaPlayerEntry || perUnitMode) ? 'md:grid-cols-2' : 'md:grid-cols-3'} gap-4`}>
+              <div
+                className={`grid grid-cols-1 ${isMediaPlayerEntry || perUnitMode ? "md:grid-cols-2" : "md:grid-cols-3"} gap-4`}
+              >
                 {!isMediaPlayerEntry && !perUnitMode && (
                   <div className="space-y-2">
                     <Label htmlFor="serialNumber">Serial Number</Label>
-                    <Input id="serialNumber" placeholder="SN-xxxxx" value={serialNumber} onChange={e => setSerialNumber(e.target.value)} />
+                    <Input
+                      id="serialNumber"
+                      placeholder="SN-xxxxx"
+                      value={serialNumber}
+                      onChange={(e) => setSerialNumber(e.target.value)}
+                    />
                   </div>
                 )}
                 <div className="space-y-2">
-                  <Label htmlFor="unitPrice">
-                    ราคาต่อชิ้น (บาท) {isPurchaseReceipt ? "*" : ""}
-                  </Label>
+                  <Label htmlFor="unitPrice">ราคาต่อชิ้น (บาท) {isPurchaseReceipt ? "*" : ""}</Label>
                   {!isPurchaseReceipt && selectedEquipmentId ? (
-                    <Input 
-                      id="unitPrice" 
-                      type="number" 
-                      step="0.01" 
-                      value={unitPrice} 
-                      readOnly 
-                      className="bg-muted font-medium" 
+                    <Input
+                      id="unitPrice"
+                      type="number"
+                      step="0.01"
+                      value={unitPrice}
+                      readOnly
+                      className="bg-muted font-medium"
                       title="ราคาดึงจากข้อมูลสินค้าในระบบ"
                     />
                   ) : (
-                    <Input id="unitPrice" type="number" step="0.01" placeholder="0.00" value={unitPrice} onChange={e => setUnitPrice(e.target.value)} required={isPurchaseReceipt} />
+                    <Input
+                      id="unitPrice"
+                      type="number"
+                      step="0.01"
+                      placeholder="0.00"
+                      value={unitPrice}
+                      onChange={(e) => setUnitPrice(e.target.value)}
+                      required={isPurchaseReceipt}
+                    />
                   )}
                   {!isPurchaseReceipt && selectedEquipmentId && (
                     <p className="text-xs text-muted-foreground">ดึงราคาจากข้อมูลสินค้าในระบบ</p>
@@ -1723,25 +1975,29 @@ const DeliveryEntry = () => {
                 <div className="space-y-2">
                   <Label>จำนวนเงินทั้งหมด (บาท)</Label>
                   {(() => {
-                    const effectiveQty = isMediaPlayerEntry 
-                      ? (mediaPlayerDevices.filter(d => d.serial_number_1.trim()).length || mediaPlayerDevices.length)
+                    const effectiveQty = isMediaPlayerEntry
+                      ? mediaPlayerDevices.filter((d) => d.serial_number_1.trim()).length || mediaPlayerDevices.length
                       : perUnitMode
-                        ? (equipmentUnits.filter(u => u.serial_number.trim()).length || equipmentUnits.length)
-                        : (parseInt(quantity) || 0);
+                        ? equipmentUnits.filter((u) => u.serial_number.trim()).length || equipmentUnits.length
+                        : parseInt(quantity) || 0;
                     return (
                       <>
-                        <Input 
-                          readOnly 
+                        <Input
+                          readOnly
                           value={
                             (parseFloat(unitPrice) || 0) > 0 && effectiveQty > 0
                               ? `฿${((parseFloat(unitPrice) || 0) * effectiveQty).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
                               : "-"
-                          } 
-                          className="bg-muted font-medium text-primary" 
+                          }
+                          className="bg-muted font-medium text-primary"
                         />
                         {effectiveQty > 1 && (parseFloat(unitPrice) || 0) > 0 && (
                           <p className="text-xs text-muted-foreground">
-                            {effectiveQty} ชิ้น × ฿{parseFloat(unitPrice).toLocaleString()} = ฿{((parseFloat(unitPrice) || 0) * effectiveQty).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            {effectiveQty} ชิ้น × ฿{parseFloat(unitPrice).toLocaleString()} = ฿
+                            {((parseFloat(unitPrice) || 0) * effectiveQty).toLocaleString(undefined, {
+                              minimumFractionDigits: 2,
+                              maximumFractionDigits: 2,
+                            })}
                           </p>
                         )}
                       </>
@@ -1755,25 +2011,55 @@ const DeliveryEntry = () => {
                 <h3 className="font-medium text-sm text-green-700 dark:text-green-400">ขนาดพื้นที่ๆต้องการใช้</h3>
                 <div className="flex flex-wrap items-end gap-3">
                   <div className="space-y-1 flex-1 min-w-[100px]">
-                    <Label htmlFor="storageWidth" className="text-xs">กว้าง (ซ้าย-ขวา)</Label>
+                    <Label htmlFor="storageWidth" className="text-xs">
+                      กว้าง (ซ้าย-ขวา)
+                    </Label>
                     <div className="flex items-center gap-1">
-                      <Input id="storageWidth" type="number" step="0.01" placeholder="0" value={storageWidthCm} onChange={e => setStorageWidthCm(e.target.value)} className="h-9" />
+                      <Input
+                        id="storageWidth"
+                        type="number"
+                        step="0.01"
+                        placeholder="0"
+                        value={storageWidthCm}
+                        onChange={(e) => setStorageWidthCm(e.target.value)}
+                        className="h-9"
+                      />
                       <span className="text-xs text-muted-foreground">m</span>
                     </div>
                   </div>
                   <span className="text-muted-foreground pb-2">×</span>
                   <div className="space-y-1 flex-1 min-w-[100px]">
-                    <Label htmlFor="storageHeight" className="text-xs">สูง (บน-ล่าง)</Label>
+                    <Label htmlFor="storageHeight" className="text-xs">
+                      สูง (บน-ล่าง)
+                    </Label>
                     <div className="flex items-center gap-1">
-                      <Input id="storageHeight" type="number" step="0.01" placeholder="0" value={storageHeightCm} onChange={e => setStorageHeightCm(e.target.value)} className="h-9" />
+                      <Input
+                        id="storageHeight"
+                        type="number"
+                        step="0.01"
+                        placeholder="0"
+                        value={storageHeightCm}
+                        onChange={(e) => setStorageHeightCm(e.target.value)}
+                        className="h-9"
+                      />
                       <span className="text-xs text-muted-foreground">m</span>
                     </div>
                   </div>
                   <span className="text-muted-foreground pb-2">×</span>
                   <div className="space-y-1 flex-1 min-w-[100px]">
-                    <Label htmlFor="storageDepth" className="text-xs">ลึก (หน้า-หลัง)</Label>
+                    <Label htmlFor="storageDepth" className="text-xs">
+                      ลึก (หน้า-หลัง)
+                    </Label>
                     <div className="flex items-center gap-1">
-                      <Input id="storageDepth" type="number" step="0.01" placeholder="0" value={storageDepthCm} onChange={e => setStorageDepthCm(e.target.value)} className="h-9" />
+                      <Input
+                        id="storageDepth"
+                        type="number"
+                        step="0.01"
+                        placeholder="0"
+                        value={storageDepthCm}
+                        onChange={(e) => setStorageDepthCm(e.target.value)}
+                        className="h-9"
+                      />
                       <span className="text-xs text-muted-foreground">m</span>
                     </div>
                   </div>
@@ -1792,11 +2078,18 @@ const DeliveryEntry = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="supplier">เลือกผู้จัดจำหน่าย</Label>
-                  <SearchableSelect options={suppliers.map(supplier => ({
-                  value: supplier.id,
-                  label: `${supplier.code} - ${supplier.name}`,
-                  searchableText: `${supplier.code} ${supplier.name} ${supplier.vendor_code || ''}`
-                }))} value={selectedSupplierId} onValueChange={setSelectedSupplierId} placeholder="เลือกผู้จัดจำหน่าย..." searchPlaceholder="พิมพ์รหัสหรือชื่อผู้จัดจำหน่าย..." emptyMessage="ไม่พบผู้จัดจำหน่าย" />
+                  <SearchableSelect
+                    options={suppliers.map((supplier) => ({
+                      value: supplier.id,
+                      label: `${supplier.code} - ${supplier.name}`,
+                      searchableText: `${supplier.code} ${supplier.name} ${supplier.vendor_code || ""}`,
+                    }))}
+                    value={selectedSupplierId}
+                    onValueChange={setSelectedSupplierId}
+                    placeholder="เลือกผู้จัดจำหน่าย..."
+                    searchPlaceholder="พิมพ์รหัสหรือชื่อผู้จัดจำหน่าย..."
+                    emptyMessage="ไม่พบผู้จัดจำหน่าย"
+                  />
                 </div>
               </div>
 
@@ -1805,64 +2098,109 @@ const DeliveryEntry = () => {
                 <div className="flex items-center justify-between">
                   <h3 className="font-medium text-sm text-amber-700 dark:text-amber-400">ข้อมูลทรัพย์สิน</h3>
                   <div className="flex items-center gap-2">
-                    <Label htmlFor="isAsset" className="text-sm text-amber-700 dark:text-amber-400">สินค้านี้เป็นทรัพย์สิน?</Label>
+                    <Label htmlFor="isAsset" className="text-sm text-amber-700 dark:text-amber-400">
+                      สินค้านี้เป็นทรัพย์สิน?
+                    </Label>
                     <Switch id="isAsset" checked={isAsset} onCheckedChange={setIsAsset} />
                   </div>
                 </div>
 
-                {isAsset && <div className="space-y-4 pt-2 border-t border-amber-200 dark:border-amber-800">
+                {isAsset && (
+                  <div className="space-y-4 pt-2 border-t border-amber-200 dark:border-amber-800">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <div className="flex items-center justify-between">
                           <Label htmlFor="assetCode">รหัสทรัพย์สิน *</Label>
                           <div className="flex items-center gap-2">
-                            <Checkbox id="waitingAssetCode" checked={waitingAssetCode} onCheckedChange={checked => {
-                          setWaitingAssetCode(checked === true);
-                          if (checked) setAssetCode("");
-                        }} />
-                            <Label htmlFor="waitingAssetCode" className="text-xs text-muted-foreground">รอรหัสทรัพย์สิน</Label>
+                            <Checkbox
+                              id="waitingAssetCode"
+                              checked={waitingAssetCode}
+                              onCheckedChange={(checked) => {
+                                setWaitingAssetCode(checked === true);
+                                if (checked) setAssetCode("");
+                              }}
+                            />
+                            <Label htmlFor="waitingAssetCode" className="text-xs text-muted-foreground">
+                              รอรหัสทรัพย์สิน
+                            </Label>
                           </div>
                         </div>
-                        <Input id="assetCode" placeholder="รหัสทรัพย์สิน" value={assetCode} onChange={e => setAssetCode(e.target.value)} disabled={waitingAssetCode} />
+                        <Input
+                          id="assetCode"
+                          placeholder="รหัสทรัพย์สิน"
+                          value={assetCode}
+                          onChange={(e) => setAssetCode(e.target.value)}
+                          disabled={waitingAssetCode}
+                        />
                       </div>
                       <div className="space-y-2">
                         <div className="flex items-center justify-between">
                           <Label htmlFor="equipmentIdCode">Equipment ID *</Label>
                           <div className="flex items-center gap-2">
-                            <Checkbox id="waitingEquipmentId" checked={waitingEquipmentId} onCheckedChange={checked => {
-                          setWaitingEquipmentId(checked === true);
-                          if (checked) setEquipmentIdCode("");
-                        }} />
-                            <Label htmlFor="waitingEquipmentId" className="text-xs text-muted-foreground">รอ Equipment ID</Label>
+                            <Checkbox
+                              id="waitingEquipmentId"
+                              checked={waitingEquipmentId}
+                              onCheckedChange={(checked) => {
+                                setWaitingEquipmentId(checked === true);
+                                if (checked) setEquipmentIdCode("");
+                              }}
+                            />
+                            <Label htmlFor="waitingEquipmentId" className="text-xs text-muted-foreground">
+                              รอ Equipment ID
+                            </Label>
                           </div>
                         </div>
-                        <Input id="equipmentIdCode" placeholder="Equipment ID" value={equipmentIdCode} onChange={e => setEquipmentIdCode(e.target.value)} disabled={waitingEquipmentId} />
+                        <Input
+                          id="equipmentIdCode"
+                          placeholder="Equipment ID"
+                          value={equipmentIdCode}
+                          onChange={(e) => setEquipmentIdCode(e.target.value)}
+                          disabled={waitingEquipmentId}
+                        />
                       </div>
                     </div>
 
                     <div className="space-y-2">
                       <Label htmlFor="depreciationMonths">ระยะเวลาค่าเสื่อม (เดือน) *</Label>
-                      <Input id="depreciationMonths" type="number" placeholder="จำนวนเดือน เช่น 60" value={depreciationMonths} onChange={e => setDepreciationMonths(e.target.value)} />
+                      <Input
+                        id="depreciationMonths"
+                        type="number"
+                        placeholder="จำนวนเดือน เช่น 60"
+                        value={depreciationMonths}
+                        onChange={(e) => setDepreciationMonths(e.target.value)}
+                      />
                     </div>
-                  </div>}
+                  </div>
+                )}
               </div>
 
               {/* Expiry Dates */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="expiry">วันหมดอายุ</Label>
-                  <Input id="expiry" type="date" value={expiryDate} onChange={e => setExpiryDate(e.target.value)} />
+                  <Input id="expiry" type="date" value={expiryDate} onChange={(e) => setExpiryDate(e.target.value)} />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="warrantyExpiry">วันสิ้นสุดการรับประกัน</Label>
-                  <Input id="warrantyExpiry" type="date" value={warrantyExpiryDate} onChange={e => setWarrantyExpiryDate(e.target.value)} />
+                  <Input
+                    id="warrantyExpiry"
+                    type="date"
+                    value={warrantyExpiryDate}
+                    onChange={(e) => setWarrantyExpiryDate(e.target.value)}
+                  />
                 </div>
               </div>
 
               {/* Item Notes */}
               <div className="space-y-2">
                 <Label htmlFor="itemNotes">หมายเหตุรายการ</Label>
-                <Textarea id="itemNotes" placeholder="รายละเอียดเพิ่มเติมสำหรับรายการนี้..." value={itemNotes} onChange={e => setItemNotes(e.target.value)} rows={2} />
+                <Textarea
+                  id="itemNotes"
+                  placeholder="รายละเอียดเพิ่มเติมสำหรับรายการนี้..."
+                  value={itemNotes}
+                  onChange={(e) => setItemNotes(e.target.value)}
+                  rows={2}
+                />
               </div>
 
               {/* Add to Cart Button */}
@@ -1874,28 +2212,50 @@ const DeliveryEntry = () => {
 
             {/* Document Upload (Shared) */}
             <div className="p-4 bg-muted/30 rounded-lg space-y-4">
-              <h3 className="font-medium text-sm text-muted-foreground flex items-center gap-2">เอกสารแนบ (ใช้ร่วมกันทุกรายการ)  กรุณาตั้งชื่อไฟล์ให้สะดวกต่อการค้นหาเอกสารแนบ <FileText className="w-4 h-4" />
+              <h3 className="font-medium text-sm text-muted-foreground flex items-center gap-2">
+                เอกสารแนบ (ใช้ร่วมกันทุกรายการ) กรุณาตั้งชื่อไฟล์ให้สะดวกต่อการค้นหาเอกสารแนบ{" "}
+                <FileText className="w-4 h-4" />
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Additional Document */}
                 <div className="space-y-2">
                   <Label>อัปโหลดเอกสารแนบเพิ่มเติม</Label>
                   <div className="flex items-center gap-2">
-                    <input ref={additionalDocFileInputRef} type="file" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" onChange={handleAdditionalDocFileSelect} className="hidden" />
-                    <Button type="button" variant="outline" size="sm" onClick={() => additionalDocFileInputRef.current?.click()} className="flex items-center gap-2">
+                    <input
+                      ref={additionalDocFileInputRef}
+                      type="file"
+                      accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                      onChange={handleAdditionalDocFileSelect}
+                      className="hidden"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => additionalDocFileInputRef.current?.click()}
+                      className="flex items-center gap-2"
+                    >
                       <Upload className="w-4 h-4" />
                       เลือกเอกสาร
                     </Button>
-                    {additionalDocumentFile && <div className="flex items-center gap-2 bg-background px-2 py-1 rounded-md border text-xs">
+                    {additionalDocumentFile && (
+                      <div className="flex items-center gap-2 bg-background px-2 py-1 rounded-md border text-xs">
                         <FileText className="w-3 h-3 text-primary" />
                         <span className="truncate max-w-[100px]">{additionalDocumentFile.name}</span>
-                        <Button type="button" variant="ghost" size="sm" onClick={() => {
-                      setAdditionalDocumentFile(null);
-                      if (additionalDocFileInputRef.current) additionalDocFileInputRef.current.value = "";
-                    }} className="h-5 w-5 p-0">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            setAdditionalDocumentFile(null);
+                            if (additionalDocFileInputRef.current) additionalDocFileInputRef.current.value = "";
+                          }}
+                          className="h-5 w-5 p-0"
+                        >
                           <X className="w-3 h-3" />
                         </Button>
-                      </div>}
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -1903,21 +2263,41 @@ const DeliveryEntry = () => {
                 <div className="space-y-2">
                   <Label>อัปโหลดรูปภาพเพิ่มเติม</Label>
                   <div className="flex items-center gap-2">
-                    <input ref={additionalImageFileInputRef} type="file" accept="image/*" onChange={handleAdditionalImageFileSelect} className="hidden" />
-                    <Button type="button" variant="outline" size="sm" onClick={() => additionalImageFileInputRef.current?.click()} className="flex items-center gap-2">
+                    <input
+                      ref={additionalImageFileInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={handleAdditionalImageFileSelect}
+                      className="hidden"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => additionalImageFileInputRef.current?.click()}
+                      className="flex items-center gap-2"
+                    >
                       <ImagePlus className="w-4 h-4" />
                       เลือกรูปภาพ
                     </Button>
-                    {additionalImageFile && <div className="flex items-center gap-2 bg-background px-2 py-1 rounded-md border text-xs">
+                    {additionalImageFile && (
+                      <div className="flex items-center gap-2 bg-background px-2 py-1 rounded-md border text-xs">
                         <ImagePlus className="w-3 h-3 text-primary" />
                         <span className="truncate max-w-[100px]">{additionalImageFile.name}</span>
-                        <Button type="button" variant="ghost" size="sm" onClick={() => {
-                      setAdditionalImageFile(null);
-                      if (additionalImageFileInputRef.current) additionalImageFileInputRef.current.value = "";
-                    }} className="h-5 w-5 p-0">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            setAdditionalImageFile(null);
+                            if (additionalImageFileInputRef.current) additionalImageFileInputRef.current.value = "";
+                          }}
+                          className="h-5 w-5 p-0"
+                        >
                           <X className="w-3 h-3" />
                         </Button>
-                      </div>}
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -1926,27 +2306,55 @@ const DeliveryEntry = () => {
             {/* Header Notes */}
             <div className="space-y-2">
               <Label htmlFor="headerNotes">หมายเหตุเอกสาร</Label>
-              <Textarea id="headerNotes" placeholder="รายละเอียดเพิ่มเติมสำหรับเอกสารนี้..." value={headerNotes} onChange={e => setHeaderNotes(e.target.value)} rows={2} />
+              <Textarea
+                id="headerNotes"
+                placeholder="รายละเอียดเพิ่มเติมสำหรับเอกสารนี้..."
+                value={headerNotes}
+                onChange={(e) => setHeaderNotes(e.target.value)}
+                rows={2}
+              />
             </div>
 
             {/* Cart Display - just above submit */}
-            <DeliveryCart items={cartItems} onRemoveItem={handleRemoveFromCart} onClearCart={handleClearCart} onEditItem={handleEditItem} selectedIds={selectedCartIds} onSelectedIdsChange={setSelectedCartIds} />
+            <DeliveryCart
+              items={cartItems}
+              onRemoveItem={handleRemoveFromCart}
+              onClearCart={handleClearCart}
+              onEditItem={handleEditItem}
+              selectedIds={selectedCartIds}
+              onSelectedIdsChange={setSelectedCartIds}
+            />
 
             {/* Submit Button */}
-            <Button type="button" className="w-full" disabled={isLoading || isUploadingFile || cartItems.length === 0 || (selectedCartIds.size === 0 && cartItems.length > 0)} onClick={handleSubmitAll}>
-              {isUploadingFile ? <>
+            <Button
+              type="button"
+              className="w-full"
+              disabled={
+                isLoading ||
+                isUploadingFile ||
+                cartItems.length === 0 ||
+                (selectedCartIds.size === 0 && cartItems.length > 0)
+              }
+              onClick={handleSubmitAll}
+            >
+              {isUploadingFile ? (
+                <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                   กำลังอัปโหลดเอกสาร...
-                </> : isLoading ? <>
+                </>
+              ) : isLoading ? (
+                <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                   กำลังบันทึก...
-                </> : <>
+                </>
+              ) : (
+                <>
                   <Send className="w-4 h-4 mr-2" />
-                  {selectedCartIds.size > 0 
+                  {selectedCartIds.size > 0
                     ? `ส่งรายการที่เลือก (${selectedCartIds.size} รายการ)`
-                    : `กรุณาเลือกรายการในตะกร้า`
-                  }
-                </>}
+                    : `กรุณาเลือกรายการในตะกร้า`}
+                </>
+              )}
             </Button>
           </div>
         </CardContent>
@@ -1962,7 +2370,12 @@ const DeliveryEntry = () => {
             </div>
             <div className="relative w-72">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input placeholder="ค้นหาเลขที่เอกสาร, ชื่อสินค้า, S/N, ผู้ส่ง..." className="pl-10" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
+              <Input
+                placeholder="ค้นหาเลขที่เอกสาร, ชื่อสินค้า, S/N, ผู้ส่ง..."
+                className="pl-10"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
             </div>
           </div>
         </CardHeader>
@@ -1982,25 +2395,42 @@ const DeliveryEntry = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {paginatedReceipts.length === 0 ? <TableRow>
+                {paginatedReceipts.length === 0 ? (
+                  <TableRow>
                     <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
                       ยังไม่มีรายการ
                     </TableCell>
-                  </TableRow> : paginatedReceipts.map(receipt => <TableRow key={receipt.id} className="hover:bg-muted/30">
+                  </TableRow>
+                ) : (
+                  paginatedReceipts.map((receipt) => (
+                    <TableRow key={receipt.id} className="hover:bg-muted/30">
                       <TableCell className="font-medium">{receipt.document_no}</TableCell>
                       <TableCell>{format(new Date(receipt.created_at), "dd/MM/yyyy HH:mm")}</TableCell>
                       <TableCell>{receipt.equipment_name || "-"}</TableCell>
-                      <TableCell>{receipt.quantity} {receipt.unit}</TableCell>
+                      <TableCell>
+                        {receipt.quantity} {receipt.unit}
+                      </TableCell>
                       <TableCell>{receipt.supplier_name || "-"}</TableCell>
                       <TableCell>{receipt.delivery_person_name}</TableCell>
                       <TableCell>
-                        {receipt.document_url ? <a href={receipt.document_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-primary hover:underline">
+                        {receipt.document_url ? (
+                          <a
+                            href={receipt.document_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-1 text-primary hover:underline"
+                          >
                             <FileText className="w-4 h-4" />
                             ดูเอกสาร
-                          </a> : <span className="text-muted-foreground">-</span>}
+                          </a>
+                        ) : (
+                          <span className="text-muted-foreground">-</span>
+                        )}
                       </TableCell>
                       <TableCell>{getStatusBadge(receipt.status)}</TableCell>
-                    </TableRow>)}
+                    </TableRow>
+                  ))
+                )}
               </TableBody>
             </Table>
           </div>
@@ -2014,6 +2444,7 @@ const DeliveryEntry = () => {
           />
         </CardContent>
       </Card>
-    </div>;
+    </div>
+  );
 };
 export default DeliveryEntry;
