@@ -165,7 +165,7 @@ export default function DocumentSearch() {
       const { data: issueData } = await supabase
         .from("goods_issue_pending")
         .select("id, document_no, created_at, status, equipment_name, equipment_code, requester_name, requester_department, approval_status, approved_at, issued_at, pickup_type, serial_number")
-        .order("created_at", { ascending: false }).limit(500);
+        .order("created_at", { ascending: false });
 
       // Fetch from delivery_confirmations
       const { data: dcData } = await supabase
