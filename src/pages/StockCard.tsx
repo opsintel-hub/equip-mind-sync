@@ -503,8 +503,7 @@ export default function StockCard() {
     if (movSnSearchTerm) {
       const snTerm = movSnSearchTerm.toLowerCase();
       filtered = filtered.filter((m: any) => {
-        const sn = m.equipment?.serial_number || "";
-        return sn.toLowerCase().includes(snTerm);
+        return matchesSerialSearch(snTerm, m.equipment?.serial_number, m.notes);
       });
     }
     // General search (code, name, document, notes)
