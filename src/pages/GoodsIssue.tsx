@@ -216,10 +216,19 @@ const GoodsIssue = () => {
         </CardHeader>
         <CardContent>
           <div className="flex flex-col md:flex-row gap-3 mb-4">
+            <div className="relative flex-1 max-w-[180px]">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                placeholder="ค้นหา S/N..."
+                className="pl-10"
+                value={snSearchTerm}
+                onChange={(e) => setSnSearchTerm(e.target.value)}
+              />
+            </div>
             <div className="relative flex-1 max-w-sm">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
-                placeholder="ค้นหาเลขที่เอกสาร, รหัส, ชื่อ, S/N..."
+                placeholder="ค้นหาเลขที่เอกสาร, รหัส, ชื่อ..."
                 className="pl-10"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
