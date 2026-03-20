@@ -76,6 +76,7 @@ interface Location {
 const ReceiveGoods = () => {
   const { user } = useAuth();
   const [searchTerm, setSearchTerm] = useState("");
+  const [snSearchTerm, setSnSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("pending");
   const [equipment, setEquipment] = useState<Equipment[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
