@@ -105,6 +105,14 @@ const GoodsIssue = () => {
       result = result.filter((r: any) => r.status === statusFilter);
     }
 
+    if (snSearchTerm) {
+      const snTerm = snSearchTerm.toLowerCase();
+      result = result.filter((r: any) => {
+        const items = getItemsForRequest(r.id);
+        return items.some(item => item.serial_number?.toLowerCase().includes(snTerm));
+      });
+    }
+
     if (searchTerm) {
       const term = searchTerm.toLowerCase();
       result = result.filter((r: any) => {
@@ -112,8 +120,7 @@ const GoodsIssue = () => {
         if (r.equipment_code?.toLowerCase().includes(term)) return true;
         if (r.equipment_name?.toLowerCase().includes(term)) return true;
         if (r.requester_name?.toLowerCase().includes(term)) return true;
-        const items = getItemsForRequest(r.id);
-        return items.some(item => item.serial_number?.toLowerCase().includes(term));
+        return false;
       });
     }
 
