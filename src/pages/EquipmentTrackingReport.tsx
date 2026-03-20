@@ -765,7 +765,7 @@ function EquipmentViewTab() {
                 <TableRow key={`${item.itemType}-${item.id}`}>
                   <TableCell className="font-mono text-xs">{item.code}</TableCell>
                   <TableCell className="font-medium">{item.name}</TableCell>
-                  <TableCell className="text-xs">{item.serialDisplay}</TableCell>
+                  <TableCell className="text-xs whitespace-pre-line">{item.serialDisplay}</TableCell>
                   <TableCell><Badge variant="outline" className="text-xs">{item.itemType === "media_player" ? "Media Player" : item.category}</Badge></TableCell>
                   <TableCell className="text-xs">{item.brand || "-"}</TableCell>
                   <TableCell className="text-center">{item.quantity_in_stock}</TableCell>
