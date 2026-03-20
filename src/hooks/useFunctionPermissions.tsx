@@ -82,7 +82,10 @@ export function useFunctionPermissions() {
   }, [user]);
 
   const hasFunctionAccess = (functionName: string): boolean => {
-    if (isAdmin) return true;
+    // Only Super Admin bypasses function permission checks
+    if (isSuperAdmin) return true;
+    // Admin still needs explicit function permissions (except admin function itself)
+    if (isAdmin && functionName === "admin") return true;
     
     const perm = permissions.find(p => p.function_name === functionName);
     return perm?.can_access || false;
