@@ -24,6 +24,7 @@ import { differenceInDays, parseISO, format } from "date-fns";
 import { formatBillboardLabel } from "@/lib/billboardUtils";
 import { toast } from "sonner";
 import * as XLSX from "xlsx";
+import { buildReceivedSerialAliasMap, formatMergedSerials, matchesSerialSearch } from "@/lib/serialSearch";
 
 import { MediaPlayerRow, BillboardJourney, StockMovement } from "@/components/media-player/profile/types";
 import { SummaryCards } from "@/components/media-player/profile/SummaryCards";
