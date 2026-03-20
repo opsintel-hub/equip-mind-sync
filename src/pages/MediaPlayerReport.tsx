@@ -149,19 +149,26 @@ export default function MediaPlayerReport() {
         const match = p.code?.match(/^([A-Za-z-]+)/);
         if (!match || match[1] !== codePrefixFilter) return false;
       }
+      // Dedicated S/N search
+      if (snSearch) {
+        const s = snSearch.toLowerCase();
+        const matchSN =
+          p.serial_number_1?.toLowerCase().includes(s) ||
+          p.serial_number_2?.toLowerCase().includes(s);
+        if (!matchSN) return false;
+      }
+      // General search (code, name, brand)
       if (search) {
         const s = search.toLowerCase();
         const match =
           p.code?.toLowerCase().includes(s) ||
           p.name?.toLowerCase().includes(s) ||
-          p.serial_number_1?.toLowerCase().includes(s) ||
-          p.serial_number_2?.toLowerCase().includes(s) ||
           p.brand?.toLowerCase().includes(s);
         if (!match) return false;
       }
       return true;
     });
-  }, [players, search, conditionFilter, departmentFilter, statusFilter, companyFilter, brandFilter, codePrefixFilter]);
+  }, [players, search, snSearch, conditionFilter, departmentFilter, statusFilter, companyFilter, brandFilter, codePrefixFilter]);
 
   const {
     paginatedData,
