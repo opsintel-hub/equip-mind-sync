@@ -177,16 +177,22 @@ const ManagerApproval = () => {
   const applyFilters = (data: any[] | undefined) => {
     if (!data) return [];
     return data.filter((req: any) => {
+      // Dedicated S/N search
+      if (snSearchTerm) {
+        const snTerm = snSearchTerm.toLowerCase();
+        const items = getItemsForRequest(req.id);
+        const matchSN = items.some((item: any) => item.serial_number?.toLowerCase().includes(snTerm));
+        if (!matchSN) return false;
+      }
+      // General search
       if (searchTerm) {
         const term = searchTerm.toLowerCase();
         const matchDirect = req.document_no?.toLowerCase().includes(term) ||
             req.requester_name?.toLowerCase().includes(term) ||
             req.equipment_name?.toLowerCase().includes(term) ||
             req.equipment_code?.toLowerCase().includes(term);
-        // Also search in items' serial_number
         const items = getItemsForRequest(req.id);
         const matchItems = items.some((item: any) => 
-          item.serial_number?.toLowerCase().includes(term) ||
           item.equipment_code?.toLowerCase().includes(term) ||
           item.equipment_name?.toLowerCase().includes(term)
         );
