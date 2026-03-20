@@ -93,6 +93,7 @@ interface InventoryFiltersProps {
 
 export function InventoryFilters({ filters, onFiltersChange }: InventoryFiltersProps) {
   const [localSearch, setLocalSearch] = useState(filters.search);
+  const [localSnSearch, setLocalSnSearch] = useState(filters.snSearch || "");
 
   // Fetch companies
   const { data: companies = [] } = useQuery({
