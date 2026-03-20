@@ -1058,6 +1058,90 @@ export default function StockCard() {
           </CardContent>
         </Card>
       )}
+        </TabsContent>
+
+        {/* ── All Movements Tab ── */}
+        <TabsContent value="all-movements" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <History className="w-5 h-5" /> ภาพรวมการเคลื่อนไหว Stock ทั้งหมด
+              </CardTitle>
+              <CardDescription>แสดงรายการเปลี่ยนแปลง stock พร้อม stock ก่อน-หลังทุกรายการ (จัดกลุ่มตามเอกสาร)</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 mb-6">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="ค้นหา รหัส/ชื่อ/S/N หรือเลขเอกสาร..."
+                    value={movSearchTerm}
+                    onChange={(e) => { setMovSearchTerm(e.target.value); movPageChange(1); }}
+                    className="pl-10"
+                  />
+                </div>
+                <Select value={movTypeFilter} onValueChange={(v) => { setMovTypeFilter(v); movPageChange(1); }}>
+                  <SelectTrigger><SelectValue placeholder="ประเภท" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">ทั้งหมด</SelectItem>
+                    <SelectItem value="receive">รับเข้า</SelectItem>
+                    <SelectItem value="issue">เบิกออก</SelectItem>
+                    <SelectItem value="transfer_in">รับโอน</SelectItem>
+                    <SelectItem value="transfer_out">โอนออก</SelectItem>
+                    <SelectItem value="return_from_billboard">คืนจากป้าย</SelectItem>
+                    <SelectItem value="install_to_billboard">ติดตั้งป้าย</SelectItem>
+                    <SelectItem value="defective_return">นำของเสียเข้า</SelectItem>
+                  </SelectContent>
+                </Select>
+                <DepartmentMultiFilter value={movDeptFilter} onChange={(v) => { setMovDeptFilter(v); movPageChange(1); }} />
+                <Select value={movCompanyFilter} onValueChange={(v) => { setMovCompanyFilter(v); movPageChange(1); }}>
+                  <SelectTrigger><SelectValue placeholder="บริษัท" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">ทุกบริษัท</SelectItem>
+                    {movCompaniesList?.map((c: any) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+                <DatePickerWithRange date={movDateRange} onDateChange={(d) => { setMovDateRange(d); movPageChange(1); }} />
+              </div>
+
+              {movLoading ? (
+                <div className="flex items-center justify-center py-8"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>
+              ) : movPaginatedGroups.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">ไม่พบข้อมูลการเคลื่อนไหว stock</div>
+              ) : (
+                <>
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="w-8"></TableHead>
+                          <TableHead>วันที่/เวลา</TableHead>
+                          <TableHead>ประเภท</TableHead>
+                          <TableHead>บริษัท</TableHead>
+                          <TableHead>เลขเอกสาร / รหัสสินค้า</TableHead>
+                          <TableHead>รายการ / ชื่อสินค้า</TableHead>
+                          <TableHead className="text-right">จำนวน</TableHead>
+                          <TableHead className="text-right">ก่อน</TableHead>
+                          <TableHead className="text-right">หลัง</TableHead>
+                          <TableHead>ตำแหน่ง / การดำเนินการ</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {movPaginatedGroups.map((group) => (
+                          <StockMovementGroupRow key={group.reference_document} group={group} onViewDocument={(g) => { setMovSelectedGroup(g); setIsDocDialogOpen(true); }} />
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                  <TablePagination currentPage={movPage} totalPages={movTotalPages} totalItems={movTotalItems} pageSize={movPageSize} onPageChange={movPageChange} onPageSizeChange={movPageSizeChange} />
+                </>
+              )}
+            </CardContent>
+          </Card>
+
+          <StockMovementDocumentDialog open={isDocDialogOpen} onOpenChange={setIsDocDialogOpen} group={movSelectedGroup} />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
