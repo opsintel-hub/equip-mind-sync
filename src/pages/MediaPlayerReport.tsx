@@ -24,6 +24,7 @@ import { differenceInDays, parseISO, format } from "date-fns";
 import { formatBillboardLabel } from "@/lib/billboardUtils";
 import { toast } from "sonner";
 import * as XLSX from "xlsx";
+import { buildReceivedSerialAliasMap, formatMergedSerials, matchesSerialSearch } from "@/lib/serialSearch";
 
 import { MediaPlayerRow, BillboardJourney, StockMovement } from "@/components/media-player/profile/types";
 import { SummaryCards } from "@/components/media-player/profile/SummaryCards";
@@ -100,6 +101,28 @@ export default function MediaPlayerReport() {
     },
   });
 
+  const { data: receivedSerialAliases = [] } = useQuery({
+    queryKey: ["media-player-report-received-serials"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("goods_receipt_pending")
+        .select("media_player_id, serial_number, received_at, created_at")
+        .eq("status", "received")
+        .eq("is_media_player", true)
+        .not("media_player_id", "is", null)
+        .not("serial_number", "is", null)
+        .neq("serial_number", "");
+
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
+  const mediaPlayerAliasMap = useMemo(
+    () => buildReceivedSerialAliasMap(receivedSerialAliases, "media_player_id"),
+    [receivedSerialAliases],
+  );
+
   // Fetch departments for filter
   const { data: departments = [] } = useQuery({
     queryKey: ["departments-list"],
@@ -150,12 +173,8 @@ export default function MediaPlayerReport() {
         if (!match || match[1] !== codePrefixFilter) return false;
       }
       // Dedicated S/N search
-      if (snSearch) {
-        const s = snSearch.toLowerCase();
-        const matchSN =
-          p.serial_number_1?.toLowerCase().includes(s) ||
-          p.serial_number_2?.toLowerCase().includes(s);
-        if (!matchSN) return false;
+      if (snSearch && !matchesSerialSearch(snSearch, p.serial_number_1, p.serial_number_2, mediaPlayerAliasMap[p.id])) {
+        return false;
       }
       // General search (code, name, brand)
       if (search) {
@@ -168,7 +187,7 @@ export default function MediaPlayerReport() {
       }
       return true;
     });
-  }, [players, search, snSearch, conditionFilter, departmentFilter, statusFilter, companyFilter, brandFilter, codePrefixFilter]);
+  }, [players, search, snSearch, conditionFilter, departmentFilter, statusFilter, companyFilter, brandFilter, codePrefixFilter, mediaPlayerAliasMap]);
 
   const {
     paginatedData,
@@ -210,8 +229,7 @@ export default function MediaPlayerReport() {
     const rows = filtered.map((p) => ({
       รหัส: p.code,
       ชื่อ: p.name,
-      "S/N 1": p.serial_number_1 || "",
-      "S/N 2": p.serial_number_2 || "",
+      "S/N": formatMergedSerials(p.serial_number_1, p.serial_number_2, mediaPlayerAliasMap[p.id]) || "",
       ยี่ห้อ: p.brand || "",
       ฝ่าย: p.department || "",
       สภาพ: p.item_condition === "normal" ? "ปกติ" : p.item_condition === "defective" ? "ชำรุด" : p.item_condition === "repaired" ? "ซ่อมแล้ว" : p.item_condition,
@@ -467,7 +485,7 @@ export default function MediaPlayerReport() {
                     </TableRow>
                   ) : (
                     paginatedData.map((p, idx) => {
-                      const sn = [p.serial_number_1, p.serial_number_2].filter(Boolean).join(" / ");
+                      const sn = formatMergedSerials(p.serial_number_1, p.serial_number_2, mediaPlayerAliasMap[p.id]);
                       const bbLabel = p.billboard
                         ? formatBillboardLabel(p.billboard.old_code, p.billboard.location_name, p.billboard.equipment_id)
                         : "-";

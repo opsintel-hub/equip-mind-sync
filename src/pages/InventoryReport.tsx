@@ -20,6 +20,7 @@ import { InventoryFilters, InventoryFiltersState, getConditionLabel, getConditio
 import { EquipmentImageViewer } from "@/components/equipment/EquipmentImageViewer";
 import * as XLSX from "xlsx";
 import { toast } from "sonner";
+import { buildReceivedSerialAliasMap, formatMergedSerials, matchesSerialSearch } from "@/lib/serialSearch";
 
 // Removed hardcoded ITEMS_PER_PAGE - now using useTablePagination hook
 const DEFAULT_ADVANCE_DAYS = 30; // Default days to consider as "near expiry/warranty"
@@ -371,29 +372,16 @@ export default function InventoryReport() {
   });
 
   const receiptSerialMaps = useMemo(() => {
-    const equipmentSerialMap: Record<string, string> = {};
-    const mediaSerialMap: Record<string, string> = {};
-
-    const sorted = [...receivedSerials].sort((a, b) => {
-      const aDate = new Date(a.received_at || a.created_at).getTime();
-      const bDate = new Date(b.received_at || b.created_at).getTime();
-      return bDate - aDate;
-    });
-
-    sorted.forEach((row) => {
-      const serial = row.serial_number?.trim();
-      if (!serial) return;
-
-      if (row.is_media_player && row.media_player_id && !mediaSerialMap[row.media_player_id]) {
-        mediaSerialMap[row.media_player_id] = serial;
-      }
-
-      if (!row.is_media_player && row.equipment_id && !equipmentSerialMap[row.equipment_id]) {
-        equipmentSerialMap[row.equipment_id] = serial;
-      }
-    });
-
-    return { equipmentSerialMap, mediaSerialMap };
+    return {
+      equipmentSerialMap: buildReceivedSerialAliasMap(
+        receivedSerials.filter((row) => !row.is_media_player),
+        "equipment_id",
+      ),
+      mediaSerialMap: buildReceivedSerialAliasMap(
+        receivedSerials.filter((row) => row.is_media_player),
+        "media_player_id",
+      ),
+    };
   }, [receivedSerials]);
 
   // Fetch issue data for equipment
@@ -535,10 +523,10 @@ export default function InventoryReport() {
           continue;
         }
         // Single or no S/N
-        const displaySerial = snData?.allSNs[0] || item.serial_number || receiptSerialMaps.equipmentSerialMap[item.id] || null;
+        const displaySerial = formatMergedSerials(snData?.allSNs, item.serial_number, receiptSerialMaps.equipmentSerialMap[item.id]) || null;
         result.push({ ...item, serial_number: displaySerial, ...baseFields });
       } else if (item.item_type === "media_player") {
-        const displaySerial = item.serial_number || receiptSerialMaps.mediaSerialMap[item.id] || null;
+        const displaySerial = formatMergedSerials(item.serial_number, receiptSerialMaps.mediaSerialMap[item.id]) || null;
         result.push({ ...item, serial_number: displaySerial, ...baseFields });
       } else {
         result.push({ ...item, serial_number: item.serial_number || null, ...baseFields });
@@ -656,11 +644,9 @@ export default function InventoryReport() {
         if (item.item_condition !== filters.itemCondition) return false;
       }
 
-      // Dedicated S/N search - searches serial_number field from equipment_serial_numbers
-      if (filters.snSearch?.trim()) {
-        const snTerm = filters.snSearch.trim().toLowerCase();
-        const serialNumber = item.serial_number?.toLowerCase() || "";
-        if (!serialNumber.includes(snTerm)) return false;
+      // Dedicated S/N search - searches merged serials from master + received aliases
+      if (filters.snSearch?.trim() && !matchesSerialSearch(filters.snSearch, item.serial_number)) {
+        return false;
       }
 
       // Global search across all key columns shown in report (excluding S/N)
