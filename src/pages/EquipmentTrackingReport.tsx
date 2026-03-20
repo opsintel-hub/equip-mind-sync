@@ -306,9 +306,13 @@ function BillboardViewTab() {
 
       {/* Filters */}
       <div className="flex flex-wrap gap-3 items-center">
+        <div className="relative flex-1 min-w-[140px] max-w-[200px]">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Input placeholder="ค้นหา S/N..." value={snSearch} onChange={e => setSnSearch(e.target.value)} className="pl-9" />
+        </div>
         <div className="relative flex-1 min-w-[200px]">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input placeholder="ค้นหาป้าย (Old Code / Location) หรือ S/N อุปกรณ์..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
+          <Input placeholder="ค้นหาป้าย (Old Code / Location)..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
         </div>
         <Select value={regionFilter} onValueChange={setRegionFilter}>
           <SelectTrigger className="w-[160px]"><SelectValue placeholder="Region" /></SelectTrigger>
