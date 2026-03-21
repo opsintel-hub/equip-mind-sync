@@ -537,6 +537,7 @@ export default function InventoryReport() {
         issue_billboard_code: issueInfo?.billboard_code || null,
         issue_requester: issueInfo?.requester || null,
         issued_quantity: issueInfo?.issued_quantity || 0,
+        all_prices: receiptPriceMap[item.id] || [],
       };
 
       // For equipment with multiple S/Ns, expand into separate rows
