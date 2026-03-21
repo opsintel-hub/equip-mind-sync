@@ -1070,6 +1070,30 @@ export default function InventoryReport() {
                           <TableCell className="text-right text-muted-foreground">
                             {item.min_stock_level.toLocaleString()}
                           </TableCell>
+                          {/* Price per unit with tooltip for multiple prices */}
+                          <TableCell className="text-right">
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <span className={`font-medium cursor-default ${(item.all_prices && item.all_prices.length > 1) ? 'underline decoration-dotted text-primary' : ''}`}>
+                                    ฿{item.unit_price.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                  </span>
+                                </TooltipTrigger>
+                                {item.all_prices && item.all_prices.length > 1 && (
+                                  <TooltipContent side="left" className="max-w-[200px]">
+                                    <div className="space-y-1">
+                                      <div className="font-semibold text-xs">ราคาจากการนำเข้า:</div>
+                                      {item.all_prices.map((p, idx) => (
+                                        <div key={idx} className="text-xs">
+                                          ฿{p.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </TooltipContent>
+                                )}
+                              </Tooltip>
+                            </TooltipProvider>
+                          </TableCell>
                           <TableCell>
                             <div className="flex flex-col gap-1">
                               <Badge
