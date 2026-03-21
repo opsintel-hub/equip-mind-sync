@@ -299,7 +299,7 @@ export function InventoryFilters({ filters, onFiltersChange }: InventoryFiltersP
             onFiltersChange({ ...filters, itemType: value === "all" ? "" : value })
           }
         >
-          <SelectTrigger>
+          <SelectTrigger className="min-w-[140px]">
             <SelectValue placeholder="ประเภทสินค้า" />
           </SelectTrigger>
           <SelectContent>
