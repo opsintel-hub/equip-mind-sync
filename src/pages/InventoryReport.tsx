@@ -391,6 +391,33 @@ export default function InventoryReport() {
     };
   }, [receivedSerials]);
 
+  // Fetch receipt prices for each equipment (multiple receipts may have different prices)
+  const { data: receiptPrices = [] } = useQuery({
+    queryKey: ["inventory-receipt-prices"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("goods_receipt_pending")
+        .select("equipment_id, media_player_id, is_media_player, unit_price, received_at")
+        .eq("status", "received")
+        .not("unit_price", "is", null)
+        .gt("unit_price", 0);
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
+  const receiptPriceMap = useMemo(() => {
+    const map: Record<string, number[]> = {};
+    receiptPrices.forEach((row: any) => {
+      const key = row.is_media_player ? row.media_player_id : row.equipment_id;
+      if (!key) return;
+      if (!map[key]) map[key] = [];
+      const price = Number(row.unit_price);
+      if (!map[key].includes(price)) map[key].push(price);
+    });
+    return map;
+  }, [receiptPrices]);
+
   // Fetch issue data for equipment
   const { data: issueData = [] } = useQuery({
     queryKey: ["inventory-issue-data"],
