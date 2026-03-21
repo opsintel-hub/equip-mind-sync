@@ -18,13 +18,14 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { ProcessTracker, ProcessStep } from "@/components/ProcessTracker";
-import { Monitor, Search, Download, Eye, Package, AlertTriangle, CheckCircle, Loader2, FileDown, Tag, Building2, Wrench, Shield } from "lucide-react";
-import { differenceInDays, parseISO, format } from "date-fns";
+import { Monitor, Search, Download, Eye, Package, AlertTriangle, CheckCircle, Loader2, FileDown, Tag, Building2, Wrench, Shield, Image as ImageIcon } from "lucide-react";
+import { differenceInDays, differenceInMonths, parseISO, format } from "date-fns";
 import { formatBillboardLabel } from "@/lib/billboardUtils";
 import { toast } from "sonner";
 import * as XLSX from "xlsx";
-import { buildReceivedSerialAliasMap, formatMergedSerials, matchesSerialSearch } from "@/lib/serialSearch";
+import { matchesSerialSearch } from "@/lib/serialSearch";
 
 import { MediaPlayerRow, BillboardJourney, StockMovement } from "@/components/media-player/profile/types";
 import { SummaryCards } from "@/components/media-player/profile/SummaryCards";
@@ -45,7 +46,16 @@ const getConditionBadge = (condition: string) => {
   }
 };
 
-interface MediaPlayerListItem {
+const getConditionLabel = (condition: string) => {
+  switch (condition) {
+    case "normal": return "ปกติ";
+    case "defective": return "ชำรุด";
+    case "repaired": return "ซ่อมแล้ว";
+    default: return condition;
+  }
+};
+
+interface MediaPlayerMaster {
   id: string;
   code: string;
   name: string;
@@ -63,9 +73,51 @@ interface MediaPlayerListItem {
   warranty_expiry_date: string | null;
   date_of_receipt: string | null;
   install_date: string | null;
+  unit_price: number | null;
+  po_number: string | null;
+  asset_code: string | null;
+  equipment_id_code: string | null;
+  depreciation_months: number | null;
+  activate_windows: string | null;
+  image_url: string | null;
+  specification: string | null;
+  usage_lifespan_months: number | null;
   companies: { name: string } | null;
   locations: { name: string } | null;
   billboard: { id: string; equipment_id: string; old_code: string | null; location_name: string | null } | null;
+}
+
+/** One expanded row = one S/N (one unit) */
+interface ExpandedRow {
+  /** unique key for React */
+  key: string;
+  playerId: string;
+  code: string;
+  name: string;
+  serialNumber: string;
+  brand: string;
+  department: string;
+  condition: string;
+  statusLabel: string;
+  billboardLabel: string;
+  company: string;
+  locationName: string;
+  price: number | null;
+  poNumber: string;
+  warrantyExpiry: string | null;
+  expiryDate: string | null; // usage_lifespan based
+  assetCode: string;
+  equipmentIdCode: string;
+  depreciationRemaining: number | null;
+  activateWindows: string;
+  imageUrl: string | null;
+  lotNumber1: string;
+  lotNumber2: string;
+  specification: string;
+  // for profile link
+  billboard_id: string | null;
+  warrantyDaysLeft: number | null;
+  expiryDaysLeft: number | null;
 }
 
 export default function MediaPlayerReport() {
@@ -80,16 +132,18 @@ export default function MediaPlayerReport() {
   const [brandFilter, setBrandFilter] = useState("all");
   const [selectedPlayerId, setSelectedPlayerId] = useState<string | null>(null);
 
-  // Fetch all media players
+  // Fetch all media players with extra fields
   const { data: players = [], isLoading } = useQuery({
-    queryKey: ["media-player-report"],
+    queryKey: ["media-player-report-v2"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("media_players")
         .select(`
           id, code, name, serial_number_1, serial_number_2, brand, department,
           item_condition, status, quantity, unit, billboard_id, location_id, company_id,
-          warranty_expiry_date, date_of_receipt, install_date,
+          warranty_expiry_date, date_of_receipt, install_date, unit_price, po_number,
+          asset_code, equipment_id_code, depreciation_months, activate_windows,
+          image_url, specification, usage_lifespan_months,
           companies:company_id (name),
           locations:location_id (name),
           billboard:billboards!media_players_billboard_id_fkey (id, equipment_id, old_code, location_name)
@@ -97,31 +151,24 @@ export default function MediaPlayerReport() {
         .eq("is_active", true)
         .order("code");
       if (error) throw error;
-      return (data || []) as unknown as MediaPlayerListItem[];
+      return (data || []) as unknown as MediaPlayerMaster[];
     },
   });
 
-  const { data: receivedSerialAliases = [] } = useQuery({
-    queryKey: ["media-player-report-received-serials"],
+  // Fetch receipt-level data (S/N, price, PO, lot) for expansion
+  const { data: receiptRows = [] } = useQuery({
+    queryKey: ["media-player-report-receipts"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("goods_receipt_pending")
-        .select("media_player_id, serial_number, received_at, created_at")
+        .select("media_player_id, serial_number, unit_price, po_number, lot_number, lot_number_2, received_at, created_at")
         .eq("status", "received")
         .eq("is_media_player", true)
-        .not("media_player_id", "is", null)
-        .not("serial_number", "is", null)
-        .neq("serial_number", "");
-
+        .not("media_player_id", "is", null);
       if (error) throw error;
       return data || [];
     },
   });
-
-  const mediaPlayerAliasMap = useMemo(
-    () => buildReceivedSerialAliasMap(receivedSerialAliases, "media_player_id"),
-    [receivedSerialAliases],
-  );
 
   // Fetch departments for filter
   const { data: departments = [] } = useQuery({
@@ -131,6 +178,126 @@ export default function MediaPlayerReport() {
       return (data || []).map((d: any) => d.name);
     },
   });
+
+  // Build receipt map: playerId -> receipt rows
+  const receiptMap = useMemo(() => {
+    const map: Record<string, typeof receiptRows> = {};
+    receiptRows.forEach((r) => {
+      const pid = r.media_player_id;
+      if (!pid) return;
+      if (!map[pid]) map[pid] = [];
+      map[pid].push(r);
+    });
+    return map;
+  }, [receiptRows]);
+
+  // Expand players into 1 row per S/N
+  const expandedRows = useMemo(() => {
+    const rows: ExpandedRow[] = [];
+    const now = new Date();
+
+    players.forEach((p) => {
+      const receipts = receiptMap[p.id] || [];
+      const bbLabel = p.billboard
+        ? formatBillboardLabel(p.billboard.old_code, p.billboard.location_name, p.billboard.equipment_id)
+        : "-";
+      const statusLabel = p.billboard_id ? "ติดตั้ง" : "ในคลัง";
+      const company = p.companies?.name || "";
+      const locationName = p.locations?.name || "";
+
+      // Calculate warranty days left
+      let warrantyDaysLeft: number | null = null;
+      if (p.warranty_expiry_date) {
+        warrantyDaysLeft = differenceInDays(parseISO(p.warranty_expiry_date), now);
+      }
+
+      // Calculate usage expiry date based on date_of_receipt + usage_lifespan_months
+      let expiryDate: string | null = null;
+      let expiryDaysLeft: number | null = null;
+      if (p.date_of_receipt && p.usage_lifespan_months) {
+        const receiptDate = parseISO(p.date_of_receipt);
+        const expiry = new Date(receiptDate);
+        expiry.setMonth(expiry.getMonth() + p.usage_lifespan_months);
+        expiryDate = expiry.toISOString();
+        expiryDaysLeft = differenceInDays(expiry, now);
+      }
+
+      // Calculate depreciation remaining months
+      let depreciationRemaining: number | null = null;
+      if (p.depreciation_months && p.date_of_receipt) {
+        const monthsUsed = differenceInMonths(now, parseISO(p.date_of_receipt));
+        depreciationRemaining = Math.max(0, p.depreciation_months - monthsUsed);
+      }
+
+      if (receipts.length > 0) {
+        // Expand: 1 receipt row = 1 display row
+        receipts.forEach((r, ri) => {
+          rows.push({
+            key: `${p.id}-r${ri}`,
+            playerId: p.id,
+            code: p.code,
+            name: p.name,
+            serialNumber: r.serial_number?.trim() || "-",
+            brand: p.brand || "",
+            department: p.department || "",
+            condition: p.item_condition,
+            statusLabel,
+            billboardLabel: bbLabel,
+            company,
+            locationName,
+            price: r.unit_price ?? p.unit_price,
+            poNumber: r.po_number || p.po_number || "",
+            warrantyExpiry: p.warranty_expiry_date,
+            expiryDate,
+            assetCode: p.asset_code || "",
+            equipmentIdCode: p.equipment_id_code || "",
+            depreciationRemaining,
+            activateWindows: p.activate_windows || "",
+            imageUrl: p.image_url,
+            lotNumber1: (r as any).lot_number || "",
+            lotNumber2: (r as any).lot_number_2 || "",
+            specification: p.specification || "",
+            billboard_id: p.billboard_id,
+            warrantyDaysLeft,
+            expiryDaysLeft,
+          });
+        });
+      } else {
+        // No receipt rows: show single row with master S/N
+        const masterSN = [p.serial_number_1, p.serial_number_2].filter(Boolean).join("\n") || "-";
+        rows.push({
+          key: `${p.id}-master`,
+          playerId: p.id,
+          code: p.code,
+          name: p.name,
+          serialNumber: masterSN,
+          brand: p.brand || "",
+          department: p.department || "",
+          condition: p.item_condition,
+          statusLabel,
+          billboardLabel: bbLabel,
+          company,
+          locationName,
+          price: p.unit_price,
+          poNumber: p.po_number || "",
+          warrantyExpiry: p.warranty_expiry_date,
+          expiryDate,
+          assetCode: p.asset_code || "",
+          equipmentIdCode: p.equipment_id_code || "",
+          depreciationRemaining,
+          activateWindows: p.activate_windows || "",
+          imageUrl: p.image_url,
+          lotNumber1: "",
+          lotNumber2: "",
+          specification: p.specification || "",
+          billboard_id: p.billboard_id,
+          warrantyDaysLeft,
+          expiryDaysLeft,
+        });
+      }
+    });
+    return rows;
+  }, [players, receiptMap]);
 
   // Extract unique code prefixes
   const codePrefixes = useMemo(() => {
@@ -156,38 +323,41 @@ export default function MediaPlayerReport() {
     return Array.from(set).sort();
   }, [players]);
 
-  // Filter
+  // Filter expanded rows
   const filtered = useMemo(() => {
-    return players.filter((p) => {
-      if (conditionFilter !== "all" && p.item_condition !== conditionFilter) return false;
-      if (departmentFilter !== "all" && p.department !== departmentFilter) return false;
+    return expandedRows.filter((r) => {
+      if (conditionFilter !== "all" && r.condition !== conditionFilter) return false;
+      if (departmentFilter !== "all" && r.department !== departmentFilter) return false;
       if (statusFilter !== "all") {
-        const isInstalled = !!p.billboard_id;
-        if (statusFilter === "installed" && !isInstalled) return false;
-        if (statusFilter === "in_stock" && isInstalled) return false;
+        if (statusFilter === "installed" && !r.billboard_id) return false;
+        if (statusFilter === "in_stock" && r.billboard_id) return false;
       }
-      if (companyFilter !== "all" && (p.companies?.name || "") !== companyFilter) return false;
-      if (brandFilter !== "all" && (p.brand || "") !== brandFilter) return false;
+      if (companyFilter !== "all" && r.company !== companyFilter) return false;
+      if (brandFilter !== "all" && r.brand !== brandFilter) return false;
       if (codePrefixFilter !== "all") {
-        const match = p.code?.match(/^([A-Za-z-]+)/);
+        const match = r.code?.match(/^([A-Za-z-]+)/);
         if (!match || match[1] !== codePrefixFilter) return false;
       }
-      // Dedicated S/N search
-      if (snSearch && !matchesSerialSearch(snSearch, p.serial_number_1, p.serial_number_2, mediaPlayerAliasMap[p.id])) {
-        return false;
+      // S/N search
+      if (snSearch) {
+        const term = snSearch.trim().toLowerCase();
+        if (!r.serialNumber.toLowerCase().includes(term)) return false;
       }
-      // General search (code, name, brand)
+      // General search
       if (search) {
         const s = search.toLowerCase();
         const match =
-          p.code?.toLowerCase().includes(s) ||
-          p.name?.toLowerCase().includes(s) ||
-          p.brand?.toLowerCase().includes(s);
+          r.code?.toLowerCase().includes(s) ||
+          r.name?.toLowerCase().includes(s) ||
+          r.brand?.toLowerCase().includes(s) ||
+          r.poNumber?.toLowerCase().includes(s) ||
+          r.assetCode?.toLowerCase().includes(s) ||
+          r.equipmentIdCode?.toLowerCase().includes(s);
         if (!match) return false;
       }
       return true;
     });
-  }, [players, search, snSearch, conditionFilter, departmentFilter, statusFilter, companyFilter, brandFilter, codePrefixFilter, mediaPlayerAliasMap]);
+  }, [expandedRows, search, snSearch, conditionFilter, departmentFilter, statusFilter, companyFilter, brandFilter, codePrefixFilter]);
 
   const {
     paginatedData,
@@ -199,24 +369,16 @@ export default function MediaPlayerReport() {
     handlePageSizeChange,
   } = useTablePagination(filtered, 20);
 
-  // Summary stats - based on filtered data
+  // Summary stats
   const stats = useMemo(() => {
     const total = filtered.length;
-    const installed = filtered.filter((p) => !!p.billboard_id).length;
-    const inStock = filtered.filter((p) => !p.billboard_id).length;
-    const defective = filtered.filter((p) => p.item_condition === "defective").length;
-    const repaired = filtered.filter((p) => p.item_condition === "repaired").length;
-    const filteredPrefixes = new Set<string>();
-    filtered.forEach((p) => { const m = p.code?.match(/^([A-Za-z-]+)/); if (m) filteredPrefixes.add(m[1]); });
-    const uniquePrefixes = filteredPrefixes.size;
-    const filteredBrands = new Set<string>();
-    filtered.forEach((p) => { if (p.brand) filteredBrands.add(p.brand); });
-    const uniqueBrands = filteredBrands.size;
-    const warrantyExpiring = filtered.filter((p) => {
-      if (!p.warranty_expiry_date) return false;
-      const days = differenceInDays(parseISO(p.warranty_expiry_date), new Date());
-      return days >= 0 && days <= 90;
-    }).length;
+    const installed = filtered.filter((r) => !!r.billboard_id).length;
+    const inStock = filtered.filter((r) => !r.billboard_id).length;
+    const defective = filtered.filter((r) => r.condition === "defective").length;
+    const repaired = filtered.filter((r) => r.condition === "repaired").length;
+    const uniquePrefixes = new Set(filtered.map((r) => { const m = r.code?.match(/^([A-Za-z-]+)/); return m ? m[1] : ""; }).filter(Boolean)).size;
+    const uniqueBrands = new Set(filtered.map((r) => r.brand).filter(Boolean)).size;
+    const warrantyExpiring = filtered.filter((r) => r.warrantyDaysLeft !== null && r.warrantyDaysLeft >= 0 && r.warrantyDaysLeft <= 90).length;
     return { total, installed, inStock, defective, repaired, uniquePrefixes, uniqueBrands, warrantyExpiring };
   }, [filtered]);
 
@@ -226,23 +388,40 @@ export default function MediaPlayerReport() {
       toast.error("ไม่มีข้อมูลสำหรับส่งออก");
       return;
     }
-    const rows = filtered.map((p) => ({
-      รหัส: p.code,
-      ชื่อ: p.name,
-      "S/N": formatMergedSerials(p.serial_number_1, p.serial_number_2, mediaPlayerAliasMap[p.id]) || "",
-      ยี่ห้อ: p.brand || "",
-      ฝ่าย: p.department || "",
-      สภาพ: p.item_condition === "normal" ? "ปกติ" : p.item_condition === "defective" ? "ชำรุด" : p.item_condition === "repaired" ? "ซ่อมแล้ว" : p.item_condition,
-      สถานะ: p.billboard_id ? "ติดตั้ง" : "ในคลัง",
-      ป้ายปัจจุบัน: p.billboard ? formatBillboardLabel(p.billboard.old_code, p.billboard.location_name, p.billboard.equipment_id) : "",
-      บริษัท: p.companies?.name || "",
-      ตำแหน่งจัดเก็บ: p.locations?.name || "",
+    const rows = filtered.map((r) => ({
+      "ลำดับ": "",
+      "รหัส": r.code,
+      "ชื่อ": r.name,
+      "S/N": r.serialNumber,
+      "สภาพ": getConditionLabel(r.condition),
+      "สถานะ": r.statusLabel,
+      "ป้ายปัจจุบัน": r.billboardLabel,
+      "ฝ่าย": r.department,
+      "บริษัท": r.company,
+      "ราคา/ชิ้น": r.price ?? "",
+      "เลข PO": r.poNumber,
+      "รหัสทรัพย์สิน": r.assetCode,
+      "Equipment ID": r.equipmentIdCode,
+      "ค่าเสื่อมคงเหลือ (เดือน)": r.depreciationRemaining ?? "",
+      "วันหมดประกัน": r.warrantyExpiry ? format(parseISO(r.warrantyExpiry), "dd/MM/yyyy") : "",
+      "วันหมดอายุ": r.expiryDate ? format(parseISO(r.expiryDate), "dd/MM/yyyy") : "",
+      "ตำแหน่งจัดเก็บ": r.locationName,
+      "Activate Windows": r.activateWindows,
+      "Specification": r.specification,
+      "Lot Number 1": r.lotNumber1,
+      "Lot Number 2": r.lotNumber2,
     }));
+    rows.forEach((row, i) => { row["ลำดับ"] = String(i + 1); });
     const ws = XLSX.utils.json_to_sheet(rows);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Media Players");
     XLSX.writeFile(wb, `media-player-report-${format(new Date(), "yyyyMMdd")}.xlsx`);
     toast.success("ส่งออก Excel สำเร็จ");
+  };
+
+  const formatPrice = (price: number | null) => {
+    if (price === null || price === undefined) return "-";
+    return price.toLocaleString("th-TH", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   };
 
   return (
@@ -254,7 +433,7 @@ export default function MediaPlayerReport() {
             <Monitor className="w-8 h-8" />
             รายงาน Media Player
           </h1>
-          <p className="text-muted-foreground">แสดงรายการ Media Player ทั้งหมด 1 เครื่องต่อ 1 แถว พร้อมดู Profile แต่ละเครื่อง</p>
+          <p className="text-muted-foreground">แสดงรายการ Media Player ทั้งหมด 1 เครื่อง (S/N) ต่อ 1 แถว พร้อมดู Profile แต่ละเครื่อง</p>
         </div>
         <Button variant="outline" onClick={handleExport}>
           <Download className="w-4 h-4 mr-2" />
@@ -264,98 +443,42 @@ export default function MediaPlayerReport() {
 
       {/* Summary Cards - Row 1 */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="p-4 flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-              <Monitor className="w-5 h-5 text-primary" />
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">ทั้งหมด</p>
-              <p className="text-2xl font-bold">{stats.total}</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4 flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-accent flex items-center justify-center">
-              <Tag className="w-5 h-5 text-primary" />
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">จำนวนรหัส (Prefix)</p>
-              <p className="text-2xl font-bold">{stats.uniquePrefixes}</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4 flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-accent flex items-center justify-center">
-              <CheckCircle className="w-5 h-5 text-chart-2" />
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">ติดตั้งแล้ว</p>
-              <p className="text-2xl font-bold">{stats.installed}</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4 flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-accent flex items-center justify-center">
-              <Package className="w-5 h-5 text-chart-1" />
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">ในคลัง</p>
-              <p className="text-2xl font-bold">{stats.inStock}</p>
-            </div>
-          </CardContent>
-        </Card>
+        <Card><CardContent className="p-4 flex items-center gap-3">
+          <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center"><Monitor className="w-5 h-5 text-primary" /></div>
+          <div><p className="text-sm text-muted-foreground">ทั้งหมด</p><p className="text-2xl font-bold">{stats.total}</p></div>
+        </CardContent></Card>
+        <Card><CardContent className="p-4 flex items-center gap-3">
+          <div className="w-10 h-10 rounded-lg bg-accent flex items-center justify-center"><Tag className="w-5 h-5 text-primary" /></div>
+          <div><p className="text-sm text-muted-foreground">จำนวนรหัส (Prefix)</p><p className="text-2xl font-bold">{stats.uniquePrefixes}</p></div>
+        </CardContent></Card>
+        <Card><CardContent className="p-4 flex items-center gap-3">
+          <div className="w-10 h-10 rounded-lg bg-accent flex items-center justify-center"><CheckCircle className="w-5 h-5 text-chart-2" /></div>
+          <div><p className="text-sm text-muted-foreground">ติดตั้งแล้ว</p><p className="text-2xl font-bold">{stats.installed}</p></div>
+        </CardContent></Card>
+        <Card><CardContent className="p-4 flex items-center gap-3">
+          <div className="w-10 h-10 rounded-lg bg-accent flex items-center justify-center"><Package className="w-5 h-5 text-chart-1" /></div>
+          <div><p className="text-sm text-muted-foreground">ในคลัง</p><p className="text-2xl font-bold">{stats.inStock}</p></div>
+        </CardContent></Card>
       </div>
 
       {/* Summary Cards - Row 2 */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="p-4 flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-destructive/10 flex items-center justify-center">
-              <AlertTriangle className="w-5 h-5 text-destructive" />
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">ชำรุด</p>
-              <p className="text-2xl font-bold">{stats.defective}</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4 flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-accent flex items-center justify-center">
-              <Wrench className="w-5 h-5 text-chart-4" />
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">ซ่อมแล้ว</p>
-              <p className="text-2xl font-bold">{stats.repaired}</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4 flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-accent flex items-center justify-center">
-              <Building2 className="w-5 h-5 text-chart-3" />
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">จำนวนยี่ห้อ</p>
-              <p className="text-2xl font-bold">{stats.uniqueBrands}</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4 flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-accent flex items-center justify-center">
-              <Shield className="w-5 h-5 text-chart-5" />
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">ประกันใกล้หมด (90 วัน)</p>
-              <p className="text-2xl font-bold">{stats.warrantyExpiring}</p>
-            </div>
-          </CardContent>
-        </Card>
+        <Card><CardContent className="p-4 flex items-center gap-3">
+          <div className="w-10 h-10 rounded-lg bg-destructive/10 flex items-center justify-center"><AlertTriangle className="w-5 h-5 text-destructive" /></div>
+          <div><p className="text-sm text-muted-foreground">ชำรุด</p><p className="text-2xl font-bold">{stats.defective}</p></div>
+        </CardContent></Card>
+        <Card><CardContent className="p-4 flex items-center gap-3">
+          <div className="w-10 h-10 rounded-lg bg-accent flex items-center justify-center"><Wrench className="w-5 h-5 text-chart-4" /></div>
+          <div><p className="text-sm text-muted-foreground">ซ่อมแล้ว</p><p className="text-2xl font-bold">{stats.repaired}</p></div>
+        </CardContent></Card>
+        <Card><CardContent className="p-4 flex items-center gap-3">
+          <div className="w-10 h-10 rounded-lg bg-accent flex items-center justify-center"><Building2 className="w-5 h-5 text-chart-3" /></div>
+          <div><p className="text-sm text-muted-foreground">จำนวนยี่ห้อ</p><p className="text-2xl font-bold">{stats.uniqueBrands}</p></div>
+        </CardContent></Card>
+        <Card><CardContent className="p-4 flex items-center gap-3">
+          <div className="w-10 h-10 rounded-lg bg-accent flex items-center justify-center"><Shield className="w-5 h-5 text-chart-5" /></div>
+          <div><p className="text-sm text-muted-foreground">ประกันใกล้หมด (90 วัน)</p><p className="text-2xl font-bold">{stats.warrantyExpiring}</p></div>
+        </CardContent></Card>
       </div>
 
       {/* Filters */}
@@ -365,40 +488,24 @@ export default function MediaPlayerReport() {
             <div className="flex-1 min-w-[160px]">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input
-                  placeholder="ค้นหา S/N..."
-                  value={snSearch}
-                  onChange={(e) => setSnSearch(e.target.value)}
-                  className="pl-9"
-                />
+                <Input placeholder="ค้นหา S/N..." value={snSearch} onChange={(e) => setSnSearch(e.target.value)} className="pl-9" />
               </div>
             </div>
             <div className="flex-1 min-w-[200px]">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input
-                  placeholder="ค้นหา รหัส, ชื่อ, ยี่ห้อ..."
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  className="pl-9"
-                />
+                <Input placeholder="ค้นหา รหัส, ชื่อ, ยี่ห้อ, PO, Asset Code..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
               </div>
             </div>
             <Select value={codePrefixFilter} onValueChange={setCodePrefixFilter}>
-              <SelectTrigger className="w-[160px]">
-                <SelectValue placeholder="รหัส (Prefix)" />
-              </SelectTrigger>
+              <SelectTrigger className="w-[160px]"><SelectValue placeholder="รหัส (Prefix)" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">ทุกรหัส</SelectItem>
-                {codePrefixes.map((prefix) => (
-                  <SelectItem key={prefix} value={prefix}>{prefix}</SelectItem>
-                ))}
+                {codePrefixes.map((prefix) => (<SelectItem key={prefix} value={prefix}>{prefix}</SelectItem>))}
               </SelectContent>
             </Select>
             <Select value={conditionFilter} onValueChange={setConditionFilter}>
-              <SelectTrigger className="w-[130px]">
-                <SelectValue placeholder="สภาพ" />
-              </SelectTrigger>
+              <SelectTrigger className="w-[130px]"><SelectValue placeholder="สภาพ" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">ทุกสภาพ</SelectItem>
                 <SelectItem value="normal">ปกติ</SelectItem>
@@ -407,9 +514,7 @@ export default function MediaPlayerReport() {
               </SelectContent>
             </Select>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-[130px]">
-                <SelectValue placeholder="สถานะ" />
-              </SelectTrigger>
+              <SelectTrigger className="w-[130px]"><SelectValue placeholder="สถานะ" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">ทุกสถานะ</SelectItem>
                 <SelectItem value="installed">ติดตั้ง</SelectItem>
@@ -417,36 +522,24 @@ export default function MediaPlayerReport() {
               </SelectContent>
             </Select>
             <Select value={departmentFilter} onValueChange={setDepartmentFilter}>
-              <SelectTrigger className="w-[160px]">
-                <SelectValue placeholder="ฝ่าย" />
-              </SelectTrigger>
+              <SelectTrigger className="w-[160px]"><SelectValue placeholder="ฝ่าย" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">ทุกฝ่าย</SelectItem>
-                {departments.map((d: string) => (
-                  <SelectItem key={d} value={d}>{d}</SelectItem>
-                ))}
+                {departments.map((d: string) => (<SelectItem key={d} value={d}>{d}</SelectItem>))}
               </SelectContent>
             </Select>
             <Select value={companyFilter} onValueChange={setCompanyFilter}>
-              <SelectTrigger className="w-[160px]">
-                <SelectValue placeholder="บริษัท" />
-              </SelectTrigger>
+              <SelectTrigger className="w-[160px]"><SelectValue placeholder="บริษัท" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">ทุกบริษัท</SelectItem>
-                {companyNames.map((c) => (
-                  <SelectItem key={c} value={c}>{c}</SelectItem>
-                ))}
+                {companyNames.map((c) => (<SelectItem key={c} value={c}>{c}</SelectItem>))}
               </SelectContent>
             </Select>
             <Select value={brandFilter} onValueChange={setBrandFilter}>
-              <SelectTrigger className="w-[140px]">
-                <SelectValue placeholder="ยี่ห้อ" />
-              </SelectTrigger>
+              <SelectTrigger className="w-[140px]"><SelectValue placeholder="ยี่ห้อ" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">ทุกยี่ห้อ</SelectItem>
-                {brands.map((b) => (
-                  <SelectItem key={b} value={b}>{b}</SelectItem>
-                ))}
+                {brands.map((b) => (<SelectItem key={b} value={b}>{b}</SelectItem>))}
               </SelectContent>
             </Select>
           </div>
@@ -461,70 +554,121 @@ export default function MediaPlayerReport() {
               <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
             </div>
           ) : (
-            <>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-[50px]">#</TableHead>
-                    <TableHead>รหัส</TableHead>
-                    <TableHead>ชื่อ</TableHead>
-                    <TableHead>S/N</TableHead>
-                    <TableHead>สภาพ</TableHead>
-                    <TableHead>สถานะ</TableHead>
-                    <TableHead>ป้ายปัจจุบัน</TableHead>
-                    <TableHead>ฝ่าย</TableHead>
-                    <TableHead className="text-center w-[80px]">Profile</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {paginatedData.length === 0 ? (
+            <TooltipProvider>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
                     <TableRow>
-                      <TableCell colSpan={9} className="text-center py-10 text-muted-foreground">
-                        ไม่พบข้อมูล Media Player
-                      </TableCell>
+                      <TableHead className="min-w-[50px]">#</TableHead>
+                      <TableHead className="min-w-[60px]">ภาพ</TableHead>
+                      <TableHead className="min-w-[130px]">รหัส</TableHead>
+                      <TableHead className="min-w-[130px]">ชื่อ</TableHead>
+                      <TableHead className="min-w-[120px]">S/N</TableHead>
+                      <TableHead className="min-w-[80px]">สภาพ</TableHead>
+                      <TableHead className="min-w-[80px]">สถานะ</TableHead>
+                      <TableHead className="min-w-[200px]">ป้ายปัจจุบัน</TableHead>
+                      <TableHead className="min-w-[110px]">ฝ่าย</TableHead>
+                      <TableHead className="min-w-[110px]">บริษัท</TableHead>
+                      <TableHead className="min-w-[100px] text-right">ราคา/ชิ้น</TableHead>
+                      <TableHead className="min-w-[100px]">เลข PO</TableHead>
+                      <TableHead className="min-w-[110px]">รหัสทรัพย์สิน</TableHead>
+                      <TableHead className="min-w-[110px]">Equipment ID</TableHead>
+                      <TableHead className="min-w-[100px] text-right">ค่าเสื่อมเหลือ (เดือน)</TableHead>
+                      <TableHead className="min-w-[110px]">วันหมดประกัน</TableHead>
+                      <TableHead className="min-w-[110px]">วันหมดอายุ</TableHead>
+                      <TableHead className="min-w-[130px]">ตำแหน่งจัดเก็บ</TableHead>
+                      <TableHead className="min-w-[110px]">Activate Windows</TableHead>
+                      <TableHead className="min-w-[110px]">Specification</TableHead>
+                      <TableHead className="min-w-[100px]">Lot No.1</TableHead>
+                      <TableHead className="min-w-[100px]">Lot No.2</TableHead>
+                      <TableHead className="text-center min-w-[70px]">Profile</TableHead>
                     </TableRow>
-                  ) : (
-                    paginatedData.map((p, idx) => {
-                      const sn = formatMergedSerials(p.serial_number_1, p.serial_number_2, mediaPlayerAliasMap[p.id]);
-                      const bbLabel = p.billboard
-                        ? formatBillboardLabel(p.billboard.old_code, p.billboard.location_name, p.billboard.equipment_id)
-                        : "-";
-                      const rowNum = (currentPage - 1) * pageSize + idx + 1;
-
-                      return (
-                        <TableRow key={p.id} className="hover:bg-muted/30 cursor-pointer" onClick={() => setSelectedPlayerId(p.id)}>
-                          <TableCell className="text-muted-foreground">{rowNum}</TableCell>
-                          <TableCell className="font-mono font-medium">{p.code}</TableCell>
-                          <TableCell>{p.name}</TableCell>
-                          <TableCell className="text-sm text-muted-foreground whitespace-pre-line">{sn || "-"}</TableCell>
-                          <TableCell>{getConditionBadge(p.item_condition)}</TableCell>
-                          <TableCell>
-                            {p.billboard_id ? (
-                              <Badge className="bg-green-100 text-green-800 border-green-200">ติดตั้ง</Badge>
-                            ) : (
-                              <Badge variant="outline">ในคลัง</Badge>
-                            )}
-                          </TableCell>
-                          <TableCell className="text-sm">{bbLabel}</TableCell>
-                          <TableCell>{p.department || "-"}</TableCell>
-                          <TableCell className="text-center">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setSelectedPlayerId(p.id);
-                              }}
-                            >
-                              <Eye className="w-4 h-4" />
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })
-                  )}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {paginatedData.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={23} className="text-center py-10 text-muted-foreground">
+                          ไม่พบข้อมูล Media Player
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      paginatedData.map((r, idx) => {
+                        const rowNum = (currentPage - 1) * pageSize + idx + 1;
+                        return (
+                          <TableRow key={r.key} className="hover:bg-muted/30 cursor-pointer" onClick={() => setSelectedPlayerId(r.playerId)}>
+                            <TableCell className="text-muted-foreground">{rowNum}</TableCell>
+                            <TableCell>
+                              {r.imageUrl ? (
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <img src={r.imageUrl} alt="" className="w-10 h-10 rounded object-cover border" />
+                                  </TooltipTrigger>
+                                  <TooltipContent side="right" className="p-0">
+                                    <img src={r.imageUrl} alt="" className="w-48 h-48 rounded object-cover" />
+                                  </TooltipContent>
+                                </Tooltip>
+                              ) : (
+                                <div className="w-10 h-10 rounded bg-muted flex items-center justify-center">
+                                  <ImageIcon className="w-4 h-4 text-muted-foreground" />
+                                </div>
+                              )}
+                            </TableCell>
+                            <TableCell className="font-mono font-medium">{r.code}</TableCell>
+                            <TableCell>{r.name}</TableCell>
+                            <TableCell className="text-sm whitespace-pre-line">{r.serialNumber}</TableCell>
+                            <TableCell>{getConditionBadge(r.condition)}</TableCell>
+                            <TableCell>
+                              {r.billboard_id ? (
+                                <Badge className="bg-green-100 text-green-800 border-green-200">ติดตั้ง</Badge>
+                              ) : (
+                                <Badge variant="outline">ในคลัง</Badge>
+                              )}
+                            </TableCell>
+                            <TableCell className="text-sm">{r.billboardLabel}</TableCell>
+                            <TableCell>{r.department || "-"}</TableCell>
+                            <TableCell>{r.company || "-"}</TableCell>
+                            <TableCell className="text-right font-mono">{formatPrice(r.price)}</TableCell>
+                            <TableCell>{r.poNumber || "-"}</TableCell>
+                            <TableCell>{r.assetCode || "-"}</TableCell>
+                            <TableCell>{r.equipmentIdCode || "-"}</TableCell>
+                            <TableCell className="text-right">
+                              {r.depreciationRemaining !== null ? (
+                                <span className={r.depreciationRemaining <= 0 ? "text-destructive font-semibold" : ""}>
+                                  {r.depreciationRemaining}
+                                </span>
+                              ) : "-"}
+                            </TableCell>
+                            <TableCell>
+                              {r.warrantyExpiry ? (
+                                <span className={r.warrantyDaysLeft !== null && r.warrantyDaysLeft <= 90 ? (r.warrantyDaysLeft <= 0 ? "text-destructive font-semibold" : "text-amber-600 font-medium") : ""}>
+                                  {format(parseISO(r.warrantyExpiry), "dd/MM/yyyy")}
+                                </span>
+                              ) : "-"}
+                            </TableCell>
+                            <TableCell>
+                              {r.expiryDate ? (
+                                <span className={r.expiryDaysLeft !== null && r.expiryDaysLeft <= 90 ? (r.expiryDaysLeft <= 0 ? "text-destructive font-semibold" : "text-amber-600 font-medium") : ""}>
+                                  {format(parseISO(r.expiryDate), "dd/MM/yyyy")}
+                                </span>
+                              ) : "-"}
+                            </TableCell>
+                            <TableCell>{r.locationName || "-"}</TableCell>
+                            <TableCell>{r.activateWindows || "-"}</TableCell>
+                            <TableCell>{r.specification || "-"}</TableCell>
+                            <TableCell>{r.lotNumber1 || "-"}</TableCell>
+                            <TableCell>{r.lotNumber2 || "-"}</TableCell>
+                            <TableCell className="text-center">
+                              <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); setSelectedPlayerId(r.playerId); }}>
+                                <Eye className="w-4 h-4" />
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
               {totalItems > 0 && (
                 <div className="p-4 border-t">
                   <TablePagination
@@ -537,7 +681,7 @@ export default function MediaPlayerReport() {
                   />
                 </div>
               )}
-            </>
+            </TooltipProvider>
           )}
         </CardContent>
       </Card>
@@ -662,7 +806,6 @@ function MediaPlayerProfileDialog({
     const isInstalled = !!player.billboard_id;
     const hasHistory = journeys.length > 0;
 
-    // Infer earlier steps as done if later steps are completed
     const receiptDone = hasReceipt || hasLocation || isInstalled || hasHistory;
     const storageDone = hasLocation || isInstalled || hasHistory;
 
@@ -698,7 +841,6 @@ function MediaPlayerProfileDialog({
           </div>
         ) : player ? (
           <div className="space-y-4">
-            {/* Lifecycle */}
             <Card>
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm">Lifecycle</CardTitle>
@@ -710,7 +852,6 @@ function MediaPlayerProfileDialog({
 
             <SummaryCards player={player} journeys={journeys} />
 
-            {/* Tabs */}
             <Tabs defaultValue="journey" className="w-full">
               <TabsList className="grid w-full grid-cols-3 max-w-lg">
                 <TabsTrigger value="general">ข้อมูลทั่วไป</TabsTrigger>
