@@ -60,6 +60,7 @@ interface InventoryItem {
   issue_billboard_code?: string | null;
   issue_requester?: string | null;
   issued_quantity?: number;
+  all_prices?: number[];
 }
 
 interface ReceivedSerialItem {
