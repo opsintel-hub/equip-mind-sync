@@ -924,27 +924,28 @@ export default function InventoryReport() {
         <Card>
           <CardContent className="p-0">
             <div className="overflow-x-auto">
-              <Table>
+              <Table className="min-w-[2200px]">
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="w-[50px]">รูป</TableHead>
-                    <TableHead>ประเภท</TableHead>
-                    <TableHead>รหัส</TableHead>
-                    <TableHead>ชื่อ</TableHead>
-                    <TableHead>S/N</TableHead>
-                    <TableHead>หมวดหมู่</TableHead>
-                    <TableHead>หมวดหมู่ย่อย</TableHead>
-                    <TableHead>บริษัท</TableHead>
-                    <TableHead>ฝ่าย</TableHead>
-                    <TableHead>คลัง</TableHead>
-                    <TableHead>ตำแหน่งจัดเก็บ</TableHead>
-                    <TableHead className="text-right">จำนวน</TableHead>
-                    <TableHead className="text-right">Min</TableHead>
-                    <TableHead>สถานะ Stock</TableHead>
-                    <TableHead>สภาพสินค้า</TableHead>
-                    <TableHead>สถานะการเบิก</TableHead>
-                    <TableHead>วัตถุประสงค์</TableHead>
-                    <TableHead>ป้าย/Billboard</TableHead>
+                    <TableHead className="w-[50px] min-w-[50px]">รูป</TableHead>
+                    <TableHead className="min-w-[110px]">ประเภท</TableHead>
+                    <TableHead className="min-w-[100px]">รหัส</TableHead>
+                    <TableHead className="min-w-[160px]">ชื่อ</TableHead>
+                    <TableHead className="min-w-[140px]">S/N</TableHead>
+                    <TableHead className="min-w-[120px]">หมวดหมู่</TableHead>
+                    <TableHead className="min-w-[120px]">หมวดหมู่ย่อย</TableHead>
+                    <TableHead className="min-w-[100px]">บริษัท</TableHead>
+                    <TableHead className="min-w-[100px]">ฝ่าย</TableHead>
+                    <TableHead className="min-w-[100px]">คลัง</TableHead>
+                    <TableHead className="min-w-[130px]">ตำแหน่งจัดเก็บ</TableHead>
+                    <TableHead className="text-right min-w-[100px]">จำนวน</TableHead>
+                    <TableHead className="text-right min-w-[70px]">Min</TableHead>
+                    <TableHead className="text-right min-w-[110px]">ราคา/ชิ้น</TableHead>
+                    <TableHead className="min-w-[120px]">สถานะ Stock</TableHead>
+                    <TableHead className="min-w-[100px]">สภาพสินค้า</TableHead>
+                    <TableHead className="min-w-[120px]">สถานะการเบิก</TableHead>
+                    <TableHead className="min-w-[120px]">วัตถุประสงค์</TableHead>
+                    <TableHead className="min-w-[120px]">ป้าย/Billboard</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
