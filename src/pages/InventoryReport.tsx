@@ -569,7 +569,7 @@ export default function InventoryReport() {
     }
 
     return result;
-  }, [equipmentData, toolsData, mediaPlayerData, issueMap, equipmentSNMap, receiptSerialMaps]);
+  }, [equipmentData, toolsData, mediaPlayerData, issueMap, equipmentSNMap, receiptSerialMaps, receiptPriceMap]);
 
   const isLoading = isLoadingEquipment || isLoadingTools || isLoadingMediaPlayers;
 
