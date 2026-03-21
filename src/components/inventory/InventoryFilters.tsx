@@ -49,7 +49,7 @@ export const ADVANCE_DAYS_OPTIONS = [
 ];
 
 export const ITEM_TYPE_OPTIONS = [
-  { value: "all", label: "ทั้งหมด" },
+  { value: "all", label: "ทุกประเภท" },
   { value: "equipment", label: "อะไหล่หรืออุปกรณ์" },
   { value: "tools", label: "เครื่องมือ" },
   { value: "media_player", label: "Media Player" },
