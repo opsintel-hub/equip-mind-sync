@@ -16,6 +16,12 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Download, Package, AlertTriangle, XCircle, CheckCircle, Monitor, ImageIcon, Wrench, ArrowRightLeft, MapPin } from "lucide-react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { InventoryFilters, InventoryFiltersState, getConditionLabel, getConditionBadgeClass } from "@/components/inventory/InventoryFilters";
 import { EquipmentImageViewer } from "@/components/equipment/EquipmentImageViewer";
 import * as XLSX from "xlsx";
