@@ -16,6 +16,12 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Download, Package, AlertTriangle, XCircle, CheckCircle, Monitor, ImageIcon, Wrench, ArrowRightLeft, MapPin } from "lucide-react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { InventoryFilters, InventoryFiltersState, getConditionLabel, getConditionBadgeClass } from "@/components/inventory/InventoryFilters";
 import { EquipmentImageViewer } from "@/components/equipment/EquipmentImageViewer";
 import * as XLSX from "xlsx";
@@ -54,6 +60,7 @@ interface InventoryItem {
   issue_billboard_code?: string | null;
   issue_requester?: string | null;
   issued_quantity?: number;
+  all_prices?: number[];
 }
 
 interface ReceivedSerialItem {
@@ -384,6 +391,33 @@ export default function InventoryReport() {
     };
   }, [receivedSerials]);
 
+  // Fetch receipt prices for each equipment (multiple receipts may have different prices)
+  const { data: receiptPrices = [] } = useQuery({
+    queryKey: ["inventory-receipt-prices"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("goods_receipt_pending")
+        .select("equipment_id, media_player_id, is_media_player, unit_price, received_at")
+        .eq("status", "received")
+        .not("unit_price", "is", null)
+        .gt("unit_price", 0);
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
+  const receiptPriceMap = useMemo(() => {
+    const map: Record<string, number[]> = {};
+    receiptPrices.forEach((row: any) => {
+      const key = row.is_media_player ? row.media_player_id : row.equipment_id;
+      if (!key) return;
+      if (!map[key]) map[key] = [];
+      const price = Number(row.unit_price);
+      if (!map[key].includes(price)) map[key].push(price);
+    });
+    return map;
+  }, [receiptPrices]);
+
   // Fetch issue data for equipment
   const { data: issueData = [] } = useQuery({
     queryKey: ["inventory-issue-data"],
@@ -503,6 +537,7 @@ export default function InventoryReport() {
         issue_billboard_code: issueInfo?.billboard_code || null,
         issue_requester: issueInfo?.requester || null,
         issued_quantity: issueInfo?.issued_quantity || 0,
+        all_prices: receiptPriceMap[item.id] || [],
       };
 
       // For equipment with multiple S/Ns, expand into separate rows
@@ -534,7 +569,7 @@ export default function InventoryReport() {
     }
 
     return result;
-  }, [equipmentData, toolsData, mediaPlayerData, issueMap, equipmentSNMap, receiptSerialMaps]);
+  }, [equipmentData, toolsData, mediaPlayerData, issueMap, equipmentSNMap, receiptSerialMaps, receiptPriceMap]);
 
   const isLoading = isLoadingEquipment || isLoadingTools || isLoadingMediaPlayers;
 
@@ -889,39 +924,40 @@ export default function InventoryReport() {
         <Card>
           <CardContent className="p-0">
             <div className="overflow-x-auto">
-              <Table>
+              <Table className="min-w-[2200px]">
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="w-[50px]">รูป</TableHead>
-                    <TableHead>ประเภท</TableHead>
-                    <TableHead>รหัส</TableHead>
-                    <TableHead>ชื่อ</TableHead>
-                    <TableHead>S/N</TableHead>
-                    <TableHead>หมวดหมู่</TableHead>
-                    <TableHead>หมวดหมู่ย่อย</TableHead>
-                    <TableHead>บริษัท</TableHead>
-                    <TableHead>ฝ่าย</TableHead>
-                    <TableHead>คลัง</TableHead>
-                    <TableHead>ตำแหน่งจัดเก็บ</TableHead>
-                    <TableHead className="text-right">จำนวน</TableHead>
-                    <TableHead className="text-right">Min</TableHead>
-                    <TableHead>สถานะ Stock</TableHead>
-                    <TableHead>สภาพสินค้า</TableHead>
-                    <TableHead>สถานะการเบิก</TableHead>
-                    <TableHead>วัตถุประสงค์</TableHead>
-                    <TableHead>ป้าย/Billboard</TableHead>
+                    <TableHead className="w-[50px] min-w-[50px]">รูป</TableHead>
+                    <TableHead className="min-w-[110px]">ประเภท</TableHead>
+                    <TableHead className="min-w-[100px]">รหัส</TableHead>
+                    <TableHead className="min-w-[160px]">ชื่อ</TableHead>
+                    <TableHead className="min-w-[140px]">S/N</TableHead>
+                    <TableHead className="min-w-[120px]">หมวดหมู่</TableHead>
+                    <TableHead className="min-w-[120px]">หมวดหมู่ย่อย</TableHead>
+                    <TableHead className="min-w-[100px]">บริษัท</TableHead>
+                    <TableHead className="min-w-[100px]">ฝ่าย</TableHead>
+                    <TableHead className="min-w-[100px]">คลัง</TableHead>
+                    <TableHead className="min-w-[130px]">ตำแหน่งจัดเก็บ</TableHead>
+                    <TableHead className="text-right min-w-[100px]">จำนวน</TableHead>
+                    <TableHead className="text-right min-w-[70px]">Min</TableHead>
+                    <TableHead className="text-right min-w-[110px]">ราคา/ชิ้น</TableHead>
+                    <TableHead className="min-w-[120px]">สถานะ Stock</TableHead>
+                    <TableHead className="min-w-[100px]">สภาพสินค้า</TableHead>
+                    <TableHead className="min-w-[120px]">สถานะการเบิก</TableHead>
+                    <TableHead className="min-w-[120px]">วัตถุประสงค์</TableHead>
+                    <TableHead className="min-w-[120px]">ป้าย/Billboard</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {isLoading ? (
                     <TableRow>
-                       <TableCell colSpan={18} className="text-center py-8">
+                       <TableCell colSpan={19} className="text-center py-8">
                         กำลังโหลด...
                       </TableCell>
                     </TableRow>
                   ) : paginatedData.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={18} className="text-center py-8 text-muted-foreground">
+                      <TableCell colSpan={19} className="text-center py-8 text-muted-foreground">
                         ไม่พบข้อมูล
                       </TableCell>
                     </TableRow>
@@ -1033,6 +1069,30 @@ export default function InventoryReport() {
                           </TableCell>
                           <TableCell className="text-right text-muted-foreground">
                             {item.min_stock_level.toLocaleString()}
+                          </TableCell>
+                          {/* Price per unit with tooltip for multiple prices */}
+                          <TableCell className="text-right">
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <span className={`font-medium cursor-default ${(item.all_prices && item.all_prices.length > 1) ? 'underline decoration-dotted text-primary' : ''}`}>
+                                    ฿{item.unit_price.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                  </span>
+                                </TooltipTrigger>
+                                {item.all_prices && item.all_prices.length > 1 && (
+                                  <TooltipContent side="left" className="max-w-[200px]">
+                                    <div className="space-y-1">
+                                      <div className="font-semibold text-xs">ราคาจากการนำเข้า:</div>
+                                      {item.all_prices.map((p, idx) => (
+                                        <div key={idx} className="text-xs">
+                                          ฿{p.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </TooltipContent>
+                                )}
+                              </Tooltip>
+                            </TooltipProvider>
                           </TableCell>
                           <TableCell>
                             <div className="flex flex-col gap-1">
