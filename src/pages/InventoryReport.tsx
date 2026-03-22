@@ -1022,7 +1022,7 @@ export default function InventoryReport() {
                       const StatusIcon = status.icon;
 
                       return (
-                        <TableRow key={item.id}>
+                        <TableRow key={`${item.id}-${item.serial_number || ''}-${item.order_for_project || ''}`}>
                           <TableCell>
                             {item.item_type === 'equipment' && (
                               <EquipmentImageViewer
