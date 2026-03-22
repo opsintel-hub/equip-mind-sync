@@ -120,6 +120,7 @@ const DeliveryEntry = () => {
       id: string;
       code: string;
       name: string;
+      unit_price: number | null;
     }[]
   >([]);
   const [categories, setCategories] = useState<Category[]>([]);
