@@ -577,9 +577,21 @@ export default function InventoryReport() {
         result.push({ ...item, serial_number: displaySerial, ...baseFields });
       } else if (item.item_type === "media_player") {
         const displaySerial = formatMergedSerials(item.serial_number, receiptSerialMaps.mediaSerialMap[item.id]) || null;
-        result.push({ ...item, serial_number: displaySerial, ...baseFields });
+        if (projects.length > 1) {
+          projects.forEach((proj) => {
+            result.push({ ...item, serial_number: displaySerial, ...baseFields, order_for_project: proj });
+          });
+        } else {
+          result.push({ ...item, serial_number: displaySerial, ...baseFields });
+        }
       } else {
-        result.push({ ...item, serial_number: item.serial_number || null, ...baseFields });
+        if (projects.length > 1) {
+          projects.forEach((proj) => {
+            result.push({ ...item, serial_number: item.serial_number || null, ...baseFields, order_for_project: proj });
+          });
+        } else {
+          result.push({ ...item, serial_number: item.serial_number || null, ...baseFields });
+        }
       }
     }
 
