@@ -61,6 +61,7 @@ interface InventoryItem {
   issue_requester?: string | null;
   issued_quantity?: number;
   all_prices?: number[];
+  order_for_project?: string | null;
 }
 
 interface ReceivedSerialItem {
