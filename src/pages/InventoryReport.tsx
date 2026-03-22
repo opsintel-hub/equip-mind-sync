@@ -1006,7 +1006,7 @@ export default function InventoryReport() {
                     </TableRow>
                   ) : paginatedData.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={19} className="text-center py-8 text-muted-foreground">
+                      <TableCell colSpan={20} className="text-center py-8 text-muted-foreground">
                         ไม่พบข้อมูล
                       </TableCell>
                     </TableRow>
