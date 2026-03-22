@@ -750,6 +750,7 @@ export default function InventoryReport() {
           item.issue_purpose,
           item.issue_billboard_code,
           item.issue_requester,
+          item.order_for_project,
           getConditionLabel(item.item_condition),
           String(item.quantity_in_stock),
           String(item.min_stock_level),
