@@ -1000,7 +1000,7 @@ export default function InventoryReport() {
                 <TableBody>
                   {isLoading ? (
                     <TableRow>
-                       <TableCell colSpan={19} className="text-center py-8">
+                       <TableCell colSpan={20} className="text-center py-8">
                         กำลังโหลด...
                       </TableCell>
                     </TableRow>
