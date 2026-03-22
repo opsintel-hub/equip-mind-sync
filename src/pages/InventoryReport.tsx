@@ -392,16 +392,14 @@ export default function InventoryReport() {
     };
   }, [receivedSerials]);
 
-  // Fetch receipt prices for each equipment (multiple receipts may have different prices)
+  // Fetch receipt prices and order_for_project for each equipment
   const { data: receiptPrices = [] } = useQuery({
     queryKey: ["inventory-receipt-prices"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("goods_receipt_pending")
-        .select("equipment_id, media_player_id, is_media_player, unit_price, received_at")
-        .eq("status", "received")
-        .not("unit_price", "is", null)
-        .gt("unit_price", 0);
+        .select("equipment_id, media_player_id, is_media_player, unit_price, order_for_project, received_at")
+        .eq("status", "received");
       if (error) throw error;
       return data || [];
     },
@@ -411,10 +409,24 @@ export default function InventoryReport() {
     const map: Record<string, number[]> = {};
     receiptPrices.forEach((row: any) => {
       const key = row.is_media_player ? row.media_player_id : row.equipment_id;
-      if (!key) return;
+      if (!key || !row.unit_price || Number(row.unit_price) <= 0) return;
       if (!map[key]) map[key] = [];
       const price = Number(row.unit_price);
       if (!map[key].includes(price)) map[key].push(price);
+    });
+    return map;
+  }, [receiptPrices]);
+
+  // Build order_for_project map: itemId -> unique project names
+  const orderForProjectMap = useMemo(() => {
+    const map: Record<string, string[]> = {};
+    receiptPrices.forEach((row: any) => {
+      const key = row.is_media_player ? row.media_player_id : row.equipment_id;
+      if (!key || !row.order_for_project) return;
+      if (!map[key]) map[key] = [];
+      if (!map[key].includes(row.order_for_project)) {
+        map[key].push(row.order_for_project);
+      }
     });
     return map;
   }, [receiptPrices]);
