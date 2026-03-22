@@ -295,6 +295,7 @@ export default function MediaPlayerReport() {
           billboard_id: p.billboard_id,
           warrantyDaysLeft,
           expiryDaysLeft,
+          orderForProject: "",
         });
       }
     });
