@@ -1958,7 +1958,7 @@ const DeliveryEntry = () => {
                 )}
                 <div className="space-y-2">
                   <Label htmlFor="unitPrice">ราคาต่อชิ้น (บาท) {isPurchaseReceipt ? "*" : ""}</Label>
-                  {!isPurchaseReceipt && selectedEquipmentId ? (
+                  {!isPurchaseReceipt && (selectedEquipmentId || selectedMediaPlayerId) ? (
                     <Input
                       id="unitPrice"
                       type="number"
