@@ -118,6 +118,7 @@ interface ExpandedRow {
   billboard_id: string | null;
   warrantyDaysLeft: number | null;
   expiryDaysLeft: number | null;
+  orderForProject: string;
 }
 
 export default function MediaPlayerReport() {
