@@ -584,6 +584,7 @@ export default function MediaPlayerReport() {
                       <TableHead className="min-w-[110px]">Specification</TableHead>
                       <TableHead className="min-w-[100px]">Lot No.1</TableHead>
                       <TableHead className="min-w-[100px]">Lot No.2</TableHead>
+                      <TableHead className="min-w-[150px]">Order For Project</TableHead>
                       <TableHead className="text-center min-w-[70px]">Profile</TableHead>
                     </TableRow>
                   </TableHeader>
