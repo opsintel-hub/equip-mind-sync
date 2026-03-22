@@ -1223,6 +1223,14 @@ export default function InventoryReport() {
                               <span className="text-muted-foreground">-</span>
                             )}
                           </TableCell>
+                          {/* Order For Project Column */}
+                          <TableCell>
+                            {item.order_for_project ? (
+                              <span className="text-sm">{item.order_for_project}</span>
+                            ) : (
+                              <span className="text-muted-foreground">-</span>
+                            )}
+                          </TableCell>
                         </TableRow>
                       );
                     })
