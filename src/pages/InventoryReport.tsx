@@ -562,19 +562,38 @@ export default function InventoryReport() {
           // Create one row per S/N
           for (const sn of snData.allSNs) {
             const isInStock = snData.inStockSNs.includes(sn);
-            result.push({
-              ...item,
-              serial_number: sn,
-              quantity_in_stock: isInStock ? 1 : 0,
-              ...baseFields,
-              issue_status: isInStock ? "in_stock" : "issued",
-            });
+            if (projects.length > 1) {
+              projects.forEach((proj) => {
+                result.push({
+                  ...item,
+                  serial_number: sn,
+                  quantity_in_stock: isInStock ? 1 : 0,
+                  ...baseFields,
+                  issue_status: isInStock ? "in_stock" : "issued",
+                  order_for_project: proj,
+                });
+              });
+            } else {
+              result.push({
+                ...item,
+                serial_number: sn,
+                quantity_in_stock: isInStock ? 1 : 0,
+                ...baseFields,
+                issue_status: isInStock ? "in_stock" : "issued",
+              });
+            }
           }
           continue;
         }
         // Single or no S/N
         const displaySerial = formatMergedSerials(snData?.allSNs, item.serial_number, receiptSerialMaps.equipmentSerialMap[item.id]) || null;
-        result.push({ ...item, serial_number: displaySerial, ...baseFields });
+        if (projects.length > 1) {
+          projects.forEach((proj) => {
+            result.push({ ...item, serial_number: displaySerial, ...baseFields, order_for_project: proj });
+          });
+        } else {
+          result.push({ ...item, serial_number: displaySerial, ...baseFields });
+        }
       } else if (item.item_type === "media_player") {
         const displaySerial = formatMergedSerials(item.serial_number, receiptSerialMaps.mediaSerialMap[item.id]) || null;
         if (projects.length > 1) {
