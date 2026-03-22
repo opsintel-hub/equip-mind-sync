@@ -854,6 +854,7 @@ export default function InventoryReport() {
         จำนวนที่เบิก: item.issued_quantity || 0,
         วัตถุประสงค์: item.issue_purpose || "-",
         "ป้าย/Billboard": item.issue_billboard_code || "-",
+        "Order For Project": item.order_for_project || "-",
       };
     });
 
