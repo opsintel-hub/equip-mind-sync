@@ -261,6 +261,7 @@ export default function MediaPlayerReport() {
             billboard_id: p.billboard_id,
             warrantyDaysLeft,
             expiryDaysLeft,
+            orderForProject: (r as any).order_for_project || "",
           });
         });
       } else {
