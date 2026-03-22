@@ -411,6 +411,16 @@ const DeliveryEntry = () => {
     }
   }, [selectedEquipment, categories, isPurchaseReceipt]);
 
+  // Auto-fill unit price from media player when NOT a purchase receipt
+  useEffect(() => {
+    if (!isPurchaseReceipt && selectedMediaPlayerId) {
+      const mp = mediaPlayers.find((m) => m.id === selectedMediaPlayerId);
+      if (mp && mp.unit_price && mp.unit_price > 0) {
+        setUnitPrice(String(mp.unit_price));
+      }
+    }
+  }, [selectedMediaPlayerId, mediaPlayers, isPurchaseReceipt]);
+
   // Update supplier name when selected
   useEffect(() => {
     if (selectedSupplier) {
