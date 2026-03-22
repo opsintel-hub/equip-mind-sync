@@ -972,7 +972,7 @@ export default function InventoryReport() {
         <Card>
           <CardContent className="p-0">
             <div className="overflow-x-auto">
-              <Table className="min-w-[2200px]">
+              <Table className="min-w-[2400px]">
                 <TableHeader>
                   <TableRow>
                     <TableHead className="w-[50px] min-w-[50px]">รูป</TableHead>
