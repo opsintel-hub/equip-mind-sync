@@ -1311,8 +1311,8 @@ const DeliveryEntry = () => {
                             setEquipmentCode(mp.code);
                             setEquipmentName(mp.name);
                             // Auto-fill unit price from media player when NOT a purchase receipt
-                            if (!isPurchaseReceipt && (mp as any).unit_price && (mp as any).unit_price > 0) {
-                              setUnitPrice(String((mp as any).unit_price));
+                            if (!isPurchaseReceipt && mp.unit_price && mp.unit_price > 0) {
+                              setUnitPrice(String(mp.unit_price));
                             }
                           }
                         }}
