@@ -413,6 +413,7 @@ export default function MediaPlayerReport() {
       "Specification": r.specification,
       "Lot Number 1": r.lotNumber1,
       "Lot Number 2": r.lotNumber2,
+      "Order For Project": r.orderForProject,
     }));
     rows.forEach((row, i) => { row["ลำดับ"] = String(i + 1); });
     const ws = XLSX.utils.json_to_sheet(rows);
