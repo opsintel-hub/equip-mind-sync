@@ -118,6 +118,7 @@ interface ExpandedRow {
   billboard_id: string | null;
   warrantyDaysLeft: number | null;
   expiryDaysLeft: number | null;
+  orderForProject: string;
 }
 
 export default function MediaPlayerReport() {
@@ -161,7 +162,7 @@ export default function MediaPlayerReport() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("goods_receipt_pending")
-        .select("media_player_id, serial_number, unit_price, po_number, lot_number, lot_number_2, received_at, created_at")
+        .select("media_player_id, serial_number, unit_price, po_number, lot_number, lot_number_2, order_for_project, received_at, created_at")
         .eq("status", "received")
         .eq("is_media_player", true)
         .not("media_player_id", "is", null);
@@ -260,6 +261,7 @@ export default function MediaPlayerReport() {
             billboard_id: p.billboard_id,
             warrantyDaysLeft,
             expiryDaysLeft,
+            orderForProject: (r as any).order_for_project || "",
           });
         });
       } else {
@@ -293,6 +295,7 @@ export default function MediaPlayerReport() {
           billboard_id: p.billboard_id,
           warrantyDaysLeft,
           expiryDaysLeft,
+          orderForProject: "",
         });
       }
     });
@@ -410,6 +413,7 @@ export default function MediaPlayerReport() {
       "Specification": r.specification,
       "Lot Number 1": r.lotNumber1,
       "Lot Number 2": r.lotNumber2,
+      "Order For Project": r.orderForProject,
     }));
     rows.forEach((row, i) => { row["ลำดับ"] = String(i + 1); });
     const ws = XLSX.utils.json_to_sheet(rows);
@@ -581,13 +585,14 @@ export default function MediaPlayerReport() {
                       <TableHead className="min-w-[110px]">Specification</TableHead>
                       <TableHead className="min-w-[100px]">Lot No.1</TableHead>
                       <TableHead className="min-w-[100px]">Lot No.2</TableHead>
+                      <TableHead className="min-w-[150px]">Order For Project</TableHead>
                       <TableHead className="text-center min-w-[70px]">Profile</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {paginatedData.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={23} className="text-center py-10 text-muted-foreground">
+                        <TableCell colSpan={24} className="text-center py-10 text-muted-foreground">
                           ไม่พบข้อมูล Media Player
                         </TableCell>
                       </TableRow>
@@ -657,6 +662,7 @@ export default function MediaPlayerReport() {
                             <TableCell>{r.specification || "-"}</TableCell>
                             <TableCell>{r.lotNumber1 || "-"}</TableCell>
                             <TableCell>{r.lotNumber2 || "-"}</TableCell>
+                            <TableCell>{r.orderForProject || "-"}</TableCell>
                             <TableCell className="text-center">
                               <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); setSelectedPlayerId(r.playerId); }}>
                                 <Eye className="w-4 h-4" />

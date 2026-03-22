@@ -61,6 +61,7 @@ interface InventoryItem {
   issue_requester?: string | null;
   issued_quantity?: number;
   all_prices?: number[];
+  order_for_project?: string | null;
 }
 
 interface ReceivedSerialItem {
@@ -391,16 +392,14 @@ export default function InventoryReport() {
     };
   }, [receivedSerials]);
 
-  // Fetch receipt prices for each equipment (multiple receipts may have different prices)
+  // Fetch receipt prices and order_for_project for each equipment
   const { data: receiptPrices = [] } = useQuery({
     queryKey: ["inventory-receipt-prices"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("goods_receipt_pending")
-        .select("equipment_id, media_player_id, is_media_player, unit_price, received_at")
-        .eq("status", "received")
-        .not("unit_price", "is", null)
-        .gt("unit_price", 0);
+        .select("equipment_id, media_player_id, is_media_player, unit_price, order_for_project, received_at")
+        .eq("status", "received");
       if (error) throw error;
       return data || [];
     },
@@ -410,10 +409,24 @@ export default function InventoryReport() {
     const map: Record<string, number[]> = {};
     receiptPrices.forEach((row: any) => {
       const key = row.is_media_player ? row.media_player_id : row.equipment_id;
-      if (!key) return;
+      if (!key || !row.unit_price || Number(row.unit_price) <= 0) return;
       if (!map[key]) map[key] = [];
       const price = Number(row.unit_price);
       if (!map[key].includes(price)) map[key].push(price);
+    });
+    return map;
+  }, [receiptPrices]);
+
+  // Build order_for_project map: itemId -> unique project names
+  const orderForProjectMap = useMemo(() => {
+    const map: Record<string, string[]> = {};
+    receiptPrices.forEach((row: any) => {
+      const key = row.is_media_player ? row.media_player_id : row.equipment_id;
+      if (!key || !row.order_for_project) return;
+      if (!map[key]) map[key] = [];
+      if (!map[key].includes(row.order_for_project)) {
+        map[key].push(row.order_for_project);
+      }
     });
     return map;
   }, [receiptPrices]);
@@ -531,6 +544,7 @@ export default function InventoryReport() {
         }
       }
 
+      const projects = orderForProjectMap[item.id] || [];
       const baseFields = {
         issue_status: issueStatus,
         issue_purpose: issueInfo?.purpose || null,
@@ -538,6 +552,7 @@ export default function InventoryReport() {
         issue_requester: issueInfo?.requester || null,
         issued_quantity: issueInfo?.issued_quantity || 0,
         all_prices: receiptPriceMap[item.id] || [],
+        order_for_project: projects.length > 0 ? projects[0] : null,
       };
 
       // For equipment with multiple S/Ns, expand into separate rows
@@ -547,24 +562,55 @@ export default function InventoryReport() {
           // Create one row per S/N
           for (const sn of snData.allSNs) {
             const isInStock = snData.inStockSNs.includes(sn);
-            result.push({
-              ...item,
-              serial_number: sn,
-              quantity_in_stock: isInStock ? 1 : 0,
-              ...baseFields,
-              issue_status: isInStock ? "in_stock" : "issued",
-            });
+            if (projects.length > 1) {
+              projects.forEach((proj) => {
+                result.push({
+                  ...item,
+                  serial_number: sn,
+                  quantity_in_stock: isInStock ? 1 : 0,
+                  ...baseFields,
+                  issue_status: isInStock ? "in_stock" : "issued",
+                  order_for_project: proj,
+                });
+              });
+            } else {
+              result.push({
+                ...item,
+                serial_number: sn,
+                quantity_in_stock: isInStock ? 1 : 0,
+                ...baseFields,
+                issue_status: isInStock ? "in_stock" : "issued",
+              });
+            }
           }
           continue;
         }
         // Single or no S/N
         const displaySerial = formatMergedSerials(snData?.allSNs, item.serial_number, receiptSerialMaps.equipmentSerialMap[item.id]) || null;
-        result.push({ ...item, serial_number: displaySerial, ...baseFields });
+        if (projects.length > 1) {
+          projects.forEach((proj) => {
+            result.push({ ...item, serial_number: displaySerial, ...baseFields, order_for_project: proj });
+          });
+        } else {
+          result.push({ ...item, serial_number: displaySerial, ...baseFields });
+        }
       } else if (item.item_type === "media_player") {
         const displaySerial = formatMergedSerials(item.serial_number, receiptSerialMaps.mediaSerialMap[item.id]) || null;
-        result.push({ ...item, serial_number: displaySerial, ...baseFields });
+        if (projects.length > 1) {
+          projects.forEach((proj) => {
+            result.push({ ...item, serial_number: displaySerial, ...baseFields, order_for_project: proj });
+          });
+        } else {
+          result.push({ ...item, serial_number: displaySerial, ...baseFields });
+        }
       } else {
-        result.push({ ...item, serial_number: item.serial_number || null, ...baseFields });
+        if (projects.length > 1) {
+          projects.forEach((proj) => {
+            result.push({ ...item, serial_number: item.serial_number || null, ...baseFields, order_for_project: proj });
+          });
+        } else {
+          result.push({ ...item, serial_number: item.serial_number || null, ...baseFields });
+        }
       }
     }
 
@@ -704,6 +750,7 @@ export default function InventoryReport() {
           item.issue_purpose,
           item.issue_billboard_code,
           item.issue_requester,
+          item.order_for_project,
           getConditionLabel(item.item_condition),
           String(item.quantity_in_stock),
           String(item.min_stock_level),
@@ -807,6 +854,7 @@ export default function InventoryReport() {
         จำนวนที่เบิก: item.issued_quantity || 0,
         วัตถุประสงค์: item.issue_purpose || "-",
         "ป้าย/Billboard": item.issue_billboard_code || "-",
+        "Order For Project": item.order_for_project || "-",
       };
     });
 
@@ -924,7 +972,7 @@ export default function InventoryReport() {
         <Card>
           <CardContent className="p-0">
             <div className="overflow-x-auto">
-              <Table className="min-w-[2200px]">
+              <Table className="min-w-[2400px]">
                 <TableHeader>
                   <TableRow>
                     <TableHead className="w-[50px] min-w-[50px]">รูป</TableHead>
@@ -946,18 +994,19 @@ export default function InventoryReport() {
                     <TableHead className="min-w-[120px]">สถานะการเบิก</TableHead>
                     <TableHead className="min-w-[120px]">วัตถุประสงค์</TableHead>
                     <TableHead className="min-w-[120px]">ป้าย/Billboard</TableHead>
+                    <TableHead className="min-w-[150px]">Order For Project</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {isLoading ? (
                     <TableRow>
-                       <TableCell colSpan={19} className="text-center py-8">
+                       <TableCell colSpan={20} className="text-center py-8">
                         กำลังโหลด...
                       </TableCell>
                     </TableRow>
                   ) : paginatedData.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={19} className="text-center py-8 text-muted-foreground">
+                      <TableCell colSpan={20} className="text-center py-8 text-muted-foreground">
                         ไม่พบข้อมูล
                       </TableCell>
                     </TableRow>
@@ -973,7 +1022,7 @@ export default function InventoryReport() {
                       const StatusIcon = status.icon;
 
                       return (
-                        <TableRow key={item.id}>
+                        <TableRow key={`${item.id}-${item.serial_number || ''}-${item.order_for_project || ''}`}>
                           <TableCell>
                             {item.item_type === 'equipment' && (
                               <EquipmentImageViewer
@@ -1170,6 +1219,14 @@ export default function InventoryReport() {
                                 <MapPin className="h-3 w-3 mr-1" />
                                 {item.issue_billboard_code}
                               </Badge>
+                            ) : (
+                              <span className="text-muted-foreground">-</span>
+                            )}
+                          </TableCell>
+                          {/* Order For Project Column */}
+                          <TableCell>
+                            {item.order_for_project ? (
+                              <span className="text-sm">{item.order_for_project}</span>
                             ) : (
                               <span className="text-muted-foreground">-</span>
                             )}
