@@ -120,6 +120,7 @@ const DeliveryEntry = () => {
       id: string;
       code: string;
       name: string;
+      unit_price: number | null;
     }[]
   >([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -358,7 +359,7 @@ const DeliveryEntry = () => {
   const fetchMediaPlayers = async () => {
     const { data, error } = await supabase
       .from("media_players")
-      .select("id, code, name")
+      .select("id, code, name, unit_price")
       .eq("is_active", true)
       .order("code");
     if (!error && data) {
@@ -1309,6 +1310,10 @@ const DeliveryEntry = () => {
                           if (mp) {
                             setEquipmentCode(mp.code);
                             setEquipmentName(mp.name);
+                            // Auto-fill unit price from media player when NOT a purchase receipt
+                            if (!isPurchaseReceipt && mp.unit_price && mp.unit_price > 0) {
+                              setUnitPrice(String(mp.unit_price));
+                            }
                           }
                         }}
                         placeholder="เลือก Media Player..."
