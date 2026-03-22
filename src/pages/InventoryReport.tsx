@@ -544,6 +544,7 @@ export default function InventoryReport() {
         }
       }
 
+      const projects = orderForProjectMap[item.id] || [];
       const baseFields = {
         issue_status: issueStatus,
         issue_purpose: issueInfo?.purpose || null,
@@ -551,6 +552,7 @@ export default function InventoryReport() {
         issue_requester: issueInfo?.requester || null,
         issued_quantity: issueInfo?.issued_quantity || 0,
         all_prices: receiptPriceMap[item.id] || [],
+        order_for_project: projects.length > 0 ? projects[0] : null,
       };
 
       // For equipment with multiple S/Ns, expand into separate rows
