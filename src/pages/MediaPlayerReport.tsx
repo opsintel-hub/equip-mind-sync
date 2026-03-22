@@ -661,6 +661,7 @@ export default function MediaPlayerReport() {
                             <TableCell>{r.specification || "-"}</TableCell>
                             <TableCell>{r.lotNumber1 || "-"}</TableCell>
                             <TableCell>{r.lotNumber2 || "-"}</TableCell>
+                            <TableCell>{r.orderForProject || "-"}</TableCell>
                             <TableCell className="text-center">
                               <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); setSelectedPlayerId(r.playerId); }}>
                                 <Eye className="w-4 h-4" />
