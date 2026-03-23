@@ -457,55 +457,47 @@ export default function MediaPlayerReport() {
         </Button>
       </div>
 
-      {/* Summary Cards - Row 1 */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      {/* Summary Cards */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
         <Card><CardContent className="p-4 flex items-center gap-3">
           <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center"><Monitor className="w-5 h-5 text-primary" /></div>
-          <div><p className="text-sm text-muted-foreground">ทั้งหมด</p><p className="text-2xl font-bold">{stats.total}</p></div>
+          <div><p className="text-xs text-muted-foreground">ทั้งหมด</p><p className="text-2xl font-bold">{stats.total}</p></div>
         </CardContent></Card>
         <Card><CardContent className="p-4 flex items-center gap-3">
           <div className="w-10 h-10 rounded-lg bg-accent flex items-center justify-center"><Tag className="w-5 h-5 text-primary" /></div>
-          <div><p className="text-sm text-muted-foreground">จำนวนรหัส (Prefix)</p><p className="text-2xl font-bold">{stats.uniquePrefixes}</p></div>
+          <div><p className="text-xs text-muted-foreground">จำนวนรหัส (Prefix)</p><p className="text-2xl font-bold">{stats.uniquePrefixes}</p></div>
         </CardContent></Card>
         <Card><CardContent className="p-4 flex items-center gap-3">
           <div className="w-10 h-10 rounded-lg bg-accent flex items-center justify-center"><CheckCircle className="w-5 h-5 text-chart-2" /></div>
-          <div><p className="text-sm text-muted-foreground">ติดตั้งแล้ว</p><p className="text-2xl font-bold">{stats.installed}</p></div>
+          <div><p className="text-xs text-muted-foreground">ติดตั้งแล้ว</p><p className="text-2xl font-bold">{stats.installed}</p></div>
         </CardContent></Card>
         <Card><CardContent className="p-4 flex items-center gap-3">
           <div className="w-10 h-10 rounded-lg bg-accent flex items-center justify-center"><Package className="w-5 h-5 text-chart-1" /></div>
-          <div><p className="text-sm text-muted-foreground">ในคลัง</p><p className="text-2xl font-bold">{stats.inStock}</p></div>
+          <div><p className="text-xs text-muted-foreground">ในคลัง</p><p className="text-2xl font-bold">{stats.inStock}</p></div>
         </CardContent></Card>
-      </div>
-
-      {/* Summary Cards - Row 2 */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         <Card><CardContent className="p-4 flex items-center gap-3">
           <div className="w-10 h-10 rounded-lg bg-destructive/10 flex items-center justify-center"><AlertTriangle className="w-5 h-5 text-destructive" /></div>
-          <div><p className="text-sm text-muted-foreground">ชำรุด</p><p className="text-2xl font-bold">{stats.defective}</p></div>
+          <div><p className="text-xs text-muted-foreground">ชำรุด</p><p className="text-2xl font-bold">{stats.defective}</p></div>
         </CardContent></Card>
         <Card><CardContent className="p-4 flex items-center gap-3">
           <div className="w-10 h-10 rounded-lg bg-accent flex items-center justify-center"><Wrench className="w-5 h-5 text-chart-4" /></div>
-          <div><p className="text-sm text-muted-foreground">ซ่อมแล้ว</p><p className="text-2xl font-bold">{stats.repaired}</p></div>
+          <div><p className="text-xs text-muted-foreground">ซ่อมแล้ว</p><p className="text-2xl font-bold">{stats.repaired}</p></div>
         </CardContent></Card>
         <Card><CardContent className="p-4 flex items-center gap-3">
           <div className="w-10 h-10 rounded-lg bg-accent flex items-center justify-center"><Building2 className="w-5 h-5 text-chart-3" /></div>
-          <div><p className="text-sm text-muted-foreground">จำนวนยี่ห้อ</p><p className="text-2xl font-bold">{stats.uniqueBrands}</p></div>
+          <div><p className="text-xs text-muted-foreground">จำนวนยี่ห้อ</p><p className="text-2xl font-bold">{stats.uniqueBrands}</p></div>
         </CardContent></Card>
         <Card><CardContent className="p-4 flex items-center gap-3">
           <div className="w-10 h-10 rounded-lg bg-accent flex items-center justify-center"><Shield className="w-5 h-5 text-chart-5" /></div>
-          <div><p className="text-sm text-muted-foreground">ประกันใกล้หมด (90 วัน)</p><p className="text-2xl font-bold">{stats.warrantyExpiring}</p></div>
+          <div><p className="text-xs text-muted-foreground">ประกันใกล้หมด (90 วัน)</p><p className="text-2xl font-bold">{stats.warrantyExpiring}</p></div>
         </CardContent></Card>
         <Card><CardContent className="p-4 flex items-center gap-3">
           <div className="w-10 h-10 rounded-lg bg-accent flex items-center justify-center"><Layers className="w-5 h-5 text-primary" /></div>
-          <div><p className="text-sm text-muted-foreground">ฝ่าย</p><p className="text-2xl font-bold">{stats.uniqueDepartments}</p></div>
+          <div><p className="text-xs text-muted-foreground">ฝ่าย</p><p className="text-2xl font-bold">{stats.uniqueDepartments}</p></div>
         </CardContent></Card>
-      </div>
-
-      {/* Summary Cards - Row 3 */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Card><CardContent className="p-4 flex items-center gap-3">
           <div className="w-10 h-10 rounded-lg bg-accent flex items-center justify-center"><FolderKanban className="w-5 h-5 text-primary" /></div>
-          <div><p className="text-sm text-muted-foreground">Order for Project</p><p className="text-2xl font-bold">{stats.uniqueProjects}</p></div>
+          <div><p className="text-xs text-muted-foreground">Order for Project</p><p className="text-2xl font-bold">{stats.uniqueProjects}</p></div>
         </CardContent></Card>
       </div>
 
@@ -590,7 +582,18 @@ export default function MediaPlayerReport() {
             </div>
           ) : (
             <TooltipProvider>
-              <div className="overflow-x-auto">
+              <div
+                className="overflow-x-auto cursor-grab active:cursor-grabbing"
+                onMouseDown={(e) => {
+                  const el = e.currentTarget;
+                  const startX = e.pageX - el.scrollLeft;
+                  const onMove = (ev: MouseEvent) => { el.scrollLeft = startX - ev.pageX; };
+                  const onUp = () => { document.removeEventListener("mousemove", onMove); document.removeEventListener("mouseup", onUp); el.style.removeProperty("user-select"); };
+                  el.style.userSelect = "none";
+                  document.addEventListener("mousemove", onMove);
+                  document.addEventListener("mouseup", onUp);
+                }}
+              >
                 <Table>
                   <TableHeader>
                     <TableRow>
