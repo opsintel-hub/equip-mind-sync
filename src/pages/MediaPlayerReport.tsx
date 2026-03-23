@@ -631,7 +631,7 @@ export default function MediaPlayerReport() {
                       paginatedData.map((r, idx) => {
                         const rowNum = (currentPage - 1) * pageSize + idx + 1;
                         return (
-                          <TableRow key={r.key} className="hover:bg-muted/30 cursor-pointer" onClick={() => setSelectedPlayerId(r.playerId)}>
+                          <TableRow key={r.key} className="hover:bg-muted/30">
                             <TableCell className="text-muted-foreground">{rowNum}</TableCell>
                             <TableCell>
                               {r.imageUrl ? (
