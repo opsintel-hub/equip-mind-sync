@@ -334,11 +334,6 @@ export default function MediaPlayerReport() {
     expandedRows.forEach((r) => { if (r.orderForProject) set.add(r.orderForProject); });
     return Array.from(set).sort();
   }, [expandedRows]);
-  const companyNames = useMemo(() => {
-    const set = new Set<string>();
-    players.forEach((p) => { if (p.companies?.name) set.add(p.companies.name); });
-    return Array.from(set).sort();
-  }, [players]);
 
   // Filter expanded rows
   const filtered = useMemo(() => {
