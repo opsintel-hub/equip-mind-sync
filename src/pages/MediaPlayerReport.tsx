@@ -131,7 +131,9 @@ export default function MediaPlayerReport() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [companyFilter, setCompanyFilter] = useState("all");
   const [brandFilter, setBrandFilter] = useState("all");
+  const [projectFilter, setProjectFilter] = useState("all");
   const [selectedPlayerId, setSelectedPlayerId] = useState<string | null>(null);
+  const [lightboxImage, setLightboxImage] = useState<string | null>(null);
 
   // Fetch all media players with extra fields
   const { data: players = [], isLoading } = useQuery({
