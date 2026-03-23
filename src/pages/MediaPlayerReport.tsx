@@ -582,7 +582,18 @@ export default function MediaPlayerReport() {
             </div>
           ) : (
             <TooltipProvider>
-              <div className="overflow-x-auto">
+              <div
+                className="overflow-x-auto cursor-grab active:cursor-grabbing"
+                onMouseDown={(e) => {
+                  const el = e.currentTarget;
+                  const startX = e.pageX - el.scrollLeft;
+                  const onMove = (ev: MouseEvent) => { el.scrollLeft = startX - ev.pageX; };
+                  const onUp = () => { document.removeEventListener("mousemove", onMove); document.removeEventListener("mouseup", onUp); el.style.removeProperty("user-select"); };
+                  el.style.userSelect = "none";
+                  document.addEventListener("mousemove", onMove);
+                  document.addEventListener("mouseup", onUp);
+                }}
+              >
                 <Table>
                   <TableHeader>
                     <TableRow>
