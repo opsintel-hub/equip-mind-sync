@@ -478,7 +478,7 @@ export default function MediaPlayerReport() {
       </div>
 
       {/* Summary Cards - Row 2 */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         <Card><CardContent className="p-4 flex items-center gap-3">
           <div className="w-10 h-10 rounded-lg bg-destructive/10 flex items-center justify-center"><AlertTriangle className="w-5 h-5 text-destructive" /></div>
           <div><p className="text-sm text-muted-foreground">ชำรุด</p><p className="text-2xl font-bold">{stats.defective}</p></div>
@@ -494,6 +494,18 @@ export default function MediaPlayerReport() {
         <Card><CardContent className="p-4 flex items-center gap-3">
           <div className="w-10 h-10 rounded-lg bg-accent flex items-center justify-center"><Shield className="w-5 h-5 text-chart-5" /></div>
           <div><p className="text-sm text-muted-foreground">ประกันใกล้หมด (90 วัน)</p><p className="text-2xl font-bold">{stats.warrantyExpiring}</p></div>
+        </CardContent></Card>
+        <Card><CardContent className="p-4 flex items-center gap-3">
+          <div className="w-10 h-10 rounded-lg bg-accent flex items-center justify-center"><Layers className="w-5 h-5 text-primary" /></div>
+          <div><p className="text-sm text-muted-foreground">ฝ่าย</p><p className="text-2xl font-bold">{stats.uniqueDepartments}</p></div>
+        </CardContent></Card>
+      </div>
+
+      {/* Summary Cards - Row 3 */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <Card><CardContent className="p-4 flex items-center gap-3">
+          <div className="w-10 h-10 rounded-lg bg-accent flex items-center justify-center"><FolderKanban className="w-5 h-5 text-primary" /></div>
+          <div><p className="text-sm text-muted-foreground">Order for Project</p><p className="text-2xl font-bold">{stats.uniqueProjects}</p></div>
         </CardContent></Card>
       </div>
 
