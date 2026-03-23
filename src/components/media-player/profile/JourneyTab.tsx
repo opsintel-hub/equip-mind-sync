@@ -103,13 +103,15 @@ export function JourneyTab({ player, journeys }: JourneyTabProps) {
                           {j.installation_date ? format(parseISO(j.installation_date), "dd/MM/yy") : "-"}
                         </TableCell>
                         <TableCell className="text-sm">
-                          {j.uninstall_date ? format(parseISO(j.uninstall_date), "dd/MM/yy") : "-"}
+                          {j.uninstall_date
+                            ? format(parseISO(j.uninstall_date), "dd/MM/yy")
+                            : <span className="text-primary font-medium">กำลังติดตั้ง</span>}
                         </TableCell>
                         <TableCell className="text-right font-mono">
-                          {j.duration_days !== null ? `${j.duration_days}` : "-"}
+                          {j.duration_days !== null ? `${j.duration_days} วัน` : "-"}
                         </TableCell>
                         <TableCell className="text-sm text-muted-foreground max-w-[200px] truncate">
-                          {j.uninstall_reason || "-"}
+                          {j.uninstall_reason || (j.uninstall_date ? "-" : "ใช้งานอยู่")}
                         </TableCell>
                       </TableRow>
                     ))}
