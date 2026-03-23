@@ -20,7 +20,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { ProcessTracker, ProcessStep } from "@/components/ProcessTracker";
-import { Monitor, Search, Download, Eye, Package, AlertTriangle, CheckCircle, Loader2, FileDown, Tag, Building2, Wrench, Shield, Image as ImageIcon } from "lucide-react";
+import { Monitor, Search, Download, Eye, Package, AlertTriangle, CheckCircle, Loader2, FileDown, Tag, Building2, Wrench, Shield, Image as ImageIcon, FolderKanban, Layers } from "lucide-react";
 import { differenceInDays, differenceInMonths, parseISO, format } from "date-fns";
 import { formatBillboardLabel } from "@/lib/billboardUtils";
 import { toast } from "sonner";
@@ -131,7 +131,9 @@ export default function MediaPlayerReport() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [companyFilter, setCompanyFilter] = useState("all");
   const [brandFilter, setBrandFilter] = useState("all");
+  const [projectFilter, setProjectFilter] = useState("all");
   const [selectedPlayerId, setSelectedPlayerId] = useState<string | null>(null);
+  const [lightboxImage, setLightboxImage] = useState<string | null>(null);
 
   // Fetch all media players with extra fields
   const { data: players = [], isLoading } = useQuery({
@@ -326,6 +328,13 @@ export default function MediaPlayerReport() {
     return Array.from(set).sort();
   }, [players]);
 
+  // Extract unique Order for Projects
+  const projectNames = useMemo(() => {
+    const set = new Set<string>();
+    expandedRows.forEach((r) => { if (r.orderForProject) set.add(r.orderForProject); });
+    return Array.from(set).sort();
+  }, [expandedRows]);
+
   // Filter expanded rows
   const filtered = useMemo(() => {
     return expandedRows.filter((r) => {
@@ -337,6 +346,7 @@ export default function MediaPlayerReport() {
       }
       if (companyFilter !== "all" && r.company !== companyFilter) return false;
       if (brandFilter !== "all" && r.brand !== brandFilter) return false;
+      if (projectFilter !== "all" && r.orderForProject !== projectFilter) return false;
       if (codePrefixFilter !== "all") {
         const match = r.code?.match(/^([A-Za-z-]+)/);
         if (!match || match[1] !== codePrefixFilter) return false;
@@ -360,7 +370,7 @@ export default function MediaPlayerReport() {
       }
       return true;
     });
-  }, [expandedRows, search, snSearch, conditionFilter, departmentFilter, statusFilter, companyFilter, brandFilter, codePrefixFilter]);
+  }, [expandedRows, search, snSearch, conditionFilter, departmentFilter, statusFilter, companyFilter, brandFilter, codePrefixFilter, projectFilter]);
 
   const {
     paginatedData,
@@ -382,7 +392,9 @@ export default function MediaPlayerReport() {
     const uniquePrefixes = new Set(filtered.map((r) => { const m = r.code?.match(/^([A-Za-z-]+)/); return m ? m[1] : ""; }).filter(Boolean)).size;
     const uniqueBrands = new Set(filtered.map((r) => r.brand).filter(Boolean)).size;
     const warrantyExpiring = filtered.filter((r) => r.warrantyDaysLeft !== null && r.warrantyDaysLeft >= 0 && r.warrantyDaysLeft <= 90).length;
-    return { total, installed, inStock, defective, repaired, uniquePrefixes, uniqueBrands, warrantyExpiring };
+    const uniqueDepartments = new Set(filtered.map((r) => r.department).filter(Boolean)).size;
+    const uniqueProjects = new Set(filtered.map((r) => r.orderForProject).filter(Boolean)).size;
+    return { total, installed, inStock, defective, repaired, uniquePrefixes, uniqueBrands, warrantyExpiring, uniqueDepartments, uniqueProjects };
   }, [filtered]);
 
   // Export Excel
@@ -466,7 +478,7 @@ export default function MediaPlayerReport() {
       </div>
 
       {/* Summary Cards - Row 2 */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         <Card><CardContent className="p-4 flex items-center gap-3">
           <div className="w-10 h-10 rounded-lg bg-destructive/10 flex items-center justify-center"><AlertTriangle className="w-5 h-5 text-destructive" /></div>
           <div><p className="text-sm text-muted-foreground">ชำรุด</p><p className="text-2xl font-bold">{stats.defective}</p></div>
@@ -482,6 +494,18 @@ export default function MediaPlayerReport() {
         <Card><CardContent className="p-4 flex items-center gap-3">
           <div className="w-10 h-10 rounded-lg bg-accent flex items-center justify-center"><Shield className="w-5 h-5 text-chart-5" /></div>
           <div><p className="text-sm text-muted-foreground">ประกันใกล้หมด (90 วัน)</p><p className="text-2xl font-bold">{stats.warrantyExpiring}</p></div>
+        </CardContent></Card>
+        <Card><CardContent className="p-4 flex items-center gap-3">
+          <div className="w-10 h-10 rounded-lg bg-accent flex items-center justify-center"><Layers className="w-5 h-5 text-primary" /></div>
+          <div><p className="text-sm text-muted-foreground">ฝ่าย</p><p className="text-2xl font-bold">{stats.uniqueDepartments}</p></div>
+        </CardContent></Card>
+      </div>
+
+      {/* Summary Cards - Row 3 */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <Card><CardContent className="p-4 flex items-center gap-3">
+          <div className="w-10 h-10 rounded-lg bg-accent flex items-center justify-center"><FolderKanban className="w-5 h-5 text-primary" /></div>
+          <div><p className="text-sm text-muted-foreground">Order for Project</p><p className="text-2xl font-bold">{stats.uniqueProjects}</p></div>
         </CardContent></Card>
       </div>
 
@@ -546,6 +570,13 @@ export default function MediaPlayerReport() {
                 {brands.map((b) => (<SelectItem key={b} value={b}>{b}</SelectItem>))}
               </SelectContent>
             </Select>
+            <Select value={projectFilter} onValueChange={setProjectFilter}>
+              <SelectTrigger className="w-[180px]"><SelectValue placeholder="Order for Project" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">ทุกโครงการ</SelectItem>
+                {projectNames.map((p) => (<SelectItem key={p} value={p}>{p}</SelectItem>))}
+              </SelectContent>
+            </Select>
           </div>
         </CardContent>
       </Card>
@@ -600,13 +631,15 @@ export default function MediaPlayerReport() {
                       paginatedData.map((r, idx) => {
                         const rowNum = (currentPage - 1) * pageSize + idx + 1;
                         return (
-                          <TableRow key={r.key} className="hover:bg-muted/30 cursor-pointer" onClick={() => setSelectedPlayerId(r.playerId)}>
+                          <TableRow key={r.key} className="hover:bg-muted/30">
                             <TableCell className="text-muted-foreground">{rowNum}</TableCell>
                             <TableCell>
                               {r.imageUrl ? (
                                 <Tooltip>
                                   <TooltipTrigger asChild>
-                                    <img src={r.imageUrl} alt="" className="w-10 h-10 rounded object-cover border" />
+                                    <button onClick={() => setLightboxImage(r.imageUrl)} className="cursor-pointer">
+                                      <img src={r.imageUrl} alt="" className="w-10 h-10 rounded object-cover border" />
+                                    </button>
                                   </TooltipTrigger>
                                   <TooltipContent side="right" className="p-0">
                                     <img src={r.imageUrl} alt="" className="w-48 h-48 rounded object-cover" />
@@ -664,7 +697,7 @@ export default function MediaPlayerReport() {
                             <TableCell>{r.lotNumber2 || "-"}</TableCell>
                             <TableCell>{r.orderForProject || "-"}</TableCell>
                             <TableCell className="text-center">
-                              <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); setSelectedPlayerId(r.playerId); }}>
+                              <Button variant="ghost" size="sm" onClick={() => setSelectedPlayerId(r.playerId)}>
                                 <Eye className="w-4 h-4" />
                               </Button>
                             </TableCell>
@@ -702,6 +735,28 @@ export default function MediaPlayerReport() {
             navigate(`/media-player/${id}`);
           }}
         />
+      )}
+
+      {/* Image Lightbox Dialog */}
+      {lightboxImage && (
+        <Dialog open onOpenChange={() => setLightboxImage(null)}>
+          <DialogContent className="max-w-3xl">
+            <DialogHeader>
+              <DialogTitle className="flex items-center justify-between">
+                <span>ดูรูปภาพ</span>
+                <Button size="sm" variant="outline" asChild>
+                  <a href={lightboxImage} download target="_blank" rel="noopener noreferrer">
+                    <Download className="w-4 h-4 mr-2" />
+                    Download
+                  </a>
+                </Button>
+              </DialogTitle>
+            </DialogHeader>
+            <div className="flex items-center justify-center">
+              <img src={lightboxImage} alt="รูปภาพ Media Player" className="max-w-full max-h-[70vh] rounded-lg object-contain" />
+            </div>
+          </DialogContent>
+        </Dialog>
       )}
     </div>
   );
