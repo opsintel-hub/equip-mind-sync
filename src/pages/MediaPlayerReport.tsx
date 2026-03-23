@@ -637,7 +637,9 @@ export default function MediaPlayerReport() {
                               {r.imageUrl ? (
                                 <Tooltip>
                                   <TooltipTrigger asChild>
-                                    <img src={r.imageUrl} alt="" className="w-10 h-10 rounded object-cover border" />
+                                    <button onClick={() => setLightboxImage(r.imageUrl)} className="cursor-pointer">
+                                      <img src={r.imageUrl} alt="" className="w-10 h-10 rounded object-cover border" />
+                                    </button>
                                   </TooltipTrigger>
                                   <TooltipContent side="right" className="p-0">
                                     <img src={r.imageUrl} alt="" className="w-48 h-48 rounded object-cover" />
