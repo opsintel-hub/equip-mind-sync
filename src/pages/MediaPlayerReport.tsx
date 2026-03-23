@@ -820,7 +820,7 @@ function MediaPlayerProfileDialog({
       if (model) setModelName((model as any).name);
     }
 
-    // Journey (history + current)
+    // Journey (history + current + fallback from media_players)
     const { data: history } = await supabase
       .from("billboard_equipment_history")
       .select("billboard_id, installation_date, uninstall_date, uninstall_reason, quantity")
@@ -835,6 +835,7 @@ function MediaPlayerProfileDialog({
     const allBbIds = new Set<string>();
     (history || []).forEach((h: any) => allBbIds.add(h.billboard_id));
     (currentInstalls || []).forEach((c: any) => allBbIds.add(c.billboard_id));
+    if ((p as any).billboard_id) allBbIds.add((p as any).billboard_id);
 
     let bbMap = new Map<string, any>();
     if (allBbIds.size > 0) {
@@ -858,6 +859,22 @@ function MediaPlayerProfileDialog({
       const instDate = c.installation_date || (p as any).install_date;
       const days = instDate ? differenceInDays(new Date(), parseISO(instDate)) : null;
       journeyData.push({ billboard_id: c.billboard_id, billboard_name: bbName, installation_date: instDate, uninstall_date: null, duration_days: days, uninstall_reason: null, quantity: c.quantity });
+    }
+
+    if (journeyData.length === 0 && (p as any).billboard_id && (p as any).install_date) {
+      const bb = bbMap.get((p as any).billboard_id);
+      const bbName = bb
+        ? formatBillboardLabel(bb.old_code, bb.location_name, bb.equipment_id)
+        : (p as any).billboard_id;
+      journeyData.push({
+        billboard_id: (p as any).billboard_id,
+        billboard_name: bbName,
+        installation_date: (p as any).install_date,
+        uninstall_date: null,
+        duration_days: differenceInDays(new Date(), parseISO((p as any).install_date)),
+        uninstall_reason: null,
+        quantity: 1,
+      });
     }
 
     journeyData.sort((a, b) => {
