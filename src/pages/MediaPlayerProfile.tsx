@@ -98,39 +98,62 @@ const MediaPlayerProfile = () => {
       .order("display_order");
     setImages((imgs || []).map((i: any) => i.image_url));
 
-    // Billboard journey (history)
+    // Billboard journey (history - uninstalled)
     const { data: history } = await supabase
       .from("billboard_equipment_history")
       .select("billboard_id, installation_date, uninstall_date, uninstall_reason, quantity")
       .or(`equipment_id.eq.${playerId}`);
 
+    // Current installation from billboard_equipment
+    const { data: currentInstalls } = await supabase
+      .from("billboard_equipment")
+      .select("billboard_id, installation_date, quantity")
+      .eq("equipment_id", playerId);
+
     const journeyData: BillboardJourney[] = [];
-    if (history && history.length > 0) {
-      const billboardIds = [...new Set(history.map((h: any) => h.billboard_id))];
+    const allBbIds = new Set<string>();
+    (history || []).forEach((h: any) => allBbIds.add(h.billboard_id));
+    (currentInstalls || []).forEach((c: any) => allBbIds.add(c.billboard_id));
+
+    let bbMap = new Map<string, any>();
+    if (allBbIds.size > 0) {
       const { data: billboards } = await supabase
         .from("billboards")
         .select("id, equipment_id, old_code, location_name")
-        .in("id", billboardIds);
-
-      const bbMap = new Map((billboards || []).map((b: any) => [b.id, b]));
-
-      for (const h of history as any[]) {
-        const bb = bbMap.get(h.billboard_id);
-        const bbName = bb ? formatBillboardLabel(bb.old_code, bb.location_name, bb.equipment_id) : h.billboard_id;
-        const instDate = h.installation_date;
-        const uninstDate = h.uninstall_date;
-        const days = instDate && uninstDate ? differenceInDays(parseISO(uninstDate), parseISO(instDate)) : null;
-        journeyData.push({
-          billboard_id: h.billboard_id,
-          billboard_name: bbName,
-          installation_date: instDate,
-          uninstall_date: uninstDate,
-          duration_days: days,
-          uninstall_reason: h.uninstall_reason,
-          quantity: h.quantity,
-        });
-      }
+        .in("id", [...allBbIds]);
+      bbMap = new Map((billboards || []).map((b: any) => [b.id, b]));
     }
+
+    // Past (uninstalled) journeys
+    for (const h of (history || []) as any[]) {
+      const bb = bbMap.get(h.billboard_id);
+      const bbName = bb ? formatBillboardLabel(bb.old_code, bb.location_name, bb.equipment_id) : h.billboard_id;
+      const instDate = h.installation_date;
+      const uninstDate = h.uninstall_date;
+      const days = instDate && uninstDate ? differenceInDays(parseISO(uninstDate), parseISO(instDate)) : null;
+      journeyData.push({
+        billboard_id: h.billboard_id, billboard_name: bbName, installation_date: instDate,
+        uninstall_date: uninstDate, duration_days: days, uninstall_reason: h.uninstall_reason, quantity: h.quantity,
+      });
+    }
+
+    // Current installation (ongoing - no uninstall date)
+    for (const c of (currentInstalls || []) as any[]) {
+      const bb = bbMap.get(c.billboard_id);
+      const bbName = bb ? formatBillboardLabel(bb.old_code, bb.location_name, bb.equipment_id) : c.billboard_id;
+      const instDate = c.installation_date || (p as any).install_date;
+      const days = instDate ? differenceInDays(new Date(), parseISO(instDate)) : null;
+      journeyData.push({
+        billboard_id: c.billboard_id, billboard_name: bbName, installation_date: instDate,
+        uninstall_date: null, duration_days: days, uninstall_reason: null, quantity: c.quantity,
+      });
+    }
+
+    journeyData.sort((a, b) => {
+      if (!a.uninstall_date && b.uninstall_date) return -1;
+      if (a.uninstall_date && !b.uninstall_date) return 1;
+      return (b.installation_date || "").localeCompare(a.installation_date || "");
+    });
     setJourneys(journeyData);
 
     // Stock movements
