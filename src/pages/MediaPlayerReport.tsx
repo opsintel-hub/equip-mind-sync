@@ -736,6 +736,28 @@ export default function MediaPlayerReport() {
           }}
         />
       )}
+
+      {/* Image Lightbox Dialog */}
+      {lightboxImage && (
+        <Dialog open onOpenChange={() => setLightboxImage(null)}>
+          <DialogContent className="max-w-3xl">
+            <DialogHeader>
+              <DialogTitle className="flex items-center justify-between">
+                <span>ดูรูปภาพ</span>
+                <Button size="sm" variant="outline" asChild>
+                  <a href={lightboxImage} download target="_blank" rel="noopener noreferrer">
+                    <Download className="w-4 h-4 mr-2" />
+                    Download
+                  </a>
+                </Button>
+              </DialogTitle>
+            </DialogHeader>
+            <div className="flex items-center justify-center">
+              <img src={lightboxImage} alt="รูปภาพ Media Player" className="max-w-full max-h-[70vh] rounded-lg object-contain" />
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }
