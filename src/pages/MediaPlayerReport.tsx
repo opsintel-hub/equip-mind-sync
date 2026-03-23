@@ -346,6 +346,7 @@ export default function MediaPlayerReport() {
       }
       if (companyFilter !== "all" && r.company !== companyFilter) return false;
       if (brandFilter !== "all" && r.brand !== brandFilter) return false;
+      if (projectFilter !== "all" && r.orderForProject !== projectFilter) return false;
       if (codePrefixFilter !== "all") {
         const match = r.code?.match(/^([A-Za-z-]+)/);
         if (!match || match[1] !== codePrefixFilter) return false;
@@ -369,7 +370,7 @@ export default function MediaPlayerReport() {
       }
       return true;
     });
-  }, [expandedRows, search, snSearch, conditionFilter, departmentFilter, statusFilter, companyFilter, brandFilter, codePrefixFilter]);
+  }, [expandedRows, search, snSearch, conditionFilter, departmentFilter, statusFilter, companyFilter, brandFilter, codePrefixFilter, projectFilter]);
 
   const {
     paginatedData,
