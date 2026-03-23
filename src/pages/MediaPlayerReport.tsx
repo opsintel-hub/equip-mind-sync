@@ -570,6 +570,13 @@ export default function MediaPlayerReport() {
                 {brands.map((b) => (<SelectItem key={b} value={b}>{b}</SelectItem>))}
               </SelectContent>
             </Select>
+            <Select value={projectFilter} onValueChange={setProjectFilter}>
+              <SelectTrigger className="w-[180px]"><SelectValue placeholder="Order for Project" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">ทุกโครงการ</SelectItem>
+                {projectNames.map((p) => (<SelectItem key={p} value={p}>{p}</SelectItem>))}
+              </SelectContent>
+            </Select>
           </div>
         </CardContent>
       </Card>
