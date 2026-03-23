@@ -392,7 +392,9 @@ export default function MediaPlayerReport() {
     const uniquePrefixes = new Set(filtered.map((r) => { const m = r.code?.match(/^([A-Za-z-]+)/); return m ? m[1] : ""; }).filter(Boolean)).size;
     const uniqueBrands = new Set(filtered.map((r) => r.brand).filter(Boolean)).size;
     const warrantyExpiring = filtered.filter((r) => r.warrantyDaysLeft !== null && r.warrantyDaysLeft >= 0 && r.warrantyDaysLeft <= 90).length;
-    return { total, installed, inStock, defective, repaired, uniquePrefixes, uniqueBrands, warrantyExpiring };
+    const uniqueDepartments = new Set(filtered.map((r) => r.department).filter(Boolean)).size;
+    const uniqueProjects = new Set(filtered.map((r) => r.orderForProject).filter(Boolean)).size;
+    return { total, installed, inStock, defective, repaired, uniquePrefixes, uniqueBrands, warrantyExpiring, uniqueDepartments, uniqueProjects };
   }, [filtered]);
 
   // Export Excel
