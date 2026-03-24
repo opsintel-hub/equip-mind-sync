@@ -135,11 +135,11 @@ export function BillboardPackageSelect({
         <div className="flex items-center gap-2">
           <Button
             type="button"
-            variant="outline"
+            variant="default"
             size="sm"
             onClick={() => setOpen(true)}
             disabled={disabled}
-            className="gap-1"
+            className="gap-1.5 shadow-sm"
           >
             <Package className="h-4 w-4" />
             เลือกจาก Package ({selectedBillboardIds.length} ป้าย)
@@ -176,12 +176,29 @@ export function BillboardPackageSelect({
                       {packageItems.length} ป้ายใน Package
                     </span>
                     <div className="flex gap-1">
-                      <Button size="sm" variant="default" onClick={handleSelectAll}>
-                        <Check className="h-3 w-3 mr-1" /> เลือกทั้งหมด
-                      </Button>
-                      <Button size="sm" variant="outline" onClick={handleDeselectAll}>
-                        <X className="h-3 w-3 mr-1" /> ยกเลิกทั้งหมด
-                      </Button>
+                      {(() => {
+                        const allSelected = packageItems.every((b: any) => selectedBillboardIds.includes(b.id));
+                        return (
+                          <>
+                            <Button
+                              size="sm"
+                              variant={allSelected ? "secondary" : "default"}
+                              onClick={handleSelectAll}
+                              disabled={allSelected}
+                            >
+                              <Check className="h-3 w-3 mr-1" /> เลือกทั้งหมด
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant={allSelected ? "destructive" : "outline"}
+                              onClick={handleDeselectAll}
+                              disabled={!packageItems.some((b: any) => selectedBillboardIds.includes(b.id))}
+                            >
+                              <X className="h-3 w-3 mr-1" /> ยกเลิกทั้งหมด
+                            </Button>
+                          </>
+                        );
+                      })()}
                     </div>
                   </div>
                   <div className="max-h-[300px] overflow-y-auto border rounded">

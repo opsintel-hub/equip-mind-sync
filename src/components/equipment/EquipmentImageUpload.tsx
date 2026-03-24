@@ -42,9 +42,9 @@ export function EquipmentImageUpload({
           throw new Error(`ไฟล์ ${file.name} ไม่ใช่รูปภาพ`);
         }
 
-        // Validate file size (max 5MB)
-        if (file.size > 5 * 1024 * 1024) {
-          throw new Error(`ไฟล์ ${file.name} มีขนาดใหญ่เกิน 5MB`);
+        // Validate file size (max 10MB)
+        if (file.size > 10 * 1024 * 1024) {
+          throw new Error(`ไฟล์ ${file.name} มีขนาดใหญ่เกิน 10MB`);
         }
 
         const fileExt = file.name.split('.').pop();
@@ -170,7 +170,7 @@ export function EquipmentImageUpload({
       </div>
 
       <p className="text-xs text-muted-foreground">
-        อัพโหลดได้ 1-5 รูป (สูงสุด 5MB ต่อรูป) - ใส่ครั้งแรกเท่านั้น
+        อัพโหลดได้ 1-5 รูป (สูงสุด 10MB ต่อรูป) - ใส่ครั้งแรกเท่านั้น
       </p>
 
       {/* Image Preview Dialog */}

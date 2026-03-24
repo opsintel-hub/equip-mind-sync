@@ -27,9 +27,19 @@ interface PendingAd {
   created_at: string;
   photo_urls: string[] | null;
   target_installation_date: string | null;
+  installation_details: string | null;
+  supporting_doc_url: string | null;
+  notes: string | null;
+  storage_location: string | null;
+  retention_days: number | null;
+  contact_name: string | null;
+  contact_phone: string | null;
   installation_team: { name: string } | null;
+  pickup_contractor: { name: string } | null;
+  ad_size: { name: string } | null;
+  ad_media_type: { name: string } | null;
   ad_versions: { version_name: string; quantity: number }[];
-  ad_target_billboards: { billboard_id: string; billboards: { equipment_id: string; location_name: string | null } | null }[];
+  ad_target_billboards: { billboard_id: string; billboards: { equipment_id: string; old_code: string | null; location_name: string | null } | null }[];
 }
 
 interface AdReceiveSectionProps {
@@ -63,10 +73,15 @@ export function AdReceiveSection({ refresh, onReceived }: AdReceiveSectionProps)
         .from("advertisements")
         .select(`
           id, code, entry_type, name, total_quantity, created_at,
-          photo_urls, target_installation_date,
+          photo_urls, target_installation_date, installation_details,
+          supporting_doc_url, notes, storage_location, retention_days,
+          contact_name, contact_phone,
           installation_team:contractors!advertisements_installation_team_id_fkey (name),
+          pickup_contractor:contractors!advertisements_pickup_contractor_id_fkey (name),
+          ad_size:ad_sizes!advertisements_ad_size_id_fkey (name),
+          ad_media_type:ad_media_types!advertisements_ad_media_type_id_fkey (name),
           ad_versions (version_name, quantity),
-          ad_target_billboards (billboard_id, billboards (equipment_id, location_name))
+          ad_target_billboards (billboard_id, billboards (equipment_id, old_code, location_name))
         `)
         .eq("status", "pending")
         .eq("is_active", true)
@@ -100,6 +115,13 @@ export function AdReceiveSection({ refresh, onReceived }: AdReceiveSectionProps)
 
       if (updateError) throw updateError;
 
+      // Fetch updated record to get contractor_access_token and PIN
+      const { data: updatedAd } = await supabase
+        .from("advertisements")
+        .select("contractor_access_token, contractor_access_pin")
+        .eq("id", ad.id)
+        .single();
+
       if (ad.entry_type === "new") {
         const targetBillboards = ad.ad_target_billboards || [];
         
@@ -121,10 +143,20 @@ export function AdReceiveSection({ refresh, onReceived }: AdReceiveSectionProps)
 
           if (issueError) throw issueError;
 
-          toast.success(
-            `รับเข้าคลัง ${ad.code} สำเร็จ — สร้างเอกสารเบิก ${issueInserts.length} รายการ`,
-            { duration: 5000, action: { label: "ดูเอกสารเบิก", onClick: () => window.location.href = "/ad-issue" } }
-          );
+          // Show contractor link info
+          if (updatedAd?.contractor_access_token) {
+            const contractorUrl = `${window.location.origin}/ad-contractor/${updatedAd.contractor_access_token}`;
+            await navigator.clipboard.writeText(contractorUrl);
+            toast.success(
+              `รับเข้าคลัง ${ad.code} สำเร็จ — สร้างเอกสารเบิก ${issueInserts.length} รายการ\n\nลิงก์ผู้รับเหมาถูกคัดลอกแล้ว (PIN: ${updatedAd.contractor_access_pin})`,
+              { duration: 10000, action: { label: "ดูเอกสารเบิก", onClick: () => window.location.href = "/ad-issue" } }
+            );
+          } else {
+            toast.success(
+              `รับเข้าคลัง ${ad.code} สำเร็จ — สร้างเอกสารเบิก ${issueInserts.length} รายการ`,
+              { duration: 5000, action: { label: "ดูเอกสารเบิก", onClick: () => window.location.href = "/ad-issue" } }
+            );
+          }
         } else {
           const { error: issueError } = await supabase
             .from("ad_issue_requests")
@@ -140,10 +172,19 @@ export function AdReceiveSection({ refresh, onReceived }: AdReceiveSectionProps)
 
           if (issueError) throw issueError;
 
-          toast.success(
-            `รับเข้าคลัง ${ad.code} สำเร็จ — สร้างเอกสารเบิก 1 รายการ`,
-            { duration: 5000, action: { label: "ดูเอกสารเบิก", onClick: () => window.location.href = "/ad-issue" } }
-          );
+          if (updatedAd?.contractor_access_token) {
+            const contractorUrl = `${window.location.origin}/ad-contractor/${updatedAd.contractor_access_token}`;
+            await navigator.clipboard.writeText(contractorUrl);
+            toast.success(
+              `รับเข้าคลัง ${ad.code} สำเร็จ — สร้างเอกสารเบิก 1 รายการ\n\nลิงก์ผู้รับเหมาถูกคัดลอกแล้ว (PIN: ${updatedAd.contractor_access_pin})`,
+              { duration: 10000, action: { label: "ดูเอกสารเบิก", onClick: () => window.location.href = "/ad-issue" } }
+            );
+          } else {
+            toast.success(
+              `รับเข้าคลัง ${ad.code} สำเร็จ — สร้างเอกสารเบิก 1 รายการ`,
+              { duration: 5000, action: { label: "ดูเอกสารเบิก", onClick: () => window.location.href = "/ad-issue" } }
+            );
+          }
         }
       } else {
         toast.success(`รับเข้าคลัง ${ad.code} สำเร็จ`);
@@ -360,6 +401,18 @@ export function AdReceiveSection({ refresh, onReceived }: AdReceiveSectionProps)
                     <span className="text-muted-foreground">จำนวนรวม:</span>
                     <p className="font-medium">{confirmAd?.total_quantity || 0} ชิ้น</p>
                   </div>
+                  {confirmAd?.ad_size && (
+                    <div>
+                      <span className="text-muted-foreground">ขนาดภาพ:</span>
+                      <p>{confirmAd.ad_size.name}</p>
+                    </div>
+                  )}
+                  {confirmAd?.ad_media_type && (
+                    <div>
+                      <span className="text-muted-foreground">ประเภทสื่อ:</span>
+                      <p>{confirmAd.ad_media_type.name}</p>
+                    </div>
+                  )}
                   {confirmAd?.installation_team && (
                     <div>
                       <span className="text-muted-foreground">ทีมติดตั้ง:</span>
@@ -370,6 +423,30 @@ export function AdReceiveSection({ refresh, onReceived }: AdReceiveSectionProps)
                     <div>
                       <span className="text-muted-foreground">วันที่ติดตั้ง:</span>
                       <p>{format(new Date(confirmAd.target_installation_date), "dd/MM/yyyy")}</p>
+                    </div>
+                  )}
+                  {confirmAd?.pickup_contractor && (
+                    <div>
+                      <span className="text-muted-foreground">ผู้รับเหมารับสินค้า:</span>
+                      <p>{confirmAd.pickup_contractor.name}</p>
+                    </div>
+                  )}
+                  {confirmAd?.contact_name && (
+                    <div>
+                      <span className="text-muted-foreground">ผู้ติดต่อ:</span>
+                      <p>{confirmAd.contact_name}{confirmAd.contact_phone ? ` (${confirmAd.contact_phone})` : ""}</p>
+                    </div>
+                  )}
+                  {confirmAd?.storage_location && (
+                    <div>
+                      <span className="text-muted-foreground">ตำแหน่งจัดเก็บ:</span>
+                      <p>{confirmAd.storage_location}</p>
+                    </div>
+                  )}
+                  {confirmAd?.retention_days && (
+                    <div>
+                      <span className="text-muted-foreground">ระยะเวลาจัดเก็บ:</span>
+                      <p>{confirmAd.retention_days} วัน</p>
                     </div>
                   )}
                 </div>
@@ -393,13 +470,37 @@ export function AdReceiveSection({ refresh, onReceived }: AdReceiveSectionProps)
                     <div className="flex flex-wrap gap-1 mt-1">
                       {confirmAd.ad_target_billboards.slice(0, 10).map((tb, i) => (
                         <Badge key={i} variant="outline" className="text-xs">
-                          {tb.billboards?.equipment_id || "-"} {tb.billboards?.location_name ? `- ${tb.billboards.location_name}` : ""}
+                          {tb.billboards?.old_code || tb.billboards?.equipment_id || "-"} {tb.billboards?.location_name ? `- ${tb.billboards.location_name}` : ""}
                         </Badge>
                       ))}
                       {confirmAd.ad_target_billboards.length > 10 && (
                         <Badge variant="secondary" className="text-xs">+{confirmAd.ad_target_billboards.length - 10} ป้าย</Badge>
                       )}
                     </div>
+                  </div>
+                )}
+
+                {/* Installation details */}
+                {confirmAd?.installation_details && (
+                  <div className="p-3 rounded-md bg-muted/50 border">
+                    <p className="text-xs font-medium text-muted-foreground mb-1">📋 รายละเอียดการติดตั้ง:</p>
+                    <p className="text-sm">{confirmAd.installation_details}</p>
+                  </div>
+                )}
+
+                {/* Supporting Doc */}
+                {confirmAd?.supporting_doc_url && (
+                  <div>
+                    <span className="text-sm text-muted-foreground">เอกสารประกอบ:</span>
+                    <a href={confirmAd.supporting_doc_url} target="_blank" rel="noopener noreferrer" className="text-sm text-primary hover:underline ml-1">ดูเอกสาร</a>
+                  </div>
+                )}
+
+                {/* Notes */}
+                {confirmAd?.notes && (
+                  <div>
+                    <span className="text-sm text-muted-foreground">หมายเหตุ:</span>
+                    <p className="text-sm">{confirmAd.notes}</p>
                   </div>
                 )}
 

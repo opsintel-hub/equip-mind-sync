@@ -46,8 +46,8 @@ export function AdPhotoUpload({
         if (!file.type.startsWith("image/")) {
           throw new Error(`ไฟล์ ${file.name} ไม่ใช่รูปภาพ`);
         }
-        if (file.size > 5 * 1024 * 1024) {
-          throw new Error(`ไฟล์ ${file.name} มีขนาดใหญ่เกิน 5MB`);
+        if (file.size > 10 * 1024 * 1024) {
+          throw new Error(`ไฟล์ ${file.name} มีขนาดใหญ่เกิน 10MB`);
         }
 
         const fileExt = file.name.split(".").pop();
