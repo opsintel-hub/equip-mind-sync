@@ -260,6 +260,40 @@ export function AdList({ refresh, filterType, filterStatus }: AdListProps) {
                         )}
                       </div>
                     </TableCell>
+                    <TableCell>
+                      {ad.contractor_access_token ? (
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="gap-1 text-xs"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  const link = `${window.location.origin}/ad-contractor/${ad.contractor_access_token}`;
+                                  navigator.clipboard.writeText(link);
+                                  toast.success("คัดลอกลิงก์แล้ว");
+                                }}
+                              >
+                                <Copy className="h-3.5 w-3.5" />
+                                คัดลอก
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>คัดลอกลิงก์สำหรับผู้รับเหมา</TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      ) : (
+                        <span className="text-muted-foreground">-</span>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {ad.contractor_access_pin ? (
+                        <code className="text-xs bg-muted px-2 py-1 rounded font-mono">{ad.contractor_access_pin}</code>
+                      ) : (
+                        <span className="text-muted-foreground">-</span>
+                      )}
+                    </TableCell>
                     <TableCell className="text-sm text-muted-foreground">
                       {format(new Date(ad.created_at), "dd/MM/yyyy")}
                     </TableCell>
