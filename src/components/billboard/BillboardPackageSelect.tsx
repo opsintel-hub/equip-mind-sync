@@ -135,11 +135,11 @@ export function BillboardPackageSelect({
         <div className="flex items-center gap-2">
           <Button
             type="button"
-            variant="outline"
+            variant="default"
             size="sm"
             onClick={() => setOpen(true)}
             disabled={disabled}
-            className="gap-1"
+            className="gap-1.5 shadow-sm"
           >
             <Package className="h-4 w-4" />
             เลือกจาก Package ({selectedBillboardIds.length} ป้าย)
