@@ -155,7 +155,7 @@ export function AdNewForm({ onSuccess }: AdNewFormProps) {
           notes: notes.trim() || null,
           created_by: user.id,
         })
-        .select("id")
+        .select("id, contractor_access_token, contractor_access_pin")
         .single();
 
       if (adError) throw adError;
