@@ -103,7 +103,14 @@ export function AdIssueList({ refresh, onUpdated }: AdIssueListProps) {
         .from("ad_issue_requests")
         .select(`
           *,
-          advertisement:advertisements (code, name, total_quantity, photo_urls, installation_details, target_installation_date),
+          advertisement:advertisements (
+            code, name, total_quantity, photo_urls, installation_details,
+            target_installation_date, supporting_doc_url, notes, entry_type,
+            ad_size:ad_sizes!advertisements_ad_size_id_fkey (name),
+            ad_media_type:ad_media_types!advertisements_ad_media_type_id_fkey (name),
+            installation_team:contractors!advertisements_installation_team_id_fkey (name),
+            ad_versions (version_name, quantity)
+          ),
           target_billboard:billboards!ad_issue_requests_target_billboard_id_fkey (old_code, equipment_id, location_name, department, size)
         `)
         .order("created_at", { ascending: false })
