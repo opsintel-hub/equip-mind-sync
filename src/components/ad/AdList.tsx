@@ -18,11 +18,12 @@ import {
 } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Search, AlertTriangle, Copy, Link } from "lucide-react";
+import { Search, AlertTriangle, Copy, Pencil } from "lucide-react";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { AdDetailDialog } from "./AdDetailDialog";
+import { AdEditForm } from "./AdEditForm";
 import { useTablePagination } from "@/hooks/useTablePagination";
 import { TablePagination } from "@/components/TablePagination";
 
@@ -75,6 +76,8 @@ export function AdList({ refresh, filterType, filterStatus }: AdListProps) {
   const [statusFilter, setStatusFilter] = useState(filterStatus || "all");
   const [selectedAdId, setSelectedAdId] = useState<string | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
+  const [editAdId, setEditAdId] = useState<string | null>(null);
+  const [editOpen, setEditOpen] = useState(false);
 
   useEffect(() => {
     if (filterType) setTypeFilter(filterType);
@@ -200,6 +203,7 @@ export function AdList({ refresh, filterType, filterStatus }: AdListProps) {
                 <TableHead>ลิงก์ผู้รับเหมา</TableHead>
                 <TableHead>PIN</TableHead>
                 <TableHead>วันที่สร้าง</TableHead>
+                <TableHead className="text-center">จัดการ</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -297,6 +301,21 @@ export function AdList({ refresh, filterType, filterStatus }: AdListProps) {
                     <TableCell className="text-sm text-muted-foreground">
                       {format(new Date(ad.created_at), "dd/MM/yyyy")}
                     </TableCell>
+                    <TableCell className="text-center">
+                      {ad.status === "pending" && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setEditAdId(ad.id);
+                            setEditOpen(true);
+                          }}
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </TableCell>
                   </TableRow>
                 );
               })}
@@ -319,6 +338,20 @@ export function AdList({ refresh, filterType, filterStatus }: AdListProps) {
         open={detailOpen}
         onOpenChange={setDetailOpen}
       />
+
+      {editAdId && (
+        <AdEditForm
+          adId={editAdId}
+          open={editOpen}
+          onOpenChange={(isOpen) => {
+            setEditOpen(isOpen);
+            if (!isOpen) setEditAdId(null);
+          }}
+          onSuccess={() => {
+            fetchAds();
+          }}
+        />
+      )}
     </div>
   );
 }
