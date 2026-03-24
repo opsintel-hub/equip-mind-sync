@@ -43,6 +43,13 @@ interface IssueRequest {
     photo_urls: string[] | null;
     installation_details: string | null;
     target_installation_date: string | null;
+    supporting_doc_url: string | null;
+    notes: string | null;
+    entry_type: string;
+    ad_size: { name: string } | null;
+    ad_media_type: { name: string } | null;
+    installation_team: { name: string } | null;
+    ad_versions: { version_name: string; quantity: number }[];
   } | null;
   target_billboard: {
     old_code: string | null;
