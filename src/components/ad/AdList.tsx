@@ -197,6 +197,8 @@ export function AdList({ refresh, filterType, filterStatus }: AdListProps) {
                 <TableHead>ขนาด</TableHead>
                 <TableHead>ทีมติดตั้ง</TableHead>
                 <TableHead>สถานะ</TableHead>
+                <TableHead>ลิงก์ผู้รับเหมา</TableHead>
+                <TableHead>PIN</TableHead>
                 <TableHead>วันที่สร้าง</TableHead>
               </TableRow>
             </TableHeader>
