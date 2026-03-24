@@ -73,10 +73,15 @@ export function AdReceiveSection({ refresh, onReceived }: AdReceiveSectionProps)
         .from("advertisements")
         .select(`
           id, code, entry_type, name, total_quantity, created_at,
-          photo_urls, target_installation_date,
+          photo_urls, target_installation_date, installation_details,
+          supporting_doc_url, notes, storage_location, retention_days,
+          contact_name, contact_phone,
           installation_team:contractors!advertisements_installation_team_id_fkey (name),
+          pickup_contractor:contractors!advertisements_pickup_contractor_id_fkey (name),
+          ad_size:ad_sizes!advertisements_ad_size_id_fkey (name),
+          ad_media_type:ad_media_types!advertisements_ad_media_type_id_fkey (name),
           ad_versions (version_name, quantity),
-          ad_target_billboards (billboard_id, billboards (equipment_id, location_name))
+          ad_target_billboards (billboard_id, billboards (equipment_id, old_code, location_name))
         `)
         .eq("status", "pending")
         .eq("is_active", true)
