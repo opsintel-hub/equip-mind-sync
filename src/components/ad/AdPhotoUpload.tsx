@@ -21,7 +21,7 @@ export function AdPhotoUpload({
   disabled,
   maxPhotos = 5,
   label = "ภาพถ่ายภาพโฆษณาจริง",
-  hint = "ภาพถ่ายจะต้องเห็นภาพโฆษณาที่ชัดเจน สามารถระบุจำนวน และเวอร์ชันได้",
+  hint = "ภาพถ่ายจะต้องเห็นภาพโฆษณาที่ชัดเจน สามารถระบุจำนวน และเวอร์ชันได้ ความจุได้ไม่เกิน 10Mb/ภาพ",
   required = false,
 }: AdPhotoUploadProps) {
   const [isUploading, setIsUploading] = useState(false);
@@ -54,9 +54,7 @@ export function AdPhotoUpload({
         const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
         const filePath = `photos/${fileName}`;
 
-        const { error: uploadError } = await supabase.storage
-          .from("ad-files")
-          .upload(filePath, file);
+        const { error: uploadError } = await supabase.storage.from("ad-files").upload(filePath, file);
 
         if (uploadError) throw uploadError;
 
@@ -105,23 +103,12 @@ export function AdPhotoUpload({
         </span>
       </div>
 
-      {hint && (
-        <p className="text-xs text-muted-foreground bg-muted/50 p-2 rounded-md">
-          💡 {hint}
-        </p>
-      )}
+      {hint && <p className="text-xs text-muted-foreground bg-muted/50 p-2 rounded-md">💡 {hint}</p>}
 
       <div className="flex flex-wrap gap-2">
         {photos.map((url, index) => (
-          <div
-            key={index}
-            className="relative w-20 h-20 border rounded-lg overflow-hidden group"
-          >
-            <img
-              src={url}
-              alt={`ภาพ ${index + 1}`}
-              className="w-full h-full object-cover"
-            />
+          <div key={index} className="relative w-20 h-20 border rounded-lg overflow-hidden group">
+            <img src={url} alt={`ภาพ ${index + 1}`} className="w-full h-full object-cover" />
             <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1">
               <Button
                 type="button"
@@ -179,11 +166,7 @@ export function AdPhotoUpload({
             <DialogTitle>ดูรูปภาพ</DialogTitle>
           </DialogHeader>
           {previewImage && (
-            <img
-              src={previewImage}
-              alt="Preview"
-              className="w-full h-auto max-h-[70vh] object-contain"
-            />
+            <img src={previewImage} alt="Preview" className="w-full h-auto max-h-[70vh] object-contain" />
           )}
         </DialogContent>
       </Dialog>
@@ -216,9 +199,7 @@ export function AdDocUpload({ docUrl, onChange, disabled }: AdDocUploadProps) {
       const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
       const filePath = `docs/${fileName}`;
 
-      const { error: uploadError } = await supabase.storage
-        .from("ad-files")
-        .upload(filePath, file);
+      const { error: uploadError } = await supabase.storage.from("ad-files").upload(filePath, file);
 
       if (uploadError) throw uploadError;
 
@@ -266,13 +247,7 @@ export function AdDocUpload({ docUrl, onChange, disabled }: AdDocUploadProps) {
           >
             ดูเอกสาร
           </a>
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={handleRemove}
-            disabled={disabled}
-          >
+          <Button type="button" variant="ghost" size="sm" onClick={handleRemove} disabled={disabled}>
             <X className="h-4 w-4" />
           </Button>
         </div>
