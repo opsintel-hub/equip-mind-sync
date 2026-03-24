@@ -301,6 +301,21 @@ export function AdList({ refresh, filterType, filterStatus }: AdListProps) {
                     <TableCell className="text-sm text-muted-foreground">
                       {format(new Date(ad.created_at), "dd/MM/yyyy")}
                     </TableCell>
+                    <TableCell className="text-center">
+                      {ad.status === "pending" && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setEditAdId(ad.id);
+                            setEditOpen(true);
+                          }}
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </TableCell>
                   </TableRow>
                 );
               })}
