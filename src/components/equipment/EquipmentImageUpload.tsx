@@ -170,7 +170,7 @@ export function EquipmentImageUpload({
       </div>
 
       <p className="text-xs text-muted-foreground">
-        อัพโหลดได้ 1-5 รูป (สูงสุด 5MB ต่อรูป) - ใส่ครั้งแรกเท่านั้น
+        อัพโหลดได้ 1-5 รูป (สูงสุด 10MB ต่อรูป) - ใส่ครั้งแรกเท่านั้น
       </p>
 
       {/* Image Preview Dialog */}
