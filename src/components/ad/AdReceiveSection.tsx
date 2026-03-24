@@ -115,13 +115,6 @@ export function AdReceiveSection({ refresh, onReceived }: AdReceiveSectionProps)
 
       if (updateError) throw updateError;
 
-      // Fetch updated record to get contractor_access_token and PIN
-      const { data: updatedAd } = await supabase
-        .from("advertisements")
-        .select("contractor_access_token, contractor_access_pin")
-        .eq("id", ad.id)
-        .single();
-
       if (ad.entry_type === "new") {
         const targetBillboards = ad.ad_target_billboards || [];
         
@@ -143,20 +136,10 @@ export function AdReceiveSection({ refresh, onReceived }: AdReceiveSectionProps)
 
           if (issueError) throw issueError;
 
-          // Show contractor link info
-          if (updatedAd?.contractor_access_token) {
-            const contractorUrl = `${window.location.origin}/ad-contractor/${updatedAd.contractor_access_token}`;
-            await navigator.clipboard.writeText(contractorUrl);
-            toast.success(
-              `รับเข้าคลัง ${ad.code} สำเร็จ — สร้างเอกสารเบิก ${issueInserts.length} รายการ\n\nลิงก์ผู้รับเหมาถูกคัดลอกแล้ว (PIN: ${updatedAd.contractor_access_pin})`,
-              { duration: 10000, action: { label: "ดูเอกสารเบิก", onClick: () => window.location.href = "/ad-issue" } }
-            );
-          } else {
-            toast.success(
-              `รับเข้าคลัง ${ad.code} สำเร็จ — สร้างเอกสารเบิก ${issueInserts.length} รายการ`,
-              { duration: 5000, action: { label: "ดูเอกสารเบิก", onClick: () => window.location.href = "/ad-issue" } }
-            );
-          }
+          toast.success(
+            `รับเข้าคลัง ${ad.code} สำเร็จ — สร้างเอกสารเบิก ${issueInserts.length} รายการ`,
+            { duration: 5000, action: { label: "ดูเอกสารเบิก", onClick: () => window.location.href = "/ad-issue" } }
+          );
         } else {
           const { error: issueError } = await supabase
             .from("ad_issue_requests")
@@ -172,19 +155,10 @@ export function AdReceiveSection({ refresh, onReceived }: AdReceiveSectionProps)
 
           if (issueError) throw issueError;
 
-          if (updatedAd?.contractor_access_token) {
-            const contractorUrl = `${window.location.origin}/ad-contractor/${updatedAd.contractor_access_token}`;
-            await navigator.clipboard.writeText(contractorUrl);
-            toast.success(
-              `รับเข้าคลัง ${ad.code} สำเร็จ — สร้างเอกสารเบิก 1 รายการ\n\nลิงก์ผู้รับเหมาถูกคัดลอกแล้ว (PIN: ${updatedAd.contractor_access_pin})`,
-              { duration: 10000, action: { label: "ดูเอกสารเบิก", onClick: () => window.location.href = "/ad-issue" } }
-            );
-          } else {
-            toast.success(
-              `รับเข้าคลัง ${ad.code} สำเร็จ — สร้างเอกสารเบิก 1 รายการ`,
-              { duration: 5000, action: { label: "ดูเอกสารเบิก", onClick: () => window.location.href = "/ad-issue" } }
-            );
-          }
+          toast.success(
+            `รับเข้าคลัง ${ad.code} สำเร็จ — สร้างเอกสารเบิก 1 รายการ`,
+            { duration: 5000, action: { label: "ดูเอกสารเบิก", onClick: () => window.location.href = "/ad-issue" } }
+          );
         }
       } else {
         toast.success(`รับเข้าคลัง ${ad.code} สำเร็จ`);
