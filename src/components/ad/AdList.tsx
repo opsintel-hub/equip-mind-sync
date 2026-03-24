@@ -203,6 +203,7 @@ export function AdList({ refresh, filterType, filterStatus }: AdListProps) {
                 <TableHead>ลิงก์ผู้รับเหมา</TableHead>
                 <TableHead>PIN</TableHead>
                 <TableHead>วันที่สร้าง</TableHead>
+                <TableHead className="text-center">จัดการ</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
