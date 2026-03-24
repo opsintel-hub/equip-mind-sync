@@ -338,6 +338,20 @@ export function AdList({ refresh, filterType, filterStatus }: AdListProps) {
         open={detailOpen}
         onOpenChange={setDetailOpen}
       />
+
+      {editAdId && (
+        <AdEditForm
+          adId={editAdId}
+          open={editOpen}
+          onOpenChange={(isOpen) => {
+            setEditOpen(isOpen);
+            if (!isOpen) setEditAdId(null);
+          }}
+          onSuccess={() => {
+            fetchAds();
+          }}
+        />
+      )}
     </div>
   );
 }
