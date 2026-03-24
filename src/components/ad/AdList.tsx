@@ -38,6 +38,8 @@ interface Advertisement {
   retention_start_date: string | null;
   storage_location: string | null;
   created_at: string;
+  contractor_access_token: string | null;
+  contractor_access_pin: string | null;
   ad_versions: { id: string; version_name: string; quantity: number }[];
   installation_team: { name: string } | null;
   ad_size: { name: string } | null;
