@@ -138,6 +138,7 @@ const App = () => (
             {/* Public billboard view - no auth required */}
             <Route path="/billboard-view/:id" element={<BillboardPublicView />} />
             <Route path="/ad-view/:token" element={<AdPublicView />} />
+            <Route path="/ad-contractor/:token" element={<AdContractorView />} />
             <Route path="/ds-view/:id" element={<DirectShippingPublicView />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
