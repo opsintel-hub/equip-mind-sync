@@ -155,7 +155,7 @@ export function AdNewForm({ onSuccess }: AdNewFormProps) {
           notes: notes.trim() || null,
           created_by: user.id,
         })
-        .select("id")
+        .select("id, contractor_access_token, contractor_access_pin")
         .single();
 
       if (adError) throw adError;
@@ -184,7 +184,17 @@ export function AdNewForm({ onSuccess }: AdNewFormProps) {
         if (bbError) throw bbError;
       }
 
-      toast.success(`เพิ่มภาพโฆษณาใหม่ ${code} สำเร็จ`);
+      // Show contractor link and PIN
+      if (ad.contractor_access_token && ad.contractor_access_pin) {
+        const link = `${window.location.origin}/ad-contractor/${ad.contractor_access_token}`;
+        await navigator.clipboard.writeText(link).catch(() => {});
+        toast.success(
+          `เพิ่มภาพโฆษณาใหม่ ${code} สำเร็จ\n🔗 ลิงก์ผู้รับเหมาถูกคัดลอกแล้ว\n🔑 PIN: ${ad.contractor_access_pin}`,
+          { duration: 15000 }
+        );
+      } else {
+        toast.success(`เพิ่มภาพโฆษณาใหม่ ${code} สำเร็จ`);
+      }
       resetForm();
       setOpen(false);
       onSuccess();

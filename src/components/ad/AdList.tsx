@@ -18,8 +18,10 @@ import {
 } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Search, AlertTriangle } from "lucide-react";
+import { Search, AlertTriangle, Copy, Link } from "lucide-react";
 import { format } from "date-fns";
+import { Button } from "@/components/ui/button";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { AdDetailDialog } from "./AdDetailDialog";
 import { useTablePagination } from "@/hooks/useTablePagination";
 import { TablePagination } from "@/components/TablePagination";
@@ -36,6 +38,8 @@ interface Advertisement {
   retention_start_date: string | null;
   storage_location: string | null;
   created_at: string;
+  contractor_access_token: string | null;
+  contractor_access_pin: string | null;
   ad_versions: { id: string; version_name: string; quantity: number }[];
   installation_team: { name: string } | null;
   ad_size: { name: string } | null;
@@ -193,6 +197,8 @@ export function AdList({ refresh, filterType, filterStatus }: AdListProps) {
                 <TableHead>ขนาด</TableHead>
                 <TableHead>ทีมติดตั้ง</TableHead>
                 <TableHead>สถานะ</TableHead>
+                <TableHead>ลิงก์ผู้รับเหมา</TableHead>
+                <TableHead>PIN</TableHead>
                 <TableHead>วันที่สร้าง</TableHead>
               </TableRow>
             </TableHeader>
@@ -253,6 +259,40 @@ export function AdList({ refresh, filterType, filterStatus }: AdListProps) {
                           <AlertTriangle className="h-4 w-4 text-warning" />
                         )}
                       </div>
+                    </TableCell>
+                    <TableCell>
+                      {ad.contractor_access_token ? (
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="gap-1 text-xs"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  const link = `${window.location.origin}/ad-contractor/${ad.contractor_access_token}`;
+                                  navigator.clipboard.writeText(link);
+                                  toast.success("คัดลอกลิงก์แล้ว");
+                                }}
+                              >
+                                <Copy className="h-3.5 w-3.5" />
+                                คัดลอก
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>คัดลอกลิงก์สำหรับผู้รับเหมา</TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      ) : (
+                        <span className="text-muted-foreground">-</span>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {ad.contractor_access_pin ? (
+                        <code className="text-xs bg-muted px-2 py-1 rounded font-mono">{ad.contractor_access_pin}</code>
+                      ) : (
+                        <span className="text-muted-foreground">-</span>
+                      )}
                     </TableCell>
                     <TableCell className="text-sm text-muted-foreground">
                       {format(new Date(ad.created_at), "dd/MM/yyyy")}
