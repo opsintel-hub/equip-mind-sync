@@ -27,9 +27,19 @@ interface PendingAd {
   created_at: string;
   photo_urls: string[] | null;
   target_installation_date: string | null;
+  installation_details: string | null;
+  supporting_doc_url: string | null;
+  notes: string | null;
+  storage_location: string | null;
+  retention_days: number | null;
+  contact_name: string | null;
+  contact_phone: string | null;
   installation_team: { name: string } | null;
+  pickup_contractor: { name: string } | null;
+  ad_size: { name: string } | null;
+  ad_media_type: { name: string } | null;
   ad_versions: { version_name: string; quantity: number }[];
-  ad_target_billboards: { billboard_id: string; billboards: { equipment_id: string; location_name: string | null } | null }[];
+  ad_target_billboards: { billboard_id: string; billboards: { equipment_id: string; old_code: string | null; location_name: string | null } | null }[];
 }
 
 interface AdReceiveSectionProps {
