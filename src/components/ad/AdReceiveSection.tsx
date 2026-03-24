@@ -375,6 +375,18 @@ export function AdReceiveSection({ refresh, onReceived }: AdReceiveSectionProps)
                     <span className="text-muted-foreground">จำนวนรวม:</span>
                     <p className="font-medium">{confirmAd?.total_quantity || 0} ชิ้น</p>
                   </div>
+                  {confirmAd?.ad_size && (
+                    <div>
+                      <span className="text-muted-foreground">ขนาดภาพ:</span>
+                      <p>{confirmAd.ad_size.name}</p>
+                    </div>
+                  )}
+                  {confirmAd?.ad_media_type && (
+                    <div>
+                      <span className="text-muted-foreground">ประเภทสื่อ:</span>
+                      <p>{confirmAd.ad_media_type.name}</p>
+                    </div>
+                  )}
                   {confirmAd?.installation_team && (
                     <div>
                       <span className="text-muted-foreground">ทีมติดตั้ง:</span>
@@ -385,6 +397,30 @@ export function AdReceiveSection({ refresh, onReceived }: AdReceiveSectionProps)
                     <div>
                       <span className="text-muted-foreground">วันที่ติดตั้ง:</span>
                       <p>{format(new Date(confirmAd.target_installation_date), "dd/MM/yyyy")}</p>
+                    </div>
+                  )}
+                  {confirmAd?.pickup_contractor && (
+                    <div>
+                      <span className="text-muted-foreground">ผู้รับเหมารับสินค้า:</span>
+                      <p>{confirmAd.pickup_contractor.name}</p>
+                    </div>
+                  )}
+                  {confirmAd?.contact_name && (
+                    <div>
+                      <span className="text-muted-foreground">ผู้ติดต่อ:</span>
+                      <p>{confirmAd.contact_name}{confirmAd.contact_phone ? ` (${confirmAd.contact_phone})` : ""}</p>
+                    </div>
+                  )}
+                  {confirmAd?.storage_location && (
+                    <div>
+                      <span className="text-muted-foreground">ตำแหน่งจัดเก็บ:</span>
+                      <p>{confirmAd.storage_location}</p>
+                    </div>
+                  )}
+                  {confirmAd?.retention_days && (
+                    <div>
+                      <span className="text-muted-foreground">ระยะเวลาจัดเก็บ:</span>
+                      <p>{confirmAd.retention_days} วัน</p>
                     </div>
                   )}
                 </div>
@@ -408,13 +444,37 @@ export function AdReceiveSection({ refresh, onReceived }: AdReceiveSectionProps)
                     <div className="flex flex-wrap gap-1 mt-1">
                       {confirmAd.ad_target_billboards.slice(0, 10).map((tb, i) => (
                         <Badge key={i} variant="outline" className="text-xs">
-                          {tb.billboards?.equipment_id || "-"} {tb.billboards?.location_name ? `- ${tb.billboards.location_name}` : ""}
+                          {tb.billboards?.old_code || tb.billboards?.equipment_id || "-"} {tb.billboards?.location_name ? `- ${tb.billboards.location_name}` : ""}
                         </Badge>
                       ))}
                       {confirmAd.ad_target_billboards.length > 10 && (
                         <Badge variant="secondary" className="text-xs">+{confirmAd.ad_target_billboards.length - 10} ป้าย</Badge>
                       )}
                     </div>
+                  </div>
+                )}
+
+                {/* Installation details */}
+                {confirmAd?.installation_details && (
+                  <div className="p-3 rounded-md bg-muted/50 border">
+                    <p className="text-xs font-medium text-muted-foreground mb-1">📋 รายละเอียดการติดตั้ง:</p>
+                    <p className="text-sm">{confirmAd.installation_details}</p>
+                  </div>
+                )}
+
+                {/* Supporting Doc */}
+                {confirmAd?.supporting_doc_url && (
+                  <div>
+                    <span className="text-sm text-muted-foreground">เอกสารประกอบ:</span>
+                    <a href={confirmAd.supporting_doc_url} target="_blank" rel="noopener noreferrer" className="text-sm text-primary hover:underline ml-1">ดูเอกสาร</a>
+                  </div>
+                )}
+
+                {/* Notes */}
+                {confirmAd?.notes && (
+                  <div>
+                    <span className="text-sm text-muted-foreground">หมายเหตุ:</span>
+                    <p className="text-sm">{confirmAd.notes}</p>
                   </div>
                 )}
 

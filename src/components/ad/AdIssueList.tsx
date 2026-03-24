@@ -437,7 +437,43 @@ export function AdIssueList({ refresh, onUpdated }: AdIssueListProps) {
                       <p className="text-xs">{oldAdActionLabels[confirmIssue.old_ad_action] || confirmIssue.old_ad_action}</p>
                     </div>
                   )}
+                  {confirmIssue?.advertisement?.ad_size && (
+                    <div>
+                      <span className="text-muted-foreground">ขนาดภาพ:</span>
+                      <p>{confirmIssue.advertisement.ad_size.name}</p>
+                    </div>
+                  )}
+                  {confirmIssue?.advertisement?.ad_media_type && (
+                    <div>
+                      <span className="text-muted-foreground">ประเภทสื่อ:</span>
+                      <p>{confirmIssue.advertisement.ad_media_type.name}</p>
+                    </div>
+                  )}
+                  {confirmIssue?.advertisement?.installation_team && (
+                    <div>
+                      <span className="text-muted-foreground">ทีมติดตั้ง:</span>
+                      <p>{confirmIssue.advertisement.installation_team.name}</p>
+                    </div>
+                  )}
+                  {confirmIssue?.advertisement?.target_installation_date && (
+                    <div>
+                      <span className="text-muted-foreground">วันที่ติดตั้ง:</span>
+                      <p>{format(new Date(confirmIssue.advertisement.target_installation_date), "dd/MM/yyyy")}</p>
+                    </div>
+                  )}
                 </div>
+
+                {/* Versions */}
+                {confirmIssue?.advertisement?.ad_versions && confirmIssue.advertisement.ad_versions.length > 0 && (
+                  <div>
+                    <span className="text-sm text-muted-foreground">เวอร์ชัน:</span>
+                    <div className="flex flex-wrap gap-1 mt-1">
+                      {confirmIssue.advertisement.ad_versions.map((v: any, i: number) => (
+                        <Badge key={i} variant="secondary">{v.version_name} ({v.quantity})</Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 {/* Target Billboard */}
                 {confirmIssue?.target_billboard && (
@@ -462,6 +498,14 @@ export function AdIssueList({ refresh, onUpdated }: AdIssueListProps) {
                   </div>
                 )}
 
+                {/* Supporting Doc */}
+                {confirmIssue?.advertisement?.supporting_doc_url && (
+                  <div>
+                    <span className="text-sm text-muted-foreground">เอกสารประกอบ:</span>
+                    <a href={confirmIssue.advertisement.supporting_doc_url} target="_blank" rel="noopener noreferrer" className="text-sm text-primary hover:underline ml-1">ดูเอกสาร</a>
+                  </div>
+                )}
+
                 {/* Photos */}
                 {confirmIssue?.advertisement?.photo_urls && confirmIssue.advertisement.photo_urls.length > 0 && (
                   <div className="flex gap-2 overflow-x-auto">
@@ -473,8 +517,15 @@ export function AdIssueList({ refresh, onUpdated }: AdIssueListProps) {
 
                 {confirmIssue?.notes && (
                   <div>
-                    <span className="text-xs text-muted-foreground">หมายเหตุ:</span>
+                    <span className="text-xs text-muted-foreground">หมายเหตุ (เอกสารเบิก):</span>
                     <p className="text-sm">{confirmIssue.notes}</p>
+                  </div>
+                )}
+
+                {confirmIssue?.advertisement?.notes && (
+                  <div>
+                    <span className="text-xs text-muted-foreground">หมายเหตุ (ภาพโฆษณา):</span>
+                    <p className="text-sm">{confirmIssue.advertisement.notes}</p>
                   </div>
                 )}
 
