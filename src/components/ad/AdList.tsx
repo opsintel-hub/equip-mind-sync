@@ -76,6 +76,8 @@ export function AdList({ refresh, filterType, filterStatus }: AdListProps) {
   const [statusFilter, setStatusFilter] = useState(filterStatus || "all");
   const [selectedAdId, setSelectedAdId] = useState<string | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
+  const [editAdId, setEditAdId] = useState<string | null>(null);
+  const [editOpen, setEditOpen] = useState(false);
 
   useEffect(() => {
     if (filterType) setTypeFilter(filterType);
