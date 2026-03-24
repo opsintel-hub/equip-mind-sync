@@ -42,9 +42,9 @@ export function EquipmentImageUpload({
           throw new Error(`ไฟล์ ${file.name} ไม่ใช่รูปภาพ`);
         }
 
-        // Validate file size (max 5MB)
-        if (file.size > 5 * 1024 * 1024) {
-          throw new Error(`ไฟล์ ${file.name} มีขนาดใหญ่เกิน 5MB`);
+        // Validate file size (max 10MB)
+        if (file.size > 10 * 1024 * 1024) {
+          throw new Error(`ไฟล์ ${file.name} มีขนาดใหญ่เกิน 10MB`);
         }
 
         const fileExt = file.name.split('.').pop();
