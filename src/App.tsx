@@ -49,6 +49,7 @@ import AdEntry from "./pages/AdEntry";
 import AdRequest from "./pages/AdRequest";
 import AdIssue from "./pages/AdIssue";
 import AdPublicView from "./pages/AdPublicView";
+import AdContractorView from "./pages/AdContractorView";
 import EquipmentTrackingReport from "./pages/EquipmentTrackingReport";
 import BillboardPMPage from "./pages/BillboardPMPage";
 import DefectiveReturnEntry from "./pages/DefectiveReturnEntry";
