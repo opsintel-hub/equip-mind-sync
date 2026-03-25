@@ -1534,6 +1534,71 @@ const DeliveryEntry = () => {
                               </div>
                             </div>
                           </div>
+                          {/* Per-device Asset Code & Equipment ID */}
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <div className="space-y-1">
+                              <div className="flex items-center justify-between">
+                                <Label className="text-xs">รหัสทรัพย์สิน</Label>
+                                <div className="flex items-center gap-1">
+                                  <Checkbox
+                                    id={`mp-wait-asset-${device.id}`}
+                                    checked={device.waiting_asset_code}
+                                    onCheckedChange={(checked) => {
+                                      setMediaPlayerDevices((prev) =>
+                                        prev.map((d) =>
+                                          d.id === device.id ? { ...d, waiting_asset_code: checked === true, asset_code: checked ? "" : d.asset_code } : d,
+                                        ),
+                                      );
+                                    }}
+                                  />
+                                  <Label htmlFor={`mp-wait-asset-${device.id}`} className="text-xs text-muted-foreground">รอรหัส</Label>
+                                </div>
+                              </div>
+                              <Input
+                                placeholder="รหัสทรัพย์สิน..."
+                                value={device.asset_code}
+                                disabled={device.waiting_asset_code}
+                                onChange={(e) => {
+                                  setMediaPlayerDevices((prev) =>
+                                    prev.map((d) =>
+                                      d.id === device.id ? { ...d, asset_code: e.target.value } : d,
+                                    ),
+                                  );
+                                }}
+                              />
+                            </div>
+                            <div className="space-y-1">
+                              <div className="flex items-center justify-between">
+                                <Label className="text-xs">Equipment ID</Label>
+                                <div className="flex items-center gap-1">
+                                  <Checkbox
+                                    id={`mp-wait-eqid-${device.id}`}
+                                    checked={device.waiting_equipment_id}
+                                    onCheckedChange={(checked) => {
+                                      setMediaPlayerDevices((prev) =>
+                                        prev.map((d) =>
+                                          d.id === device.id ? { ...d, waiting_equipment_id: checked === true, equipment_id_code: checked ? "" : d.equipment_id_code } : d,
+                                        ),
+                                      );
+                                    }}
+                                  />
+                                  <Label htmlFor={`mp-wait-eqid-${device.id}`} className="text-xs text-muted-foreground">รอ ID</Label>
+                                </div>
+                              </div>
+                              <Input
+                                placeholder="Equipment ID..."
+                                value={device.equipment_id_code}
+                                disabled={device.waiting_equipment_id}
+                                onChange={(e) => {
+                                  setMediaPlayerDevices((prev) =>
+                                    prev.map((d) =>
+                                      d.id === device.id ? { ...d, equipment_id_code: e.target.value } : d,
+                                    ),
+                                  );
+                                }}
+                              />
+                            </div>
+                          </div>
                         </div>
                       ))}
                     </div>
