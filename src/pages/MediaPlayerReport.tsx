@@ -238,35 +238,38 @@ export default function MediaPlayerReport() {
       if (receipts.length > 0) {
         // Expand: 1 receipt row = 1 display row
         receipts.forEach((r, ri) => {
+          const isFirstRow = !seenPlayerIds.has(p.id);
+          if (isFirstRow) seenPlayerIds.add(p.id);
           rows.push({
             key: `${p.id}-r${ri}`,
             playerId: p.id,
-            code: p.code,
-            name: p.name,
+            code: isFirstRow ? p.code : "",
+            name: isFirstRow ? p.name : "",
             serialNumber: r.serial_number?.trim() || "-",
-            brand: p.brand || "",
-            department: p.department || "",
+            brand: isFirstRow ? (p.brand || "") : "",
+            department: isFirstRow ? (p.department || "") : "",
             condition: p.item_condition,
-            statusLabel,
-            billboardLabel: bbLabel,
-            company,
-            locationName,
+            statusLabel: isFirstRow ? statusLabel : "",
+            billboardLabel: isFirstRow ? bbLabel : "",
+            company: isFirstRow ? company : "",
+            locationName: isFirstRow ? locationName : "",
             price: r.unit_price ?? p.unit_price,
             poNumber: r.po_number || p.po_number || "",
             warrantyExpiry: p.warranty_expiry_date,
             expiryDate,
-            assetCode: p.asset_code || "",
-            equipmentIdCode: p.equipment_id_code || "",
-            depreciationRemaining,
-            activateWindows: p.activate_windows || "",
-            imageUrl: p.image_url,
+            assetCode: isFirstRow ? (p.asset_code || "") : "",
+            equipmentIdCode: isFirstRow ? (p.equipment_id_code || "") : "",
+            depreciationRemaining: isFirstRow ? depreciationRemaining : null,
+            activateWindows: isFirstRow ? (p.activate_windows || "") : "",
+            imageUrl: isFirstRow ? p.image_url : null,
             lotNumber1: (r as any).lot_number || "",
             lotNumber2: (r as any).lot_number_2 || "",
-            specification: p.specification || "",
+            specification: isFirstRow ? (p.specification || "") : "",
             billboard_id: p.billboard_id,
-            warrantyDaysLeft,
-            expiryDaysLeft,
+            warrantyDaysLeft: isFirstRow ? warrantyDaysLeft : null,
+            expiryDaysLeft: isFirstRow ? expiryDaysLeft : null,
             orderForProject: (r as any).order_for_project || "",
+          });
           });
         });
       } else {
