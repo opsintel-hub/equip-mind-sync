@@ -485,9 +485,6 @@ const Billboards = () => {
         </CardContent>
       </Card>
 
-      {/* Billboard Equipment Export */}
-      <BillboardEquipmentExport />
-
       {/* Add/Edit Dialog */}
       <Dialog open={isFormOpen} onOpenChange={handleFormClose}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
