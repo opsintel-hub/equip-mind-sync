@@ -1020,7 +1020,9 @@ const BillboardDetail = () => {
                     onLocationChange={(value) => setUninstallData({ ...uninstallData, return_location_id: value })}
                   />
                   <p className="text-xs text-muted-foreground">
-                    ระบบจะเพิ่มจำนวน {selectedEquipment?.quantity} {selectedEquipment?.equipment?.unit || "ชิ้น"} กลับเข้าสต็อก
+                    {uninstallType === "media_player"
+                      ? "ระบบจะคืน Media Player กลับเข้าสต็อกและอัปเดตสถานะเป็น 'in_stock'"
+                      : `ระบบจะเพิ่มจำนวน ${selectedEquipment?.quantity} ${selectedEquipment?.equipment?.unit || "ชิ้น"} กลับเข้าสต็อก`}
                   </p>
                 </div>
               )}
