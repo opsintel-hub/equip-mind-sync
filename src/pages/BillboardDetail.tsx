@@ -35,6 +35,7 @@ const BillboardDetail = () => {
   
   const [uninstallDialogOpen, setUninstallDialogOpen] = useState(false);
   const [selectedEquipment, setSelectedEquipment] = useState<any>(null);
+  const [uninstallType, setUninstallType] = useState<"equipment" | "media_player">("equipment");
   const [uninstallData, setUninstallData] = useState<UninstallData>({
     uninstall_reason: "",
     return_to_stock: false,
