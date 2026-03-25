@@ -224,10 +224,14 @@ const DeliveryEntry = () => {
     device_name: string;
     image_file: File | null;
     image_preview: string | null;
+    asset_code: string;
+    equipment_id_code: string;
+    waiting_asset_code: boolean;
+    waiting_equipment_id: boolean;
   }
   const [perUnitMode, setPerUnitMode] = useState(false);
   const [equipmentUnits, setEquipmentUnits] = useState<EquipmentUnitEntry[]>([
-    { id: crypto.randomUUID(), serial_number: "", device_name: "", image_file: null, image_preview: null },
+    { id: crypto.randomUUID(), serial_number: "", device_name: "", image_file: null, image_preview: null, asset_code: "", equipment_id_code: "", waiting_asset_code: false, waiting_equipment_id: false },
   ]);
 
   // Storage dimensions
