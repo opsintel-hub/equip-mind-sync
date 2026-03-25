@@ -173,17 +173,17 @@ const BillboardEquipmentExport = () => {
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <FileSpreadsheet className="h-5 w-5" />
+    <Card className="flex flex-col">
+      <CardHeader className="pb-2">
+        <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+          <FileSpreadsheet className="h-4 w-4" />
           Export รายงานอุปกรณ์ป้ายโฆษณา
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="space-y-2">
-            <Label>ประเภทรายงาน</Label>
+      <CardContent className="flex-1 flex flex-col justify-center gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className="space-y-1">
+            <Label className="text-xs text-muted-foreground">ประเภทรายงาน</Label>
             <Select 
               value={filters.exportType} 
               onValueChange={(v) => setFilters({ ...filters, exportType: v as ExportFilters["exportType"] })}
@@ -214,16 +214,16 @@ const BillboardEquipmentExport = () => {
             </Select>
           </div>
 
-          <div className="space-y-2">
-            <Label>ช่วงวันที่</Label>
+          <div className="space-y-1">
+            <Label className="text-xs text-muted-foreground">ช่วงวันที่</Label>
             <DatePickerWithRange
               date={filters.dateRange}
               onDateChange={(range) => setFilters({ ...filters, dateRange: range })}
             />
           </div>
 
-          <div className="space-y-2">
-            <Label>Department</Label>
+          <div className="space-y-1">
+            <Label className="text-xs text-muted-foreground">Department</Label>
             <Select 
               value={filters.department} 
               onValueChange={(v) => setFilters({ ...filters, department: v })}
@@ -240,7 +240,7 @@ const BillboardEquipmentExport = () => {
           </div>
         </div>
 
-        <Button onClick={handleExport} disabled={exporting} className="w-full md:w-auto">
+        <Button onClick={handleExport} disabled={exporting} size="sm" className="w-fit">
           <Download className="h-4 w-4 mr-2" />
           {exporting ? "กำลัง Export..." : "Export Excel"}
         </Button>
