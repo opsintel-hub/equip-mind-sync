@@ -1957,6 +1957,73 @@ const DeliveryEntry = () => {
                                 </div>
                               </div>
                             </div>
+                            {/* Per-unit Asset Code & Equipment ID (when isAsset) */}
+                            {isAsset && (
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                <div className="space-y-1">
+                                  <div className="flex items-center justify-between">
+                                    <Label className="text-xs">รหัสทรัพย์สิน</Label>
+                                    <div className="flex items-center gap-1">
+                                      <Checkbox
+                                        id={`eq-wait-asset-${unitEntry.id}`}
+                                        checked={unitEntry.waiting_asset_code}
+                                        onCheckedChange={(checked) => {
+                                          setEquipmentUnits((prev) =>
+                                            prev.map((u) =>
+                                              u.id === unitEntry.id ? { ...u, waiting_asset_code: checked === true, asset_code: checked ? "" : u.asset_code } : u,
+                                            ),
+                                          );
+                                        }}
+                                      />
+                                      <Label htmlFor={`eq-wait-asset-${unitEntry.id}`} className="text-xs text-muted-foreground">รอรหัส</Label>
+                                    </div>
+                                  </div>
+                                  <Input
+                                    placeholder="รหัสทรัพย์สิน..."
+                                    value={unitEntry.asset_code}
+                                    disabled={unitEntry.waiting_asset_code}
+                                    onChange={(e) => {
+                                      setEquipmentUnits((prev) =>
+                                        prev.map((u) =>
+                                          u.id === unitEntry.id ? { ...u, asset_code: e.target.value } : u,
+                                        ),
+                                      );
+                                    }}
+                                  />
+                                </div>
+                                <div className="space-y-1">
+                                  <div className="flex items-center justify-between">
+                                    <Label className="text-xs">Equipment ID</Label>
+                                    <div className="flex items-center gap-1">
+                                      <Checkbox
+                                        id={`eq-wait-eqid-${unitEntry.id}`}
+                                        checked={unitEntry.waiting_equipment_id}
+                                        onCheckedChange={(checked) => {
+                                          setEquipmentUnits((prev) =>
+                                            prev.map((u) =>
+                                              u.id === unitEntry.id ? { ...u, waiting_equipment_id: checked === true, equipment_id_code: checked ? "" : u.equipment_id_code } : u,
+                                            ),
+                                          );
+                                        }}
+                                      />
+                                      <Label htmlFor={`eq-wait-eqid-${unitEntry.id}`} className="text-xs text-muted-foreground">รอ ID</Label>
+                                    </div>
+                                  </div>
+                                  <Input
+                                    placeholder="Equipment ID..."
+                                    value={unitEntry.equipment_id_code}
+                                    disabled={unitEntry.waiting_equipment_id}
+                                    onChange={(e) => {
+                                      setEquipmentUnits((prev) =>
+                                        prev.map((u) =>
+                                          u.id === unitEntry.id ? { ...u, equipment_id_code: e.target.value } : u,
+                                        ),
+                                      );
+                                    }}
+                                  />
+                                </div>
+                              </div>
+                            )}
                           </div>
                         ))}
                       </div>
