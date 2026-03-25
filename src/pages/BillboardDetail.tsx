@@ -948,16 +948,29 @@ const BillboardDetail = () => {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Trash2 className="w-5 h-5 text-destructive" />
-              ถอดอุปกรณ์ออกจากป้าย
+              {uninstallType === "media_player" ? "ถอด Media Player ออกจากป้าย" : "ถอดอุปกรณ์ออกจากป้าย"}
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div className="p-4 bg-muted rounded-lg space-y-2">
-              <p><strong>อุปกรณ์:</strong> {selectedEquipment?.equipment?.code} - {selectedEquipment?.equipment?.name}</p>
-              <p><strong>จำนวน:</strong> {selectedEquipment?.quantity} {selectedEquipment?.equipment?.unit || "ชิ้น"}</p>
-              <p><strong>วันที่ติดตั้ง:</strong> {selectedEquipment?.installation_date 
-                ? format(new Date(selectedEquipment.installation_date), "d MMM yyyy", { locale: th })
-                : "-"}</p>
+              {uninstallType === "media_player" ? (
+                <>
+                  <p><strong>Media Player:</strong> {selectedEquipment?.code} - {selectedEquipment?.name}</p>
+                  {selectedEquipment?.serial_number_1 && <p><strong>S/N 1:</strong> {selectedEquipment.serial_number_1}</p>}
+                  {selectedEquipment?.serial_number_2 && <p><strong>S/N 2:</strong> {selectedEquipment.serial_number_2}</p>}
+                  <p><strong>วันที่ติดตั้ง:</strong> {selectedEquipment?.install_date 
+                    ? format(new Date(selectedEquipment.install_date), "d MMM yyyy", { locale: th })
+                    : "-"}</p>
+                </>
+              ) : (
+                <>
+                  <p><strong>อุปกรณ์:</strong> {selectedEquipment?.equipment?.code} - {selectedEquipment?.equipment?.name}</p>
+                  <p><strong>จำนวน:</strong> {selectedEquipment?.quantity} {selectedEquipment?.equipment?.unit || "ชิ้น"}</p>
+                  <p><strong>วันที่ติดตั้ง:</strong> {selectedEquipment?.installation_date 
+                    ? format(new Date(selectedEquipment.installation_date), "d MMM yyyy", { locale: th })
+                    : "-"}</p>
+                </>
+              )}
             </div>
 
             <div className="space-y-2">
