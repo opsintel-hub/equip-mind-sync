@@ -644,6 +644,107 @@ const BillboardDetail = () => {
                 )}
               </TabsContent>
 
+              <TabsContent value="media-players">
+                {installedMediaPlayers && installedMediaPlayers.length > 0 ? (
+                  <div className="rounded-lg border overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="bg-muted/50">
+                          <TableHead>รหัส</TableHead>
+                          <TableHead>ชื่อ</TableHead>
+                          <TableHead>S/N 1</TableHead>
+                          <TableHead>S/N 2</TableHead>
+                          <TableHead>สภาพ</TableHead>
+                          <TableHead>วันที่ติดตั้ง</TableHead>
+                          <TableHead>ระยะเวลาติดตั้ง</TableHead>
+                          <TableHead>อายุการใช้งาน</TableHead>
+                          <TableHead className="text-center">โปรไฟล์</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {installedMediaPlayers.map((mp) => {
+                          const daysInstalled = mp.install_date ? differenceInDays(new Date(), new Date(mp.install_date)) : null;
+                          const usageLifespan = mp.usage_lifespan_months;
+                          const receiptDate = mp.date_of_receipt;
+                          let usageInfo: { label: string; className: string } | null = null;
+                          if (receiptDate && usageLifespan) {
+                            const totalLifespanDays = usageLifespan * 30;
+                            const usedDays = differenceInDays(new Date(), new Date(receiptDate));
+                            const remainingDays = totalLifespanDays - usedDays;
+                            if (remainingDays <= 0) {
+                              usageInfo = { label: `หมดอายุแล้ว (${Math.abs(remainingDays)} วัน)`, className: "text-destructive" };
+                            } else if (remainingDays <= 90) {
+                              usageInfo = { label: `เหลือ ${remainingDays} วัน`, className: "text-warning" };
+                            } else {
+                              usageInfo = { label: `เหลือ ${remainingDays} วัน`, className: "text-success" };
+                            }
+                          }
+                          const conditionMap: Record<string, { label: string; className: string }> = {
+                            new: { label: "ใหม่", className: "bg-success/10 text-success" },
+                            good: { label: "ดี", className: "bg-primary/10 text-primary" },
+                            fair: { label: "พอใช้", className: "bg-warning/10 text-warning" },
+                            poor: { label: "ชำรุด", className: "bg-destructive/10 text-destructive" },
+                          };
+                          const cond = conditionMap[mp.item_condition] || { label: mp.item_condition, className: "" };
+
+                          return (
+                            <TableRow key={mp.id}>
+                              <TableCell className="font-medium font-mono text-primary">{mp.code}</TableCell>
+                              <TableCell>{mp.name}</TableCell>
+                              <TableCell>
+                                {mp.serial_number_1 ? (
+                                  <Badge variant="outline" className="font-mono text-xs">{mp.serial_number_1}</Badge>
+                                ) : "-"}
+                              </TableCell>
+                              <TableCell>
+                                {mp.serial_number_2 ? (
+                                  <Badge variant="outline" className="font-mono text-xs">{mp.serial_number_2}</Badge>
+                                ) : "-"}
+                              </TableCell>
+                              <TableCell>
+                                <Badge variant="outline" className={`${cond.className} border-0`}>{cond.label}</Badge>
+                              </TableCell>
+                              <TableCell>
+                                {mp.install_date
+                                  ? format(new Date(mp.install_date), "d MMM yyyy", { locale: th })
+                                  : "-"}
+                              </TableCell>
+                              <TableCell>
+                                {daysInstalled !== null ? (
+                                  <div className="flex items-center gap-1">
+                                    <Clock className="w-3 h-3 text-muted-foreground" />
+                                    <span>{daysInstalled} วัน</span>
+                                  </div>
+                                ) : "-"}
+                              </TableCell>
+                              <TableCell>
+                                {usageInfo ? (
+                                  <span className={`text-xs font-medium ${usageInfo.className}`}>{usageInfo.label}</span>
+                                ) : "-"}
+                              </TableCell>
+                              <TableCell className="text-center">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => navigate(`/media-player-profile/${mp.id}`)}
+                                  title="ดูโปรไฟล์"
+                                >
+                                  <Eye className="w-4 h-4" />
+                                </Button>
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-muted-foreground">
+                    ยังไม่มี Media Player ที่ติดตั้ง
+                  </div>
+                )}
+              </TabsContent>
+
               <TabsContent value="history">
                 {equipmentHistory && equipmentHistory.length > 0 ? (
                   <div className="rounded-lg border overflow-x-auto">
