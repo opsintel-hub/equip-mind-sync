@@ -234,8 +234,9 @@ const BillboardEquipmentExport = () => {
               </SelectTrigger>
               <SelectContent position="popper" sideOffset={4} className="bg-background z-[200] max-h-60 overflow-y-auto">
                 <SelectItem value="all">ทั้งหมด</SelectItem>
-                <SelectItem value="BKK">BKK</SelectItem>
-                <SelectItem value="UPC">UPC</SelectItem>
+                {departments?.map((dept) => (
+                  <SelectItem key={dept.id} value={dept.name}>{dept.name}</SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
