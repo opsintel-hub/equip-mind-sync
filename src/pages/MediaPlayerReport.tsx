@@ -119,6 +119,8 @@ interface ExpandedRow {
   warrantyDaysLeft: number | null;
   expiryDaysLeft: number | null;
   orderForProject: string;
+  /** true only for the first receipt-expanded row of a given media player */
+  isFirstRowOfPlayer: boolean;
 }
 
 export default function MediaPlayerReport() {
@@ -198,6 +200,9 @@ export default function MediaPlayerReport() {
   const expandedRows = useMemo(() => {
     const rows: ExpandedRow[] = [];
     const now = new Date();
+    // Track which player IDs have already emitted a row so we can suppress
+    // duplicate billboard labels on the 2nd+ receipt row of the same device.
+    const seenPlayerIds = new Set<string>();
 
     players.forEach((p) => {
       const receipts = receiptMap[p.id] || [];
@@ -235,6 +240,8 @@ export default function MediaPlayerReport() {
       if (receipts.length > 0) {
         // Expand: 1 receipt row = 1 display row
         receipts.forEach((r, ri) => {
+          const isFirstRow = !seenPlayerIds.has(p.id);
+          if (isFirstRow) seenPlayerIds.add(p.id);
           rows.push({
             key: `${p.id}-r${ri}`,
             playerId: p.id,
@@ -264,6 +271,7 @@ export default function MediaPlayerReport() {
             warrantyDaysLeft,
             expiryDaysLeft,
             orderForProject: (r as any).order_for_project || "",
+            isFirstRowOfPlayer: isFirstRow,
           });
         });
       } else {
@@ -298,6 +306,7 @@ export default function MediaPlayerReport() {
           warrantyDaysLeft,
           expiryDaysLeft,
           orderForProject: "",
+          isFirstRowOfPlayer: true,
         });
       }
     });
@@ -384,15 +393,17 @@ export default function MediaPlayerReport() {
 
   // Summary stats
   const stats = useMemo(() => {
-    const total = filtered.length;
-    const installed = filtered.filter((r) => !!r.billboard_id).length;
-    const inStock = filtered.filter((r) => !r.billboard_id).length;
-    const defective = filtered.filter((r) => r.condition === "defective").length;
-    const repaired = filtered.filter((r) => r.condition === "repaired").length;
-    const uniquePrefixes = new Set(filtered.map((r) => { const m = r.code?.match(/^([A-Za-z-]+)/); return m ? m[1] : ""; }).filter(Boolean)).size;
-    const uniqueBrands = new Set(filtered.map((r) => r.brand).filter(Boolean)).size;
-    const warrantyExpiring = filtered.filter((r) => r.warrantyDaysLeft !== null && r.warrantyDaysLeft >= 0 && r.warrantyDaysLeft <= 90).length;
-    const uniqueDepartments = new Set(filtered.map((r) => r.department).filter(Boolean)).size;
+    // Count unique players for device-level stats to avoid inflating numbers
+    const firstRows = filtered.filter((r) => r.isFirstRowOfPlayer);
+    const total = firstRows.length;
+    const installed = firstRows.filter((r) => !!r.billboard_id).length;
+    const inStock = firstRows.filter((r) => !r.billboard_id).length;
+    const defective = firstRows.filter((r) => r.condition === "defective").length;
+    const repaired = firstRows.filter((r) => r.condition === "repaired").length;
+    const uniquePrefixes = new Set(firstRows.map((r) => { const m = r.code?.match(/^([A-Za-z-]+)/); return m ? m[1] : ""; }).filter(Boolean)).size;
+    const uniqueBrands = new Set(firstRows.map((r) => r.brand).filter(Boolean)).size;
+    const warrantyExpiring = firstRows.filter((r) => r.warrantyDaysLeft !== null && r.warrantyDaysLeft >= 0 && r.warrantyDaysLeft <= 90).length;
+    const uniqueDepartments = new Set(firstRows.map((r) => r.department).filter(Boolean)).size;
     const uniqueProjects = new Set(filtered.map((r) => r.orderForProject).filter(Boolean)).size;
     return { total, installed, inStock, defective, repaired, uniquePrefixes, uniqueBrands, warrantyExpiring, uniqueDepartments, uniqueProjects };
   }, [filtered]);
@@ -637,75 +648,85 @@ export default function MediaPlayerReport() {
                       paginatedData.map((r, idx) => {
                         const rowNum = (currentPage - 1) * pageSize + idx + 1;
                         return (
-                          <TableRow key={r.key} className="hover:bg-muted/30">
-                            <TableCell className="text-muted-foreground">{rowNum}</TableCell>
+                          <TableRow key={r.key} className={`hover:bg-muted/30 ${!r.isFirstRowOfPlayer ? 'border-t-0' : ''}`}>
+                            <TableCell className="text-muted-foreground">{r.isFirstRowOfPlayer ? rowNum : ""}</TableCell>
                             <TableCell>
-                              {r.imageUrl ? (
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <button onClick={() => setLightboxImage(r.imageUrl)} className="cursor-pointer">
-                                      <img src={r.imageUrl} alt="" className="w-10 h-10 rounded object-cover border" />
-                                    </button>
-                                  </TooltipTrigger>
-                                  <TooltipContent side="right" className="p-0">
-                                    <img src={r.imageUrl} alt="" className="w-48 h-48 rounded object-cover" />
-                                  </TooltipContent>
-                                </Tooltip>
-                              ) : (
-                                <div className="w-10 h-10 rounded bg-muted flex items-center justify-center">
-                                  <ImageIcon className="w-4 h-4 text-muted-foreground" />
-                                </div>
-                              )}
+                              {r.isFirstRowOfPlayer ? (
+                                r.imageUrl ? (
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <button onClick={() => setLightboxImage(r.imageUrl)} className="cursor-pointer">
+                                        <img src={r.imageUrl} alt="" className="w-10 h-10 rounded object-cover border" />
+                                      </button>
+                                    </TooltipTrigger>
+                                    <TooltipContent side="right" className="p-0">
+                                      <img src={r.imageUrl} alt="" className="w-48 h-48 rounded object-cover" />
+                                    </TooltipContent>
+                                  </Tooltip>
+                                ) : (
+                                  <div className="w-10 h-10 rounded bg-muted flex items-center justify-center">
+                                    <ImageIcon className="w-4 h-4 text-muted-foreground" />
+                                  </div>
+                                )
+                              ) : null}
                             </TableCell>
-                            <TableCell className="font-mono font-medium">{r.code}</TableCell>
-                            <TableCell>{r.name}</TableCell>
+                            <TableCell className="font-mono font-medium">{r.isFirstRowOfPlayer ? r.code : ""}</TableCell>
+                            <TableCell>{r.isFirstRowOfPlayer ? r.name : ""}</TableCell>
                             <TableCell className="text-sm whitespace-pre-line">{r.serialNumber}</TableCell>
-                            <TableCell>{getConditionBadge(r.condition)}</TableCell>
+                            <TableCell>{r.isFirstRowOfPlayer ? getConditionBadge(r.condition) : ""}</TableCell>
                             <TableCell>
-                              {r.billboard_id ? (
-                                <Badge className="bg-green-100 text-green-800 border-green-200">ติดตั้ง</Badge>
-                              ) : (
-                                <Badge variant="outline">ในคลัง</Badge>
-                              )}
+                              {r.isFirstRowOfPlayer ? (
+                                r.billboard_id ? (
+                                  <Badge className="bg-green-100 text-green-800 border-green-200">ติดตั้ง</Badge>
+                                ) : (
+                                  <Badge variant="outline">ในคลัง</Badge>
+                                )
+                              ) : null}
                             </TableCell>
-                            <TableCell className="text-sm">{r.billboardLabel}</TableCell>
-                            <TableCell>{r.department || "-"}</TableCell>
-                            <TableCell>{r.company || "-"}</TableCell>
+                            <TableCell className="text-sm">{r.isFirstRowOfPlayer ? r.billboardLabel : ""}</TableCell>
+                            <TableCell>{r.isFirstRowOfPlayer ? (r.department || "-") : ""}</TableCell>
+                            <TableCell>{r.isFirstRowOfPlayer ? (r.company || "-") : ""}</TableCell>
                             <TableCell className="text-right font-mono">{formatPrice(r.price)}</TableCell>
                             <TableCell>{r.poNumber || "-"}</TableCell>
-                            <TableCell>{r.assetCode || "-"}</TableCell>
-                            <TableCell>{r.equipmentIdCode || "-"}</TableCell>
+                            <TableCell>{r.isFirstRowOfPlayer ? (r.assetCode || "-") : ""}</TableCell>
+                            <TableCell>{r.isFirstRowOfPlayer ? (r.equipmentIdCode || "-") : ""}</TableCell>
                             <TableCell className="text-right">
-                              {r.depreciationRemaining !== null ? (
+                              {r.isFirstRowOfPlayer && r.depreciationRemaining !== null ? (
                                 <span className={r.depreciationRemaining <= 0 ? "text-destructive font-semibold" : ""}>
                                   {r.depreciationRemaining}
                                 </span>
-                              ) : "-"}
+                              ) : r.isFirstRowOfPlayer ? "-" : ""}
                             </TableCell>
                             <TableCell>
-                              {r.warrantyExpiry ? (
-                                <span className={r.warrantyDaysLeft !== null && r.warrantyDaysLeft <= 90 ? (r.warrantyDaysLeft <= 0 ? "text-destructive font-semibold" : "text-amber-600 font-medium") : ""}>
-                                  {format(parseISO(r.warrantyExpiry), "dd/MM/yyyy")}
-                                </span>
-                              ) : "-"}
+                              {r.isFirstRowOfPlayer ? (
+                                r.warrantyExpiry ? (
+                                  <span className={r.warrantyDaysLeft !== null && r.warrantyDaysLeft <= 90 ? (r.warrantyDaysLeft <= 0 ? "text-destructive font-semibold" : "text-amber-600 font-medium") : ""}>
+                                    {format(parseISO(r.warrantyExpiry), "dd/MM/yyyy")}
+                                  </span>
+                                ) : "-"
+                              ) : ""}
                             </TableCell>
                             <TableCell>
-                              {r.expiryDate ? (
-                                <span className={r.expiryDaysLeft !== null && r.expiryDaysLeft <= 90 ? (r.expiryDaysLeft <= 0 ? "text-destructive font-semibold" : "text-amber-600 font-medium") : ""}>
-                                  {format(parseISO(r.expiryDate), "dd/MM/yyyy")}
-                                </span>
-                              ) : "-"}
+                              {r.isFirstRowOfPlayer ? (
+                                r.expiryDate ? (
+                                  <span className={r.expiryDaysLeft !== null && r.expiryDaysLeft <= 90 ? (r.expiryDaysLeft <= 0 ? "text-destructive font-semibold" : "text-amber-600 font-medium") : ""}>
+                                    {format(parseISO(r.expiryDate), "dd/MM/yyyy")}
+                                  </span>
+                                ) : "-"
+                              ) : ""}
                             </TableCell>
-                            <TableCell>{r.locationName || "-"}</TableCell>
-                            <TableCell>{r.activateWindows || "-"}</TableCell>
-                            <TableCell>{r.specification || "-"}</TableCell>
+                            <TableCell>{r.isFirstRowOfPlayer ? (r.locationName || "-") : ""}</TableCell>
+                            <TableCell>{r.isFirstRowOfPlayer ? (r.activateWindows || "-") : ""}</TableCell>
+                            <TableCell>{r.isFirstRowOfPlayer ? (r.specification || "-") : ""}</TableCell>
                             <TableCell>{r.lotNumber1 || "-"}</TableCell>
                             <TableCell>{r.lotNumber2 || "-"}</TableCell>
                             <TableCell>{r.orderForProject || "-"}</TableCell>
                             <TableCell className="text-center">
-                              <Button variant="ghost" size="sm" onClick={() => setSelectedPlayerId(r.playerId)}>
-                                <Eye className="w-4 h-4" />
-                              </Button>
+                              {r.isFirstRowOfPlayer ? (
+                                <Button variant="ghost" size="sm" onClick={() => setSelectedPlayerId(r.playerId)}>
+                                  <Eye className="w-4 h-4" />
+                                </Button>
+                              ) : null}
                             </TableCell>
                           </TableRow>
                         );
