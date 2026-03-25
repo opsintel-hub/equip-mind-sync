@@ -26,6 +26,19 @@ const BillboardEquipmentExport = () => {
   });
   const [exporting, setExporting] = useState(false);
 
+  const { data: departments } = useQuery({
+    queryKey: ["departments-active"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("departments")
+        .select("id, name")
+        .eq("is_active", true)
+        .order("name");
+      if (error) throw error;
+      return data;
+    },
+  });
+
   const handleExport = async () => {
     setExporting(true);
     try {
