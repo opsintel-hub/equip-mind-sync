@@ -520,6 +520,10 @@ const BillboardDetail = () => {
                   <Package className="w-4 h-4" />
                   ติดตั้งอยู่ ({installedEquipment?.length || 0})
                 </TabsTrigger>
+                <TabsTrigger value="media-players" className="flex items-center gap-2">
+                  <Tv className="w-4 h-4" />
+                  Media Player ({installedMediaPlayers?.length || 0})
+                </TabsTrigger>
                 <TabsTrigger value="history" className="flex items-center gap-2">
                   <History className="w-4 h-4" />
                   ประวัติการถอด ({equipmentHistory?.length || 0})
