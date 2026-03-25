@@ -996,13 +996,13 @@ const BillboardDetail = () => {
                 <div className="space-y-2 ml-6">
                   <div className="space-y-2">
                     <Label>ฝ่าย</Label>
-                    <SimpleDepartmentSelect
-                      value={returnDepartment || billboard?.department || ""}
+                   <SimpleDepartmentSelect
+                      value={returnDepartment}
                       onChange={(val) => { setReturnDepartment(val); setReturnWarehouseId(""); setUninstallData({ ...uninstallData, return_location_id: "" }); }}
                     />
                   </div>
                   <WarehouseLocationSelect
-                    department={returnDepartment || billboard?.department || ""}
+                    department={returnDepartment}
                     warehouseId={returnWarehouseId}
                     onWarehouseChange={setReturnWarehouseId}
                     locationId={uninstallData.return_location_id}
