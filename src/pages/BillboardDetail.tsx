@@ -999,7 +999,7 @@ const BillboardDetail = () => {
                 />
                 <Label htmlFor="return_to_stock" className="flex items-center gap-2 cursor-pointer">
                   <RotateCcw className="h-4 w-4 text-primary" />
-                  คืนอุปกรณ์กลับสต็อก
+                  {uninstallType === "media_player" ? "คืน Media Player กลับสต็อก" : "คืนอุปกรณ์กลับสต็อก"}
                 </Label>
               </div>
               
