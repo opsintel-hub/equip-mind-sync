@@ -2278,68 +2278,86 @@ const DeliveryEntry = () => {
               <div className="p-4 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-lg space-y-4">
                 <div className="flex items-center justify-between">
                   <h3 className="font-medium text-sm text-amber-700 dark:text-amber-400">ข้อมูลทรัพย์สิน</h3>
-                  <div className="flex items-center gap-2">
-                    <Label htmlFor="isAsset" className="text-sm text-amber-700 dark:text-amber-400">
-                      สินค้านี้เป็นทรัพย์สิน?
-                    </Label>
-                    <Switch id="isAsset" checked={isAsset} onCheckedChange={setIsAsset} />
-                  </div>
+                  {/* Hide toggle for Media Player (always asset) */}
+                  {!isMediaPlayerEntry && (
+                    <div className="flex items-center gap-2">
+                      <Label htmlFor="isAsset" className="text-sm text-amber-700 dark:text-amber-400">
+                        สินค้านี้เป็นทรัพย์สิน?
+                      </Label>
+                      <Switch id="isAsset" checked={isAsset} onCheckedChange={setIsAsset} />
+                    </div>
+                  )}
+                  {isMediaPlayerEntry && (
+                    <Badge variant="secondary" className="bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
+                      เป็นทรัพย์สินทุกเครื่อง
+                    </Badge>
+                  )}
                 </div>
 
-                {isAsset && (
+                {(isAsset || isMediaPlayerEntry) && (
                   <div className="space-y-4 pt-2 border-t border-amber-200 dark:border-amber-800">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between">
-                          <Label htmlFor="assetCode">รหัสทรัพย์สิน *</Label>
-                          <div className="flex items-center gap-2">
-                            <Checkbox
-                              id="waitingAssetCode"
-                              checked={waitingAssetCode}
-                              onCheckedChange={(checked) => {
-                                setWaitingAssetCode(checked === true);
-                                if (checked) setAssetCode("");
-                              }}
-                            />
-                            <Label htmlFor="waitingAssetCode" className="text-xs text-muted-foreground">
-                              รอรหัสทรัพย์สิน
-                            </Label>
+                    {/* Show asset code/equipment ID fields only when NOT per-device/per-unit */}
+                    {!isMediaPlayerEntry && !perUnitMode && (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <Label htmlFor="assetCode">รหัสทรัพย์สิน *</Label>
+                            <div className="flex items-center gap-2">
+                              <Checkbox
+                                id="waitingAssetCode"
+                                checked={waitingAssetCode}
+                                onCheckedChange={(checked) => {
+                                  setWaitingAssetCode(checked === true);
+                                  if (checked) setAssetCode("");
+                                }}
+                              />
+                              <Label htmlFor="waitingAssetCode" className="text-xs text-muted-foreground">
+                                รอรหัสทรัพย์สิน
+                              </Label>
+                            </div>
                           </div>
+                          <Input
+                            id="assetCode"
+                            placeholder="รหัสทรัพย์สิน"
+                            value={assetCode}
+                            onChange={(e) => setAssetCode(e.target.value)}
+                            disabled={waitingAssetCode}
+                          />
                         </div>
-                        <Input
-                          id="assetCode"
-                          placeholder="รหัสทรัพย์สิน"
-                          value={assetCode}
-                          onChange={(e) => setAssetCode(e.target.value)}
-                          disabled={waitingAssetCode}
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between">
-                          <Label htmlFor="equipmentIdCode">Equipment ID *</Label>
-                          <div className="flex items-center gap-2">
-                            <Checkbox
-                              id="waitingEquipmentId"
-                              checked={waitingEquipmentId}
-                              onCheckedChange={(checked) => {
-                                setWaitingEquipmentId(checked === true);
-                                if (checked) setEquipmentIdCode("");
-                              }}
-                            />
-                            <Label htmlFor="waitingEquipmentId" className="text-xs text-muted-foreground">
-                              รอ Equipment ID
-                            </Label>
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <Label htmlFor="equipmentIdCode">Equipment ID *</Label>
+                            <div className="flex items-center gap-2">
+                              <Checkbox
+                                id="waitingEquipmentId"
+                                checked={waitingEquipmentId}
+                                onCheckedChange={(checked) => {
+                                  setWaitingEquipmentId(checked === true);
+                                  if (checked) setEquipmentIdCode("");
+                                }}
+                              />
+                              <Label htmlFor="waitingEquipmentId" className="text-xs text-muted-foreground">
+                                รอ Equipment ID
+                              </Label>
+                            </div>
                           </div>
+                          <Input
+                            id="equipmentIdCode"
+                            placeholder="Equipment ID"
+                            value={equipmentIdCode}
+                            onChange={(e) => setEquipmentIdCode(e.target.value)}
+                            disabled={waitingEquipmentId}
+                          />
                         </div>
-                        <Input
-                          id="equipmentIdCode"
-                          placeholder="Equipment ID"
-                          value={equipmentIdCode}
-                          onChange={(e) => setEquipmentIdCode(e.target.value)}
-                          disabled={waitingEquipmentId}
-                        />
                       </div>
-                    </div>
+                    )}
+
+                    {/* Info for per-device/per-unit mode */}
+                    {(isMediaPlayerEntry || perUnitMode) && (
+                      <p className="text-xs text-amber-600/80 dark:text-amber-500/80">
+                        💡 รหัสทรัพย์สินและ Equipment ID กรอกในแต่ละรายการด้านบน
+                      </p>
+                    )}
 
                     <div className="space-y-2">
                       <Label htmlFor="depreciationMonths">ระยะเวลาค่าเสื่อม (เดือน) *</Label>
