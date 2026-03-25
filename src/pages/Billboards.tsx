@@ -314,19 +314,18 @@ const Billboards = () => {
         </Card>
       </div>
 
-      {/* Total count card + Equipment Export side by side */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <Card>
-          <CardHeader className="pb-3">
+      {/* Total count + Equipment Export */}
+      <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-4 items-stretch">
+        <Card className="flex flex-col justify-center">
+          <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">ป้ายโฆษณาทั้งหมด</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-semibold text-foreground">{summaryStats?.total?.toLocaleString() || 0}</div>
+            <div className="text-4xl font-bold text-foreground">{summaryStats?.total?.toLocaleString() || 0}</div>
             <p className="text-sm text-muted-foreground mt-1">จุด</p>
           </CardContent>
         </Card>
 
-        {/* Billboard Equipment Export */}
         <BillboardEquipmentExport />
       </div>
 
