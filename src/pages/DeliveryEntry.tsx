@@ -1960,7 +1960,7 @@ const DeliveryEntry = () => {
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                               {/* Serial Number */}
                               <div className="space-y-1">
-                                <Label className="text-xs">Serial Number *</Label>
+                                <Label className="text-xs">Serial Number</Label>
                                 <Input
                                   placeholder="กรอก S/N..."
                                   value={unitEntry.serial_number}
