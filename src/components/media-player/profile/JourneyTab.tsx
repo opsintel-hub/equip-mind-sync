@@ -23,8 +23,19 @@ export function JourneyTab({ player, journeys }: JourneyTabProps) {
   }, [player]);
 
   const usagePieData = useMemo(() => {
-    if (!player.date_of_receipt) return [];
-    const totalDays = differenceInDays(new Date(), parseISO(player.date_of_receipt));
+    // Use date_of_receipt, or fallback to earliest journey installation_date
+    let startDate = player.date_of_receipt;
+    if (!startDate && journeys.length > 0) {
+      const earliestJourney = journeys
+        .filter(j => j.installation_date)
+        .sort((a, b) => (a.installation_date || "").localeCompare(b.installation_date || ""))[0];
+      startDate = earliestJourney?.installation_date || null;
+    }
+    if (!startDate && player.install_date) {
+      startDate = player.install_date;
+    }
+    if (!startDate) return [];
+    const totalDays = differenceInDays(new Date(), parseISO(startDate));
     if (totalDays <= 0) return [];
     const installedDays = journeys.reduce((sum, j) => sum + (j.duration_days || 0), 0);
     const currentInstallDays = player.install_date ? differenceInDays(new Date(), parseISO(player.install_date)) : 0;
