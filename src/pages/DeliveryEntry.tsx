@@ -1367,6 +1367,10 @@ const DeliveryEntry = () => {
                               activate_windows: "",
                               image_file: null,
                               image_preview: null,
+                              asset_code: "",
+                              equipment_id_code: "",
+                              waiting_asset_code: false,
+                              waiting_equipment_id: false,
                             },
                           ]);
                         }}
