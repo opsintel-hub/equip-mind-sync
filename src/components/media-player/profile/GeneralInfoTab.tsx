@@ -1,6 +1,7 @@
-import { FileText, ExternalLink } from "lucide-react";
+import { FileText, ExternalLink, MapPin } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { MediaPlayerRow } from "./types";
+import { formatBillboardLabel } from "@/lib/billboardUtils";
 
 interface GeneralInfoTabProps {
   player: MediaPlayerRow;
