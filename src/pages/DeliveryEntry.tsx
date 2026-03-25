@@ -1310,6 +1310,7 @@ const DeliveryEntry = () => {
                         if (checked) {
                           setUnit("เครื่อง");
                           setIsAsset(true);
+                          setDepreciationMonths("60");
                         }
                       }}
                     />
