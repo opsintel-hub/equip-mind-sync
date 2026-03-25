@@ -787,12 +787,16 @@ const DeliveryEntry = () => {
         activate_windows: "",
         image_file: null,
         image_preview: null,
+        asset_code: "",
+        equipment_id_code: "",
+        waiting_asset_code: false,
+        waiting_equipment_id: false,
       },
     ]);
     // Per-unit equipment entries
     setPerUnitMode(false);
     setEquipmentUnits([
-      { id: crypto.randomUUID(), serial_number: "", device_name: "", image_file: null, image_preview: null },
+      { id: crypto.randomUUID(), serial_number: "", device_name: "", image_file: null, image_preview: null, asset_code: "", equipment_id_code: "", waiting_asset_code: false, waiting_equipment_id: false },
     ]);
     // Category/Subcategory
     setSelectedCategoryId("");
