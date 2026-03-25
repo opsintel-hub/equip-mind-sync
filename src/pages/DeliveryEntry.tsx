@@ -196,6 +196,10 @@ const DeliveryEntry = () => {
     activate_windows: string;
     image_file: File | null;
     image_preview: string | null;
+    asset_code: string;
+    equipment_id_code: string;
+    waiting_asset_code: boolean;
+    waiting_equipment_id: boolean;
   }
   const [mediaPlayerDevices, setMediaPlayerDevices] = useState<MediaPlayerDeviceEntry[]>([
     {
