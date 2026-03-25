@@ -393,15 +393,17 @@ export default function MediaPlayerReport() {
 
   // Summary stats
   const stats = useMemo(() => {
-    const total = filtered.length;
-    const installed = filtered.filter((r) => !!r.billboard_id).length;
-    const inStock = filtered.filter((r) => !r.billboard_id).length;
-    const defective = filtered.filter((r) => r.condition === "defective").length;
-    const repaired = filtered.filter((r) => r.condition === "repaired").length;
-    const uniquePrefixes = new Set(filtered.map((r) => { const m = r.code?.match(/^([A-Za-z-]+)/); return m ? m[1] : ""; }).filter(Boolean)).size;
-    const uniqueBrands = new Set(filtered.map((r) => r.brand).filter(Boolean)).size;
-    const warrantyExpiring = filtered.filter((r) => r.warrantyDaysLeft !== null && r.warrantyDaysLeft >= 0 && r.warrantyDaysLeft <= 90).length;
-    const uniqueDepartments = new Set(filtered.map((r) => r.department).filter(Boolean)).size;
+    // Count unique players for device-level stats to avoid inflating numbers
+    const firstRows = filtered.filter((r) => r.isFirstRowOfPlayer);
+    const total = firstRows.length;
+    const installed = firstRows.filter((r) => !!r.billboard_id).length;
+    const inStock = firstRows.filter((r) => !r.billboard_id).length;
+    const defective = firstRows.filter((r) => r.condition === "defective").length;
+    const repaired = firstRows.filter((r) => r.condition === "repaired").length;
+    const uniquePrefixes = new Set(firstRows.map((r) => { const m = r.code?.match(/^([A-Za-z-]+)/); return m ? m[1] : ""; }).filter(Boolean)).size;
+    const uniqueBrands = new Set(firstRows.map((r) => r.brand).filter(Boolean)).size;
+    const warrantyExpiring = firstRows.filter((r) => r.warrantyDaysLeft !== null && r.warrantyDaysLeft >= 0 && r.warrantyDaysLeft <= 90).length;
+    const uniqueDepartments = new Set(firstRows.map((r) => r.department).filter(Boolean)).size;
     const uniqueProjects = new Set(filtered.map((r) => r.orderForProject).filter(Boolean)).size;
     return { total, installed, inStock, defective, repaired, uniquePrefixes, uniqueBrands, warrantyExpiring, uniqueDepartments, uniqueProjects };
   }, [filtered]);
