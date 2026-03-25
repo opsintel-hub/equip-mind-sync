@@ -791,16 +791,6 @@ const BillboardDetail = () => {
                                 <Button
                                   variant="ghost"
                                   size="sm"
-                                  onClick={() => navigate(`/media-player-profile/${mp.id}`)}
-                                  title="ดูโปรไฟล์"
-                                >
-                                  <Eye className="w-4 h-4" />
-                                </Button>
-                              </TableCell>
-                              <TableCell className="text-center">
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
                                   onClick={() => handleUninstallMediaPlayer(mp)}
                                   className="text-destructive hover:text-destructive hover:bg-destructive/10"
                                   title="ถอด Media Player"
