@@ -2846,6 +2846,73 @@ export type Database = {
           },
         ]
       }
+      media_player_billboard_history: {
+        Row: {
+          billboard_id: string
+          created_at: string
+          id: string
+          installation_date: string | null
+          installation_notes: string | null
+          installed_by: string | null
+          media_player_id: string
+          return_location_id: string | null
+          return_to_stock: boolean | null
+          uninstall_date: string
+          uninstall_reason: string | null
+          uninstalled_by: string | null
+        }
+        Insert: {
+          billboard_id: string
+          created_at?: string
+          id?: string
+          installation_date?: string | null
+          installation_notes?: string | null
+          installed_by?: string | null
+          media_player_id: string
+          return_location_id?: string | null
+          return_to_stock?: boolean | null
+          uninstall_date?: string
+          uninstall_reason?: string | null
+          uninstalled_by?: string | null
+        }
+        Update: {
+          billboard_id?: string
+          created_at?: string
+          id?: string
+          installation_date?: string | null
+          installation_notes?: string | null
+          installed_by?: string | null
+          media_player_id?: string
+          return_location_id?: string | null
+          return_to_stock?: boolean | null
+          uninstall_date?: string
+          uninstall_reason?: string | null
+          uninstalled_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "media_player_billboard_history_billboard_id_fkey"
+            columns: ["billboard_id"]
+            isOneToOne: false
+            referencedRelation: "billboards"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "media_player_billboard_history_media_player_id_fkey"
+            columns: ["media_player_id"]
+            isOneToOne: false
+            referencedRelation: "media_players"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "media_player_billboard_history_return_location_id_fkey"
+            columns: ["return_location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       media_player_code_prefixes: {
         Row: {
           created_at: string

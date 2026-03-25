@@ -35,6 +35,7 @@ const BillboardDetail = () => {
   
   const [uninstallDialogOpen, setUninstallDialogOpen] = useState(false);
   const [selectedEquipment, setSelectedEquipment] = useState<any>(null);
+  const [uninstallType, setUninstallType] = useState<"equipment" | "media_player">("equipment");
   const [uninstallData, setUninstallData] = useState<UninstallData>({
     uninstall_reason: "",
     return_to_stock: false,
@@ -255,8 +256,72 @@ const BillboardDetail = () => {
     },
   });
 
+  // Media Player uninstall mutation
+  const mpUninstallMutation = useMutation({
+    mutationFn: async () => {
+      if (!selectedEquipment || !user || !id) return;
+
+      // 1. Insert into media_player_billboard_history
+      const { error: historyError } = await supabase
+        .from("media_player_billboard_history")
+        .insert({
+          media_player_id: selectedEquipment.id,
+          billboard_id: id,
+          installation_date: selectedEquipment.install_date,
+          uninstall_date: new Date().toISOString().split('T')[0],
+          uninstalled_by: user.id,
+          uninstall_reason: uninstallData.uninstall_reason,
+          return_to_stock: uninstallData.return_to_stock,
+          return_location_id: uninstallData.return_to_stock && uninstallData.return_location_id
+            ? uninstallData.return_location_id
+            : null,
+        });
+
+      if (historyError) throw historyError;
+
+      // 2. Update media_player: clear billboard_id and install_date
+      const updatePayload: any = {
+        billboard_id: null,
+        install_date: null,
+        status: uninstallData.return_to_stock ? "in_stock" : "returned",
+        updated_at: new Date().toISOString(),
+      };
+      if (uninstallData.return_to_stock && uninstallData.return_location_id) {
+        updatePayload.location_id = uninstallData.return_location_id;
+      }
+
+      const { error: updateError } = await supabase
+        .from("media_players")
+        .update(updatePayload)
+        .eq("id", selectedEquipment.id);
+
+      if (updateError) throw updateError;
+    },
+    onSuccess: () => {
+      const successMsg = uninstallData.return_to_stock
+        ? "ถอด Media Player และคืนสต็อกสำเร็จ"
+        : "ถอด Media Player สำเร็จ";
+      toast.success(successMsg);
+      queryClient.invalidateQueries({ queryKey: ["billboard-media-players", id] });
+      setUninstallDialogOpen(false);
+      setSelectedEquipment(null);
+      setUninstallData({ uninstall_reason: "", return_to_stock: false, return_location_id: "" });
+    },
+    onError: (error) => {
+      toast.error("เกิดข้อผิดพลาด: " + error.message);
+    },
+  });
+
   const handleUninstall = (equipment: any) => {
     setSelectedEquipment(equipment);
+    setUninstallType("equipment");
+    setUninstallData({ uninstall_reason: "", return_to_stock: false, return_location_id: "" });
+    setUninstallDialogOpen(true);
+  };
+
+  const handleUninstallMediaPlayer = (mp: any) => {
+    setSelectedEquipment(mp);
+    setUninstallType("media_player");
     setUninstallData({ uninstall_reason: "", return_to_stock: false, return_location_id: "" });
     setUninstallDialogOpen(true);
   };
@@ -659,6 +724,7 @@ const BillboardDetail = () => {
                           <TableHead>ระยะเวลาติดตั้ง</TableHead>
                           <TableHead>อายุการใช้งาน</TableHead>
                           <TableHead className="text-center">โปรไฟล์</TableHead>
+                          <TableHead className="text-center">จัดการ</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -730,6 +796,17 @@ const BillboardDetail = () => {
                                   title="ดูโปรไฟล์"
                                 >
                                   <Eye className="w-4 h-4" />
+                                </Button>
+                              </TableCell>
+                              <TableCell className="text-center">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleUninstallMediaPlayer(mp)}
+                                  className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                                  title="ถอด Media Player"
+                                >
+                                  <Trash2 className="w-4 h-4" />
                                 </Button>
                               </TableCell>
                             </TableRow>
@@ -871,16 +948,29 @@ const BillboardDetail = () => {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Trash2 className="w-5 h-5 text-destructive" />
-              ถอดอุปกรณ์ออกจากป้าย
+              {uninstallType === "media_player" ? "ถอด Media Player ออกจากป้าย" : "ถอดอุปกรณ์ออกจากป้าย"}
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div className="p-4 bg-muted rounded-lg space-y-2">
-              <p><strong>อุปกรณ์:</strong> {selectedEquipment?.equipment?.code} - {selectedEquipment?.equipment?.name}</p>
-              <p><strong>จำนวน:</strong> {selectedEquipment?.quantity} {selectedEquipment?.equipment?.unit || "ชิ้น"}</p>
-              <p><strong>วันที่ติดตั้ง:</strong> {selectedEquipment?.installation_date 
-                ? format(new Date(selectedEquipment.installation_date), "d MMM yyyy", { locale: th })
-                : "-"}</p>
+              {uninstallType === "media_player" ? (
+                <>
+                  <p><strong>Media Player:</strong> {selectedEquipment?.code} - {selectedEquipment?.name}</p>
+                  {selectedEquipment?.serial_number_1 && <p><strong>S/N 1:</strong> {selectedEquipment.serial_number_1}</p>}
+                  {selectedEquipment?.serial_number_2 && <p><strong>S/N 2:</strong> {selectedEquipment.serial_number_2}</p>}
+                  <p><strong>วันที่ติดตั้ง:</strong> {selectedEquipment?.install_date 
+                    ? format(new Date(selectedEquipment.install_date), "d MMM yyyy", { locale: th })
+                    : "-"}</p>
+                </>
+              ) : (
+                <>
+                  <p><strong>อุปกรณ์:</strong> {selectedEquipment?.equipment?.code} - {selectedEquipment?.equipment?.name}</p>
+                  <p><strong>จำนวน:</strong> {selectedEquipment?.quantity} {selectedEquipment?.equipment?.unit || "ชิ้น"}</p>
+                  <p><strong>วันที่ติดตั้ง:</strong> {selectedEquipment?.installation_date 
+                    ? format(new Date(selectedEquipment.installation_date), "d MMM yyyy", { locale: th })
+                    : "-"}</p>
+                </>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -909,7 +999,7 @@ const BillboardDetail = () => {
                 />
                 <Label htmlFor="return_to_stock" className="flex items-center gap-2 cursor-pointer">
                   <RotateCcw className="h-4 w-4 text-primary" />
-                  คืนอุปกรณ์กลับสต็อก
+                  {uninstallType === "media_player" ? "คืน Media Player กลับสต็อก" : "คืนอุปกรณ์กลับสต็อก"}
                 </Label>
               </div>
               
@@ -930,7 +1020,9 @@ const BillboardDetail = () => {
                     onLocationChange={(value) => setUninstallData({ ...uninstallData, return_location_id: value })}
                   />
                   <p className="text-xs text-muted-foreground">
-                    ระบบจะเพิ่มจำนวน {selectedEquipment?.quantity} {selectedEquipment?.equipment?.unit || "ชิ้น"} กลับเข้าสต็อก
+                    {uninstallType === "media_player"
+                      ? "ระบบจะคืน Media Player กลับเข้าสต็อกและอัปเดตสถานะเป็น 'in_stock'"
+                      : `ระบบจะเพิ่มจำนวน ${selectedEquipment?.quantity} ${selectedEquipment?.equipment?.unit || "ชิ้น"} กลับเข้าสต็อก`}
                   </p>
                 </div>
               )}
@@ -942,10 +1034,10 @@ const BillboardDetail = () => {
             </Button>
             <Button 
               variant="destructive" 
-              onClick={() => uninstallMutation.mutate()} 
-              disabled={uninstallMutation.isPending}
+              onClick={() => uninstallType === "media_player" ? mpUninstallMutation.mutate() : uninstallMutation.mutate()} 
+              disabled={uninstallType === "media_player" ? mpUninstallMutation.isPending : uninstallMutation.isPending}
             >
-              {uninstallMutation.isPending ? "กำลังบันทึก..." : "ยืนยันการถอด"}
+              {(uninstallType === "media_player" ? mpUninstallMutation.isPending : uninstallMutation.isPending) ? "กำลังบันทึก..." : "ยืนยันการถอด"}
             </Button>
           </DialogFooter>
         </DialogContent>
