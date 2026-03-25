@@ -306,6 +306,7 @@ export default function MediaPlayerReport() {
           warrantyDaysLeft,
           expiryDaysLeft,
           orderForProject: "",
+          isFirstRowOfPlayer: true,
         });
       }
     });
