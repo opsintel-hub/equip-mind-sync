@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -24,6 +25,19 @@ const BillboardEquipmentExport = () => {
     department: "all",
   });
   const [exporting, setExporting] = useState(false);
+
+  const { data: departments } = useQuery({
+    queryKey: ["departments-active"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("departments")
+        .select("id, name")
+        .eq("is_active", true)
+        .order("name");
+      if (error) throw error;
+      return data;
+    },
+  });
 
   const handleExport = async () => {
     setExporting(true);
@@ -233,8 +247,9 @@ const BillboardEquipmentExport = () => {
               </SelectTrigger>
               <SelectContent position="popper" sideOffset={4} className="bg-background z-[200] max-h-60 overflow-y-auto">
                 <SelectItem value="all">ทั้งหมด</SelectItem>
-                <SelectItem value="BKK">BKK</SelectItem>
-                <SelectItem value="UPC">UPC</SelectItem>
+                {departments?.map((dept) => (
+                  <SelectItem key={dept.id} value={dept.name}>{dept.name}</SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
