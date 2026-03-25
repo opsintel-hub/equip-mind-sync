@@ -196,6 +196,10 @@ const DeliveryEntry = () => {
     activate_windows: string;
     image_file: File | null;
     image_preview: string | null;
+    asset_code: string;
+    equipment_id_code: string;
+    waiting_asset_code: boolean;
+    waiting_equipment_id: boolean;
   }
   const [mediaPlayerDevices, setMediaPlayerDevices] = useState<MediaPlayerDeviceEntry[]>([
     {
@@ -206,6 +210,10 @@ const DeliveryEntry = () => {
       activate_windows: "",
       image_file: null,
       image_preview: null,
+      asset_code: "",
+      equipment_id_code: "",
+      waiting_asset_code: false,
+      waiting_equipment_id: false,
     },
   ]);
 
@@ -216,10 +224,14 @@ const DeliveryEntry = () => {
     device_name: string;
     image_file: File | null;
     image_preview: string | null;
+    asset_code: string;
+    equipment_id_code: string;
+    waiting_asset_code: boolean;
+    waiting_equipment_id: boolean;
   }
   const [perUnitMode, setPerUnitMode] = useState(false);
   const [equipmentUnits, setEquipmentUnits] = useState<EquipmentUnitEntry[]>([
-    { id: crypto.randomUUID(), serial_number: "", device_name: "", image_file: null, image_preview: null },
+    { id: crypto.randomUUID(), serial_number: "", device_name: "", image_file: null, image_preview: null, asset_code: "", equipment_id_code: "", waiting_asset_code: false, waiting_equipment_id: false },
   ]);
 
   // Storage dimensions
@@ -580,11 +592,11 @@ const DeliveryEntry = () => {
         storage_height_cm: storageHeightCm,
         storage_depth_cm: storageDepthCm,
         storage_volume_cm3: calculatedVolume,
-        is_asset: isAsset,
-        asset_code: assetCode,
-        equipment_id_code: equipmentIdCode,
-        waiting_asset_code: waitingAssetCode,
-        waiting_equipment_id: waitingEquipmentId,
+        is_asset: true,
+        asset_code: device.asset_code,
+        equipment_id_code: device.equipment_id_code,
+        waiting_asset_code: device.waiting_asset_code,
+        waiting_equipment_id: device.waiting_equipment_id,
         depreciation_months: depreciationMonths,
         notes: itemNotes,
         is_media_player: true,
@@ -651,10 +663,10 @@ const DeliveryEntry = () => {
           storage_depth_cm: storageDepthCm,
           storage_volume_cm3: calculatedVolume,
           is_asset: isAsset,
-          asset_code: assetCode,
-          equipment_id_code: equipmentIdCode,
-          waiting_asset_code: waitingAssetCode,
-          waiting_equipment_id: waitingEquipmentId,
+          asset_code: isAsset ? unitEntry.asset_code : assetCode,
+          equipment_id_code: isAsset ? unitEntry.equipment_id_code : equipmentIdCode,
+          waiting_asset_code: isAsset ? unitEntry.waiting_asset_code : waitingAssetCode,
+          waiting_equipment_id: isAsset ? unitEntry.waiting_equipment_id : waitingEquipmentId,
           depreciation_months: depreciationMonths,
           notes: itemNotes,
           is_media_player: false,
@@ -775,12 +787,16 @@ const DeliveryEntry = () => {
         activate_windows: "",
         image_file: null,
         image_preview: null,
+        asset_code: "",
+        equipment_id_code: "",
+        waiting_asset_code: false,
+        waiting_equipment_id: false,
       },
     ]);
     // Per-unit equipment entries
     setPerUnitMode(false);
     setEquipmentUnits([
-      { id: crypto.randomUUID(), serial_number: "", device_name: "", image_file: null, image_preview: null },
+      { id: crypto.randomUUID(), serial_number: "", device_name: "", image_file: null, image_preview: null, asset_code: "", equipment_id_code: "", waiting_asset_code: false, waiting_equipment_id: false },
     ]);
     // Category/Subcategory
     setSelectedCategoryId("");
@@ -1355,6 +1371,10 @@ const DeliveryEntry = () => {
                               activate_windows: "",
                               image_file: null,
                               image_preview: null,
+                              asset_code: "",
+                              equipment_id_code: "",
+                              waiting_asset_code: false,
+                              waiting_equipment_id: false,
                             },
                           ]);
                         }}
@@ -1512,6 +1532,71 @@ const DeliveryEntry = () => {
                                   </Button>
                                 )}
                               </div>
+                            </div>
+                          </div>
+                          {/* Per-device Asset Code & Equipment ID */}
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <div className="space-y-1">
+                              <div className="flex items-center justify-between">
+                                <Label className="text-xs">รหัสทรัพย์สิน</Label>
+                                <div className="flex items-center gap-1">
+                                  <Checkbox
+                                    id={`mp-wait-asset-${device.id}`}
+                                    checked={device.waiting_asset_code}
+                                    onCheckedChange={(checked) => {
+                                      setMediaPlayerDevices((prev) =>
+                                        prev.map((d) =>
+                                          d.id === device.id ? { ...d, waiting_asset_code: checked === true, asset_code: checked ? "" : d.asset_code } : d,
+                                        ),
+                                      );
+                                    }}
+                                  />
+                                  <Label htmlFor={`mp-wait-asset-${device.id}`} className="text-xs text-muted-foreground">รอรหัส</Label>
+                                </div>
+                              </div>
+                              <Input
+                                placeholder="รหัสทรัพย์สิน..."
+                                value={device.asset_code}
+                                disabled={device.waiting_asset_code}
+                                onChange={(e) => {
+                                  setMediaPlayerDevices((prev) =>
+                                    prev.map((d) =>
+                                      d.id === device.id ? { ...d, asset_code: e.target.value } : d,
+                                    ),
+                                  );
+                                }}
+                              />
+                            </div>
+                            <div className="space-y-1">
+                              <div className="flex items-center justify-between">
+                                <Label className="text-xs">Equipment ID</Label>
+                                <div className="flex items-center gap-1">
+                                  <Checkbox
+                                    id={`mp-wait-eqid-${device.id}`}
+                                    checked={device.waiting_equipment_id}
+                                    onCheckedChange={(checked) => {
+                                      setMediaPlayerDevices((prev) =>
+                                        prev.map((d) =>
+                                          d.id === device.id ? { ...d, waiting_equipment_id: checked === true, equipment_id_code: checked ? "" : d.equipment_id_code } : d,
+                                        ),
+                                      );
+                                    }}
+                                  />
+                                  <Label htmlFor={`mp-wait-eqid-${device.id}`} className="text-xs text-muted-foreground">รอ ID</Label>
+                                </div>
+                              </div>
+                              <Input
+                                placeholder="Equipment ID..."
+                                value={device.equipment_id_code}
+                                disabled={device.waiting_equipment_id}
+                                onChange={(e) => {
+                                  setMediaPlayerDevices((prev) =>
+                                    prev.map((d) =>
+                                      d.id === device.id ? { ...d, equipment_id_code: e.target.value } : d,
+                                    ),
+                                  );
+                                }}
+                              />
                             </div>
                           </div>
                         </div>
@@ -1699,6 +1784,10 @@ const DeliveryEntry = () => {
                                 device_name: "",
                                 image_file: null,
                                 image_preview: null,
+                                asset_code: "",
+                                equipment_id_code: "",
+                                waiting_asset_code: false,
+                                waiting_equipment_id: false,
                               },
                             ]);
                           }
@@ -1726,6 +1815,10 @@ const DeliveryEntry = () => {
                               device_name: "",
                               image_file: null,
                               image_preview: null,
+                              asset_code: "",
+                              equipment_id_code: "",
+                              waiting_asset_code: false,
+                              waiting_equipment_id: false,
                             },
                           ]);
                         }}
@@ -1864,6 +1957,73 @@ const DeliveryEntry = () => {
                                 </div>
                               </div>
                             </div>
+                            {/* Per-unit Asset Code & Equipment ID (when isAsset) */}
+                            {isAsset && (
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                <div className="space-y-1">
+                                  <div className="flex items-center justify-between">
+                                    <Label className="text-xs">รหัสทรัพย์สิน</Label>
+                                    <div className="flex items-center gap-1">
+                                      <Checkbox
+                                        id={`eq-wait-asset-${unitEntry.id}`}
+                                        checked={unitEntry.waiting_asset_code}
+                                        onCheckedChange={(checked) => {
+                                          setEquipmentUnits((prev) =>
+                                            prev.map((u) =>
+                                              u.id === unitEntry.id ? { ...u, waiting_asset_code: checked === true, asset_code: checked ? "" : u.asset_code } : u,
+                                            ),
+                                          );
+                                        }}
+                                      />
+                                      <Label htmlFor={`eq-wait-asset-${unitEntry.id}`} className="text-xs text-muted-foreground">รอรหัส</Label>
+                                    </div>
+                                  </div>
+                                  <Input
+                                    placeholder="รหัสทรัพย์สิน..."
+                                    value={unitEntry.asset_code}
+                                    disabled={unitEntry.waiting_asset_code}
+                                    onChange={(e) => {
+                                      setEquipmentUnits((prev) =>
+                                        prev.map((u) =>
+                                          u.id === unitEntry.id ? { ...u, asset_code: e.target.value } : u,
+                                        ),
+                                      );
+                                    }}
+                                  />
+                                </div>
+                                <div className="space-y-1">
+                                  <div className="flex items-center justify-between">
+                                    <Label className="text-xs">Equipment ID</Label>
+                                    <div className="flex items-center gap-1">
+                                      <Checkbox
+                                        id={`eq-wait-eqid-${unitEntry.id}`}
+                                        checked={unitEntry.waiting_equipment_id}
+                                        onCheckedChange={(checked) => {
+                                          setEquipmentUnits((prev) =>
+                                            prev.map((u) =>
+                                              u.id === unitEntry.id ? { ...u, waiting_equipment_id: checked === true, equipment_id_code: checked ? "" : u.equipment_id_code } : u,
+                                            ),
+                                          );
+                                        }}
+                                      />
+                                      <Label htmlFor={`eq-wait-eqid-${unitEntry.id}`} className="text-xs text-muted-foreground">รอ ID</Label>
+                                    </div>
+                                  </div>
+                                  <Input
+                                    placeholder="Equipment ID..."
+                                    value={unitEntry.equipment_id_code}
+                                    disabled={unitEntry.waiting_equipment_id}
+                                    onChange={(e) => {
+                                      setEquipmentUnits((prev) =>
+                                        prev.map((u) =>
+                                          u.id === unitEntry.id ? { ...u, equipment_id_code: e.target.value } : u,
+                                        ),
+                                      );
+                                    }}
+                                  />
+                                </div>
+                              </div>
+                            )}
                           </div>
                         ))}
                       </div>
@@ -2118,68 +2278,86 @@ const DeliveryEntry = () => {
               <div className="p-4 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-lg space-y-4">
                 <div className="flex items-center justify-between">
                   <h3 className="font-medium text-sm text-amber-700 dark:text-amber-400">ข้อมูลทรัพย์สิน</h3>
-                  <div className="flex items-center gap-2">
-                    <Label htmlFor="isAsset" className="text-sm text-amber-700 dark:text-amber-400">
-                      สินค้านี้เป็นทรัพย์สิน?
-                    </Label>
-                    <Switch id="isAsset" checked={isAsset} onCheckedChange={setIsAsset} />
-                  </div>
+                  {/* Hide toggle for Media Player (always asset) */}
+                  {!isMediaPlayerEntry && (
+                    <div className="flex items-center gap-2">
+                      <Label htmlFor="isAsset" className="text-sm text-amber-700 dark:text-amber-400">
+                        สินค้านี้เป็นทรัพย์สิน?
+                      </Label>
+                      <Switch id="isAsset" checked={isAsset} onCheckedChange={setIsAsset} />
+                    </div>
+                  )}
+                  {isMediaPlayerEntry && (
+                    <Badge variant="secondary" className="bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
+                      เป็นทรัพย์สินทุกเครื่อง
+                    </Badge>
+                  )}
                 </div>
 
-                {isAsset && (
+                {(isAsset || isMediaPlayerEntry) && (
                   <div className="space-y-4 pt-2 border-t border-amber-200 dark:border-amber-800">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between">
-                          <Label htmlFor="assetCode">รหัสทรัพย์สิน *</Label>
-                          <div className="flex items-center gap-2">
-                            <Checkbox
-                              id="waitingAssetCode"
-                              checked={waitingAssetCode}
-                              onCheckedChange={(checked) => {
-                                setWaitingAssetCode(checked === true);
-                                if (checked) setAssetCode("");
-                              }}
-                            />
-                            <Label htmlFor="waitingAssetCode" className="text-xs text-muted-foreground">
-                              รอรหัสทรัพย์สิน
-                            </Label>
+                    {/* Show asset code/equipment ID fields only when NOT per-device/per-unit */}
+                    {!isMediaPlayerEntry && !perUnitMode && (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <Label htmlFor="assetCode">รหัสทรัพย์สิน *</Label>
+                            <div className="flex items-center gap-2">
+                              <Checkbox
+                                id="waitingAssetCode"
+                                checked={waitingAssetCode}
+                                onCheckedChange={(checked) => {
+                                  setWaitingAssetCode(checked === true);
+                                  if (checked) setAssetCode("");
+                                }}
+                              />
+                              <Label htmlFor="waitingAssetCode" className="text-xs text-muted-foreground">
+                                รอรหัสทรัพย์สิน
+                              </Label>
+                            </div>
                           </div>
+                          <Input
+                            id="assetCode"
+                            placeholder="รหัสทรัพย์สิน"
+                            value={assetCode}
+                            onChange={(e) => setAssetCode(e.target.value)}
+                            disabled={waitingAssetCode}
+                          />
                         </div>
-                        <Input
-                          id="assetCode"
-                          placeholder="รหัสทรัพย์สิน"
-                          value={assetCode}
-                          onChange={(e) => setAssetCode(e.target.value)}
-                          disabled={waitingAssetCode}
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between">
-                          <Label htmlFor="equipmentIdCode">Equipment ID *</Label>
-                          <div className="flex items-center gap-2">
-                            <Checkbox
-                              id="waitingEquipmentId"
-                              checked={waitingEquipmentId}
-                              onCheckedChange={(checked) => {
-                                setWaitingEquipmentId(checked === true);
-                                if (checked) setEquipmentIdCode("");
-                              }}
-                            />
-                            <Label htmlFor="waitingEquipmentId" className="text-xs text-muted-foreground">
-                              รอ Equipment ID
-                            </Label>
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <Label htmlFor="equipmentIdCode">Equipment ID *</Label>
+                            <div className="flex items-center gap-2">
+                              <Checkbox
+                                id="waitingEquipmentId"
+                                checked={waitingEquipmentId}
+                                onCheckedChange={(checked) => {
+                                  setWaitingEquipmentId(checked === true);
+                                  if (checked) setEquipmentIdCode("");
+                                }}
+                              />
+                              <Label htmlFor="waitingEquipmentId" className="text-xs text-muted-foreground">
+                                รอ Equipment ID
+                              </Label>
+                            </div>
                           </div>
+                          <Input
+                            id="equipmentIdCode"
+                            placeholder="Equipment ID"
+                            value={equipmentIdCode}
+                            onChange={(e) => setEquipmentIdCode(e.target.value)}
+                            disabled={waitingEquipmentId}
+                          />
                         </div>
-                        <Input
-                          id="equipmentIdCode"
-                          placeholder="Equipment ID"
-                          value={equipmentIdCode}
-                          onChange={(e) => setEquipmentIdCode(e.target.value)}
-                          disabled={waitingEquipmentId}
-                        />
                       </div>
-                    </div>
+                    )}
+
+                    {/* Info for per-device/per-unit mode */}
+                    {(isMediaPlayerEntry || perUnitMode) && (
+                      <p className="text-xs text-amber-600/80 dark:text-amber-500/80">
+                        💡 รหัสทรัพย์สินและ Equipment ID กรอกในแต่ละรายการด้านบน
+                      </p>
+                    )}
 
                     <div className="space-y-2">
                       <Label htmlFor="depreciationMonths">ระยะเวลาค่าเสื่อม (เดือน) *</Label>
