@@ -198,6 +198,9 @@ export default function MediaPlayerReport() {
   const expandedRows = useMemo(() => {
     const rows: ExpandedRow[] = [];
     const now = new Date();
+    // Track which player IDs have already emitted a row so we can suppress
+    // duplicate billboard labels on the 2nd+ receipt row of the same device.
+    const seenPlayerIds = new Set<string>();
 
     players.forEach((p) => {
       const receipts = receiptMap[p.id] || [];
