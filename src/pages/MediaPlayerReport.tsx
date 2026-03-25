@@ -646,75 +646,85 @@ export default function MediaPlayerReport() {
                       paginatedData.map((r, idx) => {
                         const rowNum = (currentPage - 1) * pageSize + idx + 1;
                         return (
-                          <TableRow key={r.key} className="hover:bg-muted/30">
-                            <TableCell className="text-muted-foreground">{rowNum}</TableCell>
+                          <TableRow key={r.key} className={`hover:bg-muted/30 ${!r.isFirstRowOfPlayer ? 'border-t-0' : ''}`}>
+                            <TableCell className="text-muted-foreground">{r.isFirstRowOfPlayer ? rowNum : ""}</TableCell>
                             <TableCell>
-                              {r.imageUrl ? (
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <button onClick={() => setLightboxImage(r.imageUrl)} className="cursor-pointer">
-                                      <img src={r.imageUrl} alt="" className="w-10 h-10 rounded object-cover border" />
-                                    </button>
-                                  </TooltipTrigger>
-                                  <TooltipContent side="right" className="p-0">
-                                    <img src={r.imageUrl} alt="" className="w-48 h-48 rounded object-cover" />
-                                  </TooltipContent>
-                                </Tooltip>
-                              ) : (
-                                <div className="w-10 h-10 rounded bg-muted flex items-center justify-center">
-                                  <ImageIcon className="w-4 h-4 text-muted-foreground" />
-                                </div>
-                              )}
+                              {r.isFirstRowOfPlayer ? (
+                                r.imageUrl ? (
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <button onClick={() => setLightboxImage(r.imageUrl)} className="cursor-pointer">
+                                        <img src={r.imageUrl} alt="" className="w-10 h-10 rounded object-cover border" />
+                                      </button>
+                                    </TooltipTrigger>
+                                    <TooltipContent side="right" className="p-0">
+                                      <img src={r.imageUrl} alt="" className="w-48 h-48 rounded object-cover" />
+                                    </TooltipContent>
+                                  </Tooltip>
+                                ) : (
+                                  <div className="w-10 h-10 rounded bg-muted flex items-center justify-center">
+                                    <ImageIcon className="w-4 h-4 text-muted-foreground" />
+                                  </div>
+                                )
+                              ) : null}
                             </TableCell>
-                            <TableCell className="font-mono font-medium">{r.code}</TableCell>
-                            <TableCell>{r.name}</TableCell>
+                            <TableCell className="font-mono font-medium">{r.isFirstRowOfPlayer ? r.code : ""}</TableCell>
+                            <TableCell>{r.isFirstRowOfPlayer ? r.name : ""}</TableCell>
                             <TableCell className="text-sm whitespace-pre-line">{r.serialNumber}</TableCell>
-                            <TableCell>{getConditionBadge(r.condition)}</TableCell>
+                            <TableCell>{r.isFirstRowOfPlayer ? getConditionBadge(r.condition) : ""}</TableCell>
                             <TableCell>
-                              {r.billboard_id ? (
-                                <Badge className="bg-green-100 text-green-800 border-green-200">ติดตั้ง</Badge>
-                              ) : (
-                                <Badge variant="outline">ในคลัง</Badge>
-                              )}
+                              {r.isFirstRowOfPlayer ? (
+                                r.billboard_id ? (
+                                  <Badge className="bg-green-100 text-green-800 border-green-200">ติดตั้ง</Badge>
+                                ) : (
+                                  <Badge variant="outline">ในคลัง</Badge>
+                                )
+                              ) : null}
                             </TableCell>
-                            <TableCell className="text-sm">{r.billboardLabel}</TableCell>
-                            <TableCell>{r.department || "-"}</TableCell>
-                            <TableCell>{r.company || "-"}</TableCell>
+                            <TableCell className="text-sm">{r.isFirstRowOfPlayer ? r.billboardLabel : ""}</TableCell>
+                            <TableCell>{r.isFirstRowOfPlayer ? (r.department || "-") : ""}</TableCell>
+                            <TableCell>{r.isFirstRowOfPlayer ? (r.company || "-") : ""}</TableCell>
                             <TableCell className="text-right font-mono">{formatPrice(r.price)}</TableCell>
                             <TableCell>{r.poNumber || "-"}</TableCell>
-                            <TableCell>{r.assetCode || "-"}</TableCell>
-                            <TableCell>{r.equipmentIdCode || "-"}</TableCell>
+                            <TableCell>{r.isFirstRowOfPlayer ? (r.assetCode || "-") : ""}</TableCell>
+                            <TableCell>{r.isFirstRowOfPlayer ? (r.equipmentIdCode || "-") : ""}</TableCell>
                             <TableCell className="text-right">
-                              {r.depreciationRemaining !== null ? (
+                              {r.isFirstRowOfPlayer && r.depreciationRemaining !== null ? (
                                 <span className={r.depreciationRemaining <= 0 ? "text-destructive font-semibold" : ""}>
                                   {r.depreciationRemaining}
                                 </span>
-                              ) : "-"}
+                              ) : r.isFirstRowOfPlayer ? "-" : ""}
                             </TableCell>
                             <TableCell>
-                              {r.warrantyExpiry ? (
-                                <span className={r.warrantyDaysLeft !== null && r.warrantyDaysLeft <= 90 ? (r.warrantyDaysLeft <= 0 ? "text-destructive font-semibold" : "text-amber-600 font-medium") : ""}>
-                                  {format(parseISO(r.warrantyExpiry), "dd/MM/yyyy")}
-                                </span>
-                              ) : "-"}
+                              {r.isFirstRowOfPlayer ? (
+                                r.warrantyExpiry ? (
+                                  <span className={r.warrantyDaysLeft !== null && r.warrantyDaysLeft <= 90 ? (r.warrantyDaysLeft <= 0 ? "text-destructive font-semibold" : "text-amber-600 font-medium") : ""}>
+                                    {format(parseISO(r.warrantyExpiry), "dd/MM/yyyy")}
+                                  </span>
+                                ) : "-"
+                              ) : ""}
                             </TableCell>
                             <TableCell>
-                              {r.expiryDate ? (
-                                <span className={r.expiryDaysLeft !== null && r.expiryDaysLeft <= 90 ? (r.expiryDaysLeft <= 0 ? "text-destructive font-semibold" : "text-amber-600 font-medium") : ""}>
-                                  {format(parseISO(r.expiryDate), "dd/MM/yyyy")}
-                                </span>
-                              ) : "-"}
+                              {r.isFirstRowOfPlayer ? (
+                                r.expiryDate ? (
+                                  <span className={r.expiryDaysLeft !== null && r.expiryDaysLeft <= 90 ? (r.expiryDaysLeft <= 0 ? "text-destructive font-semibold" : "text-amber-600 font-medium") : ""}>
+                                    {format(parseISO(r.expiryDate), "dd/MM/yyyy")}
+                                  </span>
+                                ) : "-"
+                              ) : ""}
                             </TableCell>
-                            <TableCell>{r.locationName || "-"}</TableCell>
-                            <TableCell>{r.activateWindows || "-"}</TableCell>
-                            <TableCell>{r.specification || "-"}</TableCell>
+                            <TableCell>{r.isFirstRowOfPlayer ? (r.locationName || "-") : ""}</TableCell>
+                            <TableCell>{r.isFirstRowOfPlayer ? (r.activateWindows || "-") : ""}</TableCell>
+                            <TableCell>{r.isFirstRowOfPlayer ? (r.specification || "-") : ""}</TableCell>
                             <TableCell>{r.lotNumber1 || "-"}</TableCell>
                             <TableCell>{r.lotNumber2 || "-"}</TableCell>
                             <TableCell>{r.orderForProject || "-"}</TableCell>
                             <TableCell className="text-center">
-                              <Button variant="ghost" size="sm" onClick={() => setSelectedPlayerId(r.playerId)}>
-                                <Eye className="w-4 h-4" />
-                              </Button>
+                              {r.isFirstRowOfPlayer ? (
+                                <Button variant="ghost" size="sm" onClick={() => setSelectedPlayerId(r.playerId)}>
+                                  <Eye className="w-4 h-4" />
+                                </Button>
+                              ) : null}
                             </TableCell>
                           </TableRow>
                         );
