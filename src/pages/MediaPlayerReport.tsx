@@ -119,6 +119,8 @@ interface ExpandedRow {
   warrantyDaysLeft: number | null;
   expiryDaysLeft: number | null;
   orderForProject: string;
+  /** true only for the first receipt-expanded row of a given media player */
+  isFirstRowOfPlayer: boolean;
 }
 
 export default function MediaPlayerReport() {
