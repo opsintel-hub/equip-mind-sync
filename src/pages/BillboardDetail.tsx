@@ -723,7 +723,6 @@ const BillboardDetail = () => {
                           <TableHead>วันที่ติดตั้ง</TableHead>
                           <TableHead>ระยะเวลาติดตั้ง</TableHead>
                           <TableHead>อายุการใช้งาน</TableHead>
-                          <TableHead className="text-center">โปรไฟล์</TableHead>
                           <TableHead className="text-center">จัดการ</TableHead>
                         </TableRow>
                       </TableHeader>
