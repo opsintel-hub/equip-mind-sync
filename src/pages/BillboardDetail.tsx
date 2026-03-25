@@ -109,6 +109,21 @@ const BillboardDetail = () => {
     enabled: !!id,
   });
 
+  // Fetch installed media players on this billboard
+  const { data: installedMediaPlayers } = useQuery({
+    queryKey: ["billboard-media-players", id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("media_players")
+        .select("id, code, name, serial_number_1, serial_number_2, install_date, date_of_receipt, usage_lifespan_months, item_condition, brand, specification, status")
+        .eq("billboard_id", id)
+        .eq("is_active", true);
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!id,
+  });
+
   // Fetch installed ads on this billboard
   const { data: installedAds } = useQuery({
     queryKey: ["billboard-installed-ads", id],
