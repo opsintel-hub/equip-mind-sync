@@ -270,7 +270,6 @@ export default function MediaPlayerReport() {
             expiryDaysLeft: isFirstRow ? expiryDaysLeft : null,
             orderForProject: (r as any).order_for_project || "",
           });
-          });
         });
       } else {
         // No receipt rows: show single row with master S/N
