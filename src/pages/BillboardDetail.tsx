@@ -1034,10 +1034,10 @@ const BillboardDetail = () => {
             </Button>
             <Button 
               variant="destructive" 
-              onClick={() => uninstallMutation.mutate()} 
-              disabled={uninstallMutation.isPending}
+              onClick={() => uninstallType === "media_player" ? mpUninstallMutation.mutate() : uninstallMutation.mutate()} 
+              disabled={uninstallType === "media_player" ? mpUninstallMutation.isPending : uninstallMutation.isPending}
             >
-              {uninstallMutation.isPending ? "กำลังบันทึก..." : "ยืนยันการถอด"}
+              {(uninstallType === "media_player" ? mpUninstallMutation.isPending : uninstallMutation.isPending) ? "กำลังบันทึก..." : "ยืนยันการถอด"}
             </Button>
           </DialogFooter>
         </DialogContent>
