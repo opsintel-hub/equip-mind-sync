@@ -256,8 +256,72 @@ const BillboardDetail = () => {
     },
   });
 
+  // Media Player uninstall mutation
+  const mpUninstallMutation = useMutation({
+    mutationFn: async () => {
+      if (!selectedEquipment || !user || !id) return;
+
+      // 1. Insert into media_player_billboard_history
+      const { error: historyError } = await supabase
+        .from("media_player_billboard_history")
+        .insert({
+          media_player_id: selectedEquipment.id,
+          billboard_id: id,
+          installation_date: selectedEquipment.install_date,
+          uninstall_date: new Date().toISOString().split('T')[0],
+          uninstalled_by: user.id,
+          uninstall_reason: uninstallData.uninstall_reason,
+          return_to_stock: uninstallData.return_to_stock,
+          return_location_id: uninstallData.return_to_stock && uninstallData.return_location_id
+            ? uninstallData.return_location_id
+            : null,
+        });
+
+      if (historyError) throw historyError;
+
+      // 2. Update media_player: clear billboard_id and install_date
+      const updatePayload: any = {
+        billboard_id: null,
+        install_date: null,
+        status: uninstallData.return_to_stock ? "in_stock" : "returned",
+        updated_at: new Date().toISOString(),
+      };
+      if (uninstallData.return_to_stock && uninstallData.return_location_id) {
+        updatePayload.location_id = uninstallData.return_location_id;
+      }
+
+      const { error: updateError } = await supabase
+        .from("media_players")
+        .update(updatePayload)
+        .eq("id", selectedEquipment.id);
+
+      if (updateError) throw updateError;
+    },
+    onSuccess: () => {
+      const successMsg = uninstallData.return_to_stock
+        ? "ถอด Media Player และคืนสต็อกสำเร็จ"
+        : "ถอด Media Player สำเร็จ";
+      toast.success(successMsg);
+      queryClient.invalidateQueries({ queryKey: ["billboard-media-players", id] });
+      setUninstallDialogOpen(false);
+      setSelectedEquipment(null);
+      setUninstallData({ uninstall_reason: "", return_to_stock: false, return_location_id: "" });
+    },
+    onError: (error) => {
+      toast.error("เกิดข้อผิดพลาด: " + error.message);
+    },
+  });
+
   const handleUninstall = (equipment: any) => {
     setSelectedEquipment(equipment);
+    setUninstallType("equipment");
+    setUninstallData({ uninstall_reason: "", return_to_stock: false, return_location_id: "" });
+    setUninstallDialogOpen(true);
+  };
+
+  const handleUninstallMediaPlayer = (mp: any) => {
+    setSelectedEquipment(mp);
+    setUninstallType("media_player");
     setUninstallData({ uninstall_reason: "", return_to_stock: false, return_location_id: "" });
     setUninstallDialogOpen(true);
   };
