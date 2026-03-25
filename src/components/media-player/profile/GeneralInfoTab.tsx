@@ -49,7 +49,19 @@ export function GeneralInfoTab({ player, modelName }: GeneralInfoTabProps) {
           <InfoRow label="ชื่อ (Remote Name)" value={player.remote_name} />
           <InfoRow label="ฝ่าย" value={player.department} />
           <InfoRow label="บริษัท" value={player.companies?.name} />
-          <InfoRow label="สถานที่จัดเก็บ" value={player.locations?.name} />
+          <div>
+            <p className="text-muted-foreground text-xs">ที่อยู่ปัจจุบัน</p>
+            {player.billboard_id && player.billboard ? (
+              <p className="font-medium text-primary flex items-center gap-1">
+                <MapPin className="w-3.5 h-3.5" />
+                ติดตั้งที่ป้าย: {formatBillboardLabel(player.billboard.old_code, player.billboard.location_name, player.billboard.equipment_id)}
+              </p>
+            ) : (
+              <p className="font-medium">
+                {player.locations?.name ? `คลัง: ${player.locations.name}` : "-"}
+              </p>
+            )}
+          </div>
           <InfoRow label="ผู้จัดจำหน่าย" value={player.suppliers?.name} />
           <InfoRow label="วันที่รับเข้าคลัง" value={player.date_of_receipt} />
           <InfoRow label="วันหมดประกัน" value={player.warranty_expiry_date} />
