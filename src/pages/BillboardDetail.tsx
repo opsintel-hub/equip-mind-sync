@@ -723,7 +723,6 @@ const BillboardDetail = () => {
                           <TableHead>วันที่ติดตั้ง</TableHead>
                           <TableHead>ระยะเวลาติดตั้ง</TableHead>
                           <TableHead>อายุการใช้งาน</TableHead>
-                          <TableHead className="text-center">โปรไฟล์</TableHead>
                           <TableHead className="text-center">จัดการ</TableHead>
                         </TableRow>
                       </TableHeader>
@@ -787,16 +786,6 @@ const BillboardDetail = () => {
                                 {usageInfo ? (
                                   <span className={`text-xs font-medium ${usageInfo.className}`}>{usageInfo.label}</span>
                                 ) : "-"}
-                              </TableCell>
-                              <TableCell className="text-center">
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => navigate(`/media-player-profile/${mp.id}`)}
-                                  title="ดูโปรไฟล์"
-                                >
-                                  <Eye className="w-4 h-4" />
-                                </Button>
                               </TableCell>
                               <TableCell className="text-center">
                                 <Button
