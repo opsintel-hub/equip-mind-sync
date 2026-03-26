@@ -644,7 +644,7 @@ export default function MediaPlayerReport() {
                                 <Badge className="bg-green-100 text-green-800 border-green-200">ติดตั้ง</Badge>
                               ) : (
                                 <Badge variant="outline">ในคลัง</Badge>
-                              ) : null}
+                              )}
                             </TableCell>
                             <TableCell className="text-sm">{r.billboardLabel}</TableCell>
                             <TableCell>{r.department || "-"}</TableCell>
