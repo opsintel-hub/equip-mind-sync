@@ -1,58 +1,57 @@
 
 
-# ปรับปรุงระบบ "นำสินค้าใหม่เข้าระบบ" — รองรับทรัพย์สินรายชิ้น
+# สร้างหน้ารายงาน KPI — 7 ตัวชี้วัด
 
-แผนได้รับการอนุมัติแล้ว พร้อมดำเนินการแก้ไขไฟล์ `src/pages/DeliveryEntry.tsx` ตามรายละเอียดด้านล่าง:
+## KPI ที่จะสร้าง
 
----
+| # | ชื่อ KPI | แหล่งข้อมูล |
+|---|---------|------------|
+| 1 | อัตราหมุนเวียนสต็อก | `stock_movements` (receive vs issue รายเดือน) |
+| 2 | สินค้าต่ำกว่า Min Stock | `equipment` (quantity_in_stock vs min_stock_level) |
+| 4 | สถานะ Media Player | `media_players` (% Active/Spare/ซ่อม/Claim) |
+| 5 | มูลค่าสินค้าคงคลัง | `equipment` + `goods_receipt` (unit_price) |
+| 6 | อัตราเบิกจ่ายตรงเวลา | `goods_issue_pending` (requested vs issued timing) |
+| 7 | Dead Stock | `stock_movements` + `equipment` (ไม่เคลื่อนไหว 90+ วัน) |
+| 9 | อุปกรณ์ใกล้หมดอายุ/หมดประกัน | `equipment` (expiry_date, warranty_expiry_date) |
 
-## การเปลี่ยนแปลงทั้งหมดอยู่ในไฟล์เดียว: `src/pages/DeliveryEntry.tsx`
+## ไฟล์ที่สร้าง/แก้ไข
 
-### 1. เพิ่ม Asset Fields ใน Interface
+| ไฟล์ | รายละเอียด |
+|------|-----------|
+| `src/pages/KPIReport.tsx` | หน้าหลัก — toggle bar + render KPI cards ที่เลือก |
+| `src/components/kpi/KPIToggleBar.tsx` | แถบ checkbox chips เลือกเปิด/ปิด KPI + ปุ่มเลือกทั้งหมด/ล้าง |
+| `src/components/kpi/StockTurnoverKPI.tsx` | KPI #1 — กราฟแท่ง รับ/เบิก รายเดือน + Turnover ratio |
+| `src/components/kpi/MinStockKPI.tsx` | KPI #2 — จำนวน/% รายการต่ำกว่า min stock + Gauge |
+| `src/components/kpi/MediaPlayerStatusKPI.tsx` | KPI #4 — Pie chart สถานะ Media Player |
+| `src/components/kpi/InventoryValueKPI.tsx` | KPI #5 — มูลค่ารวมคลัง + เปรียบเทียบรายเดือน |
+| `src/components/kpi/IssuePunctualityKPI.tsx` | KPI #6 — % เบิกตรงเวลา vs ค้าง |
+| `src/components/kpi/DeadStockKPI.tsx` | KPI #7 — จำนวนรายการไม่เคลื่อนไหว 90+ วัน |
+| `src/components/kpi/ExpiryWarrantyKPI.tsx` | KPI #9 — จำนวนหมดอายุ 30/60/90 วัน |
+| `src/App.tsx` | เพิ่ม route `/kpi-report` |
+| `src/components/AppSidebar.tsx` | เพิ่มเมนู "รายงาน KPI" ในกลุ่ม "รายงาน" |
 
-**MediaPlayerDeviceEntry** (line ~191): เพิ่ม `asset_code`, `equipment_id_code`, `waiting_asset_code`, `waiting_equipment_id`
+## แนวทาง UI
 
-**EquipmentUnitEntry** (line ~213): เพิ่ม fields เดียวกัน
-
-### 2. อัปเดต Default Values
-
-ทุกที่ที่สร้าง device/unit entry ใหม่ (initial state, add button, reset) ต้องเพิ่ม default:
+```text
+┌──────────────────────────────────────────────────────┐
+│  📊 รายงาน KPI                                      │
+├──────────────────────────────────────────────────────┤
+│  เลือก KPI:                                          │
+│  [☑ หมุนเวียนสต็อก] [☑ Min Stock] [☑ Media Player]  │
+│  [☑ มูลค่าคลัง] [☐ เบิกตรงเวลา] [☑ Dead Stock]     │
+│  [☑ หมดอายุ/ประกัน]                                   │
+│  [เลือกทั้งหมด] [ล้างทั้งหมด]                        │
+├──────────────────────────────────────────────────────┤
+│  (แสดง KPI Cards เฉพาะที่เลือก — 2 คอลัมน์)         │
+│  แต่ละ Card: ตัวเลขหลัก + กราฟย่อ (Recharts)         │
+└──────────────────────────────────────────────────────┘
 ```
-asset_code: "", equipment_id_code: "", waiting_asset_code: false, waiting_equipment_id: false
-```
 
-### 3. UI — Media Player Device Row (line ~1393-1516)
+## รายละเอียดทางเทคนิค
 
-เพิ่มแถวใหม่ใต้แถว S/N ที่มีอยู่ในแต่ละ device:
-- **รหัสทรัพย์สิน** + Checkbox "รอรหัส" (disable input เมื่อ checked)
-- **Equipment ID** + Checkbox "รอ Equipment ID" (disable input เมื่อ checked)
-
-### 4. UI — Equipment Per-Unit Row (line ~1767-1866)
-
-เพิ่มแถวเดียวกัน แต่แสดงเฉพาะเมื่อ `isAsset === true`
-
-### 5. Asset Section ด้านล่าง (line ~2117-2196)
-
-- **Media Player**: ซ่อน toggle "สินค้านี้เป็นทรัพย์สิน?" + ซ่อนช่อง รหัสทรัพย์สิน/Equipment ID (เพราะอยู่ per-device แล้ว) แต่ยังแสดง "ระยะเวลาค่าเสื่อม" พร้อม force `isAsset = true`
-- **Equipment + perUnitMode + isAsset**: ซ่อนช่อง รหัสทรัพย์สิน/Equipment ID (เพราะอยู่ per-unit แล้ว) แต่ยังแสดง toggle + ระยะเวลาค่าเสื่อม
-- **Equipment ไม่ใช่ perUnitMode**: แสดงปกติเหมือนเดิม
-
-### 6. handleAddToCart Logic (line ~564-594, 632-666)
-
-- **Media Player**: ดึง `asset_code`, `equipment_id_code`, `waiting_asset_code`, `waiting_equipment_id` จาก `device` entry แทนค่า global, force `is_asset: true`
-- **Equipment per-unit**: ดึงจาก `unitEntry` แทนค่า global
-
-### 7. resetItemForm (line ~769-779)
-
-เพิ่ม reset fields ใหม่ใน default device/unit entries
-
----
-
-## สรุป
-
-| ส่วน | การเปลี่ยนแปลง |
-|---|---|
-| Media Player | เป็นทรัพย์สินอัตโนมัติ, ช่องกรอกรหัส+Equipment ID ทุก device, ปุ่มรอรหัส |
-| Equipment (per-unit + asset) | ช่องกรอกรหัส+Equipment ID ทุก unit เมื่อเป็นทรัพย์สิน |
-| Asset section ด้านล่าง | ซ่อนช่องซ้ำ, คงไว้เฉพาะค่าเสื่อม |
+- แต่ละ KPI component ใช้ `useQuery` แยก — โหลดอิสระ มี loading skeleton
+- Toggle state เก็บใน `localStorage` key `kpi-visible-items`
+- ใช้ Recharts (มีอยู่แล้ว) สำหรับกราฟ Bar/Pie/Area
+- ไม่สร้าง table ใหม่ ใช้ข้อมูลจาก table ที่มีทั้งหมด
+- เมนูอยู่ในกลุ่ม "รายงาน" ใช้ `functionName: "reports"`
 
