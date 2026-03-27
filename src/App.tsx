@@ -64,6 +64,7 @@ import DirectShippingPublicView from "./pages/DirectShippingPublicView";
 import BillboardPackages from "./pages/BillboardPackages";
 import MediaPlayerProfile from "./pages/MediaPlayerProfile";
 import MediaPlayerReport from "./pages/MediaPlayerReport";
+import KPIReport from "./pages/KPIReport";
 import DashboardLayout from "./components/DashboardLayout";
 import ProtectedRoute from "./components/ProtectedRoute";
 import NotFound from "./pages/NotFound";
