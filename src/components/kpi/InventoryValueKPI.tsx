@@ -29,7 +29,7 @@ export default function InventoryValueKPI() {
 
       const { data: movements } = await supabase
         .from("stock_movements")
-        .select("movement_type, quantity, unit_price, created_at")
+        .select("movement_type, quantity, created_at")
         .gte("created_at", months[0].start)
         .lte("created_at", months[months.length - 1].end);
 
@@ -37,7 +37,7 @@ export default function InventoryValueKPI() {
         const inMonth = (movements || []).filter(
           (mv) => mv.created_at >= m.start && mv.created_at <= m.end && mv.movement_type === "receive"
         );
-        const value = inMonth.reduce((s, mv) => s + (mv.quantity || 0) * (mv.unit_price || 0), 0);
+        const value = inMonth.reduce((s, mv) => s + Math.abs(mv.quantity || 0), 0);
         return { name: m.label, มูลค่ารับเข้า: value };
       });
 

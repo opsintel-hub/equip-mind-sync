@@ -11,7 +11,7 @@ export default function IssuePunctualityKPI() {
     queryFn: async () => {
       const { data: issues } = await supabase
         .from("goods_issue_pending")
-        .select("status, created_at, issued_at, requested_date");
+        .select("status, created_at, issued_at");
 
       const items = issues || [];
       const total = items.length;
