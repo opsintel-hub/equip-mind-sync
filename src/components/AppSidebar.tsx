@@ -239,6 +239,7 @@ const menuGroups: MenuGroup[] = [
       { title: "รายงานเบิกตามป้าย", url: "/billboard-issue-report", icon: MapPin, functionName: "reports" },
       { title: "ค้นหาอุปกรณ์ป้าย", url: "/equipment-tracking", icon: Search, functionName: "reports" },
       { title: "ใบขอซื้อ (PR)", url: "/purchase-requests", icon: ClipboardList, functionName: "reports" },
+      { title: "รายงาน KPI", url: "/kpi-report", icon: LayoutDashboard, functionName: "reports" },
     ]
   },
   {
