@@ -130,6 +130,7 @@ const App = () => (
             <Route path="/billboard-packages" element={<ProtectedRoute><DashboardLayout><BillboardPackages /></DashboardLayout></ProtectedRoute>} />
             <Route path="/defective-return" element={<ProtectedRoute><DashboardLayout><DefectiveReturnEntry /></DashboardLayout></ProtectedRoute>} />
             <Route path="/stock-card" element={<ProtectedRoute><DashboardLayout><StockCard /></DashboardLayout></ProtectedRoute>} />
+            <Route path="/kpi-report" element={<ProtectedRoute><DashboardLayout><KPIReport /></DashboardLayout></ProtectedRoute>} />
             <Route path="/delivery-confirmation" element={<ProtectedRoute><DashboardLayout><DeliveryConfirmation /></DashboardLayout></ProtectedRoute>} />
             <Route path="/manager-approval" element={<ProtectedRoute><DashboardLayout><ManagerApproval /></DashboardLayout></ProtectedRoute>} />
             <Route path="/warehouse-planning" element={<ProtectedRoute><DashboardLayout><WarehousePickupPlanning /></DashboardLayout></ProtectedRoute>} />
