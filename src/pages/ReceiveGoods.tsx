@@ -459,15 +459,10 @@ const ReceiveGoods = () => {
                 item_condition: itemCondition,
               };
 
+        // Receipt S/N is authoritative — always overwrite serial_number_1
         const singleReceiptSerial = selectedReceipt.serial_number?.trim();
-        const currentMpSerial1 = currentMediaPlayer?.serial_number_1?.trim();
-        const currentMpSerial2 = currentMediaPlayer?.serial_number_2?.trim();
         if (singleReceiptSerial) {
-          if (!currentMpSerial1) {
-            mpUpdatePayload.serial_number_1 = singleReceiptSerial;
-          } else if (currentMpSerial1 !== singleReceiptSerial && !currentMpSerial2) {
-            mpUpdatePayload.serial_number_2 = singleReceiptSerial;
-          }
+          mpUpdatePayload.serial_number_1 = singleReceiptSerial;
         }
 
         // Always update department from receipt (authoritative source)
@@ -687,15 +682,10 @@ const ReceiveGoods = () => {
                 item_condition: itemCondition,
               };
 
+            // Receipt S/N is authoritative — always overwrite serial_number_1
             const batchReceiptSerial = receipt.serial_number?.trim();
-            const batchCurrentMpSerial1 = currentMediaPlayer?.serial_number_1?.trim();
-            const batchCurrentMpSerial2 = currentMediaPlayer?.serial_number_2?.trim();
             if (batchReceiptSerial) {
-              if (!batchCurrentMpSerial1) {
-                batchMpPayload.serial_number_1 = batchReceiptSerial;
-              } else if (batchCurrentMpSerial1 !== batchReceiptSerial && !batchCurrentMpSerial2) {
-                batchMpPayload.serial_number_2 = batchReceiptSerial;
-              }
+              batchMpPayload.serial_number_1 = batchReceiptSerial;
             }
             if (batchMpDept) {
               batchMpPayload.department = batchMpDept;
