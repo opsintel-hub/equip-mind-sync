@@ -2731,6 +2731,17 @@ const DeliveryEntry = () => {
                         )}
                       </TableCell>
                       <TableCell>{getStatusBadge(receipt.status)}</TableCell>
+                      <TableCell>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={() => setSelectedDetailReceipt(receipt)}
+                          title="ดูรายละเอียด"
+                        >
+                          <Eye className="w-4 h-4 text-primary" />
+                        </Button>
+                      </TableCell>
                     </TableRow>
                   ))
                 )}
