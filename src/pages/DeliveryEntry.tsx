@@ -137,6 +137,7 @@ const DeliveryEntry = () => {
   const [selectedCartIds, setSelectedCartIds] = useState<Set<string>>(new Set());
   const [editingItem, setEditingItem] = useState<DeliveryCartItem | null>(null);
   const [showEditDialog, setShowEditDialog] = useState(false);
+  const [selectedDetailReceipt, setSelectedDetailReceipt] = useState<any | null>(null);
 
   // Header data (shared across all items)
   const [selectedReceiptPurposeId, setSelectedReceiptPurposeId] = useState("");
