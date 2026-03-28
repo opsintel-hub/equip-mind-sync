@@ -34,19 +34,40 @@ export function ProfileSearch() {
         .ilike("serial_number", term)
         .limit(10);
 
+      // Build receipt S/N map for display
+      const receiptSnMap: Record<string, string[]> = {};
+      (receiptMatches || []).forEach((r: any) => {
+        const pid = r.media_player_id;
+        const sn = r.serial_number?.trim();
+        if (!pid || !sn) return;
+        if (!receiptSnMap[pid]) receiptSnMap[pid] = [];
+        if (!receiptSnMap[pid].includes(sn)) receiptSnMap[pid].push(sn);
+      });
+
       const directIds = new Set((directResults || []).map((r: any) => r.id));
       const extraIds = (receiptMatches || [])
         .map((r: any) => r.media_player_id)
         .filter((id: string) => !directIds.has(id));
 
-      let combined: SearchResult[] = (directResults as any) || [];
+      let combined: SearchResult[] = (directResults || []).map((r: any) => ({
+        ...r,
+        receipt_serials: receiptSnMap[r.id] || [],
+      }));
 
       if (extraIds.length > 0) {
         const { data: extraPlayers } = await supabase
           .from("media_players")
           .select("id, code, name, serial_number_1, serial_number_2")
           .in("id", extraIds);
-        if (extraPlayers) combined = [...combined, ...(extraPlayers as any)];
+        if (extraPlayers) {
+          combined = [
+            ...combined,
+            ...(extraPlayers as any[]).map((r: any) => ({
+              ...r,
+              receipt_serials: receiptSnMap[r.id] || [],
+            })),
+          ];
+        }
       }
 
       setSearchResults(combined);

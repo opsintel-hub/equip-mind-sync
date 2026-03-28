@@ -201,6 +201,19 @@ export default function MediaPlayerReport() {
     return map;
   }, [receiptRows]);
 
+  // Build ALL receipt serial numbers per player for S/N search
+  const allReceiptSerialsMap = useMemo(() => {
+    const map: Record<string, string[]> = {};
+    receiptRows.forEach((r) => {
+      const pid = r.media_player_id;
+      const sn = r.serial_number?.trim();
+      if (!pid || !sn) return;
+      if (!map[pid]) map[pid] = [];
+      if (!map[pid].includes(sn)) map[pid].push(sn);
+    });
+    return map;
+  }, [receiptRows]);
+
   // Show 1 row per physical device (1 media_players record = 1 machine)
   const expandedRows = useMemo(() => {
     const rows: ExpandedRow[] = [];
@@ -328,10 +341,13 @@ export default function MediaPlayerReport() {
         const match = r.code?.match(/^([A-Za-z-]+)/);
         if (!match || match[1] !== codePrefixFilter) return false;
       }
-      // S/N search
+      // S/N search — also check receipt aliases
       if (snSearch) {
         const term = snSearch.trim().toLowerCase();
-        if (!r.serialNumber.toLowerCase().includes(term)) return false;
+        const masterMatch = r.serialNumber.toLowerCase().includes(term);
+        const receiptSerials = allReceiptSerialsMap[r.playerId] || [];
+        const aliasMatch = receiptSerials.some((sn) => sn.toLowerCase().includes(term));
+        if (!masterMatch && !aliasMatch) return false;
       }
       // General search
       if (search) {
