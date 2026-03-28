@@ -70,4 +70,5 @@ export interface SearchResult {
   name: string;
   serial_number_1: string | null;
   serial_number_2: string | null;
+  receipt_serials?: string[];
 }
