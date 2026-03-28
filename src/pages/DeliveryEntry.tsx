@@ -2758,6 +2758,12 @@ const DeliveryEntry = () => {
           />
         </CardContent>
       </Card>
+
+      <DeliveryDetailDialog
+        open={!!selectedDetailReceipt}
+        onOpenChange={(open) => { if (!open) setSelectedDetailReceipt(null); }}
+        receipt={selectedDetailReceipt}
+      />
     </div>
   );
 };
