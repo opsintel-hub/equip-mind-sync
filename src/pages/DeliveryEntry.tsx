@@ -2679,6 +2679,7 @@ const DeliveryEntry = () => {
                   <TableHead>ผู้ส่ง</TableHead>
                   <TableHead>เอกสาร</TableHead>
                   <TableHead>สถานะ</TableHead>
+                  <TableHead className="w-10"></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
