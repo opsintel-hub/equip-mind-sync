@@ -40,6 +40,7 @@ import { useTablePagination } from "@/hooks/useTablePagination";
 import { TablePagination } from "@/components/TablePagination";
 import { DeliveryCart, DeliveryCartItem } from "@/components/delivery/DeliveryCart";
 import { DeliveryCartItemEditDialog } from "@/components/delivery/DeliveryCartItemEditDialog";
+import { DeliveryDetailDialog } from "@/components/delivery/DeliveryDetailDialog";
 import { DocumentUploadField } from "@/components/media-player/DocumentUploadField";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { useAllowedDepartments } from "@/hooks/useAllowedDepartments";
@@ -136,6 +137,7 @@ const DeliveryEntry = () => {
   const [selectedCartIds, setSelectedCartIds] = useState<Set<string>>(new Set());
   const [editingItem, setEditingItem] = useState<DeliveryCartItem | null>(null);
   const [showEditDialog, setShowEditDialog] = useState(false);
+  const [selectedDetailReceipt, setSelectedDetailReceipt] = useState<any | null>(null);
 
   // Header data (shared across all items)
   const [selectedReceiptPurposeId, setSelectedReceiptPurposeId] = useState("");
@@ -2677,12 +2679,13 @@ const DeliveryEntry = () => {
                   <TableHead>ผู้ส่ง</TableHead>
                   <TableHead>เอกสาร</TableHead>
                   <TableHead>สถานะ</TableHead>
+                  <TableHead className="w-10"></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {paginatedReceipts.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
                       ยังไม่มีรายการ
                     </TableCell>
                   </TableRow>
@@ -2728,6 +2731,17 @@ const DeliveryEntry = () => {
                         )}
                       </TableCell>
                       <TableCell>{getStatusBadge(receipt.status)}</TableCell>
+                      <TableCell>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={() => setSelectedDetailReceipt(receipt)}
+                          title="ดูรายละเอียด"
+                        >
+                          <Eye className="w-4 h-4 text-primary" />
+                        </Button>
+                      </TableCell>
                     </TableRow>
                   ))
                 )}
@@ -2744,6 +2758,12 @@ const DeliveryEntry = () => {
           />
         </CardContent>
       </Card>
+
+      <DeliveryDetailDialog
+        open={!!selectedDetailReceipt}
+        onOpenChange={(open) => { if (!open) setSelectedDetailReceipt(null); }}
+        receipt={selectedDetailReceipt}
+      />
     </div>
   );
 };
