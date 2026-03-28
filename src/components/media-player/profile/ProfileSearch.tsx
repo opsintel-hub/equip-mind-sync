@@ -108,8 +108,11 @@ export function ProfileSearch() {
                   <p className="font-mono font-semibold text-sm">{r.code}</p>
                   <p className="text-sm text-muted-foreground truncate">
                     {r.name}
-                    {r.serial_number_1 && ` • S/N: ${r.serial_number_1}`}
-                    {r.serial_number_2 && ` / ${r.serial_number_2}`}
+                    {r.receipt_serials && r.receipt_serials.length > 0
+                      ? ` • S/N (นำเข้า): ${r.receipt_serials.join(", ")}`
+                      : r.serial_number_1
+                        ? ` • S/N: ${r.serial_number_1}${r.serial_number_2 ? ` / ${r.serial_number_2}` : ""}`
+                        : ""}
                   </p>
                 </div>
               </button>
