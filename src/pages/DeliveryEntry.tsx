@@ -897,6 +897,80 @@ const DeliveryEntry = () => {
         .filter(Boolean)
         .join(", ");
 
+      // Clone media_players records for items that share the same media_player_id
+      // Each physical device must have its own media_players record
+      const mpIdUsed = new Set<string>();
+      for (const item of itemsToSubmit) {
+        if (!item.is_media_player || !item.media_player_id) continue;
+        if (!mpIdUsed.has(item.media_player_id)) {
+          mpIdUsed.add(item.media_player_id);
+          continue; // first device keeps original
+        }
+        // Clone: fetch original, create new record with new code
+        try {
+          const { data: original } = await supabase
+            .from("media_players")
+            .select("*")
+            .eq("id", item.media_player_id)
+            .single();
+          if (original) {
+            // Extract prefix from code (e.g. "MMM 0001" → "MMM")
+            const codeMatch = (original as any).code?.match(/^([A-Za-z-]+)/);
+            const prefix = codeMatch ? codeMatch[1] : "MP";
+            // Get next code via DB function
+            const { data: newCode } = await supabase.rpc("get_next_media_player_code", { p_prefix: prefix });
+            if (newCode) {
+              const cloneData: Record<string, any> = {
+                code: newCode,
+                name: (original as any).name,
+                description: (original as any).description,
+                cms_type_id: (original as any).cms_type_id,
+                specification: (original as any).specification,
+                company_id: (original as any).company_id,
+                department: (original as any).department,
+                brand: (original as any).brand,
+                quantity: 0,
+                unit: (original as any).unit || "เครื่อง",
+                unit_price: (original as any).unit_price || 0,
+                is_asset: true,
+                is_active: true,
+                status: (original as any).status || "active",
+                model_id: (original as any).model_id,
+                image_url: (original as any).image_url,
+                supplier_id: (original as any).supplier_id,
+                usage_lifespan_months: (original as any).usage_lifespan_months,
+                item_condition: "normal",
+              };
+              const { data: newMp, error: cloneError } = await supabase
+                .from("media_players")
+                .insert(cloneData as any)
+                .select("id")
+                .single();
+              if (!cloneError && newMp) {
+                // Clone images too
+                const { data: imgs } = await supabase
+                  .from("media_player_images" as any)
+                  .select("image_url, display_order")
+                  .eq("media_player_id", item.media_player_id);
+                if (imgs && imgs.length > 0) {
+                  await supabase.from("media_player_images" as any).insert(
+                    (imgs as any[]).map((img: any) => ({
+                      media_player_id: (newMp as any).id,
+                      image_url: img.image_url,
+                      display_order: img.display_order,
+                    }))
+                  );
+                }
+                item.media_player_id = (newMp as any).id;
+                item.equipment_code = newCode;
+              }
+            }
+          }
+        } catch (cloneErr) {
+          console.error("Error cloning media player:", cloneErr);
+        }
+      }
+
       // Insert all items with the same document number
       const itemsToInsert = itemsToSubmit.map((item, index) => ({
         document_no: `${docNo}-${(index + 1).toString().padStart(2, "0")}`,
