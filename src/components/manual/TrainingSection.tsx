@@ -7,7 +7,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import {
   Download, ChevronDown, CheckCircle, FileText, GraduationCap,
   ClipboardCheck, Package, Truck, ShoppingCart, Shield, Users, Eye,
-  AlertTriangle, Monitor, BarChart3, Search, RotateCcw
+  AlertTriangle, Monitor, BarChart3, Search, RotateCcw, Wrench
 } from "lucide-react";
 import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, BorderStyle } from "docx";
 import { saveAs } from "file-saver";
