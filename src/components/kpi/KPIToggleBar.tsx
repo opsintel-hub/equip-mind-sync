@@ -16,6 +16,7 @@ const KPI_LIST: KPIDefinition[] = [
   { id: "issue-punctuality", label: "อัตราเบิกจ่ายตรงเวลา", icon: "⏱️" },
   { id: "dead-stock", label: "Dead Stock", icon: "📉" },
   { id: "expiry-warranty", label: "ใกล้หมดอายุ/ประกัน", icon: "🔔" },
+  { id: "billboard-pm", label: "PM ป้ายโฆษณา", icon: "🔧" },
 ];
 
 interface KPIToggleBarProps {
@@ -33,10 +34,10 @@ export default function KPIToggleBar({ visible, onChange }: KPIToggleBarProps) {
   };
 
   return (
-    <Card>
+    <Card className="border-primary/20 bg-gradient-to-r from-primary/5 to-transparent">
       <CardContent className="pt-4 pb-3">
         <div className="flex items-center justify-between mb-3">
-          <p className="text-sm font-medium text-muted-foreground">เลือก KPI ที่ต้องการดู:</p>
+          <p className="text-sm font-semibold text-foreground">เลือก KPI ที่ต้องการดู:</p>
           <div className="flex gap-2">
             <Button
               variant="outline"
@@ -54,12 +55,13 @@ export default function KPIToggleBar({ visible, onChange }: KPIToggleBarProps) {
           {KPI_LIST.map((kpi) => (
             <label
               key={kpi.id}
-              className="flex items-center gap-2 cursor-pointer rounded-lg border px-3 py-2 text-sm hover:bg-accent transition-colors select-none data-[checked=true]:bg-primary/10 data-[checked=true]:border-primary"
+              className="flex items-center gap-2 cursor-pointer rounded-full border px-4 py-1.5 text-sm font-medium hover:bg-accent transition-all select-none data-[checked=true]:bg-primary data-[checked=true]:text-primary-foreground data-[checked=true]:border-primary data-[checked=true]:shadow-sm"
               data-checked={visible.includes(kpi.id)}
             >
               <Checkbox
                 checked={visible.includes(kpi.id)}
                 onCheckedChange={() => toggleItem(kpi.id)}
+                className="hidden"
               />
               <span>{kpi.icon}</span>
               <span>{kpi.label}</span>
