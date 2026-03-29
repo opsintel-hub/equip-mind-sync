@@ -1191,7 +1191,7 @@ export function TrainingContent() {
           ที่มีช่องให้กรอกคำตอบ + ลงนาม แล้วนำส่งผู้ตรวจ
         </p>
         <div className="flex flex-wrap gap-2 mt-3">
-          <Badge variant="outline" className="text-[10px]">🟢 Admin: 6 แบบฝึก</Badge>
+          <Badge variant="outline" className="text-[10px]">🟢 Admin: 13 แบบฝึก</Badge>
           <Badge variant="outline" className="text-[10px]">🔵 Manager: 1 แบบฝึก</Badge>
           <Badge variant="outline" className="text-[10px]">🟣 Super Admin: 1 แบบฝึก</Badge>
           <Badge variant="outline" className="text-[10px]">รวม {trainingModules.reduce((sum, m) => sum + m.exercises.length, 0)} ขั้นตอน</Badge>
