@@ -7,6 +7,9 @@ import InventoryValueKPI from "@/components/kpi/InventoryValueKPI";
 import IssuePunctualityKPI from "@/components/kpi/IssuePunctualityKPI";
 import DeadStockKPI from "@/components/kpi/DeadStockKPI";
 import ExpiryWarrantyKPI from "@/components/kpi/ExpiryWarrantyKPI";
+import BillboardPMComplianceKPI from "@/components/kpi/BillboardPMComplianceKPI";
+import { format } from "date-fns";
+import { th } from "date-fns/locale";
 
 const STORAGE_KEY = "kpi-visible-items";
 
@@ -18,6 +21,7 @@ const KPI_COMPONENTS: Record<string, React.ComponentType> = {
   "issue-punctuality": IssuePunctualityKPI,
   "dead-stock": DeadStockKPI,
   "expiry-warranty": ExpiryWarrantyKPI,
+  "billboard-pm": BillboardPMComplianceKPI,
 };
 
 export default function KPIReport() {
@@ -34,18 +38,37 @@ export default function KPIReport() {
   }, [visible]);
 
   const visibleKPIs = KPI_LIST.filter((k) => visible.includes(k.id));
+  const today = format(new Date(), "d MMMM yyyy", { locale: th });
 
   return (
-    <div className="space-y-4">
-      <h1 className="text-2xl font-bold">📊 รายงาน KPI</h1>
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-end justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight text-foreground">📊 รายงาน KPI</h1>
+          <p className="text-muted-foreground mt-1">
+            สรุปตัวชี้วัดประสิทธิภาพการจัดการคลังสินค้าและสินทรัพย์
+          </p>
+        </div>
+        <div className="text-sm text-muted-foreground text-right">
+          <p>ข้อมูล ณ วันที่</p>
+          <p className="font-semibold text-foreground">{today}</p>
+        </div>
+      </div>
 
+      {/* Toggle Bar */}
       <KPIToggleBar visible={visible} onChange={setVisible} />
 
+      {/* KPI Grid */}
       {visibleKPIs.length === 0 && (
-        <p className="text-center text-muted-foreground py-12">กรุณาเลือก KPI ที่ต้องการดูจากแถบด้านบน</p>
+        <div className="text-center py-16 text-muted-foreground">
+          <p className="text-4xl mb-3">📊</p>
+          <p className="text-lg font-medium">กรุณาเลือก KPI ที่ต้องการดู</p>
+          <p className="text-sm">คลิกที่แถบด้านบนเพื่อเปิด-ปิดตัวชี้วัดแต่ละข้อ</p>
+        </div>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {visibleKPIs.map((kpi) => {
           const Component = KPI_COMPONENTS[kpi.id];
           return Component ? <Component key={kpi.id} /> : null;
