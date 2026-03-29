@@ -1024,77 +1024,8 @@ const trainingModules: TrainingModule[] = [
     exercises: superAdminExercises,
   },
 ];
-    title: "แบบฝึก 2: สินค้าใหม่ + เอกสารแนบ (ไฟล์ PO/PR)",
-    icon: <FileText className="h-5 w-5" />,
-    role: "Admin / Warehouse Staff",
-    description: "ฝึกนำสินค้าใหม่ที่ยังไม่มีในระบบเข้า พร้อมแนบเอกสาร PO/PR/Invoice → รับเข้าคลัง + สร้างรหัสสินค้าจริง",
-    exercises: adminNewProductExercises,
-  },
-  {
-    id: "admin-media-player",
-    title: "แบบฝึก 3: Media Player Entry (หลายเครื่อง)",
-    icon: <Monitor className="h-5 w-5" />,
-    role: "Admin / Warehouse Staff",
-    description: "ฝึกนำ Media Player หลายเครื่องเข้าระบบพร้อมกัน พร้อม S/N, รูปภาพแต่ละเครื่อง → รับเข้าคลัง → ดู Profile",
-    exercises: adminMediaPlayerExercises,
-  },
-  {
-    id: "admin-media-player-lifecycle",
-    title: "แบบฝึก 4: Media Player Full Lifecycle (Profile / รายงาน / เบิก-ติดตั้ง / QR Code)",
-    icon: <Eye className="h-5 w-5" />,
-    role: "Admin / Warehouse Staff",
-    description: "ฝึกตรวจสอบ Profile รายเครื่อง → ดูรายงานภาพรวม → เบิกติดตั้งที่ป้ายโฆษณา → ตรวจสอบ Journey และ Movement → สแกน QR Code",
-    exercises: adminMediaPlayerLifecycleExercises,
-  },
-  {
-    id: "admin-rejection",
-    title: "แบบฝึก 5: Scenario ไม่ปกติ (ปฏิเสธ / รอสินค้า / แจ้งปัญหา / ของเสีย)",
-    icon: <AlertTriangle className="h-5 w-5" />,
-    role: "Admin / Warehouse Staff",
-    description: "ฝึกจัดการกรณีที่ไม่ปกติ: ปฏิเสธการรับ, สต็อกไม่พอ, แจ้งปัญหาการรับสินค้า, นำของเสียเข้าระบบ",
-    exercises: adminRejectionExercises,
-  },
-  {
-    id: "admin-reports",
-    title: "แบบฝึก 6: รายงานและการตรวจสอบสต็อก",
-    icon: <BarChart3 className="h-5 w-5" />,
-    role: "Admin / Warehouse Staff",
-    description: "ฝึกดูรายงานสินค้าคงคลัง, Stock Card, Stock Movement Log, Dead Stock รวมถึง Scenario ตรวจสอบของหาย",
-    exercises: adminReportExercises,
-  },
-  {
-    id: "admin-ad-flow",
-    title: "แบบฝึก 7: ภาพโฆษณา Full Flow (รับเข้า → จ่าย → ลิงก์รับ → แจ้งปัญหา)",
-    icon: <Eye className="h-5 w-5" />,
-    role: "Admin / Warehouse Staff",
-    description: "ฝึกรับภาพโฆษณาเข้าคลัง → จ่ายภาพพร้อมสร้างลิงก์รับ → ผู้รับยืนยัน/แจ้งปัญหา → ตรวจสอบภาพที่ติดตั้งบนป้าย",
-    exercises: adminAdFlowExercises,
-  },
-  {
-    id: "admin-ds",
-    title: "แบบฝึก 8: Direct Shipping Flow",
-    icon: <Truck className="h-5 w-5" />,
-    role: "Admin / Warehouse Staff",
-    description: "ฝึกสร้างคำขอส่งตรง → จัดซื้อ-ดำเนินการ ครบวงจร",
-    exercises: adminDSExercises,
-  },
-  {
-    id: "manager-training",
-    title: "แบบฝึก 9: Manager - การอนุมัติ/ปฏิเสธ",
-    icon: <Shield className="h-5 w-5" />,
-    role: "Manager",
-    description: "ฝึกอนุมัติ/ปฏิเสธคำขอเบิกทรัพย์สินและคำขอส่งตรง ตรวจสอบผลลัพธ์ทุกขั้นตอน",
-    exercises: managerExercises,
-  },
-  {
-    id: "superadmin-training",
-    title: "แบบฝึก 10: Super Admin - จัดการระบบ + รายงาน",
-    icon: <Users className="h-5 w-5" />,
-    role: "Super Admin",
-    description: "ฝึกจัดการผู้ใช้, สิทธิ์ตามฝ่าย/ฟังก์ชัน, Master Data, และตรวจสอบรายงานภาพรวม",
-    exercises: superAdminExercises,
-  },
-];
+
+
 
 // ── Export Word Function ──
 async function exportTrainingDoc(module: TrainingModule) {
