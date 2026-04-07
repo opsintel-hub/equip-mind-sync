@@ -312,8 +312,8 @@ export function UserPermissionManager() {
       return;
     }
 
-    if (newPassword.length < 6) {
-      toast.error("รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร");
+    if (newPassword.length < 8) {
+      toast.error("รหัสผ่านต้องมีอย่างน้อย 8 ตัวอักษร");
       return;
     }
 
