@@ -963,7 +963,7 @@ const DeliveryEntry = () => {
                   );
                 }
                 item.media_player_id = (newMp as any).id;
-                item.equipment_code = newCode;
+                item.equipment_code = originalCode;
               }
             }
           }
