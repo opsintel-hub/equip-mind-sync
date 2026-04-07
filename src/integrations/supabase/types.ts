@@ -90,6 +90,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "ad_issue_requests_advertisement_id_fkey"
+            columns: ["advertisement_id"]
+            isOneToOne: false
+            referencedRelation: "advertisements_public"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "ad_issue_requests_target_billboard_id_fkey"
             columns: ["target_billboard_id"]
             isOneToOne: false
@@ -186,6 +193,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "ad_target_billboards_advertisement_id_fkey"
+            columns: ["advertisement_id"]
+            isOneToOne: false
+            referencedRelation: "advertisements_public"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "ad_target_billboards_billboard_id_fkey"
             columns: ["billboard_id"]
             isOneToOne: false
@@ -222,6 +236,13 @@ export type Database = {
             columns: ["advertisement_id"]
             isOneToOne: false
             referencedRelation: "advertisements"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ad_versions_advertisement_id_fkey"
+            columns: ["advertisement_id"]
+            isOneToOne: false
+            referencedRelation: "advertisements_public"
             referencedColumns: ["id"]
           },
         ]
@@ -4664,7 +4685,99 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      advertisements_public: {
+        Row: {
+          ad_media_type_id: string | null
+          ad_size_id: string | null
+          code: string | null
+          company_id: string | null
+          created_at: string | null
+          department_id: string | null
+          entry_type: string | null
+          id: string | null
+          installation_details: string | null
+          installation_team_id: string | null
+          name: string | null
+          photo_urls: string[] | null
+          status: string | null
+          supporting_doc_url: string | null
+          target_installation_date: string | null
+          total_quantity: number | null
+        }
+        Insert: {
+          ad_media_type_id?: string | null
+          ad_size_id?: string | null
+          code?: string | null
+          company_id?: string | null
+          created_at?: string | null
+          department_id?: string | null
+          entry_type?: string | null
+          id?: string | null
+          installation_details?: string | null
+          installation_team_id?: string | null
+          name?: string | null
+          photo_urls?: string[] | null
+          status?: string | null
+          supporting_doc_url?: string | null
+          target_installation_date?: string | null
+          total_quantity?: number | null
+        }
+        Update: {
+          ad_media_type_id?: string | null
+          ad_size_id?: string | null
+          code?: string | null
+          company_id?: string | null
+          created_at?: string | null
+          department_id?: string | null
+          entry_type?: string | null
+          id?: string | null
+          installation_details?: string | null
+          installation_team_id?: string | null
+          name?: string | null
+          photo_urls?: string[] | null
+          status?: string | null
+          supporting_doc_url?: string | null
+          target_installation_date?: string | null
+          total_quantity?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "advertisements_ad_media_type_id_fkey"
+            columns: ["ad_media_type_id"]
+            isOneToOne: false
+            referencedRelation: "ad_media_types"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "advertisements_ad_size_id_fkey"
+            columns: ["ad_size_id"]
+            isOneToOne: false
+            referencedRelation: "ad_sizes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "advertisements_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "advertisements_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "advertisements_installation_team_id_fkey"
+            columns: ["installation_team_id"]
+            isOneToOne: false
+            referencedRelation: "contractors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       generate_equipment_pm_task_number: { Args: never; Returns: string }
