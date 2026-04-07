@@ -918,13 +918,11 @@ const DeliveryEntry = () => {
             .single();
           if (original) {
             // Extract prefix from code (e.g. "MMM 0001" → "MMM")
-            const codeMatch = (original as any).code?.match(/^([A-Za-z-]+)/);
-            const prefix = codeMatch ? codeMatch[1] : "MP";
-            // Get next code via DB function
-            const { data: newCode } = await supabase.rpc("get_next_media_player_code", { p_prefix: prefix });
-            if (newCode) {
+            // Reuse the same code as the original (same model/spec = same code)
+            const originalCode = (original as any).code;
+            if (originalCode) {
               const cloneData: Record<string, any> = {
-                code: newCode,
+                code: originalCode,
                 name: (original as any).name,
                 description: (original as any).description,
                 cms_type_id: (original as any).cms_type_id,
