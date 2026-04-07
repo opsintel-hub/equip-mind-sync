@@ -459,10 +459,14 @@ const ReceiveGoods = () => {
                 item_condition: itemCondition,
               };
 
-        // Receipt S/N is authoritative — always overwrite serial_number_1
+        // Receipt S/N is authoritative — always overwrite serial_number_1 and serial_number_2
         const singleReceiptSerial = selectedReceipt.serial_number?.trim();
         if (singleReceiptSerial) {
           mpUpdatePayload.serial_number_1 = singleReceiptSerial;
+        }
+        const singleReceiptSerial2 = (selectedReceipt as any).serial_number_2?.trim();
+        if (singleReceiptSerial2) {
+          mpUpdatePayload.serial_number_2 = singleReceiptSerial2;
         }
 
         // Always update department from receipt (authoritative source)
@@ -682,10 +686,14 @@ const ReceiveGoods = () => {
                 item_condition: itemCondition,
               };
 
-            // Receipt S/N is authoritative — always overwrite serial_number_1
+            // Receipt S/N is authoritative — always overwrite serial_number_1 and serial_number_2
             const batchReceiptSerial = receipt.serial_number?.trim();
             if (batchReceiptSerial) {
               batchMpPayload.serial_number_1 = batchReceiptSerial;
+            }
+            const batchReceiptSerial2 = (receipt as any).serial_number_2?.trim();
+            if (batchReceiptSerial2) {
+              batchMpPayload.serial_number_2 = batchReceiptSerial2;
             }
             if (batchMpDept) {
               batchMpPayload.department = batchMpDept;

@@ -2427,6 +2427,7 @@ export type Database = {
           received_storage_slot_id: string | null
           received_sub_storage_slot_id: string | null
           serial_number: string | null
+          serial_number_2: string | null
           status: string
           storage_depth_cm: number | null
           storage_height_cm: number | null
@@ -2487,6 +2488,7 @@ export type Database = {
           received_storage_slot_id?: string | null
           received_sub_storage_slot_id?: string | null
           serial_number?: string | null
+          serial_number_2?: string | null
           status?: string
           storage_depth_cm?: number | null
           storage_height_cm?: number | null
@@ -2547,6 +2549,7 @@ export type Database = {
           received_storage_slot_id?: string | null
           received_sub_storage_slot_id?: string | null
           serial_number?: string | null
+          serial_number_2?: string | null
           status?: string
           storage_depth_cm?: number | null
           storage_height_cm?: number | null
