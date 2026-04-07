@@ -1,0 +1,1 @@
+ALTER TABLE public.goods_receipt_pending ADD COLUMN serial_number_2 text;
