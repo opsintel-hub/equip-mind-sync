@@ -1,0 +1,1 @@
+ALTER TABLE public.media_players DROP CONSTRAINT media_players_code_key;
