@@ -28,6 +28,7 @@ import {
   ImagePlus,
   Eye,
   AlertTriangle,
+  ScanLine,
 } from "lucide-react";
 import { EquipmentImageViewer } from "@/components/equipment/EquipmentImageViewer";
 import { EquipmentImageUpload } from "@/components/equipment/EquipmentImageUpload";
