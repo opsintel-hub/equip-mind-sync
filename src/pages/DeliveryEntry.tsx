@@ -36,6 +36,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 
 import { DeliveryImport } from "@/components/delivery/DeliveryImport";
+import { POUploadOCR, POImportResult } from "@/components/delivery/POUploadOCR";
 import { useTablePagination } from "@/hooks/useTablePagination";
 import { TablePagination } from "@/components/TablePagination";
 import { DeliveryCart, DeliveryCartItem } from "@/components/delivery/DeliveryCart";
