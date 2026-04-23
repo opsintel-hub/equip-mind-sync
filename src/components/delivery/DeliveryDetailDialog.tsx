@@ -3,6 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { FileText, ExternalLink } from "lucide-react";
 import { format } from "date-fns";
+import { downloadStorageFile } from "@/lib/storageDownload";
 
 interface DeliveryDetailDialogProps {
   open: boolean;
@@ -23,10 +24,13 @@ const DetailRow = ({ label, value }: { label: string; value: React.ReactNode }) 
 const DocLink = ({ url, label }: { url: string | null; label: string }) => {
   if (!url) return null;
   return (
-    <a href={url} target="_blank" rel="noopener noreferrer"
-      className="flex items-center gap-1.5 text-sm text-primary hover:underline">
+    <button
+      type="button"
+      onClick={() => downloadStorageFile(url, label)}
+      className="flex items-center gap-1.5 text-sm text-primary hover:underline cursor-pointer"
+    >
       <FileText className="w-4 h-4" /> {label} <ExternalLink className="w-3 h-3" />
-    </a>
+    </button>
   );
 };
 

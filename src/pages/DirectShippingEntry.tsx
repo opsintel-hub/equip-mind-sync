@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { downloadStorageFile } from "@/lib/storageDownload";
 import { DSTimeline } from "@/components/direct-shipping/DSTimeline";
 import { DestinationMapPreview } from "@/components/direct-shipping/DestinationMapPreview";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -563,7 +564,7 @@ export default function DirectShippingEntry() {
                     <div>
                       <span className="text-muted-foreground">PR:</span> {viewDetail.pr_number}
                       {viewDetail.pr_document_url && (
-                        <a href={viewDetail.pr_document_url} target="_blank" rel="noopener noreferrer" className="ml-2 text-xs text-primary hover:underline">ดูไฟล์</a>
+                        <button type="button" onClick={() => downloadStorageFile(viewDetail.pr_document_url)} className="ml-2 text-xs text-primary hover:underline cursor-pointer">ดูไฟล์</button>
                       )}
                     </div>
                   )}
@@ -571,7 +572,7 @@ export default function DirectShippingEntry() {
                     <div>
                       <span className="text-muted-foreground">PO:</span> {viewDetail.po_number}
                       {viewDetail.po_document_url && (
-                        <a href={viewDetail.po_document_url} target="_blank" rel="noopener noreferrer" className="ml-2 text-xs text-primary hover:underline">ดูไฟล์</a>
+                        <button type="button" onClick={() => downloadStorageFile(viewDetail.po_document_url)} className="ml-2 text-xs text-primary hover:underline cursor-pointer">ดูไฟล์</button>
                       )}
                     </div>
                   )}

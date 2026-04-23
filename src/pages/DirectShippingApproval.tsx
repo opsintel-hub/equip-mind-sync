@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { downloadStorageFile } from "@/lib/storageDownload";
 import { DateRange } from "react-day-picker";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -280,10 +281,10 @@ export default function DirectShippingApproval() {
               {(selectedRequest.pr_document_url || selectedRequest.po_document_url) && (
                 <div className="flex gap-3">
                   {selectedRequest.pr_document_url && (
-                    <a href={selectedRequest.pr_document_url} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline">📄 เอกสาร PR</a>
+                    <button type="button" onClick={() => downloadStorageFile(selectedRequest.pr_document_url)} className="text-xs text-primary hover:underline cursor-pointer">📄 เอกสาร PR</button>
                   )}
                   {selectedRequest.po_document_url && (
-                    <a href={selectedRequest.po_document_url} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline">📄 เอกสาร PO</a>
+                    <button type="button" onClick={() => downloadStorageFile(selectedRequest.po_document_url)} className="text-xs text-primary hover:underline cursor-pointer">📄 เอกสาร PO</button>
                   )}
                 </div>
               )}
