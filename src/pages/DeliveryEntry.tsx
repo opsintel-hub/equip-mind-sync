@@ -140,6 +140,7 @@ const DeliveryEntry = () => {
   const [editingItem, setEditingItem] = useState<DeliveryCartItem | null>(null);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [selectedDetailReceipt, setSelectedDetailReceipt] = useState<any | null>(null);
+  const [showPOUpload, setShowPOUpload] = useState(false);
 
   // Header data (shared across all items)
   const [selectedReceiptPurposeId, setSelectedReceiptPurposeId] = useState("");
