@@ -2,6 +2,7 @@ import { FileText, ExternalLink, MapPin } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { MediaPlayerRow } from "./types";
 import { formatBillboardLabel } from "@/lib/billboardUtils";
+import { downloadStorageFile } from "@/lib/storageDownload";
 
 interface GeneralInfoTabProps {
   player: MediaPlayerRow;
@@ -24,9 +25,9 @@ function DocLink({ label, number, url }: { label: string; number?: string | null
       <FileText className="w-4 h-4 text-muted-foreground" />
       <span className="text-sm font-medium">{label}: {number || "-"}</span>
       {url && (
-        <a href={url} target="_blank" rel="noopener noreferrer" className="text-primary hover:text-primary/80">
+        <button type="button" onClick={() => downloadStorageFile(url)} className="text-primary hover:text-primary/80 cursor-pointer">
           <ExternalLink className="w-3.5 h-3.5" />
-        </a>
+        </button>
       )}
     </div>
   );

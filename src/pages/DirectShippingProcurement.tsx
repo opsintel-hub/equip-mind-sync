@@ -440,10 +440,10 @@ export default function DirectShippingProcurement() {
                   {(processDialog.pr_document_url || processDialog.po_document_url) && (
                     <div className="flex gap-3">
                       {processDialog.pr_document_url && (
-                        <a href={processDialog.pr_document_url} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline">📄 เอกสาร PR</a>
+                        <button type="button" onClick={() => downloadStorageFile(processDialog.pr_document_url)} className="text-xs text-primary hover:underline cursor-pointer">📄 เอกสาร PR</button>
                       )}
                       {processDialog.po_document_url && (
-                        <a href={processDialog.po_document_url} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline">📄 เอกสาร PO</a>
+                        <button type="button" onClick={() => downloadStorageFile(processDialog.po_document_url)} className="text-xs text-primary hover:underline cursor-pointer">📄 เอกสาร PO</button>
                       )}
                     </div>
                   )}
@@ -610,10 +610,10 @@ export default function DirectShippingProcurement() {
               {(viewDetail.pr_document_url || viewDetail.po_document_url) && (
                 <div className="flex gap-3">
                   {viewDetail.pr_document_url && (
-                    <a href={viewDetail.pr_document_url} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline">📄 เอกสาร PR</a>
+                    <button type="button" onClick={() => downloadStorageFile(viewDetail.pr_document_url)} className="text-xs text-primary hover:underline cursor-pointer">📄 เอกสาร PR</button>
                   )}
                   {viewDetail.po_document_url && (
-                    <a href={viewDetail.po_document_url} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline">📄 เอกสาร PO</a>
+                    <button type="button" onClick={() => downloadStorageFile(viewDetail.po_document_url)} className="text-xs text-primary hover:underline cursor-pointer">📄 เอกสาร PO</button>
                   )}
                 </div>
               )}
