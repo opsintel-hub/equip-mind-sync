@@ -110,6 +110,12 @@ const Admin = () => {
             <FunctionDescriptions />
           </div>
         </TabsContent>
+
+        {isSuperAdmin && (
+          <TabsContent value="ocr-config" className="space-y-4">
+            <OCRConfigManager />
+          </TabsContent>
+        )}
       </Tabs>
     </div>
   );
