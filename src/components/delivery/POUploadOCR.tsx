@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,9 +10,8 @@ import { FileText, Upload, Loader2, CheckCircle2, AlertTriangle, X, ScanLine } f
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
-// ─── จุดปรับ #3: Field Mapping ───────────────────────────────
-// เพิ่ม/ลด mapping ระหว่าง OCR field กับระบบได้ที่นี่
-const FIELD_MAPPING = {
+// ─── Default Field Mapping (fallback if DB config not found) ─
+const DEFAULT_FIELD_MAPPING: Record<string, string> = {
   po_number: "poNumber",
   pr_number: "prNumber",
   vendor_code: "supplierId",
@@ -20,7 +19,7 @@ const FIELD_MAPPING = {
   department: "departmentId",
   comment: "notes",
   receipt_date: "expectedDate",
-} as const;
+};
 
 export interface POOCRData {
   po_number: string | null;
@@ -114,8 +113,28 @@ export function POUploadOCR({
   const [deptMatchStatus, setDeptMatchStatus] = useState<"matched" | "not_found" | "pending">("pending");
   const [comment, setComment] = useState("");
   const [items, setItems] = useState<POOCRItem[]>([]);
+  const [fieldMapping, setFieldMapping] = useState<Record<string, string>>(DEFAULT_FIELD_MAPPING);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Load dynamic field mapping from DB
+  useEffect(() => {
+    const loadMapping = async () => {
+      try {
+        const { data } = await supabase
+          .from("system_settings")
+          .select("value")
+          .eq("key", "ocr_po_config")
+          .maybeSingle();
+        if (data?.value && (data.value as any).field_mapping) {
+          setFieldMapping((data.value as any).field_mapping);
+        }
+      } catch {
+        // Use defaults
+      }
+    };
+    if (open) loadMapping();
+  }, [open]);
 
   const resetState = useCallback(() => {
     setFile(null);

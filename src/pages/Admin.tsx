@@ -1,13 +1,14 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Shield, Users, Info, HelpCircle } from "lucide-react";
+import { Shield, Users, Info, HelpCircle, Settings2 } from "lucide-react";
 import { useDepartmentPermissions } from "@/hooks/useDepartmentPermissions";
 import { RoleDescriptions } from "@/components/admin/RoleDescriptions";
 import { FunctionDescriptions } from "@/components/admin/FunctionDescriptions";
 import { UserPermissionManager } from "@/components/admin/UserPermissionManager";
+import { OCRConfigManager } from "@/components/admin/OCRConfigManager";
 
 const Admin = () => {
-  const { isAdmin, loading: permLoading } = useDepartmentPermissions();
+  const { isAdmin, isSuperAdmin, loading: permLoading } = useDepartmentPermissions();
 
   if (permLoading) {
     return <div className="flex items-center justify-center h-screen">กำลังโหลด...</div>;
@@ -40,7 +41,7 @@ const Admin = () => {
       </div>
 
       <Tabs defaultValue="users" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-2 lg:w-auto lg:inline-grid lg:grid-cols-2">
+        <TabsList className={`grid w-full lg:w-auto lg:inline-grid ${isSuperAdmin ? 'grid-cols-3 lg:grid-cols-3' : 'grid-cols-2 lg:grid-cols-2'}`}>
           <TabsTrigger value="users" className="flex items-center gap-2">
             <Users className="h-4 w-4" />
             จัดการผู้ใช้
@@ -49,6 +50,12 @@ const Admin = () => {
             <HelpCircle className="h-4 w-4" />
             คู่มือและแนวทางสิทธิ์
           </TabsTrigger>
+          {isSuperAdmin && (
+            <TabsTrigger value="ocr-config" className="flex items-center gap-2">
+              <Settings2 className="h-4 w-4" />
+              ตั้งค่า OCR
+            </TabsTrigger>
+          )}
         </TabsList>
 
         <TabsContent value="users" className="space-y-4">
@@ -103,6 +110,12 @@ const Admin = () => {
             <FunctionDescriptions />
           </div>
         </TabsContent>
+
+        {isSuperAdmin && (
+          <TabsContent value="ocr-config" className="space-y-4">
+            <OCRConfigManager />
+          </TabsContent>
+        )}
       </Tabs>
     </div>
   );
