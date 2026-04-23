@@ -1,10 +1,11 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Shield, Users, Info, HelpCircle } from "lucide-react";
+import { Shield, Users, Info, HelpCircle, Settings2 } from "lucide-react";
 import { useDepartmentPermissions } from "@/hooks/useDepartmentPermissions";
 import { RoleDescriptions } from "@/components/admin/RoleDescriptions";
 import { FunctionDescriptions } from "@/components/admin/FunctionDescriptions";
 import { UserPermissionManager } from "@/components/admin/UserPermissionManager";
+import { OCRConfigManager } from "@/components/admin/OCRConfigManager";
 
 const Admin = () => {
   const { isAdmin, loading: permLoading } = useDepartmentPermissions();
