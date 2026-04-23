@@ -1147,6 +1147,103 @@ const DeliveryEntry = () => {
     handlePageChange: handleHistoryPageChange,
     handlePageSizeChange: handleHistoryPageSizeChange,
   } = useTablePagination(filteredReceipts, 20);
+
+  // ─── PO OCR Import Handler ───────────────────────────────
+  const handlePOImport = async (data: POImportResult) => {
+    // Auto-fill header fields
+    setPoNumber(data.poNumber);
+    setPrNumber(data.prNumber);
+    if (data.supplierId) setSelectedSupplierId(data.supplierId);
+    if (data.notes) setHeaderNotes(data.notes);
+
+    // Match department
+    if (data.departmentName) {
+      const dept = allowedDepartments.find(
+        (d) => d.name.toLowerCase().includes(data.departmentName.toLowerCase()) ||
+          data.departmentName.toLowerCase().includes(d.name.toLowerCase())
+      );
+      if (dept) setSelectedDepartmentId(dept.id);
+    }
+
+    // Set receipt purpose to "ซื้อ" (purchase)
+    const purchasePurpose = receiptPurposes.find(
+      (p) => p.purpose_type === "purchase" || p.name === "ซื้อ" || p.name.includes("ซื้อ")
+    );
+    if (purchasePurpose) setSelectedReceiptPurposeId(purchasePurpose.id);
+
+    // Add items to cart
+    const newCartItems: DeliveryCartItem[] = [];
+    for (const item of data.items) {
+      if (item.matched_equipment_id) {
+        const eq = equipment.find((e) => e.id === item.matched_equipment_id);
+        if (eq) {
+          newCartItems.push({
+            id: crypto.randomUUID(),
+            equipmentId: eq.id,
+            equipmentCode: eq.code,
+            equipmentName: eq.name,
+            quantity: item.quantity,
+            unit: eq.unit || item.unit,
+            supplierName: data.supplierName,
+            supplierId: data.supplierId,
+            lotNumber: "",
+            serialNumber: "",
+            unitPrice: item.unit_price ?? eq.unit_price,
+            notes: item.description,
+            isNewProduct: false,
+            expiryDate: "",
+            warrantyExpiryDate: "",
+          });
+        }
+      } else {
+        // Unmatched item - add as new product placeholder
+        newCartItems.push({
+          id: crypto.randomUUID(),
+          equipmentId: "",
+          equipmentCode: item.item_no || "",
+          equipmentName: item.description,
+          quantity: item.quantity,
+          unit: item.unit,
+          supplierName: data.supplierName,
+          supplierId: data.supplierId,
+          lotNumber: "",
+          serialNumber: "",
+          unitPrice: item.unit_price ?? 0,
+          notes: `[จาก PO] ${item.description}`,
+          isNewProduct: true,
+          expiryDate: "",
+          warrantyExpiryDate: "",
+        });
+      }
+    }
+
+    if (newCartItems.length > 0) {
+      setCartItems((prev) => [...prev, ...newCartItems]);
+    }
+
+    // Upload PO PDF to storage
+    try {
+      const fileName = `po_${data.poNumber}_${Date.now()}.pdf`;
+      const { error: uploadErr } = await supabase.storage
+        .from("delivery-documents")
+        .upload(fileName, data.pdfFile, { contentType: "application/pdf" });
+      if (uploadErr) {
+        console.error("Upload PO PDF error:", uploadErr);
+      } else {
+        const { data: urlData } = supabase.storage
+          .from("delivery-documents")
+          .getPublicUrl(fileName);
+        if (urlData?.publicUrl) {
+          setPoDocumentUrl(urlData.publicUrl);
+        }
+      }
+    } catch (err) {
+      console.error("Upload error:", err);
+    }
+
+    toast.success(`นำเข้าจาก PO สำเร็จ: ${newCartItems.length} รายการ`);
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -1157,8 +1254,24 @@ const DeliveryEntry = () => {
           </h1>
           <p className="text-muted-foreground">สำหรับผู้นำสินค้า/อะไหล่เข้าคลัง - รองรับหลายรายการต่อ 1 เอกสาร</p>
         </div>
-        <DeliveryImport onSuccess={fetchPendingReceipts} />
+        <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={() => setShowPOUpload(true)}>
+            <ScanLine className="w-4 h-4" />
+            นำเข้าจาก PO
+          </Button>
+          <DeliveryImport onSuccess={fetchPendingReceipts} />
+        </div>
       </div>
+
+      {/* PO OCR Upload Dialog */}
+      <POUploadOCR
+        open={showPOUpload}
+        onOpenChange={setShowPOUpload}
+        onImport={handlePOImport}
+        suppliers={suppliers}
+        equipment={equipment}
+        departments={allowedDepartments.map((d) => ({ id: d.id, name: d.name }))}
+      />
 
       {/* Edit Item Dialog */}
       <DeliveryCartItemEditDialog
