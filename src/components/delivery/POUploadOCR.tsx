@@ -113,8 +113,28 @@ export function POUploadOCR({
   const [deptMatchStatus, setDeptMatchStatus] = useState<"matched" | "not_found" | "pending">("pending");
   const [comment, setComment] = useState("");
   const [items, setItems] = useState<POOCRItem[]>([]);
+  const [fieldMapping, setFieldMapping] = useState<Record<string, string>>(DEFAULT_FIELD_MAPPING);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Load dynamic field mapping from DB
+  useEffect(() => {
+    const loadMapping = async () => {
+      try {
+        const { data } = await supabase
+          .from("system_settings")
+          .select("value")
+          .eq("key", "ocr_po_config")
+          .maybeSingle();
+        if (data?.value && (data.value as any).field_mapping) {
+          setFieldMapping((data.value as any).field_mapping);
+        }
+      } catch {
+        // Use defaults
+      }
+    };
+    if (open) loadMapping();
+  }, [open]);
 
   const resetState = useCallback(() => {
     setFile(null);
