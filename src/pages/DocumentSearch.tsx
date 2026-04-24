@@ -30,7 +30,7 @@ interface DocumentRecord {
   unit: string;
   created_at: string;
   status: string;
-  source: "pending" | "received" | "issue" | "delivery_confirm" | "direct_shipping";
+  source: "pending" | "received" | "issue" | "delivery_confirm" | "direct_shipping" | "advertisement" | "ad_issue";
   // Extended fields for ProcessTracker
   raw?: any;
 }
@@ -177,6 +177,18 @@ export default function DocumentSearch() {
         .select("*, direct_shipment_items(equipment_code, equipment_name, serial_number, quantity, unit)")
         .order("created_at", { ascending: false });
 
+      // Fetch from advertisements (เอกสารรับโฆษณา)
+      const { data: adData } = await supabase
+        .from("advertisements")
+        .select("id, code, name, status, total_quantity, created_at, supporting_doc_url, contact_name, entry_type, ad_media_types(name)")
+        .order("created_at", { ascending: false });
+
+      // Fetch from ad_issue_requests (เอกสารเบิกโฆษณา)
+      const { data: adIssueData } = await supabase
+        .from("ad_issue_requests")
+        .select("id, document_no, status, issued_quantity, issue_purpose, created_at, issued_at, confirmed_at, advertisements(code, name)")
+        .order("created_at", { ascending: false });
+
       const pendingDocs: DocumentRecord[] = (pendingData || []).map((item: any) => ({
         id: item.id, document_no: item.document_no, document_url: item.document_url,
         equipment_code: item.equipment_code, equipment_name: item.equipment_name,
@@ -225,7 +237,25 @@ export default function DocumentSearch() {
         status: item.status, source: "direct_shipping" as const, raw: item,
       }));
 
-      setDocuments([...pendingDocs, ...receiptDocs, ...issueDocs, ...dcDocs, ...dsDocs]);
+      const adDocs: DocumentRecord[] = (adData || []).map((item: any) => ({
+        id: item.id, document_no: item.code, document_url: item.supporting_doc_url,
+        equipment_code: item.code, equipment_name: item.name,
+        serial_number: null,
+        supplier_name: item.ad_media_types?.name || null, delivery_person_name: item.contact_name,
+        quantity: item.total_quantity || 0, unit: "ชิ้น", created_at: item.created_at,
+        status: item.status, source: "advertisement" as const, raw: item,
+      }));
+
+      const adIssueDocs: DocumentRecord[] = (adIssueData || []).map((item: any) => ({
+        id: item.id, document_no: item.document_no, document_url: null,
+        equipment_code: item.advertisements?.code || null, equipment_name: item.advertisements?.name || null,
+        serial_number: null,
+        supplier_name: null, delivery_person_name: item.issue_purpose,
+        quantity: item.issued_quantity || 0, unit: "ชิ้น", created_at: item.created_at,
+        status: item.status, source: "ad_issue" as const, raw: item,
+      }));
+
+      setDocuments([...pendingDocs, ...receiptDocs, ...issueDocs, ...dcDocs, ...dsDocs, ...adDocs, ...adIssueDocs]);
     } catch (error) {
       console.error("Error fetching documents:", error);
       toast.error("ไม่สามารถโหลดเอกสารได้");
@@ -268,6 +298,8 @@ export default function DocumentSearch() {
       case "issue": return <Badge variant="outline" className="border-blue-300 text-blue-700 dark:border-blue-700 dark:text-blue-400">เอกสารเบิก</Badge>;
       case "delivery_confirm": return <Badge variant="outline" className="border-purple-300 text-purple-700 dark:border-purple-700 dark:text-purple-400">ยืนยันรับ</Badge>;
       case "direct_shipping": return <Badge variant="outline" className="border-cyan-300 text-cyan-700 dark:border-cyan-700 dark:text-cyan-400">Direct Shipping</Badge>;
+      case "advertisement": return <Badge variant="outline" className="border-pink-300 text-pink-700 dark:border-pink-700 dark:text-pink-400">รับโฆษณา</Badge>;
+      case "ad_issue": return <Badge variant="outline" className="border-amber-300 text-amber-700 dark:border-amber-700 dark:text-amber-400">เบิกโฆษณา</Badge>;
       default: return <Badge variant="outline">{source}</Badge>;
     }
   };
@@ -322,6 +354,8 @@ export default function DocumentSearch() {
                   <SelectItem value="issue">เอกสารเบิก</SelectItem>
                   <SelectItem value="delivery_confirm">เอกสารยืนยันรับ</SelectItem>
                   <SelectItem value="direct_shipping">Direct Shipping</SelectItem>
+                  <SelectItem value="advertisement">รับโฆษณา</SelectItem>
+                  <SelectItem value="ad_issue">เบิกโฆษณา</SelectItem>
                 </SelectContent>
               </Select>
             </div>
