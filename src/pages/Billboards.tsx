@@ -14,6 +14,7 @@ import { Tables } from "@/integrations/supabase/types";
 import BillboardForm from "@/components/billboard/BillboardForm";
 import BillboardFilters from "@/components/billboard/BillboardFilters";
 import BillboardExport from "@/components/billboard/BillboardExport";
+import { BillboardSummaryCards } from "@/components/billboard/BillboardSummaryCards";
 import { useIsSuperAdmin } from "@/hooks/useIsSuperAdmin";
 import {
   Select,
