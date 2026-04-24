@@ -305,7 +305,7 @@ Deno.serve(async (req) => {
           .eq("id", logRow!.id);
         throw err;
       } finally {
-        await client.close();
+        await pool.close();
       }
     }
 
