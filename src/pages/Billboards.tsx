@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,7 +7,15 @@ import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { MapPin, Search, Plus, Edit, Trash2, ChevronLeft, ChevronRight, Eye } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuCheckboxItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { MapPin, Search, Plus, Edit, Trash2, ChevronLeft, ChevronRight, Eye, Columns3 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Tables } from "@/integrations/supabase/types";
@@ -32,55 +40,52 @@ type BillboardColumn = {
   key: keyof BillboardRecord;
   label: string;
   minWidth?: string;
-  sticky?: boolean;
-  align?: "left" | "right";
+  defaultVisible: boolean;
 };
 
-const BILLBOARD_COLUMNS: BillboardColumn[] = [
-  { key: "old_code", label: "OldCode", minWidth: "min-w-[180px]", sticky: true },
-  { key: "equipment_id", label: "EquipmentID", minWidth: "min-w-[180px]" },
-  { key: "id", label: "ID", minWidth: "min-w-[260px]" },
-  { key: "bkk_upc", label: "BKK UPC", minWidth: "min-w-[140px]" },
-  { key: "department", label: "Department", minWidth: "min-w-[170px]" },
-  { key: "media_class", label: "Media Class", minWidth: "min-w-[160px]" },
-  { key: "media_segment", label: "Media Segment", minWidth: "min-w-[170px]" },
-  { key: "media_type", label: "Media Type", minWidth: "min-w-[180px]" },
-  { key: "description", label: "Description", minWidth: "min-w-[340px]" },
-  { key: "region", label: "Region", minWidth: "min-w-[130px]" },
-  { key: "district", label: "District", minWidth: "min-w-[140px]" },
-  { key: "territory", label: "Territory", minWidth: "min-w-[150px]" },
-  { key: "location_name", label: "Location Name", minWidth: "min-w-[260px]" },
-  { key: "route_install_demolish", label: "Route Install/Demolish", minWidth: "min-w-[220px]" },
-  { key: "route_monitoring", label: "Route Monitoring", minWidth: "min-w-[180px]" },
-  { key: "route_pm", label: "Route PM", minWidth: "min-w-[150px]" },
-  { key: "route_report_photo", label: "Route Report Photo", minWidth: "min-w-[190px]" },
-  { key: "target_monitoring", label: "Target Monitoring", minWidth: "min-w-[190px]" },
-  { key: "extra_1", label: "Extra 1", minWidth: "min-w-[140px]" },
-  { key: "extra_2", label: "Extra 2", minWidth: "min-w-[140px]" },
-  { key: "extra_3", label: "Extra 3", minWidth: "min-w-[140px]" },
-  { key: "size", label: "Size", minWidth: "min-w-[120px]" },
-  { key: "status", label: "Status", minWidth: "min-w-[130px]" },
-  { key: "notes", label: "Notes", minWidth: "min-w-[260px]" },
-  { key: "created_by", label: "Created By", minWidth: "min-w-[220px]" },
-  { key: "created_at", label: "Created At", minWidth: "min-w-[190px]" },
-  { key: "updated_at", label: "Updated At", minWidth: "min-w-[190px]" },
+// Column registry — order = display order. defaultVisible mirrors the original table.
+const ALL_COLUMNS: BillboardColumn[] = [
+  { key: "old_code", label: "OldCode", minWidth: "min-w-[160px]", defaultVisible: true },
+  { key: "equipment_id", label: "EquipmentID", minWidth: "min-w-[180px]", defaultVisible: true },
+  { key: "department", label: "Department", minWidth: "min-w-[160px]", defaultVisible: true },
+  { key: "media_type", label: "MediaType", minWidth: "min-w-[170px]", defaultVisible: true },
+  { key: "description", label: "Description", minWidth: "min-w-[300px]", defaultVisible: true },
+  { key: "region", label: "Region", minWidth: "min-w-[120px]", defaultVisible: true },
+  { key: "territory", label: "Territory", minWidth: "min-w-[140px]", defaultVisible: true },
+  { key: "location_name", label: "Location", minWidth: "min-w-[240px]", defaultVisible: true },
+  { key: "size", label: "Size", minWidth: "min-w-[110px]", defaultVisible: true },
+  { key: "status", label: "Status", minWidth: "min-w-[120px]", defaultVisible: true },
+  // Optional / hidden by default
+  { key: "district", label: "District", minWidth: "min-w-[140px]", defaultVisible: false },
+  { key: "bkk_upc", label: "BKK UPC", minWidth: "min-w-[140px]", defaultVisible: false },
+  { key: "media_class", label: "Media Class", minWidth: "min-w-[150px]", defaultVisible: false },
+  { key: "media_segment", label: "Media Segment", minWidth: "min-w-[170px]", defaultVisible: false },
+  { key: "route_install_demolish", label: "Route Install/Demolish", minWidth: "min-w-[200px]", defaultVisible: false },
+  { key: "route_monitoring", label: "Route Monitoring", minWidth: "min-w-[170px]", defaultVisible: false },
+  { key: "route_pm", label: "Route PM", minWidth: "min-w-[140px]", defaultVisible: false },
+  { key: "route_report_photo", label: "Route Report Photo", minWidth: "min-w-[180px]", defaultVisible: false },
+  { key: "target_monitoring", label: "Target Monitoring", minWidth: "min-w-[170px]", defaultVisible: false },
+  { key: "extra_1", label: "Extra 1", minWidth: "min-w-[130px]", defaultVisible: false },
+  { key: "extra_2", label: "Extra 2", minWidth: "min-w-[130px]", defaultVisible: false },
+  { key: "extra_3", label: "Extra 3", minWidth: "min-w-[130px]", defaultVisible: false },
+  { key: "notes", label: "Notes", minWidth: "min-w-[240px]", defaultVisible: false },
+  { key: "created_at", label: "Created At", minWidth: "min-w-[180px]", defaultVisible: false },
+  { key: "updated_at", label: "Updated At", minWidth: "min-w-[180px]", defaultVisible: false },
 ];
 
-const formatCellValue = (billboard: BillboardRecord, column: BillboardColumn) => {
-  const value = billboard[column.key];
+const STORAGE_KEY = "billboards-visible-columns-v2";
 
-  if (column.key === "status" && typeof value === "string") {
-    return null;
+const formatCellValue = (billboard: BillboardRecord, key: keyof BillboardRecord): string => {
+  const value = billboard[key];
+  if (value === null || value === undefined || value === "") return "-";
+  if (typeof value === "boolean") return value ? "Yes" : "No";
+  if (key === "created_at" || key === "updated_at") {
+    try {
+      return new Date(String(value)).toLocaleString("th-TH");
+    } catch {
+      return String(value);
+    }
   }
-
-  if (value === null || value === undefined || value === "") {
-    return "-";
-  }
-
-  if (typeof value === "boolean") {
-    return value ? "Yes" : "No";
-  }
-
   return String(value);
 };
 
@@ -101,6 +106,39 @@ const Billboards = () => {
     locationName: "",
     equipmentStatus: "",
   });
+
+  // Column visibility (persisted)
+  const [visibleKeys, setVisibleKeys] = useState<Set<string>>(() => {
+    try {
+      const raw = typeof window !== "undefined" ? localStorage.getItem(STORAGE_KEY) : null;
+      if (raw) return new Set(JSON.parse(raw));
+    } catch { /* ignore */ }
+    return new Set(ALL_COLUMNS.filter((c) => c.defaultVisible).map((c) => c.key as string));
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(Array.from(visibleKeys)));
+    } catch { /* ignore */ }
+  }, [visibleKeys]);
+
+  const visibleColumns = useMemo(
+    () => ALL_COLUMNS.filter((c) => visibleKeys.has(c.key as string)),
+    [visibleKeys],
+  );
+
+  const toggleColumn = (key: string) => {
+    setVisibleKeys((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) {
+        // keep at least one column visible
+        if (next.size > 1) next.delete(key);
+      } else {
+        next.add(key);
+      }
+      return next;
+    });
+  };
 
   const handleFilterChange = (key: string, value: string) => {
     setFilters((prev) => ({ ...prev, [key]: value }));
@@ -128,20 +166,15 @@ const Billboards = () => {
           .from("billboard_equipment")
           .select(`
             billboard_id,
-            equipment:equipment_id (
-              expiry_date,
-              warranty_expiry_date
-            )
+            equipment:equipment_id (expiry_date, warranty_expiry_date)
           `);
 
         if (beError) throw beError;
 
         const matchingBillboardIds = new Set<string>();
-
         billboardEquipment?.forEach((be) => {
           const eq = be.equipment as { expiry_date: string | null; warranty_expiry_date: string | null } | null;
           if (!eq) return;
-
           switch (filters.equipmentStatus) {
             case "expired":
               if (eq.expiry_date && eq.expiry_date < today) matchingBillboardIds.add(be.billboard_id);
@@ -193,7 +226,6 @@ const Billboards = () => {
 
   const handleDelete = async (id: string) => {
     if (!confirm("ยืนยันการลบข้อมูลป้ายนี้?")) return;
-
     const { error } = await supabase.from("billboards").delete().eq("id", id);
     if (error) {
       toast.error("ลบข้อมูลไม่สำเร็จ");
@@ -218,10 +250,7 @@ const Billboards = () => {
     refetch();
   };
 
-  const handlePageChange = (page: number) => {
-    setCurrentPage(page);
-  };
-
+  const handlePageChange = (page: number) => setCurrentPage(page);
   const handlePageSizeChange = (size: string) => {
     setPageSize(Number(size));
     setCurrentPage(1);
@@ -270,7 +299,29 @@ const Billboards = () => {
                   }}
                 />
               </div>
-              <div className="flex gap-2">
+              <div className="flex gap-2" data-no-drag>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" data-no-drag>
+                      <Columns3 className="w-4 h-4 mr-2" />
+                      คอลัมน์ ({visibleColumns.length}/{ALL_COLUMNS.length})
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="bg-background z-[200] max-h-[420px] overflow-y-auto w-64">
+                    <DropdownMenuLabel>เลือกคอลัมน์ที่จะแสดง</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    {ALL_COLUMNS.map((col) => (
+                      <DropdownMenuCheckboxItem
+                        key={col.key as string}
+                        checked={visibleKeys.has(col.key as string)}
+                        onCheckedChange={() => toggleColumn(col.key as string)}
+                        onSelect={(e) => e.preventDefault()}
+                      >
+                        {col.label}
+                      </DropdownMenuCheckboxItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
                 <BillboardExport currentFilters={filters} />
                 {isSuperAdmin && (
                   <Button onClick={() => setIsFormOpen(true)} data-no-drag>
@@ -300,39 +351,52 @@ const Billboards = () => {
                 <Table className="w-max min-w-full border-separate border-spacing-0">
                   <TableHeader>
                     <TableRow className="bg-muted/50 hover:bg-muted/50">
-                      {BILLBOARD_COLUMNS.map((column) => (
-                        <TableHead
-                          key={String(column.key)}
-                          className={[
-                            "top-0 z-20 bg-muted whitespace-nowrap border-b",
-                            column.minWidth || "min-w-[140px]",
-                            column.sticky ? "sticky left-0 z-30 shadow-[2px_0_4px_-2px_hsl(var(--border))]" : "sticky",
-                            column.align === "right" ? "text-right" : "text-left",
-                          ].join(" ")}
-                        >
-                          {column.label}
-                        </TableHead>
-                      ))}
+                      {visibleColumns.map((column, idx) => {
+                        const isFirst = idx === 0;
+                        return (
+                          <TableHead
+                            key={String(column.key)}
+                            className={[
+                              "top-0 z-20 bg-muted whitespace-nowrap border-b text-left",
+                              column.minWidth || "min-w-[140px]",
+                              isFirst
+                                ? "sticky left-0 z-30 shadow-[2px_0_4px_-2px_hsl(var(--border))]"
+                                : "sticky",
+                            ].join(" ")}
+                          >
+                            {column.label}
+                          </TableHead>
+                        );
+                      })}
                       <TableHead className="sticky top-0 z-20 bg-muted text-right min-w-[120px] border-b">จัดการ</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {billboards.map((billboard) => (
                       <TableRow key={billboard.id} className="group hover:bg-muted/30">
-                        {BILLBOARD_COLUMNS.map((column) => (
-                          <TableCell
-                            key={`${billboard.id}-${String(column.key)}`}
-                            className={[
-                              "align-top whitespace-normal break-words border-b",
-                              column.minWidth || "min-w-[140px]",
-                              column.sticky ? "sticky left-0 z-10 bg-background group-hover:bg-muted/30 shadow-[2px_0_4px_-2px_hsl(var(--border))]" : "",
-                            ].join(" ")}
-                          >
-                            {column.key === "status"
+                        {visibleColumns.map((column, idx) => {
+                          const isFirst = idx === 0;
+                          const cellContent =
+                            column.key === "status"
                               ? getStatusBadge(billboard.status)
-                              : formatCellValue(billboard, column)}
-                          </TableCell>
-                        ))}
+                              : column.key === "equipment_id"
+                                ? <span className="font-medium text-primary">{billboard.equipment_id}</span>
+                                : formatCellValue(billboard, column.key);
+                          return (
+                            <TableCell
+                              key={`${billboard.id}-${String(column.key)}`}
+                              className={[
+                                "align-top whitespace-normal break-words border-b",
+                                column.minWidth || "min-w-[140px]",
+                                isFirst
+                                  ? "sticky left-0 z-10 bg-background group-hover:bg-muted/30 font-medium shadow-[2px_0_4px_-2px_hsl(var(--border))]"
+                                  : "",
+                              ].join(" ")}
+                            >
+                              {cellContent}
+                            </TableCell>
+                          );
+                        })}
                         <TableCell className="text-right align-top min-w-[120px] border-b">
                           <div className="flex justify-end gap-1" data-no-drag>
                             <Button
