@@ -171,20 +171,22 @@ Deno.serve(async (req) => {
         const rows = await runQuery(pool, `SELECT * FROM [${cfg.table}]`);
         fetched = rows.length;
 
-        // Build mapped rows
+        // Build mapped rows — OldCode is the PRIMARY match key
+        // Generate a unique equipment_id per row to satisfy NOT NULL + UNIQUE
         const mappedRows: any[] = [];
         for (const row of rows) {
           const oldCode = row.OldCode || row.old_code || row.AssetCode ||
             row.Code;
-          if (!oldCode) {
+          if (!oldCode || String(oldCode).trim() === "") {
             skipped++;
             continue;
           }
+          // equipment_id: use AssetID if present, otherwise fall back to OldCode
           const equipmentId = row.AssetID || row.EquipmentID ||
             row.equipment_id || oldCode;
           mappedRows.push({
             equipment_id: String(equipmentId),
-            old_code: String(oldCode),
+            old_code: String(oldCode).trim(),
             region: row.Region ?? null,
             district: row.District ?? null,
             territory: row.Territory ?? null,
@@ -199,24 +201,15 @@ Deno.serve(async (req) => {
           });
         }
 
-        // Dedupe by old_code (keep last) — source data has duplicates
+        // Dedupe by old_code (keep last) — count duplicates as skipped
         const dedupMap = new Map<string, any>();
-        for (const r of mappedRows) dedupMap.set(r.old_code, r);
-        skipped += mappedRows.length - dedupMap.size;
-
-        // Also dedupe by equipment_id within batch
-        const seenEquip = new Set<string>();
-        const finalRows: any[] = [];
-        for (const r of dedupMap.values()) {
-          if (seenEquip.has(r.equipment_id)) {
-            skipped++;
-            continue;
-          }
-          seenEquip.add(r.equipment_id);
-          finalRows.push(r);
+        for (const r of mappedRows) {
+          if (dedupMap.has(r.old_code)) skipped++;
+          dedupMap.set(r.old_code, r);
         }
+        const finalRows = Array.from(dedupMap.values());
 
-        // Fetch existing old_codes in chunks
+        // Fetch existing old_codes BEFORE upsert to classify insert vs update
         const existingCodes = new Set<string>();
         const codeChunkSize = 500;
         const allCodes = finalRows.map((r) => r.old_code);
@@ -229,21 +222,35 @@ Deno.serve(async (req) => {
           (existing ?? []).forEach((e: any) => existingCodes.add(e.old_code));
         }
 
-        // Batch upsert with row-by-row fallback for bad rows
+        // Upsert using OldCode as the conflict target (primary match key)
+        // Ignore equipment_id conflicts by removing it from the update set if needed
         const batchSize = 200;
         for (let i = 0; i < finalRows.length; i += batchSize) {
           const batch = finalRows.slice(i, i + batchSize);
           const { error } = await adminClient
             .from("billboards")
-            .upsert(batch, { onConflict: "old_code" });
+            .upsert(batch, { onConflict: "old_code", ignoreDuplicates: false });
           if (error) {
+            // Row-by-row fallback to isolate bad rows (e.g. equipment_id collision)
             for (const r of batch) {
               const { error: e2 } = await adminClient
                 .from("billboards")
-                .upsert(r, { onConflict: "old_code" });
+                .upsert(r, { onConflict: "old_code", ignoreDuplicates: false });
               if (e2) {
-                failed++;
-                if (errors.length < 20) errors.push(`${r.old_code}: ${e2.message}`);
+                // Try update by old_code only (skip equipment_id to avoid conflict)
+                const { equipment_id, ...rest } = r;
+                const { error: e3 } = await adminClient
+                  .from("billboards")
+                  .update(rest)
+                  .eq("old_code", r.old_code);
+                if (e3 || !existingCodes.has(r.old_code)) {
+                  failed++;
+                  if (errors.length < 20) {
+                    errors.push(`${r.old_code}: ${e2.message}`);
+                  }
+                } else {
+                  updated++;
+                }
               } else {
                 if (existingCodes.has(r.old_code)) updated++;
                 else inserted++;
