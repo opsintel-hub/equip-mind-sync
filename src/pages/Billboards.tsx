@@ -15,6 +15,7 @@ import BillboardForm from "@/components/billboard/BillboardForm";
 import BillboardFilters from "@/components/billboard/BillboardFilters";
 import BillboardExport from "@/components/billboard/BillboardExport";
 import { BillboardSummaryCards } from "@/components/billboard/BillboardSummaryCards";
+import { DraggableScrollTable } from "@/components/ui/draggable-scroll-table";
 import { useIsSuperAdmin } from "@/hooks/useIsSuperAdmin";
 import {
   Select,
@@ -253,27 +254,29 @@ const Billboards = () => {
             </div>
           ) : (
             <>
-              <div className="rounded-lg border overflow-x-auto">
-                <Table>
+              <DraggableScrollTable>
+                <Table className="border-separate border-spacing-0">
                   <TableHeader>
                     <TableRow className="bg-muted/50">
-                      <TableHead>OldCode</TableHead>
-                      <TableHead>EquipmentID</TableHead>
-                      <TableHead>Department</TableHead>
-                      <TableHead>MediaType</TableHead>
-                      <TableHead>Description</TableHead>
-                      <TableHead>Region</TableHead>
-                      <TableHead>Territory</TableHead>
-                      <TableHead>Location</TableHead>
-                      <TableHead>Size</TableHead>
-                      <TableHead>สถานะ</TableHead>
-                      <TableHead className="text-right">จัดการ</TableHead>
+                      <TableHead className="sticky left-0 top-0 z-30 bg-muted shadow-[2px_0_4px_-2px_hsl(var(--border))] min-w-[140px]">OldCode</TableHead>
+                      <TableHead className="sticky top-0 z-20 bg-muted">EquipmentID</TableHead>
+                      <TableHead className="sticky top-0 z-20 bg-muted">Department</TableHead>
+                      <TableHead className="sticky top-0 z-20 bg-muted">MediaType</TableHead>
+                      <TableHead className="sticky top-0 z-20 bg-muted">Description</TableHead>
+                      <TableHead className="sticky top-0 z-20 bg-muted">Region</TableHead>
+                      <TableHead className="sticky top-0 z-20 bg-muted">Territory</TableHead>
+                      <TableHead className="sticky top-0 z-20 bg-muted">Location</TableHead>
+                      <TableHead className="sticky top-0 z-20 bg-muted">Size</TableHead>
+                      <TableHead className="sticky top-0 z-20 bg-muted">สถานะ</TableHead>
+                      <TableHead className="sticky top-0 z-20 bg-muted text-right">จัดการ</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {billboards?.map((billboard) => (
-                      <TableRow key={billboard.id} className="hover:bg-muted/30">
-                        <TableCell className="font-medium">{billboard.old_code || "-"}</TableCell>
+                      <TableRow key={billboard.id} className="hover:bg-muted/30 group">
+                        <TableCell className="sticky left-0 z-10 bg-background group-hover:bg-muted/30 font-medium shadow-[2px_0_4px_-2px_hsl(var(--border))] min-w-[140px]">
+                          {billboard.old_code || "-"}
+                        </TableCell>
                         <TableCell className="font-medium text-primary">{billboard.equipment_id}</TableCell>
                         <TableCell>{billboard.department || "-"}</TableCell>
                         <TableCell>{billboard.media_type || "-"}</TableCell>
@@ -314,7 +317,7 @@ const Billboards = () => {
                     ))}
                   </TableBody>
                 </Table>
-              </div>
+              </DraggableScrollTable>
 
               {/* Pagination Controls */}
               <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-4">
