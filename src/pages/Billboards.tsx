@@ -14,6 +14,7 @@ import { Tables } from "@/integrations/supabase/types";
 import BillboardForm from "@/components/billboard/BillboardForm";
 import BillboardFilters from "@/components/billboard/BillboardFilters";
 import BillboardExport from "@/components/billboard/BillboardExport";
+import { BillboardSummaryCards } from "@/components/billboard/BillboardSummaryCards";
 import { useIsSuperAdmin } from "@/hooks/useIsSuperAdmin";
 import {
   Select,
@@ -202,6 +203,8 @@ const Billboards = () => {
         <h1 className="text-3xl font-semibold text-foreground mb-2">ฐานข้อมูลป้ายโฆษณา</h1>
         <p className="text-muted-foreground">จัดการข้อมูลป้ายโฆษณาและอุปกรณ์ที่ติดตั้ง</p>
       </div>
+
+      <BillboardSummaryCards filters={filters} searchTerm={searchTerm} />
 
       <Card>
         <CardHeader>
