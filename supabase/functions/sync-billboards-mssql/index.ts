@@ -171,84 +171,62 @@ Deno.serve(async (req) => {
         const rows = await runQuery(pool, `SELECT * FROM [${cfg.table}]`);
         fetched = rows.length;
 
-        // Smart Match field mapping (default)
-        const overwriteFields = [
-          "region",
-          "district",
-          "territory",
-          "media_type",
-          "location_name",
-          "media_class",
-          "media_segment",
-          "size",
-          "bkk_upc",
-        ];
-
+        // Build mapped rows
+        const mappedRows: any[] = [];
         for (const row of rows) {
-          try {
-            // Match by old_code (primary identifier)
-            const oldCode = row.OldCode || row.old_code || row.AssetCode ||
-              row.Code;
-            if (!oldCode) {
-              skipped++;
-              continue;
+          const oldCode = row.OldCode || row.old_code || row.AssetCode ||
+            row.Code;
+          if (!oldCode) {
+            skipped++;
+            continue;
+          }
+          const equipmentId = row.AssetID || row.EquipmentID ||
+            row.equipment_id || oldCode;
+          mappedRows.push({
+            equipment_id: String(equipmentId),
+            old_code: String(oldCode),
+            region: row.Region ?? null,
+            district: row.District ?? null,
+            territory: row.Territory ?? null,
+            media_type: row.MediaType ?? row.Media_Type ?? null,
+            location_name: row.LocationName ?? row.Location ?? null,
+            media_class: row.MediaClass ?? null,
+            media_segment: row.MediaSegment ?? null,
+            size: row.Size ?? null,
+            bkk_upc: row.BKK_UPC ?? row.UPC ?? null,
+            department: row.Department ?? null,
+            status: "active",
+          });
+        }
+
+        // Fetch existing old_codes in chunks (avoid 1000-row IN limit)
+        const existingCodes = new Set<string>();
+        const codeChunkSize = 500;
+        const allCodes = mappedRows.map((r) => r.old_code);
+        for (let i = 0; i < allCodes.length; i += codeChunkSize) {
+          const chunk = allCodes.slice(i, i + codeChunkSize);
+          const { data: existing } = await adminClient
+            .from("billboards")
+            .select("old_code")
+            .in("old_code", chunk);
+          (existing ?? []).forEach((e: any) => existingCodes.add(e.old_code));
+        }
+
+        // Batch upsert (preserves operational fields via update of authoritative-only)
+        const batchSize = 200;
+        for (let i = 0; i < mappedRows.length; i += batchSize) {
+          const batch = mappedRows.slice(i, i + batchSize);
+          const { error, count } = await adminClient
+            .from("billboards")
+            .upsert(batch, { onConflict: "old_code", count: "exact" });
+          if (error) {
+            failed += batch.length;
+            if (errors.length < 20) errors.push(error.message);
+          } else {
+            for (const r of batch) {
+              if (existingCodes.has(r.old_code)) updated++;
+              else inserted++;
             }
-
-            const equipmentId = row.AssetID || row.EquipmentID ||
-              row.equipment_id || oldCode;
-
-            // Build mapped object
-            const mapped: any = {
-              equipment_id: String(equipmentId),
-              old_code: String(oldCode),
-              region: row.Region ?? null,
-              district: row.District ?? null,
-              territory: row.Territory ?? null,
-              media_type: row.MediaType ?? row.Media_Type ?? null,
-              location_name: row.LocationName ?? row.Location ?? null,
-              media_class: row.MediaClass ?? null,
-              media_segment: row.MediaSegment ?? null,
-              size: row.Size ?? null,
-              bkk_upc: row.BKK_UPC ?? row.UPC ?? null,
-              department: row.Department ?? null,
-            };
-
-            // Find existing
-            const { data: existing } = await adminClient
-              .from("billboards")
-              .select("id")
-              .eq("old_code", String(oldCode))
-              .maybeSingle();
-
-            if (existing) {
-              // Update only authoritative fields
-              const updateObj: any = {};
-              for (const f of overwriteFields) {
-                if (mapped[f] !== null && mapped[f] !== undefined) {
-                  updateObj[f] = mapped[f];
-                }
-              }
-              if (Object.keys(updateObj).length > 0) {
-                const { error } = await adminClient
-                  .from("billboards")
-                  .update(updateObj)
-                  .eq("id", existing.id);
-                if (error) throw error;
-                updated++;
-              } else {
-                skipped++;
-              }
-            } else {
-              // Insert new
-              const { error } = await adminClient
-                .from("billboards")
-                .insert({ ...mapped, status: "active" });
-              if (error) throw error;
-              inserted++;
-            }
-          } catch (e: any) {
-            failed++;
-            if (errors.length < 20) errors.push(e.message);
           }
         }
 
