@@ -242,7 +242,7 @@ const Billboards = () => {
             <div className="text-center py-8 text-muted-foreground">กำลังโหลดข้อมูล...</div>
           ) : !billboards?.length ? (
             <div className="text-center py-8 text-muted-foreground">
-              ไม่พบข้อมูลป้ายโฆษณา - เริ่มต้นด้วยการ "นำเข้า Excel" หรือ "เพิ่มป้าย"
+              ไม่พบข้อมูลป้ายโฆษณา - กดปุ่ม "เพิ่มป้าย" เพื่อเริ่มต้น
             </div>
           ) : (
             <>
