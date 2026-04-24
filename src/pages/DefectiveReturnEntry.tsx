@@ -37,6 +37,7 @@ interface DefectiveUnitEntry {
 
 const DefectiveReturnEntry = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [isMediaPlayer, setIsMediaPlayer] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [equipmentList, setEquipmentList] = useState<EquipmentItem[]>([]);
