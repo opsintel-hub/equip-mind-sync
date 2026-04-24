@@ -1,4 +1,4 @@
-import { ReactNode, useEffect, useRef, useState } from "react";
+import { ReactNode, forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 
 interface DraggableScrollTableProps {
@@ -7,79 +7,78 @@ interface DraggableScrollTableProps {
   maxHeight?: string;
 }
 
-export function DraggableScrollTable({
-  children,
-  className,
-  maxHeight = "70vh",
-}: DraggableScrollTableProps) {
-  const ref = useRef<HTMLDivElement>(null);
-  const [isDragging, setIsDragging] = useState(false);
-  const dragState = useRef({
-    active: false,
-    startX: 0,
-    startY: 0,
-    scrollLeft: 0,
-    scrollTop: 0,
-  });
+export const DraggableScrollTable = forwardRef<HTMLDivElement, DraggableScrollTableProps>(
+  function DraggableScrollTable({ children, className, maxHeight = "70vh" }, forwardedRef) {
+    const innerRef = useRef<HTMLDivElement>(null);
+    useImperativeHandle(forwardedRef, () => innerRef.current as HTMLDivElement);
 
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
+    const [isDragging, setIsDragging] = useState(false);
+    const dragState = useRef({
+      active: false,
+      startX: 0,
+      startY: 0,
+      scrollLeft: 0,
+      scrollTop: 0,
+    });
 
-    const onMouseDown = (event: MouseEvent) => {
-      if (event.button !== 0) return;
-      const target = event.target as HTMLElement;
-      if (target.closest("button, a, input, select, textarea, [role='button'], [data-no-drag]")) return;
+    useEffect(() => {
+      const el = innerRef.current;
+      if (!el) return;
 
-      dragState.current.active = true;
-      dragState.current.startX = event.clientX;
-      dragState.current.startY = event.clientY;
-      dragState.current.scrollLeft = el.scrollLeft;
-      dragState.current.scrollTop = el.scrollTop;
-      setIsDragging(true);
-      document.body.style.userSelect = "none";
-    };
+      const onMouseDown = (event: MouseEvent) => {
+        if (event.button !== 0) return;
+        const target = event.target as HTMLElement;
+        if (target.closest("button, a, input, select, textarea, [role='button'], [data-no-drag]")) return;
 
-    const onMouseMove = (event: MouseEvent) => {
-      if (!dragState.current.active) return;
-      event.preventDefault();
-      const deltaX = event.clientX - dragState.current.startX;
-      const deltaY = event.clientY - dragState.current.startY;
-      el.scrollLeft = dragState.current.scrollLeft - deltaX;
-      el.scrollTop = dragState.current.scrollTop - deltaY;
-    };
+        dragState.current.active = true;
+        dragState.current.startX = event.clientX;
+        dragState.current.startY = event.clientY;
+        dragState.current.scrollLeft = el.scrollLeft;
+        dragState.current.scrollTop = el.scrollTop;
+        setIsDragging(true);
+        document.body.style.userSelect = "none";
+      };
 
-    const stopDragging = () => {
-      if (!dragState.current.active) return;
-      dragState.current.active = false;
-      setIsDragging(false);
-      document.body.style.userSelect = "";
-    };
+      const onMouseMove = (event: MouseEvent) => {
+        if (!dragState.current.active) return;
+        event.preventDefault();
+        const deltaX = event.clientX - dragState.current.startX;
+        const deltaY = event.clientY - dragState.current.startY;
+        el.scrollLeft = dragState.current.scrollLeft - deltaX;
+        el.scrollTop = dragState.current.scrollTop - deltaY;
+      };
 
-    el.addEventListener("mousedown", onMouseDown);
-    window.addEventListener("mousemove", onMouseMove);
-    window.addEventListener("mouseup", stopDragging);
-    el.addEventListener("mouseleave", () => undefined);
+      const stopDragging = () => {
+        if (!dragState.current.active) return;
+        dragState.current.active = false;
+        setIsDragging(false);
+        document.body.style.userSelect = "";
+      };
 
-    return () => {
-      el.removeEventListener("mousedown", onMouseDown);
-      window.removeEventListener("mousemove", onMouseMove);
-      window.removeEventListener("mouseup", stopDragging);
-      document.body.style.userSelect = "";
-    };
-  }, []);
+      el.addEventListener("mousedown", onMouseDown);
+      window.addEventListener("mousemove", onMouseMove);
+      window.addEventListener("mouseup", stopDragging);
 
-  return (
-    <div
-      ref={ref}
-      style={{ maxHeight }}
-      className={cn(
-        "max-w-full overflow-auto rounded-lg border",
-        isDragging ? "cursor-grabbing" : "cursor-grab",
-        className,
-      )}
-    >
-      {children}
-    </div>
-  );
-}
+      return () => {
+        el.removeEventListener("mousedown", onMouseDown);
+        window.removeEventListener("mousemove", onMouseMove);
+        window.removeEventListener("mouseup", stopDragging);
+        document.body.style.userSelect = "";
+      };
+    }, []);
+
+    return (
+      <div
+        ref={innerRef}
+        style={{ maxHeight }}
+        className={cn(
+          "max-w-full overflow-auto rounded-lg border",
+          isDragging ? "cursor-grabbing" : "cursor-grab",
+          className,
+        )}
+      >
+        {children}
+      </div>
+    );
+  },
+);
