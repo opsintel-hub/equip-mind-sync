@@ -226,10 +226,12 @@ const Billboards = () => {
               </div>
               <div className="flex gap-2">
                 <BillboardExport currentFilters={filters} />
-                <Button onClick={() => setIsFormOpen(true)}>
-                  <Plus className="w-4 h-4 mr-2" />
-                  เพิ่มป้าย
-                </Button>
+                {isSuperAdmin && (
+                  <Button onClick={() => setIsFormOpen(true)}>
+                    <Plus className="w-4 h-4 mr-2" />
+                    เพิ่มป้าย
+                  </Button>
+                )}
               </div>
             </div>
           </div>
