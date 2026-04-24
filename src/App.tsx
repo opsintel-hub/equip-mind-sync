@@ -20,9 +20,6 @@ import Admin from "./pages/Admin";
 import QRCodePage from "./pages/QRCode";
 import TransferHistory from "./pages/TransferHistory";
 import PMHistory from "./pages/PMHistory";
-import EquipmentPMSchedule from "./pages/EquipmentPMSchedule";
-import EquipmentPMHistory from "./pages/EquipmentPMHistory";
-import EquipmentPMTasks from "./pages/EquipmentPMTasks";
 import ToolPMTasks from "./pages/ToolPMTasks";
 import ToolPMHistory from "./pages/ToolPMHistory";
 import ToolPMSchedule from "./pages/ToolPMSchedule";
@@ -93,9 +90,6 @@ const App = () => (
             <Route path="/qr-code" element={<ProtectedRoute><DashboardLayout><QRCodePage /></DashboardLayout></ProtectedRoute>} />
             <Route path="/transfer-history" element={<ProtectedRoute><DashboardLayout><TransferHistory /></DashboardLayout></ProtectedRoute>} />
             <Route path="/pm-history" element={<ProtectedRoute><DashboardLayout><PMHistory /></DashboardLayout></ProtectedRoute>} />
-            <Route path="/equipment-pm-schedule" element={<ProtectedRoute><DashboardLayout><EquipmentPMSchedule /></DashboardLayout></ProtectedRoute>} />
-            <Route path="/equipment-pm-history" element={<ProtectedRoute><DashboardLayout><EquipmentPMHistory /></DashboardLayout></ProtectedRoute>} />
-            <Route path="/equipment-pm-tasks" element={<ProtectedRoute><DashboardLayout><EquipmentPMTasks /></DashboardLayout></ProtectedRoute>} />
             <Route path="/equipment-loans" element={<ProtectedRoute><DashboardLayout><EquipmentLoans /></DashboardLayout></ProtectedRoute>} />
             <Route path="/incomplete-issues" element={<ProtectedRoute><DashboardLayout><IncompleteIssues /></DashboardLayout></ProtectedRoute>} />
             <Route path="/billboard-issue-report" element={<ProtectedRoute><DashboardLayout><BillboardIssueReport /></DashboardLayout></ProtectedRoute>} />

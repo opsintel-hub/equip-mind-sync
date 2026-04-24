@@ -100,7 +100,7 @@ const Testing = () => {
                 กดปุ่ม "เรียก Edge Function" เพื่อตรวจสอบอุปกรณ์ใกล้หมดอายุและสร้าง Notifications
               </p>
               <Button variant="outline" size="sm" className="w-full" asChild>
-                <Link to="/equipment-pm-tasks">ดู PM Tasks</Link>
+                <Link to="/tool-pm-tasks">ดู PM Tasks</Link>
               </Button>
             </div>
 
