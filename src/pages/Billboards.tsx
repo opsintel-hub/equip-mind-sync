@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
   DropdownMenu,
@@ -13,14 +15,30 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuCheckboxItem,
+  DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { MapPin, Search, Plus, Edit, Trash2, ChevronLeft, ChevronRight, Eye, Columns3 } from "lucide-react";
+import {
+  MapPin,
+  Search,
+  Plus,
+  Edit,
+  Trash2,
+  ChevronLeft,
+  ChevronRight,
+  Eye,
+  Columns3,
+  ArrowUp,
+  ArrowDown,
+  ArrowUpDown,
+  RotateCcw,
+  Inbox,
+} from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Tables } from "@/integrations/supabase/types";
 import BillboardForm from "@/components/billboard/BillboardForm";
-import BillboardFilters from "@/components/billboard/BillboardFilters";
+import BillboardFilters, { BillboardFiltersState } from "@/components/billboard/BillboardFilters";
 import BillboardExport from "@/components/billboard/BillboardExport";
 import { BillboardSummaryCards } from "@/components/billboard/BillboardSummaryCards";
 import { DraggableScrollTable } from "@/components/ui/draggable-scroll-table";
@@ -32,48 +50,72 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useVirtualizer } from "@tanstack/react-virtual";
 
 const PAGE_SIZE_OPTIONS = [20, 50, 100];
+const VIRTUALIZE_THRESHOLD = 60; // turn on virtualization when rows exceed this
+const ROW_ESTIMATE_PX = 56;
+const HIGHLIGHT_DURATION_MS = 4000;
+
 type BillboardRecord = Tables<"billboards">;
+
+type SortDir = "asc" | "desc";
 
 type BillboardColumn = {
   key: keyof BillboardRecord;
   label: string;
   minWidth?: string;
   defaultVisible: boolean;
+  sortable?: boolean;
 };
 
-// Column registry — order = display order. defaultVisible mirrors the original table.
 const ALL_COLUMNS: BillboardColumn[] = [
-  { key: "old_code", label: "OldCode", minWidth: "min-w-[160px]", defaultVisible: true },
-  { key: "equipment_id", label: "EquipmentID", minWidth: "min-w-[180px]", defaultVisible: true },
-  { key: "department", label: "Department", minWidth: "min-w-[160px]", defaultVisible: true },
-  { key: "media_type", label: "MediaType", minWidth: "min-w-[170px]", defaultVisible: true },
-  { key: "description", label: "Description", minWidth: "min-w-[300px]", defaultVisible: true },
-  { key: "region", label: "Region", minWidth: "min-w-[120px]", defaultVisible: true },
-  { key: "territory", label: "Territory", minWidth: "min-w-[140px]", defaultVisible: true },
-  { key: "location_name", label: "Location", minWidth: "min-w-[240px]", defaultVisible: true },
-  { key: "size", label: "Size", minWidth: "min-w-[110px]", defaultVisible: true },
-  { key: "status", label: "Status", minWidth: "min-w-[120px]", defaultVisible: true },
-  // Optional / hidden by default
-  { key: "district", label: "District", minWidth: "min-w-[140px]", defaultVisible: false },
-  { key: "bkk_upc", label: "BKK UPC", minWidth: "min-w-[140px]", defaultVisible: false },
-  { key: "media_class", label: "Media Class", minWidth: "min-w-[150px]", defaultVisible: false },
-  { key: "media_segment", label: "Media Segment", minWidth: "min-w-[170px]", defaultVisible: false },
-  { key: "route_install_demolish", label: "Route Install/Demolish", minWidth: "min-w-[200px]", defaultVisible: false },
-  { key: "route_monitoring", label: "Route Monitoring", minWidth: "min-w-[170px]", defaultVisible: false },
-  { key: "route_pm", label: "Route PM", minWidth: "min-w-[140px]", defaultVisible: false },
-  { key: "route_report_photo", label: "Route Report Photo", minWidth: "min-w-[180px]", defaultVisible: false },
-  { key: "target_monitoring", label: "Target Monitoring", minWidth: "min-w-[170px]", defaultVisible: false },
-  { key: "extra_1", label: "Extra 1", minWidth: "min-w-[130px]", defaultVisible: false },
-  { key: "extra_2", label: "Extra 2", minWidth: "min-w-[130px]", defaultVisible: false },
-  { key: "extra_3", label: "Extra 3", minWidth: "min-w-[130px]", defaultVisible: false },
-  { key: "notes", label: "Notes", minWidth: "min-w-[240px]", defaultVisible: false },
-  { key: "created_at", label: "Created At", minWidth: "min-w-[180px]", defaultVisible: false },
-  { key: "updated_at", label: "Updated At", minWidth: "min-w-[180px]", defaultVisible: false },
+  { key: "old_code", label: "OldCode", minWidth: "min-w-[160px]", defaultVisible: true, sortable: true },
+  { key: "equipment_id", label: "EquipmentID", minWidth: "min-w-[180px]", defaultVisible: true, sortable: true },
+  { key: "department", label: "Department", minWidth: "min-w-[160px]", defaultVisible: true, sortable: true },
+  { key: "media_type", label: "MediaType", minWidth: "min-w-[170px]", defaultVisible: true, sortable: true },
+  { key: "description", label: "Description", minWidth: "min-w-[300px]", defaultVisible: true, sortable: true },
+  { key: "region", label: "Region", minWidth: "min-w-[120px]", defaultVisible: true, sortable: true },
+  { key: "territory", label: "Territory", minWidth: "min-w-[140px]", defaultVisible: true, sortable: true },
+  { key: "location_name", label: "Location", minWidth: "min-w-[240px]", defaultVisible: true, sortable: true },
+  { key: "size", label: "Size", minWidth: "min-w-[110px]", defaultVisible: true, sortable: true },
+  { key: "status", label: "Status", minWidth: "min-w-[120px]", defaultVisible: true, sortable: true },
+  { key: "district", label: "District", minWidth: "min-w-[140px]", defaultVisible: false, sortable: true },
+  { key: "bkk_upc", label: "BKK UPC", minWidth: "min-w-[140px]", defaultVisible: false, sortable: true },
+  { key: "media_class", label: "Media Class", minWidth: "min-w-[150px]", defaultVisible: false, sortable: true },
+  { key: "media_segment", label: "Media Segment", minWidth: "min-w-[170px]", defaultVisible: false, sortable: true },
+  { key: "route_install_demolish", label: "Route Install/Demolish", minWidth: "min-w-[200px]", defaultVisible: false, sortable: true },
+  { key: "route_monitoring", label: "Route Monitoring", minWidth: "min-w-[170px]", defaultVisible: false, sortable: true },
+  { key: "route_pm", label: "Route PM", minWidth: "min-w-[140px]", defaultVisible: false, sortable: true },
+  { key: "route_report_photo", label: "Route Report Photo", minWidth: "min-w-[180px]", defaultVisible: false, sortable: true },
+  { key: "target_monitoring", label: "Target Monitoring", minWidth: "min-w-[170px]", defaultVisible: false, sortable: true },
+  { key: "extra_1", label: "Extra 1", minWidth: "min-w-[130px]", defaultVisible: false, sortable: true },
+  { key: "extra_2", label: "Extra 2", minWidth: "min-w-[130px]", defaultVisible: false, sortable: true },
+  { key: "extra_3", label: "Extra 3", minWidth: "min-w-[130px]", defaultVisible: false, sortable: true },
+  { key: "notes", label: "Notes", minWidth: "min-w-[240px]", defaultVisible: false, sortable: false },
+  { key: "created_at", label: "Created At", minWidth: "min-w-[180px]", defaultVisible: false, sortable: true },
+  { key: "updated_at", label: "Updated At", minWidth: "min-w-[180px]", defaultVisible: false, sortable: true },
 ];
 
 const STORAGE_KEY = "billboards-visible-columns-v2";
+const SORT_STORAGE_KEY = "billboards-sort-v1";
+
+const DEFAULT_VISIBLE_KEYS = new Set(
+  ALL_COLUMNS.filter((c) => c.defaultVisible).map((c) => c.key as string),
+);
+
+const DEFAULT_FILTERS: BillboardFiltersState = {
+  region: "",
+  district: "",
+  department: "",
+  mediaType: "",
+  status: "",
+  locationName: "",
+  equipmentStatus: "",
+  territory: "",
+  mediaClass: "",
+  mediaSegment: "",
+};
 
 const formatCellValue = (billboard: BillboardRecord, key: keyof BillboardRecord): string => {
   const value = billboard[key];
@@ -97,15 +139,9 @@ const Billboards = () => {
   const [selectedBillboard, setSelectedBillboard] = useState<BillboardRecord | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
-  const [filters, setFilters] = useState({
-    region: "",
-    district: "",
-    department: "",
-    mediaType: "",
-    status: "",
-    locationName: "",
-    equipmentStatus: "",
-  });
+  const [filters, setFilters] = useState<BillboardFiltersState>(DEFAULT_FILTERS);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [highlightedId, setHighlightedId] = useState<string | null>(null);
 
   // Column visibility (persisted)
   const [visibleKeys, setVisibleKeys] = useState<Set<string>>(() => {
@@ -113,7 +149,29 @@ const Billboards = () => {
       const raw = typeof window !== "undefined" ? localStorage.getItem(STORAGE_KEY) : null;
       if (raw) return new Set(JSON.parse(raw));
     } catch { /* ignore */ }
-    return new Set(ALL_COLUMNS.filter((c) => c.defaultVisible).map((c) => c.key as string));
+    return new Set(DEFAULT_VISIBLE_KEYS);
+  });
+
+  // Sorting (persisted)
+  const [sortKey, setSortKey] = useState<keyof BillboardRecord>(() => {
+    try {
+      const raw = typeof window !== "undefined" ? localStorage.getItem(SORT_STORAGE_KEY) : null;
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed?.key) return parsed.key as keyof BillboardRecord;
+      }
+    } catch { /* ignore */ }
+    return "old_code";
+  });
+  const [sortDir, setSortDir] = useState<SortDir>(() => {
+    try {
+      const raw = typeof window !== "undefined" ? localStorage.getItem(SORT_STORAGE_KEY) : null;
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed?.dir === "asc" || parsed?.dir === "desc") return parsed.dir;
+      }
+    } catch { /* ignore */ }
+    return "asc";
   });
 
   useEffect(() => {
@@ -121,6 +179,12 @@ const Billboards = () => {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(Array.from(visibleKeys)));
     } catch { /* ignore */ }
   }, [visibleKeys]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(SORT_STORAGE_KEY, JSON.stringify({ key: sortKey, dir: sortDir }));
+    } catch { /* ignore */ }
+  }, [sortKey, sortDir]);
 
   const visibleColumns = useMemo(
     () => ALL_COLUMNS.filter((c) => visibleKeys.has(c.key as string)),
@@ -131,7 +195,6 @@ const Billboards = () => {
     setVisibleKeys((prev) => {
       const next = new Set(prev);
       if (next.has(key)) {
-        // keep at least one column visible
         if (next.size > 1) next.delete(key);
       } else {
         next.add(key);
@@ -140,18 +203,33 @@ const Billboards = () => {
     });
   };
 
-  const handleFilterChange = (key: string, value: string) => {
+  const resetColumns = () => {
+    setVisibleKeys(new Set(DEFAULT_VISIBLE_KEYS));
+    toast.success("รีเซ็ตคอลัมน์เป็นค่าเริ่มต้นแล้ว");
+  };
+
+  const handleFilterChange = (key: keyof BillboardFiltersState, value: string) => {
     setFilters((prev) => ({ ...prev, [key]: value }));
     setCurrentPage(1);
   };
 
   const handleClearFilters = () => {
-    setFilters({ region: "", district: "", department: "", mediaType: "", status: "", locationName: "", equipmentStatus: "" });
+    setFilters(DEFAULT_FILTERS);
+    setCurrentPage(1);
+  };
+
+  const handleSort = (key: keyof BillboardRecord) => {
+    if (sortKey === key) {
+      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    } else {
+      setSortKey(key);
+      setSortDir("asc");
+    }
     setCurrentPage(1);
   };
 
   const { data: paginatedData, isLoading, refetch } = useQuery({
-    queryKey: ["billboards", searchTerm, currentPage, pageSize, filters],
+    queryKey: ["billboards", searchTerm, currentPage, pageSize, filters, sortKey, sortDir],
     queryFn: async () => {
       const from = (currentPage - 1) * pageSize;
       const to = from + pageSize - 1;
@@ -200,7 +278,7 @@ const Billboards = () => {
       let query = supabase
         .from("billboards")
         .select("*", { count: "exact" })
-        .order("old_code", { ascending: true })
+        .order(sortKey as string, { ascending: sortDir === "asc", nullsFirst: false })
         .range(from, to);
 
       if (searchTerm) {
@@ -211,6 +289,9 @@ const Billboards = () => {
       if (filters.department) query = query.eq("department", filters.department);
       if (filters.mediaType) query = query.eq("media_type", filters.mediaType);
       if (filters.status) query = query.eq("status", filters.status);
+      if (filters.territory) query = query.eq("territory", filters.territory);
+      if (filters.mediaClass) query = query.eq("media_class", filters.mediaClass);
+      if (filters.mediaSegment) query = query.eq("media_segment", filters.mediaSegment);
       if (filters.locationName) query = query.ilike("location_name", `%${filters.locationName}%`);
       if (billboardIdsWithEquipmentIssues) query = query.in("id", billboardIdsWithEquipmentIssues);
 
@@ -223,6 +304,70 @@ const Billboards = () => {
   const billboards = paginatedData?.data || [];
   const totalCount = paginatedData?.count || 0;
   const totalPages = Math.ceil(totalCount / pageSize);
+
+  // Reset selection when data identity changes
+  useEffect(() => {
+    setSelectedIds(new Set());
+  }, [currentPage, pageSize, filters, searchTerm, sortKey, sortDir]);
+
+  const allOnPageSelected = billboards.length > 0 && billboards.every((b) => selectedIds.has(b.id));
+  const someOnPageSelected = billboards.some((b) => selectedIds.has(b.id));
+
+  const togglePageSelection = () => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (allOnPageSelected) {
+        billboards.forEach((b) => next.delete(b.id));
+      } else {
+        billboards.forEach((b) => next.add(b.id));
+      }
+      return next;
+    });
+  };
+
+  const toggleRowSelection = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedIds.size === 0) return;
+    if (!confirm(`ยืนยันการลบป้าย ${selectedIds.size} รายการ? การกระทำนี้ไม่สามารถย้อนกลับได้`)) return;
+
+    const ids = Array.from(selectedIds);
+    const { error } = await supabase.from("billboards").delete().in("id", ids);
+    if (error) {
+      toast.error(`ลบไม่สำเร็จ: ${error.message}`);
+    } else {
+      toast.success(`ลบป้าย ${ids.length} รายการสำเร็จ`);
+      setSelectedIds(new Set());
+      refetch();
+    }
+  };
+
+  const handleBulkExportCSV = () => {
+    if (selectedIds.size === 0) return;
+    const rows = billboards.filter((b) => selectedIds.has(b.id));
+    const cols = visibleColumns;
+    const header = cols.map((c) => c.label).join(",");
+    const escape = (v: string) => `"${v.replace(/"/g, '""')}"`;
+    const body = rows
+      .map((r) => cols.map((c) => escape(formatCellValue(r, c.key))).join(","))
+      .join("\n");
+    const csv = `${header}\n${body}`;
+    const blob = new Blob([`\uFEFF${csv}`], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `billboards-selected-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success(`ส่งออก ${rows.length} รายการเป็น CSV แล้ว`);
+  };
 
   const handleDelete = async (id: string) => {
     if (!confirm("ยืนยันการลบข้อมูลป้ายนี้?")) return;
@@ -245,9 +390,16 @@ const Billboards = () => {
     setSelectedBillboard(null);
   };
 
-  const handleFormSuccess = () => {
+  const handleFormSuccess = (updatedId?: string) => {
+    const targetId = updatedId ?? selectedBillboard?.id ?? null;
     handleFormClose();
     refetch();
+    if (targetId) {
+      setHighlightedId(targetId);
+      window.setTimeout(() => {
+        setHighlightedId((curr) => (curr === targetId ? null : curr));
+      }, HIGHLIGHT_DURATION_MS);
+    }
   };
 
   const handlePageChange = (page: number) => setCurrentPage(page);
@@ -267,6 +419,109 @@ const Billboards = () => {
       default:
         return <Badge variant="secondary">{status}</Badge>;
     }
+  };
+
+  const renderSortIcon = (col: BillboardColumn) => {
+    if (!col.sortable) return null;
+    if (sortKey !== col.key) return <ArrowUpDown className="w-3.5 h-3.5 ml-1 inline text-muted-foreground/60" />;
+    return sortDir === "asc"
+      ? <ArrowUp className="w-3.5 h-3.5 ml-1 inline text-primary" />
+      : <ArrowDown className="w-3.5 h-3.5 ml-1 inline text-primary" />;
+  };
+
+  // Virtualization
+  const scrollParentRef = useRef<HTMLDivElement | null>(null);
+  const shouldVirtualize = billboards.length > VIRTUALIZE_THRESHOLD;
+
+  const rowVirtualizer = useVirtualizer({
+    count: billboards.length,
+    getScrollElement: () => scrollParentRef.current,
+    estimateSize: () => ROW_ESTIMATE_PX,
+    overscan: 8,
+  });
+
+  const setScrollContainer = useCallback((el: HTMLDivElement | null) => {
+    scrollParentRef.current = el;
+  }, []);
+
+  const renderRow = (billboard: BillboardRecord, style?: React.CSSProperties) => {
+    const isSelected = selectedIds.has(billboard.id);
+    const isHighlighted = highlightedId === billboard.id;
+    return (
+      <TableRow
+        key={billboard.id}
+        data-state={isSelected ? "selected" : undefined}
+        style={style}
+        className={[
+          "group hover:bg-muted/30 transition-colors",
+          isSelected ? "bg-primary/5" : "",
+          isHighlighted ? "bg-amber-100/60 dark:bg-amber-500/10 animate-pulse" : "",
+        ].join(" ")}
+      >
+        <TableCell
+          className="sticky left-0 z-10 bg-background group-hover:bg-muted/30 align-top w-12 border-b"
+          data-no-drag
+        >
+          <Checkbox
+            checked={isSelected}
+            onCheckedChange={() => toggleRowSelection(billboard.id)}
+            aria-label="เลือกแถว"
+          />
+        </TableCell>
+        {visibleColumns.map((column, idx) => {
+          const isFirst = idx === 0;
+          const cellContent =
+            column.key === "status"
+              ? getStatusBadge(billboard.status)
+              : column.key === "equipment_id"
+                ? <span className="font-medium text-primary">{billboard.equipment_id}</span>
+                : formatCellValue(billboard, column.key);
+          return (
+            <TableCell
+              key={`${billboard.id}-${String(column.key)}`}
+              className={[
+                "align-top whitespace-normal break-words border-b",
+                column.minWidth || "min-w-[140px]",
+                isFirst
+                  ? "sticky left-12 z-10 bg-background group-hover:bg-muted/30 font-medium shadow-[2px_0_4px_-2px_hsl(var(--border))]"
+                  : "",
+              ].join(" ")}
+            >
+              {cellContent}
+            </TableCell>
+          );
+        })}
+        <TableCell className="text-right align-top min-w-[120px] border-b">
+          <div className="flex justify-end gap-1" data-no-drag>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => navigate(`/billboards/${billboard.id}`)}
+              title="ดูรายละเอียด"
+              data-no-drag
+            >
+              <Eye className="w-4 h-4" />
+            </Button>
+            {isSuperAdmin && (
+              <>
+                <Button variant="ghost" size="sm" onClick={() => handleEdit(billboard)} data-no-drag>
+                  <Edit className="w-4 h-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleDelete(billboard.id)}
+                  className="text-destructive hover:text-destructive"
+                  data-no-drag
+                >
+                  <Trash2 className="w-4 h-4" />
+                </Button>
+              </>
+            )}
+          </div>
+        </TableCell>
+      </TableRow>
+    );
   };
 
   return (
@@ -320,6 +575,11 @@ const Billboards = () => {
                         {col.label}
                       </DropdownMenuCheckboxItem>
                     ))}
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onSelect={resetColumns} className="gap-2">
+                      <RotateCcw className="w-4 h-4" />
+                      รีเซ็ตเป็นค่าเริ่มต้น
+                    </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
                 <BillboardExport currentFilters={filters} />
@@ -339,96 +599,138 @@ const Billboards = () => {
             onFilterChange={handleFilterChange}
             onClearFilters={handleClearFilters}
           />
+
+          {/* Bulk action bar */}
+          {selectedIds.size > 0 && (
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-md border border-primary/30 bg-primary/5">
+              <div className="text-sm font-medium">
+                เลือกแล้ว <span className="text-primary">{selectedIds.size}</span> รายการ
+              </div>
+              <div className="flex gap-2 flex-wrap">
+                <Button variant="outline" size="sm" onClick={() => setSelectedIds(new Set())}>
+                  ยกเลิกการเลือก
+                </Button>
+                <Button variant="outline" size="sm" onClick={handleBulkExportCSV}>
+                  ส่งออก CSV ที่เลือก
+                </Button>
+                {isSuperAdmin && (
+                  <Button variant="destructive" size="sm" onClick={handleBulkDelete}>
+                    <Trash2 className="w-4 h-4 mr-1" />
+                    ลบที่เลือก
+                  </Button>
+                )}
+              </div>
+            </div>
+          )}
+
           {isLoading ? (
-            <div className="text-center py-8 text-muted-foreground">กำลังโหลดข้อมูล...</div>
+            <div className="space-y-2">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <Skeleton key={i} className="h-12 w-full" />
+              ))}
+            </div>
           ) : !billboards?.length ? (
-            <div className="text-center py-8 text-muted-foreground">
-              ไม่พบข้อมูลป้ายโฆษณา - กดปุ่ม "เพิ่มป้าย" เพื่อเริ่มต้น
+            <div className="flex flex-col items-center justify-center py-16 text-center gap-3">
+              <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center">
+                <Inbox className="w-8 h-8 text-muted-foreground" />
+              </div>
+              <div>
+                <p className="font-medium">ไม่พบข้อมูลป้ายโฆษณา</p>
+                <p className="text-sm text-muted-foreground">
+                  ลองล้างตัวกรองหรือคำค้นหา หรือเพิ่มป้ายใหม่เพื่อเริ่มต้น
+                </p>
+              </div>
+              <div className="flex gap-2">
+                {(searchTerm || Object.values(filters).some((v) => v !== "")) && (
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setSearchTerm("");
+                      handleClearFilters();
+                    }}
+                  >
+                    <RotateCcw className="w-4 h-4 mr-1" />
+                    ล้างตัวกรอง
+                  </Button>
+                )}
+                {isSuperAdmin && (
+                  <Button onClick={() => setIsFormOpen(true)}>
+                    <Plus className="w-4 h-4 mr-1" />
+                    เพิ่มป้าย
+                  </Button>
+                )}
+              </div>
             </div>
           ) : (
             <>
-              <DraggableScrollTable>
+              <DraggableScrollTable
+                ref={shouldVirtualize ? setScrollContainer : undefined}
+                className={shouldVirtualize ? "max-h-[70vh] overflow-auto" : undefined}
+              >
                 <Table className="w-max min-w-full border-separate border-spacing-0">
                   <TableHeader>
                     <TableRow className="bg-muted/50 hover:bg-muted/50">
+                      <TableHead
+                        className="sticky top-0 left-0 z-30 bg-muted w-12 border-b"
+                        data-no-drag
+                      >
+                        <Checkbox
+                          checked={allOnPageSelected ? true : someOnPageSelected ? "indeterminate" : false}
+                          onCheckedChange={togglePageSelection}
+                          aria-label="เลือกทั้งหน้า"
+                        />
+                      </TableHead>
                       {visibleColumns.map((column, idx) => {
                         const isFirst = idx === 0;
+                        const sortable = column.sortable;
                         return (
                           <TableHead
                             key={String(column.key)}
                             className={[
-                              "top-0 z-20 bg-muted whitespace-nowrap border-b text-left",
+                              "top-0 z-20 bg-muted whitespace-nowrap border-b text-left select-none",
                               column.minWidth || "min-w-[140px]",
                               isFirst
-                                ? "sticky left-0 z-30 shadow-[2px_0_4px_-2px_hsl(var(--border))]"
+                                ? "sticky left-12 z-30 shadow-[2px_0_4px_-2px_hsl(var(--border))]"
                                 : "sticky",
+                              sortable ? "cursor-pointer hover:bg-muted/80" : "",
                             ].join(" ")}
+                            onClick={sortable ? () => handleSort(column.key) : undefined}
+                            data-no-drag={sortable ? true : undefined}
                           >
                             {column.label}
+                            {renderSortIcon(column)}
                           </TableHead>
                         );
                       })}
                       <TableHead className="sticky top-0 z-20 bg-muted text-right min-w-[120px] border-b">จัดการ</TableHead>
                     </TableRow>
                   </TableHeader>
-                  <TableBody>
-                    {billboards.map((billboard) => (
-                      <TableRow key={billboard.id} className="group hover:bg-muted/30">
-                        {visibleColumns.map((column, idx) => {
-                          const isFirst = idx === 0;
-                          const cellContent =
-                            column.key === "status"
-                              ? getStatusBadge(billboard.status)
-                              : column.key === "equipment_id"
-                                ? <span className="font-medium text-primary">{billboard.equipment_id}</span>
-                                : formatCellValue(billboard, column.key);
-                          return (
-                            <TableCell
-                              key={`${billboard.id}-${String(column.key)}`}
-                              className={[
-                                "align-top whitespace-normal break-words border-b",
-                                column.minWidth || "min-w-[140px]",
-                                isFirst
-                                  ? "sticky left-0 z-10 bg-background group-hover:bg-muted/30 font-medium shadow-[2px_0_4px_-2px_hsl(var(--border))]"
-                                  : "",
-                              ].join(" ")}
-                            >
-                              {cellContent}
-                            </TableCell>
-                          );
-                        })}
-                        <TableCell className="text-right align-top min-w-[120px] border-b">
-                          <div className="flex justify-end gap-1" data-no-drag>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => navigate(`/billboards/${billboard.id}`)}
-                              title="ดูรายละเอียด"
-                              data-no-drag
-                            >
-                              <Eye className="w-4 h-4" />
-                            </Button>
-                            {isSuperAdmin && (
-                              <>
-                                <Button variant="ghost" size="sm" onClick={() => handleEdit(billboard)} data-no-drag>
-                                  <Edit className="w-4 h-4" />
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => handleDelete(billboard.id)}
-                                  className="text-destructive hover:text-destructive"
-                                  data-no-drag
-                                >
-                                  <Trash2 className="w-4 h-4" />
-                                </Button>
-                              </>
-                            )}
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
+                  {shouldVirtualize ? (
+                    <TableBody
+                      style={{
+                        height: rowVirtualizer.getTotalSize(),
+                        position: "relative",
+                        display: "block",
+                      }}
+                    >
+                      {rowVirtualizer.getVirtualItems().map((virtualRow) => {
+                        const billboard = billboards[virtualRow.index];
+                        return renderRow(billboard, {
+                          position: "absolute",
+                          top: 0,
+                          left: 0,
+                          width: "100%",
+                          transform: `translateY(${virtualRow.start}px)`,
+                          display: "table",
+                          tableLayout: "fixed",
+                        });
+                      })}
+                    </TableBody>
+                  ) : (
+                    <TableBody>
+                      {billboards.map((b) => renderRow(b))}
+                    </TableBody>
+                  )}
                 </Table>
               </DraggableScrollTable>
 
@@ -488,7 +790,7 @@ const Billboards = () => {
           </DialogHeader>
           <BillboardForm
             billboard={selectedBillboard}
-            onSuccess={handleFormSuccess}
+            onSuccess={() => handleFormSuccess(selectedBillboard?.id)}
             onCancel={handleFormClose}
           />
         </DialogContent>
