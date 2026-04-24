@@ -1,138 +1,129 @@
 
 
-## แผนพัฒนา: หน้าตั้งค่า PO OCR สำหรับ Super Admin
+## แผนเพิ่มเติม: ระบบ Master Data รองรับ Workflow ใหม่ (Swap / Assessment / Claim)
 
-### ภาพรวม
-ย้าย 3 จุดปรับแต่ง (System Prompt, Extraction Schema, Field Mapping) จาก hardcode ในโค้ดไปเก็บในฐานข้อมูล พร้อมสร้าง UI ให้ Super Admin แก้ไขได้จากหน้าเว็บโดยไม่ต้องแก้โค้ด
+### สถานะปัจจุบัน
+- **ยังไม่ได้สร้าง code** ของ Swap/Assessment/Claim — เพิ่งเสร็จขั้นวางแผน
+- **Master Data หมวด Media Player** ปัจจุบันมีจัดการแค่: Status, Model, Specification, Name, CMS Type (จัดการผ่านปุ่ม ⚙️ ในฟอร์ม)
+- ผู้ใช้เพิ่มข้อกำหนดใหม่: **ทุก Dropdown/Filter ที่ใช้ใน Workflow ใหม่ต้องเพิ่มเข้าไปใน Master Data หมวด Media Player ให้ Super Admin จัดการได้**
 
-### สถาปัตยกรรม
+---
+
+### Master Data ใหม่ที่ต้องสร้าง (4 ชุด)
 
 ```text
-┌─ Admin Page (/admin) ─────────────────────────┐
-│  แท็บ: จัดการผู้ใช้ │ คู่มือ │ [ตั้งค่า OCR]   │ ← แท็บใหม่ (Super Admin only)
-│                                                │
-│  ┌─ จุดปรับ #1: System Prompt ───────────┐     │
-│  │  Textarea แก้ไข AI Prompt             │     │
-│  └───────────────────────────────────────┘     │
-│  ┌─ จุดปรับ #2: Extraction Schema ───────┐     │
-│  │  JSON Editor แก้ไข field schema       │     │
-│  └───────────────────────────────────────┘     │
-│  ┌─ จุดปรับ #3: Field Mapping ───────────┐     │
-│  │  Key-Value Editor mapping OCR→ระบบ    │     │
-│  └───────────────────────────────────────┘     │
-│  ┌─ AI Model ────────────────────────────┐     │
-│  │  Dropdown เลือก Model                 │     │
-│  └───────────────────────────────────────┘     │
-│                           [บันทึก] [รีเซ็ต]    │
-└────────────────────────────────────────────────┘
-        │ save to DB
-        ▼
-┌─ system_settings table ───────────────────────┐
-│  key: "ocr_po_config"                         │
-│  value: { prompt, schema, mapping, model }    │
-└───────────────────────────────────────────────┘
-        │ read at runtime
-        ▼
-┌─ Edge Function: ocr-purchase-order ───────────┐
-│  1. Read config from system_settings          │
-│  2. Fallback to hardcoded defaults if empty   │
-│  3. Use dynamic prompt + schema               │
-└───────────────────────────────────────────────┘
+หน้า Master Data → แท็บ "จัดการ Media Player" (ขยายเพิ่ม)
+┌────────────────────────────────────────────────────────┐
+│ [เดิม] Status / Model / Spec / Name / CMS Type         │
+│ ─────────────────────────────────────────────────────  │
+│ [ใหม่] ▼ ตัวเลือกระบบ Workflow                          │
+│                                                         │
+│  ① อาการเสีย (Symptoms)                                 │
+│     เช่น "จอดับ", "ไม่มีสัญญาณ", "Boot ไม่ขึ้น"        │
+│     ใช้ใน: Swap Request, Assessment Diagnosis           │
+│                                                         │
+│  ② ผลการประเมิน (Assessment Results)                    │
+│     เช่น "ซ่อมเองได้", "ส่งซ่อม", "เคลม", "Write-off" │
+│     ใช้ใน: Assessment Workflow                          │
+│                                                         │
+│  ③ เหตุผลการ Reject Swap (Reject Reasons)              │
+│     เช่น "Spare เสียเช่นกัน", "ผิดสเปก", "ไม่จำเป็น"   │
+│     ใช้ใน: Swap Wizard ขั้น Confirm                    │
+│                                                         │
+│  ④ ผลการเคลม (Claim Results)                            │
+│     เช่น "ซ่อมสำเร็จ", "ซ่อมไม่ได้", "เปลี่ยนเครื่อง" │
+│     ใช้ใน: Claim Tracker ขั้นรับกลับ                   │
+└────────────────────────────────────────────────────────┘
 ```
 
-### ไฟล์ที่ต้องสร้าง/แก้ไข
+### โครงสร้างตาราง Master Data (Pattern เดียวกันทั้ง 4)
 
-#### 1. สร้างตาราง `system_settings` (Migration)
+ทุกตารางใช้โครงสร้างเดียวกันเพื่อ reuse component ได้:
 
 ```sql
-CREATE TABLE public.system_settings (
+CREATE TABLE public.{name} (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  key TEXT UNIQUE NOT NULL,
-  value JSONB NOT NULL DEFAULT '{}',
-  updated_at TIMESTAMPTZ DEFAULT now(),
-  updated_by UUID REFERENCES auth.users(id)
+  name TEXT NOT NULL,
+  description TEXT,
+  sort_order INTEGER DEFAULT 0,
+  is_active BOOLEAN DEFAULT true,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
 );
-
-ALTER TABLE public.system_settings ENABLE ROW LEVEL SECURITY;
-
--- Super Admin/Admin can read
-CREATE POLICY "Admins can read settings"
-  ON public.system_settings FOR SELECT
-  TO authenticated
-  USING (public.has_role(auth.uid(), 'admin'));
-
--- Only Super Admin can update
-CREATE POLICY "Super admins can manage settings"
-  ON public.system_settings FOR ALL
-  TO authenticated
-  USING (
-    EXISTS (SELECT 1 FROM public.user_roles WHERE user_id = auth.uid() AND role = 'super_admin')
-  );
-
--- Seed default OCR config
-INSERT INTO public.system_settings (key, value) VALUES ('ocr_po_config', '{
-  "system_prompt": "...default prompt...",
-  "extraction_schema": { ...default schema... },
-  "field_mapping": { ...default mapping... },
-  "model": "google/gemini-3-flash-preview"
-}');
+-- RLS: Super Admin manage, authenticated read
 ```
 
-#### 2. สร้าง Component: `src/components/admin/OCRConfigManager.tsx`
+| ตาราง | ใช้กับ Workflow |
+|------|----------------|
+| `mp_symptoms` | Swap Request + Assessment |
+| `mp_assessment_results` | Assessment |
+| `mp_swap_reject_reasons` | Swap Wizard |
+| `mp_claim_results` | Claim Tracker |
 
-UI ประกอบด้วย 4 ส่วน:
+---
 
-| ส่วน | Input Type | คำอธิบาย |
-|------|-----------|----------|
-| System Prompt | Textarea (10 บรรทัด) | คำสั่งที่ส่งให้ AI อ่าน PO |
-| Extraction Schema | Code Editor (Textarea + JSON validation) | JSON Schema กำหนด field ที่ดึง |
-| Field Mapping | Key-Value pairs (เพิ่ม/ลบได้) | OCR field → ระบบ field |
-| AI Model | Dropdown | เลือก model จาก Lovable AI |
+### Component ที่ต้องสร้าง (Reusable Pattern)
 
-**ฟีเจอร์เสริม**:
-- ปุ่ม "รีเซ็ตค่าเริ่มต้น" — กลับไปใช้ค่า default ที่ hardcode ไว้
-- JSON validation — ตรวจสอบ schema ก่อนบันทึก แจ้ง error ถ้า JSON ไม่ถูกต้อง
-- แสดง "แก้ไขล่าสุดเมื่อ..." พร้อมชื่อผู้แก้ไข
-- เฉพาะ Super Admin เท่านั้นที่เห็นแท็บนี้
+**1. Generic CRUD Component**: `src/components/master-data/SimpleListManager.tsx`
+- Props: `tableName`, `title`, `description`, `columns`
+- รองรับ: เพิ่ม / แก้ไข / ลบ (soft delete) / sort
+- ใช้กับทั้ง 4 ตาราง โดยส่ง `tableName` ต่างกัน — ลดงานเขียน UI ซ้ำ
 
-#### 3. แก้ไข: `src/pages/Admin.tsx`
+**2. Reusable SearchableSelect**: 4 ตัว
+- `SymptomSelect.tsx` — ใช้ใน Swap Request, Assessment
+- `AssessmentResultSelect.tsx` — ใช้ใน Assessment
+- `SwapRejectReasonSelect.tsx` — ใช้ใน Swap Wizard
+- `ClaimResultSelect.tsx` — ใช้ใน Claim Tracker
 
-- เพิ่มแท็บ "ตั้งค่า OCR" (แสดงเฉพาะ `isSuperAdmin`)
-- Import `OCRConfigManager` component
-- เพิ่ม TabsTrigger + TabsContent
+ทุกตัวใช้ `SearchableSelect` เดิม + ปุ่ม "⚙️ จัดการรายการ" สำหรับเปิด dialog เพิ่ม/แก้ (เหมือน `StatusSelect.tsx` ปัจจุบัน) — Super Admin เห็นปุ่มนี้, User ทั่วไปเห็นเฉพาะ dropdown
 
-#### 4. แก้ไข: `supabase/functions/ocr-purchase-order/index.ts`
+---
 
-- เพิ่ม Supabase client ใน Edge Function เพื่ออ่าน `system_settings`
-- อ่าน config จาก DB ก่อน → ถ้าไม่พบให้ fallback ใช้ค่า default ที่ hardcode ไว้
-- ใช้ dynamic prompt, schema, และ model จาก config
+### แก้ไข `src/pages/MasterData.tsx`
 
-```typescript
-// Pseudocode
-const config = await supabase
-  .from("system_settings")
-  .select("value")
-  .eq("key", "ocr_po_config")
-  .single();
+ขยายแท็บ "จัดการ Media Player" ให้มี 2 sub-section:
 
-const prompt = config?.value?.system_prompt || DEFAULT_SYSTEM_PROMPT;
-const schema = config?.value?.extraction_schema || DEFAULT_EXTRACTION_SCHEMA;
-const model = config?.value?.model || "google/gemini-3-flash-preview";
+```text
+┌─ TabsContent: media_player ────────────────────┐
+│  ┌─ Section 1: ข้อมูล Media Player ───────────┐│
+│  │  <MediaPlayerEntry />  (เดิม)              ││
+│  └─────────────────────────────────────────────┘│
+│  ┌─ Section 2: ตัวเลือก Workflow (ใหม่) ──────┐│
+│  │  <SimpleListManager table="mp_symptoms" />  ││
+│  │  <SimpleListManager table="mp_assessment_results" />│
+│  │  <SimpleListManager table="mp_swap_reject_reasons" />│
+│  │  <SimpleListManager table="mp_claim_results" />│
+│  └─────────────────────────────────────────────┘│
+└──────────────────────────────────────────────────┘
 ```
 
-#### 5. แก้ไข: `src/components/delivery/POUploadOCR.tsx`
+แสดงเป็น 4 Card เรียงต่อกัน — แต่ละ Card มีปุ่ม "เพิ่มรายการ" ของตัวเอง
 
-- อ่าน `field_mapping` จาก `system_settings` table แทน hardcode
-- Fallback ใช้ค่า default ถ้าไม่พบใน DB
+---
 
-### สรุปขั้นตอน
+### แผน Implementation (ลำดับและสถานะ)
 
-| # | งาน | ไฟล์ |
-|---|------|------|
-| 1 | สร้างตาราง system_settings + RLS + seed | Migration SQL |
-| 2 | สร้าง OCR Config UI component | `src/components/admin/OCRConfigManager.tsx` |
-| 3 | เพิ่มแท็บ OCR ในหน้า Admin | `src/pages/Admin.tsx` |
-| 4 | Edge Function อ่าน config จาก DB | `supabase/functions/ocr-purchase-order/index.ts` |
-| 5 | POUploadOCR อ่าน field_mapping จาก DB | `src/components/delivery/POUploadOCR.tsx` |
-| 6 | Deploy Edge Function | auto-deploy |
+| Phase | งาน | สถานะ | หมายเหตุ |
+|-------|-----|-------|---------|
+| **0. Master Data รองรับล่วงหน้า** | สร้าง 4 ตาราง + Generic UI ใน Master Data | ⏳ เริ่มทำก่อน | ทำให้ Super Admin มีของพร้อมใช้ก่อน workflow มา |
+| **1. Swap Wizard** | ตาราง `swap_requests` + `swap_executions` + UI 3-step | ⏳ ตามมา | ใช้ `SymptomSelect` + `SwapRejectReasonSelect` |
+| **2. Assessment** | ตาราง `assessment_logs` + UI | ⏳ ตามมา | ใช้ `SymptomSelect` + `AssessmentResultSelect` |
+| **3. Claim Tracker** | ตาราง `claim_records` + UI | ⏳ ตามมา | ใช้ `ClaimResultSelect` + auto warranty check |
+| **4. Theme (optional)** | ปรับ tokens ใน `index.css` | ⏳ ทีหลัง | เฉพาะถ้าผู้ใช้ขอ |
+
+**กฎสำคัญตามที่ผู้ใช้กำหนด**:
+- ทุกครั้งที่สร้าง dropdown/filter ใหม่ในขั้น Phase 1-3 → **ต้องเพิ่มเข้า Master Data หมวด Media Player ก่อน** ห้าม hardcode option
+- ถ้าทำไม่เสร็จในรอบเดียว → **แจ้ง progress** ทุกครั้งว่าเสร็จอะไร เหลืออะไร
+
+---
+
+### สิ่งที่จะลงมือทำในรอบถัดไป (Phase 0)
+
+1. Migration: สร้าง 4 ตาราง + RLS + seed ค่า default ที่ใช้บ่อย
+2. สร้าง `src/components/master-data/SimpleListManager.tsx` (CRUD reusable)
+3. สร้าง 4 Select components (`SymptomSelect`, `AssessmentResultSelect`, `SwapRejectReasonSelect`, `ClaimResultSelect`)
+4. แก้ `src/pages/MasterData.tsx` — ขยายแท็บ "จัดการ Media Player"
+5. รายงาน progress ก่อนเริ่ม Phase 1 (Swap Wizard)
+
+หลังเสร็จ Phase 0 จะมี Master Data ครบที่ Super Admin จัดการได้ → พร้อมเริ่ม Phase 1 (Swap Wizard) ได้ทันที
 
