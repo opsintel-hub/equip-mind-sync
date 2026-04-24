@@ -2,7 +2,8 @@ import { useState, lazy, Suspense } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useDepartmentPermissions } from "@/hooks/useDepartmentPermissions";
-import { Package, MapPin, Truck, Warehouse, Building2, Target, Building, Wrench, PackageOpen, HardHat, Layers, FolderTree, Zap, Users, Monitor } from "lucide-react";
+import { Package, MapPin, Truck, Warehouse, Building2, Target, Building, Wrench, PackageOpen, HardHat, Layers, FolderTree, Zap, Users, Monitor, Database } from "lucide-react";
+import { BillboardDbConnection } from "@/components/master-data/BillboardDbConnection";
 import { PMActionTypeList } from "@/components/pm/PMActionTypeList";
 import { PMActionTypeForm } from "@/components/pm/PMActionTypeForm";
 import { EquipmentForm } from "@/components/equipment/EquipmentForm";
@@ -140,6 +141,12 @@ const MasterData = () => {
               <TabsTrigger value="media_player" className="gap-1.5 text-xs px-3">
                 <Monitor className="h-3.5 w-3.5" />
                 จัดการ Media Player
+              </TabsTrigger>
+            )}
+            {isSuperAdmin && (
+              <TabsTrigger value="billboard_db" className="gap-1.5 text-xs px-3">
+                <Database className="h-3.5 w-3.5" />
+                เชื่อมต่อ Database ป้าย
               </TabsTrigger>
             )}
           </TabsList>
@@ -506,6 +513,12 @@ const MasterData = () => {
             description="ผลลัพธ์หลังรับเครื่องกลับจากการส่งเคลมประกัน Vendor"
             itemLabel="ผลการเคลม"
           />
+        </TabsContent>
+        )}
+
+        {isSuperAdmin && (
+        <TabsContent value="billboard_db" className="space-y-4">
+          <BillboardDbConnection />
         </TabsContent>
         )}
       </Tabs>
