@@ -28,7 +28,6 @@ const Billboards = () => {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
   const [isFormOpen, setIsFormOpen] = useState(false);
-  const [isImportOpen, setIsImportOpen] = useState(false);
   const [selectedBillboard, setSelectedBillboard] = useState<Tables<"billboards"> | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
