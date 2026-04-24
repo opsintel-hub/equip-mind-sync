@@ -65,6 +65,7 @@ import BillboardPackages from "./pages/BillboardPackages";
 import MediaPlayerProfile from "./pages/MediaPlayerProfile";
 import MediaPlayerReport from "./pages/MediaPlayerReport";
 import KPIReport from "./pages/KPIReport";
+import SwapWizard from "./pages/SwapWizard";
 import DashboardLayout from "./components/DashboardLayout";
 import ProtectedRoute from "./components/ProtectedRoute";
 import NotFound from "./pages/NotFound";
@@ -121,6 +122,7 @@ const App = () => (
             <Route path="/media-player/search" element={<ProtectedRoute><DashboardLayout><MediaPlayerProfile /></DashboardLayout></ProtectedRoute>} />
             <Route path="/media-player/:id" element={<ProtectedRoute><DashboardLayout><MediaPlayerProfile /></DashboardLayout></ProtectedRoute>} />
             <Route path="/media-player-report" element={<ProtectedRoute><DashboardLayout><MediaPlayerReport /></DashboardLayout></ProtectedRoute>} />
+            <Route path="/swap" element={<ProtectedRoute><DashboardLayout><SwapWizard /></DashboardLayout></ProtectedRoute>} />
             <Route path="/ad-entry" element={<ProtectedRoute><DashboardLayout><AdEntry /></DashboardLayout></ProtectedRoute>} />
             <Route path="/ad-receive" element={<ProtectedRoute><DashboardLayout><AdManagement /></DashboardLayout></ProtectedRoute>} />
             <Route path="/ad-request" element={<ProtectedRoute><DashboardLayout><AdRequest /></DashboardLayout></ProtectedRoute>} />
