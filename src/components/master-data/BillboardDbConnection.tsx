@@ -308,8 +308,11 @@ export function BillboardDbConnection() {
                   type="password"
                   value={form.password}
                   onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))}
-                  placeholder="•••••••••••• (ใช้ค่าใน secret ถ้าเว้นว่าง)"
+                  placeholder="•••••••••••• (บันทึกใน secret แล้ว)"
                 />
+                <p className="text-xs text-muted-foreground">
+                  รหัสผ่านถูกเก็บอย่างปลอดภัยใน secret ของระบบ — เว้นว่างไว้ถ้าไม่ต้องการเปลี่ยน
+                </p>
               </div>
             </div>
 
