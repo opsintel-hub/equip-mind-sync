@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,15 +7,13 @@ import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { MapPin, Search, Plus, Upload, Edit, Trash2, ChevronLeft, ChevronRight, Building2, Monitor, Globe, Eye } from "lucide-react";
+import { MapPin, Search, Plus, Edit, Trash2, ChevronLeft, ChevronRight, Eye } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Tables } from "@/integrations/supabase/types";
 import BillboardForm from "@/components/billboard/BillboardForm";
-import BillboardImport from "@/components/billboard/BillboardImport";
 import BillboardFilters from "@/components/billboard/BillboardFilters";
 import BillboardExport from "@/components/billboard/BillboardExport";
-import BillboardEquipmentExport from "@/components/billboard/BillboardEquipmentExport";
 import {
   Select,
   SelectContent,
