@@ -1219,85 +1219,107 @@ const UserManual = () => {
           </div>
           <div>
             <h1 className="text-2xl font-bold">คู่มือการใช้งานระบบ</h1>
-            <p className="text-muted-foreground text-sm">Equipment Tracking System — พร้อม Workflow Diagrams ทุก Flow ({sections.length} หมวด)</p>
+            <p className="text-muted-foreground text-sm">Equipment Tracking System — คู่มือ + UAT Test Suite</p>
           </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={expandAll}>เปิดทั้งหมด</Button>
-          <Button variant="outline" size="sm" onClick={collapseAll}>ปิดทั้งหมด</Button>
-          <Button onClick={generateWordDocument} size="sm" className="gap-2">
-            <Download className="h-4 w-4" />
-            ดาวน์โหลด Word
-          </Button>
         </div>
       </div>
 
-      {/* Table of Contents */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base flex items-center gap-2">
-            <FileText className="h-4 w-4" />
-            สารบัญ
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+      <Tabs defaultValue="uat" className="w-full">
+        <TabsList className="grid w-full grid-cols-2 max-w-md">
+          <TabsTrigger value="uat" className="gap-2">
+            <FileText className="h-4 w-4" /> UAT Test Suite
+          </TabsTrigger>
+          <TabsTrigger value="manual" className="gap-2">
+            <BookOpen className="h-4 w-4" /> คู่มือ + Workflow
+          </TabsTrigger>
+        </TabsList>
+
+        {/* ─── UAT Tab ─── */}
+        <TabsContent value="uat" className="mt-4">
+          <UATTestSuite />
+        </TabsContent>
+
+        {/* ─── Manual Tab ─── */}
+        <TabsContent value="manual" className="mt-4 space-y-6">
+          <div className="flex items-center justify-end gap-2">
+            <Button variant="outline" size="sm" onClick={expandAll}>เปิดทั้งหมด</Button>
+            <Button variant="outline" size="sm" onClick={collapseAll}>ปิดทั้งหมด</Button>
+            <Button onClick={generateWordDocument} size="sm" className="gap-2">
+              <Download className="h-4 w-4" />
+              ดาวน์โหลด Word
+            </Button>
+          </div>
+
+          {/* Table of Contents */}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base flex items-center gap-2">
+                <FileText className="h-4 w-4" />
+                สารบัญ
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+                {sections.map(section => (
+                  <button
+                    key={section.id}
+                    onClick={() => {
+                      setExpandedSections(prev => new Set([...prev, section.id]));
+                      document.getElementById(`section-${section.id}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
+                    }}
+                    className="flex items-center gap-2 p-2 rounded-lg text-left text-sm hover:bg-muted/50 transition-colors"
+                  >
+                    <span className="text-primary">{section.icon}</span>
+                    <span><strong className="text-xs text-muted-foreground mr-1">{section.number}.</strong>{section.title}</span>
+                  </button>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Sections */}
+          <div className="space-y-4">
             {sections.map(section => (
-              <button
-                key={section.id}
-                onClick={() => {
-                  setExpandedSections(prev => new Set([...prev, section.id]));
-                  document.getElementById(`section-${section.id}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
-                }}
-                className="flex items-center gap-2 p-2 rounded-lg text-left text-sm hover:bg-muted/50 transition-colors"
-              >
-                <span className="text-primary">{section.icon}</span>
-                <span><strong className="text-xs text-muted-foreground mr-1">{section.number}.</strong>{section.title}</span>
-              </button>
+              <Card key={section.id} id={`section-${section.id}`}>
+                <Collapsible
+                  open={expandedSections.has(section.id)}
+                  onOpenChange={() => toggleSection(section.id)}
+                >
+                  <CollapsibleTrigger asChild>
+                    <CardHeader className="cursor-pointer hover:bg-muted/30 transition-colors">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
+                            {section.icon}
+                          </div>
+                          <div>
+                            <CardTitle className="text-base">
+                              <Badge variant="outline" className="mr-2 text-xs">{section.number}</Badge>
+                              {section.title}
+                            </CardTitle>
+                            <CardDescription className="mt-1">{section.description}</CardDescription>
+                          </div>
+                        </div>
+                        <ChevronDown className={`h-5 w-5 text-muted-foreground transition-transform ${expandedSections.has(section.id) ? "rotate-180" : ""}`} />
+                      </div>
+                    </CardHeader>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent>
+                    <CardContent className="pt-0">
+                      <Separator className="mb-4" />
+                      {section.content}
+                    </CardContent>
+                  </CollapsibleContent>
+                </Collapsible>
+              </Card>
             ))}
           </div>
-        </CardContent>
-      </Card>
-
-      {/* Sections */}
-      <div className="space-y-4">
-        {sections.map(section => (
-          <Card key={section.id} id={`section-${section.id}`}>
-            <Collapsible
-              open={expandedSections.has(section.id)}
-              onOpenChange={() => toggleSection(section.id)}
-            >
-              <CollapsibleTrigger asChild>
-                <CardHeader className="cursor-pointer hover:bg-muted/30 transition-colors">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
-                        {section.icon}
-                      </div>
-                      <div>
-                        <CardTitle className="text-base">
-                          <Badge variant="outline" className="mr-2 text-xs">{section.number}</Badge>
-                          {section.title}
-                        </CardTitle>
-                        <CardDescription className="mt-1">{section.description}</CardDescription>
-                      </div>
-                    </div>
-                    <ChevronDown className={`h-5 w-5 text-muted-foreground transition-transform ${expandedSections.has(section.id) ? "rotate-180" : ""}`} />
-                  </div>
-                </CardHeader>
-              </CollapsibleTrigger>
-              <CollapsibleContent>
-                <CardContent className="pt-0">
-                  <Separator className="mb-4" />
-                  {section.content}
-                </CardContent>
-              </CollapsibleContent>
-            </Collapsible>
-          </Card>
-        ))}
-      </div>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };
+
+export default UserManual;
 
 export default UserManual;
