@@ -369,18 +369,6 @@ const Billboards = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Import Dialog */}
-      <Dialog open={isImportOpen} onOpenChange={setIsImportOpen}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>นำเข้าข้อมูลจากไฟล์ Excel</DialogTitle>
-          </DialogHeader>
-          <BillboardImport
-            onSuccess={handleImportSuccess}
-            onCancel={() => setIsImportOpen(false)}
-          />
-        </DialogContent>
-      </Dialog>
     </div>
   );
 };
