@@ -663,10 +663,7 @@ const Billboards = () => {
             </div>
           ) : (
             <>
-              <DraggableScrollTable
-                ref={shouldVirtualize ? setScrollContainer : undefined}
-                className={shouldVirtualize ? "max-h-[70vh] overflow-auto" : undefined}
-              >
+              <DraggableScrollTable>
                 <Table className="w-max min-w-full border-separate border-spacing-0">
                   <TableHeader>
                     <TableRow className="bg-muted/50 hover:bg-muted/50">
