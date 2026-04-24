@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef, useCallback } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -50,11 +50,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useVirtualizer } from "@tanstack/react-virtual";
 
 const PAGE_SIZE_OPTIONS = [20, 50, 100];
-const VIRTUALIZE_THRESHOLD = 60; // turn on virtualization when rows exceed this
-const ROW_ESTIMATE_PX = 56;
 const HIGHLIGHT_DURATION_MS = 4000;
 
 type BillboardRecord = Tables<"billboards">;
@@ -429,29 +426,15 @@ const Billboards = () => {
       : <ArrowDown className="w-3.5 h-3.5 ml-1 inline text-primary" />;
   };
 
-  // Virtualization
-  const scrollParentRef = useRef<HTMLDivElement | null>(null);
-  const shouldVirtualize = billboards.length > VIRTUALIZE_THRESHOLD;
 
-  const rowVirtualizer = useVirtualizer({
-    count: billboards.length,
-    getScrollElement: () => scrollParentRef.current,
-    estimateSize: () => ROW_ESTIMATE_PX,
-    overscan: 8,
-  });
 
-  const setScrollContainer = useCallback((el: HTMLDivElement | null) => {
-    scrollParentRef.current = el;
-  }, []);
-
-  const renderRow = (billboard: BillboardRecord, style?: React.CSSProperties) => {
+  const renderRow = (billboard: BillboardRecord) => {
     const isSelected = selectedIds.has(billboard.id);
     const isHighlighted = highlightedId === billboard.id;
     return (
       <TableRow
         key={billboard.id}
         data-state={isSelected ? "selected" : undefined}
-        style={style}
         className={[
           "group hover:bg-muted/30 transition-colors",
           isSelected ? "bg-primary/5" : "",
@@ -663,10 +646,7 @@ const Billboards = () => {
             </div>
           ) : (
             <>
-              <DraggableScrollTable
-                ref={shouldVirtualize ? setScrollContainer : undefined}
-                className={shouldVirtualize ? "max-h-[70vh] overflow-auto" : undefined}
-              >
+              <DraggableScrollTable>
                 <Table className="w-max min-w-full border-separate border-spacing-0">
                   <TableHeader>
                     <TableRow className="bg-muted/50 hover:bg-muted/50">
@@ -705,32 +685,9 @@ const Billboards = () => {
                       <TableHead className="sticky top-0 z-20 bg-muted text-right min-w-[120px] border-b">จัดการ</TableHead>
                     </TableRow>
                   </TableHeader>
-                  {shouldVirtualize ? (
-                    <TableBody
-                      style={{
-                        height: rowVirtualizer.getTotalSize(),
-                        position: "relative",
-                        display: "block",
-                      }}
-                    >
-                      {rowVirtualizer.getVirtualItems().map((virtualRow) => {
-                        const billboard = billboards[virtualRow.index];
-                        return renderRow(billboard, {
-                          position: "absolute",
-                          top: 0,
-                          left: 0,
-                          width: "100%",
-                          transform: `translateY(${virtualRow.start}px)`,
-                          display: "table",
-                          tableLayout: "fixed",
-                        });
-                      })}
-                    </TableBody>
-                  ) : (
-                    <TableBody>
-                      {billboards.map((b) => renderRow(b))}
-                    </TableBody>
-                  )}
+                  <TableBody>
+                    {billboards.map((b) => renderRow(b))}
+                  </TableBody>
                 </Table>
               </DraggableScrollTable>
 
