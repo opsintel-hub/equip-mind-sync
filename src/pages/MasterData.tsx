@@ -38,6 +38,7 @@ import { SubcategoryForm } from "@/components/category/SubcategoryForm";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { TechnicianForm } from "@/components/tools/TechnicianForm";
 import { TechnicianList } from "@/components/tools/TechnicianList";
+import { SimpleListManager } from "@/components/master-data/SimpleListManager";
 
 const MediaPlayerEntry = lazy(() => import("@/pages/MediaPlayerEntry"));
 
@@ -463,10 +464,48 @@ const MasterData = () => {
         </TabsContent>
 
         {isSuperAdmin && (
-        <TabsContent value="media_player" className="space-y-4">
+        <TabsContent value="media_player" className="space-y-6">
           <Suspense fallback={<div className="flex justify-center py-8"><div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full" /></div>}>
             <MediaPlayerEntry />
           </Suspense>
+
+          {/* ตัวเลือกระบบ Workflow (Swap / Assessment / Claim) */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Zap className="h-5 w-5 text-primary" />
+                ตัวเลือกระบบ Workflow
+              </CardTitle>
+              <CardDescription>
+                จัดการรายการ Dropdown ที่ใช้ในระบบ Swap / Assessment / Claim ของ Media Player และอุปกรณ์อื่นๆ
+              </CardDescription>
+            </CardHeader>
+          </Card>
+
+          <SimpleListManager
+            tableName="mp_symptoms"
+            title="① อาการเสีย (Symptoms)"
+            description="รายการอาการเสียที่พบได้ — ใช้ในขั้นตอนแจ้ง Swap และ Assessment"
+            itemLabel="อาการ"
+          />
+          <SimpleListManager
+            tableName="mp_assessment_results"
+            title="② ผลการประเมิน (Assessment Results)"
+            description="ผลลัพธ์หลังตรวจประเมินเครื่องที่กลับเข้าคลัง"
+            itemLabel="ผลการประเมิน"
+          />
+          <SimpleListManager
+            tableName="mp_swap_reject_reasons"
+            title="③ เหตุผลการ Reject Swap"
+            description="เหตุผลที่ใช้เมื่อยกเลิกการ Swap ในขั้นตอน Confirm"
+            itemLabel="เหตุผล"
+          />
+          <SimpleListManager
+            tableName="mp_claim_results"
+            title="④ ผลการเคลม (Claim Results)"
+            description="ผลลัพธ์หลังรับเครื่องกลับจากการส่งเคลมประกัน Vendor"
+            itemLabel="ผลการเคลม"
+          />
         </TabsContent>
         )}
       </Tabs>
