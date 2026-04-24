@@ -243,10 +243,10 @@ export default function AssessmentLog() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
             <ClipboardCheck className="h-8 w-8 text-primary" />
-            บันทึกการประเมินอุปกรณ์
+            บันทึกการประเมินทรัพย์สิน
           </h1>
           <p className="text-muted-foreground mt-1">
-            บันทึกผลการประเมิน Media Player / อุปกรณ์ที่ถูกถอนกลับมา (ซ่อมเอง / ส่งเคลม / Write-off ฯลฯ)
+            บันทึกผลการประเมินอุปกรณ์/Media Player/ทรัพย์สินที่ถูกถอนกลับมา (ซ่อมเอง / ส่งเคลม / Write-off ฯลฯ)
           </p>
         </div>
         <Button variant="outline" onClick={fetchLogs} disabled={loading}>

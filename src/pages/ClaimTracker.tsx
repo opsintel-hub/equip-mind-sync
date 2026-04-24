@@ -344,10 +344,10 @@ export default function ClaimTracker() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
             <FileCheck2 className="h-8 w-8 text-primary" />
-            ติดตามการเคลมประกัน
+            ติดตามการเคลมทรัพย์สิน
           </h1>
           <p className="text-muted-foreground mt-1">
-            จัดการการส่งเคลม Media Player / อุปกรณ์ พร้อมตรวจสอบสถานะประกันอัตโนมัติ
+            จัดการการส่งเคลมอุปกรณ์/Media Player/อะไหล่ พร้อมตรวจสอบสถานะประกันอัตโนมัติ
           </p>
         </div>
         <Button variant="outline" onClick={fetchRecords} disabled={loading}>
