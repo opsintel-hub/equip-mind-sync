@@ -26,13 +26,70 @@ import {
 } from "@/components/ui/select";
 
 const PAGE_SIZE_OPTIONS = [20, 50, 100];
+type BillboardRecord = Tables<"billboards">;
+
+type BillboardColumn = {
+  key: keyof BillboardRecord;
+  label: string;
+  minWidth?: string;
+  sticky?: boolean;
+  align?: "left" | "right";
+};
+
+const BILLBOARD_COLUMNS: BillboardColumn[] = [
+  { key: "old_code", label: "OldCode", minWidth: "min-w-[180px]", sticky: true },
+  { key: "equipment_id", label: "EquipmentID", minWidth: "min-w-[180px]" },
+  { key: "id", label: "ID", minWidth: "min-w-[260px]" },
+  { key: "bkk_upc", label: "BKK UPC", minWidth: "min-w-[140px]" },
+  { key: "department", label: "Department", minWidth: "min-w-[170px]" },
+  { key: "media_class", label: "Media Class", minWidth: "min-w-[160px]" },
+  { key: "media_segment", label: "Media Segment", minWidth: "min-w-[170px]" },
+  { key: "media_type", label: "Media Type", minWidth: "min-w-[180px]" },
+  { key: "description", label: "Description", minWidth: "min-w-[340px]" },
+  { key: "region", label: "Region", minWidth: "min-w-[130px]" },
+  { key: "district", label: "District", minWidth: "min-w-[140px]" },
+  { key: "territory", label: "Territory", minWidth: "min-w-[150px]" },
+  { key: "location_name", label: "Location Name", minWidth: "min-w-[260px]" },
+  { key: "route_install_demolish", label: "Route Install/Demolish", minWidth: "min-w-[220px]" },
+  { key: "route_monitoring", label: "Route Monitoring", minWidth: "min-w-[180px]" },
+  { key: "route_pm", label: "Route PM", minWidth: "min-w-[150px]" },
+  { key: "route_report_photo", label: "Route Report Photo", minWidth: "min-w-[190px]" },
+  { key: "target_monitoring", label: "Target Monitoring", minWidth: "min-w-[190px]" },
+  { key: "extra_1", label: "Extra 1", minWidth: "min-w-[140px]" },
+  { key: "extra_2", label: "Extra 2", minWidth: "min-w-[140px]" },
+  { key: "extra_3", label: "Extra 3", minWidth: "min-w-[140px]" },
+  { key: "size", label: "Size", minWidth: "min-w-[120px]" },
+  { key: "status", label: "Status", minWidth: "min-w-[130px]" },
+  { key: "notes", label: "Notes", minWidth: "min-w-[260px]" },
+  { key: "created_by", label: "Created By", minWidth: "min-w-[220px]" },
+  { key: "created_at", label: "Created At", minWidth: "min-w-[190px]" },
+  { key: "updated_at", label: "Updated At", minWidth: "min-w-[190px]" },
+];
+
+const formatCellValue = (billboard: BillboardRecord, column: BillboardColumn) => {
+  const value = billboard[column.key];
+
+  if (column.key === "status" && typeof value === "string") {
+    return null;
+  }
+
+  if (value === null || value === undefined || value === "") {
+    return "-";
+  }
+
+  if (typeof value === "boolean") {
+    return value ? "Yes" : "No";
+  }
+
+  return String(value);
+};
 
 const Billboards = () => {
   const navigate = useNavigate();
   const { isSuperAdmin } = useIsSuperAdmin();
   const [searchTerm, setSearchTerm] = useState("");
   const [isFormOpen, setIsFormOpen] = useState(false);
-  const [selectedBillboard, setSelectedBillboard] = useState<Tables<"billboards"> | null>(null);
+  const [selectedBillboard, setSelectedBillboard] = useState<BillboardRecord | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
   const [filters, setFilters] = useState({
@@ -46,7 +103,7 @@ const Billboards = () => {
   });
 
   const handleFilterChange = (key: string, value: string) => {
-    setFilters(prev => ({ ...prev, [key]: value }));
+    setFilters((prev) => ({ ...prev, [key]: value }));
     setCurrentPage(1);
   };
 
@@ -55,21 +112,18 @@ const Billboards = () => {
     setCurrentPage(1);
   };
 
-  // Fetch paginated data with filters
   const { data: paginatedData, isLoading, refetch } = useQuery({
     queryKey: ["billboards", searchTerm, currentPage, pageSize, filters],
     queryFn: async () => {
       const from = (currentPage - 1) * pageSize;
       const to = from + pageSize - 1;
 
-      // If equipment status filter is active, we need to filter by billboard IDs
       let billboardIdsWithEquipmentIssues: string[] | null = null;
-      
+
       if (filters.equipmentStatus) {
-        const today = new Date().toISOString().split('T')[0];
-        const thirtyDaysFromNow = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-        
-        // Fetch billboard_equipment with equipment expiry/warranty info
+        const today = new Date().toISOString().split("T")[0];
+        const thirtyDaysFromNow = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
+
         const { data: billboardEquipment, error: beError } = await supabase
           .from("billboard_equipment")
           .select(`
@@ -79,42 +133,32 @@ const Billboards = () => {
               warranty_expiry_date
             )
           `);
-        
+
         if (beError) throw beError;
-        
+
         const matchingBillboardIds = new Set<string>();
-        
+
         billboardEquipment?.forEach((be) => {
           const eq = be.equipment as { expiry_date: string | null; warranty_expiry_date: string | null } | null;
           if (!eq) return;
-          
+
           switch (filters.equipmentStatus) {
             case "expired":
-              if (eq.expiry_date && eq.expiry_date < today) {
-                matchingBillboardIds.add(be.billboard_id);
-              }
+              if (eq.expiry_date && eq.expiry_date < today) matchingBillboardIds.add(be.billboard_id);
               break;
             case "warranty_expired":
-              if (eq.warranty_expiry_date && eq.warranty_expiry_date < today) {
-                matchingBillboardIds.add(be.billboard_id);
-              }
+              if (eq.warranty_expiry_date && eq.warranty_expiry_date < today) matchingBillboardIds.add(be.billboard_id);
               break;
             case "expiring_soon":
-              if (eq.expiry_date && eq.expiry_date >= today && eq.expiry_date <= thirtyDaysFromNow) {
-                matchingBillboardIds.add(be.billboard_id);
-              }
+              if (eq.expiry_date && eq.expiry_date >= today && eq.expiry_date <= thirtyDaysFromNow) matchingBillboardIds.add(be.billboard_id);
               break;
             case "warranty_expiring_soon":
-              if (eq.warranty_expiry_date && eq.warranty_expiry_date >= today && eq.warranty_expiry_date <= thirtyDaysFromNow) {
-                matchingBillboardIds.add(be.billboard_id);
-              }
+              if (eq.warranty_expiry_date && eq.warranty_expiry_date >= today && eq.warranty_expiry_date <= thirtyDaysFromNow) matchingBillboardIds.add(be.billboard_id);
               break;
           }
         });
-        
+
         billboardIdsWithEquipmentIssues = Array.from(matchingBillboardIds);
-        
-        // If no matching billboards, return empty result
         if (billboardIdsWithEquipmentIssues.length === 0) {
           return { data: [], count: 0 };
         }
@@ -135,9 +179,7 @@ const Billboards = () => {
       if (filters.mediaType) query = query.eq("media_type", filters.mediaType);
       if (filters.status) query = query.eq("status", filters.status);
       if (filters.locationName) query = query.ilike("location_name", `%${filters.locationName}%`);
-      if (billboardIdsWithEquipmentIssues) {
-        query = query.in("id", billboardIdsWithEquipmentIssues);
-      }
+      if (billboardIdsWithEquipmentIssues) query = query.in("id", billboardIdsWithEquipmentIssues);
 
       const { data, error, count } = await query;
       if (error) throw error;
@@ -151,7 +193,7 @@ const Billboards = () => {
 
   const handleDelete = async (id: string) => {
     if (!confirm("ยืนยันการลบข้อมูลป้ายนี้?")) return;
-    
+
     const { error } = await supabase.from("billboards").delete().eq("id", id);
     if (error) {
       toast.error("ลบข้อมูลไม่สำเร็จ");
@@ -161,7 +203,7 @@ const Billboards = () => {
     }
   };
 
-  const handleEdit = (billboard: Tables<"billboards">) => {
+  const handleEdit = (billboard: BillboardRecord) => {
     setSelectedBillboard(billboard);
     setIsFormOpen(true);
   };
@@ -231,7 +273,7 @@ const Billboards = () => {
               <div className="flex gap-2">
                 <BillboardExport currentFilters={filters} />
                 {isSuperAdmin && (
-                  <Button onClick={() => setIsFormOpen(true)}>
+                  <Button onClick={() => setIsFormOpen(true)} data-no-drag>
                     <Plus className="w-4 h-4 mr-2" />
                     เพิ่มป้าย
                   </Button>
@@ -241,9 +283,9 @@ const Billboards = () => {
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
-          <BillboardFilters 
-            filters={filters} 
-            onFilterChange={handleFilterChange} 
+          <BillboardFilters
+            filters={filters}
+            onFilterChange={handleFilterChange}
             onClearFilters={handleClearFilters}
           />
           {isLoading ? (
@@ -255,57 +297,64 @@ const Billboards = () => {
           ) : (
             <>
               <DraggableScrollTable>
-                <Table className="border-separate border-spacing-0">
+                <Table className="w-max min-w-full border-separate border-spacing-0">
                   <TableHeader>
-                    <TableRow className="bg-muted/50">
-                      <TableHead className="sticky left-0 top-0 z-30 bg-muted shadow-[2px_0_4px_-2px_hsl(var(--border))] min-w-[140px]">OldCode</TableHead>
-                      <TableHead className="sticky top-0 z-20 bg-muted">EquipmentID</TableHead>
-                      <TableHead className="sticky top-0 z-20 bg-muted">Department</TableHead>
-                      <TableHead className="sticky top-0 z-20 bg-muted">MediaType</TableHead>
-                      <TableHead className="sticky top-0 z-20 bg-muted">Description</TableHead>
-                      <TableHead className="sticky top-0 z-20 bg-muted">Region</TableHead>
-                      <TableHead className="sticky top-0 z-20 bg-muted">Territory</TableHead>
-                      <TableHead className="sticky top-0 z-20 bg-muted">Location</TableHead>
-                      <TableHead className="sticky top-0 z-20 bg-muted">Size</TableHead>
-                      <TableHead className="sticky top-0 z-20 bg-muted">สถานะ</TableHead>
-                      <TableHead className="sticky top-0 z-20 bg-muted text-right">จัดการ</TableHead>
+                    <TableRow className="bg-muted/50 hover:bg-muted/50">
+                      {BILLBOARD_COLUMNS.map((column) => (
+                        <TableHead
+                          key={String(column.key)}
+                          className={[
+                            "top-0 z-20 bg-muted whitespace-nowrap border-b",
+                            column.minWidth || "min-w-[140px]",
+                            column.sticky ? "sticky left-0 z-30 shadow-[2px_0_4px_-2px_hsl(var(--border))]" : "sticky",
+                            column.align === "right" ? "text-right" : "text-left",
+                          ].join(" ")}
+                        >
+                          {column.label}
+                        </TableHead>
+                      ))}
+                      <TableHead className="sticky top-0 z-20 bg-muted text-right min-w-[120px] border-b">จัดการ</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {billboards?.map((billboard) => (
-                      <TableRow key={billboard.id} className="hover:bg-muted/30 group">
-                        <TableCell className="sticky left-0 z-10 bg-background group-hover:bg-muted/30 font-medium shadow-[2px_0_4px_-2px_hsl(var(--border))] min-w-[140px]">
-                          {billboard.old_code || "-"}
-                        </TableCell>
-                        <TableCell className="font-medium text-primary">{billboard.equipment_id}</TableCell>
-                        <TableCell>{billboard.department || "-"}</TableCell>
-                        <TableCell>{billboard.media_type || "-"}</TableCell>
-                        <TableCell className="max-w-xs truncate">{billboard.description || "-"}</TableCell>
-                        <TableCell>{billboard.region || "-"}</TableCell>
-                        <TableCell>{billboard.territory || "-"}</TableCell>
-                        <TableCell className="max-w-xs truncate">{billboard.location_name || "-"}</TableCell>
-                        <TableCell>{(billboard as any).size || "-"}</TableCell>
-                        <TableCell>{getStatusBadge(billboard.status)}</TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex justify-end gap-1">
-                            <Button 
-                              variant="ghost" 
-                              size="sm" 
+                    {billboards.map((billboard) => (
+                      <TableRow key={billboard.id} className="group hover:bg-muted/30">
+                        {BILLBOARD_COLUMNS.map((column) => (
+                          <TableCell
+                            key={`${billboard.id}-${String(column.key)}`}
+                            className={[
+                              "align-top whitespace-normal break-words border-b",
+                              column.minWidth || "min-w-[140px]",
+                              column.sticky ? "sticky left-0 z-10 bg-background group-hover:bg-muted/30 shadow-[2px_0_4px_-2px_hsl(var(--border))]" : "",
+                            ].join(" ")}
+                          >
+                            {column.key === "status"
+                              ? getStatusBadge(billboard.status)
+                              : formatCellValue(billboard, column)}
+                          </TableCell>
+                        ))}
+                        <TableCell className="text-right align-top min-w-[120px] border-b">
+                          <div className="flex justify-end gap-1" data-no-drag>
+                            <Button
+                              variant="ghost"
+                              size="sm"
                               onClick={() => navigate(`/billboards/${billboard.id}`)}
                               title="ดูรายละเอียด"
+                              data-no-drag
                             >
                               <Eye className="w-4 h-4" />
                             </Button>
                             {isSuperAdmin && (
                               <>
-                                <Button variant="ghost" size="sm" onClick={() => handleEdit(billboard)}>
+                                <Button variant="ghost" size="sm" onClick={() => handleEdit(billboard)} data-no-drag>
                                   <Edit className="w-4 h-4" />
                                 </Button>
-                                <Button 
-                                  variant="ghost" 
-                                  size="sm" 
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
                                   onClick={() => handleDelete(billboard.id)}
                                   className="text-destructive hover:text-destructive"
+                                  data-no-drag
                                 >
                                   <Trash2 className="w-4 h-4" />
                                 </Button>
@@ -319,15 +368,14 @@ const Billboards = () => {
                 </Table>
               </DraggableScrollTable>
 
-              {/* Pagination Controls */}
-              <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-4">
+              <div className="mt-4 flex flex-col items-center justify-between gap-4 sm:flex-row">
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <span>แสดง</span>
                   <Select value={pageSize.toString()} onValueChange={handlePageSizeChange}>
                     <SelectTrigger className="w-20">
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent position="popper" sideOffset={4} className="bg-background z-[200] max-h-60 overflow-y-auto">
+                    <SelectContent position="popper" sideOffset={4} className="z-[200] max-h-60 overflow-y-auto bg-background">
                       {PAGE_SIZE_OPTIONS.map((size) => (
                         <SelectItem key={size} value={size.toString()}>
                           {size}
@@ -348,7 +396,7 @@ const Billboards = () => {
                     <ChevronLeft className="w-4 h-4" />
                     ก่อนหน้า
                   </Button>
-                  <span className="text-sm text-muted-foreground px-2">
+                  <span className="px-2 text-sm text-muted-foreground">
                     หน้า {currentPage} จาก {totalPages || 1}
                   </span>
                   <Button
@@ -367,9 +415,8 @@ const Billboards = () => {
         </CardContent>
       </Card>
 
-      {/* Add/Edit Dialog */}
       <Dialog open={isFormOpen} onOpenChange={handleFormClose}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
               {selectedBillboard ? "แก้ไขข้อมูลป้าย" : "เพิ่มป้ายใหม่"}
@@ -382,7 +429,6 @@ const Billboards = () => {
           />
         </DialogContent>
       </Dialog>
-
     </div>
   );
 };

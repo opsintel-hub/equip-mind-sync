@@ -1,4 +1,4 @@
-import { useRef, useState, ReactNode, useEffect } from "react";
+import { ReactNode, useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 
 interface DraggableScrollTableProps {
@@ -7,10 +7,6 @@ interface DraggableScrollTableProps {
   maxHeight?: string;
 }
 
-/**
- * Click-and-drag horizontal scrolling, with native vertical scroll for sticky header.
- * Uses pointer events + setPointerCapture so dragging continues even outside the container.
- */
 export function DraggableScrollTable({
   children,
   className,
@@ -18,70 +14,67 @@ export function DraggableScrollTable({
 }: DraggableScrollTableProps) {
   const ref = useRef<HTMLDivElement>(null);
   const [isDragging, setIsDragging] = useState(false);
-  const state = useRef({ startX: 0, startY: 0, scrollLeft: 0, scrollTop: 0, active: false });
+  const dragState = useRef({
+    active: false,
+    startX: 0,
+    startY: 0,
+    scrollLeft: 0,
+    scrollTop: 0,
+  });
 
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
 
-    const onPointerDown = (e: PointerEvent) => {
-      if (e.button !== 0) return;
-      const target = e.target as HTMLElement;
+    const onMouseDown = (event: MouseEvent) => {
+      if (event.button !== 0) return;
+      const target = event.target as HTMLElement;
       if (target.closest("button, a, input, select, textarea, [role='button'], [data-no-drag]")) return;
-      state.current.active = true;
-      state.current.startX = e.clientX;
-      state.current.startY = e.clientY;
-      state.current.scrollLeft = el.scrollLeft;
-      state.current.scrollTop = el.scrollTop;
+
+      dragState.current.active = true;
+      dragState.current.startX = event.clientX;
+      dragState.current.startY = event.clientY;
+      dragState.current.scrollLeft = el.scrollLeft;
+      dragState.current.scrollTop = el.scrollTop;
       setIsDragging(true);
-      try {
-        el.setPointerCapture(e.pointerId);
-      } catch {
-        /* noop */
-      }
+      document.body.style.userSelect = "none";
     };
 
-    const onPointerMove = (e: PointerEvent) => {
-      if (!state.current.active) return;
-      e.preventDefault();
-      const dx = e.clientX - state.current.startX;
-      const dy = e.clientY - state.current.startY;
-      el.scrollLeft = state.current.scrollLeft - dx;
-      el.scrollTop = state.current.scrollTop - dy;
+    const onMouseMove = (event: MouseEvent) => {
+      if (!dragState.current.active) return;
+      event.preventDefault();
+      const deltaX = event.clientX - dragState.current.startX;
+      const deltaY = event.clientY - dragState.current.startY;
+      el.scrollLeft = dragState.current.scrollLeft - deltaX;
+      el.scrollTop = dragState.current.scrollTop - deltaY;
     };
 
-    const stop = (e: PointerEvent) => {
-      if (!state.current.active) return;
-      state.current.active = false;
+    const stopDragging = () => {
+      if (!dragState.current.active) return;
+      dragState.current.active = false;
       setIsDragging(false);
-      try {
-        el.releasePointerCapture(e.pointerId);
-      } catch {
-        /* noop */
-      }
+      document.body.style.userSelect = "";
     };
 
-    el.addEventListener("pointerdown", onPointerDown);
-    el.addEventListener("pointermove", onPointerMove);
-    el.addEventListener("pointerup", stop);
-    el.addEventListener("pointercancel", stop);
-    el.addEventListener("pointerleave", stop);
+    el.addEventListener("mousedown", onMouseDown);
+    window.addEventListener("mousemove", onMouseMove);
+    window.addEventListener("mouseup", stopDragging);
+    el.addEventListener("mouseleave", () => undefined);
 
     return () => {
-      el.removeEventListener("pointerdown", onPointerDown);
-      el.removeEventListener("pointermove", onPointerMove);
-      el.removeEventListener("pointerup", stop);
-      el.removeEventListener("pointercancel", stop);
-      el.removeEventListener("pointerleave", stop);
+      el.removeEventListener("mousedown", onMouseDown);
+      window.removeEventListener("mousemove", onMouseMove);
+      window.removeEventListener("mouseup", stopDragging);
+      document.body.style.userSelect = "";
     };
   }, []);
 
   return (
     <div
       ref={ref}
-      style={{ maxHeight, touchAction: "pan-y", WebkitUserSelect: "none", userSelect: "none" }}
+      style={{ maxHeight }}
       className={cn(
-        "rounded-lg border overflow-auto",
+        "max-w-full overflow-auto rounded-lg border",
         isDragging ? "cursor-grabbing" : "cursor-grab",
         className,
       )}
