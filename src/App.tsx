@@ -7,7 +7,6 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
-// GoodsReceipt removed - replaced by DeliveryEntry + ReceiveGoods flow
 import DeliveryEntry from "./pages/DeliveryEntry";
 import ReceiveGoods from "./pages/ReceiveGoods";
 import GoodsIssue from "./pages/GoodsIssue";
@@ -40,10 +39,8 @@ import RequesterDashboard from "./pages/RequesterDashboard";
 import UserManual from "./pages/UserManual";
 import DocumentSearch from "./pages/DocumentSearch";
 import Testing from "./pages/Testing";
-// StockMovementLog merged into StockCard
 import InventoryReport from "./pages/InventoryReport";
 import PendingAssetCodes from "./pages/PendingAssetCodes";
-// MediaPlayerEntry is now embedded in MasterData
 import AdManagement from "./pages/AdManagement";
 import AdEntry from "./pages/AdEntry";
 import AdRequest from "./pages/AdRequest";
