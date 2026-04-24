@@ -428,14 +428,13 @@ const Billboards = () => {
 
 
 
-  const renderRow = (billboard: BillboardRecord, style?: React.CSSProperties) => {
+  const renderRow = (billboard: BillboardRecord) => {
     const isSelected = selectedIds.has(billboard.id);
     const isHighlighted = highlightedId === billboard.id;
     return (
       <TableRow
         key={billboard.id}
         data-state={isSelected ? "selected" : undefined}
-        style={style}
         className={[
           "group hover:bg-muted/30 transition-colors",
           isSelected ? "bg-primary/5" : "",
