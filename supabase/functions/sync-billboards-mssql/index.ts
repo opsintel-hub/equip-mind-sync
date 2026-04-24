@@ -199,10 +199,27 @@ Deno.serve(async (req) => {
           });
         }
 
-        // Fetch existing old_codes in chunks (avoid 1000-row IN limit)
+        // Dedupe by old_code (keep last) — source data has duplicates
+        const dedupMap = new Map<string, any>();
+        for (const r of mappedRows) dedupMap.set(r.old_code, r);
+        skipped += mappedRows.length - dedupMap.size;
+
+        // Also dedupe by equipment_id within batch
+        const seenEquip = new Set<string>();
+        const finalRows: any[] = [];
+        for (const r of dedupMap.values()) {
+          if (seenEquip.has(r.equipment_id)) {
+            skipped++;
+            continue;
+          }
+          seenEquip.add(r.equipment_id);
+          finalRows.push(r);
+        }
+
+        // Fetch existing old_codes in chunks
         const existingCodes = new Set<string>();
         const codeChunkSize = 500;
-        const allCodes = mappedRows.map((r) => r.old_code);
+        const allCodes = finalRows.map((r) => r.old_code);
         for (let i = 0; i < allCodes.length; i += codeChunkSize) {
           const chunk = allCodes.slice(i, i + codeChunkSize);
           const { data: existing } = await adminClient
@@ -212,16 +229,26 @@ Deno.serve(async (req) => {
           (existing ?? []).forEach((e: any) => existingCodes.add(e.old_code));
         }
 
-        // Batch upsert (preserves operational fields via update of authoritative-only)
+        // Batch upsert with row-by-row fallback for bad rows
         const batchSize = 200;
-        for (let i = 0; i < mappedRows.length; i += batchSize) {
-          const batch = mappedRows.slice(i, i + batchSize);
-          const { error, count } = await adminClient
+        for (let i = 0; i < finalRows.length; i += batchSize) {
+          const batch = finalRows.slice(i, i + batchSize);
+          const { error } = await adminClient
             .from("billboards")
-            .upsert(batch, { onConflict: "old_code", count: "exact" });
+            .upsert(batch, { onConflict: "old_code" });
           if (error) {
-            failed += batch.length;
-            if (errors.length < 20) errors.push(error.message);
+            for (const r of batch) {
+              const { error: e2 } = await adminClient
+                .from("billboards")
+                .upsert(r, { onConflict: "old_code" });
+              if (e2) {
+                failed++;
+                if (errors.length < 20) errors.push(`${r.old_code}: ${e2.message}`);
+              } else {
+                if (existingCodes.has(r.old_code)) updated++;
+                else inserted++;
+              }
+            }
           } else {
             for (const r of batch) {
               if (existingCodes.has(r.old_code)) updated++;
