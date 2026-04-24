@@ -94,7 +94,7 @@ export function BillboardDbConnection() {
       .from("billboard_sync_logs")
       .select("*")
       .order("started_at", { ascending: false })
-      .limit(30);
+      .limit(10);
     setLogs((data as any) ?? []);
   };
 
