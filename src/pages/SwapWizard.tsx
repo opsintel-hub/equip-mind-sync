@@ -145,10 +145,10 @@ export default function SwapWizard() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
             <ArrowLeftRight className="h-8 w-8 text-primary" />
-            Swap Wizard
+            Swap Wizard — สลับอุปกรณ์/Media Player
           </h1>
           <p className="text-muted-foreground mt-1">
-            ระบบสลับเครื่อง Media Player / อุปกรณ์ ระหว่าง Spare กับเครื่องที่ติดตั้งหน้างาน
+            ระบบสลับ Spare กับเครื่องที่ติดตั้งหน้างาน รองรับทั้งอุปกรณ์ทั่วไปและ Media Player
           </p>
         </div>
         <Button variant="outline" onClick={fetchRequests} disabled={loading}>

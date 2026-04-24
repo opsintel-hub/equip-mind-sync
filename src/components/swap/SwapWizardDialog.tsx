@@ -45,6 +45,7 @@ interface OldOption {
   type: "media_player" | "equipment";
   serial_number?: string | null;
   billboard_equipment_id: string;
+  equipment_id?: string;
 }
 
 export function SwapWizardDialog({ open, onOpenChange, request, onCompleted }: Props) {
@@ -85,6 +86,33 @@ export function SwapWizardDialog({ open, onOpenChange, request, onCompleted }: P
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, request?.id]);
+
+  // Auto-select old unit when entering step 2 if there's only ONE matching unit on the billboard.
+  // "Matching" = same equipment id (for equipment spares) or first available media player slot.
+  useEffect(() => {
+    if (step !== 2 || oldValue || oldOptions.length === 0) return;
+    const spare = spareOptions.find((o) => o.value === spareValue);
+    if (!spare) return;
+
+    // Try to match by equipment id first (when spare is equipment)
+    if (spare.type === "equipment") {
+      const spareEqId = spare.value.split(":")[1];
+      const matches = oldOptions.filter((o) => {
+        // billboard_equipment row: equipment_id is in label/desc — we use billboard_equipment_id mapping via desc
+        // The OldOption stores equipment id implicitly via the billboard_equipment record
+        return (o as any).equipment_id === spareEqId;
+      });
+      if (matches.length === 1) {
+        setOldValue(matches[0].value);
+        return;
+      }
+    }
+
+    // If only one unit installed total → auto select
+    if (oldOptions.length === 1) {
+      setOldValue(oldOptions[0].value);
+    }
+  }, [step, oldOptions, spareValue, spareOptions, oldValue]);
 
   const loadSpares = async () => {
     setLoading(true);
@@ -145,6 +173,7 @@ export function SwapWizardDialog({ open, onOpenChange, request, onCompleted }: P
       type: "equipment",
       serial_number: b.serial_number,
       billboard_equipment_id: b.id,
+      equipment_id: b.equipment_id,
     }));
     setOldOptions(opts);
   };
@@ -280,46 +309,74 @@ export function SwapWizardDialog({ open, onOpenChange, request, onCompleted }: P
         )}
 
         {/* Step 2 */}
-        {step === 2 && (
-          <div className="space-y-4">
-            <div>
-              <h3 className="font-semibold text-lg flex items-center gap-2">
-                <MapPin className="h-5 w-5" /> ขั้น 2: เลือกเครื่องเก่าที่ต้องการถอด
-              </h3>
-              <p className="text-sm text-muted-foreground">รายการอุปกรณ์ที่ติดตั้งบนป้ายปัจจุบัน</p>
-            </div>
-            {oldOptions.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground border rounded-lg">
-                ไม่พบอุปกรณ์ที่ติดตั้งบนป้ายนี้
+        {step === 2 && (() => {
+          const spareEqId = selectedSpare?.type === "equipment" ? selectedSpare.value.split(":")[1] : null;
+          const sameTypeMatches = spareEqId ? oldOptions.filter((o) => (o as any).equipment_id === spareEqId) : [];
+          const showNoMatchWarning = spareEqId && sameTypeMatches.length === 0 && oldOptions.length > 0;
+          const isAutoSelected = !!oldValue && (oldOptions.length === 1 || sameTypeMatches.length === 1);
+
+          return (
+            <div className="space-y-4">
+              <div>
+                <h3 className="font-semibold text-lg flex items-center gap-2">
+                  <MapPin className="h-5 w-5" /> ขั้น 2: เลือกเครื่องเก่าที่ต้องการถอด
+                </h3>
+                <p className="text-sm text-muted-foreground">รายการอุปกรณ์ที่ติดตั้งบนป้ายปัจจุบัน</p>
               </div>
-            ) : (
-              <SearchableSelect
-                options={oldOptions}
-                value={oldValue}
-                onValueChange={setOldValue}
-                placeholder="เลือกเครื่องเก่า"
-                searchPlaceholder="ค้นหา..."
-              />
-            )}
-            {selectedOld && (
-              <Card>
-                <CardContent className="pt-4">
-                  <div className="font-medium">{selectedOld.label}</div>
-                  <div className="text-sm text-muted-foreground">{selectedOld.description}</div>
-                </CardContent>
-              </Card>
-            )}
-            <div className="space-y-2">
-              <Label>คลังปลายทางสำหรับเครื่องเก่า (Incoming)</Label>
-              <SearchableSelect
-                options={locations.map((l) => ({ value: l.id, label: l.name }))}
-                value={returnLocationId}
-                onValueChange={setReturnLocationId}
-                placeholder="เลือกคลังที่จะส่งเครื่องเก่ากลับ"
-              />
+
+              {isAutoSelected && (
+                <div className="rounded-lg border border-success/30 bg-success/5 p-3 text-sm text-success-foreground flex items-start gap-2">
+                  <Check className="h-4 w-4 mt-0.5 text-success flex-shrink-0" />
+                  <div>
+                    <div className="font-medium text-success">ระบบเลือกเครื่องเก่าให้อัตโนมัติแล้ว</div>
+                    <div className="text-muted-foreground">หากต้องการเปลี่ยน เลือกใหม่จาก dropdown ด้านล่าง</div>
+                  </div>
+                </div>
+              )}
+
+              {showNoMatchWarning && (
+                <div className="rounded-lg border border-warning/30 bg-warning/5 p-3 text-sm flex items-start gap-2">
+                  <Package className="h-4 w-4 mt-0.5 text-warning flex-shrink-0" />
+                  <div>
+                    <div className="font-medium text-warning-foreground">ป้ายนี้ไม่มีอุปกรณ์ชนิดเดียวกับ Spare ที่เลือกติดตั้งอยู่</div>
+                    <div className="text-muted-foreground">คุณยังเลือกถอดอุปกรณ์ชนิดอื่นแทนได้ หรือย้อนกลับไปเลือก Spare ใหม่</div>
+                  </div>
+                </div>
+              )}
+
+              {oldOptions.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground border rounded-lg">
+                  ไม่พบอุปกรณ์ที่ติดตั้งบนป้ายนี้
+                </div>
+              ) : (
+                <SearchableSelect
+                  options={oldOptions}
+                  value={oldValue}
+                  onValueChange={setOldValue}
+                  placeholder="เลือกเครื่องเก่า"
+                  searchPlaceholder="ค้นหา..."
+                />
+              )}
+              {selectedOld && (
+                <Card>
+                  <CardContent className="pt-4">
+                    <div className="font-medium">{selectedOld.label}</div>
+                    <div className="text-sm text-muted-foreground">{selectedOld.description}</div>
+                  </CardContent>
+                </Card>
+              )}
+              <div className="space-y-2">
+                <Label>คลังปลายทางสำหรับเครื่องเก่า (Incoming)</Label>
+                <SearchableSelect
+                  options={locations.map((l) => ({ value: l.id, label: l.name }))}
+                  value={returnLocationId}
+                  onValueChange={setReturnLocationId}
+                  placeholder="เลือกคลังที่จะส่งเครื่องเก่ากลับ"
+                />
+              </div>
             </div>
-          </div>
-        )}
+          );
+        })()}
 
         {/* Step 3 */}
         {step === 3 && (
