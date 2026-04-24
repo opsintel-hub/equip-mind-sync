@@ -419,6 +419,68 @@ const DefectiveReturnEntry = () => {
                     </Badge>
                   )}
                 </div>
+
+                {/* Quick actions: forward to Assessment / Claim with prefilled state */}
+                <div className="pt-3 border-t space-y-2">
+                  <p className="text-xs font-medium text-muted-foreground">ดำเนินการต่อ:</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="h-8"
+                      onClick={() => {
+                        const serial = isMediaPlayer
+                          ? selectedMediaPlayer?.serial_number_1
+                          : (perUnitMode
+                              ? defectiveUnits.find(u => u.serial_number.trim())?.serial_number
+                              : selectedEquipment?.serial_number);
+                        navigate("/assessment", {
+                          state: {
+                            prefill: {
+                              isMediaPlayer,
+                              itemId: selectedItemId,
+                              serial: serial || null,
+                              symptomDescription: perUnitMode
+                                ? defectiveUnits.find(u => u.reason.trim())?.reason || ""
+                                : reason,
+                            },
+                          },
+                        });
+                      }}
+                    >
+                      <ClipboardCheck className="w-3.5 h-3.5 mr-1" /> ส่งประเมิน
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="h-8"
+                      onClick={() => {
+                        const serial = isMediaPlayer
+                          ? selectedMediaPlayer?.serial_number_1
+                          : (perUnitMode
+                              ? defectiveUnits.find(u => u.serial_number.trim())?.serial_number
+                              : selectedEquipment?.serial_number);
+                        navigate("/claims", {
+                          state: {
+                            prefill: {
+                              isMediaPlayer,
+                              itemId: selectedItemId,
+                              serial: serial || null,
+                              symptomDescription: perUnitMode
+                                ? defectiveUnits.find(u => u.reason.trim())?.reason || ""
+                                : reason,
+                            },
+                          },
+                        });
+                      }}
+                    >
+                      <FileCheck2 className="w-3.5 h-3.5 mr-1" /> ส่งเคลม
+                    </Button>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground">ระบบจะส่งข้อมูลที่กรอกไว้ไปกรอกล่วงหน้าให้</p>
+                </div>
               </div>
             ) : (
               <p className="text-sm text-muted-foreground text-center py-8">เลือกสินค้าเพื่อดูข้อมูล</p>
