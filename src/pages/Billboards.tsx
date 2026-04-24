@@ -646,8 +646,8 @@ const Billboards = () => {
             </div>
           ) : (
             <>
-              <DraggableScrollTable>
-                <Table className="w-max min-w-full border-separate border-spacing-0">
+              <DraggableScrollTable className="relative max-h-[70vh] rounded-xl border border-border/60" maxHeight="70vh">
+                <Table disableWrapper className="w-max min-w-full border-separate border-spacing-0">
                   <TableHeader>
                     <TableRow className="bg-muted/50 hover:bg-muted/50">
                       <TableHead
@@ -670,8 +670,8 @@ const Billboards = () => {
                               "top-0 z-20 bg-muted whitespace-nowrap border-b text-left select-none",
                               column.minWidth || "min-w-[140px]",
                               isFirst
-                                ? "sticky left-12 z-30 shadow-[2px_0_4px_-2px_hsl(var(--border))]"
-                                : "sticky",
+                                ? "sticky top-0 left-12 z-30 shadow-[2px_0_4px_-2px_hsl(var(--border))]"
+                                : "sticky top-0",
                               sortable ? "cursor-pointer hover:bg-muted/80" : "",
                             ].join(" ")}
                             onClick={sortable ? () => handleSort(column.key) : undefined}
@@ -682,7 +682,7 @@ const Billboards = () => {
                           </TableHead>
                         );
                       })}
-                      <TableHead className="sticky top-0 z-20 bg-muted text-right min-w-[120px] border-b">จัดการ</TableHead>
+                      <TableHead className="sticky top-0 right-0 z-20 bg-muted text-right min-w-[120px] border-b">จัดการ</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
