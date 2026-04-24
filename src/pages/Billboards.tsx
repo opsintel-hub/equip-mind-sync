@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,15 +7,13 @@ import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { MapPin, Search, Plus, Upload, Edit, Trash2, ChevronLeft, ChevronRight, Building2, Monitor, Globe, Eye } from "lucide-react";
+import { MapPin, Search, Plus, Edit, Trash2, ChevronLeft, ChevronRight, Eye } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Tables } from "@/integrations/supabase/types";
 import BillboardForm from "@/components/billboard/BillboardForm";
-import BillboardImport from "@/components/billboard/BillboardImport";
 import BillboardFilters from "@/components/billboard/BillboardFilters";
 import BillboardExport from "@/components/billboard/BillboardExport";
-import BillboardEquipmentExport from "@/components/billboard/BillboardEquipmentExport";
 import {
   Select,
   SelectContent,
@@ -30,7 +28,6 @@ const Billboards = () => {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
   const [isFormOpen, setIsFormOpen] = useState(false);
-  const [isImportOpen, setIsImportOpen] = useState(false);
   const [selectedBillboard, setSelectedBillboard] = useState<Tables<"billboards"> | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
@@ -144,45 +141,6 @@ const Billboards = () => {
     },
   });
 
-  // Fetch summary statistics
-  const { data: summaryStats } = useQuery({
-    queryKey: ["billboards-summary"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("billboards")
-        .select("department, media_type, territory");
-      if (error) throw error;
-
-      // Count by Department
-      const departmentCounts: Record<string, number> = {};
-      data.forEach((b) => {
-        const dept = b.department || "ไม่ระบุ";
-        departmentCounts[dept] = (departmentCounts[dept] || 0) + 1;
-      });
-
-      // Count by MediaType
-      const mediaTypeCounts: Record<string, number> = {};
-      data.forEach((b) => {
-        const mt = b.media_type || "ไม่ระบุ";
-        mediaTypeCounts[mt] = (mediaTypeCounts[mt] || 0) + 1;
-      });
-
-      // Count by Territory
-      const territoryCounts: Record<string, number> = {};
-      data.forEach((b) => {
-        const terr = b.territory || "ไม่ระบุ";
-        territoryCounts[terr] = (territoryCounts[terr] || 0) + 1;
-      });
-
-      return {
-        total: data.length,
-        departments: Object.entries(departmentCounts).sort((a, b) => b[1] - a[1]),
-        mediaTypes: Object.entries(mediaTypeCounts).sort((a, b) => b[1] - a[1]),
-        territories: Object.entries(territoryCounts).sort((a, b) => b[1] - a[1]),
-      };
-    },
-  });
-
   const billboards = paginatedData?.data || [];
   const totalCount = paginatedData?.count || 0;
   const totalPages = Math.ceil(totalCount / pageSize);
@@ -211,11 +169,6 @@ const Billboards = () => {
 
   const handleFormSuccess = () => {
     handleFormClose();
-    refetch();
-  };
-
-  const handleImportSuccess = () => {
-    setIsImportOpen(false);
     refetch();
   };
 
@@ -248,93 +201,13 @@ const Billboards = () => {
         <p className="text-muted-foreground">จัดการข้อมูลป้ายโฆษณาและอุปกรณ์ที่ติดตั้ง</p>
       </div>
 
-      {/* Summary Statistics */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        {/* Department Summary */}
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-              <Building2 className="w-4 h-4" />
-              สรุปตาม Department
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2 max-h-48 overflow-y-auto">
-            {summaryStats?.departments.slice(0, 10).map(([dept, count]) => (
-              <div key={dept} className="flex justify-between items-center text-sm">
-                <span className="truncate mr-2">{dept}</span>
-                <Badge variant="secondary">{count}</Badge>
-              </div>
-            ))}
-            {(summaryStats?.departments.length || 0) > 10 && (
-              <p className="text-xs text-muted-foreground">+{summaryStats!.departments.length - 10} อื่นๆ</p>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* MediaType Summary */}
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-              <Monitor className="w-4 h-4" />
-              สรุปตาม MediaType
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2 max-h-48 overflow-y-auto">
-            {summaryStats?.mediaTypes.slice(0, 10).map(([mt, count]) => (
-              <div key={mt} className="flex justify-between items-center text-sm">
-                <span className="truncate mr-2">{mt}</span>
-                <Badge variant="secondary">{count}</Badge>
-              </div>
-            ))}
-            {(summaryStats?.mediaTypes.length || 0) > 10 && (
-              <p className="text-xs text-muted-foreground">+{summaryStats!.mediaTypes.length - 10} อื่นๆ</p>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Territory Summary */}
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-              <Globe className="w-4 h-4" />
-              สรุปตาม Territory
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2 max-h-48 overflow-y-auto">
-            {summaryStats?.territories.slice(0, 10).map(([terr, count]) => (
-              <div key={terr} className="flex justify-between items-center text-sm">
-                <span className="truncate mr-2">{terr}</span>
-                <Badge variant="secondary">{count}</Badge>
-              </div>
-            ))}
-            {(summaryStats?.territories.length || 0) > 10 && (
-              <p className="text-xs text-muted-foreground">+{summaryStats!.territories.length - 10} อื่นๆ</p>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Total count + Equipment Export */}
-      <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-4 items-stretch">
-        <Card className="flex flex-col justify-center">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">ป้ายโฆษณาทั้งหมด</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-4xl font-bold text-foreground">{summaryStats?.total?.toLocaleString() || 0}</div>
-            <p className="text-sm text-muted-foreground mt-1">จุด</p>
-          </CardContent>
-        </Card>
-
-        <BillboardEquipmentExport />
-      </div>
-
       <Card>
         <CardHeader>
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <CardTitle className="flex items-center gap-2">
               <MapPin className="w-5 h-5" />
               รายการป้ายโฆษณา
+              <Badge variant="secondary" className="ml-2">{totalCount.toLocaleString()} จุด</Badge>
             </CardTitle>
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
               <div className="relative w-full sm:w-72">
@@ -351,10 +224,6 @@ const Billboards = () => {
               </div>
               <div className="flex gap-2">
                 <BillboardExport currentFilters={filters} />
-                <Button variant="outline" onClick={() => setIsImportOpen(true)}>
-                  <Upload className="w-4 h-4 mr-2" />
-                  นำเข้า Excel
-                </Button>
                 <Button onClick={() => setIsFormOpen(true)}>
                   <Plus className="w-4 h-4 mr-2" />
                   เพิ่มป้าย
@@ -373,7 +242,7 @@ const Billboards = () => {
             <div className="text-center py-8 text-muted-foreground">กำลังโหลดข้อมูล...</div>
           ) : !billboards?.length ? (
             <div className="text-center py-8 text-muted-foreground">
-              ไม่พบข้อมูลป้ายโฆษณา - เริ่มต้นด้วยการ "นำเข้า Excel" หรือ "เพิ่มป้าย"
+              ไม่พบข้อมูลป้ายโฆษณา - กดปุ่ม "เพิ่มป้าย" เพื่อเริ่มต้น
             </div>
           ) : (
             <>
@@ -500,18 +369,6 @@ const Billboards = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Import Dialog */}
-      <Dialog open={isImportOpen} onOpenChange={setIsImportOpen}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>นำเข้าข้อมูลจากไฟล์ Excel</DialogTitle>
-          </DialogHeader>
-          <BillboardImport
-            onSuccess={handleImportSuccess}
-            onCancel={() => setIsImportOpen(false)}
-          />
-        </DialogContent>
-      </Dialog>
     </div>
   );
 };
