@@ -201,93 +201,13 @@ const Billboards = () => {
         <p className="text-muted-foreground">จัดการข้อมูลป้ายโฆษณาและอุปกรณ์ที่ติดตั้ง</p>
       </div>
 
-      {/* Summary Statistics */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        {/* Department Summary */}
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-              <Building2 className="w-4 h-4" />
-              สรุปตาม Department
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2 max-h-48 overflow-y-auto">
-            {summaryStats?.departments.slice(0, 10).map(([dept, count]) => (
-              <div key={dept} className="flex justify-between items-center text-sm">
-                <span className="truncate mr-2">{dept}</span>
-                <Badge variant="secondary">{count}</Badge>
-              </div>
-            ))}
-            {(summaryStats?.departments.length || 0) > 10 && (
-              <p className="text-xs text-muted-foreground">+{summaryStats!.departments.length - 10} อื่นๆ</p>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* MediaType Summary */}
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-              <Monitor className="w-4 h-4" />
-              สรุปตาม MediaType
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2 max-h-48 overflow-y-auto">
-            {summaryStats?.mediaTypes.slice(0, 10).map(([mt, count]) => (
-              <div key={mt} className="flex justify-between items-center text-sm">
-                <span className="truncate mr-2">{mt}</span>
-                <Badge variant="secondary">{count}</Badge>
-              </div>
-            ))}
-            {(summaryStats?.mediaTypes.length || 0) > 10 && (
-              <p className="text-xs text-muted-foreground">+{summaryStats!.mediaTypes.length - 10} อื่นๆ</p>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Territory Summary */}
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-              <Globe className="w-4 h-4" />
-              สรุปตาม Territory
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2 max-h-48 overflow-y-auto">
-            {summaryStats?.territories.slice(0, 10).map(([terr, count]) => (
-              <div key={terr} className="flex justify-between items-center text-sm">
-                <span className="truncate mr-2">{terr}</span>
-                <Badge variant="secondary">{count}</Badge>
-              </div>
-            ))}
-            {(summaryStats?.territories.length || 0) > 10 && (
-              <p className="text-xs text-muted-foreground">+{summaryStats!.territories.length - 10} อื่นๆ</p>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Total count + Equipment Export */}
-      <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-4 items-stretch">
-        <Card className="flex flex-col justify-center">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">ป้ายโฆษณาทั้งหมด</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-4xl font-bold text-foreground">{summaryStats?.total?.toLocaleString() || 0}</div>
-            <p className="text-sm text-muted-foreground mt-1">จุด</p>
-          </CardContent>
-        </Card>
-
-        <BillboardEquipmentExport />
-      </div>
-
       <Card>
         <CardHeader>
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <CardTitle className="flex items-center gap-2">
               <MapPin className="w-5 h-5" />
               รายการป้ายโฆษณา
+              <Badge variant="secondary" className="ml-2">{totalCount.toLocaleString()} จุด</Badge>
             </CardTitle>
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
               <div className="relative w-full sm:w-72">
@@ -304,10 +224,6 @@ const Billboards = () => {
               </div>
               <div className="flex gap-2">
                 <BillboardExport currentFilters={filters} />
-                <Button variant="outline" onClick={() => setIsImportOpen(true)}>
-                  <Upload className="w-4 h-4 mr-2" />
-                  นำเข้า Excel
-                </Button>
                 <Button onClick={() => setIsFormOpen(true)}>
                   <Plus className="w-4 h-4 mr-2" />
                   เพิ่มป้าย
