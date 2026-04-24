@@ -27,6 +27,7 @@ const PAGE_SIZE_OPTIONS = [20, 50, 100];
 
 const Billboards = () => {
   const navigate = useNavigate();
+  const { isSuperAdmin } = useIsSuperAdmin();
   const [searchTerm, setSearchTerm] = useState("");
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [selectedBillboard, setSelectedBillboard] = useState<Tables<"billboards"> | null>(null);
