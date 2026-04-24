@@ -19,6 +19,8 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { WorkflowDiagram } from "@/components/manual/WorkflowDiagram";
 import { FlowStepDetail, DecisionBox, AutomationBadges, MenuTags } from "@/components/manual/FlowAnnotations";
 import { TrainingContent } from "@/components/manual/TrainingSection";
+import { UATTestSuite } from "@/components/manual/UATTestSuite";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface ManualSection {
   id: string;
