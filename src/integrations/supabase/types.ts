@@ -4174,6 +4174,211 @@ export type Database = {
         }
         Relationships: []
       }
+      swap_executions: {
+        Row: {
+          after_photo_urls: string[] | null
+          before_photo_urls: string[] | null
+          created_at: string
+          executed_at: string
+          executed_by: string | null
+          id: string
+          notes: string | null
+          old_billboard_equipment_id: string | null
+          old_equipment_id: string | null
+          old_media_player_id: string | null
+          old_serial_number: string | null
+          reject_reason_id: string | null
+          reject_reason_other: string | null
+          result: string
+          return_location_id: string | null
+          spare_equipment_id: string | null
+          spare_media_player_id: string | null
+          spare_serial_number: string | null
+          spare_source_location_id: string | null
+          spare_type: string
+          swap_request_id: string
+        }
+        Insert: {
+          after_photo_urls?: string[] | null
+          before_photo_urls?: string[] | null
+          created_at?: string
+          executed_at?: string
+          executed_by?: string | null
+          id?: string
+          notes?: string | null
+          old_billboard_equipment_id?: string | null
+          old_equipment_id?: string | null
+          old_media_player_id?: string | null
+          old_serial_number?: string | null
+          reject_reason_id?: string | null
+          reject_reason_other?: string | null
+          result: string
+          return_location_id?: string | null
+          spare_equipment_id?: string | null
+          spare_media_player_id?: string | null
+          spare_serial_number?: string | null
+          spare_source_location_id?: string | null
+          spare_type: string
+          swap_request_id: string
+        }
+        Update: {
+          after_photo_urls?: string[] | null
+          before_photo_urls?: string[] | null
+          created_at?: string
+          executed_at?: string
+          executed_by?: string | null
+          id?: string
+          notes?: string | null
+          old_billboard_equipment_id?: string | null
+          old_equipment_id?: string | null
+          old_media_player_id?: string | null
+          old_serial_number?: string | null
+          reject_reason_id?: string | null
+          reject_reason_other?: string | null
+          result?: string
+          return_location_id?: string | null
+          spare_equipment_id?: string | null
+          spare_media_player_id?: string | null
+          spare_serial_number?: string | null
+          spare_source_location_id?: string | null
+          spare_type?: string
+          swap_request_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "swap_executions_old_billboard_equipment_id_fkey"
+            columns: ["old_billboard_equipment_id"]
+            isOneToOne: false
+            referencedRelation: "billboard_equipment"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "swap_executions_old_equipment_id_fkey"
+            columns: ["old_equipment_id"]
+            isOneToOne: false
+            referencedRelation: "equipment"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "swap_executions_old_media_player_id_fkey"
+            columns: ["old_media_player_id"]
+            isOneToOne: false
+            referencedRelation: "media_players"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "swap_executions_reject_reason_id_fkey"
+            columns: ["reject_reason_id"]
+            isOneToOne: false
+            referencedRelation: "mp_swap_reject_reasons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "swap_executions_return_location_id_fkey"
+            columns: ["return_location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "swap_executions_spare_equipment_id_fkey"
+            columns: ["spare_equipment_id"]
+            isOneToOne: false
+            referencedRelation: "equipment"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "swap_executions_spare_media_player_id_fkey"
+            columns: ["spare_media_player_id"]
+            isOneToOne: false
+            referencedRelation: "media_players"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "swap_executions_spare_source_location_id_fkey"
+            columns: ["spare_source_location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "swap_executions_swap_request_id_fkey"
+            columns: ["swap_request_id"]
+            isOneToOne: false
+            referencedRelation: "swap_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      swap_requests: {
+        Row: {
+          billboard_id: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          document_no: string
+          id: string
+          notes: string | null
+          photo_urls: string[] | null
+          priority: string
+          status: string
+          symptom_id: string | null
+          symptom_other: string | null
+          technician_name: string | null
+          technician_phone: string | null
+          updated_at: string
+        }
+        Insert: {
+          billboard_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          document_no: string
+          id?: string
+          notes?: string | null
+          photo_urls?: string[] | null
+          priority?: string
+          status?: string
+          symptom_id?: string | null
+          symptom_other?: string | null
+          technician_name?: string | null
+          technician_phone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          billboard_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          document_no?: string
+          id?: string
+          notes?: string | null
+          photo_urls?: string[] | null
+          priority?: string
+          status?: string
+          symptom_id?: string | null
+          symptom_other?: string | null
+          technician_name?: string | null
+          technician_phone?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "swap_requests_billboard_id_fkey"
+            columns: ["billboard_id"]
+            isOneToOne: false
+            referencedRelation: "billboards"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "swap_requests_symptom_id_fkey"
+            columns: ["symptom_id"]
+            isOneToOne: false
+            referencedRelation: "mp_symptoms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       system_settings: {
         Row: {
           id: string
@@ -4825,6 +5030,7 @@ export type Database = {
     Functions: {
       generate_equipment_pm_task_number: { Args: never; Returns: string }
       generate_pr_number: { Args: never; Returns: string }
+      generate_swap_request_number: { Args: never; Returns: string }
       generate_tool_pm_task_number: { Args: never; Returns: string }
       get_next_equipment_code: { Args: { p_prefix: string }; Returns: string }
       get_next_media_player_code: {
