@@ -1,16 +1,15 @@
-import { useRef, useState, ReactNode } from "react";
+import { useRef, useState, ReactNode, useEffect } from "react";
 import { cn } from "@/lib/utils";
 
 interface DraggableScrollTableProps {
   children: ReactNode;
   className?: string;
-  /** Max height for vertical scrolling (so sticky header works) */
   maxHeight?: string;
 }
 
 /**
- * Wrapper that enables click-and-drag horizontal scrolling on a table container,
- * while keeping native vertical scrolling for sticky headers.
+ * Click-and-drag horizontal scrolling, with native vertical scroll for sticky header.
+ * Uses pointer events + setPointerCapture so dragging continues even outside the container.
  */
 export function DraggableScrollTable({
   children,
@@ -19,42 +18,70 @@ export function DraggableScrollTable({
 }: DraggableScrollTableProps) {
   const ref = useRef<HTMLDivElement>(null);
   const [isDragging, setIsDragging] = useState(false);
-  const dragState = useRef({ startX: 0, scrollLeft: 0, moved: false });
+  const state = useRef({ startX: 0, startY: 0, scrollLeft: 0, scrollTop: 0, active: false });
 
-  const onMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
-    // Only left button; ignore drags starting on interactive elements
-    if (e.button !== 0) return;
-    const target = e.target as HTMLElement;
-    if (target.closest("button, a, input, select, textarea, [role='button']")) return;
-    if (!ref.current) return;
-    setIsDragging(true);
-    dragState.current.startX = e.pageX - ref.current.offsetLeft;
-    dragState.current.scrollLeft = ref.current.scrollLeft;
-    dragState.current.moved = false;
-  };
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
 
-  const onMouseLeave = () => setIsDragging(false);
-  const onMouseUp = () => setIsDragging(false);
+    const onPointerDown = (e: PointerEvent) => {
+      if (e.button !== 0) return;
+      const target = e.target as HTMLElement;
+      if (target.closest("button, a, input, select, textarea, [role='button'], [data-no-drag]")) return;
+      state.current.active = true;
+      state.current.startX = e.clientX;
+      state.current.startY = e.clientY;
+      state.current.scrollLeft = el.scrollLeft;
+      state.current.scrollTop = el.scrollTop;
+      setIsDragging(true);
+      try {
+        el.setPointerCapture(e.pointerId);
+      } catch {
+        /* noop */
+      }
+    };
 
-  const onMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!isDragging || !ref.current) return;
-    e.preventDefault();
-    const x = e.pageX - ref.current.offsetLeft;
-    const walk = x - dragState.current.startX;
-    if (Math.abs(walk) > 3) dragState.current.moved = true;
-    ref.current.scrollLeft = dragState.current.scrollLeft - walk;
-  };
+    const onPointerMove = (e: PointerEvent) => {
+      if (!state.current.active) return;
+      e.preventDefault();
+      const dx = e.clientX - state.current.startX;
+      const dy = e.clientY - state.current.startY;
+      el.scrollLeft = state.current.scrollLeft - dx;
+      el.scrollTop = state.current.scrollTop - dy;
+    };
+
+    const stop = (e: PointerEvent) => {
+      if (!state.current.active) return;
+      state.current.active = false;
+      setIsDragging(false);
+      try {
+        el.releasePointerCapture(e.pointerId);
+      } catch {
+        /* noop */
+      }
+    };
+
+    el.addEventListener("pointerdown", onPointerDown);
+    el.addEventListener("pointermove", onPointerMove);
+    el.addEventListener("pointerup", stop);
+    el.addEventListener("pointercancel", stop);
+    el.addEventListener("pointerleave", stop);
+
+    return () => {
+      el.removeEventListener("pointerdown", onPointerDown);
+      el.removeEventListener("pointermove", onPointerMove);
+      el.removeEventListener("pointerup", stop);
+      el.removeEventListener("pointercancel", stop);
+      el.removeEventListener("pointerleave", stop);
+    };
+  }, []);
 
   return (
     <div
       ref={ref}
-      onMouseDown={onMouseDown}
-      onMouseLeave={onMouseLeave}
-      onMouseUp={onMouseUp}
-      onMouseMove={onMouseMove}
-      style={{ maxHeight }}
+      style={{ maxHeight, touchAction: "pan-y", WebkitUserSelect: "none", userSelect: "none" }}
       className={cn(
-        "rounded-lg border overflow-auto select-none",
+        "rounded-lg border overflow-auto",
         isDragging ? "cursor-grabbing" : "cursor-grab",
         className,
       )}
