@@ -45,6 +45,7 @@ interface OldOption {
   type: "media_player" | "equipment";
   serial_number?: string | null;
   billboard_equipment_id: string;
+  equipment_id?: string;
 }
 
 export function SwapWizardDialog({ open, onOpenChange, request, onCompleted }: Props) {
@@ -172,6 +173,7 @@ export function SwapWizardDialog({ open, onOpenChange, request, onCompleted }: P
       type: "equipment",
       serial_number: b.serial_number,
       billboard_equipment_id: b.id,
+      equipment_id: b.equipment_id,
     }));
     setOldOptions(opts);
   };
