@@ -86,6 +86,33 @@ export function SwapWizardDialog({ open, onOpenChange, request, onCompleted }: P
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, request?.id]);
 
+  // Auto-select old unit when entering step 2 if there's only ONE matching unit on the billboard.
+  // "Matching" = same equipment id (for equipment spares) or first available media player slot.
+  useEffect(() => {
+    if (step !== 2 || oldValue || oldOptions.length === 0) return;
+    const spare = spareOptions.find((o) => o.value === spareValue);
+    if (!spare) return;
+
+    // Try to match by equipment id first (when spare is equipment)
+    if (spare.type === "equipment") {
+      const spareEqId = spare.value.split(":")[1];
+      const matches = oldOptions.filter((o) => {
+        // billboard_equipment row: equipment_id is in label/desc — we use billboard_equipment_id mapping via desc
+        // The OldOption stores equipment id implicitly via the billboard_equipment record
+        return (o as any).equipment_id === spareEqId;
+      });
+      if (matches.length === 1) {
+        setOldValue(matches[0].value);
+        return;
+      }
+    }
+
+    // If only one unit installed total → auto select
+    if (oldOptions.length === 1) {
+      setOldValue(oldOptions[0].value);
+    }
+  }, [step, oldOptions, spareValue, spareOptions, oldValue]);
+
   const loadSpares = async () => {
     setLoading(true);
     // Media Players: status = active and not installed (treat all media_players as potential spare list)
