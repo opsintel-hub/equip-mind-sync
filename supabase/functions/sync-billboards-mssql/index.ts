@@ -1,7 +1,7 @@
 // Edge Function: sync-billboards-mssql
 // Endpoints: /test-connection, /preview, /sync
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.50.0";
-import { Client } from "https://deno.land/x/mssql@v0.1.0/mod.ts";
+import sql from "npm:mssql@11.0.1";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
