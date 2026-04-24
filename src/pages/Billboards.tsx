@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef, useCallback } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -50,11 +50,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useVirtualizer } from "@tanstack/react-virtual";
 
 const PAGE_SIZE_OPTIONS = [20, 50, 100];
-const VIRTUALIZE_THRESHOLD = 60; // turn on virtualization when rows exceed this
-const ROW_ESTIMATE_PX = 56;
 const HIGHLIGHT_DURATION_MS = 4000;
 
 type BillboardRecord = Tables<"billboards">;
@@ -429,20 +426,7 @@ const Billboards = () => {
       : <ArrowDown className="w-3.5 h-3.5 ml-1 inline text-primary" />;
   };
 
-  // Virtualization
-  const scrollParentRef = useRef<HTMLDivElement | null>(null);
-  const shouldVirtualize = billboards.length > VIRTUALIZE_THRESHOLD;
 
-  const rowVirtualizer = useVirtualizer({
-    count: billboards.length,
-    getScrollElement: () => scrollParentRef.current,
-    estimateSize: () => ROW_ESTIMATE_PX,
-    overscan: 8,
-  });
-
-  const setScrollContainer = useCallback((el: HTMLDivElement | null) => {
-    scrollParentRef.current = el;
-  }, []);
 
   const renderRow = (billboard: BillboardRecord, style?: React.CSSProperties) => {
     const isSelected = selectedIds.has(billboard.id);
