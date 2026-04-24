@@ -92,19 +92,20 @@ Deno.serve(async (req) => {
 
     // ----- TEST CONNECTION -----
     if (path === "test-connection") {
-      const client = await connectMssql(cfg);
+      const pool = await connectMssql(cfg);
       try {
-        const result = await client.queryObject(
+        const totalRows = await runQuery(
+          pool,
           `SELECT COUNT(*) AS total FROM [${cfg.table}]`,
         );
-        const total = (result.rows[0] as any)?.total ?? 0;
+        const total = (totalRows[0] as any)?.total ?? 0;
 
-        // Get column list (first row)
-        const sampleResult = await client.queryObject(
+        const sampleRows = await runQuery(
+          pool,
           `SELECT TOP 1 * FROM [${cfg.table}]`,
         );
-        const columns = sampleResult.rows.length > 0
-          ? Object.keys(sampleResult.rows[0] as any)
+        const columns = sampleRows.length > 0
+          ? Object.keys(sampleRows[0] as any)
           : [];
 
         return new Response(
@@ -119,31 +120,30 @@ Deno.serve(async (req) => {
           },
         );
       } finally {
-        await client.close();
+        await pool.close();
       }
     }
 
     // ----- PREVIEW -----
     if (path === "preview") {
-      const client = await connectMssql(cfg);
+      const pool = await connectMssql(cfg);
       try {
-        const result = await client.queryObject(
+        const rows = await runQuery(
+          pool,
           `SELECT TOP 10 * FROM [${cfg.table}]`,
         );
         return new Response(
           JSON.stringify({
             success: true,
-            rows: result.rows,
-            columns: result.rows.length > 0
-              ? Object.keys(result.rows[0] as any)
-              : [],
+            rows,
+            columns: rows.length > 0 ? Object.keys(rows[0] as any) : [],
           }),
           {
             headers: { ...corsHeaders, "Content-Type": "application/json" },
           },
         );
       } finally {
-        await client.close();
+        await pool.close();
       }
     }
 
@@ -163,15 +163,12 @@ Deno.serve(async (req) => {
         .select()
         .single();
 
-      const client = await connectMssql(cfg);
+      const pool = await connectMssql(cfg);
       let inserted = 0, updated = 0, skipped = 0, failed = 0, fetched = 0;
       const errors: string[] = [];
 
       try {
-        const result = await client.queryObject(
-          `SELECT * FROM [${cfg.table}]`,
-        );
-        const rows = result.rows as any[];
+        const rows = await runQuery(pool, `SELECT * FROM [${cfg.table}]`);
         fetched = rows.length;
 
         // Smart Match field mapping (default)
