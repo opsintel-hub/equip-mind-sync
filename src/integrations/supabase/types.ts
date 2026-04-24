@@ -374,6 +374,113 @@ export type Database = {
           },
         ]
       }
+      assessment_logs: {
+        Row: {
+          assessed_at: string
+          assessed_by: string | null
+          assessment_result_id: string | null
+          assessor_name: string | null
+          completed_at: string | null
+          created_at: string
+          created_by: string | null
+          diagnosis_notes: string | null
+          document_no: string
+          document_urls: string[] | null
+          equipment_id: string | null
+          id: string
+          media_player_id: string | null
+          notes: string | null
+          photo_urls: string[] | null
+          recommended_action: string | null
+          serial_number: string | null
+          source_reference_id: string | null
+          source_type: string
+          status: string
+          symptom_description: string | null
+          symptom_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          assessed_at?: string
+          assessed_by?: string | null
+          assessment_result_id?: string | null
+          assessor_name?: string | null
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          diagnosis_notes?: string | null
+          document_no: string
+          document_urls?: string[] | null
+          equipment_id?: string | null
+          id?: string
+          media_player_id?: string | null
+          notes?: string | null
+          photo_urls?: string[] | null
+          recommended_action?: string | null
+          serial_number?: string | null
+          source_reference_id?: string | null
+          source_type?: string
+          status?: string
+          symptom_description?: string | null
+          symptom_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          assessed_at?: string
+          assessed_by?: string | null
+          assessment_result_id?: string | null
+          assessor_name?: string | null
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          diagnosis_notes?: string | null
+          document_no?: string
+          document_urls?: string[] | null
+          equipment_id?: string | null
+          id?: string
+          media_player_id?: string | null
+          notes?: string | null
+          photo_urls?: string[] | null
+          recommended_action?: string | null
+          serial_number?: string | null
+          source_reference_id?: string | null
+          source_type?: string
+          status?: string
+          symptom_description?: string | null
+          symptom_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assessment_logs_assessment_result_id_fkey"
+            columns: ["assessment_result_id"]
+            isOneToOne: false
+            referencedRelation: "mp_assessment_results"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assessment_logs_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "equipment"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assessment_logs_media_player_id_fkey"
+            columns: ["media_player_id"]
+            isOneToOne: false
+            referencedRelation: "media_players"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assessment_logs_symptom_id_fkey"
+            columns: ["symptom_id"]
+            isOneToOne: false
+            referencedRelation: "mp_symptoms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       billboard_equipment: {
         Row: {
           billboard_id: string
@@ -5028,6 +5135,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      generate_assessment_log_number: { Args: never; Returns: string }
       generate_equipment_pm_task_number: { Args: never; Returns: string }
       generate_pr_number: { Args: never; Returns: string }
       generate_swap_request_number: { Args: never; Returns: string }
