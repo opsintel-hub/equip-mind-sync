@@ -337,6 +337,57 @@ const UserManual = () => {
             />
           </div>
 
+          {/* ── Asset Workflow: Swap / Assessment / Claim ── */}
+          <WorkflowDiagram
+            title="Flow จัดการทรัพย์สิน (Swap → ประเมิน → เคลม)"
+            rows={[
+              {
+                steps: [
+                  { icon: <AlertTriangle className="h-4 w-4 text-red-600" />, label: "พบปัญหา", sublabel: "Defective/แจ้งซ่อม", variant: "danger" },
+                  { icon: <ArrowLeftRight className="h-4 w-4 text-blue-600" />, label: "Swap Wizard", sublabel: "SWP-XXXX", variant: "info", highlight: true },
+                  { icon: <ClipboardList className="h-4 w-4 text-amber-600" />, label: "ส่งประเมิน", sublabel: "ASM-XXXX", variant: "warning" },
+                  { icon: <Send className="h-4 w-4 text-purple-600" />, label: "ส่งเคลม", sublabel: "CLM-XXXX" },
+                  { icon: <CheckCircle className="h-4 w-4 text-emerald-600" />, label: "ปิดงาน", sublabel: "Closed", variant: "success" },
+                ],
+              },
+            ]}
+          />
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 mt-2">
+            <FlowStepDetail
+              title="🔄 Swap Wizard"
+              menus={[{ menu: "จัดการทรัพย์สิน > Swap อุปกรณ์/MP" }]}
+              automations={[
+                { type: "auto-create", label: "สร้าง SWP", description: "SWP-YYYYMMDD-XXXX สร้างอัตโนมัติ" },
+                { type: "auto-detect", label: "Auto-select เครื่องเก่า", description: "ถ้าป้ายมีอุปกรณ์ชนิดเดียว/Spare เดียว จะเลือกให้อัตโนมัติ" },
+                { type: "auto-update", label: "อัปเดต Billboard", description: "ถอดเครื่องเก่า + ติดตั้งเครื่องใหม่ + บันทึก History" },
+              ]}
+              decision={{
+                condition: "ป้ายมีอุปกรณ์ชนิดเดียวกันเพียง 1 ชิ้น?",
+                yesLabel: "ใช่",
+                yesTarget: "→ Auto-select เครื่องเก่า",
+                noLabel: "ไม่",
+                noTarget: "→ ผู้ใช้เลือกเอง + Banner เตือน",
+              }}
+            />
+            <FlowStepDetail
+              title="📋 บันทึกการประเมินทรัพย์สิน"
+              menus={[{ menu: "จัดการทรัพย์สิน > บันทึกการประเมิน" }]}
+              automations={[
+                { type: "auto-create", label: "สร้าง ASM", description: "ASM-YYYYMMDD-XXXX สร้างอัตโนมัติ" },
+                { type: "auto-fill", label: "Prefill จาก Defective", description: "รับ subject/อาการจาก Defective Returns ผ่าน navigate state" },
+              ]}
+            />
+            <FlowStepDetail
+              title="📨 ติดตามการเคลม"
+              menus={[{ menu: "จัดการทรัพย์สิน > ติดตามการเคลม" }]}
+              automations={[
+                { type: "auto-create", label: "สร้าง CLM", description: "CLM-YYYYMMDD-XXXX สร้างอัตโนมัติ" },
+                { type: "auto-fill", label: "Warranty + Supplier", description: "ดึงข้อมูลประกัน + ผู้จัดจำหน่ายอัตโนมัติ" },
+              ]}
+              notes={["Workflow: pending → submitted → returned → closed"]}
+            />
+          </div>
+
           {/* ── Equipment Loan Flow ── */}
           <WorkflowDiagram
             title="Flow ยืมอะไหล่ข้ามบริษัท"
@@ -396,6 +447,9 @@ const UserManual = () => {
                     ["DR-YYYYMMDD-XXXX", "Defective Return", "ใบนำของเสียเข้า", "กดบันทึกในหน้าของเสีย", "ค้นหาเอกสาร"],
                     ["TEMP-YYYYMMDD-XXX", "Temporary", "รหัสสินค้าชั่วคราว", "เพิ่มสินค้าใหม่ใน Delivery Entry", "รายการรอรหัส"],
                     ["PMT-YYYYMMDD-XXXX", "PM Task", "รหัสงาน PM Task", "สร้าง Task PM ตามกำหนดรอบ", "งาน PM อุปกรณ์/เครื่องมือ"],
+                    ["SWP-YYYYMMDD-XXXX", "Swap Request", "ใบ Swap อุปกรณ์/MP", "บันทึกใน Swap Wizard", "จัดการทรัพย์สิน > Swap"],
+                    ["ASM-YYYYMMDD-XXXX", "Assessment", "ใบประเมินทรัพย์สิน", "บันทึกในหน้าบันทึกการประเมิน", "จัดการทรัพย์สิน > ประเมิน"],
+                    ["CLM-YYYYMMDD-XXXX", "Claim Record", "ใบติดตามการเคลม", "บันทึกในหน้าติดตามการเคลม", "จัดการทรัพย์สิน > เคลม"],
                   ].map(([code, abbr, desc, trigger, view], i) => (
                     <tr key={i}>
                       <td className="border p-2 font-mono font-bold">{code}</td>
