@@ -1321,5 +1321,3 @@ const UserManual = () => {
 };
 
 export default UserManual;
-
-export default UserManual;
