@@ -583,6 +583,50 @@ export type Database = {
         }
         Relationships: []
       }
+      billboard_field_mapping: {
+        Row: {
+          connection_id: string | null
+          created_at: string
+          id: string
+          is_match_key: boolean
+          notes: string | null
+          source_column: string
+          sync_behavior: string
+          target_field: string
+          updated_at: string
+        }
+        Insert: {
+          connection_id?: string | null
+          created_at?: string
+          id?: string
+          is_match_key?: boolean
+          notes?: string | null
+          source_column: string
+          sync_behavior?: string
+          target_field: string
+          updated_at?: string
+        }
+        Update: {
+          connection_id?: string | null
+          created_at?: string
+          id?: string
+          is_match_key?: boolean
+          notes?: string | null
+          source_column?: string
+          sync_behavior?: string
+          target_field?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "billboard_field_mapping_connection_id_fkey"
+            columns: ["connection_id"]
+            isOneToOne: false
+            referencedRelation: "external_db_connections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       billboard_package_items: {
         Row: {
           billboard_id: string
@@ -759,6 +803,65 @@ export type Database = {
             columns: ["billboard_id"]
             isOneToOne: false
             referencedRelation: "billboards"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      billboard_sync_logs: {
+        Row: {
+          completed_at: string | null
+          connection_id: string | null
+          details: Json | null
+          error_message: string | null
+          id: string
+          rows_failed: number
+          rows_fetched: number
+          rows_inserted: number
+          rows_skipped: number
+          rows_updated: number
+          started_at: string
+          status: string
+          trigger_type: string
+          triggered_by: string | null
+        }
+        Insert: {
+          completed_at?: string | null
+          connection_id?: string | null
+          details?: Json | null
+          error_message?: string | null
+          id?: string
+          rows_failed?: number
+          rows_fetched?: number
+          rows_inserted?: number
+          rows_skipped?: number
+          rows_updated?: number
+          started_at?: string
+          status?: string
+          trigger_type?: string
+          triggered_by?: string | null
+        }
+        Update: {
+          completed_at?: string | null
+          connection_id?: string | null
+          details?: Json | null
+          error_message?: string | null
+          id?: string
+          rows_failed?: number
+          rows_fetched?: number
+          rows_inserted?: number
+          rows_skipped?: number
+          rows_updated?: number
+          started_at?: string
+          status?: string
+          trigger_type?: string
+          triggered_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "billboard_sync_logs_connection_id_fkey"
+            columns: ["connection_id"]
+            isOneToOne: false
+            referencedRelation: "external_db_connections"
             referencedColumns: ["id"]
           },
         ]
@@ -2236,6 +2339,69 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      external_db_connections: {
+        Row: {
+          auto_sync_days: number[] | null
+          auto_sync_enabled: boolean
+          auto_sync_time: string | null
+          created_at: string
+          created_by: string | null
+          database_name: string
+          db_type: string
+          host: string
+          id: string
+          is_active: boolean
+          last_sync_at: string | null
+          last_sync_status: string | null
+          name: string
+          password_secret_name: string
+          port: number
+          table_name: string
+          updated_at: string
+          username: string
+        }
+        Insert: {
+          auto_sync_days?: number[] | null
+          auto_sync_enabled?: boolean
+          auto_sync_time?: string | null
+          created_at?: string
+          created_by?: string | null
+          database_name: string
+          db_type?: string
+          host: string
+          id?: string
+          is_active?: boolean
+          last_sync_at?: string | null
+          last_sync_status?: string | null
+          name?: string
+          password_secret_name?: string
+          port?: number
+          table_name?: string
+          updated_at?: string
+          username: string
+        }
+        Update: {
+          auto_sync_days?: number[] | null
+          auto_sync_enabled?: boolean
+          auto_sync_time?: string | null
+          created_at?: string
+          created_by?: string | null
+          database_name?: string
+          db_type?: string
+          host?: string
+          id?: string
+          is_active?: boolean
+          last_sync_at?: string | null
+          last_sync_status?: string | null
+          name?: string
+          password_secret_name?: string
+          port?: number
+          table_name?: string
+          updated_at?: string
+          username?: string
+        }
+        Relationships: []
       }
       goods_issue: {
         Row: {
