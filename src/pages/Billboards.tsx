@@ -702,32 +702,9 @@ const Billboards = () => {
                       <TableHead className="sticky top-0 z-20 bg-muted text-right min-w-[120px] border-b">จัดการ</TableHead>
                     </TableRow>
                   </TableHeader>
-                  {shouldVirtualize ? (
-                    <TableBody
-                      style={{
-                        height: rowVirtualizer.getTotalSize(),
-                        position: "relative",
-                        display: "block",
-                      }}
-                    >
-                      {rowVirtualizer.getVirtualItems().map((virtualRow) => {
-                        const billboard = billboards[virtualRow.index];
-                        return renderRow(billboard, {
-                          position: "absolute",
-                          top: 0,
-                          left: 0,
-                          width: "100%",
-                          transform: `translateY(${virtualRow.start}px)`,
-                          display: "table",
-                          tableLayout: "fixed",
-                        });
-                      })}
-                    </TableBody>
-                  ) : (
-                    <TableBody>
-                      {billboards.map((b) => renderRow(b))}
-                    </TableBody>
-                  )}
+                  <TableBody>
+                    {billboards.map((b) => renderRow(b))}
+                  </TableBody>
                 </Table>
               </DraggableScrollTable>
 
