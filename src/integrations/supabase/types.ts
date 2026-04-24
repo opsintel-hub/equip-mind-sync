@@ -583,50 +583,6 @@ export type Database = {
         }
         Relationships: []
       }
-      billboard_field_mapping: {
-        Row: {
-          connection_id: string | null
-          created_at: string
-          id: string
-          is_match_key: boolean
-          notes: string | null
-          source_column: string
-          sync_behavior: string
-          target_field: string
-          updated_at: string
-        }
-        Insert: {
-          connection_id?: string | null
-          created_at?: string
-          id?: string
-          is_match_key?: boolean
-          notes?: string | null
-          source_column: string
-          sync_behavior?: string
-          target_field: string
-          updated_at?: string
-        }
-        Update: {
-          connection_id?: string | null
-          created_at?: string
-          id?: string
-          is_match_key?: boolean
-          notes?: string | null
-          source_column?: string
-          sync_behavior?: string
-          target_field?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "billboard_field_mapping_connection_id_fkey"
-            columns: ["connection_id"]
-            isOneToOne: false
-            referencedRelation: "external_db_connections"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       billboard_package_items: {
         Row: {
           billboard_id: string
