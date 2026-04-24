@@ -14,6 +14,7 @@ import { Tables } from "@/integrations/supabase/types";
 import BillboardForm from "@/components/billboard/BillboardForm";
 import BillboardFilters from "@/components/billboard/BillboardFilters";
 import BillboardExport from "@/components/billboard/BillboardExport";
+import { useIsSuperAdmin } from "@/hooks/useIsSuperAdmin";
 import {
   Select,
   SelectContent,
@@ -26,6 +27,7 @@ const PAGE_SIZE_OPTIONS = [20, 50, 100];
 
 const Billboards = () => {
   const navigate = useNavigate();
+  const { isSuperAdmin } = useIsSuperAdmin();
   const [searchTerm, setSearchTerm] = useState("");
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [selectedBillboard, setSelectedBillboard] = useState<Tables<"billboards"> | null>(null);
@@ -224,10 +226,12 @@ const Billboards = () => {
               </div>
               <div className="flex gap-2">
                 <BillboardExport currentFilters={filters} />
-                <Button onClick={() => setIsFormOpen(true)}>
-                  <Plus className="w-4 h-4 mr-2" />
-                  เพิ่มป้าย
-                </Button>
+                {isSuperAdmin && (
+                  <Button onClick={() => setIsFormOpen(true)}>
+                    <Plus className="w-4 h-4 mr-2" />
+                    เพิ่มป้าย
+                  </Button>
+                )}
               </div>
             </div>
           </div>
@@ -286,17 +290,21 @@ const Billboards = () => {
                             >
                               <Eye className="w-4 h-4" />
                             </Button>
-                            <Button variant="ghost" size="sm" onClick={() => handleEdit(billboard)}>
-                              <Edit className="w-4 h-4" />
-                            </Button>
-                            <Button 
-                              variant="ghost" 
-                              size="sm" 
-                              onClick={() => handleDelete(billboard.id)}
-                              className="text-destructive hover:text-destructive"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
+                            {isSuperAdmin && (
+                              <>
+                                <Button variant="ghost" size="sm" onClick={() => handleEdit(billboard)}>
+                                  <Edit className="w-4 h-4" />
+                                </Button>
+                                <Button 
+                                  variant="ghost" 
+                                  size="sm" 
+                                  onClick={() => handleDelete(billboard.id)}
+                                  className="text-destructive hover:text-destructive"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
+                              </>
+                            )}
                           </div>
                         </TableCell>
                       </TableRow>
