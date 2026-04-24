@@ -94,7 +94,7 @@ export function BillboardDbConnection() {
       .from("billboard_sync_logs")
       .select("*")
       .order("started_at", { ascending: false })
-      .limit(30);
+      .limit(10);
     setLogs((data as any) ?? []);
   };
 
@@ -391,7 +391,7 @@ export function BillboardDbConnection() {
       <TabsContent value="history">
         <Card>
           <CardHeader>
-            <CardTitle>ประวัติการ Sync (30 รายการล่าสุด)</CardTitle>
+            <CardTitle>ประวัติการเชื่อมต่อ (10 ครั้งล่าสุด)</CardTitle>
             <CardDescription>บันทึกผลการ sync ทั้ง manual และ auto-sync</CardDescription>
           </CardHeader>
           <CardContent>
