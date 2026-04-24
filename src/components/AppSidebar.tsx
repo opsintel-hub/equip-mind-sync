@@ -31,6 +31,7 @@ import {
   AlertTriangle as AlertTriangleIcon,
   Send,
   ClipboardCheck,
+  FileCheck2,
 } from "lucide-react";
 import {
   Sidebar,
@@ -230,6 +231,7 @@ const menuGroups: MenuGroup[] = [
       { title: "Media Player Profile", url: "/media-player/search", icon: Search, functionName: "master_data" },
       { title: "Swap Wizard", url: "/swap", icon: ArrowLeftRight, functionName: "goods_issue" },
       { title: "บันทึกการประเมิน", url: "/assessment", icon: ClipboardCheck, functionName: "goods_issue" },
+      { title: "ติดตามการเคลม", url: "/claims", icon: FileCheck2, functionName: "goods_issue" },
       { title: "รายงาน Media Player", url: "/media-player-report", icon: Monitor, functionName: "reports" },
     ]
   },
