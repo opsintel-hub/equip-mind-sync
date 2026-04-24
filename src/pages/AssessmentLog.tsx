@@ -132,6 +132,29 @@ export default function AssessmentLog() {
     fetchSubjects();
   }, []);
 
+  // Apply prefill from navigation state (e.g., from Defective Returns)
+  useEffect(() => {
+    const prefill = (location.state as any)?.prefill;
+    if (!prefill || subjects.length === 0) return;
+    const { isMediaPlayer, itemId, serial, symptomDescription: sym } = prefill;
+    // Find matching subject
+    const subj = subjects.find((s) =>
+      isMediaPlayer
+        ? s.type === "media_player" && s.id === itemId
+        : s.type === "equipment" && (s.serial === serial || (!serial && s.code === itemId))
+    );
+    if (subj) {
+      const key = `${subj.type === "media_player" ? "mp" : "eq"}:${subj.id}${subj.type === "equipment" && subj.serial ? `:${subj.serial}` : ""}`;
+      setSubjectKey(key);
+    }
+    if (sym) setSymptomDescription(sym);
+    setActiveTab("new");
+    toast.info("เติมข้อมูลจากรายการของเสียให้แล้ว — โปรดตรวจสอบและบันทึก");
+    // Clear state
+    window.history.replaceState({}, "");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [subjects]);
+
   const subjectOptions = useMemo(
     () =>
       subjects.map((s) => ({
