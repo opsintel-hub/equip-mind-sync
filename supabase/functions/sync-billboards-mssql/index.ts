@@ -20,16 +20,22 @@ interface ConnectionConfig {
 }
 
 async function connectMssql(cfg: ConnectionConfig) {
-  const client = new Client({
+  const pool = await sql.connect({
     user: cfg.username,
     password: cfg.password,
     server: cfg.host,
     port: cfg.port,
     database: cfg.database,
     options: { encrypt: false, trustServerCertificate: true },
+    connectionTimeout: 15000,
+    requestTimeout: 60000,
   });
-  await client.connect();
-  return client;
+  return pool;
+}
+
+async function runQuery(pool: any, query: string): Promise<any[]> {
+  const result = await pool.request().query(query);
+  return result.recordset || [];
 }
 
 async function getAuthUser(req: Request) {
