@@ -204,6 +204,8 @@ const Billboards = () => {
         <p className="text-muted-foreground">จัดการข้อมูลป้ายโฆษณาและอุปกรณ์ที่ติดตั้ง</p>
       </div>
 
+      <BillboardSummaryCards filters={filters} searchTerm={searchTerm} />
+
       <Card>
         <CardHeader>
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
