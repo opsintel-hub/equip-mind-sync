@@ -172,20 +172,17 @@ Deno.serve(async (req) => {
         fetched = rows.length;
 
         // Build mapped rows — OldCode is the PRIMARY match key
-        // Generate a unique equipment_id per row to satisfy NOT NULL + UNIQUE
         const mappedRows: any[] = [];
         for (const row of rows) {
-          const oldCode = row.OldCode || row.old_code || row.AssetCode ||
-            row.Code;
+          const oldCode = row.OldCode || row.old_code || row.AssetCode || row.Code;
           if (!oldCode || String(oldCode).trim() === "") {
             skipped++;
             continue;
           }
-          // equipment_id: use AssetID if present, otherwise fall back to OldCode
-          const equipmentId = row.AssetID || row.EquipmentID ||
-            row.equipment_id || oldCode;
+
+          const equipmentId = row.AssetID || row.EquipmentID || row.equipment_id || oldCode;
           mappedRows.push({
-            equipment_id: String(equipmentId),
+            equipment_id: String(equipmentId).trim(),
             old_code: String(oldCode).trim(),
             region: row.Region ?? null,
             district: row.District ?? null,
@@ -201,7 +198,7 @@ Deno.serve(async (req) => {
           });
         }
 
-        // Dedupe by old_code (keep last) — count duplicates as skipped
+        // Dedupe by old_code (keep the last row from source)
         const dedupMap = new Map<string, any>();
         for (const r of mappedRows) {
           if (dedupMap.has(r.old_code)) skipped++;
@@ -209,59 +206,86 @@ Deno.serve(async (req) => {
         }
         const finalRows = Array.from(dedupMap.values());
 
-        // Fetch existing old_codes BEFORE upsert to classify insert vs update
-        const existingCodes = new Set<string>();
-        const codeChunkSize = 500;
+        // Fetch existing rows by old_code to classify insert vs update
+        const existingByOldCode = new Map<string, { old_code: string; equipment_id: string }>();
+        const existingByEquipmentId = new Map<string, { old_code: string; equipment_id: string }>();
+        const chunkSize = 500;
         const allCodes = finalRows.map((r) => r.old_code);
-        for (let i = 0; i < allCodes.length; i += codeChunkSize) {
-          const chunk = allCodes.slice(i, i + codeChunkSize);
-          const { data: existing } = await adminClient
+        const allEquipmentIds = finalRows.map((r) => r.equipment_id);
+
+        for (let i = 0; i < allCodes.length; i += chunkSize) {
+          const chunk = allCodes.slice(i, i + chunkSize);
+          const { data: existing, error } = await adminClient
             .from("billboards")
-            .select("old_code")
+            .select("old_code, equipment_id")
             .in("old_code", chunk);
-          (existing ?? []).forEach((e: any) => existingCodes.add(e.old_code));
+          if (error) throw error;
+          (existing ?? []).forEach((row: any) => {
+            existingByOldCode.set(row.old_code, row);
+            existingByEquipmentId.set(row.equipment_id, row);
+          });
         }
 
-        // Upsert using OldCode as the conflict target (primary match key)
-        // Ignore equipment_id conflicts by removing it from the update set if needed
-        const batchSize = 200;
-        for (let i = 0; i < finalRows.length; i += batchSize) {
-          const batch = finalRows.slice(i, i + batchSize);
-          const { error } = await adminClient
+        for (let i = 0; i < allEquipmentIds.length; i += chunkSize) {
+          const chunk = allEquipmentIds.slice(i, i + chunkSize);
+          const { data: existing, error } = await adminClient
             .from("billboards")
-            .upsert(batch, { onConflict: "old_code", ignoreDuplicates: false });
-          if (error) {
-            // Row-by-row fallback to isolate bad rows (e.g. equipment_id collision)
-            for (const r of batch) {
-              const { error: e2 } = await adminClient
-                .from("billboards")
-                .upsert(r, { onConflict: "old_code", ignoreDuplicates: false });
-              if (e2) {
-                // Try update by old_code only (skip equipment_id to avoid conflict)
-                const { equipment_id, ...rest } = r;
-                const { error: e3 } = await adminClient
-                  .from("billboards")
-                  .update(rest)
-                  .eq("old_code", r.old_code);
-                if (e3 || !existingCodes.has(r.old_code)) {
-                  failed++;
-                  if (errors.length < 20) {
-                    errors.push(`${r.old_code}: ${e2.message}`);
-                  }
-                } else {
-                  updated++;
-                }
-              } else {
-                if (existingCodes.has(r.old_code)) updated++;
-                else inserted++;
+            .select("old_code, equipment_id")
+            .in("equipment_id", chunk);
+          if (error) throw error;
+          (existing ?? []).forEach((row: any) => {
+            existingByEquipmentId.set(row.equipment_id, row);
+          });
+        }
+
+        const upsertRows: any[] = [];
+        for (const row of finalRows) {
+          const existingOldCode = existingByOldCode.get(row.old_code);
+
+          if (existingOldCode) {
+            // OldCode is the canonical match key.
+            // Keep the current equipment_id if the new one would collide with another OldCode.
+            const occupiedEquipment = existingByEquipmentId.get(row.equipment_id);
+            if (
+              occupiedEquipment &&
+              occupiedEquipment.old_code !== row.old_code &&
+              existingOldCode.equipment_id !== row.equipment_id
+            ) {
+              row.equipment_id = existingOldCode.equipment_id;
+              if (errors.length < 20) {
+                errors.push(
+                  `${row.old_code}: kept existing equipment_id ${existingOldCode.equipment_id} because ${occupiedEquipment.old_code} already uses ${row.equipment_id}`,
+                );
               }
             }
-          } else {
-            for (const r of batch) {
-              if (existingCodes.has(r.old_code)) updated++;
-              else inserted++;
-            }
+            updated++;
+            upsertRows.push(row);
+            continue;
           }
+
+          const occupiedEquipment = existingByEquipmentId.get(row.equipment_id);
+          if (occupiedEquipment && occupiedEquipment.old_code !== row.old_code) {
+            failed++;
+            if (errors.length < 20) {
+              errors.push(
+                `${row.old_code}: equipment_id ${row.equipment_id} already belongs to ${occupiedEquipment.old_code}`,
+              );
+            }
+            continue;
+          }
+
+          inserted++;
+          upsertRows.push(row);
+        }
+
+        // Fast batch upsert using OldCode only
+        const batchSize = 500;
+        for (let i = 0; i < upsertRows.length; i += batchSize) {
+          const batch = upsertRows.slice(i, i + batchSize);
+          const { error } = await adminClient
+            .from("billboards")
+            .upsert(batch, { onConflict: "old_code" });
+          if (error) throw error;
         }
 
         // Update log
