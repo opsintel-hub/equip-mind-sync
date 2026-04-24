@@ -916,6 +916,150 @@ export type Database = {
         }
         Relationships: []
       }
+      claim_records: {
+        Row: {
+          claim_result_id: string | null
+          claim_ticket_no: string | null
+          cost_amount: number | null
+          created_at: string
+          created_by: string | null
+          document_no: string
+          document_urls: string[] | null
+          equipment_id: string | null
+          id: string
+          is_under_warranty: boolean | null
+          manufacturer: string | null
+          media_player_id: string | null
+          notes: string | null
+          photo_urls: string[] | null
+          receiver_name: string | null
+          result_notes: string | null
+          returned_at: string | null
+          returned_by: string | null
+          serial_number: string | null
+          source_reference_id: string | null
+          source_type: string | null
+          status: string
+          subject_type: string
+          submitted_at: string | null
+          submitted_by: string | null
+          submitter_name: string | null
+          supplier_id: string | null
+          supplier_name: string | null
+          symptom_description: string | null
+          symptom_id: string | null
+          updated_at: string
+          warranty_expiry_date: string | null
+          warranty_notes: string | null
+        }
+        Insert: {
+          claim_result_id?: string | null
+          claim_ticket_no?: string | null
+          cost_amount?: number | null
+          created_at?: string
+          created_by?: string | null
+          document_no: string
+          document_urls?: string[] | null
+          equipment_id?: string | null
+          id?: string
+          is_under_warranty?: boolean | null
+          manufacturer?: string | null
+          media_player_id?: string | null
+          notes?: string | null
+          photo_urls?: string[] | null
+          receiver_name?: string | null
+          result_notes?: string | null
+          returned_at?: string | null
+          returned_by?: string | null
+          serial_number?: string | null
+          source_reference_id?: string | null
+          source_type?: string | null
+          status?: string
+          subject_type?: string
+          submitted_at?: string | null
+          submitted_by?: string | null
+          submitter_name?: string | null
+          supplier_id?: string | null
+          supplier_name?: string | null
+          symptom_description?: string | null
+          symptom_id?: string | null
+          updated_at?: string
+          warranty_expiry_date?: string | null
+          warranty_notes?: string | null
+        }
+        Update: {
+          claim_result_id?: string | null
+          claim_ticket_no?: string | null
+          cost_amount?: number | null
+          created_at?: string
+          created_by?: string | null
+          document_no?: string
+          document_urls?: string[] | null
+          equipment_id?: string | null
+          id?: string
+          is_under_warranty?: boolean | null
+          manufacturer?: string | null
+          media_player_id?: string | null
+          notes?: string | null
+          photo_urls?: string[] | null
+          receiver_name?: string | null
+          result_notes?: string | null
+          returned_at?: string | null
+          returned_by?: string | null
+          serial_number?: string | null
+          source_reference_id?: string | null
+          source_type?: string | null
+          status?: string
+          subject_type?: string
+          submitted_at?: string | null
+          submitted_by?: string | null
+          submitter_name?: string | null
+          supplier_id?: string | null
+          supplier_name?: string | null
+          symptom_description?: string | null
+          symptom_id?: string | null
+          updated_at?: string
+          warranty_expiry_date?: string | null
+          warranty_notes?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "claim_records_claim_result_id_fkey"
+            columns: ["claim_result_id"]
+            isOneToOne: false
+            referencedRelation: "mp_claim_results"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "claim_records_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "equipment"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "claim_records_media_player_id_fkey"
+            columns: ["media_player_id"]
+            isOneToOne: false
+            referencedRelation: "media_players"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "claim_records_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "claim_records_symptom_id_fkey"
+            columns: ["symptom_id"]
+            isOneToOne: false
+            referencedRelation: "mp_symptoms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cms_types: {
         Row: {
           created_at: string
@@ -5136,6 +5280,7 @@ export type Database = {
     }
     Functions: {
       generate_assessment_log_number: { Args: never; Returns: string }
+      generate_claim_record_number: { Args: never; Returns: string }
       generate_equipment_pm_task_number: { Args: never; Returns: string }
       generate_pr_number: { Args: never; Returns: string }
       generate_swap_request_number: { Args: never; Returns: string }
