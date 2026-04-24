@@ -141,45 +141,6 @@ const Billboards = () => {
     },
   });
 
-  // Fetch summary statistics
-  const { data: summaryStats } = useQuery({
-    queryKey: ["billboards-summary"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("billboards")
-        .select("department, media_type, territory");
-      if (error) throw error;
-
-      // Count by Department
-      const departmentCounts: Record<string, number> = {};
-      data.forEach((b) => {
-        const dept = b.department || "ไม่ระบุ";
-        departmentCounts[dept] = (departmentCounts[dept] || 0) + 1;
-      });
-
-      // Count by MediaType
-      const mediaTypeCounts: Record<string, number> = {};
-      data.forEach((b) => {
-        const mt = b.media_type || "ไม่ระบุ";
-        mediaTypeCounts[mt] = (mediaTypeCounts[mt] || 0) + 1;
-      });
-
-      // Count by Territory
-      const territoryCounts: Record<string, number> = {};
-      data.forEach((b) => {
-        const terr = b.territory || "ไม่ระบุ";
-        territoryCounts[terr] = (territoryCounts[terr] || 0) + 1;
-      });
-
-      return {
-        total: data.length,
-        departments: Object.entries(departmentCounts).sort((a, b) => b[1] - a[1]),
-        mediaTypes: Object.entries(mediaTypeCounts).sort((a, b) => b[1] - a[1]),
-        territories: Object.entries(territoryCounts).sort((a, b) => b[1] - a[1]),
-      };
-    },
-  });
-
   const billboards = paginatedData?.data || [];
   const totalCount = paginatedData?.count || 0;
   const totalPages = Math.ceil(totalCount / pageSize);
@@ -208,11 +169,6 @@ const Billboards = () => {
 
   const handleFormSuccess = () => {
     handleFormClose();
-    refetch();
-  };
-
-  const handleImportSuccess = () => {
-    setIsImportOpen(false);
     refetch();
   };
 
