@@ -2,12 +2,28 @@ import * as React from "react";
 
 import { cn } from "@/lib/utils";
 
-const Table = React.forwardRef<HTMLTableElement, React.HTMLAttributes<HTMLTableElement>>(
-  ({ className, ...props }, ref) => (
-    <div className="relative w-full overflow-auto rounded-xl border border-border/60" style={{ boxShadow: 'var(--shadow-sm)' }}>
-      <table ref={ref} className={cn("w-full caption-bottom text-sm", className)} {...props} />
-    </div>
-  ),
+interface TableProps extends React.HTMLAttributes<HTMLTableElement> {
+  disableWrapper?: boolean;
+  wrapperClassName?: string;
+}
+
+const Table = React.forwardRef<HTMLTableElement, TableProps>(
+  ({ className, disableWrapper = false, wrapperClassName, ...props }, ref) => {
+    const table = <table ref={ref} className={cn("w-full caption-bottom text-sm", className)} {...props} />;
+
+    if (disableWrapper) {
+      return table;
+    }
+
+    return (
+      <div
+        className={cn("relative w-full overflow-auto rounded-xl border border-border/60", wrapperClassName)}
+        style={{ boxShadow: "var(--shadow-sm)" }}
+      >
+        {table}
+      </div>
+    );
+  },
 );
 Table.displayName = "Table";
 
