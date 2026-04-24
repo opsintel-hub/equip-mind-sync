@@ -1158,8 +1158,364 @@ const UserManual = () => {
       number: "16",
       title: "แบบฝึกอบรม & UAT (Training & Testing)",
       icon: <FileKey className="h-5 w-5" />,
-      description: "แบบฝึก Step-by-Step สำหรับ Admin, Manager, Super Admin พร้อม Export เอกสารสำหรับตรวจผล",
-      content: <TrainingContent />,
+      description: "Flow ปกติ + Flow ผิดปกติ + การค้นหาข้อมูล + Case ผิดพลาดและวิธีแก้ไข สำหรับ UAT และฝึกอบรม",
+      content: (
+        <div className="space-y-6">
+          {/* คำแนะนำการใช้ */}
+          <div className="p-4 rounded-lg bg-primary/5 border border-primary/20">
+            <h3 className="font-semibold flex items-center gap-2 mb-2">
+              <BookOpen className="h-4 w-4 text-primary" /> วิธีใช้คู่มือนี้
+            </h3>
+            <p className="text-sm text-muted-foreground">
+              เนื้อหาในข้อนี้แบ่งเป็น 4 ส่วน: (A) Flow ปกติ — เส้นทางหลักของการทำงาน,
+              (B) Flow ผิดปกติ — สถานการณ์ที่เกิดขึ้นบ่อย เช่น คีย์ผิด/Reject/แก้ไข,
+              (C) การค้นหาข้อมูล — ทำอย่างไรให้หาเจอเร็ว, (D) Case ผิดพลาดและวิธีแก้
+              สำหรับ Test Cases ละเอียดให้ดูที่แท็บ <Badge variant="outline" className="mx-1">UAT Test Suite</Badge>
+            </p>
+          </div>
+
+          {/* ============ A. FLOW ปกติ ============ */}
+          <div className="space-y-3">
+            <h3 className="text-lg font-bold flex items-center gap-2 pb-2 border-b">
+              <CheckCircle className="h-5 w-5 text-success" /> A. Flow การทำงานปกติ (Happy Path)
+            </h3>
+            <div className="grid md:grid-cols-2 gap-3">
+              {[
+                {
+                  title: "Flow 1: รับสินค้าเข้าคลัง",
+                  steps: ["นำสินค้าเข้าระบบ (PD)", "รับเข้าคลัง (GR)", "Stock เพิ่ม + S/N สถานะ in_stock", "ปรากฏใน Stock Card"],
+                  color: "blue",
+                },
+                {
+                  title: "Flow 2: เบิกสินค้า",
+                  steps: ["ขอเบิก (IR)", "Manager อนุมัติ", "จัดเตรียม + จ่ายสินค้า", "ผู้ขอยืนยันรับ (Confirm)"],
+                  color: "green",
+                },
+                {
+                  title: "Flow 3: ติดตั้งบนป้าย",
+                  steps: ["เบิกพร้อมระบุป้าย", "จ่ายสินค้า", "Billboard Detail แสดงอุปกรณ์ที่ติดตั้ง", "S/N status = installed"],
+                  color: "purple",
+                },
+                {
+                  title: "Flow 4: PM ป้ายโฆษณา",
+                  steps: ["ระบบคำนวณวันถึงกำหนด", "แจ้งเตือน Notification", "ช่างทำ PM + บันทึกผล", "PM History เก็บประวัติ"],
+                  color: "amber",
+                },
+                {
+                  title: "Flow 5: Swap อุปกรณ์",
+                  steps: ["แจ้งคำขอ Swap (SWP)", "เลือก Spare + Old", "Execute Swap", "Old → Defective Return คิวอัตโนมัติ"],
+                  color: "rose",
+                },
+                {
+                  title: "Flow 6: Direct Shipping",
+                  steps: ["ขอ DS (พร้อม PR/PO)", "Manager อนุมัติ", "จัดซื้อ + Public Link", "ผู้รับยืนยัน"],
+                  color: "cyan",
+                },
+                {
+                  title: "Flow 7: Ad Management",
+                  steps: ["รับโฆษณา (พร้อมรูป)", "เบิกจ่ายให้ผู้รับเหมา", "ส่ง Public Link + PIN", "ผู้รับเหมาคอนเฟิร์ม"],
+                  color: "pink",
+                },
+                {
+                  title: "Flow 8: Tool PM",
+                  steps: ["ตั้ง Schedule (interval days)", "Task ขึ้นถึงกำหนด", "ช่างตรวจ + บันทึกผล", "ระบบสร้าง task รอบถัดไป"],
+                  color: "indigo",
+                },
+              ].map((flow, i) => (
+                <div key={i} className="p-4 border rounded-lg bg-card">
+                  <h4 className="font-semibold text-sm mb-2 flex items-center gap-1">
+                    <Zap className="h-4 w-4 text-primary" /> {flow.title}
+                  </h4>
+                  <ol className="text-xs space-y-1 text-muted-foreground list-decimal list-inside">
+                    {flow.steps.map((s, j) => <li key={j}>{s}</li>)}
+                  </ol>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* ============ B. FLOW ผิดปกติ ============ */}
+          <div className="space-y-3">
+            <h3 className="text-lg font-bold flex items-center gap-2 pb-2 border-b">
+              <AlertTriangle className="h-5 w-5 text-warning" /> B. Flow ผิดปกติ (Exception Path)
+            </h3>
+            <div className="space-y-2">
+              {[
+                {
+                  scenario: "Manager Reject คำขอเบิก",
+                  flow: "ผู้ขอ → ส่งคำขอ → Manager Reject พร้อมเหตุผล → ผู้ขอเห็นการ์ดสีแดงในแดชบอร์ด → กด 'แก้ไขและส่งใหม่' → แก้ตามเหตุผล → ส่งใหม่ (เลขเอกสารเดิม)",
+                  rule: "ระบบใช้เลขเอกสารเดิมต่อ Timeline บันทึกครบทั้ง Reject + Resubmit",
+                  uat: "EDGE-TC-02",
+                },
+                {
+                  scenario: "ขอเบิกเกิน Stock",
+                  flow: "ขอ 100 ชิ้น Stock มี 20 → ระบบจ่าย 20 + บันทึก 80 เป็น 'รอ Stock' → เมื่อรับเข้าใหม่ ระบบแจ้งผู้ขอเดิมอัตโนมัติ",
+                  rule: "Stock ห้ามติดลบ ส่วนเกินเข้าคิว waiting_stock",
+                  uat: "EDGE-TC-01",
+                },
+                {
+                  scenario: "ของส่งมาไม่ครบ/ผิดรุ่น",
+                  flow: "ผู้ขอเปิด 'ยืนยันรับสินค้า' → เลือก 'มีปัญหา' → ระบุประเภท (จำนวนไม่ครบ/ผิดรุ่น) → กรอก actual_quantity + อัปโหลดรูป + คำอธิบาย → คลังได้รับแจ้งเตือน",
+                  rule: "ห้ามกดยืนยัน 'ปกติ' ถ้าของไม่ครบ",
+                  uat: "EDGE-TC-04",
+                },
+                {
+                  scenario: "Direct Shipping Reject",
+                  flow: "Approver Reject (เช่น พิกัดผิด) → Requester แก้พิกัด/ข้อมูล → ส่งใหม่ → Timeline บันทึกประวัติครบ",
+                  rule: "ใช้เลขเอกสารเดิม Public link ใช้งานต่อได้",
+                  uat: "EDGE-TC-05",
+                },
+                {
+                  scenario: "Swap แล้วเลือกผิดเครื่อง",
+                  flow: "ตรวจที่ Billboard Detail พบ S/N ไม่ตรง → เปิด Swap Execution → 'Reverse Swap' → กรอกเหตุผล + รูปยืนยัน → Timeline ครบ",
+                  rule: "ห้ามลบ swap_executions ตรงๆ — ต้องทำ Reverse Swap เพื่อรักษา Audit",
+                  uat: "EDGE-TC-08",
+                },
+                {
+                  scenario: "Import Excel มีบางแถวผิด",
+                  flow: "อัปโหลด → Preview ไฮไลต์แถวผิด + เหตุผล (ขาดฟิลด์/format ผิด) → Import เฉพาะแถวที่ผ่าน → แก้ไฟล์แล้ว Import เฉพาะแถวที่เหลือ",
+                  rule: "ระบบไม่ Import แถวที่ validation fail",
+                  uat: "EDGE-TC-09",
+                },
+                {
+                  scenario: "Network ขาดระหว่างกด Submit",
+                  flow: "ปุ่ม Submit ถูก disable + Loading → Toast แจ้ง 'เครือข่ายมีปัญหา' → กด submit ซ้ำได้เมื่อเน็ตกลับ → ระบบไม่สร้างเอกสารซ้ำ",
+                  rule: "Idempotency: 1 click = 1 document แม้ retry",
+                  uat: "EDGE-TC-11",
+                },
+                {
+                  scenario: "ผู้ใช้พยายามเข้าเมนูที่ไม่มีสิทธิ์",
+                  flow: "พิมพ์ URL ตรง → ProtectedRoute redirect / แสดง 'ไม่มีสิทธิ์' → ยิง API ตรง → RLS ปฏิเสธที่ DB layer",
+                  rule: "ป้องกัน 2 ชั้น: UI + RLS",
+                  uat: "EDGE-TC-10",
+                },
+              ].map((item, i) => (
+                <div key={i} className="p-4 border rounded-lg bg-warning/5 border-warning/30">
+                  <div className="flex items-start justify-between gap-2 flex-wrap">
+                    <h4 className="font-semibold text-sm flex items-center gap-2">
+                      <AlertTriangle className="h-4 w-4 text-warning" /> {item.scenario}
+                    </h4>
+                    <Badge variant="outline" className="text-xs">UAT: {item.uat}</Badge>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-2"><strong>เส้นทาง:</strong> {item.flow}</p>
+                  <p className="text-xs mt-1"><strong className="text-warning">กฎ:</strong> {item.rule}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* ============ C. การค้นหาข้อมูล ============ */}
+          <div className="space-y-3">
+            <h3 className="text-lg font-bold flex items-center gap-2 pb-2 border-b">
+              <Search className="h-5 w-5 text-info" /> C. การค้นหาและตรวจสอบข้อมูล
+            </h3>
+            <div className="grid md:grid-cols-2 gap-3">
+              {[
+                {
+                  title: "ค้นเอกสารทุกประเภท",
+                  menu: "ค้นหาเอกสาร (อันดับ 2 ใน sidebar)",
+                  desc: "พิมพ์เลขเอกสารบางส่วน หรือชื่อผู้ขอ → กรองตามประเภท (PD/GR/IR/DS/AD-RCV/AD-ISS) + ช่วงวันที่",
+                  uat: "SRCH-TC-01",
+                },
+                {
+                  title: "ค้นด้วย Serial Number",
+                  menu: "Equipment Tracking Report / MP Profile",
+                  desc: "ค้น S/N → เห็นป้ายปัจจุบัน + ประวัติ install/uninstall/swap ครบ + รองรับ S/N รูปแบบ '/' หรือ multi-S/N",
+                  uat: "SRCH-TC-02",
+                },
+                {
+                  title: "Verify หลัง Swap (4 จุด)",
+                  menu: "Billboard Detail + Stock Card + Defective Returns + Timeline",
+                  desc: "(1) ป้ายเป้าหมาย: S/N ใหม่ติดตั้ง (2) Stock Spare ลด 1 (3) Old S/N เข้าคิว Defective (4) Timeline ครบ",
+                  uat: "SRCH-TC-03",
+                },
+                {
+                  title: "ตรวจ Stock Card + Movement",
+                  menu: "Stock Card",
+                  desc: "ดู in/out/transfer/adjust ทุก movement พร้อม document_no + user + timestamp → เปิดเอกสารต้นทางได้",
+                  uat: "SRCH-TC-05",
+                },
+                {
+                  title: "ประวัติ Assessment + Claim",
+                  menu: "/assessment + /claims",
+                  desc: "ค้นด้วย S/N → เห็น symptom + diagnosis + warranty + claim status → ป้องกันเคลมซ้ำ",
+                  uat: "SRCH-TC-06",
+                },
+                {
+                  title: "Audit Log ใครแก้อะไร",
+                  menu: "ทุกตาราง (created_by, updated_at)",
+                  desc: "เรียง column updated_at → ดูเวลาล่าสุด + ผู้แก้ไข → ใช้ Document Search กรองตามผู้สร้าง",
+                  uat: "SRCH-TC-07",
+                },
+                {
+                  title: "ดู Edge Function Log",
+                  menu: "Testing > Edge Function Tester",
+                  desc: "Super Admin เลือก function → Test Run → ดู response + side-effect (Notification ใหม่)",
+                  uat: "SRCH-TC-09",
+                },
+                {
+                  title: "Requester ติดตามคำขอ",
+                  menu: "แดชบอร์ดผู้เบิก",
+                  desc: "Filter Pending/Approved/Rejected → เปิด Timeline เห็น created→approved→issued→confirmed",
+                  uat: "SRCH-TC-10",
+                },
+                {
+                  title: "PM History",
+                  menu: "/pm-history + /tool-pm-history",
+                  desc: "ค้นด้วย Old Code/Tool Code → เปรียบเทียบ pm_interval_days vs ความถี่จริง → ตรวจ compliance",
+                  uat: "SRCH-TC-11",
+                },
+                {
+                  title: "Verify Bulk Import",
+                  menu: "Master Data > List",
+                  desc: "นับ record ก่อน/หลัง → sample check 5 records vs ไฟล์ต้นทาง → Export กลับเทียบ",
+                  uat: "SRCH-TC-12",
+                },
+                {
+                  title: "ค้นไม่สนตัวพิมพ์ + ไทย/อังกฤษ",
+                  menu: "ทุกหน้าที่มี SearchableSelect",
+                  desc: "'led' หา 'LED' เจอ + พิมพ์ผสมไทย-อังกฤษได้ + ค้นจาก code/name/S/N พร้อมกัน",
+                  uat: "SRCH-TC-13",
+                },
+                {
+                  title: "Notification Dismiss/Snooze",
+                  menu: "Notification Center + Settings",
+                  desc: "Dismiss เป็น per-user (ไม่กระทบคนอื่น) → ปรับ advance days ใน Settings → Recheck จำนวนเปลี่ยน",
+                  uat: "SRCH-TC-08",
+                },
+              ].map((item, i) => (
+                <div key={i} className="p-3 border rounded-lg bg-card">
+                  <div className="flex items-start justify-between gap-2 mb-1">
+                    <h4 className="font-semibold text-sm flex items-center gap-1">
+                      <Search className="h-3.5 w-3.5 text-info" /> {item.title}
+                    </h4>
+                    <Badge variant="outline" className="text-[10px]">{item.uat}</Badge>
+                  </div>
+                  <p className="text-xs text-primary">เมนู: {item.menu}</p>
+                  <p className="text-xs text-muted-foreground mt-1">{item.desc}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* ============ D. Case ผิดพลาดและวิธีแก้ ============ */}
+          <div className="space-y-3">
+            <h3 className="text-lg font-bold flex items-center gap-2 pb-2 border-b">
+              <XCircle className="h-5 w-5 text-destructive" /> D. ปัญหาที่พบบ่อยและวิธีแก้
+            </h3>
+            <div className="space-y-2">
+              {[
+                {
+                  problem: "คีย์ S/N ผิด (พิมพ์เลขสลับ)",
+                  cause: "พนักงานพิมพ์ผิดตอนรับเข้า",
+                  fix: "ไป Equipment Tracking Report หรือ MP Profile → กดแก้ไข S/N → ใส่เหตุผล → ระบบบันทึก audit log ผู้แก้ไข + เวลา",
+                  prevent: "ใช้ Barcode Scanner หรือ copy-paste จากเอกสารต้นทาง ห้ามพิมพ์มือ",
+                  uat: "EDGE-TC-03",
+                },
+                {
+                  problem: "เอกสาร PD เลือกบริษัทผิด",
+                  cause: "เลือก dropdown ผิดก่อนกด submit",
+                  fix: "ถ้ายัง pending_receive → กด 'แก้ไข' หรือ 'ยกเลิก' + สร้างใหม่ ถ้ารับเข้าแล้ว → ใช้ Defective Return ปรับ Stock",
+                  prevent: "ตรวจสอบบริษัท + ฝ่าย ในตะกร้าก่อนกด 'ส่งรายการ'",
+                  uat: "EDGE-TC-07",
+                },
+                {
+                  problem: "S/N ซ้ำตอนรับเข้า",
+                  cause: "พิมพ์ S/N ที่มีอยู่แล้วในระบบ",
+                  fix: "ระบบ block อัตโนมัติ + แสดง inline error → เปลี่ยน S/N ใหม่ ถ้าจำเป็น (เช่น สินค้าหายแล้วเจอ) → Admin ใช้ Defective Return ปรับสถานะเดิมก่อน",
+                  prevent: "ใช้ Searchable Select ค้น S/N ก่อนคีย์",
+                  uat: "EDGE-TC-12",
+                },
+                {
+                  problem: "Ad คีย์ชื่อผิด/Version ผิด",
+                  cause: "พนักงาน Ad คีย์ผิด",
+                  fix: "ถ้ายัง pending_receive → กดแก้ไขได้ ถ้า received แล้ว → lock ต้องใช้ Defective Return",
+                  prevent: "ตรวจรูปและชื่อก่อนเปลี่ยนสถานะ received",
+                  uat: "EDGE-TC-06",
+                },
+                {
+                  problem: "เอกสารซ้ำ (Duplicate Submit)",
+                  cause: "Network ช้า → ผู้ใช้กดปุ่ม submit ซ้ำ",
+                  fix: "ตรวจ Document Search ด้วยช่วงเวลา → ถ้ามีจริง: ยกเลิกเอกสารที่เกิน + อ้างเหตุผล",
+                  prevent: "ระบบ disable ปุ่มระหว่างรอ response อยู่แล้ว — รอ Toast ก่อนกดใหม่",
+                  uat: "EDGE-TC-11",
+                },
+                {
+                  problem: "Stock จริงไม่ตรงระบบ",
+                  cause: "ของหาย/ของเกิน/ลืมบันทึก movement",
+                  fix: "Audit ใน Stock Card → หา movement ที่ขาด → สร้าง Adjust transaction (Defective Return หรือ Receive ตามทิศทาง) พร้อมเหตุผล",
+                  prevent: "ทำ Stock Count ทุกเดือน + ตรวจ Movement Log สม่ำเสมอ",
+                  uat: "SRCH-TC-05",
+                },
+                {
+                  problem: "PM ไม่แจ้งเตือน",
+                  cause: "User เคย dismiss หรือ Schedule ไม่ active",
+                  fix: "ตรวจ Notification Settings → ปรับ advance days → ตรวจ Tool/Billboard PM Schedule ว่า active → ตรวจ Edge Function 'check-low-stock' ใน Testing",
+                  prevent: "Super Admin ตรวจ Cron + Function logs ทุกสัปดาห์",
+                  uat: "SRCH-TC-08, SRCH-TC-09",
+                },
+                {
+                  problem: "ผู้ใช้บอกว่ามองไม่เห็นเมนู",
+                  cause: "สิทธิ์ Function/Department ยังไม่ได้รับ",
+                  fix: "Admin → User Management → User Permissions → เปิด function ที่ต้องการ + ผูก department ที่อนุญาต → ผู้ใช้ logout/login ใหม่",
+                  prevent: "Onboarding ผู้ใช้ใหม่ตรวจสิทธิ์ครบทุก function ที่จำเป็น",
+                  uat: "EDGE-TC-10",
+                },
+              ].map((item, i) => (
+                <div key={i} className="p-4 border rounded-lg bg-destructive/5 border-destructive/20">
+                  <h4 className="font-semibold text-sm flex items-center gap-2 mb-2">
+                    <XCircle className="h-4 w-4 text-destructive" /> {item.problem}
+                    <Badge variant="outline" className="text-[10px] ml-auto">{item.uat}</Badge>
+                  </h4>
+                  <div className="grid md:grid-cols-3 gap-2 text-xs">
+                    <div className="p-2 rounded bg-muted/50">
+                      <p className="font-semibold text-muted-foreground text-[10px] uppercase mb-1">สาเหตุ</p>
+                      <p>{item.cause}</p>
+                    </div>
+                    <div className="p-2 rounded bg-success/10">
+                      <p className="font-semibold text-success text-[10px] uppercase mb-1">วิธีแก้</p>
+                      <p>{item.fix}</p>
+                    </div>
+                    <div className="p-2 rounded bg-info/10">
+                      <p className="font-semibold text-info text-[10px] uppercase mb-1">วิธีป้องกัน</p>
+                      <p>{item.prevent}</p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Quick Reference */}
+          <div className="p-4 rounded-lg bg-muted/30 border">
+            <h3 className="font-semibold flex items-center gap-2 mb-3">
+              <Clipboard className="h-4 w-4" /> Quick Reference: เมนูสำคัญสำหรับการตรวจสอบ
+            </h3>
+            <div className="grid md:grid-cols-2 gap-2 text-xs">
+              {[
+                ["ค้นหาเอกสาร", "หาเอกสารทุกประเภทจากที่เดียว"],
+                ["Stock Card", "ดู in/out + ยอดคงเหลือ + Movement ครบ"],
+                ["Equipment Tracking Report", "ค้น S/N + ประวัติติดตั้ง/ถอด/Swap"],
+                ["Document Search", "ค้นข้าม PD/GR/IR/DS/AD-RCV/AD-ISS"],
+                ["Notification Center", "แจ้งเตือนทั้งหมด + dismiss per-user"],
+                ["Admin > User Permissions", "จัดการสิทธิ์ + ตรวจ access"],
+                ["Testing > Edge Function Tester", "Debug background jobs"],
+                ["Requester Dashboard", "ผู้ขอเบิกติดตามคำขอตัวเอง"],
+                ["KPI Report", "วัดผล PM compliance + dead stock"],
+                ["UAT Test Suite (แท็บอื่น)", "Test Cases ละเอียด 50+ ครอบคลุม Flow ปกติ + ผิดปกติ + Search"],
+              ].map(([menu, desc], i) => (
+                <div key={i} className="flex items-start gap-2 p-2 rounded bg-card">
+                  <ChevronRight className="h-3 w-3 text-primary mt-0.5 shrink-0" />
+                  <div>
+                    <span className="font-semibold">{menu}:</span>{" "}
+                    <span className="text-muted-foreground">{desc}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      ),
     },
   ];
 
