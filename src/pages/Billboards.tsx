@@ -15,6 +15,7 @@ import BillboardForm from "@/components/billboard/BillboardForm";
 import BillboardFilters from "@/components/billboard/BillboardFilters";
 import BillboardExport from "@/components/billboard/BillboardExport";
 import { BillboardSummaryCards } from "@/components/billboard/BillboardSummaryCards";
+import { DraggableScrollTable } from "@/components/ui/draggable-scroll-table";
 import { useIsSuperAdmin } from "@/hooks/useIsSuperAdmin";
 import {
   Select,
