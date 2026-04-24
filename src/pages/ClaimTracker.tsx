@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -65,6 +66,7 @@ const STATUS_LABELS: Record<string, { label: string; variant: "default" | "secon
 
 export default function ClaimTracker() {
   const { user } = useAuth();
+  const location = useLocation();
   const [records, setRecords] = useState<ClaimRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("list");
@@ -154,6 +156,26 @@ export default function ClaimTracker() {
     fetchRecords();
     fetchSubjects();
   }, []);
+
+  // Apply prefill from navigation state
+  useEffect(() => {
+    const prefill = (location.state as any)?.prefill;
+    if (!prefill || subjects.length === 0) return;
+    const { isMediaPlayer, itemId, serial, symptomDescription: sym } = prefill;
+    const subj = subjects.find((s) =>
+      isMediaPlayer
+        ? s.type === "media_player" && s.id === itemId
+        : s.type === "equipment" && (s.serial === serial || (!serial && s.code === itemId))
+    );
+    if (subj) {
+      setSubjectKey(`${subj.type === "media_player" ? "mp" : "eq"}:${subj.id}`);
+    }
+    if (sym) setSymptomDescription(sym);
+    setActiveTab("new");
+    toast.info("เติมข้อมูลจากรายการของเสียให้แล้ว — โปรดตรวจสอบและบันทึก");
+    window.history.replaceState({}, "");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [subjects]);
 
   const subjectOptions = useMemo(
     () =>
