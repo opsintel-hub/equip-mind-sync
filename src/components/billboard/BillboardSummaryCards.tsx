@@ -17,99 +17,129 @@ interface BillboardSummaryCardsProps {
   searchTerm: string;
 }
 
+type BillboardRow = { id: string; status: string | null; department: string | null };
+
 export function BillboardSummaryCards({ filters, searchTerm }: BillboardSummaryCardsProps) {
   const { data, isLoading } = useQuery({
     queryKey: ["billboard-summary", filters, searchTerm],
     queryFn: async () => {
-      // Resolve equipment-status filter -> billboard ids
+      // Resolve equipment-status filter -> billboard ids (paginate to bypass 1000 row limit)
       let billboardIdFilter: string[] | null = null;
       if (filters.equipmentStatus) {
         const today = new Date().toISOString().split("T")[0];
         const in30 = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
-        const { data: be } = await supabase
-          .from("billboard_equipment")
-          .select("billboard_id, equipment:equipment_id(expiry_date, warranty_expiry_date)");
         const ids = new Set<string>();
-        be?.forEach((row) => {
-          const eq = row.equipment as { expiry_date: string | null; warranty_expiry_date: string | null } | null;
-          if (!eq) return;
-          switch (filters.equipmentStatus) {
-            case "expired":
-              if (eq.expiry_date && eq.expiry_date < today) ids.add(row.billboard_id);
-              break;
-            case "warranty_expired":
-              if (eq.warranty_expiry_date && eq.warranty_expiry_date < today) ids.add(row.billboard_id);
-              break;
-            case "expiring_soon":
-              if (eq.expiry_date && eq.expiry_date >= today && eq.expiry_date <= in30) ids.add(row.billboard_id);
-              break;
-            case "warranty_expiring_soon":
-              if (eq.warranty_expiry_date && eq.warranty_expiry_date >= today && eq.warranty_expiry_date <= in30)
-                ids.add(row.billboard_id);
-              break;
-          }
-        });
+        const pageSize = 1000;
+        let from = 0;
+        while (true) {
+          const { data: be, error } = await supabase
+            .from("billboard_equipment")
+            .select("billboard_id, equipment:equipment_id(expiry_date, warranty_expiry_date)")
+            .range(from, from + pageSize - 1);
+          if (error) throw error;
+          if (!be || be.length === 0) break;
+          be.forEach((row) => {
+            const eq = row.equipment as { expiry_date: string | null; warranty_expiry_date: string | null } | null;
+            if (!eq) return;
+            switch (filters.equipmentStatus) {
+              case "expired":
+                if (eq.expiry_date && eq.expiry_date < today) ids.add(row.billboard_id);
+                break;
+              case "warranty_expired":
+                if (eq.warranty_expiry_date && eq.warranty_expiry_date < today) ids.add(row.billboard_id);
+                break;
+              case "expiring_soon":
+                if (eq.expiry_date && eq.expiry_date >= today && eq.expiry_date <= in30) ids.add(row.billboard_id);
+                break;
+              case "warranty_expiring_soon":
+                if (eq.warranty_expiry_date && eq.warranty_expiry_date >= today && eq.warranty_expiry_date <= in30)
+                  ids.add(row.billboard_id);
+                break;
+            }
+          });
+          if (be.length < pageSize) break;
+          from += pageSize;
+        }
         billboardIdFilter = Array.from(ids);
         if (billboardIdFilter.length === 0) {
           return { total: 0, active: 0, maintenance: 0, inactive: 0, expired: 0, warrantyExpired: 0, byDepartment: [] };
         }
       }
 
-      // Fetch filtered billboards (id, status, department) — only what we need
-      let q = supabase.from("billboards").select("id, status, department");
-      if (searchTerm) {
-        q = q.or(
-          `equipment_id.ilike.%${searchTerm}%,old_code.ilike.%${searchTerm}%,description.ilike.%${searchTerm}%,location_name.ilike.%${searchTerm}%`,
-        );
+      // Helper: build the base filtered billboards query
+      const buildQuery = () => {
+        let q = supabase.from("billboards").select("id, status, department");
+        if (searchTerm) {
+          q = q.or(
+            `equipment_id.ilike.%${searchTerm}%,old_code.ilike.%${searchTerm}%,description.ilike.%${searchTerm}%,location_name.ilike.%${searchTerm}%`,
+          );
+        }
+        if (filters.region) q = q.eq("region", filters.region);
+        if (filters.district) q = q.eq("district", filters.district);
+        if (filters.department) q = q.eq("department", filters.department);
+        if (filters.mediaType) q = q.eq("media_type", filters.mediaType);
+        if (filters.status) q = q.eq("status", filters.status);
+        if (filters.locationName) q = q.ilike("location_name", `%${filters.locationName}%`);
+        if (billboardIdFilter) q = q.in("id", billboardIdFilter);
+        return q;
+      };
+
+      // Paginate through ALL filtered billboards (Supabase max 1000/req)
+      const allRows: BillboardRow[] = [];
+      const pageSize = 1000;
+      let offset = 0;
+      while (true) {
+        const { data: rows, error } = await buildQuery().range(offset, offset + pageSize - 1);
+        if (error) throw error;
+        if (!rows || rows.length === 0) break;
+        allRows.push(...(rows as BillboardRow[]));
+        if (rows.length < pageSize) break;
+        offset += pageSize;
       }
-      if (filters.region) q = q.eq("region", filters.region);
-      if (filters.district) q = q.eq("district", filters.district);
-      if (filters.department) q = q.eq("department", filters.department);
-      if (filters.mediaType) q = q.eq("media_type", filters.mediaType);
-      if (filters.status) q = q.eq("status", filters.status);
-      if (filters.locationName) q = q.ilike("location_name", `%${filters.locationName}%`);
-      if (billboardIdFilter) q = q.in("id", billboardIdFilter);
 
-      const { data: rows, error } = await q.limit(50000);
-      if (error) throw error;
+      const billboardIds = allRows.map((r) => r.id);
 
-      const billboardIds = (rows || []).map((r) => r.id);
-
-      // Compute equipment expiry/warranty counts across the filtered set
+      // Compute equipment expiry/warranty across the filtered set (chunked .in)
       let expired = 0;
       let warrantyExpired = 0;
       if (billboardIds.length > 0) {
         const today = new Date().toISOString().split("T")[0];
         const expiredSet = new Set<string>();
         const warrSet = new Set<string>();
-
-        // chunk to avoid huge .in() lists
-        const chunkSize = 500;
+        const chunkSize = 300;
         for (let i = 0; i < billboardIds.length; i += chunkSize) {
           const chunk = billboardIds.slice(i, i + chunkSize);
-          const { data: be } = await supabase
-            .from("billboard_equipment")
-            .select("billboard_id, equipment:equipment_id(expiry_date, warranty_expiry_date)")
-            .in("billboard_id", chunk);
-          be?.forEach((row) => {
-            const eq = row.equipment as { expiry_date: string | null; warranty_expiry_date: string | null } | null;
-            if (!eq) return;
-            if (eq.expiry_date && eq.expiry_date < today) expiredSet.add(row.billboard_id);
-            if (eq.warranty_expiry_date && eq.warranty_expiry_date < today) warrSet.add(row.billboard_id);
-          });
+          // paginate within each chunk too in case of many equipment rows
+          let beOffset = 0;
+          while (true) {
+            const { data: be, error } = await supabase
+              .from("billboard_equipment")
+              .select("billboard_id, equipment:equipment_id(expiry_date, warranty_expiry_date)")
+              .in("billboard_id", chunk)
+              .range(beOffset, beOffset + pageSize - 1);
+            if (error) throw error;
+            if (!be || be.length === 0) break;
+            be.forEach((row) => {
+              const eq = row.equipment as { expiry_date: string | null; warranty_expiry_date: string | null } | null;
+              if (!eq) return;
+              if (eq.expiry_date && eq.expiry_date < today) expiredSet.add(row.billboard_id);
+              if (eq.warranty_expiry_date && eq.warranty_expiry_date < today) warrSet.add(row.billboard_id);
+            });
+            if (be.length < pageSize) break;
+            beOffset += pageSize;
+          }
         }
         expired = expiredSet.size;
         warrantyExpired = warrSet.size;
       }
 
-      const total = rows?.length || 0;
-      const active = rows?.filter((r) => r.status === "active").length || 0;
-      const maintenance = rows?.filter((r) => r.status === "maintenance").length || 0;
-      const inactive = rows?.filter((r) => r.status === "inactive").length || 0;
+      const total = allRows.length;
+      const active = allRows.filter((r) => r.status === "active").length;
+      const maintenance = allRows.filter((r) => r.status === "maintenance").length;
+      const inactive = allRows.filter((r) => r.status === "inactive").length;
 
-      // Department breakdown
       const deptMap = new Map<string, number>();
-      rows?.forEach((r) => {
+      allRows.forEach((r) => {
         const d = r.department || "ไม่ระบุ";
         deptMap.set(d, (deptMap.get(d) || 0) + 1);
       });
@@ -150,7 +180,6 @@ export function BillboardSummaryCards({ filters, searchTerm }: BillboardSummaryC
         ))}
       </div>
 
-      {/* Department breakdown bar */}
       {(data?.byDepartment?.length ?? 0) > 0 && (
         <Card className="border-border/50">
           <CardContent className="p-3 flex items-center gap-3 flex-wrap">
