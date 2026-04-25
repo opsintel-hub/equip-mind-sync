@@ -5413,6 +5413,7 @@ export type Database = {
         Returns: string
       }
       get_next_tool_code: { Args: { p_prefix: string }; Returns: string }
+      get_public_schema_info: { Args: never; Returns: Json }
       get_users_emails: {
         Args: never
         Returns: {

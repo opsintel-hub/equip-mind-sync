@@ -62,6 +62,7 @@ import KPIReport from "./pages/KPIReport";
 import SwapWizard from "./pages/SwapWizard";
 import AssessmentLog from "./pages/AssessmentLog";
 import ClaimTracker from "./pages/ClaimTracker";
+import DatabaseGuide from "./pages/DatabaseGuide";
 import DashboardLayout from "./components/DashboardLayout";
 import ProtectedRoute from "./components/ProtectedRoute";
 import NotFound from "./pages/NotFound";
@@ -133,6 +134,7 @@ const App = () => (
             <Route path="/direct-shipping" element={<ProtectedRoute><DashboardLayout><DirectShippingEntry /></DashboardLayout></ProtectedRoute>} />
             <Route path="/direct-shipping-approval" element={<ProtectedRoute><DashboardLayout><DirectShippingApproval /></DashboardLayout></ProtectedRoute>} />
             <Route path="/direct-shipping-procurement" element={<ProtectedRoute><DashboardLayout><DirectShippingProcurement /></DashboardLayout></ProtectedRoute>} />
+            <Route path="/database-guide" element={<ProtectedRoute><DashboardLayout><DatabaseGuide /></DashboardLayout></ProtectedRoute>} />
             {/* Public billboard view - no auth required */}
             <Route path="/billboard-view/:id" element={<BillboardPublicView />} />
             <Route path="/ad-view/:token" element={<AdPublicView />} />
