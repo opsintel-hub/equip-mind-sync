@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useIsSuperAdmin } from "@/hooks/useIsSuperAdmin";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,23 +7,10 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Database, Search, RefreshCw, ExternalLink, AlertTriangle, Info } from "lucide-react";
+import { Database, Search, RefreshCw, AlertTriangle, Info, ChevronRight } from "lucide-react";
 import { TABLE_GUIDE, CATEGORY_ORDER } from "@/lib/databaseGuide";
 import { toast } from "sonner";
+import TableDetailDialog from "@/components/database-guide/TableDetailDialog";
 
 interface ColumnInfo {
   name: string;
@@ -38,8 +25,6 @@ interface TableInfo {
   columns: ColumnInfo[];
 }
 
-const COLUMN_PREVIEW_LIMIT = 20;
-
 export default function DatabaseGuide() {
   const navigate = useNavigate();
   const { isSuperAdmin, loading: roleLoading } = useIsSuperAdmin();
@@ -47,6 +32,13 @@ export default function DatabaseGuide() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [selected, setSelected] = useState<TableInfo | null>(null);
+  const [dialogOpen, setDialogOpen] = useState(false);
+
+  const openTable = (t: TableInfo) => {
+    setSelected(t);
+    setDialogOpen(true);
+  };
 
   const fetchSchema = async () => {
     setLoading(true);
@@ -226,98 +218,43 @@ export default function DatabaseGuide() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="pt-0">
-                <Accordion type="multiple" className="space-y-1">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   {catTables.map((t) => {
                     const meta = TABLE_GUIDE[t.name];
                     return (
-                      <AccordionItem
+                      <button
                         key={t.name}
-                        value={t.name}
-                        className="border rounded-lg px-3"
+                        onClick={() => openTable(t)}
+                        className="group flex items-center gap-2 border rounded-lg px-3 py-2.5 text-left hover:border-primary hover:bg-accent/50 transition-colors"
                       >
-                        <AccordionTrigger className="hover:no-underline py-3">
-                          <div className="flex items-center gap-3 flex-1 text-left">
-                            <code className="text-sm font-mono font-semibold">{t.name}</code>
-                            <Badge variant="outline" className="text-xs">
-                              {t.row_count.toLocaleString()} rows
-                            </Badge>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            <code className="text-sm font-mono font-semibold truncate">
+                              {t.name}
+                            </code>
                             {!meta && (
-                              <Badge variant="destructive" className="text-xs">
-                                ยังไม่มีคำอธิบาย
+                              <Badge variant="destructive" className="text-[10px] py-0 px-1.5">
+                                ใหม่
                               </Badge>
                             )}
                           </div>
-                        </AccordionTrigger>
-                        <AccordionContent className="pb-3 space-y-3">
-                          {meta?.description && (
-                            <p className="text-sm">{meta.description}</p>
-                          )}
-                          {meta?.relatedRoutes && meta.relatedRoutes.length > 0 && (
-                            <div className="flex flex-wrap gap-2">
-                              <span className="text-xs text-muted-foreground self-center">
-                                เมนูที่เกี่ยวข้อง:
-                              </span>
-                              {meta.relatedRoutes.map((r) => (
-                                <Link key={r.path} to={r.path}>
-                                  <Badge
-                                    variant="secondary"
-                                    className="cursor-pointer hover:bg-primary hover:text-primary-foreground gap-1"
-                                  >
-                                    {r.label}
-                                    <ExternalLink className="w-3 h-3" />
-                                  </Badge>
-                                </Link>
-                              ))}
-                            </div>
-                          )}
-                          {/* Columns preview */}
-                          <div>
-                            <div className="flex items-center justify-between mb-2">
-                              <p className="text-xs font-medium text-muted-foreground">
-                                คอลัมน์ ({t.columns.length})
-                              </p>
-                              {t.columns.length > COLUMN_PREVIEW_LIMIT && (
-                                <span className="text-xs text-muted-foreground">
-                                  แสดง {COLUMN_PREVIEW_LIMIT} จาก {t.columns.length} แถว
-                                </span>
-                              )}
-                            </div>
-                            <div className="border rounded-md overflow-hidden">
-                              <Table>
-                                <TableHeader>
-                                  <TableRow>
-                                    <TableHead className="h-8">ชื่อ</TableHead>
-                                    <TableHead className="h-8">ประเภท</TableHead>
-                                    <TableHead className="h-8 w-20">Null</TableHead>
-                                  </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                  {t.columns.slice(0, COLUMN_PREVIEW_LIMIT).map((c) => (
-                                    <TableRow key={c.name}>
-                                      <TableCell className="py-1.5 font-mono text-xs">
-                                        {c.name}
-                                      </TableCell>
-                                      <TableCell className="py-1.5 text-xs text-muted-foreground">
-                                        {c.type}
-                                      </TableCell>
-                                      <TableCell className="py-1.5 text-xs">
-                                        {c.nullable ? (
-                                          <Badge variant="outline" className="text-xs">YES</Badge>
-                                        ) : (
-                                          <Badge variant="secondary" className="text-xs">NO</Badge>
-                                        )}
-                                      </TableCell>
-                                    </TableRow>
-                                  ))}
-                                </TableBody>
-                              </Table>
-                            </div>
+                          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                            <span>{t.row_count.toLocaleString()} rows</span>
+                            <span>•</span>
+                            <span>{t.columns.length} cols</span>
+                            {meta?.relatedRoutes && meta.relatedRoutes.length > 0 && (
+                              <>
+                                <span>•</span>
+                                <span>{meta.relatedRoutes.length} เมนู</span>
+                              </>
+                            )}
                           </div>
-                        </AccordionContent>
-                      </AccordionItem>
+                        </div>
+                        <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-primary flex-shrink-0" />
+                      </button>
                     );
                   })}
-                </Accordion>
+                </div>
               </CardContent>
             </Card>
           ))}
@@ -330,6 +267,12 @@ export default function DatabaseGuide() {
           )}
         </div>
       )}
+
+      <TableDetailDialog
+        table={selected}
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+      />
     </div>
   );
 }
