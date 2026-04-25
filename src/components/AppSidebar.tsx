@@ -54,6 +54,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useState, useMemo, useCallback, useEffect } from "react";
 import { useFunctionPermissions } from "@/hooks/useFunctionPermissions";
+import { useIsSuperAdmin } from "@/hooks/useIsSuperAdmin";
 import { useLocation } from "react-router-dom";
 import { Skeleton } from "@/components/ui/skeleton";
 interface SubMenuItem {
@@ -276,6 +277,7 @@ export function AppSidebar() {
   const { state } = useSidebar();
   const { signOut } = useAuth();
   const { hasFunctionAccess, isAdmin, loading: permLoading } = useFunctionPermissions();
+  const { isSuperAdmin, loading: superLoading } = useIsSuperAdmin();
   const location = useLocation();
   
   // Find which menu should be open based on current route
@@ -302,14 +304,15 @@ export function AppSidebar() {
   }, [location.pathname, getActiveMenu]);
 
   const filteredMenuGroups = useMemo(() => {
-    if (permLoading) return [];
+    if (permLoading || superLoading) return [];
     
     return menuGroups.map(group => ({
       ...group,
       items: group.items.map(item => {
-        // Filter sub-items by their own functionName
+        // Filter sub-items by their own functionName / superAdminOnly
         if (item.subItems) {
           const filteredSubItems = item.subItems.filter(sub => {
+            if (sub.superAdminOnly && !isSuperAdmin) return false;
             if (!sub.functionName) return true;
             if (isAdmin) return true;
             return hasFunctionAccess(sub.functionName);
@@ -320,13 +323,14 @@ export function AppSidebar() {
       }).filter(item => {
         // Hide parent if it has subItems but none are visible
         if (item.subItems && item.subItems.length === 0) return false;
+        if (item.superAdminOnly && !isSuperAdmin) return false;
         // Check parent-level functionName
         if (!item.functionName) return true;
         if (isAdmin) return true;
         return hasFunctionAccess(item.functionName);
       })
     })).filter(group => group.items.length > 0);
-  }, [hasFunctionAccess, isAdmin, permLoading]);
+  }, [hasFunctionAccess, isAdmin, permLoading, isSuperAdmin, superLoading]);
 
   const handleLogout = () => {
     signOut();
