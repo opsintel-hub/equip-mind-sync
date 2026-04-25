@@ -267,6 +267,12 @@ export default function DatabaseGuide() {
           )}
         </div>
       )}
+
+      <TableDetailDialog
+        table={selected}
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+      />
     </div>
   );
 }
