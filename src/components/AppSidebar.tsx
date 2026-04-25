@@ -61,6 +61,7 @@ interface SubMenuItem {
   url: string;
   icon: React.ComponentType<{ className?: string }>;
   functionName?: string;
+  superAdminOnly?: boolean;
 }
 
 interface MenuItem {
@@ -68,6 +69,7 @@ interface MenuItem {
   url?: string;
   icon: React.ComponentType<{ className?: string }>;
   functionName?: string;
+  superAdminOnly?: boolean;
   subItems?: SubMenuItem[];
 }
 
