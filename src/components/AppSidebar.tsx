@@ -260,6 +260,7 @@ const menuGroups: MenuGroup[] = [
       { title: "ข้อมูลหลัก", url: "/master-data", icon: Database, functionName: "master_data" },
       { title: "ตั้งค่าแจ้งเตือน", url: "/notification-settings", icon: Bell },
       { title: "จัดการผู้ใช้", url: "/admin", icon: Shield, functionName: "admin" },
+      { title: "คู่มือ Database", url: "/database-guide", icon: FileSearch, superAdminOnly: true },
     ]
   },
   {
