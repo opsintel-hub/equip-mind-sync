@@ -25,8 +25,6 @@ interface TableInfo {
   columns: ColumnInfo[];
 }
 
-const COLUMN_PREVIEW_LIMIT = 20;
-
 export default function DatabaseGuide() {
   const navigate = useNavigate();
   const { isSuperAdmin, loading: roleLoading } = useIsSuperAdmin();
@@ -34,6 +32,13 @@ export default function DatabaseGuide() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [selected, setSelected] = useState<TableInfo | null>(null);
+  const [dialogOpen, setDialogOpen] = useState(false);
+
+  const openTable = (t: TableInfo) => {
+    setSelected(t);
+    setDialogOpen(true);
+  };
 
   const fetchSchema = async () => {
     setLoading(true);
