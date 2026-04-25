@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useIsSuperAdmin } from "@/hooks/useIsSuperAdmin";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,23 +7,10 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Database, Search, RefreshCw, ExternalLink, AlertTriangle, Info } from "lucide-react";
+import { Database, Search, RefreshCw, AlertTriangle, Info, ChevronRight } from "lucide-react";
 import { TABLE_GUIDE, CATEGORY_ORDER } from "@/lib/databaseGuide";
 import { toast } from "sonner";
+import TableDetailDialog from "@/components/database-guide/TableDetailDialog";
 
 interface ColumnInfo {
   name: string;
