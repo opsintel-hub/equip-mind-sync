@@ -343,6 +343,13 @@ export function UserPermissionManager() {
 
   const isAdmin = (userId: string) => userRoles[userId]?.includes('admin') || userRoles[userId]?.includes('super_admin');
 
+  const hasNoRoles = (userId: string) => !userRoles[userId] || userRoles[userId].length === 0;
+
+  const handleOpenWizard = (user: User) => {
+    setWizardUser(user);
+    setWizardOpen(true);
+  };
+
   const getRoleSummary = (userId: string) => {
     const roles = userRoles[userId] || [];
     if (roles.length === 0) return null;
