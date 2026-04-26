@@ -3932,6 +3932,60 @@ export type Database = {
         }
         Relationships: []
       }
+      permission_templates: {
+        Row: {
+          created_at: string
+          default_dept_can_create: boolean
+          default_dept_can_delete: boolean
+          default_dept_can_edit: boolean
+          default_dept_can_view: boolean
+          description: string | null
+          display_order: number
+          icon: string | null
+          id: string
+          is_active: boolean
+          label: string
+          suggested_functions: string[]
+          suggested_roles: Database["public"]["Enums"]["app_role"][]
+          template_key: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          default_dept_can_create?: boolean
+          default_dept_can_delete?: boolean
+          default_dept_can_edit?: boolean
+          default_dept_can_view?: boolean
+          description?: string | null
+          display_order?: number
+          icon?: string | null
+          id?: string
+          is_active?: boolean
+          label: string
+          suggested_functions?: string[]
+          suggested_roles?: Database["public"]["Enums"]["app_role"][]
+          template_key: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          default_dept_can_create?: boolean
+          default_dept_can_delete?: boolean
+          default_dept_can_edit?: boolean
+          default_dept_can_view?: boolean
+          description?: string | null
+          display_order?: number
+          icon?: string | null
+          id?: string
+          is_active?: boolean
+          label?: string
+          suggested_functions?: string[]
+          suggested_roles?: Database["public"]["Enums"]["app_role"][]
+          template_key?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       pm_action_types: {
         Row: {
           code: string
