@@ -1,73 +1,109 @@
-import React from "react";
+import React, { Suspense, lazy } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
-import Login from "./pages/Login";
-import Dashboard from "./pages/Dashboard";
-import DeliveryEntry from "./pages/DeliveryEntry";
-import ReceiveGoods from "./pages/ReceiveGoods";
-import GoodsIssue from "./pages/GoodsIssue";
-import IssueRequest from "./pages/IssueRequest";
-import IssueGoods from "./pages/IssueGoods";
-import MasterData from "./pages/MasterData";
-import Billboards from "./pages/Billboards";
-import BillboardDetail from "./pages/BillboardDetail";
-import BillboardPublicView from "./pages/BillboardPublicView";
-import Admin from "./pages/Admin";
-import QRCodePage from "./pages/QRCode";
-import TransferHistory from "./pages/TransferHistory";
-import PMHistory from "./pages/PMHistory";
-import ToolPMTasks from "./pages/ToolPMTasks";
-import ToolPMHistory from "./pages/ToolPMHistory";
-import ToolPMSchedule from "./pages/ToolPMSchedule";
-import ToolPMReport from "./pages/ToolPMReport";
-import ToolManagement from "./pages/ToolManagement";
-import EquipmentLoans from "./pages/EquipmentLoans";
-import IncompleteIssues from "./pages/IncompleteIssues";
-import BillboardIssueReport from "./pages/BillboardIssueReport";
-import NotificationSettingsPage from "./pages/NotificationSettingsPage";
-import DeadStockReport from "./pages/DeadStockReport";
-import PurchaseRequests from "./pages/PurchaseRequests";
-import WaitingStockRequests from "./pages/WaitingStockRequests";
-import RequesterDashboard from "./pages/RequesterDashboard";
-import UserManual from "./pages/UserManual";
-import DocumentSearch from "./pages/DocumentSearch";
-import Testing from "./pages/Testing";
-import InventoryReport from "./pages/InventoryReport";
-import PendingAssetCodes from "./pages/PendingAssetCodes";
-import AdManagement from "./pages/AdManagement";
-import AdEntry from "./pages/AdEntry";
-import AdRequest from "./pages/AdRequest";
-import AdIssue from "./pages/AdIssue";
-import AdPublicView from "./pages/AdPublicView";
-import AdContractorView from "./pages/AdContractorView";
-import EquipmentTrackingReport from "./pages/EquipmentTrackingReport";
-import BillboardPMPage from "./pages/BillboardPMPage";
-import DefectiveReturnEntry from "./pages/DefectiveReturnEntry";
-import StockCard from "./pages/StockCard";
-import DeliveryConfirmation from "./pages/DeliveryConfirmation";
-import ManagerApproval from "./pages/ManagerApproval";
-import WarehousePickupPlanning from "./pages/WarehousePickupPlanning";
-import DirectShippingEntry from "./pages/DirectShippingEntry";
-import DirectShippingApproval from "./pages/DirectShippingApproval";
-import DirectShippingProcurement from "./pages/DirectShippingProcurement";
-import DirectShippingPublicView from "./pages/DirectShippingPublicView";
-import BillboardPackages from "./pages/BillboardPackages";
-import MediaPlayerProfile from "./pages/MediaPlayerProfile";
-import MediaPlayerReport from "./pages/MediaPlayerReport";
-import KPIReport from "./pages/KPIReport";
-import SwapWizard from "./pages/SwapWizard";
-import AssessmentLog from "./pages/AssessmentLog";
-import ClaimTracker from "./pages/ClaimTracker";
-import DatabaseGuide from "./pages/DatabaseGuide";
 import DashboardLayout from "./components/DashboardLayout";
 import ProtectedRoute from "./components/ProtectedRoute";
+
+// Eager: หน้าแรกที่เปิดบ่อย
+import Login from "./pages/Login";
 import NotFound from "./pages/NotFound";
 
-const queryClient = new QueryClient();
+// Lazy: ทุกหน้าใน app เพื่อลดขนาด initial bundle
+const Dashboard = lazy(() => import("./pages/Dashboard"));
+const DeliveryEntry = lazy(() => import("./pages/DeliveryEntry"));
+const ReceiveGoods = lazy(() => import("./pages/ReceiveGoods"));
+const GoodsIssue = lazy(() => import("./pages/GoodsIssue"));
+const IssueRequest = lazy(() => import("./pages/IssueRequest"));
+const IssueGoods = lazy(() => import("./pages/IssueGoods"));
+const MasterData = lazy(() => import("./pages/MasterData"));
+const Billboards = lazy(() => import("./pages/Billboards"));
+const BillboardDetail = lazy(() => import("./pages/BillboardDetail"));
+const BillboardPublicView = lazy(() => import("./pages/BillboardPublicView"));
+const Admin = lazy(() => import("./pages/Admin"));
+const QRCodePage = lazy(() => import("./pages/QRCode"));
+const TransferHistory = lazy(() => import("./pages/TransferHistory"));
+const PMHistory = lazy(() => import("./pages/PMHistory"));
+const ToolPMTasks = lazy(() => import("./pages/ToolPMTasks"));
+const ToolPMHistory = lazy(() => import("./pages/ToolPMHistory"));
+const ToolPMSchedule = lazy(() => import("./pages/ToolPMSchedule"));
+const ToolPMReport = lazy(() => import("./pages/ToolPMReport"));
+const ToolManagement = lazy(() => import("./pages/ToolManagement"));
+const EquipmentLoans = lazy(() => import("./pages/EquipmentLoans"));
+const IncompleteIssues = lazy(() => import("./pages/IncompleteIssues"));
+const BillboardIssueReport = lazy(() => import("./pages/BillboardIssueReport"));
+const NotificationSettingsPage = lazy(() => import("./pages/NotificationSettingsPage"));
+const DeadStockReport = lazy(() => import("./pages/DeadStockReport"));
+const PurchaseRequests = lazy(() => import("./pages/PurchaseRequests"));
+const WaitingStockRequests = lazy(() => import("./pages/WaitingStockRequests"));
+const RequesterDashboard = lazy(() => import("./pages/RequesterDashboard"));
+const UserManual = lazy(() => import("./pages/UserManual"));
+const DocumentSearch = lazy(() => import("./pages/DocumentSearch"));
+const Testing = lazy(() => import("./pages/Testing"));
+const InventoryReport = lazy(() => import("./pages/InventoryReport"));
+const PendingAssetCodes = lazy(() => import("./pages/PendingAssetCodes"));
+const AdManagement = lazy(() => import("./pages/AdManagement"));
+const AdEntry = lazy(() => import("./pages/AdEntry"));
+const AdRequest = lazy(() => import("./pages/AdRequest"));
+const AdIssue = lazy(() => import("./pages/AdIssue"));
+const AdPublicView = lazy(() => import("./pages/AdPublicView"));
+const AdContractorView = lazy(() => import("./pages/AdContractorView"));
+const EquipmentTrackingReport = lazy(() => import("./pages/EquipmentTrackingReport"));
+const BillboardPMPage = lazy(() => import("./pages/BillboardPMPage"));
+const DefectiveReturnEntry = lazy(() => import("./pages/DefectiveReturnEntry"));
+const StockCard = lazy(() => import("./pages/StockCard"));
+const DeliveryConfirmation = lazy(() => import("./pages/DeliveryConfirmation"));
+const ManagerApproval = lazy(() => import("./pages/ManagerApproval"));
+const WarehousePickupPlanning = lazy(() => import("./pages/WarehousePickupPlanning"));
+const DirectShippingEntry = lazy(() => import("./pages/DirectShippingEntry"));
+const DirectShippingApproval = lazy(() => import("./pages/DirectShippingApproval"));
+const DirectShippingProcurement = lazy(() => import("./pages/DirectShippingProcurement"));
+const DirectShippingPublicView = lazy(() => import("./pages/DirectShippingPublicView"));
+const BillboardPackages = lazy(() => import("./pages/BillboardPackages"));
+const MediaPlayerProfile = lazy(() => import("./pages/MediaPlayerProfile"));
+const MediaPlayerReport = lazy(() => import("./pages/MediaPlayerReport"));
+const KPIReport = lazy(() => import("./pages/KPIReport"));
+const SwapWizard = lazy(() => import("./pages/SwapWizard"));
+const AssessmentLog = lazy(() => import("./pages/AssessmentLog"));
+const ClaimTracker = lazy(() => import("./pages/ClaimTracker"));
+const DatabaseGuide = lazy(() => import("./pages/DatabaseGuide"));
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      // ลดการ refetch ที่ไม่จำเป็น — ข้อมูลถือว่าสดอยู่ 1 นาที, อยู่ใน cache 5 นาที
+      staleTime: 60 * 1000,
+      gcTime: 5 * 60 * 1000,
+      refetchOnWindowFocus: false,
+      retry: 1,
+    },
+  },
+});
+
+const PageLoader = () => (
+  <div className="flex items-center justify-center min-h-[60vh]">
+    <div className="flex flex-col items-center gap-3">
+      <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+      <p className="text-sm text-muted-foreground">กำลังโหลด...</p>
+    </div>
+  </div>
+);
+
+// Helper เพื่อลดความซ้ำซ้อนของ wrapping
+const Protected = ({ children }: { children: React.ReactNode }) => (
+  <ProtectedRoute>
+    <DashboardLayout>
+      <Suspense fallback={<PageLoader />}>{children}</Suspense>
+    </DashboardLayout>
+  </ProtectedRoute>
+);
+
+const Public = ({ children }: { children: React.ReactNode }) => (
+  <Suspense fallback={<PageLoader />}>{children}</Suspense>
+);
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -78,68 +114,68 @@ const App = () => (
         <AuthProvider>
           <Routes>
             <Route path="/" element={<Login />} />
-            <Route path="/dashboard" element={<ProtectedRoute><DashboardLayout><Dashboard /></DashboardLayout></ProtectedRoute>} />
-            <Route path="/delivery-entry" element={<ProtectedRoute><DashboardLayout><DeliveryEntry /></DashboardLayout></ProtectedRoute>} />
-            <Route path="/receive-goods" element={<ProtectedRoute><DashboardLayout><ReceiveGoods /></DashboardLayout></ProtectedRoute>} />
-            <Route path="/goods-issue" element={<ProtectedRoute><DashboardLayout><GoodsIssue /></DashboardLayout></ProtectedRoute>} />
-            <Route path="/issue-request" element={<ProtectedRoute><DashboardLayout><IssueRequest /></DashboardLayout></ProtectedRoute>} />
-            <Route path="/issue-goods" element={<ProtectedRoute><DashboardLayout><IssueGoods /></DashboardLayout></ProtectedRoute>} />
-            <Route path="/master-data" element={<ProtectedRoute><DashboardLayout><MasterData /></DashboardLayout></ProtectedRoute>} />
-            <Route path="/billboards" element={<ProtectedRoute><DashboardLayout><Billboards /></DashboardLayout></ProtectedRoute>} />
-            <Route path="/billboards/:id" element={<ProtectedRoute><DashboardLayout><BillboardDetail /></DashboardLayout></ProtectedRoute>} />
-            <Route path="/admin" element={<ProtectedRoute><DashboardLayout><Admin /></DashboardLayout></ProtectedRoute>} />
-            <Route path="/qr-code" element={<ProtectedRoute><DashboardLayout><QRCodePage /></DashboardLayout></ProtectedRoute>} />
-            <Route path="/transfer-history" element={<ProtectedRoute><DashboardLayout><TransferHistory /></DashboardLayout></ProtectedRoute>} />
-            <Route path="/pm-history" element={<ProtectedRoute><DashboardLayout><PMHistory /></DashboardLayout></ProtectedRoute>} />
-            <Route path="/equipment-loans" element={<ProtectedRoute><DashboardLayout><EquipmentLoans /></DashboardLayout></ProtectedRoute>} />
-            <Route path="/incomplete-issues" element={<ProtectedRoute><DashboardLayout><IncompleteIssues /></DashboardLayout></ProtectedRoute>} />
-            <Route path="/billboard-issue-report" element={<ProtectedRoute><DashboardLayout><BillboardIssueReport /></DashboardLayout></ProtectedRoute>} />
-            <Route path="/notification-settings" element={<ProtectedRoute><DashboardLayout><NotificationSettingsPage /></DashboardLayout></ProtectedRoute>} />
-            <Route path="/dead-stock" element={<ProtectedRoute><DashboardLayout><DeadStockReport /></DashboardLayout></ProtectedRoute>} />
-            <Route path="/purchase-requests" element={<ProtectedRoute><DashboardLayout><PurchaseRequests /></DashboardLayout></ProtectedRoute>} />
-            <Route path="/waiting-stock" element={<ProtectedRoute><DashboardLayout><WaitingStockRequests /></DashboardLayout></ProtectedRoute>} />
-            <Route path="/requester-dashboard" element={<ProtectedRoute><DashboardLayout><RequesterDashboard /></DashboardLayout></ProtectedRoute>} />
-            <Route path="/user-manual" element={<ProtectedRoute><DashboardLayout><UserManual /></DashboardLayout></ProtectedRoute>} />
-            <Route path="/document-search" element={<ProtectedRoute><DashboardLayout><DocumentSearch /></DashboardLayout></ProtectedRoute>} />
-            <Route path="/testing" element={<ProtectedRoute><DashboardLayout><Testing /></DashboardLayout></ProtectedRoute>} />
+            <Route path="/dashboard" element={<Protected><Dashboard /></Protected>} />
+            <Route path="/delivery-entry" element={<Protected><DeliveryEntry /></Protected>} />
+            <Route path="/receive-goods" element={<Protected><ReceiveGoods /></Protected>} />
+            <Route path="/goods-issue" element={<Protected><GoodsIssue /></Protected>} />
+            <Route path="/issue-request" element={<Protected><IssueRequest /></Protected>} />
+            <Route path="/issue-goods" element={<Protected><IssueGoods /></Protected>} />
+            <Route path="/master-data" element={<Protected><MasterData /></Protected>} />
+            <Route path="/billboards" element={<Protected><Billboards /></Protected>} />
+            <Route path="/billboards/:id" element={<Protected><BillboardDetail /></Protected>} />
+            <Route path="/admin" element={<Protected><Admin /></Protected>} />
+            <Route path="/qr-code" element={<Protected><QRCodePage /></Protected>} />
+            <Route path="/transfer-history" element={<Protected><TransferHistory /></Protected>} />
+            <Route path="/pm-history" element={<Protected><PMHistory /></Protected>} />
+            <Route path="/equipment-loans" element={<Protected><EquipmentLoans /></Protected>} />
+            <Route path="/incomplete-issues" element={<Protected><IncompleteIssues /></Protected>} />
+            <Route path="/billboard-issue-report" element={<Protected><BillboardIssueReport /></Protected>} />
+            <Route path="/notification-settings" element={<Protected><NotificationSettingsPage /></Protected>} />
+            <Route path="/dead-stock" element={<Protected><DeadStockReport /></Protected>} />
+            <Route path="/purchase-requests" element={<Protected><PurchaseRequests /></Protected>} />
+            <Route path="/waiting-stock" element={<Protected><WaitingStockRequests /></Protected>} />
+            <Route path="/requester-dashboard" element={<Protected><RequesterDashboard /></Protected>} />
+            <Route path="/user-manual" element={<Protected><UserManual /></Protected>} />
+            <Route path="/document-search" element={<Protected><DocumentSearch /></Protected>} />
+            <Route path="/testing" element={<Protected><Testing /></Protected>} />
             {/* Stock Movement Log merged into Stock Card - redirect */}
-            <Route path="/stock-movement-log" element={<ProtectedRoute><DashboardLayout><StockCard /></DashboardLayout></ProtectedRoute>} />
-            <Route path="/inventory-report" element={<ProtectedRoute><DashboardLayout><InventoryReport /></DashboardLayout></ProtectedRoute>} />
-            <Route path="/tool-pm-tasks" element={<ProtectedRoute><DashboardLayout><ToolPMTasks /></DashboardLayout></ProtectedRoute>} />
-            <Route path="/tool-pm-history" element={<ProtectedRoute><DashboardLayout><ToolPMHistory /></DashboardLayout></ProtectedRoute>} />
-            <Route path="/tool-pm-report" element={<ProtectedRoute><DashboardLayout><ToolPMReport /></DashboardLayout></ProtectedRoute>} />
-            <Route path="/tool-pm-schedule" element={<ProtectedRoute><DashboardLayout><ToolPMSchedule /></DashboardLayout></ProtectedRoute>} />
-            <Route path="/tool-management" element={<ProtectedRoute><DashboardLayout><ToolManagement /></DashboardLayout></ProtectedRoute>} />
-            <Route path="/pending-asset-codes" element={<ProtectedRoute><DashboardLayout><PendingAssetCodes /></DashboardLayout></ProtectedRoute>} />
+            <Route path="/stock-movement-log" element={<Protected><StockCard /></Protected>} />
+            <Route path="/inventory-report" element={<Protected><InventoryReport /></Protected>} />
+            <Route path="/tool-pm-tasks" element={<Protected><ToolPMTasks /></Protected>} />
+            <Route path="/tool-pm-history" element={<Protected><ToolPMHistory /></Protected>} />
+            <Route path="/tool-pm-report" element={<Protected><ToolPMReport /></Protected>} />
+            <Route path="/tool-pm-schedule" element={<Protected><ToolPMSchedule /></Protected>} />
+            <Route path="/tool-management" element={<Protected><ToolManagement /></Protected>} />
+            <Route path="/pending-asset-codes" element={<Protected><PendingAssetCodes /></Protected>} />
             {/* Media Player Profile */}
-            <Route path="/media-player/search" element={<ProtectedRoute><DashboardLayout><MediaPlayerProfile /></DashboardLayout></ProtectedRoute>} />
-            <Route path="/media-player/:id" element={<ProtectedRoute><DashboardLayout><MediaPlayerProfile /></DashboardLayout></ProtectedRoute>} />
-            <Route path="/media-player-report" element={<ProtectedRoute><DashboardLayout><MediaPlayerReport /></DashboardLayout></ProtectedRoute>} />
-            <Route path="/swap" element={<ProtectedRoute><DashboardLayout><SwapWizard /></DashboardLayout></ProtectedRoute>} />
-            <Route path="/assessment" element={<ProtectedRoute><DashboardLayout><AssessmentLog /></DashboardLayout></ProtectedRoute>} />
-            <Route path="/claims" element={<ProtectedRoute><DashboardLayout><ClaimTracker /></DashboardLayout></ProtectedRoute>} />
-            <Route path="/ad-entry" element={<ProtectedRoute><DashboardLayout><AdEntry /></DashboardLayout></ProtectedRoute>} />
-            <Route path="/ad-receive" element={<ProtectedRoute><DashboardLayout><AdManagement /></DashboardLayout></ProtectedRoute>} />
-            <Route path="/ad-request" element={<ProtectedRoute><DashboardLayout><AdRequest /></DashboardLayout></ProtectedRoute>} />
-            <Route path="/ad-issue" element={<ProtectedRoute><DashboardLayout><AdIssue /></DashboardLayout></ProtectedRoute>} />
-             <Route path="/equipment-tracking" element={<ProtectedRoute><DashboardLayout><EquipmentTrackingReport /></DashboardLayout></ProtectedRoute>} />
-            <Route path="/pm-billboard" element={<ProtectedRoute><DashboardLayout><BillboardPMPage /></DashboardLayout></ProtectedRoute>} />
-            <Route path="/billboard-packages" element={<ProtectedRoute><DashboardLayout><BillboardPackages /></DashboardLayout></ProtectedRoute>} />
-            <Route path="/defective-return" element={<ProtectedRoute><DashboardLayout><DefectiveReturnEntry /></DashboardLayout></ProtectedRoute>} />
-            <Route path="/stock-card" element={<ProtectedRoute><DashboardLayout><StockCard /></DashboardLayout></ProtectedRoute>} />
-            <Route path="/kpi-report" element={<ProtectedRoute><DashboardLayout><KPIReport /></DashboardLayout></ProtectedRoute>} />
-            <Route path="/delivery-confirmation" element={<ProtectedRoute><DashboardLayout><DeliveryConfirmation /></DashboardLayout></ProtectedRoute>} />
-            <Route path="/manager-approval" element={<ProtectedRoute><DashboardLayout><ManagerApproval /></DashboardLayout></ProtectedRoute>} />
-            <Route path="/warehouse-planning" element={<ProtectedRoute><DashboardLayout><WarehousePickupPlanning /></DashboardLayout></ProtectedRoute>} />
-            <Route path="/direct-shipping" element={<ProtectedRoute><DashboardLayout><DirectShippingEntry /></DashboardLayout></ProtectedRoute>} />
-            <Route path="/direct-shipping-approval" element={<ProtectedRoute><DashboardLayout><DirectShippingApproval /></DashboardLayout></ProtectedRoute>} />
-            <Route path="/direct-shipping-procurement" element={<ProtectedRoute><DashboardLayout><DirectShippingProcurement /></DashboardLayout></ProtectedRoute>} />
-            <Route path="/database-guide" element={<ProtectedRoute><DashboardLayout><DatabaseGuide /></DashboardLayout></ProtectedRoute>} />
+            <Route path="/media-player/search" element={<Protected><MediaPlayerProfile /></Protected>} />
+            <Route path="/media-player/:id" element={<Protected><MediaPlayerProfile /></Protected>} />
+            <Route path="/media-player-report" element={<Protected><MediaPlayerReport /></Protected>} />
+            <Route path="/swap" element={<Protected><SwapWizard /></Protected>} />
+            <Route path="/assessment" element={<Protected><AssessmentLog /></Protected>} />
+            <Route path="/claims" element={<Protected><ClaimTracker /></Protected>} />
+            <Route path="/ad-entry" element={<Protected><AdEntry /></Protected>} />
+            <Route path="/ad-receive" element={<Protected><AdManagement /></Protected>} />
+            <Route path="/ad-request" element={<Protected><AdRequest /></Protected>} />
+            <Route path="/ad-issue" element={<Protected><AdIssue /></Protected>} />
+            <Route path="/equipment-tracking" element={<Protected><EquipmentTrackingReport /></Protected>} />
+            <Route path="/pm-billboard" element={<Protected><BillboardPMPage /></Protected>} />
+            <Route path="/billboard-packages" element={<Protected><BillboardPackages /></Protected>} />
+            <Route path="/defective-return" element={<Protected><DefectiveReturnEntry /></Protected>} />
+            <Route path="/stock-card" element={<Protected><StockCard /></Protected>} />
+            <Route path="/kpi-report" element={<Protected><KPIReport /></Protected>} />
+            <Route path="/delivery-confirmation" element={<Protected><DeliveryConfirmation /></Protected>} />
+            <Route path="/manager-approval" element={<Protected><ManagerApproval /></Protected>} />
+            <Route path="/warehouse-planning" element={<Protected><WarehousePickupPlanning /></Protected>} />
+            <Route path="/direct-shipping" element={<Protected><DirectShippingEntry /></Protected>} />
+            <Route path="/direct-shipping-approval" element={<Protected><DirectShippingApproval /></Protected>} />
+            <Route path="/direct-shipping-procurement" element={<Protected><DirectShippingProcurement /></Protected>} />
+            <Route path="/database-guide" element={<Protected><DatabaseGuide /></Protected>} />
             {/* Public billboard view - no auth required */}
-            <Route path="/billboard-view/:id" element={<BillboardPublicView />} />
-            <Route path="/ad-view/:token" element={<AdPublicView />} />
-            <Route path="/ad-contractor/:token" element={<AdContractorView />} />
-            <Route path="/ds-view/:id" element={<DirectShippingPublicView />} />
+            <Route path="/billboard-view/:id" element={<Public><BillboardPublicView /></Public>} />
+            <Route path="/ad-view/:token" element={<Public><AdPublicView /></Public>} />
+            <Route path="/ad-contractor/:token" element={<Public><AdContractorView /></Public>} />
+            <Route path="/ds-view/:id" element={<Public><DirectShippingPublicView /></Public>} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
