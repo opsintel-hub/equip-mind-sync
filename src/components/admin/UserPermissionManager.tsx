@@ -88,6 +88,8 @@ export function UserPermissionManager() {
   const [resetPasswordDialogOpen, setResetPasswordDialogOpen] = useState(false);
   const [newPassword, setNewPassword] = useState("");
   const [resetLoading, setResetLoading] = useState(false);
+  const [wizardOpen, setWizardOpen] = useState(false);
+  const [wizardUser, setWizardUser] = useState<User | null>(null);
 
   useEffect(() => {
     fetchUsers();
