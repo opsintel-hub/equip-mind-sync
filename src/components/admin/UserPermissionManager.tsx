@@ -21,11 +21,13 @@ import {
   Check,
   X,
   Info,
-  Lock
+  Lock,
+  Sparkles
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { SYSTEM_FUNCTIONS } from "@/hooks/useFunctionPermissions";
+import { PermissionWizard } from "./PermissionWizard";
 import type { Database } from "@/integrations/supabase/types";
 import {
   Tooltip,
