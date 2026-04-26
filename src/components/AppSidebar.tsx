@@ -49,6 +49,7 @@ import {
   SidebarFooter,
   useSidebar,
 } from "@/components/ui/sidebar";
+import { ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -293,8 +294,24 @@ export function AppSidebar() {
     return null;
   }, [location.pathname]);
 
+  // Find which group contains the current route
+  const getActiveGroup = useCallback(() => {
+    const currentPath = location.pathname;
+    for (const group of menuGroups) {
+      for (const item of group.items) {
+        if (item.url === currentPath) return group.label;
+        if (item.subItems?.some(sub => sub.url === currentPath)) return group.label;
+      }
+    }
+    return null;
+  }, [location.pathname]);
+
   const [openSubMenu, setOpenSubMenu] = useState<string | null>(getActiveMenu);
-  
+  const [openGroups, setOpenGroups] = useState<Set<string>>(() => {
+    const active = getActiveGroup();
+    return new Set(active ? [active] : []);
+  });
+
   // Sync openSubMenu when route changes
   useEffect(() => {
     const activeMenu = getActiveMenu();
@@ -302,6 +319,28 @@ export function AppSidebar() {
       setOpenSubMenu(activeMenu);
     }
   }, [location.pathname, getActiveMenu]);
+
+  // Auto-open the group containing current route (preserve other user-opened groups)
+  useEffect(() => {
+    const activeGroup = getActiveGroup();
+    if (activeGroup) {
+      setOpenGroups(prev => {
+        if (prev.has(activeGroup)) return prev;
+        const next = new Set(prev);
+        next.add(activeGroup);
+        return next;
+      });
+    }
+  }, [location.pathname, getActiveGroup]);
+
+  const toggleGroup = useCallback((label: string) => {
+    setOpenGroups(prev => {
+      const next = new Set(prev);
+      if (next.has(label)) next.delete(label);
+      else next.add(label);
+      return next;
+    });
+  }, []);
 
   const filteredMenuGroups = useMemo(() => {
     if (permLoading || superLoading) return [];
@@ -454,27 +493,66 @@ export function AppSidebar() {
             ))}
           </div>
         ) : (
-          filteredMenuGroups.map((group, idx) => (
-            <SidebarGroup key={group.label} className={idx > 0 ? "mt-2" : ""}>
-              {state !== "collapsed" && (
-                <SidebarGroupLabel className="text-xs font-semibold text-sidebar-foreground/40 uppercase tracking-wider mb-2 px-3">
-                  {group.label}
-                </SidebarGroupLabel>
-              )}
-              {state === "collapsed" && idx > 0 && (
-                <div className="mx-auto my-2 w-6 h-px bg-sidebar-border/50" />
-              )}
-              <SidebarGroupContent>
-                <SidebarMenu className={state === "collapsed" ? "space-y-0.5 items-center" : "space-y-1"}>
-                  {group.items.map((item) => (
-                    <SidebarMenuItem key={item.title} className={state === "collapsed" ? "flex justify-center" : ""}>
-                      {renderMenuItem(item)}
-                    </SidebarMenuItem>
-                  ))}
-                </SidebarMenu>
-              </SidebarGroupContent>
-            </SidebarGroup>
-          ))
+          filteredMenuGroups.map((group, idx) => {
+            const isCollapsedSidebar = state === "collapsed";
+            const isGroupOpen = isCollapsedSidebar ? true : openGroups.has(group.label);
+            const hasActiveInGroup = group.items.some(
+              (it) =>
+                it.url === location.pathname ||
+                it.subItems?.some((s) => s.url === location.pathname)
+            );
+
+            return (
+              <SidebarGroup key={group.label} className={idx > 0 ? "mt-2" : ""}>
+                {!isCollapsedSidebar && (
+                  <Collapsible open={isGroupOpen} onOpenChange={() => toggleGroup(group.label)}>
+                    <CollapsibleTrigger asChild>
+                      <button
+                        type="button"
+                        className={`flex items-center justify-between w-full px-3 mb-1 py-1.5 rounded-md text-xs font-semibold uppercase tracking-wider transition-colors ${
+                          hasActiveInGroup
+                            ? "text-sidebar-primary"
+                            : "text-sidebar-foreground/40 hover:text-sidebar-foreground/70"
+                        }`}
+                      >
+                        <span>{group.label}</span>
+                        <ChevronRight
+                          className={`w-3.5 h-3.5 transition-transform duration-150 ${
+                            isGroupOpen ? "rotate-90" : ""
+                          }`}
+                        />
+                      </button>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent className="overflow-hidden data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down">
+                      <SidebarGroupContent>
+                        <SidebarMenu className="space-y-1">
+                          {group.items.map((item) => (
+                            <SidebarMenuItem key={item.title}>
+                              {renderMenuItem(item)}
+                            </SidebarMenuItem>
+                          ))}
+                        </SidebarMenu>
+                      </SidebarGroupContent>
+                    </CollapsibleContent>
+                  </Collapsible>
+                )}
+                {isCollapsedSidebar && (
+                  <>
+                    {idx > 0 && <div className="mx-auto my-2 w-6 h-px bg-sidebar-border/50" />}
+                    <SidebarGroupContent>
+                      <SidebarMenu className="space-y-0.5 items-center">
+                        {group.items.map((item) => (
+                          <SidebarMenuItem key={item.title} className="flex justify-center">
+                            {renderMenuItem(item)}
+                          </SidebarMenuItem>
+                        ))}
+                      </SidebarMenu>
+                    </SidebarGroupContent>
+                  </>
+                )}
+              </SidebarGroup>
+            );
+          })
         )}
       </SidebarContent>
 
