@@ -294,8 +294,24 @@ export function AppSidebar() {
     return null;
   }, [location.pathname]);
 
+  // Find which group contains the current route
+  const getActiveGroup = useCallback(() => {
+    const currentPath = location.pathname;
+    for (const group of menuGroups) {
+      for (const item of group.items) {
+        if (item.url === currentPath) return group.label;
+        if (item.subItems?.some(sub => sub.url === currentPath)) return group.label;
+      }
+    }
+    return null;
+  }, [location.pathname]);
+
   const [openSubMenu, setOpenSubMenu] = useState<string | null>(getActiveMenu);
-  
+  const [openGroups, setOpenGroups] = useState<Set<string>>(() => {
+    const active = getActiveGroup();
+    return new Set(active ? [active] : []);
+  });
+
   // Sync openSubMenu when route changes
   useEffect(() => {
     const activeMenu = getActiveMenu();
@@ -303,6 +319,28 @@ export function AppSidebar() {
       setOpenSubMenu(activeMenu);
     }
   }, [location.pathname, getActiveMenu]);
+
+  // Auto-open the group containing current route (preserve other user-opened groups)
+  useEffect(() => {
+    const activeGroup = getActiveGroup();
+    if (activeGroup) {
+      setOpenGroups(prev => {
+        if (prev.has(activeGroup)) return prev;
+        const next = new Set(prev);
+        next.add(activeGroup);
+        return next;
+      });
+    }
+  }, [location.pathname, getActiveGroup]);
+
+  const toggleGroup = useCallback((label: string) => {
+    setOpenGroups(prev => {
+      const next = new Set(prev);
+      if (next.has(label)) next.delete(label);
+      else next.add(label);
+      return next;
+    });
+  }, []);
 
   const filteredMenuGroups = useMemo(() => {
     if (permLoading || superLoading) return [];
