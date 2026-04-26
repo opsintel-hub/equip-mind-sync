@@ -780,6 +780,16 @@ export function UserPermissionManager() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Permission Wizard */}
+      <PermissionWizard
+        open={wizardOpen}
+        onOpenChange={setWizardOpen}
+        user={wizardUser}
+        onSaved={() => {
+          fetchAllUserRoles();
+        }}
+      />
     </>
   );
 }
