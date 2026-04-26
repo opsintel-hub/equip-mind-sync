@@ -417,14 +417,16 @@ export function UserPermissionManager() {
                     <TableCell className="text-muted-foreground">{user.email || "-"}</TableCell>
                     <TableCell>{user.phone || "-"}</TableCell>
                     <TableCell>
-                      <div className="flex gap-1 flex-wrap">
+                      <div className="flex gap-1 flex-wrap items-center">
                         {getRoleSummary(user.id) || (
-                          <span className="text-muted-foreground text-sm">ไม่มีบทบาท</span>
+                          <Badge variant="outline" className="text-amber-700 border-amber-300 bg-amber-50 dark:bg-amber-950 dark:text-amber-300">
+                            ยังไม่ตั้งสิทธิ์
+                          </Badge>
                         )}
                       </div>
                     </TableCell>
                     <TableCell className="text-right">
-                      <div className="flex gap-2 justify-end" onClick={(e) => e.stopPropagation()}>
+                      <div className="flex gap-2 justify-end flex-wrap" onClick={(e) => e.stopPropagation()}>
                         <TooltipProvider>
                           <Tooltip>
                             <TooltipTrigger asChild>
@@ -439,14 +441,42 @@ export function UserPermissionManager() {
                             <TooltipContent>รีเซ็ตรหัสผ่าน</TooltipContent>
                           </Tooltip>
                         </TooltipProvider>
-                        <Button
-                          variant="default"
-                          size="sm"
-                          onClick={() => handleOpenDialog(user)}
-                        >
-                          <Shield className="h-4 w-4 mr-2" />
-                          จัดการสิทธิ์
-                        </Button>
+                        {hasNoRoles(user.id) ? (
+                          <Button
+                            variant="default"
+                            size="sm"
+                            onClick={() => handleOpenWizard(user)}
+                            className="bg-gradient-to-r from-primary to-primary/80"
+                          >
+                            <Sparkles className="h-4 w-4 mr-2" />
+                            ตั้งสิทธิ์อัตโนมัติ
+                          </Button>
+                        ) : (
+                          <>
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => handleOpenWizard(user)}
+                                  >
+                                    <Sparkles className="h-4 w-4" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>ตั้งสิทธิ์ใหม่ด้วย Wizard</TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                            <Button
+                              variant="default"
+                              size="sm"
+                              onClick={() => handleOpenDialog(user)}
+                            >
+                              <Shield className="h-4 w-4 mr-2" />
+                              จัดการสิทธิ์
+                            </Button>
+                          </>
+                        )}
                       </div>
                     </TableCell>
                   </TableRow>
