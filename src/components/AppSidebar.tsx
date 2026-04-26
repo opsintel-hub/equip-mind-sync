@@ -493,27 +493,66 @@ export function AppSidebar() {
             ))}
           </div>
         ) : (
-          filteredMenuGroups.map((group, idx) => (
-            <SidebarGroup key={group.label} className={idx > 0 ? "mt-2" : ""}>
-              {state !== "collapsed" && (
-                <SidebarGroupLabel className="text-xs font-semibold text-sidebar-foreground/40 uppercase tracking-wider mb-2 px-3">
-                  {group.label}
-                </SidebarGroupLabel>
-              )}
-              {state === "collapsed" && idx > 0 && (
-                <div className="mx-auto my-2 w-6 h-px bg-sidebar-border/50" />
-              )}
-              <SidebarGroupContent>
-                <SidebarMenu className={state === "collapsed" ? "space-y-0.5 items-center" : "space-y-1"}>
-                  {group.items.map((item) => (
-                    <SidebarMenuItem key={item.title} className={state === "collapsed" ? "flex justify-center" : ""}>
-                      {renderMenuItem(item)}
-                    </SidebarMenuItem>
-                  ))}
-                </SidebarMenu>
-              </SidebarGroupContent>
-            </SidebarGroup>
-          ))
+          filteredMenuGroups.map((group, idx) => {
+            const isCollapsedSidebar = state === "collapsed";
+            const isGroupOpen = isCollapsedSidebar ? true : openGroups.has(group.label);
+            const hasActiveInGroup = group.items.some(
+              (it) =>
+                it.url === location.pathname ||
+                it.subItems?.some((s) => s.url === location.pathname)
+            );
+
+            return (
+              <SidebarGroup key={group.label} className={idx > 0 ? "mt-2" : ""}>
+                {!isCollapsedSidebar && (
+                  <Collapsible open={isGroupOpen} onOpenChange={() => toggleGroup(group.label)}>
+                    <CollapsibleTrigger asChild>
+                      <button
+                        type="button"
+                        className={`flex items-center justify-between w-full px-3 mb-1 py-1.5 rounded-md text-xs font-semibold uppercase tracking-wider transition-colors ${
+                          hasActiveInGroup
+                            ? "text-sidebar-primary"
+                            : "text-sidebar-foreground/40 hover:text-sidebar-foreground/70"
+                        }`}
+                      >
+                        <span>{group.label}</span>
+                        <ChevronRight
+                          className={`w-3.5 h-3.5 transition-transform duration-150 ${
+                            isGroupOpen ? "rotate-90" : ""
+                          }`}
+                        />
+                      </button>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent className="overflow-hidden data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down">
+                      <SidebarGroupContent>
+                        <SidebarMenu className="space-y-1">
+                          {group.items.map((item) => (
+                            <SidebarMenuItem key={item.title}>
+                              {renderMenuItem(item)}
+                            </SidebarMenuItem>
+                          ))}
+                        </SidebarMenu>
+                      </SidebarGroupContent>
+                    </CollapsibleContent>
+                  </Collapsible>
+                )}
+                {isCollapsedSidebar && (
+                  <>
+                    {idx > 0 && <div className="mx-auto my-2 w-6 h-px bg-sidebar-border/50" />}
+                    <SidebarGroupContent>
+                      <SidebarMenu className="space-y-0.5 items-center">
+                        {group.items.map((item) => (
+                          <SidebarMenuItem key={item.title} className="flex justify-center">
+                            {renderMenuItem(item)}
+                          </SidebarMenuItem>
+                        ))}
+                      </SidebarMenu>
+                    </SidebarGroupContent>
+                  </>
+                )}
+              </SidebarGroup>
+            );
+          })
         )}
       </SidebarContent>
 
