@@ -1,0 +1,505 @@
+import { useEffect, useMemo, useState } from "react";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import { Label } from "@/components/ui/label";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  ArrowLeft,
+  ArrowRight,
+  Check,
+  Sparkles,
+  Package,
+  ShoppingCart,
+  ShieldCheck,
+  Wrench,
+  Building2,
+  Eye,
+  Plus,
+  Pencil,
+  Trash2,
+  AlertCircle,
+} from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import { SYSTEM_FUNCTIONS } from "@/hooks/useFunctionPermissions";
+import type { Database } from "@/integrations/supabase/types";
+import { cn } from "@/lib/utils";
+
+type UserRole = Database["public"]["Enums"]["app_role"];
+
+interface PermissionTemplate {
+  id: string;
+  template_key: string;
+  label: string;
+  description: string | null;
+  icon: string | null;
+  suggested_roles: UserRole[];
+  suggested_functions: string[];
+  default_dept_can_view: boolean;
+  default_dept_can_create: boolean;
+  default_dept_can_edit: boolean;
+  default_dept_can_delete: boolean;
+  display_order: number;
+}
+
+interface UserLite {
+  id: string;
+  full_name: string;
+  email?: string;
+}
+
+interface PermissionWizardProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  user: UserLite | null;
+  onSaved: () => void;
+}
+
+const ICON_MAP: Record<string, any> = {
+  Package,
+  ShoppingCart,
+  ShieldCheck,
+  Wrench,
+};
+
+export function PermissionWizard({ open, onOpenChange, user, onSaved }: PermissionWizardProps) {
+  const [step, setStep] = useState(1);
+  const [templates, setTemplates] = useState<PermissionTemplate[]>([]);
+  const [departments, setDepartments] = useState<string[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  // Selections
+  const [selectedTemplateKeys, setSelectedTemplateKeys] = useState<string[]>([]);
+  const [selectedDepartments, setSelectedDepartments] = useState<string[]>([]);
+
+  // Computed (editable) preview
+  const [previewRoles, setPreviewRoles] = useState<UserRole[]>([]);
+  const [previewFunctions, setPreviewFunctions] = useState<string[]>([]);
+  const [deptPerm, setDeptPerm] = useState<{ view: boolean; create: boolean; edit: boolean; delete: boolean }>({
+    view: true,
+    create: false,
+    edit: false,
+    delete: false,
+  });
+
+  // Reset on open
+  useEffect(() => {
+    if (open) {
+      setStep(1);
+      setSelectedTemplateKeys([]);
+      setSelectedDepartments([]);
+      setPreviewRoles([]);
+      setPreviewFunctions([]);
+      setDeptPerm({ view: true, create: false, edit: false, delete: false });
+      loadData();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
+
+  const loadData = async () => {
+    setLoading(true);
+    try {
+      const [tplRes, deptRes] = await Promise.all([
+        (supabase as any)
+          .from("permission_templates")
+          .select("*")
+          .eq("is_active", true)
+          .order("display_order"),
+        supabase.from("departments").select("name").eq("is_active", true).order("name"),
+      ]);
+      if (tplRes.error) throw tplRes.error;
+      setTemplates((tplRes.data || []) as PermissionTemplate[]);
+      setDepartments((deptRes.data || []).map((d: any) => d.name));
+    } catch (e: any) {
+      console.error(e);
+      toast.error("โหลดข้อมูลเทมเพลตไม่สำเร็จ");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Recompute preview when templates selected
+  const computePreview = () => {
+    const chosen = templates.filter((t) => selectedTemplateKeys.includes(t.template_key));
+    if (chosen.length === 0) return;
+
+    const roleSet = new Set<UserRole>();
+    const funcSet = new Set<string>();
+    let view = false, create = false, edit = false, del = false;
+    chosen.forEach((t) => {
+      t.suggested_roles.forEach((r) => roleSet.add(r));
+      t.suggested_functions.forEach((f) => funcSet.add(f));
+      view = view || t.default_dept_can_view;
+      create = create || t.default_dept_can_create;
+      edit = edit || t.default_dept_can_edit;
+      del = del || t.default_dept_can_delete;
+    });
+    setPreviewRoles(Array.from(roleSet));
+    setPreviewFunctions(Array.from(funcSet));
+    setDeptPerm({ view, create, edit, delete: del });
+  };
+
+  const toggleTemplate = (key: string) => {
+    setSelectedTemplateKeys((prev) =>
+      prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]
+    );
+  };
+
+  const toggleDept = (name: string) => {
+    setSelectedDepartments((prev) =>
+      prev.includes(name) ? prev.filter((d) => d !== name) : [...prev, name]
+    );
+  };
+
+  const togglePreviewFunction = (fn: string) => {
+    setPreviewFunctions((prev) =>
+      prev.includes(fn) ? prev.filter((f) => f !== fn) : [...prev, fn]
+    );
+  };
+
+  const togglePreviewRole = (r: UserRole) => {
+    setPreviewRoles((prev) =>
+      prev.includes(r) ? prev.filter((x) => x !== r) : [...prev, r]
+    );
+  };
+
+  const goNext = () => {
+    if (step === 1) {
+      if (selectedTemplateKeys.length === 0) {
+        toast.error("กรุณาเลือกตำแหน่งงานอย่างน้อย 1 ตำแหน่ง");
+        return;
+      }
+    }
+    if (step === 2) {
+      if (selectedDepartments.length === 0) {
+        toast.error("กรุณาเลือกฝ่ายอย่างน้อย 1 ฝ่าย");
+        return;
+      }
+      computePreview();
+    }
+    setStep((s) => Math.min(3, s + 1));
+  };
+
+  const goBack = () => setStep((s) => Math.max(1, s - 1));
+
+  const handleSave = async () => {
+    if (!user) return;
+    setSaving(true);
+    try {
+      // 1. Roles via RPC
+      const { error: roleErr } = await supabase.rpc("save_user_roles" as any, {
+        _target_user_id: user.id,
+        _roles: previewRoles,
+      });
+      if (roleErr) throw roleErr;
+
+      // 2. Function permissions: replace
+      await supabase.from("user_function_permissions").delete().eq("user_id", user.id);
+      if (previewFunctions.length > 0) {
+        const { error: fErr } = await supabase.from("user_function_permissions").insert(
+          previewFunctions.map((fn) => ({
+            user_id: user.id,
+            function_name: fn,
+            can_access: true,
+          }))
+        );
+        if (fErr) throw fErr;
+      }
+
+      // 3. Department permissions: replace
+      await supabase.from("user_departments").delete().eq("user_id", user.id);
+      const isAdminLike = previewRoles.includes("admin") || previewRoles.includes("super_admin");
+      const deptRows = selectedDepartments.map((d) => ({
+        user_id: user.id,
+        department: d,
+        can_view: deptPerm.view,
+        can_create: deptPerm.create,
+        can_edit: deptPerm.edit,
+        can_delete: isAdminLike ? deptPerm.delete : false,
+      }));
+      if (deptRows.length > 0) {
+        const { error: dErr } = await supabase.from("user_departments").insert(deptRows);
+        if (dErr) throw dErr;
+      }
+
+      toast.success("ตั้งค่าสิทธิ์อัตโนมัติสำเร็จ");
+      onOpenChange(false);
+      onSaved();
+    } catch (e: any) {
+      console.error(e);
+      toast.error(e.message || "บันทึกไม่สำเร็จ");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const stepTitle = useMemo(() => {
+    if (step === 1) return "ขั้นที่ 1: เลือกตำแหน่งงาน/หน้าที่";
+    if (step === 2) return "ขั้นที่ 2: เลือกฝ่ายที่รับผิดชอบ";
+    return "ขั้นที่ 3: ตรวจสอบและบันทึก";
+  }, [step]);
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-3xl max-h-[90vh] overflow-hidden flex flex-col">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Sparkles className="h-5 w-5 text-primary" />
+            ตั้งสิทธิ์อัตโนมัติด้วย Wizard
+          </DialogTitle>
+          <DialogDescription>
+            {user ? <>สำหรับ <strong>{user.full_name}</strong> {user.email && <span className="text-muted-foreground">({user.email})</span>}</> : null}
+          </DialogDescription>
+        </DialogHeader>
+
+        {/* Stepper */}
+        <div className="flex items-center justify-between px-1 py-2">
+          {[1, 2, 3].map((s) => (
+            <div key={s} className="flex items-center flex-1">
+              <div
+                className={cn(
+                  "w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold border-2",
+                  step === s
+                    ? "bg-primary text-primary-foreground border-primary"
+                    : step > s
+                    ? "bg-primary/10 text-primary border-primary"
+                    : "bg-muted text-muted-foreground border-border"
+                )}
+              >
+                {step > s ? <Check className="h-4 w-4" /> : s}
+              </div>
+              {s < 3 && (
+                <div
+                  className={cn(
+                    "h-0.5 flex-1 mx-2",
+                    step > s ? "bg-primary" : "bg-border"
+                  )}
+                />
+              )}
+            </div>
+          ))}
+        </div>
+        <div className="text-sm font-medium text-foreground px-1">{stepTitle}</div>
+
+        <Separator />
+
+        <ScrollArea className="flex-1 -mx-6 px-6">
+          {loading && <div className="text-center py-8 text-muted-foreground">กำลังโหลด...</div>}
+
+          {/* Step 1: Templates */}
+          {!loading && step === 1 && (
+            <div className="space-y-3 py-2">
+              <p className="text-sm text-muted-foreground">
+                เลือกตำแหน่ง/หน้าที่ของผู้ใช้ (เลือกได้หลายข้อ) ระบบจะคำนวณบทบาทและสิทธิ์ที่เหมาะสมให้อัตโนมัติ
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {templates.map((t) => {
+                  const Icon = ICON_MAP[t.icon || "Package"] || Package;
+                  const checked = selectedTemplateKeys.includes(t.template_key);
+                  return (
+                    <Card
+                      key={t.id}
+                      onClick={() => toggleTemplate(t.template_key)}
+                      className={cn(
+                        "cursor-pointer transition-all border-2 hover:shadow-md",
+                        checked ? "border-primary bg-primary/5" : "border-border"
+                      )}
+                    >
+                      <CardContent className="p-4 flex gap-3 items-start">
+                        <div className={cn(
+                          "p-2 rounded-lg",
+                          checked ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+                        )}>
+                          <Icon className="h-5 w-5" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between gap-2">
+                            <h4 className="font-semibold text-sm">{t.label}</h4>
+                            <Checkbox checked={checked} className="pointer-events-none" />
+                          </div>
+                          <p className="text-xs text-muted-foreground mt-1">{t.description}</p>
+                          <div className="flex flex-wrap gap-1 mt-2">
+                            <Badge variant="secondary" className="text-[10px]">
+                              {t.suggested_functions.length} ฟังก์ชัน
+                            </Badge>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Step 2: Departments */}
+          {!loading && step === 2 && (
+            <div className="space-y-3 py-2">
+              <p className="text-sm text-muted-foreground">
+                เลือกฝ่ายที่ผู้ใช้นี้ดูแล/เข้าถึงข้อมูลได้
+              </p>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                {departments.map((d) => {
+                  const checked = selectedDepartments.includes(d);
+                  return (
+                    <button
+                      key={d}
+                      type="button"
+                      onClick={() => toggleDept(d)}
+                      className={cn(
+                        "flex items-center gap-2 p-3 rounded-lg border-2 text-left text-sm transition-all",
+                        checked
+                          ? "border-primary bg-primary/5 text-foreground"
+                          : "border-border hover:border-primary/50"
+                      )}
+                    >
+                      <Building2 className={cn("h-4 w-4", checked ? "text-primary" : "text-muted-foreground")} />
+                      <span className="truncate flex-1">{d}</span>
+                      {checked && <Check className="h-4 w-4 text-primary" />}
+                    </button>
+                  );
+                })}
+              </div>
+              {departments.length === 0 && (
+                <p className="text-sm text-muted-foreground text-center py-4">ยังไม่มีข้อมูลฝ่าย</p>
+              )}
+            </div>
+          )}
+
+          {/* Step 3: Review */}
+          {!loading && step === 3 && (
+            <div className="space-y-4 py-2">
+              <div className="bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg p-3 flex gap-2 text-sm">
+                <AlertCircle className="h-4 w-4 text-blue-600 flex-shrink-0 mt-0.5" />
+                <div className="text-blue-800 dark:text-blue-200">
+                  ระบบคำนวณสิทธิ์ตามตำแหน่งที่เลือกแล้ว Super Admin สามารถแก้ไขข้อมูลก่อนกดบันทึกได้
+                </div>
+              </div>
+
+              {/* Roles */}
+              <div>
+                <Label className="text-sm font-semibold">บทบาท (Roles)</Label>
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {(["super_admin", "admin", "manager", "warehouse_staff", "receiver", "requester"] as UserRole[]).map((r) => {
+                    const active = previewRoles.includes(r);
+                    return (
+                      <Badge
+                        key={r}
+                        variant={active ? "default" : "outline"}
+                        className="cursor-pointer"
+                        onClick={() => togglePreviewRole(r)}
+                      >
+                        {active && <Check className="h-3 w-3 mr-1" />}
+                        {r}
+                      </Badge>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <Separator />
+
+              {/* Functions */}
+              <div>
+                <Label className="text-sm font-semibold">
+                  สิทธิ์ฟังก์ชัน ({previewFunctions.length}/{SYSTEM_FUNCTIONS.length})
+                </Label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
+                  {SYSTEM_FUNCTIONS.map((fn) => {
+                    const active = previewFunctions.includes(fn.name);
+                    return (
+                      <label
+                        key={fn.name}
+                        className={cn(
+                          "flex items-start gap-2 p-2 rounded-md border cursor-pointer text-sm transition-colors",
+                          active ? "bg-primary/5 border-primary/40" : "hover:bg-muted/50"
+                        )}
+                      >
+                        <Checkbox
+                          checked={active}
+                          onCheckedChange={() => togglePreviewFunction(fn.name)}
+                          className="mt-0.5"
+                        />
+                        <div className="flex-1 min-w-0">
+                          <div className="font-medium">{fn.label}</div>
+                          <div className="text-xs text-muted-foreground line-clamp-1">{fn.description}</div>
+                        </div>
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <Separator />
+
+              {/* Department perms */}
+              <div>
+                <Label className="text-sm font-semibold">
+                  สิทธิ์ในฝ่ายที่เลือก ({selectedDepartments.length} ฝ่าย)
+                </Label>
+                <div className="flex flex-wrap gap-1 my-2">
+                  {selectedDepartments.map((d) => (
+                    <Badge key={d} variant="secondary" className="text-xs">{d}</Badge>
+                  ))}
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-2">
+                  {[
+                    { key: "view", label: "ดู", icon: Eye },
+                    { key: "create", label: "สร้าง", icon: Plus },
+                    { key: "edit", label: "แก้ไข", icon: Pencil },
+                    { key: "delete", label: "ลบ", icon: Trash2 },
+                  ].map((p) => {
+                    const Icon = p.icon;
+                    const active = (deptPerm as any)[p.key];
+                    return (
+                      <button
+                        key={p.key}
+                        type="button"
+                        onClick={() => setDeptPerm((prev) => ({ ...prev, [p.key]: !(prev as any)[p.key] }))}
+                        className={cn(
+                          "flex items-center gap-2 p-2 rounded-md border-2 text-sm",
+                          active ? "border-primary bg-primary/5" : "border-border"
+                        )}
+                      >
+                        <Icon className={cn("h-4 w-4", active ? "text-primary" : "text-muted-foreground")} />
+                        <span>{p.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+                <p className="text-xs text-muted-foreground mt-2">
+                  * สิทธิ์ "ลบ" จะถูกบันทึกเฉพาะกรณีผู้ใช้มีบทบาท Admin/Super Admin
+                </p>
+              </div>
+            </div>
+          )}
+        </ScrollArea>
+
+        <Separator />
+
+        <div className="flex items-center justify-between gap-2 pt-2">
+          <Button variant="outline" onClick={goBack} disabled={step === 1 || saving}>
+            <ArrowLeft className="h-4 w-4 mr-1" />
+            ย้อนกลับ
+          </Button>
+          {step < 3 ? (
+            <Button onClick={goNext} disabled={loading}>
+              ถัดไป
+              <ArrowRight className="h-4 w-4 ml-1" />
+            </Button>
+          ) : (
+            <Button onClick={handleSave} disabled={saving}>
+              <Check className="h-4 w-4 mr-1" />
+              {saving ? "กำลังบันทึก..." : "บันทึกสิทธิ์"}
+            </Button>
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
