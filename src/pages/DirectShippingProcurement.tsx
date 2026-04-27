@@ -24,6 +24,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useTablePagination } from "@/hooks/useTablePagination";
 import { TablePagination } from "@/components/TablePagination";
 import { logStockMovement } from "@/lib/stockMovement";
+import { dedupeMediaPlayersByCode } from "@/lib/mediaPlayerOptions";
 
 interface CartItem {
   id: string;
@@ -540,7 +541,7 @@ export default function DirectShippingProcurement() {
               <div className="space-y-2">
                 <Label>Media Player *</Label>
                 <SearchableSelect
-                  options={mediaPlayers.map((mp: any) => ({ value: mp.id, label: `${mp.code} - ${mp.name}` }))}
+                  options={dedupeMediaPlayersByCode(mediaPlayers as any)}
                   value={itemMediaPlayerId} onValueChange={v => {
                     setItemMediaPlayerId(v);
                     const mp: any = mediaPlayers.find((m: any) => m.id === v);
