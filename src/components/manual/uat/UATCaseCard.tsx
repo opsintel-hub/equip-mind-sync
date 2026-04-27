@@ -164,11 +164,30 @@ export function UATCaseCard({ testCase, defaultOpen = false }: UATCaseCardProps)
                   🔗 Cross-Check (ตรวจเชื่อมโยงเมนูอื่น)
                 </div>
                 <ul className="space-y-1 text-xs">
-                  {testCase.crossCheck.map((c, i) => (
-                    <li key={i}>
-                      <span className="font-semibold">{c.menu}:</span> {c.verify}
-                    </li>
-                  ))}
+                  {testCase.crossCheck.map((c, i) => {
+                    const path = resolveMenuPath(c.menu);
+                    return (
+                      <li key={i} className="flex items-start gap-1.5">
+                        <span className="font-semibold flex items-center gap-1">
+                          {c.menu}
+                          {path && (
+                            <a
+                              href={path}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              onClick={(e) => e.stopPropagation()}
+                              className="inline-flex items-center text-cyan-700 dark:text-cyan-300 hover:text-cyan-900"
+                              title="เปิดเมนูในแท็บใหม่"
+                            >
+                              <ExternalLink className="h-3 w-3" />
+                            </a>
+                          )}
+                          :
+                        </span>
+                        <span>{c.verify}</span>
+                      </li>
+                    );
+                  })}
                 </ul>
               </div>
             )}
