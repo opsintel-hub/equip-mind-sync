@@ -9,7 +9,7 @@ interface AuthContextType {
   session: Session | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
-  signUp: (email: string, password: string, fullName: string, phone?: string) => Promise<{ error: any }>;
+  signUp: (email: string, password: string, fullName: string, phone?: string, requestedJobRole?: string, requestedDepartment?: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
 }
 
@@ -59,7 +59,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const signUp = async (email: string, password: string, fullName: string, phone?: string) => {
+  const signUp = async (
+    email: string,
+    password: string,
+    fullName: string,
+    phone?: string,
+    requestedJobRole?: string,
+    requestedDepartment?: string,
+  ) => {
     try {
       const redirectUrl = `${window.location.origin}/`;
       
@@ -71,13 +78,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           data: {
             full_name: fullName,
             phone: phone || '',
+            requested_job_role: requestedJobRole || '',
+            requested_department: requestedDepartment || '',
           },
         },
       });
       
       if (error) throw error;
       
-      toast.success('สมัครสมาชิกสำเร็จ กำลังเข้าสู่ระบบ...');
+      toast.success('สมัครสมาชิกสำเร็จ! กรุณารอผู้ดูแลระบบอนุมัติสิทธิ์การใช้งาน');
       navigate('/dashboard');
       return { error: null };
     } catch (error: any) {
