@@ -50,6 +50,8 @@ interface UserLite {
   id: string;
   full_name: string;
   email?: string;
+  requested_job_role?: string | null;
+  requested_department?: string | null;
 }
 
 interface PermissionWizardProps {
@@ -91,15 +93,16 @@ export function PermissionWizard({ open, onOpenChange, user, onSaved }: Permissi
   useEffect(() => {
     if (open) {
       setStep(1);
-      setSelectedTemplateKeys([]);
-      setSelectedDepartments([]);
+      // Pre-select user's requested job role and department (if any)
+      setSelectedTemplateKeys(user?.requested_job_role ? [user.requested_job_role] : []);
+      setSelectedDepartments(user?.requested_department ? [user.requested_department] : []);
       setPreviewRoles([]);
       setPreviewFunctions([]);
       setDeptPerm({ view: true, create: false, edit: false, delete: false });
       loadData();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open]);
+  }, [open, user?.id]);
 
   const loadData = async () => {
     setLoading(true);
@@ -294,6 +297,14 @@ export function PermissionWizard({ open, onOpenChange, user, onSaved }: Permissi
           {/* Step 1: Templates */}
           {!loading && step === 1 && (
             <div className="space-y-3 py-2">
+              {user?.requested_job_role && (
+                <div className="bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg p-3 flex gap-2 text-sm">
+                  <Sparkles className="h-4 w-4 text-blue-600 flex-shrink-0 mt-0.5" />
+                  <div className="text-blue-800 dark:text-blue-200">
+                    ผู้ใช้ขอตำแหน่ง <strong>{templates.find(t => t.template_key === user.requested_job_role)?.label || user.requested_job_role}</strong> ตอนสมัคร — ระบบเลือกให้แล้ว คุณสามารถปรับเปลี่ยนได้
+                  </div>
+                </div>
+              )}
               <p className="text-sm text-muted-foreground">
                 เลือกตำแหน่ง/หน้าที่ของผู้ใช้ (เลือกได้หลายข้อ) ระบบจะคำนวณบทบาทและสิทธิ์ที่เหมาะสมให้อัตโนมัติ
               </p>
@@ -340,6 +351,14 @@ export function PermissionWizard({ open, onOpenChange, user, onSaved }: Permissi
           {/* Step 2: Departments */}
           {!loading && step === 2 && (
             <div className="space-y-3 py-2">
+              {user?.requested_department && (
+                <div className="bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg p-3 flex gap-2 text-sm">
+                  <Sparkles className="h-4 w-4 text-blue-600 flex-shrink-0 mt-0.5" />
+                  <div className="text-blue-800 dark:text-blue-200">
+                    ผู้ใช้ขอสังกัดฝ่าย <strong>{user.requested_department}</strong> — ระบบเลือกให้แล้ว
+                  </div>
+                </div>
+              )}
               <p className="text-sm text-muted-foreground">
                 เลือกฝ่ายที่ผู้ใช้นี้ดูแล/เข้าถึงข้อมูลได้
               </p>
