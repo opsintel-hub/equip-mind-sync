@@ -5,10 +5,18 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Package } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Package, Info } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { z } from "zod";
+import { supabase } from "@/integrations/supabase/client";
 
 const loginSchema = z.object({
   email: z.string().email("รูปแบบอีเมลไม่ถูกต้อง"),
@@ -18,7 +26,15 @@ const loginSchema = z.object({
 const signupSchema = loginSchema.extend({
   fullName: z.string().min(2, "กรุณากรอกชื่อ-นามสกุล"),
   phone: z.string().optional(),
+  requestedJobRole: z.string().min(1, "กรุณาเลือกตำแหน่งงาน"),
+  requestedDepartment: z.string().min(1, "กรุณาเลือกฝ่ายที่สังกัด"),
 });
+
+interface JobRoleTemplate {
+  template_key: string;
+  label: string;
+  description: string | null;
+}
 
 const Login = () => {
   const navigate = useNavigate();
@@ -29,6 +45,10 @@ const Login = () => {
   const [signupPassword, setSignupPassword] = useState("");
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
+  const [requestedJobRole, setRequestedJobRole] = useState("");
+  const [requestedDepartment, setRequestedDepartment] = useState("");
+  const [jobRoles, setJobRoles] = useState<JobRoleTemplate[]>([]);
+  const [departments, setDepartments] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
@@ -36,6 +56,27 @@ const Login = () => {
       navigate("/dashboard");
     }
   }, [user, navigate]);
+
+  // Load templates + departments for signup form
+  useEffect(() => {
+    const loadOptions = async () => {
+      try {
+        const [tplRes, deptRes] = await Promise.all([
+          (supabase as any)
+            .from("permission_templates")
+            .select("template_key, label, description")
+            .eq("is_active", true)
+            .order("display_order"),
+          supabase.from("departments").select("name").eq("is_active", true).order("name"),
+        ]);
+        if (tplRes.data) setJobRoles(tplRes.data as JobRoleTemplate[]);
+        if (deptRes.data) setDepartments(deptRes.data.map((d: any) => d.name));
+      } catch (e) {
+        console.error("Failed loading signup options", e);
+      }
+    };
+    loadOptions();
+  }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -65,8 +106,17 @@ const Login = () => {
         password: signupPassword,
         fullName,
         phone,
+        requestedJobRole,
+        requestedDepartment,
       });
-      await signUp(signupEmail, signupPassword, fullName, phone);
+      await signUp(
+        signupEmail,
+        signupPassword,
+        fullName,
+        phone,
+        requestedJobRole,
+        requestedDepartment,
+      );
     } catch (error) {
       if (error instanceof z.ZodError) {
         error.errors.forEach((err) => {
@@ -180,6 +230,64 @@ const Login = () => {
                     required
                   />
                 </div>
+
+                {/* Job Role */}
+                <div className="space-y-2">
+                  <Label htmlFor="job-role">ตำแหน่งงาน / หน้าที่ที่ต้องการ</Label>
+                  <Select
+                    value={requestedJobRole}
+                    onValueChange={setRequestedJobRole}
+                    disabled={isLoading || jobRoles.length === 0}
+                  >
+                    <SelectTrigger id="job-role">
+                      <SelectValue placeholder="เลือกตำแหน่งงาน..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {jobRoles.map((r) => (
+                        <SelectItem key={r.template_key} value={r.template_key}>
+                          <div className="flex flex-col">
+                            <span>{r.label}</span>
+                            {r.description && (
+                              <span className="text-xs text-muted-foreground">
+                                {r.description}
+                              </span>
+                            )}
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Department */}
+                <div className="space-y-2">
+                  <Label htmlFor="department">ฝ่ายที่สังกัด</Label>
+                  <Select
+                    value={requestedDepartment}
+                    onValueChange={setRequestedDepartment}
+                    disabled={isLoading || departments.length === 0}
+                  >
+                    <SelectTrigger id="department">
+                      <SelectValue placeholder="เลือกฝ่าย..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {departments.map((d) => (
+                        <SelectItem key={d} value={d}>
+                          {d}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Info banner */}
+                <div className="flex gap-2 p-3 rounded-md bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 text-xs text-blue-800 dark:text-blue-200">
+                  <Info className="h-4 w-4 flex-shrink-0 mt-0.5" />
+                  <span>
+                    ข้อมูลนี้เป็นเพียง <strong>คำขอ</strong> ผู้ดูแลระบบจะตรวจสอบและกำหนดสิทธิ์การใช้งานให้ก่อนเริ่มใช้งานจริง
+                  </span>
+                </div>
+
                 <Button type="submit" className="w-full" disabled={isLoading}>
                   {isLoading ? "กำลังสมัครสมาชิก..." : "สมัครสมาชิก"}
                 </Button>
