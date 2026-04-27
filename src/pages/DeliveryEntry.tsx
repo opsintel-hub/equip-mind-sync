@@ -46,6 +46,7 @@ import { DeliveryDetailDialog } from "@/components/delivery/DeliveryDetailDialog
 import { DocumentUploadField } from "@/components/media-player/DocumentUploadField";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { useAllowedDepartments } from "@/hooks/useAllowedDepartments";
+import { dedupeMediaPlayersByCode } from "@/lib/mediaPlayerOptions";
 interface Equipment {
   id: string;
   code: string;
