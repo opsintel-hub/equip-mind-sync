@@ -46,6 +46,7 @@ import { DeliveryDetailDialog } from "@/components/delivery/DeliveryDetailDialog
 import { DocumentUploadField } from "@/components/media-player/DocumentUploadField";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { useAllowedDepartments } from "@/hooks/useAllowedDepartments";
+import { dedupeMediaPlayersByCode } from "@/lib/mediaPlayerOptions";
 interface Equipment {
   id: string;
   code: string;
@@ -1536,11 +1537,7 @@ const DeliveryEntry = () => {
                     <div className="space-y-2">
                       <Label htmlFor="mediaPlayer">เลือก Media Player (ถ้ามีในระบบ)</Label>
                       <SearchableSelect
-                        options={mediaPlayers.map((mp) => ({
-                          value: mp.id,
-                          label: `${mp.code} - ${mp.name}`,
-                          searchableText: `${mp.code} ${mp.name}`,
-                        }))}
+                        options={dedupeMediaPlayersByCode(mediaPlayers)}
                         value={selectedMediaPlayerId}
                         onValueChange={(val) => {
                           setSelectedMediaPlayerId(val);
