@@ -351,6 +351,14 @@ export function PermissionWizard({ open, onOpenChange, user, onSaved }: Permissi
           {/* Step 2: Departments */}
           {!loading && step === 2 && (
             <div className="space-y-3 py-2">
+              {user?.requested_department && (
+                <div className="bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg p-3 flex gap-2 text-sm">
+                  <Sparkles className="h-4 w-4 text-blue-600 flex-shrink-0 mt-0.5" />
+                  <div className="text-blue-800 dark:text-blue-200">
+                    ผู้ใช้ขอสังกัดฝ่าย <strong>{user.requested_department}</strong> — ระบบเลือกให้แล้ว
+                  </div>
+                </div>
+              )}
               <p className="text-sm text-muted-foreground">
                 เลือกฝ่ายที่ผู้ใช้นี้ดูแล/เข้าถึงข้อมูลได้
               </p>
