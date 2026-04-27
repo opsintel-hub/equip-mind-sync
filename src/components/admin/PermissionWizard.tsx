@@ -50,6 +50,8 @@ interface UserLite {
   id: string;
   full_name: string;
   email?: string;
+  requested_job_role?: string | null;
+  requested_department?: string | null;
 }
 
 interface PermissionWizardProps {
