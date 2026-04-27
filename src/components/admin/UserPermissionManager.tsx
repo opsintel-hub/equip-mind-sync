@@ -54,6 +54,8 @@ interface User {
   full_name: string;
   phone: string | null;
   email?: string;
+  requested_job_role?: string | null;
+  requested_department?: string | null;
 }
 
 interface UserPermission {
