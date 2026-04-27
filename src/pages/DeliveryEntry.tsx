@@ -1536,11 +1536,7 @@ const DeliveryEntry = () => {
                     <div className="space-y-2">
                       <Label htmlFor="mediaPlayer">เลือก Media Player (ถ้ามีในระบบ)</Label>
                       <SearchableSelect
-                        options={mediaPlayers.map((mp) => ({
-                          value: mp.id,
-                          label: `${mp.code} - ${mp.name}`,
-                          searchableText: `${mp.code} ${mp.name}`,
-                        }))}
+                        options={dedupeMediaPlayersByCode(mediaPlayers)}
                         value={selectedMediaPlayerId}
                         onValueChange={(val) => {
                           setSelectedMediaPlayerId(val);
