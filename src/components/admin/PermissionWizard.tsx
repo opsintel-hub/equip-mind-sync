@@ -93,15 +93,16 @@ export function PermissionWizard({ open, onOpenChange, user, onSaved }: Permissi
   useEffect(() => {
     if (open) {
       setStep(1);
-      setSelectedTemplateKeys([]);
-      setSelectedDepartments([]);
+      // Pre-select user's requested job role and department (if any)
+      setSelectedTemplateKeys(user?.requested_job_role ? [user.requested_job_role] : []);
+      setSelectedDepartments(user?.requested_department ? [user.requested_department] : []);
       setPreviewRoles([]);
       setPreviewFunctions([]);
       setDeptPerm({ view: true, create: false, edit: false, delete: false });
       loadData();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open]);
+  }, [open, user?.id]);
 
   const loadData = async () => {
     setLoading(true);
