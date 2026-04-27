@@ -421,9 +421,17 @@ export function UserPermissionManager() {
                     <TableCell>
                       <div className="flex gap-1 flex-wrap items-center">
                         {getRoleSummary(user.id) || (
-                          <Badge variant="outline" className="text-amber-700 border-amber-300 bg-amber-50 dark:bg-amber-950 dark:text-amber-300">
-                            ยังไม่ตั้งสิทธิ์
-                          </Badge>
+                          <div className="flex flex-col gap-1">
+                            <Badge variant="outline" className="text-amber-700 border-amber-300 bg-amber-50 dark:bg-amber-950 dark:text-amber-300 w-fit">
+                              ยังไม่ตั้งสิทธิ์
+                            </Badge>
+                            {(user.requested_job_role || user.requested_department) && (
+                              <span className="text-[11px] text-muted-foreground">
+                                ขอ: {user.requested_job_role || "-"}
+                                {user.requested_department ? ` / ${user.requested_department}` : ""}
+                              </span>
+                            )}
+                          </div>
                         )}
                       </div>
                     </TableCell>
