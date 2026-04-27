@@ -5,8 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { ChevronDown, ChevronRight, CheckCircle2, XCircle, Circle } from "lucide-react";
+import { ChevronDown, ChevronRight, CheckCircle2, XCircle, Circle, ExternalLink } from "lucide-react";
 import type { UATCase } from "./types";
+import { resolveMenuPath } from "./menuRouteMap";
 
 interface UATCaseCardProps {
   testCase: UATCase;
@@ -73,7 +74,25 @@ export function UATCaseCard({ testCase, defaultOpen = false }: UATCaseCardProps)
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
               <div className="p-2.5 rounded bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800">
                 <div className="font-semibold text-blue-700 dark:text-blue-300 mb-1">📍 เมนู</div>
-                <div className="text-foreground">{testCase.menu}</div>
+                <div className="text-foreground flex items-start justify-between gap-2">
+                  <span className="flex-1">{testCase.menu}</span>
+                  {(() => {
+                    const path = resolveMenuPath(testCase.menu);
+                    if (!path) return null;
+                    return (
+                      <a
+                        href={path}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={(e) => e.stopPropagation()}
+                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium bg-blue-600 text-white hover:bg-blue-700 transition-colors flex-shrink-0"
+                        title="เปิดเมนูในแท็บใหม่"
+                      >
+                        ไปที่เมนู <ExternalLink className="h-2.5 w-2.5" />
+                      </a>
+                    );
+                  })()}
+                </div>
               </div>
               <div className="p-2.5 rounded bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800">
                 <div className="font-semibold text-amber-700 dark:text-amber-300 mb-1">⚙️ Pre-conditions</div>
@@ -145,11 +164,30 @@ export function UATCaseCard({ testCase, defaultOpen = false }: UATCaseCardProps)
                   🔗 Cross-Check (ตรวจเชื่อมโยงเมนูอื่น)
                 </div>
                 <ul className="space-y-1 text-xs">
-                  {testCase.crossCheck.map((c, i) => (
-                    <li key={i}>
-                      <span className="font-semibold">{c.menu}:</span> {c.verify}
-                    </li>
-                  ))}
+                  {testCase.crossCheck.map((c, i) => {
+                    const path = resolveMenuPath(c.menu);
+                    return (
+                      <li key={i} className="flex items-start gap-1.5">
+                        <span className="font-semibold flex items-center gap-1">
+                          {c.menu}
+                          {path && (
+                            <a
+                              href={path}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              onClick={(e) => e.stopPropagation()}
+                              className="inline-flex items-center text-cyan-700 dark:text-cyan-300 hover:text-cyan-900"
+                              title="เปิดเมนูในแท็บใหม่"
+                            >
+                              <ExternalLink className="h-3 w-3" />
+                            </a>
+                          )}
+                          :
+                        </span>
+                        <span>{c.verify}</span>
+                      </li>
+                    );
+                  })}
                 </ul>
               </div>
             )}
