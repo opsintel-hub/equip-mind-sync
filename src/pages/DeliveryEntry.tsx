@@ -1343,11 +1343,13 @@ const DeliveryEntry = () => {
                   <Label htmlFor="company">ชื่อบริษัทที่สั่งซื้อ(ตาม Budget) *</Label>
                   <SearchableSelect
                     options={(selectedDepartmentId
-                      ? companies.filter((c) => c.department_id === selectedDepartmentId)
+                      ? companies.filter(
+                          (c) => c.department_id === selectedDepartmentId || c.department_id === null
+                        )
                       : companies
                     ).map((c) => ({
                       value: c.id,
-                      label: `${c.code} - ${c.name}`,
+                      label: `${c.code} - ${c.name}${c.department_id === null ? " 🌐" : ""}`,
                     }))}
                     value={selectedCompanyId}
                     onValueChange={setSelectedCompanyId}
