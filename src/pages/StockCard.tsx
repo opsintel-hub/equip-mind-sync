@@ -944,7 +944,7 @@ export default function StockCard() {
                         <TableHead className="text-center w-[110px]">สต็อก ก่อน→หลัง</TableHead>
                         <TableHead className="w-[80px]">สภาพ</TableHead>
                         <TableHead className="text-right w-[70px]">ระยะเวลา</TableHead>
-                        <TableHead className="w-[120px]">เอกสาร</TableHead>
+                        <TableHead className="w-[180px]">เอกสาร</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -990,7 +990,7 @@ export default function StockCard() {
                                 <span className="text-muted-foreground">{ev.duration_days} วัน</span>
                               ) : "-"}
                             </TableCell>
-                            <TableCell className="text-xs truncate max-w-[120px]">{ev.document || "-"}</TableCell>
+                            <TableCell className="text-xs font-mono whitespace-nowrap" title={ev.document || ""}>{ev.document || "-"}</TableCell>
                           </TableRow>
                         );
                       })}
