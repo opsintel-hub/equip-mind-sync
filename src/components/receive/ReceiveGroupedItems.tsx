@@ -361,8 +361,22 @@ export const ReceiveGroupedItems = ({
                         <TableCell className="text-sm">{item.supplier_name || "-"}</TableCell>
                         <TableCell>{getStatusBadge(item.status)}</TableCell>
                         <TableCell>
-                          {item.status === "pending" && (
-                            <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2">
+                            {item.status === "received" && onViewReceipt && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  onViewReceipt(item);
+                                }}
+                              >
+                                <Eye className="w-4 h-4 mr-1" />
+                                ดูรับเข้า
+                              </Button>
+                            )}
+                            {item.status === "pending" && (
+                              <>
                               <Button
                                 size="sm"
                                 variant="outline"
@@ -386,8 +400,9 @@ export const ReceiveGroupedItems = ({
                                 <XCircle className="w-4 h-4 mr-1" />
                                 ปฏิเสธ
                               </Button>
-                            </div>
-                          )}
+                              </>
+                            )}
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))}
