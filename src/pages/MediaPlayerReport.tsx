@@ -253,6 +253,28 @@ export default function MediaPlayerReport() {
     return map;
   }, [receiptRows]);
 
+  const { data: imageRows = [] } = useQuery({
+    queryKey: ["media-player-report-images"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("media_player_images" as any)
+        .select("media_player_id, image_url, display_order")
+        .order("display_order", { ascending: true });
+      if (error) throw error;
+      return (data || []) as Array<{ media_player_id: string; image_url: string; display_order: number | null }>;
+    },
+  });
+
+  const imagesByPlayer = useMemo(() => {
+    const map: Record<string, string[]> = {};
+    imageRows.forEach((img) => {
+      if (!img.media_player_id || !img.image_url) return;
+      if (!map[img.media_player_id]) map[img.media_player_id] = [];
+      map[img.media_player_id].push(img.image_url);
+    });
+    return map;
+  }, [imageRows]);
+
   // Show 1 row per physical device (1 media_players record = 1 machine)
   const expandedRows = useMemo(() => {
     const rows: ExpandedRow[] = [];
@@ -320,7 +342,7 @@ export default function MediaPlayerReport() {
         equipmentIdCode: p.equipment_id_code || "",
         depreciationRemaining,
         activateWindows: p.activate_windows || "",
-        imageUrl: p.image_url || p.media_player_image_url || null,
+        imageUrl: p.image_url || (latestReceipt as any)?.media_player_image_url || imagesByPlayer[p.id]?.[0] || null,
         lotNumber1: (latestReceipt as any)?.lot_number || "",
         lotNumber2: (latestReceipt as any)?.lot_number_2 || "",
         specification: p.specification || "",
@@ -331,7 +353,7 @@ export default function MediaPlayerReport() {
       });
     });
     return rows;
-  }, [players, latestReceiptMap]);
+  }, [players, latestReceiptMap, imagesByPlayer]);
 
   // Extract unique code prefixes
   const codePrefixes = useMemo(() => {
