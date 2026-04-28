@@ -545,13 +545,19 @@ export default function InventoryReport() {
       }
 
       const projects = orderForProjectMap[item.id] || [];
+      const receiptPrices = receiptPriceMap[item.id] || [];
+      // Fallback: ถ้า master ไม่มีราคา (0) ให้ใช้ราคาจากใบรับสินค้าล่าสุด
+      const effectiveUnitPrice = (item.unit_price && item.unit_price > 0)
+        ? item.unit_price
+        : (receiptPrices.length > 0 ? receiptPrices[0] : 0);
       const baseFields = {
+        unit_price: effectiveUnitPrice,
         issue_status: issueStatus,
         issue_purpose: issueInfo?.purpose || null,
         issue_billboard_code: issueInfo?.billboard_code || null,
         issue_requester: issueInfo?.requester || null,
         issued_quantity: issueInfo?.issued_quantity || 0,
-        all_prices: receiptPriceMap[item.id] || [],
+        all_prices: receiptPrices,
         order_for_project: projects.length > 0 ? projects[0] : null,
       };
 
