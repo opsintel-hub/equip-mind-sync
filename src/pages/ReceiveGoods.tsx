@@ -908,6 +908,23 @@ const ReceiveGoods = () => {
 
   const pendingCount = pendingReceipts.filter(r => r.status === "pending").length;
 
+  const formatReceiptDateTime = (value?: string | null) => value ? format(new Date(value), "dd/MM/yyyy HH:mm") : "-";
+  const formatLocationLabel = (detail: any) => {
+    const loc = detail?.received_location;
+    if (!loc) return "-";
+    return [loc.code, loc.name].filter(Boolean).join(" - ");
+  };
+  const formatWarehouseLabel = (detail: any) => {
+    const wh = detail?.received_location?.warehouses || detail?.warehouses;
+    if (!wh) return "-";
+    return [wh.code, wh.name].filter(Boolean).join(" - ");
+  };
+  const formatStoragePath = (detail: any) => {
+    const parts = [formatWarehouseLabel(detail), formatLocationLabel(detail), detail?.received_slot?.name, detail?.received_sub_slot?.name]
+      .filter((part) => part && part !== "-");
+    return parts.length ? parts.join(" / ") : "-";
+  };
+
   return (
     <div className="space-y-6">
       <div>
@@ -983,6 +1000,7 @@ const ReceiveGoods = () => {
             onReceiveSingle={openReceiveDialog}
             onReceiveBatch={openBatchReceiveDialog}
             onRejectSingle={openRejectDialog}
+            onViewReceipt={openReceiptDetailDialog}
             getReceiptPurposeName={getReceiptPurposeName}
           />
         </CardContent>
