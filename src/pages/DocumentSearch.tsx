@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
+import { downloadStorageFile } from "@/lib/storageDownload";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { th } from "date-fns/locale";
@@ -437,11 +438,23 @@ export default function DocumentSearch() {
                         <TableCell className="text-center pr-6">
                           {doc.document_url ? (
                             <div className="flex gap-0.5 justify-center">
-                              <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground" asChild>
-                                <a href={doc.document_url} target="_blank" rel="noopener noreferrer"><ExternalLink className="h-3.5 w-3.5" /></a>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                                title="เปิด/ดาวน์โหลดเอกสาร"
+                                onClick={() => downloadStorageFile(doc.document_url!, `${doc.document_no}.pdf`)}
+                              >
+                                <ExternalLink className="h-3.5 w-3.5" />
                               </Button>
-                              <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground" asChild>
-                                <a href={doc.document_url} download><Download className="h-3.5 w-3.5" /></a>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                                title="ดาวน์โหลด"
+                                onClick={() => downloadStorageFile(doc.document_url!, `${doc.document_no}.pdf`)}
+                              >
+                                <Download className="h-3.5 w-3.5" />
                               </Button>
                             </div>
                           ) : <span className="text-muted-foreground/30">-</span>}
