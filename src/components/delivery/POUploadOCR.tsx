@@ -161,6 +161,9 @@ export function POUploadOCR({
     setMatchedDepartment("");
     setSupplierMatchStatus("pending");
     setDeptMatchStatus("pending");
+    setMatchedBuyerCompanyId("");
+    setMatchedBuyerCompanyName("");
+    setBuyerMatchStatus("pending");
     setComment("");
     setItems([]);
   }, []);
