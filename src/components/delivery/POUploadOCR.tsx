@@ -226,6 +226,30 @@ export function POUploadOCR({
     }
   };
 
+  const matchBuyerCompany = (companyName: string | null) => {
+    if (!companyName || companies.length === 0) {
+      setMatchedBuyerCompanyId("");
+      setMatchedBuyerCompanyName(companyName || "");
+      setBuyerMatchStatus("not_found");
+      return;
+    }
+    const norm = (s: string) => s.toLowerCase().replace(/\s+/g, " ").trim();
+    const target = norm(companyName);
+    const found = companies.find((c) => {
+      const n = norm(c.name);
+      return n.includes(target) || target.includes(n);
+    });
+    if (found) {
+      setMatchedBuyerCompanyId(found.id);
+      setMatchedBuyerCompanyName(found.name);
+      setBuyerMatchStatus("matched");
+    } else {
+      setMatchedBuyerCompanyId("");
+      setMatchedBuyerCompanyName(companyName);
+      setBuyerMatchStatus("not_found");
+    }
+  };
+
   const matchEquipmentItems = (ocrItems: POOCRItem[]) => {
     return ocrItems.map((item) => {
       if (item.item_no) {
