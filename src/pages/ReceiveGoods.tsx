@@ -302,7 +302,7 @@ const ReceiveGoods = () => {
     setIsReceiptDetailLoading(true);
 
     const { data, error } = await supabase
-      .from("goods_receipt_pending")
+      .from("goods_receipt_pending" as any)
       .select(`
         *,
         departments:department_id(name),
