@@ -103,13 +103,16 @@ export function CompanyForm({ onSuccess, editData }: CompanyFormProps) {
   const onSubmit = async (data: CompanyFormValues) => {
     setIsLoading(true);
     try {
+      const departmentIdToSave =
+        data.department_id === ALL_DEPARTMENTS_VALUE ? null : data.department_id;
+
       if (editData) {
         const { error } = await supabase
           .from("companies")
           .update({
             code: data.code,
             name: data.name,
-            department_id: data.department_id,
+            department_id: departmentIdToSave,
             description: data.description || null,
           })
           .eq("id", editData.id);
@@ -120,7 +123,7 @@ export function CompanyForm({ onSuccess, editData }: CompanyFormProps) {
         const { error } = await supabase.from("companies").insert({
           code: data.code,
           name: data.name,
-          department_id: data.department_id,
+          department_id: departmentIdToSave,
           description: data.description || null,
         });
 
