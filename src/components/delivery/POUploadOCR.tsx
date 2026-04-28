@@ -356,6 +356,8 @@ export function POUploadOCR({
       supplierName:
         suppliers.find((s) => s.id === matchedSupplierId)?.name || ocrData?.vendor_name || "",
       departmentName: matchedDepartment,
+      buyerCompanyId: matchedBuyerCompanyId,
+      buyerCompanyName: matchedBuyerCompanyName,
       notes: comment,
       items,
       pdfFile: file,
