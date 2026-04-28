@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/tooltip";
 import { InventoryFilters, InventoryFiltersState, getConditionLabel, getConditionBadgeClass } from "@/components/inventory/InventoryFilters";
 import { EquipmentImageViewer } from "@/components/equipment/EquipmentImageViewer";
+import { MediaPlayerImageViewer } from "@/components/media-player/MediaPlayerImageViewer";
 import * as XLSX from "xlsx";
 import { toast } from "sonner";
 import { buildReceivedSerialAliasMap, formatMergedSerials, matchesSerialSearch } from "@/lib/serialSearch";
@@ -545,13 +546,19 @@ export default function InventoryReport() {
       }
 
       const projects = orderForProjectMap[item.id] || [];
+      const receiptPrices = receiptPriceMap[item.id] || [];
+      // Fallback: ถ้า master ไม่มีราคา (0) ให้ใช้ราคาจากใบรับสินค้าล่าสุด
+      const effectiveUnitPrice = (item.unit_price && item.unit_price > 0)
+        ? item.unit_price
+        : (receiptPrices.length > 0 ? receiptPrices[0] : 0);
       const baseFields = {
+        unit_price: effectiveUnitPrice,
         issue_status: issueStatus,
         issue_purpose: issueInfo?.purpose || null,
         issue_billboard_code: issueInfo?.billboard_code || null,
         issue_requester: issueInfo?.requester || null,
         issued_quantity: issueInfo?.issued_quantity || 0,
-        all_prices: receiptPriceMap[item.id] || [],
+        all_prices: receiptPrices,
         order_for_project: projects.length > 0 ? projects[0] : null,
       };
 
@@ -1031,7 +1038,14 @@ export default function InventoryReport() {
                                 variant="icon"
                               />
                             )}
-                            {item.item_type !== 'equipment' && (
+                            {item.item_type === 'media_player' && (
+                              <MediaPlayerImageViewer
+                                mediaPlayerId={item.id}
+                                mediaPlayerName={item.name}
+                                variant="icon"
+                              />
+                            )}
+                            {item.item_type === 'tools' && (
                               <span className="text-muted-foreground">
                                 <ImageIcon className="h-4 w-4 opacity-30" />
                               </span>
