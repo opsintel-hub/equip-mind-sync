@@ -218,7 +218,7 @@ const MediaPlayerEntry = () => {
           specification: selectedSpec?.name || null,
           brand: formData.brand || null,
           model_id: formData.model_id || null,
-          quantity: 1,
+          quantity: 0, // เริ่มต้นเป็น 0 — จะถูกเพิ่มจริงเมื่อรับเข้าคลังผ่าน Receive Goods (ป้องกันยอด stock เกินจริง)
           unit: "เครื่อง",
         } as any)
         .select("id")
