@@ -20,7 +20,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { ProcessTracker, ProcessStep } from "@/components/ProcessTracker";
-import { Monitor, Search, Download, Eye, Package, AlertTriangle, CheckCircle, Loader2, FileDown, Tag, Building2, Wrench, Shield, Image as ImageIcon, FolderKanban, Layers, MapPin, Warehouse } from "lucide-react";
+import { Monitor, Search, Download, Eye, Package, AlertTriangle, CheckCircle, Loader2, FileDown, Tag, Building2, Wrench, Shield, Image as ImageIcon, FolderKanban, Layers } from "lucide-react";
 import { differenceInDays, differenceInMonths, parseISO, format } from "date-fns";
 import { formatBillboardLabel } from "@/lib/billboardUtils";
 import { toast } from "sonner";
@@ -121,44 +121,6 @@ interface ExpandedRow {
   orderForProject: string;
 }
 
-interface ReceiptDetail {
-  id: string;
-  document_no: string;
-  equipment_code: string | null;
-  equipment_name: string | null;
-  quantity: number;
-  unit: string;
-  serial_number: string | null;
-  serial_number_2?: string | null;
-  status: string;
-  received_at: string | null;
-  created_at: string;
-  delivery_person_name: string | null;
-  supplier_name: string | null;
-  supplier_id: string | null;
-  unit_price: number | null;
-  po_number: string | null;
-  pr_number: string | null;
-  order_for_project: string | null;
-  notes: string | null;
-  department_id: string | null;
-  company_id: string | null;
-  warehouse_id: string | null;
-  received_location_id: string | null;
-  received_storage_slot_id: string | null;
-  received_sub_storage_slot_id: string | null;
-  storage_volume_cm3: number | null;
-  media_player_id: string | null;
-  receipt_purpose_id: string | null;
-  departments?: { name: string } | null;
-  companies?: { code: string | null; name: string } | null;
-  warehouses?: { code: string | null; name: string } | null;
-  locations?: { code: string | null; name: string; warehouses?: { code: string | null; name: string } | null } | null;
-  storage_slots?: { name: string } | null;
-  sub_storage_slots?: { name: string } | null;
-  receipt_purposes?: { name: string } | null;
-}
-
 export default function MediaPlayerReport() {
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
@@ -172,7 +134,6 @@ export default function MediaPlayerReport() {
   const [projectFilter, setProjectFilter] = useState("all");
   const [selectedPlayerId, setSelectedPlayerId] = useState<string | null>(null);
   const [lightboxImages, setLightboxImages] = useState<string[] | null>(null);
-  const [selectedReceipt, setSelectedReceipt] = useState<ReceiptDetail | null>(null);
 
   // Fetch all media players with extra fields
   const { data: players = [], isLoading } = useQuery({
