@@ -70,13 +70,13 @@
 
     /* Sidebar - Dark Modern */
     --sidebar-background: 222 47% 11%;
-    --sidebar-foreground: 213 31% 91%;
-    --sidebar-primary: 221 83% 53%;
+    --sidebar-foreground: 213 35% 98%;
+    --sidebar-primary: 221 83% 60%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 222 47% 18%;
-    --sidebar-accent-foreground: 213 31% 91%;
-    --sidebar-border: 222 47% 18%;
-    --sidebar-ring: 221 83% 53%;
+    --sidebar-accent: 221 83% 32%;
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-border: 222 47% 22%;
+    --sidebar-ring: 221 83% 60%;
 
     /* Charts - Vibrant but Professional */
     --chart-1: 221 83% 53%;
