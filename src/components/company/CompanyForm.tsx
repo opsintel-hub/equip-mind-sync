@@ -68,7 +68,7 @@ export function CompanyForm({ onSuccess, editData }: CompanyFormProps) {
     defaultValues: {
       code: editData?.code || "",
       name: editData?.name || "",
-      department_id: editData?.department_id || "",
+      department_id: editData ? (editData.department_id || ALL_DEPARTMENTS_VALUE) : "",
       description: editData?.description || "",
     },
   });
