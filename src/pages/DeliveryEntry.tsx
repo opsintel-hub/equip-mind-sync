@@ -1241,18 +1241,19 @@ const DeliveryEntry = () => {
       setCartItems((prev) => [...prev, ...newCartItems]);
     }
 
-    // Upload PO PDF to storage
+    // Upload PO PDF to storage (ตั้งชื่อตามมาตรฐานเดียวกับ flow กรอกเลขก่อน)
     try {
-      const fileName = `po_${data.poNumber}_${Date.now()}.pdf`;
+      const safePoNo = (data.poNumber || "UNKNOWN").replace(/[^a-zA-Z0-9-_]/g, "_");
+      const filePath = `purchase-documents/PO-PR-${safePoNo}-${Date.now()}.pdf`;
       const { error: uploadErr } = await supabase.storage
         .from("delivery-documents")
-        .upload(fileName, data.pdfFile, { contentType: "application/pdf" });
+        .upload(filePath, data.pdfFile, { contentType: "application/pdf" });
       if (uploadErr) {
         console.error("Upload PO PDF error:", uploadErr);
       } else {
         const { data: urlData } = supabase.storage
           .from("delivery-documents")
-          .getPublicUrl(fileName);
+          .getPublicUrl(filePath);
         if (urlData?.publicUrl) {
           setPoDocumentUrl(urlData.publicUrl);
         }
