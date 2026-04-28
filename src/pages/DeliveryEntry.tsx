@@ -1292,6 +1292,7 @@ const DeliveryEntry = () => {
         suppliers={suppliers}
         equipment={equipment}
         departments={allowedDepartments.map((d) => ({ id: d.id, name: d.name }))}
+        companies={companies}
       />
 
       {/* Edit Item Dialog */}
