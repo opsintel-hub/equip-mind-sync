@@ -860,9 +860,66 @@ export default function StockCard() {
                 });
               }
 
+              // Find current step for status badge
+              const currentStep = steps.find(s => s.status === "current");
+              const rejectedStep = steps.find(s => s.status === "rejected");
+              const warningStep = steps.find(s => s.status === "warning");
+              const allDone = steps.every(s => s.status === "done");
+              const activeStep = rejectedStep || warningStep || currentStep;
+
               return (
-                <div className="bg-muted/30 rounded-lg px-6 py-4">
+                <div className="bg-muted/30 rounded-lg px-6 py-4 space-y-3">
+                  {/* Current Status Banner */}
+                  <div className="flex items-center justify-between flex-wrap gap-2">
+                    <div className="flex items-center gap-2 text-sm">
+                      <span className="text-muted-foreground">สถานะปัจจุบัน:</span>
+                      {allDone ? (
+                        <Badge className="bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 border-0 gap-1">
+                          <Check className="w-3 h-3" /> เสร็จสิ้นทุกขั้นตอน
+                        </Badge>
+                      ) : activeStep ? (
+                        <Badge className={cn(
+                          "border-0 gap-1",
+                          activeStep.status === "rejected" && "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
+                          activeStep.status === "warning" && "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400",
+                          activeStep.status === "current" && "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
+                        )}>
+                          <Clock className="w-3 h-3 animate-pulse" />
+                          {activeStep.label}
+                        </Badge>
+                      ) : (
+                        <Badge variant="outline">ไม่มีความเคลื่อนไหว</Badge>
+                      )}
+                    </div>
+                  </div>
+
                   <ProcessTracker steps={steps} size="md" />
+
+                  {/* Legend */}
+                  <div className="flex items-center justify-center gap-4 flex-wrap text-[11px] text-muted-foreground pt-2 border-t border-border/50">
+                    <div className="flex items-center gap-1.5">
+                      <div className="w-3 h-3 rounded-full bg-primary border-2 border-primary flex items-center justify-center">
+                        <Check className="w-2 h-2 text-primary-foreground" strokeWidth={3} />
+                      </div>
+                      <span>เสร็จแล้ว</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <div className="w-3 h-3 rounded-full bg-background border-2 border-primary" />
+                      <span>กำลังดำเนินการ</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <div className="w-3 h-3 rounded-full bg-muted border-2 border-muted-foreground/25" />
+                      <span>ยังไม่ถึง</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <div className="w-3 h-3 rounded-full bg-background border-2 border-orange-500" />
+                      <span>รอดำเนินการ/เกินกำหนด</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <div className="w-3 h-3 rounded-full bg-destructive border-2 border-destructive" />
+                      <span>ปฏิเสธ</span>
+                    </div>
+                  </div>
                 </div>
               );
             })()}
