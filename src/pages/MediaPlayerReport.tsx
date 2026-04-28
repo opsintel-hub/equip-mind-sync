@@ -80,7 +80,6 @@ interface MediaPlayerMaster {
   depreciation_months: number | null;
   activate_windows: string | null;
   image_url: string | null;
-  media_player_image_url?: string | null;
   specification: string | null;
   usage_lifespan_months: number | null;
   companies: { name: string } | null;
@@ -186,7 +185,7 @@ export default function MediaPlayerReport() {
           item_condition, status, quantity, unit, billboard_id, location_id, company_id,
           warranty_expiry_date, date_of_receipt, install_date, unit_price, po_number,
           asset_code, equipment_id_code, depreciation_months, activate_windows,
-          image_url, media_player_image_url, specification, usage_lifespan_months,
+          image_url, specification, usage_lifespan_months,
           companies:company_id (name),
           locations:location_id (name),
           billboard:billboards!media_players_billboard_id_fkey (id, equipment_id, old_code, location_name)
@@ -204,7 +203,7 @@ export default function MediaPlayerReport() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("goods_receipt_pending")
-        .select("media_player_id, serial_number, unit_price, po_number, lot_number, lot_number_2, order_for_project, received_at, created_at")
+        .select("media_player_id, serial_number, unit_price, po_number, lot_number, lot_number_2, order_for_project, received_at, created_at, media_player_image_url")
         .eq("status", "received")
         .eq("is_media_player", true)
         .not("media_player_id", "is", null);
