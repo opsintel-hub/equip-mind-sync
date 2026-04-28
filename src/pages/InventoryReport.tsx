@@ -1038,7 +1038,14 @@ export default function InventoryReport() {
                                 variant="icon"
                               />
                             )}
-                            {item.item_type !== 'equipment' && (
+                            {item.item_type === 'media_player' && (
+                              <MediaPlayerImageViewer
+                                mediaPlayerId={item.id}
+                                mediaPlayerName={item.name}
+                                variant="icon"
+                              />
+                            )}
+                            {item.item_type === 'tools' && (
                               <span className="text-muted-foreground">
                                 <ImageIcon className="h-4 w-4 opacity-30" />
                               </span>
