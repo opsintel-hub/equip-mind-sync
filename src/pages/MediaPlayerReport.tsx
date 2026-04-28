@@ -172,7 +172,8 @@ export default function MediaPlayerReport() {
   const [brandFilter, setBrandFilter] = useState("all");
   const [projectFilter, setProjectFilter] = useState("all");
   const [selectedPlayerId, setSelectedPlayerId] = useState<string | null>(null);
-  const [lightboxImage, setLightboxImage] = useState<string | null>(null);
+  const [lightboxImages, setLightboxImages] = useState<string[] | null>(null);
+  const [selectedReceipt, setSelectedReceipt] = useState<ReceiptDetail | null>(null);
 
   // Fetch all media players with extra fields
   const { data: players = [], isLoading } = useQuery({
@@ -185,7 +186,7 @@ export default function MediaPlayerReport() {
           item_condition, status, quantity, unit, billboard_id, location_id, company_id,
           warranty_expiry_date, date_of_receipt, install_date, unit_price, po_number,
           asset_code, equipment_id_code, depreciation_months, activate_windows,
-          image_url, specification, usage_lifespan_months,
+          image_url, media_player_image_url, specification, usage_lifespan_months,
           companies:company_id (name),
           locations:location_id (name),
           billboard:billboards!media_players_billboard_id_fkey (id, equipment_id, old_code, location_name)
@@ -320,7 +321,7 @@ export default function MediaPlayerReport() {
         equipmentIdCode: p.equipment_id_code || "",
         depreciationRemaining,
         activateWindows: p.activate_windows || "",
-        imageUrl: p.image_url,
+        imageUrl: p.image_url || p.media_player_image_url || null,
         lotNumber1: (latestReceipt as any)?.lot_number || "",
         lotNumber2: (latestReceipt as any)?.lot_number_2 || "",
         specification: p.specification || "",
