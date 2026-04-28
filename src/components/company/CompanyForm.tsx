@@ -176,6 +176,9 @@ export function CompanyForm({ onSuccess, editData }: CompanyFormProps) {
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent position="popper" sideOffset={4} className="bg-background z-[200] max-h-60 overflow-y-auto">
+                      <SelectItem value={ALL_DEPARTMENTS_VALUE}>
+                        🌐 ทุกฝ่าย (ใช้ได้กับทุกฝ่าย)
+                      </SelectItem>
                       {departments.map((dept) => (
                         <SelectItem key={dept.id} value={dept.id}>
                           {dept.name}
