@@ -1166,6 +1166,11 @@ const DeliveryEntry = () => {
       if (dept) setSelectedDepartmentId(dept.id);
     }
 
+    // Auto-fill buyer company (from PO letterhead)
+    if (data.buyerCompanyId) {
+      setSelectedCompanyId(data.buyerCompanyId);
+    }
+
     // Set receipt purpose to "ซื้อ" (purchase)
     const purchasePurpose = receiptPurposes.find(
       (p) => p.purpose_type === "purchase" || p.name === "ซื้อ" || p.name.includes("ซื้อ")
@@ -1292,6 +1297,7 @@ const DeliveryEntry = () => {
         suppliers={suppliers}
         equipment={equipment}
         departments={allowedDepartments.map((d) => ({ id: d.id, name: d.name }))}
+        companies={companies}
       />
 
       {/* Edit Item Dialog */}
@@ -1343,11 +1349,13 @@ const DeliveryEntry = () => {
                   <Label htmlFor="company">ชื่อบริษัทที่สั่งซื้อ(ตาม Budget) *</Label>
                   <SearchableSelect
                     options={(selectedDepartmentId
-                      ? companies.filter((c) => c.department_id === selectedDepartmentId)
+                      ? companies.filter(
+                          (c) => c.department_id === selectedDepartmentId || c.department_id === null
+                        )
                       : companies
                     ).map((c) => ({
                       value: c.id,
-                      label: `${c.code} - ${c.name}`,
+                      label: `${c.code} - ${c.name}${c.department_id === null ? " 🌐" : ""}`,
                     }))}
                     value={selectedCompanyId}
                     onValueChange={setSelectedCompanyId}

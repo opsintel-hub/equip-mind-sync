@@ -19,7 +19,8 @@ const DEFAULT_SYSTEM_PROMPT = `คุณเป็นผู้เชี่ยว�
 - Item No คือรหัสสินค้า/รหัสอะไหล่ที่ระบุในตาราง
 - Description คือรายละเอียดสินค้า/บริการ
 - ดึง Vendor Code (รหัสผู้ขาย) จากหัวเอกสาร
-- ดึง PR Number (เลขที่ใบขอซื้อ) จากช่อง Refer PR หรือ PR No.`;
+- ดึง PR Number (เลขที่ใบขอซื้อ) จากช่อง Refer PR หรือ PR No.
+- buyer_company_name คือ "ชื่อบริษัทผู้ซื้อ/ผู้ออก PO" ที่ปรากฏบน หัวกระดาษ (Letterhead) ด้านบนสุดของเอกสาร เช่น "Plan B Media Public Company Limited", "บริษัท แพลน บี มีเดีย จำกัด (มหาชน)" — ห้ามสับสนกับ Vendor (ผู้ขาย/ผู้รับเงิน) เด็ดขาด ให้ดึงชื่อเต็มตามที่ปรากฏบนหัวกระดาษ`;
 
 const DEFAULT_EXTRACTION_SCHEMA = {
   name: "extract_po_data",
@@ -29,6 +30,7 @@ const DEFAULT_EXTRACTION_SCHEMA = {
     properties: {
       po_number: { type: "string", description: "เลขที่ PO เช่น PO20100177" },
       po_date: { type: "string", description: "วันที่ PO ในรูปแบบ YYYY-MM-DD" },
+      buyer_company_name: { type: "string", description: "ชื่อบริษัทผู้ซื้อ/ผู้ออก PO ตามที่ปรากฏบนหัวกระดาษ (Letterhead) เช่น 'Plan B Media Public Company Limited' หรือ 'บริษัท แพลน บี มีเดีย จำกัด (มหาชน)' - ห้ามสับสนกับ Vendor" },
       vendor_code: { type: "string", description: "รหัสผู้ขาย/Vendor No เช่น 002402" },
       vendor_name: { type: "string", description: "ชื่อผู้ขาย/บริษัท Vendor" },
       vendor_address: { type: "string", description: "ที่อยู่ Vendor" },

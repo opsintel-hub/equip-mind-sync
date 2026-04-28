@@ -126,7 +126,9 @@ export function CompanyList({ refresh }: CompanyListProps) {
                 {company.departments ? (
                   <Badge variant="outline">{company.departments.name}</Badge>
                 ) : (
-                  <span className="text-muted-foreground">-</span>
+                  <Badge variant="outline" className="bg-primary/10 text-primary border-primary/30">
+                    🌐 ทุกฝ่าย
+                  </Badge>
                 )}
               </TableCell>
               <TableCell className="text-muted-foreground">

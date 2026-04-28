@@ -24,6 +24,7 @@ const DEFAULT_FIELD_MAPPING: Record<string, string> = {
 export interface POOCRData {
   po_number: string | null;
   po_date: string | null;
+  buyer_company_name: string | null;
   vendor_code: string | null;
   vendor_name: string | null;
   pr_number: string | null;
@@ -58,6 +59,8 @@ export interface POImportResult {
   supplierId: string;
   supplierName: string;
   departmentName: string;
+  buyerCompanyId: string;
+  buyerCompanyName: string;
   notes: string;
   items: POOCRItem[];
   pdfFile: File;
@@ -83,6 +86,13 @@ interface Department {
   name: string;
 }
 
+interface Company {
+  id: string;
+  code: string;
+  name: string;
+  department_id: string | null;
+}
+
 interface POUploadOCRProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -90,6 +100,7 @@ interface POUploadOCRProps {
   suppliers: Supplier[];
   equipment: Equipment[];
   departments: Department[];
+  companies?: Company[];
 }
 
 export function POUploadOCR({
@@ -99,6 +110,7 @@ export function POUploadOCR({
   suppliers,
   equipment,
   departments,
+  companies = [],
 }: POUploadOCRProps) {
   const [file, setFile] = useState<File | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -111,6 +123,9 @@ export function POUploadOCR({
   const [matchedDepartment, setMatchedDepartment] = useState("");
   const [supplierMatchStatus, setSupplierMatchStatus] = useState<"matched" | "not_found" | "pending">("pending");
   const [deptMatchStatus, setDeptMatchStatus] = useState<"matched" | "not_found" | "pending">("pending");
+  const [matchedBuyerCompanyId, setMatchedBuyerCompanyId] = useState("");
+  const [matchedBuyerCompanyName, setMatchedBuyerCompanyName] = useState("");
+  const [buyerMatchStatus, setBuyerMatchStatus] = useState<"matched" | "not_found" | "pending">("pending");
   const [comment, setComment] = useState("");
   const [items, setItems] = useState<POOCRItem[]>([]);
   const [fieldMapping, setFieldMapping] = useState<Record<string, string>>(DEFAULT_FIELD_MAPPING);
@@ -146,6 +161,9 @@ export function POUploadOCR({
     setMatchedDepartment("");
     setSupplierMatchStatus("pending");
     setDeptMatchStatus("pending");
+    setMatchedBuyerCompanyId("");
+    setMatchedBuyerCompanyName("");
+    setBuyerMatchStatus("pending");
     setComment("");
     setItems([]);
   }, []);
@@ -205,6 +223,30 @@ export function POUploadOCR({
     } else {
       setMatchedDepartment("");
       setDeptMatchStatus("not_found");
+    }
+  };
+
+  const matchBuyerCompany = (companyName: string | null) => {
+    if (!companyName || companies.length === 0) {
+      setMatchedBuyerCompanyId("");
+      setMatchedBuyerCompanyName(companyName || "");
+      setBuyerMatchStatus("not_found");
+      return;
+    }
+    const norm = (s: string) => s.toLowerCase().replace(/\s+/g, " ").trim();
+    const target = norm(companyName);
+    const found = companies.find((c) => {
+      const n = norm(c.name);
+      return n.includes(target) || target.includes(n);
+    });
+    if (found) {
+      setMatchedBuyerCompanyId(found.id);
+      setMatchedBuyerCompanyName(found.name);
+      setBuyerMatchStatus("matched");
+    } else {
+      setMatchedBuyerCompanyId("");
+      setMatchedBuyerCompanyName(companyName);
+      setBuyerMatchStatus("not_found");
     }
   };
 
@@ -271,6 +313,9 @@ export function POUploadOCR({
       // Match department
       matchDepartment(extracted.department);
 
+      // Match buyer company (จากหัวกระดาษ)
+      matchBuyerCompany(extracted.buyer_company_name);
+
       // Match items
       const matchedItems = matchEquipmentItems(extracted.items || []);
       setItems(matchedItems);
@@ -311,6 +356,8 @@ export function POUploadOCR({
       supplierName:
         suppliers.find((s) => s.id === matchedSupplierId)?.name || ocrData?.vendor_name || "",
       departmentName: matchedDepartment,
+      buyerCompanyId: matchedBuyerCompanyId,
+      buyerCompanyName: matchedBuyerCompanyName,
       notes: comment,
       items,
       pdfFile: file,
@@ -493,6 +540,29 @@ export function POUploadOCR({
                   />
                   {ocrData.department && (
                     <p className="text-xs text-muted-foreground">จาก PO: {ocrData.department}</p>
+                  )}
+                </div>
+                <div className="md:col-span-2 space-y-1">
+                  <Label className="text-xs flex items-center gap-1">
+                    บริษัทผู้ซื้อ (จากหัวกระดาษ)
+                    {buyerMatchStatus === "matched" && (
+                      <Badge variant="outline" className="text-xs bg-green-50 text-green-700 border-green-200">
+                        <CheckCircle2 className="w-3 h-3 mr-1" /> พบในระบบ - จะกรอกอัตโนมัติ
+                      </Badge>
+                    )}
+                    {buyerMatchStatus === "not_found" && ocrData.buyer_company_name && (
+                      <Badge variant="outline" className="text-xs bg-yellow-50 text-yellow-700 border-yellow-200">
+                        <AlertTriangle className="w-3 h-3 mr-1" /> ไม่พบในระบบ - เลือกในฟอร์มเอง
+                      </Badge>
+                    )}
+                  </Label>
+                  <Input
+                    value={matchedBuyerCompanyName || ocrData.buyer_company_name || ""}
+                    disabled
+                    className="bg-muted/50"
+                  />
+                  {ocrData.buyer_company_name && (
+                    <p className="text-xs text-muted-foreground">จาก PO: {ocrData.buyer_company_name}</p>
                   )}
                 </div>
                 {ocrData.payment_terms && (

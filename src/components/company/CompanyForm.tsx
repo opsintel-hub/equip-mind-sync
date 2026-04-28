@@ -31,6 +31,8 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
+const ALL_DEPARTMENTS_VALUE = "__ALL__";
+
 const companySchema = z.object({
   code: z.string().min(1, "กรุณากรอกรหัสบริษัท"),
   name: z.string().min(1, "กรุณากรอกชื่อบริษัท"),
@@ -66,7 +68,7 @@ export function CompanyForm({ onSuccess, editData }: CompanyFormProps) {
     defaultValues: {
       code: editData?.code || "",
       name: editData?.name || "",
-      department_id: editData?.department_id || "",
+      department_id: editData ? (editData.department_id || ALL_DEPARTMENTS_VALUE) : "",
       description: editData?.description || "",
     },
   });
@@ -80,7 +82,7 @@ export function CompanyForm({ onSuccess, editData }: CompanyFormProps) {
       form.reset({
         code: editData.code,
         name: editData.name,
-        department_id: editData.department_id || "",
+        department_id: editData.department_id || ALL_DEPARTMENTS_VALUE,
         description: editData.description || "",
       });
     }
@@ -101,13 +103,16 @@ export function CompanyForm({ onSuccess, editData }: CompanyFormProps) {
   const onSubmit = async (data: CompanyFormValues) => {
     setIsLoading(true);
     try {
+      const departmentIdToSave =
+        data.department_id === ALL_DEPARTMENTS_VALUE ? null : data.department_id;
+
       if (editData) {
         const { error } = await supabase
           .from("companies")
           .update({
             code: data.code,
             name: data.name,
-            department_id: data.department_id,
+            department_id: departmentIdToSave,
             description: data.description || null,
           })
           .eq("id", editData.id);
@@ -118,7 +123,7 @@ export function CompanyForm({ onSuccess, editData }: CompanyFormProps) {
         const { error } = await supabase.from("companies").insert({
           code: data.code,
           name: data.name,
-          department_id: data.department_id,
+          department_id: departmentIdToSave,
           description: data.description || null,
         });
 
@@ -171,6 +176,9 @@ export function CompanyForm({ onSuccess, editData }: CompanyFormProps) {
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent position="popper" sideOffset={4} className="bg-background z-[200] max-h-60 overflow-y-auto">
+                      <SelectItem value={ALL_DEPARTMENTS_VALUE}>
+                        🌐 ทุกฝ่าย (ใช้ได้กับทุกฝ่าย)
+                      </SelectItem>
                       {departments.map((dept) => (
                         <SelectItem key={dept.id} value={dept.id}>
                           {dept.name}
