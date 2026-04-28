@@ -1,16 +1,19 @@
 import { supabase } from "@/integrations/supabase/client";
 
 /**
- * Downloads a file from Supabase Storage via SDK (bypasses ad blockers).
- * Extracts bucket and path from a public storage URL.
+ * Downloads a file from Supabase Storage via SDK (bypasses ad blockers
+ * that block *.supabase.co AND blob: URLs from preview domains).
+ *
+ * Strategy: Always trigger a real file download via <a download> — never
+ * window.open() blob URLs (Chrome shield blocks blob: in some setups).
  */
 export async function downloadStorageFile(publicUrl: string, fallbackFilename?: string) {
   try {
     // Parse: .../storage/v1/object/public/{bucket}/{path}
     const match = publicUrl.match(/\/storage\/v1\/object\/public\/([^/]+)\/(.+)$/);
     if (!match) {
-      // Fallback: open URL directly
-      window.open(publicUrl, '_blank');
+      // Last resort: try opening URL directly
+      window.location.href = publicUrl;
       return;
     }
 
@@ -21,27 +24,26 @@ export async function downloadStorageFile(publicUrl: string, fallbackFilename?: 
 
     if (error || !data) {
       console.error('Storage download error:', error);
-      window.open(publicUrl, '_blank');
+      window.location.href = publicUrl;
       return;
     }
 
-    // Create blob URL and trigger download/view
-    const blobUrl = URL.createObjectURL(data);
     const filename = fallbackFilename || decodeURIComponent(path.split('/').pop() || 'file');
-    
-    // For PDFs, open in new tab; for others, download
-    if (data.type === 'application/pdf' || filename.toLowerCase().endsWith('.pdf')) {
-      window.open(blobUrl, '_blank');
-    } else {
-      const a = document.createElement('a');
-      a.href = blobUrl;
-      a.download = filename;
-      a.click();
-    }
 
-    // Cleanup after a delay
+    // Always trigger a real file download — works even when ad blockers
+    // block blob: URLs from being opened in new tabs.
+    const blobUrl = URL.createObjectURL(data);
+    const a = document.createElement('a');
+    a.href = blobUrl;
+    a.download = filename;
+    a.style.display = 'none';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+
     setTimeout(() => URL.revokeObjectURL(blobUrl), 30000);
-  } catch {
-    window.open(publicUrl, '_blank');
+  } catch (e) {
+    console.error('downloadStorageFile failed:', e);
+    window.location.href = publicUrl;
   }
 }
