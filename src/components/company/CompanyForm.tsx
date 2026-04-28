@@ -31,6 +31,8 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
+const ALL_DEPARTMENTS_VALUE = "__ALL__";
+
 const companySchema = z.object({
   code: z.string().min(1, "กรุณากรอกรหัสบริษัท"),
   name: z.string().min(1, "กรุณากรอกชื่อบริษัท"),
