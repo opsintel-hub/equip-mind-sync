@@ -24,6 +24,7 @@ const DEFAULT_FIELD_MAPPING: Record<string, string> = {
 export interface POOCRData {
   po_number: string | null;
   po_date: string | null;
+  buyer_company_name: string | null;
   vendor_code: string | null;
   vendor_name: string | null;
   pr_number: string | null;
@@ -58,6 +59,8 @@ export interface POImportResult {
   supplierId: string;
   supplierName: string;
   departmentName: string;
+  buyerCompanyId: string;
+  buyerCompanyName: string;
   notes: string;
   items: POOCRItem[];
   pdfFile: File;
