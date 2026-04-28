@@ -1166,6 +1166,11 @@ const DeliveryEntry = () => {
       if (dept) setSelectedDepartmentId(dept.id);
     }
 
+    // Auto-fill buyer company (from PO letterhead)
+    if (data.buyerCompanyId) {
+      setSelectedCompanyId(data.buyerCompanyId);
+    }
+
     // Set receipt purpose to "ซื้อ" (purchase)
     const purchasePurpose = receiptPurposes.find(
       (p) => p.purpose_type === "purchase" || p.name === "ซื้อ" || p.name.includes("ซื้อ")
