@@ -878,7 +878,10 @@ export default function InventoryReport() {
           <div>
             <h1 className="text-2xl font-bold">รายงานสินค้าคงคลัง</h1>
             <p className="text-muted-foreground">
-              ดูรายการอะไหล่ทั้งหมดพร้อมกรองตามเงื่อนไขต่างๆ
+              ดูรายการอะไหล่/อุปกรณ์ทั้งหมดพร้อมกรองตามเงื่อนไขต่างๆ
+            </p>
+            <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
+              ⚠️ รายงานนี้แสดงเฉพาะ <b>อุปกรณ์/อะไหล่</b> เท่านั้น — สำหรับ Media Player กรุณาดูที่หน้า <b>"รายงาน Media Player"</b>
             </p>
           </div>
           <Button onClick={handleExport} disabled={filteredData.length === 0}>
