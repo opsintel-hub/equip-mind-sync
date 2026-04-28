@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { PackageCheck, Search, Clock, CheckCircle2, Package, Box, Layers, AlertTriangle, Plus } from "lucide-react";
+import { PackageCheck, Search, Clock, CheckCircle2, Package, Box, Layers, AlertTriangle, Plus, Eye, MapPin } from "lucide-react";
 import { EquipmentImageViewer } from "@/components/equipment/EquipmentImageViewer";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -100,6 +100,11 @@ const ReceiveGoods = () => {
   const [isRejectDialogOpen, setIsRejectDialogOpen] = useState(false);
   const [rejectReceipt, setRejectReceipt] = useState<PendingReceipt | null>(null);
   const [rejectReason, setRejectReason] = useState("");
+
+  // Received detail dialog state
+  const [isReceiptDetailOpen, setIsReceiptDetailOpen] = useState(false);
+  const [receiptDetail, setReceiptDetail] = useState<any | null>(null);
+  const [isReceiptDetailLoading, setIsReceiptDetailLoading] = useState(false);
 
   // Form state for editing - only editable fields
   const [editNotes, setEditNotes] = useState("");
@@ -289,6 +294,35 @@ const ReceiveGoods = () => {
     setRejectReceipt(receipt);
     setRejectReason("");
     setIsRejectDialogOpen(true);
+  };
+
+  const openReceiptDetailDialog = async (receipt: PendingReceipt) => {
+    setReceiptDetail(receipt);
+    setIsReceiptDetailOpen(true);
+    setIsReceiptDetailLoading(true);
+
+    const { data, error } = await supabase
+      .from("goods_receipt_pending")
+      .select(`
+        *,
+        departments:department_id(name),
+        companies:company_id(code, name),
+        warehouses:warehouse_id(code, name),
+        received_location:locations!goods_receipt_pending_received_location_id_fkey(code, name, warehouses:warehouse_id(code, name)),
+        received_slot:storage_slots!goods_receipt_pending_received_storage_slot_id_fkey(name),
+        received_sub_slot:sub_storage_slots!goods_receipt_pending_received_sub_storage_slot_id_fkey(name),
+        receipt_purposes:receipt_purpose_id(name)
+      `)
+      .eq("id", receipt.id)
+      .maybeSingle();
+
+    if (error) {
+      console.error("Error loading receipt detail:", error);
+      toast.error("โหลดรายละเอียดการรับเข้าไม่สำเร็จ");
+    } else if (data) {
+      setReceiptDetail(data);
+    }
+    setIsReceiptDetailLoading(false);
   };
 
   const handleReject = async () => {
