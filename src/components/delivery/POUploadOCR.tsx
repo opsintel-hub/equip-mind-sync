@@ -542,6 +542,29 @@ export function POUploadOCR({
                     <p className="text-xs text-muted-foreground">จาก PO: {ocrData.department}</p>
                   )}
                 </div>
+                <div className="md:col-span-2 space-y-1">
+                  <Label className="text-xs flex items-center gap-1">
+                    บริษัทผู้ซื้อ (จากหัวกระดาษ)
+                    {buyerMatchStatus === "matched" && (
+                      <Badge variant="outline" className="text-xs bg-green-50 text-green-700 border-green-200">
+                        <CheckCircle2 className="w-3 h-3 mr-1" /> พบในระบบ - จะกรอกอัตโนมัติ
+                      </Badge>
+                    )}
+                    {buyerMatchStatus === "not_found" && ocrData.buyer_company_name && (
+                      <Badge variant="outline" className="text-xs bg-yellow-50 text-yellow-700 border-yellow-200">
+                        <AlertTriangle className="w-3 h-3 mr-1" /> ไม่พบในระบบ - เลือกในฟอร์มเอง
+                      </Badge>
+                    )}
+                  </Label>
+                  <Input
+                    value={matchedBuyerCompanyName || ocrData.buyer_company_name || ""}
+                    disabled
+                    className="bg-muted/50"
+                  />
+                  {ocrData.buyer_company_name && (
+                    <p className="text-xs text-muted-foreground">จาก PO: {ocrData.buyer_company_name}</p>
+                  )}
+                </div>
                 {ocrData.payment_terms && (
                   <div className="space-y-1">
                     <Label className="text-xs">เงื่อนไขชำระ</Label>
