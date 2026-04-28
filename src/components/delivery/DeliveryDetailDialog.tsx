@@ -1,9 +1,15 @@
+import { useEffect, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { FileText, ExternalLink } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { FileText, ExternalLink, Pencil, Check, X, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import { downloadStorageFile } from "@/lib/storageDownload";
+import { supabase } from "@/integrations/supabase/client";
+import { useIsSuperAdmin } from "@/hooks/useIsSuperAdmin";
+import { SearchableSelect } from "@/components/ui/searchable-select";
+import { toast } from "sonner";
 
 interface DeliveryDetailDialogProps {
   open: boolean;
@@ -35,7 +41,76 @@ const DocLink = ({ url, label }: { url: string | null; label: string }) => {
 };
 
 export function DeliveryDetailDialog({ open, onOpenChange, receipt }: DeliveryDetailDialogProps) {
+  const { isSuperAdmin } = useIsSuperAdmin();
+  const [departments, setDepartments] = useState<{ id: string; name: string }[]>([]);
+  const [editingDept, setEditingDept] = useState(false);
+  const [newDeptId, setNewDeptId] = useState<string>("");
+  const [savingDept, setSavingDept] = useState(false);
+  const [currentDeptId, setCurrentDeptId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    supabase.from("departments").select("id, name").eq("is_active", true).order("name")
+      .then(({ data }) => setDepartments(data || []));
+  }, [open]);
+
+  useEffect(() => {
+    setCurrentDeptId(receipt?.department_id || null);
+    setEditingDept(false);
+    setNewDeptId(receipt?.department_id || "");
+  }, [receipt]);
+
   if (!receipt) return null;
+
+  const currentDeptName = departments.find(d => d.id === currentDeptId)?.name || "-";
+
+  const handleSaveDept = async () => {
+    if (!newDeptId || newDeptId === currentDeptId) {
+      setEditingDept(false);
+      return;
+    }
+    setSavingDept(true);
+    const newDeptName = departments.find(d => d.id === newDeptId)?.name || null;
+
+    // 1. Update PD record
+    const { error: pdErr } = await supabase
+      .from("goods_receipt_pending")
+      .update({ department_id: newDeptId })
+      .eq("id", receipt.id);
+
+    if (pdErr) {
+      toast.error("แก้ไขฝ่ายไม่สำเร็จ: " + pdErr.message);
+      setSavingDept(false);
+      return;
+    }
+
+    // 2. If already received, propagate to equipment / media_players (authoritative source rule)
+    if (receipt.status === "received" && newDeptName) {
+      if (receipt.is_media_player) {
+        // Match media_players by S/N (most precise)
+        const sn = receipt.serial_number || receipt.lot_number;
+        if (sn) {
+          await supabase
+            .from("media_players")
+            .update({ department: newDeptName })
+            .or(`serial_number_1.eq.${sn},serial_number_2.eq.${sn}`);
+        }
+      } else if (receipt.equipment_id_code) {
+        // Match equipment by code (fallback)
+        await supabase
+          .from("equipment")
+          .update({ department: newDeptName })
+          .eq("code", receipt.equipment_id_code);
+      }
+    }
+
+    setCurrentDeptId(newDeptId);
+    setEditingDept(false);
+    setSavingDept(false);
+    toast.success(`เปลี่ยนฝ่ายเป็น "${newDeptName}" แล้ว`);
+    // Reflect on parent receipt object so re-open shows new value
+    receipt.department_id = newDeptId;
+  };
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -88,6 +163,49 @@ export function DeliveryDetailDialog({ open, onOpenChange, receipt }: DeliveryDe
             <h4 className="text-sm font-semibold mb-2">ข้อมูลการนำเข้า</h4>
             <div className="space-y-0.5">
               <DetailRow label="วันที่นำเข้า" value={format(new Date(receipt.created_at), "dd/MM/yyyy HH:mm")} />
+
+              {/* ฝ่าย — แก้ไขได้โดย Super Admin */}
+              <div className="flex justify-between py-1.5 items-start gap-2">
+                <span className="text-sm text-muted-foreground pt-1.5">ฝ่าย</span>
+                <div className="flex-1 max-w-[70%]">
+                  {editingDept ? (
+                    <div className="space-y-2">
+                      <SearchableSelect
+                        options={departments.map(d => ({ value: d.id, label: d.name }))}
+                        value={newDeptId}
+                        onValueChange={setNewDeptId}
+                        placeholder="เลือกฝ่าย"
+                        searchPlaceholder="ค้นหาฝ่าย..."
+                        emptyMessage="ไม่พบฝ่าย"
+                      />
+                      <div className="flex gap-1 justify-end">
+                        <Button size="sm" variant="ghost" onClick={() => { setEditingDept(false); setNewDeptId(currentDeptId || ""); }} disabled={savingDept}>
+                          <X className="w-3.5 h-3.5" /> ยกเลิก
+                        </Button>
+                        <Button size="sm" onClick={handleSaveDept} disabled={savingDept || !newDeptId}>
+                          {savingDept ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />} บันทึก
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-end gap-2">
+                      <span className="text-sm font-medium text-right">{currentDeptName}</span>
+                      {isSuperAdmin && (
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-6 w-6"
+                          title="แก้ไขฝ่าย (Super Admin)"
+                          onClick={() => setEditingDept(true)}
+                        >
+                          <Pencil className="w-3 h-3" />
+                        </Button>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+
               <DetailRow label="ผู้ส่ง" value={receipt.delivery_person_name} />
               <DetailRow label="เบอร์ผู้ส่ง" value={receipt.delivery_person_phone} />
               <DetailRow label="บริษัทที่สั่งซื้อ" value={receipt.supplier_name} />
@@ -97,6 +215,11 @@ export function DeliveryDetailDialog({ open, onOpenChange, receipt }: DeliveryDe
               <DetailRow label="Invoice Number" value={receipt.invoice_number} />
               <DetailRow label="เลขใบส่งของ" value={receipt.delivery_note_number} />
             </div>
+            {isSuperAdmin && receipt.status === "received" && (
+              <p className="text-[11px] text-muted-foreground/70 mt-2 italic">
+                ℹ️ การแก้ฝ่ายจะอัปเดตทั้งใบรับเข้าและสินค้าในคลัง (Master Data) ให้สอดคล้องกัน
+              </p>
+            )}
           </div>
 
           {/* เอกสารแนบ */}
@@ -111,6 +234,9 @@ export function DeliveryDetailDialog({ open, onOpenChange, receipt }: DeliveryDe
                   <DocLink url={receipt.invoice_document_url} label="Invoice" />
                   <DocLink url={receipt.delivery_note_document_url} label="ใบส่งของ" />
                 </div>
+                <p className="text-[11px] text-muted-foreground/70 mt-2 italic">
+                  💡 คลิกเพื่อดาวน์โหลดไฟล์ (เปิดจากเครื่องเพื่อหลีกเลี่ยง Ad Blocker บล็อก)
+                </p>
               </div>
             </>
           )}
