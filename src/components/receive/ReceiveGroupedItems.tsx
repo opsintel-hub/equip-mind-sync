@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { ChevronDown, ChevronRight, Clock, CheckCircle2, Edit, Package, Monitor, XCircle } from "lucide-react";
+import { ChevronDown, ChevronRight, Clock, CheckCircle2, Edit, Eye, Package, Monitor, XCircle } from "lucide-react";
 import { format } from "date-fns";
 
 export interface PendingReceipt {
@@ -38,6 +38,10 @@ export interface PendingReceipt {
   receipt_purpose_id?: string | null;
   is_media_player?: boolean | null;
   media_player_id?: string | null;
+  received_at?: string | null;
+  received_location_id?: string | null;
+  received_storage_slot_id?: string | null;
+  received_sub_storage_slot_id?: string | null;
   // Additional fields for complete display
   po_number?: string | null;
   pr_number?: string | null;
@@ -75,6 +79,7 @@ interface ReceiveGroupedItemsProps {
   onReceiveSingle: (receipt: PendingReceipt) => void;
   onReceiveBatch: (receipts: PendingReceipt[]) => void;
   onRejectSingle: (receipt: PendingReceipt) => void;
+  onViewReceipt?: (receipt: PendingReceipt) => void;
   getReceiptPurposeName: (purposeId: string | null | undefined) => string;
 }
 
@@ -106,6 +111,7 @@ export const ReceiveGroupedItems = ({
   onReceiveSingle,
   onReceiveBatch,
   onRejectSingle,
+  onViewReceipt,
   getReceiptPurposeName,
 }: ReceiveGroupedItemsProps) => {
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
@@ -355,8 +361,22 @@ export const ReceiveGroupedItems = ({
                         <TableCell className="text-sm">{item.supplier_name || "-"}</TableCell>
                         <TableCell>{getStatusBadge(item.status)}</TableCell>
                         <TableCell>
-                          {item.status === "pending" && (
-                            <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2">
+                            {item.status === "received" && onViewReceipt && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  onViewReceipt(item);
+                                }}
+                              >
+                                <Eye className="w-4 h-4 mr-1" />
+                                ดูรับเข้า
+                              </Button>
+                            )}
+                            {item.status === "pending" && (
+                              <>
                               <Button
                                 size="sm"
                                 variant="outline"
@@ -380,8 +400,9 @@ export const ReceiveGroupedItems = ({
                                 <XCircle className="w-4 h-4 mr-1" />
                                 ปฏิเสธ
                               </Button>
-                            </div>
-                          )}
+                              </>
+                            )}
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))}

@@ -133,7 +133,7 @@ export default function MediaPlayerReport() {
   const [brandFilter, setBrandFilter] = useState("all");
   const [projectFilter, setProjectFilter] = useState("all");
   const [selectedPlayerId, setSelectedPlayerId] = useState<string | null>(null);
-  const [lightboxImage, setLightboxImage] = useState<string | null>(null);
+  const [lightboxImages, setLightboxImages] = useState<string[] | null>(null);
 
   // Fetch all media players with extra fields
   const { data: players = [], isLoading } = useQuery({
@@ -164,7 +164,7 @@ export default function MediaPlayerReport() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("goods_receipt_pending")
-        .select("media_player_id, serial_number, unit_price, po_number, lot_number, lot_number_2, order_for_project, received_at, created_at")
+        .select("media_player_id, serial_number, unit_price, po_number, lot_number, lot_number_2, order_for_project, received_at, created_at, media_player_image_url")
         .eq("status", "received")
         .eq("is_media_player", true)
         .not("media_player_id", "is", null);
@@ -213,6 +213,28 @@ export default function MediaPlayerReport() {
     });
     return map;
   }, [receiptRows]);
+
+  const { data: imageRows = [] } = useQuery({
+    queryKey: ["media-player-report-images"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("media_player_images" as any)
+        .select("media_player_id, image_url, display_order")
+        .order("display_order", { ascending: true });
+      if (error) throw error;
+      return (data || []) as unknown as Array<{ media_player_id: string; image_url: string; display_order: number | null }>;
+    },
+  });
+
+  const imagesByPlayer = useMemo(() => {
+    const map: Record<string, string[]> = {};
+    imageRows.forEach((img) => {
+      if (!img.media_player_id || !img.image_url) return;
+      if (!map[img.media_player_id]) map[img.media_player_id] = [];
+      map[img.media_player_id].push(img.image_url);
+    });
+    return map;
+  }, [imageRows]);
 
   // Show 1 row per physical device (1 media_players record = 1 machine)
   const expandedRows = useMemo(() => {
@@ -281,7 +303,7 @@ export default function MediaPlayerReport() {
         equipmentIdCode: p.equipment_id_code || "",
         depreciationRemaining,
         activateWindows: p.activate_windows || "",
-        imageUrl: p.image_url,
+        imageUrl: p.image_url || (latestReceipt as any)?.media_player_image_url || imagesByPlayer[p.id]?.[0] || null,
         lotNumber1: (latestReceipt as any)?.lot_number || "",
         lotNumber2: (latestReceipt as any)?.lot_number_2 || "",
         specification: p.specification || "",
@@ -292,7 +314,7 @@ export default function MediaPlayerReport() {
       });
     });
     return rows;
-  }, [players, latestReceiptMap]);
+  }, [players, latestReceiptMap, imagesByPlayer]);
 
   // Extract unique code prefixes
   const codePrefixes = useMemo(() => {
@@ -636,7 +658,7 @@ export default function MediaPlayerReport() {
                               {r.imageUrl ? (
                                 <Tooltip>
                                   <TooltipTrigger asChild>
-                                    <button onClick={() => setLightboxImage(r.imageUrl)} className="cursor-pointer">
+                                    <button onClick={() => setLightboxImages(imagesByPlayer[r.playerId]?.length ? imagesByPlayer[r.playerId] : [r.imageUrl!])} className="cursor-pointer">
                                       <img src={r.imageUrl} alt="" className="w-10 h-10 rounded object-cover border" />
                                     </button>
                                   </TooltipTrigger>
@@ -738,14 +760,14 @@ export default function MediaPlayerReport() {
       )}
 
       {/* Image Lightbox Dialog */}
-      {lightboxImage && (
-        <Dialog open onOpenChange={() => setLightboxImage(null)}>
+      {lightboxImages && (
+        <Dialog open onOpenChange={() => setLightboxImages(null)}>
           <DialogContent className="max-w-3xl">
             <DialogHeader>
               <DialogTitle className="flex items-center justify-between">
                 <span>ดูรูปภาพ</span>
                 <Button size="sm" variant="outline" asChild>
-                  <a href={lightboxImage} download target="_blank" rel="noopener noreferrer">
+                  <a href={lightboxImages[0]} download target="_blank" rel="noopener noreferrer">
                     <Download className="w-4 h-4 mr-2" />
                     Download
                   </a>
@@ -753,7 +775,7 @@ export default function MediaPlayerReport() {
               </DialogTitle>
             </DialogHeader>
             <div className="flex items-center justify-center">
-              <img src={lightboxImage} alt="รูปภาพ Media Player" className="max-w-full max-h-[70vh] rounded-lg object-contain" />
+              <img src={lightboxImages[0]} alt="รูปภาพ Media Player" className="max-w-full max-h-[70vh] rounded-lg object-contain" />
             </div>
           </DialogContent>
         </Dialog>

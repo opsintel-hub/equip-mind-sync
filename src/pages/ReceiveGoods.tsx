@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { PackageCheck, Search, Clock, CheckCircle2, Package, Box, Layers, AlertTriangle, Plus } from "lucide-react";
+import { PackageCheck, Search, Clock, CheckCircle2, Package, Box, Layers, AlertTriangle, Plus, Eye, MapPin } from "lucide-react";
 import { EquipmentImageViewer } from "@/components/equipment/EquipmentImageViewer";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -100,6 +100,11 @@ const ReceiveGoods = () => {
   const [isRejectDialogOpen, setIsRejectDialogOpen] = useState(false);
   const [rejectReceipt, setRejectReceipt] = useState<PendingReceipt | null>(null);
   const [rejectReason, setRejectReason] = useState("");
+
+  // Received detail dialog state
+  const [isReceiptDetailOpen, setIsReceiptDetailOpen] = useState(false);
+  const [receiptDetail, setReceiptDetail] = useState<any | null>(null);
+  const [isReceiptDetailLoading, setIsReceiptDetailLoading] = useState(false);
 
   // Form state for editing - only editable fields
   const [editNotes, setEditNotes] = useState("");
@@ -289,6 +294,35 @@ const ReceiveGoods = () => {
     setRejectReceipt(receipt);
     setRejectReason("");
     setIsRejectDialogOpen(true);
+  };
+
+  const openReceiptDetailDialog = async (receipt: PendingReceipt) => {
+    setReceiptDetail(receipt);
+    setIsReceiptDetailOpen(true);
+    setIsReceiptDetailLoading(true);
+
+    const { data, error } = await supabase
+      .from("goods_receipt_pending" as any)
+      .select(`
+        *,
+        departments:department_id(name),
+        companies:company_id(code, name),
+        warehouses:warehouse_id(code, name),
+        received_location:locations!goods_receipt_pending_received_location_id_fkey(code, name, warehouses:warehouse_id(code, name)),
+        received_slot:storage_slots!goods_receipt_pending_received_storage_slot_id_fkey(name),
+        received_sub_slot:sub_storage_slots!goods_receipt_pending_received_sub_storage_slot_id_fkey(name),
+        receipt_purposes:receipt_purpose_id(name)
+      `)
+      .eq("id", receipt.id)
+      .maybeSingle();
+
+    if (error) {
+      console.error("Error loading receipt detail:", error);
+      toast.error("โหลดรายละเอียดการรับเข้าไม่สำเร็จ");
+    } else if (data) {
+      setReceiptDetail(data);
+    }
+    setIsReceiptDetailLoading(false);
   };
 
   const handleReject = async () => {
@@ -874,6 +908,23 @@ const ReceiveGoods = () => {
 
   const pendingCount = pendingReceipts.filter(r => r.status === "pending").length;
 
+  const formatReceiptDateTime = (value?: string | null) => value ? format(new Date(value), "dd/MM/yyyy HH:mm") : "-";
+  const formatLocationLabel = (detail: any) => {
+    const loc = detail?.received_location;
+    if (!loc) return "-";
+    return [loc.code, loc.name].filter(Boolean).join(" - ");
+  };
+  const formatWarehouseLabel = (detail: any) => {
+    const wh = detail?.received_location?.warehouses || detail?.warehouses;
+    if (!wh) return "-";
+    return [wh.code, wh.name].filter(Boolean).join(" - ");
+  };
+  const formatStoragePath = (detail: any) => {
+    const parts = [formatWarehouseLabel(detail), formatLocationLabel(detail), detail?.received_slot?.name, detail?.received_sub_slot?.name]
+      .filter((part) => part && part !== "-");
+    return parts.length ? parts.join(" / ") : "-";
+  };
+
   return (
     <div className="space-y-6">
       <div>
@@ -949,10 +1000,103 @@ const ReceiveGoods = () => {
             onReceiveSingle={openReceiveDialog}
             onReceiveBatch={openBatchReceiveDialog}
             onRejectSingle={openRejectDialog}
+            onViewReceipt={openReceiptDetailDialog}
             getReceiptPurposeName={getReceiptPurposeName}
           />
         </CardContent>
       </Card>
+
+      {/* Received Detail Dialog */}
+      <Dialog open={isReceiptDetailOpen} onOpenChange={setIsReceiptDetailOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Eye className="w-5 h-5" />
+              รายละเอียดการรับเข้า {receiptDetail?.document_no ? `— ${receiptDetail.document_no}` : ""}
+            </DialogTitle>
+            <DialogDescription>ตรวจสอบวิธีรับเข้า คลัง และตำแหน่งจัดเก็บของรายการนี้</DialogDescription>
+          </DialogHeader>
+
+          {isReceiptDetailLoading ? (
+            <div className="flex items-center justify-center py-12 text-muted-foreground">กำลังโหลด...</div>
+          ) : receiptDetail ? (
+            <div className="space-y-4 py-2">
+              <div className="p-3 bg-muted/30 rounded-lg space-y-2">
+                <p className="font-medium text-foreground">{receiptDetail.equipment_name || receiptDetail.equipment_code || "-"}</p>
+                <div className="grid grid-cols-2 gap-2 text-sm">
+                  <p><span className="text-muted-foreground">จำนวน:</span> {receiptDetail.quantity} {receiptDetail.unit}</p>
+                  <p><span className="text-muted-foreground">S/N:</span> {receiptDetail.serial_number || "-"}</p>
+                  <p><span className="text-muted-foreground">วัตถุประสงค์:</span> {receiptDetail.receipt_purposes?.name || getReceiptPurposeName(receiptDetail.receipt_purpose_id)}</p>
+                  <p><span className="text-muted-foreground">สถานะ:</span> {receiptDetail.status === "received" ? "รับเข้าแล้ว" : receiptDetail.status}</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>วันที่รับเข้า</Label>
+                  <Input value={formatReceiptDateTime(receiptDetail.received_at)} disabled className="bg-muted" />
+                </div>
+                <div className="space-y-2">
+                  <Label>ผู้ส่ง</Label>
+                  <Input value={receiptDetail.delivery_person_name || "-"} disabled className="bg-muted" />
+                </div>
+                <div className="space-y-2">
+                  <Label>ฝ่าย</Label>
+                  <Input value={receiptDetail.departments?.name || getDepartmentName(receiptDetail.department_id) || "-"} disabled className="bg-muted" />
+                </div>
+                <div className="space-y-2">
+                  <Label>บริษัท</Label>
+                  <Input value={receiptDetail.companies ? `${receiptDetail.companies.code || ""} - ${receiptDetail.companies.name}` : getCompanyName(receiptDetail.company_id) || "-"} disabled className="bg-muted" />
+                </div>
+              </div>
+
+              <div className="p-3 border rounded-lg space-y-3">
+                <p className="text-sm font-medium text-foreground flex items-center gap-2"><MapPin className="w-4 h-4" />ข้อมูลคลังและที่เก็บ</p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>คลังสินค้า</Label>
+                    <Input value={formatWarehouseLabel(receiptDetail)} disabled className="bg-muted" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>ตำแหน่งจัดเก็บ</Label>
+                    <Input value={formatLocationLabel(receiptDetail)} disabled className="bg-muted" />
+                  </div>
+                  <div className="space-y-2 md:col-span-2">
+                    <Label>เส้นทางที่เก็บ</Label>
+                    <Input value={formatStoragePath(receiptDetail)} disabled className="bg-muted" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>พื้นที่ที่ใช้</Label>
+                    <Input value={receiptDetail.storage_volume_cm3 ? `${receiptDetail.storage_volume_cm3.toLocaleString("th-TH")} m³` : "-"} disabled className="bg-muted" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>ผู้จัดจำหน่าย</Label>
+                    <Input value={receiptDetail.supplier_name || "-"} disabled className="bg-muted" />
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>PO Number</Label>
+                  <Input value={receiptDetail.po_number || "-"} disabled className="bg-muted" />
+                </div>
+                <div className="space-y-2">
+                  <Label>PR Number</Label>
+                  <Input value={receiptDetail.pr_number || "-"} disabled className="bg-muted" />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label>หมายเหตุ</Label>
+                <Textarea value={receiptDetail.notes || "-"} disabled rows={2} className="bg-muted" />
+              </div>
+            </div>
+          ) : (
+            <p className="py-8 text-center text-muted-foreground">ไม่พบข้อมูลการรับเข้า</p>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* Single Receive Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
