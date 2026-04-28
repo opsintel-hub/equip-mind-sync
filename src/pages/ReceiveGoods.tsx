@@ -473,6 +473,28 @@ const ReceiveGoods = () => {
         if (mpDeptName) {
           mpUpdatePayload.department = mpDeptName;
         }
+
+        // Propagate purchase / financial / document fields from receipt → master
+        // Receipt is the authoritative source for these (overwrite if provided)
+        const sr: any = selectedReceipt;
+        if (sr.supplier_id) mpUpdatePayload.supplier_id = sr.supplier_id;
+        if (sr.company_id) mpUpdatePayload.company_id = sr.company_id;
+        if (sr.unit_price != null) mpUpdatePayload.unit_price = sr.unit_price;
+        if (sr.received_at) mpUpdatePayload.date_of_receipt = String(sr.received_at).slice(0, 10);
+        if (sr.po_number) mpUpdatePayload.po_number = sr.po_number;
+        if (sr.pr_number) mpUpdatePayload.pr_number = sr.pr_number;
+        if (sr.invoice_number) mpUpdatePayload.invoice_number = sr.invoice_number;
+        if (sr.depreciation_months != null) mpUpdatePayload.depreciation_months = sr.depreciation_months;
+        if (sr.warranty_expiry_date) mpUpdatePayload.warranty_expiry_date = sr.warranty_expiry_date;
+        if (sr.purchase_document_url) mpUpdatePayload.po_document_url = sr.purchase_document_url;
+        if (sr.invoice_document_url) mpUpdatePayload.invoice_document_url = sr.invoice_document_url;
+        if (sr.delivery_note_number) mpUpdatePayload.delivery_note_number = sr.delivery_note_number;
+        if (sr.delivery_note_document_url) mpUpdatePayload.delivery_note_document_url = sr.delivery_note_document_url;
+        if (sr.order_for_project) mpUpdatePayload.order_for_project = sr.order_for_project;
+        if (sr.activate_windows) mpUpdatePayload.activate_windows = sr.activate_windows;
+        if (sr.asset_code) mpUpdatePayload.asset_code = sr.asset_code;
+        if (sr.equipment_id_code) mpUpdatePayload.equipment_id_code = sr.equipment_id_code;
+
         const { error: mpError } = await supabase
               .from("media_players")
               .update(mpUpdatePayload)

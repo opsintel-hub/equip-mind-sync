@@ -64,6 +64,7 @@ const DirectShippingProcurement = lazy(() => import("./pages/DirectShippingProcu
 const DirectShippingPublicView = lazy(() => import("./pages/DirectShippingPublicView"));
 const BillboardPackages = lazy(() => import("./pages/BillboardPackages"));
 const MediaPlayerProfile = lazy(() => import("./pages/MediaPlayerProfile"));
+const MediaPlayerPublicView = lazy(() => import("./pages/MediaPlayerPublicView"));
 const MediaPlayerReport = lazy(() => import("./pages/MediaPlayerReport"));
 const KPIReport = lazy(() => import("./pages/KPIReport"));
 const SwapWizard = lazy(() => import("./pages/SwapWizard"));
@@ -173,6 +174,7 @@ const App = () => (
             <Route path="/database-guide" element={<Protected><DatabaseGuide /></Protected>} />
             {/* Public billboard view - no auth required */}
             <Route path="/billboard-view/:id" element={<Public><BillboardPublicView /></Public>} />
+            <Route path="/p/media-player/:id" element={<Public><MediaPlayerPublicView /></Public>} />
             <Route path="/ad-view/:token" element={<Public><AdPublicView /></Public>} />
             <Route path="/ad-contractor/:token" element={<Public><AdContractorView /></Public>} />
             <Route path="/ds-view/:id" element={<Public><DirectShippingPublicView /></Public>} />
