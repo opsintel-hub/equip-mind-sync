@@ -123,6 +123,9 @@ export function POUploadOCR({
   const [matchedDepartment, setMatchedDepartment] = useState("");
   const [supplierMatchStatus, setSupplierMatchStatus] = useState<"matched" | "not_found" | "pending">("pending");
   const [deptMatchStatus, setDeptMatchStatus] = useState<"matched" | "not_found" | "pending">("pending");
+  const [matchedBuyerCompanyId, setMatchedBuyerCompanyId] = useState("");
+  const [matchedBuyerCompanyName, setMatchedBuyerCompanyName] = useState("");
+  const [buyerMatchStatus, setBuyerMatchStatus] = useState<"matched" | "not_found" | "pending">("pending");
   const [comment, setComment] = useState("");
   const [items, setItems] = useState<POOCRItem[]>([]);
   const [fieldMapping, setFieldMapping] = useState<Record<string, string>>(DEFAULT_FIELD_MAPPING);
