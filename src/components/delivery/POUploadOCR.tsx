@@ -313,6 +313,9 @@ export function POUploadOCR({
       // Match department
       matchDepartment(extracted.department);
 
+      // Match buyer company (จากหัวกระดาษ)
+      matchBuyerCompany(extracted.buyer_company_name);
+
       // Match items
       const matchedItems = matchEquipmentItems(extracted.items || []);
       setItems(matchedItems);
