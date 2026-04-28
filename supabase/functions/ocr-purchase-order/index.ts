@@ -30,6 +30,7 @@ const DEFAULT_EXTRACTION_SCHEMA = {
     properties: {
       po_number: { type: "string", description: "เลขที่ PO เช่น PO20100177" },
       po_date: { type: "string", description: "วันที่ PO ในรูปแบบ YYYY-MM-DD" },
+      buyer_company_name: { type: "string", description: "ชื่อบริษัทผู้ซื้อ/ผู้ออก PO ตามที่ปรากฏบนหัวกระดาษ (Letterhead) เช่น 'Plan B Media Public Company Limited' หรือ 'บริษัท แพลน บี มีเดีย จำกัด (มหาชน)' - ห้ามสับสนกับ Vendor" },
       vendor_code: { type: "string", description: "รหัสผู้ขาย/Vendor No เช่น 002402" },
       vendor_name: { type: "string", description: "ชื่อผู้ขาย/บริษัท Vendor" },
       vendor_address: { type: "string", description: "ที่อยู่ Vendor" },
