@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Upload, FileText, Loader2, X } from "lucide-react";
 import { toast } from "sonner";
+import { downloadStorageFile } from "@/lib/storageDownload";
 
 interface DocumentUploadFieldProps {
   label: string;
@@ -102,9 +103,13 @@ export function DocumentUploadField({
       {documentUrl && (
         <div className="flex items-center gap-2 text-sm">
           <FileText className="h-4 w-4 text-primary" />
-          <a href={documentUrl} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline truncate max-w-[200px]">
+          <button
+            type="button"
+            onClick={() => downloadStorageFile(documentUrl)}
+            className="text-primary hover:underline truncate max-w-[200px] cursor-pointer text-left"
+          >
             ดูไฟล์
-          </a>
+          </button>
           <Button type="button" variant="ghost" size="icon" className="h-5 w-5" onClick={onDocumentRemoved}>
             <X className="h-3 w-3" />
           </Button>
