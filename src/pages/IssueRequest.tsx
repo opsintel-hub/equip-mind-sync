@@ -832,7 +832,7 @@ const IssueRequest = () => {
     if (eqImgs) urls.push(...eqImgs.map(d => d.image_url).filter(Boolean));
 
     // 2. equipment.image_url (master fallback)
-    const eqRow = equipment?.find(e => e.id === equipmentId);
+    const eqRow = equipment?.find(e => e.id === equipmentId) as any;
     if (eqRow?.image_url && !urls.includes(eqRow.image_url)) {
       urls.push(eqRow.image_url);
     }
