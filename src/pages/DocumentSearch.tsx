@@ -437,26 +437,15 @@ export default function DocumentSearch() {
                         </TableCell>
                         <TableCell className="text-center pr-6">
                           {doc.document_url ? (
-                            <div className="flex gap-0.5 justify-center">
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8 text-muted-foreground hover:text-foreground"
-                                title="เปิด/ดาวน์โหลดเอกสาร"
-                                onClick={() => downloadStorageFile(doc.document_url!, `${doc.document_no}.pdf`)}
-                              >
-                                <ExternalLink className="h-3.5 w-3.5" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8 text-muted-foreground hover:text-foreground"
-                                title="ดาวน์โหลด"
-                                onClick={() => downloadStorageFile(doc.document_url!, `${doc.document_no}.pdf`)}
-                              >
-                                <Download className="h-3.5 w-3.5" />
-                              </Button>
-                            </div>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                              title="เปิด/ดาวน์โหลดเอกสาร"
+                              onClick={() => downloadStorageFile(doc.document_url!, `${doc.document_no}.pdf`)}
+                            >
+                              <ExternalLink className="h-3.5 w-3.5" />
+                            </Button>
                           ) : <span className="text-muted-foreground/30">-</span>}
                         </TableCell>
                       </TableRow>
