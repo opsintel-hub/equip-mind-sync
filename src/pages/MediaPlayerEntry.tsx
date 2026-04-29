@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Monitor, Search, Loader2, MapPin, Unplug, Plus, Download, Image as ImageIcon, FileText, Camera, X, Eye } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { downloadStorageFile } from "@/lib/storageDownload";
 import { MediaPlayerImageUpload } from "@/components/media-player/MediaPlayerImageUpload";
 import * as XLSX from "xlsx";
 import MediaPlayerDashboard from "@/components/media-player/MediaPlayerDashboard";
@@ -879,25 +880,25 @@ const MediaPlayerEntry = () => {
                               <TableCell className="text-sm whitespace-nowrap">{player.po_number || "-"}</TableCell>
                               <TableCell className="text-center">
                                 {player.po_document_url ? (
-                                  <a href={player.po_document_url} target="_blank" rel="noopener noreferrer" title="ดูไฟล์ PO">
+                                  <button type="button" onClick={() => downloadStorageFile(player.po_document_url!)} title="ดูไฟล์ PO" className="cursor-pointer">
                                     <FileText className="w-4 h-4 text-primary hover:text-primary/80 mx-auto" />
-                                  </a>
+                                  </button>
                                 ) : <span className="text-muted-foreground">-</span>}
                               </TableCell>
                               <TableCell className="text-sm whitespace-nowrap">{player.pr_number || "-"}</TableCell>
                               <TableCell className="text-center">
                                 {player.pr_document_url ? (
-                                  <a href={player.pr_document_url} target="_blank" rel="noopener noreferrer" title="ดูไฟล์ PR">
+                                  <button type="button" onClick={() => downloadStorageFile(player.pr_document_url!)} title="ดูไฟล์ PR" className="cursor-pointer">
                                     <FileText className="w-4 h-4 text-primary hover:text-primary/80 mx-auto" />
-                                  </a>
+                                  </button>
                                 ) : <span className="text-muted-foreground">-</span>}
                               </TableCell>
                               <TableCell className="text-sm whitespace-nowrap">{player.invoice_number || "-"}</TableCell>
                               <TableCell className="text-center">
                                 {player.invoice_document_url ? (
-                                  <a href={player.invoice_document_url} target="_blank" rel="noopener noreferrer" title="ดูไฟล์ Invoice">
+                                  <button type="button" onClick={() => downloadStorageFile(player.invoice_document_url!)} title="ดูไฟล์ Invoice" className="cursor-pointer">
                                     <FileText className="w-4 h-4 text-primary hover:text-primary/80 mx-auto" />
-                                  </a>
+                                  </button>
                                 ) : <span className="text-muted-foreground">-</span>}
                               </TableCell>
                               <TableCell className="text-sm whitespace-nowrap max-w-[150px] truncate">{player.description || "-"}</TableCell>
