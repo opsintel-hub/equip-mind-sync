@@ -1290,12 +1290,40 @@ const IssueRequest = () => {
                   <div className="flex gap-2">
                     <div className="flex-1">
                       <SearchableSelect
-                        options={filteredEquipmentByCategory?.map((eq) => ({
-                          value: eq.id,
-                          label: `${eq.code} - ${eq.name}`,
-                          description: `${eq.is_media_player ? '[Media Player] ' : ''}${eq.category ? `[${eq.category}] ` : ''}คงเหลือ: ${eq.quantity_in_stock} ${eq.unit}`,
-                          searchableText: `${eq.code} ${eq.name} ${eq.serial_number || ''} ${eq.category || ''}`,
-                        })) || []}
+                        options={(() => {
+                          const list = filteredEquipmentByCategory || [];
+                          // Dedupe Media Player rows by code+name (1 รหัส 1 บรรทัด รวมจำนวนคงเหลือ)
+                          // Equipment ปกติยังคงแสดงตามเดิม (1 row ต่อ 1 record)
+                          const mpGroups = new Map<string, { rep: typeof list[number]; total: number; count: number }>();
+                          const nonMp: typeof list = [];
+                          for (const eq of list) {
+                            if (eq.is_media_player) {
+                              const key = `${eq.code}::${eq.name}`;
+                              const g = mpGroups.get(key);
+                              if (g) {
+                                g.total += eq.quantity_in_stock || 0;
+                                g.count += 1;
+                              } else {
+                                mpGroups.set(key, { rep: eq, total: eq.quantity_in_stock || 0, count: 1 });
+                              }
+                            } else {
+                              nonMp.push(eq);
+                            }
+                          }
+                          const mpOptions = Array.from(mpGroups.values()).map(({ rep, total, count }) => ({
+                            value: rep.id,
+                            label: `${rep.code} - ${rep.name}`,
+                            description: `[Media Player] คงเหลือ: ${total} ${rep.unit}${count > 1 ? ` (${count} เครื่อง)` : ''}`,
+                            searchableText: `${rep.code} ${rep.name} ${rep.category || ''}`,
+                          }));
+                          const otherOptions = nonMp.map((eq) => ({
+                            value: eq.id,
+                            label: `${eq.code} - ${eq.name}`,
+                            description: `${eq.category ? `[${eq.category}] ` : ''}คงเหลือ: ${eq.quantity_in_stock} ${eq.unit}`,
+                            searchableText: `${eq.code} ${eq.name} ${eq.serial_number || ''} ${eq.category || ''}`,
+                          }));
+                          return [...mpOptions, ...otherOptions];
+                        })()}
                         value={currentItem.equipment_id}
                         onValueChange={handleEquipmentSelect}
                         placeholder="เลือกสินค้า"
