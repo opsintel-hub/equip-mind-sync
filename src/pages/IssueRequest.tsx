@@ -821,23 +821,42 @@ const IssueRequest = () => {
   };
 
   const handleViewEquipmentImages = async (equipmentId: string, equipmentName: string) => {
-    const { data, error } = await supabase
+    const urls: string[] = [];
+
+    // 1. equipment_images
+    const { data: eqImgs } = await supabase
       .from("equipment_images")
       .select("image_url")
       .eq("equipment_id", equipmentId)
       .order("display_order");
-    
-    if (error) {
-      toast.error("ไม่สามารถโหลดรูปภาพได้");
-      return;
+    if (eqImgs) urls.push(...eqImgs.map(d => d.image_url).filter(Boolean));
+
+    // 2. equipment.image_url (master fallback)
+    const eqRow = equipment?.find(e => e.id === equipmentId);
+    if (eqRow?.image_url && !urls.includes(eqRow.image_url)) {
+      urls.push(eqRow.image_url);
     }
-    
-    if (!data || data.length === 0) {
+
+    // 3. media_player_images (for media player items)
+    if (eqRow?.is_media_player) {
+      const { data: mpImgs } = await supabase
+        .from("media_player_images")
+        .select("image_url")
+        .eq("media_player_id", equipmentId)
+        .order("display_order");
+      if (mpImgs) {
+        for (const m of mpImgs) {
+          if (m.image_url && !urls.includes(m.image_url)) urls.push(m.image_url);
+        }
+      }
+    }
+
+    if (urls.length === 0) {
       toast.info("ไม่พบรูปภาพสินค้านี้");
       return;
     }
-    
-    setSelectedEquipmentImages(data.map(d => d.image_url));
+
+    setSelectedEquipmentImages(urls);
     setSelectedEquipmentName(equipmentName);
     setImageDialogOpen(true);
   };
