@@ -430,15 +430,18 @@ function BillboardViewTab() {
                 <TableHead>Region</TableHead>
                 <TableHead>Department</TableHead>
                 <TableHead>Media Type</TableHead>
-                <TableHead className="text-center">อุปกรณ์ติดตั้ง</TableHead>
+                <TableHead>สรุปอุปกรณ์ตามประเภท</TableHead>
+                <TableHead className="text-center">รวม</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {paginatedData.length === 0 ? (
-                <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-8">ไม่พบข้อมูล</TableCell></TableRow>
+                <TableRow><TableCell colSpan={9} className="text-center text-muted-foreground py-8">ไม่พบข้อมูล</TableCell></TableRow>
               ) : paginatedData.map(b => {
                 const items = equipByBillboard[b.id] || [];
                 const isExpanded = expandedId === b.id;
+                const breakdown = categoryBreakdown(b.id);
+                const totalPieces = items.reduce((s, it) => s + (it.quantity || 1), 0);
                 return (
                   <React.Fragment key={b.id}>
                     <TableRow className="cursor-pointer hover:bg-muted/50" onClick={() => setExpandedId(isExpanded ? null : b.id)}>
@@ -449,13 +452,24 @@ function BillboardViewTab() {
                       <TableCell>{b.region || "-"}</TableCell>
                       <TableCell>{b.department || "-"}</TableCell>
                       <TableCell>{b.media_type || "-"}</TableCell>
+                      <TableCell>
+                        {breakdown.length === 0 ? (
+                          <span className="text-muted-foreground text-xs">ไม่มี</span>
+                        ) : (
+                          <div className="flex flex-wrap gap-1">
+                            {breakdown.map(([cat, count]) => (
+                              <Badge key={cat} variant="outline" className="text-xs">{cat} × {count}</Badge>
+                            ))}
+                          </div>
+                        )}
+                      </TableCell>
                       <TableCell className="text-center">
-                        {items.length > 0 ? <Badge variant="secondary">{items.length} ชิ้น</Badge> : <span className="text-muted-foreground text-xs">ไม่มี</span>}
+                        {totalPieces > 0 ? <Badge variant="secondary">{totalPieces} ชิ้น</Badge> : <span className="text-muted-foreground text-xs">-</span>}
                       </TableCell>
                     </TableRow>
                     {isExpanded && items.length > 0 && (
                       <TableRow>
-                        <TableCell colSpan={8} className="bg-muted/30 p-0">
+                        <TableCell colSpan={9} className="bg-muted/30 p-0">
                           <div className="p-4">
                             <Table>
                               <TableHeader>
