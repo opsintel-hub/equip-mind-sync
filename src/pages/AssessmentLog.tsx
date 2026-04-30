@@ -32,6 +32,11 @@ interface AssessmentLog {
   assessor_name: string | null;
   assessed_at: string;
   status: string;
+  outcome: string | null;
+  repair_description: string | null;
+  external_repair_vendor: string | null;
+  external_repair_contact: string | null;
+  external_repair_phone: string | null;
   notes: string | null;
   created_at: string;
 }
@@ -48,6 +53,13 @@ const STATUS_LABELS: Record<string, { label: string; variant: "default" | "secon
   pending: { label: "รอประเมิน", variant: "secondary" },
   completed: { label: "ประเมินแล้ว", variant: "default" },
   cancelled: { label: "ยกเลิก", variant: "outline" },
+};
+
+const OUTCOME_LABELS: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
+  defective: { label: "เข้าของเสีย (ซ่อมไม่ได้)", variant: "destructive" },
+  claim: { label: "ส่งเคลม", variant: "secondary" },
+  self_repair: { label: "ซ่อมเอง", variant: "default" },
+  return_refurb: { label: "คืน Spare (refurbished)", variant: "outline" },
 };
 
 export default function AssessmentLog() {
@@ -73,6 +85,14 @@ export default function AssessmentLog() {
   const [notes, setNotes] = useState("");
   const [statusForm, setStatusForm] = useState<"pending" | "completed">("completed");
   const [submitting, setSubmitting] = useState(false);
+
+  // Outcome fields
+  const [outcome, setOutcome] = useState<"" | "defective" | "claim" | "self_repair" | "return_refurb">("");
+  const [repairDescription, setRepairDescription] = useState("");
+  const [externalRepairVendor, setExternalRepairVendor] = useState("");
+  const [externalRepairContact, setExternalRepairContact] = useState("");
+  const [externalRepairPhone, setExternalRepairPhone] = useState("");
+  const [supplierAutofill, setSupplierAutofill] = useState<{ name: string; manufacturer: string | null; warranty: string | null } | null>(null);
 
   const fetchLogs = async () => {
     setLoading(true);
@@ -195,7 +215,55 @@ export default function AssessmentLog() {
     setAssessorName("");
     setNotes("");
     setStatusForm("completed");
+    setOutcome("");
+    setRepairDescription("");
+    setExternalRepairVendor("");
+    setExternalRepairContact("");
+    setExternalRepairPhone("");
+    setSupplierAutofill(null);
   };
+
+  // Auto-fill supplier info when subject changes (for claim outcome convenience)
+  useEffect(() => {
+    setSupplierAutofill(null);
+    if (!subjectKey) return;
+    const [prefix, id, serial] = subjectKey.split(":");
+    const isMP = prefix === "mp";
+    (async () => {
+      // Try latest delivery_entry_items / receive history for this S/N or item
+      try {
+        if (isMP) {
+          const { data } = await supabase
+            .from("media_players")
+            .select("supplier_name:supplier_id, manufacturer, warranty_expiry_date, supplier:supplier_id(name)")
+            .eq("id", id)
+            .maybeSingle() as any;
+          if (data) {
+            setSupplierAutofill({
+              name: data.supplier?.name || "",
+              manufacturer: data.manufacturer || null,
+              warranty: data.warranty_expiry_date || null,
+            });
+          }
+        } else if (serial) {
+          const { data } = await supabase
+            .from("equipment_serial_numbers")
+            .select("warranty_expiry_date, equipment:equipment_id(supplier:supplier_id(name), brand:brand_id(name))")
+            .eq("serial_number", serial)
+            .maybeSingle() as any;
+          if (data) {
+            setSupplierAutofill({
+              name: data.equipment?.supplier?.name || "",
+              manufacturer: data.equipment?.brand?.name || null,
+              warranty: data.warranty_expiry_date || null,
+            });
+          }
+        }
+      } catch {
+        // best-effort autofill — ignore failures
+      }
+    })();
+  }, [subjectKey]);
 
   const handleSubmit = async () => {
     if (!subjectKey) {
@@ -210,35 +278,106 @@ export default function AssessmentLog() {
       toast.error("กรุณาเลือกผลการประเมินก่อนบันทึกแบบ 'ประเมินแล้ว'");
       return;
     }
+    if (statusForm === "completed" && !outcome) {
+      toast.error("กรุณาเลือก 'ผลการตัดสินใจ' (1-4) ก่อนบันทึก");
+      return;
+    }
+    if (outcome === "self_repair" && !repairDescription.trim()) {
+      toast.error("กรุณาระบุรายละเอียดการซ่อม (กรณีซ่อมเอง)");
+      return;
+    }
 
     const [prefix, id, serial] = subjectKey.split(":");
     const isMP = prefix === "mp";
     const subject = subjects.find((s) => s.id === id);
+    const finalSerial = serial || subject?.serial || null;
 
     setSubmitting(true);
-    const { error } = await supabase.from("assessment_logs").insert({
-      document_no: "",
-      media_player_id: isMP ? id : null,
-      equipment_id: !isMP ? subject?.id || null : null, // serial id maps via equipment_serial_numbers later if needed
-      serial_number: serial || subject?.serial || null,
-      source_type: "manual",
-      symptom_id: symptomId || null,
-      symptom_description: symptomDescription.trim() || null,
-      assessment_result_id: assessmentResultId || null,
-      diagnosis_notes: diagnosisNotes.trim() || null,
-      recommended_action: recommendedAction.trim() || null,
-      assessor_name: assessorName.trim() || null,
-      assessed_by: user?.id ?? null,
-      status: statusForm,
-      completed_at: statusForm === "completed" ? new Date().toISOString() : null,
-      notes: notes.trim() || null,
-      created_by: user?.id ?? null,
-    });
-    setSubmitting(false);
+    // 1) Insert assessment log
+    const { data: inserted, error } = await supabase
+      .from("assessment_logs")
+      .insert({
+        document_no: "",
+        media_player_id: isMP ? id : null,
+        equipment_id: !isMP ? subject?.id || null : null,
+        serial_number: finalSerial,
+        source_type: "manual",
+        symptom_id: symptomId || null,
+        symptom_description: symptomDescription.trim() || null,
+        assessment_result_id: assessmentResultId || null,
+        diagnosis_notes: diagnosisNotes.trim() || null,
+        recommended_action: recommendedAction.trim() || null,
+        assessor_name: assessorName.trim() || null,
+        assessed_by: user?.id ?? null,
+        status: statusForm,
+        completed_at: statusForm === "completed" ? new Date().toISOString() : null,
+        outcome: outcome || null,
+        repair_description: outcome === "self_repair" ? repairDescription.trim() : null,
+        external_repair_vendor: outcome === "claim" ? externalRepairVendor.trim() || null : null,
+        external_repair_contact: outcome === "claim" ? externalRepairContact.trim() || null : null,
+        external_repair_phone: outcome === "claim" ? externalRepairPhone.trim() || null : null,
+        notes: notes.trim() || null,
+        created_by: user?.id ?? null,
+      })
+      .select("id, document_no")
+      .maybeSingle();
+
     if (error) {
+      setSubmitting(false);
       toast.error("บันทึกไม่สำเร็จ: " + error.message);
       return;
     }
+
+    // 2) Outcome side-effects
+    try {
+      if (outcome === "defective") {
+        toast.info("กรุณาไปบันทึกที่เมนู 'นำของเสียเข้าระบบ' ต่อ", { duration: 5000 });
+      } else if (outcome === "claim") {
+        // Create claim_records draft
+        await supabase.from("claim_records").insert({
+          document_no: "",
+          subject_type: isMP ? "media_player" : "equipment",
+          media_player_id: isMP ? id : null,
+          equipment_id: !isMP ? subject?.id || null : null,
+          serial_number: finalSerial,
+          source_type: "assessment",
+          source_reference_id: inserted?.id || null,
+          supplier_name: supplierAutofill?.name || externalRepairVendor.trim() || null,
+          manufacturer: supplierAutofill?.manufacturer || null,
+          warranty_expiry_date: supplierAutofill?.warranty || null,
+          symptom_id: symptomId || null,
+          symptom_description: symptomDescription.trim() || null,
+          status: "submitted",
+          notes: `จาก Assessment ${inserted?.document_no || ""}`,
+          created_by: user?.id ?? null,
+        });
+        toast.success("สร้างคำขอเคลมและส่งให้ติดตามที่ 'ติดตามการเคลม' แล้ว");
+      } else if (outcome === "self_repair" || outcome === "return_refurb") {
+        // Mark S/N as refurbished, return to spare stock (location stays as-is for now)
+        if (finalSerial) {
+          await supabase
+            .from("equipment_serial_numbers")
+            .update({
+              is_refurbished: true,
+              refurbished_at: new Date().toISOString(),
+              refurbished_notes:
+                outcome === "self_repair"
+                  ? `ซ่อมเอง: ${repairDescription.trim()}`
+                  : `คืน Spare หลังเคลม/ตรวจสอบ`,
+            })
+            .eq("serial_number", finalSerial);
+        }
+        toast.success(
+          outcome === "self_repair"
+            ? "บันทึกการซ่อมและคืน Spare (refurbished) แล้ว"
+            : "คืนเข้า Spare (refurbished) แล้ว"
+        );
+      }
+    } catch (e: any) {
+      toast.warning("บันทึกผลแล้ว แต่ side-effect บางส่วนล้มเหลว: " + (e?.message || ""));
+    }
+
+    setSubmitting(false);
     toast.success("บันทึกการประเมินแล้ว");
     resetForm();
     setActiveTab("list");
@@ -351,6 +490,11 @@ export default function AssessmentLog() {
                           <div className="flex items-center gap-2 flex-wrap">
                             <span className="font-mono font-semibold">{log.document_no}</span>
                             <Badge variant={status.variant}>{status.label}</Badge>
+                            {log.outcome && OUTCOME_LABELS[log.outcome] && (
+                              <Badge variant={OUTCOME_LABELS[log.outcome].variant}>
+                                {OUTCOME_LABELS[log.outcome].label}
+                              </Badge>
+                            )}
                             {log.serial_number && (
                               <Badge variant="outline">S/N: {log.serial_number}</Badge>
                             )}
@@ -438,6 +582,94 @@ export default function AssessmentLog() {
                   placeholder="เช่น ส่งซ่อม, สั่งอะไหล่, Write-off, ส่งเคลม"
                   rows={2}
                 />
+              </div>
+
+              {/* Outcome decision (4 paths) */}
+              <div className="rounded-lg border-2 border-primary/30 bg-primary/5 p-4 space-y-3">
+                <div className="flex items-center justify-between flex-wrap gap-2">
+                  <Label className="text-base font-semibold">ผลการตัดสินใจ * (เลือก 1 ใน 4)</Label>
+                  {supplierAutofill && (
+                    <span className="text-xs text-muted-foreground">
+                      ผู้จัดจำหน่ายล่าสุด: <span className="font-medium text-foreground">{supplierAutofill.name || "—"}</span>
+                      {supplierAutofill.warranty && ` • ประกันถึง ${supplierAutofill.warranty}`}
+                    </span>
+                  )}
+                </div>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                  {[
+                    { v: "defective", label: "1. เข้าของเสีย", desc: "ซ่อมไม่ได้/หมดประกัน" },
+                    { v: "claim", label: "2. ส่งเคลม", desc: "ส่งซ่อมกับ Supplier" },
+                    { v: "self_repair", label: "3. ซ่อมเอง", desc: "บันทึกรายการซ่อม" },
+                    { v: "return_refurb", label: "4. คืน Spare", desc: "Refurbished คืนคลัง" },
+                  ].map((opt) => (
+                    <button
+                      key={opt.v}
+                      type="button"
+                      onClick={() => setOutcome(opt.v as any)}
+                      className={`text-left rounded-md border p-3 transition-colors ${
+                        outcome === opt.v
+                          ? "border-primary bg-primary/10 ring-2 ring-primary/40"
+                          : "border-input bg-background hover:bg-accent/50"
+                      }`}
+                    >
+                      <div className="font-medium text-sm">{opt.label}</div>
+                      <div className="text-xs text-muted-foreground mt-0.5">{opt.desc}</div>
+                    </button>
+                  ))}
+                </div>
+
+                {outcome === "self_repair" && (
+                  <div className="space-y-2 pt-2 border-t">
+                    <Label>รายละเอียดการซ่อม *</Label>
+                    <Textarea
+                      value={repairDescription}
+                      onChange={(e) => setRepairDescription(e.target.value)}
+                      placeholder="ระบุว่าซ่อมอะไรไป เปลี่ยนอะไหล่อะไร..."
+                      rows={2}
+                    />
+                  </div>
+                )}
+
+                {outcome === "claim" && (
+                  <div className="space-y-2 pt-2 border-t">
+                    <p className="text-xs text-muted-foreground">
+                      {supplierAutofill?.name
+                        ? `จะส่งเคลมที่ ${supplierAutofill.name} (จากประวัติการซื้อ S/N นี้)`
+                        : "ไม่พบประวัติการซื้อ — กรุณาระบุผู้รับเคลม"}
+                    </p>
+                    {!supplierAutofill?.name && (
+                      <div className="grid md:grid-cols-3 gap-2">
+                        <Input
+                          value={externalRepairVendor}
+                          onChange={(e) => setExternalRepairVendor(e.target.value)}
+                          placeholder="ชื่อร้าน/ผู้รับเคลม *"
+                        />
+                        <Input
+                          value={externalRepairContact}
+                          onChange={(e) => setExternalRepairContact(e.target.value)}
+                          placeholder="ชื่อผู้ติดต่อ"
+                        />
+                        <Input
+                          value={externalRepairPhone}
+                          onChange={(e) => setExternalRepairPhone(e.target.value)}
+                          placeholder="เบอร์ติดต่อ"
+                        />
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {outcome === "defective" && (
+                  <p className="text-xs text-destructive pt-2 border-t">
+                    ⚠ หลังบันทึก ระบบจะแจ้งให้ไปคีย์รายการที่เมนู <strong>"นำของเสียเข้าระบบ"</strong> เพื่อตัด Stock เข้าคลังของเสีย
+                  </p>
+                )}
+
+                {outcome === "return_refurb" && (
+                  <p className="text-xs text-success pt-2 border-t">
+                    ✓ S/N นี้จะถูกตั้งสถานะ <strong>refurbished</strong> และคืนเข้า Spare ปกติเพื่อรอเบิกใช้งาน
+                  </p>
+                )}
               </div>
 
               <div className="grid md:grid-cols-3 gap-4">
