@@ -884,7 +884,14 @@ const DeliveryEntry = () => {
 
     // Validate PO/PR/Invoice for "นำเข้าจากการซื้อ"
     if (isPurchaseReceipt && !poNumber && !prNumber && !invoiceNumber && !deliveryNoteNumber) {
-      toast.error("กรุณากรอกเลข PO, PR, Invoice หรือ ใบส่งของ อย่างน้อย 1 รายการ");
+      toast.error("กรุณากรอกเลข PO, PR, Invoice หรือ ใบส่งของ อย่างน้อย 1 รายการ (อยู่ในส่วน 'PO / PR / Invoice / ใบส่งของ' ด้านบน)");
+      // Scroll & highlight the purchase doc section
+      const el = document.getElementById("purchase-doc-section");
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
+        setHighlightPurchaseDocs(true);
+        setTimeout(() => setHighlightPurchaseDocs(false), 2500);
+      }
       return;
     }
     setIsLoading(true);
