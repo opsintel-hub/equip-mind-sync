@@ -178,7 +178,7 @@ const DefectiveReturnEntry = () => {
     if (data) setEquipmentList(data);
   };
   const fetchMediaPlayers = async () => {
-    const { data } = await supabase.from("media_players").select("id, code, name, unit, brand, serial_number_1, department, quantity, location_id, billboard_id").eq("is_active", true).order("code");
+    const { data } = await supabase.from("media_players").select("id, code, name, unit, brand, serial_number_1, serial_number_2, department, quantity, location_id, billboard_id").eq("is_active", true).order("code");
     if (data) setMediaPlayerList(data as MediaPlayerItem[]);
   };
   const detectBillboardForEquipment = async (equipmentId: string) => {
@@ -213,9 +213,19 @@ const DefectiveReturnEntry = () => {
 
   const equipmentOptions = useMemo(() => {
     if (isMediaPlayer) {
-      return dedupeMediaPlayersByCode(mediaPlayerList).map(o => ({ value: o.value, label: o.label }));
+      return mediaPlayerList.map(mp => ({
+        value: mp.id,
+        label: `${mp.code} - ${mp.name}`,
+        description: [mp.serial_number_1 && `S/N 1: ${mp.serial_number_1}`, mp.serial_number_2 && `S/N 2: ${mp.serial_number_2}`, `คงเหลือในคลัง: ${mp.quantity} เครื่อง`].filter(Boolean).join(" | "),
+        searchableText: [mp.code, mp.name, mp.serial_number_1, mp.serial_number_2].filter(Boolean).join(" "),
+      }));
     }
-    return equipmentList.map(e => ({ value: e.id, label: `${e.code} - ${e.name}` }));
+    return equipmentList.map(e => ({
+      value: e.id,
+      label: `${e.code} - ${e.name}`,
+      description: [e.serial_number && `S/N: ${e.serial_number}`, `คงเหลือในคลัง: ${e.quantity_in_stock} ${e.unit || "ชิ้น"}`].filter(Boolean).join(" | "),
+      searchableText: [e.code, e.name, e.serial_number].filter(Boolean).join(" "),
+    }));
   }, [isMediaPlayer, mediaPlayerList, equipmentList]);
 
   const maxQuantity = useMemo(() => {
