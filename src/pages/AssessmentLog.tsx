@@ -86,6 +86,14 @@ export default function AssessmentLog() {
   const [statusForm, setStatusForm] = useState<"pending" | "completed">("completed");
   const [submitting, setSubmitting] = useState(false);
 
+  // Outcome fields
+  const [outcome, setOutcome] = useState<"" | "defective" | "claim" | "self_repair" | "return_refurb">("");
+  const [repairDescription, setRepairDescription] = useState("");
+  const [externalRepairVendor, setExternalRepairVendor] = useState("");
+  const [externalRepairContact, setExternalRepairContact] = useState("");
+  const [externalRepairPhone, setExternalRepairPhone] = useState("");
+  const [supplierAutofill, setSupplierAutofill] = useState<{ name: string; manufacturer: string | null; warranty: string | null } | null>(null);
+
   const fetchLogs = async () => {
     setLoading(true);
     const { data, error } = await supabase
