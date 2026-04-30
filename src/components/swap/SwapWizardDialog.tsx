@@ -21,6 +21,13 @@ interface SwapRequest {
   description: string | null;
   symptom_other: string | null;
   defective_return_id?: string | null;
+  reported_asset_type?: string | null;
+  reported_billboard_equipment_id?: string | null;
+  reported_equipment_id?: string | null;
+  reported_media_player_id?: string | null;
+  reported_item_code?: string | null;
+  reported_item_name?: string | null;
+  reported_serial_number?: string | null;
 }
 
 interface Props {
@@ -47,6 +54,7 @@ interface OldOption {
   serial_number?: string | null;
   billboard_equipment_id: string;
   equipment_id?: string;
+  media_player_id?: string;
 }
 
 export function SwapWizardDialog({ open, onOpenChange, request, onCompleted }: Props) {
@@ -117,10 +125,12 @@ export function SwapWizardDialog({ open, onOpenChange, request, onCompleted }: P
 
   const loadSpares = async () => {
     setLoading(true);
-    // Media Players: status = active and not installed (treat all media_players as potential spare list)
-    const { data: mps } = await supabase
+    // Media Players: available spare = not installed, not defective/pending assessment
+    const { data: mps, error: mpError } = await supabase
       .from("media_players")
-      .select("id, code, name, serial_number, status, location_id")
+      .select("id, code, name, serial_number_1, serial_number_2, status, location_id, billboard_id")
+      .is("billboard_id", null)
+      .not("status", "in", "(defective,pending_assessment,claim)")
       .order("created_at", { ascending: false })
       .limit(300);
 
@@ -132,13 +142,18 @@ export function SwapWizardDialog({ open, onOpenChange, request, onCompleted }: P
       .limit(300);
 
     const opts: SpareOption[] = [];
+    if (mpError) {
+      toast.error("โหลดรายการ Spare Media Player ไม่สำเร็จ: " + mpError.message);
+    }
+
     (mps || []).forEach((m: any) => {
+      const serial = [m.serial_number_1, m.serial_number_2].filter(Boolean).join(" / ");
       opts.push({
         value: `mp:${m.id}`,
         label: `${m.code} ${m.name ? "- " + m.name : ""}`,
-        description: `S/N: ${m.serial_number || "—"} • สถานะ: ${m.status || "—"}`,
+        description: `S/N: ${serial || "—"} • สถานะ: ${m.status || "—"}`,
         type: "media_player",
-        serial_number: m.serial_number,
+        serial_number: serial || null,
         location_id: m.location_id,
       });
     });
@@ -167,7 +182,26 @@ export function SwapWizardDialog({ open, onOpenChange, request, onCompleted }: P
       .select("id, equipment_id, serial_number, quantity, equipment:equipment_id(id, code, name)")
       .eq("billboard_id", billboardId);
 
-    const opts: OldOption[] = (be || []).map((b: any) => ({
+    const opts: OldOption[] = [];
+
+    // Prefer the item already reported in the swap request. It may have been auto-uninstalled
+    // when the request was created, so it will no longer appear in billboard_equipment.
+    if (request?.reported_item_name || request?.reported_item_code || request?.reported_serial_number) {
+      opts.push({
+        value: request.reported_asset_type === "media_player" && request.reported_media_player_id
+          ? `mp:${request.reported_media_player_id}`
+          : `reported:${request.id}`,
+        label: `${request.reported_item_code || "—"} ${request.reported_item_name ? "- " + request.reported_item_name : ""}`,
+        description: `S/N: ${request.reported_serial_number || "—"} • จากคำขอ Swap`,
+        type: request.reported_asset_type === "media_player" ? "media_player" : "equipment",
+        serial_number: request.reported_serial_number,
+        billboard_equipment_id: request.reported_billboard_equipment_id || "",
+        equipment_id: request.reported_equipment_id || undefined,
+        media_player_id: request.reported_media_player_id || undefined,
+      });
+    }
+
+    (be || []).forEach((b: any) => opts.push({
       value: `be:${b.id}`,
       label: `${b.equipment?.code || ""} ${b.equipment?.name ? "- " + b.equipment.name : ""}`,
       description: `S/N: ${b.serial_number || "—"} • จำนวน: ${b.quantity}`,
