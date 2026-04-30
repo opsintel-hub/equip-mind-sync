@@ -667,6 +667,9 @@ export default function AssessmentLog() {
                 )}
               </div>
 
+              <div className="grid md:grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label>ชื่อผู้ประเมิน</Label>
                   <Input value={assessorName} onChange={(e) => setAssessorName(e.target.value)} placeholder="ชื่อ-สกุล" />
                 </div>
                 <div className="space-y-2">
