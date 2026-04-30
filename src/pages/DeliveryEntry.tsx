@@ -30,6 +30,7 @@ import {
   Eye,
   AlertTriangle,
   ScanLine,
+  Download,
 } from "lucide-react";
 import { EquipmentImageViewer } from "@/components/equipment/EquipmentImageViewer";
 import { EquipmentImageUpload } from "@/components/equipment/EquipmentImageUpload";
