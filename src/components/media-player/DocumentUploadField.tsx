@@ -3,9 +3,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Upload, FileText, Loader2, X } from "lucide-react";
+import { Upload, FileText, Loader2, X, Eye, Download } from "lucide-react";
 import { toast } from "sonner";
-import { downloadStorageFile } from "@/lib/storageDownload";
+import { downloadStorageFile, previewStorageFile } from "@/lib/storageDownload";
 
 interface DocumentUploadFieldProps {
   label: string;
@@ -105,11 +105,23 @@ export function DocumentUploadField({
           <FileText className="h-4 w-4 text-primary" />
           <button
             type="button"
-            onClick={() => downloadStorageFile(documentUrl)}
-            className="text-primary hover:underline truncate max-w-[200px] cursor-pointer text-left"
+            onClick={() => previewStorageFile(documentUrl)}
+            className="text-primary hover:underline truncate max-w-[160px] cursor-pointer text-left"
+            title="ดูตัวอย่างในแท็บใหม่"
           >
+            <Eye className="h-3 w-3 inline mr-1" />
             ดูไฟล์
           </button>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="h-6 w-6"
+            onClick={() => downloadStorageFile(documentUrl)}
+            title="ดาวน์โหลด"
+          >
+            <Download className="h-3 w-3" />
+          </Button>
           <Button type="button" variant="ghost" size="icon" className="h-5 w-5" onClick={onDocumentRemoved}>
             <X className="h-3 w-3" />
           </Button>

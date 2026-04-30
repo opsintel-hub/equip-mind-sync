@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { previewStorageFile, downloadStorageFile } from "@/lib/storageDownload";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -29,6 +30,7 @@ import {
   Eye,
   AlertTriangle,
   ScanLine,
+  Download,
 } from "lucide-react";
 import { EquipmentImageViewer } from "@/components/equipment/EquipmentImageViewer";
 import { EquipmentImageUpload } from "@/components/equipment/EquipmentImageUpload";
@@ -2858,15 +2860,27 @@ const DeliveryEntry = () => {
                       <TableCell>{receipt.delivery_person_name}</TableCell>
                       <TableCell>
                         {receipt.document_url ? (
-                          <a
-                            href={receipt.document_url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex items-center gap-1 text-primary hover:underline"
-                          >
-                            <FileText className="w-4 h-4" />
-                            ดูเอกสาร
-                          </a>
+                          <div className="flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => previewStorageFile(receipt.document_url!)}
+                              className="flex items-center gap-1 text-primary hover:underline"
+                              title="ดูตัวอย่างในแท็บใหม่"
+                            >
+                              <FileText className="w-4 h-4" />
+                              ดูเอกสาร
+                            </button>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6"
+                              onClick={() => downloadStorageFile(receipt.document_url!)}
+                              title="ดาวน์โหลด"
+                            >
+                              <Download className="w-3 h-3" />
+                            </Button>
+                          </div>
                         ) : (
                           <span className="text-muted-foreground">-</span>
                         )}
