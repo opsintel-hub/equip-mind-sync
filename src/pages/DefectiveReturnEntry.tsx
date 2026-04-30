@@ -571,31 +571,27 @@ const DefectiveReturnEntry = () => {
                   )}
                 </div>
 
-                {/* Forward to Swap (only when item came from a billboard) */}
+                {/* Next step guidance */}
                 <div className="pt-3 border-t space-y-2">
-                  <p className="text-xs font-medium text-muted-foreground">ดำเนินการต่อ:</p>
+                  <p className="text-xs font-medium text-muted-foreground">ขั้นตอนถัดไป:</p>
                   {isFromBillboard ? (
-                    <>
-                      <Button
-                        type="button"
-                        variant="default"
-                        size="sm"
-                        className="h-9 w-full"
-                        disabled={isSubmitting}
-                        onClick={handleSendToSwap}
-                      >
-                        <ArrowLeftRight className="w-4 h-4 mr-1" /> ส่งไป Process Swap (สร้างคำขอใหม่)
-                      </Button>
-                      <p className="text-[11px] text-muted-foreground">
-                        ของชิ้นนี้ถูกถอดออกจากป้าย — ระบบจะสร้างคำขอ Swap ใหม่ให้อัตโนมัติและเชื่อมกับใบของเสียนี้
+                    <div className="rounded-md bg-blue-500/10 border border-blue-500/30 p-2.5 space-y-1.5">
+                      <p className="text-[11px] text-blue-700 dark:text-blue-300">
+                        🔧 <span className="font-medium">ถอดออกจากป้าย + เข้าคลังของเสีย</span><br />
+                        เมื่อบันทึก ระบบจะถอดของออกจากป้ายและส่งเข้าคิว <span className="font-medium">"อนุมัติการจัดการของเสีย"</span>
                       </p>
-                    </>
+                      <p className="text-[11px] text-blue-700/80 dark:text-blue-300/80 pt-1 border-t border-blue-500/20">
+                        💡 <span className="font-medium">ต้องการเบิกของใหม่ไปแทนที่ป้ายเดิมด้วย?</span><br />
+                        ใช้เมนู <span className="font-mono font-medium">Swap (สลับอุปกรณ์ป้าย)</span> แทน — สร้างใบเดียวจบทั้ง รับเก่า + เบิกใหม่
+                      </p>
+                    </div>
                   ) : (
                     <p className="text-[11px] text-muted-foreground">
                       หลังบันทึก ใบของเสียจะเข้าคิวที่หน้า <span className="font-medium">"อนุมัติการจัดการของเสีย"</span> เพื่อเลือกวิธี (ทำลายทิ้ง / จำหน่ายซาก / CSR / ซ่อมคืน)
                     </p>
                   )}
                 </div>
+
               </div>
             ) : (
               <p className="text-sm text-muted-foreground text-center py-8">เลือกสินค้าเพื่อดูข้อมูล</p>
