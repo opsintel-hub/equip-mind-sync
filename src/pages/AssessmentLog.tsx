@@ -490,6 +490,11 @@ export default function AssessmentLog() {
                           <div className="flex items-center gap-2 flex-wrap">
                             <span className="font-mono font-semibold">{log.document_no}</span>
                             <Badge variant={status.variant}>{status.label}</Badge>
+                            {log.outcome && OUTCOME_LABELS[log.outcome] && (
+                              <Badge variant={OUTCOME_LABELS[log.outcome].variant}>
+                                {OUTCOME_LABELS[log.outcome].label}
+                              </Badge>
+                            )}
                             {log.serial_number && (
                               <Badge variant="outline">S/N: {log.serial_number}</Badge>
                             )}
