@@ -55,6 +55,73 @@ const DefectiveReturnEntry = () => {
   const [itemCondition, setItemCondition] = useState("defective");
   const [reason, setReason] = useState("");
   const [notes, setNotes] = useState("");
+  const [snLookup, setSnLookup] = useState("");
+  const [snLookupLoading, setSnLookupLoading] = useState(false);
+
+  const handleSnLookup = async () => {
+    const term = snLookup.trim();
+    if (!term) { toast.error("กรุณากรอก Serial Number"); return; }
+    setSnLookupLoading(true);
+    try {
+      // 1) Try equipment_serial_numbers (authoritative for equipment)
+      const { data: snRow } = await supabase
+        .from("equipment_serial_numbers")
+        .select("equipment_id, status")
+        .ilike("serial_number", term)
+        .maybeSingle();
+      if (snRow?.equipment_id) {
+        setIsMediaPlayer(false);
+        setSelectedItemId(snRow.equipment_id);
+        if (!perUnitMode) setPerUnitMode(true);
+        setDefectiveUnits([{ id: crypto.randomUUID(), serial_number: term, reason: "", item_condition: "defective", image_file: null, image_preview: null }]);
+        toast.success(`พบสินค้า — ดึงข้อมูลแล้ว (S/N: ${term})`);
+        return;
+      }
+
+      // 2) Try goods_receipt_pending (covers both equipment & media player by S/N from receipt)
+      const { data: rcvRow } = await supabase
+        .from("goods_receipt_pending")
+        .select("equipment_id, media_player_id, is_media_player, equipment_code")
+        .ilike("serial_number", term)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (rcvRow) {
+        const isMp = !!rcvRow.is_media_player || !!rcvRow.media_player_id;
+        setIsMediaPlayer(isMp);
+        const id = isMp ? rcvRow.media_player_id : rcvRow.equipment_id;
+        if (id) {
+          setSelectedItemId(id);
+          setPerUnitMode(true);
+          setDefectiveUnits([{ id: crypto.randomUUID(), serial_number: term, reason: "", item_condition: "defective", image_file: null, image_preview: null }]);
+          toast.success(`พบจากเอกสารรับเข้า — ดึงข้อมูลแล้ว (S/N: ${term})`);
+          return;
+        }
+      }
+
+      // 3) Try media_players legacy serial_number_1 / 2
+      const { data: mpRow } = await supabase
+        .from("media_players")
+        .select("id")
+        .or(`serial_number_1.ilike.${term},serial_number_2.ilike.${term}`)
+        .limit(1)
+        .maybeSingle();
+      if (mpRow?.id) {
+        setIsMediaPlayer(true);
+        setSelectedItemId(mpRow.id);
+        setPerUnitMode(true);
+        setDefectiveUnits([{ id: crypto.randomUUID(), serial_number: term, reason: "", item_condition: "defective", image_file: null, image_preview: null }]);
+        toast.success(`พบ Media Player — ดึงข้อมูลแล้ว (S/N: ${term})`);
+        return;
+      }
+
+      toast.error(`ไม่พบ S/N "${term}" ในระบบ — กรุณาเลือกสินค้าด้วยตนเอง`);
+    } catch (e: any) {
+      toast.error("ค้นหาไม่สำเร็จ: " + e.message);
+    } finally {
+      setSnLookupLoading(false);
+    }
+  };
 
   const selectedEquipment = useMemo(() => equipmentList.find(e => e.id === selectedItemId), [equipmentList, selectedItemId]);
   const selectedMediaPlayer = useMemo(() => mediaPlayerList.find(m => m.id === selectedItemId), [mediaPlayerList, selectedItemId]);
