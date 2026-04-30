@@ -894,7 +894,7 @@ export default function StockCard() {
                     label: "ยืนยันรับสินค้า",
                     status: isLastIssueConfirmed ? "done" : "current",
                     date: isLastIssueConfirmed
-                      ? (deliveryConfirmations.find((d: any) => d.document_no === lastIssueDoc)?.confirmed_at)
+                      ? confirmationDateByDoc.get(lastIssueDoc!)
                       : undefined,
                   });
 
