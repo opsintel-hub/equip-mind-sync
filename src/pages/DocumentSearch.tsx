@@ -16,7 +16,58 @@ import { format } from "date-fns";
 import { th } from "date-fns/locale";
 import { DatePickerWithRange } from "@/components/ui/date-range-picker";
 import { ProcessTracker, ProcessStep } from "@/components/ProcessTracker";
-import { DocumentPreviewDialog } from "@/components/DocumentPreviewDialog";
+import { DocumentPreviewDialog, DocumentCategory } from "@/components/DocumentPreviewDialog";
+
+const isImageUrl = (url: string) => /\.(png|jpe?g|gif|webp|bmp|svg)(\?|$)/i.test(url);
+const splitUrls = (combined: string | null | undefined): string[] =>
+  combined ? String(combined).split(/\s*,\s*/).filter(Boolean) : [];
+const splitExtraDocs = (combined: string | null | undefined) => {
+  const all = splitUrls(combined);
+  const docs: string[] = [];
+  const images: string[] = [];
+  for (const u of all) {
+    if (isImageUrl(u)) images.push(u);
+    else docs.push(u);
+  }
+  return { docs, images };
+};
+
+/** Build category list per record source. Always returns the full set of expected categories
+ *  for that source — empty ones still show in the preview as disabled tabs. */
+function getDocumentCategories(doc: DocumentRecord): DocumentCategory[] {
+  const r = doc.raw || {};
+  if (doc.source === "pending" || doc.source === "received") {
+    const { docs, images } = splitExtraDocs(r.document_url ?? doc.document_url);
+    return [
+      { label: "เอกสารแนบเพิ่มเติม", urls: docs },
+      { label: "รูปภาพเพิ่มเติม", urls: images },
+      { label: "เอกสารจัดซื้อ", urls: r.purchase_document_url },
+      { label: "Invoice", urls: r.invoice_document_url },
+      { label: "ใบส่งของ", urls: r.delivery_note_document_url },
+    ];
+  }
+  if (doc.source === "direct_shipping") {
+    return [
+      { label: "เอกสาร PO", urls: r.po_document_url },
+      { label: "เอกสาร PR", urls: r.pr_document_url },
+      { label: "Invoice", urls: r.invoice_document_url },
+      { label: "ใบส่งของ", urls: r.delivery_note_document_url },
+    ];
+  }
+  if (doc.source === "advertisement") {
+    return [
+      { label: "เอกสารประกอบ", urls: r.supporting_doc_url },
+      { label: "รูปภาพโฆษณา", urls: Array.isArray(r.photo_urls) ? r.photo_urls : [] },
+    ];
+  }
+  if (doc.source === "delivery_confirm") {
+    return [
+      { label: "เอกสารแนบ", urls: Array.isArray(r.document_urls) ? r.document_urls.filter((u: string) => !isImageUrl(u)) : [] },
+      { label: "รูปภาพหลักฐาน", urls: Array.isArray(r.photo_urls) ? r.photo_urls : [] },
+    ];
+  }
+  return [];
+}
 
 interface DocumentRecord {
   id: string;
