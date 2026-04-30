@@ -323,7 +323,10 @@ export function SwapWizardDialog({ open, onOpenChange, request, onCompleted }: P
       result,
       reject_reason_id: result === "rejected" ? rejectReasonId || null : null,
       reject_reason_other: result === "rejected" ? rejectReasonOther.trim() || null : null,
-      notes: notes.trim() || null,
+      notes: [
+        isCrossModel && result === "approved" ? `[CROSS-MODEL SWAP] Spare: ${selectedSpare?.item_code || "—"} ↔ Old: ${request?.reported_item_code || selectedOld?.label || "—"}` : null,
+        notes.trim() || null,
+      ].filter(Boolean).join("\n") || null,
       executed_by: user?.id ?? null,
     });
 
