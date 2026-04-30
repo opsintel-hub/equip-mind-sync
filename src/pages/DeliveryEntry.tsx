@@ -182,6 +182,7 @@ const DeliveryEntry = () => {
   const [orderForProject, setOrderForProject] = useState("");
   const [purchaseDocumentFile, setPurchaseDocumentFile] = useState<File | null>(null);
   const purchaseFileInputRef = useRef<HTMLInputElement>(null);
+  const [highlightPurchaseDocs, setHighlightPurchaseDocs] = useState(false);
 
   // Document upload (shared) - 2 categories (รองรับหลายไฟล์)
   const [additionalDocumentFiles, setAdditionalDocumentFiles] = useState<File[]>([]);
