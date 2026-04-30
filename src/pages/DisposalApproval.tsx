@@ -528,6 +528,163 @@ export default function DisposalApproval() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Complete dialog — requires confirmation photo */}
+      <Dialog open={!!completing} onOpenChange={(o) => !o && closeCompleteDialog()}>
+        <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <CheckCircle2 className="w-5 h-5 text-success" />
+              ยืนยันดำเนินการเสร็จสิ้น — {completing?.document_no}
+            </DialogTitle>
+            <DialogDescription>
+              {completing && (completing.is_media_player ? completing.media_player?.code : completing.equipment?.code)} • จำนวน {completing?.quantity}
+              {completing?.disposal_method && (
+                <span className="ml-2 inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs bg-primary/10 text-primary">
+                  วิธี: {DISPOSAL_METHODS[completing.disposal_method]?.label}
+                </span>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            {completing?.disposal_method && ["destroy", "sell_scrap", "csr"].includes(completing.disposal_method) && (
+              <div className="rounded-md border border-amber-500/40 bg-amber-50/60 dark:bg-amber-950/20 p-3 text-xs text-amber-900 dark:text-amber-200">
+                🔒 <span className="font-medium">บังคับแนบรูปยืนยัน</span> อย่างน้อย 1 รูป (ถ่ายขณะดำเนินการจริง / ใบเสร็จรับซาก / รูปกิจกรรม CSR) เพื่อ audit ป้องกันทุจริต
+              </div>
+            )}
+
+            <div className="space-y-2">
+              <Label>หมายเหตุการดำเนินการ</Label>
+              <Textarea value={completeNotes} onChange={(e) => setCompleteNotes(e.target.value)} rows={2} placeholder="เช่น ทำลายโดย... ขายให้... จัดกิจกรรมที่..." />
+            </div>
+
+            <div className="space-y-2">
+              <Label>
+                รูปยืนยันการดำเนินการ
+                {completing?.disposal_method && ["destroy", "sell_scrap", "csr"].includes(completing.disposal_method) && (
+                  <span className="text-destructive ml-1">*</span>
+                )}
+              </Label>
+              <input id="complete-evidence" type="file" accept="image/*" multiple className="hidden" onChange={handleAddCompleteEvidence} />
+              <Button type="button" variant="outline" size="sm" onClick={() => document.getElementById("complete-evidence")?.click()}>
+                <ImagePlus className="w-4 h-4 mr-1" /> เพิ่มรูปยืนยัน
+              </Button>
+              {completePreviews.length > 0 && (
+                <div className="grid grid-cols-4 gap-2 mt-2">
+                  {completePreviews.map((url, i) => (
+                    <div key={i} className="relative">
+                      <img src={url} alt="confirmation" className="w-full h-24 object-cover rounded border" />
+                      <Button type="button" size="icon" variant="destructive" className="absolute -top-2 -right-2 h-6 w-6" onClick={() => removeCompleteEvidence(i)}>
+                        <X className="w-3 h-3" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={closeCompleteDialog} disabled={submitting}>ยกเลิก</Button>
+            <Button onClick={submitCompletion} disabled={submitting}>
+              {submitting ? "กำลังบันทึก..." : "ยืนยันเสร็จสิ้น"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Preview dialog — read-only document view */}
+      <Dialog open={!!previewing} onOpenChange={(o) => !o && setPreviewing(null)}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FileText className="w-5 h-5 text-primary" />
+              เอกสาร {previewing?.document_no}
+            </DialogTitle>
+            <DialogDescription>
+              สร้างเมื่อ {previewing && format(new Date(previewing.created_at), "dd MMM yyyy HH:mm", { locale: th })}
+            </DialogDescription>
+          </DialogHeader>
+
+          {previewing && (
+            <div className="space-y-4 text-sm">
+              <div className="grid grid-cols-2 gap-3 rounded-md bg-muted/40 p-3">
+                <div><span className="text-muted-foreground">รหัส:</span> <span className="font-medium">{(previewing.is_media_player ? previewing.media_player?.code : previewing.equipment?.code) || "—"}</span></div>
+                <div><span className="text-muted-foreground">ชื่อ:</span> <span className="font-medium">{(previewing.is_media_player ? previewing.media_player?.name : previewing.equipment?.name) || "—"}</span></div>
+                <div><span className="text-muted-foreground">ประเภท:</span> {previewing.is_media_player ? "Media Player" : "สินค้า/อะไหล่"}</div>
+                <div><span className="text-muted-foreground">จำนวน:</span> <span className="font-mono">{previewing.quantity}</span></div>
+                <div><span className="text-muted-foreground">ที่มา:</span> {previewing.source_type === "billboard" ? "ถอดจากป้าย" : previewing.swap_request_id ? "จาก Swap" : "คลัง/ภาคสนาม"}</div>
+                <div><span className="text-muted-foreground">สภาพ:</span> {previewing.item_condition || "—"}</div>
+              </div>
+
+              <div className="space-y-1">
+                <span className="text-muted-foreground text-xs">เหตุผล/สาเหตุ:</span>
+                <p className="whitespace-pre-line bg-muted/30 rounded p-2">{previewing.reason || "—"}</p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <span className="text-muted-foreground text-xs">สถานะ:</span>
+                  <Badge variant={(STATUS_LABEL[previewing.dispose_status] || { variant: "outline" as const }).variant}>
+                    {STATUS_LABEL[previewing.dispose_status]?.label || previewing.dispose_status}
+                  </Badge>
+                </div>
+                <div className="space-y-1">
+                  <span className="text-muted-foreground text-xs">วิธีจัดการ:</span>
+                  {previewing.disposal_method ? (
+                    <span className={`inline-flex items-center gap-1 text-xs px-2 py-1 rounded-md border w-fit ${DISPOSAL_METHODS[previewing.disposal_method]?.color}`}>
+                      {DISPOSAL_METHODS[previewing.disposal_method]?.label}
+                    </span>
+                  ) : <p className="text-xs">—</p>}
+                </div>
+              </div>
+
+              {previewing.disposal_notes && (
+                <div className="space-y-1">
+                  <span className="text-muted-foreground text-xs">หมายเหตุการตัดสินใจ:</span>
+                  <p className="whitespace-pre-line bg-muted/30 rounded p-2 text-xs">{previewing.disposal_notes}</p>
+                </div>
+              )}
+
+              {previewing.disposal_approved_at && (
+                <div className="text-xs text-muted-foreground">
+                  อนุมัติเมื่อ {format(new Date(previewing.disposal_approved_at), "dd MMM yyyy HH:mm", { locale: th })}
+                </div>
+              )}
+
+              <div className="space-y-2">
+                <span className="text-muted-foreground text-xs font-medium">📷 หลักฐาน ({previewing.disposal_evidence_urls?.length || 0} รูป):</span>
+                {previewing.disposal_evidence_urls && previewing.disposal_evidence_urls.length > 0 ? (
+                  <div className="grid grid-cols-3 gap-2">
+                    {previewing.disposal_evidence_urls.map((url, i) => (
+                      <button key={i} type="button" onClick={() => setLightboxUrl(url)} className="relative group">
+                        <img src={url} alt={`evidence ${i + 1}`} className="w-full h-24 object-cover rounded border hover:opacity-80 transition" />
+                        <span className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-black/40 transition rounded">
+                          <Eye className="w-5 h-5 text-white opacity-0 group-hover:opacity-100" />
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-xs text-muted-foreground italic">ยังไม่มีรูปหลักฐาน</p>
+                )}
+              </div>
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPreviewing(null)}>ปิด</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Lightbox for full-size image */}
+      <Dialog open={!!lightboxUrl} onOpenChange={(o) => !o && setLightboxUrl(null)}>
+        <DialogContent className="max-w-4xl p-2">
+          {lightboxUrl && <img src={lightboxUrl} alt="full" className="w-full h-auto max-h-[85vh] object-contain rounded" />}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
