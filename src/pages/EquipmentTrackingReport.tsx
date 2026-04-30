@@ -268,23 +268,54 @@ function BillboardViewTab() {
     });
   }, [billboards, search, snSearch, regionFilter, deptFilter, mediaTypeFilter, statusFilter, equipByBillboard, showAllBillboards]);
 
-  // Summary stats
+  // Summary stats — based on FILTERED billboards (reflects current search)
   const summaryStats = useMemo(() => {
     const now = new Date();
     let withEquip = 0;
-    let hasExpired = 0;
-    let hasWarrantyExpired = 0;
-    (billboards || []).forEach(b => {
+    let totalEquipPieces = 0;
+    let expiredCount = 0;
+    let warrantyExpiredCount = 0;
+    let expiringSoonCount = 0;
+    let warrantyExpiringSoonCount = 0;
+    filtered.forEach(b => {
       const items = equipByBillboard[b.id] || [];
       if (items.length > 0) withEquip++;
       items.forEach(item => {
         const eq = item.equipmentData;
-        if (eq.expiry_date && differenceInDays(new Date(eq.expiry_date), now) < 0) hasExpired++;
-        if (eq.warranty_expiry_date && differenceInDays(new Date(eq.warranty_expiry_date), now) < 0) hasWarrantyExpired++;
+        totalEquipPieces += item.quantity || 1;
+        if (eq.expiry_date) {
+          const d = differenceInDays(new Date(eq.expiry_date), now);
+          if (d < 0) expiredCount++;
+          else if (d <= EXPIRY_WARNING_DAYS) expiringSoonCount++;
+        }
+        if (eq.warranty_expiry_date) {
+          const d = differenceInDays(new Date(eq.warranty_expiry_date), now);
+          if (d < 0) warrantyExpiredCount++;
+          else if (d <= EXPIRY_WARNING_DAYS) warrantyExpiringSoonCount++;
+        }
       });
     });
-    return { total: (billboards || []).length, withEquip, hasExpired, hasWarrantyExpired };
-  }, [billboards, equipByBillboard]);
+    return {
+      totalBillboards: filtered.length,
+      withEquip,
+      totalEquipPieces,
+      expiredCount,
+      expiringSoonCount,
+      warrantyExpiredCount,
+      warrantyExpiringSoonCount,
+    };
+  }, [filtered, equipByBillboard]);
+
+  // Per-billboard category breakdown (e.g., "Media Player x1, อะไหล่ x2")
+  const categoryBreakdown = (bbId: string) => {
+    const items = equipByBillboard[bbId] || [];
+    const map: Record<string, number> = {};
+    items.forEach(item => {
+      const cat = item.type === "media_player" ? "Media Player" : (item.equipmentData.category || "อื่นๆ");
+      map[cat] = (map[cat] || 0) + (item.quantity || 1);
+    });
+    return Object.entries(map);
+  };
 
   // Pagination
   const totalPages = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE));
