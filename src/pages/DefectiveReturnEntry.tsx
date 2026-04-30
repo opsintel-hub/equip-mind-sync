@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { supabase } from "@/integrations/supabase/client";
+import { dedupeMediaPlayersByCode } from "@/lib/mediaPlayerOptions";
 import { toast } from "sonner";
 import { AlertTriangle, Package, MapPin, Send, Loader2, Info, PlusCircle, X, ImagePlus, ClipboardCheck, FileCheck2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
