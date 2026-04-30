@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { downloadStorageFile } from "@/lib/storageDownload";
-import { DocumentPreviewDialog } from "@/components/DocumentPreviewDialog";
+import { DocumentPreviewDialog, DocumentCategory } from "@/components/DocumentPreviewDialog";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -144,7 +144,23 @@ const DeliveryEntry = () => {
   const [editingItem, setEditingItem] = useState<DeliveryCartItem | null>(null);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [selectedDetailReceipt, setSelectedDetailReceipt] = useState<any | null>(null);
-  const [previewDocUrl, setPreviewDocUrl] = useState<string | null>(null);
+  const [previewState, setPreviewState] = useState<{ title: string; categories: DocumentCategory[] } | null>(null);
+
+  const isImageUrl = (url: string) => /\.(png|jpe?g|gif|webp|bmp|svg)(\?|$)/i.test(url);
+  const splitUrls = (combined: string | null | undefined): string[] =>
+    combined ? String(combined).split(/\s*,\s*/).filter(Boolean) : [];
+  const buildReceiptCategories = (r: any): DocumentCategory[] => {
+    const all = splitUrls(r.document_url);
+    const docs = all.filter((u) => !isImageUrl(u));
+    const images = all.filter((u) => isImageUrl(u));
+    return [
+      { label: "เอกสารแนบเพิ่มเติม", urls: docs },
+      { label: "รูปภาพเพิ่มเติม", urls: images },
+      { label: "เอกสารจัดซื้อ", urls: r.purchase_document_url },
+      { label: "Invoice", urls: r.invoice_document_url },
+      { label: "ใบส่งของ", urls: r.delivery_note_document_url },
+    ];
+  };
   const [showPOUpload, setShowPOUpload] = useState(false);
 
   // Header data (shared across all items)
@@ -2921,31 +2937,28 @@ const DeliveryEntry = () => {
                       <TableCell>{receipt.supplier_name || "-"}</TableCell>
                       <TableCell>{receipt.delivery_person_name}</TableCell>
                       <TableCell>
-                        {receipt.document_url ? (
-                          <div className="flex items-center gap-2">
-                            <button
-                              type="button"
-                              onClick={() => setPreviewDocUrl(receipt.document_url!)}
-                              className="flex items-center gap-1 text-primary hover:underline"
-                              title="ดูเอกสาร"
-                            >
-                              <FileText className="w-4 h-4" />
-                              ดูเอกสาร
-                            </button>
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="icon"
-                              className="h-6 w-6"
-                              onClick={() => downloadStorageFile(receipt.document_url!)}
-                              title="ดาวน์โหลด"
-                            >
-                              <Download className="w-3 h-3" />
-                            </Button>
-                          </div>
-                        ) : (
-                          <span className="text-muted-foreground">-</span>
-                        )}
+                        {(() => {
+                          const cats = buildReceiptCategories(receipt);
+                          const fileCount = cats.reduce((sum, c) => {
+                            const urls = Array.isArray(c.urls) ? c.urls.filter(Boolean) : splitUrls(c.urls as any);
+                            return sum + urls.length;
+                          }, 0);
+                          if (fileCount === 0) return <span className="text-muted-foreground">-</span>;
+                          return (
+                            <div className="flex items-center gap-2">
+                              <button
+                                type="button"
+                                onClick={() => setPreviewState({ title: `เอกสาร ${receipt.document_no}`, categories: cats })}
+                                className="flex items-center gap-1 text-primary hover:underline"
+                                title={`ดูเอกสาร (${fileCount} ไฟล์ใน ${cats.length} หมวด)`}
+                              >
+                                <FileText className="w-4 h-4" />
+                                ดูเอกสาร
+                                <span className="text-xs text-muted-foreground tabular-nums">({fileCount}/{cats.length})</span>
+                              </button>
+                            </div>
+                          );
+                        })()}
                       </TableCell>
                       <TableCell>{getStatusBadge(receipt.status)}</TableCell>
                       <TableCell>
@@ -2983,10 +2996,10 @@ const DeliveryEntry = () => {
       />
 
       <DocumentPreviewDialog
-        open={!!previewDocUrl}
-        onOpenChange={(open) => { if (!open) setPreviewDocUrl(null); }}
-        publicUrl={previewDocUrl}
-        title="ดูเอกสาร"
+        open={!!previewState}
+        onOpenChange={(open) => { if (!open) setPreviewState(null); }}
+        title={previewState?.title || "ดูเอกสาร"}
+        categories={previewState?.categories}
       />
     </div>
   );
