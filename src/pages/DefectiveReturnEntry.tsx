@@ -553,7 +553,7 @@ const DefectiveReturnEntry = () => {
                   <InfoRow label="ยี่ห้อ" value={selectedEquipment.brand || "-"} />
                   <InfoRow label="Serial No." value={selectedEquipment.serial_number || "-"} />
                   <InfoRow label="ฝ่าย" value={selectedEquipment.department || "-"} />
-                  <InfoRow label="คงเหลือในคลัง" value={String(selectedEquipment.quantity_in_stock)} />
+                  <InfoRow label="คงเหลือในคลัง" value={`${selectedEquipment.quantity_in_stock} ${selectedEquipment.unit || "ชิ้น"}`} />
                 </>)}
                 {isMediaPlayer && selectedMediaPlayer && (<>
                   <InfoRow label="ยี่ห้อ" value={selectedMediaPlayer.brand || "-"} />
