@@ -16,7 +16,22 @@ import { SearchableSelect } from "@/components/ui/searchable-select";
 import { EquipmentForm, EquipmentPrefillData } from "@/components/equipment/EquipmentForm";
 import { ReceiveGroupedItems, PendingReceipt } from "@/components/receive/ReceiveGroupedItems";
 import { DocumentPreviewDialog, DocumentCategory } from "@/components/DocumentPreviewDialog";
-import { splitUrls, isImageUrl } from "@/lib/storageDownload";
+
+const isImageUrl = (url: string) => /\.(png|jpe?g|gif|webp|bmp|svg)(\?|$)/i.test(url);
+const splitUrls = (combined: string | null | undefined): string[] =>
+  !combined ? [] : combined.split(",").map((s) => s.trim()).filter(Boolean);
+const buildReceiptCategories = (r: any): DocumentCategory[] => {
+  const all = splitUrls(r?.document_url);
+  const docs = all.filter((u) => !isImageUrl(u));
+  const images = all.filter((u) => isImageUrl(u));
+  return [
+    { label: "เอกสารแนบเพิ่มเติม", urls: docs },
+    { label: "รูปภาพเพิ่มเติม", urls: images },
+    { label: "เอกสารจัดซื้อ", urls: splitUrls(r?.purchase_document_url) },
+    { label: "Invoice", urls: splitUrls(r?.invoice_document_url) },
+    { label: "ใบส่งของ", urls: splitUrls(r?.delivery_note_document_url) },
+  ];
+};
 
 import { format } from "date-fns";
 import { useAuth } from "@/hooks/useAuth";
