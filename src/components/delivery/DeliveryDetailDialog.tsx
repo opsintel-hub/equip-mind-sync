@@ -231,10 +231,10 @@ export function DeliveryDetailDialog({ open, onOpenChange, receipt }: DeliveryDe
               <div>
                 <h4 className="text-sm font-semibold mb-2">เอกสารแนบ</h4>
                 <div className="space-y-2">
-                  <DocLink url={receipt.document_url} label="เอกสารประกอบ" onPreview={setPreviewDocUrl} />
-                  <DocLink url={receipt.purchase_document_url} label="เอกสารจัดซื้อ" onPreview={setPreviewDocUrl} />
-                  <DocLink url={receipt.invoice_document_url} label="Invoice" onPreview={setPreviewDocUrl} />
-                  <DocLink url={receipt.delivery_note_document_url} label="ใบส่งของ" onPreview={setPreviewDocUrl} />
+                  <DocLink url={receipt.document_url} label="เอกสารประกอบ" onPreview={(u, l) => setPreviewDoc({ url: u, label: l })} />
+                  <DocLink url={receipt.purchase_document_url} label="เอกสารจัดซื้อ" onPreview={(u, l) => setPreviewDoc({ url: u, label: l })} />
+                  <DocLink url={receipt.invoice_document_url} label="Invoice" onPreview={(u, l) => setPreviewDoc({ url: u, label: l })} />
+                  <DocLink url={receipt.delivery_note_document_url} label="ใบส่งของ" onPreview={(u, l) => setPreviewDoc({ url: u, label: l })} />
                 </div>
               </div>
             </>
