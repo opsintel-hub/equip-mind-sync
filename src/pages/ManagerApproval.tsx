@@ -220,7 +220,11 @@ const ManagerApproval = () => {
         if (!matchDirect && !matchItems) return false;
       }
       if (departmentFilter.length > 0 && !departmentFilter.includes(req.requester_department)) return false;
-      if (companyFilter !== "all" && req.company_id !== companyFilter) return false;
+      if (companyFilter !== "all") {
+        const group = companies?.find((c: any) => c.ids[0] === companyFilter);
+        const ids = group?.ids || [companyFilter];
+        if (!ids.includes(req.company_id)) return false;
+      }
       if (dateRange?.from) {
         const d = new Date(req.created_at);
         if (d < dateRange.from) return false;
