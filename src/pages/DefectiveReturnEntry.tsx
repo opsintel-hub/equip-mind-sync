@@ -97,6 +97,9 @@ const DefectiveReturnEntry = () => {
     if (matchedSerial) {
       setPerUnitMode(true);
       setDefectiveUnits([{ id: crypto.randomUUID(), serial_number: matchedSerial, reason: "", item_condition: "defective", image_file: null, image_preview: null }]);
+    } else {
+      setPerUnitMode(false);
+      setDefectiveUnits([{ id: crypto.randomUUID(), serial_number: "", reason: "", item_condition: "defective", image_file: null, image_preview: null }]);
     }
   };
 
