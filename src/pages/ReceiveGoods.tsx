@@ -15,7 +15,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { EquipmentForm, EquipmentPrefillData } from "@/components/equipment/EquipmentForm";
 import { ReceiveGroupedItems, PendingReceipt } from "@/components/receive/ReceiveGroupedItems";
-import { DocumentPreviewDialog } from "@/components/DocumentPreviewDialog";
+import { DocumentPreviewDialog, DocumentCategory } from "@/components/DocumentPreviewDialog";
+import { splitUrls, isImageUrl } from "@/lib/storageDownload";
 
 import { format } from "date-fns";
 import { useAuth } from "@/hooks/useAuth";
