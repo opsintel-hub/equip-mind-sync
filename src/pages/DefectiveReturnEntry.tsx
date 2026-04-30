@@ -392,13 +392,20 @@ const DefectiveReturnEntry = () => {
             <CardDescription>เลือกสินค้า ระบบจะดึงข้อมูลเดิมมาให้อัตโนมัติ รวมถึงตรวจสอบว่าติดตั้งบนป้ายโฆษณาหรือไม่</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
+            <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
+              <Label className="text-sm font-medium">ประเภทที่ต้องการค้นหา:</Label>
+              <span className={`text-sm ${!isMediaPlayer ? "font-semibold text-primary" : "text-muted-foreground"}`}>สินค้า/อะไหล่</span>
+              <Switch checked={isMediaPlayer} onCheckedChange={resetSelectionForType} />
+              <span className={`text-sm ${isMediaPlayer ? "font-semibold text-primary" : "text-muted-foreground"}`}>Media Player</span>
+            </div>
+
             <div className="space-y-2 p-3 rounded-lg bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800">
               <Label className="text-sm font-medium text-blue-700 dark:text-blue-300 flex items-center gap-2">
-                <Search className="w-4 h-4" /> ค้นหาด้วย Serial Number (กรอก S/N → ระบบดึงข้อมูลสินค้าให้อัตโนมัติ)
+                <Search className="w-4 h-4" /> ค้นหา{isMediaPlayer ? " Media Player" : "สินค้า/อะไหล่"}ด้วย S/N, รหัส หรือชื่อ
               </Label>
               <div className="flex gap-2">
                 <Input
-                  placeholder="พิมพ์ S/N เช่น BCD004..."
+                  placeholder={isMediaPlayer ? "พิมพ์ S/N เช่น BCD004 หรือรหัส Media Player..." : "พิมพ์ S/N, รหัสสินค้า หรือชื่อสินค้า..."}
                   value={snLookup}
                   onChange={(e) => setSnLookup(e.target.value)}
                   onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleSnLookup(); } }}
@@ -410,20 +417,13 @@ const DefectiveReturnEntry = () => {
                 </Button>
               </div>
               <p className="text-[11px] text-blue-600/80 dark:text-blue-400/80">
-                💡 ใช้สำหรับเข้าถึงเร็ว — ค้นจากตาราง S/N, เอกสารรับเข้า และ Media Player
+                💡 เลือกประเภทก่อนค้นหา เพื่อให้ระบบค้นในชุดข้อมูลที่ถูกต้องและดึงข้อมูลเข้าฟอร์มอัตโนมัติ
               </p>
             </div>
 
-            <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
-              <Label className="text-sm font-medium">ประเภท:</Label>
-              <span className={`text-sm ${!isMediaPlayer ? "font-semibold text-primary" : "text-muted-foreground"}`}>สินค้า/อะไหล่</span>
-              <Switch checked={isMediaPlayer} onCheckedChange={(v) => { setIsMediaPlayer(v); setSelectedItemId(""); setDetectedBillboards([]); setSelectedBillboardEquipmentId(""); }} />
-              <span className={`text-sm ${isMediaPlayer ? "font-semibold text-primary" : "text-muted-foreground"}`}>Media Player</span>
-            </div>
-
             <div className="space-y-2">
-              <Label>เลือกสินค้า *</Label>
-              <SearchableSelect options={equipmentOptions} value={selectedItemId} onValueChange={setSelectedItemId} placeholder="พิมพ์รหัสหรือชื่อสินค้าเพื่อค้นหา..." />
+              <Label>{isMediaPlayer ? "เลือก Media Player *" : "เลือกสินค้า/อะไหล่ *"}</Label>
+              <SearchableSelect options={equipmentOptions} value={selectedItemId} onValueChange={setSelectedItemId} placeholder={isMediaPlayer ? "พิมพ์ S/N, รหัส หรือชื่อ Media Player เพื่อค้นหา..." : "พิมพ์ S/N, รหัส หรือชื่อสินค้าเพื่อค้นหา..."} searchPlaceholder="ค้นหา S/N / รหัส / ชื่อ..." emptyMessage={isMediaPlayer ? "ไม่พบ Media Player" : "ไม่พบสินค้า/อะไหล่"} />
             </div>
 
             {isLoadingBillboard && (
