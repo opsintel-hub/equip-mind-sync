@@ -222,7 +222,40 @@ const ReceiveGoods = () => {
     const { data, error } = await query;
     
     if (!error && data) {
-      setPendingReceipts(data as unknown as PendingReceipt[]);
+      // Auto-link by equipment_code: ถ้ารหัสตรงกับ MP หรือ Equipment ที่มีในระบบ
+      // ให้เติม media_player_id / equipment_id และ flag is_media_player ให้ถูกต้อง
+      // เพื่อป้องกันการแสดง "สินค้าใหม่" ผิดพลาดเมื่อรหัสซ้ำกับของในระบบ
+      const codes = Array.from(
+        new Set((data as any[]).map((r) => r.equipment_code).filter(Boolean))
+      );
+      const mpMap = new Map<string, string>();
+      const eqMap = new Map<string, string>();
+      if (codes.length > 0) {
+        const [{ data: mps }, { data: eqs }] = await Promise.all([
+          supabase.from("media_players").select("id, code").in("code", codes),
+          supabase.from("equipment").select("id, code").in("code", codes),
+        ]);
+        (mps || []).forEach((m: any) => {
+          if (!mpMap.has(m.code)) mpMap.set(m.code, m.id);
+        });
+        (eqs || []).forEach((e: any) => {
+          if (!eqMap.has(e.code)) eqMap.set(e.code, e.id);
+        });
+      }
+      const enriched = (data as any[]).map((r) => {
+        const code = r.equipment_code;
+        if (!code) return r;
+        const mpId = mpMap.get(code);
+        const eqId = eqMap.get(code);
+        if (mpId && !r.media_player_id) {
+          return { ...r, media_player_id: mpId, is_media_player: true };
+        }
+        if (eqId && !r.equipment_id) {
+          return { ...r, equipment_id: eqId };
+        }
+        return r;
+      });
+      setPendingReceipts(enriched as unknown as PendingReceipt[]);
     }
   };
 
