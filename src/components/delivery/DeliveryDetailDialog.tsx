@@ -27,8 +27,20 @@ const DetailRow = ({ label, value }: { label: string; value: React.ReactNode }) 
   );
 };
 
-const DocLink = ({ url, label, onPreview }: { url: string | null; label: string; onPreview: (url: string, label: string) => void }) => {
+const isImageUrl = (url: string) => /\.(png|jpe?g|gif|webp|bmp|svg)(\?|$)/i.test(url);
+
+const DocLink = ({
+  url,
+  label,
+  onPreview,
+}: {
+  url: string | null;
+  label: string;
+  onPreview: (url: string, label: string) => void;
+}) => {
   if (!url) return null;
+  const urls = url.split(/\s*,\s*/).filter(Boolean);
+  const count = urls.length;
   return (
     <button
       type="button"
@@ -36,8 +48,22 @@ const DocLink = ({ url, label, onPreview }: { url: string | null; label: string;
       className="flex items-center gap-1.5 text-sm text-primary hover:underline cursor-pointer"
     >
       <FileText className="w-4 h-4" /> {label}
+      {count > 1 && <span className="text-xs text-muted-foreground">({count} ไฟล์)</span>}
     </button>
   );
+};
+
+/** Split combined document_url into two groups: extra docs (non-image) and extra images. */
+const splitExtraDocs = (combined: string | null) => {
+  if (!combined) return { docs: [] as string[], images: [] as string[] };
+  const all = combined.split(/\s*,\s*/).filter(Boolean);
+  const docs: string[] = [];
+  const images: string[] = [];
+  for (const u of all) {
+    if (isImageUrl(u)) images.push(u);
+    else docs.push(u);
+  }
+  return { docs, images };
 };
 
 export function DeliveryDetailDialog({ open, onOpenChange, receipt }: DeliveryDetailDialogProps) {
@@ -225,20 +251,40 @@ export function DeliveryDetailDialog({ open, onOpenChange, receipt }: DeliveryDe
           </div>
 
           {/* เอกสารแนบ */}
-          {(receipt.document_url || receipt.purchase_document_url || receipt.po_number || receipt.invoice_document_url || receipt.delivery_note_document_url) && (
-            <>
-              <Separator />
-              <div>
-                <h4 className="text-sm font-semibold mb-2">เอกสารแนบ</h4>
-                <div className="space-y-2">
-                  <DocLink url={receipt.document_url} label="เอกสารประกอบ" onPreview={(u, l) => setPreviewDoc({ url: u, label: l })} />
-                  <DocLink url={receipt.purchase_document_url} label="เอกสารจัดซื้อ" onPreview={(u, l) => setPreviewDoc({ url: u, label: l })} />
-                  <DocLink url={receipt.invoice_document_url} label="Invoice" onPreview={(u, l) => setPreviewDoc({ url: u, label: l })} />
-                  <DocLink url={receipt.delivery_note_document_url} label="ใบส่งของ" onPreview={(u, l) => setPreviewDoc({ url: u, label: l })} />
+          {(() => {
+            const { docs, images } = splitExtraDocs(receipt.document_url);
+            const hasAny =
+              docs.length > 0 ||
+              images.length > 0 ||
+              receipt.purchase_document_url ||
+              receipt.po_number ||
+              receipt.invoice_document_url ||
+              receipt.delivery_note_document_url;
+            if (!hasAny) return null;
+            return (
+              <>
+                <Separator />
+                <div>
+                  <h4 className="text-sm font-semibold mb-2">เอกสารแนบ</h4>
+                  <div className="space-y-2">
+                    <DocLink
+                      url={docs.length > 0 ? docs.join(", ") : null}
+                      label="เอกสารแนบเพิ่มเติม"
+                      onPreview={(u, l) => setPreviewDoc({ url: u, label: l })}
+                    />
+                    <DocLink
+                      url={images.length > 0 ? images.join(", ") : null}
+                      label="รูปภาพเพิ่มเติม"
+                      onPreview={(u, l) => setPreviewDoc({ url: u, label: l })}
+                    />
+                    <DocLink url={receipt.purchase_document_url} label="เอกสารจัดซื้อ" onPreview={(u, l) => setPreviewDoc({ url: u, label: l })} />
+                    <DocLink url={receipt.invoice_document_url} label="Invoice" onPreview={(u, l) => setPreviewDoc({ url: u, label: l })} />
+                    <DocLink url={receipt.delivery_note_document_url} label="ใบส่งของ" onPreview={(u, l) => setPreviewDoc({ url: u, label: l })} />
+                  </div>
                 </div>
-              </div>
-            </>
-          )}
+              </>
+            );
+          })()}
 
           {/* การรับเข้า */}
           {receipt.status === "received" && (
