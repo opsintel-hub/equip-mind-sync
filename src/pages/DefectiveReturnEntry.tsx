@@ -87,6 +87,19 @@ const DefectiveReturnEntry = () => {
     );
   };
 
+  const getMatchedSerial = (term: string, ...serials: Array<string | null | undefined>) => {
+    const normalizedTerm = normalizeSearch(term);
+    return serials.find((serial) => normalizeSearch(serial).includes(normalizedTerm))?.trim() || "";
+  };
+
+  const applyLookupSelection = (itemId: string, matchedSerial?: string) => {
+    setSelectedItemId(itemId);
+    if (matchedSerial) {
+      setPerUnitMode(true);
+      setDefectiveUnits([{ id: crypto.randomUUID(), serial_number: matchedSerial, reason: "", item_condition: "defective", image_file: null, image_preview: null }]);
+    }
+  };
+
   const handleSnLookup = async () => {
     const term = snLookup.trim();
     if (!term) { toast.error("กรุณากรอก S/N, รหัสสินค้า หรือชื่อสินค้า"); return; }
@@ -95,9 +108,10 @@ const DefectiveReturnEntry = () => {
       const likeTerm = `%${term.replace(/[%,]/g, "")}%`;
       const localMatch = isMediaPlayer ? findLocalMediaPlayer(term) : findLocalEquipment(term);
       if (localMatch) {
-        setSelectedItemId(localMatch.id);
-        setPerUnitMode(true);
-        setDefectiveUnits([{ id: crypto.randomUUID(), serial_number: term, reason: "", item_condition: "defective", image_file: null, image_preview: null }]);
+        const matchedSerial = isMediaPlayer
+          ? getMatchedSerial(term, (localMatch as MediaPlayerItem).serial_number_1, (localMatch as MediaPlayerItem).serial_number_2)
+          : getMatchedSerial(term, (localMatch as EquipmentItem).serial_number);
+        applyLookupSelection(localMatch.id, matchedSerial);
         toast.success(`พบ${isMediaPlayer ? " Media Player" : "สินค้า/อะไหล่"} — ดึงข้อมูลแล้ว`);
         return;
       }
@@ -114,9 +128,7 @@ const DefectiveReturnEntry = () => {
       if (rcvRow) {
         const id = isMediaPlayer ? rcvRow.media_player_id : rcvRow.equipment_id;
         if (id) {
-          setSelectedItemId(id);
-          setPerUnitMode(true);
-          setDefectiveUnits([{ id: crypto.randomUUID(), serial_number: term, reason: "", item_condition: "defective", image_file: null, image_preview: null }]);
+          applyLookupSelection(id, getMatchedSerial(term, rcvRow.serial_number, rcvRow.serial_number_2));
           toast.success(`พบจากเอกสารรับเข้า — ดึงข้อมูลแล้ว`);
           return;
         }
@@ -131,23 +143,19 @@ const DefectiveReturnEntry = () => {
           .limit(1)
           .maybeSingle();
         if (snRow?.equipment_id) {
-          setSelectedItemId(snRow.equipment_id);
-          setPerUnitMode(true);
-          setDefectiveUnits([{ id: crypto.randomUUID(), serial_number: term, reason: "", item_condition: "defective", image_file: null, image_preview: null }]);
+          applyLookupSelection(snRow.equipment_id, term);
           toast.success(`พบสินค้า/อะไหล่ — ดึงข้อมูลแล้ว`);
           return;
         }
       } else {
         const { data: mpRow } = await supabase
           .from("media_players")
-          .select("id")
+          .select("id, serial_number_1, serial_number_2")
           .or(`serial_number_1.ilike.${likeTerm},serial_number_2.ilike.${likeTerm},code.ilike.${likeTerm},name.ilike.${likeTerm}`)
           .limit(1)
           .maybeSingle();
         if (mpRow?.id) {
-          setSelectedItemId(mpRow.id);
-          setPerUnitMode(true);
-          setDefectiveUnits([{ id: crypto.randomUUID(), serial_number: term, reason: "", item_condition: "defective", image_file: null, image_preview: null }]);
+          applyLookupSelection(mpRow.id, getMatchedSerial(term, mpRow.serial_number_1, mpRow.serial_number_2));
           toast.success(`พบ Media Player — ดึงข้อมูลแล้ว`);
           return;
         }
