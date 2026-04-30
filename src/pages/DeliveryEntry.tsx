@@ -167,9 +167,9 @@ const DeliveryEntry = () => {
   const [purchaseDocumentFile, setPurchaseDocumentFile] = useState<File | null>(null);
   const purchaseFileInputRef = useRef<HTMLInputElement>(null);
 
-  // Document upload (shared) - 2 categories
-  const [additionalDocumentFile, setAdditionalDocumentFile] = useState<File | null>(null);
-  const [additionalImageFile, setAdditionalImageFile] = useState<File | null>(null);
+  // Document upload (shared) - 2 categories (รองรับหลายไฟล์)
+  const [additionalDocumentFiles, setAdditionalDocumentFiles] = useState<File[]>([]);
+  const [additionalImageFiles, setAdditionalImageFiles] = useState<File[]>([]);
   const [headerNotes, setHeaderNotes] = useState("");
 
   // File input refs for document uploads
@@ -460,28 +460,36 @@ const DeliveryEntry = () => {
 
   // Document file upload handlers
   const handleAdditionalDocFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+    const valid: File[] = [];
+    for (const file of files) {
       if (file.size > 10 * 1024 * 1024) {
-        toast.error("ไฟล์มีขนาดใหญ่เกินไป (สูงสุด 10MB)");
-        return;
+        toast.error(`${file.name}: ขนาดใหญ่เกิน 10MB`);
+        continue;
       }
-      setAdditionalDocumentFile(file);
+      valid.push(file);
     }
+    if (valid.length > 0) setAdditionalDocumentFiles((prev) => [...prev, ...valid]);
+    if (additionalDocFileInputRef.current) additionalDocFileInputRef.current.value = "";
   };
   const handleAdditionalImageFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+    const valid: File[] = [];
+    for (const file of files) {
       if (file.size > 10 * 1024 * 1024) {
-        toast.error("ไฟล์มีขนาดใหญ่เกินไป (สูงสุด 10MB)");
-        return;
+        toast.error(`${file.name}: ขนาดใหญ่เกิน 10MB`);
+        continue;
       }
       if (!file.type.startsWith("image/")) {
-        toast.error("กรุณาเลือกไฟล์รูปภาพเท่านั้น");
-        return;
+        toast.error(`${file.name}: ไม่ใช่ไฟล์รูปภาพ`);
+        continue;
       }
-      setAdditionalImageFile(file);
+      valid.push(file);
     }
+    if (valid.length > 0) setAdditionalImageFiles((prev) => [...prev, ...valid]);
+    if (additionalImageFileInputRef.current) additionalImageFileInputRef.current.value = "";
   };
   const uploadDocumentFile = async (file: File, prefix: string, documentNo: string): Promise<string | null> => {
     const fileExt = file.name.split(".").pop();
@@ -865,17 +873,19 @@ const DeliveryEntry = () => {
     setIsLoading(true);
     try {
       const docNo = generateDocumentNo();
-      let additionalDocUrl: string | null = null;
-      let additionalImageUrl: string | null = null;
+      const additionalDocUrls: string[] = [];
+      const additionalImageUrls: string[] = [];
       let purchaseDocumentUrl: string | null = null;
 
-      // Upload documents if exists
+      // Upload documents if exists (รองรับหลายไฟล์)
       setIsUploadingFile(true);
-      if (additionalDocumentFile) {
-        additionalDocUrl = await uploadDocumentFile(additionalDocumentFile, "DOC", docNo);
+      for (let i = 0; i < additionalDocumentFiles.length; i++) {
+        const url = await uploadDocumentFile(additionalDocumentFiles[i], `DOC${i + 1}`, docNo);
+        if (url) additionalDocUrls.push(url);
       }
-      if (additionalImageFile) {
-        additionalImageUrl = await uploadDocumentFile(additionalImageFile, "IMG", docNo);
+      for (let i = 0; i < additionalImageFiles.length; i++) {
+        const url = await uploadDocumentFile(additionalImageFiles[i], `IMG${i + 1}`, docNo);
+        if (url) additionalImageUrls.push(url);
       }
       if (purchaseDocumentFile) {
         purchaseDocumentUrl = await uploadPurchaseDocument(docNo);
@@ -904,7 +914,7 @@ const DeliveryEntry = () => {
       setIsUploadingFile(false);
 
       // Combine all document URLs (including PO/PR/Invoice uploaded URLs)
-      const allDocumentUrls = [additionalDocUrl, additionalImageUrl, poDocumentUrl, prDocumentUrl, invoiceDocumentUrl]
+      const allDocumentUrls = [...additionalDocUrls, ...additionalImageUrls, poDocumentUrl, prDocumentUrl, invoiceDocumentUrl]
         .filter(Boolean)
         .join(", ");
 
@@ -1088,8 +1098,8 @@ const DeliveryEntry = () => {
         setDeliveryNoteDocumentUrl("");
         setOrderForProject("");
         setPurchaseDocumentFile(null);
-        setAdditionalDocumentFile(null);
-        setAdditionalImageFile(null);
+        setAdditionalDocumentFiles([]);
+        setAdditionalImageFiles([]);
         setHeaderNotes("");
         if (additionalDocFileInputRef.current) additionalDocFileInputRef.current.value = "";
         if (additionalImageFileInputRef.current) additionalImageFileInputRef.current.value = "";
@@ -2675,14 +2685,15 @@ const DeliveryEntry = () => {
                 <FileText className="w-4 h-4" />
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Additional Document */}
+                {/* Additional Documents (multiple) */}
                 <div className="space-y-2">
-                  <Label>อัปโหลดเอกสารแนบเพิ่มเติม</Label>
-                  <div className="flex items-center gap-2">
+                  <Label>อัปโหลดเอกสารแนบเพิ่มเติม (รองรับหลายไฟล์)</Label>
+                  <div className="flex flex-col gap-2">
                     <input
                       ref={additionalDocFileInputRef}
                       type="file"
                       accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                      multiple
                       onChange={handleAdditionalDocFileSelect}
                       className="hidden"
                     />
@@ -2691,40 +2702,47 @@ const DeliveryEntry = () => {
                       variant="outline"
                       size="sm"
                       onClick={() => additionalDocFileInputRef.current?.click()}
-                      className="flex items-center gap-2"
+                      className="flex items-center gap-2 w-fit"
                     >
                       <Upload className="w-4 h-4" />
-                      เลือกเอกสาร
+                      เลือกเอกสาร {additionalDocumentFiles.length > 0 && `(${additionalDocumentFiles.length})`}
                     </Button>
-                    {additionalDocumentFile && (
-                      <div className="flex items-center gap-2 bg-background px-2 py-1 rounded-md border text-xs">
-                        <FileText className="w-3 h-3 text-primary" />
-                        <span className="truncate max-w-[100px]">{additionalDocumentFile.name}</span>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => {
-                            setAdditionalDocumentFile(null);
-                            if (additionalDocFileInputRef.current) additionalDocFileInputRef.current.value = "";
-                          }}
-                          className="h-5 w-5 p-0"
-                        >
-                          <X className="w-3 h-3" />
-                        </Button>
+                    {additionalDocumentFiles.length > 0 && (
+                      <div className="flex flex-wrap gap-2">
+                        {additionalDocumentFiles.map((file, idx) => (
+                          <div
+                            key={idx}
+                            className="flex items-center gap-2 bg-background px-2 py-1 rounded-md border text-xs"
+                          >
+                            <FileText className="w-3 h-3 text-primary" />
+                            <span className="truncate max-w-[140px]">{file.name}</span>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() =>
+                                setAdditionalDocumentFiles((prev) => prev.filter((_, i) => i !== idx))
+                              }
+                              className="h-5 w-5 p-0"
+                            >
+                              <X className="w-3 h-3" />
+                            </Button>
+                          </div>
+                        ))}
                       </div>
                     )}
                   </div>
                 </div>
 
-                {/* Additional Image */}
+                {/* Additional Images (multiple) */}
                 <div className="space-y-2">
-                  <Label>อัปโหลดรูปภาพเพิ่มเติม</Label>
-                  <div className="flex items-center gap-2">
+                  <Label>อัปโหลดรูปภาพเพิ่มเติม (รองรับหลายรูป)</Label>
+                  <div className="flex flex-col gap-2">
                     <input
                       ref={additionalImageFileInputRef}
                       type="file"
                       accept="image/*"
+                      multiple
                       onChange={handleAdditionalImageFileSelect}
                       className="hidden"
                     />
@@ -2733,27 +2751,33 @@ const DeliveryEntry = () => {
                       variant="outline"
                       size="sm"
                       onClick={() => additionalImageFileInputRef.current?.click()}
-                      className="flex items-center gap-2"
+                      className="flex items-center gap-2 w-fit"
                     >
                       <ImagePlus className="w-4 h-4" />
-                      เลือกรูปภาพ
+                      เลือกรูปภาพ {additionalImageFiles.length > 0 && `(${additionalImageFiles.length})`}
                     </Button>
-                    {additionalImageFile && (
-                      <div className="flex items-center gap-2 bg-background px-2 py-1 rounded-md border text-xs">
-                        <ImagePlus className="w-3 h-3 text-primary" />
-                        <span className="truncate max-w-[100px]">{additionalImageFile.name}</span>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => {
-                            setAdditionalImageFile(null);
-                            if (additionalImageFileInputRef.current) additionalImageFileInputRef.current.value = "";
-                          }}
-                          className="h-5 w-5 p-0"
-                        >
-                          <X className="w-3 h-3" />
-                        </Button>
+                    {additionalImageFiles.length > 0 && (
+                      <div className="flex flex-wrap gap-2">
+                        {additionalImageFiles.map((file, idx) => (
+                          <div
+                            key={idx}
+                            className="flex items-center gap-2 bg-background px-2 py-1 rounded-md border text-xs"
+                          >
+                            <ImagePlus className="w-3 h-3 text-primary" />
+                            <span className="truncate max-w-[140px]">{file.name}</span>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() =>
+                                setAdditionalImageFiles((prev) => prev.filter((_, i) => i !== idx))
+                              }
+                              className="h-5 w-5 p-0"
+                            >
+                              <X className="w-3 h-3" />
+                            </Button>
+                          </div>
+                        ))}
                       </div>
                     )}
                   </div>
