@@ -17,6 +17,7 @@ import { SearchableSelect } from "@/components/ui/searchable-select";
 import { SymptomSelect } from "@/components/media-player/SymptomSelect";
 import { ClaimResultSelect } from "@/components/media-player/ClaimResultSelect";
 import { SupplierSelect } from "@/components/supplier/SupplierSelect";
+import { useFunctionPermissions } from "@/hooks/useFunctionPermissions";
 
 interface ClaimRecord {
   id: string;
@@ -69,7 +70,10 @@ export default function ClaimTracker() {
   const location = useLocation();
   const [records, setRecords] = useState<ClaimRecord[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState("list");
+  const { hasFunctionAccess } = useFunctionPermissions();
+  const canView = hasFunctionAccess("claim_view");
+  const canCreate = hasFunctionAccess("claim_create");
+  const [activeTab, setActiveTab] = useState(canView ? "list" : "new");
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
 
@@ -408,12 +412,16 @@ export default function ClaimTracker() {
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList>
-          <TabsTrigger value="list">
-            <ListChecks className="h-4 w-4 mr-2" /> รายการเคลม
-          </TabsTrigger>
-          <TabsTrigger value="new">
-            <PlusCircle className="h-4 w-4 mr-2" /> สร้างคำเคลมใหม่
-          </TabsTrigger>
+          {canView && (
+            <TabsTrigger value="list">
+              <ListChecks className="h-4 w-4 mr-2" /> รายการเคลม
+            </TabsTrigger>
+          )}
+          {canCreate && (
+            <TabsTrigger value="new">
+              <PlusCircle className="h-4 w-4 mr-2" /> สร้างคำเคลมใหม่
+            </TabsTrigger>
+          )}
         </TabsList>
 
         <TabsContent value="list" className="mt-4">
