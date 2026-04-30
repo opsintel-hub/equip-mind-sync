@@ -440,17 +440,39 @@ export function SwapWizardDialog({ open, onOpenChange, request, onCompleted }: P
                 ไม่มี Spare พร้อมใช้งาน — ต้องรับของเข้าคลังหรือเปลี่ยนสถานะ Media Player เป็น in_stock/active ก่อน
               </div>
             )}
-            {selectedSpare && (
-              <Card>
-                <CardContent className="pt-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Badge variant="default">{selectedSpare.type === "media_player" ? "Media Player" : "Equipment"}</Badge>
-                    <span className="font-medium">{selectedSpare.label}</span>
-                  </div>
-                  <div className="text-sm text-muted-foreground">{selectedSpare.description}</div>
-                </CardContent>
-              </Card>
-            )}
+            {selectedSpare && (() => {
+              const spareEqId = selectedSpare.equipment_id || (selectedSpare.type === "equipment" ? selectedSpare.value.split(":")[1] : null);
+              const reportedEqId = request?.reported_equipment_id || null;
+              const reportedCode = (request?.reported_item_code || "").toLowerCase();
+              const spareCode = (selectedSpare.item_code || "").toLowerCase();
+              const isExact = (reportedEqId && spareEqId === reportedEqId) || (reportedCode && spareCode === reportedCode);
+              const isCrossType = request?.reported_asset_type && (
+                (request.reported_asset_type === "media_player" && selectedSpare.type !== "media_player") ||
+                (request.reported_asset_type !== "media_player" && selectedSpare.type === "media_player")
+              );
+              const compatVariant = isExact ? "default" : isCrossType ? "destructive" : "secondary";
+              const compatText = isExact ? "✓ ตรงรหัสกับเครื่องเก่า" : isCrossType ? "⚠ ข้ามประเภท" : "↻ ข้ามรุ่น/รหัส";
+              return (
+                <Card>
+                  <CardContent className="pt-4">
+                    <div className="flex items-center gap-2 mb-2 flex-wrap">
+                      <Badge variant="default">{selectedSpare.type === "media_player" ? "Media Player" : "Equipment"}</Badge>
+                      <Badge variant={compatVariant as any}>{compatText}</Badge>
+                      <span className="font-medium">{selectedSpare.label}</span>
+                    </div>
+                    <div className="text-sm text-muted-foreground">{selectedSpare.description}</div>
+                    {!isExact && request?.reported_item_code && (
+                      <div className="text-xs text-muted-foreground mt-2">
+                        เครื่องเก่าที่รายงาน: <span className="font-medium">{request.reported_item_code} {request.reported_item_name ? "- " + request.reported_item_name : ""}</span>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              );
+            })()}
+            <div className="text-xs text-muted-foreground bg-muted/40 rounded-md p-2">
+              💡 ระบบเรียง Spare ที่เข้ากันมากที่สุดไว้บนสุด — แต่คุณสามารถเลือก Spare ข้ามรหัส/ข้ามรุ่นได้ ถ้า Spec ใช้แทนกันได้
+            </div>
           </div>
         )}
 
