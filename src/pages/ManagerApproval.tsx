@@ -83,18 +83,25 @@ const ManagerApproval = () => {
   const { data: pendingApprovals, isLoading } = useQuery({
     queryKey: ["pending-approvals"],
     queryFn: async () => {
+      // Fetch all pending requests then filter to those needing approval OR containing asset/media-player items
       const { data, error } = await supabase
         .from("goods_issue_pending")
-        .select("*, companies(name)")
-        .eq("requires_approval", true)
-        .eq("approval_status", "pending")
+        .select("*, companies(name), goods_issue_pending_items(id, equipment_id, media_player_id, is_media_player)")
+        .eq("status", "pending")
+        .or("approval_status.eq.pending,approval_status.eq.not_required")
         .order("created_at", { ascending: false });
       if (error) throw error;
-      // Super Admin sees all. Admin/Manager scoped to their departments (must match requester's department).
+      // Keep requests that either explicitly require approval, or contain a Media Player / asset item
+      const needsApproval = (data || []).filter((req: any) => {
+        if (req.requires_approval && req.approval_status === "pending") return true;
+        const items = req.goods_issue_pending_items || [];
+        return items.some((it: any) => it.is_media_player || it.media_player_id);
+      });
+      // Super Admin sees all. Admin/Manager scoped to their departments.
       if (!isSuperAdmin && managerDepartments.length > 0) {
-        return data?.filter((req: any) => managerDepartments.includes(req.requester_department)) || [];
+        return needsApproval.filter((req: any) => managerDepartments.includes(req.requester_department));
       }
-      return data;
+      return needsApproval;
     },
     enabled: isManager,
   });
@@ -110,6 +117,9 @@ const ManagerApproval = () => {
         .order("approved_at", { ascending: false })
         .limit(100);
       if (error) throw error;
+      if (!isSuperAdmin && managerDepartments.length > 0) {
+        return data?.filter((req: any) => managerDepartments.includes(req.requester_department)) || [];
+      }
       return data;
     },
     enabled: isManager,
