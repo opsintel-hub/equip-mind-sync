@@ -3,9 +3,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
-import { FileText, ExternalLink, Pencil, Check, X, Loader2 } from "lucide-react";
+import { FileText, Pencil, Check, X, Loader2 } from "lucide-react";
 import { format } from "date-fns";
-import { downloadStorageFile } from "@/lib/storageDownload";
+import { DocumentPreviewDialog } from "@/components/DocumentPreviewDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useIsSuperAdmin } from "@/hooks/useIsSuperAdmin";
 import { SearchableSelect } from "@/components/ui/searchable-select";
@@ -27,15 +27,15 @@ const DetailRow = ({ label, value }: { label: string; value: React.ReactNode }) 
   );
 };
 
-const DocLink = ({ url, label }: { url: string | null; label: string }) => {
+const DocLink = ({ url, label, onPreview }: { url: string | null; label: string; onPreview: (url: string) => void }) => {
   if (!url) return null;
   return (
     <button
       type="button"
-      onClick={() => downloadStorageFile(url, label)}
+      onClick={() => onPreview(url)}
       className="flex items-center gap-1.5 text-sm text-primary hover:underline cursor-pointer"
     >
-      <FileText className="w-4 h-4" /> {label} <ExternalLink className="w-3 h-3" />
+      <FileText className="w-4 h-4" /> {label}
     </button>
   );
 };
@@ -47,6 +47,7 @@ export function DeliveryDetailDialog({ open, onOpenChange, receipt }: DeliveryDe
   const [newDeptId, setNewDeptId] = useState<string>("");
   const [savingDept, setSavingDept] = useState(false);
   const [currentDeptId, setCurrentDeptId] = useState<string | null>(null);
+  const [previewDocUrl, setPreviewDocUrl] = useState<string | null>(null);
 
   useEffect(() => {
     if (!open) return;
@@ -121,6 +122,7 @@ export function DeliveryDetailDialog({ open, onOpenChange, receipt }: DeliveryDe
   };
 
   return (
+    <>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
         <DialogHeader>
@@ -229,14 +231,11 @@ export function DeliveryDetailDialog({ open, onOpenChange, receipt }: DeliveryDe
               <div>
                 <h4 className="text-sm font-semibold mb-2">เอกสารแนบ</h4>
                 <div className="space-y-2">
-                  <DocLink url={receipt.document_url} label="เอกสารประกอบ" />
-                  <DocLink url={receipt.purchase_document_url} label="เอกสารจัดซื้อ" />
-                  <DocLink url={receipt.invoice_document_url} label="Invoice" />
-                  <DocLink url={receipt.delivery_note_document_url} label="ใบส่งของ" />
+                  <DocLink url={receipt.document_url} label="เอกสารประกอบ" onPreview={setPreviewDocUrl} />
+                  <DocLink url={receipt.purchase_document_url} label="เอกสารจัดซื้อ" onPreview={setPreviewDocUrl} />
+                  <DocLink url={receipt.invoice_document_url} label="Invoice" onPreview={setPreviewDocUrl} />
+                  <DocLink url={receipt.delivery_note_document_url} label="ใบส่งของ" onPreview={setPreviewDocUrl} />
                 </div>
-                <p className="text-[11px] text-muted-foreground/70 mt-2 italic">
-                  💡 คลิกเพื่อดาวน์โหลดไฟล์ (เปิดจากเครื่องเพื่อหลีกเลี่ยง Ad Blocker บล็อก)
-                </p>
               </div>
             </>
           )}
@@ -267,5 +266,12 @@ export function DeliveryDetailDialog({ open, onOpenChange, receipt }: DeliveryDe
         </div>
       </DialogContent>
     </Dialog>
+    <DocumentPreviewDialog
+      open={!!previewDocUrl}
+      onOpenChange={(dialogOpen) => { if (!dialogOpen) setPreviewDocUrl(null); }}
+      publicUrl={previewDocUrl}
+      title="ดูเอกสาร"
+    />
+    </>
   );
 }
