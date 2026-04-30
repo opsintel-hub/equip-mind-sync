@@ -15,7 +15,23 @@ import { supabase } from "@/integrations/supabase/client";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { EquipmentForm, EquipmentPrefillData } from "@/components/equipment/EquipmentForm";
 import { ReceiveGroupedItems, PendingReceipt } from "@/components/receive/ReceiveGroupedItems";
-import { DocumentPreviewDialog } from "@/components/DocumentPreviewDialog";
+import { DocumentPreviewDialog, DocumentCategory } from "@/components/DocumentPreviewDialog";
+
+const isImageUrl = (url: string) => /\.(png|jpe?g|gif|webp|bmp|svg)(\?|$)/i.test(url);
+const splitUrls = (combined: string | null | undefined): string[] =>
+  !combined ? [] : combined.split(",").map((s) => s.trim()).filter(Boolean);
+const buildReceiptCategories = (r: any): DocumentCategory[] => {
+  const all = splitUrls(r?.document_url);
+  const docs = all.filter((u) => !isImageUrl(u));
+  const images = all.filter((u) => isImageUrl(u));
+  return [
+    { label: "เอกสารแนบเพิ่มเติม", urls: docs },
+    { label: "รูปภาพเพิ่มเติม", urls: images },
+    { label: "เอกสารจัดซื้อ", urls: splitUrls(r?.purchase_document_url) },
+    { label: "Invoice", urls: splitUrls(r?.invoice_document_url) },
+    { label: "ใบส่งของ", urls: splitUrls(r?.delivery_note_document_url) },
+  ];
+};
 
 import { format } from "date-fns";
 import { useAuth } from "@/hooks/useAuth";
@@ -107,6 +123,10 @@ const ReceiveGoods = () => {
   const [receiptDetail, setReceiptDetail] = useState<any | null>(null);
   const [isReceiptDetailLoading, setIsReceiptDetailLoading] = useState(false);
   const [previewDocUrl, setPreviewDocUrl] = useState<string | null>(null);
+  const [previewCategories, setPreviewCategories] = useState<DocumentCategory[] | null>(null);
+  const [previewTitle, setPreviewTitle] = useState<string>("ดูเอกสารแนบ");
+  const [editAssetCode, setEditAssetCode] = useState("");
+  const [editEquipmentIdCode, setEditEquipmentIdCode] = useState("");
 
   // Form state for editing - only editable fields
   const [editNotes, setEditNotes] = useState("");
@@ -222,7 +242,40 @@ const ReceiveGoods = () => {
     const { data, error } = await query;
     
     if (!error && data) {
-      setPendingReceipts(data as unknown as PendingReceipt[]);
+      // Auto-link by equipment_code: ถ้ารหัสตรงกับ MP หรือ Equipment ที่มีในระบบ
+      // ให้เติม media_player_id / equipment_id และ flag is_media_player ให้ถูกต้อง
+      // เพื่อป้องกันการแสดง "สินค้าใหม่" ผิดพลาดเมื่อรหัสซ้ำกับของในระบบ
+      const codes = Array.from(
+        new Set((data as any[]).map((r) => r.equipment_code).filter(Boolean))
+      );
+      const mpMap = new Map<string, string>();
+      const eqMap = new Map<string, string>();
+      if (codes.length > 0) {
+        const [{ data: mps }, { data: eqs }] = await Promise.all([
+          supabase.from("media_players").select("id, code").in("code", codes),
+          supabase.from("equipment").select("id, code").in("code", codes),
+        ]);
+        (mps || []).forEach((m: any) => {
+          if (!mpMap.has(m.code)) mpMap.set(m.code, m.id);
+        });
+        (eqs || []).forEach((e: any) => {
+          if (!eqMap.has(e.code)) eqMap.set(e.code, e.id);
+        });
+      }
+      const enriched = (data as any[]).map((r) => {
+        const code = r.equipment_code;
+        if (!code) return r;
+        const mpId = mpMap.get(code);
+        const eqId = eqMap.get(code);
+        if (mpId && !r.media_player_id) {
+          return { ...r, media_player_id: mpId, is_media_player: true };
+        }
+        if (eqId && !r.equipment_id) {
+          return { ...r, equipment_id: eqId };
+        }
+        return r;
+      });
+      setPendingReceipts(enriched as unknown as PendingReceipt[]);
     }
   };
 
@@ -278,6 +331,8 @@ const ReceiveGoods = () => {
     setSelectedWarehouseId("");
     setStorageLocation({ locationId: "" });
     setItemCondition("normal");
+    setEditAssetCode(receipt.asset_code || "");
+    setEditEquipmentIdCode(receipt.equipment_id_code || "");
     setIsDialogOpen(true);
   };
 
@@ -439,7 +494,9 @@ const ReceiveGoods = () => {
       const storageVolumeValue = storageVolumeCm3 ? parseFloat(storageVolumeCm3) : null;
       const receivedQuantity = selectedReceipt.quantity;
 
-      // Update pending receipt status
+      // Update pending receipt status (และ persist รหัสทรัพย์สิน/อุปกรณ์ที่ผู้รับเข้ากรอก)
+      const trimmedAssetCode = editAssetCode.trim();
+      const trimmedEquipmentIdCode = editEquipmentIdCode.trim();
       const { error: updateError } = await supabase
         .from("goods_receipt_pending")
         .update({
@@ -450,7 +507,15 @@ const ReceiveGoods = () => {
           received_storage_slot_id: storageLocation.storageSlotId || null,
           received_sub_storage_slot_id: storageLocation.subStorageSlotId || null,
           notes: editNotes || null,
-          storage_volume_cm3: storageVolumeValue
+          storage_volume_cm3: storageVolumeValue,
+          ...(selectedReceipt.is_asset
+            ? {
+                asset_code: trimmedAssetCode || null,
+                equipment_id_code: trimmedEquipmentIdCode || null,
+                waiting_asset_code: trimmedAssetCode ? false : selectedReceipt.waiting_asset_code,
+                waiting_equipment_id: trimmedEquipmentIdCode ? false : selectedReceipt.waiting_equipment_id,
+              }
+            : {}),
         })
         .eq("id", selectedReceipt.id);
 
@@ -528,8 +593,10 @@ const ReceiveGoods = () => {
         if (sr.delivery_note_document_url) mpUpdatePayload.delivery_note_document_url = sr.delivery_note_document_url;
         if (sr.order_for_project) mpUpdatePayload.order_for_project = sr.order_for_project;
         if (sr.activate_windows) mpUpdatePayload.activate_windows = sr.activate_windows;
-        if (sr.asset_code) mpUpdatePayload.asset_code = sr.asset_code;
-        if (sr.equipment_id_code) mpUpdatePayload.equipment_id_code = sr.equipment_id_code;
+        const finalAssetCode = trimmedAssetCode || sr.asset_code;
+        const finalEquipmentIdCode = trimmedEquipmentIdCode || sr.equipment_id_code;
+        if (finalAssetCode) mpUpdatePayload.asset_code = finalAssetCode;
+        if (finalEquipmentIdCode) mpUpdatePayload.equipment_id_code = finalEquipmentIdCode;
 
         const { error: mpError } = await supabase
               .from("media_players")
@@ -1361,19 +1428,21 @@ const ReceiveGoods = () => {
                   <p className="text-sm font-medium text-primary">ข้อมูลทรัพย์สิน</p>
                   <div className="grid grid-cols-3 gap-4">
                     <div className="space-y-2">
-                      <Label>รหัสทรัพย์สิน</Label>
-                      <Input 
-                        value={selectedReceipt.asset_code || (selectedReceipt.waiting_asset_code ? "รอรหัส" : "-")}
-                        disabled
-                        className={`bg-muted ${selectedReceipt.waiting_asset_code ? 'text-warning' : !selectedReceipt.asset_code ? 'text-muted-foreground' : ''}`}
+                      <Label>รหัสทรัพย์สิน {selectedReceipt.waiting_asset_code && <span className="text-warning text-xs">(รอกรอก)</span>}</Label>
+                      <Input
+                        value={editAssetCode}
+                        onChange={(e) => setEditAssetCode(e.target.value)}
+                        placeholder={selectedReceipt.waiting_asset_code ? "กรอกรหัสทรัพย์สิน..." : "-"}
+                        className={selectedReceipt.waiting_asset_code && !editAssetCode ? "border-warning" : ""}
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label>รหัสอุปกรณ์</Label>
-                      <Input 
-                        value={selectedReceipt.equipment_id_code || (selectedReceipt.waiting_equipment_id ? "รอรหัส" : "-")}
-                        disabled
-                        className={`bg-muted ${selectedReceipt.waiting_equipment_id ? 'text-warning' : !selectedReceipt.equipment_id_code ? 'text-muted-foreground' : ''}`}
+                      <Label>รหัสอุปกรณ์ {selectedReceipt.waiting_equipment_id && <span className="text-warning text-xs">(รอกรอก)</span>}</Label>
+                      <Input
+                        value={editEquipmentIdCode}
+                        onChange={(e) => setEditEquipmentIdCode(e.target.value)}
+                        placeholder={selectedReceipt.waiting_equipment_id ? "กรอกรหัสอุปกรณ์..." : "-"}
+                        className={selectedReceipt.waiting_equipment_id && !editEquipmentIdCode ? "border-warning" : ""}
                       />
                     </div>
                     <div className="space-y-2">
@@ -1419,24 +1488,28 @@ const ReceiveGoods = () => {
                 />
               </div>
 
-              {/* Document Links */}
-              {(selectedReceipt.document_url || selectedReceipt.purchase_document_url) && (
-                <div className="p-3 bg-muted/30 rounded-lg space-y-2">
-                  <p className="text-sm font-medium text-foreground">เอกสารแนบ</p>
-                  <div className="flex gap-4 text-sm">
-                    {selectedReceipt.document_url && (
-                      <button type="button" onClick={() => setPreviewDocUrl(selectedReceipt.document_url)} className="text-primary hover:underline cursor-pointer">
-                        📎 เอกสารนำส่ง
+              {/* Document Links - unified category preview */}
+              <div className="p-3 bg-muted/30 rounded-lg space-y-2">
+                <p className="text-sm font-medium text-foreground">เอกสารแนบ</p>
+                <div className="flex gap-3 text-sm flex-wrap">
+                  {(() => {
+                    const cats = buildReceiptCategories(selectedReceipt);
+                    const totalFiles = cats.reduce((s, c) => s + (Array.isArray(c.urls) ? c.urls.length : (c.urls ? splitUrls(c.urls as string).length : 0)), 0);
+                    return (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setPreviewCategories(cats);
+                          setPreviewTitle("ดูเอกสารแนบ");
+                        }}
+                        className="text-primary hover:underline cursor-pointer flex items-center gap-1"
+                      >
+                        📎 ดูเอกสารทั้งหมด ({totalFiles}/{cats.length})
                       </button>
-                    )}
-                    {selectedReceipt.purchase_document_url && (
-                      <button type="button" onClick={() => setPreviewDocUrl(selectedReceipt.purchase_document_url)} className="text-primary hover:underline cursor-pointer">
-                        📎 เอกสาร PO/PR
-                      </button>
-                    )}
-                  </div>
+                    );
+                  })()}
                 </div>
-              )}
+              </div>
 
               {/* Storage Dimensions Display */}
               {selectedReceipt && (selectedReceipt.storage_width_cm || selectedReceipt.storage_height_cm || selectedReceipt.storage_depth_cm) && (
@@ -1757,10 +1830,16 @@ const ReceiveGoods = () => {
       </Dialog>
 
       <DocumentPreviewDialog
-        open={!!previewDocUrl}
-        onOpenChange={(open) => { if (!open) setPreviewDocUrl(null); }}
-        publicUrl={previewDocUrl}
-        title="ดูเอกสารแนบ"
+        open={!!previewDocUrl || !!previewCategories}
+        onOpenChange={(open) => {
+          if (!open) {
+            setPreviewDocUrl(null);
+            setPreviewCategories(null);
+          }
+        }}
+        publicUrl={previewCategories ? null : previewDocUrl}
+        categories={previewCategories || undefined}
+        title={previewTitle}
       />
     </div>
   );
