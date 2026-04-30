@@ -2865,9 +2865,9 @@ const DeliveryEntry = () => {
                           <div className="flex items-center gap-2">
                             <button
                               type="button"
-                              onClick={() => previewStorageFile(receipt.document_url!)}
+                              onClick={() => setPreviewDocUrl(receipt.document_url!)}
                               className="flex items-center gap-1 text-primary hover:underline"
-                              title="ดูตัวอย่างในแท็บใหม่"
+                              title="ดูเอกสาร"
                             >
                               <FileText className="w-4 h-4" />
                               ดูเอกสาร
