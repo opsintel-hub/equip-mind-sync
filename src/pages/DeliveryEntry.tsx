@@ -167,9 +167,9 @@ const DeliveryEntry = () => {
   const [purchaseDocumentFile, setPurchaseDocumentFile] = useState<File | null>(null);
   const purchaseFileInputRef = useRef<HTMLInputElement>(null);
 
-  // Document upload (shared) - 2 categories
-  const [additionalDocumentFile, setAdditionalDocumentFile] = useState<File | null>(null);
-  const [additionalImageFile, setAdditionalImageFile] = useState<File | null>(null);
+  // Document upload (shared) - 2 categories (รองรับหลายไฟล์)
+  const [additionalDocumentFiles, setAdditionalDocumentFiles] = useState<File[]>([]);
+  const [additionalImageFiles, setAdditionalImageFiles] = useState<File[]>([]);
   const [headerNotes, setHeaderNotes] = useState("");
 
   // File input refs for document uploads
@@ -460,28 +460,36 @@ const DeliveryEntry = () => {
 
   // Document file upload handlers
   const handleAdditionalDocFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+    const valid: File[] = [];
+    for (const file of files) {
       if (file.size > 10 * 1024 * 1024) {
-        toast.error("ไฟล์มีขนาดใหญ่เกินไป (สูงสุด 10MB)");
-        return;
+        toast.error(`${file.name}: ขนาดใหญ่เกิน 10MB`);
+        continue;
       }
-      setAdditionalDocumentFile(file);
+      valid.push(file);
     }
+    if (valid.length > 0) setAdditionalDocumentFiles((prev) => [...prev, ...valid]);
+    if (additionalDocFileInputRef.current) additionalDocFileInputRef.current.value = "";
   };
   const handleAdditionalImageFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+    const valid: File[] = [];
+    for (const file of files) {
       if (file.size > 10 * 1024 * 1024) {
-        toast.error("ไฟล์มีขนาดใหญ่เกินไป (สูงสุด 10MB)");
-        return;
+        toast.error(`${file.name}: ขนาดใหญ่เกิน 10MB`);
+        continue;
       }
       if (!file.type.startsWith("image/")) {
-        toast.error("กรุณาเลือกไฟล์รูปภาพเท่านั้น");
-        return;
+        toast.error(`${file.name}: ไม่ใช่ไฟล์รูปภาพ`);
+        continue;
       }
-      setAdditionalImageFile(file);
+      valid.push(file);
     }
+    if (valid.length > 0) setAdditionalImageFiles((prev) => [...prev, ...valid]);
+    if (additionalImageFileInputRef.current) additionalImageFileInputRef.current.value = "";
   };
   const uploadDocumentFile = async (file: File, prefix: string, documentNo: string): Promise<string | null> => {
     const fileExt = file.name.split(".").pop();
@@ -865,17 +873,19 @@ const DeliveryEntry = () => {
     setIsLoading(true);
     try {
       const docNo = generateDocumentNo();
-      let additionalDocUrl: string | null = null;
-      let additionalImageUrl: string | null = null;
+      const additionalDocUrls: string[] = [];
+      const additionalImageUrls: string[] = [];
       let purchaseDocumentUrl: string | null = null;
 
-      // Upload documents if exists
+      // Upload documents if exists (รองรับหลายไฟล์)
       setIsUploadingFile(true);
-      if (additionalDocumentFile) {
-        additionalDocUrl = await uploadDocumentFile(additionalDocumentFile, "DOC", docNo);
+      for (let i = 0; i < additionalDocumentFiles.length; i++) {
+        const url = await uploadDocumentFile(additionalDocumentFiles[i], `DOC${i + 1}`, docNo);
+        if (url) additionalDocUrls.push(url);
       }
-      if (additionalImageFile) {
-        additionalImageUrl = await uploadDocumentFile(additionalImageFile, "IMG", docNo);
+      for (let i = 0; i < additionalImageFiles.length; i++) {
+        const url = await uploadDocumentFile(additionalImageFiles[i], `IMG${i + 1}`, docNo);
+        if (url) additionalImageUrls.push(url);
       }
       if (purchaseDocumentFile) {
         purchaseDocumentUrl = await uploadPurchaseDocument(docNo);
@@ -904,7 +914,7 @@ const DeliveryEntry = () => {
       setIsUploadingFile(false);
 
       // Combine all document URLs (including PO/PR/Invoice uploaded URLs)
-      const allDocumentUrls = [additionalDocUrl, additionalImageUrl, poDocumentUrl, prDocumentUrl, invoiceDocumentUrl]
+      const allDocumentUrls = [...additionalDocUrls, ...additionalImageUrls, poDocumentUrl, prDocumentUrl, invoiceDocumentUrl]
         .filter(Boolean)
         .join(", ");
 
@@ -1088,8 +1098,8 @@ const DeliveryEntry = () => {
         setDeliveryNoteDocumentUrl("");
         setOrderForProject("");
         setPurchaseDocumentFile(null);
-        setAdditionalDocumentFile(null);
-        setAdditionalImageFile(null);
+        setAdditionalDocumentFiles([]);
+        setAdditionalImageFiles([]);
         setHeaderNotes("");
         if (additionalDocFileInputRef.current) additionalDocFileInputRef.current.value = "";
         if (additionalImageFileInputRef.current) additionalImageFileInputRef.current.value = "";
