@@ -859,40 +859,70 @@ export default function StockCard() {
                 },
               ];
 
+              // Get most recent issue/install events and check if delivery confirmed
+              const lastIssueEvent = [...timeline].reverse().find(e => e.type === "issue");
+              const lastInstallEvent = [...timeline].reverse().find(e => e.type === "install" || e.type === "install_to_billboard");
+              const lastIssueDoc = lastIssueEvent?.document || lastInstallEvent?.document;
+              const isLastIssueConfirmed = lastIssueDoc ? confirmedDocSet.has(lastIssueDoc) : false;
+              const isAwaitingConfirmation = !!lastIssueDoc && !isLastIssueConfirmed;
+
               if (hasSN) {
-                // S/N items: show install lifecycle
-                if (hasInstall || isCurrentlyInstalled) {
-                  const lastInstall = [...timeline].reverse().find(e => e.type === "install" || e.type === "install_to_billboard");
+                // S/N items: show full lifecycle with delivery confirmation gate
+                if (hasIssue || hasInstall || isCurrentlyInstalled) {
                   const lastUninstall = [...timeline].reverse().find(e => e.type === "uninstall" || e.type === "return_from_billboard");
+
+                  // Step: เบิกจ่าย (always done if there's an issue/install event)
+                  steps.push({
+                    label: "เบิกจ่าย",
+                    status: "done",
+                    date: lastIssueEvent?.date || lastInstallEvent?.date,
+                  });
+
+                  // Step: ยืนยันรับสินค้า (gate before install)
+                  steps.push({
+                    label: "ยืนยันรับสินค้า",
+                    status: isLastIssueConfirmed ? "done" : "current",
+                    date: isLastIssueConfirmed
+                      ? (deliveryConfirmations.find((d: any) => d.document_no === lastIssueDoc)?.confirmed_at)
+                      : undefined,
+                  });
+
+                  // Step: ติดตั้งป้าย (only done/current if confirmed)
                   steps.push({
                     label: "ติดตั้งป้าย",
-                    status: isCurrentlyInstalled ? "current" : hasInstall ? "done" : "pending",
-                    date: isCurrentlyInstalled 
-                      ? currentInstallations[0]?.installation_date 
-                      : lastInstall?.date,
+                    status: !isLastIssueConfirmed
+                      ? "pending"
+                      : isCurrentlyInstalled
+                        ? "current"
+                        : hasInstall ? "done" : "pending",
+                    date: isCurrentlyInstalled
+                      ? currentInstallations[0]?.installation_date
+                      : lastInstallEvent?.date,
                   });
+
                   steps.push({
                     label: "ถอด/คืนคลัง",
                     status: hasUninstall && !isCurrentlyInstalled ? "done" : "pending",
                     date: hasUninstall ? lastUninstall?.date : undefined,
                   });
-                } else if (hasIssue) {
-                  const lastIssue = [...timeline].reverse().find(e => e.type === "issue");
-                  steps.push({
-                    label: "เบิกจ่าย",
-                    status: "done",
-                    date: lastIssue?.date,
-                  });
                 } else {
                   steps.push({ label: "เบิก/ติดตั้ง", status: inStock ? "current" : "pending" });
                 }
               } else {
-                const lastIssue = [...timeline].reverse().find(e => e.type === "issue");
                 steps.push({
                   label: "เบิกจ่าย",
                   status: hasIssue ? "done" : "pending",
-                  date: hasIssue ? lastIssue?.date : undefined,
+                  date: hasIssue ? lastIssueEvent?.date : undefined,
                 });
+                if (hasIssue) {
+                  steps.push({
+                    label: "ยืนยันรับสินค้า",
+                    status: isLastIssueConfirmed ? "done" : "current",
+                    date: isLastIssueConfirmed
+                      ? (deliveryConfirmations.find((d: any) => d.document_no === lastIssueDoc)?.confirmed_at)
+                      : undefined,
+                  });
+                }
               }
 
               // Find current step for status badge
