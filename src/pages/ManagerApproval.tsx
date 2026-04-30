@@ -48,7 +48,7 @@ const ManagerApproval = () => {
     queryKey: ["user-manager-role", user?.id],
     queryFn: async () => {
       if (!user) return null;
-      const { data } = await supabase.from("user_roles").select("role").eq("user_id", user.id).in("role", ["manager", "admin"]);
+      const { data } = await supabase.from("user_roles").select("role").eq("user_id", user.id).in("role", ["manager", "admin", "super_admin"]);
       return data;
     },
     enabled: !!user,
@@ -75,7 +75,8 @@ const ManagerApproval = () => {
     },
   });
 
-  const isAdmin = userRole?.some((r: any) => r.role === "admin");
+  const isSuperAdmin = userRole?.some((r: any) => r.role === "super_admin");
+  const isAdmin = userRole?.some((r: any) => r.role === "admin") || isSuperAdmin;
   const isManager = userRole?.some((r: any) => r.role === "manager") || isAdmin;
   const managerDepartments = userDepartments?.map((d: any) => d.department) || [];
 
@@ -89,7 +90,8 @@ const ManagerApproval = () => {
         .eq("approval_status", "pending")
         .order("created_at", { ascending: false });
       if (error) throw error;
-      if (!isAdmin && managerDepartments.length > 0) {
+      // Super Admin sees all. Admin/Manager scoped to their departments (must match requester's department).
+      if (!isSuperAdmin && managerDepartments.length > 0) {
         return data?.filter((req: any) => managerDepartments.includes(req.requester_department)) || [];
       }
       return data;
