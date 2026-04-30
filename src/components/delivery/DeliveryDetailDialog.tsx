@@ -3,13 +3,14 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
-import { FileText, Pencil, Check, X, Loader2 } from "lucide-react";
+import { FileText, Pencil, Check, X, Loader2, CheckCircle2, FileX2 } from "lucide-react";
 import { format } from "date-fns";
 import { DocumentPreviewDialog } from "@/components/DocumentPreviewDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useIsSuperAdmin } from "@/hooks/useIsSuperAdmin";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 
 interface DeliveryDetailDialogProps {
   open: boolean;
@@ -29,34 +30,12 @@ const DetailRow = ({ label, value }: { label: string; value: React.ReactNode }) 
 
 const isImageUrl = (url: string) => /\.(png|jpe?g|gif|webp|bmp|svg)(\?|$)/i.test(url);
 
-const DocLink = ({
-  url,
-  label,
-  onPreview,
-}: {
-  url: string | null;
-  label: string;
-  onPreview: (url: string, label: string) => void;
-}) => {
-  if (!url) return null;
-  const urls = url.split(/\s*,\s*/).filter(Boolean);
-  const count = urls.length;
-  return (
-    <button
-      type="button"
-      onClick={() => onPreview(url, label)}
-      className="flex items-center gap-1.5 text-sm text-primary hover:underline cursor-pointer"
-    >
-      <FileText className="w-4 h-4" /> {label}
-      {count > 1 && <span className="text-xs text-muted-foreground">({count} ไฟล์)</span>}
-    </button>
-  );
-};
+const splitUrls = (combined: string | null | undefined): string[] =>
+  combined ? combined.split(/\s*,\s*/).filter(Boolean) : [];
 
 /** Split combined document_url into two groups: extra docs (non-image) and extra images. */
-const splitExtraDocs = (combined: string | null) => {
-  if (!combined) return { docs: [] as string[], images: [] as string[] };
-  const all = combined.split(/\s*,\s*/).filter(Boolean);
+const splitExtraDocs = (combined: string | null | undefined) => {
+  const all = splitUrls(combined);
   const docs: string[] = [];
   const images: string[] = [];
   for (const u of all) {
@@ -66,6 +45,45 @@ const splitExtraDocs = (combined: string | null) => {
   return { docs, images };
 };
 
+/** Single row showing a category — always rendered, even when empty. */
+const CategoryRow = ({
+  label,
+  urls,
+  onOpen,
+}: {
+  label: string;
+  urls: string[];
+  onOpen: () => void;
+}) => {
+  const has = urls.length > 0;
+  return (
+    <button
+      type="button"
+      onClick={onOpen}
+      className={cn(
+        "w-full flex items-center justify-between gap-2 px-2 py-1.5 rounded text-sm transition-colors",
+        has
+          ? "text-primary hover:bg-primary/5 cursor-pointer"
+          : "text-muted-foreground hover:bg-muted/40 cursor-pointer"
+      )}
+      title={has ? "คลิกเพื่อดูเอกสาร" : "ยังไม่มีไฟล์ (คลิกเพื่อเปิดดูทุกหมวด)"}
+    >
+      <span className="flex items-center gap-1.5">
+        {has ? (
+          <CheckCircle2 className="w-4 h-4 text-green-600 dark:text-green-400" />
+        ) : (
+          <FileX2 className="w-4 h-4 opacity-60" />
+        )}
+        <FileText className="w-4 h-4" />
+        {label}
+      </span>
+      <span className="text-xs">
+        {has ? `${urls.length} ไฟล์` : "ไม่มีไฟล์"}
+      </span>
+    </button>
+  );
+};
+
 export function DeliveryDetailDialog({ open, onOpenChange, receipt }: DeliveryDetailDialogProps) {
   const { isSuperAdmin } = useIsSuperAdmin();
   const [departments, setDepartments] = useState<{ id: string; name: string }[]>([]);
@@ -73,7 +91,7 @@ export function DeliveryDetailDialog({ open, onOpenChange, receipt }: DeliveryDe
   const [newDeptId, setNewDeptId] = useState<string>("");
   const [savingDept, setSavingDept] = useState(false);
   const [currentDeptId, setCurrentDeptId] = useState<string | null>(null);
-  const [previewDoc, setPreviewDoc] = useState<{ url: string; label: string } | null>(null);
+  const [previewOpen, setPreviewOpen] = useState(false);
 
   useEffect(() => {
     if (!open) return;
@@ -250,37 +268,34 @@ export function DeliveryDetailDialog({ open, onOpenChange, receipt }: DeliveryDe
             )}
           </div>
 
-          {/* เอกสารแนบ */}
+          {/* เอกสารแนบ — แสดงทุกหมวดเสมอ */}
           {(() => {
             const { docs, images } = splitExtraDocs(receipt.document_url);
-            const hasAny =
-              docs.length > 0 ||
-              images.length > 0 ||
-              receipt.purchase_document_url ||
-              receipt.po_number ||
-              receipt.invoice_document_url ||
-              receipt.delivery_note_document_url;
-            if (!hasAny) return null;
+            const cats: { label: string; urls: string[] }[] = [
+              { label: "เอกสารแนบเพิ่มเติม", urls: docs },
+              { label: "รูปภาพเพิ่มเติม", urls: images },
+              { label: "เอกสารจัดซื้อ", urls: splitUrls(receipt.purchase_document_url) },
+              { label: "Invoice", urls: splitUrls(receipt.invoice_document_url) },
+              { label: "ใบส่งของ", urls: splitUrls(receipt.delivery_note_document_url) },
+            ];
             return (
               <>
                 <Separator />
                 <div>
                   <h4 className="text-sm font-semibold mb-2">เอกสารแนบ</h4>
-                  <div className="space-y-2">
-                    <DocLink
-                      url={docs.length > 0 ? docs.join(", ") : null}
-                      label="เอกสารแนบเพิ่มเติม"
-                      onPreview={(u, l) => setPreviewDoc({ url: u, label: l })}
-                    />
-                    <DocLink
-                      url={images.length > 0 ? images.join(", ") : null}
-                      label="รูปภาพเพิ่มเติม"
-                      onPreview={(u, l) => setPreviewDoc({ url: u, label: l })}
-                    />
-                    <DocLink url={receipt.purchase_document_url} label="เอกสารจัดซื้อ" onPreview={(u, l) => setPreviewDoc({ url: u, label: l })} />
-                    <DocLink url={receipt.invoice_document_url} label="Invoice" onPreview={(u, l) => setPreviewDoc({ url: u, label: l })} />
-                    <DocLink url={receipt.delivery_note_document_url} label="ใบส่งของ" onPreview={(u, l) => setPreviewDoc({ url: u, label: l })} />
+                  <div className="space-y-1">
+                    {cats.map((c) => (
+                      <CategoryRow
+                        key={c.label}
+                        label={c.label}
+                        urls={c.urls}
+                        onOpen={() => setPreviewOpen(true)}
+                      />
+                    ))}
                   </div>
+                  <p className="text-[11px] text-muted-foreground/70 mt-2">
+                    คลิกหมวดใดก็ได้เพื่อดูเอกสารทุกหมวดในแท็บเดียว
+                  </p>
                 </div>
               </>
             );
@@ -313,14 +328,18 @@ export function DeliveryDetailDialog({ open, onOpenChange, receipt }: DeliveryDe
       </DialogContent>
     </Dialog>
     <DocumentPreviewDialog
-      open={!!previewDoc}
-      onOpenChange={(dialogOpen) => { if (!dialogOpen) setPreviewDoc(null); }}
-      publicUrl={previewDoc?.url || null}
-      title={previewDoc?.label || "ดูเอกสาร"}
-      labels={(() => {
-        if (!previewDoc) return undefined;
-        const urls = previewDoc.url.split(/\s*,\s*/).filter(Boolean);
-        return urls.length > 1 ? urls.map((_, i) => `${previewDoc.label} - ${i + 1}`) : undefined;
+      open={previewOpen}
+      onOpenChange={setPreviewOpen}
+      title="เอกสารทั้งหมดของรายการนี้"
+      categories={(() => {
+        const { docs, images } = splitExtraDocs(receipt.document_url);
+        return [
+          { label: "เอกสารแนบเพิ่มเติม", urls: docs },
+          { label: "รูปภาพเพิ่มเติม", urls: images },
+          { label: "เอกสารจัดซื้อ", urls: receipt.purchase_document_url },
+          { label: "Invoice", urls: receipt.invoice_document_url },
+          { label: "ใบส่งของ", urls: receipt.delivery_note_document_url },
+        ];
       })()}
     />
     </>

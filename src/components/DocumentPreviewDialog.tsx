@@ -1,20 +1,45 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Loader2, Download } from "lucide-react";
+import { Loader2, Download, FileX2, CheckCircle2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { downloadStorageFile, parseStorageUrls } from "@/lib/storageDownload";
 import { PdfCanvasViewer } from "@/components/PdfCanvasViewer";
+import { cn } from "@/lib/utils";
+
+/** A single category of documents (e.g. "เอกสารจัดซื้อ"). May contain 0..N files. */
+export interface DocumentCategory {
+  label: string;
+  /** Either a comma-separated string of URLs, an array, or null/empty. */
+  urls?: string | string[] | null;
+}
 
 interface DocumentPreviewDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  publicUrl: string | null;
+  /** Legacy single-URL (string) mode. If `categories` is provided it takes precedence. */
+  publicUrl?: string | null;
   title?: string;
-  /** Optional labels for each URL (when publicUrl contains multiple comma-separated URLs).
-   *  If provided length matches URL count, used as tab labels; otherwise falls back to "เอกสาร N". */
+  /** Legacy: labels per URL when publicUrl has multiple comma-separated URLs. */
   labels?: string[];
+  /** Preferred: list of all expected categories — empty ones still render as disabled tabs. */
+  categories?: DocumentCategory[];
 }
+
+interface FlatTab {
+  /** Category label (e.g. "เอกสารจัดซื้อ") */
+  category: string;
+  /** Display label for the tab itself */
+  tabLabel: string;
+  url: string | null;
+  hasFile: boolean;
+}
+
+const toUrlArray = (input: string | string[] | null | undefined): string[] => {
+  if (!input) return [];
+  if (Array.isArray(input)) return input.filter(Boolean);
+  return parseStorageUrls(input);
+};
 
 export function DocumentPreviewDialog({
   open,
@@ -22,6 +47,7 @@ export function DocumentPreviewDialog({
   publicUrl,
   title = "ดูเอกสาร",
   labels,
+  categories,
 }: DocumentPreviewDialogProps) {
   const [pdfData, setPdfData] = useState<ArrayBuffer | null>(null);
   const [imageDataUrl, setImageDataUrl] = useState<string | null>(null);
@@ -29,28 +55,54 @@ export function DocumentPreviewDialog({
   const [error, setError] = useState<string | null>(null);
   const [mimeType, setMimeType] = useState<string>("");
   const [filename, setFilename] = useState<string>("");
-  const [documentUrls, setDocumentUrls] = useState<string[]>([]);
   const [activeIndex, setActiveIndex] = useState(0);
 
-  useEffect(() => {
-    if (!open || !publicUrl) {
-      setPdfData(null);
-      setImageDataUrl(null);
-      setMimeType("");
-      setFilename("");
-      setError(null);
-      setLoading(false);
-      setDocumentUrls([]);
-      setActiveIndex(0);
-      return;
+  // Build the unified flat tab list (each tab = one file slot OR an empty category).
+  const tabs: FlatTab[] = useMemo(() => {
+    if (categories && categories.length > 0) {
+      const out: FlatTab[] = [];
+      for (const cat of categories) {
+        const urls = toUrlArray(cat.urls);
+        if (urls.length === 0) {
+          out.push({ category: cat.label, tabLabel: cat.label, url: null, hasFile: false });
+        } else if (urls.length === 1) {
+          out.push({ category: cat.label, tabLabel: cat.label, url: urls[0], hasFile: true });
+        } else {
+          urls.forEach((u, i) => {
+            out.push({
+              category: cat.label,
+              tabLabel: `${cat.label} - ${i + 1}`,
+              url: u,
+              hasFile: true,
+            });
+          });
+        }
+      }
+      return out;
     }
+    // Legacy mode
+    const urls = toUrlArray(publicUrl);
+    if (urls.length === 0) return [];
+    return urls.map((u, i) => ({
+      category: labels?.[i] || `เอกสาร ${i + 1}`,
+      tabLabel:
+        labels && labels.length === urls.length
+          ? labels[i]
+          : `เอกสาร ${i + 1}`,
+      url: u,
+      hasFile: true,
+    }));
+  }, [categories, publicUrl, labels]);
 
-    const urls = parseStorageUrls(publicUrl);
-    setDocumentUrls(urls);
-    setActiveIndex(0);
-  }, [open, publicUrl]);
+  useEffect(() => {
+    if (!open) return;
+    // Default to first tab that actually has a file
+    const firstWithFile = tabs.findIndex((t) => t.hasFile);
+    setActiveIndex(firstWithFile >= 0 ? firstWithFile : 0);
+  }, [open, tabs]);
 
-  const activeUrl = documentUrls[activeIndex] || null;
+  const activeTab = tabs[activeIndex];
+  const activeUrl = activeTab?.url || null;
 
   useEffect(() => {
     if (!open || !activeUrl) {
@@ -59,6 +111,7 @@ export function DocumentPreviewDialog({
       setMimeType("");
       setFilename("");
       setLoading(false);
+      setError(null);
       return;
     }
 
@@ -105,7 +158,6 @@ export function DocumentPreviewDialog({
           const buf = await data.arrayBuffer();
           setPdfData(buf);
         } else if (detectedMime.startsWith("image/")) {
-          // Convert to data URL — bypasses ad-blocker (no blob:, no http URL)
           const reader = new FileReader();
           reader.onload = () => setImageDataUrl(reader.result as string);
           reader.readAsDataURL(data);
@@ -143,41 +195,62 @@ export function DocumentPreviewDialog({
         </DialogHeader>
 
         <div className="flex-1 bg-muted/20 overflow-hidden min-h-0 flex flex-col">
-          {documentUrls.length > 1 && (
+          {tabs.length > 1 && (
             <div className="flex items-center gap-2 px-4 py-2 border-b bg-background overflow-x-auto">
-              {documentUrls.map((_, index) => {
-                const customLabel = labels && labels.length === documentUrls.length ? labels[index] : null;
-                const fallback = `เอกสาร ${index + 1}`;
+              {tabs.map((tab, index) => {
+                const isActive = index === activeIndex;
                 return (
                   <Button
                     key={index}
                     type="button"
                     size="sm"
-                    variant={index === activeIndex ? "default" : "outline"}
+                    variant={isActive ? "default" : "outline"}
                     onClick={() => setActiveIndex(index)}
+                    className={cn(
+                      "gap-1.5 shrink-0",
+                      !tab.hasFile && !isActive && "opacity-60"
+                    )}
+                    title={tab.hasFile ? "มีไฟล์แนบ" : "ยังไม่มีไฟล์"}
                   >
-                    {customLabel || fallback}
+                    {tab.hasFile ? (
+                      <CheckCircle2 className="w-3.5 h-3.5 text-green-600 dark:text-green-400" />
+                    ) : (
+                      <FileX2 className="w-3.5 h-3.5 text-muted-foreground" />
+                    )}
+                    {tab.tabLabel}
                   </Button>
                 );
               })}
             </div>
           )}
-          {loading && (
+          {!activeTab && (
+            <div className="flex-1 flex items-center justify-center text-muted-foreground">
+              ไม่มีเอกสาร
+            </div>
+          )}
+          {activeTab && !activeTab.hasFile && (
+            <div className="flex-1 flex flex-col items-center justify-center gap-3 text-muted-foreground p-6 text-center">
+              <FileX2 className="w-12 h-12 opacity-50" />
+              <p className="font-medium">ยังไม่มีไฟล์ในหมวด "{activeTab.category}"</p>
+              <p className="text-sm">หมวดนี้ยังไม่ได้อัปโหลดเอกสาร</p>
+            </div>
+          )}
+          {activeTab?.hasFile && loading && (
             <div className="flex-1 flex items-center justify-center">
               <Loader2 className="w-8 h-8 animate-spin text-primary" />
             </div>
           )}
-          {!loading && error && (
+          {activeTab?.hasFile && !loading && error && (
             <div className="flex-1 flex items-center justify-center text-destructive">
               {error}
             </div>
           )}
-          {!loading && !error && isPdf && pdfData && (
+          {activeTab?.hasFile && !loading && !error && isPdf && pdfData && (
             <div className="flex-1 min-h-0">
               <PdfCanvasViewer data={pdfData} />
             </div>
           )}
-          {!loading && !error && isImage && imageDataUrl && (
+          {activeTab?.hasFile && !loading && !error && isImage && imageDataUrl && (
             <div className="flex-1 min-h-0 w-full flex items-center justify-center overflow-auto p-4">
               <img
                 src={imageDataUrl}
@@ -186,7 +259,7 @@ export function DocumentPreviewDialog({
               />
             </div>
           )}
-          {!loading && !error && !canPreview && (
+          {activeTab?.hasFile && !loading && !error && !canPreview && (
             <div className="flex-1 flex flex-col items-center justify-center gap-3 text-muted-foreground p-6 text-center">
               <p>ไฟล์ประเภทนี้ ({mimeType || filename}) ไม่รองรับการ preview</p>
               <p className="text-sm">กรุณากด "ดาวน์โหลด" เพื่อเปิดในโปรแกรมอื่น</p>
