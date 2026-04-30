@@ -11,7 +11,7 @@ import { Switch } from "@/components/ui/switch";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { AlertTriangle, Package, MapPin, Send, Loader2, Info, PlusCircle, X, ImagePlus, ArrowLeftRight, Search } from "lucide-react";
+import { AlertTriangle, Package, MapPin, Send, Loader2, Info, PlusCircle, X, ImagePlus, Search } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { format } from "date-fns";
 
@@ -247,68 +247,6 @@ const DefectiveReturnEntry = () => {
 
   const isFromBillboard = selectedBillboardEquipmentId !== "" && detectedBillboards.length > 0;
   const generateDocNo = () => `DR-${format(new Date(), "yyyyMMdd")}-${Math.floor(Math.random() * 9999 + 1).toString().padStart(4, "0")}`;
-
-  const handleSendToSwap = async () => {
-    if (!selectedItemId) { toast.error("กรุณาเลือกสินค้าก่อน"); return; }
-    if (!selectedBillboardRecord?.billboard_id) {
-      toast.error("ไม่พบป้ายโฆษณา — Swap ใช้ได้เฉพาะของเสียที่ถอดจากป้าย");
-      return;
-    }
-    setIsSubmitting(true);
-    try {
-      // 1. Create defective_return first (so we can link it)
-      const docNo = generateDocNo();
-      const reasonText = perUnitMode
-        ? defectiveUnits.filter(u => u.serial_number.trim()).map(u => `S/N ${u.serial_number}: ${u.reason}`).join("\n")
-        : reason || "(ส่งไป Swap)";
-      const qty = perUnitMode ? defectiveUnits.filter(u => u.serial_number.trim()).length : parseInt(quantity) || 1;
-
-      const { data: dr, error: drError } = await supabase.from("defective_returns").insert({
-        document_no: docNo,
-        equipment_id: isMediaPlayer ? null : selectedItemId,
-        media_player_id: isMediaPlayer ? selectedItemId : null,
-        is_media_player: isMediaPlayer,
-        quantity: qty,
-        billboard_id: selectedBillboardRecord.billboard_id,
-        item_condition: itemCondition,
-        reason: reasonText,
-        status: "pending_warehouse_entry",
-        source_type: "billboard",
-        dispose_status: "pending_disposal_review",
-        notes: notes.trim() || null,
-        created_by: user?.id,
-      }).select("id").single();
-      if (drError) throw drError;
-
-      // 2. Create swap_request linked to it
-      const firstSn = perUnitMode ? defectiveUnits.find(u => u.serial_number.trim())?.serial_number : (isMediaPlayer ? selectedMediaPlayer?.serial_number_1 : selectedEquipment?.serial_number);
-      const { data: sw, error: swError } = await supabase.from("swap_requests").insert({
-        document_no: "",
-        billboard_id: selectedBillboardRecord.billboard_id,
-        description: reasonText,
-        symptom_other: reasonText.slice(0, 200),
-        status: "pending",
-        priority: "normal",
-        asset_type: isMediaPlayer ? "media_player" : "equipment",
-        old_equipment_id: isMediaPlayer ? null : selectedItemId,
-        old_media_player_id: isMediaPlayer ? selectedItemId : null,
-        old_serial_number: firstSn || null,
-        defective_return_id: dr.id,
-        created_by: user?.id,
-      }).select("id, document_no").single();
-      if (swError) throw swError;
-
-      // 3. Link swap back to defective_return
-      await supabase.from("defective_returns").update({ swap_request_id: sw.id }).eq("id", dr.id);
-
-      toast.success(`สร้างคำขอ Swap แล้ว (${sw.document_no}) — กำลังนำไปยังหน้า Swap`);
-      setTimeout(() => navigate("/swap"), 800);
-    } catch (e: any) {
-      toast.error("ส่งไป Swap ไม่สำเร็จ: " + e.message);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
 
   const handleReset = () => {
     setSelectedItemId(""); setSelectedBillboardEquipmentId(""); setDetectedBillboards([]);
@@ -633,31 +571,27 @@ const DefectiveReturnEntry = () => {
                   )}
                 </div>
 
-                {/* Forward to Swap (only when item came from a billboard) */}
+                {/* Next step guidance */}
                 <div className="pt-3 border-t space-y-2">
-                  <p className="text-xs font-medium text-muted-foreground">ดำเนินการต่อ:</p>
+                  <p className="text-xs font-medium text-muted-foreground">ขั้นตอนถัดไป:</p>
                   {isFromBillboard ? (
-                    <>
-                      <Button
-                        type="button"
-                        variant="default"
-                        size="sm"
-                        className="h-9 w-full"
-                        disabled={isSubmitting}
-                        onClick={handleSendToSwap}
-                      >
-                        <ArrowLeftRight className="w-4 h-4 mr-1" /> ส่งไป Process Swap (สร้างคำขอใหม่)
-                      </Button>
-                      <p className="text-[11px] text-muted-foreground">
-                        ของชิ้นนี้ถูกถอดออกจากป้าย — ระบบจะสร้างคำขอ Swap ใหม่ให้อัตโนมัติและเชื่อมกับใบของเสียนี้
+                    <div className="rounded-md bg-blue-500/10 border border-blue-500/30 p-2.5 space-y-1.5">
+                      <p className="text-[11px] text-blue-700 dark:text-blue-300">
+                        🔧 <span className="font-medium">ถอดออกจากป้าย + เข้าคลังของเสีย</span><br />
+                        เมื่อบันทึก ระบบจะถอดของออกจากป้ายและส่งเข้าคิว <span className="font-medium">"อนุมัติการจัดการของเสีย"</span>
                       </p>
-                    </>
+                      <p className="text-[11px] text-blue-700/80 dark:text-blue-300/80 pt-1 border-t border-blue-500/20">
+                        💡 <span className="font-medium">ต้องการเบิกของใหม่ไปแทนที่ป้ายเดิมด้วย?</span><br />
+                        ใช้เมนู <span className="font-mono font-medium">Swap (สลับอุปกรณ์ป้าย)</span> แทน — สร้างใบเดียวจบทั้ง รับเก่า + เบิกใหม่
+                      </p>
+                    </div>
                   ) : (
                     <p className="text-[11px] text-muted-foreground">
                       หลังบันทึก ใบของเสียจะเข้าคิวที่หน้า <span className="font-medium">"อนุมัติการจัดการของเสีย"</span> เพื่อเลือกวิธี (ทำลายทิ้ง / จำหน่ายซาก / CSR / ซ่อมคืน)
                     </p>
                   )}
                 </div>
+
               </div>
             ) : (
               <p className="text-sm text-muted-foreground text-center py-8">เลือกสินค้าเพื่อดูข้อมูล</p>
