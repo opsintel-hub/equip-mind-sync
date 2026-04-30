@@ -799,18 +799,20 @@ function EquipmentViewTab() {
             <TableHeader>
               <TableRow>
                 <TableHead>Code</TableHead>
-                <TableHead>ชื่อ</TableHead>
+                <TableHead>ชื่อ / Model</TableHead>
                 <TableHead>S/N</TableHead>
                 <TableHead>ประเภท</TableHead>
                 <TableHead>Brand</TableHead>
-                <TableHead className="text-center">สต็อกคลัง</TableHead>
+                <TableHead className="text-center">คงเหลือในคลัง</TableHead>
                 <TableHead>ติดตั้งที่ป้าย</TableHead>
-                <TableHead className="text-center">ดู</TableHead>
+                <TableHead>วันหมดประกัน</TableHead>
+                <TableHead>สถานะประกัน</TableHead>
+                <TableHead className="text-center">รายละเอียด</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {paginatedData.length === 0 ? (
-                <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-8">ไม่พบข้อมูล</TableCell></TableRow>
+                <TableRow><TableCell colSpan={10} className="text-center text-muted-foreground py-8">ไม่พบข้อมูล</TableCell></TableRow>
               ) : paginatedData.map(item => (
                 <TableRow key={`${item.itemType}-${item.id}`}>
                   <TableCell className="font-mono text-xs">{item.code}</TableCell>
@@ -826,8 +828,10 @@ function EquipmentViewTab() {
                       <span className="text-muted-foreground text-xs">ในคลัง</span>
                     )}
                   </TableCell>
+                  <TableCell className="text-xs">{fmtDate(item.warranty_expiry_date)}</TableCell>
+                  <TableCell>{expiryBadge(item.warranty_expiry_date, "ประกัน")}</TableCell>
                   <TableCell className="text-center">
-                    <Button variant="ghost" size="sm" onClick={() => setSelectedEquipment(item)}><Eye className="w-4 h-4" /></Button>
+                    <Button variant="ghost" size="sm" onClick={() => setSelectedEquipment(item)} title="ดูรายการป้ายทั้งหมดที่ติดตั้ง + ประวัติ"><Eye className="w-4 h-4" /></Button>
                   </TableCell>
                 </TableRow>
               ))}
