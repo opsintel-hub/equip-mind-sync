@@ -44,6 +44,10 @@ interface SpareOption {
   type: "media_player" | "equipment";
   serial_number?: string | null;
   location_id?: string | null;
+  // Cross-model support
+  equipment_id?: string | null;
+  item_code?: string | null;
+  item_name?: string | null;
 }
 
 interface OldOption {
@@ -78,6 +82,7 @@ export function SwapWizardDialog({ open, onOpenChange, request, onCompleted }: P
   const [rejectReasonId, setRejectReasonId] = useState("");
   const [rejectReasonOther, setRejectReasonOther] = useState("");
   const [notes, setNotes] = useState("");
+  const [crossModelAck, setCrossModelAck] = useState(false);
 
   useEffect(() => {
     if (open) {
@@ -89,6 +94,7 @@ export function SwapWizardDialog({ open, onOpenChange, request, onCompleted }: P
       setRejectReasonId("");
       setRejectReasonOther("");
       setNotes("");
+      setCrossModelAck(false);
       loadSpares();
       loadLocations();
       if (request?.billboard_id) loadOldUnits(request.billboard_id);
@@ -155,6 +161,9 @@ export function SwapWizardDialog({ open, onOpenChange, request, onCompleted }: P
         type: "media_player",
         serial_number: serial || null,
         location_id: m.location_id,
+        equipment_id: null,
+        item_code: m.code,
+        item_name: m.name,
       });
     });
     (esns || []).forEach((s: any) => {
@@ -165,10 +174,48 @@ export function SwapWizardDialog({ open, onOpenChange, request, onCompleted }: P
         type: "equipment",
         serial_number: s.serial_number,
         location_id: s.location_id,
+        equipment_id: s.equipment_id,
+        item_code: s.equipment?.code,
+        item_name: s.equipment?.name,
       });
     });
+
+    // Sort: same code first → same type/category → others
+    // ใช้รหัส/ชื่อของอุปกรณ์ที่รายงานในคำขอ Swap เป็นเกณฑ์เปรียบเทียบ
+    const reportedCode = (request?.reported_item_code || "").toLowerCase().trim();
+    const reportedName = (request?.reported_item_name || "").toLowerCase().trim();
+    const reportedEqId = request?.reported_equipment_id || null;
+    const reportedType = request?.reported_asset_type === "media_player" ? "media_player" : "equipment";
+
+    const compatScore = (o: SpareOption): number => {
+      // 0 = ตรงรหัส (ดีที่สุด), 1 = รุ่นใกล้เคียง (ชื่อใกล้/ประเภทเดียวกัน), 2 = ข้ามรุ่น
+      if (reportedEqId && o.equipment_id && o.equipment_id === reportedEqId) return 0;
+      if (reportedCode && o.item_code && o.item_code.toLowerCase() === reportedCode) return 0;
+      if (o.type === reportedType) {
+        if (reportedName && o.item_name && (o.item_name.toLowerCase().includes(reportedName) || reportedName.includes(o.item_name.toLowerCase()))) return 1;
+        return 1;
+      }
+      return 2;
+    };
+
+    opts.sort((a, b) => compatScore(a) - compatScore(b));
     setSpareOptions(opts);
     setLoading(false);
+  };
+
+  // Helper: ระดับความเข้ากันของ Spare ที่เลือกเทียบกับเครื่องเก่า
+  const getCompatibility = (): { level: "exact" | "similar" | "cross"; label: string } => {
+    const spare = selectedSpare;
+    const old = selectedOld;
+    if (!spare || !old) return { level: "cross", label: "—" };
+    const spareEqId = spare.equipment_id || (spare.type === "equipment" ? spare.value.split(":")[1] : null);
+    const oldEqId = old.equipment_id || null;
+    if (spare.type !== old.type) return { level: "cross", label: "ข้ามประเภท (Media Player ↔ Equipment)" };
+    if (spareEqId && oldEqId && spareEqId === oldEqId) return { level: "exact", label: "ตรงรหัสอุปกรณ์" };
+    const spareCode = (spare.item_code || "").toLowerCase();
+    const oldCode = (request?.reported_item_code || "").toLowerCase();
+    if (spareCode && oldCode && spareCode === oldCode) return { level: "exact", label: "ตรงรหัสอุปกรณ์" };
+    return { level: spare.type === old.type ? "similar" : "cross", label: spare.type === old.type ? "ข้ามรุ่น (ประเภทเดียวกัน)" : "ข้ามประเภท" };
   };
 
   const loadLocations = async () => {
@@ -218,9 +265,23 @@ export function SwapWizardDialog({ open, onOpenChange, request, onCompleted }: P
 
   const canNext1 = !!spareValue;
   const canNext2 = !!oldValue;
+
+  // ตรวจ cross-model: spare กับ old ต่างรหัส/ต่าง equipment_id หรือไม่
+  const isCrossModel = (() => {
+    if (!selectedSpare || !selectedOld) return false;
+    if (selectedSpare.type !== selectedOld.type) return true;
+    const spareEqId = selectedSpare.equipment_id || (selectedSpare.type === "equipment" ? selectedSpare.value.split(":")[1] : null);
+    const oldEqId = selectedOld.equipment_id || null;
+    if (spareEqId && oldEqId) return spareEqId !== oldEqId;
+    const spareCode = (selectedSpare.item_code || "").toLowerCase();
+    const oldCode = (request?.reported_item_code || "").toLowerCase();
+    if (spareCode && oldCode) return spareCode !== oldCode;
+    return false;
+  })();
+
   const canSubmit =
     result === "approved"
-      ? true
+      ? (!isCrossModel || crossModelAck)
       : !!rejectReasonId || !!rejectReasonOther.trim();
 
   const handleSubmit = async () => {
@@ -262,7 +323,10 @@ export function SwapWizardDialog({ open, onOpenChange, request, onCompleted }: P
       result,
       reject_reason_id: result === "rejected" ? rejectReasonId || null : null,
       reject_reason_other: result === "rejected" ? rejectReasonOther.trim() || null : null,
-      notes: notes.trim() || null,
+      notes: [
+        isCrossModel && result === "approved" ? `[CROSS-MODEL SWAP] Spare: ${selectedSpare?.item_code || "—"} ↔ Old: ${request?.reported_item_code || selectedOld?.label || "—"}` : null,
+        notes.trim() || null,
+      ].filter(Boolean).join("\n") || null,
       executed_by: user?.id ?? null,
     });
 
@@ -393,17 +457,39 @@ export function SwapWizardDialog({ open, onOpenChange, request, onCompleted }: P
                 ไม่มี Spare พร้อมใช้งาน — ต้องรับของเข้าคลังหรือเปลี่ยนสถานะ Media Player เป็น in_stock/active ก่อน
               </div>
             )}
-            {selectedSpare && (
-              <Card>
-                <CardContent className="pt-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Badge variant="default">{selectedSpare.type === "media_player" ? "Media Player" : "Equipment"}</Badge>
-                    <span className="font-medium">{selectedSpare.label}</span>
-                  </div>
-                  <div className="text-sm text-muted-foreground">{selectedSpare.description}</div>
-                </CardContent>
-              </Card>
-            )}
+            {selectedSpare && (() => {
+              const spareEqId = selectedSpare.equipment_id || (selectedSpare.type === "equipment" ? selectedSpare.value.split(":")[1] : null);
+              const reportedEqId = request?.reported_equipment_id || null;
+              const reportedCode = (request?.reported_item_code || "").toLowerCase();
+              const spareCode = (selectedSpare.item_code || "").toLowerCase();
+              const isExact = (reportedEqId && spareEqId === reportedEqId) || (reportedCode && spareCode === reportedCode);
+              const isCrossType = request?.reported_asset_type && (
+                (request.reported_asset_type === "media_player" && selectedSpare.type !== "media_player") ||
+                (request.reported_asset_type !== "media_player" && selectedSpare.type === "media_player")
+              );
+              const compatVariant = isExact ? "default" : isCrossType ? "destructive" : "secondary";
+              const compatText = isExact ? "✓ ตรงรหัสกับเครื่องเก่า" : isCrossType ? "⚠ ข้ามประเภท" : "↻ ข้ามรุ่น/รหัส";
+              return (
+                <Card>
+                  <CardContent className="pt-4">
+                    <div className="flex items-center gap-2 mb-2 flex-wrap">
+                      <Badge variant="default">{selectedSpare.type === "media_player" ? "Media Player" : "Equipment"}</Badge>
+                      <Badge variant={compatVariant as any}>{compatText}</Badge>
+                      <span className="font-medium">{selectedSpare.label}</span>
+                    </div>
+                    <div className="text-sm text-muted-foreground">{selectedSpare.description}</div>
+                    {!isExact && request?.reported_item_code && (
+                      <div className="text-xs text-muted-foreground mt-2">
+                        เครื่องเก่าที่รายงาน: <span className="font-medium">{request.reported_item_code} {request.reported_item_name ? "- " + request.reported_item_name : ""}</span>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              );
+            })()}
+            <div className="text-xs text-muted-foreground bg-muted/40 rounded-md p-2">
+              💡 ระบบเรียง Spare ที่เข้ากันมากที่สุดไว้บนสุด — แต่คุณสามารถเลือก Spare ข้ามรหัส/ข้ามรุ่นได้ ถ้า Spec ใช้แทนกันได้
+            </div>
           </div>
         )}
 
@@ -501,6 +587,29 @@ export function SwapWizardDialog({ open, onOpenChange, request, onCompleted }: P
                 </CardContent>
               </Card>
             </div>
+
+            {isCrossModel && result === "approved" && (
+              <div className="rounded-lg border-2 border-warning/50 bg-warning/10 p-4 space-y-3">
+                <div className="flex items-start gap-2">
+                  <Package className="h-5 w-5 text-warning mt-0.5 flex-shrink-0" />
+                  <div className="flex-1">
+                    <div className="font-semibold text-warning-foreground">⚠ Swap ข้ามรหัส / ข้ามรุ่น</div>
+                    <div className="text-sm text-muted-foreground mt-1">
+                      Spare ที่เลือกไม่ตรงรหัสกับเครื่องเก่า — กรุณายืนยันว่า Spec ใช้ทดแทนกันได้ ระบบจะบันทึก flag <span className="font-mono text-xs bg-muted px-1 py-0.5 rounded">CROSS-MODEL SWAP</span> ไว้ใน execution log
+                    </div>
+                  </div>
+                </div>
+                <label className="flex items-center gap-2 text-sm cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={crossModelAck}
+                    onChange={(e) => setCrossModelAck(e.target.checked)}
+                    className="h-4 w-4"
+                  />
+                  <span>ยืนยันว่า Spec ของ Spare นี้ใช้ทดแทนเครื่องเก่าได้</span>
+                </label>
+              </div>
+            )}
 
             <Separator />
 
