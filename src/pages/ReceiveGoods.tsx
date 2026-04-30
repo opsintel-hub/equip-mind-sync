@@ -494,7 +494,9 @@ const ReceiveGoods = () => {
       const storageVolumeValue = storageVolumeCm3 ? parseFloat(storageVolumeCm3) : null;
       const receivedQuantity = selectedReceipt.quantity;
 
-      // Update pending receipt status
+      // Update pending receipt status (และ persist รหัสทรัพย์สิน/อุปกรณ์ที่ผู้รับเข้ากรอก)
+      const trimmedAssetCode = editAssetCode.trim();
+      const trimmedEquipmentIdCode = editEquipmentIdCode.trim();
       const { error: updateError } = await supabase
         .from("goods_receipt_pending")
         .update({
@@ -505,7 +507,15 @@ const ReceiveGoods = () => {
           received_storage_slot_id: storageLocation.storageSlotId || null,
           received_sub_storage_slot_id: storageLocation.subStorageSlotId || null,
           notes: editNotes || null,
-          storage_volume_cm3: storageVolumeValue
+          storage_volume_cm3: storageVolumeValue,
+          ...(selectedReceipt.is_asset
+            ? {
+                asset_code: trimmedAssetCode || null,
+                equipment_id_code: trimmedEquipmentIdCode || null,
+                waiting_asset_code: trimmedAssetCode ? false : selectedReceipt.waiting_asset_code,
+                waiting_equipment_id: trimmedEquipmentIdCode ? false : selectedReceipt.waiting_equipment_id,
+              }
+            : {}),
         })
         .eq("id", selectedReceipt.id);
 
