@@ -20,6 +20,7 @@ interface SwapRequest {
   billboard_id: string | null;
   description: string | null;
   symptom_other: string | null;
+  defective_return_id?: string | null;
 }
 
 interface Props {
@@ -234,12 +235,51 @@ export function SwapWizardDialog({ open, onOpenChange, request, onCompleted }: P
       return;
     }
 
-    // Update request status
+    // Update request with old/new fields + status + completion
     const newStatus = result === "approved" ? "completed" : "rejected";
-    await supabase.from("swap_requests").update({ status: newStatus }).eq("id", request.id);
+    await supabase.from("swap_requests").update({
+      status: newStatus,
+      asset_type: selectedSpare?.type || "equipment",
+      old_equipment_id: oldEqId || (selectedOld as any)?.equipment_id || null,
+      old_serial_number: selectedOld?.serial_number || null,
+      new_equipment_id: spareEqId,
+      new_media_player_id: spareMpId,
+      new_serial_number: selectedSpare?.serial_number || null,
+      completed_at: new Date().toISOString(),
+      completed_by: user?.id ?? null,
+    }).eq("id", request.id);
+
+    // Auto-create defective_return for the OLD unit (only if approved + not already linked)
+    if (result === "approved" && selectedOld && !request.defective_return_id) {
+      const drDocNo = `DR-${new Date().toISOString().slice(0, 10).replace(/-/g, "")}-${Math.floor(Math.random() * 9999 + 1).toString().padStart(4, "0")}`;
+      const oldEquipmentId = (selectedOld as any).equipment_id || null;
+      const { data: newDr } = await supabase.from("defective_returns").insert({
+        document_no: drDocNo,
+        equipment_id: oldEquipmentId,
+        media_player_id: null,
+        is_media_player: false,
+        quantity: 1,
+        billboard_id: request.billboard_id,
+        item_condition: "defective",
+        reason: `จากการ Swap (${request.document_no}): ${request.description || request.symptom_other || "—"}`,
+        status: "pending_warehouse_entry",
+        source_type: "billboard",
+        dispose_status: "pending_disposal_review",
+        swap_request_id: request.id,
+        notes: notes.trim() || null,
+        created_by: user?.id ?? null,
+      }).select("id").single();
+      if (newDr?.id) {
+        await supabase.from("swap_requests").update({ defective_return_id: newDr.id }).eq("id", request.id);
+      }
+    }
 
     setSubmitting(false);
-    toast.success(result === "approved" ? "บันทึก Swap สำเร็จ" : "บันทึก Reject สำเร็จ");
+    toast.success(
+      result === "approved"
+        ? "บันทึก Swap สำเร็จ — สร้างใบของเสียให้ตัวเก่าแล้ว (รออนุมัติวิธีจัดการ)"
+        : "บันทึก Reject สำเร็จ"
+    );
     onCompleted();
   };
 
