@@ -1263,12 +1263,15 @@ export type Database = {
           media_player_id: string | null
           notes: string | null
           quantity: number
+          quarantine_location_id: string | null
           reason: string | null
           receive_location_id: string | null
           received_at: string | null
           received_by: string | null
           source_type: string
           status: string
+          stock_deducted_at: string | null
+          stock_disposed_at: string | null
           swap_request_id: string | null
           updated_at: string
         }
@@ -1290,12 +1293,15 @@ export type Database = {
           media_player_id?: string | null
           notes?: string | null
           quantity?: number
+          quarantine_location_id?: string | null
           reason?: string | null
           receive_location_id?: string | null
           received_at?: string | null
           received_by?: string | null
           source_type?: string
           status?: string
+          stock_deducted_at?: string | null
+          stock_disposed_at?: string | null
           swap_request_id?: string | null
           updated_at?: string
         }
@@ -1317,12 +1323,15 @@ export type Database = {
           media_player_id?: string | null
           notes?: string | null
           quantity?: number
+          quarantine_location_id?: string | null
           reason?: string | null
           receive_location_id?: string | null
           received_at?: string | null
           received_by?: string | null
           source_type?: string
           status?: string
+          stock_deducted_at?: string | null
+          stock_disposed_at?: string | null
           swap_request_id?: string | null
           updated_at?: string
         }
@@ -1346,6 +1355,13 @@ export type Database = {
             columns: ["media_player_id"]
             isOneToOne: false
             referencedRelation: "media_players"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "defective_returns_quarantine_location_id_fkey"
+            columns: ["quarantine_location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
             referencedColumns: ["id"]
           },
           {
