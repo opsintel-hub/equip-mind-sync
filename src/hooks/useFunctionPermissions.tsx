@@ -27,6 +27,12 @@ export const SYSTEM_FUNCTIONS = [
   { name: "direct_shipping_request", label: "ขอส่งตรง", description: "สร้างคำขอส่งสินค้าตรงจาก Supplier ไปปลายทาง (สำหรับผู้ขอ)" },
   { name: "direct_shipping_approval", label: "อนุมัติส่งตรง", description: "อนุมัติ/ปฏิเสธคำขอส่งตรง (สำหรับ Manager)" },
   { name: "direct_shipping_procurement", label: "จัดซื้อ-ส่งตรง", description: "ดำเนินการจัดซื้อและบันทึกการส่งตรง (สำหรับเจ้าหน้าที่จัดซื้อ)" },
+  { name: "swap_request_create", label: "แจ้ง Swap (ช่าง)", description: "สร้างคำขอ Swap จากหน้างาน (สำหรับช่าง)" },
+  { name: "swap_request_manage", label: "จัดการ Swap (คลัง)", description: "ดูและดำเนินการคำขอ Swap (สำหรับเจ้าหน้าที่คลัง)" },
+  { name: "assessment_create", label: "บันทึกประเมิน (คลัง)", description: "บันทึกผลการประเมินทรัพย์สินที่ถูกถอน (สำหรับเจ้าหน้าที่คลัง)" },
+  { name: "assessment_view", label: "ดูรายการประเมิน (ช่าง)", description: "ดูรายการประเมินทรัพย์สิน (สำหรับช่าง/ผู้เกี่ยวข้อง)" },
+  { name: "claim_create", label: "สร้างเคลม (คลัง)", description: "สร้างคำขอเคลมไปยังผู้จำหน่าย (สำหรับเจ้าหน้าที่คลัง)" },
+  { name: "claim_view", label: "ดูรายการเคลม (ช่าง)", description: "ติดตามสถานะการเคลม (สำหรับช่าง/ผู้เกี่ยวข้อง)" },
 ];
 
 export function useFunctionPermissions() {

@@ -17,6 +17,7 @@ import { SymptomSelect } from "@/components/media-player/SymptomSelect";
 import { SwapWizardDialog } from "@/components/swap/SwapWizardDialog";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { EquipmentImageUpload } from "@/components/equipment/EquipmentImageUpload";
+import { useFunctionPermissions } from "@/hooks/useFunctionPermissions";
 
 interface SwapRequest {
   id: string;
@@ -73,7 +74,10 @@ export default function SwapWizard() {
   const { user } = useAuth();
   const [requests, setRequests] = useState<SwapRequest[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState("list");
+  const { hasFunctionAccess } = useFunctionPermissions();
+  const canManage = hasFunctionAccess("swap_request_manage");
+  const canCreate = hasFunctionAccess("swap_request_create");
+  const [activeTab, setActiveTab] = useState(canManage ? "list" : "new");
   const [wizardOpen, setWizardOpen] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState<SwapRequest | null>(null);
 
@@ -366,12 +370,16 @@ export default function SwapWizard() {
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList>
-          <TabsTrigger value="list">
-            <ListChecks className="h-4 w-4 mr-2" /> รายการคำขอ
-          </TabsTrigger>
-          <TabsTrigger value="new">
-            <PlusCircle className="h-4 w-4 mr-2" /> แจ้ง Swap ใหม่
-          </TabsTrigger>
+          {canManage && (
+            <TabsTrigger value="list">
+              <ListChecks className="h-4 w-4 mr-2" /> รายการคำขอ
+            </TabsTrigger>
+          )}
+          {canCreate && (
+            <TabsTrigger value="new">
+              <PlusCircle className="h-4 w-4 mr-2" /> แจ้ง Swap ใหม่
+            </TabsTrigger>
+          )}
         </TabsList>
 
         <TabsContent value="list" className="mt-4">

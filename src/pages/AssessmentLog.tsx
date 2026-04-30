@@ -16,6 +16,7 @@ import { th } from "date-fns/locale";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { SymptomSelect } from "@/components/media-player/SymptomSelect";
 import { AssessmentResultSelect } from "@/components/media-player/AssessmentResultSelect";
+import { useFunctionPermissions } from "@/hooks/useFunctionPermissions";
 
 interface AssessmentLog {
   id: string;
@@ -67,7 +68,10 @@ export default function AssessmentLog() {
   const location = useLocation();
   const [logs, setLogs] = useState<AssessmentLog[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState("list");
+  const { hasFunctionAccess } = useFunctionPermissions();
+  const canView = hasFunctionAccess("assessment_view");
+  const canCreate = hasFunctionAccess("assessment_create");
+  const [activeTab, setActiveTab] = useState(canView ? "list" : "new");
   const [searchTerm, setSearchTerm] = useState("");
 
   // Subject options (combined media_players + equipment serials)
@@ -443,12 +447,16 @@ export default function AssessmentLog() {
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList>
-          <TabsTrigger value="list">
-            <ListChecks className="h-4 w-4 mr-2" /> รายการประเมิน
-          </TabsTrigger>
-          <TabsTrigger value="new">
-            <PlusCircle className="h-4 w-4 mr-2" /> บันทึกการประเมินใหม่
-          </TabsTrigger>
+          {canView && (
+            <TabsTrigger value="list">
+              <ListChecks className="h-4 w-4 mr-2" /> รายการประเมิน
+            </TabsTrigger>
+          )}
+          {canCreate && (
+            <TabsTrigger value="new">
+              <PlusCircle className="h-4 w-4 mr-2" /> บันทึกการประเมินใหม่
+            </TabsTrigger>
+          )}
         </TabsList>
 
         <TabsContent value="list" className="mt-4">
