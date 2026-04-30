@@ -123,6 +123,10 @@ const ReceiveGoods = () => {
   const [receiptDetail, setReceiptDetail] = useState<any | null>(null);
   const [isReceiptDetailLoading, setIsReceiptDetailLoading] = useState(false);
   const [previewDocUrl, setPreviewDocUrl] = useState<string | null>(null);
+  const [previewCategories, setPreviewCategories] = useState<DocumentCategory[] | null>(null);
+  const [previewTitle, setPreviewTitle] = useState<string>("ดูเอกสารแนบ");
+  const [editAssetCode, setEditAssetCode] = useState("");
+  const [editEquipmentIdCode, setEditEquipmentIdCode] = useState("");
 
   // Form state for editing - only editable fields
   const [editNotes, setEditNotes] = useState("");
