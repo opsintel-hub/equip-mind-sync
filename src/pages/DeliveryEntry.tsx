@@ -2996,10 +2996,10 @@ const DeliveryEntry = () => {
       />
 
       <DocumentPreviewDialog
-        open={!!previewDocUrl}
-        onOpenChange={(open) => { if (!open) setPreviewDocUrl(null); }}
-        publicUrl={previewDocUrl}
-        title="ดูเอกสาร"
+        open={!!previewState}
+        onOpenChange={(open) => { if (!open) setPreviewState(null); }}
+        title={previewState?.title || "ดูเอกสาร"}
+        categories={previewState?.categories}
       />
     </div>
   );
