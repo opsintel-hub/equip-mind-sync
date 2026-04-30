@@ -233,7 +233,7 @@ export default function DocumentSearch() {
       // Fetch from advertisements (เอกสารรับโฆษณา)
       const { data: adData } = await supabase
         .from("advertisements")
-        .select("id, code, name, status, total_quantity, created_at, supporting_doc_url, contact_name, entry_type, ad_media_types(name)")
+        .select("id, code, name, status, total_quantity, created_at, supporting_doc_url, photo_urls, contact_name, entry_type, ad_media_types(name)")
         .order("created_at", { ascending: false });
 
       // Fetch from ad_issue_requests (เอกสารเบิกโฆษณา)
