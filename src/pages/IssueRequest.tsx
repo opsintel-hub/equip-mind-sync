@@ -374,6 +374,11 @@ const IssueRequest = () => {
     const requestedQty = parseInt(currentItem.quantity);
     const currentStock = currentItem.equipment_id ? getSelectableStock(currentItem.equipment_id) : 0;
 
+    if (isMediaPlayer && !currentItem.serial_number) {
+      toast.error("Media Player ต้องเลือก S/N เฉพาะเครื่องก่อนเพิ่มลงตะกร้า");
+      return;
+    }
+
     // Validate stock
     if (currentStock < requestedQty) {
       // Show stock warning dialog
@@ -1394,6 +1399,7 @@ const IssueRequest = () => {
                     placeholder={currentItem.equipment_id ? "ค้นหา S/N ของสินค้าที่เลือก..." : "ค้นหา S/N จาก Equipment และ Media Player..."}
                     equipmentId={currentItem.equipment_id || undefined}
                     isMediaPlayer={equipment?.find(e => e.id === currentItem.equipment_id)?.is_media_player}
+                    mediaPlayerIds={selectedMediaPlayerIds}
                   />
                   {isQuantityLocked && currentItem.serial_number && (
                     <p className="text-xs text-muted-foreground flex items-center gap-1">
