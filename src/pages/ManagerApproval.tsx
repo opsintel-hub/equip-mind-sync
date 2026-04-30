@@ -40,7 +40,16 @@ const ManagerApproval = () => {
     queryKey: ["ma-companies"],
     queryFn: async () => {
       const { data } = await supabase.from("companies").select("id, name").eq("is_active", true).order("name");
-      return data || [];
+      // Dedupe by trimmed name — keep first id, collect all duplicate ids for filter matching
+      const map = new Map<string, { ids: string[]; name: string }>();
+      (data || []).forEach((c: any) => {
+        const key = (c.name || "").trim();
+        if (!key) return;
+        const existing = map.get(key);
+        if (existing) existing.ids.push(c.id);
+        else map.set(key, { ids: [c.id], name: key });
+      });
+      return Array.from(map.values());
     },
   });
 
