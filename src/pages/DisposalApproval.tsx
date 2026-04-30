@@ -204,13 +204,70 @@ export default function DisposalApproval() {
     }
   };
 
-  const markCompleted = async (row: DefectiveRow) => {
-    // 🔒 For destroy / sell_scrap / csr → record final stock_movement (out from quarantine)
-    // For repair_return → user must use Receive Goods to add back, no movement here
+  const openCompleteDialog = (row: DefectiveRow) => {
+    setCompleting(row);
+    setCompleteNotes("");
+    setCompleteFiles([]);
+    setCompletePreviews([]);
+  };
+
+  const closeCompleteDialog = () => {
+    completePreviews.forEach((u) => URL.revokeObjectURL(u));
+    setCompleting(null);
+    setCompleteNotes("");
+    setCompleteFiles([]);
+    setCompletePreviews([]);
+  };
+
+  const handleAddCompleteEvidence = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    const valid = files.filter((f) => {
+      if (f.size > 10 * 1024 * 1024) { toast.error(`${f.name}: ใหญ่เกิน 10MB`); return false; }
+      return true;
+    });
+    setCompleteFiles((p) => [...p, ...valid]);
+    setCompletePreviews((p) => [...p, ...valid.map((f) => URL.createObjectURL(f))]);
+    e.target.value = "";
+  };
+
+  const removeCompleteEvidence = (idx: number) => {
+    URL.revokeObjectURL(completePreviews[idx]);
+    setCompleteFiles((p) => p.filter((_, i) => i !== idx));
+    setCompletePreviews((p) => p.filter((_, i) => i !== idx));
+  };
+
+  const uploadCompleteEvidence = async (defectiveId: string): Promise<string[]> => {
+    const urls: string[] = [];
+    for (const file of completeFiles) {
+      const ext = file.name.split(".").pop();
+      const path = `disposal/${defectiveId}/completion-${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+      const { error } = await supabase.storage.from("equipment-images").upload(path, file);
+      if (!error) {
+        const { data } = supabase.storage.from("equipment-images").getPublicUrl(path);
+        urls.push(data.publicUrl);
+      }
+    }
+    return urls;
+  };
+
+  const submitCompletion = async () => {
+    if (!completing) return;
+    const row = completing;
     const finalDisposalTypes = ["destroy", "sell_scrap", "csr"];
     const isFinalDisposal = row.disposal_method && finalDisposalTypes.includes(row.disposal_method);
 
+    // 🔒 Mandatory evidence for final disposal
+    if (isFinalDisposal && completeFiles.length === 0) {
+      toast.error("กรุณาแนบรูปยืนยันการดำเนินการอย่างน้อย 1 รูป");
+      return;
+    }
+
+    setSubmitting(true);
     try {
+      // Upload completion evidence
+      const completionUrls = completeFiles.length > 0 ? await uploadCompleteEvidence(row.id) : [];
+      const merged = [...(row.disposal_evidence_urls || []), ...completionUrls];
+
       // Get item info for stock_movement
       let itemCode = "", itemName = "";
       if (row.is_media_player && row.media_player_id) {
@@ -221,26 +278,23 @@ export default function DisposalApproval() {
         if (eq) { itemCode = eq.code; itemName = eq.name; }
       }
 
-      // Get quarantine location
       const { data: loc } = await supabase.from("locations").select("id").eq("code", "LOC-DEFECT").maybeSingle();
-
       const nowIso = new Date().toISOString();
 
       if (isFinalDisposal) {
-        // Final disposal: stock already deducted at entry, just log final movement (qty=0 marker)
         await supabase.from("stock_movements").insert({
           equipment_id: row.is_media_player ? row.media_player_id : row.equipment_id,
           equipment_code: itemCode,
           equipment_name: itemName,
           movement_type: `disposal_${row.disposal_method}`,
-          quantity: 0, // already deducted at entry; this is a final accountability log
+          quantity: 0,
           stock_before: 0,
           stock_after: 0,
           reference_type: "defective_return",
           reference_id: row.id,
           reference_document: row.document_no,
           location_id: loc?.id || null,
-          notes: `[จำหน่ายออกจากคลังของเสีย: ${row.disposal_method}] ${row.disposal_notes || ""}`.trim(),
+          notes: `[จำหน่ายออกจากคลังของเสีย: ${row.disposal_method}] ${completeNotes || row.disposal_notes || ""}`.trim(),
           item_condition: "defective",
           created_by: user?.id,
         });
@@ -251,16 +305,23 @@ export default function DisposalApproval() {
         .update({
           dispose_status: "completed",
           stock_disposed_at: nowIso,
+          disposal_evidence_urls: merged.length ? merged : null,
+          disposal_notes: completeNotes.trim()
+            ? `${row.disposal_notes ? row.disposal_notes + "\n--\n" : ""}[เสร็จสิ้น] ${completeNotes.trim()}`
+            : row.disposal_notes,
         })
         .eq("id", row.id);
       if (error) throw error;
 
       toast.success(isFinalDisposal
-        ? `บันทึก "${DISPOSAL_METHODS[row.disposal_method!]?.label}" สำเร็จ — จำหน่ายออกจากคลังของเสียแล้ว`
+        ? `บันทึก "${DISPOSAL_METHODS[row.disposal_method!]?.label}" สำเร็จ — แนบหลักฐาน ${completionUrls.length} รูป`
         : "บันทึกเสร็จสิ้นแล้ว — สำหรับ 'ซ่อมและคืนคลัง' กรุณารับเข้าใหม่ผ่านเมนู Receive Goods");
+      closeCompleteDialog();
       fetchData();
     } catch (e: any) {
       toast.error("บันทึกไม่สำเร็จ: " + e.message);
+    } finally {
+      setSubmitting(false);
     }
   };
 
