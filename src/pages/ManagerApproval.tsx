@@ -40,7 +40,16 @@ const ManagerApproval = () => {
     queryKey: ["ma-companies"],
     queryFn: async () => {
       const { data } = await supabase.from("companies").select("id, name").eq("is_active", true).order("name");
-      return data || [];
+      // Dedupe by trimmed name — keep first id, collect all duplicate ids for filter matching
+      const map = new Map<string, { ids: string[]; name: string }>();
+      (data || []).forEach((c: any) => {
+        const key = (c.name || "").trim();
+        if (!key) return;
+        const existing = map.get(key);
+        if (existing) existing.ids.push(c.id);
+        else map.set(key, { ids: [c.id], name: key });
+      });
+      return Array.from(map.values());
     },
   });
 
@@ -211,7 +220,11 @@ const ManagerApproval = () => {
         if (!matchDirect && !matchItems) return false;
       }
       if (departmentFilter.length > 0 && !departmentFilter.includes(req.requester_department)) return false;
-      if (companyFilter !== "all" && req.company_id !== companyFilter) return false;
+      if (companyFilter !== "all") {
+        const group = companies?.find((c: any) => c.ids[0] === companyFilter);
+        const ids = group?.ids || [companyFilter];
+        if (!ids.includes(req.company_id)) return false;
+      }
       if (dateRange?.from) {
         const d = new Date(req.created_at);
         if (d < dateRange.from) return false;
@@ -360,7 +373,7 @@ const ManagerApproval = () => {
               <SelectTrigger className="w-full"><SelectValue placeholder="ทุกบริษัท" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">ทุกบริษัท</SelectItem>
-                {companies?.map((c: any) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                {companies?.map((c: any) => <SelectItem key={c.ids[0]} value={c.ids[0]}>{c.name}</SelectItem>)}
               </SelectContent>
             </Select>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
