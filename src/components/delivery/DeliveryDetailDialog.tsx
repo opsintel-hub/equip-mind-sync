@@ -91,7 +91,7 @@ export function DeliveryDetailDialog({ open, onOpenChange, receipt }: DeliveryDe
   const [newDeptId, setNewDeptId] = useState<string>("");
   const [savingDept, setSavingDept] = useState(false);
   const [currentDeptId, setCurrentDeptId] = useState<string | null>(null);
-  const [previewDoc, setPreviewDoc] = useState<{ url: string; label: string } | null>(null);
+  const [previewOpen, setPreviewOpen] = useState(false);
 
   useEffect(() => {
     if (!open) return;
