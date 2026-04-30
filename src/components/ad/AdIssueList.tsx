@@ -20,6 +20,7 @@ import { toast } from "sonner";
 import { CheckCircle2, FileOutput, Search, Copy, ExternalLink, ImageIcon, MapPin } from "lucide-react";
 import { format } from "date-fns";
 import { formatBillboardLabel } from "@/lib/billboardUtils";
+import { DocumentPreviewDialog } from "@/components/DocumentPreviewDialog";
 
 interface IssueRequest {
   id: string;
@@ -88,6 +89,7 @@ export function AdIssueList({ refresh, onUpdated }: AdIssueListProps) {
   const [loading, setLoading] = useState(true);
   const [confirmIssue, setConfirmIssue] = useState<IssueRequest | null>(null);
   const [confirmComplete, setConfirmComplete] = useState<IssueRequest | null>(null);
+  const [previewDocUrl, setPreviewDocUrl] = useState<string | null>(null);
   const [processing, setProcessing] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -502,7 +504,7 @@ export function AdIssueList({ refresh, onUpdated }: AdIssueListProps) {
                 {confirmIssue?.advertisement?.supporting_doc_url && (
                   <div>
                     <span className="text-sm text-muted-foreground">เอกสารประกอบ:</span>
-                    <a href={confirmIssue.advertisement.supporting_doc_url} target="_blank" rel="noopener noreferrer" className="text-sm text-primary hover:underline ml-1">ดูเอกสาร</a>
+                    <button type="button" onClick={() => setPreviewDocUrl(confirmIssue.advertisement.supporting_doc_url)} className="text-sm text-primary hover:underline ml-1">ดูเอกสาร</button>
                   </div>
                 )}
 
@@ -569,6 +571,13 @@ export function AdIssueList({ refresh, onUpdated }: AdIssueListProps) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <DocumentPreviewDialog
+        open={!!previewDocUrl}
+        onOpenChange={(o) => { if (!o) setPreviewDocUrl(null); }}
+        publicUrl={previewDocUrl}
+        title="ดูเอกสารประกอบ"
+      />
     </div>
   );
 }

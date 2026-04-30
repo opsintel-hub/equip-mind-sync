@@ -17,6 +17,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { CheckCircle2, XCircle, Package, ImageIcon, Clock, Search } from "lucide-react";
 import { format } from "date-fns";
+import { DocumentPreviewDialog } from "@/components/DocumentPreviewDialog";
 
 interface PendingAd {
   id: string;
@@ -58,6 +59,7 @@ export function AdReceiveSection({ refresh, onReceived }: AdReceiveSectionProps)
   const [loading, setLoading] = useState(true);
   const [confirmAd, setConfirmAd] = useState<PendingAd | null>(null);
   const [rejectAd, setRejectAd] = useState<PendingAd | null>(null);
+  const [previewDocUrl, setPreviewDocUrl] = useState<string | null>(null);
   const [processing, setProcessing] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [typeFilter, setTypeFilter] = useState("all");
@@ -466,7 +468,7 @@ export function AdReceiveSection({ refresh, onReceived }: AdReceiveSectionProps)
                 {confirmAd?.supporting_doc_url && (
                   <div>
                     <span className="text-sm text-muted-foreground">เอกสารประกอบ:</span>
-                    <a href={confirmAd.supporting_doc_url} target="_blank" rel="noopener noreferrer" className="text-sm text-primary hover:underline ml-1">ดูเอกสาร</a>
+                    <button type="button" onClick={() => setPreviewDocUrl(confirmAd.supporting_doc_url!)} className="text-sm text-primary hover:underline ml-1">ดูเอกสาร</button>
                   </div>
                 )}
 
@@ -536,6 +538,13 @@ export function AdReceiveSection({ refresh, onReceived }: AdReceiveSectionProps)
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <DocumentPreviewDialog
+        open={!!previewDocUrl}
+        onOpenChange={(o) => { if (!o) setPreviewDocUrl(null); }}
+        publicUrl={previewDocUrl}
+        title="ดูเอกสารประกอบ"
+      />
     </div>
   );
 }
