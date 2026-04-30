@@ -29,34 +29,12 @@ const DetailRow = ({ label, value }: { label: string; value: React.ReactNode }) 
 
 const isImageUrl = (url: string) => /\.(png|jpe?g|gif|webp|bmp|svg)(\?|$)/i.test(url);
 
-const DocLink = ({
-  url,
-  label,
-  onPreview,
-}: {
-  url: string | null;
-  label: string;
-  onPreview: (url: string, label: string) => void;
-}) => {
-  if (!url) return null;
-  const urls = url.split(/\s*,\s*/).filter(Boolean);
-  const count = urls.length;
-  return (
-    <button
-      type="button"
-      onClick={() => onPreview(url, label)}
-      className="flex items-center gap-1.5 text-sm text-primary hover:underline cursor-pointer"
-    >
-      <FileText className="w-4 h-4" /> {label}
-      {count > 1 && <span className="text-xs text-muted-foreground">({count} ไฟล์)</span>}
-    </button>
-  );
-};
+const splitUrls = (combined: string | null | undefined): string[] =>
+  combined ? combined.split(/\s*,\s*/).filter(Boolean) : [];
 
 /** Split combined document_url into two groups: extra docs (non-image) and extra images. */
-const splitExtraDocs = (combined: string | null) => {
-  if (!combined) return { docs: [] as string[], images: [] as string[] };
-  const all = combined.split(/\s*,\s*/).filter(Boolean);
+const splitExtraDocs = (combined: string | null | undefined) => {
+  const all = splitUrls(combined);
   const docs: string[] = [];
   const images: string[] = [];
   for (const u of all) {
@@ -64,6 +42,45 @@ const splitExtraDocs = (combined: string | null) => {
     else docs.push(u);
   }
   return { docs, images };
+};
+
+/** Single row showing a category — always rendered, even when empty. */
+const CategoryRow = ({
+  label,
+  urls,
+  onOpen,
+}: {
+  label: string;
+  urls: string[];
+  onOpen: () => void;
+}) => {
+  const has = urls.length > 0;
+  return (
+    <button
+      type="button"
+      onClick={onOpen}
+      className={cn(
+        "w-full flex items-center justify-between gap-2 px-2 py-1.5 rounded text-sm transition-colors",
+        has
+          ? "text-primary hover:bg-primary/5 cursor-pointer"
+          : "text-muted-foreground hover:bg-muted/40 cursor-pointer"
+      )}
+      title={has ? "คลิกเพื่อดูเอกสาร" : "ยังไม่มีไฟล์ (คลิกเพื่อเปิดดูทุกหมวด)"}
+    >
+      <span className="flex items-center gap-1.5">
+        {has ? (
+          <CheckCircle2 className="w-4 h-4 text-green-600 dark:text-green-400" />
+        ) : (
+          <FileX2 className="w-4 h-4 opacity-60" />
+        )}
+        <FileText className="w-4 h-4" />
+        {label}
+      </span>
+      <span className="text-xs">
+        {has ? `${urls.length} ไฟล์` : "ไม่มีไฟล์"}
+      </span>
+    </button>
+  );
 };
 
 export function DeliveryDetailDialog({ open, onOpenChange, receipt }: DeliveryDetailDialogProps) {
