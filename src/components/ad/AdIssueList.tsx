@@ -89,6 +89,7 @@ export function AdIssueList({ refresh, onUpdated }: AdIssueListProps) {
   const [loading, setLoading] = useState(true);
   const [confirmIssue, setConfirmIssue] = useState<IssueRequest | null>(null);
   const [confirmComplete, setConfirmComplete] = useState<IssueRequest | null>(null);
+  const [previewDocUrl, setPreviewDocUrl] = useState<string | null>(null);
   const [processing, setProcessing] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
