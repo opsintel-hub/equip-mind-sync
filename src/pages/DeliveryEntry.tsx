@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { previewStorageFile, downloadStorageFile } from "@/lib/storageDownload";
+import { DocumentPreviewDialog } from "@/components/DocumentPreviewDialog";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -143,6 +144,7 @@ const DeliveryEntry = () => {
   const [editingItem, setEditingItem] = useState<DeliveryCartItem | null>(null);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [selectedDetailReceipt, setSelectedDetailReceipt] = useState<any | null>(null);
+  const [previewDocUrl, setPreviewDocUrl] = useState<string | null>(null);
   const [showPOUpload, setShowPOUpload] = useState(false);
 
   // Header data (shared across all items)
@@ -2863,9 +2865,9 @@ const DeliveryEntry = () => {
                           <div className="flex items-center gap-2">
                             <button
                               type="button"
-                              onClick={() => previewStorageFile(receipt.document_url!)}
+                              onClick={() => setPreviewDocUrl(receipt.document_url!)}
                               className="flex items-center gap-1 text-primary hover:underline"
-                              title="ดูตัวอย่างในแท็บใหม่"
+                              title="ดูเอกสาร"
                             >
                               <FileText className="w-4 h-4" />
                               ดูเอกสาร
@@ -2918,6 +2920,13 @@ const DeliveryEntry = () => {
         open={!!selectedDetailReceipt}
         onOpenChange={(open) => { if (!open) setSelectedDetailReceipt(null); }}
         receipt={selectedDetailReceipt}
+      />
+
+      <DocumentPreviewDialog
+        open={!!previewDocUrl}
+        onOpenChange={(open) => { if (!open) setPreviewDocUrl(null); }}
+        publicUrl={previewDocUrl}
+        title="ดูเอกสาร"
       />
     </div>
   );
