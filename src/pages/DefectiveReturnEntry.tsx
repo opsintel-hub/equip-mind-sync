@@ -544,7 +544,19 @@ const DefectiveReturnEntry = () => {
                       <FileCheck2 className="w-3.5 h-3.5 mr-1" /> ส่งเคลม
                     </Button>
                   </div>
-                  <p className="text-[11px] text-muted-foreground">ระบบจะส่งข้อมูลที่กรอกไว้ไปกรอกล่วงหน้าให้</p>
+                  {isFromBillboard && (
+                    <Button
+                      type="button"
+                      variant="default"
+                      size="sm"
+                      className="h-8 w-full mt-1"
+                      disabled={isSubmitting}
+                      onClick={handleSendToSwap}
+                    >
+                      <ArrowLeftRight className="w-3.5 h-3.5 mr-1" /> ส่งไป Process Swap (สร้างคำขอใหม่)
+                    </Button>
+                  )}
+                  <p className="text-[11px] text-muted-foreground">ระบบจะส่งข้อมูลที่กรอกไว้ไปกรอกล่วงหน้าให้ — "ส่งไป Swap" จะสร้างคำขอ Swap ใหม่และเชื่อมกับใบของเสียอัตโนมัติ</p>
                 </div>
               </div>
             ) : (
