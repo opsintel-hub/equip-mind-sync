@@ -44,6 +44,10 @@ interface SpareOption {
   type: "media_player" | "equipment";
   serial_number?: string | null;
   location_id?: string | null;
+  // Cross-model support
+  equipment_id?: string | null;
+  item_code?: string | null;
+  item_name?: string | null;
 }
 
 interface OldOption {
