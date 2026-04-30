@@ -776,9 +776,10 @@ const IssueRequest = () => {
       });
       setIsQuantityLocked(false); // Reset lock when selecting via equipment dropdown
       // Update stock info
+      const stock = getSelectableStock(selected.id);
       setCurrentStockInfo({
-        currentStock: selected.quantity_in_stock,
-        remainingAfterIssue: selected.quantity_in_stock - parseInt(currentItem.quantity || "1"),
+        currentStock: stock,
+        remainingAfterIssue: stock - parseInt(currentItem.quantity || "1"),
       });
     } else {
       setCurrentStockInfo(null);
@@ -803,9 +804,10 @@ const IssueRequest = () => {
       setIsQuantityLocked(true); // Lock quantity when selected via S/N
       // Update stock info
       if (selectedEquipment) {
+        const stock = getSelectableStock(item.id);
         setCurrentStockInfo({
-          currentStock: selectedEquipment.quantity_in_stock,
-          remainingAfterIssue: selectedEquipment.quantity_in_stock - 1,
+          currentStock: stock,
+          remainingAfterIssue: stock - 1,
         });
       }
     } else {
@@ -832,9 +834,10 @@ const IssueRequest = () => {
       const selectedEquipment = equipment?.find(e => e.id === currentItem.equipment_id);
       if (selectedEquipment) {
         const qty = parseInt(newQty) || 0;
+        const stock = getSelectableStock(currentItem.equipment_id);
         setCurrentStockInfo({
-          currentStock: selectedEquipment.quantity_in_stock,
-          remainingAfterIssue: selectedEquipment.quantity_in_stock - qty,
+          currentStock: stock,
+          remainingAfterIssue: stock - qty,
         });
       }
     }
