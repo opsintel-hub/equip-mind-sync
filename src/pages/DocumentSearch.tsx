@@ -215,9 +215,10 @@ export default function DocumentSearch() {
         .from("goods_receipt").select("*, equipment:equipment_id(code, name)").order("created_at", { ascending: false });
 
       // Fetch from goods_issue_pending (with extended fields for tracker)
+      // Note: confirmed_at lives on delivery_confirmations, not on goods_issue_pending
       const { data: issueData, error: issueError } = await supabase
         .from("goods_issue_pending")
-        .select("id, document_no, created_at, status, equipment_name, equipment_code, requester_name, requester_department, approval_status, approved_at, issued_at, confirmed_at, pickup_type, goods_issue_pending_items(serial_number)")
+        .select("id, document_no, created_at, status, equipment_name, equipment_code, requester_name, requester_department, approval_status, approved_at, issued_at, pickup_type, goods_issue_pending_items(serial_number), delivery_confirmations(confirmed_at)")
         .order("created_at", { ascending: false });
       if (issueError) console.error("issue fetch error", issueError);
 
@@ -265,13 +266,15 @@ export default function DocumentSearch() {
         const sns = (item.goods_issue_pending_items || [])
           .map((it: any) => it.serial_number?.trim())
           .filter(Boolean);
+        const confirmedAt = item.delivery_confirmations?.[0]?.confirmed_at || null;
         return {
           id: item.id, document_no: item.document_no, document_url: null,
           equipment_code: item.equipment_code, equipment_name: item.equipment_name,
           serial_number: sns.length > 0 ? sns.join(", ") : null,
           supplier_name: null, delivery_person_name: item.requester_name,
           quantity: 0, unit: "-", created_at: item.created_at,
-          status: item.status, source: "issue" as const, raw: item,
+          status: item.status, source: "issue" as const,
+          raw: { ...item, confirmed_at: confirmedAt },
         };
       });
 
