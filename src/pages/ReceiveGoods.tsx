@@ -1476,24 +1476,28 @@ const ReceiveGoods = () => {
                 />
               </div>
 
-              {/* Document Links */}
-              {(selectedReceipt.document_url || selectedReceipt.purchase_document_url) && (
-                <div className="p-3 bg-muted/30 rounded-lg space-y-2">
-                  <p className="text-sm font-medium text-foreground">เอกสารแนบ</p>
-                  <div className="flex gap-4 text-sm">
-                    {selectedReceipt.document_url && (
-                      <button type="button" onClick={() => setPreviewDocUrl(selectedReceipt.document_url)} className="text-primary hover:underline cursor-pointer">
-                        📎 เอกสารนำส่ง
+              {/* Document Links - unified category preview */}
+              <div className="p-3 bg-muted/30 rounded-lg space-y-2">
+                <p className="text-sm font-medium text-foreground">เอกสารแนบ</p>
+                <div className="flex gap-3 text-sm flex-wrap">
+                  {(() => {
+                    const cats = buildReceiptCategories(selectedReceipt);
+                    const totalFiles = cats.reduce((s, c) => s + (Array.isArray(c.urls) ? c.urls.length : (c.urls ? splitUrls(c.urls as string).length : 0)), 0);
+                    return (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setPreviewCategories(cats);
+                          setPreviewTitle("ดูเอกสารแนบ");
+                        }}
+                        className="text-primary hover:underline cursor-pointer flex items-center gap-1"
+                      >
+                        📎 ดูเอกสารทั้งหมด ({totalFiles}/{cats.length})
                       </button>
-                    )}
-                    {selectedReceipt.purchase_document_url && (
-                      <button type="button" onClick={() => setPreviewDocUrl(selectedReceipt.purchase_document_url)} className="text-primary hover:underline cursor-pointer">
-                        📎 เอกสาร PO/PR
-                      </button>
-                    )}
-                  </div>
+                    );
+                  })()}
                 </div>
-              )}
+              </div>
 
               {/* Storage Dimensions Display */}
               {selectedReceipt && (selectedReceipt.storage_width_cm || selectedReceipt.storage_height_cm || selectedReceipt.storage_depth_cm) && (
