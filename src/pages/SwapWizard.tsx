@@ -29,6 +29,7 @@ interface SwapRequest {
   status: string;
   created_at: string;
   notes: string | null;
+  defective_return_id?: string | null;
 }
 
 const STATUS_LABELS: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
