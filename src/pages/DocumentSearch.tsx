@@ -217,7 +217,7 @@ export default function DocumentSearch() {
       // Fetch from goods_issue_pending (with extended fields for tracker)
       const { data: issueData, error: issueError } = await supabase
         .from("goods_issue_pending")
-        .select("id, document_no, created_at, status, equipment_name, equipment_code, requester_name, requester_department, approval_status, approved_at, issued_at, confirmed_at, pickup_type")
+        .select("id, document_no, created_at, status, equipment_name, equipment_code, requester_name, requester_department, approval_status, approved_at, issued_at, confirmed_at, pickup_type, goods_issue_pending_items(serial_number)")
         .order("created_at", { ascending: false });
       if (issueError) console.error("issue fetch error", issueError);
 
