@@ -215,10 +215,11 @@ export default function DocumentSearch() {
         .from("goods_receipt").select("*, equipment:equipment_id(code, name)").order("created_at", { ascending: false });
 
       // Fetch from goods_issue_pending (with extended fields for tracker)
-      const { data: issueData } = await supabase
+      const { data: issueData, error: issueError } = await supabase
         .from("goods_issue_pending")
-        .select("id, document_no, created_at, status, equipment_name, equipment_code, requester_name, requester_department, approval_status, approved_at, issued_at, pickup_type, serial_number")
+        .select("id, document_no, created_at, status, equipment_name, equipment_code, requester_name, requester_department, approval_status, approved_at, issued_at, pickup_type")
         .order("created_at", { ascending: false });
+      if (issueError) console.error("issue fetch error", issueError);
 
       // Fetch from delivery_confirmations
       const { data: dcData } = await supabase
