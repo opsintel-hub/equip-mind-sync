@@ -154,11 +154,22 @@ export function SerialNumberSelect({
   const serialNumberItems = useMemo<SerialNumberItem[]>(() => {
     const items: SerialNumberItem[] = [];
     const seenKeys = new Set<string>();
+    const consumedEquipmentSerialKeys = new Set(
+      (consumedSerials || [])
+        .filter((row: any) => row.equipment_id && row.serial_number && !row.is_media_player)
+        .map((row: any) => `${row.equipment_id}::${row.serial_number.trim().toLowerCase()}`)
+    );
+    const consumedMediaSerialKeys = new Set(
+      (consumedSerials || [])
+        .filter((row: any) => row.media_player_id && row.serial_number && row.is_media_player)
+        .map((row: any) => `${row.media_player_id}::${row.serial_number.trim().toLowerCase()}`)
+    );
 
     // Priority 1: equipment_serial_numbers table (most reliable)
     (snTableData || []).forEach((sn: any) => {
       const eq = sn.equipment;
       if (!eq || !eq.is_active) return;
+      if (consumedEquipmentSerialKeys.has(`${eq.id}::${sn.serial_number.trim().toLowerCase()}`)) return;
       const key = `eq::${eq.id}::${sn.serial_number}`;
       if (seenKeys.has(key)) return;
       seenKeys.add(key);
@@ -178,6 +189,7 @@ export function SerialNumberSelect({
     // Priority 2: Legacy equipment serial_number field (fallback)
     equipmentData?.forEach((eq) => {
       if (!eq.serial_number) return;
+      if (consumedEquipmentSerialKeys.has(`${eq.id}::${eq.serial_number.trim().toLowerCase()}`)) return;
       const key = `eq::${eq.id}::${eq.serial_number}`;
       if (seenKeys.has(key)) return;
       seenKeys.add(key);
@@ -192,13 +204,6 @@ export function SerialNumberSelect({
         source: "equipment",
       });
     });
-
-    // Media Player serials (unchanged logic)
-    const consumedMediaSerialKeys = new Set(
-      (issuedMediaSerials || [])
-        .filter((row: any) => row.media_player_id && row.serial_number)
-        .map((row: any) => `${row.media_player_id}::${row.serial_number}`)
-    );
 
     const latestReceivedByKey = new Map<string, any>();
     (receivedMediaSerials || [])
@@ -215,7 +220,7 @@ export function SerialNumberSelect({
 
         const key = `${mp.id}::${serial}`;
         if (latestReceivedByKey.has(key)) return;
-        if (consumedMediaSerialKeys.has(key)) return;
+        if (consumedMediaSerialKeys.has(`${mp.id}::${serial.toLowerCase()}`)) return;
 
         latestReceivedByKey.set(key, row);
         items.push({
@@ -243,7 +248,7 @@ export function SerialNumberSelect({
 
         const key = `${mp.id}::${serial}`;
         if (latestReceivedByKey.has(key)) return;
-        if (consumedMediaSerialKeys.has(key)) return;
+        if (consumedMediaSerialKeys.has(`${mp.id}::${serial.toLowerCase()}`)) return;
 
         items.push({
           id: mp.id,
@@ -264,7 +269,7 @@ export function SerialNumberSelect({
     }
 
     return items;
-  }, [snTableData, equipmentData, receivedMediaSerials, issuedMediaSerials, mediaPlayersData, equipmentId]);
+  }, [snTableData, equipmentData, receivedMediaSerials, consumedSerials, mediaPlayersData, equipmentId]);
 
   // Map serial number items to dropdown options
   const options: SearchableSelectOption[] = useMemo(() => {
@@ -292,7 +297,7 @@ export function SerialNumberSelect({
     onChange(selectedItem || null);
   };
 
-  const isLoading = loadingSnTable || loadingEquipment || loadingReceivedMediaSerials || loadingIssuedMediaSerials || loadingMediaPlayers;
+  const isLoading = loadingSnTable || loadingEquipment || loadingReceivedMediaSerials || loadingConsumedSerials || loadingMediaPlayers;
 
   return (
     <SearchableSelect
