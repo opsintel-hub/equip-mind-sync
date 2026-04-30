@@ -334,9 +334,9 @@ function BillboardViewTab() {
 
       {/* Filters */}
       <div className="flex flex-wrap gap-3 items-center">
-        <div className="relative flex-1 min-w-[140px] max-w-[200px]">
+        <div className="relative flex-1 min-w-[140px] max-w-[220px]">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input placeholder="ค้นหา S/N..." value={snSearch} onChange={e => setSnSearch(e.target.value)} className="pl-9" />
+          <Input placeholder="กรองป้ายตาม S/N อุปกรณ์ที่ติดตั้ง..." value={snSearch} onChange={e => setSnSearch(e.target.value)} className="pl-9" title="กรองเฉพาะป้ายที่มีอุปกรณ์ S/N นี้ติดตั้งอยู่ — หากต้องการค้นหาตัวอุปกรณ์ ให้สลับไปแท็บ 'ค้นหาตามอุปกรณ์'" />
         </div>
         <div className="relative flex-1 min-w-[200px]">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -657,12 +657,12 @@ function EquipmentViewTab() {
     });
   }, [allItems, search, snSearch, typeFilter, categoryFilter, brandFilter, installFilter]);
 
-  // Summary stats
+  // Summary stats — based on FILTERED results so cards reflect what user is searching
   const summaryStats = useMemo(() => {
-    const installed = allItems.filter(i => i.isInstalled).length;
-    const inStock = allItems.filter(i => !i.isInstalled).length;
-    return { total: allItems.length, installed, inStock };
-  }, [allItems]);
+    const installed = filtered.filter(i => i.isInstalled).length;
+    const inStock = filtered.filter(i => !i.isInstalled).length;
+    return { total: filtered.length, installed, inStock };
+  }, [filtered]);
 
   // Pagination
   const totalPages = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE));
@@ -686,13 +686,15 @@ function EquipmentViewTab() {
 
   const isLoading = loadingEq || loadingMP;
 
+  const isFiltered = !!(search || snSearch || typeFilter !== "all" || categoryFilter !== "all" || brandFilter !== "all" || installFilter !== "all");
+
   return (
     <div className="space-y-4">
-      {/* Summary Cards */}
+      {/* Summary Cards — reflect current filtered result */}
       <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-        <Card><CardContent className="p-3 text-center"><div className="text-2xl font-bold text-primary">{summaryStats.total}</div><div className="text-xs text-muted-foreground">ทั้งหมด</div></CardContent></Card>
-        <Card><CardContent className="p-3 text-center"><div className="text-2xl font-bold text-emerald-600">{summaryStats.installed}</div><div className="text-xs text-muted-foreground">ติดตั้งอยู่</div></CardContent></Card>
-        <Card><CardContent className="p-3 text-center"><div className="text-2xl font-bold text-primary">{summaryStats.inStock}</div><div className="text-xs text-muted-foreground">ในคลัง</div></CardContent></Card>
+        <Card><CardContent className="p-3 text-center"><div className="text-2xl font-bold text-primary">{summaryStats.total}</div><div className="text-xs text-muted-foreground">{isFiltered ? "ผลการค้นหา (รายการ)" : "ทั้งหมด (รายการ)"}</div></CardContent></Card>
+        <Card><CardContent className="p-3 text-center"><div className="text-2xl font-bold text-emerald-600">{summaryStats.installed}</div><div className="text-xs text-muted-foreground">ติดตั้งบนป้ายอยู่</div></CardContent></Card>
+        <Card><CardContent className="p-3 text-center"><div className="text-2xl font-bold text-primary">{summaryStats.inStock}</div><div className="text-xs text-muted-foreground">อยู่ในคลัง / ยังไม่ติดตั้ง</div></CardContent></Card>
       </div>
 
       {/* Filters */}

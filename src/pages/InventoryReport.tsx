@@ -544,6 +544,11 @@ export default function InventoryReport() {
           issueStatus = "partial";
         }
       }
+      // Fallback: หากของหมดคลัง (qty=0) แต่ไม่มี issueInfo (เช่น MP ที่ถูกเบิก/ติดตั้งโดย legacy flow)
+      // ให้ถือว่า "ถูกเบิกออก" แทนที่จะแสดง "อยู่ในคลัง" ผิดๆ
+      if (issueStatus === "in_stock" && (item.quantity_in_stock || 0) === 0) {
+        issueStatus = "issued";
+      }
 
       const projects = orderForProjectMap[item.id] || [];
       const receiptPrices = receiptPriceMap[item.id] || [];
@@ -996,7 +1001,7 @@ export default function InventoryReport() {
                     <TableHead className="min-w-[100px]">ฝ่าย</TableHead>
                     <TableHead className="min-w-[100px]">คลัง</TableHead>
                     <TableHead className="min-w-[130px]">ตำแหน่งจัดเก็บ</TableHead>
-                    <TableHead className="text-right min-w-[100px]">จำนวน</TableHead>
+                    <TableHead className="text-right min-w-[110px]" title="จำนวนคงเหลือในคลัง (ไม่รวมที่เบิกออกหรือติดตั้งอยู่บนป้าย)">คงเหลือในคลัง</TableHead>
                     <TableHead className="text-right min-w-[70px]">Min</TableHead>
                     <TableHead className="text-right min-w-[110px]">ราคา/ชิ้น</TableHead>
                     <TableHead className="min-w-[120px]">สถานะ Stock</TableHead>

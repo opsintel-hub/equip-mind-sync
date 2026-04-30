@@ -322,7 +322,24 @@ const IssueGoods = () => {
         // If installing to billboard for Media Player
         const billboardId = issueData.billboard_id || selectedItem.billboard_id;
         if (billboardId) {
-          // Create billboard_equipment record for Media Player
+          // Look up billboard human-readable label
+          const { data: bbInfo } = await supabase
+            .from("billboards")
+            .select("old_code, location_name")
+            .eq("id", billboardId)
+            .maybeSingle();
+          const bbLabel = [bbInfo?.old_code, bbInfo?.location_name].filter(Boolean).join(" - ") || billboardId;
+
+          // 1) Update media_players.billboard_id + install_date so Profile/Reports stay in sync
+          await supabase
+            .from("media_players")
+            .update({
+              billboard_id: billboardId,
+              install_date: new Date().toISOString().split('T')[0],
+            })
+            .eq("id", selectedItem.media_player_id);
+
+          // 2) Create billboard_equipment record for Media Player
           const { error: billboardMpError } = await supabase
             .from("billboard_equipment")
             .insert({
@@ -336,6 +353,20 @@ const IssueGoods = () => {
             });
           if (billboardMpError) console.error("Error creating billboard_equipment for MP:", billboardMpError);
 
+          // 3) Insert media_player_billboard_history (installation entry; uninstall_date placeholder)
+          const today = new Date().toISOString().split('T')[0];
+          const { error: histError } = await supabase
+            .from("media_player_billboard_history")
+            .insert({
+              media_player_id: selectedItem.media_player_id,
+              billboard_id: billboardId,
+              installation_date: today,
+              uninstall_date: today, // required NOT NULL — same as install date until uninstalled
+              installed_by: user.id,
+              installation_notes: issueData.notes || `จากเอกสาร ${parentRequest?.document_no}`,
+            });
+          if (histError) console.error("Error inserting MP history:", histError);
+
           await logStockMovement({
             equipment_id: selectedItem.media_player_id,
             equipment_code: currentMediaPlayer?.code || selectedItem.equipment_code || "",
@@ -347,7 +378,7 @@ const IssueGoods = () => {
             reference_type: "billboard_equipment",
             reference_document: parentRequest?.document_no || "",
             location_id: currentMediaPlayer?.location_id || undefined,
-            notes: `Media Player ติดตั้งที่ป้าย ${billboardId} S/N: ${issueData.serial_number || "-"}`,
+            notes: `Media Player ติดตั้งที่ป้าย ${bbLabel} S/N: ${issueData.serial_number || "-"}`,
           });
         }
       } else if (selectedItem.equipment_id && issuedQty > 0) {
@@ -429,6 +460,13 @@ const IssueGoods = () => {
         // If installing to billboard, create billboard_equipment record
         const billboardId = issueData.billboard_id || selectedItem.billboard_id;
         if (billboardId) {
+          const { data: bbInfo } = await supabase
+            .from("billboards")
+            .select("old_code, location_name")
+            .eq("id", billboardId)
+            .maybeSingle();
+          const bbLabel = [bbInfo?.old_code, bbInfo?.location_name].filter(Boolean).join(" - ") || billboardId;
+
           const { error: billboardError } = await supabase
             .from("billboard_equipment")
             .insert({
@@ -453,7 +491,7 @@ const IssueGoods = () => {
             reference_type: "billboard_equipment",
             reference_document: parentRequest?.document_no || "",
             location_id: equipment?.find(e => e.id === selectedItem.equipment_id)?.location_id || undefined,
-            notes: `ติดตั้งที่ป้าย ${billboardId}`,
+            notes: `ติดตั้งที่ป้าย ${bbLabel}`,
           });
         }
       }
