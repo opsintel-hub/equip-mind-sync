@@ -1,0 +1,1 @@
+ALTER TABLE public.assessment_logs ADD COLUMN IF NOT EXISTS outcome text;

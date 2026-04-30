@@ -390,6 +390,7 @@ export type Database = {
           id: string
           media_player_id: string | null
           notes: string | null
+          outcome: string | null
           photo_urls: string[] | null
           recommended_action: string | null
           serial_number: string | null
@@ -415,6 +416,7 @@ export type Database = {
           id?: string
           media_player_id?: string | null
           notes?: string | null
+          outcome?: string | null
           photo_urls?: string[] | null
           recommended_action?: string | null
           serial_number?: string | null
@@ -440,6 +442,7 @@ export type Database = {
           id?: string
           media_player_id?: string | null
           notes?: string | null
+          outcome?: string | null
           photo_urls?: string[] | null
           recommended_action?: string | null
           serial_number?: string | null
