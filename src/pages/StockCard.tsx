@@ -824,7 +824,7 @@ export default function StockCard() {
                 },
                 {
                   label: "จัดเก็บ",
-                  status: hasReceive ? (inStock && !isCurrentlyInstalled ? "current" : "done") : "pending",
+                  status: hasReceive ? "done" : "pending",
                 },
               ];
 
@@ -853,7 +853,7 @@ export default function StockCard() {
                     date: lastIssue?.date,
                   });
                 } else {
-                  steps.push({ label: "เบิก/ติดตั้ง", status: inStock ? "pending" : "current" });
+                  steps.push({ label: "เบิก/ติดตั้ง", status: inStock ? "current" : "pending" });
                 }
               } else {
                 const lastIssue = [...timeline].reverse().find(e => e.type === "issue");
