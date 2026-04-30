@@ -25,6 +25,7 @@ const Dashboard = () => {
   const [pmStats, setPmStats] = useState({ overdue: 0, within30: 0 });
 
   useEffect(() => {
+    // Run both stat aggregations in parallel
     fetchStats();
     fetchPMStats();
   }, [selectedCompanyId]);
@@ -33,43 +34,46 @@ const Dashboard = () => {
     const today = new Date().toISOString().split('T')[0];
     const companyFilter = selectedCompanyId !== "all" ? selectedCompanyId : null;
 
-    let equipmentQuery = supabase.from("equipment").select("id", { count: "exact" }).eq("is_active", true);
+    let equipmentQuery = supabase.from("equipment").select("id", { count: "exact", head: true }).eq("is_active", true);
     if (companyFilter) equipmentQuery = equipmentQuery.eq("company_id", companyFilter);
-    const { count: equipmentCount } = await equipmentQuery;
 
-    let receiptsQuery = supabase.from("goods_receipt").select("id", { count: "exact" }).gte("receipt_date", today);
+    let receiptsQuery = supabase.from("goods_receipt").select("id", { count: "exact", head: true }).gte("receipt_date", today);
     if (companyFilter) receiptsQuery = receiptsQuery.eq("company_id", companyFilter);
-    const { count: receiptsCount } = await receiptsQuery;
 
-    let issuesQuery = supabase.from("goods_issue").select("id", { count: "exact" }).gte("issue_date", today);
+    let issuesQuery = supabase.from("goods_issue").select("id", { count: "exact", head: true }).gte("issue_date", today);
     if (companyFilter) issuesQuery = issuesQuery.eq("company_id", companyFilter);
-    const { count: issuesCount } = await issuesQuery;
 
-    const { count: billboardsCount } = await supabase.from("billboards").select("id", { count: "exact" }).eq("status", "active");
+    const billboardsQuery = supabase.from("billboards").select("id", { count: "exact", head: true }).eq("status", "active");
 
-    let loansQuery = supabase.from("equipment_loans").select("id", { count: "exact" }).eq("status", "approved");
+    let loansQuery = supabase.from("equipment_loans").select("id", { count: "exact", head: true }).eq("status", "approved");
     if (companyFilter) {
       loansQuery = loansQuery.or(`from_company_id.eq.${companyFilter},to_company_id.eq.${companyFilter}`);
     }
-    const { count: loansCount } = await loansQuery;
+
+    // Fire all 5 count queries in parallel instead of awaiting sequentially
+    const [eq, rec, iss, bb, ln] = await Promise.all([
+      equipmentQuery,
+      receiptsQuery,
+      issuesQuery,
+      billboardsQuery,
+      loansQuery,
+    ]);
 
     setStats({
-      totalEquipment: equipmentCount || 0,
-      todayReceipts: receiptsCount || 0,
-      todayIssues: issuesCount || 0,
-      totalBillboards: billboardsCount || 0,
-      activeLoans: loansCount || 0
+      totalEquipment: eq.count || 0,
+      todayReceipts: rec.count || 0,
+      todayIssues: iss.count || 0,
+      totalBillboards: bb.count || 0,
+      activeLoans: ln.count || 0,
     });
   };
 
   const fetchPMStats = async () => {
     const today = new Date().toISOString().split("T")[0];
-    const { data: beData } = await supabase
-      .from("billboard_equipment")
-      .select(`equipment:equipment_id (expiry_date, warranty_expiry_date), billboard_id`);
-    const { data: actionsData } = await supabase
-      .from("billboard_pm_actions")
-      .select("billboard_id, action_type, snooze_until");
+    const [{ data: beData }, { data: actionsData }] = await Promise.all([
+      supabase.from("billboard_equipment").select(`equipment:equipment_id (expiry_date, warranty_expiry_date), billboard_id`),
+      supabase.from("billboard_pm_actions").select("billboard_id, action_type, snooze_until"),
+    ]);
     const excluded = new Set<string>();
     (actionsData || []).forEach((a: any) => {
       if (a.action_type === "ticket_created") excluded.add(a.billboard_id);
