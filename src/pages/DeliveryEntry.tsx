@@ -2921,6 +2921,13 @@ const DeliveryEntry = () => {
         onOpenChange={(open) => { if (!open) setSelectedDetailReceipt(null); }}
         receipt={selectedDetailReceipt}
       />
+
+      <DocumentPreviewDialog
+        open={!!previewDocUrl}
+        onOpenChange={(open) => { if (!open) setPreviewDocUrl(null); }}
+        publicUrl={previewDocUrl}
+        title="ดูเอกสาร"
+      />
     </div>
   );
 };
