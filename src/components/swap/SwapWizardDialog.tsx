@@ -82,6 +82,7 @@ export function SwapWizardDialog({ open, onOpenChange, request, onCompleted }: P
   const [rejectReasonId, setRejectReasonId] = useState("");
   const [rejectReasonOther, setRejectReasonOther] = useState("");
   const [notes, setNotes] = useState("");
+  const [crossModelAck, setCrossModelAck] = useState(false);
 
   useEffect(() => {
     if (open) {
