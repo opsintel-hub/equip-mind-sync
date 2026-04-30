@@ -12,7 +12,7 @@ import { SearchableSelect } from "@/components/ui/searchable-select";
 import { supabase } from "@/integrations/supabase/client";
 import { dedupeMediaPlayersByCode } from "@/lib/mediaPlayerOptions";
 import { toast } from "sonner";
-import { AlertTriangle, Package, MapPin, Send, Loader2, Info, PlusCircle, X, ImagePlus, ClipboardCheck, FileCheck2, ArrowLeftRight } from "lucide-react";
+import { AlertTriangle, Package, MapPin, Send, Loader2, Info, PlusCircle, X, ImagePlus, ArrowLeftRight } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { format } from "date-fns";
 
@@ -485,78 +485,30 @@ const DefectiveReturnEntry = () => {
                   )}
                 </div>
 
-                {/* Quick actions: forward to Assessment / Claim with prefilled state */}
+                {/* Forward to Swap (only when item came from a billboard) */}
                 <div className="pt-3 border-t space-y-2">
                   <p className="text-xs font-medium text-muted-foreground">ดำเนินการต่อ:</p>
-                  <div className="grid grid-cols-2 gap-2">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      className="h-8"
-                      onClick={() => {
-                        const serial = isMediaPlayer
-                          ? selectedMediaPlayer?.serial_number_1
-                          : (perUnitMode
-                              ? defectiveUnits.find(u => u.serial_number.trim())?.serial_number
-                              : selectedEquipment?.serial_number);
-                        navigate("/assessment", {
-                          state: {
-                            prefill: {
-                              isMediaPlayer,
-                              itemId: selectedItemId,
-                              serial: serial || null,
-                              symptomDescription: perUnitMode
-                                ? defectiveUnits.find(u => u.reason.trim())?.reason || ""
-                                : reason,
-                            },
-                          },
-                        });
-                      }}
-                    >
-                      <ClipboardCheck className="w-3.5 h-3.5 mr-1" /> ส่งประเมิน
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      className="h-8"
-                      onClick={() => {
-                        const serial = isMediaPlayer
-                          ? selectedMediaPlayer?.serial_number_1
-                          : (perUnitMode
-                              ? defectiveUnits.find(u => u.serial_number.trim())?.serial_number
-                              : selectedEquipment?.serial_number);
-                        navigate("/claims", {
-                          state: {
-                            prefill: {
-                              isMediaPlayer,
-                              itemId: selectedItemId,
-                              serial: serial || null,
-                              symptomDescription: perUnitMode
-                                ? defectiveUnits.find(u => u.reason.trim())?.reason || ""
-                                : reason,
-                            },
-                          },
-                        });
-                      }}
-                    >
-                      <FileCheck2 className="w-3.5 h-3.5 mr-1" /> ส่งเคลม
-                    </Button>
-                  </div>
-                  {isFromBillboard && (
-                    <Button
-                      type="button"
-                      variant="default"
-                      size="sm"
-                      className="h-8 w-full mt-1"
-                      disabled={isSubmitting}
-                      onClick={handleSendToSwap}
-                    >
-                      <ArrowLeftRight className="w-3.5 h-3.5 mr-1" /> ส่งไป Process Swap (สร้างคำขอใหม่)
-                    </Button>
+                  {isFromBillboard ? (
+                    <>
+                      <Button
+                        type="button"
+                        variant="default"
+                        size="sm"
+                        className="h-9 w-full"
+                        disabled={isSubmitting}
+                        onClick={handleSendToSwap}
+                      >
+                        <ArrowLeftRight className="w-4 h-4 mr-1" /> ส่งไป Process Swap (สร้างคำขอใหม่)
+                      </Button>
+                      <p className="text-[11px] text-muted-foreground">
+                        ของชิ้นนี้ถูกถอดออกจากป้าย — ระบบจะสร้างคำขอ Swap ใหม่ให้อัตโนมัติและเชื่อมกับใบของเสียนี้
+                      </p>
+                    </>
+                  ) : (
+                    <p className="text-[11px] text-muted-foreground">
+                      หลังบันทึก ใบของเสียจะเข้าคิวที่หน้า <span className="font-medium">"อนุมัติการจัดการของเสีย"</span> เพื่อเลือกวิธี (ทำลายทิ้ง / จำหน่ายซาก / CSR / ซ่อมคืน)
+                    </p>
                   )}
-                  <p className="text-[11px] text-muted-foreground">ระบบจะส่งข้อมูลที่กรอกไว้ไปกรอกล่วงหน้าให้ — "ส่งไป Swap" จะสร้างคำขอ Swap ใหม่และเชื่อมกับใบของเสียอัตโนมัติ</p>
                 </div>
               </div>
             ) : (
