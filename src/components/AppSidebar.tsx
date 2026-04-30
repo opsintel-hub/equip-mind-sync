@@ -265,7 +265,7 @@ const menuGroups: MenuGroup[] = [
     label: "ตั้งค่าระบบ",
     items: [
       { title: "ข้อมูลหลัก", url: "/master-data", icon: Database, functionName: "master_data" },
-      { title: "จัดการป้ายโฆษณา", url: "/billboards", icon: MapPin, functionName: "billboards" },
+      { title: "จัดการป้ายโฆษณา(Manual)", url: "/billboards", icon: MapPin, functionName: "billboards" },
       { title: "จัดการ Package ป้าย", url: "/billboard-packages", icon: Package, functionName: "billboards" },
       { title: "ตั้งค่าแจ้งเตือน", url: "/notification-settings", icon: Bell },
       { title: "จัดการผู้ใช้", url: "/admin", icon: Shield, functionName: "admin" },
