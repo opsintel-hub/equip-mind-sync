@@ -145,17 +145,21 @@ export function DocumentPreviewDialog({
         <div className="flex-1 bg-muted/20 overflow-hidden min-h-0 flex flex-col">
           {documentUrls.length > 1 && (
             <div className="flex items-center gap-2 px-4 py-2 border-b bg-background overflow-x-auto">
-              {documentUrls.map((_, index) => (
-                <Button
-                  key={index}
-                  type="button"
-                  size="sm"
-                  variant={index === activeIndex ? "default" : "outline"}
-                  onClick={() => setActiveIndex(index)}
-                >
-                  เอกสาร {index + 1}
-                </Button>
-              ))}
+              {documentUrls.map((_, index) => {
+                const customLabel = labels && labels.length === documentUrls.length ? labels[index] : null;
+                const fallback = `เอกสาร ${index + 1}`;
+                return (
+                  <Button
+                    key={index}
+                    type="button"
+                    size="sm"
+                    variant={index === activeIndex ? "default" : "outline"}
+                    onClick={() => setActiveIndex(index)}
+                  >
+                    {customLabel || fallback}
+                  </Button>
+                );
+              })}
             </div>
           )}
           {loading && (
