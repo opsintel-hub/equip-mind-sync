@@ -108,26 +108,25 @@ export function SerialNumberSelect({
     enabled: isMediaPlayer !== false,
   });
 
-  // Fetch already issued Media Player serials (to exclude from in-stock serial dropdown)
-  const { data: issuedMediaSerials, isLoading: loadingIssuedMediaSerials } = useQuery({
-    queryKey: ["media-players-issued-serials", equipmentId, scopedMediaPlayerKey, isMediaPlayer],
+  // Fetch already requested/issued serials to exclude S/N that are not freely available anymore
+  const { data: consumedSerials, isLoading: loadingConsumedSerials } = useQuery({
+    queryKey: ["consumed-issue-serials", equipmentId, scopedMediaPlayerKey, isMediaPlayer],
     queryFn: async () => {
       let query = supabase
         .from("goods_issue_pending_items")
-        .select("id, media_player_id, serial_number, issued_quantity, status")
-        .eq("is_media_player", true)
+        .select("id, equipment_id, media_player_id, is_media_player, serial_number, issued_quantity, status")
         .not("serial_number", "is", null)
         .neq("serial_number", "")
-        .gt("issued_quantity", 0);
+        .neq("status", "rejected");
 
-      if (scopedMediaPlayerIds.length > 0) query = query.in("media_player_id", scopedMediaPlayerIds);
-      else if (equipmentId) query = query.eq("media_player_id", equipmentId);
+      if (isMediaPlayer === true && scopedMediaPlayerIds.length > 0) query = query.in("media_player_id", scopedMediaPlayerIds);
+      else if (equipmentId && isMediaPlayer === true) query = query.eq("media_player_id", equipmentId);
+      else if (equipmentId && isMediaPlayer === false) query = query.eq("equipment_id", equipmentId);
 
       const { data, error } = await query;
       if (error) throw error;
       return data || [];
     },
-    enabled: isMediaPlayer !== false,
   });
 
   // Fallback for legacy Media Player rows
