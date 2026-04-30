@@ -22,6 +22,7 @@ interface SerialNumberSelectProps {
   placeholder?: string;
   equipmentId?: string;
   isMediaPlayer?: boolean;
+  mediaPlayerIds?: string[];
 }
 
 export function SerialNumberSelect({
@@ -30,10 +31,18 @@ export function SerialNumberSelect({
   disabled = false,
   placeholder = "ค้นหา Serial Number...",
   equipmentId,
+  isMediaPlayer,
+  mediaPlayerIds,
 }: SerialNumberSelectProps) {
+  const scopedMediaPlayerIds = useMemo(
+    () => Array.from(new Set((mediaPlayerIds || []).filter(Boolean))).sort(),
+    [mediaPlayerIds]
+  );
+  const scopedMediaPlayerKey = scopedMediaPlayerIds.join("|");
+
   // Fetch from equipment_serial_numbers table (primary source - in_stock only)
   const { data: snTableData, isLoading: loadingSnTable } = useQuery({
-    queryKey: ["equipment-sn-table", equipmentId],
+    queryKey: ["equipment-sn-table", equipmentId, isMediaPlayer],
     queryFn: async () => {
       let query = supabase
         .from("equipment_serial_numbers")
@@ -46,11 +55,12 @@ export function SerialNumberSelect({
       if (error) throw error;
       return data || [];
     },
+    enabled: isMediaPlayer !== true,
   });
 
   // Fallback: Fetch equipment with serial_number field (legacy records)
   const { data: equipmentData, isLoading: loadingEquipment } = useQuery({
-    queryKey: ["equipment-serial-numbers", equipmentId],
+    queryKey: ["equipment-serial-numbers", equipmentId, isMediaPlayer],
     queryFn: async () => {
       let query = supabase
         .from("equipment")
@@ -67,11 +77,12 @@ export function SerialNumberSelect({
       if (error) throw error;
       return data || [];
     },
+    enabled: isMediaPlayer !== true,
   });
 
   // Fetch received Media Player serials (authoritative serial source)
   const { data: receivedMediaSerials, isLoading: loadingReceivedMediaSerials } = useQuery({
-    queryKey: ["media-players-received-serials", equipmentId],
+    queryKey: ["media-players-received-serials", equipmentId, scopedMediaPlayerKey, isMediaPlayer],
     queryFn: async () => {
       let query = supabase
         .from("goods_receipt_pending")
@@ -87,17 +98,19 @@ export function SerialNumberSelect({
         .not("serial_number", "is", null)
         .neq("serial_number", "");
 
-      if (equipmentId) query = query.eq("media_player_id", equipmentId);
+      if (scopedMediaPlayerIds.length > 0) query = query.in("media_player_id", scopedMediaPlayerIds);
+      else if (equipmentId) query = query.eq("media_player_id", equipmentId);
 
       const { data, error } = await query;
       if (error) throw error;
       return data || [];
     },
+    enabled: isMediaPlayer !== false,
   });
 
   // Fetch already issued Media Player serials (to exclude from in-stock serial dropdown)
   const { data: issuedMediaSerials, isLoading: loadingIssuedMediaSerials } = useQuery({
-    queryKey: ["media-players-issued-serials", equipmentId],
+    queryKey: ["media-players-issued-serials", equipmentId, scopedMediaPlayerKey, isMediaPlayer],
     queryFn: async () => {
       let query = supabase
         .from("goods_issue_pending_items")
@@ -107,17 +120,19 @@ export function SerialNumberSelect({
         .neq("serial_number", "")
         .gt("issued_quantity", 0);
 
-      if (equipmentId) query = query.eq("media_player_id", equipmentId);
+      if (scopedMediaPlayerIds.length > 0) query = query.in("media_player_id", scopedMediaPlayerIds);
+      else if (equipmentId) query = query.eq("media_player_id", equipmentId);
 
       const { data, error } = await query;
       if (error) throw error;
       return data || [];
     },
+    enabled: isMediaPlayer !== false,
   });
 
   // Fallback for legacy Media Player rows
   const { data: mediaPlayersData, isLoading: loadingMediaPlayers } = useQuery({
-    queryKey: ["media-players-legacy-serial-fallback", equipmentId],
+    queryKey: ["media-players-legacy-serial-fallback", equipmentId, scopedMediaPlayerKey, isMediaPlayer],
     queryFn: async () => {
       let query = supabase
         .from("media_players")
@@ -126,12 +141,14 @@ export function SerialNumberSelect({
         .gt("quantity", 0)
         .order("code");
 
-      if (equipmentId) query = query.eq("id", equipmentId);
+      if (scopedMediaPlayerIds.length > 0) query = query.in("id", scopedMediaPlayerIds);
+      else if (equipmentId) query = query.eq("id", equipmentId);
 
       const { data, error } = await query;
       if (error) throw error;
       return data || [];
     },
+    enabled: isMediaPlayer !== false,
   });
 
   // Combine all serial numbers into a unified list
