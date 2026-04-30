@@ -824,7 +824,7 @@ export default function StockCard() {
                 },
                 {
                   label: "จัดเก็บ",
-                  status: hasReceive ? (inStock && !isCurrentlyInstalled ? "current" : "done") : "pending",
+                  status: hasReceive ? "done" : "pending",
                 },
               ];
 
