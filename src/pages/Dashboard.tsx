@@ -70,12 +70,10 @@ const Dashboard = () => {
 
   const fetchPMStats = async () => {
     const today = new Date().toISOString().split("T")[0];
-    const { data: beData } = await supabase
-      .from("billboard_equipment")
-      .select(`equipment:equipment_id (expiry_date, warranty_expiry_date), billboard_id`);
-    const { data: actionsData } = await supabase
-      .from("billboard_pm_actions")
-      .select("billboard_id, action_type, snooze_until");
+    const [{ data: beData }, { data: actionsData }] = await Promise.all([
+      supabase.from("billboard_equipment").select(`equipment:equipment_id (expiry_date, warranty_expiry_date), billboard_id`),
+      supabase.from("billboard_pm_actions").select("billboard_id, action_type, snooze_until"),
+    ]);
     const excluded = new Set<string>();
     (actionsData || []).forEach((a: any) => {
       if (a.action_type === "ticket_created") excluded.add(a.billboard_id);
