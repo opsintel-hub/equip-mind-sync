@@ -10,6 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useIsSuperAdmin } from "@/hooks/useIsSuperAdmin";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 
 interface DeliveryDetailDialogProps {
   open: boolean;
