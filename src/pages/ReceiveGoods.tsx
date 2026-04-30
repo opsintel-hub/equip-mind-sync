@@ -331,6 +331,8 @@ const ReceiveGoods = () => {
     setSelectedWarehouseId("");
     setStorageLocation({ locationId: "" });
     setItemCondition("normal");
+    setEditAssetCode(receipt.asset_code || "");
+    setEditEquipmentIdCode(receipt.equipment_id_code || "");
     setIsDialogOpen(true);
   };
 
