@@ -265,9 +265,23 @@ export function SwapWizardDialog({ open, onOpenChange, request, onCompleted }: P
 
   const canNext1 = !!spareValue;
   const canNext2 = !!oldValue;
+
+  // ตรวจ cross-model: spare กับ old ต่างรหัส/ต่าง equipment_id หรือไม่
+  const isCrossModel = (() => {
+    if (!selectedSpare || !selectedOld) return false;
+    if (selectedSpare.type !== selectedOld.type) return true;
+    const spareEqId = selectedSpare.equipment_id || (selectedSpare.type === "equipment" ? selectedSpare.value.split(":")[1] : null);
+    const oldEqId = selectedOld.equipment_id || null;
+    if (spareEqId && oldEqId) return spareEqId !== oldEqId;
+    const spareCode = (selectedSpare.item_code || "").toLowerCase();
+    const oldCode = (request?.reported_item_code || "").toLowerCase();
+    if (spareCode && oldCode) return spareCode !== oldCode;
+    return false;
+  })();
+
   const canSubmit =
     result === "approved"
-      ? true
+      ? (!isCrossModel || crossModelAck)
       : !!rejectReasonId || !!rejectReasonOther.trim();
 
   const handleSubmit = async () => {
