@@ -8,13 +8,15 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { ArrowLeftRight, ListChecks, PlusCircle, RefreshCw } from "lucide-react";
+import { ArrowLeftRight, ListChecks, PlusCircle, RefreshCw, MapPin, Wrench, Package, User, Camera, ClipboardList } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { th } from "date-fns/locale";
 import BillboardSelect from "@/components/billboard/BillboardSelect";
 import { SymptomSelect } from "@/components/media-player/SymptomSelect";
 import { SwapWizardDialog } from "@/components/swap/SwapWizardDialog";
+import { SearchableSelect } from "@/components/ui/searchable-select";
+import { EquipmentImageUpload } from "@/components/equipment/EquipmentImageUpload";
 
 interface SwapRequest {
   id: string;
@@ -30,6 +32,26 @@ interface SwapRequest {
   created_at: string;
   notes: string | null;
   defective_return_id?: string | null;
+  reported_asset_type?: string | null;
+  reported_item_name?: string | null;
+  reported_item_code?: string | null;
+  reported_serial_number?: string | null;
+  reported_photos?: string[] | null;
+  received_by_name?: string | null;
+}
+
+interface InstalledItemOption {
+  value: string;
+  label: string;
+  description?: string;
+  searchableText?: string;
+  asset_type: "equipment" | "media_player";
+  equipment_id?: string | null;
+  media_player_id?: string | null;
+  serial_number?: string | null;
+  item_code?: string;
+  item_name?: string;
+  billboard_equipment_id?: string;
 }
 
 const STATUS_LABELS: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
@@ -65,6 +87,17 @@ export default function SwapWizard() {
   const [priority, setPriority] = useState("normal");
   const [submitting, setSubmitting] = useState(false);
 
+  // Reported asset (ของที่ช่างเอามาคืน)
+  const [installedItems, setInstalledItems] = useState<InstalledItemOption[]>([]);
+  const [installedLoading, setInstalledLoading] = useState(false);
+  const [reportedSelectKey, setReportedSelectKey] = useState("");
+  const [reportedAssetType, setReportedAssetType] = useState<"equipment" | "media_player">("equipment");
+  const [reportedItemName, setReportedItemName] = useState("");
+  const [reportedItemCode, setReportedItemCode] = useState("");
+  const [reportedSerial, setReportedSerial] = useState("");
+  const [reportedPhotos, setReportedPhotos] = useState<string[]>([]);
+  const [receivedByName, setReceivedByName] = useState("");
+
   const fetchRequests = async () => {
     setLoading(true);
     const { data, error } = await supabase
@@ -84,6 +117,61 @@ export default function SwapWizard() {
     fetchRequests();
   }, []);
 
+  // When billboard changes — load installed items so the technician can pick from a real list
+  useEffect(() => {
+    if (!billboardId) {
+      setInstalledItems([]);
+      setReportedSelectKey("");
+      return;
+    }
+    (async () => {
+      setInstalledLoading(true);
+      const { data } = await supabase
+        .from("billboard_equipment")
+        .select("id, equipment_id, serial_number, quantity, equipment:equipment_id(id, code, name)")
+        .eq("billboard_id", billboardId);
+      const opts: InstalledItemOption[] = (data || []).map((b: any) => ({
+        value: `be:${b.id}`,
+        label: `${b.equipment?.code || "—"} — ${b.equipment?.name || "Equipment"}`,
+        description: `S/N: ${b.serial_number || "—"} • จำนวน: ${b.quantity}`,
+        searchableText: `${b.equipment?.code || ""} ${b.equipment?.name || ""} ${b.serial_number || ""}`,
+        asset_type: "equipment",
+        equipment_id: b.equipment_id,
+        serial_number: b.serial_number,
+        item_code: b.equipment?.code,
+        item_name: b.equipment?.name,
+        billboard_equipment_id: b.id,
+      }));
+      opts.push({
+        value: "__manual__",
+        label: "+ กรอกรายการเอง (ไม่พบในป้าย)",
+        description: "เลือกหากของที่ช่างเอามาไม่ตรงกับรายการบนป้าย",
+        searchableText: "manual กรอกเอง",
+        asset_type: "equipment",
+      });
+      setInstalledItems(opts);
+      setInstalledLoading(false);
+    })();
+  }, [billboardId]);
+
+  // When user picks an installed item, autofill name/code/serial
+  useEffect(() => {
+    if (!reportedSelectKey) return;
+    if (reportedSelectKey === "__manual__") {
+      setReportedItemName("");
+      setReportedItemCode("");
+      setReportedSerial("");
+      return;
+    }
+    const item = installedItems.find((o) => o.value === reportedSelectKey);
+    if (item) {
+      setReportedAssetType(item.asset_type);
+      setReportedItemName(item.item_name || "");
+      setReportedItemCode(item.item_code || "");
+      setReportedSerial(item.serial_number || "");
+    }
+  }, [reportedSelectKey, installedItems]);
+
   const stats = useMemo(() => {
     const total = requests.length;
     const pending = requests.filter((r) => r.status === "pending").length;
@@ -100,6 +188,13 @@ export default function SwapWizard() {
     setTechnicianName("");
     setTechnicianPhone("");
     setPriority("normal");
+    setReportedSelectKey("");
+    setReportedAssetType("equipment");
+    setReportedItemName("");
+    setReportedItemCode("");
+    setReportedSerial("");
+    setReportedPhotos([]);
+    setReceivedByName("");
   };
 
   const handleSubmit = async () => {
@@ -111,6 +206,15 @@ export default function SwapWizard() {
       toast.error("กรุณาระบุอาการเสีย");
       return;
     }
+    if (!reportedItemName.trim() && !reportedItemCode.trim() && !reportedSerial.trim()) {
+      toast.error("กรุณาระบุของที่ช่างเอามาคืน (ชื่อ/รหัส/S/N อย่างน้อย 1 อย่าง)");
+      return;
+    }
+    if (!technicianName.trim()) {
+      toast.error("กรุณาระบุชื่อช่างผู้แจ้ง");
+      return;
+    }
+    const selected = installedItems.find((o) => o.value === reportedSelectKey);
     setSubmitting(true);
     const { error } = await supabase.from("swap_requests").insert({
       billboard_id: billboardId,
@@ -122,14 +226,25 @@ export default function SwapWizard() {
       priority,
       status: "pending",
       created_by: user?.id ?? null,
-      document_no: "", // auto-generated by trigger
-    });
+      document_no: "",
+      reported_asset_type: reportedAssetType,
+      reported_equipment_id: selected?.equipment_id || null,
+      reported_media_player_id: selected?.media_player_id || null,
+      reported_billboard_equipment_id: selected?.billboard_equipment_id || null,
+      reported_item_name: reportedItemName.trim() || null,
+      reported_item_code: reportedItemCode.trim() || null,
+      reported_serial_number: reportedSerial.trim() || null,
+      reported_photos: reportedPhotos,
+      received_by: user?.id ?? null,
+      received_by_name: receivedByName.trim() || null,
+      received_at: receivedByName.trim() ? new Date().toISOString() : null,
+    } as any);
     setSubmitting(false);
     if (error) {
       toast.error("บันทึกไม่สำเร็จ: " + error.message);
       return;
     }
-    toast.success("สร้างคำขอ Swap แล้ว");
+    toast.success("สร้างคำขอ Swap แล้ว — รอคลังเลือก Spare และดำเนินการ");
     resetForm();
     setActiveTab("list");
     fetchRequests();
@@ -225,12 +340,29 @@ export default function SwapWizard() {
                             {req.priority !== "normal" && (
                               <Badge variant="outline">Priority: {PRIORITY_LABELS[req.priority]}</Badge>
                             )}
+                            {req.reported_serial_number && (
+                              <Badge variant="outline" className="font-mono text-xs">S/N: {req.reported_serial_number}</Badge>
+                            )}
+                            {(req.reported_photos?.length ?? 0) > 0 && (
+                              <Badge variant="secondary" className="text-xs">
+                                <Camera className="h-3 w-3 mr-1" /> {req.reported_photos!.length} รูป
+                              </Badge>
+                            )}
+                          </div>
+                          <div className="text-sm">
+                            {req.reported_item_code || req.reported_item_name ? (
+                              <span className="font-medium">
+                                {req.reported_item_code} {req.reported_item_name && `— ${req.reported_item_name}`}
+                              </span>
+                            ) : null}
                           </div>
                           <div className="text-sm text-muted-foreground">
                             {req.description || req.symptom_other || "—"}
                           </div>
                           <div className="text-xs text-muted-foreground">
-                            ช่าง: {req.technician_name || "—"} • {format(new Date(req.created_at), "dd MMM yyyy HH:mm", { locale: th })}
+                            ช่าง: {req.technician_name || "—"}
+                            {req.received_by_name && ` • รับโดย: ${req.received_by_name}`}
+                            {" • "}{format(new Date(req.created_at), "dd MMM yyyy HH:mm", { locale: th })}
                           </div>
                         </div>
                         <div className="flex gap-2">
@@ -249,51 +381,21 @@ export default function SwapWizard() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="new" className="mt-4">
+        <TabsContent value="new" className="mt-4 space-y-4">
+          {/* Section 1: ป้าย + อาการ */}
           <Card>
             <CardHeader>
-              <CardTitle>แจ้งคำขอ Swap ใหม่</CardTitle>
-              <CardDescription>ขั้นที่ 1: ระบุปัญหา จากนั้นวิศวกรจะกด "ดำเนินการ Swap" เพื่อเข้า Wizard</CardDescription>
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <MapPin className="h-5 w-5 text-primary" />
+                1. ข้อมูลป้ายและอาการเสีย
+              </CardTitle>
+              <CardDescription>เลือกป้ายที่เกิดปัญหา และระบุอาการที่ตรวจพบหน้างาน</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label>ป้ายโฆษณา *</Label>
+                  <Label>ป้ายโฆษณา <span className="text-destructive">*</span></Label>
                   <BillboardSelect value={billboardId} onChange={setBillboardId} />
-                </div>
-                <div className="space-y-2">
-                  <Label>อาการเสีย *</Label>
-                  <SymptomSelect value={symptomId} onChange={setSymptomId} />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label>อาการอื่น ๆ (ถ้าไม่มีในรายการ)</Label>
-                <Input
-                  value={symptomOther}
-                  onChange={(e) => setSymptomOther(e.target.value)}
-                  placeholder="ระบุอาการเสียที่ไม่มีในรายการ"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label>รายละเอียดเพิ่มเติม</Label>
-                <Textarea
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  placeholder="อธิบายปัญหาเพิ่มเติม..."
-                  rows={3}
-                />
-              </div>
-
-              <div className="grid md:grid-cols-3 gap-4">
-                <div className="space-y-2">
-                  <Label>ชื่อช่างแจ้ง</Label>
-                  <Input value={technicianName} onChange={(e) => setTechnicianName(e.target.value)} placeholder="ชื่อ-สกุล" />
-                </div>
-                <div className="space-y-2">
-                  <Label>เบอร์ติดต่อ</Label>
-                  <Input value={technicianPhone} onChange={(e) => setTechnicianPhone(e.target.value)} placeholder="08x-xxx-xxxx" />
                 </div>
                 <div className="space-y-2">
                   <Label>ระดับความสำคัญ</Label>
@@ -310,9 +412,166 @@ export default function SwapWizard() {
                 </div>
               </div>
 
+              <div className="grid md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>อาการเสีย <span className="text-destructive">*</span></Label>
+                  <SymptomSelect value={symptomId} onChange={setSymptomId} />
+                </div>
+                <div className="space-y-2">
+                  <Label>อาการอื่น (ถ้าไม่มีในรายการ)</Label>
+                  <Input
+                    value={symptomOther}
+                    onChange={(e) => setSymptomOther(e.target.value)}
+                    placeholder="ระบุอาการเพิ่มเติม"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label>รายละเอียดเพิ่มเติม</Label>
+                <Textarea
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder="อธิบายปัญหา, สถานการณ์หน้างาน, สิ่งที่สังเกตเห็น..."
+                  rows={3}
+                />
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Section 2: ของที่ช่างเอามาคืน */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <Package className="h-5 w-5 text-primary" />
+                2. อุปกรณ์/Media Player ที่ช่างถอดและนำกลับมา <span className="text-destructive">*</span>
+              </CardTitle>
+              <CardDescription>
+                {billboardId
+                  ? "เลือกจากรายการที่ติดตั้งบนป้ายนี้ หรือกดกรอกเอง หากไม่ตรงกับรายการ"
+                  : "กรุณาเลือกป้ายโฆษณาก่อนในขั้นตอนที่ 1"}
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {billboardId ? (
+                <>
+                  <div className="space-y-2">
+                    <Label>เลือกจากรายการที่ติดตั้งบนป้าย</Label>
+                    <SearchableSelect
+                      options={installedItems}
+                      value={reportedSelectKey}
+                      onValueChange={setReportedSelectKey}
+                      placeholder={installedLoading ? "กำลังโหลด..." : "ค้นหาด้วยรหัส, ชื่อ, S/N"}
+                      searchPlaceholder="พิมพ์เพื่อค้นหา..."
+                      isLoading={installedLoading}
+                    />
+                  </div>
+
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>ประเภท</Label>
+                      <select
+                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                        value={reportedAssetType}
+                        onChange={(e) => setReportedAssetType(e.target.value as any)}
+                        disabled={reportedSelectKey !== "" && reportedSelectKey !== "__manual__"}
+                      >
+                        <option value="equipment">อุปกรณ์ทั่วไป (Equipment)</option>
+                        <option value="media_player">Media Player</option>
+                      </select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>รหัส (Code)</Label>
+                      <Input
+                        value={reportedItemCode}
+                        onChange={(e) => setReportedItemCode(e.target.value)}
+                        placeholder="เช่น EQ001 / MP-PB 0001"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>ชื่อ/รุ่น</Label>
+                      <Input
+                        value={reportedItemName}
+                        onChange={(e) => setReportedItemName(e.target.value)}
+                        placeholder="ชื่ออุปกรณ์/รุ่น"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>หมายเลขเครื่อง (S/N)</Label>
+                      <Input
+                        value={reportedSerial}
+                        onChange={(e) => setReportedSerial(e.target.value)}
+                        placeholder="S/N ที่อ่านจากตัวเครื่อง"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="flex items-center gap-2">
+                      <Camera className="h-4 w-4" /> รูปถ่ายของที่นำมาคืน (สูงสุด 5 รูป)
+                    </Label>
+                    <EquipmentImageUpload
+                      images={reportedPhotos}
+                      onChange={setReportedPhotos}
+                      maxImages={5}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      ถ่ายให้เห็นตัวเครื่อง, S/N, และจุดที่เสียหายเพื่อใช้ประกอบการประเมินที่คลัง
+                    </p>
+                  </div>
+                </>
+              ) : (
+                <div className="text-center py-8 text-muted-foreground border-2 border-dashed rounded-lg">
+                  เลือกป้ายโฆษณาในขั้นที่ 1 เพื่อแสดงรายการอุปกรณ์ที่ติดตั้งอยู่
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Section 3: ผู้แจ้ง + ผู้รับเรื่อง */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <User className="h-5 w-5 text-primary" />
+                3. ผู้แจ้ง / ผู้รับเรื่อง
+              </CardTitle>
+              <CardDescription>ข้อมูลช่างที่นำของมาคืน และเจ้าหน้าที่คลังที่รับเรื่อง</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid md:grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label>ชื่อช่างผู้แจ้ง <span className="text-destructive">*</span></Label>
+                  <Input value={technicianName} onChange={(e) => setTechnicianName(e.target.value)} placeholder="ชื่อ-สกุล" />
+                </div>
+                <div className="space-y-2">
+                  <Label>เบอร์ติดต่อช่าง</Label>
+                  <Input value={technicianPhone} onChange={(e) => setTechnicianPhone(e.target.value)} placeholder="08x-xxx-xxxx" />
+                </div>
+                <div className="space-y-2">
+                  <Label>เจ้าหน้าที่คลังที่รับเรื่อง</Label>
+                  <Input value={receivedByName} onChange={(e) => setReceivedByName(e.target.value)} placeholder="ชื่อผู้รับ" />
+                </div>
+              </div>
+
+              <div className="rounded-lg border border-primary/20 bg-primary/5 p-3 text-sm flex items-start gap-2">
+                <ClipboardList className="h-4 w-4 mt-0.5 text-primary flex-shrink-0" />
+                <div>
+                  <div className="font-medium">ขั้นตอนถัดไป</div>
+                  <div className="text-muted-foreground">
+                    หลังบันทึก คำขอจะอยู่สถานะ "รอดำเนินการ" — เจ้าหน้าที่คลังจะกด <strong>"ดำเนินการ Swap"</strong> เพื่อเลือก Spare และจัดส่งให้ช่างต่อไป
+                  </div>
+                </div>
+              </div>
+
               <div className="flex justify-end gap-2 pt-2">
-                <Button variant="outline" onClick={resetForm}>ล้างฟอร์ม</Button>
-                <Button onClick={handleSubmit} disabled={submitting}>
+                <Button variant="outline" onClick={resetForm} disabled={submitting}>
+                  ล้างฟอร์ม
+                </Button>
+                <Button onClick={handleSubmit} disabled={submitting} size="lg">
+                  <Wrench className="h-4 w-4 mr-1" />
                   {submitting ? "กำลังบันทึก..." : "สร้างคำขอ Swap"}
                 </Button>
               </div>
