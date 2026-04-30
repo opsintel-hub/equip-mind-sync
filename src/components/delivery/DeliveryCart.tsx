@@ -197,23 +197,34 @@ export function DeliveryCart({ items, onRemoveItem, onClearCart, onEditItem, sel
                     </TableCell>
                     <TableCell>
                       <div className="flex flex-wrap gap-1">
-                        {item.is_media_player && (
-                          <Badge variant="secondary" className="bg-blue-500/10 text-blue-600 text-xs">
+                        {/* ประเภทสินค้า: Media Player vs Equipment */}
+                        {item.is_media_player ? (
+                          <Badge variant="secondary" className="bg-blue-500/10 text-blue-600 border border-blue-500/30 text-xs">
                             Media Player
                           </Badge>
+                        ) : (
+                          <Badge variant="secondary" className="bg-slate-500/10 text-slate-600 border border-slate-500/30 text-xs">
+                            Equipment
+                          </Badge>
                         )}
+                        {/* สถานะในระบบ */}
                         {item.equipment_id || item.media_player_id ? (
-                          <Badge variant="secondary" className="bg-success/10 text-success text-xs">
+                          <Badge variant="secondary" className="bg-success/10 text-success border border-success/30 text-xs">
                             มีในระบบ
                           </Badge>
                         ) : (
-                          <Badge variant="secondary" className="bg-warning/10 text-warning text-xs">
+                          <Badge variant="secondary" className="bg-warning/10 text-warning border border-warning/30 text-xs">
                             สินค้าใหม่
                           </Badge>
                         )}
-                        {item.is_asset && (
-                          <Badge variant="secondary" className="bg-amber-500/10 text-amber-600 text-xs">
+                        {/* ทรัพย์สิน vs สิ้นเปลือง */}
+                        {item.is_asset ? (
+                          <Badge variant="secondary" className="bg-amber-500/10 text-amber-600 border border-amber-500/30 text-xs">
                             ทรัพย์สิน
+                          </Badge>
+                        ) : (
+                          <Badge variant="secondary" className="bg-muted text-muted-foreground border border-border text-xs">
+                            สิ้นเปลือง
                           </Badge>
                         )}
                       </div>
