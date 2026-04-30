@@ -25,6 +25,7 @@ import { format } from "date-fns";
 import { formatBillboardLabel } from "@/lib/billboardUtils";
 import BillboardSelect from "@/components/billboard/BillboardSelect";
 import { BrandSelect } from "@/components/equipment/BrandSelect";
+import { DocumentPreviewDialog } from "@/components/DocumentPreviewDialog";
 
 interface Billboard {
   id: string;
@@ -90,6 +91,7 @@ const MediaPlayerEntry = () => {
   const [installBillboardId, setInstallBillboardId] = useState("");
   const [installDate, setInstallDate] = useState("");
   const [imageUploadPlayer, setImageUploadPlayer] = useState<MediaPlayer | null>(null);
+  const [previewDocUrl, setPreviewDocUrl] = useState<string | null>(null);
   const [selectedPrefix, setSelectedPrefix] = useState("");
   const [codePreview, setCodePreview] = useState("");
   
@@ -880,7 +882,7 @@ const MediaPlayerEntry = () => {
                               <TableCell className="text-sm whitespace-nowrap">{player.po_number || "-"}</TableCell>
                               <TableCell className="text-center">
                                 {player.po_document_url ? (
-                                  <button type="button" onClick={() => downloadStorageFile(player.po_document_url!)} title="ดูไฟล์ PO" className="cursor-pointer">
+                                  <button type="button" onClick={() => setPreviewDocUrl(player.po_document_url!)} title="ดูไฟล์ PO" className="cursor-pointer">
                                     <FileText className="w-4 h-4 text-primary hover:text-primary/80 mx-auto" />
                                   </button>
                                 ) : <span className="text-muted-foreground">-</span>}
@@ -888,7 +890,7 @@ const MediaPlayerEntry = () => {
                               <TableCell className="text-sm whitespace-nowrap">{player.pr_number || "-"}</TableCell>
                               <TableCell className="text-center">
                                 {player.pr_document_url ? (
-                                  <button type="button" onClick={() => downloadStorageFile(player.pr_document_url!)} title="ดูไฟล์ PR" className="cursor-pointer">
+                                  <button type="button" onClick={() => setPreviewDocUrl(player.pr_document_url!)} title="ดูไฟล์ PR" className="cursor-pointer">
                                     <FileText className="w-4 h-4 text-primary hover:text-primary/80 mx-auto" />
                                   </button>
                                 ) : <span className="text-muted-foreground">-</span>}
@@ -896,7 +898,7 @@ const MediaPlayerEntry = () => {
                               <TableCell className="text-sm whitespace-nowrap">{player.invoice_number || "-"}</TableCell>
                               <TableCell className="text-center">
                                 {player.invoice_document_url ? (
-                                  <button type="button" onClick={() => downloadStorageFile(player.invoice_document_url!)} title="ดูไฟล์ Invoice" className="cursor-pointer">
+                                  <button type="button" onClick={() => setPreviewDocUrl(player.invoice_document_url!)} title="ดูไฟล์ Invoice" className="cursor-pointer">
                                     <FileText className="w-4 h-4 text-primary hover:text-primary/80 mx-auto" />
                                   </button>
                                 ) : <span className="text-muted-foreground">-</span>}
@@ -1003,6 +1005,12 @@ const MediaPlayerEntry = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      <DocumentPreviewDialog
+        open={!!previewDocUrl}
+        onOpenChange={(open) => { if (!open) setPreviewDocUrl(null); }}
+        publicUrl={previewDocUrl}
+        title="ดูเอกสาร Media Player"
+      />
     </div>
   );
 };
