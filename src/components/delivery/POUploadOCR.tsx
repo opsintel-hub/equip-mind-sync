@@ -94,6 +94,13 @@ interface Company {
   department_id: string | null;
 }
 
+interface MediaPlayer {
+  id: string;
+  code: string;
+  name: string;
+  unit_price?: number | null;
+}
+
 interface POUploadOCRProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -102,6 +109,7 @@ interface POUploadOCRProps {
   equipment: Equipment[];
   departments: Department[];
   companies?: Company[];
+  mediaPlayers?: MediaPlayer[];
 }
 
 export function POUploadOCR({
@@ -112,6 +120,7 @@ export function POUploadOCR({
   equipment,
   departments,
   companies = [],
+  mediaPlayers = [],
 }: POUploadOCRProps) {
   const [file, setFile] = useState<File | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
