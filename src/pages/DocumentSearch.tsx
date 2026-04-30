@@ -488,17 +488,32 @@ export default function DocumentSearch() {
                           )}
                         </TableCell>
                         <TableCell className="text-center pr-6">
-                          {doc.document_url ? (
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8 text-muted-foreground hover:text-foreground"
-                              title="ดูเอกสาร"
-                              onClick={() => setPreviewDocUrl(doc.document_url!)}
-                            >
-                              <ExternalLink className="h-3.5 w-3.5" />
-                            </Button>
-                          ) : <span className="text-muted-foreground/30">-</span>}
+                          {(() => {
+                            const cats = getDocumentCategories(doc);
+                            if (cats.length === 0) {
+                              return <span className="text-muted-foreground/30">-</span>;
+                            }
+                            const fileCount = cats.reduce((sum, c) => {
+                              const urls = Array.isArray(c.urls)
+                                ? c.urls.filter(Boolean)
+                                : c.urls
+                                  ? splitUrls(c.urls)
+                                  : [];
+                              return sum + urls.length;
+                            }, 0);
+                            return (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-8 gap-1 text-muted-foreground hover:text-foreground"
+                                title={`ดูเอกสาร (${fileCount} ไฟล์ใน ${cats.length} หมวด)`}
+                                onClick={() => setPreviewState({ title: `เอกสาร ${doc.document_no}`, categories: cats })}
+                              >
+                                <ExternalLink className="h-3.5 w-3.5" />
+                                <span className="text-xs tabular-nums">{fileCount}/{cats.length}</span>
+                              </Button>
+                            );
+                          })()}
                         </TableCell>
                       </TableRow>
                     );
