@@ -263,13 +263,17 @@ export function SerialNumberSelect({
       });
     });
 
-    // Filter by equipmentId if provided
+    // Filter by equipmentId if provided. For grouped Media Players, keep every id in the selected group.
+    if (scopedMediaPlayerIds.length > 0) {
+      return items.filter((item) => scopedMediaPlayerIds.includes(item.id));
+    }
+
     if (equipmentId) {
       return items.filter((item) => item.id === equipmentId);
     }
 
     return items;
-  }, [snTableData, equipmentData, receivedMediaSerials, consumedSerials, mediaPlayersData, equipmentId]);
+  }, [snTableData, equipmentData, receivedMediaSerials, consumedSerials, mediaPlayersData, equipmentId, scopedMediaPlayerIds]);
 
   // Map serial number items to dropdown options
   const options: SearchableSelectOption[] = useMemo(() => {
