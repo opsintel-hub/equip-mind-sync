@@ -1300,6 +1300,7 @@ const DeliveryEntry = () => {
         onImport={handlePOImport}
         suppliers={suppliers}
         equipment={equipment}
+        mediaPlayers={mediaPlayers}
         departments={allowedDepartments.map((d) => ({ id: d.id, name: d.name }))}
         companies={companies}
       />
