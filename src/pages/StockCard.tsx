@@ -330,12 +330,15 @@ export default function StockCard() {
     if (!selectedItemId) return [];
     const events: TimelineEvent[] = [];
 
-    // Stock movements
+    // Stock movements — strip raw UUIDs from detail (legacy data may contain them)
+    const UUID_RE = /\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b/gi;
     movements.forEach(m => {
+      const rawDetail = m.notes || m.reference_document || "-";
+      const cleanDetail = rawDetail.replace(UUID_RE, "(ป้าย)").replace(/\s+/g, " ").trim();
       events.push({
         date: m.created_at,
         type: m.movement_type,
-        detail: m.notes || m.reference_document || "-",
+        detail: cleanDetail,
         quantity: m.quantity,
         stock_before: m.stock_before,
         stock_after: m.stock_after,
