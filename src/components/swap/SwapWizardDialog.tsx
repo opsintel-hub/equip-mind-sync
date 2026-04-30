@@ -588,6 +588,29 @@ export function SwapWizardDialog({ open, onOpenChange, request, onCompleted }: P
               </Card>
             </div>
 
+            {isCrossModel && result === "approved" && (
+              <div className="rounded-lg border-2 border-warning/50 bg-warning/10 p-4 space-y-3">
+                <div className="flex items-start gap-2">
+                  <Package className="h-5 w-5 text-warning mt-0.5 flex-shrink-0" />
+                  <div className="flex-1">
+                    <div className="font-semibold text-warning-foreground">⚠ Swap ข้ามรหัส / ข้ามรุ่น</div>
+                    <div className="text-sm text-muted-foreground mt-1">
+                      Spare ที่เลือกไม่ตรงรหัสกับเครื่องเก่า — กรุณายืนยันว่า Spec ใช้ทดแทนกันได้ ระบบจะบันทึก flag <span className="font-mono text-xs bg-muted px-1 py-0.5 rounded">CROSS-MODEL SWAP</span> ไว้ใน execution log
+                    </div>
+                  </div>
+                </div>
+                <label className="flex items-center gap-2 text-sm cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={crossModelAck}
+                    onChange={(e) => setCrossModelAck(e.target.checked)}
+                    className="h-4 w-4"
+                  />
+                  <span>ยืนยันว่า Spec ของ Spare นี้ใช้ทดแทนเครื่องเก่าได้</span>
+                </label>
+              </div>
+            )}
+
             <Separator />
 
             <div className="grid grid-cols-2 gap-2">
