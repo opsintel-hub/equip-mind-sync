@@ -2937,31 +2937,28 @@ const DeliveryEntry = () => {
                       <TableCell>{receipt.supplier_name || "-"}</TableCell>
                       <TableCell>{receipt.delivery_person_name}</TableCell>
                       <TableCell>
-                        {receipt.document_url ? (
-                          <div className="flex items-center gap-2">
-                            <button
-                              type="button"
-                              onClick={() => setPreviewDocUrl(receipt.document_url!)}
-                              className="flex items-center gap-1 text-primary hover:underline"
-                              title="ดูเอกสาร"
-                            >
-                              <FileText className="w-4 h-4" />
-                              ดูเอกสาร
-                            </button>
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="icon"
-                              className="h-6 w-6"
-                              onClick={() => downloadStorageFile(receipt.document_url!)}
-                              title="ดาวน์โหลด"
-                            >
-                              <Download className="w-3 h-3" />
-                            </Button>
-                          </div>
-                        ) : (
-                          <span className="text-muted-foreground">-</span>
-                        )}
+                        {(() => {
+                          const cats = buildReceiptCategories(receipt);
+                          const fileCount = cats.reduce((sum, c) => {
+                            const urls = Array.isArray(c.urls) ? c.urls.filter(Boolean) : splitUrls(c.urls as any);
+                            return sum + urls.length;
+                          }, 0);
+                          if (fileCount === 0) return <span className="text-muted-foreground">-</span>;
+                          return (
+                            <div className="flex items-center gap-2">
+                              <button
+                                type="button"
+                                onClick={() => setPreviewState({ title: `เอกสาร ${receipt.document_no}`, categories: cats })}
+                                className="flex items-center gap-1 text-primary hover:underline"
+                                title={`ดูเอกสาร (${fileCount} ไฟล์ใน ${cats.length} หมวด)`}
+                              >
+                                <FileText className="w-4 h-4" />
+                                ดูเอกสาร
+                                <span className="text-xs text-muted-foreground tabular-nums">({fileCount}/{cats.length})</span>
+                              </button>
+                            </div>
+                          );
+                        })()}
                       </TableCell>
                       <TableCell>{getStatusBadge(receipt.status)}</TableCell>
                       <TableCell>
