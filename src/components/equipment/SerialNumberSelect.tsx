@@ -235,11 +235,10 @@ export function SerialNumberSelect({
         });
       });
 
-    // Fallback: add legacy serial fields only if still in stock and not already represented
+    // Fallback: for Media Player issue selection, show only S/N1 as the selectable unit identifier
     mediaPlayersData?.forEach((mp) => {
-      const serials: Array<{ value: string | null; source: "media_player_sn1" | "media_player_sn2" }> = [
+      const serials: Array<{ value: string | null; source: "media_player_sn1" }> = [
         { value: mp.serial_number_1, source: "media_player_sn1" },
-        { value: mp.serial_number_2, source: "media_player_sn2" },
       ];
 
       serials.forEach(({ value, source }) => {
