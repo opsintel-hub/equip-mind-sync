@@ -155,20 +155,22 @@ export function DocumentPreviewDialog({
             </div>
           )}
           {loading && (
-            <div className="flex items-center justify-center h-full">
+            <div className="flex-1 flex items-center justify-center">
               <Loader2 className="w-8 h-8 animate-spin text-primary" />
             </div>
           )}
           {!loading && error && (
-            <div className="flex items-center justify-center h-full text-destructive">
+            <div className="flex-1 flex items-center justify-center text-destructive">
               {error}
             </div>
           )}
           {!loading && !error && isPdf && pdfData && (
-            <PdfCanvasViewer data={pdfData} />
+            <div className="flex-1 min-h-0">
+              <PdfCanvasViewer data={pdfData} />
+            </div>
           )}
           {!loading && !error && isImage && imageDataUrl && (
-            <div className="w-full h-full flex items-center justify-center overflow-auto p-4">
+            <div className="flex-1 min-h-0 w-full flex items-center justify-center overflow-auto p-4">
               <img
                 src={imageDataUrl}
                 alt={filename}
@@ -177,7 +179,7 @@ export function DocumentPreviewDialog({
             </div>
           )}
           {!loading && !error && !canPreview && (
-            <div className="flex flex-col items-center justify-center h-full gap-3 text-muted-foreground p-6 text-center">
+            <div className="flex-1 flex flex-col items-center justify-center gap-3 text-muted-foreground p-6 text-center">
               <p>ไฟล์ประเภทนี้ ({mimeType || filename}) ไม่รองรับการ preview</p>
               <p className="text-sm">กรุณากด "ดาวน์โหลด" เพื่อเปิดในโปรแกรมอื่น</p>
             </div>
