@@ -27,12 +27,12 @@ const DetailRow = ({ label, value }: { label: string; value: React.ReactNode }) 
   );
 };
 
-const DocLink = ({ url, label, onPreview }: { url: string | null; label: string; onPreview: (url: string) => void }) => {
+const DocLink = ({ url, label, onPreview }: { url: string | null; label: string; onPreview: (url: string, label: string) => void }) => {
   if (!url) return null;
   return (
     <button
       type="button"
-      onClick={() => onPreview(url)}
+      onClick={() => onPreview(url, label)}
       className="flex items-center gap-1.5 text-sm text-primary hover:underline cursor-pointer"
     >
       <FileText className="w-4 h-4" /> {label}
@@ -47,7 +47,7 @@ export function DeliveryDetailDialog({ open, onOpenChange, receipt }: DeliveryDe
   const [newDeptId, setNewDeptId] = useState<string>("");
   const [savingDept, setSavingDept] = useState(false);
   const [currentDeptId, setCurrentDeptId] = useState<string | null>(null);
-  const [previewDocUrl, setPreviewDocUrl] = useState<string | null>(null);
+  const [previewDoc, setPreviewDoc] = useState<{ url: string; label: string } | null>(null);
 
   useEffect(() => {
     if (!open) return;
@@ -231,10 +231,10 @@ export function DeliveryDetailDialog({ open, onOpenChange, receipt }: DeliveryDe
               <div>
                 <h4 className="text-sm font-semibold mb-2">เอกสารแนบ</h4>
                 <div className="space-y-2">
-                  <DocLink url={receipt.document_url} label="เอกสารประกอบ" onPreview={setPreviewDocUrl} />
-                  <DocLink url={receipt.purchase_document_url} label="เอกสารจัดซื้อ" onPreview={setPreviewDocUrl} />
-                  <DocLink url={receipt.invoice_document_url} label="Invoice" onPreview={setPreviewDocUrl} />
-                  <DocLink url={receipt.delivery_note_document_url} label="ใบส่งของ" onPreview={setPreviewDocUrl} />
+                  <DocLink url={receipt.document_url} label="เอกสารประกอบ" onPreview={(u, l) => setPreviewDoc({ url: u, label: l })} />
+                  <DocLink url={receipt.purchase_document_url} label="เอกสารจัดซื้อ" onPreview={(u, l) => setPreviewDoc({ url: u, label: l })} />
+                  <DocLink url={receipt.invoice_document_url} label="Invoice" onPreview={(u, l) => setPreviewDoc({ url: u, label: l })} />
+                  <DocLink url={receipt.delivery_note_document_url} label="ใบส่งของ" onPreview={(u, l) => setPreviewDoc({ url: u, label: l })} />
                 </div>
               </div>
             </>
@@ -267,10 +267,15 @@ export function DeliveryDetailDialog({ open, onOpenChange, receipt }: DeliveryDe
       </DialogContent>
     </Dialog>
     <DocumentPreviewDialog
-      open={!!previewDocUrl}
-      onOpenChange={(dialogOpen) => { if (!dialogOpen) setPreviewDocUrl(null); }}
-      publicUrl={previewDocUrl}
-      title="ดูเอกสาร"
+      open={!!previewDoc}
+      onOpenChange={(dialogOpen) => { if (!dialogOpen) setPreviewDoc(null); }}
+      publicUrl={previewDoc?.url || null}
+      title={previewDoc?.label || "ดูเอกสาร"}
+      labels={(() => {
+        if (!previewDoc) return undefined;
+        const urls = previewDoc.url.split(/\s*,\s*/).filter(Boolean);
+        return urls.length > 1 ? urls.map((_, i) => `${previewDoc.label} - ${i + 1}`) : undefined;
+      })()}
     />
     </>
   );
