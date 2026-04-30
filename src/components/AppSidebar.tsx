@@ -516,7 +516,7 @@ export function AppSidebar() {
                     <CollapsibleTrigger asChild>
                       <button
                         type="button"
-                        className={`flex items-center justify-between w-full px-3 mb-1 py-1.5 rounded-md text-xs font-semibold uppercase tracking-wider transition-colors ${
+                        className={`flex items-center justify-between w-full px-3 mb-1 py-1.5 rounded-md text-sm font-bold uppercase tracking-wider transition-colors ${
                           hasActiveInGroup
                             ? "text-sidebar-primary"
                             : "text-sidebar-foreground/40 hover:text-sidebar-foreground/70"
