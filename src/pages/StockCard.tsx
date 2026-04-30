@@ -325,6 +325,37 @@ export default function StockCard() {
     },
   });
 
+  // ── Fetch delivery confirmations relevant to this item (by GI doc no) ──
+  const issueDocNos = useMemo(() => {
+    const docs = new Set<string>();
+    movements.forEach((m: any) => {
+      if ((m.movement_type === "issue" || m.movement_type === "install_to_billboard") && m.reference_document) {
+        docs.add(m.reference_document);
+      }
+    });
+    return Array.from(docs);
+  }, [movements]);
+
+  const { data: deliveryConfirmations = [] } = useQuery({
+    queryKey: ["stock-card-delivery-confirmations", selectedItemId, issueDocNos.join(",")],
+    staleTime: 2 * 60 * 1000,
+    enabled: !!selectedItemId && issueDocNos.length > 0,
+    queryFn: async () => {
+      const { data } = await supabase.from("delivery_confirmations")
+        .select("document_no, status, confirmed_at")
+        .in("document_no", issueDocNos);
+      return data || [];
+    },
+  });
+
+  const confirmedDocSet = useMemo(() => {
+    return new Set(
+      deliveryConfirmations
+        .filter((d: any) => d.status === "confirmed")
+        .map((d: any) => d.document_no)
+    );
+  }, [deliveryConfirmations]);
+
   // ── Build timeline ──
   const timeline: TimelineEvent[] = useMemo(() => {
     if (!selectedItemId) return [];
