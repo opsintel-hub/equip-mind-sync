@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
-import { FileText, Pencil, Check, X, Loader2 } from "lucide-react";
+import { FileText, Pencil, Check, X, Loader2, CheckCircle2, FileX2 } from "lucide-react";
 import { format } from "date-fns";
 import { DocumentPreviewDialog } from "@/components/DocumentPreviewDialog";
 import { supabase } from "@/integrations/supabase/client";
