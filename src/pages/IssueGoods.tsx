@@ -460,6 +460,13 @@ const IssueGoods = () => {
         // If installing to billboard, create billboard_equipment record
         const billboardId = issueData.billboard_id || selectedItem.billboard_id;
         if (billboardId) {
+          const { data: bbInfo } = await supabase
+            .from("billboards")
+            .select("old_code, location_name")
+            .eq("id", billboardId)
+            .maybeSingle();
+          const bbLabel = [bbInfo?.old_code, bbInfo?.location_name].filter(Boolean).join(" - ") || billboardId;
+
           const { error: billboardError } = await supabase
             .from("billboard_equipment")
             .insert({
@@ -484,7 +491,7 @@ const IssueGoods = () => {
             reference_type: "billboard_equipment",
             reference_document: parentRequest?.document_no || "",
             location_id: equipment?.find(e => e.id === selectedItem.equipment_id)?.location_id || undefined,
-            notes: `ติดตั้งที่ป้าย ${billboardId}`,
+            notes: `ติดตั้งที่ป้าย ${bbLabel}`,
           });
         }
       }
