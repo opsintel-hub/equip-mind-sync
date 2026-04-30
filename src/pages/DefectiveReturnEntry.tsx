@@ -170,7 +170,7 @@ const DefectiveReturnEntry = () => {
     if (selectedItemId && !isMediaPlayer) detectBillboardForEquipment(selectedItemId);
     else if (selectedItemId && isMediaPlayer) detectBillboardForMediaPlayer(selectedItemId);
     else { setDetectedBillboards([]); setSelectedBillboardEquipmentId(""); }
-  }, [selectedItemId, isMediaPlayer]);
+  }, [selectedItemId, isMediaPlayer, mediaPlayerList]);
 
   const fetchEquipment = async () => {
     const { data } = await supabase.from("equipment").select("id, code, name, unit, category, brand, serial_number, department, quantity_in_stock, location_id").eq("is_active", true).order("code");
