@@ -271,6 +271,22 @@ export default function DisposalApproval() {
         </Button>
       </div>
 
+      {/* Anti-fraud info banner */}
+      <Card className="border-amber-500/40 bg-amber-50/60 dark:bg-amber-950/20">
+        <CardContent className="pt-4 pb-4 flex items-start gap-3">
+          <ShieldCheck className="h-5 w-5 text-amber-600 mt-0.5 flex-shrink-0" />
+          <div className="text-sm space-y-1">
+            <p className="font-medium text-amber-900 dark:text-amber-200">🔒 การควบคุม Stock ของเสีย (ป้องกันทุจริต)</p>
+            <ul className="text-xs text-amber-800/90 dark:text-amber-300/90 space-y-0.5 list-disc ml-4">
+              <li>เมื่อบันทึกของเสีย ระบบจะ <span className="font-semibold">ตัด stock จากคลังหลักทันที</span> และย้ายเข้า <span className="font-mono">คลังของเสีย (WH-DEFECT)</span></li>
+              <li>ทุกการเปลี่ยนแปลงถูกบันทึกใน <span className="font-semibold">Stock Card / Stock Movements</span> เพื่อ audit ย้อนหลัง</li>
+              <li>เมื่อกด <span className="font-semibold">"เสร็จสิ้น"</span> สำหรับทำลาย/ขายซาก/CSR ระบบจะบันทึกการจำหน่ายออก พร้อมหลักฐานรูปภาพ</li>
+              <li>กรณี <span className="font-semibold">"ซ่อมและคืนคลัง"</span> ต้องรับเข้าใหม่ผ่านเมนู Receive Goods (ต้องมี PO/หลักฐาน)</li>
+            </ul>
+          </div>
+        </CardContent>
+      </Card>
+
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card><CardHeader className="pb-2"><CardDescription>รออนุมัติ</CardDescription><CardTitle className="text-3xl text-warning">{stats.pending}</CardTitle></CardHeader></Card>
         <Card><CardHeader className="pb-2"><CardDescription>อนุมัติแล้ว (รอดำเนินการ)</CardDescription><CardTitle className="text-3xl text-primary">{stats.approved}</CardTitle></CardHeader></Card>
