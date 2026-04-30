@@ -144,7 +144,23 @@ const DeliveryEntry = () => {
   const [editingItem, setEditingItem] = useState<DeliveryCartItem | null>(null);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [selectedDetailReceipt, setSelectedDetailReceipt] = useState<any | null>(null);
-  const [previewDocUrl, setPreviewDocUrl] = useState<string | null>(null);
+  const [previewState, setPreviewState] = useState<{ title: string; categories: DocumentCategory[] } | null>(null);
+
+  const isImageUrl = (url: string) => /\.(png|jpe?g|gif|webp|bmp|svg)(\?|$)/i.test(url);
+  const splitUrls = (combined: string | null | undefined): string[] =>
+    combined ? String(combined).split(/\s*,\s*/).filter(Boolean) : [];
+  const buildReceiptCategories = (r: any): DocumentCategory[] => {
+    const all = splitUrls(r.document_url);
+    const docs = all.filter((u) => !isImageUrl(u));
+    const images = all.filter((u) => isImageUrl(u));
+    return [
+      { label: "เอกสารแนบเพิ่มเติม", urls: docs },
+      { label: "รูปภาพเพิ่มเติม", urls: images },
+      { label: "เอกสารจัดซื้อ", urls: r.purchase_document_url },
+      { label: "Invoice", urls: r.invoice_document_url },
+      { label: "ใบส่งของ", urls: r.delivery_note_document_url },
+    ];
+  };
   const [showPOUpload, setShowPOUpload] = useState(false);
 
   // Header data (shared across all items)
