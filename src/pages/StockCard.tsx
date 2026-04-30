@@ -853,7 +853,7 @@ export default function StockCard() {
                     date: lastIssue?.date,
                   });
                 } else {
-                  steps.push({ label: "เบิก/ติดตั้ง", status: inStock ? "pending" : "current" });
+                  steps.push({ label: "เบิก/ติดตั้ง", status: inStock ? "current" : "pending" });
                 }
               } else {
                 const lastIssue = [...timeline].reverse().find(e => e.type === "issue");
