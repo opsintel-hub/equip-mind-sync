@@ -340,12 +340,29 @@ export default function SwapWizard() {
                             {req.priority !== "normal" && (
                               <Badge variant="outline">Priority: {PRIORITY_LABELS[req.priority]}</Badge>
                             )}
+                            {req.reported_serial_number && (
+                              <Badge variant="outline" className="font-mono text-xs">S/N: {req.reported_serial_number}</Badge>
+                            )}
+                            {(req.reported_photos?.length ?? 0) > 0 && (
+                              <Badge variant="secondary" className="text-xs">
+                                <Camera className="h-3 w-3 mr-1" /> {req.reported_photos!.length} รูป
+                              </Badge>
+                            )}
+                          </div>
+                          <div className="text-sm">
+                            {req.reported_item_code || req.reported_item_name ? (
+                              <span className="font-medium">
+                                {req.reported_item_code} {req.reported_item_name && `— ${req.reported_item_name}`}
+                              </span>
+                            ) : null}
                           </div>
                           <div className="text-sm text-muted-foreground">
                             {req.description || req.symptom_other || "—"}
                           </div>
                           <div className="text-xs text-muted-foreground">
-                            ช่าง: {req.technician_name || "—"} • {format(new Date(req.created_at), "dd MMM yyyy HH:mm", { locale: th })}
+                            ช่าง: {req.technician_name || "—"}
+                            {req.received_by_name && ` • รับโดย: ${req.received_by_name}`}
+                            {" • "}{format(new Date(req.created_at), "dd MMM yyyy HH:mm", { locale: th })}
                           </div>
                         </div>
                         <div className="flex gap-2">
