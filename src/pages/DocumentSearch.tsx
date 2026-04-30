@@ -16,7 +16,58 @@ import { format } from "date-fns";
 import { th } from "date-fns/locale";
 import { DatePickerWithRange } from "@/components/ui/date-range-picker";
 import { ProcessTracker, ProcessStep } from "@/components/ProcessTracker";
-import { DocumentPreviewDialog } from "@/components/DocumentPreviewDialog";
+import { DocumentPreviewDialog, DocumentCategory } from "@/components/DocumentPreviewDialog";
+
+const isImageUrl = (url: string) => /\.(png|jpe?g|gif|webp|bmp|svg)(\?|$)/i.test(url);
+const splitUrls = (combined: string | null | undefined): string[] =>
+  combined ? String(combined).split(/\s*,\s*/).filter(Boolean) : [];
+const splitExtraDocs = (combined: string | null | undefined) => {
+  const all = splitUrls(combined);
+  const docs: string[] = [];
+  const images: string[] = [];
+  for (const u of all) {
+    if (isImageUrl(u)) images.push(u);
+    else docs.push(u);
+  }
+  return { docs, images };
+};
+
+/** Build category list per record source. Always returns the full set of expected categories
+ *  for that source — empty ones still show in the preview as disabled tabs. */
+function getDocumentCategories(doc: DocumentRecord): DocumentCategory[] {
+  const r = doc.raw || {};
+  if (doc.source === "pending" || doc.source === "received") {
+    const { docs, images } = splitExtraDocs(r.document_url ?? doc.document_url);
+    return [
+      { label: "เอกสารแนบเพิ่มเติม", urls: docs },
+      { label: "รูปภาพเพิ่มเติม", urls: images },
+      { label: "เอกสารจัดซื้อ", urls: r.purchase_document_url },
+      { label: "Invoice", urls: r.invoice_document_url },
+      { label: "ใบส่งของ", urls: r.delivery_note_document_url },
+    ];
+  }
+  if (doc.source === "direct_shipping") {
+    return [
+      { label: "เอกสาร PO", urls: r.po_document_url },
+      { label: "เอกสาร PR", urls: r.pr_document_url },
+      { label: "Invoice", urls: r.invoice_document_url },
+      { label: "ใบส่งของ", urls: r.delivery_note_document_url },
+    ];
+  }
+  if (doc.source === "advertisement") {
+    return [
+      { label: "เอกสารประกอบ", urls: r.supporting_doc_url },
+      { label: "รูปภาพโฆษณา", urls: Array.isArray(r.photo_urls) ? r.photo_urls : [] },
+    ];
+  }
+  if (doc.source === "delivery_confirm") {
+    return [
+      { label: "เอกสารแนบ", urls: Array.isArray(r.document_urls) ? r.document_urls.filter((u: string) => !isImageUrl(u)) : [] },
+      { label: "รูปภาพหลักฐาน", urls: Array.isArray(r.photo_urls) ? r.photo_urls : [] },
+    ];
+  }
+  return [];
+}
 
 interface DocumentRecord {
   id: string;
@@ -149,7 +200,7 @@ export default function DocumentSearch() {
   const [sourceFilter, setSourceFilter] = useState<string>("all");
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
   const [hasSearched, setHasSearched] = useState(false);
-  const [previewDocUrl, setPreviewDocUrl] = useState<string | null>(null);
+  const [previewState, setPreviewState] = useState<{ title: string; categories: DocumentCategory[] } | null>(null);
 
   const fetchDocuments = async () => {
     setLoading(true);
@@ -182,7 +233,7 @@ export default function DocumentSearch() {
       // Fetch from advertisements (เอกสารรับโฆษณา)
       const { data: adData } = await supabase
         .from("advertisements")
-        .select("id, code, name, status, total_quantity, created_at, supporting_doc_url, contact_name, entry_type, ad_media_types(name)")
+        .select("id, code, name, status, total_quantity, created_at, supporting_doc_url, photo_urls, contact_name, entry_type, ad_media_types(name)")
         .order("created_at", { ascending: false });
 
       // Fetch from ad_issue_requests (เอกสารเบิกโฆษณา)
@@ -437,17 +488,32 @@ export default function DocumentSearch() {
                           )}
                         </TableCell>
                         <TableCell className="text-center pr-6">
-                          {doc.document_url ? (
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8 text-muted-foreground hover:text-foreground"
-                              title="ดูเอกสาร"
-                              onClick={() => setPreviewDocUrl(doc.document_url!)}
-                            >
-                              <ExternalLink className="h-3.5 w-3.5" />
-                            </Button>
-                          ) : <span className="text-muted-foreground/30">-</span>}
+                          {(() => {
+                            const cats = getDocumentCategories(doc);
+                            if (cats.length === 0) {
+                              return <span className="text-muted-foreground/30">-</span>;
+                            }
+                            const fileCount = cats.reduce((sum, c) => {
+                              const urls = Array.isArray(c.urls)
+                                ? c.urls.filter(Boolean)
+                                : c.urls
+                                  ? splitUrls(c.urls)
+                                  : [];
+                              return sum + urls.length;
+                            }, 0);
+                            return (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-8 gap-1 text-muted-foreground hover:text-foreground"
+                                title={`ดูเอกสาร (${fileCount} ไฟล์ใน ${cats.length} หมวด)`}
+                                onClick={() => setPreviewState({ title: `เอกสาร ${doc.document_no}`, categories: cats })}
+                              >
+                                <ExternalLink className="h-3.5 w-3.5" />
+                                <span className="text-xs tabular-nums">{fileCount}/{cats.length}</span>
+                              </Button>
+                            );
+                          })()}
                         </TableCell>
                       </TableRow>
                     );
@@ -462,10 +528,10 @@ export default function DocumentSearch() {
         </CardContent>
       </Card>
       <DocumentPreviewDialog
-        open={!!previewDocUrl}
-        onOpenChange={(open) => { if (!open) setPreviewDocUrl(null); }}
-        publicUrl={previewDocUrl}
-        title="ดูเอกสาร"
+        open={!!previewState}
+        onOpenChange={(open) => { if (!open) setPreviewState(null); }}
+        title={previewState?.title || "ดูเอกสาร"}
+        categories={previewState?.categories}
       />
     </div>
   );
