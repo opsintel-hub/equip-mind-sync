@@ -200,7 +200,7 @@ export default function DocumentSearch() {
   const [sourceFilter, setSourceFilter] = useState<string>("all");
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
   const [hasSearched, setHasSearched] = useState(false);
-  const [previewDocUrl, setPreviewDocUrl] = useState<string | null>(null);
+  const [previewState, setPreviewState] = useState<{ title: string; categories: DocumentCategory[] } | null>(null);
 
   const fetchDocuments = async () => {
     setLoading(true);
