@@ -21,6 +21,13 @@ interface SwapRequest {
   description: string | null;
   symptom_other: string | null;
   defective_return_id?: string | null;
+  reported_asset_type?: string | null;
+  reported_billboard_equipment_id?: string | null;
+  reported_equipment_id?: string | null;
+  reported_media_player_id?: string | null;
+  reported_item_code?: string | null;
+  reported_item_name?: string | null;
+  reported_serial_number?: string | null;
 }
 
 interface Props {
@@ -47,6 +54,7 @@ interface OldOption {
   serial_number?: string | null;
   billboard_equipment_id: string;
   equipment_id?: string;
+  media_player_id?: string;
 }
 
 export function SwapWizardDialog({ open, onOpenChange, request, onCompleted }: Props) {
@@ -117,10 +125,12 @@ export function SwapWizardDialog({ open, onOpenChange, request, onCompleted }: P
 
   const loadSpares = async () => {
     setLoading(true);
-    // Media Players: status = active and not installed (treat all media_players as potential spare list)
-    const { data: mps } = await supabase
+    // Media Players: available spare = not installed, not defective/pending assessment
+    const { data: mps, error: mpError } = await supabase
       .from("media_players")
-      .select("id, code, name, serial_number, status, location_id")
+      .select("id, code, name, serial_number_1, serial_number_2, status, location_id, billboard_id")
+      .is("billboard_id", null)
+      .not("status", "in", "(defective,pending_assessment,claim)")
       .order("created_at", { ascending: false })
       .limit(300);
 
@@ -132,13 +142,18 @@ export function SwapWizardDialog({ open, onOpenChange, request, onCompleted }: P
       .limit(300);
 
     const opts: SpareOption[] = [];
+    if (mpError) {
+      toast.error("โหลดรายการ Spare Media Player ไม่สำเร็จ: " + mpError.message);
+    }
+
     (mps || []).forEach((m: any) => {
+      const serial = [m.serial_number_1, m.serial_number_2].filter(Boolean).join(" / ");
       opts.push({
         value: `mp:${m.id}`,
         label: `${m.code} ${m.name ? "- " + m.name : ""}`,
-        description: `S/N: ${m.serial_number || "—"} • สถานะ: ${m.status || "—"}`,
+        description: `S/N: ${serial || "—"} • สถานะ: ${m.status || "—"}`,
         type: "media_player",
-        serial_number: m.serial_number,
+        serial_number: serial || null,
         location_id: m.location_id,
       });
     });
@@ -167,7 +182,26 @@ export function SwapWizardDialog({ open, onOpenChange, request, onCompleted }: P
       .select("id, equipment_id, serial_number, quantity, equipment:equipment_id(id, code, name)")
       .eq("billboard_id", billboardId);
 
-    const opts: OldOption[] = (be || []).map((b: any) => ({
+    const opts: OldOption[] = [];
+
+    // Prefer the item already reported in the swap request. It may have been auto-uninstalled
+    // when the request was created, so it will no longer appear in billboard_equipment.
+    if (request?.reported_item_name || request?.reported_item_code || request?.reported_serial_number) {
+      opts.push({
+        value: request.reported_asset_type === "media_player" && request.reported_media_player_id
+          ? `mp:${request.reported_media_player_id}`
+          : `reported:${request.id}`,
+        label: `${request.reported_item_code || "—"} ${request.reported_item_name ? "- " + request.reported_item_name : ""}`,
+        description: `S/N: ${request.reported_serial_number || "—"} • จากคำขอ Swap`,
+        type: request.reported_asset_type === "media_player" ? "media_player" : "equipment",
+        serial_number: request.reported_serial_number,
+        billboard_equipment_id: request.reported_billboard_equipment_id || "",
+        equipment_id: request.reported_equipment_id || undefined,
+        media_player_id: request.reported_media_player_id || undefined,
+      });
+    }
+
+    (be || []).forEach((b: any) => opts.push({
       value: `be:${b.id}`,
       label: `${b.equipment?.code || ""} ${b.equipment?.name ? "- " + b.equipment.name : ""}`,
       description: `S/N: ${b.serial_number || "—"} • จำนวน: ${b.quantity}`,
@@ -205,9 +239,11 @@ export function SwapWizardDialog({ open, onOpenChange, request, onCompleted }: P
     // Parse old
     let oldBeId: string | null = null;
     let oldEqId: string | null = null;
+    let oldMpId: string | null = null;
     if (selectedOld) {
-      oldBeId = selectedOld.billboard_equipment_id;
-      oldEqId = selectedOld.value.split(":")[1] === oldBeId ? null : null;
+      oldBeId = selectedOld.billboard_equipment_id || null;
+      oldEqId = selectedOld.equipment_id || null;
+      oldMpId = selectedOld.media_player_id || (selectedOld.type === "media_player" ? selectedOld.value.split(":")[1] : null);
     }
 
     // Insert execution
@@ -220,6 +256,7 @@ export function SwapWizardDialog({ open, onOpenChange, request, onCompleted }: P
       spare_source_location_id: selectedSpare?.location_id || null,
       old_billboard_equipment_id: oldBeId,
       old_equipment_id: oldEqId,
+      old_media_player_id: oldMpId,
       old_serial_number: selectedOld?.serial_number || null,
       return_location_id: returnLocationId || null,
       result,
@@ -240,7 +277,8 @@ export function SwapWizardDialog({ open, onOpenChange, request, onCompleted }: P
     await supabase.from("swap_requests").update({
       status: newStatus,
       asset_type: selectedSpare?.type || "equipment",
-      old_equipment_id: oldEqId || (selectedOld as any)?.equipment_id || null,
+      old_equipment_id: oldEqId,
+      old_media_player_id: oldMpId,
       old_serial_number: selectedOld?.serial_number || null,
       new_equipment_id: spareEqId,
       new_media_player_id: spareMpId,
@@ -252,12 +290,11 @@ export function SwapWizardDialog({ open, onOpenChange, request, onCompleted }: P
     // Auto-create defective_return for the OLD unit (only if approved + not already linked)
     if (result === "approved" && selectedOld && !request.defective_return_id) {
       const drDocNo = `DR-${new Date().toISOString().slice(0, 10).replace(/-/g, "")}-${Math.floor(Math.random() * 9999 + 1).toString().padStart(4, "0")}`;
-      const oldEquipmentId = (selectedOld as any).equipment_id || null;
       const { data: newDr } = await supabase.from("defective_returns").insert({
         document_no: drDocNo,
-        equipment_id: oldEquipmentId,
-        media_player_id: null,
-        is_media_player: false,
+        equipment_id: oldEqId,
+        media_player_id: oldMpId,
+        is_media_player: selectedOld.type === "media_player",
         quantity: 1,
         billboard_id: request.billboard_id,
         item_condition: "defective",
@@ -277,10 +314,9 @@ export function SwapWizardDialog({ open, onOpenChange, request, onCompleted }: P
     // Auto-create assessment_log สถานะ "รอประเมิน" สำหรับเครื่องเก่า
     // เพื่อให้เจ้าหน้าที่คลังเข้าหน้า "บันทึกการประเมิน" แล้วเห็นรายการได้ทันที
     if (result === "approved" && selectedOld) {
-      const isMediaPlayer = selectedOld.type === "media_player";
       await supabase.from("assessment_logs").insert({
-        media_player_id: isMediaPlayer ? (selectedOld as any).media_player_id || null : null,
-        equipment_id: !isMediaPlayer ? ((selectedOld as any).equipment_id || null) : null,
+        media_player_id: oldMpId,
+        equipment_id: oldEqId,
         serial_number: selectedOld.serial_number || null,
         source_type: "swap",
         source_reference_id: request.id,
@@ -349,8 +385,14 @@ export function SwapWizardDialog({ open, onOpenChange, request, onCompleted }: P
               onValueChange={setSpareValue}
               placeholder="ค้นหาด้วยรหัส / ชื่อ / S/N"
               searchPlaceholder="พิมพ์เพื่อค้นหา..."
+              emptyMessage="ไม่พบ Spare ที่พร้อมใช้งานในคลัง"
               isLoading={loading}
             />
+            {!loading && spareOptions.length === 0 && (
+              <div className="rounded-lg border border-warning/30 bg-warning/5 p-3 text-sm text-muted-foreground">
+                ไม่มี Spare พร้อมใช้งาน — ต้องรับของเข้าคลังหรือเปลี่ยนสถานะ Media Player เป็น in_stock/active ก่อน
+              </div>
+            )}
             {selectedSpare && (
               <Card>
                 <CardContent className="pt-4">
