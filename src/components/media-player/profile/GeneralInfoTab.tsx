@@ -1,8 +1,9 @@
+import { useState } from "react";
 import { FileText, ExternalLink, MapPin } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { MediaPlayerRow } from "./types";
 import { formatBillboardLabel } from "@/lib/billboardUtils";
-import { downloadStorageFile } from "@/lib/storageDownload";
+import { DocumentPreviewDialog } from "@/components/DocumentPreviewDialog";
 
 interface GeneralInfoTabProps {
   player: MediaPlayerRow;
@@ -18,14 +19,14 @@ function InfoRow({ label, value, mono }: { label: string; value?: string | null;
   );
 }
 
-function DocLink({ label, number, url }: { label: string; number?: string | null; url?: string | null }) {
+function DocLink({ label, number, url, onPreview }: { label: string; number?: string | null; url?: string | null; onPreview: (url: string) => void }) {
   if (!number && !url) return null;
   return (
     <div className="flex items-center gap-2 border rounded-lg px-3 py-2">
       <FileText className="w-4 h-4 text-muted-foreground" />
       <span className="text-sm font-medium">{label}: {number || "-"}</span>
       {url && (
-        <button type="button" onClick={() => downloadStorageFile(url)} className="text-primary hover:text-primary/80 cursor-pointer">
+        <button type="button" onClick={() => onPreview(url)} className="text-primary hover:text-primary/80 cursor-pointer">
           <ExternalLink className="w-3.5 h-3.5" />
         </button>
       )}
@@ -34,7 +35,10 @@ function DocLink({ label, number, url }: { label: string; number?: string | null
 }
 
 export function GeneralInfoTab({ player, modelName }: GeneralInfoTabProps) {
+  const [previewDocUrl, setPreviewDocUrl] = useState<string | null>(null);
+
   return (
+    <>
     <Card>
       <CardContent className="pt-6">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-4 text-sm">
@@ -78,9 +82,9 @@ export function GeneralInfoTab({ player, modelName }: GeneralInfoTabProps) {
         <div className="mt-6 pt-4 border-t">
           <h4 className="text-sm font-semibold mb-3">เอกสารที่เกี่ยวข้อง</h4>
           <div className="flex flex-wrap gap-3">
-            <DocLink label="PO" number={player.po_number} url={player.po_document_url} />
-            <DocLink label="PR" number={player.pr_number} url={player.pr_document_url} />
-            <DocLink label="Invoice" number={player.invoice_number} url={player.invoice_document_url} />
+            <DocLink label="PO" number={player.po_number} url={player.po_document_url} onPreview={setPreviewDocUrl} />
+            <DocLink label="PR" number={player.pr_number} url={player.pr_document_url} onPreview={setPreviewDocUrl} />
+            <DocLink label="Invoice" number={player.invoice_number} url={player.invoice_document_url} onPreview={setPreviewDocUrl} />
           </div>
         </div>
 
@@ -92,5 +96,12 @@ export function GeneralInfoTab({ player, modelName }: GeneralInfoTabProps) {
         )}
       </CardContent>
     </Card>
+    <DocumentPreviewDialog
+      open={!!previewDocUrl}
+      onOpenChange={(open) => { if (!open) setPreviewDocUrl(null); }}
+      publicUrl={previewDocUrl}
+      title="ดูเอกสาร Media Player"
+    />
+    </>
   );
 }
