@@ -738,10 +738,11 @@ function EquipmentViewTab() {
   return (
     <div className="space-y-4">
       {/* Summary Cards — reflect current filtered result */}
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-        <Card><CardContent className="p-3 text-center"><div className="text-2xl font-bold text-primary">{summaryStats.total}</div><div className="text-xs text-muted-foreground">{isFiltered ? "ผลการค้นหา (รายการ)" : "ทั้งหมด (รายการ)"}</div></CardContent></Card>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <Card><CardContent className="p-3 text-center"><div className="text-2xl font-bold text-primary">{summaryStats.total}</div><div className="text-xs text-muted-foreground">{isFiltered ? "ผลค้นหา (รายการ S/N)" : "ทั้งหมด (รายการ S/N)"}</div></CardContent></Card>
         <Card><CardContent className="p-3 text-center"><div className="text-2xl font-bold text-emerald-600">{summaryStats.installed}</div><div className="text-xs text-muted-foreground">ติดตั้งบนป้ายอยู่</div></CardContent></Card>
-        <Card><CardContent className="p-3 text-center"><div className="text-2xl font-bold text-primary">{summaryStats.inStock}</div><div className="text-xs text-muted-foreground">อยู่ในคลัง / ยังไม่ติดตั้ง</div></CardContent></Card>
+        <Card><CardContent className="p-3 text-center"><div className="text-2xl font-bold text-blue-600">{summaryStats.inStock}</div><div className="text-xs text-muted-foreground">อยู่ในคลัง / ยังไม่ติดตั้ง</div></CardContent></Card>
+        <Card><CardContent className="p-3 text-center"><div className="text-xs text-muted-foreground mb-1">💡 คลิก <Eye className="inline w-3 h-3" /> เพื่อดู<br/>รายการป้ายทั้งหมดที่ติดตั้ง<br/>+ วันหมดประกัน → วาง PM ครั้งเดียว</div></CardContent></Card>
       </div>
 
       {/* Filters */}
@@ -752,7 +753,7 @@ function EquipmentViewTab() {
         </div>
         <div className="relative flex-1 min-w-[200px]">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input placeholder="ค้นหา ชื่อ / Code..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
+          <Input placeholder="ค้นหา รหัสสินค้า / ชื่อ / Model..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
         </div>
         <Select value={typeFilter} onValueChange={setTypeFilter}>
           <SelectTrigger className="w-[160px]"><SelectValue placeholder="ประเภท" /></SelectTrigger>
