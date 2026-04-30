@@ -27,12 +27,12 @@ const DetailRow = ({ label, value }: { label: string; value: React.ReactNode }) 
   );
 };
 
-const DocLink = ({ url, label, onPreview }: { url: string | null; label: string; onPreview: (url: string) => void }) => {
+const DocLink = ({ url, label, onPreview }: { url: string | null; label: string; onPreview: (url: string, label: string) => void }) => {
   if (!url) return null;
   return (
     <button
       type="button"
-      onClick={() => onPreview(url)}
+      onClick={() => onPreview(url, label)}
       className="flex items-center gap-1.5 text-sm text-primary hover:underline cursor-pointer"
     >
       <FileText className="w-4 h-4" /> {label}
