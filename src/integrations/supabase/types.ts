@@ -387,12 +387,16 @@ export type Database = {
           document_no: string
           document_urls: string[] | null
           equipment_id: string | null
+          external_repair_contact: string | null
+          external_repair_phone: string | null
+          external_repair_vendor: string | null
           id: string
           media_player_id: string | null
           notes: string | null
           outcome: string | null
           photo_urls: string[] | null
           recommended_action: string | null
+          repair_description: string | null
           serial_number: string | null
           source_reference_id: string | null
           source_type: string
@@ -413,12 +417,16 @@ export type Database = {
           document_no: string
           document_urls?: string[] | null
           equipment_id?: string | null
+          external_repair_contact?: string | null
+          external_repair_phone?: string | null
+          external_repair_vendor?: string | null
           id?: string
           media_player_id?: string | null
           notes?: string | null
           outcome?: string | null
           photo_urls?: string[] | null
           recommended_action?: string | null
+          repair_description?: string | null
           serial_number?: string | null
           source_reference_id?: string | null
           source_type?: string
@@ -439,12 +447,16 @@ export type Database = {
           document_no?: string
           document_urls?: string[] | null
           equipment_id?: string | null
+          external_repair_contact?: string | null
+          external_repair_phone?: string | null
+          external_repair_vendor?: string | null
           id?: string
           media_player_id?: string | null
           notes?: string | null
           outcome?: string | null
           photo_urls?: string[] | null
           recommended_action?: string | null
+          repair_description?: string | null
           serial_number?: string | null
           source_reference_id?: string | null
           source_type?: string
@@ -2215,12 +2227,15 @@ export type Database = {
           created_by: string | null
           equipment_id: string
           id: string
+          is_refurbished: boolean
           issue_document_no: string | null
           issued_at: string | null
           location_id: string | null
           notes: string | null
           receipt_document_no: string | null
           received_at: string | null
+          refurbished_at: string | null
+          refurbished_notes: string | null
           serial_number: string
           status: string
           updated_at: string
@@ -2231,12 +2246,15 @@ export type Database = {
           created_by?: string | null
           equipment_id: string
           id?: string
+          is_refurbished?: boolean
           issue_document_no?: string | null
           issued_at?: string | null
           location_id?: string | null
           notes?: string | null
           receipt_document_no?: string | null
           received_at?: string | null
+          refurbished_at?: string | null
+          refurbished_notes?: string | null
           serial_number: string
           status?: string
           updated_at?: string
@@ -2247,12 +2265,15 @@ export type Database = {
           created_by?: string | null
           equipment_id?: string
           id?: string
+          is_refurbished?: boolean
           issue_document_no?: string | null
           issued_at?: string | null
           location_id?: string | null
           notes?: string | null
           receipt_document_no?: string | null
           received_at?: string | null
+          refurbished_at?: string | null
+          refurbished_notes?: string | null
           serial_number?: string
           status?: string
           updated_at?: string
