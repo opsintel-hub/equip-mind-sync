@@ -32,6 +32,11 @@ interface AssessmentLog {
   assessor_name: string | null;
   assessed_at: string;
   status: string;
+  outcome: string | null;
+  repair_description: string | null;
+  external_repair_vendor: string | null;
+  external_repair_contact: string | null;
+  external_repair_phone: string | null;
   notes: string | null;
   created_at: string;
 }
@@ -48,6 +53,13 @@ const STATUS_LABELS: Record<string, { label: string; variant: "default" | "secon
   pending: { label: "รอประเมิน", variant: "secondary" },
   completed: { label: "ประเมินแล้ว", variant: "default" },
   cancelled: { label: "ยกเลิก", variant: "outline" },
+};
+
+const OUTCOME_LABELS: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
+  defective: { label: "เข้าของเสีย (ซ่อมไม่ได้)", variant: "destructive" },
+  claim: { label: "ส่งเคลม", variant: "secondary" },
+  self_repair: { label: "ซ่อมเอง", variant: "default" },
+  return_refurb: { label: "คืน Spare (refurbished)", variant: "outline" },
 };
 
 export default function AssessmentLog() {
