@@ -268,37 +268,34 @@ export function DeliveryDetailDialog({ open, onOpenChange, receipt }: DeliveryDe
             )}
           </div>
 
-          {/* เอกสารแนบ */}
+          {/* เอกสารแนบ — แสดงทุกหมวดเสมอ */}
           {(() => {
             const { docs, images } = splitExtraDocs(receipt.document_url);
-            const hasAny =
-              docs.length > 0 ||
-              images.length > 0 ||
-              receipt.purchase_document_url ||
-              receipt.po_number ||
-              receipt.invoice_document_url ||
-              receipt.delivery_note_document_url;
-            if (!hasAny) return null;
+            const cats: { label: string; urls: string[] }[] = [
+              { label: "เอกสารแนบเพิ่มเติม", urls: docs },
+              { label: "รูปภาพเพิ่มเติม", urls: images },
+              { label: "เอกสารจัดซื้อ", urls: splitUrls(receipt.purchase_document_url) },
+              { label: "Invoice", urls: splitUrls(receipt.invoice_document_url) },
+              { label: "ใบส่งของ", urls: splitUrls(receipt.delivery_note_document_url) },
+            ];
             return (
               <>
                 <Separator />
                 <div>
                   <h4 className="text-sm font-semibold mb-2">เอกสารแนบ</h4>
-                  <div className="space-y-2">
-                    <DocLink
-                      url={docs.length > 0 ? docs.join(", ") : null}
-                      label="เอกสารแนบเพิ่มเติม"
-                      onPreview={(u, l) => setPreviewDoc({ url: u, label: l })}
-                    />
-                    <DocLink
-                      url={images.length > 0 ? images.join(", ") : null}
-                      label="รูปภาพเพิ่มเติม"
-                      onPreview={(u, l) => setPreviewDoc({ url: u, label: l })}
-                    />
-                    <DocLink url={receipt.purchase_document_url} label="เอกสารจัดซื้อ" onPreview={(u, l) => setPreviewDoc({ url: u, label: l })} />
-                    <DocLink url={receipt.invoice_document_url} label="Invoice" onPreview={(u, l) => setPreviewDoc({ url: u, label: l })} />
-                    <DocLink url={receipt.delivery_note_document_url} label="ใบส่งของ" onPreview={(u, l) => setPreviewDoc({ url: u, label: l })} />
+                  <div className="space-y-1">
+                    {cats.map((c) => (
+                      <CategoryRow
+                        key={c.label}
+                        label={c.label}
+                        urls={c.urls}
+                        onOpen={() => setPreviewOpen(true)}
+                      />
+                    ))}
                   </div>
+                  <p className="text-[11px] text-muted-foreground/70 mt-2">
+                    คลิกหมวดใดก็ได้เพื่อดูเอกสารทุกหมวดในแท็บเดียว
+                  </p>
                 </div>
               </>
             );
@@ -331,14 +328,18 @@ export function DeliveryDetailDialog({ open, onOpenChange, receipt }: DeliveryDe
       </DialogContent>
     </Dialog>
     <DocumentPreviewDialog
-      open={!!previewDoc}
-      onOpenChange={(dialogOpen) => { if (!dialogOpen) setPreviewDoc(null); }}
-      publicUrl={previewDoc?.url || null}
-      title={previewDoc?.label || "ดูเอกสาร"}
-      labels={(() => {
-        if (!previewDoc) return undefined;
-        const urls = previewDoc.url.split(/\s*,\s*/).filter(Boolean);
-        return urls.length > 1 ? urls.map((_, i) => `${previewDoc.label} - ${i + 1}`) : undefined;
+      open={previewOpen}
+      onOpenChange={setPreviewOpen}
+      title="เอกสารทั้งหมดของรายการนี้"
+      categories={(() => {
+        const { docs, images } = splitExtraDocs(receipt.document_url);
+        return [
+          { label: "เอกสารแนบเพิ่มเติม", urls: docs },
+          { label: "รูปภาพเพิ่มเติม", urls: images },
+          { label: "เอกสารจัดซื้อ", urls: receipt.purchase_document_url },
+          { label: "Invoice", urls: receipt.invoice_document_url },
+          { label: "ใบส่งของ", urls: receipt.delivery_note_document_url },
+        ];
       })()}
     />
     </>
