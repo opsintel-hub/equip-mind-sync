@@ -182,6 +182,7 @@ const DeliveryEntry = () => {
   const [orderForProject, setOrderForProject] = useState("");
   const [purchaseDocumentFile, setPurchaseDocumentFile] = useState<File | null>(null);
   const purchaseFileInputRef = useRef<HTMLInputElement>(null);
+  const [highlightPurchaseDocs, setHighlightPurchaseDocs] = useState(false);
 
   // Document upload (shared) - 2 categories (รองรับหลายไฟล์)
   const [additionalDocumentFiles, setAdditionalDocumentFiles] = useState<File[]>([]);
@@ -883,7 +884,14 @@ const DeliveryEntry = () => {
 
     // Validate PO/PR/Invoice for "นำเข้าจากการซื้อ"
     if (isPurchaseReceipt && !poNumber && !prNumber && !invoiceNumber && !deliveryNoteNumber) {
-      toast.error("กรุณากรอกเลข PO, PR, Invoice หรือ ใบส่งของ อย่างน้อย 1 รายการ");
+      toast.error("กรุณากรอกเลข PO, PR, Invoice หรือ ใบส่งของ อย่างน้อย 1 รายการ (อยู่ในส่วน 'PO / PR / Invoice / ใบส่งของ' ด้านบน)");
+      // Scroll & highlight the purchase doc section
+      const el = document.getElementById("purchase-doc-section");
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
+        setHighlightPurchaseDocs(true);
+        setTimeout(() => setHighlightPurchaseDocs(false), 2500);
+      }
       return;
     }
     setIsLoading(true);
@@ -1509,7 +1517,14 @@ const DeliveryEntry = () => {
 
               {/* PO/PR/Invoice fields for "นำเข้าจากการซื้อ" */}
               {isPurchaseReceipt && (
-                <div className="mt-4 p-4 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-lg space-y-4">
+                <div
+                  id="purchase-doc-section"
+                  className={`mt-4 p-4 bg-amber-50 dark:bg-amber-950/20 border rounded-lg space-y-4 transition-all duration-300 ${
+                    highlightPurchaseDocs
+                      ? "border-destructive ring-4 ring-destructive/30 animate-pulse"
+                      : "border-amber-200 dark:border-amber-800"
+                  }`}
+                >
                   <h4 className="font-medium text-sm text-amber-700 dark:text-amber-400">
                     PO / PR / Invoice / ใบส่งของ (กรอกอย่างน้อย 1 รายการ) *
                   </h4>
