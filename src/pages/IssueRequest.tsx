@@ -211,6 +211,26 @@ const IssueRequest = () => {
     ...(mediaPlayersData || []),
   ].sort((a, b) => a.warehouse_entry_date.localeCompare(b.warehouse_entry_date));
 
+  const getMediaPlayerGroupIds = (equipmentId: string) => {
+    const selected = equipment.find((item) => item.id === equipmentId);
+    if (!selected?.is_media_player) return undefined;
+    return equipment
+      .filter((item) => item.is_media_player && item.code === selected.code && item.name === selected.name && item.quantity_in_stock > 0)
+      .map((item) => item.id);
+  };
+
+  const getSelectableStock = (equipmentId: string) => {
+    const selected = equipment.find((item) => item.id === equipmentId);
+    if (!selected) return 0;
+    if (!selected.is_media_player) return selected.quantity_in_stock || 0;
+
+    return equipment
+      .filter((item) => item.is_media_player && item.code === selected.code && item.name === selected.name)
+      .reduce((sum, item) => sum + (item.quantity_in_stock || 0), 0);
+  };
+
+  const selectedMediaPlayerIds = currentItem.equipment_id ? getMediaPlayerGroupIds(currentItem.equipment_id) : undefined;
+
   // Fetch issue purposes
   const { data: purposes } = useQuery({
     queryKey: ["issue-purposes-active"],
@@ -352,7 +372,7 @@ const IssueRequest = () => {
     const selectedEquipment = equipment?.find(e => e.id === currentItem.equipment_id);
     const isMediaPlayer = selectedEquipment?.is_media_player || false;
     const requestedQty = parseInt(currentItem.quantity);
-    const currentStock = selectedEquipment?.quantity_in_stock || 0;
+    const currentStock = currentItem.equipment_id ? getSelectableStock(currentItem.equipment_id) : 0;
 
     // Validate stock
     if (currentStock < requestedQty) {
@@ -442,8 +462,8 @@ const IssueRequest = () => {
     const selectedEquipment = equipment?.find(e => e.id === currentItem.equipment_id);
     if (selectedEquipment) {
       setCurrentStockInfo({
-        currentStock: selectedEquipment.quantity_in_stock,
-        remainingAfterIssue: selectedEquipment.quantity_in_stock - suggestedQuantity,
+        currentStock: getSelectableStock(currentItem.equipment_id),
+        remainingAfterIssue: getSelectableStock(currentItem.equipment_id) - suggestedQuantity,
       });
     }
   };
@@ -468,8 +488,8 @@ const IssueRequest = () => {
     const selectedEquipment = equipment?.find(e => e.id === item.equipment_id);
     if (selectedEquipment) {
       setCurrentStockInfo({
-        currentStock: selectedEquipment.quantity_in_stock,
-        remainingAfterIssue: selectedEquipment.quantity_in_stock - item.quantity,
+        currentStock: getSelectableStock(item.equipment_id),
+        remainingAfterIssue: getSelectableStock(item.equipment_id) - item.quantity,
       });
     }
     
