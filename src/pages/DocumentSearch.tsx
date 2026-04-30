@@ -266,13 +266,15 @@ export default function DocumentSearch() {
         const sns = (item.goods_issue_pending_items || [])
           .map((it: any) => it.serial_number?.trim())
           .filter(Boolean);
+        const confirmedAt = item.delivery_confirmations?.[0]?.confirmed_at || null;
         return {
           id: item.id, document_no: item.document_no, document_url: null,
           equipment_code: item.equipment_code, equipment_name: item.equipment_name,
           serial_number: sns.length > 0 ? sns.join(", ") : null,
           supplier_name: null, delivery_person_name: item.requester_name,
           quantity: 0, unit: "-", created_at: item.created_at,
-          status: item.status, source: "issue" as const, raw: item,
+          status: item.status, source: "issue" as const,
+          raw: { ...item, confirmed_at: confirmedAt },
         };
       });
 
