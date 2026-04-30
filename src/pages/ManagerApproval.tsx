@@ -221,7 +221,7 @@ const ManagerApproval = () => {
       }
       if (departmentFilter.length > 0 && !departmentFilter.includes(req.requester_department)) return false;
       if (companyFilter !== "all") {
-        const group = companies?.find((c: any) => c.ids[0] === companyFilter);
+        const group = companies?.find((c: any) => c.ids?.[0] === companyFilter);
         const ids = group?.ids || [companyFilter];
         if (!ids.includes(req.company_id)) return false;
       }
