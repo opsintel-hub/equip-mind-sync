@@ -432,15 +432,22 @@ export default function DisposalApproval() {
                           <TableCell><Badge variant={status.variant}>{status.label}</Badge></TableCell>
                           <TableCell className="text-xs">{format(new Date(row.created_at), "dd MMM yy HH:mm", { locale: th })}</TableCell>
                           <TableCell className="text-right">
-                            {row.dispose_status === "pending_disposal_review" && (
-                              <Button size="sm" onClick={() => openApproval(row)}>พิจารณา</Button>
-                            )}
-                            {row.dispose_status === "approved" && (
-                              <div className="flex gap-1 justify-end">
-                                <Button size="sm" variant="outline" onClick={() => openApproval(row)}>แก้ไข</Button>
-                                <Button size="sm" onClick={() => markCompleted(row)}>เสร็จสิ้น</Button>
-                              </div>
-                            )}
+                            <div className="flex gap-1 justify-end">
+                              <Button size="sm" variant="ghost" onClick={() => setPreviewing(row)} title="ดูเอกสาร">
+                                <Eye className="w-4 h-4" />
+                              </Button>
+                              {row.dispose_status === "pending_disposal_review" && (
+                                <Button size="sm" onClick={() => openApproval(row)}>พิจารณา</Button>
+                              )}
+                              {row.dispose_status === "approved" && (
+                                <>
+                                  <Button size="sm" variant="outline" onClick={() => openApproval(row)}>แก้ไข</Button>
+                                  <Button size="sm" onClick={() => openCompleteDialog(row)}>
+                                    <CheckCircle2 className="w-4 h-4 mr-1" /> เสร็จสิ้น
+                                  </Button>
+                                </>
+                              )}
+                            </div>
                           </TableCell>
                         </TableRow>
                       );
