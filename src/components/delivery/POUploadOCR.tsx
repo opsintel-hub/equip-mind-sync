@@ -50,6 +50,7 @@ export interface POOCRItem {
   matched_equipment_id?: string | null;
   matched_equipment_code?: string | null;
   matched_equipment_name?: string | null;
+  matched_is_media_player?: boolean;
   match_status?: "matched" | "not_found" | "new";
 }
 
@@ -93,6 +94,13 @@ interface Company {
   department_id: string | null;
 }
 
+interface MediaPlayer {
+  id: string;
+  code: string;
+  name: string;
+  unit_price?: number | null;
+}
+
 interface POUploadOCRProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -101,6 +109,7 @@ interface POUploadOCRProps {
   equipment: Equipment[];
   departments: Department[];
   companies?: Company[];
+  mediaPlayers?: MediaPlayer[];
 }
 
 export function POUploadOCR({
@@ -111,6 +120,7 @@ export function POUploadOCR({
   equipment,
   departments,
   companies = [],
+  mediaPlayers = [],
 }: POUploadOCRProps) {
   const [file, setFile] = useState<File | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -253,8 +263,9 @@ export function POUploadOCR({
   const matchEquipmentItems = (ocrItems: POOCRItem[]) => {
     return ocrItems.map((item) => {
       if (item.item_no) {
+        const target = item.item_no.replace(/\s/g, "");
         const found = equipment.find(
-          (e) => e.code === item.item_no || e.code.replace(/\s/g, "") === item.item_no.replace(/\s/g, "")
+          (e) => e.code === item.item_no || e.code.replace(/\s/g, "") === target
         );
         if (found) {
           return {
@@ -262,6 +273,20 @@ export function POUploadOCR({
             matched_equipment_id: found.id,
             matched_equipment_code: found.code,
             matched_equipment_name: found.name,
+            matched_is_media_player: false,
+            match_status: "matched" as const,
+          };
+        }
+        const foundMp = mediaPlayers.find(
+          (m) => m.code === item.item_no || m.code.replace(/\s/g, "") === target
+        );
+        if (foundMp) {
+          return {
+            ...item,
+            matched_equipment_id: foundMp.id,
+            matched_equipment_code: foundMp.code,
+            matched_equipment_name: foundMp.name,
+            matched_is_media_player: true,
             match_status: "matched" as const,
           };
         }
@@ -331,14 +356,16 @@ export function POUploadOCR({
 
   const handleItemEquipmentChange = (index: number, equipmentId: string) => {
     const eq = equipment.find((e) => e.id === equipmentId);
+    const mp = !eq ? mediaPlayers.find((m) => m.id === equipmentId) : null;
     setItems((prev) =>
       prev.map((item, i) =>
         i === index
           ? {
               ...item,
               matched_equipment_id: equipmentId,
-              matched_equipment_code: eq?.code || null,
-              matched_equipment_name: eq?.name || null,
+              matched_equipment_code: eq?.code || mp?.code || null,
+              matched_equipment_name: eq?.name || mp?.name || null,
+              matched_is_media_player: !!mp,
               match_status: equipmentId ? "matched" : "not_found",
             }
           : item
@@ -380,11 +407,18 @@ export function POUploadOCR({
     label: d.name,
   }));
 
-  const equipmentOptions = equipment.map((e) => ({
-    value: e.id,
-    label: `${e.code} - ${e.name}`,
-    description: `${e.unit} | ฿${e.unit_price.toLocaleString()}`,
-  }));
+  const equipmentOptions = [
+    ...equipment.map((e) => ({
+      value: e.id,
+      label: `${e.code} - ${e.name}`,
+      description: `${e.unit} | ฿${e.unit_price.toLocaleString()}`,
+    })),
+    ...mediaPlayers.map((m) => ({
+      value: m.id,
+      label: `${m.code} - ${m.name}`,
+      description: `Media Player${m.unit_price ? ` | ฿${Number(m.unit_price).toLocaleString()}` : ""}`,
+    })),
+  ];
 
   return (
     <Dialog

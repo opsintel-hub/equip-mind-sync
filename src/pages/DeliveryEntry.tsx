@@ -1184,6 +1184,41 @@ const DeliveryEntry = () => {
     // Add items to cart
     const newCartItems: DeliveryCartItem[] = [];
     for (const item of data.items) {
+      if (item.matched_equipment_id && item.matched_is_media_player) {
+        const mp = mediaPlayers.find((m) => m.id === item.matched_equipment_id);
+        if (mp) {
+          newCartItems.push({
+            id: crypto.randomUUID(),
+            equipment_id: null,
+            equipment_code: mp.code,
+            equipment_name: mp.name,
+            quantity: item.quantity,
+            unit: item.unit || "เครื่อง",
+            supplier_name: data.supplierName,
+            supplier_id: data.supplierId,
+            lot_number_1: "",
+            lot_number_2: "",
+            serial_number: "",
+            unit_price: item.unit_price ?? (mp.unit_price || 0),
+            notes: item.description,
+            expiry_date: "",
+            warranty_expiry_date: "",
+            storage_width_cm: "",
+            storage_height_cm: "",
+            storage_depth_cm: "",
+            storage_volume_cm3: "",
+            is_asset: false,
+            asset_code: "",
+            equipment_id_code: "",
+            waiting_asset_code: false,
+            waiting_equipment_id: false,
+            depreciation_months: "",
+            is_media_player: true,
+            media_player_id: mp.id,
+          });
+          continue;
+        }
+      }
       if (item.matched_equipment_id) {
         const eq = equipment.find((e) => e.id === item.matched_equipment_id);
         if (eq) {
@@ -1300,6 +1335,7 @@ const DeliveryEntry = () => {
         onImport={handlePOImport}
         suppliers={suppliers}
         equipment={equipment}
+        mediaPlayers={mediaPlayers}
         departments={allowedDepartments.map((d) => ({ id: d.id, name: d.name }))}
         companies={companies}
       />
