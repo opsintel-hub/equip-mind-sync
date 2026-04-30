@@ -10,7 +10,6 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { supabase } from "@/integrations/supabase/client";
-import { dedupeMediaPlayersByCode } from "@/lib/mediaPlayerOptions";
 import { toast } from "sonner";
 import { AlertTriangle, Package, MapPin, Send, Loader2, Info, PlusCircle, X, ImagePlus, ArrowLeftRight, Search } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
@@ -23,7 +22,7 @@ interface EquipmentItem {
 }
 interface MediaPlayerItem {
   id: string; code: string; name: string; unit: string; brand: string | null;
-  serial_number_1: string | null; department: string | null; quantity: number;
+  serial_number_1: string | null; serial_number_2: string | null; department: string | null; quantity: number;
   location_id: string | null; billboard_id: string | null;
 }
 interface BillboardEquipmentRecord {
@@ -58,64 +57,114 @@ const DefectiveReturnEntry = () => {
   const [snLookup, setSnLookup] = useState("");
   const [snLookupLoading, setSnLookupLoading] = useState(false);
 
+  const resetSelectionForType = (value: boolean) => {
+    setIsMediaPlayer(value);
+    setSelectedItemId("");
+    setDetectedBillboards([]);
+    setSelectedBillboardEquipmentId("");
+  };
+
+  const normalizeSearch = (value: string | null | undefined) =>
+    (value || "")
+      .normalize("NFKD")
+      .replace(/[\u0300-\u036f\u0E31\u0E34-\u0E3A\u0E47-\u0E4E]/g, "")
+      .toLowerCase()
+      .trim();
+
+  const findLocalMediaPlayer = (term: string) => {
+    const normalizedTerm = normalizeSearch(term);
+    return mediaPlayerList.find((mp) =>
+      [mp.serial_number_1, mp.serial_number_2, mp.code, mp.name]
+        .some((value) => normalizeSearch(value).includes(normalizedTerm))
+    );
+  };
+
+  const findLocalEquipment = (term: string) => {
+    const normalizedTerm = normalizeSearch(term);
+    return equipmentList.find((eq) =>
+      [eq.serial_number, eq.code, eq.name]
+        .some((value) => normalizeSearch(value).includes(normalizedTerm))
+    );
+  };
+
+  const getMatchedSerial = (term: string, ...serials: Array<string | null | undefined>) => {
+    const normalizedTerm = normalizeSearch(term);
+    return serials.find((serial) => normalizeSearch(serial).includes(normalizedTerm))?.trim() || "";
+  };
+
+  const applyLookupSelection = (itemId: string, matchedSerial?: string) => {
+    setSelectedItemId(itemId);
+    if (matchedSerial) {
+      setPerUnitMode(true);
+      setDefectiveUnits([{ id: crypto.randomUUID(), serial_number: matchedSerial, reason: "", item_condition: "defective", image_file: null, image_preview: null }]);
+    } else {
+      setPerUnitMode(false);
+      setDefectiveUnits([{ id: crypto.randomUUID(), serial_number: "", reason: "", item_condition: "defective", image_file: null, image_preview: null }]);
+    }
+  };
+
   const handleSnLookup = async () => {
     const term = snLookup.trim();
-    if (!term) { toast.error("กรุณากรอก Serial Number"); return; }
+    if (!term) { toast.error("กรุณากรอก S/N, รหัสสินค้า หรือชื่อสินค้า"); return; }
     setSnLookupLoading(true);
     try {
-      // 1) Try equipment_serial_numbers (authoritative for equipment)
-      const { data: snRow } = await supabase
-        .from("equipment_serial_numbers")
-        .select("equipment_id, status")
-        .ilike("serial_number", term)
-        .maybeSingle();
-      if (snRow?.equipment_id) {
-        setIsMediaPlayer(false);
-        setSelectedItemId(snRow.equipment_id);
-        if (!perUnitMode) setPerUnitMode(true);
-        setDefectiveUnits([{ id: crypto.randomUUID(), serial_number: term, reason: "", item_condition: "defective", image_file: null, image_preview: null }]);
-        toast.success(`พบสินค้า — ดึงข้อมูลแล้ว (S/N: ${term})`);
+      const likeTerm = `%${term.replace(/[%,]/g, "")}%`;
+      const localMatch = isMediaPlayer ? findLocalMediaPlayer(term) : findLocalEquipment(term);
+      if (localMatch) {
+        const matchedSerial = isMediaPlayer
+          ? getMatchedSerial(term, (localMatch as MediaPlayerItem).serial_number_1, (localMatch as MediaPlayerItem).serial_number_2)
+          : getMatchedSerial(term, (localMatch as EquipmentItem).serial_number);
+        applyLookupSelection(localMatch.id, matchedSerial);
+        toast.success(`พบ${isMediaPlayer ? " Media Player" : "สินค้า/อะไหล่"} — ดึงข้อมูลแล้ว`);
         return;
       }
 
-      // 2) Try goods_receipt_pending (covers both equipment & media player by S/N from receipt)
+      // 1) Search receipt S/N by selected type (covers S/N 1 and S/N 2)
       const { data: rcvRow } = await supabase
         .from("goods_receipt_pending")
-        .select("equipment_id, media_player_id, is_media_player, equipment_code")
-        .ilike("serial_number", term)
+        .select("equipment_id, media_player_id, is_media_player, equipment_code, serial_number, serial_number_2")
+        .or(`serial_number.ilike.${likeTerm},serial_number_2.ilike.${likeTerm},equipment_code.ilike.${likeTerm},equipment_name.ilike.${likeTerm}`)
+        .eq("is_media_player", isMediaPlayer)
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle();
       if (rcvRow) {
-        const isMp = !!rcvRow.is_media_player || !!rcvRow.media_player_id;
-        setIsMediaPlayer(isMp);
-        const id = isMp ? rcvRow.media_player_id : rcvRow.equipment_id;
+        const id = isMediaPlayer ? rcvRow.media_player_id : rcvRow.equipment_id;
         if (id) {
-          setSelectedItemId(id);
-          setPerUnitMode(true);
-          setDefectiveUnits([{ id: crypto.randomUUID(), serial_number: term, reason: "", item_condition: "defective", image_file: null, image_preview: null }]);
-          toast.success(`พบจากเอกสารรับเข้า — ดึงข้อมูลแล้ว (S/N: ${term})`);
+          applyLookupSelection(id, getMatchedSerial(term, rcvRow.serial_number, rcvRow.serial_number_2));
+          toast.success(`พบจากเอกสารรับเข้า — ดึงข้อมูลแล้ว`);
           return;
         }
       }
 
-      // 3) Try media_players legacy serial_number_1 / 2
-      const { data: mpRow } = await supabase
-        .from("media_players")
-        .select("id")
-        .or(`serial_number_1.ilike.${term},serial_number_2.ilike.${term}`)
-        .limit(1)
-        .maybeSingle();
-      if (mpRow?.id) {
-        setIsMediaPlayer(true);
-        setSelectedItemId(mpRow.id);
-        setPerUnitMode(true);
-        setDefectiveUnits([{ id: crypto.randomUUID(), serial_number: term, reason: "", item_condition: "defective", image_file: null, image_preview: null }]);
-        toast.success(`พบ Media Player — ดึงข้อมูลแล้ว (S/N: ${term})`);
-        return;
+      // 2) Fallback to authoritative table for equipment or Media Player master rows by selected type
+      if (!isMediaPlayer) {
+        const { data: snRow } = await supabase
+          .from("equipment_serial_numbers")
+          .select("equipment_id, status")
+          .ilike("serial_number", likeTerm)
+          .limit(1)
+          .maybeSingle();
+        if (snRow?.equipment_id) {
+          applyLookupSelection(snRow.equipment_id, term);
+          toast.success(`พบสินค้า/อะไหล่ — ดึงข้อมูลแล้ว`);
+          return;
+        }
+      } else {
+        const { data: mpRow } = await supabase
+          .from("media_players")
+          .select("id, serial_number_1, serial_number_2")
+          .or(`serial_number_1.ilike.${likeTerm},serial_number_2.ilike.${likeTerm},code.ilike.${likeTerm},name.ilike.${likeTerm}`)
+          .limit(1)
+          .maybeSingle();
+        if (mpRow?.id) {
+          applyLookupSelection(mpRow.id, getMatchedSerial(term, mpRow.serial_number_1, mpRow.serial_number_2));
+          toast.success(`พบ Media Player — ดึงข้อมูลแล้ว`);
+          return;
+        }
       }
 
-      toast.error(`ไม่พบ S/N "${term}" ในระบบ — กรุณาเลือกสินค้าด้วยตนเอง`);
+      toast.error(`ไม่พบ "${term}" ในประเภท${isMediaPlayer ? " Media Player" : "สินค้า/อะไหล่"} — กรุณาตรวจสอบประเภทหรือเลือกด้วยตนเอง`);
     } catch (e: any) {
       toast.error("ค้นหาไม่สำเร็จ: " + e.message);
     } finally {
@@ -132,14 +181,14 @@ const DefectiveReturnEntry = () => {
     if (selectedItemId && !isMediaPlayer) detectBillboardForEquipment(selectedItemId);
     else if (selectedItemId && isMediaPlayer) detectBillboardForMediaPlayer(selectedItemId);
     else { setDetectedBillboards([]); setSelectedBillboardEquipmentId(""); }
-  }, [selectedItemId, isMediaPlayer]);
+  }, [selectedItemId, isMediaPlayer, mediaPlayerList]);
 
   const fetchEquipment = async () => {
     const { data } = await supabase.from("equipment").select("id, code, name, unit, category, brand, serial_number, department, quantity_in_stock, location_id").eq("is_active", true).order("code");
     if (data) setEquipmentList(data);
   };
   const fetchMediaPlayers = async () => {
-    const { data } = await supabase.from("media_players").select("id, code, name, unit, brand, serial_number_1, department, quantity, location_id, billboard_id").eq("is_active", true).order("code");
+    const { data } = await supabase.from("media_players").select("id, code, name, unit, brand, serial_number_1, serial_number_2, department, quantity, location_id, billboard_id").eq("is_active", true).order("code");
     if (data) setMediaPlayerList(data as MediaPlayerItem[]);
   };
   const detectBillboardForEquipment = async (equipmentId: string) => {
@@ -174,9 +223,19 @@ const DefectiveReturnEntry = () => {
 
   const equipmentOptions = useMemo(() => {
     if (isMediaPlayer) {
-      return dedupeMediaPlayersByCode(mediaPlayerList).map(o => ({ value: o.value, label: o.label }));
+      return mediaPlayerList.map(mp => ({
+        value: mp.id,
+        label: `${mp.code} - ${mp.name}`,
+        description: [mp.serial_number_1 && `S/N 1: ${mp.serial_number_1}`, mp.serial_number_2 && `S/N 2: ${mp.serial_number_2}`, `คงเหลือในคลัง: ${mp.quantity} เครื่อง`].filter(Boolean).join(" | "),
+        searchableText: [mp.code, mp.name, mp.serial_number_1, mp.serial_number_2].filter(Boolean).join(" "),
+      }));
     }
-    return equipmentList.map(e => ({ value: e.id, label: `${e.code} - ${e.name}` }));
+    return equipmentList.map(e => ({
+      value: e.id,
+      label: `${e.code} - ${e.name}`,
+      description: [e.serial_number && `S/N: ${e.serial_number}`, `คงเหลือในคลัง: ${e.quantity_in_stock} ${e.unit || "ชิ้น"}`].filter(Boolean).join(" | "),
+      searchableText: [e.code, e.name, e.serial_number].filter(Boolean).join(" "),
+    }));
   }, [isMediaPlayer, mediaPlayerList, equipmentList]);
 
   const maxQuantity = useMemo(() => {
@@ -344,13 +403,20 @@ const DefectiveReturnEntry = () => {
             <CardDescription>เลือกสินค้า ระบบจะดึงข้อมูลเดิมมาให้อัตโนมัติ รวมถึงตรวจสอบว่าติดตั้งบนป้ายโฆษณาหรือไม่</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
+            <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
+              <Label className="text-sm font-medium">ประเภทที่ต้องการค้นหา:</Label>
+              <span className={`text-sm ${!isMediaPlayer ? "font-semibold text-primary" : "text-muted-foreground"}`}>สินค้า/อะไหล่</span>
+              <Switch checked={isMediaPlayer} onCheckedChange={resetSelectionForType} />
+              <span className={`text-sm ${isMediaPlayer ? "font-semibold text-primary" : "text-muted-foreground"}`}>Media Player</span>
+            </div>
+
             <div className="space-y-2 p-3 rounded-lg bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800">
               <Label className="text-sm font-medium text-blue-700 dark:text-blue-300 flex items-center gap-2">
-                <Search className="w-4 h-4" /> ค้นหาด้วย Serial Number (กรอก S/N → ระบบดึงข้อมูลสินค้าให้อัตโนมัติ)
+                <Search className="w-4 h-4" /> ค้นหา{isMediaPlayer ? " Media Player" : "สินค้า/อะไหล่"}ด้วย S/N, รหัส หรือชื่อ
               </Label>
               <div className="flex gap-2">
                 <Input
-                  placeholder="พิมพ์ S/N เช่น BCD004..."
+                  placeholder={isMediaPlayer ? "พิมพ์ S/N เช่น BCD004 หรือรหัส Media Player..." : "พิมพ์ S/N, รหัสสินค้า หรือชื่อสินค้า..."}
                   value={snLookup}
                   onChange={(e) => setSnLookup(e.target.value)}
                   onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleSnLookup(); } }}
@@ -362,20 +428,13 @@ const DefectiveReturnEntry = () => {
                 </Button>
               </div>
               <p className="text-[11px] text-blue-600/80 dark:text-blue-400/80">
-                💡 ใช้สำหรับเข้าถึงเร็ว — ค้นจากตาราง S/N, เอกสารรับเข้า และ Media Player
+                💡 เลือกประเภทก่อนค้นหา เพื่อให้ระบบค้นในชุดข้อมูลที่ถูกต้องและดึงข้อมูลเข้าฟอร์มอัตโนมัติ
               </p>
             </div>
 
-            <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
-              <Label className="text-sm font-medium">ประเภท:</Label>
-              <span className={`text-sm ${!isMediaPlayer ? "font-semibold text-primary" : "text-muted-foreground"}`}>สินค้า/อะไหล่</span>
-              <Switch checked={isMediaPlayer} onCheckedChange={(v) => { setIsMediaPlayer(v); setSelectedItemId(""); setDetectedBillboards([]); setSelectedBillboardEquipmentId(""); }} />
-              <span className={`text-sm ${isMediaPlayer ? "font-semibold text-primary" : "text-muted-foreground"}`}>Media Player</span>
-            </div>
-
             <div className="space-y-2">
-              <Label>เลือกสินค้า *</Label>
-              <SearchableSelect options={equipmentOptions} value={selectedItemId} onValueChange={setSelectedItemId} placeholder="พิมพ์รหัสหรือชื่อสินค้าเพื่อค้นหา..." />
+              <Label>{isMediaPlayer ? "เลือก Media Player *" : "เลือกสินค้า/อะไหล่ *"}</Label>
+              <SearchableSelect options={equipmentOptions} value={selectedItemId} onValueChange={setSelectedItemId} placeholder={isMediaPlayer ? "พิมพ์ S/N, รหัส หรือชื่อ Media Player เพื่อค้นหา..." : "พิมพ์ S/N, รหัส หรือชื่อสินค้าเพื่อค้นหา..."} searchPlaceholder="ค้นหา S/N / รหัส / ชื่อ..." emptyMessage={isMediaPlayer ? "ไม่พบ Media Player" : "ไม่พบสินค้า/อะไหล่"} />
             </div>
 
             {isLoadingBillboard && (
