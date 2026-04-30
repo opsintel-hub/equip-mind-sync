@@ -126,22 +126,46 @@ export default function SwapWizard() {
     }
     (async () => {
       setInstalledLoading(true);
-      const { data } = await supabase
-        .from("billboard_equipment")
-        .select("id, equipment_id, serial_number, quantity, equipment:equipment_id(id, code, name)")
-        .eq("billboard_id", billboardId);
-      const opts: InstalledItemOption[] = (data || []).map((b: any) => ({
-        value: `be:${b.id}`,
-        label: `${b.equipment?.code || "—"} — ${b.equipment?.name || "Equipment"}`,
-        description: `S/N: ${b.serial_number || "—"} • จำนวน: ${b.quantity}`,
-        searchableText: `${b.equipment?.code || ""} ${b.equipment?.name || ""} ${b.serial_number || ""}`,
-        asset_type: "equipment",
-        equipment_id: b.equipment_id,
-        serial_number: b.serial_number,
-        item_code: b.equipment?.code,
-        item_name: b.equipment?.name,
-        billboard_equipment_id: b.id,
-      }));
+      const [eqRes, mpRes] = await Promise.all([
+        supabase
+          .from("billboard_equipment")
+          .select("id, equipment_id, serial_number, quantity, equipment:equipment_id(id, code, name)")
+          .eq("billboard_id", billboardId),
+        supabase
+          .from("media_players")
+          .select("id, code, name, serial_number_1, serial_number_2")
+          .eq("billboard_id", billboardId)
+          .eq("is_active", true),
+      ]);
+      const opts: InstalledItemOption[] = [];
+      (eqRes.data || []).forEach((b: any) => {
+        opts.push({
+          value: `be:${b.id}`,
+          label: `${b.equipment?.code || "—"} — ${b.equipment?.name || "Equipment"}`,
+          description: `S/N: ${b.serial_number || "—"} • จำนวน: ${b.quantity}`,
+          searchableText: `${b.equipment?.code || ""} ${b.equipment?.name || ""} ${b.serial_number || ""}`,
+          asset_type: "equipment",
+          equipment_id: b.equipment_id,
+          serial_number: b.serial_number,
+          item_code: b.equipment?.code,
+          item_name: b.equipment?.name,
+          billboard_equipment_id: b.id,
+        });
+      });
+      (mpRes.data || []).forEach((mp: any) => {
+        const sn = [mp.serial_number_1, mp.serial_number_2].filter(Boolean).join(" / ");
+        opts.push({
+          value: `mp:${mp.id}`,
+          label: `${mp.code || "—"} — ${mp.name || "Media Player"} [Media Player]`,
+          description: `S/N: ${sn || "—"}`,
+          searchableText: `${mp.code || ""} ${mp.name || ""} ${sn} media player`,
+          asset_type: "media_player",
+          media_player_id: mp.id,
+          serial_number: mp.serial_number_1 || null,
+          item_code: mp.code,
+          item_name: mp.name,
+        });
+      });
       opts.push({
         value: "__manual__",
         label: "+ กรอกรายการเอง (ไม่พบในป้าย)",
