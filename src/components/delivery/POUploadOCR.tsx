@@ -263,8 +263,9 @@ export function POUploadOCR({
   const matchEquipmentItems = (ocrItems: POOCRItem[]) => {
     return ocrItems.map((item) => {
       if (item.item_no) {
+        const target = item.item_no.replace(/\s/g, "");
         const found = equipment.find(
-          (e) => e.code === item.item_no || e.code.replace(/\s/g, "") === item.item_no.replace(/\s/g, "")
+          (e) => e.code === item.item_no || e.code.replace(/\s/g, "") === target
         );
         if (found) {
           return {
@@ -272,6 +273,20 @@ export function POUploadOCR({
             matched_equipment_id: found.id,
             matched_equipment_code: found.code,
             matched_equipment_name: found.name,
+            matched_is_media_player: false,
+            match_status: "matched" as const,
+          };
+        }
+        const foundMp = mediaPlayers.find(
+          (m) => m.code === item.item_no || m.code.replace(/\s/g, "") === target
+        );
+        if (foundMp) {
+          return {
+            ...item,
+            matched_equipment_id: foundMp.id,
+            matched_equipment_code: foundMp.code,
+            matched_equipment_name: foundMp.name,
+            matched_is_media_player: true,
             match_status: "matched" as const,
           };
         }
