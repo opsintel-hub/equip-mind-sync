@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { ShieldCheck, Search, RefreshCw, Trash2, Recycle, HeartHandshake, Wrench, ImagePlus, X } from "lucide-react";
+import { ShieldCheck, Search, RefreshCw, Trash2, Recycle, HeartHandshake, Wrench, ImagePlus, X, Eye, CheckCircle2, FileText } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { th } from "date-fns/locale";
