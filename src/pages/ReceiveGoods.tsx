@@ -1416,19 +1416,21 @@ const ReceiveGoods = () => {
                   <p className="text-sm font-medium text-primary">ข้อมูลทรัพย์สิน</p>
                   <div className="grid grid-cols-3 gap-4">
                     <div className="space-y-2">
-                      <Label>รหัสทรัพย์สิน</Label>
-                      <Input 
-                        value={selectedReceipt.asset_code || (selectedReceipt.waiting_asset_code ? "รอรหัส" : "-")}
-                        disabled
-                        className={`bg-muted ${selectedReceipt.waiting_asset_code ? 'text-warning' : !selectedReceipt.asset_code ? 'text-muted-foreground' : ''}`}
+                      <Label>รหัสทรัพย์สิน {selectedReceipt.waiting_asset_code && <span className="text-warning text-xs">(รอกรอก)</span>}</Label>
+                      <Input
+                        value={editAssetCode}
+                        onChange={(e) => setEditAssetCode(e.target.value)}
+                        placeholder={selectedReceipt.waiting_asset_code ? "กรอกรหัสทรัพย์สิน..." : "-"}
+                        className={selectedReceipt.waiting_asset_code && !editAssetCode ? "border-warning" : ""}
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label>รหัสอุปกรณ์</Label>
-                      <Input 
-                        value={selectedReceipt.equipment_id_code || (selectedReceipt.waiting_equipment_id ? "รอรหัส" : "-")}
-                        disabled
-                        className={`bg-muted ${selectedReceipt.waiting_equipment_id ? 'text-warning' : !selectedReceipt.equipment_id_code ? 'text-muted-foreground' : ''}`}
+                      <Label>รหัสอุปกรณ์ {selectedReceipt.waiting_equipment_id && <span className="text-warning text-xs">(รอกรอก)</span>}</Label>
+                      <Input
+                        value={editEquipmentIdCode}
+                        onChange={(e) => setEditEquipmentIdCode(e.target.value)}
+                        placeholder={selectedReceipt.waiting_equipment_id ? "กรอกรหัสอุปกรณ์..." : "-"}
+                        className={selectedReceipt.waiting_equipment_id && !editEquipmentIdCode ? "border-warning" : ""}
                       />
                     </div>
                     <div className="space-y-2">
