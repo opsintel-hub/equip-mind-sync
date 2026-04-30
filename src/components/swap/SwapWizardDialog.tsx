@@ -239,9 +239,11 @@ export function SwapWizardDialog({ open, onOpenChange, request, onCompleted }: P
     // Parse old
     let oldBeId: string | null = null;
     let oldEqId: string | null = null;
+    let oldMpId: string | null = null;
     if (selectedOld) {
-      oldBeId = selectedOld.billboard_equipment_id;
-      oldEqId = selectedOld.value.split(":")[1] === oldBeId ? null : null;
+      oldBeId = selectedOld.billboard_equipment_id || null;
+      oldEqId = selectedOld.equipment_id || null;
+      oldMpId = selectedOld.media_player_id || (selectedOld.type === "media_player" ? selectedOld.value.split(":")[1] : null);
     }
 
     // Insert execution
@@ -254,6 +256,7 @@ export function SwapWizardDialog({ open, onOpenChange, request, onCompleted }: P
       spare_source_location_id: selectedSpare?.location_id || null,
       old_billboard_equipment_id: oldBeId,
       old_equipment_id: oldEqId,
+      old_media_player_id: oldMpId,
       old_serial_number: selectedOld?.serial_number || null,
       return_location_id: returnLocationId || null,
       result,
@@ -274,7 +277,8 @@ export function SwapWizardDialog({ open, onOpenChange, request, onCompleted }: P
     await supabase.from("swap_requests").update({
       status: newStatus,
       asset_type: selectedSpare?.type || "equipment",
-      old_equipment_id: oldEqId || (selectedOld as any)?.equipment_id || null,
+      old_equipment_id: oldEqId,
+      old_media_player_id: oldMpId,
       old_serial_number: selectedOld?.serial_number || null,
       new_equipment_id: spareEqId,
       new_media_player_id: spareMpId,
@@ -286,12 +290,11 @@ export function SwapWizardDialog({ open, onOpenChange, request, onCompleted }: P
     // Auto-create defective_return for the OLD unit (only if approved + not already linked)
     if (result === "approved" && selectedOld && !request.defective_return_id) {
       const drDocNo = `DR-${new Date().toISOString().slice(0, 10).replace(/-/g, "")}-${Math.floor(Math.random() * 9999 + 1).toString().padStart(4, "0")}`;
-      const oldEquipmentId = (selectedOld as any).equipment_id || null;
       const { data: newDr } = await supabase.from("defective_returns").insert({
         document_no: drDocNo,
-        equipment_id: oldEquipmentId,
-        media_player_id: null,
-        is_media_player: false,
+        equipment_id: oldEqId,
+        media_player_id: oldMpId,
+        is_media_player: selectedOld.type === "media_player",
         quantity: 1,
         billboard_id: request.billboard_id,
         item_condition: "defective",
