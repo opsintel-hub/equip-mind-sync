@@ -4821,6 +4821,17 @@ export type Database = {
           old_serial_number: string | null
           photo_urls: string[] | null
           priority: string
+          received_at: string | null
+          received_by: string | null
+          received_by_name: string | null
+          reported_asset_type: string | null
+          reported_billboard_equipment_id: string | null
+          reported_equipment_id: string | null
+          reported_item_code: string | null
+          reported_item_name: string | null
+          reported_media_player_id: string | null
+          reported_photos: string[] | null
+          reported_serial_number: string | null
           status: string
           symptom_id: string | null
           symptom_other: string | null
@@ -4848,6 +4859,17 @@ export type Database = {
           old_serial_number?: string | null
           photo_urls?: string[] | null
           priority?: string
+          received_at?: string | null
+          received_by?: string | null
+          received_by_name?: string | null
+          reported_asset_type?: string | null
+          reported_billboard_equipment_id?: string | null
+          reported_equipment_id?: string | null
+          reported_item_code?: string | null
+          reported_item_name?: string | null
+          reported_media_player_id?: string | null
+          reported_photos?: string[] | null
+          reported_serial_number?: string | null
           status?: string
           symptom_id?: string | null
           symptom_other?: string | null
@@ -4875,6 +4897,17 @@ export type Database = {
           old_serial_number?: string | null
           photo_urls?: string[] | null
           priority?: string
+          received_at?: string | null
+          received_by?: string | null
+          received_by_name?: string | null
+          reported_asset_type?: string | null
+          reported_billboard_equipment_id?: string | null
+          reported_equipment_id?: string | null
+          reported_item_code?: string | null
+          reported_item_name?: string | null
+          reported_media_player_id?: string | null
+          reported_photos?: string[] | null
+          reported_serial_number?: string | null
           status?: string
           symptom_id?: string | null
           symptom_other?: string | null
