@@ -544,6 +544,11 @@ export default function InventoryReport() {
           issueStatus = "partial";
         }
       }
+      // Fallback: หากของหมดคลัง (qty=0) แต่ไม่มี issueInfo (เช่น MP ที่ถูกเบิก/ติดตั้งโดย legacy flow)
+      // ให้ถือว่า "ถูกเบิกออก" แทนที่จะแสดง "อยู่ในคลัง" ผิดๆ
+      if (issueStatus === "in_stock" && (item.quantity_in_stock || 0) === 0) {
+        issueStatus = "issued";
+      }
 
       const projects = orderForProjectMap[item.id] || [];
       const receiptPrices = receiptPriceMap[item.id] || [];
