@@ -127,11 +127,27 @@ export function DocumentPreviewDialog({
             </div>
           )}
           {!loading && !error && blobUrl && isPdf && (
-            <iframe
-              src={blobUrl}
-              className="w-full h-full border-0"
-              title={filename}
-            />
+            <object
+              data={`${blobUrl}#toolbar=1&navpanes=0&view=FitH`}
+              type="application/pdf"
+              className="w-full h-full"
+              aria-label={filename}
+            >
+              <embed
+                src={`${blobUrl}#toolbar=1&navpanes=0&view=FitH`}
+                type="application/pdf"
+                className="w-full h-full"
+              />
+              <div className="flex flex-col items-center justify-center h-full gap-3 p-6 text-center text-muted-foreground">
+                <p>เบราว์เซอร์ไม่สามารถ preview PDF ได้</p>
+                <Button
+                  size="sm"
+                  onClick={() => window.open(blobUrl, "_blank", "noopener,noreferrer")}
+                >
+                  เปิดในแท็บใหม่
+                </Button>
+              </div>
+            </object>
           )}
           {!loading && !error && blobUrl && isImage && (
             <div className="w-full h-full flex items-center justify-center overflow-auto p-4">
