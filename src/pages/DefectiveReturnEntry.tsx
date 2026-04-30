@@ -344,6 +344,28 @@ const DefectiveReturnEntry = () => {
             <CardDescription>เลือกสินค้า ระบบจะดึงข้อมูลเดิมมาให้อัตโนมัติ รวมถึงตรวจสอบว่าติดตั้งบนป้ายโฆษณาหรือไม่</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
+            <div className="space-y-2 p-3 rounded-lg bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800">
+              <Label className="text-sm font-medium text-blue-700 dark:text-blue-300 flex items-center gap-2">
+                <Search className="w-4 h-4" /> ค้นหาด้วย Serial Number (กรอก S/N → ระบบดึงข้อมูลสินค้าให้อัตโนมัติ)
+              </Label>
+              <div className="flex gap-2">
+                <Input
+                  placeholder="พิมพ์ S/N เช่น BCD004..."
+                  value={snLookup}
+                  onChange={(e) => setSnLookup(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleSnLookup(); } }}
+                  className="bg-background"
+                />
+                <Button type="button" onClick={handleSnLookup} disabled={snLookupLoading} variant="default">
+                  {snLookupLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
+                  <span className="ml-1">ค้นหา</span>
+                </Button>
+              </div>
+              <p className="text-[11px] text-blue-600/80 dark:text-blue-400/80">
+                💡 ใช้สำหรับเข้าถึงเร็ว — ค้นจากตาราง S/N, เอกสารรับเข้า และ Media Player
+              </p>
+            </div>
+
             <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
               <Label className="text-sm font-medium">ประเภท:</Label>
               <span className={`text-sm ${!isMediaPlayer ? "font-semibold text-primary" : "text-muted-foreground"}`}>สินค้า/อะไหล่</span>
