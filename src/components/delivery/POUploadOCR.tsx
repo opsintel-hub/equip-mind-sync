@@ -356,14 +356,16 @@ export function POUploadOCR({
 
   const handleItemEquipmentChange = (index: number, equipmentId: string) => {
     const eq = equipment.find((e) => e.id === equipmentId);
+    const mp = !eq ? mediaPlayers.find((m) => m.id === equipmentId) : null;
     setItems((prev) =>
       prev.map((item, i) =>
         i === index
           ? {
               ...item,
               matched_equipment_id: equipmentId,
-              matched_equipment_code: eq?.code || null,
-              matched_equipment_name: eq?.name || null,
+              matched_equipment_code: eq?.code || mp?.code || null,
+              matched_equipment_name: eq?.name || mp?.name || null,
+              matched_is_media_player: !!mp,
               match_status: equipmentId ? "matched" : "not_found",
             }
           : item
