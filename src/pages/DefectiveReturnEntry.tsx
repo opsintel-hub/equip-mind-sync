@@ -12,7 +12,7 @@ import { SearchableSelect } from "@/components/ui/searchable-select";
 import { supabase } from "@/integrations/supabase/client";
 import { dedupeMediaPlayersByCode } from "@/lib/mediaPlayerOptions";
 import { toast } from "sonner";
-import { AlertTriangle, Package, MapPin, Send, Loader2, Info, PlusCircle, X, ImagePlus, ClipboardCheck, FileCheck2 } from "lucide-react";
+import { AlertTriangle, Package, MapPin, Send, Loader2, Info, PlusCircle, X, ImagePlus, ClipboardCheck, FileCheck2, ArrowLeftRight } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { format } from "date-fns";
 
