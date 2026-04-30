@@ -94,6 +94,7 @@ export function SwapWizardDialog({ open, onOpenChange, request, onCompleted }: P
       setRejectReasonId("");
       setRejectReasonOther("");
       setNotes("");
+      setCrossModelAck(false);
       loadSpares();
       loadLocations();
       if (request?.billboard_id) loadOldUnits(request.billboard_id);
