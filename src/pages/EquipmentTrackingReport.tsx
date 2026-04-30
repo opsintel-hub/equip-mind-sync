@@ -334,9 +334,9 @@ function BillboardViewTab() {
 
       {/* Filters */}
       <div className="flex flex-wrap gap-3 items-center">
-        <div className="relative flex-1 min-w-[140px] max-w-[200px]">
+        <div className="relative flex-1 min-w-[140px] max-w-[220px]">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input placeholder="ค้นหา S/N..." value={snSearch} onChange={e => setSnSearch(e.target.value)} className="pl-9" />
+          <Input placeholder="กรองป้ายตาม S/N อุปกรณ์ที่ติดตั้ง..." value={snSearch} onChange={e => setSnSearch(e.target.value)} className="pl-9" title="กรองเฉพาะป้ายที่มีอุปกรณ์ S/N นี้ติดตั้งอยู่ — หากต้องการค้นหาตัวอุปกรณ์ ให้สลับไปแท็บ 'ค้นหาตามอุปกรณ์'" />
         </div>
         <div className="relative flex-1 min-w-[200px]">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
