@@ -364,51 +364,21 @@ export default function SwapWizard() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="new" className="mt-4">
+        <TabsContent value="new" className="mt-4 space-y-4">
+          {/* Section 1: ป้าย + อาการ */}
           <Card>
             <CardHeader>
-              <CardTitle>แจ้งคำขอ Swap ใหม่</CardTitle>
-              <CardDescription>ขั้นที่ 1: ระบุปัญหา จากนั้นวิศวกรจะกด "ดำเนินการ Swap" เพื่อเข้า Wizard</CardDescription>
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <MapPin className="h-5 w-5 text-primary" />
+                1. ข้อมูลป้ายและอาการเสีย
+              </CardTitle>
+              <CardDescription>เลือกป้ายที่เกิดปัญหา และระบุอาการที่ตรวจพบหน้างาน</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label>ป้ายโฆษณา *</Label>
+                  <Label>ป้ายโฆษณา <span className="text-destructive">*</span></Label>
                   <BillboardSelect value={billboardId} onChange={setBillboardId} />
-                </div>
-                <div className="space-y-2">
-                  <Label>อาการเสีย *</Label>
-                  <SymptomSelect value={symptomId} onChange={setSymptomId} />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label>อาการอื่น ๆ (ถ้าไม่มีในรายการ)</Label>
-                <Input
-                  value={symptomOther}
-                  onChange={(e) => setSymptomOther(e.target.value)}
-                  placeholder="ระบุอาการเสียที่ไม่มีในรายการ"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label>รายละเอียดเพิ่มเติม</Label>
-                <Textarea
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  placeholder="อธิบายปัญหาเพิ่มเติม..."
-                  rows={3}
-                />
-              </div>
-
-              <div className="grid md:grid-cols-3 gap-4">
-                <div className="space-y-2">
-                  <Label>ชื่อช่างแจ้ง</Label>
-                  <Input value={technicianName} onChange={(e) => setTechnicianName(e.target.value)} placeholder="ชื่อ-สกุล" />
-                </div>
-                <div className="space-y-2">
-                  <Label>เบอร์ติดต่อ</Label>
-                  <Input value={technicianPhone} onChange={(e) => setTechnicianPhone(e.target.value)} placeholder="08x-xxx-xxxx" />
                 </div>
                 <div className="space-y-2">
                   <Label>ระดับความสำคัญ</Label>
@@ -425,9 +395,166 @@ export default function SwapWizard() {
                 </div>
               </div>
 
+              <div className="grid md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>อาการเสีย <span className="text-destructive">*</span></Label>
+                  <SymptomSelect value={symptomId} onChange={setSymptomId} />
+                </div>
+                <div className="space-y-2">
+                  <Label>อาการอื่น (ถ้าไม่มีในรายการ)</Label>
+                  <Input
+                    value={symptomOther}
+                    onChange={(e) => setSymptomOther(e.target.value)}
+                    placeholder="ระบุอาการเพิ่มเติม"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label>รายละเอียดเพิ่มเติม</Label>
+                <Textarea
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder="อธิบายปัญหา, สถานการณ์หน้างาน, สิ่งที่สังเกตเห็น..."
+                  rows={3}
+                />
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Section 2: ของที่ช่างเอามาคืน */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <Package className="h-5 w-5 text-primary" />
+                2. อุปกรณ์/Media Player ที่ช่างถอดและนำกลับมา <span className="text-destructive">*</span>
+              </CardTitle>
+              <CardDescription>
+                {billboardId
+                  ? "เลือกจากรายการที่ติดตั้งบนป้ายนี้ หรือกดกรอกเอง หากไม่ตรงกับรายการ"
+                  : "กรุณาเลือกป้ายโฆษณาก่อนในขั้นตอนที่ 1"}
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {billboardId ? (
+                <>
+                  <div className="space-y-2">
+                    <Label>เลือกจากรายการที่ติดตั้งบนป้าย</Label>
+                    <SearchableSelect
+                      options={installedItems}
+                      value={reportedSelectKey}
+                      onValueChange={setReportedSelectKey}
+                      placeholder={installedLoading ? "กำลังโหลด..." : "ค้นหาด้วยรหัส, ชื่อ, S/N"}
+                      searchPlaceholder="พิมพ์เพื่อค้นหา..."
+                      isLoading={installedLoading}
+                    />
+                  </div>
+
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>ประเภท</Label>
+                      <select
+                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                        value={reportedAssetType}
+                        onChange={(e) => setReportedAssetType(e.target.value as any)}
+                        disabled={reportedSelectKey !== "" && reportedSelectKey !== "__manual__"}
+                      >
+                        <option value="equipment">อุปกรณ์ทั่วไป (Equipment)</option>
+                        <option value="media_player">Media Player</option>
+                      </select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>รหัส (Code)</Label>
+                      <Input
+                        value={reportedItemCode}
+                        onChange={(e) => setReportedItemCode(e.target.value)}
+                        placeholder="เช่น EQ001 / MP-PB 0001"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>ชื่อ/รุ่น</Label>
+                      <Input
+                        value={reportedItemName}
+                        onChange={(e) => setReportedItemName(e.target.value)}
+                        placeholder="ชื่ออุปกรณ์/รุ่น"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>หมายเลขเครื่อง (S/N)</Label>
+                      <Input
+                        value={reportedSerial}
+                        onChange={(e) => setReportedSerial(e.target.value)}
+                        placeholder="S/N ที่อ่านจากตัวเครื่อง"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="flex items-center gap-2">
+                      <Camera className="h-4 w-4" /> รูปถ่ายของที่นำมาคืน (สูงสุด 5 รูป)
+                    </Label>
+                    <EquipmentImageUpload
+                      images={reportedPhotos}
+                      onChange={setReportedPhotos}
+                      maxImages={5}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      ถ่ายให้เห็นตัวเครื่อง, S/N, และจุดที่เสียหายเพื่อใช้ประกอบการประเมินที่คลัง
+                    </p>
+                  </div>
+                </>
+              ) : (
+                <div className="text-center py-8 text-muted-foreground border-2 border-dashed rounded-lg">
+                  เลือกป้ายโฆษณาในขั้นที่ 1 เพื่อแสดงรายการอุปกรณ์ที่ติดตั้งอยู่
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Section 3: ผู้แจ้ง + ผู้รับเรื่อง */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <User className="h-5 w-5 text-primary" />
+                3. ผู้แจ้ง / ผู้รับเรื่อง
+              </CardTitle>
+              <CardDescription>ข้อมูลช่างที่นำของมาคืน และเจ้าหน้าที่คลังที่รับเรื่อง</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid md:grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label>ชื่อช่างผู้แจ้ง <span className="text-destructive">*</span></Label>
+                  <Input value={technicianName} onChange={(e) => setTechnicianName(e.target.value)} placeholder="ชื่อ-สกุล" />
+                </div>
+                <div className="space-y-2">
+                  <Label>เบอร์ติดต่อช่าง</Label>
+                  <Input value={technicianPhone} onChange={(e) => setTechnicianPhone(e.target.value)} placeholder="08x-xxx-xxxx" />
+                </div>
+                <div className="space-y-2">
+                  <Label>เจ้าหน้าที่คลังที่รับเรื่อง</Label>
+                  <Input value={receivedByName} onChange={(e) => setReceivedByName(e.target.value)} placeholder="ชื่อผู้รับ" />
+                </div>
+              </div>
+
+              <div className="rounded-lg border border-primary/20 bg-primary/5 p-3 text-sm flex items-start gap-2">
+                <ClipboardList className="h-4 w-4 mt-0.5 text-primary flex-shrink-0" />
+                <div>
+                  <div className="font-medium">ขั้นตอนถัดไป</div>
+                  <div className="text-muted-foreground">
+                    หลังบันทึก คำขอจะอยู่สถานะ "รอดำเนินการ" — เจ้าหน้าที่คลังจะกด <strong>"ดำเนินการ Swap"</strong> เพื่อเลือก Spare และจัดส่งให้ช่างต่อไป
+                  </div>
+                </div>
+              </div>
+
               <div className="flex justify-end gap-2 pt-2">
-                <Button variant="outline" onClick={resetForm}>ล้างฟอร์ม</Button>
-                <Button onClick={handleSubmit} disabled={submitting}>
+                <Button variant="outline" onClick={resetForm} disabled={submitting}>
+                  ล้างฟอร์ม
+                </Button>
+                <Button onClick={handleSubmit} disabled={submitting} size="lg">
+                  <Wrench className="h-4 w-4 mr-1" />
                   {submitting ? "กำลังบันทึก..." : "สร้างคำขอ Swap"}
                 </Button>
               </div>
