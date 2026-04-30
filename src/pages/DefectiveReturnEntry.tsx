@@ -559,7 +559,7 @@ const DefectiveReturnEntry = () => {
                   <InfoRow label="ยี่ห้อ" value={selectedMediaPlayer.brand || "-"} />
                   <InfoRow label="Serial No." value={selectedMediaPlayer.serial_number_1 || "-"} />
                   <InfoRow label="ฝ่าย" value={selectedMediaPlayer.department || "-"} />
-                  <InfoRow label="จำนวน" value={String(selectedMediaPlayer.quantity)} />
+                  <InfoRow label="คงเหลือในคลัง" value={`${selectedMediaPlayer.quantity} เครื่อง`} />
                 </>)}
                 {isFromBillboard && selectedBillboardRecord && (
                   <div className="pt-2 border-t"><Badge variant="outline" className="text-xs bg-blue-500/10 text-blue-600"><MapPin className="w-3 h-3 mr-1" /> ติดตั้งบนป้าย: {selectedBillboardRecord.billboard_old_code}</Badge></div>
