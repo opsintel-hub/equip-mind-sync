@@ -341,9 +341,10 @@ export default function StockCard() {
     staleTime: 2 * 60 * 1000,
     enabled: !!selectedItemId && issueDocNos.length > 0,
     queryFn: async () => {
+      // Join via goods_issue_pending to map DC document → GI-REQ document
       const { data } = await supabase.from("delivery_confirmations")
-        .select("document_no, status, confirmed_at")
-        .in("document_no", issueDocNos);
+        .select("document_no, status, confirmed_at, goods_issue_pending:goods_issue_pending_id!inner(document_no)")
+        .in("goods_issue_pending.document_no", issueDocNos);
       return data || [];
     },
   });
@@ -351,9 +352,19 @@ export default function StockCard() {
   const confirmedDocSet = useMemo(() => {
     return new Set(
       deliveryConfirmations
-        .filter((d: any) => d.status === "confirmed")
-        .map((d: any) => d.document_no)
+        .filter((d: any) => d.status === "confirmed" && d.goods_issue_pending?.document_no)
+        .map((d: any) => d.goods_issue_pending.document_no)
     );
+  }, [deliveryConfirmations]);
+
+  const confirmationDateByDoc = useMemo(() => {
+    const map = new Map<string, string>();
+    deliveryConfirmations.forEach((d: any) => {
+      if (d.status === "confirmed" && d.goods_issue_pending?.document_no && d.confirmed_at) {
+        map.set(d.goods_issue_pending.document_no, d.confirmed_at);
+      }
+    });
+    return map;
   }, [deliveryConfirmations]);
 
   // ── Build timeline ──
@@ -883,7 +894,7 @@ export default function StockCard() {
                     label: "ยืนยันรับสินค้า",
                     status: isLastIssueConfirmed ? "done" : "current",
                     date: isLastIssueConfirmed
-                      ? (deliveryConfirmations.find((d: any) => d.document_no === lastIssueDoc)?.confirmed_at)
+                      ? confirmationDateByDoc.get(lastIssueDoc!)
                       : undefined,
                   });
 
@@ -919,7 +930,7 @@ export default function StockCard() {
                     label: "ยืนยันรับสินค้า",
                     status: isLastIssueConfirmed ? "done" : "current",
                     date: isLastIssueConfirmed
-                      ? (deliveryConfirmations.find((d: any) => d.document_no === lastIssueDoc)?.confirmed_at)
+                      ? confirmationDateByDoc.get(lastIssueDoc!)
                       : undefined,
                   });
                 }
