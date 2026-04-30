@@ -373,7 +373,11 @@ const ManagerApproval = () => {
               <SelectTrigger className="w-full"><SelectValue placeholder="ทุกบริษัท" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">ทุกบริษัท</SelectItem>
-                {companies?.map((c: any) => <SelectItem key={c.ids[0]} value={c.ids[0]}>{c.name}</SelectItem>)}
+                {companies?.map((c: any) => {
+                  const id = c.ids?.[0] ?? c.id;
+                  if (!id) return null;
+                  return <SelectItem key={id} value={id}>{c.name}</SelectItem>;
+                })}
               </SelectContent>
             </Select>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
