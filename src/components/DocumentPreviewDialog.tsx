@@ -11,6 +11,9 @@ interface DocumentPreviewDialogProps {
   onOpenChange: (open: boolean) => void;
   publicUrl: string | null;
   title?: string;
+  /** Optional labels for each URL (when publicUrl contains multiple comma-separated URLs).
+   *  If provided length matches URL count, used as tab labels; otherwise falls back to "เอกสาร N". */
+  labels?: string[];
 }
 
 export function DocumentPreviewDialog({
