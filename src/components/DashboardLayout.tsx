@@ -2,6 +2,7 @@ import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "./AppSidebar";
 import { NotificationCenter } from "./NotificationCenter";
 import { UserInfoDisplay } from "./UserInfoDisplay";
+import { SidebarResizer, getStoredSidebarWidthRem } from "./SidebarResizer";
 import { Menu } from "lucide-react";
 
 interface DashboardLayoutProps {
@@ -9,10 +10,12 @@ interface DashboardLayoutProps {
 }
 
 const DashboardLayout = ({ children }: DashboardLayoutProps) => {
+  const initialWidth = `${getStoredSidebarWidthRem()}rem`;
   return (
-    <SidebarProvider>
+    <SidebarProvider style={{ "--sidebar-width": initialWidth } as React.CSSProperties}>
       <div className="flex min-h-screen w-full bg-background">
         <AppSidebar />
+        <SidebarResizer />
         <div className="flex-1 flex flex-col min-w-0">
           <header className="sticky top-0 z-10 h-16 border-b border-border/50 bg-background/80 backdrop-blur-md supports-[backdrop-filter]:bg-background/60">
             <div className="flex h-full items-center justify-between px-3 sm:px-6 gap-2">
