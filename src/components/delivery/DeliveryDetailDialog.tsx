@@ -267,10 +267,15 @@ export function DeliveryDetailDialog({ open, onOpenChange, receipt }: DeliveryDe
       </DialogContent>
     </Dialog>
     <DocumentPreviewDialog
-      open={!!previewDocUrl}
-      onOpenChange={(dialogOpen) => { if (!dialogOpen) setPreviewDocUrl(null); }}
-      publicUrl={previewDocUrl}
-      title="ดูเอกสาร"
+      open={!!previewDoc}
+      onOpenChange={(dialogOpen) => { if (!dialogOpen) setPreviewDoc(null); }}
+      publicUrl={previewDoc?.url || null}
+      title={previewDoc?.label || "ดูเอกสาร"}
+      labels={(() => {
+        if (!previewDoc) return undefined;
+        const urls = previewDoc.url.split(/\s*,\s*/).filter(Boolean);
+        return urls.length > 1 ? urls.map((_, i) => `${previewDoc.label} - ${i + 1}`) : undefined;
+      })()}
     />
     </>
   );
