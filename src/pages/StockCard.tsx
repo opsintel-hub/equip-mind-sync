@@ -343,7 +343,7 @@ export default function StockCard() {
     queryFn: async () => {
       // Join via goods_issue_pending to map DC document → GI-REQ document
       const { data } = await supabase.from("delivery_confirmations")
-        .select("document_no, status, confirmed_at, goods_issue_pending:goods_issue_pending_id(document_no)")
+        .select("document_no, status, confirmed_at, goods_issue_pending:goods_issue_pending_id!inner(document_no)")
         .in("goods_issue_pending.document_no", issueDocNos);
       return data || [];
     },
