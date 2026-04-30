@@ -248,12 +248,82 @@ const DefectiveReturnEntry = () => {
   const isFromBillboard = selectedBillboardEquipmentId !== "" && detectedBillboards.length > 0;
   const generateDocNo = () => `DR-${format(new Date(), "yyyyMMdd")}-${Math.floor(Math.random() * 9999 + 1).toString().padStart(4, "0")}`;
 
+  // Get quarantine location for defective items
+  const getQuarantineLocationId = async (): Promise<string | null> => {
+    const { data } = await supabase.from("locations").select("id").eq("code", "LOC-DEFECT").maybeSingle();
+    return data?.id || null;
+  };
+
+  // Deduct stock from main inventory + log movement to "คลังของเสีย"
+  const deductStockToQuarantine = async (params: {
+    isMP: boolean;
+    itemId: string;
+    qty: number;
+    docNo: string;
+    drId: string;
+    reasonText: string;
+    quarantineLocId: string | null;
+  }) => {
+    const { isMP, itemId, qty, docNo, drId, reasonText, quarantineLocId } = params;
+
+    if (isMP) {
+      const mp = mediaPlayerList.find(m => m.id === itemId);
+      if (!mp) return;
+      const stockBefore = mp.quantity || 0;
+      const stockAfter = Math.max(0, stockBefore - qty);
+      await supabase.from("media_players").update({
+        quantity: stockAfter,
+        location_id: quarantineLocId,
+        status: "defective",
+      }).eq("id", itemId);
+      await supabase.from("stock_movements").insert({
+        equipment_id: itemId,
+        equipment_code: mp.code,
+        equipment_name: mp.name,
+        movement_type: "defective_quarantine",
+        quantity: -qty,
+        stock_before: stockBefore,
+        stock_after: stockAfter,
+        reference_type: "defective_return",
+        reference_id: drId,
+        reference_document: docNo,
+        location_id: quarantineLocId,
+        notes: `[ของเสีย → คลังของเสีย] ${reasonText}`,
+        item_condition: "defective",
+        created_by: user?.id,
+      });
+    } else {
+      const eq = equipmentList.find(e => e.id === itemId);
+      if (!eq) return;
+      const stockBefore = eq.quantity_in_stock || 0;
+      const stockAfter = Math.max(0, stockBefore - qty);
+      await supabase.from("equipment").update({ quantity_in_stock: stockAfter }).eq("id", itemId);
+      await supabase.from("stock_movements").insert({
+        equipment_id: itemId,
+        equipment_code: eq.code,
+        equipment_name: eq.name,
+        movement_type: "defective_quarantine",
+        quantity: -qty,
+        stock_before: stockBefore,
+        stock_after: stockAfter,
+        reference_type: "defective_return",
+        reference_id: drId,
+        reference_document: docNo,
+        location_id: quarantineLocId,
+        notes: `[ของเสีย → คลังของเสีย] ${reasonText}`,
+        item_condition: "defective",
+        created_by: user?.id,
+      });
+    }
+  };
+
   const handleReset = () => {
     setSelectedItemId(""); setSelectedBillboardEquipmentId(""); setDetectedBillboards([]);
     setQuantity("1"); setItemCondition("defective"); setReason(""); setNotes("");
     setPerUnitMode(false);
     setDefectiveUnits([{ id: crypto.randomUUID(), serial_number: "", reason: "", item_condition: "defective", image_file: null, image_preview: null }]);
   };
+
 
   const handleSubmit = async () => {
     if (!selectedItemId) { toast.error("กรุณาเลือกสินค้า"); return; }
