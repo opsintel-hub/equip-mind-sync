@@ -12,7 +12,7 @@ import { SearchableSelect } from "@/components/ui/searchable-select";
 import { supabase } from "@/integrations/supabase/client";
 import { dedupeMediaPlayersByCode } from "@/lib/mediaPlayerOptions";
 import { toast } from "sonner";
-import { AlertTriangle, Package, MapPin, Send, Loader2, Info, PlusCircle, X, ImagePlus, ArrowLeftRight } from "lucide-react";
+import { AlertTriangle, Package, MapPin, Send, Loader2, Info, PlusCircle, X, ImagePlus, ArrowLeftRight, Search } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { format } from "date-fns";
 
@@ -55,6 +55,73 @@ const DefectiveReturnEntry = () => {
   const [itemCondition, setItemCondition] = useState("defective");
   const [reason, setReason] = useState("");
   const [notes, setNotes] = useState("");
+  const [snLookup, setSnLookup] = useState("");
+  const [snLookupLoading, setSnLookupLoading] = useState(false);
+
+  const handleSnLookup = async () => {
+    const term = snLookup.trim();
+    if (!term) { toast.error("กรุณากรอก Serial Number"); return; }
+    setSnLookupLoading(true);
+    try {
+      // 1) Try equipment_serial_numbers (authoritative for equipment)
+      const { data: snRow } = await supabase
+        .from("equipment_serial_numbers")
+        .select("equipment_id, status")
+        .ilike("serial_number", term)
+        .maybeSingle();
+      if (snRow?.equipment_id) {
+        setIsMediaPlayer(false);
+        setSelectedItemId(snRow.equipment_id);
+        if (!perUnitMode) setPerUnitMode(true);
+        setDefectiveUnits([{ id: crypto.randomUUID(), serial_number: term, reason: "", item_condition: "defective", image_file: null, image_preview: null }]);
+        toast.success(`พบสินค้า — ดึงข้อมูลแล้ว (S/N: ${term})`);
+        return;
+      }
+
+      // 2) Try goods_receipt_pending (covers both equipment & media player by S/N from receipt)
+      const { data: rcvRow } = await supabase
+        .from("goods_receipt_pending")
+        .select("equipment_id, media_player_id, is_media_player, equipment_code")
+        .ilike("serial_number", term)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (rcvRow) {
+        const isMp = !!rcvRow.is_media_player || !!rcvRow.media_player_id;
+        setIsMediaPlayer(isMp);
+        const id = isMp ? rcvRow.media_player_id : rcvRow.equipment_id;
+        if (id) {
+          setSelectedItemId(id);
+          setPerUnitMode(true);
+          setDefectiveUnits([{ id: crypto.randomUUID(), serial_number: term, reason: "", item_condition: "defective", image_file: null, image_preview: null }]);
+          toast.success(`พบจากเอกสารรับเข้า — ดึงข้อมูลแล้ว (S/N: ${term})`);
+          return;
+        }
+      }
+
+      // 3) Try media_players legacy serial_number_1 / 2
+      const { data: mpRow } = await supabase
+        .from("media_players")
+        .select("id")
+        .or(`serial_number_1.ilike.${term},serial_number_2.ilike.${term}`)
+        .limit(1)
+        .maybeSingle();
+      if (mpRow?.id) {
+        setIsMediaPlayer(true);
+        setSelectedItemId(mpRow.id);
+        setPerUnitMode(true);
+        setDefectiveUnits([{ id: crypto.randomUUID(), serial_number: term, reason: "", item_condition: "defective", image_file: null, image_preview: null }]);
+        toast.success(`พบ Media Player — ดึงข้อมูลแล้ว (S/N: ${term})`);
+        return;
+      }
+
+      toast.error(`ไม่พบ S/N "${term}" ในระบบ — กรุณาเลือกสินค้าด้วยตนเอง`);
+    } catch (e: any) {
+      toast.error("ค้นหาไม่สำเร็จ: " + e.message);
+    } finally {
+      setSnLookupLoading(false);
+    }
+  };
 
   const selectedEquipment = useMemo(() => equipmentList.find(e => e.id === selectedItemId), [equipmentList, selectedItemId]);
   const selectedMediaPlayer = useMemo(() => mediaPlayerList.find(m => m.id === selectedItemId), [mediaPlayerList, selectedItemId]);
@@ -277,6 +344,28 @@ const DefectiveReturnEntry = () => {
             <CardDescription>เลือกสินค้า ระบบจะดึงข้อมูลเดิมมาให้อัตโนมัติ รวมถึงตรวจสอบว่าติดตั้งบนป้ายโฆษณาหรือไม่</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
+            <div className="space-y-2 p-3 rounded-lg bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800">
+              <Label className="text-sm font-medium text-blue-700 dark:text-blue-300 flex items-center gap-2">
+                <Search className="w-4 h-4" /> ค้นหาด้วย Serial Number (กรอก S/N → ระบบดึงข้อมูลสินค้าให้อัตโนมัติ)
+              </Label>
+              <div className="flex gap-2">
+                <Input
+                  placeholder="พิมพ์ S/N เช่น BCD004..."
+                  value={snLookup}
+                  onChange={(e) => setSnLookup(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleSnLookup(); } }}
+                  className="bg-background"
+                />
+                <Button type="button" onClick={handleSnLookup} disabled={snLookupLoading} variant="default">
+                  {snLookupLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
+                  <span className="ml-1">ค้นหา</span>
+                </Button>
+              </div>
+              <p className="text-[11px] text-blue-600/80 dark:text-blue-400/80">
+                💡 ใช้สำหรับเข้าถึงเร็ว — ค้นจากตาราง S/N, เอกสารรับเข้า และ Media Player
+              </p>
+            </div>
+
             <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
               <Label className="text-sm font-medium">ประเภท:</Label>
               <span className={`text-sm ${!isMediaPlayer ? "font-semibold text-primary" : "text-muted-foreground"}`}>สินค้า/อะไหล่</span>
@@ -414,9 +503,9 @@ const DefectiveReturnEntry = () => {
               <>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label>จำนวน *</Label>
+                    <Label>จำนวนของเสียที่จะนำเข้า *</Label>
                     <Input type="number" min="1" max={maxQuantity} value={quantity} onChange={(e) => setQuantity(e.target.value)} />
-                    {maxQuantity < 999 && <p className="text-xs text-muted-foreground">สูงสุด: {maxQuantity}</p>}
+                    {maxQuantity < 999 && <p className="text-xs text-muted-foreground">{isFromBillboard ? `สูงสุด ${maxQuantity} (จำนวนที่ติดตั้งบนป้าย)` : `สูงสุด ${maxQuantity} (คงเหลือในคลัง)`}</p>}
                   </div>
                   <div className="space-y-2">
                     <Label>สถานะการใช้งาน *</Label>
@@ -464,13 +553,13 @@ const DefectiveReturnEntry = () => {
                   <InfoRow label="ยี่ห้อ" value={selectedEquipment.brand || "-"} />
                   <InfoRow label="Serial No." value={selectedEquipment.serial_number || "-"} />
                   <InfoRow label="ฝ่าย" value={selectedEquipment.department || "-"} />
-                  <InfoRow label="คงเหลือในคลัง" value={String(selectedEquipment.quantity_in_stock)} />
+                  <InfoRow label="คงเหลือในคลัง" value={`${selectedEquipment.quantity_in_stock} ${selectedEquipment.unit || "ชิ้น"}`} />
                 </>)}
                 {isMediaPlayer && selectedMediaPlayer && (<>
                   <InfoRow label="ยี่ห้อ" value={selectedMediaPlayer.brand || "-"} />
                   <InfoRow label="Serial No." value={selectedMediaPlayer.serial_number_1 || "-"} />
                   <InfoRow label="ฝ่าย" value={selectedMediaPlayer.department || "-"} />
-                  <InfoRow label="จำนวน" value={String(selectedMediaPlayer.quantity)} />
+                  <InfoRow label="คงเหลือในคลัง" value={`${selectedMediaPlayer.quantity} เครื่อง`} />
                 </>)}
                 {isFromBillboard && selectedBillboardRecord && (
                   <div className="pt-2 border-t"><Badge variant="outline" className="text-xs bg-blue-500/10 text-blue-600"><MapPin className="w-3 h-3 mr-1" /> ติดตั้งบนป้าย: {selectedBillboardRecord.billboard_old_code}</Badge></div>

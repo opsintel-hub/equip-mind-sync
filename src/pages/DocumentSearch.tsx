@@ -217,7 +217,7 @@ export default function DocumentSearch() {
       // Fetch from goods_issue_pending (with extended fields for tracker)
       const { data: issueData, error: issueError } = await supabase
         .from("goods_issue_pending")
-        .select("id, document_no, created_at, status, equipment_name, equipment_code, requester_name, requester_department, approval_status, approved_at, issued_at, confirmed_at, pickup_type")
+        .select("id, document_no, created_at, status, equipment_name, equipment_code, requester_name, requester_department, approval_status, approved_at, issued_at, confirmed_at, pickup_type, goods_issue_pending_items(serial_number)")
         .order("created_at", { ascending: false });
       if (issueError) console.error("issue fetch error", issueError);
 
@@ -261,14 +261,19 @@ export default function DocumentSearch() {
         status: item.status, source: "received" as const, raw: item,
       }));
 
-      const issueDocs: DocumentRecord[] = (issueData || []).map((item: any) => ({
-        id: item.id, document_no: item.document_no, document_url: null,
-        equipment_code: item.equipment_code, equipment_name: item.equipment_name,
-        serial_number: null,
-        supplier_name: null, delivery_person_name: item.requester_name,
-        quantity: 0, unit: "-", created_at: item.created_at,
-        status: item.status, source: "issue" as const, raw: item,
-      }));
+      const issueDocs: DocumentRecord[] = (issueData || []).map((item: any) => {
+        const sns = (item.goods_issue_pending_items || [])
+          .map((it: any) => it.serial_number?.trim())
+          .filter(Boolean);
+        return {
+          id: item.id, document_no: item.document_no, document_url: null,
+          equipment_code: item.equipment_code, equipment_name: item.equipment_name,
+          serial_number: sns.length > 0 ? sns.join(", ") : null,
+          supplier_name: null, delivery_person_name: item.requester_name,
+          quantity: 0, unit: "-", created_at: item.created_at,
+          status: item.status, source: "issue" as const, raw: item,
+        };
+      });
 
       const dcDocs: DocumentRecord[] = (dcData || []).map((item: any) => ({
         id: item.id, document_no: item.document_no, document_url: null,
@@ -279,17 +284,22 @@ export default function DocumentSearch() {
         status: item.status, source: "delivery_confirm" as const, raw: item,
       }));
 
-      const dsDocs: DocumentRecord[] = (dsData || []).map((item: any) => ({
-        id: item.id, document_no: item.document_no, document_url: null,
-        equipment_code: item.direct_shipment_items?.[0]?.equipment_code || null,
-        equipment_name: item.direct_shipment_items?.map((i: any) => i.equipment_name).join(", ") || null,
-        serial_number: item.direct_shipment_items?.[0]?.serial_number || null,
-        supplier_name: item.supplier_name, delivery_person_name: item.delivery_person_name,
-        quantity: item.direct_shipment_items?.reduce((sum: number, i: any) => sum + (i.quantity || 0), 0) || 0,
-        unit: item.direct_shipment_items?.[0]?.unit || "-",
-        created_at: item.created_at,
-        status: item.status, source: "direct_shipping" as const, raw: item,
-      }));
+      const dsDocs: DocumentRecord[] = (dsData || []).map((item: any) => {
+        const sns = (item.direct_shipment_items || [])
+          .flatMap((i: any) => [i.serial_number, i.serial_number_2])
+          .map((s: any) => s?.trim()).filter(Boolean);
+        return {
+          id: item.id, document_no: item.document_no, document_url: null,
+          equipment_code: item.direct_shipment_items?.[0]?.equipment_code || null,
+          equipment_name: item.direct_shipment_items?.map((i: any) => i.equipment_name).join(", ") || null,
+          serial_number: sns.length > 0 ? sns.join(", ") : null,
+          supplier_name: item.supplier_name, delivery_person_name: item.delivery_person_name,
+          quantity: item.direct_shipment_items?.reduce((sum: number, i: any) => sum + (i.quantity || 0), 0) || 0,
+          unit: item.direct_shipment_items?.[0]?.unit || "-",
+          created_at: item.created_at,
+          status: item.status, source: "direct_shipping" as const, raw: item,
+        };
+      });
 
       const adDocs: DocumentRecord[] = (adData || []).map((item: any) => ({
         id: item.id, document_no: item.code, document_url: item.supporting_doc_url,
@@ -452,7 +462,7 @@ export default function DocumentSearch() {
                     <TableHead className="text-xs font-semibold text-muted-foreground">ประเภท</TableHead>
                     <TableHead className="text-xs font-semibold text-muted-foreground">รหัส/ชื่ออุปกรณ์</TableHead>
                     <TableHead className="text-xs font-semibold text-muted-foreground">ผู้จำหน่าย/ผู้ขอ</TableHead>
-                    <TableHead className="text-xs font-semibold text-muted-foreground text-right">จำนวน</TableHead>
+                    <TableHead className="text-xs font-semibold text-muted-foreground text-right" title="จำนวนรวมในเอกสารนี้">จำนวนในเอกสาร</TableHead>
                     <TableHead className="text-xs font-semibold text-muted-foreground">วันที่</TableHead>
                     <TableHead className="text-xs font-semibold text-muted-foreground min-w-[240px]">ความคืบหน้า</TableHead>
                     <TableHead className="text-xs font-semibold text-muted-foreground text-center pr-6">เอกสาร</TableHead>

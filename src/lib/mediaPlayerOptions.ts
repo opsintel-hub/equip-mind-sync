@@ -29,7 +29,7 @@ export interface DedupedMediaPlayerOption {
 /**
  * รวม Media Player records ตาม code+name ให้เหลือบรรทัดเดียวต่อรหัส
  * - คืน id ของ record แรกของกลุ่มเป็น value (เพื่อ backward compat กับ logic เดิม)
- * - label แสดงรูปแบบ "CODE - NAME" หรือ "CODE - NAME (N เครื่อง)" ถ้ามีมากกว่า 1
+ * - label แสดง "CODE - NAME — คงเหลือในคลัง N เครื่อง" เพื่อบอกชัดเจนว่าเป็นจำนวนใน stock
  */
 export function dedupeMediaPlayersByCode<T extends MediaPlayerLike>(
   players: T[]
@@ -46,17 +46,17 @@ export function dedupeMediaPlayersByCode<T extends MediaPlayerLike>(
   for (const [, items] of groups) {
     const rep = items[0];
     const count = items.length;
+    const totalInStock = items.reduce((sum, it: any) => sum + (Number(it.quantity) || 0), 0);
     const baseLabel = `${rep.code} - ${rep.name}`;
     result.push({
       value: rep.id,
-      label: count > 1 ? `${baseLabel} (${count} เครื่อง)` : baseLabel,
+      label: `${baseLabel} — คงเหลือในคลัง ${totalInStock} เครื่อง`,
       searchableText: `${rep.code} ${rep.name}`,
       count,
       representative: rep,
     });
   }
 
-  // เรียงตาม code (รักษาลำดับเดิมที่ DB ส่งมา)
   result.sort((a, b) => a.representative.code.localeCompare(b.representative.code));
   return result;
 }
