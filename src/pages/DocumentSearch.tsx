@@ -322,7 +322,10 @@ export default function DocumentSearch() {
         status: item.status, source: "ad_issue" as const, raw: item,
       }));
 
-      setDocuments([...pendingDocs, ...receiptDocs, ...issueDocs, ...dcDocs, ...dsDocs, ...adDocs, ...adIssueDocs]);
+      const merged = [...pendingDocs, ...receiptDocs, ...issueDocs, ...dcDocs, ...dsDocs, ...adDocs, ...adIssueDocs];
+      // Sort newest first across all sources
+      merged.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+      setDocuments(merged);
     } catch (error) {
       console.error("Error fetching documents:", error);
       toast.error("ไม่สามารถโหลดเอกสารได้");

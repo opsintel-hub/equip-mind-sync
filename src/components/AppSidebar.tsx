@@ -197,8 +197,6 @@ const menuGroups: MenuGroup[] = [
   {
     label: "ป้ายโฆษณา",
     items: [
-      { title: "จัดการป้ายโฆษณา", url: "/billboards", icon: MapPin, functionName: "billboards" },
-      { title: "จัดการ Package ป้าย", url: "/billboard-packages", icon: Package, functionName: "billboards" },
       { 
         title: "PM ป้ายโฆษณา", 
         icon: Calendar,
@@ -237,7 +235,7 @@ const menuGroups: MenuGroup[] = [
     ]
   },
   {
-    label: "จัดการทรัพย์สิน",
+    label: "Swap & ซ่อมบำรุง",
     items: [
       { title: "Swap อุปกรณ์/MP", url: "/swap", icon: ArrowLeftRight, functionName: "goods_issue" },
       { title: "บันทึกการประเมิน", url: "/assessment", icon: ClipboardCheck, functionName: "goods_issue" },
@@ -267,6 +265,8 @@ const menuGroups: MenuGroup[] = [
     label: "ตั้งค่าระบบ",
     items: [
       { title: "ข้อมูลหลัก", url: "/master-data", icon: Database, functionName: "master_data" },
+      { title: "จัดการป้ายโฆษณา", url: "/billboards", icon: MapPin, functionName: "billboards" },
+      { title: "จัดการ Package ป้าย", url: "/billboard-packages", icon: Package, functionName: "billboards" },
       { title: "ตั้งค่าแจ้งเตือน", url: "/notification-settings", icon: Bell },
       { title: "จัดการผู้ใช้", url: "/admin", icon: Shield, functionName: "admin" },
       { title: "คู่มือ Database", url: "/database-guide", icon: FileSearch, superAdminOnly: true },
