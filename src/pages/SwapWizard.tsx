@@ -466,6 +466,30 @@ export default function SwapWizard() {
                     />
                   </div>
 
+                  <div className="grid md:grid-cols-2 gap-4 p-3 rounded-lg bg-destructive/5 border border-destructive/20">
+                    <div className="space-y-2">
+                      <Label>อาการเสียของเครื่องนี้ <span className="text-destructive">*</span></Label>
+                      <SymptomSelect value={symptomId} onChange={setSymptomId} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>อาการอื่น (ถ้าไม่มีในรายการ)</Label>
+                      <Input
+                        value={symptomOther}
+                        onChange={(e) => setSymptomOther(e.target.value)}
+                        placeholder="ระบุอาการเพิ่มเติมของเครื่องนี้"
+                      />
+                    </div>
+                    <div className="space-y-2 md:col-span-2">
+                      <Label>รายละเอียดอาการ / สิ่งที่ช่างสังเกตเห็น</Label>
+                      <Textarea
+                        value={description}
+                        onChange={(e) => setDescription(e.target.value)}
+                        placeholder="อธิบายอาการเสียของเครื่องที่ถอดมา..."
+                        rows={2}
+                      />
+                    </div>
+                  </div>
+
                   <div className="grid md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label>ประเภท</Label>
