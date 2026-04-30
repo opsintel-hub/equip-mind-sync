@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import { downloadStorageFile } from "@/lib/storageDownload";
 import { DSTimeline } from "@/components/direct-shipping/DSTimeline";
 import { DestinationMapPreview } from "@/components/direct-shipping/DestinationMapPreview";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -23,6 +22,7 @@ import { useTablePagination } from "@/hooks/useTablePagination";
 import { TablePagination } from "@/components/TablePagination";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
+import { DocumentPreviewDialog } from "@/components/DocumentPreviewDialog";
 
 export default function DirectShippingEntry() {
   const queryClient = useQueryClient();
@@ -54,6 +54,7 @@ export default function DirectShippingEntry() {
 
   // View detail
   const [viewDetail, setViewDetail] = useState<any>(null);
+  const [previewDocUrl, setPreviewDocUrl] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
 
@@ -395,9 +396,9 @@ export default function DirectShippingEntry() {
                 </div>
               </div>
               {prDocUrl && (
-                <a href={prDocUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline flex items-center gap-1">
+                <button type="button" onClick={() => setPreviewDocUrl(prDocUrl)} className="text-xs text-primary hover:underline flex items-center gap-1 cursor-pointer">
                   <FileText className="w-3 h-3" /> ดูไฟล์ PR ที่แนบ
-                </a>
+                </button>
               )}
             </div>
             <div className="space-y-2">
@@ -422,9 +423,9 @@ export default function DirectShippingEntry() {
                 </div>
               </div>
               {poDocUrl && (
-                <a href={poDocUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline flex items-center gap-1">
+                <button type="button" onClick={() => setPreviewDocUrl(poDocUrl)} className="text-xs text-primary hover:underline flex items-center gap-1 cursor-pointer">
                   <FileText className="w-3 h-3" /> ดูไฟล์ PO ที่แนบ
-                </a>
+                </button>
               )}
             </div>
           </div>
@@ -564,7 +565,7 @@ export default function DirectShippingEntry() {
                     <div>
                       <span className="text-muted-foreground">PR:</span> {viewDetail.pr_number}
                       {viewDetail.pr_document_url && (
-                        <button type="button" onClick={() => downloadStorageFile(viewDetail.pr_document_url)} className="ml-2 text-xs text-primary hover:underline cursor-pointer">ดูไฟล์</button>
+                        <button type="button" onClick={() => setPreviewDocUrl(viewDetail.pr_document_url)} className="ml-2 text-xs text-primary hover:underline cursor-pointer">ดูไฟล์</button>
                       )}
                     </div>
                   )}
@@ -572,7 +573,7 @@ export default function DirectShippingEntry() {
                     <div>
                       <span className="text-muted-foreground">PO:</span> {viewDetail.po_number}
                       {viewDetail.po_document_url && (
-                        <button type="button" onClick={() => downloadStorageFile(viewDetail.po_document_url)} className="ml-2 text-xs text-primary hover:underline cursor-pointer">ดูไฟล์</button>
+                        <button type="button" onClick={() => setPreviewDocUrl(viewDetail.po_document_url)} className="ml-2 text-xs text-primary hover:underline cursor-pointer">ดูไฟล์</button>
                       )}
                     </div>
                   )}
@@ -601,6 +602,12 @@ export default function DirectShippingEntry() {
           )}
         </DialogContent>
       </Dialog>
+      <DocumentPreviewDialog
+        open={!!previewDocUrl}
+        onOpenChange={(open) => { if (!open) setPreviewDocUrl(null); }}
+        publicUrl={previewDocUrl}
+        title="ดูเอกสารส่งตรง"
+      />
     </div>
   );
 }

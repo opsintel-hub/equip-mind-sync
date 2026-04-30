@@ -5,7 +5,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Upload, FileText, Loader2, X, Eye, Download } from "lucide-react";
 import { toast } from "sonner";
-import { downloadStorageFile, previewStorageFile } from "@/lib/storageDownload";
+import { downloadStorageFile } from "@/lib/storageDownload";
+import { DocumentPreviewDialog } from "@/components/DocumentPreviewDialog";
 
 interface DocumentUploadFieldProps {
   label: string;
@@ -27,6 +28,7 @@ export function DocumentUploadField({
   placeholder,
 }: DocumentUploadFieldProps) {
   const [isUploading, setIsUploading] = useState(false);
+  const [previewOpen, setPreviewOpen] = useState(false);
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -68,6 +70,7 @@ export function DocumentUploadField({
   const inputId = `doc-upload-${label.replace(/\s+/g, "-")}`;
 
   return (
+    <>
     <div className="space-y-2">
       <Label>{label}</Label>
       <div className="flex gap-2">
@@ -105,9 +108,9 @@ export function DocumentUploadField({
           <FileText className="h-4 w-4 text-primary" />
           <button
             type="button"
-            onClick={() => previewStorageFile(documentUrl)}
+            onClick={() => setPreviewOpen(true)}
             className="text-primary hover:underline truncate max-w-[160px] cursor-pointer text-left"
-            title="ดูตัวอย่างในแท็บใหม่"
+            title="ดูตัวอย่างเอกสาร"
           >
             <Eye className="h-3 w-3 inline mr-1" />
             ดูไฟล์
@@ -133,5 +136,12 @@ export function DocumentUploadField({
         </p>
       )}
     </div>
+    <DocumentPreviewDialog
+      open={previewOpen}
+      onOpenChange={setPreviewOpen}
+      publicUrl={documentUrl || null}
+      title={`ดูเอกสาร ${label}`}
+    />
+    </>
   );
 }

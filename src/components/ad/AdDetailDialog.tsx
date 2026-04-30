@@ -21,6 +21,7 @@ import {
   Layers,
   AlertTriangle,
 } from "lucide-react";
+import { DocumentPreviewDialog } from "@/components/DocumentPreviewDialog";
 
 interface AdVersion {
   id: string;
@@ -93,6 +94,7 @@ const statusLabels: Record<string, { label: string; variant: "default" | "second
 export function AdDetailDialog({ adId, open, onOpenChange }: AdDetailDialogProps) {
   const [ad, setAd] = useState<AdDetail | null>(null);
   const [loading, setLoading] = useState(false);
+  const [previewDocUrl, setPreviewDocUrl] = useState<string | null>(null);
 
   useEffect(() => {
     if (adId && open) {
@@ -161,6 +163,7 @@ export function AdDetailDialog({ adId, open, onOpenChange }: AdDetailDialogProps
   const status = statusLabels[ad.status] || { label: ad.status, variant: "secondary" as const };
 
   return (
+    <>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
         <DialogHeader>
@@ -342,15 +345,14 @@ export function AdDetailDialog({ adId, open, onOpenChange }: AdDetailDialogProps
             <>
               <Separator />
               <div>
-                <a
-                  href={ad.supporting_doc_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
+                <button
+                  type="button"
+                  onClick={() => setPreviewDocUrl(ad.supporting_doc_url)}
                   className="flex items-center gap-2 text-sm text-primary hover:underline"
                 >
                   <FileText className="h-4 w-4" />
-                  ดาวน์โหลดเอกสาร Layout
-                </a>
+                  ดูเอกสาร Layout
+                </button>
               </div>
             </>
           )}
@@ -368,6 +370,13 @@ export function AdDetailDialog({ adId, open, onOpenChange }: AdDetailDialogProps
         </div>
       </DialogContent>
     </Dialog>
+    <DocumentPreviewDialog
+      open={!!previewDocUrl}
+      onOpenChange={(dialogOpen) => { if (!dialogOpen) setPreviewDocUrl(null); }}
+      publicUrl={previewDocUrl}
+      title="ดูเอกสาร Layout"
+    />
+    </>
   );
 }
 

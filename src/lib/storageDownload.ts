@@ -1,11 +1,22 @@
 import { supabase } from "@/integrations/supabase/client";
 
+export function parseStorageUrls(value: string | null | undefined): string[] {
+  if (!value) return [];
+  return value
+    .split(/\s*,\s*/)
+    .map((url) => url.trim())
+    .filter(Boolean);
+}
+
 /**
  * Fetches a file from Supabase Storage via SDK as a Blob.
  * Bypasses ad blockers that block *.supabase.co URLs.
  */
 async function fetchStorageBlob(publicUrl: string): Promise<{ blob: Blob; filename: string } | null> {
-  const match = publicUrl.match(/\/storage\/v1\/object\/public\/([^/]+)\/(.+)$/);
+  const [singleUrl] = parseStorageUrls(publicUrl);
+  if (!singleUrl) return null;
+
+  const match = singleUrl.match(/\/storage\/v1\/object\/public\/([^/]+)\/(.+)$/);
   if (!match) return null;
 
   const [, bucket, path] = match;
@@ -28,9 +39,10 @@ async function fetchStorageBlob(publicUrl: string): Promise<{ blob: Blob; filena
  */
 export async function previewStorageFile(publicUrl: string) {
   try {
-    const result = await fetchStorageBlob(publicUrl);
+    const [singleUrl] = parseStorageUrls(publicUrl);
+    const result = await fetchStorageBlob(singleUrl || publicUrl);
     if (!result) {
-      window.open(publicUrl, '_blank', 'noopener,noreferrer');
+      window.open(singleUrl || publicUrl, '_blank', 'noopener,noreferrer');
       return;
     }
 
@@ -47,7 +59,8 @@ export async function previewStorageFile(publicUrl: string) {
     setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
   } catch (e) {
     console.error('previewStorageFile failed:', e);
-    window.open(publicUrl, '_blank', 'noopener,noreferrer');
+    const [singleUrl] = parseStorageUrls(publicUrl);
+    window.open(singleUrl || publicUrl, '_blank', 'noopener,noreferrer');
   }
 }
 
@@ -56,9 +69,18 @@ export async function previewStorageFile(publicUrl: string) {
  */
 export async function downloadStorageFile(publicUrl: string, fallbackFilename?: string) {
   try {
-    const result = await fetchStorageBlob(publicUrl);
+    const urls = parseStorageUrls(publicUrl);
+    if (urls.length > 1) {
+      for (const url of urls) {
+        await downloadStorageFile(url);
+      }
+      return;
+    }
+
+    const singleUrl = urls[0] || publicUrl;
+    const result = await fetchStorageBlob(singleUrl);
     if (!result) {
-      window.location.href = publicUrl;
+      window.location.href = singleUrl;
       return;
     }
 
@@ -75,6 +97,7 @@ export async function downloadStorageFile(publicUrl: string, fallbackFilename?: 
     setTimeout(() => URL.revokeObjectURL(blobUrl), 30000);
   } catch (e) {
     console.error('downloadStorageFile failed:', e);
-    window.location.href = publicUrl;
+    const [singleUrl] = parseStorageUrls(publicUrl);
+    window.location.href = singleUrl || publicUrl;
   }
 }

@@ -11,12 +11,12 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
-import { downloadStorageFile } from "@/lib/storageDownload";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { th } from "date-fns/locale";
 import { DatePickerWithRange } from "@/components/ui/date-range-picker";
 import { ProcessTracker, ProcessStep } from "@/components/ProcessTracker";
+import { DocumentPreviewDialog } from "@/components/DocumentPreviewDialog";
 
 interface DocumentRecord {
   id: string;
@@ -149,6 +149,7 @@ export default function DocumentSearch() {
   const [sourceFilter, setSourceFilter] = useState<string>("all");
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
   const [hasSearched, setHasSearched] = useState(false);
+  const [previewDocUrl, setPreviewDocUrl] = useState<string | null>(null);
 
   const fetchDocuments = async () => {
     setLoading(true);
@@ -441,8 +442,8 @@ export default function DocumentSearch() {
                               variant="ghost"
                               size="icon"
                               className="h-8 w-8 text-muted-foreground hover:text-foreground"
-                              title="เปิด/ดาวน์โหลดเอกสาร"
-                              onClick={() => downloadStorageFile(doc.document_url!, `${doc.document_no}.pdf`)}
+                              title="ดูเอกสาร"
+                              onClick={() => setPreviewDocUrl(doc.document_url!)}
                             >
                               <ExternalLink className="h-3.5 w-3.5" />
                             </Button>
@@ -460,6 +461,12 @@ export default function DocumentSearch() {
           )}
         </CardContent>
       </Card>
+      <DocumentPreviewDialog
+        open={!!previewDocUrl}
+        onOpenChange={(open) => { if (!open) setPreviewDocUrl(null); }}
+        publicUrl={previewDocUrl}
+        title="ดูเอกสาร"
+      />
     </div>
   );
 }

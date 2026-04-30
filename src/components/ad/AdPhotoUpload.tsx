@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { DocumentPreviewDialog } from "@/components/DocumentPreviewDialog";
 
 interface AdPhotoUploadProps {
   photos: string[];
@@ -182,6 +183,7 @@ interface AdDocUploadProps {
 
 export function AdDocUpload({ docUrl, onChange, disabled }: AdDocUploadProps) {
   const [isUploading, setIsUploading] = useState(false);
+  const [previewOpen, setPreviewOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -234,19 +236,19 @@ export function AdDocUpload({ docUrl, onChange, disabled }: AdDocUploadProps) {
   };
 
   return (
+    <>
     <div className="space-y-2">
       <label className="text-sm font-medium">เอกสารประกอบการติดตั้ง (PDF/รูปภาพ)</label>
       {docUrl ? (
         <div className="flex items-center gap-2 border rounded-lg p-2">
           <FileUp className="h-4 w-4 text-muted-foreground shrink-0" />
-          <a
-            href={docUrl}
-            target="_blank"
-            rel="noopener noreferrer"
+          <button
+            type="button"
+            onClick={() => setPreviewOpen(true)}
             className="text-sm text-primary hover:underline truncate flex-1"
           >
             ดูเอกสาร
-          </a>
+          </button>
           <Button type="button" variant="ghost" size="sm" onClick={handleRemove} disabled={disabled}>
             <X className="h-4 w-4" />
           </Button>
@@ -276,5 +278,12 @@ export function AdDocUpload({ docUrl, onChange, disabled }: AdDocUploadProps) {
         </label>
       )}
     </div>
+    <DocumentPreviewDialog
+      open={previewOpen}
+      onOpenChange={setPreviewOpen}
+      publicUrl={docUrl}
+      title="ดูเอกสารประกอบ"
+    />
+    </>
   );
 }

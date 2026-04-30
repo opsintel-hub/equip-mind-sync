@@ -15,6 +15,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { EquipmentForm, EquipmentPrefillData } from "@/components/equipment/EquipmentForm";
 import { ReceiveGroupedItems, PendingReceipt } from "@/components/receive/ReceiveGroupedItems";
+import { DocumentPreviewDialog } from "@/components/DocumentPreviewDialog";
 
 import { format } from "date-fns";
 import { useAuth } from "@/hooks/useAuth";
@@ -105,6 +106,7 @@ const ReceiveGoods = () => {
   const [isReceiptDetailOpen, setIsReceiptDetailOpen] = useState(false);
   const [receiptDetail, setReceiptDetail] = useState<any | null>(null);
   const [isReceiptDetailLoading, setIsReceiptDetailLoading] = useState(false);
+  const [previewDocUrl, setPreviewDocUrl] = useState<string | null>(null);
 
   // Form state for editing - only editable fields
   const [editNotes, setEditNotes] = useState("");
@@ -1423,24 +1425,14 @@ const ReceiveGoods = () => {
                   <p className="text-sm font-medium text-foreground">เอกสารแนบ</p>
                   <div className="flex gap-4 text-sm">
                     {selectedReceipt.document_url && (
-                      <a 
-                        href={selectedReceipt.document_url} 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        className="text-primary hover:underline"
-                      >
+                      <button type="button" onClick={() => setPreviewDocUrl(selectedReceipt.document_url)} className="text-primary hover:underline cursor-pointer">
                         📎 เอกสารนำส่ง
-                      </a>
+                      </button>
                     )}
                     {selectedReceipt.purchase_document_url && (
-                      <a 
-                        href={selectedReceipt.purchase_document_url} 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        className="text-primary hover:underline"
-                      >
+                      <button type="button" onClick={() => setPreviewDocUrl(selectedReceipt.purchase_document_url)} className="text-primary hover:underline cursor-pointer">
                         📎 เอกสาร PO/PR
-                      </a>
+                      </button>
                     )}
                   </div>
                 </div>
@@ -1763,6 +1755,13 @@ const ReceiveGoods = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <DocumentPreviewDialog
+        open={!!previewDocUrl}
+        onOpenChange={(open) => { if (!open) setPreviewDocUrl(null); }}
+        publicUrl={previewDocUrl}
+        title="ดูเอกสารแนบ"
+      />
     </div>
   );
 };
