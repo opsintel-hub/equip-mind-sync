@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { previewStorageFile, downloadStorageFile } from "@/lib/storageDownload";
+import { DocumentPreviewDialog } from "@/components/DocumentPreviewDialog";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
