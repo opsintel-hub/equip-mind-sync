@@ -21,6 +21,7 @@ export function DocumentPreviewDialog({
   onOpenChange,
   publicUrl,
   title = "ดูเอกสาร",
+  labels,
 }: DocumentPreviewDialogProps) {
   const [pdfData, setPdfData] = useState<ArrayBuffer | null>(null);
   const [imageDataUrl, setImageDataUrl] = useState<string | null>(null);
