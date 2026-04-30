@@ -240,7 +240,7 @@ export default function SwapWizard() {
     }
     const selected = installedItems.find((o) => o.value === reportedSelectKey);
     setSubmitting(true);
-    const { error } = await supabase.from("swap_requests").insert({
+    const { data: inserted, error } = await supabase.from("swap_requests").insert({
       billboard_id: billboardId,
       symptom_id: symptomId || null,
       symptom_other: symptomOther.trim() || null,
@@ -248,7 +248,7 @@ export default function SwapWizard() {
       technician_name: technicianName.trim() || null,
       technician_phone: technicianPhone.trim() || null,
       priority,
-      status: "pending",
+      status: "in_progress",
       created_by: user?.id ?? null,
       document_no: "",
       reported_asset_type: reportedAssetType,
@@ -262,13 +262,52 @@ export default function SwapWizard() {
       received_by: user?.id ?? null,
       received_by_name: receivedByName.trim() || null,
       received_at: receivedByName.trim() ? new Date().toISOString() : null,
-    } as any);
-    setSubmitting(false);
+    } as any).select("id, document_no").single();
     if (error) {
+      setSubmitting(false);
       toast.error("บันทึกไม่สำเร็จ: " + error.message);
       return;
     }
-    toast.success("สร้างคำขอ Swap แล้ว — รอคลังเลือก Spare และดำเนินการ");
+
+    // Auto-uninstall the reported item from billboard immediately
+    // so Stock Card timeline reflects "ปลดออกจากป้าย" right after the swap request is created.
+    const swapDocNo = inserted?.document_no || "Swap";
+    const today = new Date().toISOString().slice(0, 10);
+    const reason = `Swap ${swapDocNo}: ${symptomOther.trim() || description.trim() || "นำกลับมาประเมิน"}`;
+
+    if (selected?.asset_type === "equipment" && selected.billboard_equipment_id && selected.equipment_id) {
+      const { data: beRow } = await supabase
+        .from("billboard_equipment")
+        .select("quantity, installation_date")
+        .eq("id", selected.billboard_equipment_id)
+        .maybeSingle();
+      await supabase.from("billboard_equipment_history").insert({
+        billboard_id: billboardId,
+        equipment_id: selected.equipment_id,
+        quantity: (beRow as any)?.quantity || 1,
+        installation_date: (beRow as any)?.installation_date || null,
+        uninstall_date: today,
+        uninstall_reason: reason,
+        uninstalled_by: user?.id ?? null,
+        return_to_stock: false,
+      });
+      await supabase.from("billboard_equipment").delete().eq("id", selected.billboard_equipment_id);
+      if (selected.serial_number) {
+        await supabase
+          .from("equipment_serial_numbers")
+          .update({ status: "pending_return", billboard_id: null } as any)
+          .eq("equipment_id", selected.equipment_id)
+          .eq("serial_number", selected.serial_number);
+      }
+    } else if (selected?.asset_type === "media_player" && selected.media_player_id) {
+      await supabase
+        .from("media_players")
+        .update({ billboard_id: null, status: "pending_assessment" } as any)
+        .eq("id", selected.media_player_id);
+    }
+
+    setSubmitting(false);
+    toast.success("สร้างคำขอ Swap แล้ว — ปลดเครื่องเก่าออกจากป้ายเรียบร้อย รอคลังจัด Spare");
     resetForm();
     setActiveTab("list");
     fetchRequests();
