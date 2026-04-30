@@ -32,6 +32,7 @@ import {
   Send,
   ClipboardCheck,
   FileCheck2,
+  ShieldCheck,
 } from "lucide-react";
 import {
   Sidebar,
@@ -111,6 +112,12 @@ const menuGroups: MenuGroup[] = [
         url: "/defective-return",
         icon: AlertTriangleIcon,
         functionName: "goods_receipt",
+      },
+      {
+        title: "อนุมัติจัดการของเสีย",
+        url: "/disposal-approval",
+        icon: ShieldCheck,
+        functionName: "manager_approval",
       },
     ]
   },
