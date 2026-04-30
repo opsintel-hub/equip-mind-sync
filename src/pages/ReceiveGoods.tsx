@@ -593,8 +593,10 @@ const ReceiveGoods = () => {
         if (sr.delivery_note_document_url) mpUpdatePayload.delivery_note_document_url = sr.delivery_note_document_url;
         if (sr.order_for_project) mpUpdatePayload.order_for_project = sr.order_for_project;
         if (sr.activate_windows) mpUpdatePayload.activate_windows = sr.activate_windows;
-        if (sr.asset_code) mpUpdatePayload.asset_code = sr.asset_code;
-        if (sr.equipment_id_code) mpUpdatePayload.equipment_id_code = sr.equipment_id_code;
+        const finalAssetCode = trimmedAssetCode || sr.asset_code;
+        const finalEquipmentIdCode = trimmedEquipmentIdCode || sr.equipment_id_code;
+        if (finalAssetCode) mpUpdatePayload.asset_code = finalAssetCode;
+        if (finalEquipmentIdCode) mpUpdatePayload.equipment_id_code = finalEquipmentIdCode;
 
         const { error: mpError } = await supabase
               .from("media_players")
