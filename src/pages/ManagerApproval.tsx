@@ -344,32 +344,36 @@ const ManagerApproval = () => {
       {/* Filters */}
       <Card>
         <CardContent className="pt-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input placeholder="ค้นหา S/N..." value={snSearchTerm} onChange={(e) => setSnSearchTerm(e.target.value)} className="pl-10 w-[160px]" />
+              <Input placeholder="ค้นหา S/N..." value={snSearchTerm} onChange={(e) => setSnSearchTerm(e.target.value)} className="pl-10 w-full" />
             </div>
-            <div className="relative">
+            <div className="relative xl:col-span-2">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input placeholder="ค้นหาเลขที่เอกสาร, ชื่อสินค้า, ชื่อผู้เบิก..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-10" />
+              <Input placeholder="ค้นหาเลขที่เอกสาร, รหัส, ชื่อสินค้า, ผู้เบิก..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-10 w-full" />
             </div>
-            <DepartmentMultiFilter value={departmentFilter} onChange={setDepartmentFilter} />
+            <div className="w-full">
+              <DepartmentMultiFilter value={departmentFilter} onChange={setDepartmentFilter} />
+            </div>
             <Select value={companyFilter} onValueChange={setCompanyFilter}>
-              <SelectTrigger><SelectValue placeholder="บริษัท" /></SelectTrigger>
+              <SelectTrigger className="w-full"><SelectValue placeholder="ทุกบริษัท" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">ทุกบริษัท</SelectItem>
                 {companies?.map((c: any) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
               </SelectContent>
             </Select>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger><SelectValue placeholder="สถานะ (ประวัติ)" /></SelectTrigger>
+              <SelectTrigger className="w-full"><SelectValue placeholder="ทุกสถานะ" /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">ทุกสถานะ</SelectItem>
+                <SelectItem value="all">ทุกสถานะ (ประวัติ)</SelectItem>
                 <SelectItem value="approved">อนุมัติแล้ว</SelectItem>
                 <SelectItem value="rejected">ไม่อนุมัติ</SelectItem>
               </SelectContent>
             </Select>
-            <DatePickerWithRange date={dateRange} onDateChange={setDateRange} />
+            <div className="w-full xl:col-span-6">
+              <DatePickerWithRange date={dateRange} onDateChange={setDateRange} />
+            </div>
           </div>
         </CardContent>
       </Card>
