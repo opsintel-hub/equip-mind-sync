@@ -20,6 +20,7 @@ import { th } from "date-fns/locale";
 import { useAuth } from "@/hooks/useAuth";
 import { DatePickerWithRange } from "@/components/ui/date-range-picker";
 import { DateRange } from "react-day-picker";
+import { DocumentPreviewDialog } from "@/components/DocumentPreviewDialog";
 
 const ISSUE_TYPES = [
   { value: "damaged_in_transit", label: "สินค้าชำรุดระหว่างการจัดส่ง" },
@@ -51,6 +52,7 @@ const DeliveryConfirmation = () => {
   const [uploading, setUploading] = useState(false);
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
   const [viewConfirmation, setViewConfirmation] = useState<any>(null);
+  const [previewDocUrl, setPreviewDocUrl] = useState<string | null>(null);
 
 
   // Fetch issued requests with delivery pickup_type
@@ -618,7 +620,7 @@ const DeliveryConfirmation = () => {
                 <div className="space-y-1">
                   {uploadedDocFiles.map((url, i) => (
                     <div key={i} className="flex items-center gap-2 text-sm bg-muted/50 px-3 py-2 rounded">
-                      <a href={url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline flex-1 truncate">เอกสาร {i + 1}</a>
+                      <button type="button" onClick={() => setPreviewDocUrl(url)} className="text-primary hover:underline flex-1 truncate text-left">เอกสาร {i + 1}</button>
                       <button onClick={() => setUploadedDocFiles(prev => prev.filter((_, idx) => idx !== i))} className="text-destructive hover:text-destructive/80"><X className="h-3 w-3" /></button>
                     </div>
                   ))}
@@ -684,6 +686,12 @@ const DeliveryConfirmation = () => {
           )}
         </DialogContent>
       </Dialog>
+      <DocumentPreviewDialog
+        open={!!previewDocUrl}
+        onOpenChange={(open) => { if (!open) setPreviewDocUrl(null); }}
+        publicUrl={previewDocUrl}
+        title="ดูเอกสารใบส่งของ"
+      />
     </div>
   );
 };
