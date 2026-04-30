@@ -194,12 +194,63 @@ export default function DisposalApproval() {
   };
 
   const markCompleted = async (row: DefectiveRow) => {
-    const { error } = await supabase
-      .from("defective_returns")
-      .update({ dispose_status: "completed" })
-      .eq("id", row.id);
-    if (error) toast.error("บันทึกไม่สำเร็จ: " + error.message);
-    else { toast.success("ทำเครื่องหมายว่าดำเนินการเสร็จแล้ว"); fetchData(); }
+    // 🔒 For destroy / sell_scrap / csr → record final stock_movement (out from quarantine)
+    // For repair_return → user must use Receive Goods to add back, no movement here
+    const finalDisposalTypes = ["destroy", "sell_scrap", "csr"];
+    const isFinalDisposal = row.disposal_method && finalDisposalTypes.includes(row.disposal_method);
+
+    try {
+      // Get item info for stock_movement
+      let itemCode = "", itemName = "";
+      if (row.is_media_player && row.media_player_id) {
+        const { data: mp } = await supabase.from("media_players").select("code, name").eq("id", row.media_player_id).maybeSingle();
+        if (mp) { itemCode = mp.code; itemName = mp.name; }
+      } else if (row.equipment_id) {
+        const { data: eq } = await supabase.from("equipment").select("code, name").eq("id", row.equipment_id).maybeSingle();
+        if (eq) { itemCode = eq.code; itemName = eq.name; }
+      }
+
+      // Get quarantine location
+      const { data: loc } = await supabase.from("locations").select("id").eq("code", "LOC-DEFECT").maybeSingle();
+
+      const nowIso = new Date().toISOString();
+
+      if (isFinalDisposal) {
+        // Final disposal: stock already deducted at entry, just log final movement (qty=0 marker)
+        await supabase.from("stock_movements").insert({
+          equipment_id: row.is_media_player ? row.media_player_id : row.equipment_id,
+          equipment_code: itemCode,
+          equipment_name: itemName,
+          movement_type: `disposal_${row.disposal_method}`,
+          quantity: 0, // already deducted at entry; this is a final accountability log
+          stock_before: 0,
+          stock_after: 0,
+          reference_type: "defective_return",
+          reference_id: row.id,
+          reference_document: row.document_no,
+          location_id: loc?.id || null,
+          notes: `[จำหน่ายออกจากคลังของเสีย: ${row.disposal_method}] ${row.disposal_notes || ""}`.trim(),
+          item_condition: "defective",
+          created_by: user?.id,
+        });
+      }
+
+      const { error } = await supabase
+        .from("defective_returns")
+        .update({
+          dispose_status: "completed",
+          stock_disposed_at: nowIso,
+        })
+        .eq("id", row.id);
+      if (error) throw error;
+
+      toast.success(isFinalDisposal
+        ? `บันทึก "${DISPOSAL_METHODS[row.disposal_method!]?.label}" สำเร็จ — จำหน่ายออกจากคลังของเสียแล้ว`
+        : "บันทึกเสร็จสิ้นแล้ว — สำหรับ 'ซ่อมและคืนคลัง' กรุณารับเข้าใหม่ผ่านเมนู Receive Goods");
+      fetchData();
+    } catch (e: any) {
+      toast.error("บันทึกไม่สำเร็จ: " + e.message);
+    }
   };
 
   return (
