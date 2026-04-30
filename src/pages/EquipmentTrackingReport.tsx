@@ -657,12 +657,12 @@ function EquipmentViewTab() {
     });
   }, [allItems, search, snSearch, typeFilter, categoryFilter, brandFilter, installFilter]);
 
-  // Summary stats
+  // Summary stats — based on FILTERED results so cards reflect what user is searching
   const summaryStats = useMemo(() => {
-    const installed = allItems.filter(i => i.isInstalled).length;
-    const inStock = allItems.filter(i => !i.isInstalled).length;
-    return { total: allItems.length, installed, inStock };
-  }, [allItems]);
+    const installed = filtered.filter(i => i.isInstalled).length;
+    const inStock = filtered.filter(i => !i.isInstalled).length;
+    return { total: filtered.length, installed, inStock };
+  }, [filtered]);
 
   // Pagination
   const totalPages = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE));
@@ -686,13 +686,15 @@ function EquipmentViewTab() {
 
   const isLoading = loadingEq || loadingMP;
 
+  const isFiltered = !!(search || snSearch || typeFilter !== "all" || categoryFilter !== "all" || brandFilter !== "all" || installFilter !== "all");
+
   return (
     <div className="space-y-4">
-      {/* Summary Cards */}
+      {/* Summary Cards — reflect current filtered result */}
       <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-        <Card><CardContent className="p-3 text-center"><div className="text-2xl font-bold text-primary">{summaryStats.total}</div><div className="text-xs text-muted-foreground">ทั้งหมด</div></CardContent></Card>
-        <Card><CardContent className="p-3 text-center"><div className="text-2xl font-bold text-emerald-600">{summaryStats.installed}</div><div className="text-xs text-muted-foreground">ติดตั้งอยู่</div></CardContent></Card>
-        <Card><CardContent className="p-3 text-center"><div className="text-2xl font-bold text-primary">{summaryStats.inStock}</div><div className="text-xs text-muted-foreground">ในคลัง</div></CardContent></Card>
+        <Card><CardContent className="p-3 text-center"><div className="text-2xl font-bold text-primary">{summaryStats.total}</div><div className="text-xs text-muted-foreground">{isFiltered ? "ผลการค้นหา (รายการ)" : "ทั้งหมด (รายการ)"}</div></CardContent></Card>
+        <Card><CardContent className="p-3 text-center"><div className="text-2xl font-bold text-emerald-600">{summaryStats.installed}</div><div className="text-xs text-muted-foreground">ติดตั้งบนป้ายอยู่</div></CardContent></Card>
+        <Card><CardContent className="p-3 text-center"><div className="text-2xl font-bold text-primary">{summaryStats.inStock}</div><div className="text-xs text-muted-foreground">อยู่ในคลัง / ยังไม่ติดตั้ง</div></CardContent></Card>
       </div>
 
       {/* Filters */}
