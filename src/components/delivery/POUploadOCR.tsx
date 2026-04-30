@@ -50,6 +50,7 @@ export interface POOCRItem {
   matched_equipment_id?: string | null;
   matched_equipment_code?: string | null;
   matched_equipment_name?: string | null;
+  matched_is_media_player?: boolean;
   match_status?: "matched" | "not_found" | "new";
 }
 
