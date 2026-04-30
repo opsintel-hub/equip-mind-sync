@@ -407,11 +407,18 @@ export function POUploadOCR({
     label: d.name,
   }));
 
-  const equipmentOptions = equipment.map((e) => ({
-    value: e.id,
-    label: `${e.code} - ${e.name}`,
-    description: `${e.unit} | ฿${e.unit_price.toLocaleString()}`,
-  }));
+  const equipmentOptions = [
+    ...equipment.map((e) => ({
+      value: e.id,
+      label: `${e.code} - ${e.name}`,
+      description: `${e.unit} | ฿${e.unit_price.toLocaleString()}`,
+    })),
+    ...mediaPlayers.map((m) => ({
+      value: m.id,
+      label: `${m.code} - ${m.name}`,
+      description: `Media Player${m.unit_price ? ` | ฿${Number(m.unit_price).toLocaleString()}` : ""}`,
+    })),
+  ];
 
   return (
     <Dialog
