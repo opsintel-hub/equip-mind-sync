@@ -8,13 +8,15 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { ArrowLeftRight, ListChecks, PlusCircle, RefreshCw } from "lucide-react";
+import { ArrowLeftRight, ListChecks, PlusCircle, RefreshCw, MapPin, Wrench, Package, User, Camera, ClipboardList } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { th } from "date-fns/locale";
 import BillboardSelect from "@/components/billboard/BillboardSelect";
 import { SymptomSelect } from "@/components/media-player/SymptomSelect";
 import { SwapWizardDialog } from "@/components/swap/SwapWizardDialog";
+import { SearchableSelect } from "@/components/ui/searchable-select";
+import { EquipmentImageUpload } from "@/components/equipment/EquipmentImageUpload";
 
 interface SwapRequest {
   id: string;
