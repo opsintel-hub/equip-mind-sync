@@ -32,6 +32,26 @@ interface SwapRequest {
   created_at: string;
   notes: string | null;
   defective_return_id?: string | null;
+  reported_asset_type?: string | null;
+  reported_item_name?: string | null;
+  reported_item_code?: string | null;
+  reported_serial_number?: string | null;
+  reported_photos?: string[] | null;
+  received_by_name?: string | null;
+}
+
+interface InstalledItemOption {
+  value: string;
+  label: string;
+  description?: string;
+  searchableText?: string;
+  asset_type: "equipment" | "media_player";
+  equipment_id?: string | null;
+  media_player_id?: string | null;
+  serial_number?: string | null;
+  item_code?: string;
+  item_name?: string;
+  billboard_equipment_id?: string;
 }
 
 const STATUS_LABELS: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
