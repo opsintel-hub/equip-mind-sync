@@ -106,7 +106,9 @@ const DefectiveReturnEntry = () => {
   };
 
   const equipmentOptions = useMemo(() => {
-    if (isMediaPlayer) return mediaPlayerList.map(mp => ({ value: mp.id, label: `${mp.code} - ${mp.name}` }));
+    if (isMediaPlayer) {
+      return dedupeMediaPlayersByCode(mediaPlayerList).map(o => ({ value: o.value, label: o.label }));
+    }
     return equipmentList.map(e => ({ value: e.id, label: `${e.code} - ${e.name}` }));
   }, [isMediaPlayer, mediaPlayerList, equipmentList]);
 
