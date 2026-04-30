@@ -1818,10 +1818,16 @@ const ReceiveGoods = () => {
       </Dialog>
 
       <DocumentPreviewDialog
-        open={!!previewDocUrl}
-        onOpenChange={(open) => { if (!open) setPreviewDocUrl(null); }}
-        publicUrl={previewDocUrl}
-        title="ดูเอกสารแนบ"
+        open={!!previewDocUrl || !!previewCategories}
+        onOpenChange={(open) => {
+          if (!open) {
+            setPreviewDocUrl(null);
+            setPreviewCategories(null);
+          }
+        }}
+        publicUrl={previewCategories ? null : previewDocUrl}
+        categories={previewCategories || undefined}
+        title={previewTitle}
       />
     </div>
   );
