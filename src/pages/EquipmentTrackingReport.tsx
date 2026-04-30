@@ -268,23 +268,54 @@ function BillboardViewTab() {
     });
   }, [billboards, search, snSearch, regionFilter, deptFilter, mediaTypeFilter, statusFilter, equipByBillboard, showAllBillboards]);
 
-  // Summary stats
+  // Summary stats — based on FILTERED billboards (reflects current search)
   const summaryStats = useMemo(() => {
     const now = new Date();
     let withEquip = 0;
-    let hasExpired = 0;
-    let hasWarrantyExpired = 0;
-    (billboards || []).forEach(b => {
+    let totalEquipPieces = 0;
+    let expiredCount = 0;
+    let warrantyExpiredCount = 0;
+    let expiringSoonCount = 0;
+    let warrantyExpiringSoonCount = 0;
+    filtered.forEach(b => {
       const items = equipByBillboard[b.id] || [];
       if (items.length > 0) withEquip++;
       items.forEach(item => {
         const eq = item.equipmentData;
-        if (eq.expiry_date && differenceInDays(new Date(eq.expiry_date), now) < 0) hasExpired++;
-        if (eq.warranty_expiry_date && differenceInDays(new Date(eq.warranty_expiry_date), now) < 0) hasWarrantyExpired++;
+        totalEquipPieces += item.quantity || 1;
+        if (eq.expiry_date) {
+          const d = differenceInDays(new Date(eq.expiry_date), now);
+          if (d < 0) expiredCount++;
+          else if (d <= EXPIRY_WARNING_DAYS) expiringSoonCount++;
+        }
+        if (eq.warranty_expiry_date) {
+          const d = differenceInDays(new Date(eq.warranty_expiry_date), now);
+          if (d < 0) warrantyExpiredCount++;
+          else if (d <= EXPIRY_WARNING_DAYS) warrantyExpiringSoonCount++;
+        }
       });
     });
-    return { total: (billboards || []).length, withEquip, hasExpired, hasWarrantyExpired };
-  }, [billboards, equipByBillboard]);
+    return {
+      totalBillboards: filtered.length,
+      withEquip,
+      totalEquipPieces,
+      expiredCount,
+      expiringSoonCount,
+      warrantyExpiredCount,
+      warrantyExpiringSoonCount,
+    };
+  }, [filtered, equipByBillboard]);
+
+  // Per-billboard category breakdown (e.g., "Media Player x1, อะไหล่ x2")
+  const categoryBreakdown = (bbId: string) => {
+    const items = equipByBillboard[bbId] || [];
+    const map: Record<string, number> = {};
+    items.forEach(item => {
+      const cat = item.type === "media_player" ? "Media Player" : (item.equipmentData.category || "อื่นๆ");
+      map[cat] = (map[cat] || 0) + (item.quantity || 1);
+    });
+    return Object.entries(map);
+  };
 
   // Pagination
   const totalPages = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE));
@@ -324,12 +355,14 @@ function BillboardViewTab() {
 
   return (
     <div className="space-y-4">
-      {/* Summary Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <Card><CardContent className="p-3 text-center"><div className="text-2xl font-bold text-primary">{summaryStats.total}</div><div className="text-xs text-muted-foreground">ป้ายทั้งหมด</div></CardContent></Card>
+      {/* Summary Cards — reflect filtered results */}
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+        <Card><CardContent className="p-3 text-center"><div className="text-2xl font-bold text-primary">{summaryStats.totalBillboards}</div><div className="text-xs text-muted-foreground">ป้ายในผลค้นหา</div></CardContent></Card>
         <Card><CardContent className="p-3 text-center"><div className="text-2xl font-bold text-emerald-600">{summaryStats.withEquip}</div><div className="text-xs text-muted-foreground">ป้ายที่มีอุปกรณ์</div></CardContent></Card>
-        <Card><CardContent className="p-3 text-center"><div className="text-2xl font-bold text-destructive">{summaryStats.hasExpired}</div><div className="text-xs text-muted-foreground">อุปกรณ์หมดอายุ</div></CardContent></Card>
-        <Card><CardContent className="p-3 text-center"><div className="text-2xl font-bold text-amber-600">{summaryStats.hasWarrantyExpired}</div><div className="text-xs text-muted-foreground">อุปกรณ์หมดประกัน</div></CardContent></Card>
+        <Card><CardContent className="p-3 text-center"><div className="text-2xl font-bold text-blue-600">{summaryStats.totalEquipPieces}</div><div className="text-xs text-muted-foreground">อุปกรณ์รวม (ชิ้น)</div></CardContent></Card>
+        <Card><CardContent className="p-3 text-center"><div className="text-2xl font-bold text-destructive">{summaryStats.expiredCount}</div><div className="text-xs text-muted-foreground">หมดอายุแล้ว</div></CardContent></Card>
+        <Card><CardContent className="p-3 text-center"><div className="text-2xl font-bold text-amber-600">{summaryStats.expiringSoonCount}</div><div className="text-xs text-muted-foreground">ใกล้หมดอายุ (≤90 วัน)</div></CardContent></Card>
+        <Card><CardContent className="p-3 text-center"><div className="text-2xl font-bold text-amber-700">{summaryStats.warrantyExpiredCount + summaryStats.warrantyExpiringSoonCount}</div><div className="text-xs text-muted-foreground">หมด/ใกล้หมดประกัน</div></CardContent></Card>
       </div>
 
       {/* Filters */}
@@ -340,7 +373,7 @@ function BillboardViewTab() {
         </div>
         <div className="relative flex-1 min-w-[200px]">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input placeholder="ค้นหาป้าย (Old Code / Location)..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
+          <Input placeholder="ค้นหา ป้าย / รหัสอุปกรณ์ / ชื่ออุปกรณ์..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
         </div>
         <Select value={regionFilter} onValueChange={setRegionFilter}>
           <SelectTrigger className="w-[160px]"><SelectValue placeholder="Region" /></SelectTrigger>
@@ -397,15 +430,18 @@ function BillboardViewTab() {
                 <TableHead>Region</TableHead>
                 <TableHead>Department</TableHead>
                 <TableHead>Media Type</TableHead>
-                <TableHead className="text-center">อุปกรณ์ติดตั้ง</TableHead>
+                <TableHead>สรุปอุปกรณ์ตามประเภท</TableHead>
+                <TableHead className="text-center">รวม</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {paginatedData.length === 0 ? (
-                <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-8">ไม่พบข้อมูล</TableCell></TableRow>
+                <TableRow><TableCell colSpan={9} className="text-center text-muted-foreground py-8">ไม่พบข้อมูล</TableCell></TableRow>
               ) : paginatedData.map(b => {
                 const items = equipByBillboard[b.id] || [];
                 const isExpanded = expandedId === b.id;
+                const breakdown = categoryBreakdown(b.id);
+                const totalPieces = items.reduce((s, it) => s + (it.quantity || 1), 0);
                 return (
                   <React.Fragment key={b.id}>
                     <TableRow className="cursor-pointer hover:bg-muted/50" onClick={() => setExpandedId(isExpanded ? null : b.id)}>
@@ -416,13 +452,24 @@ function BillboardViewTab() {
                       <TableCell>{b.region || "-"}</TableCell>
                       <TableCell>{b.department || "-"}</TableCell>
                       <TableCell>{b.media_type || "-"}</TableCell>
+                      <TableCell>
+                        {breakdown.length === 0 ? (
+                          <span className="text-muted-foreground text-xs">ไม่มี</span>
+                        ) : (
+                          <div className="flex flex-wrap gap-1">
+                            {breakdown.map(([cat, count]) => (
+                              <Badge key={cat} variant="outline" className="text-xs">{cat} × {count}</Badge>
+                            ))}
+                          </div>
+                        )}
+                      </TableCell>
                       <TableCell className="text-center">
-                        {items.length > 0 ? <Badge variant="secondary">{items.length} ชิ้น</Badge> : <span className="text-muted-foreground text-xs">ไม่มี</span>}
+                        {totalPieces > 0 ? <Badge variant="secondary">{totalPieces} ชิ้น</Badge> : <span className="text-muted-foreground text-xs">-</span>}
                       </TableCell>
                     </TableRow>
                     {isExpanded && items.length > 0 && (
                       <TableRow>
-                        <TableCell colSpan={8} className="bg-muted/30 p-0">
+                        <TableCell colSpan={9} className="bg-muted/30 p-0">
                           <div className="p-4">
                             <Table>
                               <TableHeader>
@@ -691,10 +738,11 @@ function EquipmentViewTab() {
   return (
     <div className="space-y-4">
       {/* Summary Cards — reflect current filtered result */}
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-        <Card><CardContent className="p-3 text-center"><div className="text-2xl font-bold text-primary">{summaryStats.total}</div><div className="text-xs text-muted-foreground">{isFiltered ? "ผลการค้นหา (รายการ)" : "ทั้งหมด (รายการ)"}</div></CardContent></Card>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <Card><CardContent className="p-3 text-center"><div className="text-2xl font-bold text-primary">{summaryStats.total}</div><div className="text-xs text-muted-foreground">{isFiltered ? "ผลค้นหา (รายการ S/N)" : "ทั้งหมด (รายการ S/N)"}</div></CardContent></Card>
         <Card><CardContent className="p-3 text-center"><div className="text-2xl font-bold text-emerald-600">{summaryStats.installed}</div><div className="text-xs text-muted-foreground">ติดตั้งบนป้ายอยู่</div></CardContent></Card>
-        <Card><CardContent className="p-3 text-center"><div className="text-2xl font-bold text-primary">{summaryStats.inStock}</div><div className="text-xs text-muted-foreground">อยู่ในคลัง / ยังไม่ติดตั้ง</div></CardContent></Card>
+        <Card><CardContent className="p-3 text-center"><div className="text-2xl font-bold text-blue-600">{summaryStats.inStock}</div><div className="text-xs text-muted-foreground">อยู่ในคลัง / ยังไม่ติดตั้ง</div></CardContent></Card>
+        <Card><CardContent className="p-3 text-center"><div className="text-xs text-muted-foreground mb-1">💡 คลิก <Eye className="inline w-3 h-3" /> เพื่อดู<br/>รายการป้ายทั้งหมดที่ติดตั้ง<br/>+ วันหมดประกัน → วาง PM ครั้งเดียว</div></CardContent></Card>
       </div>
 
       {/* Filters */}
@@ -705,7 +753,7 @@ function EquipmentViewTab() {
         </div>
         <div className="relative flex-1 min-w-[200px]">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input placeholder="ค้นหา ชื่อ / Code..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
+          <Input placeholder="ค้นหา รหัสสินค้า / ชื่อ / Model..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
         </div>
         <Select value={typeFilter} onValueChange={setTypeFilter}>
           <SelectTrigger className="w-[160px]"><SelectValue placeholder="ประเภท" /></SelectTrigger>
@@ -751,18 +799,20 @@ function EquipmentViewTab() {
             <TableHeader>
               <TableRow>
                 <TableHead>Code</TableHead>
-                <TableHead>ชื่อ</TableHead>
+                <TableHead>ชื่อ / Model</TableHead>
                 <TableHead>S/N</TableHead>
                 <TableHead>ประเภท</TableHead>
                 <TableHead>Brand</TableHead>
-                <TableHead className="text-center">สต็อกคลัง</TableHead>
+                <TableHead className="text-center">คงเหลือในคลัง</TableHead>
                 <TableHead>ติดตั้งที่ป้าย</TableHead>
-                <TableHead className="text-center">ดู</TableHead>
+                <TableHead>วันหมดประกัน</TableHead>
+                <TableHead>สถานะประกัน</TableHead>
+                <TableHead className="text-center">รายละเอียด</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {paginatedData.length === 0 ? (
-                <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-8">ไม่พบข้อมูล</TableCell></TableRow>
+                <TableRow><TableCell colSpan={10} className="text-center text-muted-foreground py-8">ไม่พบข้อมูล</TableCell></TableRow>
               ) : paginatedData.map(item => (
                 <TableRow key={`${item.itemType}-${item.id}`}>
                   <TableCell className="font-mono text-xs">{item.code}</TableCell>
@@ -778,8 +828,10 @@ function EquipmentViewTab() {
                       <span className="text-muted-foreground text-xs">ในคลัง</span>
                     )}
                   </TableCell>
+                  <TableCell className="text-xs">{fmtDate(item.warranty_expiry_date)}</TableCell>
+                  <TableCell>{expiryBadge(item.warranty_expiry_date, "ประกัน")}</TableCell>
                   <TableCell className="text-center">
-                    <Button variant="ghost" size="sm" onClick={() => setSelectedEquipment(item)}><Eye className="w-4 h-4" /></Button>
+                    <Button variant="ghost" size="sm" onClick={() => setSelectedEquipment(item)} title="ดูรายการป้ายทั้งหมดที่ติดตั้ง + ประวัติ"><Eye className="w-4 h-4" /></Button>
                   </TableCell>
                 </TableRow>
               ))}
