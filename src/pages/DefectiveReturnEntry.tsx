@@ -12,7 +12,7 @@ import { SearchableSelect } from "@/components/ui/searchable-select";
 import { supabase } from "@/integrations/supabase/client";
 import { dedupeMediaPlayersByCode } from "@/lib/mediaPlayerOptions";
 import { toast } from "sonner";
-import { AlertTriangle, Package, MapPin, Send, Loader2, Info, PlusCircle, X, ImagePlus, ClipboardCheck, FileCheck2 } from "lucide-react";
+import { AlertTriangle, Package, MapPin, Send, Loader2, Info, PlusCircle, X, ImagePlus, ClipboardCheck, FileCheck2, ArrowLeftRight } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { format } from "date-fns";
 
@@ -121,6 +121,68 @@ const DefectiveReturnEntry = () => {
 
   const isFromBillboard = selectedBillboardEquipmentId !== "" && detectedBillboards.length > 0;
   const generateDocNo = () => `DR-${format(new Date(), "yyyyMMdd")}-${Math.floor(Math.random() * 9999 + 1).toString().padStart(4, "0")}`;
+
+  const handleSendToSwap = async () => {
+    if (!selectedItemId) { toast.error("กรุณาเลือกสินค้าก่อน"); return; }
+    if (!selectedBillboardRecord?.billboard_id) {
+      toast.error("ไม่พบป้ายโฆษณา — Swap ใช้ได้เฉพาะของเสียที่ถอดจากป้าย");
+      return;
+    }
+    setIsSubmitting(true);
+    try {
+      // 1. Create defective_return first (so we can link it)
+      const docNo = generateDocNo();
+      const reasonText = perUnitMode
+        ? defectiveUnits.filter(u => u.serial_number.trim()).map(u => `S/N ${u.serial_number}: ${u.reason}`).join("\n")
+        : reason || "(ส่งไป Swap)";
+      const qty = perUnitMode ? defectiveUnits.filter(u => u.serial_number.trim()).length : parseInt(quantity) || 1;
+
+      const { data: dr, error: drError } = await supabase.from("defective_returns").insert({
+        document_no: docNo,
+        equipment_id: isMediaPlayer ? null : selectedItemId,
+        media_player_id: isMediaPlayer ? selectedItemId : null,
+        is_media_player: isMediaPlayer,
+        quantity: qty,
+        billboard_id: selectedBillboardRecord.billboard_id,
+        item_condition: itemCondition,
+        reason: reasonText,
+        status: "pending_warehouse_entry",
+        source_type: "billboard",
+        dispose_status: "pending_disposal_review",
+        notes: notes.trim() || null,
+        created_by: user?.id,
+      }).select("id").single();
+      if (drError) throw drError;
+
+      // 2. Create swap_request linked to it
+      const firstSn = perUnitMode ? defectiveUnits.find(u => u.serial_number.trim())?.serial_number : (isMediaPlayer ? selectedMediaPlayer?.serial_number_1 : selectedEquipment?.serial_number);
+      const { data: sw, error: swError } = await supabase.from("swap_requests").insert({
+        document_no: "",
+        billboard_id: selectedBillboardRecord.billboard_id,
+        description: reasonText,
+        symptom_other: reasonText.slice(0, 200),
+        status: "pending",
+        priority: "normal",
+        asset_type: isMediaPlayer ? "media_player" : "equipment",
+        old_equipment_id: isMediaPlayer ? null : selectedItemId,
+        old_media_player_id: isMediaPlayer ? selectedItemId : null,
+        old_serial_number: firstSn || null,
+        defective_return_id: dr.id,
+        created_by: user?.id,
+      }).select("id, document_no").single();
+      if (swError) throw swError;
+
+      // 3. Link swap back to defective_return
+      await supabase.from("defective_returns").update({ swap_request_id: sw.id }).eq("id", dr.id);
+
+      toast.success(`สร้างคำขอ Swap แล้ว (${sw.document_no}) — กำลังนำไปยังหน้า Swap`);
+      setTimeout(() => navigate("/swap"), 800);
+    } catch (e: any) {
+      toast.error("ส่งไป Swap ไม่สำเร็จ: " + e.message);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   const handleReset = () => {
     setSelectedItemId(""); setSelectedBillboardEquipmentId(""); setDetectedBillboards([]);
@@ -482,7 +544,19 @@ const DefectiveReturnEntry = () => {
                       <FileCheck2 className="w-3.5 h-3.5 mr-1" /> ส่งเคลม
                     </Button>
                   </div>
-                  <p className="text-[11px] text-muted-foreground">ระบบจะส่งข้อมูลที่กรอกไว้ไปกรอกล่วงหน้าให้</p>
+                  {isFromBillboard && (
+                    <Button
+                      type="button"
+                      variant="default"
+                      size="sm"
+                      className="h-8 w-full mt-1"
+                      disabled={isSubmitting}
+                      onClick={handleSendToSwap}
+                    >
+                      <ArrowLeftRight className="w-3.5 h-3.5 mr-1" /> ส่งไป Process Swap (สร้างคำขอใหม่)
+                    </Button>
+                  )}
+                  <p className="text-[11px] text-muted-foreground">ระบบจะส่งข้อมูลที่กรอกไว้ไปกรอกล่วงหน้าให้ — "ส่งไป Swap" จะสร้างคำขอ Swap ใหม่และเชื่อมกับใบของเสียอัตโนมัติ</p>
                 </div>
               </div>
             ) : (
