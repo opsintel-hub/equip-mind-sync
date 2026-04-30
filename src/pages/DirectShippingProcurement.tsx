@@ -25,6 +25,7 @@ import { useTablePagination } from "@/hooks/useTablePagination";
 import { TablePagination } from "@/components/TablePagination";
 import { logStockMovement } from "@/lib/stockMovement";
 import { dedupeMediaPlayersByCode } from "@/lib/mediaPlayerOptions";
+import { DocumentPreviewDialog } from "@/components/DocumentPreviewDialog";
 
 interface CartItem {
   id: string;
@@ -51,6 +52,7 @@ export default function DirectShippingProcurement() {
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
   const [processDialog, setProcessDialog] = useState<any>(null);
   const [viewDetail, setViewDetail] = useState<any>(null);
+  const [previewDocUrl, setPreviewDocUrl] = useState<string | null>(null);
 
   // Process form state
   const [supplierId, setSupplierId] = useState("");
