@@ -355,12 +355,14 @@ function BillboardViewTab() {
 
   return (
     <div className="space-y-4">
-      {/* Summary Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <Card><CardContent className="p-3 text-center"><div className="text-2xl font-bold text-primary">{summaryStats.total}</div><div className="text-xs text-muted-foreground">ป้ายทั้งหมด</div></CardContent></Card>
+      {/* Summary Cards — reflect filtered results */}
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+        <Card><CardContent className="p-3 text-center"><div className="text-2xl font-bold text-primary">{summaryStats.totalBillboards}</div><div className="text-xs text-muted-foreground">ป้ายในผลค้นหา</div></CardContent></Card>
         <Card><CardContent className="p-3 text-center"><div className="text-2xl font-bold text-emerald-600">{summaryStats.withEquip}</div><div className="text-xs text-muted-foreground">ป้ายที่มีอุปกรณ์</div></CardContent></Card>
-        <Card><CardContent className="p-3 text-center"><div className="text-2xl font-bold text-destructive">{summaryStats.hasExpired}</div><div className="text-xs text-muted-foreground">อุปกรณ์หมดอายุ</div></CardContent></Card>
-        <Card><CardContent className="p-3 text-center"><div className="text-2xl font-bold text-amber-600">{summaryStats.hasWarrantyExpired}</div><div className="text-xs text-muted-foreground">อุปกรณ์หมดประกัน</div></CardContent></Card>
+        <Card><CardContent className="p-3 text-center"><div className="text-2xl font-bold text-blue-600">{summaryStats.totalEquipPieces}</div><div className="text-xs text-muted-foreground">อุปกรณ์รวม (ชิ้น)</div></CardContent></Card>
+        <Card><CardContent className="p-3 text-center"><div className="text-2xl font-bold text-destructive">{summaryStats.expiredCount}</div><div className="text-xs text-muted-foreground">หมดอายุแล้ว</div></CardContent></Card>
+        <Card><CardContent className="p-3 text-center"><div className="text-2xl font-bold text-amber-600">{summaryStats.expiringSoonCount}</div><div className="text-xs text-muted-foreground">ใกล้หมดอายุ (≤90 วัน)</div></CardContent></Card>
+        <Card><CardContent className="p-3 text-center"><div className="text-2xl font-bold text-amber-700">{summaryStats.warrantyExpiredCount + summaryStats.warrantyExpiringSoonCount}</div><div className="text-xs text-muted-foreground">หมด/ใกล้หมดประกัน</div></CardContent></Card>
       </div>
 
       {/* Filters */}
