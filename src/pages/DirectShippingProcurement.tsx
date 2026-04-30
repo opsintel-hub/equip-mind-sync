@@ -444,10 +444,10 @@ export default function DirectShippingProcurement() {
                   {(processDialog.pr_document_url || processDialog.po_document_url) && (
                     <div className="flex gap-3">
                       {processDialog.pr_document_url && (
-                        <button type="button" onClick={() => downloadStorageFile(processDialog.pr_document_url)} className="text-xs text-primary hover:underline cursor-pointer">📄 เอกสาร PR</button>
+                        <button type="button" onClick={() => setPreviewDocUrl(processDialog.pr_document_url)} className="text-xs text-primary hover:underline cursor-pointer">📄 เอกสาร PR</button>
                       )}
                       {processDialog.po_document_url && (
-                        <button type="button" onClick={() => downloadStorageFile(processDialog.po_document_url)} className="text-xs text-primary hover:underline cursor-pointer">📄 เอกสาร PO</button>
+                        <button type="button" onClick={() => setPreviewDocUrl(processDialog.po_document_url)} className="text-xs text-primary hover:underline cursor-pointer">📄 เอกสาร PO</button>
                       )}
                     </div>
                   )}
@@ -614,10 +614,10 @@ export default function DirectShippingProcurement() {
               {(viewDetail.pr_document_url || viewDetail.po_document_url) && (
                 <div className="flex gap-3">
                   {viewDetail.pr_document_url && (
-                    <button type="button" onClick={() => downloadStorageFile(viewDetail.pr_document_url)} className="text-xs text-primary hover:underline cursor-pointer">📄 เอกสาร PR</button>
+                    <button type="button" onClick={() => setPreviewDocUrl(viewDetail.pr_document_url)} className="text-xs text-primary hover:underline cursor-pointer">📄 เอกสาร PR</button>
                   )}
                   {viewDetail.po_document_url && (
-                    <button type="button" onClick={() => downloadStorageFile(viewDetail.po_document_url)} className="text-xs text-primary hover:underline cursor-pointer">📄 เอกสาร PO</button>
+                    <button type="button" onClick={() => setPreviewDocUrl(viewDetail.po_document_url)} className="text-xs text-primary hover:underline cursor-pointer">📄 เอกสาร PO</button>
                   )}
                 </div>
               )}
@@ -675,6 +675,12 @@ export default function DirectShippingProcurement() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      <DocumentPreviewDialog
+        open={!!previewDocUrl}
+        onOpenChange={(open) => { if (!open) setPreviewDocUrl(null); }}
+        publicUrl={previewDocUrl}
+        title="ดูเอกสารส่งตรง"
+      />
     </div>
   );
 }
