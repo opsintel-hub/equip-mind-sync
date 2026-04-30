@@ -406,14 +406,14 @@ export default function SwapWizard() {
         </TabsContent>
 
         <TabsContent value="new" className="mt-4 space-y-4">
-          {/* Section 1: ป้าย + อาการ */}
+          {/* Section 1: ข้อมูลป้าย */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-lg">
                 <MapPin className="h-5 w-5 text-primary" />
-                1. ข้อมูลป้ายและอาการเสีย
+                1. ข้อมูลป้ายโฆษณา
               </CardTitle>
-              <CardDescription>เลือกป้ายที่เกิดปัญหา และระบุอาการที่ตรวจพบหน้างาน</CardDescription>
+              <CardDescription>เลือกรหัสป้ายที่ช่างไปดำเนินการ Swap</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid md:grid-cols-2 gap-4">
@@ -434,31 +434,6 @@ export default function SwapWizard() {
                     <option value="urgent">ด่วนมาก</option>
                   </select>
                 </div>
-              </div>
-
-              <div className="grid md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>อาการเสีย <span className="text-destructive">*</span></Label>
-                  <SymptomSelect value={symptomId} onChange={setSymptomId} />
-                </div>
-                <div className="space-y-2">
-                  <Label>อาการอื่น (ถ้าไม่มีในรายการ)</Label>
-                  <Input
-                    value={symptomOther}
-                    onChange={(e) => setSymptomOther(e.target.value)}
-                    placeholder="ระบุอาการเพิ่มเติม"
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label>รายละเอียดเพิ่มเติม</Label>
-                <Textarea
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  placeholder="อธิบายปัญหา, สถานการณ์หน้างาน, สิ่งที่สังเกตเห็น..."
-                  rows={3}
-                />
               </div>
             </CardContent>
           </Card>
