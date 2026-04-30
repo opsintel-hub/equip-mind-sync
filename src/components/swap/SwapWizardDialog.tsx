@@ -283,11 +283,12 @@ export function SwapWizardDialog({ open, onOpenChange, request, onCompleted }: P
         equipment_id: !isMediaPlayer ? ((selectedOld as any).equipment_id || null) : null,
         serial_number: selectedOld.serial_number || null,
         source_type: "swap",
+        source_reference_id: request.id,
         symptom_description: request.description || request.symptom_other || null,
         status: "pending",
         notes: `จากการ Swap (${request.document_no})`,
         created_by: user?.id ?? null,
-      });
+      } as any);
     }
 
     setSubmitting(false);
