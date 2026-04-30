@@ -163,6 +163,7 @@ export function AdDetailDialog({ adId, open, onOpenChange }: AdDetailDialogProps
   const status = statusLabels[ad.status] || { label: ad.status, variant: "secondary" as const };
 
   return (
+    <>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
         <DialogHeader>
