@@ -10,7 +10,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Monitor, Search, Loader2, MapPin, Unplug, Plus, Download, Image as ImageIcon, FileText, Camera, X, Eye } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { downloadStorageFile } from "@/lib/storageDownload";
 import { MediaPlayerImageUpload } from "@/components/media-player/MediaPlayerImageUpload";
 import * as XLSX from "xlsx";
 import MediaPlayerDashboard from "@/components/media-player/MediaPlayerDashboard";
