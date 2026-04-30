@@ -215,7 +215,55 @@ export default function AssessmentLog() {
     setAssessorName("");
     setNotes("");
     setStatusForm("completed");
+    setOutcome("");
+    setRepairDescription("");
+    setExternalRepairVendor("");
+    setExternalRepairContact("");
+    setExternalRepairPhone("");
+    setSupplierAutofill(null);
   };
+
+  // Auto-fill supplier info when subject changes (for claim outcome convenience)
+  useEffect(() => {
+    setSupplierAutofill(null);
+    if (!subjectKey) return;
+    const [prefix, id, serial] = subjectKey.split(":");
+    const isMP = prefix === "mp";
+    (async () => {
+      // Try latest delivery_entry_items / receive history for this S/N or item
+      try {
+        if (isMP) {
+          const { data } = await supabase
+            .from("media_players")
+            .select("supplier_name:supplier_id, manufacturer, warranty_expiry_date, supplier:supplier_id(name)")
+            .eq("id", id)
+            .maybeSingle() as any;
+          if (data) {
+            setSupplierAutofill({
+              name: data.supplier?.name || "",
+              manufacturer: data.manufacturer || null,
+              warranty: data.warranty_expiry_date || null,
+            });
+          }
+        } else if (serial) {
+          const { data } = await supabase
+            .from("equipment_serial_numbers")
+            .select("warranty_expiry_date, equipment:equipment_id(supplier:supplier_id(name), brand:brand_id(name))")
+            .eq("serial_number", serial)
+            .maybeSingle() as any;
+          if (data) {
+            setSupplierAutofill({
+              name: data.equipment?.supplier?.name || "",
+              manufacturer: data.equipment?.brand?.name || null,
+              warranty: data.warranty_expiry_date || null,
+            });
+          }
+        }
+      } catch {
+        // best-effort autofill — ignore failures
+      }
+    })();
+  }, [subjectKey]);
 
   const handleSubmit = async () => {
     if (!subjectKey) {
@@ -230,35 +278,106 @@ export default function AssessmentLog() {
       toast.error("กรุณาเลือกผลการประเมินก่อนบันทึกแบบ 'ประเมินแล้ว'");
       return;
     }
+    if (statusForm === "completed" && !outcome) {
+      toast.error("กรุณาเลือก 'ผลการตัดสินใจ' (1-4) ก่อนบันทึก");
+      return;
+    }
+    if (outcome === "self_repair" && !repairDescription.trim()) {
+      toast.error("กรุณาระบุรายละเอียดการซ่อม (กรณีซ่อมเอง)");
+      return;
+    }
 
     const [prefix, id, serial] = subjectKey.split(":");
     const isMP = prefix === "mp";
     const subject = subjects.find((s) => s.id === id);
+    const finalSerial = serial || subject?.serial || null;
 
     setSubmitting(true);
-    const { error } = await supabase.from("assessment_logs").insert({
-      document_no: "",
-      media_player_id: isMP ? id : null,
-      equipment_id: !isMP ? subject?.id || null : null, // serial id maps via equipment_serial_numbers later if needed
-      serial_number: serial || subject?.serial || null,
-      source_type: "manual",
-      symptom_id: symptomId || null,
-      symptom_description: symptomDescription.trim() || null,
-      assessment_result_id: assessmentResultId || null,
-      diagnosis_notes: diagnosisNotes.trim() || null,
-      recommended_action: recommendedAction.trim() || null,
-      assessor_name: assessorName.trim() || null,
-      assessed_by: user?.id ?? null,
-      status: statusForm,
-      completed_at: statusForm === "completed" ? new Date().toISOString() : null,
-      notes: notes.trim() || null,
-      created_by: user?.id ?? null,
-    });
-    setSubmitting(false);
+    // 1) Insert assessment log
+    const { data: inserted, error } = await supabase
+      .from("assessment_logs")
+      .insert({
+        document_no: "",
+        media_player_id: isMP ? id : null,
+        equipment_id: !isMP ? subject?.id || null : null,
+        serial_number: finalSerial,
+        source_type: "manual",
+        symptom_id: symptomId || null,
+        symptom_description: symptomDescription.trim() || null,
+        assessment_result_id: assessmentResultId || null,
+        diagnosis_notes: diagnosisNotes.trim() || null,
+        recommended_action: recommendedAction.trim() || null,
+        assessor_name: assessorName.trim() || null,
+        assessed_by: user?.id ?? null,
+        status: statusForm,
+        completed_at: statusForm === "completed" ? new Date().toISOString() : null,
+        outcome: outcome || null,
+        repair_description: outcome === "self_repair" ? repairDescription.trim() : null,
+        external_repair_vendor: outcome === "claim" ? externalRepairVendor.trim() || null : null,
+        external_repair_contact: outcome === "claim" ? externalRepairContact.trim() || null : null,
+        external_repair_phone: outcome === "claim" ? externalRepairPhone.trim() || null : null,
+        notes: notes.trim() || null,
+        created_by: user?.id ?? null,
+      })
+      .select("id, document_no")
+      .maybeSingle();
+
     if (error) {
+      setSubmitting(false);
       toast.error("บันทึกไม่สำเร็จ: " + error.message);
       return;
     }
+
+    // 2) Outcome side-effects
+    try {
+      if (outcome === "defective") {
+        toast.info("กรุณาไปบันทึกที่เมนู 'นำของเสียเข้าระบบ' ต่อ", { duration: 5000 });
+      } else if (outcome === "claim") {
+        // Create claim_records draft
+        await supabase.from("claim_records").insert({
+          document_no: "",
+          subject_type: isMP ? "media_player" : "equipment",
+          media_player_id: isMP ? id : null,
+          equipment_id: !isMP ? subject?.id || null : null,
+          serial_number: finalSerial,
+          source_type: "assessment",
+          source_reference_id: inserted?.id || null,
+          supplier_name: supplierAutofill?.name || externalRepairVendor.trim() || null,
+          manufacturer: supplierAutofill?.manufacturer || null,
+          warranty_expiry_date: supplierAutofill?.warranty || null,
+          symptom_id: symptomId || null,
+          symptom_description: symptomDescription.trim() || null,
+          status: "submitted",
+          notes: `จาก Assessment ${inserted?.document_no || ""}`,
+          created_by: user?.id ?? null,
+        });
+        toast.success("สร้างคำขอเคลมและส่งให้ติดตามที่ 'ติดตามการเคลม' แล้ว");
+      } else if (outcome === "self_repair" || outcome === "return_refurb") {
+        // Mark S/N as refurbished, return to spare stock (location stays as-is for now)
+        if (finalSerial) {
+          await supabase
+            .from("equipment_serial_numbers")
+            .update({
+              is_refurbished: true,
+              refurbished_at: new Date().toISOString(),
+              refurbished_notes:
+                outcome === "self_repair"
+                  ? `ซ่อมเอง: ${repairDescription.trim()}`
+                  : `คืน Spare หลังเคลม/ตรวจสอบ`,
+            })
+            .eq("serial_number", finalSerial);
+        }
+        toast.success(
+          outcome === "self_repair"
+            ? "บันทึกการซ่อมและคืน Spare (refurbished) แล้ว"
+            : "คืนเข้า Spare (refurbished) แล้ว"
+        );
+      }
+    } catch (e: any) {
+      toast.warning("บันทึกผลแล้ว แต่ side-effect บางส่วนล้มเหลว: " + (e?.message || ""));
+    }
+
+    setSubmitting(false);
     toast.success("บันทึกการประเมินแล้ว");
     resetForm();
     setActiveTab("list");
