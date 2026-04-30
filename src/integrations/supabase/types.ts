@@ -1249,12 +1249,19 @@ export type Database = {
           billboard_id: string | null
           created_at: string
           created_by: string | null
+          disposal_approved_at: string | null
+          disposal_approved_by: string | null
+          disposal_evidence_urls: string[] | null
+          disposal_method: string | null
+          disposal_notes: string | null
+          dispose_status: string
           document_no: string
           equipment_id: string | null
           id: string
           is_media_player: boolean
           item_condition: string
           media_player_id: string | null
+          notes: string | null
           quantity: number
           reason: string | null
           receive_location_id: string | null
@@ -1262,18 +1269,26 @@ export type Database = {
           received_by: string | null
           source_type: string
           status: string
+          swap_request_id: string | null
           updated_at: string
         }
         Insert: {
           billboard_id?: string | null
           created_at?: string
           created_by?: string | null
+          disposal_approved_at?: string | null
+          disposal_approved_by?: string | null
+          disposal_evidence_urls?: string[] | null
+          disposal_method?: string | null
+          disposal_notes?: string | null
+          dispose_status?: string
           document_no?: string
           equipment_id?: string | null
           id?: string
           is_media_player?: boolean
           item_condition?: string
           media_player_id?: string | null
+          notes?: string | null
           quantity?: number
           reason?: string | null
           receive_location_id?: string | null
@@ -1281,18 +1296,26 @@ export type Database = {
           received_by?: string | null
           source_type?: string
           status?: string
+          swap_request_id?: string | null
           updated_at?: string
         }
         Update: {
           billboard_id?: string | null
           created_at?: string
           created_by?: string | null
+          disposal_approved_at?: string | null
+          disposal_approved_by?: string | null
+          disposal_evidence_urls?: string[] | null
+          disposal_method?: string | null
+          disposal_notes?: string | null
+          dispose_status?: string
           document_no?: string
           equipment_id?: string | null
           id?: string
           is_media_player?: boolean
           item_condition?: string
           media_player_id?: string | null
+          notes?: string | null
           quantity?: number
           reason?: string | null
           receive_location_id?: string | null
@@ -1300,6 +1323,7 @@ export type Database = {
           received_by?: string | null
           source_type?: string
           status?: string
+          swap_request_id?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -4738,13 +4762,23 @@ export type Database = {
       }
       swap_requests: {
         Row: {
+          asset_type: string
           billboard_id: string | null
+          completed_at: string | null
+          completed_by: string | null
           created_at: string
           created_by: string | null
+          defective_return_id: string | null
           description: string | null
           document_no: string
           id: string
+          new_equipment_id: string | null
+          new_media_player_id: string | null
+          new_serial_number: string | null
           notes: string | null
+          old_equipment_id: string | null
+          old_media_player_id: string | null
+          old_serial_number: string | null
           photo_urls: string[] | null
           priority: string
           status: string
@@ -4755,13 +4789,23 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          asset_type?: string
           billboard_id?: string | null
+          completed_at?: string | null
+          completed_by?: string | null
           created_at?: string
           created_by?: string | null
+          defective_return_id?: string | null
           description?: string | null
           document_no: string
           id?: string
+          new_equipment_id?: string | null
+          new_media_player_id?: string | null
+          new_serial_number?: string | null
           notes?: string | null
+          old_equipment_id?: string | null
+          old_media_player_id?: string | null
+          old_serial_number?: string | null
           photo_urls?: string[] | null
           priority?: string
           status?: string
@@ -4772,13 +4816,23 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          asset_type?: string
           billboard_id?: string | null
+          completed_at?: string | null
+          completed_by?: string | null
           created_at?: string
           created_by?: string | null
+          defective_return_id?: string | null
           description?: string | null
           document_no?: string
           id?: string
+          new_equipment_id?: string | null
+          new_media_player_id?: string | null
+          new_serial_number?: string | null
           notes?: string | null
+          old_equipment_id?: string | null
+          old_media_player_id?: string | null
+          old_serial_number?: string | null
           photo_urls?: string[] | null
           priority?: string
           status?: string
