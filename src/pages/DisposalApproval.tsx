@@ -68,6 +68,17 @@ export default function DisposalApproval() {
   const [evidencePreviews, setEvidencePreviews] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
 
+  // Complete dialog state (final disposal — requires evidence photo)
+  const [completing, setCompleting] = useState<DefectiveRow | null>(null);
+  const [completeNotes, setCompleteNotes] = useState("");
+  const [completeFiles, setCompleteFiles] = useState<File[]>([]);
+  const [completePreviews, setCompletePreviews] = useState<string[]>([]);
+
+  // Preview dialog state (read-only document view)
+  const [previewing, setPreviewing] = useState<DefectiveRow | null>(null);
+  const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
+
+
   const fetchData = async () => {
     setLoading(true);
     const { data, error } = await supabase
