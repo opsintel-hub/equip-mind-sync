@@ -274,10 +274,27 @@ export function SwapWizardDialog({ open, onOpenChange, request, onCompleted }: P
       }
     }
 
+    // Auto-create assessment_log สถานะ "รอประเมิน" สำหรับเครื่องเก่า
+    // เพื่อให้เจ้าหน้าที่คลังเข้าหน้า "บันทึกการประเมิน" แล้วเห็นรายการได้ทันที
+    if (result === "approved" && selectedOld) {
+      const isMediaPlayer = selectedOld.type === "media_player";
+      await supabase.from("assessment_logs").insert({
+        media_player_id: isMediaPlayer ? (selectedOld as any).media_player_id || null : null,
+        equipment_id: !isMediaPlayer ? ((selectedOld as any).equipment_id || null) : null,
+        serial_number: selectedOld.serial_number || null,
+        source_type: "swap",
+        source_reference_id: request.id,
+        symptom_description: request.description || request.symptom_other || null,
+        status: "pending",
+        notes: `จากการ Swap (${request.document_no})`,
+        created_by: user?.id ?? null,
+      } as any);
+    }
+
     setSubmitting(false);
     toast.success(
       result === "approved"
-        ? "บันทึก Swap สำเร็จ — สร้างใบของเสียให้ตัวเก่าแล้ว (รออนุมัติวิธีจัดการ)"
+        ? "บันทึก Swap สำเร็จ — สร้างใบของเสีย + รายการรอประเมินให้แล้ว"
         : "บันทึก Reject สำเร็จ"
     );
     onCompleted();
