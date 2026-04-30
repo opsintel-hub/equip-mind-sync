@@ -2685,14 +2685,15 @@ const DeliveryEntry = () => {
                 <FileText className="w-4 h-4" />
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Additional Document */}
+                {/* Additional Documents (multiple) */}
                 <div className="space-y-2">
-                  <Label>อัปโหลดเอกสารแนบเพิ่มเติม</Label>
-                  <div className="flex items-center gap-2">
+                  <Label>อัปโหลดเอกสารแนบเพิ่มเติม (รองรับหลายไฟล์)</Label>
+                  <div className="flex flex-col gap-2">
                     <input
                       ref={additionalDocFileInputRef}
                       type="file"
                       accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                      multiple
                       onChange={handleAdditionalDocFileSelect}
                       className="hidden"
                     />
@@ -2701,40 +2702,47 @@ const DeliveryEntry = () => {
                       variant="outline"
                       size="sm"
                       onClick={() => additionalDocFileInputRef.current?.click()}
-                      className="flex items-center gap-2"
+                      className="flex items-center gap-2 w-fit"
                     >
                       <Upload className="w-4 h-4" />
-                      เลือกเอกสาร
+                      เลือกเอกสาร {additionalDocumentFiles.length > 0 && `(${additionalDocumentFiles.length})`}
                     </Button>
-                    {additionalDocumentFile && (
-                      <div className="flex items-center gap-2 bg-background px-2 py-1 rounded-md border text-xs">
-                        <FileText className="w-3 h-3 text-primary" />
-                        <span className="truncate max-w-[100px]">{additionalDocumentFile.name}</span>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => {
-                            setAdditionalDocumentFile(null);
-                            if (additionalDocFileInputRef.current) additionalDocFileInputRef.current.value = "";
-                          }}
-                          className="h-5 w-5 p-0"
-                        >
-                          <X className="w-3 h-3" />
-                        </Button>
+                    {additionalDocumentFiles.length > 0 && (
+                      <div className="flex flex-wrap gap-2">
+                        {additionalDocumentFiles.map((file, idx) => (
+                          <div
+                            key={idx}
+                            className="flex items-center gap-2 bg-background px-2 py-1 rounded-md border text-xs"
+                          >
+                            <FileText className="w-3 h-3 text-primary" />
+                            <span className="truncate max-w-[140px]">{file.name}</span>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() =>
+                                setAdditionalDocumentFiles((prev) => prev.filter((_, i) => i !== idx))
+                              }
+                              className="h-5 w-5 p-0"
+                            >
+                              <X className="w-3 h-3" />
+                            </Button>
+                          </div>
+                        ))}
                       </div>
                     )}
                   </div>
                 </div>
 
-                {/* Additional Image */}
+                {/* Additional Images (multiple) */}
                 <div className="space-y-2">
-                  <Label>อัปโหลดรูปภาพเพิ่มเติม</Label>
-                  <div className="flex items-center gap-2">
+                  <Label>อัปโหลดรูปภาพเพิ่มเติม (รองรับหลายรูป)</Label>
+                  <div className="flex flex-col gap-2">
                     <input
                       ref={additionalImageFileInputRef}
                       type="file"
                       accept="image/*"
+                      multiple
                       onChange={handleAdditionalImageFileSelect}
                       className="hidden"
                     />
@@ -2743,27 +2751,33 @@ const DeliveryEntry = () => {
                       variant="outline"
                       size="sm"
                       onClick={() => additionalImageFileInputRef.current?.click()}
-                      className="flex items-center gap-2"
+                      className="flex items-center gap-2 w-fit"
                     >
                       <ImagePlus className="w-4 h-4" />
-                      เลือกรูปภาพ
+                      เลือกรูปภาพ {additionalImageFiles.length > 0 && `(${additionalImageFiles.length})`}
                     </Button>
-                    {additionalImageFile && (
-                      <div className="flex items-center gap-2 bg-background px-2 py-1 rounded-md border text-xs">
-                        <ImagePlus className="w-3 h-3 text-primary" />
-                        <span className="truncate max-w-[100px]">{additionalImageFile.name}</span>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => {
-                            setAdditionalImageFile(null);
-                            if (additionalImageFileInputRef.current) additionalImageFileInputRef.current.value = "";
-                          }}
-                          className="h-5 w-5 p-0"
-                        >
-                          <X className="w-3 h-3" />
-                        </Button>
+                    {additionalImageFiles.length > 0 && (
+                      <div className="flex flex-wrap gap-2">
+                        {additionalImageFiles.map((file, idx) => (
+                          <div
+                            key={idx}
+                            className="flex items-center gap-2 bg-background px-2 py-1 rounded-md border text-xs"
+                          >
+                            <ImagePlus className="w-3 h-3 text-primary" />
+                            <span className="truncate max-w-[140px]">{file.name}</span>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() =>
+                                setAdditionalImageFiles((prev) => prev.filter((_, i) => i !== idx))
+                              }
+                              className="h-5 w-5 p-0"
+                            >
+                              <X className="w-3 h-3" />
+                            </Button>
+                          </div>
+                        ))}
                       </div>
                     )}
                   </div>
