@@ -21,6 +21,7 @@ import { useTablePagination } from "@/hooks/useTablePagination";
 import { TablePagination } from "@/components/TablePagination";
 import { DestinationMapPreview } from "@/components/direct-shipping/DestinationMapPreview";
 import { DatePickerWithRange } from "@/components/ui/date-range-picker";
+import { DocumentPreviewDialog } from "@/components/DocumentPreviewDialog";
 
 export default function DirectShippingApproval() {
   const queryClient = useQueryClient();
@@ -31,6 +32,7 @@ export default function DirectShippingApproval() {
   const [statusFilter, setStatusFilter] = useState("pending_approval");
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
   const [selectedRequest, setSelectedRequest] = useState<any>(null);
+  const [previewDocUrl, setPreviewDocUrl] = useState<string | null>(null);
   const [actionType, setActionType] = useState<"approve" | "reject" | null>(null);
   const [rejectionReason, setRejectionReason] = useState("");
   const [processing, setProcessing] = useState(false);
@@ -281,10 +283,10 @@ export default function DirectShippingApproval() {
               {(selectedRequest.pr_document_url || selectedRequest.po_document_url) && (
                 <div className="flex gap-3">
                   {selectedRequest.pr_document_url && (
-                    <button type="button" onClick={() => downloadStorageFile(selectedRequest.pr_document_url)} className="text-xs text-primary hover:underline cursor-pointer">📄 เอกสาร PR</button>
+                    <button type="button" onClick={() => setPreviewDocUrl(selectedRequest.pr_document_url)} className="text-xs text-primary hover:underline cursor-pointer">📄 เอกสาร PR</button>
                   )}
                   {selectedRequest.po_document_url && (
-                    <button type="button" onClick={() => downloadStorageFile(selectedRequest.po_document_url)} className="text-xs text-primary hover:underline cursor-pointer">📄 เอกสาร PO</button>
+                    <button type="button" onClick={() => setPreviewDocUrl(selectedRequest.po_document_url)} className="text-xs text-primary hover:underline cursor-pointer">📄 เอกสาร PO</button>
                   )}
                 </div>
               )}
@@ -334,6 +336,12 @@ export default function DirectShippingApproval() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      <DocumentPreviewDialog
+        open={!!previewDocUrl}
+        onOpenChange={(open) => { if (!open) setPreviewDocUrl(null); }}
+        publicUrl={previewDocUrl}
+        title="ดูเอกสารส่งตรง"
+      />
     </div>
   );
 }
