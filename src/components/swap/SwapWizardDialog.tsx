@@ -314,10 +314,9 @@ export function SwapWizardDialog({ open, onOpenChange, request, onCompleted }: P
     // Auto-create assessment_log สถานะ "รอประเมิน" สำหรับเครื่องเก่า
     // เพื่อให้เจ้าหน้าที่คลังเข้าหน้า "บันทึกการประเมิน" แล้วเห็นรายการได้ทันที
     if (result === "approved" && selectedOld) {
-      const isMediaPlayer = selectedOld.type === "media_player";
       await supabase.from("assessment_logs").insert({
-        media_player_id: isMediaPlayer ? (selectedOld as any).media_player_id || null : null,
-        equipment_id: !isMediaPlayer ? ((selectedOld as any).equipment_id || null) : null,
+        media_player_id: oldMpId,
+        equipment_id: oldEqId,
         serial_number: selectedOld.serial_number || null,
         source_type: "swap",
         source_reference_id: request.id,
@@ -386,8 +385,14 @@ export function SwapWizardDialog({ open, onOpenChange, request, onCompleted }: P
               onValueChange={setSpareValue}
               placeholder="ค้นหาด้วยรหัส / ชื่อ / S/N"
               searchPlaceholder="พิมพ์เพื่อค้นหา..."
+              emptyMessage="ไม่พบ Spare ที่พร้อมใช้งานในคลัง"
               isLoading={loading}
             />
+            {!loading && spareOptions.length === 0 && (
+              <div className="rounded-lg border border-warning/30 bg-warning/5 p-3 text-sm text-muted-foreground">
+                ไม่มี Spare พร้อมใช้งาน — ต้องรับของเข้าคลังหรือเปลี่ยนสถานะ Media Player เป็น in_stock/active ก่อน
+              </div>
+            )}
             {selectedSpare && (
               <Card>
                 <CardContent className="pt-4">
