@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { Loader2, Download } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { downloadStorageFile } from "@/lib/storageDownload";
+import { downloadStorageFile, parseStorageUrls } from "@/lib/storageDownload";
 import { PdfCanvasViewer } from "@/components/PdfCanvasViewer";
 
 interface DocumentPreviewDialogProps {
@@ -25,9 +25,27 @@ export function DocumentPreviewDialog({
   const [error, setError] = useState<string | null>(null);
   const [mimeType, setMimeType] = useState<string>("");
   const [filename, setFilename] = useState<string>("");
+  const [documentUrls, setDocumentUrls] = useState<string[]>([]);
+  const [activeIndex, setActiveIndex] = useState(0);
 
   useEffect(() => {
     if (!open || !publicUrl) {
+      setPdfData(null);
+      setImageDataUrl(null);
+      setDocumentUrls([]);
+      setActiveIndex(0);
+      return;
+    }
+
+    const urls = parseStorageUrls(publicUrl);
+    setDocumentUrls(urls);
+    setActiveIndex(0);
+  }, [open, publicUrl]);
+
+  const activeUrl = documentUrls[activeIndex] || null;
+
+  useEffect(() => {
+    if (!open || !activeUrl) {
       setPdfData(null);
       setImageDataUrl(null);
       return;
@@ -40,7 +58,7 @@ export function DocumentPreviewDialog({
 
     (async () => {
       try {
-        const match = publicUrl.match(/\/storage\/v1\/object\/public\/([^/]+)\/(.+)$/);
+        const match = activeUrl.match(/\/storage\/v1\/object\/public\/([^/]+)\/(.+)$/);
         if (!match) {
           setError("URL เอกสารไม่ถูกต้อง");
           setLoading(false);
@@ -88,7 +106,7 @@ export function DocumentPreviewDialog({
         setLoading(false);
       }
     })();
-  }, [open, publicUrl]);
+  }, [open, activeUrl]);
 
   const isImage = mimeType.startsWith("image/");
   const isPdf = mimeType === "application/pdf";
@@ -100,11 +118,11 @@ export function DocumentPreviewDialog({
         <DialogHeader className="p-4 border-b flex flex-row items-center justify-between space-y-0">
           <DialogTitle className="truncate">{title}</DialogTitle>
           <div className="flex items-center gap-2 mr-6">
-            {publicUrl && (
+            {activeUrl && (
               <Button
                 size="sm"
                 variant="outline"
-                onClick={() => downloadStorageFile(publicUrl)}
+                onClick={() => downloadStorageFile(activeUrl)}
               >
                 <Download className="w-4 h-4 mr-1" />
                 ดาวน์โหลด
@@ -114,6 +132,21 @@ export function DocumentPreviewDialog({
         </DialogHeader>
 
         <div className="flex-1 bg-muted/20 overflow-hidden min-h-0">
+          {documentUrls.length > 1 && (
+            <div className="flex items-center gap-2 px-4 py-2 border-b bg-background overflow-x-auto">
+              {documentUrls.map((_, index) => (
+                <Button
+                  key={index}
+                  type="button"
+                  size="sm"
+                  variant={index === activeIndex ? "default" : "outline"}
+                  onClick={() => setActiveIndex(index)}
+                >
+                  เอกสาร {index + 1}
+                </Button>
+              ))}
+            </div>
+          )}
           {loading && (
             <div className="flex items-center justify-center h-full">
               <Loader2 className="w-8 h-8 animate-spin text-primary" />
