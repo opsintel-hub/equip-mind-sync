@@ -161,6 +161,9 @@ export function SwapWizardDialog({ open, onOpenChange, request, onCompleted }: P
         type: "media_player",
         serial_number: serial || null,
         location_id: m.location_id,
+        equipment_id: null,
+        item_code: m.code,
+        item_name: m.name,
       });
     });
     (esns || []).forEach((s: any) => {
@@ -171,10 +174,48 @@ export function SwapWizardDialog({ open, onOpenChange, request, onCompleted }: P
         type: "equipment",
         serial_number: s.serial_number,
         location_id: s.location_id,
+        equipment_id: s.equipment_id,
+        item_code: s.equipment?.code,
+        item_name: s.equipment?.name,
       });
     });
+
+    // Sort: same code first → same type/category → others
+    // ใช้รหัส/ชื่อของอุปกรณ์ที่รายงานในคำขอ Swap เป็นเกณฑ์เปรียบเทียบ
+    const reportedCode = (request?.reported_item_code || "").toLowerCase().trim();
+    const reportedName = (request?.reported_item_name || "").toLowerCase().trim();
+    const reportedEqId = request?.reported_equipment_id || null;
+    const reportedType = request?.reported_asset_type === "media_player" ? "media_player" : "equipment";
+
+    const compatScore = (o: SpareOption): number => {
+      // 0 = ตรงรหัส (ดีที่สุด), 1 = รุ่นใกล้เคียง (ชื่อใกล้/ประเภทเดียวกัน), 2 = ข้ามรุ่น
+      if (reportedEqId && o.equipment_id && o.equipment_id === reportedEqId) return 0;
+      if (reportedCode && o.item_code && o.item_code.toLowerCase() === reportedCode) return 0;
+      if (o.type === reportedType) {
+        if (reportedName && o.item_name && (o.item_name.toLowerCase().includes(reportedName) || reportedName.includes(o.item_name.toLowerCase()))) return 1;
+        return 1;
+      }
+      return 2;
+    };
+
+    opts.sort((a, b) => compatScore(a) - compatScore(b));
     setSpareOptions(opts);
     setLoading(false);
+  };
+
+  // Helper: ระดับความเข้ากันของ Spare ที่เลือกเทียบกับเครื่องเก่า
+  const getCompatibility = (): { level: "exact" | "similar" | "cross"; label: string } => {
+    const spare = selectedSpare;
+    const old = selectedOld;
+    if (!spare || !old) return { level: "cross", label: "—" };
+    const spareEqId = spare.equipment_id || (spare.type === "equipment" ? spare.value.split(":")[1] : null);
+    const oldEqId = old.equipment_id || null;
+    if (spare.type !== old.type) return { level: "cross", label: "ข้ามประเภท (Media Player ↔ Equipment)" };
+    if (spareEqId && oldEqId && spareEqId === oldEqId) return { level: "exact", label: "ตรงรหัสอุปกรณ์" };
+    const spareCode = (spare.item_code || "").toLowerCase();
+    const oldCode = (request?.reported_item_code || "").toLowerCase();
+    if (spareCode && oldCode && spareCode === oldCode) return { level: "exact", label: "ตรงรหัสอุปกรณ์" };
+    return { level: spare.type === old.type ? "similar" : "cross", label: spare.type === old.type ? "ข้ามรุ่น (ประเภทเดียวกัน)" : "ข้ามประเภท" };
   };
 
   const loadLocations = async () => {
