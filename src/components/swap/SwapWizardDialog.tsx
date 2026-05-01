@@ -13,6 +13,7 @@ import { ArrowRight, Check, X, ChevronLeft, Package, MapPin } from "lucide-react
 import { toast } from "sonner";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { SwapRejectReasonSelect } from "@/components/media-player/SwapRejectReasonSelect";
+import { useAllowedDepartments } from "@/hooks/useAllowedDepartments";
 
 interface SwapRequest {
   id: string;
@@ -63,6 +64,7 @@ interface OldOption {
 
 export function SwapWizardDialog({ open, onOpenChange, request, onCompleted }: Props) {
   const { user } = useAuth();
+  const { allowedDepartments, isAdmin } = useAllowedDepartments();
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -100,7 +102,7 @@ export function SwapWizardDialog({ open, onOpenChange, request, onCompleted }: P
       if (request?.billboard_id) loadOldUnits(request.billboard_id);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, request?.id]);
+  }, [open, request?.id, isAdmin, allowedDepartments.length]);
 
   // Auto-select old unit when entering step 2 if there's only ONE matching unit on the billboard.
   // "Matching" = same equipment id (for equipment spares) or first available media player slot.
@@ -219,8 +221,17 @@ export function SwapWizardDialog({ open, onOpenChange, request, onCompleted }: P
   };
 
   const loadLocations = async () => {
-    const { data } = await supabase.from("locations").select("id, name").eq("is_active", true).order("name");
-    setLocations(data || []);
+    let query = supabase.from("locations").select("id, name, department").eq("is_active", true).order("name");
+    if (!isAdmin) {
+      const allowedNames = allowedDepartments.map((d) => d.name);
+      if (allowedNames.length === 0) {
+        setLocations([]);
+        return;
+      }
+      query = query.in("department", allowedNames);
+    }
+    const { data } = await query;
+    setLocations((data || []).map((l: any) => ({ id: l.id, name: l.name })));
   };
 
   const loadOldUnits = async (billboardId: string) => {
