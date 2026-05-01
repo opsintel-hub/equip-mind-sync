@@ -483,70 +483,116 @@ export default function AssessmentLog() {
         <TabsContent value="list" className="mt-4">
           <Card>
             <CardHeader>
-              <div className="flex items-center justify-between gap-4 flex-wrap">
-                <div>
-                  <CardTitle>รายการประเมินล่าสุด</CardTitle>
-                  <CardDescription>คลิก "ปิดรายการ" เพื่อยืนยันการประเมินที่ค้างอยู่</CardDescription>
-                </div>
-                <div className="relative">
+              <CardTitle>รายการประเมินล่าสุด</CardTitle>
+              <CardDescription>คลิก "ประเมิน" เพื่อกรอกผลและปิดรายการที่ค้างอยู่ • กรองและค้นหาได้ด้านล่าง</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {/* Filter bar */}
+              <div className="flex flex-col md:flex-row gap-3 mb-4">
+                <Tabs value={statusFilter} onValueChange={(v) => setStatusFilter(v as any)} className="flex-1">
+                  <TabsList className="flex flex-wrap h-auto">
+                    <TabsTrigger value="all">ทั้งหมด ({stats.total})</TabsTrigger>
+                    <TabsTrigger value="pending">รอประเมิน ({stats.pending})</TabsTrigger>
+                    <TabsTrigger value="completed">ประเมินแล้ว ({stats.completed})</TabsTrigger>
+                  </TabsList>
+                </Tabs>
+                <div className="relative md:w-72">
                   <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                   <Input
-                    placeholder="ค้นหาเลขที่ / S/N / ผู้ประเมิน..."
+                    placeholder="ค้นหา: เลขที่/S/N/อาการ/ผู้ประเมิน"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-8 w-[280px]"
+                    className="pl-8"
                   />
                 </div>
               </div>
-            </CardHeader>
-            <CardContent>
+
               {loading ? (
                 <div className="text-center py-8 text-muted-foreground">กำลังโหลด...</div>
               ) : filteredLogs.length === 0 ? (
                 <div className="text-center py-12 text-muted-foreground">
-                  ยังไม่มีรายการประเมิน — กดแท็บ "บันทึกการประเมินใหม่" เพื่อเริ่ม
+                  {logs.length === 0 ? 'ยังไม่มีรายการประเมิน — กดแท็บ "บันทึกการประเมินใหม่" เพื่อเริ่ม' : "ไม่พบรายการที่ตรงตามตัวกรอง"}
                 </div>
               ) : (
-                <div className="space-y-2">
-                  {filteredLogs.map((log) => {
-                    const status = STATUS_LABELS[log.status] || { label: log.status, variant: "outline" as const };
-                    return (
-                      <div
-                        key={log.id}
-                        className="flex items-center justify-between gap-4 p-4 rounded-lg border hover:bg-accent/50 transition-colors flex-wrap"
-                      >
-                        <div className="flex-1 min-w-[200px] space-y-1">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <span className="font-mono font-semibold">{log.document_no}</span>
-                            <Badge variant={status.variant}>{status.label}</Badge>
-                            {log.outcome && OUTCOME_LABELS[log.outcome] && (
-                              <Badge variant={OUTCOME_LABELS[log.outcome].variant}>
-                                {OUTCOME_LABELS[log.outcome].label}
-                              </Badge>
-                            )}
-                            {log.serial_number && (
-                              <Badge variant="outline">S/N: {log.serial_number}</Badge>
-                            )}
+                <>
+                  <div className="space-y-2">
+                    {pagedLogs.map((log) => {
+                      const status = STATUS_LABELS[log.status] || { label: log.status, variant: "outline" as const };
+                      return (
+                        <div
+                          key={log.id}
+                          className="flex items-center justify-between gap-4 p-4 rounded-lg border hover:bg-accent/50 transition-colors flex-wrap"
+                        >
+                          <div className="flex-1 min-w-[200px] space-y-1">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="font-mono font-semibold">{log.document_no}</span>
+                              <Badge variant={status.variant}>{status.label}</Badge>
+                              {log.outcome && OUTCOME_LABELS[log.outcome] && (
+                                <Badge variant={OUTCOME_LABELS[log.outcome].variant}>
+                                  {OUTCOME_LABELS[log.outcome].label}
+                                </Badge>
+                              )}
+                              {log.serial_number && (
+                                <Badge variant="outline" className="font-mono text-xs">S/N: {log.serial_number}</Badge>
+                              )}
+                            </div>
+                            <div className="text-sm text-muted-foreground">
+                              {log.diagnosis_notes || log.symptom_description || "—"}
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              ผู้ประเมิน: {log.assessor_name || "—"} •{" "}
+                              {format(new Date(log.assessed_at), "dd MMM yyyy HH:mm", { locale: th })}
+                            </div>
                           </div>
-                          <div className="text-sm text-muted-foreground">
-                            {log.diagnosis_notes || log.symptom_description || "—"}
-                          </div>
-                          <div className="text-xs text-muted-foreground">
-                            ผู้ประเมิน: {log.assessor_name || "—"} •{" "}
-                            {format(new Date(log.assessed_at), "dd MMM yyyy HH:mm", { locale: th })}
+                          <div className="flex gap-2">
+                            {log.status === "pending" && (
+                              <Button
+                                size="sm"
+                                onClick={() => {
+                                  setActiveLog(log);
+                                  setCompleteDialogOpen(true);
+                                }}
+                              >
+                                <ClipboardCheck className="h-4 w-4 mr-1" /> ประเมิน
+                              </Button>
+                            )}
                           </div>
                         </div>
-                        <div className="flex gap-2">
-                          {log.status === "pending" && (
-                            <Button size="sm" variant="outline" onClick={() => markCompleted(log)}>
-                              ปิดรายการ
-                            </Button>
-                          )}
-                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* Pagination */}
+                  <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-4 mt-4 border-t">
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <span>แสดง</span>
+                      <Select value={String(pageSize)} onValueChange={(v) => setPageSize(Number(v) as 10 | 20 | 50)}>
+                        <SelectTrigger className="h-8 w-[70px] text-xs">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="10">10</SelectItem>
+                          <SelectItem value="20">20</SelectItem>
+                          <SelectItem value="50">50</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <span className="tabular-nums">
+                        รายการ · {(safePage - 1) * pageSize + 1}–{Math.min(safePage * pageSize, filteredLogs.length)} จาก {filteredLogs.length}
+                      </span>
+                    </div>
+                    {totalPages > 1 && (
+                      <div className="flex items-center gap-2">
+                        <Button variant="outline" size="sm" onClick={() => setCurrentPage((p) => Math.max(1, p - 1))} disabled={safePage <= 1}>
+                          <ChevronLeft className="h-4 w-4" /> ก่อนหน้า
+                        </Button>
+                        <span className="text-xs text-muted-foreground tabular-nums">หน้า {safePage} / {totalPages}</span>
+                        <Button variant="outline" size="sm" onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))} disabled={safePage >= totalPages}>
+                          ถัดไป <ChevronRight className="h-4 w-4" />
+                        </Button>
                       </div>
-                    );
-                  })}
-                </div>
+                    )}
+                  </div>
+                </>
               )}
             </CardContent>
           </Card>
