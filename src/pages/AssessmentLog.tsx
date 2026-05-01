@@ -779,6 +779,17 @@ export default function AssessmentLog() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      <AssessmentCompleteDialog
+        open={completeDialogOpen}
+        onOpenChange={setCompleteDialogOpen}
+        log={activeLog}
+        onCompleted={() => {
+          setCompleteDialogOpen(false);
+          setActiveLog(null);
+          fetchLogs();
+        }}
+      />
     </div>
   );
 }
