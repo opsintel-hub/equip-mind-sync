@@ -209,6 +209,39 @@ export default function SwapWizard() {
     return { total, pending, inProgress, completed };
   }, [requests]);
 
+  // Filter + pagination for the request list
+  const [statusFilter, setStatusFilter] = useState<"all" | "pending" | "in_progress" | "completed" | "rejected">("all");
+  const [searchText, setSearchText] = useState("");
+  const [pageSize, setPageSize] = useState<10 | 20 | 50>(10);
+  const [currentPage, setCurrentPage] = useState(1);
+
+  const filteredRequests = useMemo(() => {
+    const q = searchText.trim().toLowerCase();
+    return requests.filter((r) => {
+      if (statusFilter !== "all" && r.status !== statusFilter) return false;
+      if (!q) return true;
+      return (
+        r.document_no?.toLowerCase().includes(q) ||
+        r.reported_item_code?.toLowerCase().includes(q) ||
+        r.reported_item_name?.toLowerCase().includes(q) ||
+        r.reported_serial_number?.toLowerCase().includes(q) ||
+        r.technician_name?.toLowerCase().includes(q)
+      );
+    });
+  }, [requests, statusFilter, searchText]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredRequests.length / pageSize));
+  const safePage = Math.min(currentPage, totalPages);
+  const pagedRequests = useMemo(
+    () => filteredRequests.slice((safePage - 1) * pageSize, safePage * pageSize),
+    [filteredRequests, safePage, pageSize]
+  );
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [statusFilter, searchText, pageSize]);
+
+
   const resetForm = () => {
     setBillboardId("");
     setSymptomId("");
