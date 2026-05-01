@@ -102,7 +102,7 @@ export function SwapWizardDialog({ open, onOpenChange, request, onCompleted }: P
       if (request?.billboard_id) loadOldUnits(request.billboard_id);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, request?.id]);
+  }, [open, request?.id, isAdmin, allowedDepartments.length]);
 
   // Auto-select old unit when entering step 2 if there's only ONE matching unit on the billboard.
   // "Matching" = same equipment id (for equipment spares) or first available media player slot.
