@@ -420,67 +420,131 @@ export default function SwapWizard() {
           <Card>
             <CardHeader>
               <CardTitle>รายการคำขอ Swap ล่าสุด</CardTitle>
-              <CardDescription>คลิก "ดำเนินการ" เพื่อเริ่ม Wizard 3 ขั้น</CardDescription>
+              <CardDescription>คลิก "ดำเนินการ" เพื่อเริ่ม Wizard 3 ขั้น • กรองและค้นหาได้ด้านล่าง</CardDescription>
             </CardHeader>
             <CardContent>
+              {/* Filter bar */}
+              <div className="flex flex-col md:flex-row gap-3 mb-4">
+                <Tabs value={statusFilter} onValueChange={(v) => setStatusFilter(v as any)} className="flex-1">
+                  <TabsList className="flex flex-wrap h-auto">
+                    <TabsTrigger value="all">ทั้งหมด ({stats.total})</TabsTrigger>
+                    <TabsTrigger value="pending">รอดำเนินการ ({stats.pending})</TabsTrigger>
+                    <TabsTrigger value="in_progress">กำลัง Swap ({stats.inProgress})</TabsTrigger>
+                    <TabsTrigger value="completed">Swap แล้ว ({stats.completed})</TabsTrigger>
+                    <TabsTrigger value="rejected">Reject</TabsTrigger>
+                  </TabsList>
+                </Tabs>
+                <Input
+                  value={searchText}
+                  onChange={(e) => setSearchText(e.target.value)}
+                  placeholder="ค้นหา: เลขที่/รหัส/ชื่อ/S/N/ช่าง"
+                  className="md:w-72"
+                />
+              </div>
+
               {loading ? (
                 <div className="text-center py-8 text-muted-foreground">กำลังโหลด...</div>
-              ) : requests.length === 0 ? (
+              ) : filteredRequests.length === 0 ? (
                 <div className="text-center py-12 text-muted-foreground">
-                  ยังไม่มีคำขอ — กดแท็บ "แจ้ง Swap ใหม่" เพื่อเริ่ม
+                  {requests.length === 0 ? 'ยังไม่มีคำขอ — กดแท็บ "แจ้ง Swap ใหม่" เพื่อเริ่ม' : "ไม่พบรายการที่ตรงตามตัวกรอง"}
                 </div>
               ) : (
-                <div className="space-y-2">
-                  {requests.map((req) => {
-                    const status = STATUS_LABELS[req.status] || { label: req.status, variant: "outline" as const };
-                    return (
-                      <div
-                        key={req.id}
-                        className="flex items-center justify-between gap-4 p-4 rounded-lg border hover:bg-accent/50 transition-colors flex-wrap"
-                      >
-                        <div className="flex-1 min-w-[200px] space-y-1">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <span className="font-mono font-semibold">{req.document_no}</span>
-                            <Badge variant={status.variant}>{status.label}</Badge>
-                            {req.priority !== "normal" && (
-                              <Badge variant="outline">Priority: {PRIORITY_LABELS[req.priority]}</Badge>
-                            )}
-                            {req.reported_serial_number && (
-                              <Badge variant="outline" className="font-mono text-xs">S/N: {req.reported_serial_number}</Badge>
-                            )}
-                            {(req.reported_photos?.length ?? 0) > 0 && (
-                              <Badge variant="secondary" className="text-xs">
-                                <Camera className="h-3 w-3 mr-1" /> {req.reported_photos!.length} รูป
-                              </Badge>
-                            )}
+                <>
+                  <div className="space-y-2">
+                    {pagedRequests.map((req) => {
+                      const status = STATUS_LABELS[req.status] || { label: req.status, variant: "outline" as const };
+                      return (
+                        <div
+                          key={req.id}
+                          className="flex items-center justify-between gap-4 p-4 rounded-lg border hover:bg-accent/50 transition-colors flex-wrap"
+                        >
+                          <div className="flex-1 min-w-[200px] space-y-1">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="font-mono font-semibold">{req.document_no}</span>
+                              <Badge variant={status.variant}>{status.label}</Badge>
+                              {req.priority !== "normal" && (
+                                <Badge variant="outline">Priority: {PRIORITY_LABELS[req.priority]}</Badge>
+                              )}
+                              {req.reported_serial_number && (
+                                <Badge variant="outline" className="font-mono text-xs">S/N: {req.reported_serial_number}</Badge>
+                              )}
+                              {(req.reported_photos?.length ?? 0) > 0 && (
+                                <Badge variant="secondary" className="text-xs">
+                                  <Camera className="h-3 w-3 mr-1" /> {req.reported_photos!.length} รูป
+                                </Badge>
+                              )}
+                            </div>
+                            <div className="text-sm">
+                              {req.reported_item_code || req.reported_item_name ? (
+                                <span className="font-medium">
+                                  {req.reported_item_code} {req.reported_item_name && `— ${req.reported_item_name}`}
+                                </span>
+                              ) : null}
+                            </div>
+                            <div className="text-sm text-muted-foreground">
+                              {req.description || req.symptom_other || "—"}
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              ช่าง: {req.technician_name || "—"}
+                              {req.received_by_name && ` • รับโดย: ${req.received_by_name}`}
+                              {" • "}{format(new Date(req.created_at), "dd MMM yyyy HH:mm", { locale: th })}
+                            </div>
                           </div>
-                          <div className="text-sm">
-                            {req.reported_item_code || req.reported_item_name ? (
-                              <span className="font-medium">
-                                {req.reported_item_code} {req.reported_item_name && `— ${req.reported_item_name}`}
-                              </span>
-                            ) : null}
-                          </div>
-                          <div className="text-sm text-muted-foreground">
-                            {req.description || req.symptom_other || "—"}
-                          </div>
-                          <div className="text-xs text-muted-foreground">
-                            ช่าง: {req.technician_name || "—"}
-                            {req.received_by_name && ` • รับโดย: ${req.received_by_name}`}
-                            {" • "}{format(new Date(req.created_at), "dd MMM yyyy HH:mm", { locale: th })}
+                          <div className="flex gap-2">
+                            {(req.status === "pending" || req.status === "in_progress") && (
+                              <Button size="sm" onClick={() => openWizard(req)}>
+                                <ArrowLeftRight className="h-4 w-4 mr-1" /> ดำเนินการ Swap
+                              </Button>
+                            )}
                           </div>
                         </div>
-                        <div className="flex gap-2">
-                          {(req.status === "pending" || req.status === "in_progress") && (
-                            <Button size="sm" onClick={() => openWizard(req)}>
-                              <ArrowLeftRight className="h-4 w-4 mr-1" /> ดำเนินการ Swap
-                            </Button>
-                          )}
-                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* Pagination bar */}
+                  <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-4 mt-4 border-t">
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <span>แสดง</span>
+                      <Select value={String(pageSize)} onValueChange={(v) => setPageSize(Number(v) as 10 | 20 | 50)}>
+                        <SelectTrigger className="h-8 w-[70px] text-xs">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="10">10</SelectItem>
+                          <SelectItem value="20">20</SelectItem>
+                          <SelectItem value="50">50</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <span className="tabular-nums">
+                        รายการ · {(safePage - 1) * pageSize + 1}–{Math.min(safePage * pageSize, filteredRequests.length)} จาก {filteredRequests.length}
+                      </span>
+                    </div>
+                    {totalPages > 1 && (
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                          disabled={safePage <= 1}
+                        >
+                          <ChevronLeft className="h-4 w-4" /> ก่อนหน้า
+                        </Button>
+                        <span className="text-xs text-muted-foreground tabular-nums">
+                          หน้า {safePage} / {totalPages}
+                        </span>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                          disabled={safePage >= totalPages}
+                        >
+                          ถัดไป <ChevronRight className="h-4 w-4" />
+                        </Button>
                       </div>
-                    );
-                  })}
-                </div>
+                    )}
+                  </div>
+                </>
               )}
             </CardContent>
           </Card>
