@@ -9,7 +9,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { ClipboardCheck, ListChecks, PlusCircle, RefreshCw, Search } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ClipboardCheck, ListChecks, PlusCircle, RefreshCw, Search, ChevronLeft, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { th } from "date-fns/locale";
@@ -17,6 +18,7 @@ import { SearchableSelect } from "@/components/ui/searchable-select";
 import { SymptomSelect } from "@/components/media-player/SymptomSelect";
 import { AssessmentResultSelect } from "@/components/media-player/AssessmentResultSelect";
 import { useFunctionPermissions } from "@/hooks/useFunctionPermissions";
+import { AssessmentCompleteDialog } from "@/components/assessment/AssessmentCompleteDialog";
 
 interface AssessmentLog {
   id: string;
