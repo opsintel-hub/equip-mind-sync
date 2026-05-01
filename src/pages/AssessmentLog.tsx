@@ -205,16 +205,30 @@ export default function AssessmentLog() {
   }, [logs]);
 
   const filteredLogs = useMemo(() => {
-    if (!searchTerm.trim()) return logs;
-    const q = searchTerm.toLowerCase();
-    return logs.filter(
-      (l) =>
+    const q = searchTerm.trim().toLowerCase();
+    return logs.filter((l) => {
+      if (statusFilter !== "all" && l.status !== statusFilter) return false;
+      if (!q) return true;
+      return (
         l.document_no.toLowerCase().includes(q) ||
         (l.serial_number || "").toLowerCase().includes(q) ||
         (l.assessor_name || "").toLowerCase().includes(q) ||
-        (l.diagnosis_notes || "").toLowerCase().includes(q)
-    );
-  }, [logs, searchTerm]);
+        (l.diagnosis_notes || "").toLowerCase().includes(q) ||
+        (l.symptom_description || "").toLowerCase().includes(q)
+      );
+    });
+  }, [logs, searchTerm, statusFilter]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredLogs.length / pageSize));
+  const safePage = Math.min(currentPage, totalPages);
+  const pagedLogs = useMemo(
+    () => filteredLogs.slice((safePage - 1) * pageSize, safePage * pageSize),
+    [filteredLogs, safePage, pageSize]
+  );
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [statusFilter, searchTerm, pageSize]);
 
   const resetForm = () => {
     setSubjectKey("");
