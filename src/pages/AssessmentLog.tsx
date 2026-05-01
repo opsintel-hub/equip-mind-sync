@@ -75,6 +75,11 @@ export default function AssessmentLog() {
   const canCreate = hasFunctionAccess("assessment_create");
   const [activeTab, setActiveTab] = useState(canView ? "list" : "new");
   const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState<"all" | "pending" | "completed">("all");
+  const [pageSize, setPageSize] = useState<10 | 20 | 50>(10);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [completeDialogOpen, setCompleteDialogOpen] = useState(false);
+  const [activeLog, setActiveLog] = useState<AssessmentLog | null>(null);
 
   // Subject options (combined media_players + equipment serials)
   const [subjects, setSubjects] = useState<SubjectOption[]>([]);
