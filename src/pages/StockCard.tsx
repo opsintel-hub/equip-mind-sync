@@ -500,7 +500,7 @@ export default function StockCard() {
   } = useTablePagination(filteredTimeline, 20);
 
   const journeys: BillboardJourney[] = useMemo(() => {
-    return billboardHistory.map((h: any) => {
+    const fromEquipment = billboardHistory.map((h: any) => {
       const bbName = h.billboards?.equipment_id || h.billboards?.location_name || "-";
       const days = h.installation_date ? differenceInDays(parseISO(h.uninstall_date), parseISO(h.installation_date)) : null;
       return {
@@ -513,7 +513,21 @@ export default function StockCard() {
         quantity: h.quantity,
       };
     });
-  }, [billboardHistory]);
+    const fromMP = mediaPlayerBillboardHistory.map((h: any) => {
+      const bbName = h.billboards?.equipment_id || h.billboards?.location_name || "-";
+      const days = h.installation_date && h.uninstall_date ? differenceInDays(parseISO(h.uninstall_date), parseISO(h.installation_date)) : null;
+      return {
+        billboard_id: h.billboard_id,
+        billboard_name: bbName,
+        installation_date: h.installation_date,
+        uninstall_date: h.uninstall_date,
+        duration_days: days,
+        uninstall_reason: h.uninstall_reason,
+        quantity: 1,
+      };
+    });
+    return [...fromEquipment, ...fromMP];
+  }, [billboardHistory, mediaPlayerBillboardHistory]);
 
   // ── Stats for S/N items ──
   const stats = useMemo(() => {
