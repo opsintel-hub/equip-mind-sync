@@ -311,16 +311,39 @@ export default function StockCard() {
     },
   });
 
-  // ── Fetch current billboard installations ──
+  // ── Fetch current billboard installations (equipment) ──
   const { data: currentInstallations = [] } = useQuery({
-    queryKey: ["stock-card-current-install", selectedItemId],
+    queryKey: ["stock-card-current-install", selectedItemId, selectedItemType],
     staleTime: 2 * 60 * 1000,
     enabled: !!selectedItemId,
     queryFn: async () => {
       if (!selectedItemId) return [];
+      if (selectedItemType === "media_player") {
+        const { data } = await supabase.from("media_player_billboard_history")
+          .select("*, billboards(equipment_id, location_name, description)")
+          .eq("media_player_id", selectedItemId)
+          .is("uninstall_date", null);
+        return (data || []).map((r: any) => ({ ...r, billboards: r.billboards }));
+      }
       const { data } = await supabase.from("billboard_equipment")
         .select("*, billboards(equipment_id, location_name, description)")
         .eq("equipment_id", selectedItemId);
+      return data || [];
+    },
+  });
+
+  // ── Fetch media-player billboard history (uninstalls) ──
+  const { data: mediaPlayerBillboardHistory = [] } = useQuery({
+    queryKey: ["stock-card-mp-billboard-history", selectedItemId, selectedItemType],
+    staleTime: 2 * 60 * 1000,
+    enabled: !!selectedItemId && selectedItemType === "media_player",
+    queryFn: async () => {
+      if (!selectedItemId) return [];
+      const { data } = await supabase.from("media_player_billboard_history")
+        .select("*, billboards(equipment_id, location_name, description)")
+        .eq("media_player_id", selectedItemId)
+        .not("uninstall_date", "is", null)
+        .order("uninstall_date", { ascending: false });
       return data || [];
     },
   });
