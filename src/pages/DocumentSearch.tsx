@@ -609,6 +609,7 @@ export default function DocumentSearch() {
                     <TableHead className="text-xs font-semibold text-muted-foreground text-right min-w-[140px]" title="จำนวนรวมในเอกสารนี้">จำนวนในเอกสาร</TableHead>
                     <TableHead className="text-xs font-semibold text-muted-foreground min-w-[120px]">วันที่</TableHead>
                     <TableHead className="text-xs font-semibold text-muted-foreground min-w-[280px]">ความคืบหน้า</TableHead>
+                    <TableHead className="text-xs font-semibold text-muted-foreground text-center min-w-[100px]">ดู</TableHead>
                     <TableHead className="text-xs font-semibold text-muted-foreground text-center pr-6 min-w-[120px]">เอกสาร</TableHead>
                   </TableRow>
                 </TableHeader>
