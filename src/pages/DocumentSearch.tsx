@@ -7,7 +7,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { DraggableScrollTable } from "@/components/ui/draggable-scroll-table";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
@@ -563,7 +562,7 @@ export default function DocumentSearch() {
             </div>
           ) : (
             <>
-            <DraggableScrollTable maxHeight="70vh">
+            <div className="max-w-full overflow-auto rounded-lg border" style={{ maxHeight: "70vh" }}>
               <Table className="min-w-[1700px]">
                 <TableHeader>
                   <TableRow className="hover:bg-transparent border-border/40">
@@ -656,7 +655,7 @@ export default function DocumentSearch() {
                   })}
                 </TableBody>
               </Table>
-            </DraggableScrollTable>
+            </div>
             <div className="px-6 pt-2">
               <TablePagination currentPage={currentPage} totalPages={totalPages} totalItems={totalItems} pageSize={pageSize} onPageChange={handlePageChange} onPageSizeChange={handlePageSizeChange} />
             </div>
