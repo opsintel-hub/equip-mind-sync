@@ -911,9 +911,20 @@ export default function StockCard() {
                       : lastInstallEvent?.date,
                   });
 
+                  // ถอด/คืนคลัง:
+                  //   - "done" when uninstalled AND back in normal stock (fully returned)
+                  //   - "current" (blue ring) when uninstalled but not yet returned to stock
+                  //     (e.g., pending defective entry / awaiting warehouse confirm)
+                  //   - "pending" otherwise
+                  const wasInstalledNowOff = hasInstall && !isCurrentlyInstalled;
+                  const uninstallButNotReturned = wasInstalledNowOff && !inStock;
                   steps.push({
                     label: "ถอด/คืนคลัง",
-                    status: hasUninstall && !isCurrentlyInstalled ? "done" : "pending",
+                    status: hasUninstall && !isCurrentlyInstalled && inStock
+                      ? "done"
+                      : uninstallButNotReturned || (hasUninstall && !isCurrentlyInstalled)
+                        ? "current"
+                        : "pending",
                     date: hasUninstall ? lastUninstall?.date : undefined,
                   });
                 } else {
