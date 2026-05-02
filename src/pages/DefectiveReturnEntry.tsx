@@ -377,6 +377,10 @@ const DefectiveReturnEntry = () => {
 
   const handleSubmit = async () => {
     if (!selectedItemId) { toast.error("กรุณาเลือกสินค้า"); return; }
+    if (!reporterName.trim() || !reporterDepartment.trim()) {
+      toast.error("กรุณาระบุ 'ผู้แจ้งนำของเสียเข้าระบบ' และ 'ฝ่าย'");
+      return;
+    }
 
     const quarantineLocId = await getQuarantineLocationId();
     if (!quarantineLocId) {
