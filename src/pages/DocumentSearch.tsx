@@ -194,6 +194,7 @@ function getDocumentProcessSteps(doc: DocumentRecord): ProcessStep[] | null {
 }
 
 export default function DocumentSearch() {
+  const navigate = useNavigate();
   const [documents, setDocuments] = useState<DocumentRecord[]>([]);
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
@@ -202,6 +203,39 @@ export default function DocumentSearch() {
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
   const [hasSearched, setHasSearched] = useState(false);
   const [previewState, setPreviewState] = useState<{ title: string; categories: DocumentCategory[] } | null>(null);
+
+  /** Map a document record to a route + query params for "ดูรายละเอียด". Returns null when no detail page exists. */
+  const getDetailRoute = (doc: DocumentRecord): string | null => {
+    const code = doc.equipment_code || "";
+    const docNo = doc.document_no || "";
+    switch (doc.source) {
+      case "pending":
+      case "received":
+        return `/receive-goods?search=${encodeURIComponent(docNo || code)}`;
+      case "issue":
+        return `/issue-goods?search=${encodeURIComponent(docNo)}`;
+      case "delivery_confirm":
+        return `/delivery-confirmation?search=${encodeURIComponent(docNo)}`;
+      case "direct_shipping":
+        return `/direct-shipping?search=${encodeURIComponent(docNo)}`;
+      case "advertisement":
+        return `/ad-receive?search=${encodeURIComponent(docNo)}`;
+      case "ad_issue":
+        return `/ad-issue?search=${encodeURIComponent(docNo)}`;
+      case "defective":
+        return `/defective-return?search=${encodeURIComponent(docNo)}`;
+      case "assessment":
+        return `/assessment?search=${encodeURIComponent(docNo)}`;
+      case "claim":
+        return `/claims?search=${encodeURIComponent(docNo)}`;
+      case "swap":
+        return `/swap?search=${encodeURIComponent(docNo)}`;
+      case "stock_movement":
+        return code ? `/stock-card?search=${encodeURIComponent(code)}` : `/stock-card`;
+      default:
+        return null;
+    }
+  };
 
   const fetchDocuments = async () => {
     setLoading(true);
