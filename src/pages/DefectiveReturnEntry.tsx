@@ -684,6 +684,33 @@ const DefectiveReturnEntry = () => {
               </>
             )}
 
+            {/* Reporter info — who is asking warehouse staff to put this defective item into system */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-3 rounded-lg bg-muted/30 border border-border/50">
+              <div className="space-y-2">
+                <Label>ผู้แจ้งนำของเสียเข้าระบบ <span className="text-destructive">*</span></Label>
+                <Input
+                  value={reporterName}
+                  onChange={(e) => setReporterName(e.target.value)}
+                  placeholder="ชื่อ-สกุลผู้แจ้ง (เช่น ช่างที่นำของมาให้คลัง)"
+                />
+                <p className="text-[11px] text-muted-foreground">เติมอัตโนมัติจากผู้ล็อกอิน — แก้ไขได้ถ้าแจ้งแทนคนอื่น</p>
+              </div>
+              <div className="space-y-2">
+                <Label>ฝ่าย <span className="text-destructive">*</span></Label>
+                <Input
+                  value={reporterDepartment}
+                  onChange={(e) => setReporterDepartment(e.target.value)}
+                  placeholder="ฝ่ายของผู้แจ้ง"
+                />
+              </div>
+            </div>
+
+            {fromAssessmentInfo && (
+              <div className="p-3 rounded-md border border-amber-300 bg-amber-50 dark:bg-amber-950/20 text-xs">
+                📋 รายการนี้มาจากการประเมิน {fromAssessmentInfo.docNo ? <span className="font-mono font-medium">{fromAssessmentInfo.docNo}</span> : null} — กดบันทึกเพื่อยืนยันและตัด Stock เข้าคลังของเสีย
+              </div>
+            )}
+
             <div className="space-y-2">
               <Label>หมายเหตุเพิ่มเติม</Label>
               <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="หมายเหตุอื่นๆ (ถ้ามี)" rows={2} />
