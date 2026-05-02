@@ -399,12 +399,16 @@ const DefectiveReturnEntry = () => {
             media_player_id: isMediaPlayer ? selectedItemId : null, is_media_player: isMediaPlayer,
             quantity: 1, billboard_id: selectedBillboardRecord?.billboard_id || null,
             item_condition: unitEntry.item_condition, reason: reasonText,
-            status: "pending_warehouse_entry", source_type: isFromBillboard ? "billboard" : "warehouse",
+            status: "pending_warehouse_entry",
+            source_type: fromAssessmentInfo ? "from_assessment" : (isFromBillboard ? "billboard" : "warehouse"),
             quarantine_location_id: quarantineLocId,
             stock_deducted_at: nowIso,
             dispose_status: "pending_disposal_review",
+            reporter_name: reporterName.trim() || null,
+            reporter_department: reporterDepartment.trim() || null,
+            assessment_log_id: fromAssessmentInfo?.assessmentLogId || null,
             created_by: user?.id,
-          }).select("id").maybeSingle();
+          } as any).select("id").maybeSingle();
           if (!error && drRow) {
             successCount++;
             // 🔒 Cut stock + log movement to quarantine
@@ -449,12 +453,15 @@ const DefectiveReturnEntry = () => {
           media_player_id: isMediaPlayer ? selectedItemId : null, is_media_player: isMediaPlayer,
           quantity: qty, billboard_id: billboardId, item_condition: itemCondition,
           reason: reason.trim(), status: "pending_warehouse_entry",
-          source_type: isFromBillboard ? "billboard" : "warehouse",
+          source_type: fromAssessmentInfo ? "from_assessment" : (isFromBillboard ? "billboard" : "warehouse"),
           quarantine_location_id: quarantineLocId,
           stock_deducted_at: nowIso,
           dispose_status: "pending_disposal_review",
+          reporter_name: reporterName.trim() || null,
+          reporter_department: reporterDepartment.trim() || null,
+          assessment_log_id: fromAssessmentInfo?.assessmentLogId || null,
           created_by: user?.id,
-        }).select("id").maybeSingle();
+        } as any).select("id").maybeSingle();
         if (insertError) throw insertError;
         if (drRow) {
           // 🔒 Cut stock + log movement to quarantine
