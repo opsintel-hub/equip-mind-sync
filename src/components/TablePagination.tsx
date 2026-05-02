@@ -11,7 +11,7 @@ interface TablePaginationProps {
   onPageSizeChange: (size: PageSize) => void;
 }
 
-const PAGE_SIZE_OPTIONS: PageSize[] = [20, 50, 100];
+const PAGE_SIZE_OPTIONS: PageSize[] = [10, 20, 50, 100];
 
 export function TablePagination({
   currentPage,
