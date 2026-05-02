@@ -657,7 +657,6 @@ export default function DocumentSearch() {
                             getStatusBadgeFallback(doc.status, doc.source)
                           )}
                         </TableCell>
-                        </TableCell>
                         <TableCell className="text-center pr-6">
                           {(() => {
                             const cats = getDocumentCategories(doc);
