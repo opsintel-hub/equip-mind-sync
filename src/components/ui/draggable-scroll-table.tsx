@@ -13,7 +13,9 @@ export const DraggableScrollTable = forwardRef<HTMLDivElement, DraggableScrollTa
     useImperativeHandle(forwardedRef, () => innerRef.current as HTMLDivElement);
 
     const [isDragging, setIsDragging] = useState(false);
+    const DRAG_THRESHOLD = 6;
     const dragState = useRef({
+      armed: false,
       active: false,
       startX: 0,
       startY: 0,
@@ -28,22 +30,28 @@ export const DraggableScrollTable = forwardRef<HTMLDivElement, DraggableScrollTa
       const onMouseDown = (event: MouseEvent) => {
         if (event.button !== 0) return;
         const target = event.target as HTMLElement;
-        if (target.closest("button, a, input, select, textarea, [role='button'], [data-no-drag]")) return;
+        if (target.closest("button, a, input, select, textarea, label, [role='button'], [role='checkbox'], [data-no-drag]")) return;
 
-        dragState.current.active = true;
+        dragState.current.armed = true;
+        dragState.current.active = false;
         dragState.current.startX = event.clientX;
         dragState.current.startY = event.clientY;
         dragState.current.scrollLeft = el.scrollLeft;
         dragState.current.scrollTop = el.scrollTop;
-        setIsDragging(true);
-        document.body.style.userSelect = "none";
       };
 
       const onMouseMove = (event: MouseEvent) => {
-        if (!dragState.current.active) return;
-        event.preventDefault();
+        if (!dragState.current.armed) return;
         const deltaX = event.clientX - dragState.current.startX;
         const deltaY = event.clientY - dragState.current.startY;
+
+        if (!dragState.current.active) {
+          if (Math.abs(deltaX) < DRAG_THRESHOLD && Math.abs(deltaY) < DRAG_THRESHOLD) return;
+          dragState.current.active = true;
+          setIsDragging(true);
+          document.body.style.userSelect = "none";
+        }
+        event.preventDefault();
         el.scrollLeft = dragState.current.scrollLeft - deltaX;
         el.scrollTop = dragState.current.scrollTop - deltaY;
       };
