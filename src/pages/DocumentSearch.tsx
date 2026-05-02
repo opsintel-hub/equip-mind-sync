@@ -359,7 +359,7 @@ export default function DocumentSearch() {
         id: item.id, document_no: item.document_no, document_url: null,
         equipment_code: item.equipment?.code || item.media_player?.code || null,
         equipment_name: item.equipment?.name || item.media_player?.name || null,
-        serial_number: null,
+        serial_number: item.serial_number || null,
         supplier_name: item.reporter_department || null,
         delivery_person_name: item.reporter_name || null,
         quantity: item.quantity || 0, unit: item.equipment?.unit || "ชิ้น",
