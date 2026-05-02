@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -38,6 +38,7 @@ interface DefectiveUnitEntry {
 const DefectiveReturnEntry = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const routerLocation = useLocation();
   const [isMediaPlayer, setIsMediaPlayer] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [equipmentList, setEquipmentList] = useState<EquipmentItem[]>([]);
@@ -56,6 +57,25 @@ const DefectiveReturnEntry = () => {
   const [notes, setNotes] = useState("");
   const [snLookup, setSnLookup] = useState("");
   const [snLookupLoading, setSnLookupLoading] = useState(false);
+  const [reporterName, setReporterName] = useState("");
+  const [reporterDepartment, setReporterDepartment] = useState("");
+  const [fromAssessmentInfo, setFromAssessmentInfo] = useState<{ assessmentLogId: string; docNo: string | null } | null>(null);
+
+  // Auto-fill reporter from logged-in user's profile
+  useEffect(() => {
+    if (!user?.id) return;
+    (async () => {
+      const { data } = await supabase
+        .from("profiles")
+        .select("full_name, department")
+        .eq("id", user.id)
+        .maybeSingle();
+      if (data) {
+        setReporterName((prev) => prev || data.full_name || "");
+        setReporterDepartment((prev) => prev || (data as any).department || "");
+      }
+    })();
+  }, [user?.id]);
 
   const resetSelectionForType = (value: boolean) => {
     setIsMediaPlayer(value);
