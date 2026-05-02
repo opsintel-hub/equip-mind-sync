@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -38,6 +38,7 @@ interface DefectiveUnitEntry {
 const DefectiveReturnEntry = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const routerLocation = useLocation();
   const [isMediaPlayer, setIsMediaPlayer] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [equipmentList, setEquipmentList] = useState<EquipmentItem[]>([]);
@@ -56,6 +57,26 @@ const DefectiveReturnEntry = () => {
   const [notes, setNotes] = useState("");
   const [snLookup, setSnLookup] = useState("");
   const [snLookupLoading, setSnLookupLoading] = useState(false);
+  const [reporterName, setReporterName] = useState("");
+  const [reporterDepartment, setReporterDepartment] = useState("");
+  const [fromAssessmentInfo, setFromAssessmentInfo] = useState<{ assessmentLogId: string; docNo: string | null } | null>(null);
+
+  // Auto-fill reporter from logged-in user's profile + first allowed department
+  useEffect(() => {
+    if (!user?.id) return;
+    (async () => {
+      const [profileRes, deptRes] = await Promise.all([
+        supabase.from("profiles").select("full_name").eq("id", user.id).maybeSingle(),
+        supabase.from("user_departments").select("department").eq("user_id", user.id).limit(1).maybeSingle(),
+      ]);
+      if (profileRes.data) {
+        setReporterName((prev) => prev || (profileRes.data as any).full_name || "");
+      }
+      if (deptRes.data) {
+        setReporterDepartment((prev) => prev || (deptRes.data as any).department || "");
+      }
+    })();
+  }, [user?.id]);
 
   const resetSelectionForType = (value: boolean) => {
     setIsMediaPlayer(value);
@@ -182,6 +203,35 @@ const DefectiveReturnEntry = () => {
     else if (selectedItemId && isMediaPlayer) detectBillboardForMediaPlayer(selectedItemId);
     else { setDetectedBillboards([]); setSelectedBillboardEquipmentId(""); }
   }, [selectedItemId, isMediaPlayer, mediaPlayerList]);
+
+  // Apply prefill from Assessment Dialog navigation
+  useEffect(() => {
+    const fa = (routerLocation.state as any)?.fromAssessment;
+    if (!fa) return;
+    setIsMediaPlayer(!!fa.isMediaPlayer);
+    setFromAssessmentInfo({ assessmentLogId: fa.assessmentLogId, docNo: fa.docNo || null });
+    // Wait for lists to be loaded then select item
+    const tryApply = () => {
+      if (fa.itemId) setSelectedItemId(fa.itemId);
+      if (fa.serial) {
+        setPerUnitMode(true);
+        setDefectiveUnits([{
+          id: crypto.randomUUID(),
+          serial_number: fa.serial,
+          reason: fa.reason || "จากการประเมิน",
+          item_condition: "defective",
+          image_file: null,
+          image_preview: null,
+        }]);
+      } else {
+        setReason(fa.reason || "จากการประเมิน");
+      }
+    };
+    tryApply();
+    toast.info(`เติมข้อมูลจากการประเมิน${fa.docNo ? ` (${fa.docNo})` : ""} แล้ว — โปรดยืนยันและบันทึกเพื่อตัด Stock`);
+    window.history.replaceState({}, "");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [routerLocation.state, equipmentList.length, mediaPlayerList.length]);
 
   const fetchEquipment = async () => {
     const { data } = await supabase.from("equipment").select("id, code, name, unit, category, brand, serial_number, department, quantity_in_stock, location_id").eq("is_active", true).order("code");
@@ -327,6 +377,10 @@ const DefectiveReturnEntry = () => {
 
   const handleSubmit = async () => {
     if (!selectedItemId) { toast.error("กรุณาเลือกสินค้า"); return; }
+    if (!reporterName.trim() || !reporterDepartment.trim()) {
+      toast.error("กรุณาระบุ 'ผู้แจ้งนำของเสียเข้าระบบ' และ 'ฝ่าย'");
+      return;
+    }
 
     const quarantineLocId = await getQuarantineLocationId();
     if (!quarantineLocId) {
@@ -349,12 +403,16 @@ const DefectiveReturnEntry = () => {
             media_player_id: isMediaPlayer ? selectedItemId : null, is_media_player: isMediaPlayer,
             quantity: 1, billboard_id: selectedBillboardRecord?.billboard_id || null,
             item_condition: unitEntry.item_condition, reason: reasonText,
-            status: "pending_warehouse_entry", source_type: isFromBillboard ? "billboard" : "warehouse",
+            status: "pending_warehouse_entry",
+            source_type: fromAssessmentInfo ? "from_assessment" : (isFromBillboard ? "billboard" : "warehouse"),
             quarantine_location_id: quarantineLocId,
             stock_deducted_at: nowIso,
             dispose_status: "pending_disposal_review",
+            reporter_name: reporterName.trim() || null,
+            reporter_department: reporterDepartment.trim() || null,
+            assessment_log_id: fromAssessmentInfo?.assessmentLogId || null,
             created_by: user?.id,
-          }).select("id").maybeSingle();
+          } as any).select("id").maybeSingle();
           if (!error && drRow) {
             successCount++;
             // 🔒 Cut stock + log movement to quarantine
@@ -399,12 +457,15 @@ const DefectiveReturnEntry = () => {
           media_player_id: isMediaPlayer ? selectedItemId : null, is_media_player: isMediaPlayer,
           quantity: qty, billboard_id: billboardId, item_condition: itemCondition,
           reason: reason.trim(), status: "pending_warehouse_entry",
-          source_type: isFromBillboard ? "billboard" : "warehouse",
+          source_type: fromAssessmentInfo ? "from_assessment" : (isFromBillboard ? "billboard" : "warehouse"),
           quarantine_location_id: quarantineLocId,
           stock_deducted_at: nowIso,
           dispose_status: "pending_disposal_review",
+          reporter_name: reporterName.trim() || null,
+          reporter_department: reporterDepartment.trim() || null,
+          assessment_log_id: fromAssessmentInfo?.assessmentLogId || null,
           created_by: user?.id,
-        }).select("id").maybeSingle();
+        } as any).select("id").maybeSingle();
         if (insertError) throw insertError;
         if (drRow) {
           // 🔒 Cut stock + log movement to quarantine
@@ -625,6 +686,33 @@ const DefectiveReturnEntry = () => {
                   <Textarea value={reason} onChange={(e) => setReason(e.target.value)} placeholder="ระบุสาเหตุที่เสียหรือชำรุด..." rows={3} />
                 </div>
               </>
+            )}
+
+            {/* Reporter info — who is asking warehouse staff to put this defective item into system */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-3 rounded-lg bg-muted/30 border border-border/50">
+              <div className="space-y-2">
+                <Label>ผู้แจ้งนำของเสียเข้าระบบ <span className="text-destructive">*</span></Label>
+                <Input
+                  value={reporterName}
+                  onChange={(e) => setReporterName(e.target.value)}
+                  placeholder="ชื่อ-สกุลผู้แจ้ง (เช่น ช่างที่นำของมาให้คลัง)"
+                />
+                <p className="text-[11px] text-muted-foreground">เติมอัตโนมัติจากผู้ล็อกอิน — แก้ไขได้ถ้าแจ้งแทนคนอื่น</p>
+              </div>
+              <div className="space-y-2">
+                <Label>ฝ่าย <span className="text-destructive">*</span></Label>
+                <Input
+                  value={reporterDepartment}
+                  onChange={(e) => setReporterDepartment(e.target.value)}
+                  placeholder="ฝ่ายของผู้แจ้ง"
+                />
+              </div>
+            </div>
+
+            {fromAssessmentInfo && (
+              <div className="p-3 rounded-md border border-amber-300 bg-amber-50 dark:bg-amber-950/20 text-xs">
+                📋 รายการนี้มาจากการประเมิน {fromAssessmentInfo.docNo ? <span className="font-mono font-medium">{fromAssessmentInfo.docNo}</span> : null} — กดบันทึกเพื่อยืนยันและตัด Stock เข้าคลังของเสีย
+              </div>
             )}
 
             <div className="space-y-2">

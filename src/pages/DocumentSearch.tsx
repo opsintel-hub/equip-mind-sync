@@ -82,7 +82,7 @@ interface DocumentRecord {
   unit: string;
   created_at: string;
   status: string;
-  source: "pending" | "received" | "issue" | "delivery_confirm" | "direct_shipping" | "advertisement" | "ad_issue";
+  source: "pending" | "received" | "issue" | "delivery_confirm" | "direct_shipping" | "advertisement" | "ad_issue" | "defective" | "assessment" | "claim" | "swap" | "stock_movement";
   // Extended fields for ProcessTracker
   raw?: any;
 }
@@ -244,6 +244,38 @@ export default function DocumentSearch() {
         .select("id, document_no, status, issued_quantity, issue_purpose, created_at, issued_at, confirmed_at, advertisements(code, name)")
         .order("created_at", { ascending: false });
 
+      // Fetch from defective_returns (นำของเสียเข้าระบบ)
+      const { data: defData } = await supabase
+        .from("defective_returns")
+        .select("id, document_no, status, dispose_status, disposal_method, quantity, reason, item_condition, source_type, reporter_name, reporter_department, created_at, equipment:equipment_id(code, name, unit), media_player:media_player_id(code, name)")
+        .order("created_at", { ascending: false });
+
+      // Fetch from assessment_logs (บันทึกการประเมิน)
+      const { data: asmData } = await supabase
+        .from("assessment_logs")
+        .select("id, document_no, status, outcome, serial_number, assessor_name, diagnosis_notes, created_at, equipment:equipment_id(code, name), media_player:media_player_id(code, name)")
+        .order("created_at", { ascending: false });
+
+      // Fetch from claim_records (ติดตามการเคลม)
+      const { data: claimData } = await supabase
+        .from("claim_records")
+        .select("id, document_no, status, supplier_name, serial_number, manufacturer, created_at, equipment:equipment_id(code, name), media_player:media_player_id(code, name)")
+        .order("created_at", { ascending: false });
+
+      // Fetch from swap_requests (Swap อุปกรณ์/MP)
+      const { data: swapData } = await supabase
+        .from("swap_requests")
+        .select("id, document_no, status, technician_name, reason, created_at")
+        .order("created_at", { ascending: false })
+        .limit(500);
+
+      // Fetch from stock_movements (Stock Card) — limit to recent for performance
+      const { data: smData } = await supabase
+        .from("stock_movements")
+        .select("id, equipment_code, equipment_name, movement_type, quantity, reference_document, reference_type, notes, item_condition, created_at")
+        .order("created_at", { ascending: false })
+        .limit(500);
+
       const pendingDocs: DocumentRecord[] = (pendingData || []).map((item: any) => ({
         id: item.id, document_no: item.document_no, document_url: item.document_url,
         equipment_code: item.equipment_code, equipment_name: item.equipment_name,
@@ -322,7 +354,66 @@ export default function DocumentSearch() {
         status: item.status, source: "ad_issue" as const, raw: item,
       }));
 
-      const merged = [...pendingDocs, ...receiptDocs, ...issueDocs, ...dcDocs, ...dsDocs, ...adDocs, ...adIssueDocs];
+      const defectiveDocs: DocumentRecord[] = (defData || []).map((item: any) => ({
+        id: item.id, document_no: item.document_no, document_url: null,
+        equipment_code: item.equipment?.code || item.media_player?.code || null,
+        equipment_name: item.equipment?.name || item.media_player?.name || null,
+        serial_number: null,
+        supplier_name: item.reporter_department || null,
+        delivery_person_name: item.reporter_name || null,
+        quantity: item.quantity || 0, unit: item.equipment?.unit || "ชิ้น",
+        created_at: item.created_at, status: item.status,
+        source: "defective" as const, raw: item,
+      }));
+
+      const assessmentDocs: DocumentRecord[] = (asmData || []).map((item: any) => ({
+        id: item.id, document_no: item.document_no, document_url: null,
+        equipment_code: item.equipment?.code || item.media_player?.code || null,
+        equipment_name: item.equipment?.name || item.media_player?.name || null,
+        serial_number: item.serial_number || null,
+        supplier_name: null, delivery_person_name: item.assessor_name,
+        quantity: 1, unit: "-", created_at: item.created_at, status: item.status,
+        source: "assessment" as const, raw: item,
+      }));
+
+      const claimDocs: DocumentRecord[] = (claimData || []).map((item: any) => ({
+        id: item.id, document_no: item.document_no, document_url: null,
+        equipment_code: item.equipment?.code || item.media_player?.code || null,
+        equipment_name: item.equipment?.name || item.media_player?.name || null,
+        serial_number: item.serial_number || null,
+        supplier_name: item.supplier_name || item.manufacturer || null, delivery_person_name: null,
+        quantity: 1, unit: "-", created_at: item.created_at, status: item.status,
+        source: "claim" as const, raw: item,
+      }));
+
+      const swapDocs: DocumentRecord[] = (swapData || []).map((item: any) => ({
+        id: item.id, document_no: item.document_no, document_url: null,
+        equipment_code: null, equipment_name: item.reason || null,
+        serial_number: null,
+        supplier_name: null, delivery_person_name: item.technician_name,
+        quantity: 0, unit: "-", created_at: item.created_at, status: item.status,
+        source: "swap" as const, raw: item,
+      }));
+
+      const stockMoveDocs: DocumentRecord[] = (smData || []).map((item: any) => ({
+        id: item.id,
+        document_no: item.reference_document || `SM-${item.id.slice(0, 8)}`,
+        document_url: null,
+        equipment_code: item.equipment_code,
+        equipment_name: item.equipment_name,
+        serial_number: null,
+        supplier_name: item.movement_type, delivery_person_name: item.notes || null,
+        quantity: Math.abs(item.quantity || 0), unit: "-",
+        created_at: item.created_at,
+        status: item.item_condition || item.movement_type,
+        source: "stock_movement" as const, raw: item,
+      }));
+
+      const merged = [
+        ...pendingDocs, ...receiptDocs, ...issueDocs, ...dcDocs, ...dsDocs,
+        ...adDocs, ...adIssueDocs,
+        ...defectiveDocs, ...assessmentDocs, ...claimDocs, ...swapDocs, ...stockMoveDocs,
+      ];
       // Sort newest first across all sources
       merged.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
       setDocuments(merged);
@@ -370,6 +461,11 @@ export default function DocumentSearch() {
       case "direct_shipping": return <Badge variant="outline" className="border-cyan-300 text-cyan-700 dark:border-cyan-700 dark:text-cyan-400">Direct Shipping</Badge>;
       case "advertisement": return <Badge variant="outline" className="border-pink-300 text-pink-700 dark:border-pink-700 dark:text-pink-400">รับโฆษณา</Badge>;
       case "ad_issue": return <Badge variant="outline" className="border-amber-300 text-amber-700 dark:border-amber-700 dark:text-amber-400">เบิกโฆษณา</Badge>;
+      case "defective": return <Badge variant="outline" className="border-destructive/40 text-destructive">นำของเสียเข้า</Badge>;
+      case "assessment": return <Badge variant="outline" className="border-orange-300 text-orange-700 dark:border-orange-700 dark:text-orange-400">บันทึกประเมิน</Badge>;
+      case "claim": return <Badge variant="outline" className="border-yellow-300 text-yellow-700 dark:border-yellow-700 dark:text-yellow-400">ส่งเคลม</Badge>;
+      case "swap": return <Badge variant="outline" className="border-indigo-300 text-indigo-700 dark:border-indigo-700 dark:text-indigo-400">Swap</Badge>;
+      case "stock_movement": return <Badge variant="outline" className="border-slate-300 text-slate-700 dark:border-slate-700 dark:text-slate-400">Stock Card</Badge>;
       default: return <Badge variant="outline">{source}</Badge>;
     }
   };
@@ -426,6 +522,11 @@ export default function DocumentSearch() {
                   <SelectItem value="direct_shipping">Direct Shipping</SelectItem>
                   <SelectItem value="advertisement">รับโฆษณา</SelectItem>
                   <SelectItem value="ad_issue">เบิกโฆษณา</SelectItem>
+                  <SelectItem value="defective">นำของเสียเข้าระบบ</SelectItem>
+                  <SelectItem value="assessment">บันทึกการประเมิน</SelectItem>
+                  <SelectItem value="claim">ส่งเคลม</SelectItem>
+                  <SelectItem value="swap">Swap</SelectItem>
+                  <SelectItem value="stock_movement">Stock Card</SelectItem>
                 </SelectContent>
               </Select>
             </div>

@@ -1261,6 +1261,7 @@ export type Database = {
       }
       defective_returns: {
         Row: {
+          assessment_log_id: string | null
           billboard_id: string | null
           created_at: string
           created_by: string | null
@@ -1283,6 +1284,8 @@ export type Database = {
           receive_location_id: string | null
           received_at: string | null
           received_by: string | null
+          reporter_department: string | null
+          reporter_name: string | null
           source_type: string
           status: string
           stock_deducted_at: string | null
@@ -1291,6 +1294,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          assessment_log_id?: string | null
           billboard_id?: string | null
           created_at?: string
           created_by?: string | null
@@ -1313,6 +1317,8 @@ export type Database = {
           receive_location_id?: string | null
           received_at?: string | null
           received_by?: string | null
+          reporter_department?: string | null
+          reporter_name?: string | null
           source_type?: string
           status?: string
           stock_deducted_at?: string | null
@@ -1321,6 +1327,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          assessment_log_id?: string | null
           billboard_id?: string | null
           created_at?: string
           created_by?: string | null
@@ -1343,6 +1350,8 @@ export type Database = {
           receive_location_id?: string | null
           received_at?: string | null
           received_by?: string | null
+          reporter_department?: string | null
+          reporter_name?: string | null
           source_type?: string
           status?: string
           stock_deducted_at?: string | null
@@ -1351,6 +1360,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "defective_returns_assessment_log_id_fkey"
+            columns: ["assessment_log_id"]
+            isOneToOne: false
+            referencedRelation: "assessment_logs"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "defective_returns_billboard_id_fkey"
             columns: ["billboard_id"]
