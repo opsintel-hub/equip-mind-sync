@@ -61,18 +61,19 @@ const DefectiveReturnEntry = () => {
   const [reporterDepartment, setReporterDepartment] = useState("");
   const [fromAssessmentInfo, setFromAssessmentInfo] = useState<{ assessmentLogId: string; docNo: string | null } | null>(null);
 
-  // Auto-fill reporter from logged-in user's profile
+  // Auto-fill reporter from logged-in user's profile + first allowed department
   useEffect(() => {
     if (!user?.id) return;
     (async () => {
-      const { data } = await supabase
-        .from("profiles")
-        .select("full_name, department")
-        .eq("id", user.id)
-        .maybeSingle();
-      if (data) {
-        setReporterName((prev) => prev || data.full_name || "");
-        setReporterDepartment((prev) => prev || (data as any).department || "");
+      const [profileRes, deptRes] = await Promise.all([
+        supabase.from("profiles").select("full_name").eq("id", user.id).maybeSingle(),
+        supabase.from("user_departments").select("department").eq("user_id", user.id).limit(1).maybeSingle(),
+      ]);
+      if (profileRes.data) {
+        setReporterName((prev) => prev || (profileRes.data as any).full_name || "");
+      }
+      if (deptRes.data) {
+        setReporterDepartment((prev) => prev || (deptRes.data as any).department || "");
       }
     })();
   }, [user?.id]);
