@@ -461,6 +461,11 @@ export default function DocumentSearch() {
       case "direct_shipping": return <Badge variant="outline" className="border-cyan-300 text-cyan-700 dark:border-cyan-700 dark:text-cyan-400">Direct Shipping</Badge>;
       case "advertisement": return <Badge variant="outline" className="border-pink-300 text-pink-700 dark:border-pink-700 dark:text-pink-400">รับโฆษณา</Badge>;
       case "ad_issue": return <Badge variant="outline" className="border-amber-300 text-amber-700 dark:border-amber-700 dark:text-amber-400">เบิกโฆษณา</Badge>;
+      case "defective": return <Badge variant="outline" className="border-destructive/40 text-destructive">นำของเสียเข้า</Badge>;
+      case "assessment": return <Badge variant="outline" className="border-orange-300 text-orange-700 dark:border-orange-700 dark:text-orange-400">บันทึกประเมิน</Badge>;
+      case "claim": return <Badge variant="outline" className="border-yellow-300 text-yellow-700 dark:border-yellow-700 dark:text-yellow-400">ส่งเคลม</Badge>;
+      case "swap": return <Badge variant="outline" className="border-indigo-300 text-indigo-700 dark:border-indigo-700 dark:text-indigo-400">Swap</Badge>;
+      case "stock_movement": return <Badge variant="outline" className="border-slate-300 text-slate-700 dark:border-slate-700 dark:text-slate-400">Stock Card</Badge>;
       default: return <Badge variant="outline">{source}</Badge>;
     }
   };
