@@ -248,7 +248,7 @@ export default function DocumentSearch() {
       // Fetch from defective_returns (นำของเสียเข้าระบบ)
       const { data: defData } = await supabase
         .from("defective_returns")
-        .select("id, document_no, status, dispose_status, disposal_method, quantity, reason, item_condition, source_type, reporter_name, reporter_department, created_at, equipment:equipment_id(code, name, unit), media_player:media_player_id(code, name)")
+        .select("id, document_no, status, dispose_status, disposal_method, quantity, reason, item_condition, source_type, reporter_name, reporter_department, serial_number, created_at, equipment:equipment_id(code, name, unit), media_player:media_player_id(code, name)")
         .order("created_at", { ascending: false });
 
       // Fetch from assessment_logs (บันทึกการประเมิน)
