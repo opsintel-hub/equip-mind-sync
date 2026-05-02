@@ -564,12 +564,13 @@ export default function DocumentSearch() {
           ) : (
             <>
             <DraggableScrollTable maxHeight="70vh">
-              <Table className="min-w-[1500px]">
+              <Table className="min-w-[1700px]">
                 <TableHeader>
                   <TableRow className="hover:bg-transparent border-border/40">
                     <TableHead className="text-xs font-semibold text-muted-foreground pl-6 min-w-[180px]">เลขที่เอกสาร</TableHead>
                     <TableHead className="text-xs font-semibold text-muted-foreground min-w-[140px]">ประเภท</TableHead>
-                    <TableHead className="text-xs font-semibold text-muted-foreground min-w-[280px]">รหัส/ชื่ออุปกรณ์</TableHead>
+                    <TableHead className="text-xs font-semibold text-muted-foreground min-w-[260px]">รหัส/ชื่ออุปกรณ์</TableHead>
+                    <TableHead className="text-xs font-semibold text-muted-foreground min-w-[220px]">Serial Number</TableHead>
                     <TableHead className="text-xs font-semibold text-muted-foreground min-w-[200px]">ผู้จำหน่าย/ผู้ขอ</TableHead>
                     <TableHead className="text-xs font-semibold text-muted-foreground text-right min-w-[140px]" title="จำนวนรวมในเอกสารนี้">จำนวนในเอกสาร</TableHead>
                     <TableHead className="text-xs font-semibold text-muted-foreground min-w-[120px]">วันที่</TableHead>
@@ -580,6 +581,9 @@ export default function DocumentSearch() {
                 <TableBody>
                   {paginatedData.map((doc) => {
                     const trackerSteps = getDocumentProcessSteps(doc);
+                    const snList = doc.serial_number
+                      ? doc.serial_number.split(/[,\n]/).map((s) => s.trim()).filter(Boolean)
+                      : [];
                     return (
                       <TableRow key={`${doc.source}-${doc.id}`} className="border-border/30 hover:bg-muted/30">
                         <TableCell className="font-mono text-xs font-medium pl-6 whitespace-nowrap">{doc.document_no}</TableCell>
@@ -589,13 +593,25 @@ export default function DocumentSearch() {
                             <div className="space-y-0.5">
                               {doc.equipment_code && <div className="font-semibold text-sm leading-tight">{doc.equipment_code}</div>}
                               {doc.equipment_name && <div className="text-xs text-muted-foreground leading-tight">{doc.equipment_name}</div>}
-                              {doc.serial_number && (
-                                <Badge variant="outline" className="font-mono text-[10px] px-1.5 py-0 h-[18px] bg-accent/50 text-accent-foreground/70 border-border">
-                                  S/N: {doc.serial_number}
-                                </Badge>
-                              )}
                             </div>
                           ) : <span className="text-muted-foreground/40">-</span>}
+                        </TableCell>
+                        <TableCell>
+                          {snList.length > 0 ? (
+                            <div className="flex flex-wrap gap-1 max-w-[260px]">
+                              {snList.map((sn, i) => (
+                                <Badge
+                                  key={`${sn}-${i}`}
+                                  variant="outline"
+                                  className="font-mono text-[10px] px-1.5 py-0 h-[18px] bg-accent/50 text-accent-foreground/80 border-border"
+                                >
+                                  {sn}
+                                </Badge>
+                              ))}
+                            </div>
+                          ) : (
+                            <span className="text-muted-foreground/40">-</span>
+                          )}
                         </TableCell>
                         <TableCell className="text-sm">{doc.supplier_name || doc.delivery_person_name || <span className="text-muted-foreground/40">-</span>}</TableCell>
                         <TableCell className="text-right text-sm tabular-nums whitespace-nowrap">{doc.quantity > 0 ? `${doc.quantity} ${doc.unit}` : <span className="text-muted-foreground/40">-</span>}</TableCell>
