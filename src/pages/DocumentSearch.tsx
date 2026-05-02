@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { DraggableScrollTable } from "@/components/ui/draggable-scroll-table";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
@@ -561,18 +562,19 @@ export default function DocumentSearch() {
               {hasSearched ? (searchTerm ? <p>ไม่พบเอกสารที่ตรงกับคำค้นหา "{searchTerm}"</p> : <p>ไม่พบเอกสารในระบบ</p>) : <p>กำลังโหลด...</p>}
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <Table>
+            <>
+            <DraggableScrollTable maxHeight="70vh">
+              <Table className="min-w-[1500px]">
                 <TableHeader>
                   <TableRow className="hover:bg-transparent border-border/40">
-                    <TableHead className="text-xs font-semibold text-muted-foreground pl-6">เลขที่เอกสาร</TableHead>
-                    <TableHead className="text-xs font-semibold text-muted-foreground">ประเภท</TableHead>
-                    <TableHead className="text-xs font-semibold text-muted-foreground">รหัส/ชื่ออุปกรณ์</TableHead>
-                    <TableHead className="text-xs font-semibold text-muted-foreground">ผู้จำหน่าย/ผู้ขอ</TableHead>
-                    <TableHead className="text-xs font-semibold text-muted-foreground text-right" title="จำนวนรวมในเอกสารนี้">จำนวนในเอกสาร</TableHead>
-                    <TableHead className="text-xs font-semibold text-muted-foreground">วันที่</TableHead>
-                    <TableHead className="text-xs font-semibold text-muted-foreground min-w-[240px]">ความคืบหน้า</TableHead>
-                    <TableHead className="text-xs font-semibold text-muted-foreground text-center pr-6">เอกสาร</TableHead>
+                    <TableHead className="text-xs font-semibold text-muted-foreground pl-6 min-w-[180px]">เลขที่เอกสาร</TableHead>
+                    <TableHead className="text-xs font-semibold text-muted-foreground min-w-[140px]">ประเภท</TableHead>
+                    <TableHead className="text-xs font-semibold text-muted-foreground min-w-[280px]">รหัส/ชื่ออุปกรณ์</TableHead>
+                    <TableHead className="text-xs font-semibold text-muted-foreground min-w-[200px]">ผู้จำหน่าย/ผู้ขอ</TableHead>
+                    <TableHead className="text-xs font-semibold text-muted-foreground text-right min-w-[140px]" title="จำนวนรวมในเอกสารนี้">จำนวนในเอกสาร</TableHead>
+                    <TableHead className="text-xs font-semibold text-muted-foreground min-w-[120px]">วันที่</TableHead>
+                    <TableHead className="text-xs font-semibold text-muted-foreground min-w-[280px]">ความคืบหน้า</TableHead>
+                    <TableHead className="text-xs font-semibold text-muted-foreground text-center pr-6 min-w-[120px]">เอกสาร</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -586,7 +588,7 @@ export default function DocumentSearch() {
                           {doc.equipment_code || doc.equipment_name ? (
                             <div className="space-y-0.5">
                               {doc.equipment_code && <div className="font-semibold text-sm leading-tight">{doc.equipment_code}</div>}
-                              {doc.equipment_name && <div className="text-xs text-muted-foreground truncate max-w-[160px] leading-tight">{doc.equipment_name}</div>}
+                              {doc.equipment_name && <div className="text-xs text-muted-foreground leading-tight">{doc.equipment_name}</div>}
                               {doc.serial_number && (
                                 <Badge variant="outline" className="font-mono text-[10px] px-1.5 py-0 h-[18px] bg-accent/50 text-accent-foreground/70 border-border">
                                   S/N: {doc.serial_number}
@@ -595,7 +597,7 @@ export default function DocumentSearch() {
                             </div>
                           ) : <span className="text-muted-foreground/40">-</span>}
                         </TableCell>
-                        <TableCell className="text-sm max-w-[140px] truncate">{doc.supplier_name || doc.delivery_person_name || <span className="text-muted-foreground/40">-</span>}</TableCell>
+                        <TableCell className="text-sm">{doc.supplier_name || doc.delivery_person_name || <span className="text-muted-foreground/40">-</span>}</TableCell>
                         <TableCell className="text-right text-sm tabular-nums whitespace-nowrap">{doc.quantity > 0 ? `${doc.quantity} ${doc.unit}` : <span className="text-muted-foreground/40">-</span>}</TableCell>
                         <TableCell className="text-sm tabular-nums whitespace-nowrap">{format(new Date(doc.created_at), "dd/MM/yyyy", { locale: th })}</TableCell>
                         <TableCell className="py-3">
@@ -638,10 +640,11 @@ export default function DocumentSearch() {
                   })}
                 </TableBody>
               </Table>
-              <div className="px-6 pt-2">
-                <TablePagination currentPage={currentPage} totalPages={totalPages} totalItems={totalItems} pageSize={pageSize} onPageChange={handlePageChange} onPageSizeChange={handlePageSizeChange} />
-              </div>
+            </DraggableScrollTable>
+            <div className="px-6 pt-2">
+              <TablePagination currentPage={currentPage} totalPages={totalPages} totalItems={totalItems} pageSize={pageSize} onPageChange={handlePageChange} onPageSizeChange={handlePageSizeChange} />
             </div>
+            </>
           )}
         </CardContent>
       </Card>
