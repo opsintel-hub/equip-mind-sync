@@ -413,7 +413,7 @@ export default function StockCard() {
       });
     });
 
-    // Billboard history (uninstalls)
+    // Billboard history (uninstalls) — equipment
     billboardHistory.forEach((h: any) => {
       const bbName = h.billboards?.equipment_id || h.billboards?.location_name || "ป้าย";
       events.push({
@@ -438,6 +438,31 @@ export default function StockCard() {
       }
     });
 
+    // Billboard history (uninstalls) — media player
+    mediaPlayerBillboardHistory.forEach((h: any) => {
+      const bbName = h.billboards?.equipment_id || h.billboards?.location_name || "ป้าย";
+      events.push({
+        date: h.uninstall_date,
+        type: "uninstall",
+        detail: `ถอดจาก ${bbName}${h.uninstall_reason ? ` — ${h.uninstall_reason}` : ""}`,
+        quantity: 1,
+        condition: null,
+        document: null,
+        billboard_name: bbName,
+      });
+      if (h.installation_date) {
+        events.push({
+          date: h.installation_date,
+          type: "install",
+          detail: `ติดตั้งที่ ${bbName}`,
+          quantity: 1,
+          condition: null,
+          document: null,
+          billboard_name: bbName,
+        });
+      }
+    });
+
     // Sort by date
     events.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
@@ -449,7 +474,7 @@ export default function StockCard() {
     }
 
     return events;
-  }, [selectedItemId, movements, billboardHistory]);
+  }, [selectedItemId, movements, billboardHistory, mediaPlayerBillboardHistory]);
 
   // ── Filtered timeline ──
   const filteredTimeline = useMemo(() => {
