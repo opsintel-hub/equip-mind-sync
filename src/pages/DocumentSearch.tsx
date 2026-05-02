@@ -658,6 +658,24 @@ export default function DocumentSearch() {
                             getStatusBadgeFallback(doc.status, doc.source)
                           )}
                         </TableCell>
+                        <TableCell className="text-center">
+                          {(() => {
+                            const route = getDetailRoute(doc);
+                            if (!route) return <span className="text-muted-foreground/30">-</span>;
+                            return (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="h-8 gap-1"
+                                title="ดูรายละเอียดในหน้าต้นทาง"
+                                onClick={() => navigate(route)}
+                              >
+                                <Eye className="h-3.5 w-3.5" />
+                                <span className="text-xs">ดู</span>
+                              </Button>
+                            );
+                          })()}
+                        </TableCell>
                         <TableCell className="text-center pr-6">
                           {(() => {
                             const cats = getDocumentCategories(doc);
