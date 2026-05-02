@@ -204,6 +204,35 @@ const DefectiveReturnEntry = () => {
     else { setDetectedBillboards([]); setSelectedBillboardEquipmentId(""); }
   }, [selectedItemId, isMediaPlayer, mediaPlayerList]);
 
+  // Apply prefill from Assessment Dialog navigation
+  useEffect(() => {
+    const fa = (routerLocation.state as any)?.fromAssessment;
+    if (!fa) return;
+    setIsMediaPlayer(!!fa.isMediaPlayer);
+    setFromAssessmentInfo({ assessmentLogId: fa.assessmentLogId, docNo: fa.docNo || null });
+    // Wait for lists to be loaded then select item
+    const tryApply = () => {
+      if (fa.itemId) setSelectedItemId(fa.itemId);
+      if (fa.serial) {
+        setPerUnitMode(true);
+        setDefectiveUnits([{
+          id: crypto.randomUUID(),
+          serial_number: fa.serial,
+          reason: fa.reason || "จากการประเมิน",
+          item_condition: "defective",
+          image_file: null,
+          image_preview: null,
+        }]);
+      } else {
+        setReason(fa.reason || "จากการประเมิน");
+      }
+    };
+    tryApply();
+    toast.info(`เติมข้อมูลจากการประเมิน${fa.docNo ? ` (${fa.docNo})` : ""} แล้ว — โปรดยืนยันและบันทึกเพื่อตัด Stock`);
+    window.history.replaceState({}, "");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [routerLocation.state, equipmentList.length, mediaPlayerList.length]);
+
   const fetchEquipment = async () => {
     const { data } = await supabase.from("equipment").select("id, code, name, unit, category, brand, serial_number, department, quantity_in_stock, location_id").eq("is_active", true).order("code");
     if (data) setEquipmentList(data);
