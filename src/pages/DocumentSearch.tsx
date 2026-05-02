@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { DateRange } from "react-day-picker";
-import { Search, FileText, Download, ExternalLink, Loader2, Eye } from "lucide-react";
+import { Search, FileText, Download, ExternalLink, Loader2 } from "lucide-react";
 import { useTablePagination } from "@/hooks/useTablePagination";
 import { TablePagination } from "@/components/TablePagination";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -609,7 +609,6 @@ export default function DocumentSearch() {
                     <TableHead className="text-xs font-semibold text-muted-foreground text-right min-w-[140px]" title="จำนวนรวมในเอกสารนี้">จำนวนในเอกสาร</TableHead>
                     <TableHead className="text-xs font-semibold text-muted-foreground min-w-[120px]">วันที่</TableHead>
                     <TableHead className="text-xs font-semibold text-muted-foreground min-w-[280px]">ความคืบหน้า</TableHead>
-                    <TableHead className="text-xs font-semibold text-muted-foreground text-center min-w-[100px]">ดู</TableHead>
                     <TableHead className="text-xs font-semibold text-muted-foreground text-center pr-6 min-w-[120px]">เอกสาร</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -657,24 +656,6 @@ export default function DocumentSearch() {
                           ) : (
                             getStatusBadgeFallback(doc.status, doc.source)
                           )}
-                        </TableCell>
-                        <TableCell className="text-center">
-                          {(() => {
-                            const route = getDetailRoute(doc);
-                            if (!route) return <span className="text-muted-foreground/30">-</span>;
-                            return (
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="h-8 gap-1"
-                                title="ดูรายละเอียดในหน้าต้นทาง"
-                                onClick={() => navigate(route)}
-                              >
-                                <Eye className="h-3.5 w-3.5" />
-                                <span className="text-xs">ดู</span>
-                              </Button>
-                            );
-                          })()}
                         </TableCell>
                         <TableCell className="text-center pr-6">
                           {(() => {
