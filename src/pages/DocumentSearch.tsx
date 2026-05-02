@@ -522,6 +522,11 @@ export default function DocumentSearch() {
                   <SelectItem value="direct_shipping">Direct Shipping</SelectItem>
                   <SelectItem value="advertisement">รับโฆษณา</SelectItem>
                   <SelectItem value="ad_issue">เบิกโฆษณา</SelectItem>
+                  <SelectItem value="defective">นำของเสียเข้าระบบ</SelectItem>
+                  <SelectItem value="assessment">บันทึกการประเมิน</SelectItem>
+                  <SelectItem value="claim">ส่งเคลม</SelectItem>
+                  <SelectItem value="swap">Swap</SelectItem>
+                  <SelectItem value="stock_movement">Stock Card</SelectItem>
                 </SelectContent>
               </Select>
             </div>
