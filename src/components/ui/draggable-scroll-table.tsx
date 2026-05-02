@@ -57,10 +57,13 @@ export const DraggableScrollTable = forwardRef<HTMLDivElement, DraggableScrollTa
       };
 
       const stopDragging = () => {
-        if (!dragState.current.active) return;
-        dragState.current.active = false;
-        setIsDragging(false);
-        document.body.style.userSelect = "";
+        if (!dragState.current.armed) return;
+        dragState.current.armed = false;
+        if (dragState.current.active) {
+          dragState.current.active = false;
+          setIsDragging(false);
+          document.body.style.userSelect = "";
+        }
       };
 
       el.addEventListener("mousedown", onMouseDown);
