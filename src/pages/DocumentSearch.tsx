@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { DateRange } from "react-day-picker";
-import { Search, FileText, Download, ExternalLink, Loader2 } from "lucide-react";
+import { Search, FileText, Download, ExternalLink, Loader2, Eye } from "lucide-react";
 import { useTablePagination } from "@/hooks/useTablePagination";
 import { TablePagination } from "@/components/TablePagination";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -193,6 +194,7 @@ function getDocumentProcessSteps(doc: DocumentRecord): ProcessStep[] | null {
 }
 
 export default function DocumentSearch() {
+  const navigate = useNavigate();
   const [documents, setDocuments] = useState<DocumentRecord[]>([]);
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
@@ -201,6 +203,39 @@ export default function DocumentSearch() {
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
   const [hasSearched, setHasSearched] = useState(false);
   const [previewState, setPreviewState] = useState<{ title: string; categories: DocumentCategory[] } | null>(null);
+
+  /** Map a document record to a route + query params for "ดูรายละเอียด". Returns null when no detail page exists. */
+  const getDetailRoute = (doc: DocumentRecord): string | null => {
+    const code = doc.equipment_code || "";
+    const docNo = doc.document_no || "";
+    switch (doc.source) {
+      case "pending":
+      case "received":
+        return `/receive-goods?search=${encodeURIComponent(docNo || code)}`;
+      case "issue":
+        return `/issue-goods?search=${encodeURIComponent(docNo)}`;
+      case "delivery_confirm":
+        return `/delivery-confirmation?search=${encodeURIComponent(docNo)}`;
+      case "direct_shipping":
+        return `/direct-shipping?search=${encodeURIComponent(docNo)}`;
+      case "advertisement":
+        return `/ad-receive?search=${encodeURIComponent(docNo)}`;
+      case "ad_issue":
+        return `/ad-issue?search=${encodeURIComponent(docNo)}`;
+      case "defective":
+        return `/defective-return?search=${encodeURIComponent(docNo)}`;
+      case "assessment":
+        return `/assessment?search=${encodeURIComponent(docNo)}`;
+      case "claim":
+        return `/claims?search=${encodeURIComponent(docNo)}`;
+      case "swap":
+        return `/swap?search=${encodeURIComponent(docNo)}`;
+      case "stock_movement":
+        return code ? `/stock-card?search=${encodeURIComponent(code)}` : `/stock-card`;
+      default:
+        return null;
+    }
+  };
 
   const fetchDocuments = async () => {
     setLoading(true);
@@ -563,7 +598,7 @@ export default function DocumentSearch() {
           ) : (
             <>
             <div className="max-w-full overflow-auto rounded-lg border" style={{ maxHeight: "70vh" }}>
-              <Table className="min-w-[1700px]">
+              <Table className="min-w-[1800px]">
                 <TableHeader>
                   <TableRow className="hover:bg-transparent border-border/40">
                     <TableHead className="text-xs font-semibold text-muted-foreground pl-6 min-w-[180px]">เลขที่เอกสาร</TableHead>
@@ -574,6 +609,7 @@ export default function DocumentSearch() {
                     <TableHead className="text-xs font-semibold text-muted-foreground text-right min-w-[140px]" title="จำนวนรวมในเอกสารนี้">จำนวนในเอกสาร</TableHead>
                     <TableHead className="text-xs font-semibold text-muted-foreground min-w-[120px]">วันที่</TableHead>
                     <TableHead className="text-xs font-semibold text-muted-foreground min-w-[280px]">ความคืบหน้า</TableHead>
+                    <TableHead className="text-xs font-semibold text-muted-foreground text-center min-w-[100px]">ดู</TableHead>
                     <TableHead className="text-xs font-semibold text-muted-foreground text-center pr-6 min-w-[120px]">เอกสาร</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -621,6 +657,24 @@ export default function DocumentSearch() {
                           ) : (
                             getStatusBadgeFallback(doc.status, doc.source)
                           )}
+                        </TableCell>
+                        <TableCell className="text-center">
+                          {(() => {
+                            const route = getDetailRoute(doc);
+                            if (!route) return <span className="text-muted-foreground/30">-</span>;
+                            return (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="h-8 gap-1"
+                                title="ดูรายละเอียดในหน้าต้นทาง"
+                                onClick={() => navigate(route)}
+                              >
+                                <Eye className="h-3.5 w-3.5" />
+                                <span className="text-xs">ดู</span>
+                              </Button>
+                            );
+                          })()}
                         </TableCell>
                         <TableCell className="text-center pr-6">
                           {(() => {
