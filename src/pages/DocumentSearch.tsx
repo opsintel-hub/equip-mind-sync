@@ -82,7 +82,7 @@ interface DocumentRecord {
   unit: string;
   created_at: string;
   status: string;
-  source: "pending" | "received" | "issue" | "delivery_confirm" | "direct_shipping" | "advertisement" | "ad_issue";
+  source: "pending" | "received" | "issue" | "delivery_confirm" | "direct_shipping" | "advertisement" | "ad_issue" | "defective" | "assessment" | "claim" | "swap" | "stock_movement";
   // Extended fields for ProcessTracker
   raw?: any;
 }
@@ -243,6 +243,38 @@ export default function DocumentSearch() {
         .from("ad_issue_requests")
         .select("id, document_no, status, issued_quantity, issue_purpose, created_at, issued_at, confirmed_at, advertisements(code, name)")
         .order("created_at", { ascending: false });
+
+      // Fetch from defective_returns (นำของเสียเข้าระบบ)
+      const { data: defData } = await supabase
+        .from("defective_returns")
+        .select("id, document_no, status, dispose_status, disposal_method, quantity, reason, item_condition, source_type, reporter_name, reporter_department, created_at, equipment:equipment_id(code, name, unit), media_player:media_player_id(code, name)")
+        .order("created_at", { ascending: false });
+
+      // Fetch from assessment_logs (บันทึกการประเมิน)
+      const { data: asmData } = await supabase
+        .from("assessment_logs")
+        .select("id, document_no, status, outcome, serial_number, assessor_name, diagnosis_notes, created_at, equipment:equipment_id(code, name), media_player:media_player_id(code, name)")
+        .order("created_at", { ascending: false });
+
+      // Fetch from claim_records (ติดตามการเคลม)
+      const { data: claimData } = await supabase
+        .from("claim_records")
+        .select("id, document_no, status, supplier_name, serial_number, manufacturer, created_at, equipment:equipment_id(code, name), media_player:media_player_id(code, name)")
+        .order("created_at", { ascending: false });
+
+      // Fetch from swap_requests (Swap อุปกรณ์/MP)
+      const { data: swapData } = await supabase
+        .from("swap_requests")
+        .select("id, document_no, status, technician_name, reason, created_at")
+        .order("created_at", { ascending: false })
+        .limit(500);
+
+      // Fetch from stock_movements (Stock Card) — limit to recent for performance
+      const { data: smData } = await supabase
+        .from("stock_movements")
+        .select("id, equipment_code, equipment_name, movement_type, quantity, reference_document, reference_type, notes, item_condition, created_at")
+        .order("created_at", { ascending: false })
+        .limit(500);
 
       const pendingDocs: DocumentRecord[] = (pendingData || []).map((item: any) => ({
         id: item.id, document_no: item.document_no, document_url: item.document_url,
