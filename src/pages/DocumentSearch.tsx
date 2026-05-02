@@ -354,7 +354,66 @@ export default function DocumentSearch() {
         status: item.status, source: "ad_issue" as const, raw: item,
       }));
 
-      const merged = [...pendingDocs, ...receiptDocs, ...issueDocs, ...dcDocs, ...dsDocs, ...adDocs, ...adIssueDocs];
+      const defectiveDocs: DocumentRecord[] = (defData || []).map((item: any) => ({
+        id: item.id, document_no: item.document_no, document_url: null,
+        equipment_code: item.equipment?.code || item.media_player?.code || null,
+        equipment_name: item.equipment?.name || item.media_player?.name || null,
+        serial_number: null,
+        supplier_name: item.reporter_department || null,
+        delivery_person_name: item.reporter_name || null,
+        quantity: item.quantity || 0, unit: item.equipment?.unit || "ชิ้น",
+        created_at: item.created_at, status: item.status,
+        source: "defective" as const, raw: item,
+      }));
+
+      const assessmentDocs: DocumentRecord[] = (asmData || []).map((item: any) => ({
+        id: item.id, document_no: item.document_no, document_url: null,
+        equipment_code: item.equipment?.code || item.media_player?.code || null,
+        equipment_name: item.equipment?.name || item.media_player?.name || null,
+        serial_number: item.serial_number || null,
+        supplier_name: null, delivery_person_name: item.assessor_name,
+        quantity: 1, unit: "-", created_at: item.created_at, status: item.status,
+        source: "assessment" as const, raw: item,
+      }));
+
+      const claimDocs: DocumentRecord[] = (claimData || []).map((item: any) => ({
+        id: item.id, document_no: item.document_no, document_url: null,
+        equipment_code: item.equipment?.code || item.media_player?.code || null,
+        equipment_name: item.equipment?.name || item.media_player?.name || null,
+        serial_number: item.serial_number || null,
+        supplier_name: item.supplier_name || item.manufacturer || null, delivery_person_name: null,
+        quantity: 1, unit: "-", created_at: item.created_at, status: item.status,
+        source: "claim" as const, raw: item,
+      }));
+
+      const swapDocs: DocumentRecord[] = (swapData || []).map((item: any) => ({
+        id: item.id, document_no: item.document_no, document_url: null,
+        equipment_code: null, equipment_name: item.reason || null,
+        serial_number: null,
+        supplier_name: null, delivery_person_name: item.technician_name,
+        quantity: 0, unit: "-", created_at: item.created_at, status: item.status,
+        source: "swap" as const, raw: item,
+      }));
+
+      const stockMoveDocs: DocumentRecord[] = (smData || []).map((item: any) => ({
+        id: item.id,
+        document_no: item.reference_document || `SM-${item.id.slice(0, 8)}`,
+        document_url: null,
+        equipment_code: item.equipment_code,
+        equipment_name: item.equipment_name,
+        serial_number: null,
+        supplier_name: item.movement_type, delivery_person_name: item.notes || null,
+        quantity: Math.abs(item.quantity || 0), unit: "-",
+        created_at: item.created_at,
+        status: item.item_condition || item.movement_type,
+        source: "stock_movement" as const, raw: item,
+      }));
+
+      const merged = [
+        ...pendingDocs, ...receiptDocs, ...issueDocs, ...dcDocs, ...dsDocs,
+        ...adDocs, ...adIssueDocs,
+        ...defectiveDocs, ...assessmentDocs, ...claimDocs, ...swapDocs, ...stockMoveDocs,
+      ];
       // Sort newest first across all sources
       merged.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
       setDocuments(merged);
