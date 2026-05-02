@@ -311,16 +311,39 @@ export default function StockCard() {
     },
   });
 
-  // ── Fetch current billboard installations ──
+  // ── Fetch current billboard installations (equipment) ──
   const { data: currentInstallations = [] } = useQuery({
-    queryKey: ["stock-card-current-install", selectedItemId],
+    queryKey: ["stock-card-current-install", selectedItemId, selectedItemType],
     staleTime: 2 * 60 * 1000,
     enabled: !!selectedItemId,
     queryFn: async () => {
       if (!selectedItemId) return [];
+      if (selectedItemType === "media_player") {
+        const { data } = await supabase.from("media_player_billboard_history")
+          .select("*, billboards(equipment_id, location_name, description)")
+          .eq("media_player_id", selectedItemId)
+          .is("uninstall_date", null);
+        return (data || []).map((r: any) => ({ ...r, billboards: r.billboards }));
+      }
       const { data } = await supabase.from("billboard_equipment")
         .select("*, billboards(equipment_id, location_name, description)")
         .eq("equipment_id", selectedItemId);
+      return data || [];
+    },
+  });
+
+  // ── Fetch media-player billboard history (uninstalls) ──
+  const { data: mediaPlayerBillboardHistory = [] } = useQuery({
+    queryKey: ["stock-card-mp-billboard-history", selectedItemId, selectedItemType],
+    staleTime: 2 * 60 * 1000,
+    enabled: !!selectedItemId && selectedItemType === "media_player",
+    queryFn: async () => {
+      if (!selectedItemId) return [];
+      const { data } = await supabase.from("media_player_billboard_history")
+        .select("*, billboards(equipment_id, location_name, description)")
+        .eq("media_player_id", selectedItemId)
+        .not("uninstall_date", "is", null)
+        .order("uninstall_date", { ascending: false });
       return data || [];
     },
   });
@@ -390,7 +413,7 @@ export default function StockCard() {
       });
     });
 
-    // Billboard history (uninstalls)
+    // Billboard history (uninstalls) — equipment
     billboardHistory.forEach((h: any) => {
       const bbName = h.billboards?.equipment_id || h.billboards?.location_name || "ป้าย";
       events.push({
@@ -415,6 +438,31 @@ export default function StockCard() {
       }
     });
 
+    // Billboard history (uninstalls) — media player
+    mediaPlayerBillboardHistory.forEach((h: any) => {
+      const bbName = h.billboards?.equipment_id || h.billboards?.location_name || "ป้าย";
+      events.push({
+        date: h.uninstall_date,
+        type: "uninstall",
+        detail: `ถอดจาก ${bbName}${h.uninstall_reason ? ` — ${h.uninstall_reason}` : ""}`,
+        quantity: 1,
+        condition: null,
+        document: null,
+        billboard_name: bbName,
+      });
+      if (h.installation_date) {
+        events.push({
+          date: h.installation_date,
+          type: "install",
+          detail: `ติดตั้งที่ ${bbName}`,
+          quantity: 1,
+          condition: null,
+          document: null,
+          billboard_name: bbName,
+        });
+      }
+    });
+
     // Sort by date
     events.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
@@ -426,7 +474,7 @@ export default function StockCard() {
     }
 
     return events;
-  }, [selectedItemId, movements, billboardHistory]);
+  }, [selectedItemId, movements, billboardHistory, mediaPlayerBillboardHistory]);
 
   // ── Filtered timeline ──
   const filteredTimeline = useMemo(() => {
@@ -452,7 +500,7 @@ export default function StockCard() {
   } = useTablePagination(filteredTimeline, 20);
 
   const journeys: BillboardJourney[] = useMemo(() => {
-    return billboardHistory.map((h: any) => {
+    const fromEquipment = billboardHistory.map((h: any) => {
       const bbName = h.billboards?.equipment_id || h.billboards?.location_name || "-";
       const days = h.installation_date ? differenceInDays(parseISO(h.uninstall_date), parseISO(h.installation_date)) : null;
       return {
@@ -465,7 +513,21 @@ export default function StockCard() {
         quantity: h.quantity,
       };
     });
-  }, [billboardHistory]);
+    const fromMP = mediaPlayerBillboardHistory.map((h: any) => {
+      const bbName = h.billboards?.equipment_id || h.billboards?.location_name || "-";
+      const days = h.installation_date && h.uninstall_date ? differenceInDays(parseISO(h.uninstall_date), parseISO(h.installation_date)) : null;
+      return {
+        billboard_id: h.billboard_id,
+        billboard_name: bbName,
+        installation_date: h.installation_date,
+        uninstall_date: h.uninstall_date,
+        duration_days: days,
+        uninstall_reason: h.uninstall_reason,
+        quantity: 1,
+      };
+    });
+    return [...fromEquipment, ...fromMP];
+  }, [billboardHistory, mediaPlayerBillboardHistory]);
 
   // ── Stats for S/N items ──
   const stats = useMemo(() => {
