@@ -598,7 +598,7 @@ export default function DocumentSearch() {
           ) : (
             <>
             <div className="max-w-full overflow-auto rounded-lg border" style={{ maxHeight: "70vh" }}>
-              <Table className="min-w-[1700px]">
+              <Table className="min-w-[1800px]">
                 <TableHeader>
                   <TableRow className="hover:bg-transparent border-border/40">
                     <TableHead className="text-xs font-semibold text-muted-foreground pl-6 min-w-[180px]">เลขที่เอกสาร</TableHead>
