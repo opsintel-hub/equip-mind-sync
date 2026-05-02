@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -43,6 +44,7 @@ const OUTCOME_OPTIONS = [
 
 export function AssessmentCompleteDialog({ open, onOpenChange, log, onCompleted }: Props) {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [submitting, setSubmitting] = useState(false);
 
   const [symptomId, setSymptomId] = useState("");
@@ -149,8 +151,30 @@ export function AssessmentCompleteDialog({ open, onOpenChange, log, onCompleted 
     }
 
     // Outcome side-effects
+    let createdDefectiveDocNo: string | null = null;
     try {
-      if (outcome === "claim") {
+      if (outcome === "defective") {
+        // Auto-create defective_returns row (pending warehouse entry — stock not yet cut)
+        const { data: drRow } = await supabase
+          .from("defective_returns")
+          .insert({
+            equipment_id: log.equipment_id,
+            media_player_id: log.media_player_id,
+            is_media_player: !!log.media_player_id,
+            quantity: 1,
+            item_condition: "defective",
+            reason: `จากการประเมิน ${log.document_no}: ${diagnosisNotes.trim() || symptomDescription.trim() || "ซ่อมไม่ได้"}`,
+            status: "pending_warehouse_entry",
+            source_type: "from_assessment",
+            assessment_log_id: log.id,
+            dispose_status: "pending_disposal_review",
+            notes: log.serial_number ? `S/N: ${log.serial_number}` : null,
+            created_by: user?.id ?? null,
+          } as any)
+          .select("document_no")
+          .maybeSingle();
+        createdDefectiveDocNo = drRow?.document_no || null;
+      } else if (outcome === "claim") {
         await supabase.from("claim_records").insert({
           document_no: "",
           subject_type: log.media_player_id ? "media_player" : "equipment",
@@ -186,14 +210,35 @@ export function AssessmentCompleteDialog({ open, onOpenChange, log, onCompleted 
     }
 
     setSubmitting(false);
-    toast.success(
-      outcome === "defective"
-        ? "บันทึกแล้ว — กรุณาไปที่เมนู 'นำของเสียเข้าระบบ' เพื่อตัด Stock"
-        : outcome === "claim"
-        ? "บันทึกและสร้างคำขอเคลมแล้ว — ติดตามที่เมนู 'ติดตามการเคลม'"
-        : "บันทึกการประเมินเสร็จสิ้น"
-    );
-    onCompleted();
+    if (outcome === "defective") {
+      toast.success(
+        `สร้างใบของเสีย ${createdDefectiveDocNo || ""} แล้ว — กำลังพาไปยืนยันที่เมนู "นำของเสียเข้าระบบ"`,
+        { duration: 4000 }
+      );
+      onCompleted();
+      // Navigate to defective entry with prefill so warehouse staff can confirm + cut stock
+      setTimeout(() => {
+        navigate("/defective-return-entry", {
+          state: {
+            fromAssessment: {
+              assessmentLogId: log.id,
+              isMediaPlayer: !!log.media_player_id,
+              itemId: log.media_player_id || log.equipment_id,
+              serial: log.serial_number,
+              reason: diagnosisNotes.trim() || symptomDescription.trim(),
+              docNo: createdDefectiveDocNo,
+            },
+          },
+        });
+      }, 400);
+    } else {
+      toast.success(
+        outcome === "claim"
+          ? "บันทึกและสร้างคำขอเคลมแล้ว — ติดตามที่เมนู 'ติดตามการเคลม'"
+          : "บันทึกการประเมินเสร็จสิ้น"
+      );
+      onCompleted();
+    }
   };
 
   return (
