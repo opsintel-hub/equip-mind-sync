@@ -439,6 +439,12 @@ function formatRelativeTimeTh(dateStr: string): string {
   return `${Math.floor(mo / 12)} ปีที่แล้ว`;
 }
 
+type LocationInfo = {
+  kind: "billboard" | "warehouse" | "issued" | "defective" | "unknown";
+  label: string;
+  sublabel?: string;
+};
+
 export default function DocumentSearch() {
   const navigate = useNavigate();
   const [documents, setDocuments] = useState<DocumentRecord[]>([]);
@@ -449,6 +455,8 @@ export default function DocumentSearch() {
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
   const [hasSearched, setHasSearched] = useState(false);
   const [previewState, setPreviewState] = useState<{ title: string; categories: DocumentCategory[] } | null>(null);
+  /** Map: serial_number(lowercased) -> current location info */
+  const [snLocationMap, setSnLocationMap] = useState<Map<string, LocationInfo>>(new Map());
 
   /** Map a document record to a route + query params for "ดูรายละเอียด". Returns null when no detail page exists. */
   const getDetailRoute = (doc: DocumentRecord): string | null => {
