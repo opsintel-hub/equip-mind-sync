@@ -837,17 +837,19 @@ export default function DocumentSearch() {
           ) : (
             <>
             <div className="max-w-full overflow-auto rounded-lg border" style={{ maxHeight: "70vh" }}>
-              <Table className="min-w-[1800px]">
-                <TableHeader>
+              <Table className="min-w-[2100px]">
+                <TableHeader className="sticky top-0 z-20 bg-background">
                   <TableRow className="hover:bg-transparent border-border/40">
-                    <TableHead className="text-xs font-semibold text-muted-foreground pl-6 min-w-[180px]">เลขที่เอกสาร</TableHead>
+                    <TableHead className="text-xs font-semibold text-muted-foreground pl-6 min-w-[180px] sticky left-0 z-30 bg-background shadow-[1px_0_0_0_hsl(var(--border))]">เลขที่เอกสาร</TableHead>
                     <TableHead className="text-xs font-semibold text-muted-foreground min-w-[140px]">ประเภท</TableHead>
+                    <TableHead className="text-xs font-semibold text-muted-foreground min-w-[140px]">สถานะปัจจุบัน</TableHead>
                     <TableHead className="text-xs font-semibold text-muted-foreground min-w-[260px]">รหัส/ชื่ออุปกรณ์</TableHead>
                     <TableHead className="text-xs font-semibold text-muted-foreground min-w-[220px]">Serial Number</TableHead>
                     <TableHead className="text-xs font-semibold text-muted-foreground min-w-[200px]">ผู้จำหน่าย/ผู้ขอ</TableHead>
                     <TableHead className="text-xs font-semibold text-muted-foreground text-right min-w-[140px]" title="จำนวนรวมในเอกสารนี้">จำนวนในเอกสาร</TableHead>
-                    <TableHead className="text-xs font-semibold text-muted-foreground min-w-[120px]">วันที่</TableHead>
+                    <TableHead className="text-xs font-semibold text-muted-foreground min-w-[140px]">วันที่สร้าง</TableHead>
                     <TableHead className="text-xs font-semibold text-muted-foreground min-w-[280px]">ความคืบหน้า</TableHead>
+                    <TableHead className="text-xs font-semibold text-muted-foreground min-w-[140px]">อัปเดตล่าสุด</TableHead>
                     <TableHead className="text-xs font-semibold text-muted-foreground text-center pr-6 min-w-[120px]">เอกสาร</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -857,10 +859,14 @@ export default function DocumentSearch() {
                     const snList = doc.serial_number
                       ? doc.serial_number.split(/[,\n]/).map((s) => s.trim()).filter(Boolean)
                       : [];
+                    const statusInfo = getCurrentStatusBadge(doc);
+                    const r = doc.raw || {};
+                    const lastUpdate = r.confirmed_at || r.issued_at || r.approved_at || r.received_at || r.updated_at || doc.created_at;
                     return (
                       <TableRow key={`${doc.source}-${doc.id}`} className="border-border/30 hover:bg-muted/30">
-                        <TableCell className="font-mono text-xs font-medium pl-6 whitespace-nowrap">{doc.document_no}</TableCell>
+                        <TableCell className="font-mono text-xs font-medium pl-6 whitespace-nowrap sticky left-0 z-10 bg-background shadow-[1px_0_0_0_hsl(var(--border))]">{doc.document_no}</TableCell>
                         <TableCell>{getSourceBadge(doc.source)}</TableCell>
+                        <TableCell><Badge variant={statusInfo.variant}>{statusInfo.label}</Badge></TableCell>
                         <TableCell>
                           {doc.equipment_code || doc.equipment_name ? (
                             <div className="space-y-0.5">
@@ -893,8 +899,12 @@ export default function DocumentSearch() {
                           {trackerSteps ? (
                             <ProcessTracker steps={trackerSteps} size="sm" />
                           ) : (
-                            getStatusBadgeFallback(doc.status, doc.source)
+                            <span className="text-muted-foreground/40 text-xs">-</span>
                           )}
+                        </TableCell>
+                        <TableCell className="text-xs whitespace-nowrap">
+                          <div className="text-foreground tabular-nums">{format(new Date(lastUpdate), "dd/MM/yy HH:mm", { locale: th })}</div>
+                          <div className="text-muted-foreground">{formatRelativeTimeTh(lastUpdate)}</div>
                         </TableCell>
                         <TableCell className="text-center pr-6">
                           {(() => {
