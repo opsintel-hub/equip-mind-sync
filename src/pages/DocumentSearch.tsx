@@ -889,7 +889,7 @@ export default function DocumentSearch() {
           ) : (
             <>
             <div className="max-w-full overflow-auto rounded-lg border" style={{ maxHeight: "70vh" }}>
-              <Table className="min-w-[2100px]">
+              <Table className="min-w-[2400px]">
                 <TableHeader className="sticky top-0 z-20 bg-background">
                   <TableRow className="hover:bg-transparent border-border/40">
                     <TableHead className="text-xs font-semibold text-muted-foreground pl-6 min-w-[180px] sticky left-0 z-30 bg-background shadow-[1px_0_0_0_hsl(var(--border))]">เลขที่เอกสาร</TableHead>
@@ -897,6 +897,7 @@ export default function DocumentSearch() {
                     <TableHead className="text-xs font-semibold text-muted-foreground min-w-[140px]">สถานะปัจจุบัน</TableHead>
                     <TableHead className="text-xs font-semibold text-muted-foreground min-w-[260px]">รหัส/ชื่ออุปกรณ์</TableHead>
                     <TableHead className="text-xs font-semibold text-muted-foreground min-w-[220px]">Serial Number</TableHead>
+                    <TableHead className="text-xs font-semibold text-muted-foreground min-w-[220px]" title="ตำแหน่งปัจจุบันของอุปกรณ์/S/N">ตำแหน่งปัจจุบัน</TableHead>
                     <TableHead className="text-xs font-semibold text-muted-foreground min-w-[200px]">ผู้จำหน่าย/ผู้ขอ</TableHead>
                     <TableHead className="text-xs font-semibold text-muted-foreground text-right min-w-[140px]" title="จำนวนรวมในเอกสารนี้">จำนวนในเอกสาร</TableHead>
                     <TableHead className="text-xs font-semibold text-muted-foreground min-w-[140px]">วันที่สร้าง</TableHead>
