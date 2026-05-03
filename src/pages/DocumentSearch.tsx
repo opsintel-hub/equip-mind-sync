@@ -945,6 +945,41 @@ export default function DocumentSearch() {
                             <span className="text-muted-foreground/40">-</span>
                           )}
                         </TableCell>
+                        <TableCell className="text-xs">
+                          {(() => {
+                            if (snList.length === 0) return <span className="text-muted-foreground/40">-</span>;
+                            const infos = snList.map((sn) => ({ sn, info: snLocationMap.get(sn.toLowerCase()) }));
+                            const known = infos.filter((x) => x.info);
+                            if (known.length === 0) return <span className="text-muted-foreground/40">ไม่มีข้อมูล</span>;
+                            // Group by label+sublabel
+                            const groups = new Map<string, { info: LocationInfo; sns: string[] }>();
+                            for (const { sn, info } of infos) {
+                              if (!info) continue;
+                              const key = `${info.kind}|${info.label}|${info.sublabel || ""}`;
+                              if (!groups.has(key)) groups.set(key, { info, sns: [] });
+                              groups.get(key)!.sns.push(sn);
+                            }
+                            const colorFor = (k: LocationInfo["kind"]) =>
+                              k === "billboard" ? "info"
+                              : k === "warehouse" ? "success"
+                              : k === "defective" ? "destructive"
+                              : k === "issued" ? "warning"
+                              : "outline";
+                            return (
+                              <div className="space-y-1 max-w-[220px]">
+                                {Array.from(groups.values()).map((g, i) => (
+                                  <div key={i} className="space-y-0.5">
+                                    <Badge variant={colorFor(g.info.kind) as any} className="text-[10px]">{g.info.label}</Badge>
+                                    {g.info.sublabel && <div className="text-[10px] text-muted-foreground leading-tight">{g.info.sublabel}</div>}
+                                    {groups.size > 1 && (
+                                      <div className="text-[9px] text-muted-foreground/70 font-mono">{g.sns.join(", ")}</div>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                            );
+                          })()}
+                        </TableCell>
                         <TableCell className="text-sm">{doc.supplier_name || doc.delivery_person_name || <span className="text-muted-foreground/40">-</span>}</TableCell>
                         <TableCell className="text-right text-sm tabular-nums whitespace-nowrap">{doc.quantity > 0 ? `${doc.quantity} ${doc.unit}` : <span className="text-muted-foreground/40">-</span>}</TableCell>
                         <TableCell className="text-sm tabular-nums whitespace-nowrap">{format(new Date(doc.created_at), "dd/MM/yyyy", { locale: th })}</TableCell>
