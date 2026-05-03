@@ -190,7 +190,253 @@ function getDocumentProcessSteps(doc: DocumentRecord): ProcessStep[] | null {
     return steps;
   }
 
+  // Delivery confirmation
+  if (doc.source === "delivery_confirm") {
+    const status = doc.status;
+    const steps: ProcessStep[] = [
+      { label: "สร้างเอกสาร", status: "done", date: raw.created_at },
+    ];
+    if (status === "confirmed") {
+      steps.push({ label: "ยืนยันรับ", status: "done", date: raw.confirmed_at });
+    } else if (status === "issue_reported") {
+      steps.push({ label: "แจ้งปัญหา", status: "warning" });
+    } else {
+      steps.push({ label: "รอยืนยัน", status: "current" });
+    }
+    return steps;
+  }
+
+  // Ad issue requests
+  if (doc.source === "ad_issue") {
+    const status = doc.status;
+    const steps: ProcessStep[] = [
+      { label: "ขอเบิก", status: "done", date: raw.created_at },
+    ];
+    if (status === "rejected") {
+      steps.push({ label: "อนุมัติ", status: "rejected", sublabel: "ปฏิเสธ" });
+      steps.push({ label: "ส่งมอบ", status: "pending" });
+      steps.push({ label: "ยืนยันรับ", status: "pending" });
+    } else {
+      steps.push({ label: "อนุมัติ", status: status === "pending" ? "current" : "done", date: raw.approved_at });
+      if (status === "issued" || status === "confirmed" || status === "completed") {
+        steps.push({ label: "ส่งมอบ", status: "done", date: raw.issued_at });
+        steps.push({ label: "ยืนยันรับ", status: (status === "confirmed" || status === "completed") ? "done" : "current", date: raw.confirmed_at });
+      } else {
+        steps.push({ label: "ส่งมอบ", status: status === "approved" ? "current" : "pending" });
+        steps.push({ label: "ยืนยันรับ", status: "pending" });
+      }
+    }
+    return steps;
+  }
+
+  // Advertisement (รับโฆษณา lifecycle)
+  if (doc.source === "advertisement") {
+    const status = doc.status;
+    const steps: ProcessStep[] = [
+      { label: "สร้าง", status: "done", date: raw.created_at },
+    ];
+    if (status === "pending_warehouse_entry" || status === "pending") {
+      steps.push({ label: "รอเข้าคลัง", status: "current" });
+      steps.push({ label: "อยู่ในคลัง", status: "pending" });
+      steps.push({ label: "เบิกใช้", status: "pending" });
+    } else if (status === "in_storage") {
+      steps.push({ label: "เข้าคลัง", status: "done" });
+      steps.push({ label: "อยู่ในคลัง", status: "current" });
+      steps.push({ label: "เบิกใช้", status: "pending" });
+    } else if (status === "issued" || status === "completed") {
+      steps.push({ label: "เข้าคลัง", status: "done" });
+      steps.push({ label: "อยู่ในคลัง", status: "done" });
+      steps.push({ label: "เบิกใช้", status: "done" });
+    } else {
+      steps.push({ label: "ดำเนินการ", status: "current" });
+    }
+    return steps;
+  }
+
+  // Defective return
+  if (doc.source === "defective") {
+    const status = doc.status;
+    const steps: ProcessStep[] = [
+      { label: "แจ้งเสีย", status: "done", date: raw.created_at },
+    ];
+    if (status === "rejected") {
+      steps.push({ label: "อนุมัติ", status: "rejected", sublabel: "ปฏิเสธ" });
+      steps.push({ label: "จัดการ", status: "pending" });
+    } else if (status === "pending_approval") {
+      steps.push({ label: "รออนุมัติ", status: "current" });
+      steps.push({ label: "จัดการ", status: "pending" });
+    } else if (status === "pending_warehouse_entry") {
+      steps.push({ label: "อนุมัติแล้ว", status: "done" });
+      steps.push({ label: "รอเข้าคลังของเสีย", status: "current" });
+    } else if (status === "completed" || status === "disposed") {
+      steps.push({ label: "อนุมัติ", status: "done" });
+      steps.push({ label: "จัดการเสร็จ", status: "done" });
+    } else {
+      steps.push({ label: "ดำเนินการ", status: "current" });
+      steps.push({ label: "เสร็จสิ้น", status: "pending" });
+    }
+    return steps;
+  }
+
+  // Assessment
+  if (doc.source === "assessment") {
+    const status = doc.status;
+    const steps: ProcessStep[] = [
+      { label: "สร้างเอกสาร", status: "done", date: raw.created_at },
+    ];
+    if (status === "completed") {
+      steps.push({ label: "ประเมินแล้ว", status: "done", sublabel: raw.outcome || undefined });
+    } else if (status === "rejected") {
+      steps.push({ label: "ยกเลิก", status: "rejected" });
+    } else {
+      steps.push({ label: "รอประเมิน", status: "current" });
+    }
+    return steps;
+  }
+
+  // Claim
+  if (doc.source === "claim") {
+    const status = doc.status;
+    const steps: ProcessStep[] = [
+      { label: "เปิดเคลม", status: "done", date: raw.created_at },
+    ];
+    if (status === "rejected") {
+      steps.push({ label: "ส่งเคลม", status: "rejected" });
+      steps.push({ label: "ปิดงาน", status: "pending" });
+    } else if (status === "pending") {
+      steps.push({ label: "ส่งเคลม", status: "current" });
+      steps.push({ label: "ปิดงาน", status: "pending" });
+    } else if (status === "sent" || status === "in_progress") {
+      steps.push({ label: "ส่งเคลมแล้ว", status: "done" });
+      steps.push({ label: "รอตอบกลับ", status: "current" });
+    } else if (status === "replaced" || status === "completed" || status === "closed") {
+      steps.push({ label: "ส่งเคลม", status: "done" });
+      steps.push({ label: "ปิดงาน", status: "done" });
+    } else {
+      steps.push({ label: "ดำเนินการ", status: "current" });
+    }
+    return steps;
+  }
+
+  // Swap
+  if (doc.source === "swap") {
+    const status = doc.status;
+    const steps: ProcessStep[] = [
+      { label: "สร้างคำขอ", status: "done", date: raw.created_at },
+    ];
+    if (status === "rejected") {
+      steps.push({ label: "อนุมัติ", status: "rejected" });
+      steps.push({ label: "สลับเสร็จ", status: "pending" });
+    } else if (status === "pending") {
+      steps.push({ label: "รออนุมัติ", status: "current" });
+      steps.push({ label: "สลับเสร็จ", status: "pending" });
+    } else if (status === "approved" || status === "in_progress") {
+      steps.push({ label: "อนุมัติ", status: "done" });
+      steps.push({ label: "กำลังสลับ", status: "current" });
+    } else if (status === "completed") {
+      steps.push({ label: "อนุมัติ", status: "done" });
+      steps.push({ label: "สลับเสร็จ", status: "done" });
+    } else {
+      steps.push({ label: "ดำเนินการ", status: "current" });
+    }
+    return steps;
+  }
+
+  // Stock movement (single-step)
+  if (doc.source === "stock_movement") {
+    return [
+      { label: "บันทึก", status: "done", date: raw.created_at },
+    ];
+  }
+
   return null;
+}
+
+/** Returns Thai-friendly current status badge for any source. */
+function getCurrentStatusBadge(doc: DocumentRecord): { label: string; variant: "default" | "secondary" | "destructive" | "outline" | "success" | "warning" | "info" | "purple" } {
+  const s = doc.status;
+  const src = doc.source;
+
+  // Common statuses
+  if (s === "rejected") return { label: "ปฏิเสธ", variant: "destructive" };
+  if (s === "cancelled") return { label: "ยกเลิก", variant: "destructive" };
+
+  switch (src) {
+    case "pending":
+      return s === "received" ? { label: "รับเข้าคลังแล้ว", variant: "success" } : { label: "รอตรวจรับ", variant: "warning" };
+    case "received":
+      return { label: "รับเข้าคลังแล้ว", variant: "success" };
+    case "issue":
+      if (s === "issued") return { label: "จ่ายแล้ว", variant: "success" };
+      if (s === "waiting_stock") return { label: "รอสินค้า", variant: "warning" };
+      if (s === "pending_approval") return { label: "รออนุมัติ", variant: "warning" };
+      if (s === "approved") return { label: "รอจ่ายสินค้า", variant: "info" };
+      if (s === "completed") return { label: "เสร็จสิ้น", variant: "success" };
+      return { label: "รอดำเนินการ", variant: "warning" };
+    case "delivery_confirm":
+      if (s === "confirmed") return { label: "ยืนยันแล้ว", variant: "success" };
+      if (s === "issue_reported") return { label: "แจ้งปัญหา", variant: "destructive" };
+      return { label: "รอยืนยัน", variant: "warning" };
+    case "direct_shipping":
+      if (s === "confirmed") return { label: "ยืนยันแล้ว", variant: "success" };
+      if (s === "pending_confirmation") return { label: "รอผู้รับยืนยัน", variant: "warning" };
+      if (s === "approved") return { label: "อนุมัติ-รอส่ง", variant: "info" };
+      if (s === "issue_reported") return { label: "มีปัญหา", variant: "destructive" };
+      return { label: "รออนุมัติ", variant: "warning" };
+    case "advertisement":
+      if (s === "in_storage") return { label: "อยู่ในคลัง", variant: "info" };
+      if (s === "pending_warehouse_entry") return { label: "รอเข้าคลัง", variant: "warning" };
+      if (s === "issued") return { label: "ถูกเบิกใช้", variant: "purple" };
+      if (s === "completed") return { label: "เสร็จสิ้น", variant: "success" };
+      return { label: s, variant: "outline" };
+    case "ad_issue":
+      if (s === "issued") return { label: "ส่งมอบแล้ว", variant: "info" };
+      if (s === "confirmed" || s === "completed") return { label: "ยืนยันรับแล้ว", variant: "success" };
+      if (s === "approved") return { label: "อนุมัติแล้ว", variant: "info" };
+      return { label: "รออนุมัติ", variant: "warning" };
+    case "defective":
+      if (s === "pending_approval") return { label: "รออนุมัติทำลาย", variant: "warning" };
+      if (s === "pending_warehouse_entry") return { label: "รอเข้าคลังของเสีย", variant: "warning" };
+      if (s === "completed" || s === "disposed") return { label: "จัดการเสร็จ", variant: "success" };
+      return { label: s, variant: "outline" };
+    case "assessment":
+      if (s === "completed") return { label: "ประเมินแล้ว", variant: "success" };
+      return { label: "รอประเมิน", variant: "warning" };
+    case "claim":
+      if (s === "replaced" || s === "completed" || s === "closed") return { label: "ปิดเคลมแล้ว", variant: "success" };
+      if (s === "sent" || s === "in_progress") return { label: "อยู่ระหว่างเคลม", variant: "info" };
+      return { label: "รอเคลม", variant: "warning" };
+    case "swap":
+      if (s === "completed") return { label: "สลับเสร็จ", variant: "success" };
+      if (s === "approved" || s === "in_progress") return { label: "กำลังสลับ", variant: "info" };
+      return { label: "รออนุมัติ", variant: "warning" };
+    case "stock_movement": {
+      const mt = (doc.raw?.movement_type || "").toLowerCase();
+      if (mt.includes("in") || mt === "receive") return { label: "รับเข้า", variant: "success" };
+      if (mt.includes("out") || mt === "issue") return { label: "จ่ายออก", variant: "info" };
+      if (mt.includes("transfer")) return { label: "โอน", variant: "purple" };
+      if (mt.includes("adjust")) return { label: "ปรับสต็อก", variant: "warning" };
+      return { label: doc.raw?.movement_type || s || "-", variant: "outline" };
+    }
+    default:
+      return { label: s || "-", variant: "outline" };
+  }
+}
+
+/** Format relative time in Thai (e.g., "2 ชม.ที่แล้ว"). */
+function formatRelativeTimeTh(dateStr: string): string {
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const sec = Math.floor(diff / 1000);
+  if (sec < 60) return "เมื่อสักครู่";
+  const min = Math.floor(sec / 60);
+  if (min < 60) return `${min} นาทีที่แล้ว`;
+  const hr = Math.floor(min / 60);
+  if (hr < 24) return `${hr} ชม.ที่แล้ว`;
+  const day = Math.floor(hr / 24);
+  if (day < 30) return `${day} วันที่แล้ว`;
+  const mo = Math.floor(day / 30);
+  if (mo < 12) return `${mo} เดือนที่แล้ว`;
+  return `${Math.floor(mo / 12)} ปีที่แล้ว`;
 }
 
 export default function DocumentSearch() {
@@ -505,14 +751,7 @@ export default function DocumentSearch() {
     }
   };
 
-  const getStatusBadgeFallback = (status: string, source: string) => {
-    if (source === "delivery_confirm") {
-      if (status === "confirmed") return <Badge className="bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-400">ยืนยันแล้ว</Badge>;
-      if (status === "issue_reported") return <Badge variant="destructive">แจ้งปัญหา</Badge>;
-      return <Badge variant="secondary">{status}</Badge>;
-    }
-    return <Badge variant="outline">{status}</Badge>;
-  };
+  // Old fallback removed — getCurrentStatusBadge now provides unified Thai labels for every source.
 
   return (
     <div className="space-y-5">
@@ -598,17 +837,19 @@ export default function DocumentSearch() {
           ) : (
             <>
             <div className="max-w-full overflow-auto rounded-lg border" style={{ maxHeight: "70vh" }}>
-              <Table className="min-w-[1800px]">
-                <TableHeader>
+              <Table className="min-w-[2100px]">
+                <TableHeader className="sticky top-0 z-20 bg-background">
                   <TableRow className="hover:bg-transparent border-border/40">
-                    <TableHead className="text-xs font-semibold text-muted-foreground pl-6 min-w-[180px]">เลขที่เอกสาร</TableHead>
+                    <TableHead className="text-xs font-semibold text-muted-foreground pl-6 min-w-[180px] sticky left-0 z-30 bg-background shadow-[1px_0_0_0_hsl(var(--border))]">เลขที่เอกสาร</TableHead>
                     <TableHead className="text-xs font-semibold text-muted-foreground min-w-[140px]">ประเภท</TableHead>
+                    <TableHead className="text-xs font-semibold text-muted-foreground min-w-[140px]">สถานะปัจจุบัน</TableHead>
                     <TableHead className="text-xs font-semibold text-muted-foreground min-w-[260px]">รหัส/ชื่ออุปกรณ์</TableHead>
                     <TableHead className="text-xs font-semibold text-muted-foreground min-w-[220px]">Serial Number</TableHead>
                     <TableHead className="text-xs font-semibold text-muted-foreground min-w-[200px]">ผู้จำหน่าย/ผู้ขอ</TableHead>
                     <TableHead className="text-xs font-semibold text-muted-foreground text-right min-w-[140px]" title="จำนวนรวมในเอกสารนี้">จำนวนในเอกสาร</TableHead>
-                    <TableHead className="text-xs font-semibold text-muted-foreground min-w-[120px]">วันที่</TableHead>
+                    <TableHead className="text-xs font-semibold text-muted-foreground min-w-[140px]">วันที่สร้าง</TableHead>
                     <TableHead className="text-xs font-semibold text-muted-foreground min-w-[280px]">ความคืบหน้า</TableHead>
+                    <TableHead className="text-xs font-semibold text-muted-foreground min-w-[140px]">อัปเดตล่าสุด</TableHead>
                     <TableHead className="text-xs font-semibold text-muted-foreground text-center pr-6 min-w-[120px]">เอกสาร</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -618,10 +859,14 @@ export default function DocumentSearch() {
                     const snList = doc.serial_number
                       ? doc.serial_number.split(/[,\n]/).map((s) => s.trim()).filter(Boolean)
                       : [];
+                    const statusInfo = getCurrentStatusBadge(doc);
+                    const r = doc.raw || {};
+                    const lastUpdate = r.confirmed_at || r.issued_at || r.approved_at || r.received_at || r.updated_at || doc.created_at;
                     return (
                       <TableRow key={`${doc.source}-${doc.id}`} className="border-border/30 hover:bg-muted/30">
-                        <TableCell className="font-mono text-xs font-medium pl-6 whitespace-nowrap">{doc.document_no}</TableCell>
+                        <TableCell className="font-mono text-xs font-medium pl-6 whitespace-nowrap sticky left-0 z-10 bg-background shadow-[1px_0_0_0_hsl(var(--border))]">{doc.document_no}</TableCell>
                         <TableCell>{getSourceBadge(doc.source)}</TableCell>
+                        <TableCell><Badge variant={statusInfo.variant}>{statusInfo.label}</Badge></TableCell>
                         <TableCell>
                           {doc.equipment_code || doc.equipment_name ? (
                             <div className="space-y-0.5">
@@ -654,8 +899,12 @@ export default function DocumentSearch() {
                           {trackerSteps ? (
                             <ProcessTracker steps={trackerSteps} size="sm" />
                           ) : (
-                            getStatusBadgeFallback(doc.status, doc.source)
+                            <span className="text-muted-foreground/40 text-xs">-</span>
                           )}
+                        </TableCell>
+                        <TableCell className="text-xs whitespace-nowrap">
+                          <div className="text-foreground tabular-nums">{format(new Date(lastUpdate), "dd/MM/yy HH:mm", { locale: th })}</div>
+                          <div className="text-muted-foreground">{formatRelativeTimeTh(lastUpdate)}</div>
                         </TableCell>
                         <TableCell className="text-center pr-6">
                           {(() => {
