@@ -439,6 +439,12 @@ function formatRelativeTimeTh(dateStr: string): string {
   return `${Math.floor(mo / 12)} ปีที่แล้ว`;
 }
 
+type LocationInfo = {
+  kind: "billboard" | "warehouse" | "issued" | "defective" | "unknown";
+  label: string;
+  sublabel?: string;
+};
+
 export default function DocumentSearch() {
   const navigate = useNavigate();
   const [documents, setDocuments] = useState<DocumentRecord[]>([]);
@@ -449,6 +455,8 @@ export default function DocumentSearch() {
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
   const [hasSearched, setHasSearched] = useState(false);
   const [previewState, setPreviewState] = useState<{ title: string; categories: DocumentCategory[] } | null>(null);
+  /** Map: serial_number(lowercased) -> current location info */
+  const [snLocationMap, setSnLocationMap] = useState<Map<string, LocationInfo>>(new Map());
 
   /** Map a document record to a route + query params for "ดูรายละเอียด". Returns null when no detail page exists. */
   const getDetailRoute = (doc: DocumentRecord): string | null => {
@@ -698,6 +706,50 @@ export default function DocumentSearch() {
       // Sort newest first across all sources
       merged.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
       setDocuments(merged);
+
+      // Build S/N -> current location map (equipment serials + media players)
+      const [esnRes, mpRes] = await Promise.all([
+        supabase.from("equipment_serial_numbers")
+          .select("serial_number, status, billboard_id, location_id, billboards(code, name, location_name), locations(code, name, warehouses(name))"),
+        supabase.from("media_players")
+          .select("serial_number_1, serial_number_2, status, billboard_id, location_id, billboards(code, name, location_name), locations(code, name, warehouses(name))"),
+      ]);
+      const map = new Map<string, LocationInfo>();
+      const buildInfo = (row: any): LocationInfo => {
+        const status = (row.status || "").toLowerCase();
+        if (row.billboard_id && row.billboards) {
+          const bb = row.billboards;
+          return {
+            kind: "billboard",
+            label: `ป้าย ${bb.code || ""}`.trim(),
+            sublabel: bb.location_name || bb.name || undefined,
+          };
+        }
+        if (row.location_id && row.locations) {
+          const loc = row.locations;
+          const wh = loc.warehouses?.name;
+          const isDefect = (loc.code || "").toUpperCase().includes("DEFECT") || (loc.name || "").includes("ของเสีย");
+          return {
+            kind: isDefect ? "defective" : "warehouse",
+            label: isDefect ? "คลังของเสีย" : `คลัง ${wh || ""}`.trim(),
+            sublabel: `${loc.code || ""} ${loc.name || ""}`.trim() || undefined,
+          };
+        }
+        if (status === "issued" || status === "out") return { kind: "issued", label: "ถูกเบิกออกแล้ว" };
+        return { kind: "unknown", label: "ไม่ทราบตำแหน่ง" };
+      };
+      for (const r of (esnRes.data || []) as any[]) {
+        const sn = (r.serial_number || "").trim();
+        if (sn) map.set(sn.toLowerCase(), buildInfo(r));
+      }
+      for (const r of (mpRes.data || []) as any[]) {
+        const info = buildInfo(r);
+        for (const sn of [r.serial_number_1, r.serial_number_2]) {
+          const k = (sn || "").trim();
+          if (k) map.set(k.toLowerCase(), info);
+        }
+      }
+      setSnLocationMap(map);
     } catch (error) {
       console.error("Error fetching documents:", error);
       toast.error("ไม่สามารถโหลดเอกสารได้");
@@ -837,7 +889,7 @@ export default function DocumentSearch() {
           ) : (
             <>
             <div className="max-w-full overflow-auto rounded-lg border" style={{ maxHeight: "70vh" }}>
-              <Table className="min-w-[2100px]">
+              <Table className="min-w-[2400px]">
                 <TableHeader className="sticky top-0 z-20 bg-background">
                   <TableRow className="hover:bg-transparent border-border/40">
                     <TableHead className="text-xs font-semibold text-muted-foreground pl-6 min-w-[180px] sticky left-0 z-30 bg-background shadow-[1px_0_0_0_hsl(var(--border))]">เลขที่เอกสาร</TableHead>
@@ -845,6 +897,7 @@ export default function DocumentSearch() {
                     <TableHead className="text-xs font-semibold text-muted-foreground min-w-[140px]">สถานะปัจจุบัน</TableHead>
                     <TableHead className="text-xs font-semibold text-muted-foreground min-w-[260px]">รหัส/ชื่ออุปกรณ์</TableHead>
                     <TableHead className="text-xs font-semibold text-muted-foreground min-w-[220px]">Serial Number</TableHead>
+                    <TableHead className="text-xs font-semibold text-muted-foreground min-w-[220px]" title="ตำแหน่งปัจจุบันของอุปกรณ์/S/N">ตำแหน่งปัจจุบัน</TableHead>
                     <TableHead className="text-xs font-semibold text-muted-foreground min-w-[200px]">ผู้จำหน่าย/ผู้ขอ</TableHead>
                     <TableHead className="text-xs font-semibold text-muted-foreground text-right min-w-[140px]" title="จำนวนรวมในเอกสารนี้">จำนวนในเอกสาร</TableHead>
                     <TableHead className="text-xs font-semibold text-muted-foreground min-w-[140px]">วันที่สร้าง</TableHead>
@@ -891,6 +944,41 @@ export default function DocumentSearch() {
                           ) : (
                             <span className="text-muted-foreground/40">-</span>
                           )}
+                        </TableCell>
+                        <TableCell className="text-xs">
+                          {(() => {
+                            if (snList.length === 0) return <span className="text-muted-foreground/40">-</span>;
+                            const infos = snList.map((sn) => ({ sn, info: snLocationMap.get(sn.toLowerCase()) }));
+                            const known = infos.filter((x) => x.info);
+                            if (known.length === 0) return <span className="text-muted-foreground/40">ไม่มีข้อมูล</span>;
+                            // Group by label+sublabel
+                            const groups = new Map<string, { info: LocationInfo; sns: string[] }>();
+                            for (const { sn, info } of infos) {
+                              if (!info) continue;
+                              const key = `${info.kind}|${info.label}|${info.sublabel || ""}`;
+                              if (!groups.has(key)) groups.set(key, { info, sns: [] });
+                              groups.get(key)!.sns.push(sn);
+                            }
+                            const colorFor = (k: LocationInfo["kind"]) =>
+                              k === "billboard" ? "info"
+                              : k === "warehouse" ? "success"
+                              : k === "defective" ? "destructive"
+                              : k === "issued" ? "warning"
+                              : "outline";
+                            return (
+                              <div className="space-y-1 max-w-[220px]">
+                                {Array.from(groups.values()).map((g, i) => (
+                                  <div key={i} className="space-y-0.5">
+                                    <Badge variant={colorFor(g.info.kind) as any} className="text-[10px]">{g.info.label}</Badge>
+                                    {g.info.sublabel && <div className="text-[10px] text-muted-foreground leading-tight">{g.info.sublabel}</div>}
+                                    {groups.size > 1 && (
+                                      <div className="text-[9px] text-muted-foreground/70 font-mono">{g.sns.join(", ")}</div>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                            );
+                          })()}
                         </TableCell>
                         <TableCell className="text-sm">{doc.supplier_name || doc.delivery_person_name || <span className="text-muted-foreground/40">-</span>}</TableCell>
                         <TableCell className="text-right text-sm tabular-nums whitespace-nowrap">{doc.quantity > 0 ? `${doc.quantity} ${doc.unit}` : <span className="text-muted-foreground/40">-</span>}</TableCell>
