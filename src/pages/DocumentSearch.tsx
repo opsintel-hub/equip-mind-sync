@@ -751,14 +751,7 @@ export default function DocumentSearch() {
     }
   };
 
-  const getStatusBadgeFallback = (status: string, source: string) => {
-    if (source === "delivery_confirm") {
-      if (status === "confirmed") return <Badge className="bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-400">ยืนยันแล้ว</Badge>;
-      if (status === "issue_reported") return <Badge variant="destructive">แจ้งปัญหา</Badge>;
-      return <Badge variant="secondary">{status}</Badge>;
-    }
-    return <Badge variant="outline">{status}</Badge>;
-  };
+  // Old fallback removed — getCurrentStatusBadge now provides unified Thai labels for every source.
 
   return (
     <div className="space-y-5">
