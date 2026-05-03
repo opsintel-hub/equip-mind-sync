@@ -706,6 +706,50 @@ export default function DocumentSearch() {
       // Sort newest first across all sources
       merged.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
       setDocuments(merged);
+
+      // Build S/N -> current location map (equipment serials + media players)
+      const [esnRes, mpRes] = await Promise.all([
+        supabase.from("equipment_serial_numbers")
+          .select("serial_number, status, billboard_id, location_id, billboards(code, name, location_name), locations(code, name, warehouses(name))"),
+        supabase.from("media_players")
+          .select("serial_number_1, serial_number_2, status, billboard_id, location_id, billboards(code, name, location_name), locations(code, name, warehouses(name))"),
+      ]);
+      const map = new Map<string, LocationInfo>();
+      const buildInfo = (row: any): LocationInfo => {
+        const status = (row.status || "").toLowerCase();
+        if (row.billboard_id && row.billboards) {
+          const bb = row.billboards;
+          return {
+            kind: "billboard",
+            label: `ป้าย ${bb.code || ""}`.trim(),
+            sublabel: bb.location_name || bb.name || undefined,
+          };
+        }
+        if (row.location_id && row.locations) {
+          const loc = row.locations;
+          const wh = loc.warehouses?.name;
+          const isDefect = (loc.code || "").toUpperCase().includes("DEFECT") || (loc.name || "").includes("ของเสีย");
+          return {
+            kind: isDefect ? "defective" : "warehouse",
+            label: isDefect ? "คลังของเสีย" : `คลัง ${wh || ""}`.trim(),
+            sublabel: `${loc.code || ""} ${loc.name || ""}`.trim() || undefined,
+          };
+        }
+        if (status === "issued" || status === "out") return { kind: "issued", label: "ถูกเบิกออกแล้ว" };
+        return { kind: "unknown", label: "ไม่ทราบตำแหน่ง" };
+      };
+      for (const r of (esnRes.data || []) as any[]) {
+        const sn = (r.serial_number || "").trim();
+        if (sn) map.set(sn.toLowerCase(), buildInfo(r));
+      }
+      for (const r of (mpRes.data || []) as any[]) {
+        const info = buildInfo(r);
+        for (const sn of [r.serial_number_1, r.serial_number_2]) {
+          const k = (sn || "").trim();
+          if (k) map.set(k.toLowerCase(), info);
+        }
+      }
+      setSnLocationMap(map);
     } catch (error) {
       console.error("Error fetching documents:", error);
       toast.error("ไม่สามารถโหลดเอกสารได้");
