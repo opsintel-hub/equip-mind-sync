@@ -307,7 +307,7 @@ const BillboardIssueReport = () => {
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder="ค้นหารหัสป้าย, สินค้า, S/N..."
+                  placeholder="ค้นหา Old Code, รหัสป้าย, สินค้า, S/N..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-10"
