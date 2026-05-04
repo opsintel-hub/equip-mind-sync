@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
@@ -75,6 +75,7 @@ interface FunctionPermission {
 export function UserPermissionManager() {
   const [users, setUsers] = useState<User[]>([]);
   const [allDepartments, setAllDepartments] = useState<string[]>([]);
+  const [templateLabels, setTemplateLabels] = useState<Record<string, string>>({});
   const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
@@ -112,15 +113,22 @@ export function UserPermissionManager() {
 
   const fetchUsers = async () => {
     try {
-      const [profilesRes, deptRes] = await Promise.all([
+      const [profilesRes, deptRes, templateRes] = await Promise.all([
         supabase.from("profiles").select("*").order("full_name"),
         supabase.from("departments").select("name").eq("is_active", true).order("name"),
+        (supabase as any).from("permission_templates").select("template_key, label").eq("is_active", true),
       ]);
 
       if (profilesRes.error) throw profilesRes.error;
 
       const departments = (deptRes.data || []).map(d => d.name);
       setAllDepartments(departments);
+      setTemplateLabels(
+        ((templateRes.data || []) as { template_key: string; label: string }[]).reduce((acc, template) => {
+          acc[template.template_key] = template.label;
+          return acc;
+        }, {} as Record<string, string>)
+      );
       
       let emailMap: Record<string, string> = {};
       try {
