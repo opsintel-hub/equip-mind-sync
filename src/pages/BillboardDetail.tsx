@@ -757,6 +757,7 @@ const BillboardDetail = () => {
                             <TableRow key={mp.id}>
                               <TableCell className="font-medium font-mono text-primary">{mp.code}</TableCell>
                               <TableCell>{mp.name}</TableCell>
+                              <TableCell className="text-sm">{(mp as any).remote_name || "-"}</TableCell>
                               <TableCell>
                                 {mp.serial_number_1 ? (
                                   <Badge variant="outline" className="font-mono text-xs">{mp.serial_number_1}</Badge>
