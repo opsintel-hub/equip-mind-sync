@@ -82,6 +82,7 @@ interface MediaPlayerMaster {
   image_url: string | null;
   specification: string | null;
   usage_lifespan_months: number | null;
+  remote_name: string | null;
   companies: { name: string } | null;
   locations: { name: string } | null;
   billboard: { id: string; equipment_id: string; old_code: string | null; location_name: string | null } | null;
@@ -114,6 +115,7 @@ interface ExpandedRow {
   lotNumber1: string;
   lotNumber2: string;
   specification: string;
+  remoteName: string;
   // for profile link
   billboard_id: string | null;
   warrantyDaysLeft: number | null;
@@ -146,7 +148,7 @@ export default function MediaPlayerReport() {
           item_condition, status, quantity, unit, billboard_id, location_id, company_id,
           warranty_expiry_date, date_of_receipt, install_date, unit_price, po_number,
           asset_code, equipment_id_code, depreciation_months, activate_windows,
-          image_url, specification, usage_lifespan_months,
+          image_url, specification, usage_lifespan_months, remote_name,
           companies:company_id (name),
           locations:location_id (name),
           billboard:billboards!media_players_billboard_id_fkey (id, equipment_id, old_code, location_name)
@@ -311,6 +313,7 @@ export default function MediaPlayerReport() {
         warrantyDaysLeft,
         expiryDaysLeft,
         orderForProject: (latestReceipt as any)?.order_for_project || "",
+        remoteName: p.remote_name || "",
       });
     });
     return rows;
@@ -377,6 +380,7 @@ export default function MediaPlayerReport() {
         const match =
           r.code?.toLowerCase().includes(s) ||
           r.name?.toLowerCase().includes(s) ||
+          r.remoteName?.toLowerCase().includes(s) ||
           r.brand?.toLowerCase().includes(s) ||
           r.poNumber?.toLowerCase().includes(s) ||
           r.assetCode?.toLowerCase().includes(s) ||
@@ -422,6 +426,7 @@ export default function MediaPlayerReport() {
       "ลำดับ": "",
       "รหัส": r.code,
       "ชื่อ": r.name,
+      "ชื่อเครื่อง (Name)": r.remoteName,
       "S/N": r.serialNumber,
       "สภาพ": getConditionLabel(r.condition),
       "สถานะ": r.statusLabel,
@@ -619,6 +624,7 @@ export default function MediaPlayerReport() {
                       <TableHead className="min-w-[60px]">ภาพ</TableHead>
                       <TableHead className="min-w-[130px]">รหัส</TableHead>
                       <TableHead className="min-w-[130px]">ชื่อ</TableHead>
+                      <TableHead className="min-w-[140px]">ชื่อเครื่อง (Name)</TableHead>
                       <TableHead className="min-w-[120px]">S/N</TableHead>
                       <TableHead className="min-w-[80px]">สภาพ</TableHead>
                       <TableHead className="min-w-[80px]">สถานะ</TableHead>
@@ -675,6 +681,7 @@ export default function MediaPlayerReport() {
                             </TableCell>
                             <TableCell className="font-mono font-medium">{r.code}</TableCell>
                             <TableCell>{r.name}</TableCell>
+                            <TableCell>{r.remoteName || "-"}</TableCell>
                             <TableCell className="text-sm whitespace-pre-line">{r.serialNumber}</TableCell>
                             <TableCell>{getConditionBadge(r.condition)}</TableCell>
                             <TableCell>
