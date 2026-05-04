@@ -27,6 +27,7 @@ interface AssessmentLog {
   equipment_id: string | null;
   serial_number: string | null;
   source_type: string;
+  source_reference_id: string | null;
   symptom_id: string | null;
   symptom_description: string | null;
   assessment_result_id: string | null;
