@@ -29,6 +29,7 @@ interface BillboardEquipment {
   };
   billboard?: {
     equipment_id: string;
+    old_code: string | null;
     location_name: string | null;
     region: string | null;
   };
@@ -37,6 +38,7 @@ interface BillboardEquipment {
 interface BillboardSummary {
   billboard_id: string;
   billboard_code: string;
+  old_code: string | null;
   location_name: string | null;
   region: string | null;
   totalItems: number;
