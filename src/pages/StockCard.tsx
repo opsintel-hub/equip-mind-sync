@@ -304,7 +304,7 @@ export default function StockCard() {
     queryFn: async () => {
       if (!selectedItemId) return [];
       const { data } = await supabase.from("billboard_equipment_history")
-        .select("*, billboards(equipment_id, location_name, description)")
+        .select("*, billboards(equipment_id, old_code, location_name, description)")
         .eq("equipment_id", selectedItemId)
         .order("uninstall_date", { ascending: false });
       return data || [];
@@ -320,13 +320,13 @@ export default function StockCard() {
       if (!selectedItemId) return [];
       if (selectedItemType === "media_player") {
         const { data } = await supabase.from("media_player_billboard_history")
-          .select("*, billboards(equipment_id, location_name, description)")
+          .select("*, billboards(equipment_id, old_code, location_name, description)")
           .eq("media_player_id", selectedItemId)
           .is("uninstall_date", null);
         return (data || []).map((r: any) => ({ ...r, billboards: r.billboards }));
       }
       const { data } = await supabase.from("billboard_equipment")
-        .select("*, billboards(equipment_id, location_name, description)")
+        .select("*, billboards(equipment_id, old_code, location_name, description)")
         .eq("equipment_id", selectedItemId);
       return data || [];
     },
@@ -340,7 +340,7 @@ export default function StockCard() {
     queryFn: async () => {
       if (!selectedItemId) return [];
       const { data } = await supabase.from("media_player_billboard_history")
-        .select("*, billboards(equipment_id, location_name, description)")
+        .select("*, billboards(equipment_id, old_code, location_name, description)")
         .eq("media_player_id", selectedItemId)
         .not("uninstall_date", "is", null)
         .order("uninstall_date", { ascending: false });
