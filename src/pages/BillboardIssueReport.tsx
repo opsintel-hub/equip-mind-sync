@@ -93,31 +93,37 @@ const BillboardIssueReport = () => {
       .from("media_players")
       .select(`
         id, code, name, billboard_id, install_date, unit_price, serial_number_1,
-        billboard:billboard_id (equipment_id, location_name, region)
+        billboard:billboard_id (equipment_id, old_code, location_name, region)
       `)
       .not("billboard_id", "is", null);
 
     const bbMap = new Map((billboardsData || []).map((b: any) => [b.id, b]));
-    const mpRows: BillboardEquipment[] = (mpData || []).map((mp: any) => ({
-      id: `mp-${mp.id}`,
-      billboard_id: mp.billboard_id,
-      equipment_id: mp.id,
-      quantity: 1,
-      installation_date: mp.install_date,
-      equipment: {
-        code: mp.code,
-        name: mp.name || "Media Player",
-        unit: "เครื่อง",
-        unit_price: mp.unit_price || 0,
-        category: "Media Player",
-        serial_number: mp.serial_number_1,
-      } as any,
-      billboard: mp.billboard || (bbMap.get(mp.billboard_id) ? {
-        equipment_id: (bbMap.get(mp.billboard_id) as any).equipment_id,
-        location_name: (bbMap.get(mp.billboard_id) as any).location_name,
-        region: (bbMap.get(mp.billboard_id) as any).region,
-      } : undefined),
-    }));
+    const mpRows: BillboardEquipment[] = (mpData || []).map((mp: any) => {
+      const bbFallback = bbMap.get(mp.billboard_id) as any;
+      return {
+        id: `mp-${mp.id}`,
+        billboard_id: mp.billboard_id,
+        equipment_id: mp.id,
+        quantity: 1,
+        installation_date: mp.install_date,
+        equipment: {
+          code: mp.code,
+          name: mp.name || "Media Player",
+          unit: "เครื่อง",
+          unit_price: mp.unit_price || 0,
+          category: "Media Player",
+          serial_number: mp.serial_number_1,
+        } as any,
+        billboard: mp.billboard
+          ? { ...mp.billboard, old_code: mp.billboard.old_code ?? bbFallback?.old_code ?? null }
+          : (bbFallback ? {
+              equipment_id: bbFallback.equipment_id,
+              old_code: bbFallback.old_code ?? null,
+              location_name: bbFallback.location_name,
+              region: bbFallback.region,
+            } : undefined),
+      };
+    });
 
     const typedData = [...((beData || []) as unknown as BillboardEquipment[]), ...mpRows];
     setBillboardEquipment(typedData);
