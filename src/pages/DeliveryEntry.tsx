@@ -152,24 +152,20 @@ const DeliveryEntry = () => {
   const splitUrls = (combined: string | null | undefined): string[] =>
     combined ? String(combined).split(/\s*,\s*/).filter(Boolean) : [];
   const buildReceiptCategories = (r: any): DocumentCategory[] => {
-    const all = splitUrls(r.document_url);
-    const docs = all.filter((u) => !isImageUrl(u));
-    const images = all.filter((u) => isImageUrl(u));
     const poUrls = splitUrls(r.po_document_url);
     const prUrls = splitUrls(r.pr_document_url);
     const invoiceUrls = splitUrls(r.invoice_document_url);
     const dnUrls = splitUrls(r.delivery_note_document_url);
-    const legacyPurchase = splitUrls(r.purchase_document_url);
-    const known = new Set([...poUrls, ...prUrls, ...invoiceUrls, ...dnUrls]);
-    const legacyOnly = legacyPurchase.filter((u) => !known.has(u));
+    const known = new Set([...poUrls, ...prUrls, ...invoiceUrls, ...dnUrls].map((u) => u.trim()).filter(Boolean));
+    const all = splitUrls(r.document_url).filter((u) => !known.has(u.trim()));
+    const docs = all.filter((u) => !isImageUrl(u));
+    const images = all.filter((u) => isImageUrl(u));
 
-    const cats: DocumentCategory[] = [
-      { label: "เลข PO", urls: poUrls },
-      { label: "เลข PR", urls: prUrls },
-      { label: "Invoice No.", urls: invoiceUrls },
-      { label: "ใบส่งของ", urls: dnUrls },
-    ];
-    if (legacyOnly.length > 0) cats.push({ label: "เอกสารจัดซื้อ (เก่า)", urls: legacyOnly });
+    const cats: DocumentCategory[] = [];
+    if (poUrls.length > 0) cats.push({ label: "เลข PO", urls: poUrls });
+    if (prUrls.length > 0) cats.push({ label: "เลข PR", urls: prUrls });
+    if (invoiceUrls.length > 0) cats.push({ label: "Invoice No.", urls: invoiceUrls });
+    if (dnUrls.length > 0) cats.push({ label: "ใบส่งของ", urls: dnUrls });
     if (docs.length > 0) cats.push({ label: "เอกสารแนบเพิ่มเติม", urls: docs });
     if (images.length > 0) cats.push({ label: "รูปภาพเพิ่มเติม", urls: images });
     return cats;
@@ -959,10 +955,10 @@ const DeliveryEntry = () => {
       }
       setIsUploadingFile(false);
 
-      // Combine all document URLs (including PO/PR/Invoice uploaded URLs)
-      const allDocumentUrls = [...additionalDocUrls, ...additionalImageUrls, poDocumentUrl, prDocumentUrl, invoiceDocumentUrl]
-        .filter(Boolean)
-        .join(", ");
+      // Keep document_url as extra/aggregate compatibility only; preview will de-duplicate slot documents.
+      const allDocumentUrls = Array.from(
+        new Set([...additionalDocUrls, ...additionalImageUrls, poDocumentUrl, prDocumentUrl, invoiceDocumentUrl, deliveryNoteDocumentUrl].filter(Boolean))
+      ).join(", ");
 
       // Clone media_players records for items that share the same media_player_id
       // Each physical device must have its own media_players record

@@ -21,27 +21,33 @@ const isImageUrl = (url: string) => /\.(png|jpe?g|gif|webp|bmp|svg)(\?|$)/i.test
 const splitUrls = (combined: string | null | undefined): string[] =>
   !combined ? [] : combined.split(",").map((s) => s.trim()).filter(Boolean);
 const buildReceiptCategories = (r: any): DocumentCategory[] => {
-  const all = splitUrls(r?.document_url);
-  const docs = all.filter((u) => !isImageUrl(u));
-  const images = all.filter((u) => isImageUrl(u));
   const poUrls = splitUrls(r?.po_document_url);
   const prUrls = splitUrls(r?.pr_document_url);
   const invoiceUrls = splitUrls(r?.invoice_document_url);
   const dnUrls = splitUrls(r?.delivery_note_document_url);
-  const legacyPurchase = splitUrls(r?.purchase_document_url);
-  const known = new Set([...poUrls, ...prUrls, ...invoiceUrls, ...dnUrls]);
-  const legacyOnly = legacyPurchase.filter((u) => !known.has(u));
+  const known = new Set([...poUrls, ...prUrls, ...invoiceUrls, ...dnUrls].map((u) => u.trim()).filter(Boolean));
+  const all = splitUrls(r?.document_url).filter((u) => !known.has(u.trim()));
+  const docs = all.filter((u) => !isImageUrl(u));
+  const images = all.filter((u) => isImageUrl(u));
 
-  const cats: DocumentCategory[] = [
-    { label: "เลข PO", urls: poUrls },
-    { label: "เลข PR", urls: prUrls },
-    { label: "Invoice No.", urls: invoiceUrls },
-    { label: "ใบส่งของ", urls: dnUrls },
-  ];
-  if (legacyOnly.length > 0) cats.push({ label: "เอกสารจัดซื้อ (เก่า)", urls: legacyOnly });
+  const cats: DocumentCategory[] = [];
+  if (poUrls.length > 0) cats.push({ label: "เลข PO", urls: poUrls });
+  if (prUrls.length > 0) cats.push({ label: "เลข PR", urls: prUrls });
+  if (invoiceUrls.length > 0) cats.push({ label: "Invoice No.", urls: invoiceUrls });
+  if (dnUrls.length > 0) cats.push({ label: "ใบส่งของ", urls: dnUrls });
   if (docs.length > 0) cats.push({ label: "เอกสารแนบเพิ่มเติม", urls: docs });
   if (images.length > 0) cats.push({ label: "รูปภาพเพิ่มเติม", urls: images });
   return cats;
+};
+
+const getReceiptPoDocumentUrl = (r: any): string | null => {
+  const poUrls = splitUrls(r?.po_document_url);
+  if (poUrls.length > 0) return poUrls.join(", ");
+  const invoiceUrls = new Set(splitUrls(r?.invoice_document_url));
+  const prUrls = new Set(splitUrls(r?.pr_document_url));
+  const dnUrls = new Set(splitUrls(r?.delivery_note_document_url));
+  const legacyPo = splitUrls(r?.purchase_document_url).find((url) => !invoiceUrls.has(url) && !prUrls.has(url) && !dnUrls.has(url));
+  return legacyPo || null;
 };
 
 import { format } from "date-fns";
@@ -598,8 +604,8 @@ const ReceiveGoods = () => {
         if (sr.invoice_number) mpUpdatePayload.invoice_number = sr.invoice_number;
         if (sr.depreciation_months != null) mpUpdatePayload.depreciation_months = sr.depreciation_months;
         if (sr.warranty_expiry_date) mpUpdatePayload.warranty_expiry_date = sr.warranty_expiry_date;
-        if (sr.po_document_url) mpUpdatePayload.po_document_url = sr.po_document_url;
-        else if (sr.purchase_document_url) mpUpdatePayload.po_document_url = sr.purchase_document_url;
+        const singlePoDocumentUrl = getReceiptPoDocumentUrl(sr);
+        if (singlePoDocumentUrl) mpUpdatePayload.po_document_url = singlePoDocumentUrl;
         if (sr.pr_document_url) mpUpdatePayload.pr_document_url = sr.pr_document_url;
         if (sr.invoice_document_url) mpUpdatePayload.invoice_document_url = sr.invoice_document_url;
         if (sr.delivery_note_number) mpUpdatePayload.delivery_note_number = sr.delivery_note_number;
@@ -853,8 +859,8 @@ const ReceiveGoods = () => {
             if (br.invoice_number) batchMpPayload.invoice_number = br.invoice_number;
             if (br.depreciation_months != null) batchMpPayload.depreciation_months = br.depreciation_months;
             if (br.warranty_expiry_date) batchMpPayload.warranty_expiry_date = br.warranty_expiry_date;
-            if (br.po_document_url) batchMpPayload.po_document_url = br.po_document_url;
-            else if (br.purchase_document_url) batchMpPayload.po_document_url = br.purchase_document_url;
+            const batchPoDocumentUrl = getReceiptPoDocumentUrl(br);
+            if (batchPoDocumentUrl) batchMpPayload.po_document_url = batchPoDocumentUrl;
             if (br.pr_document_url) batchMpPayload.pr_document_url = br.pr_document_url;
             if (br.invoice_document_url) batchMpPayload.invoice_document_url = br.invoice_document_url;
             if (br.delivery_note_number) batchMpPayload.delivery_note_number = br.delivery_note_number;
