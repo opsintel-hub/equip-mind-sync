@@ -413,7 +413,7 @@ const DeliveryEntry = () => {
   const fetchMediaPlayers = async () => {
     const { data, error } = await supabase
       .from("media_players")
-      .select("id, code, name, unit_price")
+      .select("id, code, name, unit_price, specification, usage_lifespan_months")
       .eq("is_active", true)
       .order("code");
     if (!error && data) {
