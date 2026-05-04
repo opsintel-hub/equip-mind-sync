@@ -26,6 +26,21 @@ interface AssessmentLogLite {
   recommended_action: string | null;
   assessor_name: string | null;
   notes: string | null;
+  source_type?: string | null;
+  source_reference_id?: string | null;
+}
+
+interface SourceContext {
+  sourceLabel: string;       // เช่น "Swap SWP-20260504-0003" / "ของเสีย DR-..."
+  itemCode: string | null;   // รหัสเครื่อง
+  itemName: string | null;   // ชื่อเครื่อง
+  billboardLabel: string | null;
+  billboardId: string | null;
+  reportedSymptom: string | null;
+  reporter: string | null;
+  reportedAt: string | null;
+  photos: string[];
+  description: string | null;
 }
 
 interface Props {
@@ -60,6 +75,7 @@ export function AssessmentCompleteDialog({ open, onOpenChange, log, onCompleted 
   const [externalRepairContact, setExternalRepairContact] = useState("");
   const [externalRepairPhone, setExternalRepairPhone] = useState("");
   const [supplierAutofill, setSupplierAutofill] = useState<{ name: string; manufacturer: string | null; warranty: string | null } | null>(null);
+  const [sourceCtx, setSourceCtx] = useState<SourceContext | null>(null);
 
   useEffect(() => {
     if (!open || !log) return;
@@ -76,6 +92,91 @@ export function AssessmentCompleteDialog({ open, onOpenChange, log, onCompleted 
     setExternalRepairContact("");
     setExternalRepairPhone("");
     setSupplierAutofill(null);
+    setSourceCtx(null);
+
+    // Load source context (Swap / Defective Return / Manual)
+    (async () => {
+      try {
+        let ctx: SourceContext = {
+          sourceLabel: "ป้อนเอง",
+          itemCode: null,
+          itemName: null,
+          billboardLabel: null,
+          billboardId: null,
+          reportedSymptom: log.symptom_description || null,
+          reporter: null,
+          reportedAt: null,
+          photos: [],
+          description: null,
+        };
+
+        // Item code/name from media_player or equipment
+        if (log.media_player_id) {
+          const { data: mp } = await supabase
+            .from("media_players")
+            .select("code, name, billboard_id, billboard:billboards(equipment_id, old_code, location_name)")
+            .eq("id", log.media_player_id)
+            .maybeSingle() as any;
+          if (mp) {
+            ctx.itemCode = mp.code;
+            ctx.itemName = mp.name;
+            if (mp.billboard) {
+              const parts = [mp.billboard.old_code, mp.billboard.equipment_id, mp.billboard.location_name].filter(Boolean);
+              ctx.billboardLabel = parts.join(" - ");
+              ctx.billboardId = mp.billboard_id;
+            }
+          }
+        } else if (log.equipment_id) {
+          const { data: eq } = await supabase
+            .from("equipment")
+            .select("code, name")
+            .eq("id", log.equipment_id)
+            .maybeSingle() as any;
+          if (eq) { ctx.itemCode = eq.code; ctx.itemName = eq.name; }
+        }
+
+        // Source-specific context
+        if (log.source_type === "swap" && log.source_reference_id) {
+          const { data: sw } = await supabase
+            .from("swap_requests")
+            .select("document_no, billboard_id, description, symptom_other, technician_name, photo_urls, created_at, billboard:billboards(equipment_id, old_code, location_name)")
+            .eq("id", log.source_reference_id)
+            .maybeSingle() as any;
+          if (sw) {
+            ctx.sourceLabel = `Swap ${sw.document_no}`;
+            ctx.description = sw.description || sw.symptom_other || null;
+            ctx.reporter = sw.technician_name || null;
+            ctx.reportedAt = sw.created_at || null;
+            ctx.photos = Array.isArray(sw.photo_urls) ? sw.photo_urls : [];
+            if (sw.billboard && !ctx.billboardLabel) {
+              const parts = [sw.billboard.old_code, sw.billboard.equipment_id, sw.billboard.location_name].filter(Boolean);
+              ctx.billboardLabel = parts.join(" - ");
+              ctx.billboardId = sw.billboard_id;
+            }
+          }
+        } else if (log.source_type === "defective" && log.source_reference_id) {
+          const { data: dr } = await supabase
+            .from("defective_returns")
+            .select("document_no, reason, billboard_id, created_at, billboard:billboards(equipment_id, old_code, location_name)")
+            .eq("id", log.source_reference_id)
+            .maybeSingle() as any;
+          if (dr) {
+            ctx.sourceLabel = `ของเสีย ${dr.document_no}`;
+            ctx.description = dr.reason || null;
+            ctx.reportedAt = dr.created_at || null;
+            if (dr.billboard && !ctx.billboardLabel) {
+              const parts = [dr.billboard.old_code, dr.billboard.equipment_id, dr.billboard.location_name].filter(Boolean);
+              ctx.billboardLabel = parts.join(" - ");
+              ctx.billboardId = dr.billboard_id;
+            }
+          }
+        }
+
+        setSourceCtx(ctx);
+      } catch {
+        /* ignore */
+      }
+    })();
 
     // autofill supplier
     (async () => {
@@ -256,6 +357,53 @@ export function AssessmentCompleteDialog({ open, onOpenChange, log, onCompleted 
         </DialogHeader>
 
         <div className="space-y-4">
+          {/* Source Context — แสดงข้อมูลต้นทาง (Swap/ของเสีย/ป้อนเอง) */}
+          {sourceCtx && (
+            <div className="rounded-lg border bg-muted/40 p-3 space-y-2 text-sm">
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <div className="font-semibold flex items-center gap-2">
+                  <Badge variant="secondary">ที่มา: {sourceCtx.sourceLabel}</Badge>
+                  {sourceCtx.itemCode && (
+                    <span className="text-foreground">
+                      {sourceCtx.itemCode}{sourceCtx.itemName ? ` — ${sourceCtx.itemName}` : ""}
+                    </span>
+                  )}
+                </div>
+                {sourceCtx.reportedAt && (
+                  <span className="text-xs text-muted-foreground">
+                    แจ้งเมื่อ {new Date(sourceCtx.reportedAt).toLocaleString("th-TH", { dateStyle: "medium", timeStyle: "short" })}
+                  </span>
+                )}
+              </div>
+              <div className="grid md:grid-cols-2 gap-x-4 gap-y-1 text-xs">
+                {sourceCtx.billboardLabel && (
+                  <div><span className="text-muted-foreground">ป้ายต้นทาง: </span><span className="font-medium">{sourceCtx.billboardLabel}</span></div>
+                )}
+                {log.serial_number && (
+                  <div><span className="text-muted-foreground">S/N: </span><span className="font-mono">{log.serial_number}</span></div>
+                )}
+                {sourceCtx.reporter && (
+                  <div><span className="text-muted-foreground">ผู้แจ้ง: </span><span>{sourceCtx.reporter}</span></div>
+                )}
+                {(sourceCtx.description || sourceCtx.reportedSymptom) && (
+                  <div className="md:col-span-2">
+                    <span className="text-muted-foreground">อาการที่แจ้ง: </span>
+                    <span>{sourceCtx.description || sourceCtx.reportedSymptom}</span>
+                  </div>
+                )}
+              </div>
+              {sourceCtx.photos.length > 0 && (
+                <div className="flex gap-2 flex-wrap pt-1">
+                  {sourceCtx.photos.map((url, i) => (
+                    <a key={i} href={url} target="_blank" rel="noreferrer">
+                      <img src={url} alt={`อาการ ${i + 1}`} className="h-16 w-16 object-cover rounded border hover:ring-2 hover:ring-primary" />
+                    </a>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
           <div className="grid md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>อาการเสีย</Label>
