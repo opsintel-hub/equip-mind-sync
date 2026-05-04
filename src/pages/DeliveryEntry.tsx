@@ -636,6 +636,9 @@ const DeliveryEntry = () => {
         lot_number_2: lotNumber2,
         serial_number: device.serial_number_1,
         serial_number_2: device.serial_number_2,
+        remote_name: device.device_name,
+        specification: mediaPlayerSpecification,
+        usage_lifespan_months: mediaPlayerUsageLifespanMonths,
         unit_price: unitPrice ? parseFloat(unitPrice) : null,
         supplier_id: selectedSupplierId || null,
         supplier_name: supplierName || selectedSupplier?.name || "",
@@ -820,6 +823,8 @@ const DeliveryEntry = () => {
     setUnitPrice("");
     setExpiryDate("");
     setWarrantyExpiryDate("");
+    setMediaPlayerSpecification("");
+    setMediaPlayerUsageLifespanMonths("");
     setStorageWidthCm("");
     setStorageHeightCm("");
     setStorageDepthCm("");
