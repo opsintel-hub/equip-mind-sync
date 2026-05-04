@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
@@ -75,6 +75,7 @@ interface FunctionPermission {
 export function UserPermissionManager() {
   const [users, setUsers] = useState<User[]>([]);
   const [allDepartments, setAllDepartments] = useState<string[]>([]);
+  const [templateLabels, setTemplateLabels] = useState<Record<string, string>>({});
   const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
@@ -112,15 +113,22 @@ export function UserPermissionManager() {
 
   const fetchUsers = async () => {
     try {
-      const [profilesRes, deptRes] = await Promise.all([
+      const [profilesRes, deptRes, templateRes] = await Promise.all([
         supabase.from("profiles").select("*").order("full_name"),
         supabase.from("departments").select("name").eq("is_active", true).order("name"),
+        (supabase as any).from("permission_templates").select("template_key, label").eq("is_active", true),
       ]);
 
       if (profilesRes.error) throw profilesRes.error;
 
       const departments = (deptRes.data || []).map(d => d.name);
       setAllDepartments(departments);
+      setTemplateLabels(
+        ((templateRes.data || []) as { template_key: string; label: string }[]).reduce((acc, template) => {
+          acc[template.template_key] = template.label;
+          return acc;
+        }, {} as Record<string, string>)
+      );
       
       let emailMap: Record<string, string> = {};
       try {
@@ -347,6 +355,13 @@ export function UserPermissionManager() {
 
   const hasNoRoles = (userId: string) => !userRoles[userId] || userRoles[userId].length === 0;
 
+  const pendingUsers = useMemo(() => users.filter((user) => hasNoRoles(user.id)), [users, userRoles]);
+
+  const getRequestedJobRoleLabel = (templateKey?: string | null) => {
+    if (!templateKey) return "-";
+    return templateLabels[templateKey] || templateKey;
+  };
+
   const handleOpenWizard = (user: User) => {
     setWizardUser(user);
     setWizardOpen(true);
@@ -380,9 +395,14 @@ export function UserPermissionManager() {
               <CardTitle className="flex items-center gap-2">
                 <UserCog className="h-5 w-5 text-primary" />
                 รายชื่อผู้ใช้งาน
+                {pendingUsers.length > 0 && (
+                  <Badge variant="secondary" className="ml-1">
+                    รออนุมัติ {pendingUsers.length}
+                  </Badge>
+                )}
               </CardTitle>
               <CardDescription>
-                คลิกที่ผู้ใช้เพื่อจัดการบทบาทและสิทธิ์ทั้งหมดในที่เดียว
+                ผู้สมัครใหม่จะแสดงเป็น “ยังไม่ตั้งสิทธิ์” พร้อมตำแหน่ง/ฝ่ายที่ขอ ให้ Super Admin กดตั้งสิทธิ์อัตโนมัติเพื่ออนุมัติ
               </CardDescription>
             </div>
             <div className="relative w-64">
@@ -400,10 +420,11 @@ export function UserPermissionManager() {
           <div className="rounded-lg border">
             <Table>
               <TableHeader>
-                <TableRow className="bg-muted/50">
+                  <TableRow className="bg-muted/50">
                   <TableHead>ชื่อ-นามสกุล</TableHead>
                   <TableHead>อีเมล</TableHead>
                   <TableHead>เบอร์โทร</TableHead>
+                    <TableHead>คำขอสมัคร</TableHead>
                   <TableHead>บทบาท</TableHead>
                   <TableHead className="text-right">จัดการ</TableHead>
                 </TableRow>
@@ -418,6 +439,19 @@ export function UserPermissionManager() {
                     <TableCell className="font-medium">{user.full_name || "-"}</TableCell>
                     <TableCell className="text-muted-foreground">{user.email || "-"}</TableCell>
                     <TableCell>{user.phone || "-"}</TableCell>
+                      <TableCell>
+                        {user.requested_job_role || user.requested_department ? (
+                          <div className="space-y-1 text-sm">
+                            <div className="font-medium text-foreground">{getRequestedJobRoleLabel(user.requested_job_role)}</div>
+                            <div className="text-xs text-muted-foreground flex items-center gap-1">
+                              <Building2 className="h-3 w-3" />
+                              {user.requested_department || "-"}
+                            </div>
+                          </div>
+                        ) : (
+                          <span className="text-muted-foreground">-</span>
+                        )}
+                      </TableCell>
                     <TableCell>
                       <div className="flex gap-1 flex-wrap items-center">
                         {getRoleSummary(user.id) || (
@@ -427,7 +461,7 @@ export function UserPermissionManager() {
                             </Badge>
                             {(user.requested_job_role || user.requested_department) && (
                               <span className="text-[11px] text-muted-foreground">
-                                ขอ: {user.requested_job_role || "-"}
+                                ขอ: {getRequestedJobRoleLabel(user.requested_job_role)}
                                 {user.requested_department ? ` / ${user.requested_department}` : ""}
                               </span>
                             )}
