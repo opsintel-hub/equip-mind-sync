@@ -207,7 +207,7 @@ const BillboardIssueReport = () => {
   const exportToExcel = () => {
     const detailData = filteredData.map(item => ({
       "Old Code": item.billboard?.old_code || "-",
-      "รหัสป้าย": item.billboard?.equipment_id || "",
+      "Equipment ID": item.billboard?.equipment_id || "",
       "ตำแหน่ง": item.billboard?.location_name || "-",
       "ภูมิภาค": item.billboard?.region || "-",
       "รหัสสินค้า": item.equipment?.code || "",
@@ -222,7 +222,7 @@ const BillboardIssueReport = () => {
 
     const summaryData = billboardSummary.map(item => ({
       "Old Code": item.old_code || "-",
-      "รหัสป้าย": item.billboard_code,
+      "Equipment ID": item.billboard_code,
       "ตำแหน่ง": item.location_name || "-",
       "ภูมิภาค": item.region || "-",
       "จำนวนรายการ": item.totalItems,
@@ -307,7 +307,7 @@ const BillboardIssueReport = () => {
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder="ค้นหา Old Code, รหัสป้าย, สินค้า, S/N..."
+                  placeholder="ค้นหา Old Code, Equipment ID, สินค้า, S/N..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-10"
@@ -400,7 +400,7 @@ const BillboardIssueReport = () => {
               <TableHeader>
                 <TableRow>
                   <TableHead>Old Code</TableHead>
-                  <TableHead>รหัสป้าย</TableHead>
+                  <TableHead>Equipment ID</TableHead>
                   <TableHead>ตำแหน่ง</TableHead>
                   <TableHead>ภูมิภาค</TableHead>
                   <TableHead className="text-right">รายการ</TableHead>
