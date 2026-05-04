@@ -272,13 +272,29 @@ export function DeliveryCartItemEditDialog({
           {/* Serial Number & Price */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="space-y-2">
-              <Label>Serial Number</Label>
+              <Label>Serial Number 1</Label>
               <Input 
-                placeholder="Serial Number"
+                placeholder="Serial Number 1"
                 value={serialNumber}
                 onChange={(e) => setSerialNumber(e.target.value)}
               />
             </div>
+            {item.is_media_player && (
+              <>
+                <div className="space-y-2">
+                  <Label>Serial Number 2</Label>
+                  <Input placeholder="Serial Number 2" value={serialNumber2} onChange={(e) => setSerialNumber2(e.target.value)} />
+                </div>
+                <div className="space-y-2">
+                  <Label>ชื่อ (Remote Name)</Label>
+                  <Input placeholder="ชื่อเครื่อง" value={remoteName} onChange={(e) => setRemoteName(e.target.value)} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Activate Windows</Label>
+                  <Input placeholder="Activate Windows" value={activateWindows} onChange={(e) => setActivateWindows(e.target.value)} />
+                </div>
+              </>
+            )}
             <div className="space-y-2">
               <Label>ราคาต่อชิ้น (฿) *</Label>
               <Input 
@@ -306,6 +322,19 @@ export function DeliveryCartItemEditDialog({
               />
             </div>
           </div>
+
+          {item.is_media_player && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Specification</Label>
+                <Input placeholder="Specification" value={specification} onChange={(e) => setSpecification(e.target.value)} />
+              </div>
+              <div className="space-y-2">
+                <Label>อายุใช้งาน (เดือน)</Label>
+                <Input type="number" placeholder="เช่น 60" value={usageLifespanMonths} onChange={(e) => setUsageLifespanMonths(e.target.value)} />
+              </div>
+            </div>
+          )}
 
           {/* Supplier */}
           <div className="space-y-2">
