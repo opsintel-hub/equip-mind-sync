@@ -137,7 +137,7 @@ const MediaPlayerProfile = () => {
         uninstall_date: uninstDate,
         duration_days: days,
         uninstall_reason: h.uninstall_reason,
-        quantity: h.quantity,
+        quantity: 1,
       });
     }
 
