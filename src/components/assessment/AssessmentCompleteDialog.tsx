@@ -26,6 +26,21 @@ interface AssessmentLogLite {
   recommended_action: string | null;
   assessor_name: string | null;
   notes: string | null;
+  source_type?: string | null;
+  source_reference_id?: string | null;
+}
+
+interface SourceContext {
+  sourceLabel: string;       // เช่น "Swap SWP-20260504-0003" / "ของเสีย DR-..."
+  itemCode: string | null;   // รหัสเครื่อง
+  itemName: string | null;   // ชื่อเครื่อง
+  billboardLabel: string | null;
+  billboardId: string | null;
+  reportedSymptom: string | null;
+  reporter: string | null;
+  reportedAt: string | null;
+  photos: string[];
+  description: string | null;
 }
 
 interface Props {
