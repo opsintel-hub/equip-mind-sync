@@ -425,6 +425,7 @@ export default function MediaPlayerReport() {
       "ลำดับ": "",
       "รหัส": r.code,
       "ชื่อ": r.name,
+      "ชื่อเครื่อง (Name)": r.remoteName,
       "S/N": r.serialNumber,
       "สภาพ": getConditionLabel(r.condition),
       "สถานะ": r.statusLabel,
