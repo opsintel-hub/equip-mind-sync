@@ -823,6 +823,29 @@ const ReceiveGoods = () => {
             if (batchMpDept) {
               batchMpPayload.department = batchMpDept;
             }
+
+            // Propagate purchase / financial / document fields from receipt → master
+            // Receipt is the authoritative source for these (overwrite if provided)
+            const br: any = receipt;
+            if (br.supplier_id) batchMpPayload.supplier_id = br.supplier_id;
+            if (br.company_id) batchMpPayload.company_id = br.company_id;
+            if (br.unit_price != null) batchMpPayload.unit_price = br.unit_price;
+            if (br.received_at) batchMpPayload.date_of_receipt = String(br.received_at).slice(0, 10);
+            else batchMpPayload.date_of_receipt = new Date().toISOString().slice(0, 10);
+            if (br.po_number) batchMpPayload.po_number = br.po_number;
+            if (br.pr_number) batchMpPayload.pr_number = br.pr_number;
+            if (br.invoice_number) batchMpPayload.invoice_number = br.invoice_number;
+            if (br.depreciation_months != null) batchMpPayload.depreciation_months = br.depreciation_months;
+            if (br.warranty_expiry_date) batchMpPayload.warranty_expiry_date = br.warranty_expiry_date;
+            if (br.purchase_document_url) batchMpPayload.po_document_url = br.purchase_document_url;
+            if (br.invoice_document_url) batchMpPayload.invoice_document_url = br.invoice_document_url;
+            if (br.delivery_note_number) batchMpPayload.delivery_note_number = br.delivery_note_number;
+            if (br.delivery_note_document_url) batchMpPayload.delivery_note_document_url = br.delivery_note_document_url;
+            if (br.order_for_project) batchMpPayload.order_for_project = br.order_for_project;
+            if (br.activate_windows) batchMpPayload.activate_windows = br.activate_windows;
+            if (br.asset_code) batchMpPayload.asset_code = br.asset_code;
+            if (br.equipment_id_code) batchMpPayload.equipment_id_code = br.equipment_id_code;
+
             const { error: mpError } = await supabase
               .from("media_players")
               .update(batchMpPayload)
