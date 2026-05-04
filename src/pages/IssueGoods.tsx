@@ -353,7 +353,7 @@ const IssueGoods = () => {
             });
           if (billboardMpError) console.error("Error creating billboard_equipment for MP:", billboardMpError);
 
-          // 3) Insert media_player_billboard_history (installation entry; uninstall_date placeholder)
+          // 3) Insert media_player_billboard_history (installation entry; uninstall_date null = currently installed)
           const today = new Date().toISOString().split('T')[0];
           const { error: histError } = await supabase
             .from("media_player_billboard_history")
@@ -361,10 +361,10 @@ const IssueGoods = () => {
               media_player_id: selectedItem.media_player_id,
               billboard_id: billboardId,
               installation_date: today,
-              uninstall_date: today, // required NOT NULL — same as install date until uninstalled
+              uninstall_date: null,
               installed_by: user.id,
               installation_notes: issueData.notes || `จากเอกสาร ${parentRequest?.document_no}`,
-            });
+            } as any);
           if (histError) console.error("Error inserting MP history:", histError);
 
           await logStockMovement({

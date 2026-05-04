@@ -338,6 +338,18 @@ export default function SwapWizard() {
           .eq("serial_number", selected.serial_number);
       }
     } else if (selected?.asset_type === "media_player" && selected.media_player_id) {
+      // Close any open MP installation history rows for this billboard
+      await supabase
+        .from("media_player_billboard_history")
+        .update({
+          uninstall_date: today,
+          uninstall_reason: reason,
+          uninstalled_by: user?.id ?? null,
+          return_to_stock: false,
+        } as any)
+        .eq("media_player_id", selected.media_player_id)
+        .eq("billboard_id", billboardId)
+        .is("uninstall_date", null);
       await supabase
         .from("media_players")
         .update({ billboard_id: null, status: "pending_assessment" } as any)

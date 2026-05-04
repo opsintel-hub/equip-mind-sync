@@ -3313,7 +3313,7 @@ export type Database = {
           media_player_id: string
           return_location_id: string | null
           return_to_stock: boolean | null
-          uninstall_date: string
+          uninstall_date: string | null
           uninstall_reason: string | null
           uninstalled_by: string | null
         }
@@ -3327,7 +3327,7 @@ export type Database = {
           media_player_id: string
           return_location_id?: string | null
           return_to_stock?: boolean | null
-          uninstall_date?: string
+          uninstall_date?: string | null
           uninstall_reason?: string | null
           uninstalled_by?: string | null
         }
@@ -3341,7 +3341,7 @@ export type Database = {
           media_player_id?: string
           return_location_id?: string | null
           return_to_stock?: boolean | null
-          uninstall_date?: string
+          uninstall_date?: string | null
           uninstall_reason?: string | null
           uninstalled_by?: string | null
         }
