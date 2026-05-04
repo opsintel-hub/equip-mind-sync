@@ -201,7 +201,7 @@ const DefectiveReturnEntry = () => {
   const selectedMediaPlayer = useMemo(() => mediaPlayerList.find(m => m.id === selectedItemId), [mediaPlayerList, selectedItemId]);
   const selectedBillboardRecord = useMemo(() => detectedBillboards.find(b => b.id === selectedBillboardEquipmentId), [detectedBillboards, selectedBillboardEquipmentId]);
 
-  useEffect(() => { fetchEquipment(); fetchMediaPlayers(); }, []);
+  useEffect(() => { fetchEquipment(); fetchMediaPlayers(); fetchPendingTickets(); }, []);
   useEffect(() => {
     if (selectedItemId && !isMediaPlayer) detectBillboardForEquipment(selectedItemId);
     else if (selectedItemId && isMediaPlayer) detectBillboardForMediaPlayer(selectedItemId);
