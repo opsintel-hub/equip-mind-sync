@@ -206,6 +206,7 @@ const BillboardIssueReport = () => {
 
   const exportToExcel = () => {
     const detailData = filteredData.map(item => ({
+      "Old Code": item.billboard?.old_code || "-",
       "รหัสป้าย": item.billboard?.equipment_id || "",
       "ตำแหน่ง": item.billboard?.location_name || "-",
       "ภูมิภาค": item.billboard?.region || "-",
@@ -220,6 +221,7 @@ const BillboardIssueReport = () => {
     }));
 
     const summaryData = billboardSummary.map(item => ({
+      "Old Code": item.old_code || "-",
       "รหัสป้าย": item.billboard_code,
       "ตำแหน่ง": item.location_name || "-",
       "ภูมิภาค": item.region || "-",
