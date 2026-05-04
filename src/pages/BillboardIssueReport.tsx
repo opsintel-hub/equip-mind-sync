@@ -166,6 +166,7 @@ const BillboardIssueReport = () => {
       summaryMap.set(item.billboard_id, {
         billboard_id: item.billboard_id,
         billboard_code: item.billboard?.equipment_id || "",
+        old_code: item.billboard?.old_code || null,
         location_name: item.billboard?.location_name || null,
         region: item.billboard?.region || null,
         totalItems: 1,
