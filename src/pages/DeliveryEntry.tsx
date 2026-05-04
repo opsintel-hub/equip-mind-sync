@@ -472,6 +472,8 @@ const DeliveryEntry = () => {
       if (mp && mp.unit_price && mp.unit_price > 0) {
         setUnitPrice(String(mp.unit_price));
       }
+      setMediaPlayerSpecification(mp?.specification || "");
+      setMediaPlayerUsageLifespanMonths(mp?.usage_lifespan_months ? String(mp.usage_lifespan_months) : "");
     }
   }, [selectedMediaPlayerId, mediaPlayers, isPurchaseReceipt]);
 
