@@ -41,6 +41,9 @@ export interface DeliveryCartItem {
   media_player_id?: string | null;
   cms_type_id?: string;
   serial_number_2?: string;
+  remote_name?: string;
+  specification?: string;
+  usage_lifespan_months?: string;
   activate_windows?: string;
   media_player_image_url?: string;
   media_player_image_file?: File;
@@ -185,7 +188,9 @@ export function DeliveryCart({ items, onRemoveItem, onClearCart, onEditItem, sel
                       <div className="flex flex-col text-xs">
                         {item.lot_number_1 && <span>Lot1: {item.lot_number_1}</span>}
                         {item.lot_number_2 && <span>Lot2: {item.lot_number_2}</span>}
-                        {item.serial_number && <span>SN: {item.serial_number}</span>}
+                        {item.serial_number && <span>SN1: {item.serial_number}</span>}
+                        {item.serial_number_2 && <span>SN2: {item.serial_number_2}</span>}
+                        {item.remote_name && <span>ชื่อ: {item.remote_name}</span>}
                         {item.activate_windows && <span>AW: {item.activate_windows}</span>}
                       </div>
                     </TableCell>
@@ -373,9 +378,29 @@ export function DeliveryCart({ items, onRemoveItem, onClearCart, onEditItem, sel
                   <p className="font-medium">{viewItem.lot_number_2 || "-"}</p>
                 </div>
                 <div>
-                  <label className="text-xs text-muted-foreground">Serial Number</label>
+                  <label className="text-xs text-muted-foreground">Serial Number 1</label>
                   <p className="font-medium">{viewItem.serial_number || "-"}</p>
                 </div>
+                <div>
+                  <label className="text-xs text-muted-foreground">Serial Number 2</label>
+                  <p className="font-medium">{viewItem.serial_number_2 || "-"}</p>
+                </div>
+                {viewItem.is_media_player && (
+                  <>
+                    <div>
+                      <label className="text-xs text-muted-foreground">ชื่อ (Remote Name)</label>
+                      <p className="font-medium">{viewItem.remote_name || "-"}</p>
+                    </div>
+                    <div>
+                      <label className="text-xs text-muted-foreground">Specification</label>
+                      <p className="font-medium">{viewItem.specification || "-"}</p>
+                    </div>
+                    <div>
+                      <label className="text-xs text-muted-foreground">อายุใช้งาน (เดือน)</label>
+                      <p className="font-medium">{viewItem.usage_lifespan_months || "-"}</p>
+                    </div>
+                  </>
+                )}
               </div>
 
               <div className="grid grid-cols-3 gap-4">
