@@ -954,7 +954,17 @@ export default function DocumentSearch() {
                     return (
                       <TableRow key={`${doc.source}-${doc.id}`} className="border-border/30 hover:bg-muted/30">
                         <TableCell className="font-mono text-xs font-medium pl-6 whitespace-nowrap sticky left-0 z-10 bg-background shadow-[1px_0_0_0_hsl(var(--border))]">{doc.document_no}</TableCell>
-                        <TableCell>{getSourceBadge(doc.source)}</TableCell>
+                        <TableCell>
+                          <div className="space-y-1">
+                            {getSourceBadge(doc.source)}
+                            {(() => {
+                              const origin = getOriginLabel(doc);
+                              return origin ? (
+                                <div className="text-[10px] text-muted-foreground leading-tight max-w-[180px]">{origin}</div>
+                              ) : null;
+                            })()}
+                          </div>
+                        </TableCell>
                         <TableCell><Badge variant={statusInfo.variant}>{statusInfo.label}</Badge></TableCell>
                         <TableCell>
                           {doc.equipment_code || doc.equipment_name ? (
