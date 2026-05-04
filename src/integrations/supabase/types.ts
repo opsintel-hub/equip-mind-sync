@@ -2896,6 +2896,7 @@ export type Database = {
           remote_name: string | null
           serial_number: string | null
           serial_number_2: string | null
+          specification: string | null
           status: string
           storage_depth_cm: number | null
           storage_height_cm: number | null
@@ -2961,6 +2962,7 @@ export type Database = {
           remote_name?: string | null
           serial_number?: string | null
           serial_number_2?: string | null
+          specification?: string | null
           status?: string
           storage_depth_cm?: number | null
           storage_height_cm?: number | null
@@ -3026,6 +3028,7 @@ export type Database = {
           remote_name?: string | null
           serial_number?: string | null
           serial_number_2?: string | null
+          specification?: string | null
           status?: string
           storage_depth_cm?: number | null
           storage_height_cm?: number | null
