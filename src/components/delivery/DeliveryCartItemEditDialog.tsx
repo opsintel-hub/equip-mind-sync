@@ -53,6 +53,11 @@ export function DeliveryCartItemEditDialog({
   const [lotNumber1, setLotNumber1] = useState("");
   const [lotNumber2, setLotNumber2] = useState("");
   const [serialNumber, setSerialNumber] = useState("");
+  const [serialNumber2, setSerialNumber2] = useState("");
+  const [remoteName, setRemoteName] = useState("");
+  const [specification, setSpecification] = useState("");
+  const [usageLifespanMonths, setUsageLifespanMonths] = useState("");
+  const [activateWindows, setActivateWindows] = useState("");
   const [unitPrice, setUnitPrice] = useState("");
   const [expiryDate, setExpiryDate] = useState("");
   const [warrantyExpiryDate, setWarrantyExpiryDate] = useState("");
@@ -80,6 +85,11 @@ export function DeliveryCartItemEditDialog({
       setLotNumber1(item.lot_number_1);
       setLotNumber2(item.lot_number_2);
       setSerialNumber(item.serial_number);
+      setSerialNumber2(item.serial_number_2 || "");
+      setRemoteName(item.remote_name || "");
+      setSpecification(item.specification || "");
+      setUsageLifespanMonths(item.usage_lifespan_months || "");
+      setActivateWindows(item.activate_windows || "");
       setUnitPrice(item.unit_price?.toString() || "");
       setExpiryDate(item.expiry_date);
       setWarrantyExpiryDate(item.warranty_expiry_date);
@@ -161,6 +171,20 @@ export function DeliveryCartItemEditDialog({
       waiting_equipment_id: waitingEquipmentId,
       depreciation_months: depreciationMonths,
       notes: itemNotes,
+      temp_category_id: item!.temp_category_id,
+      temp_subcategory_id: item!.temp_subcategory_id,
+      temp_product_images: item!.temp_product_images,
+      temp_min_stock_level: item!.temp_min_stock_level,
+      is_media_player: item!.is_media_player,
+      media_player_id: item!.media_player_id,
+      cms_type_id: item!.cms_type_id,
+      serial_number_2: serialNumber2,
+      remote_name: remoteName,
+      specification,
+      usage_lifespan_months: usageLifespanMonths,
+      activate_windows: activateWindows,
+      media_player_image_url: item!.media_player_image_url,
+      media_player_image_file: item!.media_player_image_file,
     };
 
     onSave(updatedItem);
