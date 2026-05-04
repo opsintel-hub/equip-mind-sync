@@ -386,6 +386,172 @@ export function SwapWizardDialog({ open, onOpenChange, request, onCompleted }: P
       }
     }
 
+    // === Asset movement on Approved Swap ===
+    // 1) Uninstall เครื่องเก่า  2) Install Spare ที่ป้าย  3) Log stock_movements
+    if (result === "approved" && request.billboard_id) {
+      const nowIso = new Date().toISOString();
+      const today = nowIso.slice(0, 10);
+      const swapNote = `Swap ${request.document_no}`;
+
+      // ---------- (1) เครื่องเก่า: ถอดออกจากป้าย ----------
+      try {
+        if (oldMpId) {
+          // ปิด history ที่ยังเปิดอยู่
+          await supabase
+            .from("media_player_billboard_history")
+            .update({
+              uninstall_date: today,
+              uninstall_reason: swapNote,
+              uninstalled_by: user?.id ?? null,
+              return_to_stock: true,
+              return_location_id: returnLocationId || null,
+            })
+            .eq("media_player_id", oldMpId)
+            .is("uninstall_date", null);
+
+          // เคลียร์ billboard_id + install_date ที่ media_players
+          await supabase
+            .from("media_players")
+            .update({
+              billboard_id: null,
+              install_date: null,
+              location_id: returnLocationId || null,
+            })
+            .eq("id", oldMpId);
+
+          // log stock movement: return_from_billboard
+          const { data: oldMp } = await supabase
+            .from("media_players")
+            .select("code, name")
+            .eq("id", oldMpId)
+            .maybeSingle();
+          await supabase.from("stock_movements").insert({
+            equipment_id: oldMpId,
+            equipment_code: oldMp?.code || "",
+            equipment_name: oldMp?.name || "",
+            movement_type: "return_from_billboard",
+            quantity: 1,
+            stock_before: 0,
+            stock_after: 1,
+            reference_type: "swap",
+            reference_id: request.id,
+            reference_document: request.document_no,
+            location_id: returnLocationId || null,
+            notes: `ถอดจากป้าย — ${swapNote}`,
+            item_condition: "defective",
+            created_by: user?.id ?? null,
+          } as any);
+        } else if (oldBeId) {
+          // Equipment: ลบ/ลด billboard_equipment
+          await supabase.from("billboard_equipment").delete().eq("id", oldBeId);
+          if (oldEqId) {
+            const { data: oldEq } = await supabase
+              .from("equipment")
+              .select("code, name")
+              .eq("id", oldEqId)
+              .maybeSingle();
+            await supabase.from("stock_movements").insert({
+              equipment_id: oldEqId,
+              equipment_code: oldEq?.code || "",
+              equipment_name: oldEq?.name || "",
+              movement_type: "return_from_billboard",
+              quantity: 1,
+              stock_before: 0,
+              stock_after: 1,
+              reference_type: "swap",
+              reference_id: request.id,
+              reference_document: request.document_no,
+              location_id: returnLocationId || null,
+              notes: `ถอดจากป้าย — ${swapNote}`,
+              item_condition: "defective",
+              created_by: user?.id ?? null,
+            } as any);
+          }
+        }
+      } catch (e: any) {
+        console.error("Uninstall old unit failed:", e);
+      }
+
+      // ---------- (2) Spare: ติดตั้งที่ป้าย ----------
+      try {
+        if (spareMpId) {
+          // สร้าง history ใหม่
+          await supabase.from("media_player_billboard_history").insert({
+            media_player_id: spareMpId,
+            billboard_id: request.billboard_id,
+            installation_date: today,
+            installation_notes: swapNote,
+            installed_by: user?.id ?? null,
+          } as any);
+
+          // อัปเดต media_players
+          await supabase
+            .from("media_players")
+            .update({
+              billboard_id: request.billboard_id,
+              install_date: today,
+              location_id: null,
+            })
+            .eq("id", spareMpId);
+
+          const { data: spMp } = await supabase
+            .from("media_players")
+            .select("code, name")
+            .eq("id", spareMpId)
+            .maybeSingle();
+          await supabase.from("stock_movements").insert({
+            equipment_id: spareMpId,
+            equipment_code: spMp?.code || "",
+            equipment_name: spMp?.name || "",
+            movement_type: "install_to_billboard",
+            quantity: 1,
+            stock_before: 1,
+            stock_after: 0,
+            reference_type: "swap",
+            reference_id: request.id,
+            reference_document: request.document_no,
+            location_id: selectedSpare?.location_id || null,
+            notes: `ติดตั้งจาก Swap — ${swapNote}`,
+            created_by: user?.id ?? null,
+          } as any);
+        } else if (spareEqId) {
+          // Equipment Spare → เพิ่ม billboard_equipment
+          await supabase.from("billboard_equipment").insert({
+            billboard_id: request.billboard_id,
+            equipment_id: spareEqId,
+            serial_number: selectedSpare?.serial_number || null,
+            quantity: 1,
+            installation_date: today,
+            installation_notes: swapNote,
+            installed_by: user?.id ?? null,
+          } as any);
+
+          const { data: spEq } = await supabase
+            .from("equipment")
+            .select("code, name")
+            .eq("id", spareEqId)
+            .maybeSingle();
+          await supabase.from("stock_movements").insert({
+            equipment_id: spareEqId,
+            equipment_code: spEq?.code || "",
+            equipment_name: spEq?.name || "",
+            movement_type: "install_to_billboard",
+            quantity: 1,
+            stock_before: 1,
+            stock_after: 0,
+            reference_type: "swap",
+            reference_id: request.id,
+            reference_document: request.document_no,
+            location_id: selectedSpare?.location_id || null,
+            notes: `ติดตั้งจาก Swap — ${swapNote}`,
+            created_by: user?.id ?? null,
+          } as any);
+        }
+      } catch (e: any) {
+        console.error("Install spare failed:", e);
+      }
+    }
+
     // Auto-create assessment_log สถานะ "รอประเมิน" สำหรับเครื่องเก่า
     // เพื่อให้เจ้าหน้าที่คลังเข้าหน้า "บันทึกการประเมิน" แล้วเห็นรายการได้ทันที
     if (result === "approved" && selectedOld) {
