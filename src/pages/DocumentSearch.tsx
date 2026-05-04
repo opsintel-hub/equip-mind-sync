@@ -812,7 +812,34 @@ export default function DocumentSearch() {
     }
   };
 
-  // Old fallback removed — getCurrentStatusBadge now provides unified Thai labels for every source.
+  // อธิบายที่มาของเอกสาร (เช่น DR สร้างจาก Swap หรือจาก Assessment) เพื่อไม่ให้ดูซ้ำกัน
+  const getOriginLabel = (doc: DocumentRecord): string | null => {
+    const r: any = doc.raw || {};
+    if (doc.source === "defective") {
+      const reason: string = r.reason || "";
+      // ดึงเลขเอกสารต้นทางจาก reason เช่น "จากการ Swap (SWP-...)" หรือ "จากการประเมิน ASM-..."
+      const swapMatch = reason.match(/SWP-[\d-]+/);
+      const asmMatch = reason.match(/ASM-[\d-]+/);
+      if (r.source_type === "from_assessment" || asmMatch) {
+        return `สร้างอัตโนมัติจากผลประเมิน ${asmMatch?.[0] || ""}`.trim();
+      }
+      if (r.swap_request_id || swapMatch) {
+        return `สร้างอัตโนมัติจาก Swap ${swapMatch?.[0] || ""}`.trim();
+      }
+      if (r.source_type === "billboard") return "ถอดจากป้ายโฆษณา";
+      return "สร้างด้วยตนเอง";
+    }
+    if (doc.source === "assessment" && r.outcome) {
+      const map: Record<string, string> = {
+        defective: "ผล: ซ่อมไม่ได้ → ส่งเข้าคลังของเสีย",
+        claim: "ผล: ส่งเคลม",
+        self_repair: "ผล: ซ่อมเอง → คืนคลัง",
+        return_refurb: "ผล: คืนคลังเป็นของ Refurb",
+      };
+      return map[r.outcome] || null;
+    }
+    return null;
+  };
 
   return (
     <div className="space-y-5">
