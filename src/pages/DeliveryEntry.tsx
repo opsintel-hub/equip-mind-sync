@@ -153,13 +153,24 @@ const DeliveryEntry = () => {
     const all = splitUrls(r.document_url);
     const docs = all.filter((u) => !isImageUrl(u));
     const images = all.filter((u) => isImageUrl(u));
-    return [
-      { label: "เอกสารแนบเพิ่มเติม", urls: docs },
-      { label: "รูปภาพเพิ่มเติม", urls: images },
-      { label: "เอกสารจัดซื้อ", urls: r.purchase_document_url },
-      { label: "Invoice", urls: r.invoice_document_url },
-      { label: "ใบส่งของ", urls: r.delivery_note_document_url },
+    const poUrls = splitUrls(r.po_document_url);
+    const prUrls = splitUrls(r.pr_document_url);
+    const invoiceUrls = splitUrls(r.invoice_document_url);
+    const dnUrls = splitUrls(r.delivery_note_document_url);
+    const legacyPurchase = splitUrls(r.purchase_document_url);
+    const known = new Set([...poUrls, ...prUrls, ...invoiceUrls, ...dnUrls]);
+    const legacyOnly = legacyPurchase.filter((u) => !known.has(u));
+
+    const cats: DocumentCategory[] = [
+      { label: "เลข PO", urls: poUrls },
+      { label: "เลข PR", urls: prUrls },
+      { label: "Invoice No.", urls: invoiceUrls },
+      { label: "ใบส่งของ", urls: dnUrls },
     ];
+    if (legacyOnly.length > 0) cats.push({ label: "เอกสารจัดซื้อ (เก่า)", urls: legacyOnly });
+    if (docs.length > 0) cats.push({ label: "เอกสารแนบเพิ่มเติม", urls: docs });
+    if (images.length > 0) cats.push({ label: "รูปภาพเพิ่มเติม", urls: images });
+    return cats;
   };
   const [showPOUpload, setShowPOUpload] = useState(false);
 
