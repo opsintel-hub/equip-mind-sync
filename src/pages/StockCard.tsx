@@ -273,10 +273,10 @@ export default function StockCard() {
     queryFn: async () => {
       if (!selectedItemId || !selectedItem) return [];
       
-      // For equipment, query by equipment_id (FK match)
-      // For media_players/tools, query by equipment_code (no FK to those tables)
+      // Query by item id for Equipment/Media Player so S/N-level records with the same code don't get mixed.
+      // Tools do not share the same FK path, so keep code fallback only for tools.
       let query;
-      if (selectedItemType === "equipment") {
+      if (selectedItemType === "equipment" || selectedItemType === "media_player") {
         query = supabase.from("stock_movements")
           .select("*")
           .eq("equipment_id", selectedItemId)

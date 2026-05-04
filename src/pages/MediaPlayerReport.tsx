@@ -904,7 +904,7 @@ function MediaPlayerProfileDialog({
     const { data: movs } = await supabase
       .from("stock_movements")
       .select("id, created_at, movement_type, quantity, stock_before, stock_after, reference_document, notes, item_condition")
-      .eq("equipment_code", (p as any).code)
+      .eq("equipment_id", playerId)
       .order("created_at", { ascending: false })
       .limit(200);
     setMovements((movs as any) || []);

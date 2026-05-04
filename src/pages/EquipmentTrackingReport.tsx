@@ -875,7 +875,7 @@ function EquipmentDetailDialog({ item, onClose, bbLookup }: { item: any; onClose
     },
   });
 
-  // Stock movements - for media_player search by code/name since stock_movements uses equipment references
+  // Stock movements - Media Player rows are individualized, so use the row id to avoid mixing same-code S/Ns.
   const { data: movements, isLoading: loadingMov } = useQuery({
     queryKey: ["eq-detail-movements", item.id, item.itemType, item.code],
     queryFn: async () => {
@@ -889,12 +889,11 @@ function EquipmentDetailDialog({ item, onClose, bbLookup }: { item: any; onClose
         if (error) throw error;
         return data || [];
       }
-      // Media Player: search by equipment_code matching media player code
-      if (item.itemType === "media_player" && item.code) {
+      if (item.itemType === "media_player") {
         const { data, error } = await supabase
           .from("stock_movements")
           .select("*")
-          .eq("equipment_code", item.code)
+          .eq("equipment_id", item.id)
           .order("created_at", { ascending: false })
           .limit(50);
         if (error) throw error;

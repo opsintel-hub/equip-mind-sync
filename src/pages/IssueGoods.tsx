@@ -286,11 +286,17 @@ const IssueGoods = () => {
         // Media Player: Update media_players table
         const { data: currentMediaPlayer, error: fetchMpError } = await supabase
           .from("media_players")
-          .select("quantity, code, name, location_id")
+          .select("quantity, code, name, location_id, serial_number_1")
           .eq("id", selectedItem.media_player_id)
           .single();
 
         if (fetchMpError) throw fetchMpError;
+        if (issuedQty !== 1) throw new Error("Media Player ต้องจ่ายครั้งละ 1 เครื่องตาม S/N เท่านั้น");
+        if ((currentMediaPlayer?.quantity || 0) <= 0) throw new Error("S/N นี้ไม่อยู่ในคลังแล้ว");
+        if (!issueData.serial_number) throw new Error("กรุณาเลือก S/N ของ Media Player ก่อนจ่าย");
+        if (issueData.serial_number && currentMediaPlayer?.serial_number_1 !== issueData.serial_number) {
+          throw new Error("S/N ที่เลือกไม่ตรงกับเครื่องที่จะจ่าย กรุณาเลือก S/N ใหม่");
+        }
 
         const currentStock = currentMediaPlayer?.quantity || 0;
         const newStock = Math.max(0, currentStock - issuedQty);
