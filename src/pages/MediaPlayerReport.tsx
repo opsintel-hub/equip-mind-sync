@@ -622,6 +622,7 @@ export default function MediaPlayerReport() {
                       <TableHead className="min-w-[60px]">ภาพ</TableHead>
                       <TableHead className="min-w-[130px]">รหัส</TableHead>
                       <TableHead className="min-w-[130px]">ชื่อ</TableHead>
+                      <TableHead className="min-w-[140px]">ชื่อเครื่อง (Name)</TableHead>
                       <TableHead className="min-w-[120px]">S/N</TableHead>
                       <TableHead className="min-w-[80px]">สภาพ</TableHead>
                       <TableHead className="min-w-[80px]">สถานะ</TableHead>
