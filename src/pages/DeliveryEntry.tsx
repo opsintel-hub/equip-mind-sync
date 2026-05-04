@@ -1072,11 +1072,10 @@ const DeliveryEntry = () => {
         invoice_document_url: invoiceDocumentUrl || null,
         delivery_note_document_url: deliveryNoteDocumentUrl || null,
         order_for_project: orderForProject || null,
-        purchase_document_url:
-          purchaseDocumentUrl ||
-          (poDocumentUrl || prDocumentUrl || invoiceDocumentUrl || deliveryNoteDocumentUrl
-            ? [poDocumentUrl, prDocumentUrl, invoiceDocumentUrl, deliveryNoteDocumentUrl].filter(Boolean).join(", ")
-            : null),
+        po_document_url: poDocumentUrl || null,
+        pr_document_url: prDocumentUrl || null,
+        // Keep purchase_document_url for legacy compatibility, but only with PO file (not duplicating others)
+        purchase_document_url: purchaseDocumentUrl || poDocumentUrl || null,
         // Media Player specific fields
         is_media_player: item.is_media_player || false,
         media_player_id: item.media_player_id || null,
