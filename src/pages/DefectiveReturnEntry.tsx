@@ -61,6 +61,9 @@ const DefectiveReturnEntry = () => {
   const [reporterName, setReporterName] = useState("");
   const [reporterDepartment, setReporterDepartment] = useState("");
   const [fromAssessmentInfo, setFromAssessmentInfo] = useState<{ assessmentLogId: string; docNo: string | null } | null>(null);
+  const [activeTab, setActiveTab] = useState<"new" | "pending">("new");
+  const [pendingTickets, setPendingTickets] = useState<any[]>([]);
+  const [pendingLoading, setPendingLoading] = useState(false);
 
   // Auto-fill reporter from logged-in user's profile + first allowed department
   useEffect(() => {
