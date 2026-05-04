@@ -357,6 +357,53 @@ export function AssessmentCompleteDialog({ open, onOpenChange, log, onCompleted 
         </DialogHeader>
 
         <div className="space-y-4">
+          {/* Source Context — แสดงข้อมูลต้นทาง (Swap/ของเสีย/ป้อนเอง) */}
+          {sourceCtx && (
+            <div className="rounded-lg border bg-muted/40 p-3 space-y-2 text-sm">
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <div className="font-semibold flex items-center gap-2">
+                  <Badge variant="secondary">ที่มา: {sourceCtx.sourceLabel}</Badge>
+                  {sourceCtx.itemCode && (
+                    <span className="text-foreground">
+                      {sourceCtx.itemCode}{sourceCtx.itemName ? ` — ${sourceCtx.itemName}` : ""}
+                    </span>
+                  )}
+                </div>
+                {sourceCtx.reportedAt && (
+                  <span className="text-xs text-muted-foreground">
+                    แจ้งเมื่อ {new Date(sourceCtx.reportedAt).toLocaleString("th-TH", { dateStyle: "medium", timeStyle: "short" })}
+                  </span>
+                )}
+              </div>
+              <div className="grid md:grid-cols-2 gap-x-4 gap-y-1 text-xs">
+                {sourceCtx.billboardLabel && (
+                  <div><span className="text-muted-foreground">ป้ายต้นทาง: </span><span className="font-medium">{sourceCtx.billboardLabel}</span></div>
+                )}
+                {log.serial_number && (
+                  <div><span className="text-muted-foreground">S/N: </span><span className="font-mono">{log.serial_number}</span></div>
+                )}
+                {sourceCtx.reporter && (
+                  <div><span className="text-muted-foreground">ผู้แจ้ง: </span><span>{sourceCtx.reporter}</span></div>
+                )}
+                {(sourceCtx.description || sourceCtx.reportedSymptom) && (
+                  <div className="md:col-span-2">
+                    <span className="text-muted-foreground">อาการที่แจ้ง: </span>
+                    <span>{sourceCtx.description || sourceCtx.reportedSymptom}</span>
+                  </div>
+                )}
+              </div>
+              {sourceCtx.photos.length > 0 && (
+                <div className="flex gap-2 flex-wrap pt-1">
+                  {sourceCtx.photos.map((url, i) => (
+                    <a key={i} href={url} target="_blank" rel="noreferrer">
+                      <img src={url} alt={`อาการ ${i + 1}`} className="h-16 w-16 object-cover rounded border hover:ring-2 hover:ring-primary" />
+                    </a>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
           <div className="grid md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>อาการเสีย</Label>
