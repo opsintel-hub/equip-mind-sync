@@ -49,6 +49,8 @@ const Login = () => {
   const [requestedDepartment, setRequestedDepartment] = useState("");
   const [jobRoles, setJobRoles] = useState<JobRoleTemplate[]>([]);
   const [departments, setDepartments] = useState<string[]>([]);
+  const [optionsLoading, setOptionsLoading] = useState(true);
+  const [optionsError, setOptionsError] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
@@ -60,6 +62,8 @@ const Login = () => {
   // Load templates + departments for signup form
   useEffect(() => {
     const loadOptions = async () => {
+      setOptionsLoading(true);
+      setOptionsError(false);
       try {
         const [tplRes, deptRes] = await Promise.all([
           (supabase as any)
@@ -69,10 +73,14 @@ const Login = () => {
             .order("display_order"),
           supabase.from("departments").select("name").eq("is_active", true).order("name"),
         ]);
+        if (tplRes.error || deptRes.error) throw tplRes.error || deptRes.error;
         if (tplRes.data) setJobRoles(tplRes.data as JobRoleTemplate[]);
         if (deptRes.data) setDepartments(deptRes.data.map((d: any) => d.name));
       } catch (e) {
         console.error("Failed loading signup options", e);
+        setOptionsError(true);
+      } finally {
+        setOptionsLoading(false);
       }
     };
     loadOptions();
@@ -237,10 +245,10 @@ const Login = () => {
                   <Select
                     value={requestedJobRole}
                     onValueChange={setRequestedJobRole}
-                    disabled={isLoading || jobRoles.length === 0}
+                    disabled={isLoading || optionsLoading || jobRoles.length === 0}
                   >
                     <SelectTrigger id="job-role">
-                      <SelectValue placeholder="เลือกตำแหน่งงาน..." />
+                      <SelectValue placeholder={optionsLoading ? "กำลังโหลดตำแหน่งงาน..." : "เลือกตำแหน่งงาน..."} />
                     </SelectTrigger>
                     <SelectContent>
                       {jobRoles.map((r) => (
@@ -265,10 +273,10 @@ const Login = () => {
                   <Select
                     value={requestedDepartment}
                     onValueChange={setRequestedDepartment}
-                    disabled={isLoading || departments.length === 0}
+                    disabled={isLoading || optionsLoading || departments.length === 0}
                   >
                     <SelectTrigger id="department">
-                      <SelectValue placeholder="เลือกฝ่าย..." />
+                      <SelectValue placeholder={optionsLoading ? "กำลังโหลดฝ่าย..." : "เลือกฝ่าย..."} />
                     </SelectTrigger>
                     <SelectContent>
                       {departments.map((d) => (
@@ -280,15 +288,22 @@ const Login = () => {
                   </Select>
                 </div>
 
+                {optionsError && (
+                  <div className="flex gap-2 p-3 rounded-md bg-destructive/10 border border-destructive/20 text-xs text-destructive">
+                    <Info className="h-4 w-4 flex-shrink-0 mt-0.5" />
+                    <span>โหลดรายการตำแหน่งงานหรือฝ่ายไม่สำเร็จ กรุณารีเฟรชหน้าแล้วลองใหม่</span>
+                  </div>
+                )}
+
                 {/* Info banner */}
-                <div className="flex gap-2 p-3 rounded-md bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 text-xs text-blue-800 dark:text-blue-200">
+                <div className="flex gap-2 p-3 rounded-md bg-primary/10 border border-primary/20 text-xs text-primary">
                   <Info className="h-4 w-4 flex-shrink-0 mt-0.5" />
                   <span>
                     ข้อมูลนี้เป็นเพียง <strong>คำขอ</strong> ผู้ดูแลระบบจะตรวจสอบและกำหนดสิทธิ์การใช้งานให้ก่อนเริ่มใช้งานจริง
                   </span>
                 </div>
 
-                <Button type="submit" className="w-full" disabled={isLoading}>
+                <Button type="submit" className="w-full" disabled={isLoading || optionsLoading || optionsError}>
                   {isLoading ? "กำลังสมัครสมาชิก..." : "สมัครสมาชิก"}
                 </Button>
               </form>
