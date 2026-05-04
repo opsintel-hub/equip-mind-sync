@@ -850,7 +850,9 @@ const ReceiveGoods = () => {
             if (br.invoice_number) batchMpPayload.invoice_number = br.invoice_number;
             if (br.depreciation_months != null) batchMpPayload.depreciation_months = br.depreciation_months;
             if (br.warranty_expiry_date) batchMpPayload.warranty_expiry_date = br.warranty_expiry_date;
-            if (br.purchase_document_url) batchMpPayload.po_document_url = br.purchase_document_url;
+            if (br.po_document_url) batchMpPayload.po_document_url = br.po_document_url;
+            else if (br.purchase_document_url) batchMpPayload.po_document_url = br.purchase_document_url;
+            if (br.pr_document_url) batchMpPayload.pr_document_url = br.pr_document_url;
             if (br.invoice_document_url) batchMpPayload.invoice_document_url = br.invoice_document_url;
             if (br.delivery_note_number) batchMpPayload.delivery_note_number = br.delivery_note_number;
             if (br.delivery_note_document_url) batchMpPayload.delivery_note_document_url = br.delivery_note_document_url;
