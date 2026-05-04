@@ -399,6 +399,7 @@ const BillboardIssueReport = () => {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead>Old Code</TableHead>
                   <TableHead>รหัสป้าย</TableHead>
                   <TableHead>ตำแหน่ง</TableHead>
                   <TableHead>ภูมิภาค</TableHead>
@@ -410,18 +411,19 @@ const BillboardIssueReport = () => {
               <TableBody>
                 {isLoading ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center py-8">กำลังโหลด...</TableCell>
+                    <TableCell colSpan={7} className="text-center py-8">กำลังโหลด...</TableCell>
                   </TableRow>
                 ) : billboardSummary.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
                       ไม่มีข้อมูล
                     </TableCell>
                   </TableRow>
                 ) : (
                   paginatedBillboards.map((item) => (
                     <TableRow key={item.billboard_id}>
-                      <TableCell className="font-mono font-medium">{item.billboard_code}</TableCell>
+                      <TableCell className="font-mono font-medium">{item.old_code || "-"}</TableCell>
+                      <TableCell className="font-mono">{item.billboard_code}</TableCell>
                       <TableCell>{item.location_name || "-"}</TableCell>
                       <TableCell>
                         <Badge variant="outline">{item.region || "-"}</Badge>
