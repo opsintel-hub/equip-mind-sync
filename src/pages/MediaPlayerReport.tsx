@@ -313,6 +313,7 @@ export default function MediaPlayerReport() {
         warrantyDaysLeft,
         expiryDaysLeft,
         orderForProject: (latestReceipt as any)?.order_for_project || "",
+        remoteName: p.remote_name || "",
       });
     });
     return rows;
