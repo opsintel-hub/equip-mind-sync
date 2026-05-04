@@ -1656,6 +1656,8 @@ const DeliveryEntry = () => {
                           if (mp) {
                             setEquipmentCode(mp.code);
                             setEquipmentName(mp.name);
+                            setMediaPlayerSpecification(mp.specification || "");
+                            setMediaPlayerUsageLifespanMonths(mp.usage_lifespan_months ? String(mp.usage_lifespan_months) : "");
                             // Auto-fill unit price from media player when NOT a purchase receipt
                             if (!isPurchaseReceipt && mp.unit_price && mp.unit_price > 0) {
                               setUnitPrice(String(mp.unit_price));
@@ -1665,6 +1667,26 @@ const DeliveryEntry = () => {
                         placeholder="เลือก Media Player..."
                         searchPlaceholder="พิมพ์รหัสหรือชื่อ Media Player..."
                         emptyMessage="ไม่พบ Media Player"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Specification</Label>
+                      <Input
+                        placeholder="Specification"
+                        value={mediaPlayerSpecification}
+                        onChange={(e) => setMediaPlayerSpecification(e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>อายุใช้งาน (เดือน)</Label>
+                      <Input
+                        type="number"
+                        placeholder="เช่น 60"
+                        value={mediaPlayerUsageLifespanMonths}
+                        onChange={(e) => setMediaPlayerUsageLifespanMonths(e.target.value)}
                       />
                     </div>
                   </div>
