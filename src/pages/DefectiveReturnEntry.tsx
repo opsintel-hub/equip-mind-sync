@@ -949,6 +949,8 @@ const DefectiveReturnEntry = () => {
           </CardContent>
         </Card>
       </div>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };
