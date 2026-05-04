@@ -100,9 +100,9 @@ const MediaPlayerProfile = () => {
 
     // Billboard journey (history + current + fallback from media_players)
     const { data: history } = await supabase
-      .from("billboard_equipment_history")
-      .select("billboard_id, installation_date, uninstall_date, uninstall_reason, quantity")
-      .or(`equipment_id.eq.${playerId}`);
+      .from("media_player_billboard_history")
+      .select("billboard_id, installation_date, uninstall_date, uninstall_reason")
+      .eq("media_player_id", playerId);
 
     const { data: currentInstalls } = await supabase
       .from("billboard_equipment")
