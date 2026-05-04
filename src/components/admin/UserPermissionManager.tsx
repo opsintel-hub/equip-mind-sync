@@ -420,10 +420,11 @@ export function UserPermissionManager() {
           <div className="rounded-lg border">
             <Table>
               <TableHeader>
-                <TableRow className="bg-muted/50">
+                  <TableRow className="bg-muted/50">
                   <TableHead>ชื่อ-นามสกุล</TableHead>
                   <TableHead>อีเมล</TableHead>
                   <TableHead>เบอร์โทร</TableHead>
+                    <TableHead>คำขอสมัคร</TableHead>
                   <TableHead>บทบาท</TableHead>
                   <TableHead className="text-right">จัดการ</TableHead>
                 </TableRow>
@@ -438,6 +439,19 @@ export function UserPermissionManager() {
                     <TableCell className="font-medium">{user.full_name || "-"}</TableCell>
                     <TableCell className="text-muted-foreground">{user.email || "-"}</TableCell>
                     <TableCell>{user.phone || "-"}</TableCell>
+                      <TableCell>
+                        {user.requested_job_role || user.requested_department ? (
+                          <div className="space-y-1 text-sm">
+                            <div className="font-medium text-foreground">{getRequestedJobRoleLabel(user.requested_job_role)}</div>
+                            <div className="text-xs text-muted-foreground flex items-center gap-1">
+                              <Building2 className="h-3 w-3" />
+                              {user.requested_department || "-"}
+                            </div>
+                          </div>
+                        ) : (
+                          <span className="text-muted-foreground">-</span>
+                        )}
+                      </TableCell>
                     <TableCell>
                       <div className="flex gap-1 flex-wrap items-center">
                         {getRoleSummary(user.id) || (
@@ -447,7 +461,7 @@ export function UserPermissionManager() {
                             </Badge>
                             {(user.requested_job_role || user.requested_department) && (
                               <span className="text-[11px] text-muted-foreground">
-                                ขอ: {user.requested_job_role || "-"}
+                                ขอ: {getRequestedJobRoleLabel(user.requested_job_role)}
                                 {user.requested_department ? ` / ${user.requested_department}` : ""}
                               </span>
                             )}
