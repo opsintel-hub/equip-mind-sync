@@ -438,7 +438,23 @@ const DefectiveReturnEntry = () => {
             else await supabase.from("billboard_equipment").update({ quantity: be.quantity - totalQty }).eq("id", be.id);
           }
         }
-        if (isFromBillboard && isMediaPlayer) await supabase.from("media_players").update({ billboard_id: null, status: "defective" }).eq("id", selectedItemId);
+        if (isFromBillboard && isMediaPlayer) {
+          const billboardId = selectedBillboardRecord?.billboard_id || null;
+          if (billboardId) {
+            await supabase
+              .from("media_player_billboard_history")
+              .update({
+                uninstall_date: new Date().toISOString().split("T")[0],
+                uninstall_reason: `ของเสีย: ${validUnits.map(u => u.serial_number).join(", ")}`,
+                uninstalled_by: user?.id ?? null,
+                return_to_stock: false,
+              } as any)
+              .eq("media_player_id", selectedItemId)
+              .eq("billboard_id", billboardId)
+              .is("uninstall_date", null);
+          }
+          await supabase.from("media_players").update({ billboard_id: null, status: "defective" }).eq("id", selectedItemId);
+        }
         toast.success(`บันทึกของเสีย/ชำรุดสำเร็จ ${successCount} รายการ — ตัด Stock เข้า "คลังของเสีย" แล้ว`);
         handleReset();
       } catch (error: any) { toast.error("เกิดข้อผิดพลาด: " + error.message); } finally { setIsSubmitting(false); }
