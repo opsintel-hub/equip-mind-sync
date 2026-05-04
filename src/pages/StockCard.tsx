@@ -304,7 +304,7 @@ export default function StockCard() {
     queryFn: async () => {
       if (!selectedItemId) return [];
       const { data } = await supabase.from("billboard_equipment_history")
-        .select("*, billboards(equipment_id, location_name, description)")
+        .select("*, billboards(equipment_id, old_code, location_name, description)")
         .eq("equipment_id", selectedItemId)
         .order("uninstall_date", { ascending: false });
       return data || [];
@@ -320,13 +320,13 @@ export default function StockCard() {
       if (!selectedItemId) return [];
       if (selectedItemType === "media_player") {
         const { data } = await supabase.from("media_player_billboard_history")
-          .select("*, billboards(equipment_id, location_name, description)")
+          .select("*, billboards(equipment_id, old_code, location_name, description)")
           .eq("media_player_id", selectedItemId)
           .is("uninstall_date", null);
         return (data || []).map((r: any) => ({ ...r, billboards: r.billboards }));
       }
       const { data } = await supabase.from("billboard_equipment")
-        .select("*, billboards(equipment_id, location_name, description)")
+        .select("*, billboards(equipment_id, old_code, location_name, description)")
         .eq("equipment_id", selectedItemId);
       return data || [];
     },
@@ -340,7 +340,7 @@ export default function StockCard() {
     queryFn: async () => {
       if (!selectedItemId) return [];
       const { data } = await supabase.from("media_player_billboard_history")
-        .select("*, billboards(equipment_id, location_name, description)")
+        .select("*, billboards(equipment_id, old_code, location_name, description)")
         .eq("media_player_id", selectedItemId)
         .not("uninstall_date", "is", null)
         .order("uninstall_date", { ascending: false });
@@ -887,13 +887,21 @@ export default function StockCard() {
                   <MapPin className="w-4 h-4" /> ติดตั้งอยู่ที่ป้ายปัจจุบัน
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  {currentInstallations.map((inst: any) => (
-                    <Badge key={inst.id} variant="outline" className="bg-background">
-                      {inst.billboards?.equipment_id || inst.billboards?.location_name || inst.billboard_id}
-                      {inst.installation_date && ` (ตั้งแต่ ${format(parseISO(inst.installation_date), "dd/MM/yy")})`}
-                      {" × "}{inst.quantity}
-                    </Badge>
-                  ))}
+                  {currentInstallations.map((inst: any) => {
+                    const parts = [
+                      inst.billboards?.old_code,
+                      inst.billboards?.equipment_id,
+                      inst.billboards?.location_name,
+                    ].filter(Boolean);
+                    const label = parts.length > 0 ? parts.join(" - ") : inst.billboard_id;
+                    return (
+                      <Badge key={inst.id} variant="outline" className="bg-background">
+                        {label}
+                        {inst.installation_date && ` (ตั้งแต่ ${format(parseISO(inst.installation_date), "dd/MM/yy")})`}
+                        {" × "}{inst.quantity}
+                      </Badge>
+                    );
+                  })}
                 </div>
               </div>
             )}
