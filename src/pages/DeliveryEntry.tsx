@@ -955,10 +955,10 @@ const DeliveryEntry = () => {
       }
       setIsUploadingFile(false);
 
-      // Combine all document URLs (including PO/PR/Invoice uploaded URLs)
-      const allDocumentUrls = [...additionalDocUrls, ...additionalImageUrls, poDocumentUrl, prDocumentUrl, invoiceDocumentUrl]
-        .filter(Boolean)
-        .join(", ");
+      // Keep document_url as extra/aggregate compatibility only; preview will de-duplicate slot documents.
+      const allDocumentUrls = Array.from(
+        new Set([...additionalDocUrls, ...additionalImageUrls, poDocumentUrl, prDocumentUrl, invoiceDocumentUrl, deliveryNoteDocumentUrl].filter(Boolean))
+      ).join(", ");
 
       // Clone media_players records for items that share the same media_player_id
       // Each physical device must have its own media_players record
