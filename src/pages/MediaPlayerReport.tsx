@@ -380,6 +380,7 @@ export default function MediaPlayerReport() {
         const match =
           r.code?.toLowerCase().includes(s) ||
           r.name?.toLowerCase().includes(s) ||
+          r.remoteName?.toLowerCase().includes(s) ||
           r.brand?.toLowerCase().includes(s) ||
           r.poNumber?.toLowerCase().includes(s) ||
           r.assetCode?.toLowerCase().includes(s) ||
