@@ -606,6 +606,9 @@ const ReceiveGoods = () => {
         if (sr.delivery_note_document_url) mpUpdatePayload.delivery_note_document_url = sr.delivery_note_document_url;
         if (sr.order_for_project) mpUpdatePayload.order_for_project = sr.order_for_project;
         if (sr.activate_windows) mpUpdatePayload.activate_windows = sr.activate_windows;
+        if (sr.remote_name) mpUpdatePayload.remote_name = sr.remote_name;
+        if (sr.specification) mpUpdatePayload.specification = sr.specification;
+        if (sr.usage_lifespan_months != null) mpUpdatePayload.usage_lifespan_months = sr.usage_lifespan_months;
         const finalAssetCode = trimmedAssetCode || sr.asset_code;
         const finalEquipmentIdCode = trimmedEquipmentIdCode || sr.equipment_id_code;
         if (finalAssetCode) mpUpdatePayload.asset_code = finalAssetCode;
@@ -858,6 +861,9 @@ const ReceiveGoods = () => {
             if (br.delivery_note_document_url) batchMpPayload.delivery_note_document_url = br.delivery_note_document_url;
             if (br.order_for_project) batchMpPayload.order_for_project = br.order_for_project;
             if (br.activate_windows) batchMpPayload.activate_windows = br.activate_windows;
+            if (br.remote_name) batchMpPayload.remote_name = br.remote_name;
+            if (br.specification) batchMpPayload.specification = br.specification;
+            if (br.usage_lifespan_months != null) batchMpPayload.usage_lifespan_months = br.usage_lifespan_months;
             if (br.asset_code) batchMpPayload.asset_code = br.asset_code;
             if (br.equipment_id_code) batchMpPayload.equipment_id_code = br.equipment_id_code;
 
