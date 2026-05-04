@@ -128,6 +128,8 @@ const DeliveryEntry = () => {
       code: string;
       name: string;
       unit_price: number | null;
+      specification: string | null;
+      usage_lifespan_months: number | null;
     }[]
   >([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -223,6 +225,8 @@ const DeliveryEntry = () => {
   const [unitPrice, setUnitPrice] = useState("");
   const [expiryDate, setExpiryDate] = useState("");
   const [warrantyExpiryDate, setWarrantyExpiryDate] = useState("");
+  const [mediaPlayerSpecification, setMediaPlayerSpecification] = useState("");
+  const [mediaPlayerUsageLifespanMonths, setMediaPlayerUsageLifespanMonths] = useState("");
   const [itemNotes, setItemNotes] = useState("");
 
   // Media Player specific fields - dynamic device entries
