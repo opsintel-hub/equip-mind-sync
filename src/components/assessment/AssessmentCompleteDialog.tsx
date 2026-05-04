@@ -92,6 +92,91 @@ export function AssessmentCompleteDialog({ open, onOpenChange, log, onCompleted 
     setExternalRepairContact("");
     setExternalRepairPhone("");
     setSupplierAutofill(null);
+    setSourceCtx(null);
+
+    // Load source context (Swap / Defective Return / Manual)
+    (async () => {
+      try {
+        let ctx: SourceContext = {
+          sourceLabel: "ป้อนเอง",
+          itemCode: null,
+          itemName: null,
+          billboardLabel: null,
+          billboardId: null,
+          reportedSymptom: log.symptom_description || null,
+          reporter: null,
+          reportedAt: null,
+          photos: [],
+          description: null,
+        };
+
+        // Item code/name from media_player or equipment
+        if (log.media_player_id) {
+          const { data: mp } = await supabase
+            .from("media_players")
+            .select("code, name, billboard_id, billboard:billboards(equipment_id, old_code, location_name)")
+            .eq("id", log.media_player_id)
+            .maybeSingle() as any;
+          if (mp) {
+            ctx.itemCode = mp.code;
+            ctx.itemName = mp.name;
+            if (mp.billboard) {
+              const parts = [mp.billboard.old_code, mp.billboard.equipment_id, mp.billboard.location_name].filter(Boolean);
+              ctx.billboardLabel = parts.join(" - ");
+              ctx.billboardId = mp.billboard_id;
+            }
+          }
+        } else if (log.equipment_id) {
+          const { data: eq } = await supabase
+            .from("equipment")
+            .select("code, name")
+            .eq("id", log.equipment_id)
+            .maybeSingle() as any;
+          if (eq) { ctx.itemCode = eq.code; ctx.itemName = eq.name; }
+        }
+
+        // Source-specific context
+        if (log.source_type === "swap" && log.source_reference_id) {
+          const { data: sw } = await supabase
+            .from("swap_requests")
+            .select("document_no, billboard_id, description, symptom_other, technician_name, photo_urls, created_at, billboard:billboards(equipment_id, old_code, location_name)")
+            .eq("id", log.source_reference_id)
+            .maybeSingle() as any;
+          if (sw) {
+            ctx.sourceLabel = `Swap ${sw.document_no}`;
+            ctx.description = sw.description || sw.symptom_other || null;
+            ctx.reporter = sw.technician_name || null;
+            ctx.reportedAt = sw.created_at || null;
+            ctx.photos = Array.isArray(sw.photo_urls) ? sw.photo_urls : [];
+            if (sw.billboard && !ctx.billboardLabel) {
+              const parts = [sw.billboard.old_code, sw.billboard.equipment_id, sw.billboard.location_name].filter(Boolean);
+              ctx.billboardLabel = parts.join(" - ");
+              ctx.billboardId = sw.billboard_id;
+            }
+          }
+        } else if (log.source_type === "defective" && log.source_reference_id) {
+          const { data: dr } = await supabase
+            .from("defective_returns")
+            .select("document_no, reason, billboard_id, created_at, billboard:billboards(equipment_id, old_code, location_name)")
+            .eq("id", log.source_reference_id)
+            .maybeSingle() as any;
+          if (dr) {
+            ctx.sourceLabel = `ของเสีย ${dr.document_no}`;
+            ctx.description = dr.reason || null;
+            ctx.reportedAt = dr.created_at || null;
+            if (dr.billboard && !ctx.billboardLabel) {
+              const parts = [dr.billboard.old_code, dr.billboard.equipment_id, dr.billboard.location_name].filter(Boolean);
+              ctx.billboardLabel = parts.join(" - ");
+              ctx.billboardId = dr.billboard_id;
+            }
+          }
+        }
+
+        setSourceCtx(ctx);
+      } catch {
+        /* ignore */
+      }
+    })();
 
     // autofill supplier
     (async () => {
