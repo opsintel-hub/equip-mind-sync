@@ -355,6 +355,13 @@ export function UserPermissionManager() {
 
   const hasNoRoles = (userId: string) => !userRoles[userId] || userRoles[userId].length === 0;
 
+  const pendingUsers = useMemo(() => users.filter((user) => hasNoRoles(user.id)), [users, userRoles]);
+
+  const getRequestedJobRoleLabel = (templateKey?: string | null) => {
+    if (!templateKey) return "-";
+    return templateLabels[templateKey] || templateKey;
+  };
+
   const handleOpenWizard = (user: User) => {
     setWizardUser(user);
     setWizardOpen(true);
@@ -388,9 +395,14 @@ export function UserPermissionManager() {
               <CardTitle className="flex items-center gap-2">
                 <UserCog className="h-5 w-5 text-primary" />
                 รายชื่อผู้ใช้งาน
+                {pendingUsers.length > 0 && (
+                  <Badge variant="secondary" className="ml-1">
+                    รออนุมัติ {pendingUsers.length}
+                  </Badge>
+                )}
               </CardTitle>
               <CardDescription>
-                คลิกที่ผู้ใช้เพื่อจัดการบทบาทและสิทธิ์ทั้งหมดในที่เดียว
+                ผู้สมัครใหม่จะแสดงเป็น “ยังไม่ตั้งสิทธิ์” พร้อมตำแหน่ง/ฝ่ายที่ขอ ให้ Super Admin กดตั้งสิทธิ์อัตโนมัติเพื่ออนุมัติ
               </CardDescription>
             </div>
             <div className="relative w-64">
