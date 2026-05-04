@@ -115,6 +115,7 @@ interface ExpandedRow {
   lotNumber1: string;
   lotNumber2: string;
   specification: string;
+  remoteName: string;
   // for profile link
   billboard_id: string | null;
   warrantyDaysLeft: number | null;
