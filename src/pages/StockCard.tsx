@@ -887,13 +887,21 @@ export default function StockCard() {
                   <MapPin className="w-4 h-4" /> ติดตั้งอยู่ที่ป้ายปัจจุบัน
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  {currentInstallations.map((inst: any) => (
-                    <Badge key={inst.id} variant="outline" className="bg-background">
-                      {inst.billboards?.equipment_id || inst.billboards?.location_name || inst.billboard_id}
-                      {inst.installation_date && ` (ตั้งแต่ ${format(parseISO(inst.installation_date), "dd/MM/yy")})`}
-                      {" × "}{inst.quantity}
-                    </Badge>
-                  ))}
+                  {currentInstallations.map((inst: any) => {
+                    const parts = [
+                      inst.billboards?.old_code,
+                      inst.billboards?.equipment_id,
+                      inst.billboards?.location_name,
+                    ].filter(Boolean);
+                    const label = parts.length > 0 ? parts.join(" - ") : inst.billboard_id;
+                    return (
+                      <Badge key={inst.id} variant="outline" className="bg-background">
+                        {label}
+                        {inst.installation_date && ` (ตั้งแต่ ${format(parseISO(inst.installation_date), "dd/MM/yy")})`}
+                        {" × "}{inst.quantity}
+                      </Badge>
+                    );
+                  })}
                 </div>
               </div>
             )}
