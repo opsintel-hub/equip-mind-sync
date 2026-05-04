@@ -109,7 +109,7 @@ export function SummaryCards({ player, journeys }: SummaryCardsProps) {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-muted-foreground">ประวัติติดตั้ง</p>
-              <p className="text-2xl font-bold">{journeys.length + (player.billboard_id ? 1 : 0)} ครั้ง</p>
+              <p className="text-2xl font-bold">{journeys.length} ครั้ง</p>
             </div>
             <Package className="w-7 h-7 text-primary opacity-70" />
           </div>

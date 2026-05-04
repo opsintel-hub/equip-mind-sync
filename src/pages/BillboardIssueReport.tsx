@@ -86,7 +86,38 @@ const BillboardIssueReport = () => {
       .eq("status", "active")
       .order("old_code");
 
-    const typedData = (beData || []) as unknown as BillboardEquipment[];
+    // Fetch installed media players (they live in media_players, not billboard_equipment)
+    const { data: mpData } = await supabase
+      .from("media_players")
+      .select(`
+        id, code, name, billboard_id, install_date, unit_price, serial_number_1,
+        billboard:billboard_id (equipment_id, location_name, region)
+      `)
+      .not("billboard_id", "is", null);
+
+    const bbMap = new Map((billboardsData || []).map((b: any) => [b.id, b]));
+    const mpRows: BillboardEquipment[] = (mpData || []).map((mp: any) => ({
+      id: `mp-${mp.id}`,
+      billboard_id: mp.billboard_id,
+      equipment_id: mp.id,
+      quantity: 1,
+      installation_date: mp.install_date,
+      equipment: {
+        code: mp.code,
+        name: mp.name || "Media Player",
+        unit: "เครื่อง",
+        unit_price: mp.unit_price || 0,
+        category: "Media Player",
+        serial_number: mp.serial_number_1,
+      } as any,
+      billboard: mp.billboard || (bbMap.get(mp.billboard_id) ? {
+        equipment_id: (bbMap.get(mp.billboard_id) as any).equipment_id,
+        location_name: (bbMap.get(mp.billboard_id) as any).location_name,
+        region: (bbMap.get(mp.billboard_id) as any).region,
+      } : undefined),
+    }));
+
+    const typedData = [...((beData || []) as unknown as BillboardEquipment[]), ...mpRows];
     setBillboardEquipment(typedData);
     setBillboards(billboardsData || []);
 
