@@ -275,6 +275,61 @@ const DefectiveReturnEntry = () => {
     } else { setDetectedBillboards([]); setSelectedBillboardEquipmentId(""); }
   };
 
+  const fetchPendingTickets = async () => {
+    setPendingLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from("defective_returns")
+        .select("id, document_no, status, source_type, reason, notes, quantity, is_media_player, equipment_id, media_player_id, billboard_id, assessment_log_id, swap_request_id, created_at")
+        .eq("status", "pending_warehouse_entry")
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+
+      // Enrich with item code/name + billboard label
+      const eqIds = [...new Set((data || []).filter((d: any) => d.equipment_id).map((d: any) => d.equipment_id))];
+      const mpIds = [...new Set((data || []).filter((d: any) => d.media_player_id).map((d: any) => d.media_player_id))];
+      const bbIds = [...new Set((data || []).filter((d: any) => d.billboard_id).map((d: any) => d.billboard_id))];
+
+      const [eqRes, mpRes, bbRes] = await Promise.all([
+        eqIds.length ? supabase.from("equipment").select("id, code, name").in("id", eqIds) : Promise.resolve({ data: [] }),
+        mpIds.length ? supabase.from("media_players").select("id, code, name").in("id", mpIds) : Promise.resolve({ data: [] }),
+        bbIds.length ? supabase.from("billboards").select("id, equipment_id, old_code, location_name").in("id", bbIds) : Promise.resolve({ data: [] }),
+      ]);
+      const eqMap = new Map((eqRes.data || []).map((e: any) => [e.id, e]));
+      const mpMap = new Map((mpRes.data || []).map((m: any) => [m.id, m]));
+      const bbMap = new Map((bbRes.data || []).map((b: any) => [b.id, b]));
+
+      const enriched = (data || []).map((d: any) => {
+        const item = d.is_media_player ? mpMap.get(d.media_player_id) : eqMap.get(d.equipment_id);
+        const bb = d.billboard_id ? bbMap.get(d.billboard_id) : null;
+        return {
+          ...d,
+          item_code: (item as any)?.code || "-",
+          item_name: (item as any)?.name || "-",
+          billboard_label: bb ? [(bb as any).old_code, (bb as any).equipment_id, (bb as any).location_name].filter(Boolean).join(" - ") : null,
+          source_label: d.source_type === "from_assessment" ? "จากการประเมิน" : d.source_type === "billboard" ? "จากป้าย" : "ป้อนเอง",
+        };
+      });
+      setPendingTickets(enriched);
+    } catch (e: any) {
+      toast.error("โหลดตั๋วรอดำเนินการไม่สำเร็จ: " + e.message);
+    } finally {
+      setPendingLoading(false);
+    }
+  };
+
+  const handleProcessTicket = (ticket: any) => {
+    // Switch to "new" tab and prefill the form (without re-creating defective_return)
+    setActiveTab("new");
+    setIsMediaPlayer(!!ticket.is_media_player);
+    setSelectedItemId(ticket.is_media_player ? ticket.media_player_id : ticket.equipment_id);
+    setReason(ticket.reason || "");
+    setNotes(ticket.notes || "");
+    setQuantity(String(ticket.quantity || 1));
+    setFromAssessmentInfo(ticket.assessment_log_id ? { assessmentLogId: ticket.assessment_log_id, docNo: ticket.document_no } : null);
+    toast.info(`เลือกตั๋ว ${ticket.document_no} แล้ว — ยืนยันข้อมูลและกดบันทึกเพื่อตัด Stock`);
+  };
+
   const equipmentOptions = useMemo(() => {
     if (isMediaPlayer) {
       return mediaPlayerList.map(mp => ({
