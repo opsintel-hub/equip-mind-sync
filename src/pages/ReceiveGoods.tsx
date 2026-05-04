@@ -40,6 +40,16 @@ const buildReceiptCategories = (r: any): DocumentCategory[] => {
   return cats;
 };
 
+const getReceiptPoDocumentUrl = (r: any): string | null => {
+  const poUrls = splitUrls(r?.po_document_url);
+  if (poUrls.length > 0) return poUrls.join(", ");
+  const invoiceUrls = new Set(splitUrls(r?.invoice_document_url));
+  const prUrls = new Set(splitUrls(r?.pr_document_url));
+  const dnUrls = new Set(splitUrls(r?.delivery_note_document_url));
+  const legacyPo = splitUrls(r?.purchase_document_url).find((url) => !invoiceUrls.has(url) && !prUrls.has(url) && !dnUrls.has(url));
+  return legacyPo || null;
+};
+
 import { format } from "date-fns";
 import { useAuth } from "@/hooks/useAuth";
 import { logStockMovement } from "@/lib/stockMovement";
