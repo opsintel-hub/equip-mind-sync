@@ -75,6 +75,7 @@ export function AssessmentCompleteDialog({ open, onOpenChange, log, onCompleted 
   const [externalRepairContact, setExternalRepairContact] = useState("");
   const [externalRepairPhone, setExternalRepairPhone] = useState("");
   const [supplierAutofill, setSupplierAutofill] = useState<{ name: string; manufacturer: string | null; warranty: string | null } | null>(null);
+  const [sourceCtx, setSourceCtx] = useState<SourceContext | null>(null);
 
   useEffect(() => {
     if (!open || !log) return;
