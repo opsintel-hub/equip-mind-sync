@@ -1,0 +1,1 @@
+ALTER TABLE public.media_player_billboard_history ALTER COLUMN uninstall_date DROP NOT NULL;
