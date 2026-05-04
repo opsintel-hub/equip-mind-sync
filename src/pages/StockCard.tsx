@@ -952,22 +952,25 @@ export default function StockCard() {
                   });
 
                   // Step: ยืนยันรับสินค้า (gate before install)
+                  // If install has happened or item is currently installed, treat as confirmed
+                  // (installation implies the receiver already accepted the goods)
+                  const treatAsConfirmed = isLastIssueConfirmed || hasInstall || isCurrentlyInstalled;
                   steps.push({
                     label: "ยืนยันรับสินค้า",
-                    status: isLastIssueConfirmed ? "done" : "current",
+                    status: treatAsConfirmed ? "done" : "current",
                     date: isLastIssueConfirmed
                       ? confirmationDateByDoc.get(lastIssueDoc!)
-                      : undefined,
+                      : (hasInstall || isCurrentlyInstalled)
+                        ? (lastInstallEvent?.date || currentInstallations[0]?.installation_date)
+                        : undefined,
                   });
 
-                  // Step: ติดตั้งป้าย (only done/current if confirmed)
+                  // Step: ติดตั้งป้าย
                   steps.push({
                     label: "ติดตั้งป้าย",
-                    status: !isLastIssueConfirmed
-                      ? "pending"
-                      : isCurrentlyInstalled
-                        ? "current"
-                        : hasInstall ? "done" : "pending",
+                    status: isCurrentlyInstalled
+                      ? "done"
+                      : hasInstall ? "done" : (treatAsConfirmed ? "current" : "pending"),
                     date: isCurrentlyInstalled
                       ? currentInstallations[0]?.installation_date
                       : lastInstallEvent?.date,
