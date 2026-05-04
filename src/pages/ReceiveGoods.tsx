@@ -598,7 +598,9 @@ const ReceiveGoods = () => {
         if (sr.invoice_number) mpUpdatePayload.invoice_number = sr.invoice_number;
         if (sr.depreciation_months != null) mpUpdatePayload.depreciation_months = sr.depreciation_months;
         if (sr.warranty_expiry_date) mpUpdatePayload.warranty_expiry_date = sr.warranty_expiry_date;
-        if (sr.purchase_document_url) mpUpdatePayload.po_document_url = sr.purchase_document_url;
+        if (sr.po_document_url) mpUpdatePayload.po_document_url = sr.po_document_url;
+        else if (sr.purchase_document_url) mpUpdatePayload.po_document_url = sr.purchase_document_url;
+        if (sr.pr_document_url) mpUpdatePayload.pr_document_url = sr.pr_document_url;
         if (sr.invoice_document_url) mpUpdatePayload.invoice_document_url = sr.invoice_document_url;
         if (sr.delivery_note_number) mpUpdatePayload.delivery_note_number = sr.delivery_note_number;
         if (sr.delivery_note_document_url) mpUpdatePayload.delivery_note_document_url = sr.delivery_note_document_url;
