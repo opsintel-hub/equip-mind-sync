@@ -29,6 +29,7 @@ interface BillboardEquipment {
   };
   billboard?: {
     equipment_id: string;
+    old_code: string | null;
     location_name: string | null;
     region: string | null;
   };
@@ -37,6 +38,7 @@ interface BillboardEquipment {
 interface BillboardSummary {
   billboard_id: string;
   billboard_code: string;
+  old_code: string | null;
   location_name: string | null;
   region: string | null;
   totalItems: number;
@@ -75,7 +77,7 @@ const BillboardIssueReport = () => {
         quantity,
         installation_date,
         equipment:equipment_id (code, name, unit, unit_price, category, serial_number),
-        billboard:billboard_id (equipment_id, location_name, region)
+        billboard:billboard_id (equipment_id, old_code, location_name, region)
       `)
       .order("installation_date", { ascending: false });
 
@@ -91,31 +93,37 @@ const BillboardIssueReport = () => {
       .from("media_players")
       .select(`
         id, code, name, billboard_id, install_date, unit_price, serial_number_1,
-        billboard:billboard_id (equipment_id, location_name, region)
+        billboard:billboard_id (equipment_id, old_code, location_name, region)
       `)
       .not("billboard_id", "is", null);
 
     const bbMap = new Map((billboardsData || []).map((b: any) => [b.id, b]));
-    const mpRows: BillboardEquipment[] = (mpData || []).map((mp: any) => ({
-      id: `mp-${mp.id}`,
-      billboard_id: mp.billboard_id,
-      equipment_id: mp.id,
-      quantity: 1,
-      installation_date: mp.install_date,
-      equipment: {
-        code: mp.code,
-        name: mp.name || "Media Player",
-        unit: "เครื่อง",
-        unit_price: mp.unit_price || 0,
-        category: "Media Player",
-        serial_number: mp.serial_number_1,
-      } as any,
-      billboard: mp.billboard || (bbMap.get(mp.billboard_id) ? {
-        equipment_id: (bbMap.get(mp.billboard_id) as any).equipment_id,
-        location_name: (bbMap.get(mp.billboard_id) as any).location_name,
-        region: (bbMap.get(mp.billboard_id) as any).region,
-      } : undefined),
-    }));
+    const mpRows: BillboardEquipment[] = (mpData || []).map((mp: any) => {
+      const bbFallback = bbMap.get(mp.billboard_id) as any;
+      return {
+        id: `mp-${mp.id}`,
+        billboard_id: mp.billboard_id,
+        equipment_id: mp.id,
+        quantity: 1,
+        installation_date: mp.install_date,
+        equipment: {
+          code: mp.code,
+          name: mp.name || "Media Player",
+          unit: "เครื่อง",
+          unit_price: mp.unit_price || 0,
+          category: "Media Player",
+          serial_number: mp.serial_number_1,
+        } as any,
+        billboard: mp.billboard
+          ? { ...mp.billboard, old_code: mp.billboard.old_code ?? bbFallback?.old_code ?? null }
+          : (bbFallback ? {
+              equipment_id: bbFallback.equipment_id,
+              old_code: bbFallback.old_code ?? null,
+              location_name: bbFallback.location_name,
+              region: bbFallback.region,
+            } : undefined),
+      };
+    });
 
     const typedData = [...((beData || []) as unknown as BillboardEquipment[]), ...mpRows];
     setBillboardEquipment(typedData);
@@ -132,11 +140,13 @@ const BillboardIssueReport = () => {
   const filteredData = billboardEquipment.filter(item => {
     const matchesBillboard = selectedBillboard === "all" || item.billboard_id === selectedBillboard;
     const matchesRegion = selectedRegion === "all" || item.billboard?.region === selectedRegion;
-    const matchesSearch = 
-      item.equipment?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.equipment?.code?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.billboard?.equipment_id?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (item.equipment as any)?.serial_number?.toLowerCase().includes(searchTerm.toLowerCase());
+    const term = searchTerm.toLowerCase();
+    const matchesSearch =
+      item.equipment?.name?.toLowerCase().includes(term) ||
+      item.equipment?.code?.toLowerCase().includes(term) ||
+      item.billboard?.equipment_id?.toLowerCase().includes(term) ||
+      item.billboard?.old_code?.toLowerCase().includes(term) ||
+      (item.equipment as any)?.serial_number?.toLowerCase().includes(term);
     return matchesBillboard && matchesRegion && matchesSearch;
   });
 
@@ -156,6 +166,7 @@ const BillboardIssueReport = () => {
       summaryMap.set(item.billboard_id, {
         billboard_id: item.billboard_id,
         billboard_code: item.billboard?.equipment_id || "",
+        old_code: item.billboard?.old_code || null,
         location_name: item.billboard?.location_name || null,
         region: item.billboard?.region || null,
         totalItems: 1,
@@ -195,6 +206,7 @@ const BillboardIssueReport = () => {
 
   const exportToExcel = () => {
     const detailData = filteredData.map(item => ({
+      "Old Code": item.billboard?.old_code || "-",
       "รหัสป้าย": item.billboard?.equipment_id || "",
       "ตำแหน่ง": item.billboard?.location_name || "-",
       "ภูมิภาค": item.billboard?.region || "-",
@@ -209,6 +221,7 @@ const BillboardIssueReport = () => {
     }));
 
     const summaryData = billboardSummary.map(item => ({
+      "Old Code": item.old_code || "-",
       "รหัสป้าย": item.billboard_code,
       "ตำแหน่ง": item.location_name || "-",
       "ภูมิภาค": item.region || "-",
@@ -294,7 +307,7 @@ const BillboardIssueReport = () => {
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder="ค้นหารหัสป้าย, สินค้า, S/N..."
+                  placeholder="ค้นหา Old Code, รหัสป้าย, สินค้า, S/N..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-10"
@@ -386,6 +399,7 @@ const BillboardIssueReport = () => {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead>Old Code</TableHead>
                   <TableHead>รหัสป้าย</TableHead>
                   <TableHead>ตำแหน่ง</TableHead>
                   <TableHead>ภูมิภาค</TableHead>
@@ -397,18 +411,19 @@ const BillboardIssueReport = () => {
               <TableBody>
                 {isLoading ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center py-8">กำลังโหลด...</TableCell>
+                    <TableCell colSpan={7} className="text-center py-8">กำลังโหลด...</TableCell>
                   </TableRow>
                 ) : billboardSummary.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
                       ไม่มีข้อมูล
                     </TableCell>
                   </TableRow>
                 ) : (
                   paginatedBillboards.map((item) => (
                     <TableRow key={item.billboard_id}>
-                      <TableCell className="font-mono font-medium">{item.billboard_code}</TableCell>
+                      <TableCell className="font-mono font-medium">{item.old_code || "-"}</TableCell>
+                      <TableCell className="font-mono">{item.billboard_code}</TableCell>
                       <TableCell>{item.location_name || "-"}</TableCell>
                       <TableCell>
                         <Badge variant="outline">{item.region || "-"}</Badge>
