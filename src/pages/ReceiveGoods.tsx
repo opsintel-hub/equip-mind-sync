@@ -604,8 +604,8 @@ const ReceiveGoods = () => {
         if (sr.invoice_number) mpUpdatePayload.invoice_number = sr.invoice_number;
         if (sr.depreciation_months != null) mpUpdatePayload.depreciation_months = sr.depreciation_months;
         if (sr.warranty_expiry_date) mpUpdatePayload.warranty_expiry_date = sr.warranty_expiry_date;
-        if (sr.po_document_url) mpUpdatePayload.po_document_url = sr.po_document_url;
-        else if (sr.purchase_document_url) mpUpdatePayload.po_document_url = sr.purchase_document_url;
+        const singlePoDocumentUrl = getReceiptPoDocumentUrl(sr);
+        if (singlePoDocumentUrl) mpUpdatePayload.po_document_url = singlePoDocumentUrl;
         if (sr.pr_document_url) mpUpdatePayload.pr_document_url = sr.pr_document_url;
         if (sr.invoice_document_url) mpUpdatePayload.invoice_document_url = sr.invoice_document_url;
         if (sr.delivery_note_number) mpUpdatePayload.delivery_note_number = sr.delivery_note_number;
@@ -859,8 +859,8 @@ const ReceiveGoods = () => {
             if (br.invoice_number) batchMpPayload.invoice_number = br.invoice_number;
             if (br.depreciation_months != null) batchMpPayload.depreciation_months = br.depreciation_months;
             if (br.warranty_expiry_date) batchMpPayload.warranty_expiry_date = br.warranty_expiry_date;
-            if (br.po_document_url) batchMpPayload.po_document_url = br.po_document_url;
-            else if (br.purchase_document_url) batchMpPayload.po_document_url = br.purchase_document_url;
+            const batchPoDocumentUrl = getReceiptPoDocumentUrl(br);
+            if (batchPoDocumentUrl) batchMpPayload.po_document_url = batchPoDocumentUrl;
             if (br.pr_document_url) batchMpPayload.pr_document_url = br.pr_document_url;
             if (br.invoice_document_url) batchMpPayload.invoice_document_url = br.invoice_document_url;
             if (br.delivery_note_number) batchMpPayload.delivery_note_number = br.delivery_note_number;
