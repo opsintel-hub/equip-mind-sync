@@ -2767,12 +2767,16 @@ export type Database = {
           company_id: string | null
           created_at: string
           created_by: string
+          delivery_note_document_url: string | null
           document_no: string
           document_url: string | null
           equipment_id: string
           id: string
+          invoice_document_url: string | null
           location_id: string
           notes: string | null
+          po_document_url: string | null
+          pr_document_url: string | null
           quantity: number
           receipt_date: string
           status: string
@@ -2784,12 +2788,16 @@ export type Database = {
           company_id?: string | null
           created_at?: string
           created_by: string
+          delivery_note_document_url?: string | null
           document_no: string
           document_url?: string | null
           equipment_id: string
           id?: string
+          invoice_document_url?: string | null
           location_id: string
           notes?: string | null
+          po_document_url?: string | null
+          pr_document_url?: string | null
           quantity: number
           receipt_date: string
           status?: string
@@ -2801,12 +2809,16 @@ export type Database = {
           company_id?: string | null
           created_at?: string
           created_by?: string
+          delivery_note_document_url?: string | null
           document_no?: string
           document_url?: string | null
           equipment_id?: string
           id?: string
+          invoice_document_url?: string | null
           location_id?: string
           notes?: string | null
+          po_document_url?: string | null
+          pr_document_url?: string | null
           quantity?: number
           receipt_date?: string
           status?: string
@@ -2869,7 +2881,9 @@ export type Database = {
           media_player_image_url: string | null
           notes: string | null
           order_for_project: string | null
+          po_document_url: string | null
           po_number: string | null
+          pr_document_url: string | null
           pr_number: string | null
           purchase_document_url: string | null
           quantity: number
@@ -2930,7 +2944,9 @@ export type Database = {
           media_player_image_url?: string | null
           notes?: string | null
           order_for_project?: string | null
+          po_document_url?: string | null
           po_number?: string | null
+          pr_document_url?: string | null
           pr_number?: string | null
           purchase_document_url?: string | null
           quantity: number
@@ -2991,7 +3007,9 @@ export type Database = {
           media_player_image_url?: string | null
           notes?: string | null
           order_for_project?: string | null
+          po_document_url?: string | null
           po_number?: string | null
+          pr_document_url?: string | null
           pr_number?: string | null
           purchase_document_url?: string | null
           quantity?: number

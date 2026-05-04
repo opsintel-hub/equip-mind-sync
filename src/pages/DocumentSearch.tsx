@@ -39,13 +39,27 @@ function getDocumentCategories(doc: DocumentRecord): DocumentCategory[] {
   const r = doc.raw || {};
   if (doc.source === "pending" || doc.source === "received") {
     const { docs, images } = splitExtraDocs(r.document_url ?? doc.document_url);
-    return [
-      { label: "เอกสารแนบเพิ่มเติม", urls: docs },
-      { label: "รูปภาพเพิ่มเติม", urls: images },
-      { label: "เอกสารจัดซื้อ", urls: r.purchase_document_url },
-      { label: "Invoice", urls: r.invoice_document_url },
-      { label: "ใบส่งของ", urls: r.delivery_note_document_url },
+    // Header upload slots map 1:1 to the 4 fields in DeliveryEntry: PO / PR / Invoice / ใบส่งของ
+    // Legacy records may have multiple URLs combined in purchase_document_url — only show as fallback if PO/PR are empty
+    const poUrls = splitUrls(r.po_document_url);
+    const prUrls = splitUrls(r.pr_document_url);
+    const invoiceUrls = splitUrls(r.invoice_document_url);
+    const dnUrls = splitUrls(r.delivery_note_document_url);
+    const legacyPurchase = splitUrls(r.purchase_document_url);
+    // Filter legacy purchase URLs to remove duplicates already shown elsewhere
+    const knownUrls = new Set([...poUrls, ...prUrls, ...invoiceUrls, ...dnUrls]);
+    const legacyOnly = legacyPurchase.filter((u) => !knownUrls.has(u));
+
+    const cats: DocumentCategory[] = [
+      { label: "เลข PO", urls: poUrls },
+      { label: "เลข PR", urls: prUrls },
+      { label: "Invoice No.", urls: invoiceUrls },
+      { label: "ใบส่งของ", urls: dnUrls },
     ];
+    if (legacyOnly.length > 0) cats.push({ label: "เอกสารจัดซื้อ (เก่า)", urls: legacyOnly });
+    if (docs.length > 0) cats.push({ label: "เอกสารแนบเพิ่มเติม", urls: docs });
+    if (images.length > 0) cats.push({ label: "รูปภาพเพิ่มเติม", urls: images });
+    return cats;
   }
   if (doc.source === "direct_shipping") {
     return [
