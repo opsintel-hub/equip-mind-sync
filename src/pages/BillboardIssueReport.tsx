@@ -77,7 +77,7 @@ const BillboardIssueReport = () => {
         quantity,
         installation_date,
         equipment:equipment_id (code, name, unit, unit_price, category, serial_number),
-        billboard:billboard_id (equipment_id, location_name, region)
+        billboard:billboard_id (equipment_id, old_code, location_name, region)
       `)
       .order("installation_date", { ascending: false });
 
