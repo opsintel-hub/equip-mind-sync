@@ -588,6 +588,75 @@ const DefectiveReturnEntry = () => {
         <p className="text-muted-foreground">บันทึกสินค้าหรืออุปกรณ์ที่เสียหรือชำรุดเพื่อรอนำเข้าคลัง</p>
       </div>
 
+      <Tabs value={activeTab} onValueChange={(v) => { setActiveTab(v as any); if (v === "pending") fetchPendingTickets(); }}>
+        <TabsList>
+          <TabsTrigger value="new"><PlusCircle className="w-4 h-4 mr-1" /> สร้างใหม่</TabsTrigger>
+          <TabsTrigger value="pending">
+            <Inbox className="w-4 h-4 mr-1" /> ตั๋วรอดำเนินการ
+            {pendingTickets.length > 0 && (
+              <Badge variant="destructive" className="ml-2 h-5 px-1.5">{pendingTickets.length}</Badge>
+            )}
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="pending" className="mt-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base flex items-center gap-2">
+                <Inbox className="w-4 h-4" />
+                ตั๋วของเสียที่รอนำเข้าคลัง
+              </CardTitle>
+              <CardDescription>
+                รายการที่สร้างจากการประเมิน / Swap / ป้อนเอง — ยังไม่ได้ตัด Stock เข้าคลังของเสีย
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {pendingLoading ? (
+                <div className="flex items-center justify-center py-10 text-muted-foreground">
+                  <Loader2 className="w-5 h-5 animate-spin mr-2" /> กำลังโหลด...
+                </div>
+              ) : pendingTickets.length === 0 ? (
+                <div className="text-center py-10 text-sm text-muted-foreground">
+                  ไม่มีตั๋วรอดำเนินการ
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {pendingTickets.map((t) => (
+                    <div key={t.id} className="border rounded-lg p-3 flex items-start justify-between gap-3 hover:bg-muted/30 transition-colors">
+                      <div className="space-y-1 flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-mono font-semibold text-sm">{t.document_no}</span>
+                          <Badge variant="secondary" className="text-xs">{t.source_label}</Badge>
+                          {t.is_media_player && <Badge variant="outline" className="text-xs">Media Player</Badge>}
+                          <span className="text-xs text-muted-foreground">
+                            {new Date(t.created_at).toLocaleString("th-TH", { dateStyle: "medium", timeStyle: "short" })}
+                          </span>
+                        </div>
+                        <div className="text-sm">
+                          <span className="font-medium">{t.item_code}</span> — {t.item_name}
+                          {t.quantity > 1 && <span className="text-muted-foreground"> × {t.quantity}</span>}
+                        </div>
+                        {t.billboard_label && (
+                          <div className="text-xs text-muted-foreground flex items-center gap-1">
+                            <MapPin className="w-3 h-3" /> {t.billboard_label}
+                          </div>
+                        )}
+                        {t.reason && (
+                          <div className="text-xs text-muted-foreground line-clamp-2">เหตุผล: {t.reason}</div>
+                        )}
+                      </div>
+                      <Button size="sm" onClick={() => handleProcessTicket(t)}>
+                        ดำเนินการ <ArrowRight className="w-4 h-4 ml-1" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="new" className="mt-4">
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <Card className="lg:col-span-2">
           <CardHeader>
