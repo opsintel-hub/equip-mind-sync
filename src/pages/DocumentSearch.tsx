@@ -812,7 +812,34 @@ export default function DocumentSearch() {
     }
   };
 
-  // Old fallback removed — getCurrentStatusBadge now provides unified Thai labels for every source.
+  // อธิบายที่มาของเอกสาร (เช่น DR สร้างจาก Swap หรือจาก Assessment) เพื่อไม่ให้ดูซ้ำกัน
+  const getOriginLabel = (doc: DocumentRecord): string | null => {
+    const r: any = doc.raw || {};
+    if (doc.source === "defective") {
+      const reason: string = r.reason || "";
+      // ดึงเลขเอกสารต้นทางจาก reason เช่น "จากการ Swap (SWP-...)" หรือ "จากการประเมิน ASM-..."
+      const swapMatch = reason.match(/SWP-[\d-]+/);
+      const asmMatch = reason.match(/ASM-[\d-]+/);
+      if (r.source_type === "from_assessment" || asmMatch) {
+        return `สร้างอัตโนมัติจากผลประเมิน ${asmMatch?.[0] || ""}`.trim();
+      }
+      if (r.swap_request_id || swapMatch) {
+        return `สร้างอัตโนมัติจาก Swap ${swapMatch?.[0] || ""}`.trim();
+      }
+      if (r.source_type === "billboard") return "ถอดจากป้ายโฆษณา";
+      return "สร้างด้วยตนเอง";
+    }
+    if (doc.source === "assessment" && r.outcome) {
+      const map: Record<string, string> = {
+        defective: "ผล: ซ่อมไม่ได้ → ส่งเข้าคลังของเสีย",
+        claim: "ผล: ส่งเคลม",
+        self_repair: "ผล: ซ่อมเอง → คืนคลัง",
+        return_refurb: "ผล: คืนคลังเป็นของ Refurb",
+      };
+      return map[r.outcome] || null;
+    }
+    return null;
+  };
 
   return (
     <div className="space-y-5">
@@ -927,7 +954,17 @@ export default function DocumentSearch() {
                     return (
                       <TableRow key={`${doc.source}-${doc.id}`} className="border-border/30 hover:bg-muted/30">
                         <TableCell className="font-mono text-xs font-medium pl-6 whitespace-nowrap sticky left-0 z-10 bg-background shadow-[1px_0_0_0_hsl(var(--border))]">{doc.document_no}</TableCell>
-                        <TableCell>{getSourceBadge(doc.source)}</TableCell>
+                        <TableCell>
+                          <div className="space-y-1">
+                            {getSourceBadge(doc.source)}
+                            {(() => {
+                              const origin = getOriginLabel(doc);
+                              return origin ? (
+                                <div className="text-[10px] text-muted-foreground leading-tight max-w-[180px]">{origin}</div>
+                              ) : null;
+                            })()}
+                          </div>
+                        </TableCell>
                         <TableCell><Badge variant={statusInfo.variant}>{statusInfo.label}</Badge></TableCell>
                         <TableCell>
                           {doc.equipment_code || doc.equipment_name ? (
