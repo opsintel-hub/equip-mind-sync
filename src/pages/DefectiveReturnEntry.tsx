@@ -498,7 +498,20 @@ const DefectiveReturnEntry = () => {
             else await supabase.from("billboard_equipment").update({ quantity: be.quantity - qty }).eq("id", be.id);
           }
         }
-        if (isFromBillboard && isMediaPlayer && billboardId) await supabase.from("media_players").update({ billboard_id: null, status: "defective" }).eq("id", selectedItemId);
+        if (isFromBillboard && isMediaPlayer && billboardId) {
+          await supabase
+            .from("media_player_billboard_history")
+            .update({
+              uninstall_date: new Date().toISOString().split("T")[0],
+              uninstall_reason: `ของเสีย/ชำรุด: ${reason}`,
+              uninstalled_by: user?.id ?? null,
+              return_to_stock: false,
+            } as any)
+            .eq("media_player_id", selectedItemId)
+            .eq("billboard_id", billboardId)
+            .is("uninstall_date", null);
+          await supabase.from("media_players").update({ billboard_id: null, status: "defective" }).eq("id", selectedItemId);
+        }
         toast.success(`บันทึกสำเร็จ (${docNo}) — ตัด Stock ${qty} หน่วยเข้า "คลังของเสีย" แล้ว`); handleReset();
       } catch (error: any) { toast.error("เกิดข้อผิดพลาด: " + error.message); } finally { setIsSubmitting(false); }
     }
