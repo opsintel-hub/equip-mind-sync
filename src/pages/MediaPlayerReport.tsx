@@ -679,6 +679,7 @@ export default function MediaPlayerReport() {
                             </TableCell>
                             <TableCell className="font-mono font-medium">{r.code}</TableCell>
                             <TableCell>{r.name}</TableCell>
+                            <TableCell>{r.remoteName || "-"}</TableCell>
                             <TableCell className="text-sm whitespace-pre-line">{r.serialNumber}</TableCell>
                             <TableCell>{getConditionBadge(r.condition)}</TableCell>
                             <TableCell>
