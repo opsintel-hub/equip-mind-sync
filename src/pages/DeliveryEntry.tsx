@@ -128,6 +128,8 @@ const DeliveryEntry = () => {
       code: string;
       name: string;
       unit_price: number | null;
+      specification: string | null;
+      usage_lifespan_months: number | null;
     }[]
   >([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -223,6 +225,8 @@ const DeliveryEntry = () => {
   const [unitPrice, setUnitPrice] = useState("");
   const [expiryDate, setExpiryDate] = useState("");
   const [warrantyExpiryDate, setWarrantyExpiryDate] = useState("");
+  const [mediaPlayerSpecification, setMediaPlayerSpecification] = useState("");
+  const [mediaPlayerUsageLifespanMonths, setMediaPlayerUsageLifespanMonths] = useState("");
   const [itemNotes, setItemNotes] = useState("");
 
   // Media Player specific fields - dynamic device entries
@@ -409,7 +413,7 @@ const DeliveryEntry = () => {
   const fetchMediaPlayers = async () => {
     const { data, error } = await supabase
       .from("media_players")
-      .select("id, code, name, unit_price")
+      .select("id, code, name, unit_price, specification, usage_lifespan_months")
       .eq("is_active", true)
       .order("code");
     if (!error && data) {
@@ -468,6 +472,8 @@ const DeliveryEntry = () => {
       if (mp && mp.unit_price && mp.unit_price > 0) {
         setUnitPrice(String(mp.unit_price));
       }
+      setMediaPlayerSpecification(mp?.specification || "");
+      setMediaPlayerUsageLifespanMonths(mp?.usage_lifespan_months ? String(mp.usage_lifespan_months) : "");
     }
   }, [selectedMediaPlayerId, mediaPlayers, isPurchaseReceipt]);
 
@@ -630,6 +636,9 @@ const DeliveryEntry = () => {
         lot_number_2: lotNumber2,
         serial_number: device.serial_number_1,
         serial_number_2: device.serial_number_2,
+        remote_name: device.device_name,
+        specification: mediaPlayerSpecification,
+        usage_lifespan_months: mediaPlayerUsageLifespanMonths,
         unit_price: unitPrice ? parseFloat(unitPrice) : null,
         supplier_id: selectedSupplierId || null,
         supplier_name: supplierName || selectedSupplier?.name || "",
@@ -814,6 +823,8 @@ const DeliveryEntry = () => {
     setUnitPrice("");
     setExpiryDate("");
     setWarrantyExpiryDate("");
+    setMediaPlayerSpecification("");
+    setMediaPlayerUsageLifespanMonths("");
     setStorageWidthCm("");
     setStorageHeightCm("");
     setStorageDepthCm("");
@@ -1046,6 +1057,9 @@ const DeliveryEntry = () => {
         lot_number_2: item.lot_number_2 || null,
         serial_number: item.serial_number || null,
         serial_number_2: item.serial_number_2 || null,
+        remote_name: item.remote_name || null,
+        specification: item.specification || null,
+        usage_lifespan_months: item.usage_lifespan_months ? parseInt(item.usage_lifespan_months) : null,
         unit_price: item.unit_price,
         expiry_date: item.expiry_date || null,
         warranty_expiry_date: item.warranty_expiry_date || null,
@@ -1645,6 +1659,8 @@ const DeliveryEntry = () => {
                           if (mp) {
                             setEquipmentCode(mp.code);
                             setEquipmentName(mp.name);
+                            setMediaPlayerSpecification(mp.specification || "");
+                            setMediaPlayerUsageLifespanMonths(mp.usage_lifespan_months ? String(mp.usage_lifespan_months) : "");
                             // Auto-fill unit price from media player when NOT a purchase receipt
                             if (!isPurchaseReceipt && mp.unit_price && mp.unit_price > 0) {
                               setUnitPrice(String(mp.unit_price));
@@ -1654,6 +1670,26 @@ const DeliveryEntry = () => {
                         placeholder="เลือก Media Player..."
                         searchPlaceholder="พิมพ์รหัสหรือชื่อ Media Player..."
                         emptyMessage="ไม่พบ Media Player"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Specification</Label>
+                      <Input
+                        placeholder="Specification"
+                        value={mediaPlayerSpecification}
+                        onChange={(e) => setMediaPlayerSpecification(e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>อายุใช้งาน (เดือน)</Label>
+                      <Input
+                        type="number"
+                        placeholder="เช่น 60"
+                        value={mediaPlayerUsageLifespanMonths}
+                        onChange={(e) => setMediaPlayerUsageLifespanMonths(e.target.value)}
                       />
                     </div>
                   </div>

@@ -2893,8 +2893,10 @@ export type Database = {
           received_location_id: string | null
           received_storage_slot_id: string | null
           received_sub_storage_slot_id: string | null
+          remote_name: string | null
           serial_number: string | null
           serial_number_2: string | null
+          specification: string | null
           status: string
           storage_depth_cm: number | null
           storage_height_cm: number | null
@@ -2909,6 +2911,7 @@ export type Database = {
           unit: string
           unit_price: number | null
           updated_at: string
+          usage_lifespan_months: number | null
           waiting_asset_code: boolean | null
           waiting_equipment_id: boolean | null
           warehouse_id: string | null
@@ -2956,8 +2959,10 @@ export type Database = {
           received_location_id?: string | null
           received_storage_slot_id?: string | null
           received_sub_storage_slot_id?: string | null
+          remote_name?: string | null
           serial_number?: string | null
           serial_number_2?: string | null
+          specification?: string | null
           status?: string
           storage_depth_cm?: number | null
           storage_height_cm?: number | null
@@ -2972,6 +2977,7 @@ export type Database = {
           unit?: string
           unit_price?: number | null
           updated_at?: string
+          usage_lifespan_months?: number | null
           waiting_asset_code?: boolean | null
           waiting_equipment_id?: boolean | null
           warehouse_id?: string | null
@@ -3019,8 +3025,10 @@ export type Database = {
           received_location_id?: string | null
           received_storage_slot_id?: string | null
           received_sub_storage_slot_id?: string | null
+          remote_name?: string | null
           serial_number?: string | null
           serial_number_2?: string | null
+          specification?: string | null
           status?: string
           storage_depth_cm?: number | null
           storage_height_cm?: number | null
@@ -3035,6 +3043,7 @@ export type Database = {
           unit?: string
           unit_price?: number | null
           updated_at?: string
+          usage_lifespan_months?: number | null
           waiting_asset_code?: boolean | null
           waiting_equipment_id?: boolean | null
           warehouse_id?: string | null
