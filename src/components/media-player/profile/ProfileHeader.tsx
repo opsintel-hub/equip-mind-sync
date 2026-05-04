@@ -156,6 +156,11 @@ export function ProfileHeader({ player, modelName, statusLabel, images }: Profil
                 </Dialog>
               </div>
               <p className="text-lg text-muted-foreground mt-1">{player.name} {modelName !== "-" ? `• ${modelName}` : ""}</p>
+              {player.remote_name && (
+                <p className="text-sm mt-1">
+                  ชื่อเครื่อง (Name): <span className="font-semibold">{player.remote_name}</span>
+                </p>
+              )}
               {player.serial_number_1 && (
                 <p className="text-sm mt-2 font-mono">
                   S/N 1: <span className="font-semibold">{player.serial_number_1}</span>
