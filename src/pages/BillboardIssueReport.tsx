@@ -140,11 +140,13 @@ const BillboardIssueReport = () => {
   const filteredData = billboardEquipment.filter(item => {
     const matchesBillboard = selectedBillboard === "all" || item.billboard_id === selectedBillboard;
     const matchesRegion = selectedRegion === "all" || item.billboard?.region === selectedRegion;
-    const matchesSearch = 
-      item.equipment?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.equipment?.code?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.billboard?.equipment_id?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (item.equipment as any)?.serial_number?.toLowerCase().includes(searchTerm.toLowerCase());
+    const term = searchTerm.toLowerCase();
+    const matchesSearch =
+      item.equipment?.name?.toLowerCase().includes(term) ||
+      item.equipment?.code?.toLowerCase().includes(term) ||
+      item.billboard?.equipment_id?.toLowerCase().includes(term) ||
+      item.billboard?.old_code?.toLowerCase().includes(term) ||
+      (item.equipment as any)?.serial_number?.toLowerCase().includes(term);
     return matchesBillboard && matchesRegion && matchesSearch;
   });
 
