@@ -717,6 +717,7 @@ const BillboardDetail = () => {
                         <TableRow className="bg-muted/50">
                           <TableHead>รหัส</TableHead>
                           <TableHead>ชื่อ</TableHead>
+                          <TableHead>ชื่อเครื่อง (Name)</TableHead>
                           <TableHead>S/N 1</TableHead>
                           <TableHead>S/N 2</TableHead>
                           <TableHead>สภาพ</TableHead>
