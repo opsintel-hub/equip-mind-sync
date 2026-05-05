@@ -92,8 +92,11 @@ export function AssessmentCompleteDialog({ open, onOpenChange, log, onCompleted 
   const [externalRepairVendor, setExternalRepairVendor] = useState("");
   const [externalRepairContact, setExternalRepairContact] = useState("");
   const [externalRepairPhone, setExternalRepairPhone] = useState("");
-  const [supplierAutofill, setSupplierAutofill] = useState<{ name: string; manufacturer: string | null; warranty: string | null } | null>(null);
+  const [supplierAutofill, setSupplierAutofill] = useState<{ name: string; manufacturer: string | null; warranty: string | null; phone: string | null; contact: string | null } | null>(null);
   const [sourceCtx, setSourceCtx] = useState<SourceContext | null>(null);
+  const [history, setHistory] = useState<DeviceHistory | null>(null);
+  const [defectiveAck, setDefectiveAck] = useState(false);
+  const [defectiveAckReason, setDefectiveAckReason] = useState("");
 
   useEffect(() => {
     if (!open || !log) return;
