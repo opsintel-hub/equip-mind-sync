@@ -422,8 +422,14 @@ export function SwapWizardDialog({ open, onOpenChange, request, onCompleted }: P
             created_by: user?.id ?? null,
           } as any);
         } else if (oldBeId) {
-          // Equipment: ลบ/ลด billboard_equipment
+          // Equipment: ลบ billboard_equipment + เปลี่ยน S/N status เป็น pending_assessment
           await supabase.from("billboard_equipment").delete().eq("id", oldBeId);
+          if (selectedOld?.serial_number) {
+            await supabase
+              .from("equipment_serial_numbers")
+              .update({ status: "pending_assessment", location_id: returnLocationId || null } as any)
+              .eq("serial_number", selectedOld.serial_number);
+          }
           if (oldEqId) {
             const { data: oldEq } = await supabase
               .from("equipment")
@@ -442,8 +448,8 @@ export function SwapWizardDialog({ open, onOpenChange, request, onCompleted }: P
               reference_id: request.id,
               reference_document: request.document_no,
               location_id: returnLocationId || null,
-              notes: `ถอดจากป้าย — ${swapNote}`,
-              item_condition: "defective",
+              notes: `ถอดจากป้าย — ${swapNote} (รอประเมิน)`,
+              item_condition: "pending_assessment",
               created_by: user?.id ?? null,
             } as any);
           }
