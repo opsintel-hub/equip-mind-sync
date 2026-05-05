@@ -565,11 +565,15 @@ export default function MediaPlayerReport() {
               </SelectContent>
             </Select>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-[130px]"><SelectValue placeholder="สถานะ" /></SelectTrigger>
+              <SelectTrigger className="w-[150px]"><SelectValue placeholder="สถานะ" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">ทุกสถานะ</SelectItem>
                 <SelectItem value="installed">ติดตั้ง</SelectItem>
                 <SelectItem value="in_stock">ในคลัง</SelectItem>
+                <SelectItem value="pending_assessment">พักรอประเมิน</SelectItem>
+                <SelectItem value="under_repair">กำลังซ่อม</SelectItem>
+                <SelectItem value="in_claim">รอเคลม</SelectItem>
+                <SelectItem value="refurbished">Refurbished</SelectItem>
               </SelectContent>
             </Select>
             <Select value={departmentFilter} onValueChange={setDepartmentFilter}>
