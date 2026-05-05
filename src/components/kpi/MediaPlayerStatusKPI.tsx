@@ -4,11 +4,22 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from "recharts";
 
+const STATUS_LABELS: Record<string, string> = {
+  active: "Active",
+  claim: "Claim",
+  pending_assessment: "พักรอประเมิน",
+  under_repair: "กำลังซ่อม",
+  in_claim: "รอเคลม",
+};
+
 const STATUS_COLORS: Record<string, string> = {
   "Active": "hsl(142, 76%, 36%)",
   "Spare": "hsl(221, 83%, 53%)",
   "ซ่อม": "hsl(0, 84%, 60%)",
   "Claim": "hsl(38, 92%, 50%)",
+  "พักรอประเมิน": "hsl(270, 70%, 55%)",
+  "กำลังซ่อม": "hsl(190, 80%, 45%)",
+  "รอเคลม": "hsl(350, 70%, 45%)",
   "อื่นๆ": "hsl(var(--muted-foreground))",
 };
 
@@ -22,7 +33,8 @@ export default function MediaPlayerStatusKPI() {
 
       const counts: Record<string, number> = {};
       (players || []).forEach((p) => {
-        const s = p.status || "อื่นๆ";
+        const raw = p.status || "อื่นๆ";
+        const s = STATUS_LABELS[raw] || (raw.startsWith("spare") ? "Spare" : raw.includes("fix") || raw.includes("break") ? "ซ่อม" : raw);
         counts[s] = (counts[s] || 0) + 1;
       });
 
