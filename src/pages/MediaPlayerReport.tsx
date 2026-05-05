@@ -248,7 +248,14 @@ export default function MediaPlayerReport() {
       const bbLabel = p.billboard
         ? formatBillboardLabel(p.billboard.old_code, p.billboard.location_name, p.billboard.equipment_id)
         : "-";
-      const statusLabel = p.billboard_id ? "ติดตั้ง" : "ในคลัง";
+      const wfStatusMap: Record<string, string> = {
+        pending_assessment: "พักรอประเมิน",
+        under_repair: "กำลังซ่อม",
+        in_claim: "รอเคลม",
+      };
+      const statusLabel = wfStatusMap[(p as any).status]
+        ? wfStatusMap[(p as any).status] + ((p as any).is_refurbished ? " (Refurbished)" : "")
+        : (p.billboard_id ? "ติดตั้ง" : "ในคลัง") + ((p as any).is_refurbished ? " (Refurbished)" : "");
       const company = p.companies?.name || "";
       const locationName = p.locations?.name || "";
 
