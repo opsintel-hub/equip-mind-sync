@@ -252,6 +252,7 @@ const Dashboard = () => {
         <LowStockAlerts />
         <ExpiryAlerts />
         <BillboardEquipmentAlerts />
+        <PendingAssessmentAlerts />
       </div>
     </div>
   );
