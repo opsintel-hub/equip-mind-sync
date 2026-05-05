@@ -8,10 +8,12 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { ClipboardCheck } from "lucide-react";
+import { ClipboardCheck, ShieldCheck, ShieldAlert, Shield, History, Phone, Copy, ExternalLink, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { SymptomSelect } from "@/components/media-player/SymptomSelect";
 import { AssessmentResultSelect } from "@/components/media-player/AssessmentResultSelect";
+import { differenceInDays, parseISO, differenceInMonths } from "date-fns";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 interface AssessmentLogLite {
   id: string;
