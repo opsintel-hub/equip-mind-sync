@@ -118,45 +118,77 @@ export function AssessmentCompleteDialog({ open, onOpenChange, log, onCompleted 
     setDefectiveAck(false);
     setDefectiveAckReason("");
 
-    // Load source context (Swap / Defective Return / Manual)
+    // Load source context, device info, supplier, and history (consolidated)
     (async () => {
       try {
-        let ctx: SourceContext = {
+        const ctx: SourceContext = {
           sourceLabel: "ป้อนเอง",
-          itemCode: null,
-          itemName: null,
-          billboardLabel: null,
-          billboardId: null,
+          itemCode: null, itemName: null, brand: null, modelSpec: null,
+          billboardLabel: null, billboardId: null,
           reportedSymptom: log.symptom_description || null,
-          reporter: null,
-          reportedAt: null,
-          photos: [],
-          description: null,
+          reporter: null, reportedAt: null, photos: [], description: null,
+          unitPrice: null, depreciationMonths: null, dateOfReceipt: null,
+          ageMonths: null, mediaPlayerProfileId: null,
         };
 
-        // Item code/name from media_player or equipment
         if (log.media_player_id) {
           const { data: mp } = await supabase
             .from("media_players")
-            .select("code, name, billboard_id, billboard:billboards(equipment_id, old_code, location_name)")
+            .select("id, code, name, brand, specification, billboard_id, manufacturer, warranty_expiry_date, unit_price, depreciation_months, date_of_receipt, supplier:supplier_id(name, phone, contact_person), billboard:billboards(equipment_id, old_code, location_name)")
             .eq("id", log.media_player_id)
             .maybeSingle() as any;
           if (mp) {
-            ctx.itemCode = mp.code;
-            ctx.itemName = mp.name;
+            ctx.itemCode = mp.code; ctx.itemName = mp.name;
+            ctx.brand = mp.brand || mp.manufacturer || null;
+            ctx.modelSpec = mp.specification || null;
+            ctx.unitPrice = mp.unit_price ?? null;
+            ctx.depreciationMonths = mp.depreciation_months ?? null;
+            ctx.dateOfReceipt = mp.date_of_receipt || null;
+            ctx.mediaPlayerProfileId = mp.id;
+            if (mp.date_of_receipt) ctx.ageMonths = differenceInMonths(new Date(), parseISO(mp.date_of_receipt));
             if (mp.billboard) {
               const parts = [mp.billboard.old_code, mp.billboard.equipment_id, mp.billboard.location_name].filter(Boolean);
               ctx.billboardLabel = parts.join(" - ");
               ctx.billboardId = mp.billboard_id;
             }
+            setSupplierAutofill({
+              name: mp.supplier?.name || "",
+              manufacturer: mp.manufacturer || mp.brand || null,
+              warranty: mp.warranty_expiry_date || null,
+              phone: mp.supplier?.phone || null,
+              contact: mp.supplier?.contact_person || null,
+            });
           }
         } else if (log.equipment_id) {
           const { data: eq } = await supabase
             .from("equipment")
-            .select("code, name")
+            .select("code, name, brand:brand_id(name), supplier:supplier_id(name, phone, contact_person), unit_price, depreciation_months")
             .eq("id", log.equipment_id)
             .maybeSingle() as any;
-          if (eq) { ctx.itemCode = eq.code; ctx.itemName = eq.name; }
+          if (eq) {
+            ctx.itemCode = eq.code; ctx.itemName = eq.name;
+            ctx.brand = eq.brand?.name || null;
+            ctx.unitPrice = eq.unit_price ?? null;
+            ctx.depreciationMonths = eq.depreciation_months ?? null;
+          }
+          if (log.serial_number) {
+            const { data: sn } = await supabase
+              .from("equipment_serial_numbers")
+              .select("warranty_expiry_date, warehouse_entry_date")
+              .eq("serial_number", log.serial_number)
+              .maybeSingle() as any;
+            if (sn) {
+              ctx.dateOfReceipt = sn.warehouse_entry_date || null;
+              if (sn.warehouse_entry_date) ctx.ageMonths = differenceInMonths(new Date(), parseISO(sn.warehouse_entry_date));
+              setSupplierAutofill({
+                name: eq?.supplier?.name || "",
+                manufacturer: eq?.brand?.name || null,
+                warranty: sn.warranty_expiry_date || null,
+                phone: eq?.supplier?.phone || null,
+                contact: eq?.supplier?.contact_person || null,
+              });
+            }
+          }
         }
 
         // Source-specific context
@@ -197,43 +229,61 @@ export function AssessmentCompleteDialog({ open, onOpenChange, log, onCompleted 
         }
 
         setSourceCtx(ctx);
-      } catch {
-        /* ignore */
-      }
-    })();
 
-    // autofill supplier
-    (async () => {
-      try {
+        // History — installation count + past assessments + claims
+        const hist: DeviceHistory = { installCount: 0, installs: [], pastAssessments: [], pastClaims: [], recentRepairCount6m: 0 };
         if (log.media_player_id) {
-          const { data } = await supabase
-            .from("media_players")
-            .select("manufacturer, warranty_expiry_date, supplier:supplier_id(name)")
-            .eq("id", log.media_player_id)
-            .maybeSingle() as any;
-          if (data) {
-            setSupplierAutofill({
-              name: data.supplier?.name || "",
-              manufacturer: data.manufacturer || null,
-              warranty: data.warranty_expiry_date || null,
+          const { data: hh } = await supabase
+            .from("media_player_billboard_history")
+            .select("installation_date, uninstall_date, uninstall_reason, billboard:billboards(equipment_id, old_code, location_name)")
+            .eq("media_player_id", log.media_player_id)
+            .order("installation_date", { ascending: false })
+            .limit(10) as any;
+          (hh || []).forEach((h: any) => {
+            const parts = [h.billboard?.old_code, h.billboard?.equipment_id, h.billboard?.location_name].filter(Boolean);
+            hist.installs.push({
+              billboardLabel: parts.join(" - ") || "—",
+              from: h.installation_date, to: h.uninstall_date, reason: h.uninstall_reason,
             });
-          }
-        } else if (log.serial_number) {
-          const { data } = await supabase
-            .from("equipment_serial_numbers")
-            .select("warranty_expiry_date, equipment:equipment_id(supplier:supplier_id(name), brand:brand_id(name))")
-            .eq("serial_number", log.serial_number)
-            .maybeSingle() as any;
-          if (data) {
-            setSupplierAutofill({
-              name: data.equipment?.supplier?.name || "",
-              manufacturer: data.equipment?.brand?.name || null,
-              warranty: data.warranty_expiry_date || null,
-            });
-          }
+          });
+          hist.installCount = hist.installs.length;
         }
-      } catch {
-        /* ignore */
+        // Past assessments (same MP/equipment, completed, exclude current)
+        let asmQuery = supabase
+          .from("assessment_logs")
+          .select("document_no, outcome, completed_at")
+          .eq("status", "completed")
+          .neq("id", log.id)
+          .order("completed_at", { ascending: false })
+          .limit(5);
+        if (log.media_player_id) asmQuery = asmQuery.eq("media_player_id", log.media_player_id);
+        else if (log.equipment_id) asmQuery = asmQuery.eq("equipment_id", log.equipment_id);
+        const { data: asms } = await asmQuery as any;
+        (asms || []).forEach((a: any) => hist.pastAssessments.push({
+          docNo: a.document_no, outcome: a.outcome, completedAt: a.completed_at,
+        }));
+        // Repeat-failure: completed self_repair within 6 months
+        const sixMonthsAgo = new Date(); sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+        hist.recentRepairCount6m = (asms || []).filter((a: any) =>
+          a.outcome === "self_repair" && a.completed_at && new Date(a.completed_at) >= sixMonthsAgo
+        ).length;
+
+        // Past claims
+        let clmQuery = supabase
+          .from("claim_records")
+          .select("document_no, status, created_at")
+          .order("created_at", { ascending: false })
+          .limit(5);
+        if (log.media_player_id) clmQuery = clmQuery.eq("media_player_id", log.media_player_id);
+        else if (log.equipment_id) clmQuery = clmQuery.eq("equipment_id", log.equipment_id);
+        const { data: clms } = await clmQuery as any;
+        (clms || []).forEach((c: any) => hist.pastClaims.push({
+          docNo: c.document_no, status: c.status, createdAt: c.created_at,
+        }));
+
+        setHistory(hist);
+      } catch (e) {
+        console.error("Load assessment context failed:", e);
       }
     })();
   }, [open, log]);
