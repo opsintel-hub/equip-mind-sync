@@ -388,14 +388,15 @@ export function SwapWizardDialog({ open, onOpenChange, request, onCompleted }: P
             .eq("media_player_id", oldMpId)
             .is("uninstall_date", null);
 
-          // เคลียร์ billboard_id + install_date ที่ media_players
+          // เคลียร์ billboard_id + install_date + เปลี่ยน status เป็น pending_assessment
           await supabase
             .from("media_players")
             .update({
               billboard_id: null,
               install_date: null,
               location_id: returnLocationId || null,
-            })
+              status: "pending_assessment",
+            } as any)
             .eq("id", oldMpId);
 
           // log stock movement: return_from_billboard
