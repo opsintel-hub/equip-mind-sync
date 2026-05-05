@@ -418,7 +418,7 @@ export function SwapWizardDialog({ open, onOpenChange, request, onCompleted }: P
             reference_document: request.document_no,
             location_id: returnLocationId || null,
             notes: `ถอดจากป้าย — ${swapNote}`,
-            item_condition: "defective",
+            item_condition: "pending_assessment",
             created_by: user?.id ?? null,
           } as any);
         } else if (oldBeId) {
