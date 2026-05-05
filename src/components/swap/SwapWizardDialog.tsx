@@ -362,29 +362,8 @@ export function SwapWizardDialog({ open, onOpenChange, request, onCompleted }: P
       completed_by: user?.id ?? null,
     }).eq("id", request.id);
 
-    // Auto-create defective_return for the OLD unit (only if approved + not already linked)
-    if (result === "approved" && selectedOld && !request.defective_return_id) {
-      const drDocNo = `DR-${new Date().toISOString().slice(0, 10).replace(/-/g, "")}-${Math.floor(Math.random() * 9999 + 1).toString().padStart(4, "0")}`;
-      const { data: newDr } = await supabase.from("defective_returns").insert({
-        document_no: drDocNo,
-        equipment_id: oldEqId,
-        media_player_id: oldMpId,
-        is_media_player: selectedOld.type === "media_player",
-        quantity: 1,
-        billboard_id: request.billboard_id,
-        item_condition: "defective",
-        reason: `จากการ Swap (${request.document_no}): ${request.description || request.symptom_other || "—"}`,
-        status: "pending_warehouse_entry",
-        source_type: "billboard",
-        dispose_status: "pending_disposal_review",
-        swap_request_id: request.id,
-        notes: notes.trim() || null,
-        created_by: user?.id ?? null,
-      }).select("id").single();
-      if (newDr?.id) {
-        await supabase.from("swap_requests").update({ defective_return_id: newDr.id }).eq("id", request.id);
-      }
-    }
+    // NOTE: ไม่สร้าง defective_return อัตโนมัติแล้ว — เครื่องเก่าจะเข้าสถานะ "รอประเมิน"
+    // ผ่าน assessment_logs (สร้างด้านล่าง) ผลประเมินถึงจะตัดสินว่าเข้าของเสีย/เคลม/ซ่อม/คืน Spare
 
     // === Asset movement on Approved Swap ===
     // 1) Uninstall เครื่องเก่า  2) Install Spare ที่ป้าย  3) Log stock_movements
