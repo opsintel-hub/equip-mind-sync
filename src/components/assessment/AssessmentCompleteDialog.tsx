@@ -739,9 +739,30 @@ export function AssessmentCompleteDialog({ open, onOpenChange, log, onCompleted 
             )}
 
             {outcome === "defective" && (
-              <p className="text-xs text-destructive pt-2 border-t">
-                ⚠ หลังบันทึก ระบบจะแจ้งให้ไปคีย์ที่เมนู <strong>"นำของเสียเข้าระบบ"</strong> เพื่อตัด Stock เข้าคลังของเสีย
-              </p>
+              <div className="pt-2 border-t space-y-2">
+                <p className="text-xs text-destructive">
+                  ⚠ หลังบันทึก ระบบจะแจ้งให้ไปคีย์ที่เมนู <strong>"นำของเสียเข้าระบบ"</strong> เพื่อตัด Stock เข้าคลังของเสีย
+                </p>
+                {needsDefectiveAck && (
+                  <Alert variant="destructive">
+                    <AlertTriangle className="h-4 w-4" />
+                    <AlertTitle>เครื่องนี้ยังอยู่ในประกัน!</AlertTitle>
+                    <AlertDescription className="space-y-2">
+                      <p>เหลือประกัน {warrantyDaysLeft} วัน — ปกติควรส่งเคลมก่อน หากยืนยันเข้าของเสียโปรดระบุเหตุผล</p>
+                      <Textarea
+                        value={defectiveAckReason}
+                        onChange={(e) => setDefectiveAckReason(e.target.value)}
+                        placeholder="เหตุผลที่ไม่ส่งเคลมแม้ยังในประกัน *"
+                        rows={2}
+                      />
+                      <label className="flex items-center gap-2 text-sm cursor-pointer">
+                        <input type="checkbox" checked={defectiveAck} onChange={(e) => setDefectiveAck(e.target.checked)} />
+                        ยืนยันสละสิทธิ์เคลม รับทราบและรับผิดชอบการตัดสินใจนี้
+                      </label>
+                    </AlertDescription>
+                  </Alert>
+                )}
+              </div>
             )}
 
             {outcome === "return_refurb" && (
