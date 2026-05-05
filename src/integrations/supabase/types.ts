@@ -3609,6 +3609,7 @@ export type Database = {
           invoice_number: string | null
           is_active: boolean | null
           is_asset: boolean | null
+          is_refurbished: boolean
           item_condition: string
           location_id: string | null
           model_id: string | null
@@ -3620,6 +3621,8 @@ export type Database = {
           pr_document_url: string | null
           pr_number: string | null
           quantity: number
+          refurbished_at: string | null
+          refurbished_notes: string | null
           remote_name: string | null
           serial_number_1: string | null
           serial_number_2: string | null
@@ -3658,6 +3661,7 @@ export type Database = {
           invoice_number?: string | null
           is_active?: boolean | null
           is_asset?: boolean | null
+          is_refurbished?: boolean
           item_condition?: string
           location_id?: string | null
           model_id?: string | null
@@ -3669,6 +3673,8 @@ export type Database = {
           pr_document_url?: string | null
           pr_number?: string | null
           quantity?: number
+          refurbished_at?: string | null
+          refurbished_notes?: string | null
           remote_name?: string | null
           serial_number_1?: string | null
           serial_number_2?: string | null
@@ -3707,6 +3713,7 @@ export type Database = {
           invoice_number?: string | null
           is_active?: boolean | null
           is_asset?: boolean | null
+          is_refurbished?: boolean
           item_condition?: string
           location_id?: string | null
           model_id?: string | null
@@ -3718,6 +3725,8 @@ export type Database = {
           pr_document_url?: string | null
           pr_number?: string | null
           quantity?: number
+          refurbished_at?: string | null
+          refurbished_notes?: string | null
           remote_name?: string | null
           serial_number_1?: string | null
           serial_number_2?: string | null
