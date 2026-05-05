@@ -533,6 +533,128 @@ export function AssessmentCompleteDialog({ open, onOpenChange, log, onCompleted 
             </div>
           )}
 
+          {/* === Warranty Banner === */}
+          {(() => {
+            const tone =
+              warrantyState === "active" ? "border-success bg-success/10"
+              : warrantyState === "ending" ? "border-warning bg-warning/10"
+              : warrantyState === "expired" ? "border-destructive bg-destructive/10"
+              : "border-muted bg-muted/40";
+            const Icon = warrantyState === "active" ? ShieldCheck : warrantyState === "expired" ? ShieldAlert : Shield;
+            const text =
+              warrantyState === "active" ? `ยังอยู่ในประกัน — เหลือ ${warrantyDaysLeft} วัน (หมด ${warrantyDate}) → แนะนำ "ส่งเคลม"`
+              : warrantyState === "ending" ? `ประกันใกล้หมด — เหลือ ${warrantyDaysLeft} วัน (หมด ${warrantyDate})`
+              : warrantyState === "expired" ? `หมดประกันแล้ว ${Math.abs(warrantyDaysLeft!)} วัน (หมดเมื่อ ${warrantyDate})`
+              : `ไม่พบข้อมูลประกัน — โปรดเช็คก่อนเลือกผล`;
+            return (
+              <div className={`rounded-lg border-2 p-3 flex items-start gap-3 ${tone}`}>
+                <Icon className="h-5 w-5 flex-shrink-0 mt-0.5" />
+                <div className="flex-1 min-w-0 space-y-1">
+                  <div className="font-semibold text-sm">{text}</div>
+                  {supplierAutofill?.name && (
+                    <div className="text-xs flex flex-wrap items-center gap-x-3 gap-y-1">
+                      <span>ผู้จัดจำหน่าย: <span className="font-medium">{supplierAutofill.name}</span></span>
+                      {supplierAutofill.contact && <span>ผู้ติดต่อ: {supplierAutofill.contact}</span>}
+                      {supplierAutofill.phone && (
+                        <span className="inline-flex items-center gap-1">
+                          <Phone className="h-3 w-3" />
+                          <a href={`tel:${supplierAutofill.phone}`} className="underline font-mono">{supplierAutofill.phone}</a>
+                          <button type="button" onClick={() => { navigator.clipboard.writeText(supplierAutofill.phone || ""); toast.success("คัดลอกเบอร์แล้ว"); }} className="hover:text-primary">
+                            <Copy className="h-3 w-3" />
+                          </button>
+                        </span>
+                      )}
+                    </div>
+                  )}
+                  {isUnderWarranty && (
+                    <Button size="sm" variant="outline" type="button" onClick={() => setOutcome("claim")} className="mt-1 h-7">
+                      ใช้ผล: ส่งเคลม
+                    </Button>
+                  )}
+                </div>
+              </div>
+            );
+          })()}
+
+          {/* === Repeat-failure flag === */}
+          {isRepeatFailure && (
+            <Alert variant="destructive">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertTitle>ปัญหาซ้ำซาก</AlertTitle>
+              <AlertDescription>
+                เครื่องนี้ถูกซ่อมไป {history?.recentRepairCount6m} ครั้งใน 6 เดือนล่าสุด — ควรพิจารณาเข้าของเสียหรือเคลมเต็มเครื่อง
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {/* === Device Info & History === */}
+          {sourceCtx && (
+            <div className="rounded-lg border bg-card p-3 space-y-3 text-sm">
+              <div className="flex items-center justify-between">
+                <div className="font-semibold flex items-center gap-2">
+                  <History className="h-4 w-4 text-primary" />
+                  ข้อมูลเครื่อง & ประวัติ
+                </div>
+                {sourceCtx.mediaPlayerProfileId && (
+                  <a
+                    href={`/media-player-profile/${sourceCtx.mediaPlayerProfileId}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-xs text-primary inline-flex items-center gap-1 hover:underline"
+                  >
+                    เปิดโปรไฟล์เครื่อง <ExternalLink className="h-3 w-3" />
+                  </a>
+                )}
+              </div>
+              <div className="grid md:grid-cols-3 gap-x-4 gap-y-1 text-xs">
+                {sourceCtx.brand && <div><span className="text-muted-foreground">ยี่ห้อ: </span><span className="font-medium">{sourceCtx.brand}</span></div>}
+                {sourceCtx.modelSpec && <div className="md:col-span-2"><span className="text-muted-foreground">Spec: </span><span>{sourceCtx.modelSpec}</span></div>}
+                {sourceCtx.unitPrice != null && <div><span className="text-muted-foreground">ราคา: </span><span className="font-medium">{sourceCtx.unitPrice.toLocaleString()} บาท</span></div>}
+                {sourceCtx.depreciationMonths != null && <div><span className="text-muted-foreground">ค่าเสื่อม: </span><span>{sourceCtx.depreciationMonths} เดือน</span></div>}
+                {ageLabel && <div><span className="text-muted-foreground">อายุใช้งาน: </span><span>{ageLabel}</span></div>}
+                {sourceCtx.dateOfReceipt && <div><span className="text-muted-foreground">รับเข้า: </span><span>{sourceCtx.dateOfReceipt}</span></div>}
+                <div><span className="text-muted-foreground">ติดตั้งมาแล้ว: </span><span className="font-medium">{history?.installCount ?? 0} ครั้ง</span></div>
+                {remainingValue != null && <div><span className="text-muted-foreground">มูลค่าคงเหลือ (ประมาณ): </span><span className="font-medium">{remainingValue.toLocaleString(undefined, { maximumFractionDigits: 0 })} บาท</span></div>}
+              </div>
+
+              {(history?.installs.length || 0) > 0 && (
+                <details className="text-xs">
+                  <summary className="cursor-pointer text-muted-foreground hover:text-foreground">ประวัติการติดตั้ง ({history!.installs.length})</summary>
+                  <ul className="mt-1 space-y-0.5 pl-3">
+                    {history!.installs.slice(0, 5).map((h, i) => (
+                      <li key={i}>
+                        • <span className="font-medium">{h.billboardLabel}</span> · {h.from || "—"} → {h.to || "ปัจจุบัน"}
+                        {h.reason && <span className="text-muted-foreground"> ({h.reason})</span>}
+                      </li>
+                    ))}
+                  </ul>
+                </details>
+              )}
+
+              {(history?.pastAssessments.length || 0) > 0 && (
+                <details className="text-xs">
+                  <summary className="cursor-pointer text-muted-foreground hover:text-foreground">ประวัติการประเมิน ({history!.pastAssessments.length})</summary>
+                  <ul className="mt-1 space-y-0.5 pl-3">
+                    {history!.pastAssessments.map((a, i) => (
+                      <li key={i}>• {a.docNo} — ผล: <span className="font-medium">{a.outcome || "—"}</span> {a.completedAt && `(${new Date(a.completedAt).toLocaleDateString("th-TH")})`}</li>
+                    ))}
+                  </ul>
+                </details>
+              )}
+
+              {(history?.pastClaims.length || 0) > 0 && (
+                <details className="text-xs">
+                  <summary className="cursor-pointer text-muted-foreground hover:text-foreground">ประวัติการเคลม ({history!.pastClaims.length})</summary>
+                  <ul className="mt-1 space-y-0.5 pl-3">
+                    {history!.pastClaims.map((c, i) => (
+                      <li key={i}>• {c.docNo} — สถานะ: {c.status} ({new Date(c.createdAt).toLocaleDateString("th-TH")})</li>
+                    ))}
+                  </ul>
+                </details>
+              )}
+            </div>
+          )}
+
           <div className="grid md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>อาการเสีย</Label>
