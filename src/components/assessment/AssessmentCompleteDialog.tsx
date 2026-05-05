@@ -114,6 +114,9 @@ export function AssessmentCompleteDialog({ open, onOpenChange, log, onCompleted 
     setExternalRepairPhone("");
     setSupplierAutofill(null);
     setSourceCtx(null);
+    setHistory(null);
+    setDefectiveAck(false);
+    setDefectiveAckReason("");
 
     // Load source context (Swap / Defective Return / Manual)
     (async () => {
