@@ -1,5 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Monitor, CheckCircle, Package, AlertTriangle, Wrench, Clock, Settings2 } from "lucide-react";
+import { Monitor, CheckCircle, Package, AlertTriangle, Wrench, Clock, Settings2, Hourglass, Hammer, ShieldAlert } from "lucide-react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend, BarChart, Bar, XAxis, YAxis, CartesianGrid } from "recharts";
 
 interface DashboardProps {
