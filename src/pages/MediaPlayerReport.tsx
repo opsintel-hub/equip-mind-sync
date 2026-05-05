@@ -365,6 +365,10 @@ export default function MediaPlayerReport() {
       if (statusFilter !== "all") {
         if (statusFilter === "installed" && !r.billboard_id) return false;
         if (statusFilter === "in_stock" && r.billboard_id) return false;
+        if (statusFilter === "pending_assessment" && !r.statusLabel.startsWith("พักรอประเมิน")) return false;
+        if (statusFilter === "under_repair" && !r.statusLabel.startsWith("กำลังซ่อม")) return false;
+        if (statusFilter === "in_claim" && !r.statusLabel.startsWith("รอเคลม")) return false;
+        if (statusFilter === "refurbished" && !r.statusLabel.includes("Refurbished")) return false;
       }
       if (companyFilter !== "all" && r.company !== companyFilter) return false;
       if (brandFilter !== "all" && r.brand !== brandFilter) return false;
