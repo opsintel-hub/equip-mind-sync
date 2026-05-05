@@ -557,7 +557,7 @@ export function SwapWizardDialog({ open, onOpenChange, request, onCompleted }: P
     setSubmitting(false);
     toast.success(
       result === "approved"
-        ? "บันทึก Swap สำเร็จ — สร้างใบของเสีย + รายการรอประเมินให้แล้ว"
+        ? "บันทึก Swap สำเร็จ — เครื่องเก่าเข้าสถานะ 'รอประเมิน' รอช่างประเมินผล"
         : "บันทึก Reject สำเร็จ"
     );
     onCompleted();
