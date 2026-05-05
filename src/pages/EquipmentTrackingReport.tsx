@@ -565,11 +565,14 @@ function EquipmentViewTab() {
   });
 
   const eqSNMap = useMemo(() => {
-    const m: Record<string, { allSNs: string[]; inStockSNs: string[] }> = {};
+    const m: Record<string, { allSNs: string[]; inStockSNs: string[]; pendingAssessSNs: string[]; underRepairSNs: string[]; inClaimSNs: string[] }> = {};
     (equipmentSNs || []).forEach(sn => {
-      if (!m[sn.equipment_id]) m[sn.equipment_id] = { allSNs: [], inStockSNs: [] };
+      if (!m[sn.equipment_id]) m[sn.equipment_id] = { allSNs: [], inStockSNs: [], pendingAssessSNs: [], underRepairSNs: [], inClaimSNs: [] };
       m[sn.equipment_id].allSNs.push(sn.serial_number);
       if (sn.status === "in_stock") m[sn.equipment_id].inStockSNs.push(sn.serial_number);
+      else if (sn.status === "pending_assessment") m[sn.equipment_id].pendingAssessSNs.push(sn.serial_number);
+      else if (sn.status === "under_repair") m[sn.equipment_id].underRepairSNs.push(sn.serial_number);
+      else if (sn.status === "in_claim") m[sn.equipment_id].inClaimSNs.push(sn.serial_number);
     });
     return m;
   }, [equipmentSNs]);
