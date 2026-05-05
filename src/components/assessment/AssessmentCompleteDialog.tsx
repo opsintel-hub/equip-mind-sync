@@ -33,9 +33,11 @@ interface AssessmentLogLite {
 }
 
 interface SourceContext {
-  sourceLabel: string;       // เช่น "Swap SWP-20260504-0003" / "ของเสีย DR-..."
-  itemCode: string | null;   // รหัสเครื่อง
-  itemName: string | null;   // ชื่อเครื่อง
+  sourceLabel: string;
+  itemCode: string | null;
+  itemName: string | null;
+  brand: string | null;
+  modelSpec: string | null;
   billboardLabel: string | null;
   billboardId: string | null;
   reportedSymptom: string | null;
@@ -43,6 +45,20 @@ interface SourceContext {
   reportedAt: string | null;
   photos: string[];
   description: string | null;
+  // Device facts
+  unitPrice: number | null;
+  depreciationMonths: number | null;
+  dateOfReceipt: string | null;
+  ageMonths: number | null;
+  mediaPlayerProfileId: string | null;
+}
+
+interface DeviceHistory {
+  installCount: number;
+  installs: { billboardLabel: string; from: string | null; to: string | null; reason: string | null }[];
+  pastAssessments: { docNo: string; outcome: string | null; completedAt: string | null }[];
+  pastClaims: { docNo: string; status: string; createdAt: string }[];
+  recentRepairCount6m: number; // for repeat-failure flag
 }
 
 interface Props {
