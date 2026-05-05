@@ -328,6 +328,18 @@ export function AssessmentCompleteDialog({ open, onOpenChange, log, onCompleted 
 
   const handleSubmit = async () => {
     setSubmitting(true);
+
+    // Audit trail: บันทึกสถานะประกัน + อายุเครื่อง ตอนประเมิน
+    const auditLines: string[] = [];
+    if (warrantyState === "active") auditLines.push(`✅ ประเมินขณะ "ยังในประกัน" เหลือ ${warrantyDaysLeft} วัน (หมด ${warrantyDate})`);
+    else if (warrantyState === "ending") auditLines.push(`⚠️ ประเมินขณะประกันใกล้หมด เหลือ ${warrantyDaysLeft} วัน (หมด ${warrantyDate})`);
+    else if (warrantyState === "expired") auditLines.push(`❌ ประเมินขณะ "หมดประกันแล้ว" ${Math.abs(warrantyDaysLeft!)} วัน (หมดเมื่อ ${warrantyDate})`);
+    else auditLines.push(`ℹ️ ประเมินโดยไม่มีข้อมูลประกัน`);
+    if (ageLabel) auditLines.push(`อายุเครื่องนับจากรับเข้า: ${ageLabel}`);
+    if (needsDefectiveAck && defectiveAckReason.trim()) auditLines.push(`เหตุผลที่ไม่ส่งเคลมแม้ยังในประกัน: ${defectiveAckReason.trim()}`);
+    if (isRepeatFailure) auditLines.push(`ปัญหาซ้ำซาก: ซ่อม ${history?.recentRepairCount6m} ครั้งใน 6 เดือน`);
+    const finalNotes = [notes.trim(), auditLines.join("\n")].filter(Boolean).join("\n---\n");
+
     const { error } = await supabase
       .from("assessment_logs")
       .update({
@@ -343,7 +355,7 @@ export function AssessmentCompleteDialog({ open, onOpenChange, log, onCompleted 
         external_repair_vendor: outcome === "claim" ? (externalRepairVendor.trim() || supplierAutofill?.name || null) : null,
         external_repair_contact: outcome === "claim" ? externalRepairContact.trim() || null : null,
         external_repair_phone: outcome === "claim" ? externalRepairPhone.trim() || null : null,
-        notes: notes.trim() || null,
+        notes: finalNotes || null,
         status: "completed",
         completed_at: new Date().toISOString(),
       })
