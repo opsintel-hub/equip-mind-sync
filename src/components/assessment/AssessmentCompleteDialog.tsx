@@ -290,11 +290,41 @@ export function AssessmentCompleteDialog({ open, onOpenChange, log, onCompleted 
 
   if (!log) return null;
 
+  // ===== Warranty calculation =====
+  const warrantyDate = supplierAutofill?.warranty || null;
+  const warrantyDaysLeft = warrantyDate ? differenceInDays(parseISO(warrantyDate), new Date()) : null;
+  const warrantyState: "active" | "ending" | "expired" | "unknown" =
+    warrantyDaysLeft === null ? "unknown"
+      : warrantyDaysLeft < 0 ? "expired"
+      : warrantyDaysLeft <= 30 ? "ending"
+      : "active";
+  const isUnderWarranty = warrantyState === "active" || warrantyState === "ending";
+
+  // ===== Cost-of-repair guard (rough) =====
+  // มูลค่าคงเหลือ = price * (1 - usedMonths/depreciationMonths), >=0
+  const remainingValue = (() => {
+    if (!sourceCtx?.unitPrice || !sourceCtx?.depreciationMonths || !sourceCtx?.ageMonths) return null;
+    const ratio = Math.max(0, 1 - (sourceCtx.ageMonths / sourceCtx.depreciationMonths));
+    return sourceCtx.unitPrice * ratio;
+  })();
+  const isRepeatFailure = (history?.recentRepairCount6m || 0) >= 2;
+
+  const needsDefectiveAck = outcome === "defective" && isUnderWarranty;
+
   const canSubmit =
     !!assessmentResultId &&
     !!outcome &&
     (outcome !== "self_repair" || !!repairDescription.trim()) &&
-    (outcome !== "claim" || !!supplierAutofill?.name || !!externalRepairVendor.trim());
+    (outcome !== "claim" || !!supplierAutofill?.name || !!externalRepairVendor.trim()) &&
+    (!needsDefectiveAck || (defectiveAck && !!defectiveAckReason.trim()));
+
+  const ageLabel = (() => {
+    if (!sourceCtx?.ageMonths && sourceCtx?.ageMonths !== 0) return null;
+    const m = sourceCtx.ageMonths;
+    if (m < 12) return `${m} เดือน`;
+    const y = Math.floor(m / 12); const rm = m % 12;
+    return rm > 0 ? `${y} ปี ${rm} เดือน` : `${y} ปี`;
+  })();
 
   const handleSubmit = async () => {
     setSubmitting(true);
