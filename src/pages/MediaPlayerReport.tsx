@@ -148,7 +148,7 @@ export default function MediaPlayerReport() {
           item_condition, status, quantity, unit, billboard_id, location_id, company_id,
           warranty_expiry_date, date_of_receipt, install_date, unit_price, po_number,
           asset_code, equipment_id_code, depreciation_months, activate_windows,
-          image_url, specification, usage_lifespan_months, remote_name,
+          image_url, specification, usage_lifespan_months, remote_name, is_refurbished,
           companies:company_id (name),
           locations:location_id (name),
           billboard:billboards!media_players_billboard_id_fkey (id, equipment_id, old_code, location_name)
@@ -248,7 +248,14 @@ export default function MediaPlayerReport() {
       const bbLabel = p.billboard
         ? formatBillboardLabel(p.billboard.old_code, p.billboard.location_name, p.billboard.equipment_id)
         : "-";
-      const statusLabel = p.billboard_id ? "ติดตั้ง" : "ในคลัง";
+      const wfStatusMap: Record<string, string> = {
+        pending_assessment: "พักรอประเมิน",
+        under_repair: "กำลังซ่อม",
+        in_claim: "รอเคลม",
+      };
+      const statusLabel = wfStatusMap[(p as any).status]
+        ? wfStatusMap[(p as any).status] + ((p as any).is_refurbished ? " (Refurbished)" : "")
+        : (p.billboard_id ? "ติดตั้ง" : "ในคลัง") + ((p as any).is_refurbished ? " (Refurbished)" : "");
       const company = p.companies?.name || "";
       const locationName = p.locations?.name || "";
 
@@ -358,6 +365,10 @@ export default function MediaPlayerReport() {
       if (statusFilter !== "all") {
         if (statusFilter === "installed" && !r.billboard_id) return false;
         if (statusFilter === "in_stock" && r.billboard_id) return false;
+        if (statusFilter === "pending_assessment" && !r.statusLabel.startsWith("พักรอประเมิน")) return false;
+        if (statusFilter === "under_repair" && !r.statusLabel.startsWith("กำลังซ่อม")) return false;
+        if (statusFilter === "in_claim" && !r.statusLabel.startsWith("รอเคลม")) return false;
+        if (statusFilter === "refurbished" && !r.statusLabel.includes("Refurbished")) return false;
       }
       if (companyFilter !== "all" && r.company !== companyFilter) return false;
       if (brandFilter !== "all" && r.brand !== brandFilter) return false;
@@ -554,11 +565,15 @@ export default function MediaPlayerReport() {
               </SelectContent>
             </Select>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-[130px]"><SelectValue placeholder="สถานะ" /></SelectTrigger>
+              <SelectTrigger className="w-[150px]"><SelectValue placeholder="สถานะ" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">ทุกสถานะ</SelectItem>
                 <SelectItem value="installed">ติดตั้ง</SelectItem>
                 <SelectItem value="in_stock">ในคลัง</SelectItem>
+                <SelectItem value="pending_assessment">พักรอประเมิน</SelectItem>
+                <SelectItem value="under_repair">กำลังซ่อม</SelectItem>
+                <SelectItem value="in_claim">รอเคลม</SelectItem>
+                <SelectItem value="refurbished">Refurbished</SelectItem>
               </SelectContent>
             </Select>
             <Select value={departmentFilter} onValueChange={setDepartmentFilter}>

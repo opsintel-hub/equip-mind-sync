@@ -375,6 +375,10 @@ const MediaPlayerEntry = () => {
     const spare = Object.entries(statusMap)
       .filter(([k]) => k.includes("spare"))
       .reduce((sum, [, v]) => sum + v, 0);
+    const pendingAssessment = statusMap["pending_assessment"] || 0;
+    const underRepair = statusMap["under_repair"] || 0;
+    const inClaim = statusMap["in_claim"] || 0;
+    const refurbished = mediaPlayers.filter((p: any) => p.is_refurbished === true).length;
 
     const colorList = ["#22c55e", "#3b82f6", "#f97316", "#eab308", "#8b5cf6", "#ec4899", "#14b8a6", "#f43f5e"];
     const statusDistribution = Object.entries(statusMap)
@@ -395,7 +399,7 @@ const MediaPlayerEntry = () => {
       .map(([name, count]) => ({ name, count }));
 
     return {
-      statusCounts: { total, active, spare, fixOrBreak, claim, waitingCode, warrantyExpiring, warrantyExpired },
+      statusCounts: { total, active, spare, fixOrBreak, claim, waitingCode, warrantyExpiring, warrantyExpired, pendingAssessment, underRepair, inClaim, refurbished },
       statusDistribution,
       modelDistribution,
       departmentDistribution,

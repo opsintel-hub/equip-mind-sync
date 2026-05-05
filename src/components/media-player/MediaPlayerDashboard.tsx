@@ -1,5 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Monitor, CheckCircle, Package, AlertTriangle, Wrench, Clock, Settings2 } from "lucide-react";
+import { Monitor, CheckCircle, Package, AlertTriangle, Wrench, Clock, Settings2, Hourglass, Hammer, ShieldAlert } from "lucide-react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend, BarChart, Bar, XAxis, YAxis, CartesianGrid } from "recharts";
 
 interface DashboardProps {
@@ -12,6 +12,10 @@ interface DashboardProps {
     waitingCode: number;
     warrantyExpiring: number;
     warrantyExpired: number;
+    pendingAssessment?: number;
+    underRepair?: number;
+    inClaim?: number;
+    refurbished?: number;
   };
   statusDistribution: { name: string; value: number; color: string }[];
   modelDistribution: { name: string; count: number }[];
@@ -120,6 +124,54 @@ const MediaPlayerDashboard = ({ statusCounts, statusDistribution, modelDistribut
                 <p className="text-3xl font-bold text-red-500">{statusCounts.warrantyExpiring}</p>
               </div>
               <AlertTriangle className="w-8 h-8 text-red-400 opacity-80" />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Row 3: Workflow status (pending assessment / repair / claim / refurb) */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <Card className="border-purple-500/30 bg-gradient-to-br from-purple-500/10 to-purple-500/5">
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">พักรอประเมิน</p>
+                <p className="text-3xl font-bold text-purple-600">{statusCounts.pendingAssessment ?? 0}</p>
+              </div>
+              <Hourglass className="w-8 h-8 text-purple-500 opacity-80" />
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="border-cyan-500/30 bg-gradient-to-br from-cyan-500/10 to-cyan-500/5">
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">กำลังซ่อม</p>
+                <p className="text-3xl font-bold text-cyan-600">{statusCounts.underRepair ?? 0}</p>
+              </div>
+              <Hammer className="w-8 h-8 text-cyan-500 opacity-80" />
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="border-rose-600/30 bg-gradient-to-br from-rose-600/10 to-rose-600/5">
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">รอเคลม</p>
+                <p className="text-3xl font-bold text-rose-700">{statusCounts.inClaim ?? 0}</p>
+              </div>
+              <ShieldAlert className="w-8 h-8 text-rose-600 opacity-80" />
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="border-emerald-500/30 bg-gradient-to-br from-emerald-500/10 to-emerald-500/5">
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Refurbished (ซ่อมคืน)</p>
+                <p className="text-3xl font-bold text-emerald-600">{statusCounts.refurbished ?? 0}</p>
+              </div>
+              <CheckCircle className="w-8 h-8 text-emerald-500 opacity-80" />
             </div>
           </CardContent>
         </Card>

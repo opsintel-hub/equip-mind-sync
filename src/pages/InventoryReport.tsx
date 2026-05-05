@@ -349,16 +349,22 @@ export default function InventoryReport() {
 
   // Build maps: equipment_id -> all S/Ns (display) and in_stock count
   const equipmentSNMap = useMemo(() => {
-    const map: Record<string, { allSNs: string[]; inStockSNs: string[]; inStockCount: number }> = {};
+    const map: Record<string, { allSNs: string[]; inStockSNs: string[]; inStockCount: number; pendingAssessSNs: string[]; underRepairSNs: string[]; inClaimSNs: string[] }> = {};
     allEquipmentSNs.forEach((sn: any) => {
       if (!sn.equipment_id) return;
       if (!map[sn.equipment_id]) {
-        map[sn.equipment_id] = { allSNs: [], inStockSNs: [], inStockCount: 0 };
+        map[sn.equipment_id] = { allSNs: [], inStockSNs: [], inStockCount: 0, pendingAssessSNs: [], underRepairSNs: [], inClaimSNs: [] };
       }
       map[sn.equipment_id].allSNs.push(sn.serial_number);
       if (sn.status === "in_stock") {
         map[sn.equipment_id].inStockSNs.push(sn.serial_number);
         map[sn.equipment_id].inStockCount++;
+      } else if (sn.status === "pending_assessment") {
+        map[sn.equipment_id].pendingAssessSNs.push(sn.serial_number);
+      } else if (sn.status === "under_repair") {
+        map[sn.equipment_id].underRepairSNs.push(sn.serial_number);
+      } else if (sn.status === "in_claim") {
+        map[sn.equipment_id].inClaimSNs.push(sn.serial_number);
       }
     });
     return map;

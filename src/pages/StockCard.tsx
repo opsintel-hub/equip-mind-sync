@@ -82,6 +82,11 @@ const MOVEMENT_TYPES = [
   { value: "install_to_billboard", label: "ติดตั้งป้าย", icon: Hammer, color: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400" },
   { value: "return_from_billboard", label: "ถอดจากป้าย", icon: RotateCcw, color: "bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400" },
   { value: "defective_return", label: "ของเสียเข้า", icon: AlertTriangle, color: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400" },
+  { value: "pending_assessment_in", label: "พักรอประเมิน (เข้า)", icon: RotateCcw, color: "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400" },
+  { value: "pending_assessment_out", label: "พักรอประเมิน (ออก)", icon: ArrowUpFromLine, color: "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400" },
+  { value: "repair_in", label: "ส่งซ่อม", icon: Hammer, color: "bg-cyan-100 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-400" },
+  { value: "claim_in", label: "ส่งเคลม", icon: AlertTriangle, color: "bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400" },
+  { value: "refurb_back", label: "Refurbished คืนคลัง", icon: ArrowDownToLine, color: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400" },
 ];
 
 const CONDITIONS = [

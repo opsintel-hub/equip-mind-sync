@@ -204,13 +204,24 @@ const MediaPlayerProfile = () => {
     const receiptDone = hasReceipt || hasLocation || isInstalled || hasHistory;
     const storageDone = hasLocation || isInstalled || hasHistory;
 
-    return [
+    const wfStatus = (player as any).status;
+    const isPendingAssess = wfStatus === "pending_assessment";
+    const isUnderRepair = wfStatus === "under_repair";
+    const isInClaim = wfStatus === "in_claim";
+    const inWorkflow = isPendingAssess || isUnderRepair || isInClaim;
+
+    const steps: ProcessStep[] = [
       { label: "ลงทะเบียน", status: "done", date: player.created_at },
       { label: "รับเข้าคลัง", status: receiptDone ? "done" : "pending", date: player.date_of_receipt },
       { label: "จัดเก็บ", status: storageDone ? "done" : (hasReceipt ? "current" : "pending") },
       { label: "ติดตั้งป้าย", status: isInstalled ? "done" : (hasHistory ? "done" : (storageDone ? "current" : "pending")), date: player.install_date },
-      ...(hasHistory && !isInstalled ? [{ label: "ถอด/คืนคลัง", status: "done" as const }] : []),
     ];
+    if (hasHistory && !isInstalled) steps.push({ label: "ถอด/คืนคลัง", status: "done" });
+    if (isPendingAssess) steps.push({ label: "พักรอประเมิน", status: "current" });
+    if (isUnderRepair) steps.push({ label: "กำลังซ่อม", status: "current" });
+    if (isInClaim) steps.push({ label: "รอเคลม", status: "current" });
+    if ((player as any).is_refurbished) steps.push({ label: "Refurbished", status: "done", date: (player as any).refurbished_at });
+    return steps;
   }, [player, journeys]);
 
   if (isLoading) {

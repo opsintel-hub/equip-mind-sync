@@ -4,6 +4,7 @@ import { Package, PackageOpen, MapPin, ArrowRight, ArrowLeftRight, AlertTriangle
 import { LowStockAlerts } from "@/components/LowStockAlerts";
 import { ExpiryAlerts } from "@/components/ExpiryAlerts";
 import { BillboardEquipmentAlerts } from "@/components/BillboardEquipmentAlerts";
+import { PendingAssessmentAlerts } from "@/components/PendingAssessmentAlerts";
 import BillboardEquipmentChart from "@/components/BillboardEquipmentChart";
 import { LocationInventoryChart } from "@/components/LocationInventoryChart";
 import { CategoryPieChart } from "@/components/CategoryPieChart";
@@ -251,6 +252,7 @@ const Dashboard = () => {
         <LowStockAlerts />
         <ExpiryAlerts />
         <BillboardEquipmentAlerts />
+        <PendingAssessmentAlerts />
       </div>
     </div>
   );
