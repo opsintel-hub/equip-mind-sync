@@ -370,8 +370,28 @@ export function AssessmentCompleteDialog({ open, onOpenChange, log, onCompleted 
     // Outcome side-effects
     let createdDefectiveDocNo: string | null = null;
     try {
+      // Helper: เปลี่ยนสถานะ MP + S/N (logical warehouse)
+      const flipStatus = async (mpStatus: string, snStatus: string, refurb = false) => {
+        if (log.media_player_id) {
+          const upd: any = { status: mpStatus };
+          if (refurb) { upd.is_refurbished = true; upd.refurbished_at = new Date().toISOString(); }
+          await supabase.from("media_players").update(upd).eq("id", log.media_player_id);
+        }
+        if (log.serial_number) {
+          const upd: any = { status: snStatus };
+          if (refurb) {
+            upd.is_refurbished = true;
+            upd.refurbished_at = new Date().toISOString();
+            upd.refurbished_notes = outcome === "self_repair"
+              ? `ซ่อมเอง: ${repairDescription.trim()}`
+              : `คืน Spare หลังประเมิน/เคลม`;
+          }
+          await supabase.from("equipment_serial_numbers").update(upd).eq("serial_number", log.serial_number);
+        }
+      };
+
       if (outcome === "defective") {
-        // Auto-create defective_returns row (pending warehouse entry — stock not yet cut)
+        // เครื่องค้างที่ pending_assessment จนกว่าคลังจะรับ
         const { data: drRow } = await supabase
           .from("defective_returns")
           .insert({
@@ -409,18 +429,11 @@ export function AssessmentCompleteDialog({ open, onOpenChange, log, onCompleted 
           notes: `จาก Assessment ${log.document_no}`,
           created_by: user?.id ?? null,
         });
-      } else if ((outcome === "self_repair" || outcome === "return_refurb") && log.serial_number) {
-        await supabase
-          .from("equipment_serial_numbers")
-          .update({
-            is_refurbished: true,
-            refurbished_at: new Date().toISOString(),
-            refurbished_notes:
-              outcome === "self_repair"
-                ? `ซ่อมเอง: ${repairDescription.trim()}`
-                : `คืน Spare หลังเคลม/ตรวจสอบ`,
-          } as any)
-          .eq("serial_number", log.serial_number);
+        await flipStatus("in_claim", "in_claim");
+      } else if (outcome === "self_repair") {
+        await flipStatus("under_repair", "under_repair");
+      } else if (outcome === "return_refurb") {
+        await flipStatus("in_stock", "in_stock", true);
       }
     } catch (e: any) {
       toast.warning("บันทึกแล้ว แต่ side-effect บางส่วนล้มเหลว: " + (e?.message || ""));
