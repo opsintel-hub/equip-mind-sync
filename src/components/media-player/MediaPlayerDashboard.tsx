@@ -12,6 +12,10 @@ interface DashboardProps {
     waitingCode: number;
     warrantyExpiring: number;
     warrantyExpired: number;
+    pendingAssessment?: number;
+    underRepair?: number;
+    inClaim?: number;
+    refurbished?: number;
   };
   statusDistribution: { name: string; value: number; color: string }[];
   modelDistribution: { name: string; count: number }[];
