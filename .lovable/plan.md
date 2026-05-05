@@ -1,91 +1,110 @@
 
+# แผนปรับ Workflow ประเมิน + เพิ่มข้อมูลช่วยตัดสินใจ
 
-## แผน: เชื่อมต่อ MS SQL Database ป้ายโฆษณา (One-way Sync)
-
-### ผลทดสอบเบื้องต้น
-- **TCP `magicticket.magicsigncloud.com:1433` เปิด ✅** เชื่อมต่อจาก Edge Function ได้โดยตรง ไม่ต้องตั้ง VPN
-- เหลือยืนยันแค่ตอน login ว่า user `planb_viewer` มีสิทธิ์อ่านตาราง `Asset` หรือไม่ (จะรู้ตอน "ทดสอบเชื่อมต่อ" ครั้งแรก)
-
-### กลยุทธ์ Conflict Resolution (คำแนะนำ)
-ผมแนะนำ **"Smart Match"** เป็นค่า default เพราะปลอดภัยและยืดหยุ่นที่สุด:
-
-| Field group | พฤติกรรม | เหตุผล |
-|---|---|---|
-| **Authoritative จาก MS SQL** (overwrite ทุกครั้ง) | `region`, `district`, `territory`, `media_type`, `location_name`, `media_class`, `media_segment`, `size`, `bkk_upc` | ข้อมูลโครงสร้างจาก source ภายนอก ควรเป็น truth เดียว |
-| **Preserve ใน Lovable** (ห้ามเขียนทับ) | `notes`, `status`, `description`, `extra_1/2/3`, `target_monitoring`, `route_*` | เป็นฟิลด์ operational ที่ทีมแก้ใน Lovable เอง |
-| **Insert only ถ้ายังไม่มี** | `equipment_id`, `old_code`, `department` | สร้างใหม่ตอน first sync ห้ามเปลี่ยนทีหลัง (กระทบ FK 10+ ตาราง) |
-
-ผู้ใช้สามารถปรับ rule ในหน้า UI ได้ภายหลัง
+## ภาพรวม
+แยกการประเมินออกจากการนำเข้าคลังของเสีย และเสริมหน้าประเมินให้ช่างเห็นประวัติ/ประกัน/Supplier ครบก่อนเลือกผล เพื่อกันพลาดส่งของไปคลังของเสียทั้งที่ยังเคลมได้
 
 ---
 
-### สิ่งที่จะสร้าง
+## ส่วนที่ 1 — เปลี่ยน Workflow (ตามที่ตกลงกันก่อนหน้า)
 
-#### 1. ตารางใหม่ใน Lovable Cloud
-- `external_db_connections` — เก็บ connection config (host, port, database, user, password เข้ารหัส, table name, sync schedule)
-- `billboard_sync_logs` — log ผลการ sync แต่ละครั้ง (เวลา, จำนวน inserted/updated/skipped, error)
-- `billboard_field_mapping` — กำหนดว่า column ฝั่ง MS SQL จะ map ไป field ไหนใน `billboards` (default mapping seed ไว้)
+### 1.1 สร้างคลัง/สถานะใหม่
+- เพิ่ม Warehouse system: `WH-PENDING-ASSESS` (1 ตัวต่อ database, ไม่แยกตามแผนก เพื่อลดความซับซ้อน) + Location `LOC-PENDING-ASSESS`
+- เพิ่ม S/N status enum ใหม่: `pending_assessment`, `under_repair`, `in_claim` (มีบางส่วนแล้ว — ตรวจซ้ำ)
 
-**Security:** RLS อนุญาตเฉพาะ Super Admin จัดการ connection (รหัสผ่านเก็บใน Supabase secrets ไม่ใช่ในตาราง — ใช้ตารางเก็บแค่ reference key)
+### 1.2 ตอนถอด (Swap / Manual Uninstall)
+- **เลิก auto-สร้าง DR** ใน `SwapWizardDialog.tsx`
+- เปลี่ยนเป็น **auto-สร้าง Assessment Log (ASM)** พร้อม `source_type='swap'` + `source_reference_id=swap_request_id`
+- ย้าย S/N ไป `WH-PENDING-ASSESS` + status `pending_assessment` (ไม่ใช่ defective)
+- บันทึก stock_movement type=`pending_assessment_in`
 
-#### 2. Edge Function `sync-billboards-mssql`
-- ใช้ Deno library `denodrivers/mssql` (TDS protocol native, ไม่ต้อง ODBC)
-- **Endpoints:**
-  - `POST /test-connection` — ลอง connect + นับ row ในตาราง `Asset` → คืนผลทดสอบ
-  - `POST /preview` — ดึง 10 rows แรก แสดงตัวอย่างให้ user ดู
-  - `POST /sync` — ดึงทั้งหมด, batch upsert เข้า `billboards` ตาม Smart Match rule, เขียน log
-- Deploy แบบ public แต่ตรวจ JWT + role super_admin ใน code
+### 1.3 ตอนประเมินเสร็จ (AssessmentCompleteDialog)
+แต่ละ outcome เคลื่อนของและสร้างเอกสารตามนี้:
 
-#### 3. Edge Function `auto-sync-scheduler` (ถ้าผู้ใช้เปิด Auto-sync)
-- pg_cron ในฐานข้อมูล Supabase ยิง endpoint นี้ทุกวัน 04:00
-- เช็ค `external_db_connections.auto_sync_days` ว่าวันนี้อยู่ใน list มั้ย → ถ้าใช่ trigger sync
+| Outcome | คลังปลายทาง | S/N status | เอกสารที่สร้าง |
+|---|---|---|---|
+| 1. ซ่อมไม่ได้ (defective) | ค้างที่ Pending จนกว่าคลังจะรับ → WH-DEFECT | `pending_warehouse_entry` → `defective` | DR (pending) → คลังกดยืนยันใน "นำของเสียเข้าระบบ" |
+| 2. ส่งเคลม (claim) | WH-CLAIM (logical) | `in_claim` | CLM (submitted) |
+| 3. ซ่อมเอง (self_repair) | WH-REPAIR (logical) | `under_repair` | บันทึก repair log → จบแล้วคืน in_stock + `is_refurbished=true` |
+| 4. คืน Spare (return_refurb) | คลังเดิม/Spare | `in_stock` + `is_refurbished=true` | – |
 
-#### 4. UI: แท็บใหม่ใน `/master-data`
-- ชื่อแท็บ: **"เชื่อมต่อ Database ป้าย"** (Super Admin only) — icon `Database`
-- หน้าตาตามภาพที่อนุมัติเป๊ะ:
-  - **Sub-tab 1: การเชื่อมต่อข้อมูล** (ตามภาพ)
-    - Form: ประเภท DB (MS SQL/PostgreSQL), Server, Database, Table, User, Password
-    - การ์ด Auto-Sync: toggle + multi-select วันที่ในเดือน (max 4) + เวลา 04:00 fixed
-    - ปุ่ม: `ทดสอบเชื่อมต่อ` / `Save & Sync ทันที` / `Sync ข้อมูลเข้าระบบ (Manual)`
-  - **Sub-tab 2: สิทธิผู้ใช้งาน** — รายชื่อ Super Admin ที่จัดการ connection ได้
-  - **Sub-tab 3 (เพิ่ม): ประวัติการ Sync** — table แสดง log 30 รายการล่าสุด พร้อมจำนวน insert/update/error
+> หมายเหตุ: คลัง claim/repair ใช้แบบ **logical** (S/N status) ไม่ต้องสร้างคลังกายภาพแยก เพื่อให้ implement เร็ว
 
-#### 5. Field Mapping Editor (เปิดเมื่อกด "ทดสอบเชื่อมต่อ" สำเร็จ)
-- Modal แสดง 2 column: **MS SQL columns** (auto-detect จาก SELECT TOP 1) ↔ **Lovable fields**
-- Default mapping ตาม Smart Match rule ข้างบน — แก้ได้
-- บันทึกใน `billboard_field_mapping`
+### 1.4 ตั๋ว DR ค้าง 6 ใบเดิม
+- เก็บไว้ ปล่อยให้ปิดงานตามเดิม (ไม่แตะของเก่า)
+- Workflow ใหม่ใช้กับของที่ถอดหลัง deploy เท่านั้น
 
 ---
 
-### Flow การใช้งาน
-```text
-Super Admin → Master Data → "เชื่อมต่อ Database ป้าย"
-  ↓ กรอกข้อมูล connection
-  ↓ กด [ทดสอบเชื่อมต่อ] → Edge Function ลอง login + นับ row
-  ↓ ถ้าผ่าน → เปิด Field Mapping Editor (ครั้งแรก)
-  ↓ Save Connection
-  ↓ กด [Sync ข้อมูลเข้าระบบ (Manual)] หรือ [Save & Sync ทันที]
-  ↓ Edge function ดึงทั้งหมด → batch upsert (500 rows/batch) → log
-  ↓ แสดง toast: "Sync สำเร็จ: เพิ่ม 12, อัปเดต 348, ข้าม 5"
-```
+## ส่วนที่ 2 — เพิ่มข้อมูลช่วยตัดสินใจในหน้าประเมิน (จุดสำคัญ)
+
+ปรับ `AssessmentCompleteDialog.tsx` เพิ่ม panel **"ข้อมูลเครื่อง & ประวัติ"** ก่อน section ฟอร์มประเมิน แสดง:
+
+### 2.1 กล่องประกัน (Warranty Banner) — เด่นที่สุด
+- **เขียว**: "ยังอยู่ในประกัน — เหลือ X วัน (หมด YYYY-MM-DD)" + ปุ่ม **"แนะนำ: ส่งเคลม"** (เลือก outcome=claim ให้อัตโนมัติ)
+- **เหลือง**: เหลือ ≤ 30 วัน
+- **แดง**: หมดประกันแล้ว X วัน
+- **เทา**: ไม่มีข้อมูลประกัน
+- ถ้ายังในประกันแล้วผู้ใช้พยายามเลือก outcome=defective → แสดง **confirm dialog**: "เครื่องนี้ยังอยู่ในประกัน ยืนยันไม่เคลมหรือไม่?" + บังคับกรอกเหตุผล
+
+### 2.2 ข้อมูลเครื่อง (เก็บ + แสดง)
+- รหัส / ชื่อ / Brand / Model / Spec
+- S/N 1, S/N 2
+- ราคา / ค่าเสื่อม / อายุใช้งาน (เดือน)
+- **ผู้จัดจำหน่าย** (supplier name + เบอร์ติดต่อ ถ้ามี)
+- วันที่รับเข้า + **อายุนับจากซื้อ** (เช่น "ใช้มาแล้ว 2 ปี 3 เดือน")
+- ป้ายปัจจุบัน / แผนก
+
+### 2.3 ประวัติการติดตั้ง (Installation History)
+- จำนวนครั้งที่เคยติดตั้ง (เช่น "ติดตั้ง 4 ครั้ง")
+- Timeline ย่อ: ป้าย → วันที่ติด → วันถอด → เหตุผลถอด
+- ถ้าเคยถูกประเมินมาก่อน: แสดงผลประเมินครั้งก่อน + วันที่
+- ถ้าเคยเคลม/ซ่อม: แสดงประวัติ (จาก `claim_records`, `assessment_logs` history)
+
+### 2.4 ข้อมูลที่แจ้งตอนถอด (มีบางส่วนแล้ว — เสริมให้ครบ)
+- ผู้แจ้ง / วันที่แจ้ง
+- อาการที่แจ้ง (text + symptom_id)
+- **รูปอาการเสีย** (จาก swap.photo_urls)
+- รายละเอียดเพิ่มเติมจาก swap.description + symptom_other
+- ป้ายต้นทาง
+
+### 2.5 Quick Links
+- ปุ่ม "เปิดโปรไฟล์เครื่อง" → `/media-player-profile/:id` (tab ใหม่)
+- ปุ่ม "ดู Swap ต้นทาง" / "ดูใบเดิม"
 
 ---
 
-### ข้อพิจารณาด้านความปลอดภัย
-1. **รหัสผ่าน MS SQL** — เก็บเป็น Supabase secret ชื่อ `MSSQL_BILLBOARD_PASSWORD` (เพิ่มผ่านตัวเลือก add_secret) ไม่เก็บในตาราง
-2. **RLS:** ตาราง `external_db_connections` + `billboard_sync_logs` อนุญาตเฉพาะ `super_admin`
-3. **Edge Function:** ตรวจ JWT + verify role ก่อนทำงานทุกครั้ง
-4. **Audit:** ทุก sync บันทึก `triggered_by` (user_id) ใน log
+## ส่วนที่ 3 — รายละเอียด Technical
+
+### Files to edit
+- `src/components/assessment/AssessmentCompleteDialog.tsx` — เพิ่ม WarrantyBanner + InstallationHistory + DeviceInfo panel; เปลี่ยน outcome handler ตามตาราง 1.3
+- `src/components/swap/SwapWizardDialog.tsx` — ตัด auto-DR; เปลี่ยนเป็น auto-สร้าง ASM + ย้าย S/N ไป pending_assessment
+- `src/pages/DefectiveReturnEntry.tsx` — รับเฉพาะ DR ที่มาจาก outcome=defective (มีอยู่แล้ว ไม่ต้องแก้มาก)
+- `src/pages/AssessmentLog.tsx` — เพิ่ม filter "ค้างประเมิน" / "เสร็จแล้ว"
+
+### Database migration
+- เพิ่ม Warehouse + Location สำหรับ Pending Assessment (insert via tool)
+- ขยาย enum สำหรับ S/N status (ถ้ายังไม่มี): `pending_assessment`, `under_repair`, `in_claim`
+- เพิ่ม column `assessment_logs.installation_history_snapshot jsonb` (optional — เก็บ snapshot ตอนเปิดประเมิน เผื่อ audit ภายหลัง)
+
+### Queries ใหม่ในหน้าประเมิน
+1. `media_players` join `suppliers` + `companies` + `cms_types` + `billboard` (มีอยู่)
+2. `billboard_installations` หรือ `media_player_installation_history` — นับจำนวนครั้ง + timeline
+3. `assessment_logs` history สำหรับ MP/equipment เดียวกัน (status=completed)
+4. `claim_records` history
 
 ---
 
-### ขั้นตอน Implementation
-1. **Migration:** สร้าง 3 ตาราง + RLS + seed default field mapping
-2. **add_secret:** ขอ `MSSQL_BILLBOARD_PASSWORD` จาก user (รหัสที่ให้มา)
-3. **Edge Function `sync-billboards-mssql`** + test connection endpoint
-4. **UI:** แท็บใหม่ใน MasterData + 3 sub-tabs
-5. **Auto-Sync scheduler** (pg_cron + edge function trigger)
-6. **ทดสอบ end-to-end** กับ DB จริง → ปรับ field mapping ตามผล preview
+## ส่วนที่ 4 — ข้อเสนอเพิ่มเติมจากผม
 
-หลังเสร็จ: ผู้ใช้กดปุ่มเดียว = sync ป้ายล่าสุดเข้าระบบ พร้อม log ตรวจสอบย้อนหลังได้
+1. **Cost-of-repair guard**: ถ้า outcome=self_repair และค่าซ่อม > 50% ของราคาเครื่องที่เหลือ (หลังหักค่าเสื่อม) → เตือน "ค่าซ่อมสูงเทียบกับมูลค่าคงเหลือ — พิจารณาเปลี่ยนเครื่องใหม่"
+2. **Repeat-failure flag**: ถ้าเครื่องนี้ถูกประเมินซ่อมไป **≥ 2 ครั้งใน 6 เดือน** → แสดง badge แดง "ปัญหาซ้ำซาก" แนะนำ outcome=defective หรือ claim เต็มเครื่อง
+3. **Supplier contact shortcut**: ในกล่องประกัน ถ้ามีเบอร์ Supplier → แสดงปุ่มโทร/copy เบอร์ทันที (มือถือกดโทรได้)
+4. **Audit trail**: บันทึกใน `assessment_logs.notes` อัตโนมัติว่าตอนประเมิน เครื่องอยู่ในประกัน/หมดประกันกี่วัน เพื่อ traceability ภายหลัง
 
+---
+
+## ขอ confirm 2 จุดก่อน implement
+
+1. **คลัง claim/repair** — OK ใช้แบบ logical (เปลี่ยนแค่ S/N status, ของยังอยู่ในที่เดียวกัน) หรืออยากให้สร้าง warehouse กายภาพแยก?
+2. **ข้อเสนอเพิ่มเติม #1-4** — อยากได้ทั้ง 4 ข้อ หรือเลือกเฉพาะข้อไหน?

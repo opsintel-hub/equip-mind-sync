@@ -8,10 +8,12 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { ClipboardCheck } from "lucide-react";
+import { ClipboardCheck, ShieldCheck, ShieldAlert, Shield, History, Phone, Copy, ExternalLink, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { SymptomSelect } from "@/components/media-player/SymptomSelect";
 import { AssessmentResultSelect } from "@/components/media-player/AssessmentResultSelect";
+import { differenceInDays, parseISO, differenceInMonths } from "date-fns";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 interface AssessmentLogLite {
   id: string;
@@ -31,9 +33,11 @@ interface AssessmentLogLite {
 }
 
 interface SourceContext {
-  sourceLabel: string;       // เช่น "Swap SWP-20260504-0003" / "ของเสีย DR-..."
-  itemCode: string | null;   // รหัสเครื่อง
-  itemName: string | null;   // ชื่อเครื่อง
+  sourceLabel: string;
+  itemCode: string | null;
+  itemName: string | null;
+  brand: string | null;
+  modelSpec: string | null;
   billboardLabel: string | null;
   billboardId: string | null;
   reportedSymptom: string | null;
@@ -41,6 +45,20 @@ interface SourceContext {
   reportedAt: string | null;
   photos: string[];
   description: string | null;
+  // Device facts
+  unitPrice: number | null;
+  depreciationMonths: number | null;
+  dateOfReceipt: string | null;
+  ageMonths: number | null;
+  mediaPlayerProfileId: string | null;
+}
+
+interface DeviceHistory {
+  installCount: number;
+  installs: { billboardLabel: string; from: string | null; to: string | null; reason: string | null }[];
+  pastAssessments: { docNo: string; outcome: string | null; completedAt: string | null }[];
+  pastClaims: { docNo: string; status: string; createdAt: string }[];
+  recentRepairCount6m: number; // for repeat-failure flag
 }
 
 interface Props {
@@ -74,8 +92,11 @@ export function AssessmentCompleteDialog({ open, onOpenChange, log, onCompleted 
   const [externalRepairVendor, setExternalRepairVendor] = useState("");
   const [externalRepairContact, setExternalRepairContact] = useState("");
   const [externalRepairPhone, setExternalRepairPhone] = useState("");
-  const [supplierAutofill, setSupplierAutofill] = useState<{ name: string; manufacturer: string | null; warranty: string | null } | null>(null);
+  const [supplierAutofill, setSupplierAutofill] = useState<{ name: string; manufacturer: string | null; warranty: string | null; phone: string | null; contact: string | null } | null>(null);
   const [sourceCtx, setSourceCtx] = useState<SourceContext | null>(null);
+  const [history, setHistory] = useState<DeviceHistory | null>(null);
+  const [defectiveAck, setDefectiveAck] = useState(false);
+  const [defectiveAckReason, setDefectiveAckReason] = useState("");
 
   useEffect(() => {
     if (!open || !log) return;
@@ -93,46 +114,81 @@ export function AssessmentCompleteDialog({ open, onOpenChange, log, onCompleted 
     setExternalRepairPhone("");
     setSupplierAutofill(null);
     setSourceCtx(null);
+    setHistory(null);
+    setDefectiveAck(false);
+    setDefectiveAckReason("");
 
-    // Load source context (Swap / Defective Return / Manual)
+    // Load source context, device info, supplier, and history (consolidated)
     (async () => {
       try {
-        let ctx: SourceContext = {
+        const ctx: SourceContext = {
           sourceLabel: "ป้อนเอง",
-          itemCode: null,
-          itemName: null,
-          billboardLabel: null,
-          billboardId: null,
+          itemCode: null, itemName: null, brand: null, modelSpec: null,
+          billboardLabel: null, billboardId: null,
           reportedSymptom: log.symptom_description || null,
-          reporter: null,
-          reportedAt: null,
-          photos: [],
-          description: null,
+          reporter: null, reportedAt: null, photos: [], description: null,
+          unitPrice: null, depreciationMonths: null, dateOfReceipt: null,
+          ageMonths: null, mediaPlayerProfileId: null,
         };
 
-        // Item code/name from media_player or equipment
         if (log.media_player_id) {
           const { data: mp } = await supabase
             .from("media_players")
-            .select("code, name, billboard_id, billboard:billboards(equipment_id, old_code, location_name)")
+            .select("id, code, name, brand, specification, billboard_id, manufacturer, warranty_expiry_date, unit_price, depreciation_months, date_of_receipt, supplier:supplier_id(name, phone, contact_person), billboard:billboards(equipment_id, old_code, location_name)")
             .eq("id", log.media_player_id)
             .maybeSingle() as any;
           if (mp) {
-            ctx.itemCode = mp.code;
-            ctx.itemName = mp.name;
+            ctx.itemCode = mp.code; ctx.itemName = mp.name;
+            ctx.brand = mp.brand || mp.manufacturer || null;
+            ctx.modelSpec = mp.specification || null;
+            ctx.unitPrice = mp.unit_price ?? null;
+            ctx.depreciationMonths = mp.depreciation_months ?? null;
+            ctx.dateOfReceipt = mp.date_of_receipt || null;
+            ctx.mediaPlayerProfileId = mp.id;
+            if (mp.date_of_receipt) ctx.ageMonths = differenceInMonths(new Date(), parseISO(mp.date_of_receipt));
             if (mp.billboard) {
               const parts = [mp.billboard.old_code, mp.billboard.equipment_id, mp.billboard.location_name].filter(Boolean);
               ctx.billboardLabel = parts.join(" - ");
               ctx.billboardId = mp.billboard_id;
             }
+            setSupplierAutofill({
+              name: mp.supplier?.name || "",
+              manufacturer: mp.manufacturer || mp.brand || null,
+              warranty: mp.warranty_expiry_date || null,
+              phone: mp.supplier?.phone || null,
+              contact: mp.supplier?.contact_person || null,
+            });
           }
         } else if (log.equipment_id) {
           const { data: eq } = await supabase
             .from("equipment")
-            .select("code, name")
+            .select("code, name, brand:brand_id(name), supplier:supplier_id(name, phone, contact_person), unit_price, depreciation_months")
             .eq("id", log.equipment_id)
             .maybeSingle() as any;
-          if (eq) { ctx.itemCode = eq.code; ctx.itemName = eq.name; }
+          if (eq) {
+            ctx.itemCode = eq.code; ctx.itemName = eq.name;
+            ctx.brand = eq.brand?.name || null;
+            ctx.unitPrice = eq.unit_price ?? null;
+            ctx.depreciationMonths = eq.depreciation_months ?? null;
+          }
+          if (log.serial_number) {
+            const { data: sn } = await supabase
+              .from("equipment_serial_numbers")
+              .select("warranty_expiry_date, warehouse_entry_date")
+              .eq("serial_number", log.serial_number)
+              .maybeSingle() as any;
+            if (sn) {
+              ctx.dateOfReceipt = sn.warehouse_entry_date || null;
+              if (sn.warehouse_entry_date) ctx.ageMonths = differenceInMonths(new Date(), parseISO(sn.warehouse_entry_date));
+              setSupplierAutofill({
+                name: eq?.supplier?.name || "",
+                manufacturer: eq?.brand?.name || null,
+                warranty: sn.warranty_expiry_date || null,
+                phone: eq?.supplier?.phone || null,
+                contact: eq?.supplier?.contact_person || null,
+              });
+            }
+          }
         }
 
         // Source-specific context
@@ -173,57 +229,117 @@ export function AssessmentCompleteDialog({ open, onOpenChange, log, onCompleted 
         }
 
         setSourceCtx(ctx);
-      } catch {
-        /* ignore */
-      }
-    })();
 
-    // autofill supplier
-    (async () => {
-      try {
+        // History — installation count + past assessments + claims
+        const hist: DeviceHistory = { installCount: 0, installs: [], pastAssessments: [], pastClaims: [], recentRepairCount6m: 0 };
         if (log.media_player_id) {
-          const { data } = await supabase
-            .from("media_players")
-            .select("manufacturer, warranty_expiry_date, supplier:supplier_id(name)")
-            .eq("id", log.media_player_id)
-            .maybeSingle() as any;
-          if (data) {
-            setSupplierAutofill({
-              name: data.supplier?.name || "",
-              manufacturer: data.manufacturer || null,
-              warranty: data.warranty_expiry_date || null,
+          const { data: hh } = await supabase
+            .from("media_player_billboard_history")
+            .select("installation_date, uninstall_date, uninstall_reason, billboard:billboards(equipment_id, old_code, location_name)")
+            .eq("media_player_id", log.media_player_id)
+            .order("installation_date", { ascending: false })
+            .limit(10) as any;
+          (hh || []).forEach((h: any) => {
+            const parts = [h.billboard?.old_code, h.billboard?.equipment_id, h.billboard?.location_name].filter(Boolean);
+            hist.installs.push({
+              billboardLabel: parts.join(" - ") || "—",
+              from: h.installation_date, to: h.uninstall_date, reason: h.uninstall_reason,
             });
-          }
-        } else if (log.serial_number) {
-          const { data } = await supabase
-            .from("equipment_serial_numbers")
-            .select("warranty_expiry_date, equipment:equipment_id(supplier:supplier_id(name), brand:brand_id(name))")
-            .eq("serial_number", log.serial_number)
-            .maybeSingle() as any;
-          if (data) {
-            setSupplierAutofill({
-              name: data.equipment?.supplier?.name || "",
-              manufacturer: data.equipment?.brand?.name || null,
-              warranty: data.warranty_expiry_date || null,
-            });
-          }
+          });
+          hist.installCount = hist.installs.length;
         }
-      } catch {
-        /* ignore */
+        // Past assessments (same MP/equipment, completed, exclude current)
+        let asmQuery = supabase
+          .from("assessment_logs")
+          .select("document_no, outcome, completed_at")
+          .eq("status", "completed")
+          .neq("id", log.id)
+          .order("completed_at", { ascending: false })
+          .limit(5);
+        if (log.media_player_id) asmQuery = asmQuery.eq("media_player_id", log.media_player_id);
+        else if (log.equipment_id) asmQuery = asmQuery.eq("equipment_id", log.equipment_id);
+        const { data: asms } = await asmQuery as any;
+        (asms || []).forEach((a: any) => hist.pastAssessments.push({
+          docNo: a.document_no, outcome: a.outcome, completedAt: a.completed_at,
+        }));
+        // Repeat-failure: completed self_repair within 6 months
+        const sixMonthsAgo = new Date(); sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+        hist.recentRepairCount6m = (asms || []).filter((a: any) =>
+          a.outcome === "self_repair" && a.completed_at && new Date(a.completed_at) >= sixMonthsAgo
+        ).length;
+
+        // Past claims
+        let clmQuery = supabase
+          .from("claim_records")
+          .select("document_no, status, created_at")
+          .order("created_at", { ascending: false })
+          .limit(5);
+        if (log.media_player_id) clmQuery = clmQuery.eq("media_player_id", log.media_player_id);
+        else if (log.equipment_id) clmQuery = clmQuery.eq("equipment_id", log.equipment_id);
+        const { data: clms } = await clmQuery as any;
+        (clms || []).forEach((c: any) => hist.pastClaims.push({
+          docNo: c.document_no, status: c.status, createdAt: c.created_at,
+        }));
+
+        setHistory(hist);
+      } catch (e) {
+        console.error("Load assessment context failed:", e);
       }
     })();
   }, [open, log]);
 
   if (!log) return null;
 
+  // ===== Warranty calculation =====
+  const warrantyDate = supplierAutofill?.warranty || null;
+  const warrantyDaysLeft = warrantyDate ? differenceInDays(parseISO(warrantyDate), new Date()) : null;
+  const warrantyState: "active" | "ending" | "expired" | "unknown" =
+    warrantyDaysLeft === null ? "unknown"
+      : warrantyDaysLeft < 0 ? "expired"
+      : warrantyDaysLeft <= 30 ? "ending"
+      : "active";
+  const isUnderWarranty = warrantyState === "active" || warrantyState === "ending";
+
+  // ===== Cost-of-repair guard (rough) =====
+  // มูลค่าคงเหลือ = price * (1 - usedMonths/depreciationMonths), >=0
+  const remainingValue = (() => {
+    if (!sourceCtx?.unitPrice || !sourceCtx?.depreciationMonths || !sourceCtx?.ageMonths) return null;
+    const ratio = Math.max(0, 1 - (sourceCtx.ageMonths / sourceCtx.depreciationMonths));
+    return sourceCtx.unitPrice * ratio;
+  })();
+  const isRepeatFailure = (history?.recentRepairCount6m || 0) >= 2;
+
+  const needsDefectiveAck = outcome === "defective" && isUnderWarranty;
+
   const canSubmit =
     !!assessmentResultId &&
     !!outcome &&
     (outcome !== "self_repair" || !!repairDescription.trim()) &&
-    (outcome !== "claim" || !!supplierAutofill?.name || !!externalRepairVendor.trim());
+    (outcome !== "claim" || !!supplierAutofill?.name || !!externalRepairVendor.trim()) &&
+    (!needsDefectiveAck || (defectiveAck && !!defectiveAckReason.trim()));
+
+  const ageLabel = (() => {
+    if (!sourceCtx?.ageMonths && sourceCtx?.ageMonths !== 0) return null;
+    const m = sourceCtx.ageMonths;
+    if (m < 12) return `${m} เดือน`;
+    const y = Math.floor(m / 12); const rm = m % 12;
+    return rm > 0 ? `${y} ปี ${rm} เดือน` : `${y} ปี`;
+  })();
 
   const handleSubmit = async () => {
     setSubmitting(true);
+
+    // Audit trail: บันทึกสถานะประกัน + อายุเครื่อง ตอนประเมิน
+    const auditLines: string[] = [];
+    if (warrantyState === "active") auditLines.push(`✅ ประเมินขณะ "ยังในประกัน" เหลือ ${warrantyDaysLeft} วัน (หมด ${warrantyDate})`);
+    else if (warrantyState === "ending") auditLines.push(`⚠️ ประเมินขณะประกันใกล้หมด เหลือ ${warrantyDaysLeft} วัน (หมด ${warrantyDate})`);
+    else if (warrantyState === "expired") auditLines.push(`❌ ประเมินขณะ "หมดประกันแล้ว" ${Math.abs(warrantyDaysLeft!)} วัน (หมดเมื่อ ${warrantyDate})`);
+    else auditLines.push(`ℹ️ ประเมินโดยไม่มีข้อมูลประกัน`);
+    if (ageLabel) auditLines.push(`อายุเครื่องนับจากรับเข้า: ${ageLabel}`);
+    if (needsDefectiveAck && defectiveAckReason.trim()) auditLines.push(`เหตุผลที่ไม่ส่งเคลมแม้ยังในประกัน: ${defectiveAckReason.trim()}`);
+    if (isRepeatFailure) auditLines.push(`ปัญหาซ้ำซาก: ซ่อม ${history?.recentRepairCount6m} ครั้งใน 6 เดือน`);
+    const finalNotes = [notes.trim(), auditLines.join("\n")].filter(Boolean).join("\n---\n");
+
     const { error } = await supabase
       .from("assessment_logs")
       .update({
@@ -239,7 +355,7 @@ export function AssessmentCompleteDialog({ open, onOpenChange, log, onCompleted 
         external_repair_vendor: outcome === "claim" ? (externalRepairVendor.trim() || supplierAutofill?.name || null) : null,
         external_repair_contact: outcome === "claim" ? externalRepairContact.trim() || null : null,
         external_repair_phone: outcome === "claim" ? externalRepairPhone.trim() || null : null,
-        notes: notes.trim() || null,
+        notes: finalNotes || null,
         status: "completed",
         completed_at: new Date().toISOString(),
       })
@@ -254,8 +370,28 @@ export function AssessmentCompleteDialog({ open, onOpenChange, log, onCompleted 
     // Outcome side-effects
     let createdDefectiveDocNo: string | null = null;
     try {
+      // Helper: เปลี่ยนสถานะ MP + S/N (logical warehouse)
+      const flipStatus = async (mpStatus: string, snStatus: string, refurb = false) => {
+        if (log.media_player_id) {
+          const upd: any = { status: mpStatus };
+          if (refurb) { upd.is_refurbished = true; upd.refurbished_at = new Date().toISOString(); }
+          await supabase.from("media_players").update(upd).eq("id", log.media_player_id);
+        }
+        if (log.serial_number) {
+          const upd: any = { status: snStatus };
+          if (refurb) {
+            upd.is_refurbished = true;
+            upd.refurbished_at = new Date().toISOString();
+            upd.refurbished_notes = outcome === "self_repair"
+              ? `ซ่อมเอง: ${repairDescription.trim()}`
+              : `คืน Spare หลังประเมิน/เคลม`;
+          }
+          await supabase.from("equipment_serial_numbers").update(upd).eq("serial_number", log.serial_number);
+        }
+      };
+
       if (outcome === "defective") {
-        // Auto-create defective_returns row (pending warehouse entry — stock not yet cut)
+        // เครื่องค้างที่ pending_assessment จนกว่าคลังจะรับ
         const { data: drRow } = await supabase
           .from("defective_returns")
           .insert({
@@ -293,18 +429,11 @@ export function AssessmentCompleteDialog({ open, onOpenChange, log, onCompleted 
           notes: `จาก Assessment ${log.document_no}`,
           created_by: user?.id ?? null,
         });
-      } else if ((outcome === "self_repair" || outcome === "return_refurb") && log.serial_number) {
-        await supabase
-          .from("equipment_serial_numbers")
-          .update({
-            is_refurbished: true,
-            refurbished_at: new Date().toISOString(),
-            refurbished_notes:
-              outcome === "self_repair"
-                ? `ซ่อมเอง: ${repairDescription.trim()}`
-                : `คืน Spare หลังเคลม/ตรวจสอบ`,
-          } as any)
-          .eq("serial_number", log.serial_number);
+        await flipStatus("in_claim", "in_claim");
+      } else if (outcome === "self_repair") {
+        await flipStatus("under_repair", "under_repair");
+      } else if (outcome === "return_refurb") {
+        await flipStatus("in_stock", "in_stock", true);
       }
     } catch (e: any) {
       toast.warning("บันทึกแล้ว แต่ side-effect บางส่วนล้มเหลว: " + (e?.message || ""));
@@ -404,6 +533,128 @@ export function AssessmentCompleteDialog({ open, onOpenChange, log, onCompleted 
             </div>
           )}
 
+          {/* === Warranty Banner === */}
+          {(() => {
+            const tone =
+              warrantyState === "active" ? "border-success bg-success/10"
+              : warrantyState === "ending" ? "border-warning bg-warning/10"
+              : warrantyState === "expired" ? "border-destructive bg-destructive/10"
+              : "border-muted bg-muted/40";
+            const Icon = warrantyState === "active" ? ShieldCheck : warrantyState === "expired" ? ShieldAlert : Shield;
+            const text =
+              warrantyState === "active" ? `ยังอยู่ในประกัน — เหลือ ${warrantyDaysLeft} วัน (หมด ${warrantyDate}) → แนะนำ "ส่งเคลม"`
+              : warrantyState === "ending" ? `ประกันใกล้หมด — เหลือ ${warrantyDaysLeft} วัน (หมด ${warrantyDate})`
+              : warrantyState === "expired" ? `หมดประกันแล้ว ${Math.abs(warrantyDaysLeft!)} วัน (หมดเมื่อ ${warrantyDate})`
+              : `ไม่พบข้อมูลประกัน — โปรดเช็คก่อนเลือกผล`;
+            return (
+              <div className={`rounded-lg border-2 p-3 flex items-start gap-3 ${tone}`}>
+                <Icon className="h-5 w-5 flex-shrink-0 mt-0.5" />
+                <div className="flex-1 min-w-0 space-y-1">
+                  <div className="font-semibold text-sm">{text}</div>
+                  {supplierAutofill?.name && (
+                    <div className="text-xs flex flex-wrap items-center gap-x-3 gap-y-1">
+                      <span>ผู้จัดจำหน่าย: <span className="font-medium">{supplierAutofill.name}</span></span>
+                      {supplierAutofill.contact && <span>ผู้ติดต่อ: {supplierAutofill.contact}</span>}
+                      {supplierAutofill.phone && (
+                        <span className="inline-flex items-center gap-1">
+                          <Phone className="h-3 w-3" />
+                          <a href={`tel:${supplierAutofill.phone}`} className="underline font-mono">{supplierAutofill.phone}</a>
+                          <button type="button" onClick={() => { navigator.clipboard.writeText(supplierAutofill.phone || ""); toast.success("คัดลอกเบอร์แล้ว"); }} className="hover:text-primary">
+                            <Copy className="h-3 w-3" />
+                          </button>
+                        </span>
+                      )}
+                    </div>
+                  )}
+                  {isUnderWarranty && (
+                    <Button size="sm" variant="outline" type="button" onClick={() => setOutcome("claim")} className="mt-1 h-7">
+                      ใช้ผล: ส่งเคลม
+                    </Button>
+                  )}
+                </div>
+              </div>
+            );
+          })()}
+
+          {/* === Repeat-failure flag === */}
+          {isRepeatFailure && (
+            <Alert variant="destructive">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertTitle>ปัญหาซ้ำซาก</AlertTitle>
+              <AlertDescription>
+                เครื่องนี้ถูกซ่อมไป {history?.recentRepairCount6m} ครั้งใน 6 เดือนล่าสุด — ควรพิจารณาเข้าของเสียหรือเคลมเต็มเครื่อง
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {/* === Device Info & History === */}
+          {sourceCtx && (
+            <div className="rounded-lg border bg-card p-3 space-y-3 text-sm">
+              <div className="flex items-center justify-between">
+                <div className="font-semibold flex items-center gap-2">
+                  <History className="h-4 w-4 text-primary" />
+                  ข้อมูลเครื่อง & ประวัติ
+                </div>
+                {sourceCtx.mediaPlayerProfileId && (
+                  <a
+                    href={`/media-player-profile/${sourceCtx.mediaPlayerProfileId}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-xs text-primary inline-flex items-center gap-1 hover:underline"
+                  >
+                    เปิดโปรไฟล์เครื่อง <ExternalLink className="h-3 w-3" />
+                  </a>
+                )}
+              </div>
+              <div className="grid md:grid-cols-3 gap-x-4 gap-y-1 text-xs">
+                {sourceCtx.brand && <div><span className="text-muted-foreground">ยี่ห้อ: </span><span className="font-medium">{sourceCtx.brand}</span></div>}
+                {sourceCtx.modelSpec && <div className="md:col-span-2"><span className="text-muted-foreground">Spec: </span><span>{sourceCtx.modelSpec}</span></div>}
+                {sourceCtx.unitPrice != null && <div><span className="text-muted-foreground">ราคา: </span><span className="font-medium">{sourceCtx.unitPrice.toLocaleString()} บาท</span></div>}
+                {sourceCtx.depreciationMonths != null && <div><span className="text-muted-foreground">ค่าเสื่อม: </span><span>{sourceCtx.depreciationMonths} เดือน</span></div>}
+                {ageLabel && <div><span className="text-muted-foreground">อายุใช้งาน: </span><span>{ageLabel}</span></div>}
+                {sourceCtx.dateOfReceipt && <div><span className="text-muted-foreground">รับเข้า: </span><span>{sourceCtx.dateOfReceipt}</span></div>}
+                <div><span className="text-muted-foreground">ติดตั้งมาแล้ว: </span><span className="font-medium">{history?.installCount ?? 0} ครั้ง</span></div>
+                {remainingValue != null && <div><span className="text-muted-foreground">มูลค่าคงเหลือ (ประมาณ): </span><span className="font-medium">{remainingValue.toLocaleString(undefined, { maximumFractionDigits: 0 })} บาท</span></div>}
+              </div>
+
+              {(history?.installs.length || 0) > 0 && (
+                <details className="text-xs">
+                  <summary className="cursor-pointer text-muted-foreground hover:text-foreground">ประวัติการติดตั้ง ({history!.installs.length})</summary>
+                  <ul className="mt-1 space-y-0.5 pl-3">
+                    {history!.installs.slice(0, 5).map((h, i) => (
+                      <li key={i}>
+                        • <span className="font-medium">{h.billboardLabel}</span> · {h.from || "—"} → {h.to || "ปัจจุบัน"}
+                        {h.reason && <span className="text-muted-foreground"> ({h.reason})</span>}
+                      </li>
+                    ))}
+                  </ul>
+                </details>
+              )}
+
+              {(history?.pastAssessments.length || 0) > 0 && (
+                <details className="text-xs">
+                  <summary className="cursor-pointer text-muted-foreground hover:text-foreground">ประวัติการประเมิน ({history!.pastAssessments.length})</summary>
+                  <ul className="mt-1 space-y-0.5 pl-3">
+                    {history!.pastAssessments.map((a, i) => (
+                      <li key={i}>• {a.docNo} — ผล: <span className="font-medium">{a.outcome || "—"}</span> {a.completedAt && `(${new Date(a.completedAt).toLocaleDateString("th-TH")})`}</li>
+                    ))}
+                  </ul>
+                </details>
+              )}
+
+              {(history?.pastClaims.length || 0) > 0 && (
+                <details className="text-xs">
+                  <summary className="cursor-pointer text-muted-foreground hover:text-foreground">ประวัติการเคลม ({history!.pastClaims.length})</summary>
+                  <ul className="mt-1 space-y-0.5 pl-3">
+                    {history!.pastClaims.map((c, i) => (
+                      <li key={i}>• {c.docNo} — สถานะ: {c.status} ({new Date(c.createdAt).toLocaleDateString("th-TH")})</li>
+                    ))}
+                  </ul>
+                </details>
+              )}
+            </div>
+          )}
+
           <div className="grid md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>อาการเสีย</Label>
@@ -488,9 +739,30 @@ export function AssessmentCompleteDialog({ open, onOpenChange, log, onCompleted 
             )}
 
             {outcome === "defective" && (
-              <p className="text-xs text-destructive pt-2 border-t">
-                ⚠ หลังบันทึก ระบบจะแจ้งให้ไปคีย์ที่เมนู <strong>"นำของเสียเข้าระบบ"</strong> เพื่อตัด Stock เข้าคลังของเสีย
-              </p>
+              <div className="pt-2 border-t space-y-2">
+                <p className="text-xs text-destructive">
+                  ⚠ หลังบันทึก ระบบจะแจ้งให้ไปคีย์ที่เมนู <strong>"นำของเสียเข้าระบบ"</strong> เพื่อตัด Stock เข้าคลังของเสีย
+                </p>
+                {needsDefectiveAck && (
+                  <Alert variant="destructive">
+                    <AlertTriangle className="h-4 w-4" />
+                    <AlertTitle>เครื่องนี้ยังอยู่ในประกัน!</AlertTitle>
+                    <AlertDescription className="space-y-2">
+                      <p>เหลือประกัน {warrantyDaysLeft} วัน — ปกติควรส่งเคลมก่อน หากยืนยันเข้าของเสียโปรดระบุเหตุผล</p>
+                      <Textarea
+                        value={defectiveAckReason}
+                        onChange={(e) => setDefectiveAckReason(e.target.value)}
+                        placeholder="เหตุผลที่ไม่ส่งเคลมแม้ยังในประกัน *"
+                        rows={2}
+                      />
+                      <label className="flex items-center gap-2 text-sm cursor-pointer">
+                        <input type="checkbox" checked={defectiveAck} onChange={(e) => setDefectiveAck(e.target.checked)} />
+                        ยืนยันสละสิทธิ์เคลม รับทราบและรับผิดชอบการตัดสินใจนี้
+                      </label>
+                    </AlertDescription>
+                  </Alert>
+                )}
+              </div>
             )}
 
             {outcome === "return_refurb" && (

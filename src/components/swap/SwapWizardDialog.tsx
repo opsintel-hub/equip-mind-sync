@@ -362,29 +362,8 @@ export function SwapWizardDialog({ open, onOpenChange, request, onCompleted }: P
       completed_by: user?.id ?? null,
     }).eq("id", request.id);
 
-    // Auto-create defective_return for the OLD unit (only if approved + not already linked)
-    if (result === "approved" && selectedOld && !request.defective_return_id) {
-      const drDocNo = `DR-${new Date().toISOString().slice(0, 10).replace(/-/g, "")}-${Math.floor(Math.random() * 9999 + 1).toString().padStart(4, "0")}`;
-      const { data: newDr } = await supabase.from("defective_returns").insert({
-        document_no: drDocNo,
-        equipment_id: oldEqId,
-        media_player_id: oldMpId,
-        is_media_player: selectedOld.type === "media_player",
-        quantity: 1,
-        billboard_id: request.billboard_id,
-        item_condition: "defective",
-        reason: `จากการ Swap (${request.document_no}): ${request.description || request.symptom_other || "—"}`,
-        status: "pending_warehouse_entry",
-        source_type: "billboard",
-        dispose_status: "pending_disposal_review",
-        swap_request_id: request.id,
-        notes: notes.trim() || null,
-        created_by: user?.id ?? null,
-      }).select("id").single();
-      if (newDr?.id) {
-        await supabase.from("swap_requests").update({ defective_return_id: newDr.id }).eq("id", request.id);
-      }
-    }
+    // NOTE: ไม่สร้าง defective_return อัตโนมัติแล้ว — เครื่องเก่าจะเข้าสถานะ "รอประเมิน"
+    // ผ่าน assessment_logs (สร้างด้านล่าง) ผลประเมินถึงจะตัดสินว่าเข้าของเสีย/เคลม/ซ่อม/คืน Spare
 
     // === Asset movement on Approved Swap ===
     // 1) Uninstall เครื่องเก่า  2) Install Spare ที่ป้าย  3) Log stock_movements
@@ -409,14 +388,15 @@ export function SwapWizardDialog({ open, onOpenChange, request, onCompleted }: P
             .eq("media_player_id", oldMpId)
             .is("uninstall_date", null);
 
-          // เคลียร์ billboard_id + install_date ที่ media_players
+          // เคลียร์ billboard_id + install_date + เปลี่ยน status เป็น pending_assessment
           await supabase
             .from("media_players")
             .update({
               billboard_id: null,
               install_date: null,
               location_id: returnLocationId || null,
-            })
+              status: "pending_assessment",
+            } as any)
             .eq("id", oldMpId);
 
           // log stock movement: return_from_billboard
@@ -438,12 +418,18 @@ export function SwapWizardDialog({ open, onOpenChange, request, onCompleted }: P
             reference_document: request.document_no,
             location_id: returnLocationId || null,
             notes: `ถอดจากป้าย — ${swapNote}`,
-            item_condition: "defective",
+            item_condition: "pending_assessment",
             created_by: user?.id ?? null,
           } as any);
         } else if (oldBeId) {
-          // Equipment: ลบ/ลด billboard_equipment
+          // Equipment: ลบ billboard_equipment + เปลี่ยน S/N status เป็น pending_assessment
           await supabase.from("billboard_equipment").delete().eq("id", oldBeId);
+          if (selectedOld?.serial_number) {
+            await supabase
+              .from("equipment_serial_numbers")
+              .update({ status: "pending_assessment", location_id: returnLocationId || null } as any)
+              .eq("serial_number", selectedOld.serial_number);
+          }
           if (oldEqId) {
             const { data: oldEq } = await supabase
               .from("equipment")
@@ -462,8 +448,8 @@ export function SwapWizardDialog({ open, onOpenChange, request, onCompleted }: P
               reference_id: request.id,
               reference_document: request.document_no,
               location_id: returnLocationId || null,
-              notes: `ถอดจากป้าย — ${swapNote}`,
-              item_condition: "defective",
+              notes: `ถอดจากป้าย — ${swapNote} (รอประเมิน)`,
+              item_condition: "pending_assessment",
               created_by: user?.id ?? null,
             } as any);
           }
@@ -571,7 +557,7 @@ export function SwapWizardDialog({ open, onOpenChange, request, onCompleted }: P
     setSubmitting(false);
     toast.success(
       result === "approved"
-        ? "บันทึก Swap สำเร็จ — สร้างใบของเสีย + รายการรอประเมินให้แล้ว"
+        ? "บันทึก Swap สำเร็จ — เครื่องเก่าเข้าสถานะ 'รอประเมิน' รอช่างประเมินผล"
         : "บันทึก Reject สำเร็จ"
     );
     onCompleted();
