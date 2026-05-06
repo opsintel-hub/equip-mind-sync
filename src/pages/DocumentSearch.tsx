@@ -668,17 +668,22 @@ export default function DocumentSearch() {
         status: item.status, source: "ad_issue" as const, raw: item,
       }));
 
-      const defectiveDocs: DocumentRecord[] = (defData || []).map((item: any) => ({
-        id: item.id, document_no: item.document_no, document_url: null,
-        equipment_code: item.equipment?.code || item.media_player?.code || null,
-        equipment_name: item.equipment?.name || item.media_player?.name || null,
-        serial_number: null,
-        supplier_name: item.reporter_department || null,
-        delivery_person_name: item.reporter_name || null,
-        quantity: item.quantity || 0, unit: item.equipment?.unit || "ชิ้น",
-        created_at: item.created_at, status: item.status,
-        source: "defective" as const, raw: item,
-      }));
+      const defectiveDocs: DocumentRecord[] = (defData || []).map((item: any) => {
+        const mp = item.media_player;
+        const sns = mp ? [mp.serial_number_1, mp.serial_number_2].map((s: any) => (s || "").trim()).filter(Boolean) : [];
+        const bb = item.billboards;
+        return {
+          id: item.id, document_no: item.document_no, document_url: null,
+          equipment_code: item.equipment?.code || mp?.code || null,
+          equipment_name: item.equipment?.name || mp?.name || null,
+          serial_number: sns.length > 0 ? sns.join("\n") : null,
+          supplier_name: bb ? `ป้าย ${bb.code || ""} ${bb.location_name || ""}`.trim() : (item.reporter_department || null),
+          delivery_person_name: item.reporter_name || null,
+          quantity: item.quantity || 0, unit: item.equipment?.unit || "ชิ้น",
+          created_at: item.created_at, status: item.status,
+          source: "defective" as const, raw: item,
+        };
+      });
 
       const assessmentDocs: DocumentRecord[] = (asmData || []).map((item: any) => ({
         id: item.id, document_no: item.document_no, document_url: null,
