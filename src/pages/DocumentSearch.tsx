@@ -626,14 +626,20 @@ export default function DocumentSearch() {
         };
       });
 
-      const dcDocs: DocumentRecord[] = (dcData || []).map((item: any) => ({
-        id: item.id, document_no: item.document_no, document_url: null,
-        equipment_code: null, equipment_name: null,
-        serial_number: null,
-        supplier_name: null, delivery_person_name: null,
-        quantity: 0, unit: "-", created_at: item.created_at,
-        status: item.status, source: "delivery_confirm" as const, raw: item,
-      }));
+      const dcDocs: DocumentRecord[] = (dcData || []).map((item: any) => {
+        const gip = item.goods_issue_pending;
+        const sns = (gip?.goods_issue_pending_items || [])
+          .map((it: any) => it.serial_number?.trim()).filter(Boolean);
+        return {
+          id: item.id, document_no: item.document_no, document_url: null,
+          equipment_code: gip?.equipment_code || null,
+          equipment_name: gip?.equipment_name || null,
+          serial_number: sns.length > 0 ? sns.join("\n") : null,
+          supplier_name: null, delivery_person_name: gip?.requester_name || null,
+          quantity: item.actual_quantity || 0, unit: "-", created_at: item.created_at,
+          status: item.status, source: "delivery_confirm" as const, raw: item,
+        };
+      });
 
       const dsDocs: DocumentRecord[] = (dsData || []).map((item: any) => {
         const sns = (item.direct_shipment_items || [])
