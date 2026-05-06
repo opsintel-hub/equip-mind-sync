@@ -774,19 +774,29 @@ export default function DocumentSearch() {
         };
       });
 
-      const stockMoveDocs: DocumentRecord[] = (smData || []).map((item: any) => ({
-        id: item.id,
-        document_no: item.reference_document || `SM-${item.id.slice(0, 8)}`,
-        document_url: null,
-        equipment_code: item.equipment_code,
-        equipment_name: item.equipment_name,
-        serial_number: null,
-        supplier_name: item.movement_type, delivery_person_name: item.notes || null,
-        quantity: Math.abs(item.quantity || 0), unit: "-",
-        created_at: item.created_at,
-        status: item.item_condition || item.movement_type,
-        source: "stock_movement" as const, raw: item,
-      }));
+      const stockMoveDocs: DocumentRecord[] = (smData || []).map((item: any) => {
+        const refDoc = (item.reference_document || "").trim();
+        const sns = refDoc ? (smRefSnMap.get(refDoc) || []) : [];
+        const loc = item.locations;
+        const locLabel = loc
+          ? `${loc.warehouses?.name ? loc.warehouses.name + " / " : ""}${loc.code || ""} ${loc.name || ""}`.trim()
+          : null;
+        return {
+          id: item.id,
+          document_no: refDoc || `SM-${item.id.slice(0, 8)}`,
+          document_url: null,
+          equipment_code: item.equipment_code,
+          equipment_name: item.equipment_name,
+          serial_number: sns.length > 0 ? sns.join("\n") : null,
+          supplier_name: locLabel,
+          delivery_person_name: item.notes || null,
+          quantity: Math.abs(item.quantity || 0), unit: "-",
+          created_at: item.created_at,
+          status: movementTypeLabel(item.movement_type),
+          source: "stock_movement" as const,
+          raw: { ...item, _movement_type_label: movementTypeLabel(item.movement_type) },
+        };
+      });
 
       const merged = [
         ...pendingDocs, ...receiptDocs, ...issueDocs, ...dcDocs, ...dsDocs,
