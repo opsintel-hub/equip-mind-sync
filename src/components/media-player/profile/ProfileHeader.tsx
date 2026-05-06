@@ -7,6 +7,7 @@ import { Monitor, QrCode, Download, Printer, ChevronLeft, ChevronRight, X } from
 import QRCodeSVG from "react-qr-code";
 import { MediaPlayerRow } from "./types";
 import { getConditionDisplay } from "./constants";
+import { getPublicBaseUrl } from "@/lib/publicUrl";
 
 interface ProfileHeaderProps {
   player: MediaPlayerRow;
@@ -171,7 +172,7 @@ export function ProfileHeader({ player, modelName, statusLabel, images }: Profil
                       <div className="bg-white p-4 rounded-xl">
                         <QRCodeSVG
                           id="media-player-qr-code"
-                          value={`${window.location.origin}/p/media-player/${player.id}`}
+                          value={`${getPublicBaseUrl()}/p/media-player/${player.id}`}
                           size={220}
                           level="H"
                         />
