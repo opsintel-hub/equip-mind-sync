@@ -593,6 +593,8 @@ export default function DocumentSearch() {
 
       // Build reference_document -> S/N list (for stock_movements rows)
       const smRefSnMap = new Map<string, string[]>();
+      // Build reference_document -> party label (supplier/requester/technician/...) for stock_movements
+      const smRefPartyMap = new Map<string, string>();
       const refDocs = Array.from(new Set((smData || []).map((s: any) => (s.reference_document || "").trim()).filter(Boolean)));
       if (refDocs.length > 0) {
         const { data: snByDoc } = await supabase
@@ -607,6 +609,80 @@ export default function DocumentSearch() {
             if (!smRefSnMap.get(key)!.includes(r.serial_number)) smRefSnMap.get(key)!.push(r.serial_number);
           }
         }
+      }
+
+      // Index parent docs by document_no for both S/N and party fallbacks
+      const swapByDoc = new Map<string, any>();
+      for (const s of (swapData || []) as any[]) {
+        if (s.document_no) swapByDoc.set(s.document_no.trim(), s);
+      }
+      const defByDoc = new Map<string, any>();
+      for (const d of (defData || []) as any[]) {
+        if (d.document_no) defByDoc.set(d.document_no.trim(), d);
+      }
+      const asmByDoc = new Map<string, any>();
+      for (const a of (asmData || []) as any[]) {
+        if (a.document_no) asmByDoc.set(a.document_no.trim(), a);
+      }
+      const claimByDoc = new Map<string, any>();
+      for (const c of (claimData || []) as any[]) {
+        if (c.document_no) claimByDoc.set(c.document_no.trim(), c);
+      }
+      const receiptByDoc = new Map<string, any>();
+      for (const r of (receiptData || []) as any[]) {
+        if (r.document_no) receiptByDoc.set(r.document_no.trim(), r);
+      }
+      const issueByDoc = new Map<string, any>();
+      for (const i of (issueData || []) as any[]) {
+        if (i.document_no) issueByDoc.set(i.document_no.trim(), i);
+      }
+
+      // Resolve S/N + party from parent doc for each stock_movements reference_document
+      for (const refDoc of refDocs) {
+        const sw = swapByDoc.get(refDoc);
+        if (sw) {
+          const sns = [sw.reported_serial_number, sw.old_serial_number, sw.new_serial_number]
+            .map((x: any) => (x || "").trim()).filter(Boolean);
+          if (sns.length > 0) {
+            if (!smRefSnMap.has(refDoc)) smRefSnMap.set(refDoc, []);
+            for (const sn of sns) if (!smRefSnMap.get(refDoc)!.includes(sn)) smRefSnMap.get(refDoc)!.push(sn);
+          }
+          if (sw.technician_name) smRefPartyMap.set(refDoc, sw.technician_name);
+          continue;
+        }
+        const df = defByDoc.get(refDoc);
+        if (df) {
+          const sns = [df.media_player?.serial_number_1, df.media_player?.serial_number_2]
+            .map((x: any) => (x || "").trim()).filter(Boolean);
+          if (sns.length > 0) {
+            if (!smRefSnMap.has(refDoc)) smRefSnMap.set(refDoc, []);
+            for (const sn of sns) if (!smRefSnMap.get(refDoc)!.includes(sn)) smRefSnMap.get(refDoc)!.push(sn);
+          }
+          if (df.reporter_name) smRefPartyMap.set(refDoc, df.reporter_name);
+          continue;
+        }
+        const am = asmByDoc.get(refDoc);
+        if (am) {
+          if (am.serial_number) {
+            if (!smRefSnMap.has(refDoc)) smRefSnMap.set(refDoc, []);
+            if (!smRefSnMap.get(refDoc)!.includes(am.serial_number)) smRefSnMap.get(refDoc)!.push(am.serial_number);
+          }
+          if (am.assessor_name) smRefPartyMap.set(refDoc, am.assessor_name);
+          continue;
+        }
+        const cl = claimByDoc.get(refDoc);
+        if (cl) {
+          if (cl.serial_number) {
+            if (!smRefSnMap.has(refDoc)) smRefSnMap.set(refDoc, []);
+            if (!smRefSnMap.get(refDoc)!.includes(cl.serial_number)) smRefSnMap.get(refDoc)!.push(cl.serial_number);
+          }
+          if (cl.supplier_name || cl.manufacturer) smRefPartyMap.set(refDoc, cl.supplier_name || cl.manufacturer);
+          continue;
+        }
+        const rc = receiptByDoc.get(refDoc);
+        if (rc?.supplier) { smRefPartyMap.set(refDoc, rc.supplier); continue; }
+        const iss = issueByDoc.get(refDoc);
+        if (iss?.requester_name) { smRefPartyMap.set(refDoc, iss.requester_name); continue; }
       }
 
       // Translate movement_type to Thai
@@ -783,6 +859,7 @@ export default function DocumentSearch() {
         const locLabel = loc
           ? `${loc.warehouses?.name ? loc.warehouses.name + " / " : ""}${loc.code || ""} ${loc.name || ""}`.trim()
           : null;
+        const party = refDoc ? (smRefPartyMap.get(refDoc) || null) : null;
         return {
           id: item.id,
           document_no: refDoc || `SM-${item.id.slice(0, 8)}`,
@@ -790,13 +867,13 @@ export default function DocumentSearch() {
           equipment_code: item.equipment_code,
           equipment_name: item.equipment_name,
           serial_number: sns.length > 0 ? sns.join("\n") : null,
-          supplier_name: locLabel,
-          delivery_person_name: item.notes || null,
+          supplier_name: party,
+          delivery_person_name: null,
           quantity: Math.abs(item.quantity || 0), unit: "-",
           created_at: item.created_at,
           status: movementTypeLabel(item.movement_type),
           source: "stock_movement" as const,
-          raw: { ...item, _movement_type_label: movementTypeLabel(item.movement_type) },
+          raw: { ...item, _movement_type_label: movementTypeLabel(item.movement_type), _location_label: locLabel, _notes: item.notes || null },
         };
       });
 
@@ -1147,6 +1224,16 @@ export default function DocumentSearch() {
                                   {bb.location_name && <div className="text-[10px] text-muted-foreground leading-tight">{bb.location_name}</div>}
                                 </div>
                               );
+                            }
+                            if (doc.source === "stock_movement") {
+                              if (r._location_label) {
+                                return <Badge variant="success" className="text-[10px]">{r._location_label}</Badge>;
+                              }
+                              const mt = (r.movement_type || "").toLowerCase();
+                              if (mt.includes("billboard")) return <Badge variant="info" className="text-[10px]">ป้ายโฆษณา</Badge>;
+                              if (mt.includes("defect")) return <Badge variant="destructive" className="text-[10px]">คลังของเสีย</Badge>;
+                              if (mt.includes("assessment")) return <Badge variant="purple" className="text-[10px]">พักรอประเมิน</Badge>;
+                              return <span className="text-muted-foreground/40">-</span>;
                             }
                             if (doc.source === "defective") {
                               const s = doc.status;
