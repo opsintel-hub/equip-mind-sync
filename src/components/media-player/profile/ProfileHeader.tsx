@@ -56,7 +56,8 @@ export function ProfileHeader({ player, modelName, statusLabel, images }: Profil
     const model = modelName && modelName !== "-" ? modelName : "";
     // Auto-fit Name (เผื่อ 3 ตัว default ใหญ่, ยิ่งยาวยิ่งเล็กลง)
     const nameLen = remoteName.length;
-    const nameFontMm = nameLen <= 3 ? 12 : nameLen <= 5 ? 9 : nameLen <= 8 ? 7 : 5.5;
+    // รองรับ Name 4 ตัวอักษรแบบใหญ่เต็มที่ (เดิม 3 ตัว)
+    const nameFontMm = nameLen <= 4 ? 11 : nameLen <= 6 ? 8.5 : nameLen <= 8 ? 7 : 5.5;
     printWindow.document.write(`
       <html><head><title>QR - ${player.code}</title>
       <style>
