@@ -512,6 +512,19 @@ export default function DocumentSearch() {
       const { data: receiptData } = await supabase
         .from("goods_receipt").select("*, equipment:equipment_id(code, name)").order("created_at", { ascending: false });
 
+      // Map receipt_document_no -> S/Ns (for both equipment serials and media players received under that doc)
+      const receiptSnMap = new Map<string, string[]>();
+      const { data: esnByReceipt } = await supabase
+        .from("equipment_serial_numbers")
+        .select("serial_number, receipt_document_no")
+        .not("receipt_document_no", "is", null);
+      for (const r of (esnByReceipt || []) as any[]) {
+        const k = (r.receipt_document_no || "").trim();
+        if (!k || !r.serial_number) continue;
+        if (!receiptSnMap.has(k)) receiptSnMap.set(k, []);
+        receiptSnMap.get(k)!.push(r.serial_number);
+      }
+
       // Fetch from goods_issue_pending (with extended fields for tracker)
       // Note: confirmed_at lives on delivery_confirmations, not on goods_issue_pending
       const { data: issueData, error: issueError } = await supabase
