@@ -52,30 +52,31 @@ export function ProfileHeader({ player, modelName, statusLabel, images }: Profil
     const svgData = new XMLSerializer().serializeToString(svg);
     const remoteName = player.remote_name || player.code;
     const sn = player.serial_number_1 || "";
-    const model = modelName && modelName !== "-" ? modelName : "";
+    const code = player.code || "";
     printWindow.document.write(`
       <html><head><title>QR Code - ${player.code}</title>
       <style>
-        @page { margin: 12mm; }
-        body { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; margin: 0; padding: 24px; }
-        .label { display: flex; align-items: center; justify-content: space-between; gap: 24px; max-width: 560px; margin: 0 auto; }
-        .left { flex: 1; min-width: 0; }
-        .remote { font-size: 96px; font-weight: 800; line-height: 1; letter-spacing: -2px; word-break: break-all; }
+        @page { margin: 8mm; }
+        body { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; margin: 0; padding: 16px; color: #000; }
+        .sticker { max-width: 560px; margin: 0 auto; }
+        .top { display: flex; align-items: center; justify-content: space-between; gap: 24px; padding: 8px 12px 16px; }
+        .remote { font-size: 110px; font-weight: 800; line-height: 1; letter-spacing: -3px; word-break: break-all; }
         .qr { flex-shrink: 0; }
-        .qr svg { width: 180px; height: 180px; }
-        .meta { display: flex; align-items: center; gap: 12px; margin-top: 18px; max-width: 560px; margin-left: auto; margin-right: auto; justify-content: flex-end; font-size: 22px; font-weight: 600; }
-        .model { color: #333; }
-        .divider { width: 3px; height: 22px; background: #2563eb; }
-        .sn { font-family: ui-monospace, monospace; }
+        .qr svg { width: 190px; height: 190px; }
+        .divider-line { border-top: 2px solid #000; margin: 0 12px; }
+        .bottom { text-align: center; padding: 12px; font-size: 30px; font-weight: 700; letter-spacing: 0.5px; }
+        .sn { font-family: ui-monospace, "Menlo", monospace; }
       </style>
       </head><body>
-        <div class="label">
-          <div class="left"><div class="remote">${remoteName}</div></div>
-          <div class="qr">${svgData}</div>
-        </div>
-        <div class="meta">
-          ${model ? `<span class="model">${model}</span><span class="divider"></span>` : ""}
-          ${sn ? `<span class="sn">${sn}</span>` : ""}
+        <div class="sticker">
+          <div class="top">
+            <div class="remote">${remoteName}</div>
+            <div class="qr">${svgData}</div>
+          </div>
+          <div class="divider-line"></div>
+          <div class="bottom">
+            ${code}${sn ? ` &nbsp;<span class="sn">SN.${sn}</span>` : ""}
+          </div>
         </div>
         <script>setTimeout(()=>window.print(),300)</script>
       </body></html>
