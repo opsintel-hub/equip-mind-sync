@@ -585,9 +585,54 @@ export default function DocumentSearch() {
       // Fetch from stock_movements (Stock Card) — limit to recent for performance
       const { data: smData } = await supabase
         .from("stock_movements")
-        .select("id, equipment_code, equipment_name, movement_type, quantity, reference_document, reference_type, notes, item_condition, created_at")
+        .select("id, equipment_id, equipment_code, equipment_name, movement_type, quantity, reference_id, reference_document, reference_type, notes, item_condition, location_id, created_at, locations:location_id(code, name, warehouses(name))")
         .order("created_at", { ascending: false })
         .limit(500);
+
+      // Build reference_document -> S/N list (for stock_movements rows)
+      const smRefSnMap = new Map<string, string[]>();
+      const refDocs = Array.from(new Set((smData || []).map((s: any) => (s.reference_document || "").trim()).filter(Boolean)));
+      if (refDocs.length > 0) {
+        const { data: snByDoc } = await supabase
+          .from("equipment_serial_numbers")
+          .select("serial_number, receipt_document_no, issue_document_no")
+          .or(`receipt_document_no.in.(${refDocs.map(d => `"${d}"`).join(",")}),issue_document_no.in.(${refDocs.map(d => `"${d}"`).join(",")})`);
+        for (const r of (snByDoc || []) as any[]) {
+          for (const k of [r.receipt_document_no, r.issue_document_no]) {
+            const key = (k || "").trim();
+            if (!key || !r.serial_number) continue;
+            if (!smRefSnMap.has(key)) smRefSnMap.set(key, []);
+            if (!smRefSnMap.get(key)!.includes(r.serial_number)) smRefSnMap.get(key)!.push(r.serial_number);
+          }
+        }
+      }
+
+      // Translate movement_type to Thai
+      const movementTypeLabel = (mt: string): string => {
+        const m = (mt || "").toLowerCase();
+        const map: Record<string, string> = {
+          receive: "รับเข้า",
+          issue: "จ่ายออก",
+          transfer: "โอนคลัง",
+          adjustment: "ปรับสต็อก",
+          adjust: "ปรับสต็อก",
+          install_to_billboard: "ติดตั้งป้าย",
+          uninstall_from_billboard: "ถอดจากป้าย",
+          return_from_billboard: "คืนคลังจากป้าย",
+          defective_in: "เข้าคลังของเสีย",
+          defective_out: "จัดการของเสีย",
+          pending_assessment_in: "พักรอประเมิน",
+          pending_assessment_out: "ออกจากพักประเมิน",
+          repair_in: "เข้าซ่อม",
+          repair_out: "ซ่อมเสร็จ",
+          claim_in: "เข้าเคลม",
+          claim_out: "เคลมเสร็จ",
+          refurb_back: "Refurbished กลับเข้าคลัง",
+          swap_in: "Swap เข้า",
+          swap_out: "Swap ออก",
+        };
+        return map[m] || mt;
+      };
 
       const pendingDocs: DocumentRecord[] = (pendingData || []).map((item: any) => ({
         id: item.id, document_no: item.document_no, document_url: item.document_url,
