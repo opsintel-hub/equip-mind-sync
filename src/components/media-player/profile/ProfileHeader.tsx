@@ -7,6 +7,7 @@ import { Monitor, QrCode, Download, Printer, ChevronLeft, ChevronRight, X } from
 import QRCodeSVG from "react-qr-code";
 import { MediaPlayerRow } from "./types";
 import { getConditionDisplay } from "./constants";
+import { getPublicBaseUrl } from "@/lib/publicUrl";
 
 interface ProfileHeaderProps {
   player: MediaPlayerRow;
