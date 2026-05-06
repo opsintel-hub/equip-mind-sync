@@ -700,14 +700,21 @@ export default function DocumentSearch() {
         source: "claim" as const, raw: item,
       }));
 
-      const swapDocs: DocumentRecord[] = (swapData || []).map((item: any) => ({
-        id: item.id, document_no: item.document_no, document_url: null,
-        equipment_code: null, equipment_name: item.reason || null,
-        serial_number: null,
-        supplier_name: null, delivery_person_name: item.technician_name,
-        quantity: 0, unit: "-", created_at: item.created_at, status: item.status,
-        source: "swap" as const, raw: item,
-      }));
+      const swapDocs: DocumentRecord[] = (swapData || []).map((item: any) => {
+        const sns = [item.reported_serial_number, item.old_serial_number, item.new_serial_number]
+          .map((s: any) => (s || "").trim()).filter(Boolean);
+        const bb = item.billboards;
+        return {
+          id: item.id, document_no: item.document_no, document_url: null,
+          equipment_code: item.reported_item_code || null,
+          equipment_name: item.reported_item_name || item.description || null,
+          serial_number: sns.length > 0 ? Array.from(new Set(sns)).join("\n") : null,
+          supplier_name: bb ? `ป้าย ${bb.code || ""} ${bb.location_name || ""}`.trim() : null,
+          delivery_person_name: item.technician_name,
+          quantity: 0, unit: "-", created_at: item.created_at, status: item.status,
+          source: "swap" as const, raw: item,
+        };
+      });
 
       const stockMoveDocs: DocumentRecord[] = (smData || []).map((item: any) => ({
         id: item.id,
