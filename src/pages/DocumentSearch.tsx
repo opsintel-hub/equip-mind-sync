@@ -1029,37 +1029,71 @@ export default function DocumentSearch() {
                         </TableCell>
                         <TableCell className="text-xs">
                           {(() => {
-                            if (snList.length === 0) return <span className="text-muted-foreground/40">-</span>;
-                            const infos = snList.map((sn) => ({ sn, info: snLocationMap.get(sn.toLowerCase()) }));
-                            const known = infos.filter((x) => x.info);
-                            if (known.length === 0) return <span className="text-muted-foreground/40">ไม่มีข้อมูล</span>;
-                            // Group by label+sublabel
-                            const groups = new Map<string, { info: LocationInfo; sns: string[] }>();
-                            for (const { sn, info } of infos) {
-                              if (!info) continue;
-                              const key = `${info.kind}|${info.label}|${info.sublabel || ""}`;
-                              if (!groups.has(key)) groups.set(key, { info, sns: [] });
-                              groups.get(key)!.sns.push(sn);
-                            }
                             const colorFor = (k: LocationInfo["kind"]) =>
                               k === "billboard" ? "info"
                               : k === "warehouse" ? "success"
                               : k === "defective" ? "destructive"
                               : k === "issued" ? "warning"
                               : "outline";
-                            return (
-                              <div className="space-y-1 max-w-[220px]">
-                                {Array.from(groups.values()).map((g, i) => (
-                                  <div key={i} className="space-y-0.5">
-                                    <Badge variant={colorFor(g.info.kind) as any} className="text-[10px]">{g.info.label}</Badge>
-                                    {g.info.sublabel && <div className="text-[10px] text-muted-foreground leading-tight">{g.info.sublabel}</div>}
-                                    {groups.size > 1 && (
-                                      <div className="text-[9px] text-muted-foreground/70 font-mono">{g.sns.join(", ")}</div>
-                                    )}
+
+                            if (snList.length > 0) {
+                              const infos = snList.map((sn) => ({ sn, info: snLocationMap.get(sn.toLowerCase()) }));
+                              const groups = new Map<string, { info: LocationInfo; sns: string[] }>();
+                              for (const { sn, info } of infos) {
+                                if (!info) continue;
+                                const key = `${info.kind}|${info.label}|${info.sublabel || ""}`;
+                                if (!groups.has(key)) groups.set(key, { info, sns: [] });
+                                groups.get(key)!.sns.push(sn);
+                              }
+                              if (groups.size > 0) {
+                                return (
+                                  <div className="space-y-1 max-w-[220px]">
+                                    {Array.from(groups.values()).map((g, i) => (
+                                      <div key={i} className="space-y-0.5">
+                                        <Badge variant={colorFor(g.info.kind) as any} className="text-[10px]">{g.info.label}</Badge>
+                                        {g.info.sublabel && <div className="text-[10px] text-muted-foreground leading-tight">{g.info.sublabel}</div>}
+                                        {groups.size > 1 && (
+                                          <div className="text-[9px] text-muted-foreground/70 font-mono">{g.sns.join(", ")}</div>
+                                        )}
+                                      </div>
+                                    ))}
                                   </div>
-                                ))}
-                              </div>
-                            );
+                                );
+                              }
+                            }
+
+                            const r: any = doc.raw || {};
+                            const bb = r.billboards;
+                            if (bb && (doc.source === "swap" || doc.source === "defective")) {
+                              return (
+                                <div className="space-y-0.5">
+                                  <Badge variant="info" className="text-[10px]">ป้าย {bb.code || ""}</Badge>
+                                  {bb.location_name && <div className="text-[10px] text-muted-foreground leading-tight">{bb.location_name}</div>}
+                                </div>
+                              );
+                            }
+                            if (doc.source === "defective") {
+                              const s = doc.status;
+                              if (s === "completed" || s === "disposed") return <Badge variant="destructive" className="text-[10px]">จัดการเสร็จ (คลังของเสีย)</Badge>;
+                              return <Badge variant="warning" className="text-[10px]">รอเข้าคลังของเสีย</Badge>;
+                            }
+                            if (doc.source === "assessment") {
+                              return <Badge variant="purple" className="text-[10px]">พักรอประเมิน</Badge>;
+                            }
+                            if (doc.source === "claim") {
+                              return <Badge variant="destructive" className="text-[10px]">รอเคลม</Badge>;
+                            }
+                            if (doc.source === "advertisement") {
+                              if (doc.status === "in_storage") return <Badge variant="success" className="text-[10px]">อยู่ในคลัง</Badge>;
+                              if (doc.status === "issued") return <Badge variant="warning" className="text-[10px]">ถูกเบิกใช้</Badge>;
+                            }
+                            if (doc.source === "received" || (doc.source === "pending" && doc.status === "received")) {
+                              return <Badge variant="success" className="text-[10px]">เข้าคลังแล้ว</Badge>;
+                            }
+                            if (doc.source === "issue" && doc.status === "issued") {
+                              return <Badge variant="warning" className="text-[10px]">จ่ายออกแล้ว</Badge>;
+                            }
+                            return <span className="text-muted-foreground/40">-</span>;
                           })()}
                         </TableCell>
                         <TableCell className="text-sm">{doc.supplier_name || doc.delivery_person_name || <span className="text-muted-foreground/40">-</span>}</TableCell>
