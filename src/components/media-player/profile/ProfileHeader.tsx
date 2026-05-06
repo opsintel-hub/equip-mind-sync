@@ -50,15 +50,34 @@ export function ProfileHeader({ player, modelName, statusLabel, images }: Profil
     const svg = document.getElementById("media-player-qr-code");
     if (!svg) return;
     const svgData = new XMLSerializer().serializeToString(svg);
+    const remoteName = player.remote_name || player.code;
+    const sn = player.serial_number_1 || "";
+    const model = modelName && modelName !== "-" ? modelName : "";
     printWindow.document.write(`
       <html><head><title>QR Code - ${player.code}</title>
-      <style>body{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;font-family:sans-serif;}</style>
+      <style>
+        @page { margin: 12mm; }
+        body { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; margin: 0; padding: 24px; }
+        .label { display: flex; align-items: center; justify-content: space-between; gap: 24px; max-width: 560px; margin: 0 auto; }
+        .left { flex: 1; min-width: 0; }
+        .remote { font-size: 96px; font-weight: 800; line-height: 1; letter-spacing: -2px; word-break: break-all; }
+        .qr { flex-shrink: 0; }
+        .qr svg { width: 180px; height: 180px; }
+        .meta { display: flex; align-items: center; gap: 12px; margin-top: 18px; max-width: 560px; margin-left: auto; margin-right: auto; justify-content: flex-end; font-size: 22px; font-weight: 600; }
+        .model { color: #333; }
+        .divider { width: 3px; height: 22px; background: #2563eb; }
+        .sn { font-family: ui-monospace, monospace; }
+      </style>
       </head><body>
-      <h2>${player.code}</h2>
-      <p>${player.name}</p>
-      ${player.serial_number_1 ? `<p style="font-family:monospace">S/N: ${player.serial_number_1}</p>` : ""}
-      ${svgData}
-      <script>setTimeout(()=>window.print(),300)</script>
+        <div class="label">
+          <div class="left"><div class="remote">${remoteName}</div></div>
+          <div class="qr">${svgData}</div>
+        </div>
+        <div class="meta">
+          ${model ? `<span class="model">${model}</span><span class="divider"></span>` : ""}
+          ${sn ? `<span class="sn">${sn}</span>` : ""}
+        </div>
+        <script>setTimeout(()=>window.print(),300)</script>
       </body></html>
     `);
     printWindow.document.close();
