@@ -3,7 +3,6 @@ import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ProcessTracker, ProcessStep } from "@/components/ProcessTracker";
 import { differenceInDays, parseISO } from "date-fns";
 import { Search, Monitor, Loader2, FileDown } from "lucide-react";
@@ -270,6 +269,26 @@ const MediaPlayerProfile = () => {
       {player && (
         <div ref={profileRef} className="space-y-6">
           <ProfileHeader player={player} modelName={modelName} statusLabel={statusLabel} images={images} />
+
+          {/* Quick jump links */}
+          <div className="flex flex-wrap gap-2">
+            <a href="#general" className="px-3 py-1.5 rounded-md border bg-background text-xs font-medium hover:bg-muted">ข้อมูลทั่วไป</a>
+            <a href="#journey" className="px-3 py-1.5 rounded-md border bg-background text-xs font-medium hover:bg-muted">ประวัติติดตั้ง</a>
+            <a href="#movements" className="px-3 py-1.5 rounded-md border bg-primary text-primary-foreground text-xs font-semibold hover:opacity-90">📊 Stock Card</a>
+          </div>
+
+          <section id="general" className="scroll-mt-4">
+            <GeneralInfoTab player={player} modelName={modelName} />
+          </section>
+
+          <section id="journey" className="scroll-mt-4">
+            <JourneyTab player={player} journeys={journeys} />
+          </section>
+
+          <section id="movements" className="scroll-mt-4">
+            <MovementTab movements={movements} playerCode={player.code} />
+          </section>
+
           <SummaryCards player={player} journeys={journeys} />
 
           {/* Process Tracker */}
@@ -281,27 +300,6 @@ const MediaPlayerProfile = () => {
               <ProcessTracker steps={lifecycleSteps} />
             </CardContent>
           </Card>
-
-          {/* Tabs */}
-          <Tabs defaultValue="general" className="w-full">
-            <TabsList className="grid h-auto w-full grid-cols-3 max-w-none sm:max-w-lg">
-              <TabsTrigger value="general" className="px-1 text-xs sm:text-sm">ข้อมูลทั่วไป</TabsTrigger>
-              <TabsTrigger value="journey" className="px-1 text-xs sm:text-sm">ประวัติติดตั้ง</TabsTrigger>
-              <TabsTrigger value="movements" className="px-1 text-xs sm:text-sm">Stock Card</TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="general">
-              <GeneralInfoTab player={player} modelName={modelName} />
-            </TabsContent>
-
-            <TabsContent value="journey">
-              <JourneyTab player={player} journeys={journeys} />
-            </TabsContent>
-
-            <TabsContent value="movements">
-              <MovementTab movements={movements} playerCode={player.code} />
-            </TabsContent>
-          </Tabs>
         </div>
       )}
     </div>
