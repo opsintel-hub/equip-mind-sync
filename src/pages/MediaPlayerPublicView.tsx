@@ -193,22 +193,12 @@ const MediaPlayerPublicView = () => {
         </div>
 
         <ProfileHeader player={player} modelName={modelName} statusLabel={statusLabel} images={images} />
-        <SummaryCards player={player} journeys={journeys} />
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Lifecycle</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ProcessTracker steps={lifecycleSteps} />
-          </CardContent>
-        </Card>
 
         <Tabs defaultValue="general" className="w-full">
-          <TabsList className="grid h-auto w-full grid-cols-3 max-w-none sm:max-w-lg">
-            <TabsTrigger value="general" className="px-1 text-xs sm:text-sm">ข้อมูลทั่วไป</TabsTrigger>
-            <TabsTrigger value="journey" className="px-1 text-xs sm:text-sm">ประวัติติดตั้ง</TabsTrigger>
-            <TabsTrigger value="movements" className="px-1 text-xs sm:text-sm">Stock Card</TabsTrigger>
+          <TabsList className="sticky top-2 z-10 grid h-auto w-full grid-cols-3 max-w-none border bg-background/95 shadow-sm backdrop-blur sm:static sm:max-w-lg">
+            <TabsTrigger value="general" className="min-h-10 px-1 text-xs sm:text-sm">ข้อมูลทั่วไป</TabsTrigger>
+            <TabsTrigger value="journey" className="min-h-10 px-1 text-xs sm:text-sm">ประวัติติดตั้ง</TabsTrigger>
+            <TabsTrigger value="movements" className="min-h-10 px-1 text-xs sm:text-sm">Stock Card</TabsTrigger>
           </TabsList>
 
           <TabsContent value="general">
@@ -223,6 +213,17 @@ const MediaPlayerPublicView = () => {
             <MovementTab movements={movements} playerCode={player.code} />
           </TabsContent>
         </Tabs>
+
+        <SummaryCards player={player} journeys={journeys} />
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Lifecycle</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ProcessTracker steps={lifecycleSteps} />
+          </CardContent>
+        </Card>
 
         <p className="text-xs text-center text-muted-foreground pt-4">
           Powered by EquipMind
