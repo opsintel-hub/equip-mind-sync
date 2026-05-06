@@ -9,11 +9,12 @@ import { Loader2, Monitor } from "lucide-react";
 import { toast } from "sonner";
 import { formatBillboardLabel } from "@/lib/billboardUtils";
 
-import { MediaPlayerRow, BillboardJourney } from "@/components/media-player/profile/types";
+import { MediaPlayerRow, BillboardJourney, StockMovement } from "@/components/media-player/profile/types";
 import { ProfileHeader } from "@/components/media-player/profile/ProfileHeader";
 import { SummaryCards } from "@/components/media-player/profile/SummaryCards";
 import { GeneralInfoTab } from "@/components/media-player/profile/GeneralInfoTab";
 import { JourneyTab } from "@/components/media-player/profile/JourneyTab";
+import { MovementTab } from "@/components/media-player/profile/MovementTab";
 
 /**
  * Public read-only Media Player profile.
@@ -26,6 +27,7 @@ const MediaPlayerPublicView = () => {
   const [player, setPlayer] = useState<MediaPlayerRow | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [journeys, setJourneys] = useState<BillboardJourney[]>([]);
+  const [movements, setMovements] = useState<StockMovement[]>([]);
   const [images, setImages] = useState<string[]>([]);
   const [modelName, setModelName] = useState("-");
   const [statusLabel, setStatusLabel] = useState("Active");
@@ -72,7 +74,7 @@ const MediaPlayerPublicView = () => {
     setImages(((imgRes.data as any) || []).map((i: any) => i.image_url));
 
     // Journeys
-    const [{ data: history }, { data: currentInstalls }] = await Promise.all([
+    const [{ data: history }, { data: currentInstalls }, { data: movs }] = await Promise.all([
       supabase
         .from("billboard_equipment_history")
         .select("billboard_id, installation_date, uninstall_date, uninstall_reason, quantity")
@@ -81,7 +83,14 @@ const MediaPlayerPublicView = () => {
         .from("billboard_equipment")
         .select("billboard_id, installation_date, quantity")
         .eq("equipment_id", playerId),
+      supabase
+        .from("stock_movements")
+        .select("id, created_at, movement_type, quantity, stock_before, stock_after, reference_document, notes, item_condition")
+        .eq("equipment_id", playerId)
+        .order("created_at", { ascending: false })
+        .limit(200),
     ]);
+    setMovements((movs as any) || []);
 
     const journeyData: BillboardJourney[] = [];
     const allBbIds = new Set<string>();
@@ -196,9 +205,10 @@ const MediaPlayerPublicView = () => {
         </Card>
 
         <Tabs defaultValue="general" className="w-full">
-          <TabsList className="grid w-full grid-cols-2 max-w-md">
-            <TabsTrigger value="general">ข้อมูลทั่วไป</TabsTrigger>
-            <TabsTrigger value="journey">ประวัติติดตั้ง</TabsTrigger>
+          <TabsList className="grid h-auto w-full grid-cols-3 max-w-none sm:max-w-lg">
+            <TabsTrigger value="general" className="px-1 text-xs sm:text-sm">ข้อมูลทั่วไป</TabsTrigger>
+            <TabsTrigger value="journey" className="px-1 text-xs sm:text-sm">ประวัติติดตั้ง</TabsTrigger>
+            <TabsTrigger value="movements" className="px-1 text-xs sm:text-sm">Stock Card</TabsTrigger>
           </TabsList>
 
           <TabsContent value="general">
@@ -207,6 +217,10 @@ const MediaPlayerPublicView = () => {
 
           <TabsContent value="journey">
             <JourneyTab player={player} journeys={journeys} />
+          </TabsContent>
+
+          <TabsContent value="movements">
+            <MovementTab movements={movements} playerCode={player.code} />
           </TabsContent>
         </Tabs>
 

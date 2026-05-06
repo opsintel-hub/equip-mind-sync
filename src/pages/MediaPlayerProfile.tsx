@@ -284,10 +284,10 @@ const MediaPlayerProfile = () => {
 
           {/* Tabs */}
           <Tabs defaultValue="general" className="w-full">
-            <TabsList className="grid w-full grid-cols-3 max-w-lg">
-              <TabsTrigger value="general">ข้อมูลทั่วไป</TabsTrigger>
-              <TabsTrigger value="journey">ประวัติติดตั้ง</TabsTrigger>
-              <TabsTrigger value="movements">Stock Card</TabsTrigger>
+            <TabsList className="grid h-auto w-full grid-cols-3 max-w-none sm:max-w-lg">
+              <TabsTrigger value="general" className="px-1 text-xs sm:text-sm">ข้อมูลทั่วไป</TabsTrigger>
+              <TabsTrigger value="journey" className="px-1 text-xs sm:text-sm">ประวัติติดตั้ง</TabsTrigger>
+              <TabsTrigger value="movements" className="px-1 text-xs sm:text-sm">Stock Card</TabsTrigger>
             </TabsList>
 
             <TabsContent value="general">
