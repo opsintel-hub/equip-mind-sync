@@ -535,7 +535,9 @@ export default function DocumentSearch() {
 
       // Fetch from delivery_confirmations
       const { data: dcData } = await supabase
-        .from("delivery_confirmations").select("*").order("created_at", { ascending: false });
+        .from("delivery_confirmations")
+        .select("*, goods_issue_pending:goods_issue_pending_id(equipment_code, equipment_name, requester_name, goods_issue_pending_items(serial_number))")
+        .order("created_at", { ascending: false });
 
       // Fetch from direct_shipments (with extended fields for tracker)
       const { data: dsData } = await supabase
