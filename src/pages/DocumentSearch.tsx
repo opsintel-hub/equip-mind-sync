@@ -862,7 +862,15 @@ export default function DocumentSearch() {
 
   useEffect(() => { fetchDocuments(); }, []);
 
+  // Pre-compute set of reference_documents owned by a primary source (so we can hide redundant Stock Card rows)
+  const primaryDocNos = new Set(
+    documents.filter((d) => d.source !== "stock_movement").map((d) => (d.document_no || "").trim()).filter(Boolean)
+  );
+
   const filteredDocuments = documents.filter((doc) => {
+    if (hideRedundantStockCard && doc.source === "stock_movement" && primaryDocNos.has((doc.document_no || "").trim())) {
+      return false;
+    }
     if (sourceFilter !== "all" && doc.source !== sourceFilter) return false;
 
     if (dateRange?.from) {
