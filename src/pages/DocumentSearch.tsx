@@ -808,7 +808,7 @@ export default function DocumentSearch() {
           equipment_code: item.equipment?.code || mp?.code || null,
           equipment_name: item.equipment?.name || mp?.name || null,
           serial_number: sns.length > 0 ? sns.join("\n") : null,
-          supplier_name: bb ? `ป้าย ${bb.code || ""} ${bb.location_name || ""}`.trim() : (item.reporter_department || null),
+          supplier_name: bb ? `ป้าย ${bb.equipment_id || bb.old_code || ""} ${bb.location_name || ""}`.trim() : (item.reporter_department || null),
           delivery_person_name: item.reporter_name || null,
           quantity: item.quantity || 0, unit: item.equipment?.unit || "ชิ้น",
           created_at: item.created_at, status: item.status,
@@ -845,7 +845,7 @@ export default function DocumentSearch() {
           equipment_code: item.reported_item_code || null,
           equipment_name: item.reported_item_name || item.description || null,
           serial_number: sns.length > 0 ? Array.from(new Set(sns)).join("\n") : null,
-          supplier_name: bb ? `ป้าย ${bb.code || ""} ${bb.location_name || ""}`.trim() : null,
+          supplier_name: bb ? `ป้าย ${bb.equipment_id || bb.old_code || ""} ${bb.location_name || ""}`.trim() : null,
           delivery_person_name: item.technician_name,
           quantity: 0, unit: "-", created_at: item.created_at, status: item.status,
           source: "swap" as const, raw: item,
@@ -900,7 +900,7 @@ export default function DocumentSearch() {
           const bb = row.billboards;
           return {
             kind: "billboard",
-            label: `ป้าย ${bb.code || ""}`.trim(),
+            label: `ป้าย ${bb.equipment_id || bb.old_code || ""}`.trim(),
             sublabel: bb.location_name || bb.name || undefined,
           };
         }
@@ -1220,7 +1220,7 @@ export default function DocumentSearch() {
                             if (bb && (doc.source === "swap" || doc.source === "defective")) {
                               return (
                                 <div className="space-y-0.5">
-                                  <Badge variant="info" className="text-[10px]">ป้าย {bb.code || ""}</Badge>
+                                  <Badge variant="info" className="text-[10px]">ป้าย {bb.equipment_id || bb.old_code || ""}</Badge>
                                   {bb.location_name && <div className="text-[10px] text-muted-foreground leading-tight">{bb.location_name}</div>}
                                 </div>
                               );
