@@ -465,6 +465,7 @@ export default function DocumentSearch() {
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
   const [hasSearched, setHasSearched] = useState(false);
   const [previewState, setPreviewState] = useState<{ title: string; categories: DocumentCategory[] } | null>(null);
+  const [hideRedundantStockCard, setHideRedundantStockCard] = useState(true);
   /** Map: serial_number(lowercased) -> current location info */
   const [snLocationMap, setSnLocationMap] = useState<Map<string, LocationInfo>>(new Map());
 
