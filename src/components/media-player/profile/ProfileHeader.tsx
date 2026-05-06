@@ -32,48 +32,73 @@ export function ProfileHeader({ player, modelName, statusLabel, images }: Profil
     const svgData = new XMLSerializer().serializeToString(svg);
     const remoteName = (player.remote_name || player.code || "").toString();
     const sn = (player.serial_number_1 || "").toString();
-    const model = modelName && modelName !== "-" ? modelName : "";
-    const nameLen = remoteName.length;
-    const nameFontMm = nameLen <= 4 ? 11 : nameLen <= 6 ? 8.5 : nameLen <= 8 ? 7 : 5.5;
+    const code = (player.code || "").toString();
 
-    // Sticker dimensions: 50mm x 30mm @ ~12 px/mm (scale 8x for crispness)
-    const MM = 12;
+    // Sticker 50mm x 30mm at high DPI (scale: 24 px/mm => 1200x720)
+    const MM = 24;
     const W = 50 * MM;
     const H = 30 * MM;
+    const padX = 2 * MM;
+    const padY = 1.5 * MM;
+    const qrSize = 21 * MM;
 
-    const container = document.createElement("div");
-    container.style.cssText = `position:fixed;left:-9999px;top:0;width:${W}px;height:${H}px;background:#fff;`;
-    container.innerHTML = `
-      <div style="width:${W}px;height:${H}px;padding:${1.5 * MM}px ${2 * MM}px;box-sizing:border-box;display:flex;flex-direction:column;gap:${0.8 * MM}px;font-family:system-ui,-apple-system,'Segoe UI','Sarabun',sans-serif;color:#000;background:#fff;">
-        <div style="flex:1;display:flex;align-items:center;gap:${1.5 * MM}px;min-height:0;">
-          <div style="flex:1;min-width:0;display:flex;align-items:center;justify-content:center;">
-            <div style="font-weight:900;line-height:0.95;text-align:center;font-size:${nameFontMm * MM}px;word-break:break-all;overflow:hidden;">${remoteName}</div>
-          </div>
-          <div style="flex-shrink:0;width:${21 * MM}px;height:${21 * MM}px;">${svgData.replace("<svg ", `<svg style="width:100%;height:100%;display:block;" `)}</div>
-        </div>
-        <div style="border-top:${0.3 * MM}px solid #000;"></div>
-        <div style="display:flex;align-items:center;justify-content:center;gap:${1.5 * MM}px;font-size:${2.6 * MM}px;font-weight:700;white-space:nowrap;overflow:hidden;">
-          ${model ? `<span>${model}</span><span style="width:${0.3 * MM}px;height:${2.6 * MM}px;background:#000;display:inline-block;"></span>` : ""}
-          ${sn ? `<span style="font-family:ui-monospace,Menlo,Consolas,monospace;">${sn}</span>` : ""}
-        </div>
-      </div>
-    `;
-    document.body.appendChild(container);
+    const canvas = document.createElement("canvas");
+    canvas.width = W;
+    canvas.height = H;
+    const ctx = canvas.getContext("2d")!;
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, W, H);
 
-    try {
-      const html2canvas = (await import("html2canvas")).default;
-      const canvas = await html2canvas(container.firstElementChild as HTMLElement, {
-        backgroundColor: "#ffffff",
-        scale: 4,
-        useCORS: true,
-      });
-      const link = document.createElement("a");
-      link.download = `qr-media-player-${player.code}.png`;
-      link.href = canvas.toDataURL("image/png");
-      link.click();
-    } finally {
-      document.body.removeChild(container);
+    // Load QR svg as image
+    const qrImg = new Image();
+    qrImg.crossOrigin = "anonymous";
+    await new Promise<void>((resolve, reject) => {
+      qrImg.onload = () => resolve();
+      qrImg.onerror = reject;
+      qrImg.src = "data:image/svg+xml;base64," + btoa(unescape(encodeURIComponent(svgData)));
+    });
+
+    // QR right side, vertically centered in top area
+    const topAreaH = H - padY * 2 - 0.3 * MM - 4 * MM; // reserve bottom for divider+text
+    const qrX = W - padX - qrSize;
+    const qrY = padY + (topAreaH - qrSize) / 2;
+    ctx.drawImage(qrImg, qrX, qrY, qrSize, qrSize);
+
+    // Remote Name (left side, large bold) - auto-fit
+    const leftAreaW = qrX - padX - 1.5 * MM;
+    const leftAreaH = topAreaH;
+    ctx.fillStyle = "#000000";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    let fontPx = Math.floor(leftAreaH * 0.85);
+    const fontFamily = `'Arial Black', 'Helvetica', system-ui, sans-serif`;
+    while (fontPx > 10) {
+      ctx.font = `900 ${fontPx}px ${fontFamily}`;
+      const m = ctx.measureText(remoteName);
+      if (m.width <= leftAreaW * 0.95 && fontPx <= leftAreaH * 0.95) break;
+      fontPx -= 2;
     }
+    ctx.fillText(remoteName, padX + leftAreaW / 2, padY + leftAreaH / 2);
+
+    // Divider
+    const divY = padY + topAreaH + 1 * MM;
+    ctx.fillStyle = "#000000";
+    ctx.fillRect(padX, divY, W - padX * 2, Math.max(1, 0.3 * MM));
+
+    // Bottom: code | sn
+    const bottomY = divY + 0.3 * MM + 1.5 * MM;
+    const bottomFontPx = 2.6 * MM;
+    ctx.font = `bold ${bottomFontPx}px ${fontFamily}`;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "top";
+    const sep = "  |  ";
+    const text = sn ? `${code}${sep}${sn}` : code;
+    ctx.fillText(text, W / 2, bottomY);
+
+    const link = document.createElement("a");
+    link.download = `qr-media-player-${player.code}.png`;
+    link.href = canvas.toDataURL("image/png");
+    link.click();
   };
 
   const printQR = () => {
