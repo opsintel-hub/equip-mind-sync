@@ -1008,12 +1008,23 @@ export default function DocumentSearch() {
       {/* Results */}
       <Card className="border-border/60">
         <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between flex-wrap gap-2">
             <div className="flex items-center gap-2">
               <FileText className="h-4 w-4 text-muted-foreground" />
               <CardTitle className="text-base">รายการเอกสาร</CardTitle>
             </div>
-            <span className="text-xs text-muted-foreground">พบ {filteredDocuments.length} รายการ</span>
+            <div className="flex items-center gap-3">
+              <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={hideRedundantStockCard}
+                  onChange={(e) => setHideRedundantStockCard(e.target.checked)}
+                  className="h-3.5 w-3.5 rounded border-border accent-primary"
+                />
+                ซ่อน Stock Card ที่มีเอกสารต้นทาง
+              </label>
+              <span className="text-xs text-muted-foreground">พบ {filteredDocuments.length} รายการ</span>
+            </div>
           </div>
         </CardHeader>
         <CardContent className="px-0 pb-2">
