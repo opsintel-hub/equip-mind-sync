@@ -1225,6 +1225,16 @@ export default function DocumentSearch() {
                                 </div>
                               );
                             }
+                            if (doc.source === "stock_movement") {
+                              if (r._location_label) {
+                                return <Badge variant="success" className="text-[10px]">{r._location_label}</Badge>;
+                              }
+                              const mt = (r.movement_type || "").toLowerCase();
+                              if (mt.includes("billboard")) return <Badge variant="info" className="text-[10px]">ป้ายโฆษณา</Badge>;
+                              if (mt.includes("defect")) return <Badge variant="destructive" className="text-[10px]">คลังของเสีย</Badge>;
+                              if (mt.includes("assessment")) return <Badge variant="purple" className="text-[10px]">พักรอประเมิน</Badge>;
+                              return <span className="text-muted-foreground/40">-</span>;
+                            }
                             if (doc.source === "defective") {
                               const s = doc.status;
                               if (s === "completed" || s === "disposed") return <Badge variant="destructive" className="text-[10px]">จัดการเสร็จ (คลังของเสีย)</Badge>;
