@@ -421,11 +421,12 @@ function getCurrentStatusBadge(doc: DocumentRecord): { label: string; variant: "
       return { label: "รออนุมัติ", variant: "warning" };
     case "stock_movement": {
       const mt = (doc.raw?.movement_type || "").toLowerCase();
-      if (mt.includes("in") || mt === "receive") return { label: "รับเข้า", variant: "success" };
-      if (mt.includes("out") || mt === "issue") return { label: "จ่ายออก", variant: "info" };
-      if (mt.includes("transfer")) return { label: "โอน", variant: "purple" };
-      if (mt.includes("adjust")) return { label: "ปรับสต็อก", variant: "warning" };
-      return { label: doc.raw?.movement_type || s || "-", variant: "outline" };
+      const label = doc.raw?._movement_type_label || doc.status;
+      if (mt.includes("in") || mt === "receive" || mt === "refurb_back") return { label, variant: "success" };
+      if (mt.includes("out") || mt === "issue") return { label, variant: "info" };
+      if (mt.includes("transfer")) return { label, variant: "purple" };
+      if (mt.includes("adjust")) return { label, variant: "warning" };
+      return { label: label || "-", variant: "outline" };
     }
     default:
       return { label: s || "-", variant: "outline" };
@@ -464,6 +465,7 @@ export default function DocumentSearch() {
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
   const [hasSearched, setHasSearched] = useState(false);
   const [previewState, setPreviewState] = useState<{ title: string; categories: DocumentCategory[] } | null>(null);
+  const [hideRedundantStockCard, setHideRedundantStockCard] = useState(true);
   /** Map: serial_number(lowercased) -> current location info */
   const [snLocationMap, setSnLocationMap] = useState<Map<string, LocationInfo>>(new Map());
 
@@ -585,9 +587,54 @@ export default function DocumentSearch() {
       // Fetch from stock_movements (Stock Card) — limit to recent for performance
       const { data: smData } = await supabase
         .from("stock_movements")
-        .select("id, equipment_code, equipment_name, movement_type, quantity, reference_document, reference_type, notes, item_condition, created_at")
+        .select("id, equipment_id, equipment_code, equipment_name, movement_type, quantity, reference_id, reference_document, reference_type, notes, item_condition, location_id, created_at, locations:location_id(code, name, warehouses(name))")
         .order("created_at", { ascending: false })
         .limit(500);
+
+      // Build reference_document -> S/N list (for stock_movements rows)
+      const smRefSnMap = new Map<string, string[]>();
+      const refDocs = Array.from(new Set((smData || []).map((s: any) => (s.reference_document || "").trim()).filter(Boolean)));
+      if (refDocs.length > 0) {
+        const { data: snByDoc } = await supabase
+          .from("equipment_serial_numbers")
+          .select("serial_number, receipt_document_no, issue_document_no")
+          .or(`receipt_document_no.in.(${refDocs.map(d => `"${d}"`).join(",")}),issue_document_no.in.(${refDocs.map(d => `"${d}"`).join(",")})`);
+        for (const r of (snByDoc || []) as any[]) {
+          for (const k of [r.receipt_document_no, r.issue_document_no]) {
+            const key = (k || "").trim();
+            if (!key || !r.serial_number) continue;
+            if (!smRefSnMap.has(key)) smRefSnMap.set(key, []);
+            if (!smRefSnMap.get(key)!.includes(r.serial_number)) smRefSnMap.get(key)!.push(r.serial_number);
+          }
+        }
+      }
+
+      // Translate movement_type to Thai
+      const movementTypeLabel = (mt: string): string => {
+        const m = (mt || "").toLowerCase();
+        const map: Record<string, string> = {
+          receive: "รับเข้า",
+          issue: "จ่ายออก",
+          transfer: "โอนคลัง",
+          adjustment: "ปรับสต็อก",
+          adjust: "ปรับสต็อก",
+          install_to_billboard: "ติดตั้งป้าย",
+          uninstall_from_billboard: "ถอดจากป้าย",
+          return_from_billboard: "คืนคลังจากป้าย",
+          defective_in: "เข้าคลังของเสีย",
+          defective_out: "จัดการของเสีย",
+          pending_assessment_in: "พักรอประเมิน",
+          pending_assessment_out: "ออกจากพักประเมิน",
+          repair_in: "เข้าซ่อม",
+          repair_out: "ซ่อมเสร็จ",
+          claim_in: "เข้าเคลม",
+          claim_out: "เคลมเสร็จ",
+          refurb_back: "Refurbished กลับเข้าคลัง",
+          swap_in: "Swap เข้า",
+          swap_out: "Swap ออก",
+        };
+        return map[m] || mt;
+      };
 
       const pendingDocs: DocumentRecord[] = (pendingData || []).map((item: any) => ({
         id: item.id, document_no: item.document_no, document_url: item.document_url,
@@ -729,19 +776,29 @@ export default function DocumentSearch() {
         };
       });
 
-      const stockMoveDocs: DocumentRecord[] = (smData || []).map((item: any) => ({
-        id: item.id,
-        document_no: item.reference_document || `SM-${item.id.slice(0, 8)}`,
-        document_url: null,
-        equipment_code: item.equipment_code,
-        equipment_name: item.equipment_name,
-        serial_number: null,
-        supplier_name: item.movement_type, delivery_person_name: item.notes || null,
-        quantity: Math.abs(item.quantity || 0), unit: "-",
-        created_at: item.created_at,
-        status: item.item_condition || item.movement_type,
-        source: "stock_movement" as const, raw: item,
-      }));
+      const stockMoveDocs: DocumentRecord[] = (smData || []).map((item: any) => {
+        const refDoc = (item.reference_document || "").trim();
+        const sns = refDoc ? (smRefSnMap.get(refDoc) || []) : [];
+        const loc = item.locations;
+        const locLabel = loc
+          ? `${loc.warehouses?.name ? loc.warehouses.name + " / " : ""}${loc.code || ""} ${loc.name || ""}`.trim()
+          : null;
+        return {
+          id: item.id,
+          document_no: refDoc || `SM-${item.id.slice(0, 8)}`,
+          document_url: null,
+          equipment_code: item.equipment_code,
+          equipment_name: item.equipment_name,
+          serial_number: sns.length > 0 ? sns.join("\n") : null,
+          supplier_name: locLabel,
+          delivery_person_name: item.notes || null,
+          quantity: Math.abs(item.quantity || 0), unit: "-",
+          created_at: item.created_at,
+          status: movementTypeLabel(item.movement_type),
+          source: "stock_movement" as const,
+          raw: { ...item, _movement_type_label: movementTypeLabel(item.movement_type) },
+        };
+      });
 
       const merged = [
         ...pendingDocs, ...receiptDocs, ...issueDocs, ...dcDocs, ...dsDocs,
@@ -805,7 +862,15 @@ export default function DocumentSearch() {
 
   useEffect(() => { fetchDocuments(); }, []);
 
+  // Pre-compute set of reference_documents owned by a primary source (so we can hide redundant Stock Card rows)
+  const primaryDocNos = new Set(
+    documents.filter((d) => d.source !== "stock_movement").map((d) => (d.document_no || "").trim()).filter(Boolean)
+  );
+
   const filteredDocuments = documents.filter((doc) => {
+    if (hideRedundantStockCard && doc.source === "stock_movement" && primaryDocNos.has((doc.document_no || "").trim())) {
+      return false;
+    }
     if (sourceFilter !== "all" && doc.source !== sourceFilter) return false;
 
     if (dateRange?.from) {
@@ -943,12 +1008,23 @@ export default function DocumentSearch() {
       {/* Results */}
       <Card className="border-border/60">
         <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between flex-wrap gap-2">
             <div className="flex items-center gap-2">
               <FileText className="h-4 w-4 text-muted-foreground" />
               <CardTitle className="text-base">รายการเอกสาร</CardTitle>
             </div>
-            <span className="text-xs text-muted-foreground">พบ {filteredDocuments.length} รายการ</span>
+            <div className="flex items-center gap-3">
+              <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={hideRedundantStockCard}
+                  onChange={(e) => setHideRedundantStockCard(e.target.checked)}
+                  className="h-3.5 w-3.5 rounded border-border accent-primary"
+                />
+                ซ่อน Stock Card ที่มีเอกสารต้นทาง
+              </label>
+              <span className="text-xs text-muted-foreground">พบ {filteredDocuments.length} รายการ</span>
+            </div>
           </div>
         </CardHeader>
         <CardContent className="px-0 pb-2">
