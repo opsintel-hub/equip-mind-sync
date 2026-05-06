@@ -50,32 +50,53 @@ export function ProfileHeader({ player, modelName, statusLabel, images }: Profil
     const svg = document.getElementById("media-player-qr-code");
     if (!svg) return;
     const svgData = new XMLSerializer().serializeToString(svg);
-    const remoteName = player.remote_name || player.code;
-    const sn = player.serial_number_1 || "";
-    const code = player.code || "";
+    const remoteName = (player.remote_name || player.code || "").toString();
+    const sn = (player.serial_number_1 || "").toString();
+    const model = modelName && modelName !== "-" ? modelName : "";
+    // Auto-fit Name (เผื่อ 3 ตัว default ใหญ่, ยิ่งยาวยิ่งเล็กลง)
+    const nameLen = remoteName.length;
+    const nameFontMm = nameLen <= 3 ? 12 : nameLen <= 5 ? 9 : nameLen <= 8 ? 7 : 5.5;
     printWindow.document.write(`
-      <html><head><title>QR Code - ${player.code}</title>
+      <html><head><title>QR - ${player.code}</title>
       <style>
-        @page { margin: 8mm; }
-        body { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; margin: 0; padding: 16px; color: #000; }
-        .sticker { max-width: 560px; margin: 0 auto; }
-        .top { display: flex; align-items: center; justify-content: space-between; gap: 24px; padding: 8px 12px 16px; }
-        .remote { font-size: 110px; font-weight: 800; line-height: 1; letter-spacing: -3px; word-break: break-all; }
-        .qr { flex-shrink: 0; }
-        .qr svg { width: 190px; height: 190px; }
-        .divider-line { border-top: 2px solid #000; margin: 0 12px; }
-        .bottom { text-align: center; padding: 12px; font-size: 30px; font-weight: 700; letter-spacing: 0.5px; }
-        .sn { font-family: ui-monospace, "Menlo", monospace; }
+        @page { size: 50mm 30mm; margin: 0; }
+        * { box-sizing: border-box; }
+        html, body { margin: 0; padding: 0; color: #000; font-family: system-ui, -apple-system, "Segoe UI", "Sarabun", sans-serif; }
+        .sticker {
+          width: 50mm; height: 30mm; padding: 1.5mm 2mm;
+          display: flex; flex-direction: column; gap: 0.8mm;
+          page-break-after: always;
+        }
+        .top { flex: 1; display: flex; align-items: center; gap: 1.5mm; min-height: 0; }
+        .left { flex: 1; min-width: 0; display: flex; align-items: center; justify-content: center; }
+        .remote {
+          font-weight: 900; line-height: 0.95; text-align: center;
+          font-size: ${nameFontMm}mm;
+          word-break: break-all; overflow: hidden;
+        }
+        .qr { flex-shrink: 0; width: 21mm; height: 21mm; }
+        .qr svg { width: 100% !important; height: 100% !important; display: block; }
+        .divider { border-top: 0.3mm solid #000; }
+        .bottom {
+          display: flex; align-items: center; justify-content: center; gap: 1.5mm;
+          font-size: 2.6mm; font-weight: 700; letter-spacing: 0.1px;
+          white-space: nowrap; overflow: hidden;
+        }
+        .model { font-weight: 700; }
+        .vbar { width: 0.3mm; height: 2.6mm; background: #000; }
+        .sn { font-family: ui-monospace, Menlo, Consolas, monospace; font-weight: 700; }
+        @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
       </style>
       </head><body>
         <div class="sticker">
           <div class="top">
-            <div class="remote">${remoteName}</div>
+            <div class="left"><div class="remote">${remoteName}</div></div>
             <div class="qr">${svgData}</div>
           </div>
-          <div class="divider-line"></div>
+          <div class="divider"></div>
           <div class="bottom">
-            ${code}${sn ? ` &nbsp;<span class="sn">SN.${sn}</span>` : ""}
+            ${model ? `<span class="model">${model}</span><span class="vbar"></span>` : ""}
+            ${sn ? `<span class="sn">${sn}</span>` : ""}
           </div>
         </div>
         <script>setTimeout(()=>window.print(),300)</script>
