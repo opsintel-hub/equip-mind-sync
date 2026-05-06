@@ -512,6 +512,19 @@ export default function DocumentSearch() {
       const { data: receiptData } = await supabase
         .from("goods_receipt").select("*, equipment:equipment_id(code, name)").order("created_at", { ascending: false });
 
+      // Map receipt_document_no -> S/Ns (for both equipment serials and media players received under that doc)
+      const receiptSnMap = new Map<string, string[]>();
+      const { data: esnByReceipt } = await supabase
+        .from("equipment_serial_numbers")
+        .select("serial_number, receipt_document_no")
+        .not("receipt_document_no", "is", null);
+      for (const r of (esnByReceipt || []) as any[]) {
+        const k = (r.receipt_document_no || "").trim();
+        if (!k || !r.serial_number) continue;
+        if (!receiptSnMap.has(k)) receiptSnMap.set(k, []);
+        receiptSnMap.get(k)!.push(r.serial_number);
+      }
+
       // Fetch from goods_issue_pending (with extended fields for tracker)
       // Note: confirmed_at lives on delivery_confirmations, not on goods_issue_pending
       const { data: issueData, error: issueError } = await supabase
@@ -522,7 +535,9 @@ export default function DocumentSearch() {
 
       // Fetch from delivery_confirmations
       const { data: dcData } = await supabase
-        .from("delivery_confirmations").select("*").order("created_at", { ascending: false });
+        .from("delivery_confirmations")
+        .select("*, goods_issue_pending:goods_issue_pending_id(equipment_code, equipment_name, requester_name, goods_issue_pending_items(serial_number))")
+        .order("created_at", { ascending: false });
 
       // Fetch from direct_shipments (with extended fields for tracker)
       const { data: dsData } = await supabase
@@ -545,7 +560,7 @@ export default function DocumentSearch() {
       // Fetch from defective_returns (นำของเสียเข้าระบบ)
       const { data: defData } = await supabase
         .from("defective_returns")
-        .select("id, document_no, status, dispose_status, disposal_method, quantity, reason, item_condition, source_type, reporter_name, reporter_department, created_at, equipment:equipment_id(code, name, unit), media_player:media_player_id(code, name)")
+        .select("id, document_no, status, dispose_status, disposal_method, quantity, reason, item_condition, source_type, reporter_name, reporter_department, billboard_id, created_at, equipment:equipment_id(code, name, unit), media_player:media_player_id(code, name, serial_number_1, serial_number_2), billboards:billboard_id(code, location_name)")
         .order("created_at", { ascending: false });
 
       // Fetch from assessment_logs (บันทึกการประเมิน)
@@ -563,7 +578,7 @@ export default function DocumentSearch() {
       // Fetch from swap_requests (Swap อุปกรณ์/MP)
       const { data: swapData } = await supabase
         .from("swap_requests")
-        .select("id, document_no, status, technician_name, reason, created_at")
+        .select("id, document_no, status, technician_name, description, created_at, old_serial_number, new_serial_number, reported_serial_number, reported_item_code, reported_item_name, billboard_id, billboards:billboard_id(code, location_name)")
         .order("created_at", { ascending: false })
         .limit(500);
 
@@ -583,14 +598,17 @@ export default function DocumentSearch() {
         status: item.status, source: (item.status === "received" ? "received" : "pending") as "pending" | "received", raw: item,
       }));
 
-      const receiptDocs: DocumentRecord[] = (receiptData || []).map((item: any) => ({
-        id: item.id, document_no: item.document_no, document_url: item.document_url,
-        equipment_code: item.equipment?.code || null, equipment_name: item.equipment?.name || null,
-        serial_number: null,
-        supplier_name: item.supplier, delivery_person_name: null,
-        quantity: item.quantity, unit: "ชิ้น", created_at: item.created_at,
-        status: item.status, source: "received" as const, raw: item,
-      }));
+      const receiptDocs: DocumentRecord[] = (receiptData || []).map((item: any) => {
+        const sns = receiptSnMap.get((item.document_no || "").trim()) || [];
+        return {
+          id: item.id, document_no: item.document_no, document_url: item.document_url,
+          equipment_code: item.equipment?.code || null, equipment_name: item.equipment?.name || null,
+          serial_number: sns.length > 0 ? sns.join("\n") : null,
+          supplier_name: item.supplier, delivery_person_name: null,
+          quantity: item.quantity, unit: "ชิ้น", created_at: item.created_at,
+          status: item.status, source: "received" as const, raw: item,
+        };
+      });
 
       const issueDocs: DocumentRecord[] = (issueData || []).map((item: any) => {
         const sns = (item.goods_issue_pending_items || [])
@@ -608,14 +626,20 @@ export default function DocumentSearch() {
         };
       });
 
-      const dcDocs: DocumentRecord[] = (dcData || []).map((item: any) => ({
-        id: item.id, document_no: item.document_no, document_url: null,
-        equipment_code: null, equipment_name: null,
-        serial_number: null,
-        supplier_name: null, delivery_person_name: null,
-        quantity: 0, unit: "-", created_at: item.created_at,
-        status: item.status, source: "delivery_confirm" as const, raw: item,
-      }));
+      const dcDocs: DocumentRecord[] = (dcData || []).map((item: any) => {
+        const gip = item.goods_issue_pending;
+        const sns = (gip?.goods_issue_pending_items || [])
+          .map((it: any) => it.serial_number?.trim()).filter(Boolean);
+        return {
+          id: item.id, document_no: item.document_no, document_url: null,
+          equipment_code: gip?.equipment_code || null,
+          equipment_name: gip?.equipment_name || null,
+          serial_number: sns.length > 0 ? sns.join("\n") : null,
+          supplier_name: null, delivery_person_name: gip?.requester_name || null,
+          quantity: item.actual_quantity || 0, unit: "-", created_at: item.created_at,
+          status: item.status, source: "delivery_confirm" as const, raw: item,
+        };
+      });
 
       const dsDocs: DocumentRecord[] = (dsData || []).map((item: any) => {
         const sns = (item.direct_shipment_items || [])
@@ -652,17 +676,22 @@ export default function DocumentSearch() {
         status: item.status, source: "ad_issue" as const, raw: item,
       }));
 
-      const defectiveDocs: DocumentRecord[] = (defData || []).map((item: any) => ({
-        id: item.id, document_no: item.document_no, document_url: null,
-        equipment_code: item.equipment?.code || item.media_player?.code || null,
-        equipment_name: item.equipment?.name || item.media_player?.name || null,
-        serial_number: null,
-        supplier_name: item.reporter_department || null,
-        delivery_person_name: item.reporter_name || null,
-        quantity: item.quantity || 0, unit: item.equipment?.unit || "ชิ้น",
-        created_at: item.created_at, status: item.status,
-        source: "defective" as const, raw: item,
-      }));
+      const defectiveDocs: DocumentRecord[] = (defData || []).map((item: any) => {
+        const mp = item.media_player;
+        const sns = mp ? [mp.serial_number_1, mp.serial_number_2].map((s: any) => (s || "").trim()).filter(Boolean) : [];
+        const bb = item.billboards;
+        return {
+          id: item.id, document_no: item.document_no, document_url: null,
+          equipment_code: item.equipment?.code || mp?.code || null,
+          equipment_name: item.equipment?.name || mp?.name || null,
+          serial_number: sns.length > 0 ? sns.join("\n") : null,
+          supplier_name: bb ? `ป้าย ${bb.code || ""} ${bb.location_name || ""}`.trim() : (item.reporter_department || null),
+          delivery_person_name: item.reporter_name || null,
+          quantity: item.quantity || 0, unit: item.equipment?.unit || "ชิ้น",
+          created_at: item.created_at, status: item.status,
+          source: "defective" as const, raw: item,
+        };
+      });
 
       const assessmentDocs: DocumentRecord[] = (asmData || []).map((item: any) => ({
         id: item.id, document_no: item.document_no, document_url: null,
@@ -684,14 +713,21 @@ export default function DocumentSearch() {
         source: "claim" as const, raw: item,
       }));
 
-      const swapDocs: DocumentRecord[] = (swapData || []).map((item: any) => ({
-        id: item.id, document_no: item.document_no, document_url: null,
-        equipment_code: null, equipment_name: item.reason || null,
-        serial_number: null,
-        supplier_name: null, delivery_person_name: item.technician_name,
-        quantity: 0, unit: "-", created_at: item.created_at, status: item.status,
-        source: "swap" as const, raw: item,
-      }));
+      const swapDocs: DocumentRecord[] = (swapData || []).map((item: any) => {
+        const sns = [item.reported_serial_number, item.old_serial_number, item.new_serial_number]
+          .map((s: any) => (s || "").trim()).filter(Boolean);
+        const bb = item.billboards;
+        return {
+          id: item.id, document_no: item.document_no, document_url: null,
+          equipment_code: item.reported_item_code || null,
+          equipment_name: item.reported_item_name || item.description || null,
+          serial_number: sns.length > 0 ? Array.from(new Set(sns)).join("\n") : null,
+          supplier_name: bb ? `ป้าย ${bb.code || ""} ${bb.location_name || ""}`.trim() : null,
+          delivery_person_name: item.technician_name,
+          quantity: 0, unit: "-", created_at: item.created_at, status: item.status,
+          source: "swap" as const, raw: item,
+        };
+      });
 
       const stockMoveDocs: DocumentRecord[] = (smData || []).map((item: any) => ({
         id: item.id,
@@ -993,37 +1029,71 @@ export default function DocumentSearch() {
                         </TableCell>
                         <TableCell className="text-xs">
                           {(() => {
-                            if (snList.length === 0) return <span className="text-muted-foreground/40">-</span>;
-                            const infos = snList.map((sn) => ({ sn, info: snLocationMap.get(sn.toLowerCase()) }));
-                            const known = infos.filter((x) => x.info);
-                            if (known.length === 0) return <span className="text-muted-foreground/40">ไม่มีข้อมูล</span>;
-                            // Group by label+sublabel
-                            const groups = new Map<string, { info: LocationInfo; sns: string[] }>();
-                            for (const { sn, info } of infos) {
-                              if (!info) continue;
-                              const key = `${info.kind}|${info.label}|${info.sublabel || ""}`;
-                              if (!groups.has(key)) groups.set(key, { info, sns: [] });
-                              groups.get(key)!.sns.push(sn);
-                            }
                             const colorFor = (k: LocationInfo["kind"]) =>
                               k === "billboard" ? "info"
                               : k === "warehouse" ? "success"
                               : k === "defective" ? "destructive"
                               : k === "issued" ? "warning"
                               : "outline";
-                            return (
-                              <div className="space-y-1 max-w-[220px]">
-                                {Array.from(groups.values()).map((g, i) => (
-                                  <div key={i} className="space-y-0.5">
-                                    <Badge variant={colorFor(g.info.kind) as any} className="text-[10px]">{g.info.label}</Badge>
-                                    {g.info.sublabel && <div className="text-[10px] text-muted-foreground leading-tight">{g.info.sublabel}</div>}
-                                    {groups.size > 1 && (
-                                      <div className="text-[9px] text-muted-foreground/70 font-mono">{g.sns.join(", ")}</div>
-                                    )}
+
+                            if (snList.length > 0) {
+                              const infos = snList.map((sn) => ({ sn, info: snLocationMap.get(sn.toLowerCase()) }));
+                              const groups = new Map<string, { info: LocationInfo; sns: string[] }>();
+                              for (const { sn, info } of infos) {
+                                if (!info) continue;
+                                const key = `${info.kind}|${info.label}|${info.sublabel || ""}`;
+                                if (!groups.has(key)) groups.set(key, { info, sns: [] });
+                                groups.get(key)!.sns.push(sn);
+                              }
+                              if (groups.size > 0) {
+                                return (
+                                  <div className="space-y-1 max-w-[220px]">
+                                    {Array.from(groups.values()).map((g, i) => (
+                                      <div key={i} className="space-y-0.5">
+                                        <Badge variant={colorFor(g.info.kind) as any} className="text-[10px]">{g.info.label}</Badge>
+                                        {g.info.sublabel && <div className="text-[10px] text-muted-foreground leading-tight">{g.info.sublabel}</div>}
+                                        {groups.size > 1 && (
+                                          <div className="text-[9px] text-muted-foreground/70 font-mono">{g.sns.join(", ")}</div>
+                                        )}
+                                      </div>
+                                    ))}
                                   </div>
-                                ))}
-                              </div>
-                            );
+                                );
+                              }
+                            }
+
+                            const r: any = doc.raw || {};
+                            const bb = r.billboards;
+                            if (bb && (doc.source === "swap" || doc.source === "defective")) {
+                              return (
+                                <div className="space-y-0.5">
+                                  <Badge variant="info" className="text-[10px]">ป้าย {bb.code || ""}</Badge>
+                                  {bb.location_name && <div className="text-[10px] text-muted-foreground leading-tight">{bb.location_name}</div>}
+                                </div>
+                              );
+                            }
+                            if (doc.source === "defective") {
+                              const s = doc.status;
+                              if (s === "completed" || s === "disposed") return <Badge variant="destructive" className="text-[10px]">จัดการเสร็จ (คลังของเสีย)</Badge>;
+                              return <Badge variant="warning" className="text-[10px]">รอเข้าคลังของเสีย</Badge>;
+                            }
+                            if (doc.source === "assessment") {
+                              return <Badge variant="purple" className="text-[10px]">พักรอประเมิน</Badge>;
+                            }
+                            if (doc.source === "claim") {
+                              return <Badge variant="destructive" className="text-[10px]">รอเคลม</Badge>;
+                            }
+                            if (doc.source === "advertisement") {
+                              if (doc.status === "in_storage") return <Badge variant="success" className="text-[10px]">อยู่ในคลัง</Badge>;
+                              if (doc.status === "issued") return <Badge variant="warning" className="text-[10px]">ถูกเบิกใช้</Badge>;
+                            }
+                            if (doc.source === "received" || (doc.source === "pending" && doc.status === "received")) {
+                              return <Badge variant="success" className="text-[10px]">เข้าคลังแล้ว</Badge>;
+                            }
+                            if (doc.source === "issue" && doc.status === "issued") {
+                              return <Badge variant="warning" className="text-[10px]">จ่ายออกแล้ว</Badge>;
+                            }
+                            return <span className="text-muted-foreground/40">-</span>;
                           })()}
                         </TableCell>
                         <TableCell className="text-sm">{doc.supplier_name || doc.delivery_person_name || <span className="text-muted-foreground/40">-</span>}</TableCell>
