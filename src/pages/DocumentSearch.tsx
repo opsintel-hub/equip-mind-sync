@@ -580,7 +580,7 @@ export default function DocumentSearch() {
       // Fetch from swap_requests (Swap อุปกรณ์/MP)
       const { data: swapData } = await supabase
         .from("swap_requests")
-        .select("id, document_no, status, technician_name, description, created_at, old_serial_number, new_serial_number, reported_serial_number, reported_item_code, reported_item_name, billboard_id, billboards:billboard_id(code, location_name)")
+        .select("id, document_no, status, technician_name, description, created_at, old_serial_number, new_serial_number, reported_serial_number, reported_item_code, reported_item_name, billboard_id, billboards:billboard_id(equipment_id, old_code, location_name)")
         .order("created_at", { ascending: false })
         .limit(500);
 
