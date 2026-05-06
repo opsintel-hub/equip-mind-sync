@@ -859,6 +859,7 @@ export default function DocumentSearch() {
         const locLabel = loc
           ? `${loc.warehouses?.name ? loc.warehouses.name + " / " : ""}${loc.code || ""} ${loc.name || ""}`.trim()
           : null;
+        const party = refDoc ? (smRefPartyMap.get(refDoc) || null) : null;
         return {
           id: item.id,
           document_no: refDoc || `SM-${item.id.slice(0, 8)}`,
@@ -866,13 +867,13 @@ export default function DocumentSearch() {
           equipment_code: item.equipment_code,
           equipment_name: item.equipment_name,
           serial_number: sns.length > 0 ? sns.join("\n") : null,
-          supplier_name: locLabel,
-          delivery_person_name: item.notes || null,
+          supplier_name: party,
+          delivery_person_name: null,
           quantity: Math.abs(item.quantity || 0), unit: "-",
           created_at: item.created_at,
           status: movementTypeLabel(item.movement_type),
           source: "stock_movement" as const,
-          raw: { ...item, _movement_type_label: movementTypeLabel(item.movement_type) },
+          raw: { ...item, _movement_type_label: movementTypeLabel(item.movement_type), _location_label: locLabel, _notes: item.notes || null },
         };
       });
 
