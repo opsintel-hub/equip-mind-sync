@@ -58,41 +58,30 @@ const MediaPlayerPublicView = () => {
 
     setPlayer(p as unknown as MediaPlayerRow);
 
-    if ((p as any).model_id) {
-      const { data: model } = await supabase
-        .from("media_player_models" as any)
-        .select("name")
-        .eq("id", (p as any).model_id)
-        .maybeSingle();
-      if (model) setModelName((model as any).name);
-    }
-
-    if ((p as any).status) {
-      const { data: st } = await supabase
-        .from("media_player_statuses" as any)
-        .select("label")
-        .eq("value", (p as any).status)
-        .maybeSingle();
-      setStatusLabel(st ? (st as any).label : (p as any).status);
-    }
-
-    const { data: imgs } = await supabase
-      .from("media_player_images" as any)
-      .select("image_url")
-      .eq("media_player_id", playerId)
-      .order("display_order");
-    setImages((imgs || []).map((i: any) => i.image_url));
+    const [modelRes, statusRes, imgRes] = await Promise.all([
+      (p as any).model_id
+        ? supabase.from("media_player_models" as any).select("name").eq("id", (p as any).model_id).maybeSingle()
+        : Promise.resolve({ data: null } as any),
+      (p as any).status
+        ? supabase.from("media_player_statuses" as any).select("label").eq("value", (p as any).status).maybeSingle()
+        : Promise.resolve({ data: null } as any),
+      supabase.from("media_player_images" as any).select("image_url").eq("media_player_id", playerId).order("display_order"),
+    ]);
+    if (modelRes.data) setModelName((modelRes.data as any).name);
+    setStatusLabel(statusRes.data ? (statusRes.data as any).label : ((p as any).status || "Active"));
+    setImages(((imgRes.data as any) || []).map((i: any) => i.image_url));
 
     // Journeys
-    const { data: history } = await supabase
-      .from("billboard_equipment_history")
-      .select("billboard_id, installation_date, uninstall_date, uninstall_reason, quantity")
-      .eq("equipment_id", playerId);
-
-    const { data: currentInstalls } = await supabase
-      .from("billboard_equipment")
-      .select("billboard_id, installation_date, quantity")
-      .eq("equipment_id", playerId);
+    const [{ data: history }, { data: currentInstalls }] = await Promise.all([
+      supabase
+        .from("billboard_equipment_history")
+        .select("billboard_id, installation_date, uninstall_date, uninstall_reason, quantity")
+        .eq("equipment_id", playerId),
+      supabase
+        .from("billboard_equipment")
+        .select("billboard_id, installation_date, quantity")
+        .eq("equipment_id", playerId),
+    ]);
 
     const journeyData: BillboardJourney[] = [];
     const allBbIds = new Set<string>();
