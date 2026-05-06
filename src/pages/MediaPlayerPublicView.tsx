@@ -2,7 +2,6 @@ import React, { useState, useEffect, useMemo } from "react";
 import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ProcessTracker, ProcessStep } from "@/components/ProcessTracker";
 import { differenceInDays, parseISO } from "date-fns";
 import { Loader2, Monitor } from "lucide-react";
@@ -194,25 +193,24 @@ const MediaPlayerPublicView = () => {
 
         <ProfileHeader player={player} modelName={modelName} statusLabel={statusLabel} images={images} />
 
-        <Tabs defaultValue="general" className="w-full">
-          <TabsList className="sticky top-2 z-10 grid h-auto w-full grid-cols-3 max-w-none border bg-background/95 shadow-sm backdrop-blur sm:static sm:max-w-lg">
-            <TabsTrigger value="general" className="min-h-10 px-1 text-xs sm:text-sm">ข้อมูลทั่วไป</TabsTrigger>
-            <TabsTrigger value="journey" className="min-h-10 px-1 text-xs sm:text-sm">ประวัติติดตั้ง</TabsTrigger>
-            <TabsTrigger value="movements" className="min-h-10 px-1 text-xs sm:text-sm">Stock Card</TabsTrigger>
-          </TabsList>
+        {/* Quick jump links — shown clearly on mobile */}
+        <div className="flex flex-wrap gap-2">
+          <a href="#general" className="px-3 py-1.5 rounded-md border bg-background text-xs font-medium hover:bg-muted">ข้อมูลทั่วไป</a>
+          <a href="#journey" className="px-3 py-1.5 rounded-md border bg-background text-xs font-medium hover:bg-muted">ประวัติติดตั้ง</a>
+          <a href="#movements" className="px-3 py-1.5 rounded-md border bg-primary text-primary-foreground text-xs font-semibold hover:opacity-90">📊 Stock Card</a>
+        </div>
 
-          <TabsContent value="general">
-            <GeneralInfoTab player={player} modelName={modelName} />
-          </TabsContent>
+        <section id="general" className="scroll-mt-4">
+          <GeneralInfoTab player={player} modelName={modelName} />
+        </section>
 
-          <TabsContent value="journey">
-            <JourneyTab player={player} journeys={journeys} />
-          </TabsContent>
+        <section id="journey" className="scroll-mt-4">
+          <JourneyTab player={player} journeys={journeys} />
+        </section>
 
-          <TabsContent value="movements">
-            <MovementTab movements={movements} playerCode={player.code} />
-          </TabsContent>
-        </Tabs>
+        <section id="movements" className="scroll-mt-4">
+          <MovementTab movements={movements} playerCode={player.code} />
+        </section>
 
         <SummaryCards player={player} journeys={journeys} />
 
