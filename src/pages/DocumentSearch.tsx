@@ -596,14 +596,17 @@ export default function DocumentSearch() {
         status: item.status, source: (item.status === "received" ? "received" : "pending") as "pending" | "received", raw: item,
       }));
 
-      const receiptDocs: DocumentRecord[] = (receiptData || []).map((item: any) => ({
-        id: item.id, document_no: item.document_no, document_url: item.document_url,
-        equipment_code: item.equipment?.code || null, equipment_name: item.equipment?.name || null,
-        serial_number: null,
-        supplier_name: item.supplier, delivery_person_name: null,
-        quantity: item.quantity, unit: "ชิ้น", created_at: item.created_at,
-        status: item.status, source: "received" as const, raw: item,
-      }));
+      const receiptDocs: DocumentRecord[] = (receiptData || []).map((item: any) => {
+        const sns = receiptSnMap.get((item.document_no || "").trim()) || [];
+        return {
+          id: item.id, document_no: item.document_no, document_url: item.document_url,
+          equipment_code: item.equipment?.code || null, equipment_name: item.equipment?.name || null,
+          serial_number: sns.length > 0 ? sns.join("\n") : null,
+          supplier_name: item.supplier, delivery_person_name: null,
+          quantity: item.quantity, unit: "ชิ้น", created_at: item.created_at,
+          status: item.status, source: "received" as const, raw: item,
+        };
+      });
 
       const issueDocs: DocumentRecord[] = (issueData || []).map((item: any) => {
         const sns = (item.goods_issue_pending_items || [])
