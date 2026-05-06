@@ -421,11 +421,12 @@ function getCurrentStatusBadge(doc: DocumentRecord): { label: string; variant: "
       return { label: "รออนุมัติ", variant: "warning" };
     case "stock_movement": {
       const mt = (doc.raw?.movement_type || "").toLowerCase();
-      if (mt.includes("in") || mt === "receive") return { label: "รับเข้า", variant: "success" };
-      if (mt.includes("out") || mt === "issue") return { label: "จ่ายออก", variant: "info" };
-      if (mt.includes("transfer")) return { label: "โอน", variant: "purple" };
-      if (mt.includes("adjust")) return { label: "ปรับสต็อก", variant: "warning" };
-      return { label: doc.raw?.movement_type || s || "-", variant: "outline" };
+      const label = doc.raw?._movement_type_label || doc.status;
+      if (mt.includes("in") || mt === "receive" || mt === "refurb_back") return { label, variant: "success" };
+      if (mt.includes("out") || mt === "issue") return { label, variant: "info" };
+      if (mt.includes("transfer")) return { label, variant: "purple" };
+      if (mt.includes("adjust")) return { label, variant: "warning" };
+      return { label: label || "-", variant: "outline" };
     }
     default:
       return { label: s || "-", variant: "outline" };
