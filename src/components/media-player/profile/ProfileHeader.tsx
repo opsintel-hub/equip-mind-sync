@@ -28,30 +28,27 @@ export function ProfileHeader({ player, modelName, statusLabel, images }: Profil
     setLightboxOpen(true);
   };
 
-  const downloadQR = async () => {
+  const drawSticker = async (canvas: HTMLCanvasElement, mmScale = 24) => {
     const svg = document.getElementById("media-player-qr-code");
-    if (!svg) return;
+    if (!svg) return false;
     const svgData = new XMLSerializer().serializeToString(svg);
     const remoteName = (player.remote_name || player.code || "").toString();
     const sn = (player.serial_number_1 || "").toString();
     const code = (player.code || "").toString();
 
-    // Sticker 50mm x 30mm at high DPI (scale: 24 px/mm => 1200x720)
-    const MM = 24;
+    const MM = mmScale;
     const W = 50 * MM;
     const H = 30 * MM;
     const padX = 2 * MM;
     const padY = 1.5 * MM;
     const qrSize = 21 * MM;
 
-    const canvas = document.createElement("canvas");
     canvas.width = W;
     canvas.height = H;
     const ctx = canvas.getContext("2d")!;
     ctx.fillStyle = "#ffffff";
     ctx.fillRect(0, 0, W, H);
 
-    // Load QR svg as image
     const qrImg = new Image();
     qrImg.crossOrigin = "anonymous";
     await new Promise<void>((resolve, reject) => {
@@ -60,13 +57,11 @@ export function ProfileHeader({ player, modelName, statusLabel, images }: Profil
       qrImg.src = "data:image/svg+xml;base64," + btoa(unescape(encodeURIComponent(svgData)));
     });
 
-    // QR right side, vertically centered in top area
-    const topAreaH = H - padY * 2 - 0.3 * MM - 4 * MM; // reserve bottom for divider+text
+    const topAreaH = H - padY * 2 - 0.3 * MM - 4 * MM;
     const qrX = W - padX - qrSize;
     const qrY = padY + (topAreaH - qrSize) / 2;
     ctx.drawImage(qrImg, qrX, qrY, qrSize, qrSize);
 
-    // Remote Name (left side, large bold) - auto-fit
     const leftAreaW = qrX - padX - 1.5 * MM;
     const leftAreaH = topAreaH;
     ctx.fillStyle = "#000000";
@@ -82,12 +77,10 @@ export function ProfileHeader({ player, modelName, statusLabel, images }: Profil
     }
     ctx.fillText(remoteName, padX + leftAreaW / 2, padY + leftAreaH / 2);
 
-    // Divider
     const divY = padY + topAreaH + 1 * MM;
     ctx.fillStyle = "#000000";
     ctx.fillRect(padX, divY, W - padX * 2, Math.max(1, 0.3 * MM));
 
-    // Bottom: code | sn
     const bottomY = divY + 0.3 * MM + 1.5 * MM;
     const bottomFontPx = 2.6 * MM;
     ctx.font = `bold ${bottomFontPx}px ${fontFamily}`;
@@ -96,7 +89,25 @@ export function ProfileHeader({ player, modelName, statusLabel, images }: Profil
     const sep = "  |  ";
     const text = sn ? `${code}${sep}${sn}` : code;
     ctx.fillText(text, W / 2, bottomY);
+    return true;
+  };
 
+  // Render preview when dialog opens
+  useEffect(() => {
+    if (!qrOpen) return;
+    const t = setTimeout(() => {
+      if (previewCanvasRef.current) {
+        drawSticker(previewCanvasRef.current, 8).catch(() => {});
+      }
+    }, 100);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [qrOpen, player.id]);
+
+  const downloadQR = async () => {
+    const canvas = document.createElement("canvas");
+    const ok = await drawSticker(canvas, 24);
+    if (!ok) return;
     const link = document.createElement("a");
     link.download = `qr-media-player-${player.code}.png`;
     link.href = canvas.toDataURL("image/png");
