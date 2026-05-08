@@ -3,11 +3,26 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Monitor, QrCode, Download, Printer, ChevronLeft, ChevronRight, X } from "lucide-react";
 import QRCodeSVG from "react-qr-code";
 import { MediaPlayerRow } from "./types";
 import { getConditionDisplay } from "./constants";
 import { getPublicBaseUrl } from "@/lib/publicUrl";
+
+type StickerOptions = {
+  widthMm: number;
+  heightMm: number;
+  qrPosition: "right" | "left";
+};
+
+const SIZE_PRESETS: { label: string; w: number; h: number }[] = [
+  { label: "50 × 30", w: 50, h: 30 },
+  { label: "70 × 40", w: 70, h: 40 },
+  { label: "40 × 25", w: 40, h: 25 },
+  { label: "100 × 50", w: 100, h: 50 },
+];
 
 interface ProfileHeaderProps {
   player: MediaPlayerRow;
