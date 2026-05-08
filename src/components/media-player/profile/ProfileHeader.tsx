@@ -227,7 +227,7 @@ export function ProfileHeader({ player, modelName, statusLabel, images }: Profil
                   {condition.label}
                 </Badge>
                 {/* QR Code */}
-                <Dialog>
+                <Dialog open={qrOpen} onOpenChange={setQrOpen}>
                   <DialogTrigger asChild>
                     <Button variant="outline" size="sm" className="gap-1.5">
                       <QrCode className="w-4 h-4" />
@@ -239,13 +239,26 @@ export function ProfileHeader({ player, modelName, statusLabel, images }: Profil
                       <DialogTitle>QR Code — {player.code}</DialogTitle>
                     </DialogHeader>
                     <div className="flex flex-col items-center gap-4 py-4">
-                      <div className="bg-white p-4 rounded-xl">
+                      <div className="bg-white p-4 rounded-xl hidden">
                         <QRCodeSVG
                           id="media-player-qr-code"
                           value={`${getPublicBaseUrl()}/p/media-player/${player.id}`}
                           size={220}
                           level="H"
                         />
+                      </div>
+                      {/* Sticker preview (50x30mm @ 8px/mm = 400x240) */}
+                      <div className="w-full">
+                        <p className="text-xs text-muted-foreground mb-1.5 text-center">
+                          ตัวอย่างสติ๊กเกอร์ (ขนาดจริง 50 × 30 มม.)
+                        </p>
+                        <div className="flex justify-center">
+                          <canvas
+                            ref={previewCanvasRef}
+                            className="border rounded-md shadow-sm bg-white"
+                            style={{ width: "400px", maxWidth: "100%", height: "auto" }}
+                          />
+                        </div>
                       </div>
                       <p className="text-sm text-muted-foreground text-center">
                         สแกนเพื่อเปิดหน้า Profile ของ <span className="font-mono font-semibold">{player.code}</span>
