@@ -3,11 +3,26 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Monitor, QrCode, Download, Printer, ChevronLeft, ChevronRight, X } from "lucide-react";
 import QRCodeSVG from "react-qr-code";
 import { MediaPlayerRow } from "./types";
 import { getConditionDisplay } from "./constants";
 import { getPublicBaseUrl } from "@/lib/publicUrl";
+
+type StickerOptions = {
+  widthMm: number;
+  heightMm: number;
+  qrPosition: "right" | "left";
+};
+
+const SIZE_PRESETS: { label: string; w: number; h: number }[] = [
+  { label: "50 × 30", w: 50, h: 30 },
+  { label: "70 × 40", w: 70, h: 40 },
+  { label: "40 × 25", w: 40, h: 25 },
+  { label: "100 × 50", w: 100, h: 50 },
+];
 
 interface ProfileHeaderProps {
   player: MediaPlayerRow;
@@ -23,12 +38,22 @@ export function ProfileHeader({ player, modelName, statusLabel, images }: Profil
   const previewCanvasRef = useRef<HTMLCanvasElement>(null);
   const condition = getConditionDisplay(player.item_condition);
 
+  const [stickerOpts, setStickerOpts] = useState<StickerOptions>({
+    widthMm: 50,
+    heightMm: 30,
+    qrPosition: "right",
+  });
+
   const openLightbox = (index: number) => {
     setLightboxIndex(index);
     setLightboxOpen(true);
   };
 
-  const drawSticker = async (canvas: HTMLCanvasElement, mmScale = 24) => {
+  const drawSticker = async (
+    canvas: HTMLCanvasElement,
+    opts: StickerOptions,
+    mmScale = 24
+  ) => {
     const svg = document.getElementById("media-player-qr-code");
     if (!svg) return false;
     const svgData = new XMLSerializer().serializeToString(svg);
@@ -37,11 +62,15 @@ export function ProfileHeader({ player, modelName, statusLabel, images }: Profil
     const code = (player.code || "").toString();
 
     const MM = mmScale;
-    const W = 50 * MM;
-    const H = 30 * MM;
-    const padX = 2 * MM;
-    const padY = 1.5 * MM;
-    const qrSize = 21 * MM;
+    const W = opts.widthMm * MM;
+    const H = opts.heightMm * MM;
+    const padX = Math.max(1.5, opts.widthMm * 0.04) * MM;
+    const padY = Math.max(1, opts.heightMm * 0.05) * MM;
+    // Reserve bottom strip ~ 18% of height for divider + code|sn
+    const bottomStripH = Math.max(4, opts.heightMm * 0.18) * MM;
+    const topAreaH = H - padY * 2 - bottomStripH;
+    // QR is square, fit to top area height
+    const qrSize = Math.min(topAreaH, (opts.widthMm - 4) * MM * 0.5);
 
     canvas.width = W;
     canvas.height = H;
@@ -54,64 +83,91 @@ export function ProfileHeader({ player, modelName, statusLabel, images }: Profil
     await new Promise<void>((resolve, reject) => {
       qrImg.onload = () => resolve();
       qrImg.onerror = reject;
-      qrImg.src = "data:image/svg+xml;base64," + btoa(unescape(encodeURIComponent(svgData)));
+      qrImg.src =
+        "data:image/svg+xml;base64," +
+        btoa(unescape(encodeURIComponent(svgData)));
     });
 
-    const topAreaH = H - padY * 2 - 0.3 * MM - 4 * MM;
-    const qrX = W - padX - qrSize;
+    // QR position
+    const qrX =
+      opts.qrPosition === "right" ? W - padX - qrSize : padX;
     const qrY = padY + (topAreaH - qrSize) / 2;
     ctx.drawImage(qrImg, qrX, qrY, qrSize, qrSize);
 
-    const leftAreaW = qrX - padX - 1.5 * MM;
-    const leftAreaH = topAreaH;
+    // Name area (opposite side of QR)
+    const gap = 1.5 * MM;
+    const nameX =
+      opts.qrPosition === "right" ? padX : padX + qrSize + gap;
+    const nameW =
+      opts.qrPosition === "right"
+        ? qrX - padX - gap
+        : W - padX - (padX + qrSize + gap);
+    const nameH = topAreaH;
+
     ctx.fillStyle = "#000000";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    let fontPx = Math.floor(leftAreaH * 0.85);
+    let fontPx = Math.floor(nameH * 0.85);
     const fontFamily = `'Arial Black', 'Helvetica', system-ui, sans-serif`;
     while (fontPx > 10) {
       ctx.font = `900 ${fontPx}px ${fontFamily}`;
       const m = ctx.measureText(remoteName);
-      if (m.width <= leftAreaW * 0.95 && fontPx <= leftAreaH * 0.95) break;
+      if (m.width <= nameW * 0.95 && fontPx <= nameH * 0.95) break;
       fontPx -= 2;
     }
-    ctx.fillText(remoteName, padX + leftAreaW / 2, padY + leftAreaH / 2);
+    ctx.fillText(remoteName, nameX + nameW / 2, padY + nameH / 2);
 
+    // Divider
     const divY = padY + topAreaH + 1 * MM;
     ctx.fillStyle = "#000000";
     ctx.fillRect(padX, divY, W - padX * 2, Math.max(1, 0.3 * MM));
 
-    const bottomY = divY + 0.3 * MM + 1.5 * MM;
-    const bottomFontPx = 2.6 * MM;
-    ctx.font = `bold ${bottomFontPx}px ${fontFamily}`;
-    ctx.textAlign = "center";
-    ctx.textBaseline = "top";
+    // Bottom: code | sn (auto-fit width)
+    const bottomY = divY + 0.3 * MM + 1.2 * MM;
+    let bottomFontPx = Math.max(2, opts.heightMm * 0.09) * MM;
     const sep = "  |  ";
     const text = sn ? `${code}${sep}${sn}` : code;
+    while (bottomFontPx > 6) {
+      ctx.font = `bold ${bottomFontPx}px ${fontFamily}`;
+      if (ctx.measureText(text).width <= (W - padX * 2) * 0.98) break;
+      bottomFontPx -= 1;
+    }
+    ctx.textAlign = "center";
+    ctx.textBaseline = "top";
     ctx.fillText(text, W / 2, bottomY);
     return true;
   };
 
-  // Render preview when dialog opens
+  // Render preview when dialog opens or options change
   useEffect(() => {
     if (!qrOpen) return;
     const t = setTimeout(() => {
       if (previewCanvasRef.current) {
-        drawSticker(previewCanvasRef.current, 8).catch(() => {});
+        drawSticker(previewCanvasRef.current, stickerOpts, 8).catch(() => {});
       }
     }, 100);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [qrOpen, player.id]);
+  }, [qrOpen, player.id, stickerOpts.widthMm, stickerOpts.heightMm, stickerOpts.qrPosition]);
 
-  const downloadQR = async () => {
+  const downloadOne = async (opts: StickerOptions) => {
     const canvas = document.createElement("canvas");
-    const ok = await drawSticker(canvas, 24);
+    const ok = await drawSticker(canvas, opts, 24);
     if (!ok) return;
     const link = document.createElement("a");
-    link.download = `qr-media-player-${player.code}.png`;
+    link.download = `qr-${player.code}-${opts.widthMm}x${opts.heightMm}mm.png`;
     link.href = canvas.toDataURL("image/png");
     link.click();
+  };
+
+  const downloadQR = () => downloadOne(stickerOpts);
+
+  const downloadAllPresets = async () => {
+    for (const p of SIZE_PRESETS) {
+      // small delay so browser doesn't block multiple downloads
+      await downloadOne({ ...stickerOpts, widthMm: p.w, heightMm: p.h });
+      await new Promise((r) => setTimeout(r, 250));
+    }
   };
 
   const printQR = () => {
@@ -247,16 +303,106 @@ export function ProfileHeader({ player, modelName, statusLabel, images }: Profil
                           level="H"
                         />
                       </div>
-                      {/* Sticker preview (50x30mm @ 8px/mm = 400x240) */}
+                      {/* Size presets */}
+                      <div className="w-full space-y-2">
+                        <Label className="text-xs">ขนาดสติ๊กเกอร์ (มม.)</Label>
+                        <div className="flex flex-wrap gap-1.5">
+                          {SIZE_PRESETS.map((p) => {
+                            const active =
+                              stickerOpts.widthMm === p.w && stickerOpts.heightMm === p.h;
+                            return (
+                              <Button
+                                key={p.label}
+                                type="button"
+                                size="sm"
+                                variant={active ? "default" : "outline"}
+                                className="h-7 text-xs"
+                                onClick={() =>
+                                  setStickerOpts((o) => ({ ...o, widthMm: p.w, heightMm: p.h }))
+                                }
+                              >
+                                {p.label}
+                              </Button>
+                            );
+                          })}
+                        </div>
+                        <div className="flex items-end gap-2">
+                          <div className="flex-1">
+                            <Label className="text-[10px] text-muted-foreground">กว้าง (มม.)</Label>
+                            <Input
+                              type="number"
+                              min={20}
+                              max={200}
+                              value={stickerOpts.widthMm}
+                              onChange={(e) =>
+                                setStickerOpts((o) => ({
+                                  ...o,
+                                  widthMm: Math.max(20, Math.min(200, Number(e.target.value) || 0)),
+                                }))
+                              }
+                              className="h-8"
+                            />
+                          </div>
+                          <div className="flex-1">
+                            <Label className="text-[10px] text-muted-foreground">สูง (มม.)</Label>
+                            <Input
+                              type="number"
+                              min={15}
+                              max={150}
+                              value={stickerOpts.heightMm}
+                              onChange={(e) =>
+                                setStickerOpts((o) => ({
+                                  ...o,
+                                  heightMm: Math.max(15, Math.min(150, Number(e.target.value) || 0)),
+                                }))
+                              }
+                              className="h-8"
+                            />
+                          </div>
+                          <div className="flex-1">
+                            <Label className="text-[10px] text-muted-foreground">ตำแหน่ง QR</Label>
+                            <div className="flex gap-1">
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant={stickerOpts.qrPosition === "left" ? "default" : "outline"}
+                                className="h-8 flex-1 text-xs"
+                                onClick={() =>
+                                  setStickerOpts((o) => ({ ...o, qrPosition: "left" }))
+                                }
+                              >
+                                ซ้าย
+                              </Button>
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant={stickerOpts.qrPosition === "right" ? "default" : "outline"}
+                                className="h-8 flex-1 text-xs"
+                                onClick={() =>
+                                  setStickerOpts((o) => ({ ...o, qrPosition: "right" }))
+                                }
+                              >
+                                ขวา
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Sticker preview */}
                       <div className="w-full">
                         <p className="text-xs text-muted-foreground mb-1.5 text-center">
-                          ตัวอย่างสติ๊กเกอร์ (ขนาดจริง 50 × 30 มม.)
+                          ตัวอย่างสติ๊กเกอร์ (ขนาดจริง {stickerOpts.widthMm} × {stickerOpts.heightMm} มม.)
                         </p>
                         <div className="flex justify-center">
                           <canvas
                             ref={previewCanvasRef}
                             className="border rounded-md shadow-sm bg-white"
-                            style={{ width: "400px", maxWidth: "100%", height: "auto" }}
+                            style={{
+                              width: `${Math.min(400, stickerOpts.widthMm * 6)}px`,
+                              maxWidth: "100%",
+                              height: "auto",
+                            }}
                           />
                         </div>
                       </div>
@@ -266,16 +412,21 @@ export function ProfileHeader({ player, modelName, statusLabel, images }: Profil
                       {player.serial_number_1 && (
                         <p className="text-xs text-muted-foreground font-mono">S/N: {player.serial_number_1}</p>
                       )}
-                      <div className="flex gap-2">
-                        <Button variant="outline" size="sm" onClick={downloadQR}>
+                      <div className="flex flex-wrap gap-2 justify-center">
+                        <Button variant="default" size="sm" onClick={downloadQR}>
                           <Download className="w-4 h-4 mr-1" />
-                          ดาวน์โหลด
+                          ดาวน์โหลดขนาดนี้
+                        </Button>
+                        <Button variant="outline" size="sm" onClick={downloadAllPresets}>
+                          <Download className="w-4 h-4 mr-1" />
+                          ดาวน์โหลดทุกขนาด ({SIZE_PRESETS.length})
                         </Button>
                         <Button variant="outline" size="sm" onClick={printQR}>
                           <Printer className="w-4 h-4 mr-1" />
                           พิมพ์
                         </Button>
                       </div>
+
                     </div>
                   </DialogContent>
                 </Dialog>
