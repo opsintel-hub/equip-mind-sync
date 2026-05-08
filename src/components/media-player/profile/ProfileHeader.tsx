@@ -19,6 +19,8 @@ interface ProfileHeaderProps {
 export function ProfileHeader({ player, modelName, statusLabel, images }: ProfileHeaderProps) {
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(0);
+  const [qrOpen, setQrOpen] = useState(false);
+  const previewCanvasRef = useRef<HTMLCanvasElement>(null);
   const condition = getConditionDisplay(player.item_condition);
 
   const openLightbox = (index: number) => {
