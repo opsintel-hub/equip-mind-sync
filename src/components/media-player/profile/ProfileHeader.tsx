@@ -303,16 +303,106 @@ export function ProfileHeader({ player, modelName, statusLabel, images }: Profil
                           level="H"
                         />
                       </div>
-                      {/* Sticker preview (50x30mm @ 8px/mm = 400x240) */}
+                      {/* Size presets */}
+                      <div className="w-full space-y-2">
+                        <Label className="text-xs">ขนาดสติ๊กเกอร์ (มม.)</Label>
+                        <div className="flex flex-wrap gap-1.5">
+                          {SIZE_PRESETS.map((p) => {
+                            const active =
+                              stickerOpts.widthMm === p.w && stickerOpts.heightMm === p.h;
+                            return (
+                              <Button
+                                key={p.label}
+                                type="button"
+                                size="sm"
+                                variant={active ? "default" : "outline"}
+                                className="h-7 text-xs"
+                                onClick={() =>
+                                  setStickerOpts((o) => ({ ...o, widthMm: p.w, heightMm: p.h }))
+                                }
+                              >
+                                {p.label}
+                              </Button>
+                            );
+                          })}
+                        </div>
+                        <div className="flex items-end gap-2">
+                          <div className="flex-1">
+                            <Label className="text-[10px] text-muted-foreground">กว้าง (มม.)</Label>
+                            <Input
+                              type="number"
+                              min={20}
+                              max={200}
+                              value={stickerOpts.widthMm}
+                              onChange={(e) =>
+                                setStickerOpts((o) => ({
+                                  ...o,
+                                  widthMm: Math.max(20, Math.min(200, Number(e.target.value) || 0)),
+                                }))
+                              }
+                              className="h-8"
+                            />
+                          </div>
+                          <div className="flex-1">
+                            <Label className="text-[10px] text-muted-foreground">สูง (มม.)</Label>
+                            <Input
+                              type="number"
+                              min={15}
+                              max={150}
+                              value={stickerOpts.heightMm}
+                              onChange={(e) =>
+                                setStickerOpts((o) => ({
+                                  ...o,
+                                  heightMm: Math.max(15, Math.min(150, Number(e.target.value) || 0)),
+                                }))
+                              }
+                              className="h-8"
+                            />
+                          </div>
+                          <div className="flex-1">
+                            <Label className="text-[10px] text-muted-foreground">ตำแหน่ง QR</Label>
+                            <div className="flex gap-1">
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant={stickerOpts.qrPosition === "left" ? "default" : "outline"}
+                                className="h-8 flex-1 text-xs"
+                                onClick={() =>
+                                  setStickerOpts((o) => ({ ...o, qrPosition: "left" }))
+                                }
+                              >
+                                ซ้าย
+                              </Button>
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant={stickerOpts.qrPosition === "right" ? "default" : "outline"}
+                                className="h-8 flex-1 text-xs"
+                                onClick={() =>
+                                  setStickerOpts((o) => ({ ...o, qrPosition: "right" }))
+                                }
+                              >
+                                ขวา
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Sticker preview */}
                       <div className="w-full">
                         <p className="text-xs text-muted-foreground mb-1.5 text-center">
-                          ตัวอย่างสติ๊กเกอร์ (ขนาดจริง 50 × 30 มม.)
+                          ตัวอย่างสติ๊กเกอร์ (ขนาดจริง {stickerOpts.widthMm} × {stickerOpts.heightMm} มม.)
                         </p>
                         <div className="flex justify-center">
                           <canvas
                             ref={previewCanvasRef}
                             className="border rounded-md shadow-sm bg-white"
-                            style={{ width: "400px", maxWidth: "100%", height: "auto" }}
+                            style={{
+                              width: `${Math.min(400, stickerOpts.widthMm * 6)}px`,
+                              maxWidth: "100%",
+                              height: "auto",
+                            }}
                           />
                         </div>
                       </div>
@@ -322,16 +412,21 @@ export function ProfileHeader({ player, modelName, statusLabel, images }: Profil
                       {player.serial_number_1 && (
                         <p className="text-xs text-muted-foreground font-mono">S/N: {player.serial_number_1}</p>
                       )}
-                      <div className="flex gap-2">
-                        <Button variant="outline" size="sm" onClick={downloadQR}>
+                      <div className="flex flex-wrap gap-2 justify-center">
+                        <Button variant="default" size="sm" onClick={downloadQR}>
                           <Download className="w-4 h-4 mr-1" />
-                          ดาวน์โหลด
+                          ดาวน์โหลดขนาดนี้
+                        </Button>
+                        <Button variant="outline" size="sm" onClick={downloadAllPresets}>
+                          <Download className="w-4 h-4 mr-1" />
+                          ดาวน์โหลดทุกขนาด ({SIZE_PRESETS.length})
                         </Button>
                         <Button variant="outline" size="sm" onClick={printQR}>
                           <Printer className="w-4 h-4 mr-1" />
                           พิมพ์
                         </Button>
                       </div>
+
                     </div>
                   </DialogContent>
                 </Dialog>
