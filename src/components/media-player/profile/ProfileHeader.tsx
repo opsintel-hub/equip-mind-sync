@@ -38,12 +38,22 @@ export function ProfileHeader({ player, modelName, statusLabel, images }: Profil
   const previewCanvasRef = useRef<HTMLCanvasElement>(null);
   const condition = getConditionDisplay(player.item_condition);
 
+  const [stickerOpts, setStickerOpts] = useState<StickerOptions>({
+    widthMm: 50,
+    heightMm: 30,
+    qrPosition: "right",
+  });
+
   const openLightbox = (index: number) => {
     setLightboxIndex(index);
     setLightboxOpen(true);
   };
 
-  const drawSticker = async (canvas: HTMLCanvasElement, mmScale = 24) => {
+  const drawSticker = async (
+    canvas: HTMLCanvasElement,
+    opts: StickerOptions,
+    mmScale = 24
+  ) => {
     const svg = document.getElementById("media-player-qr-code");
     if (!svg) return false;
     const svgData = new XMLSerializer().serializeToString(svg);
@@ -52,11 +62,15 @@ export function ProfileHeader({ player, modelName, statusLabel, images }: Profil
     const code = (player.code || "").toString();
 
     const MM = mmScale;
-    const W = 50 * MM;
-    const H = 30 * MM;
-    const padX = 2 * MM;
-    const padY = 1.5 * MM;
-    const qrSize = 21 * MM;
+    const W = opts.widthMm * MM;
+    const H = opts.heightMm * MM;
+    const padX = Math.max(1.5, opts.widthMm * 0.04) * MM;
+    const padY = Math.max(1, opts.heightMm * 0.05) * MM;
+    // Reserve bottom strip ~ 18% of height for divider + code|sn
+    const bottomStripH = Math.max(4, opts.heightMm * 0.18) * MM;
+    const topAreaH = H - padY * 2 - bottomStripH;
+    // QR is square, fit to top area height
+    const qrSize = Math.min(topAreaH, (opts.widthMm - 4) * MM * 0.5);
 
     canvas.width = W;
     canvas.height = H;
@@ -69,64 +83,91 @@ export function ProfileHeader({ player, modelName, statusLabel, images }: Profil
     await new Promise<void>((resolve, reject) => {
       qrImg.onload = () => resolve();
       qrImg.onerror = reject;
-      qrImg.src = "data:image/svg+xml;base64," + btoa(unescape(encodeURIComponent(svgData)));
+      qrImg.src =
+        "data:image/svg+xml;base64," +
+        btoa(unescape(encodeURIComponent(svgData)));
     });
 
-    const topAreaH = H - padY * 2 - 0.3 * MM - 4 * MM;
-    const qrX = W - padX - qrSize;
+    // QR position
+    const qrX =
+      opts.qrPosition === "right" ? W - padX - qrSize : padX;
     const qrY = padY + (topAreaH - qrSize) / 2;
     ctx.drawImage(qrImg, qrX, qrY, qrSize, qrSize);
 
-    const leftAreaW = qrX - padX - 1.5 * MM;
-    const leftAreaH = topAreaH;
+    // Name area (opposite side of QR)
+    const gap = 1.5 * MM;
+    const nameX =
+      opts.qrPosition === "right" ? padX : padX + qrSize + gap;
+    const nameW =
+      opts.qrPosition === "right"
+        ? qrX - padX - gap
+        : W - padX - (padX + qrSize + gap);
+    const nameH = topAreaH;
+
     ctx.fillStyle = "#000000";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    let fontPx = Math.floor(leftAreaH * 0.85);
+    let fontPx = Math.floor(nameH * 0.85);
     const fontFamily = `'Arial Black', 'Helvetica', system-ui, sans-serif`;
     while (fontPx > 10) {
       ctx.font = `900 ${fontPx}px ${fontFamily}`;
       const m = ctx.measureText(remoteName);
-      if (m.width <= leftAreaW * 0.95 && fontPx <= leftAreaH * 0.95) break;
+      if (m.width <= nameW * 0.95 && fontPx <= nameH * 0.95) break;
       fontPx -= 2;
     }
-    ctx.fillText(remoteName, padX + leftAreaW / 2, padY + leftAreaH / 2);
+    ctx.fillText(remoteName, nameX + nameW / 2, padY + nameH / 2);
 
+    // Divider
     const divY = padY + topAreaH + 1 * MM;
     ctx.fillStyle = "#000000";
     ctx.fillRect(padX, divY, W - padX * 2, Math.max(1, 0.3 * MM));
 
-    const bottomY = divY + 0.3 * MM + 1.5 * MM;
-    const bottomFontPx = 2.6 * MM;
-    ctx.font = `bold ${bottomFontPx}px ${fontFamily}`;
-    ctx.textAlign = "center";
-    ctx.textBaseline = "top";
+    // Bottom: code | sn (auto-fit width)
+    const bottomY = divY + 0.3 * MM + 1.2 * MM;
+    let bottomFontPx = Math.max(2, opts.heightMm * 0.09) * MM;
     const sep = "  |  ";
     const text = sn ? `${code}${sep}${sn}` : code;
+    while (bottomFontPx > 6) {
+      ctx.font = `bold ${bottomFontPx}px ${fontFamily}`;
+      if (ctx.measureText(text).width <= (W - padX * 2) * 0.98) break;
+      bottomFontPx -= 1;
+    }
+    ctx.textAlign = "center";
+    ctx.textBaseline = "top";
     ctx.fillText(text, W / 2, bottomY);
     return true;
   };
 
-  // Render preview when dialog opens
+  // Render preview when dialog opens or options change
   useEffect(() => {
     if (!qrOpen) return;
     const t = setTimeout(() => {
       if (previewCanvasRef.current) {
-        drawSticker(previewCanvasRef.current, 8).catch(() => {});
+        drawSticker(previewCanvasRef.current, stickerOpts, 8).catch(() => {});
       }
     }, 100);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [qrOpen, player.id]);
+  }, [qrOpen, player.id, stickerOpts.widthMm, stickerOpts.heightMm, stickerOpts.qrPosition]);
 
-  const downloadQR = async () => {
+  const downloadOne = async (opts: StickerOptions) => {
     const canvas = document.createElement("canvas");
-    const ok = await drawSticker(canvas, 24);
+    const ok = await drawSticker(canvas, opts, 24);
     if (!ok) return;
     const link = document.createElement("a");
-    link.download = `qr-media-player-${player.code}.png`;
+    link.download = `qr-${player.code}-${opts.widthMm}x${opts.heightMm}mm.png`;
     link.href = canvas.toDataURL("image/png");
     link.click();
+  };
+
+  const downloadQR = () => downloadOne(stickerOpts);
+
+  const downloadAllPresets = async () => {
+    for (const p of SIZE_PRESETS) {
+      // small delay so browser doesn't block multiple downloads
+      await downloadOne({ ...stickerOpts, widthMm: p.w, heightMm: p.h });
+      await new Promise((r) => setTimeout(r, 250));
+    }
   };
 
   const printQR = () => {
