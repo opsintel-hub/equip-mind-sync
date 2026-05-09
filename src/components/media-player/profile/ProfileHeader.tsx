@@ -78,11 +78,21 @@ export function ProfileHeader({ player, modelName, statusLabel, images }: Profil
     widthMm: 50,
     heightMm: 30,
   });
-  const [layout, setLayout] = useState<StickerLayout>(defaultLayout());
+  const [layout, setLayout] = useState<StickerLayout>(() => loadLayout(50, 30));
   const [editMode, setEditMode] = useState(false);
   const dragRef = useRef<{ key: DragKey; offsetX: number; offsetY: number }>({
     key: null, offsetX: 0, offsetY: 0,
   });
+
+  // Load saved layout when sticker size changes
+  useEffect(() => {
+    setLayout(loadLayout(stickerOpts.widthMm, stickerOpts.heightMm));
+  }, [stickerOpts.widthMm, stickerOpts.heightMm]);
+
+  // Persist layout per size whenever it changes
+  useEffect(() => {
+    saveLayout(stickerOpts.widthMm, stickerOpts.heightMm, layout);
+  }, [stickerOpts.widthMm, stickerOpts.heightMm, layout]);
 
   const openLightbox = (index: number) => {
     setLightboxIndex(index);
