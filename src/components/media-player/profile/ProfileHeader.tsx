@@ -42,6 +42,24 @@ const defaultLayout = (): StickerLayout => ({
   bottom: { x: 0.04, y: 0.78, w: 0.92, h: 0.18 },
 });
 
+const LAYOUT_KEY = (w: number, h: number) => `mp-sticker-layout:${w}x${h}`;
+
+const loadLayout = (w: number, h: number): StickerLayout => {
+  try {
+    const raw = localStorage.getItem(LAYOUT_KEY(w, h));
+    if (!raw) return defaultLayout();
+    const parsed = JSON.parse(raw);
+    if (parsed?.qr && parsed?.name && parsed?.bottom) return parsed as StickerLayout;
+  } catch {}
+  return defaultLayout();
+};
+
+const saveLayout = (w: number, h: number, lay: StickerLayout) => {
+  try {
+    localStorage.setItem(LAYOUT_KEY(w, h), JSON.stringify(lay));
+  } catch {}
+};
+
 interface ProfileHeaderProps {
   player: MediaPlayerRow;
   modelName: string;
@@ -60,11 +78,21 @@ export function ProfileHeader({ player, modelName, statusLabel, images }: Profil
     widthMm: 50,
     heightMm: 30,
   });
-  const [layout, setLayout] = useState<StickerLayout>(defaultLayout());
+  const [layout, setLayout] = useState<StickerLayout>(() => loadLayout(50, 30));
   const [editMode, setEditMode] = useState(false);
   const dragRef = useRef<{ key: DragKey; offsetX: number; offsetY: number }>({
     key: null, offsetX: 0, offsetY: 0,
   });
+
+  // Load saved layout when sticker size changes
+  useEffect(() => {
+    setLayout(loadLayout(stickerOpts.widthMm, stickerOpts.heightMm));
+  }, [stickerOpts.widthMm, stickerOpts.heightMm]);
+
+  // Persist layout per size whenever it changes
+  useEffect(() => {
+    saveLayout(stickerOpts.widthMm, stickerOpts.heightMm, layout);
+  }, [stickerOpts.widthMm, stickerOpts.heightMm, layout]);
 
   const openLightbox = (index: number) => {
     setLightboxIndex(index);
