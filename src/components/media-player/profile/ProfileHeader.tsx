@@ -1,11 +1,11 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Monitor, QrCode, Download, Printer, ChevronLeft, ChevronRight, X } from "lucide-react";
+import { Monitor, QrCode, Download, Printer, ChevronLeft, ChevronRight, X, Move, RotateCcw } from "lucide-react";
 import QRCodeSVG from "react-qr-code";
 import { MediaPlayerRow } from "./types";
 import { getConditionDisplay } from "./constants";
@@ -14,8 +14,17 @@ import { getPublicBaseUrl } from "@/lib/publicUrl";
 type StickerOptions = {
   widthMm: number;
   heightMm: number;
-  qrPosition: "right" | "left";
 };
+
+// Layout uses ratios (0..1) of sticker w/h so resizing is consistent.
+type Box = { x: number; y: number; w: number; h: number };
+type StickerLayout = {
+  qr: Box;     // QR is drawn as square based on min(w,h)
+  name: Box;
+  bottom: Box;
+};
+
+type DragKey = keyof StickerLayout | null;
 
 const SIZE_PRESETS: { label: string; w: number; h: number }[] = [
   { label: "50 × 30", w: 50, h: 30 },
@@ -23,6 +32,15 @@ const SIZE_PRESETS: { label: string; w: number; h: number }[] = [
   { label: "40 × 25", w: 40, h: 25 },
   { label: "100 × 50", w: 100, h: 50 },
 ];
+
+const defaultLayout = (): StickerLayout => ({
+  // QR on the right side, square ~70% of height
+  qr:     { x: 0.55, y: 0.08, w: 0.40, h: 0.66 },
+  // Name on the left, large
+  name:   { x: 0.04, y: 0.08, w: 0.50, h: 0.66 },
+  // Bottom strip across full width
+  bottom: { x: 0.04, y: 0.78, w: 0.92, h: 0.18 },
+});
 
 interface ProfileHeaderProps {
   player: MediaPlayerRow;
@@ -41,7 +59,11 @@ export function ProfileHeader({ player, modelName, statusLabel, images }: Profil
   const [stickerOpts, setStickerOpts] = useState<StickerOptions>({
     widthMm: 50,
     heightMm: 30,
-    qrPosition: "right",
+  });
+  const [layout, setLayout] = useState<StickerLayout>(defaultLayout());
+  const [editMode, setEditMode] = useState(false);
+  const dragRef = useRef<{ key: DragKey; offsetX: number; offsetY: number }>({
+    key: null, offsetX: 0, offsetY: 0,
   });
 
   const openLightbox = (index: number) => {
@@ -52,7 +74,9 @@ export function ProfileHeader({ player, modelName, statusLabel, images }: Profil
   const drawSticker = async (
     canvas: HTMLCanvasElement,
     opts: StickerOptions,
-    mmScale = 24
+    lay: StickerLayout,
+    mmScale = 24,
+    showHandles = false,
   ) => {
     const svg = document.getElementById("media-player-qr-code");
     if (!svg) return false;
@@ -64,13 +88,6 @@ export function ProfileHeader({ player, modelName, statusLabel, images }: Profil
     const MM = mmScale;
     const W = opts.widthMm * MM;
     const H = opts.heightMm * MM;
-    const padX = Math.max(1.5, opts.widthMm * 0.04) * MM;
-    const padY = Math.max(1, opts.heightMm * 0.05) * MM;
-    // Reserve bottom strip ~ 18% of height for divider + code|sn
-    const bottomStripH = Math.max(4, opts.heightMm * 0.18) * MM;
-    const topAreaH = H - padY * 2 - bottomStripH;
-    // QR is square, fit to top area height
-    const qrSize = Math.min(topAreaH, (opts.widthMm - 4) * MM * 0.5);
 
     canvas.width = W;
     canvas.height = H;
@@ -78,6 +95,7 @@ export function ProfileHeader({ player, modelName, statusLabel, images }: Profil
     ctx.fillStyle = "#ffffff";
     ctx.fillRect(0, 0, W, H);
 
+    // QR
     const qrImg = new Image();
     qrImg.crossOrigin = "anonymous";
     await new Promise<void>((resolve, reject) => {
@@ -88,71 +106,141 @@ export function ProfileHeader({ player, modelName, statusLabel, images }: Profil
         btoa(unescape(encodeURIComponent(svgData)));
     });
 
-    // QR position
-    const qrX =
-      opts.qrPosition === "right" ? W - padX - qrSize : padX;
-    const qrY = padY + (topAreaH - qrSize) / 2;
+    const qrBoxW = lay.qr.w * W;
+    const qrBoxH = lay.qr.h * H;
+    const qrSize = Math.min(qrBoxW, qrBoxH);
+    const qrX = lay.qr.x * W + (qrBoxW - qrSize) / 2;
+    const qrY = lay.qr.y * H + (qrBoxH - qrSize) / 2;
     ctx.drawImage(qrImg, qrX, qrY, qrSize, qrSize);
 
-    // Name area (opposite side of QR)
-    const gap = 1.5 * MM;
-    const nameX =
-      opts.qrPosition === "right" ? padX : padX + qrSize + gap;
-    const nameW =
-      opts.qrPosition === "right"
-        ? qrX - padX - gap
-        : W - padX - (padX + qrSize + gap);
-    const nameH = topAreaH;
-
+    // Name (auto-fit inside name box)
+    const nameX = lay.name.x * W;
+    const nameY = lay.name.y * H;
+    const nameW = lay.name.w * W;
+    const nameH = lay.name.h * H;
+    const fontFamily = `'Arial Black', 'Helvetica', system-ui, sans-serif`;
     ctx.fillStyle = "#000000";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    let fontPx = Math.floor(nameH * 0.85);
-    const fontFamily = `'Arial Black', 'Helvetica', system-ui, sans-serif`;
-    while (fontPx > 10) {
+    let fontPx = Math.floor(nameH * 0.95);
+    while (fontPx > 8) {
       ctx.font = `900 ${fontPx}px ${fontFamily}`;
       const m = ctx.measureText(remoteName);
-      if (m.width <= nameW * 0.95 && fontPx <= nameH * 0.95) break;
+      if (m.width <= nameW * 0.96 && fontPx <= nameH * 0.96) break;
       fontPx -= 2;
     }
-    ctx.fillText(remoteName, nameX + nameW / 2, padY + nameH / 2);
+    ctx.fillText(remoteName, nameX + nameW / 2, nameY + nameH / 2);
 
-    // Divider
-    const divY = padY + topAreaH + 1 * MM;
+    // Bottom strip with divider line above
+    const bX = lay.bottom.x * W;
+    const bY = lay.bottom.y * H;
+    const bW = lay.bottom.w * W;
+    const bH = lay.bottom.h * H;
     ctx.fillStyle = "#000000";
-    ctx.fillRect(padX, divY, W - padX * 2, Math.max(1, 0.3 * MM));
-
-    // Bottom: code | sn (auto-fit width)
-    const bottomY = divY + 0.3 * MM + 1.2 * MM;
-    let bottomFontPx = Math.max(2, opts.heightMm * 0.09) * MM;
-    const sep = "  |  ";
-    const text = sn ? `${code}${sep}${sn}` : code;
-    while (bottomFontPx > 6) {
-      ctx.font = `bold ${bottomFontPx}px ${fontFamily}`;
-      if (ctx.measureText(text).width <= (W - padX * 2) * 0.98) break;
-      bottomFontPx -= 1;
+    ctx.fillRect(bX, bY, bW, Math.max(1, 0.3 * MM));
+    const text = sn ? `${code}  |  ${sn}` : code;
+    let bFont = Math.floor(bH * 0.7);
+    while (bFont > 6) {
+      ctx.font = `bold ${bFont}px ${fontFamily}`;
+      if (ctx.measureText(text).width <= bW * 0.98) break;
+      bFont -= 1;
     }
     ctx.textAlign = "center";
-    ctx.textBaseline = "top";
-    ctx.fillText(text, W / 2, bottomY);
+    ctx.textBaseline = "middle";
+    ctx.fillText(text, bX + bW / 2, bY + bH / 2 + Math.max(1, 0.3 * MM) / 2);
+
+    // Edit-mode handles
+    if (showHandles) {
+      const drawBox = (b: Box, color: string, label: string) => {
+        ctx.save();
+        ctx.strokeStyle = color;
+        ctx.setLineDash([4, 3]);
+        ctx.lineWidth = 1.5;
+        ctx.strokeRect(b.x * W, b.y * H, b.w * W, b.h * H);
+        ctx.setLineDash([]);
+        ctx.fillStyle = color;
+        ctx.font = `bold 10px ${fontFamily}`;
+        ctx.textAlign = "left";
+        ctx.textBaseline = "top";
+        ctx.fillText(label, b.x * W + 3, b.y * H + 2);
+        ctx.restore();
+      };
+      drawBox(lay.qr, "rgba(37,99,235,0.85)", "QR");
+      drawBox(lay.name, "rgba(220,38,38,0.85)", "Name");
+      drawBox(lay.bottom, "rgba(16,185,129,0.85)", "Code|S/N");
+    }
     return true;
   };
 
-  // Render preview when dialog opens or options change
+  // Render preview when dialog opens or options/layout change
   useEffect(() => {
     if (!qrOpen) return;
     const t = setTimeout(() => {
       if (previewCanvasRef.current) {
-        drawSticker(previewCanvasRef.current, stickerOpts, 8).catch(() => {});
+        drawSticker(previewCanvasRef.current, stickerOpts, layout, 8, editMode).catch(() => {});
       }
     }, 100);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [qrOpen, player.id, stickerOpts.widthMm, stickerOpts.heightMm, stickerOpts.qrPosition]);
+  }, [qrOpen, player.id, stickerOpts.widthMm, stickerOpts.heightMm, layout, editMode]);
+
+  // Drag handlers (preview canvas)
+  const hitTest = (lay: StickerLayout, rx: number, ry: number): DragKey => {
+    // Check in priority order (smallest on top)
+    const inside = (b: Box) => rx >= b.x && rx <= b.x + b.w && ry >= b.y && ry <= b.y + b.h;
+    if (inside(lay.qr)) return "qr";
+    if (inside(lay.name)) return "name";
+    if (inside(lay.bottom)) return "bottom";
+    return null;
+  };
+
+  const getRel = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    return {
+      rx: (e.clientX - rect.left) / rect.width,
+      ry: (e.clientY - rect.top) / rect.height,
+    };
+  };
+
+  const onPointerDown = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    if (!editMode) return;
+    const { rx, ry } = getRel(e);
+    const key = hitTest(layout, rx, ry);
+    if (!key) return;
+    e.currentTarget.setPointerCapture(e.pointerId);
+    const b = layout[key];
+    dragRef.current = { key, offsetX: rx - b.x, offsetY: ry - b.y };
+  };
+
+  const onPointerMove = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    if (!editMode || !dragRef.current.key) return;
+    const { rx, ry } = getRel(e);
+    const key = dragRef.current.key;
+    setLayout((prev) => {
+      const b = prev[key];
+      const nx = Math.max(0, Math.min(1 - b.w, rx - dragRef.current.offsetX));
+      const ny = Math.max(0, Math.min(1 - b.h, ry - dragRef.current.offsetY));
+      return { ...prev, [key]: { ...b, x: nx, y: ny } };
+    });
+  };
+
+  const onPointerUp = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    dragRef.current.key = null;
+    try { e.currentTarget.releasePointerCapture(e.pointerId); } catch {}
+  };
+
+  const resizeBox = useCallback((key: keyof StickerLayout, dw: number, dh: number) => {
+    setLayout((prev) => {
+      const b = prev[key];
+      const nw = Math.max(0.05, Math.min(1 - b.x, b.w + dw));
+      const nh = Math.max(0.05, Math.min(1 - b.y, b.h + dh));
+      return { ...prev, [key]: { ...b, w: nw, h: nh } };
+    });
+  }, []);
 
   const downloadOne = async (opts: StickerOptions) => {
     const canvas = document.createElement("canvas");
-    const ok = await drawSticker(canvas, opts, 24);
+    const ok = await drawSticker(canvas, opts, layout, 24, false);
     if (!ok) return;
     const link = document.createElement("a");
     link.download = `qr-${player.code}-${opts.widthMm}x${opts.heightMm}mm.png`;
@@ -164,8 +252,7 @@ export function ProfileHeader({ player, modelName, statusLabel, images }: Profil
 
   const downloadAllPresets = async () => {
     for (const p of SIZE_PRESETS) {
-      // small delay so browser doesn't block multiple downloads
-      await downloadOne({ ...stickerOpts, widthMm: p.w, heightMm: p.h });
+      await downloadOne({ widthMm: p.w, heightMm: p.h });
       await new Promise((r) => setTimeout(r, 250));
     }
   };
@@ -173,63 +260,23 @@ export function ProfileHeader({ player, modelName, statusLabel, images }: Profil
   const printQR = () => {
     const printWindow = window.open("", "_blank");
     if (!printWindow) return;
-    const svg = document.getElementById("media-player-qr-code");
-    if (!svg) return;
-    const svgData = new XMLSerializer().serializeToString(svg);
-    const remoteName = (player.remote_name || player.code || "").toString();
-    const sn = (player.serial_number_1 || "").toString();
-    const model = modelName && modelName !== "-" ? modelName : "";
-    // Auto-fit Name (เผื่อ 3 ตัว default ใหญ่, ยิ่งยาวยิ่งเล็กลง)
-    const nameLen = remoteName.length;
-    // รองรับ Name 4 ตัวอักษรแบบใหญ่เต็มที่ (เดิม 3 ตัว)
-    const nameFontMm = nameLen <= 4 ? 11 : nameLen <= 6 ? 8.5 : nameLen <= 8 ? 7 : 5.5;
-    printWindow.document.write(`
-      <html><head><title>QR - ${player.code}</title>
-      <style>
-        @page { size: 50mm 30mm; margin: 0; }
-        * { box-sizing: border-box; }
-        html, body { margin: 0; padding: 0; color: #000; font-family: system-ui, -apple-system, "Segoe UI", "Sarabun", sans-serif; }
-        .sticker {
-          width: 50mm; height: 30mm; padding: 1.5mm 2mm;
-          display: flex; flex-direction: column; gap: 0.8mm;
-          page-break-after: always;
-        }
-        .top { flex: 1; display: flex; align-items: center; gap: 1.5mm; min-height: 0; }
-        .left { flex: 1; min-width: 0; display: flex; align-items: center; justify-content: center; }
-        .remote {
-          font-weight: 900; line-height: 0.95; text-align: center;
-          font-size: ${nameFontMm}mm;
-          word-break: break-all; overflow: hidden;
-        }
-        .qr { flex-shrink: 0; width: 21mm; height: 21mm; }
-        .qr svg { width: 100% !important; height: 100% !important; display: block; }
-        .divider { border-top: 0.3mm solid #000; }
-        .bottom {
-          display: flex; align-items: center; justify-content: center; gap: 1.5mm;
-          font-size: 2.6mm; font-weight: 700; letter-spacing: 0.1px;
-          white-space: nowrap; overflow: hidden;
-        }
-        .model { font-weight: 700; }
-        .vbar { width: 0.3mm; height: 2.6mm; background: #000; }
-        .sn { font-family: ui-monospace, Menlo, Consolas, monospace; font-weight: 700; }
-        @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
-      </style>
-      </head><body>
-        <div class="sticker">
-          <div class="top">
-            <div class="left"><div class="remote">${remoteName}</div></div>
-            <div class="qr">${svgData}</div>
-          </div>
-          <div class="divider"></div>
-          <div class="bottom">
-            ${model ? `<span class="model">${model}</span><span class="vbar"></span>` : ""}
-            ${sn ? `<span class="sn">${sn}</span>` : ""}
-          </div>
-        </div>
-        <script>setTimeout(()=>window.print(),300)</script>
-      </body></html>
-    `);
-    printWindow.document.close();
+    const canvas = document.createElement("canvas");
+    drawSticker(canvas, stickerOpts, layout, 24, false).then((ok) => {
+      if (!ok) return;
+      const dataUrl = canvas.toDataURL("image/png");
+      printWindow.document.write(`
+        <html><head><title>QR - ${player.code}</title>
+        <style>
+          @page { size: ${stickerOpts.widthMm}mm ${stickerOpts.heightMm}mm; margin: 0; }
+          html, body { margin: 0; padding: 0; }
+          img { width: ${stickerOpts.widthMm}mm; height: ${stickerOpts.heightMm}mm; display: block; }
+        </style></head><body>
+          <img src="${dataUrl}" />
+          <script>setTimeout(()=>window.print(),300)</script>
+        </body></html>
+      `);
+      printWindow.document.close();
+    });
   };
 
   return (
@@ -290,7 +337,7 @@ export function ProfileHeader({ player, modelName, statusLabel, images }: Profil
                       QR Code
                     </Button>
                   </DialogTrigger>
-                  <DialogContent className="sm:max-w-md">
+                  <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
                     <DialogHeader>
                       <DialogTitle>QR Code — {player.code}</DialogTitle>
                     </DialogHeader>
@@ -318,7 +365,7 @@ export function ProfileHeader({ player, modelName, statusLabel, images }: Profil
                                 variant={active ? "default" : "outline"}
                                 className="h-7 text-xs"
                                 onClick={() =>
-                                  setStickerOpts((o) => ({ ...o, widthMm: p.w, heightMm: p.h }))
+                                  setStickerOpts({ widthMm: p.w, heightMm: p.h })
                                 }
                               >
                                 {p.label}
@@ -359,34 +406,40 @@ export function ProfileHeader({ player, modelName, statusLabel, images }: Profil
                               className="h-8"
                             />
                           </div>
-                          <div className="flex-1">
-                            <Label className="text-[10px] text-muted-foreground">ตำแหน่ง QR</Label>
-                            <div className="flex gap-1">
-                              <Button
-                                type="button"
-                                size="sm"
-                                variant={stickerOpts.qrPosition === "left" ? "default" : "outline"}
-                                className="h-8 flex-1 text-xs"
-                                onClick={() =>
-                                  setStickerOpts((o) => ({ ...o, qrPosition: "left" }))
-                                }
-                              >
-                                ซ้าย
-                              </Button>
-                              <Button
-                                type="button"
-                                size="sm"
-                                variant={stickerOpts.qrPosition === "right" ? "default" : "outline"}
-                                className="h-8 flex-1 text-xs"
-                                onClick={() =>
-                                  setStickerOpts((o) => ({ ...o, qrPosition: "right" }))
-                                }
-                              >
-                                ขวา
-                              </Button>
-                            </div>
-                          </div>
                         </div>
+                      </div>
+
+                      {/* Edit toggle + reset */}
+                      <div className="w-full flex items-center justify-between gap-2">
+                        <div className="flex gap-2">
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant={editMode ? "default" : "outline"}
+                            className="h-8 text-xs"
+                            onClick={() => setEditMode((v) => !v)}
+                          >
+                            <Move className="w-3.5 h-3.5 mr-1" />
+                            {editMode ? "เสร็จสิ้น" : "แก้ไขเลย์เอาต์"}
+                          </Button>
+                          {editMode && (
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              className="h-8 text-xs"
+                              onClick={() => setLayout(defaultLayout())}
+                            >
+                              <RotateCcw className="w-3.5 h-3.5 mr-1" />
+                              รีเซ็ต
+                            </Button>
+                          )}
+                        </div>
+                        {editMode && (
+                          <span className="text-[10px] text-muted-foreground">
+                            ลากกล่องเพื่อย้าย
+                          </span>
+                        )}
                       </div>
 
                       {/* Sticker preview */}
@@ -397,15 +450,48 @@ export function ProfileHeader({ player, modelName, statusLabel, images }: Profil
                         <div className="flex justify-center">
                           <canvas
                             ref={previewCanvasRef}
-                            className="border rounded-md shadow-sm bg-white"
+                            onPointerDown={onPointerDown}
+                            onPointerMove={onPointerMove}
+                            onPointerUp={onPointerUp}
+                            onPointerCancel={onPointerUp}
+                            className="border rounded-md shadow-sm bg-white touch-none select-none"
                             style={{
                               width: `${Math.min(400, stickerOpts.widthMm * 6)}px`,
                               maxWidth: "100%",
                               height: "auto",
+                              cursor: editMode ? "grab" : "default",
                             }}
                           />
                         </div>
                       </div>
+
+                      {/* Resize controls in edit mode */}
+                      {editMode && (
+                        <div className="w-full grid grid-cols-3 gap-2 text-xs">
+                          {(["qr", "name", "bottom"] as const).map((k) => (
+                            <div key={k} className="border rounded-md p-2 space-y-1">
+                              <div className="font-semibold capitalize text-center">
+                                {k === "bottom" ? "Code|S/N" : k.toUpperCase()}
+                              </div>
+                              <div className="flex items-center justify-between gap-1">
+                                <span className="text-[10px] text-muted-foreground">กว้าง</span>
+                                <div className="flex gap-1">
+                                  <Button size="sm" variant="outline" className="h-6 w-6 p-0" onClick={() => resizeBox(k, -0.05, 0)}>−</Button>
+                                  <Button size="sm" variant="outline" className="h-6 w-6 p-0" onClick={() => resizeBox(k, 0.05, 0)}>+</Button>
+                                </div>
+                              </div>
+                              <div className="flex items-center justify-between gap-1">
+                                <span className="text-[10px] text-muted-foreground">สูง</span>
+                                <div className="flex gap-1">
+                                  <Button size="sm" variant="outline" className="h-6 w-6 p-0" onClick={() => resizeBox(k, 0, -0.05)}>−</Button>
+                                  <Button size="sm" variant="outline" className="h-6 w-6 p-0" onClick={() => resizeBox(k, 0, 0.05)}>+</Button>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
                       <p className="text-sm text-muted-foreground text-center">
                         สแกนเพื่อเปิดหน้า Profile ของ <span className="font-mono font-semibold">{player.code}</span>
                       </p>
