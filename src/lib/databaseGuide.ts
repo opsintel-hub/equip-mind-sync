@@ -321,6 +321,7 @@ export const TABLE_GUIDE: Record<string, TableMeta> = {
   user_roles: { category: "ผู้ใช้/สิทธิ์", description: "บทบาทของผู้ใช้ (admin/super_admin/user/manager)", relatedRoutes: [{ label: "จัดการผู้ใช้", path: "/admin" }] },
   user_departments: { category: "ผู้ใช้/สิทธิ์", description: "สิทธิ์เข้าถึงตามฝ่าย", relatedRoutes: [{ label: "จัดการผู้ใช้", path: "/admin" }] },
   user_function_permissions: { category: "ผู้ใช้/สิทธิ์", description: "สิทธิ์เข้าถึงแต่ละฟังก์ชัน/เมนู", relatedRoutes: [{ label: "จัดการผู้ใช้", path: "/admin" }] },
+  permission_templates: { category: "ผู้ใช้/สิทธิ์", description: "เทมเพลตชุดสิทธิ์สำเร็จรูป สำหรับมอบหมายให้ผู้ใช้ใหม่ได้รวดเร็ว", relatedRoutes: [{ label: "จัดการผู้ใช้", path: "/admin" }] },
 
   // ==================== ระบบ/อื่นๆ ====================
   notifications: { category: "ระบบ", description: "การแจ้งเตือนภายในระบบ" },
