@@ -3949,12 +3949,17 @@ export type Database = {
           id: string
           notify_ad_retention: boolean | null
           notify_billboard_pm: boolean | null
+          notify_direct_shipping_approval: boolean
+          notify_disposal_approval: boolean
           notify_equipment_expiry: boolean
           notify_incomplete_issues: boolean | null
           notify_loan_overdue: boolean | null
           notify_low_stock: boolean
+          notify_manager_approval: boolean
           notify_media_player_expiry: boolean | null
           notify_media_player_warranty: boolean | null
+          notify_pending_assessment: boolean
+          notify_pending_asset_codes: boolean
           notify_pending_requests: boolean | null
           notify_pm_schedule: boolean
           notify_tool_pm: boolean | null
@@ -3970,12 +3975,17 @@ export type Database = {
           id?: string
           notify_ad_retention?: boolean | null
           notify_billboard_pm?: boolean | null
+          notify_direct_shipping_approval?: boolean
+          notify_disposal_approval?: boolean
           notify_equipment_expiry?: boolean
           notify_incomplete_issues?: boolean | null
           notify_loan_overdue?: boolean | null
           notify_low_stock?: boolean
+          notify_manager_approval?: boolean
           notify_media_player_expiry?: boolean | null
           notify_media_player_warranty?: boolean | null
+          notify_pending_assessment?: boolean
+          notify_pending_asset_codes?: boolean
           notify_pending_requests?: boolean | null
           notify_pm_schedule?: boolean
           notify_tool_pm?: boolean | null
@@ -3991,12 +4001,17 @@ export type Database = {
           id?: string
           notify_ad_retention?: boolean | null
           notify_billboard_pm?: boolean | null
+          notify_direct_shipping_approval?: boolean
+          notify_disposal_approval?: boolean
           notify_equipment_expiry?: boolean
           notify_incomplete_issues?: boolean | null
           notify_loan_overdue?: boolean | null
           notify_low_stock?: boolean
+          notify_manager_approval?: boolean
           notify_media_player_expiry?: boolean | null
           notify_media_player_warranty?: boolean | null
+          notify_pending_assessment?: boolean
+          notify_pending_asset_codes?: boolean
           notify_pending_requests?: boolean | null
           notify_pm_schedule?: boolean
           notify_tool_pm?: boolean | null
