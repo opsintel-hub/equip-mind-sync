@@ -34,14 +34,12 @@ interface NotificationSettingsData {
   notify_warranty_expiry: boolean;
   notify_pm_schedule: boolean;
   notify_low_stock: boolean;
-  notify_media_player_expiry: boolean;
-  notify_media_player_warranty: boolean;
-  notify_billboard_pm: boolean;
-  notify_tool_pm: boolean;
-  notify_pending_requests: boolean;
-  notify_loan_overdue: boolean;
   notify_ad_retention: boolean;
-  notify_incomplete_issues: boolean;
+  notify_pending_assessment: boolean;
+  notify_disposal_approval: boolean;
+  notify_direct_shipping_approval: boolean;
+  notify_manager_approval: boolean;
+  notify_pending_asset_codes: boolean;
   advance_days: number;
   email_addresses: string[];
   department_emails: DepartmentEmail[];
@@ -84,47 +82,45 @@ const priorityConfig: Record<Priority, { label: string; variant: "destructive" |
 
 const notificationCategories: NotificationCategory[] = [
   {
-    id: "media_player",
-    title: "Media Player",
-    icon: <Monitor className="h-5 w-5" />,
-    description: "แจ้งเตือนเกี่ยวกับ Media Player ทั้งหมด",
-    items: [
-      { key: "notify_media_player_expiry", label: "Media Player หมดอายุการใช้งาน", description: "แจ้งเตือนเมื่อ Media Player ใกล้ถึงวันหมดอายุการใช้งาน", priority: "high" },
-      { key: "notify_media_player_warranty", label: "Media Player หมดประกัน", description: "แจ้งเตือนเมื่อ Media Player ใกล้ถึงวันหมดประกัน", priority: "medium" },
-    ],
-  },
-  {
     id: "assets",
-    title: "ทรัพย์สิน / อุปกรณ์",
+    title: "ทรัพย์สิน / สต็อก",
     icon: <Shield className="h-5 w-5" />,
-    description: "แจ้งเตือนอุปกรณ์ทั่วไปและสต็อก (ไม่รวม Media Player)",
+    description: "แจ้งเตือนวันหมดอายุ, ประกัน และระดับสต็อก",
     items: [
       { key: "notify_equipment_expiry", label: "อุปกรณ์ใกล้หมดอายุ", description: "แจ้งเตือนเมื่ออุปกรณ์ใกล้ถึงวันหมดอายุ", priority: "high" },
       { key: "notify_warranty_expiry", label: "ประกันอุปกรณ์ใกล้หมด", description: "แจ้งเตือนเมื่ออุปกรณ์ใกล้ถึงวันประกันหมด", priority: "medium" },
-      { key: "notify_low_stock", label: "สต็อกต่ำกว่าขั้นต่ำ", description: "แจ้งเตือนเมื่อสินค้าคงคลังต่ำกว่าระดับขั้นต่ำที่กำหนด", priority: "critical" },
+      { key: "notify_low_stock", label: "สต็อกต่ำกว่าขั้นต่ำ", description: "แจ้งเตือนเมื่อสินค้าคงคลังต่ำกว่าระดับขั้นต่ำที่กำหนด (สร้าง PR อัตโนมัติ)", priority: "critical" },
     ],
   },
   {
     id: "pm",
     title: "บำรุงรักษาเชิงป้องกัน (PM)",
     icon: <Wrench className="h-5 w-5" />,
-    description: "แจ้งเตือนกำหนดการบำรุงรักษาทุกประเภท",
+    description: "แจ้งเตือนกำหนดการ PM ของอุปกรณ์",
     items: [
       { key: "notify_pm_schedule", label: "PM อุปกรณ์", description: "แจ้งเตือนเมื่อถึงกำหนดบำรุงรักษาอุปกรณ์", priority: "high" },
-      { key: "notify_billboard_pm", label: "PM ป้ายโฆษณา", description: "แจ้งเตือนเมื่อถึงกำหนดบำรุงรักษาป้ายโฆษณา", priority: "high" },
-      { key: "notify_tool_pm", label: "PM เครื่องมือ", description: "แจ้งเตือนเมื่อถึงกำหนดบำรุงรักษาเครื่องมือ", priority: "medium" },
+    ],
+  },
+  {
+    id: "approvals",
+    title: "รออนุมัติ / ประเมิน",
+    icon: <ClipboardCheck className="h-5 w-5" />,
+    description: "แจ้งเตือนรายการที่รอการดำเนินการของผู้มีอำนาจ",
+    items: [
+      { key: "notify_pending_assessment", label: "รายการรอประเมิน (Assessment)", description: "แจ้งเตือนเมื่อมีอุปกรณ์ชำรุดรอการประเมินผล", priority: "high" },
+      { key: "notify_disposal_approval", label: "รออนุมัติทำลาย/จำหน่าย", description: "แจ้งเตือนเมื่อมีรายการ Defective รอการอนุมัติวิธีจัดการ (ทำลาย/ขายเศษ/CSR/ซ่อม)", priority: "high" },
+      { key: "notify_direct_shipping_approval", label: "รออนุมัติส่งตรงถึงไซต์", description: "แจ้งเตือนเมื่อมีคำขอส่งตรงถึงไซต์รอการอนุมัติ", priority: "high" },
+      { key: "notify_manager_approval", label: "รออนุมัติของผู้จัดการฝ่าย", description: "แจ้งเตือนเมื่อมีคำขอเบิก/ยืมข้ามฝ่ายรอการอนุมัติ", priority: "high" },
+      { key: "notify_pending_asset_codes", label: "รอกำหนดรหัสทรัพย์สิน", description: "แจ้งเตือนเมื่อมีอุปกรณ์รอการกำหนดรหัสทรัพย์สินรายตัว", priority: "medium" },
     ],
   },
   {
     id: "documents",
-    title: "เอกสาร / รายการคงค้าง",
+    title: "เอกสาร / โฆษณา",
     icon: <FileText className="h-5 w-5" />,
-    description: "แจ้งเตือนคำขอ เอกสาร และรายการที่ยังไม่เสร็จสมบูรณ์",
+    description: "แจ้งเตือนเอกสารและรายการป้ายโฆษณา",
     items: [
-      { key: "notify_pending_requests", label: "คำขอเบิกรอดำเนินการ", description: "แจ้งเตือนเมื่อมีคำขอเบิกสินค้าที่รอการอนุมัติหรือจัดส่ง", priority: "high" },
-      { key: "notify_incomplete_issues", label: "การเบิกที่ยังไม่สมบูรณ์", description: "แจ้งเตือนรายการเบิกที่ส่งมอบไม่ครบจำนวน", priority: "medium" },
-      { key: "notify_loan_overdue", label: "การยืม-คืนเกินกำหนด", description: "แจ้งเตือนเมื่อการยืมอุปกรณ์เกินกำหนดส่งคืน", priority: "critical" },
-      { key: "notify_ad_retention", label: "ป้ายโฆษณาค้างส่งคืน", description: "แจ้งเตือนเมื่อป้ายโฆษณาค้างอยู่เกินระยะเวลาจัดเก็บ", priority: "medium" },
+      { key: "notify_ad_retention", label: "ป้ายโฆษณาค้างส่งคืน", description: "แจ้งเตือนเมื่อป้ายโฆษณาค้างอยู่เกินระยะเวลาจัดเก็บ (7 วันก่อนครบกำหนด)", priority: "medium" },
     ],
   },
 ];
