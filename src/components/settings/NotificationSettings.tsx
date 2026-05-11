@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Save, Settings, Shield, Monitor, Wrench, FileText, AlertTriangle, Plus, X } from "lucide-react";
+import { Save, Settings, Shield, Wrench, FileText, AlertTriangle, Plus, X, ClipboardCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
