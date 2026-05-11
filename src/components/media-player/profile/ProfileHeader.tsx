@@ -31,6 +31,7 @@ const SIZE_PRESETS: { label: string; w: number; h: number }[] = [
   { label: "70 × 40", w: 70, h: 40 },
   { label: "40 × 25", w: 40, h: 25 },
   { label: "100 × 50", w: 100, h: 50 },
+  { label: "30 × 30", w: 30, h: 30 },
 ];
 
 const defaultLayout = (): StickerLayout => ({
