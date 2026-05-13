@@ -704,11 +704,10 @@ export default function MediaPlayerReport() {
                             <TableCell className="text-sm whitespace-pre-line">{r.serialNumber}</TableCell>
                             <TableCell>{getConditionBadge(r.condition)}</TableCell>
                             <TableCell>
-                              {r.billboard_id ? (
-                                <Badge className="bg-green-100 text-green-800 border-green-200">ติดตั้ง</Badge>
-                              ) : (
-                                <Badge variant="outline">ในคลัง</Badge>
-                              )}
+                              {(() => {
+                                const meta = getStatusMeta(r);
+                                return <Badge variant="outline" className={meta.className}>{meta.label}</Badge>;
+                              })()}
                             </TableCell>
                             <TableCell className="text-sm">{r.billboardLabel}</TableCell>
                             <TableCell>{r.department || "-"}</TableCell>
