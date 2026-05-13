@@ -325,6 +325,8 @@ export default function MediaPlayerReport() {
         expiryDaysLeft,
         orderForProject: (latestReceipt as any)?.order_for_project || "",
         remoteName: p.remote_name || "",
+        rawStatus: (p as any).status || null,
+        isRefurbished: !!(p as any).is_refurbished,
       });
     });
     return rows;
