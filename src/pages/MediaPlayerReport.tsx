@@ -42,6 +42,21 @@ const getConditionBadge = (condition: string) => {
 
 const getConditionLabel = (condition: string) => getConditionDisplay(condition).label;
 
+interface StatusMeta { label: string; className: string; }
+const getStatusMeta = (r: { billboard_id: string | null; rawStatus: string | null; isRefurbished: boolean }): StatusMeta => {
+  const refurbSuffix = r.isRefurbished ? " · Refurbished" : "";
+  switch (r.rawStatus) {
+    case "pending_assessment":
+      return { label: "พักรอประเมิน" + refurbSuffix, className: "bg-purple-100 text-purple-700 border-purple-300 dark:bg-purple-900/30 dark:text-purple-300" };
+    case "under_repair":
+      return { label: "กำลังซ่อม" + refurbSuffix, className: "bg-cyan-100 text-cyan-700 border-cyan-300 dark:bg-cyan-900/30 dark:text-cyan-300" };
+    case "in_claim":
+      return { label: "รอเคลม" + refurbSuffix, className: "bg-rose-100 text-rose-700 border-rose-300 dark:bg-rose-900/30 dark:text-rose-300" };
+  }
+  if (r.billboard_id) return { label: "ติดตั้ง" + refurbSuffix, className: "bg-emerald-100 text-emerald-700 border-emerald-300 dark:bg-emerald-900/30 dark:text-emerald-300" };
+  return { label: "ในคลัง" + refurbSuffix, className: "bg-slate-100 text-slate-700 border-slate-300 dark:bg-slate-800/50 dark:text-slate-300" };
+};
+
 interface MediaPlayerMaster {
   id: string;
   code: string;
@@ -108,6 +123,8 @@ interface ExpandedRow {
   warrantyDaysLeft: number | null;
   expiryDaysLeft: number | null;
   orderForProject: string;
+  rawStatus: string | null;
+  isRefurbished: boolean;
 }
 
 export default function MediaPlayerReport() {
@@ -308,6 +325,8 @@ export default function MediaPlayerReport() {
         expiryDaysLeft,
         orderForProject: (latestReceipt as any)?.order_for_project || "",
         remoteName: p.remote_name || "",
+        rawStatus: (p as any).status || null,
+        isRefurbished: !!(p as any).is_refurbished,
       });
     });
     return rows;
@@ -351,11 +370,11 @@ export default function MediaPlayerReport() {
       if (departmentFilter !== "all" && r.department !== departmentFilter) return false;
       if (statusFilter !== "all") {
         if (statusFilter === "installed" && !r.billboard_id) return false;
-        if (statusFilter === "in_stock" && r.billboard_id) return false;
-        if (statusFilter === "pending_assessment" && !r.statusLabel.startsWith("พักรอประเมิน")) return false;
-        if (statusFilter === "under_repair" && !r.statusLabel.startsWith("กำลังซ่อม")) return false;
-        if (statusFilter === "in_claim" && !r.statusLabel.startsWith("รอเคลม")) return false;
-        if (statusFilter === "refurbished" && !r.statusLabel.includes("Refurbished")) return false;
+        if (statusFilter === "in_stock" && (r.billboard_id || r.rawStatus)) return false;
+        if (statusFilter === "pending_assessment" && r.rawStatus !== "pending_assessment") return false;
+        if (statusFilter === "under_repair" && r.rawStatus !== "under_repair") return false;
+        if (statusFilter === "in_claim" && r.rawStatus !== "in_claim") return false;
+        if (statusFilter === "refurbished" && !r.isRefurbished) return false;
       }
       if (companyFilter !== "all" && r.company !== companyFilter) return false;
       if (brandFilter !== "all" && r.brand !== brandFilter) return false;
@@ -406,12 +425,16 @@ export default function MediaPlayerReport() {
     const inStock = filtered.filter((r) => !r.billboard_id).length;
     const defective = filtered.filter((r) => r.condition === "defective").length;
     const pendingInspection = filtered.filter((r) => r.condition === "pending_inspection").length;
+    const pendingAssessment = filtered.filter((r) => r.rawStatus === "pending_assessment").length;
+    const underRepair = filtered.filter((r) => r.rawStatus === "under_repair").length;
+    const inClaim = filtered.filter((r) => r.rawStatus === "in_claim").length;
+    const refurbished = filtered.filter((r) => r.isRefurbished).length;
     const uniquePrefixes = new Set(filtered.map((r) => { const m = r.code?.match(/^([A-Za-z-]+)/); return m ? m[1] : ""; }).filter(Boolean)).size;
     const uniqueBrands = new Set(filtered.map((r) => r.brand).filter(Boolean)).size;
     const warrantyExpiring = filtered.filter((r) => r.warrantyDaysLeft !== null && r.warrantyDaysLeft >= 0 && r.warrantyDaysLeft <= 90).length;
     const uniqueDepartments = new Set(filtered.map((r) => r.department).filter(Boolean)).size;
     const uniqueProjects = new Set(filtered.map((r) => r.orderForProject).filter(Boolean)).size;
-    return { total, installed, inStock, defective, pendingInspection, uniquePrefixes, uniqueBrands, warrantyExpiring, uniqueDepartments, uniqueProjects };
+    return { total, installed, inStock, defective, pendingInspection, pendingAssessment, underRepair, inClaim, refurbished, uniquePrefixes, uniqueBrands, warrantyExpiring, uniqueDepartments, uniqueProjects };
   }, [filtered]);
 
   // Export Excel
@@ -427,7 +450,8 @@ export default function MediaPlayerReport() {
       "ชื่อเครื่อง (Name)": r.remoteName,
       "S/N": r.serialNumber,
       "สภาพ": getConditionLabel(r.condition),
-      "สถานะ": r.statusLabel,
+      "สถานะ": getStatusMeta(r).label,
+      "Refurbished": r.isRefurbished ? "ใช่" : "",
       "ป้ายปัจจุบัน": r.billboardLabel,
       "ฝ่าย": r.department,
       "บริษัท": r.company,
@@ -500,6 +524,22 @@ export default function MediaPlayerReport() {
         <Card><CardContent className="p-4 flex items-center gap-3">
           <div className="w-10 h-10 rounded-lg bg-accent flex items-center justify-center"><Wrench className="w-5 h-5 text-chart-4" /></div>
           <div><p className="text-xs text-muted-foreground">รอตรวจสอบ</p><p className="text-2xl font-bold">{stats.pendingInspection}</p></div>
+        </CardContent></Card>
+        <Card><CardContent className="p-4 flex items-center gap-3">
+          <div className="w-10 h-10 rounded-lg bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center"><AlertTriangle className="w-5 h-5 text-purple-600" /></div>
+          <div><p className="text-xs text-muted-foreground">พักรอประเมิน</p><p className="text-2xl font-bold">{stats.pendingAssessment}</p></div>
+        </CardContent></Card>
+        <Card><CardContent className="p-4 flex items-center gap-3">
+          <div className="w-10 h-10 rounded-lg bg-cyan-100 dark:bg-cyan-900/30 flex items-center justify-center"><Wrench className="w-5 h-5 text-cyan-600" /></div>
+          <div><p className="text-xs text-muted-foreground">กำลังซ่อม</p><p className="text-2xl font-bold">{stats.underRepair}</p></div>
+        </CardContent></Card>
+        <Card><CardContent className="p-4 flex items-center gap-3">
+          <div className="w-10 h-10 rounded-lg bg-rose-100 dark:bg-rose-900/30 flex items-center justify-center"><Shield className="w-5 h-5 text-rose-700" /></div>
+          <div><p className="text-xs text-muted-foreground">รอเคลม</p><p className="text-2xl font-bold">{stats.inClaim}</p></div>
+        </CardContent></Card>
+        <Card><CardContent className="p-4 flex items-center gap-3">
+          <div className="w-10 h-10 rounded-lg bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center"><CheckCircle className="w-5 h-5 text-emerald-600" /></div>
+          <div><p className="text-xs text-muted-foreground">Refurbished</p><p className="text-2xl font-bold">{stats.refurbished}</p></div>
         </CardContent></Card>
         <Card><CardContent className="p-4 flex items-center gap-3">
           <div className="w-10 h-10 rounded-lg bg-accent flex items-center justify-center"><Building2 className="w-5 h-5 text-chart-3" /></div>
@@ -650,7 +690,7 @@ export default function MediaPlayerReport() {
                   <TableBody>
                     {paginatedData.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={24} className="text-center py-10 text-muted-foreground">
+                        <TableCell colSpan={25} className="text-center py-10 text-muted-foreground">
                           ไม่พบข้อมูล Media Player
                         </TableCell>
                       </TableRow>
@@ -685,11 +725,10 @@ export default function MediaPlayerReport() {
                             <TableCell className="text-sm whitespace-pre-line">{r.serialNumber}</TableCell>
                             <TableCell>{getConditionBadge(r.condition)}</TableCell>
                             <TableCell>
-                              {r.billboard_id ? (
-                                <Badge className="bg-green-100 text-green-800 border-green-200">ติดตั้ง</Badge>
-                              ) : (
-                                <Badge variant="outline">ในคลัง</Badge>
-                              )}
+                              {(() => {
+                                const meta = getStatusMeta(r);
+                                return <Badge variant="outline" className={meta.className}>{meta.label}</Badge>;
+                              })()}
                             </TableCell>
                             <TableCell className="text-sm">{r.billboardLabel}</TableCell>
                             <TableCell>{r.department || "-"}</TableCell>
