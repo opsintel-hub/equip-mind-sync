@@ -42,6 +42,21 @@ const getConditionBadge = (condition: string) => {
 
 const getConditionLabel = (condition: string) => getConditionDisplay(condition).label;
 
+interface StatusMeta { label: string; className: string; }
+const getStatusMeta = (r: { billboard_id: string | null; rawStatus: string | null; isRefurbished: boolean }): StatusMeta => {
+  const refurbSuffix = r.isRefurbished ? " · Refurbished" : "";
+  switch (r.rawStatus) {
+    case "pending_assessment":
+      return { label: "พักรอประเมิน" + refurbSuffix, className: "bg-purple-100 text-purple-700 border-purple-300 dark:bg-purple-900/30 dark:text-purple-300" };
+    case "under_repair":
+      return { label: "กำลังซ่อม" + refurbSuffix, className: "bg-cyan-100 text-cyan-700 border-cyan-300 dark:bg-cyan-900/30 dark:text-cyan-300" };
+    case "in_claim":
+      return { label: "รอเคลม" + refurbSuffix, className: "bg-rose-100 text-rose-700 border-rose-300 dark:bg-rose-900/30 dark:text-rose-300" };
+  }
+  if (r.billboard_id) return { label: "ติดตั้ง" + refurbSuffix, className: "bg-emerald-100 text-emerald-700 border-emerald-300 dark:bg-emerald-900/30 dark:text-emerald-300" };
+  return { label: "ในคลัง" + refurbSuffix, className: "bg-slate-100 text-slate-700 border-slate-300 dark:bg-slate-800/50 dark:text-slate-300" };
+};
+
 interface MediaPlayerMaster {
   id: string;
   code: string;
