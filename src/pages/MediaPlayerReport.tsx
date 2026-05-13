@@ -525,6 +525,22 @@ export default function MediaPlayerReport() {
           <div><p className="text-xs text-muted-foreground">รอตรวจสอบ</p><p className="text-2xl font-bold">{stats.pendingInspection}</p></div>
         </CardContent></Card>
         <Card><CardContent className="p-4 flex items-center gap-3">
+          <div className="w-10 h-10 rounded-lg bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center"><AlertTriangle className="w-5 h-5 text-purple-600" /></div>
+          <div><p className="text-xs text-muted-foreground">พักรอประเมิน</p><p className="text-2xl font-bold">{stats.pendingAssessment}</p></div>
+        </CardContent></Card>
+        <Card><CardContent className="p-4 flex items-center gap-3">
+          <div className="w-10 h-10 rounded-lg bg-cyan-100 dark:bg-cyan-900/30 flex items-center justify-center"><Wrench className="w-5 h-5 text-cyan-600" /></div>
+          <div><p className="text-xs text-muted-foreground">กำลังซ่อม</p><p className="text-2xl font-bold">{stats.underRepair}</p></div>
+        </CardContent></Card>
+        <Card><CardContent className="p-4 flex items-center gap-3">
+          <div className="w-10 h-10 rounded-lg bg-rose-100 dark:bg-rose-900/30 flex items-center justify-center"><Shield className="w-5 h-5 text-rose-700" /></div>
+          <div><p className="text-xs text-muted-foreground">รอเคลม</p><p className="text-2xl font-bold">{stats.inClaim}</p></div>
+        </CardContent></Card>
+        <Card><CardContent className="p-4 flex items-center gap-3">
+          <div className="w-10 h-10 rounded-lg bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center"><CheckCircle className="w-5 h-5 text-emerald-600" /></div>
+          <div><p className="text-xs text-muted-foreground">Refurbished</p><p className="text-2xl font-bold">{stats.refurbished}</p></div>
+        </CardContent></Card>
+        <Card><CardContent className="p-4 flex items-center gap-3">
           <div className="w-10 h-10 rounded-lg bg-accent flex items-center justify-center"><Building2 className="w-5 h-5 text-chart-3" /></div>
           <div><p className="text-xs text-muted-foreground">จำนวนยี่ห้อ</p><p className="text-2xl font-bold">{stats.uniqueBrands}</p></div>
         </CardContent></Card>
