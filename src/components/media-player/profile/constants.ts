@@ -16,15 +16,15 @@ export function getMovementMeta(type: string) {
   return MOVEMENT_TYPES.find(m => m.value === type) || MOVEMENT_TYPES[0];
 }
 
-export function getConditionDisplay(condition: string) {
+export function getConditionDisplay(condition: string | null | undefined) {
   switch (condition) {
     case "normal":
       return { label: "ปกติ", className: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 border-emerald-300" };
     case "defective":
-      return { label: "ชำรุด", className: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 border-red-300" };
-    case "repaired":
-      return { label: "ซ่อมแล้ว", className: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 border-amber-300" };
+      return { label: "เสีย/ชำรุด", className: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 border-red-300" };
+    case "pending_inspection":
+      return { label: "รอตรวจสอบ", className: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 border-amber-300" };
     default:
-      return { label: condition, className: "bg-muted text-muted-foreground" };
+      return { label: "ปกติ", className: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 border-emerald-300" };
   }
 }
