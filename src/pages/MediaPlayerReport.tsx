@@ -495,11 +495,11 @@ export default function MediaPlayerReport() {
         </CardContent></Card>
         <Card><CardContent className="p-4 flex items-center gap-3">
           <div className="w-10 h-10 rounded-lg bg-destructive/10 flex items-center justify-center"><AlertTriangle className="w-5 h-5 text-destructive" /></div>
-          <div><p className="text-xs text-muted-foreground">ชำรุด</p><p className="text-2xl font-bold">{stats.defective}</p></div>
+          <div><p className="text-xs text-muted-foreground">เสีย/ชำรุด</p><p className="text-2xl font-bold">{stats.defective}</p></div>
         </CardContent></Card>
         <Card><CardContent className="p-4 flex items-center gap-3">
           <div className="w-10 h-10 rounded-lg bg-accent flex items-center justify-center"><Wrench className="w-5 h-5 text-chart-4" /></div>
-          <div><p className="text-xs text-muted-foreground">ซ่อมแล้ว</p><p className="text-2xl font-bold">{stats.repaired}</p></div>
+          <div><p className="text-xs text-muted-foreground">รอตรวจสอบ</p><p className="text-2xl font-bold">{stats.pendingInspection}</p></div>
         </CardContent></Card>
         <Card><CardContent className="p-4 flex items-center gap-3">
           <div className="w-10 h-10 rounded-lg bg-accent flex items-center justify-center"><Building2 className="w-5 h-5 text-chart-3" /></div>
