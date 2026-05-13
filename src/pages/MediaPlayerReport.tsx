@@ -33,27 +33,14 @@ import { GeneralInfoTab } from "@/components/media-player/profile/GeneralInfoTab
 import { JourneyTab } from "@/components/media-player/profile/JourneyTab";
 import { MovementTab } from "@/components/media-player/profile/MovementTab";
 
+import { getConditionDisplay, CONDITION_OPTIONS } from "@/components/media-player/profile/constants";
+
 const getConditionBadge = (condition: string) => {
-  switch (condition) {
-    case "normal":
-      return <Badge className="bg-green-100 text-green-800 border-green-200">ปกติ</Badge>;
-    case "defective":
-      return <Badge className="bg-red-100 text-red-800 border-red-200">ชำรุด</Badge>;
-    case "repaired":
-      return <Badge className="bg-amber-100 text-amber-800 border-amber-200">ซ่อมแล้ว</Badge>;
-    default:
-      return <Badge variant="outline">{condition}</Badge>;
-  }
+  const meta = getConditionDisplay(condition);
+  return <Badge className={meta.className}>{meta.label}</Badge>;
 };
 
-const getConditionLabel = (condition: string) => {
-  switch (condition) {
-    case "normal": return "ปกติ";
-    case "defective": return "ชำรุด";
-    case "repaired": return "ซ่อมแล้ว";
-    default: return condition;
-  }
-};
+const getConditionLabel = (condition: string) => getConditionDisplay(condition).label;
 
 interface MediaPlayerMaster {
   id: string;
@@ -418,13 +405,13 @@ export default function MediaPlayerReport() {
     const installed = filtered.filter((r) => !!r.billboard_id).length;
     const inStock = filtered.filter((r) => !r.billboard_id).length;
     const defective = filtered.filter((r) => r.condition === "defective").length;
-    const repaired = filtered.filter((r) => r.condition === "repaired").length;
+    const pendingInspection = filtered.filter((r) => r.condition === "pending_inspection").length;
     const uniquePrefixes = new Set(filtered.map((r) => { const m = r.code?.match(/^([A-Za-z-]+)/); return m ? m[1] : ""; }).filter(Boolean)).size;
     const uniqueBrands = new Set(filtered.map((r) => r.brand).filter(Boolean)).size;
     const warrantyExpiring = filtered.filter((r) => r.warrantyDaysLeft !== null && r.warrantyDaysLeft >= 0 && r.warrantyDaysLeft <= 90).length;
     const uniqueDepartments = new Set(filtered.map((r) => r.department).filter(Boolean)).size;
     const uniqueProjects = new Set(filtered.map((r) => r.orderForProject).filter(Boolean)).size;
-    return { total, installed, inStock, defective, repaired, uniquePrefixes, uniqueBrands, warrantyExpiring, uniqueDepartments, uniqueProjects };
+    return { total, installed, inStock, defective, pendingInspection, uniquePrefixes, uniqueBrands, warrantyExpiring, uniqueDepartments, uniqueProjects };
   }, [filtered]);
 
   // Export Excel
@@ -508,11 +495,11 @@ export default function MediaPlayerReport() {
         </CardContent></Card>
         <Card><CardContent className="p-4 flex items-center gap-3">
           <div className="w-10 h-10 rounded-lg bg-destructive/10 flex items-center justify-center"><AlertTriangle className="w-5 h-5 text-destructive" /></div>
-          <div><p className="text-xs text-muted-foreground">ชำรุด</p><p className="text-2xl font-bold">{stats.defective}</p></div>
+          <div><p className="text-xs text-muted-foreground">เสีย/ชำรุด</p><p className="text-2xl font-bold">{stats.defective}</p></div>
         </CardContent></Card>
         <Card><CardContent className="p-4 flex items-center gap-3">
           <div className="w-10 h-10 rounded-lg bg-accent flex items-center justify-center"><Wrench className="w-5 h-5 text-chart-4" /></div>
-          <div><p className="text-xs text-muted-foreground">ซ่อมแล้ว</p><p className="text-2xl font-bold">{stats.repaired}</p></div>
+          <div><p className="text-xs text-muted-foreground">รอตรวจสอบ</p><p className="text-2xl font-bold">{stats.pendingInspection}</p></div>
         </CardContent></Card>
         <Card><CardContent className="p-4 flex items-center gap-3">
           <div className="w-10 h-10 rounded-lg bg-accent flex items-center justify-center"><Building2 className="w-5 h-5 text-chart-3" /></div>
@@ -559,9 +546,7 @@ export default function MediaPlayerReport() {
               <SelectTrigger className="w-[130px]"><SelectValue placeholder="สภาพ" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">ทุกสภาพ</SelectItem>
-                <SelectItem value="normal">ปกติ</SelectItem>
-                <SelectItem value="defective">ชำรุด</SelectItem>
-                <SelectItem value="repaired">ซ่อมแล้ว</SelectItem>
+                {CONDITION_OPTIONS.map(c => (<SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>))}
               </SelectContent>
             </Select>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
