@@ -425,12 +425,16 @@ export default function MediaPlayerReport() {
     const inStock = filtered.filter((r) => !r.billboard_id).length;
     const defective = filtered.filter((r) => r.condition === "defective").length;
     const pendingInspection = filtered.filter((r) => r.condition === "pending_inspection").length;
+    const pendingAssessment = filtered.filter((r) => r.rawStatus === "pending_assessment").length;
+    const underRepair = filtered.filter((r) => r.rawStatus === "under_repair").length;
+    const inClaim = filtered.filter((r) => r.rawStatus === "in_claim").length;
+    const refurbished = filtered.filter((r) => r.isRefurbished).length;
     const uniquePrefixes = new Set(filtered.map((r) => { const m = r.code?.match(/^([A-Za-z-]+)/); return m ? m[1] : ""; }).filter(Boolean)).size;
     const uniqueBrands = new Set(filtered.map((r) => r.brand).filter(Boolean)).size;
     const warrantyExpiring = filtered.filter((r) => r.warrantyDaysLeft !== null && r.warrantyDaysLeft >= 0 && r.warrantyDaysLeft <= 90).length;
     const uniqueDepartments = new Set(filtered.map((r) => r.department).filter(Boolean)).size;
     const uniqueProjects = new Set(filtered.map((r) => r.orderForProject).filter(Boolean)).size;
-    return { total, installed, inStock, defective, pendingInspection, uniquePrefixes, uniqueBrands, warrantyExpiring, uniqueDepartments, uniqueProjects };
+    return { total, installed, inStock, defective, pendingInspection, pendingAssessment, underRepair, inClaim, refurbished, uniquePrefixes, uniqueBrands, warrantyExpiring, uniqueDepartments, uniqueProjects };
   }, [filtered]);
 
   // Export Excel
