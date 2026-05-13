@@ -546,9 +546,7 @@ export default function MediaPlayerReport() {
               <SelectTrigger className="w-[130px]"><SelectValue placeholder="สภาพ" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">ทุกสภาพ</SelectItem>
-                <SelectItem value="normal">ปกติ</SelectItem>
-                <SelectItem value="defective">ชำรุด</SelectItem>
-                <SelectItem value="repaired">ซ่อมแล้ว</SelectItem>
+                {CONDITION_OPTIONS.map(c => (<SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>))}
               </SelectContent>
             </Select>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
