@@ -16,6 +16,12 @@ export function getMovementMeta(type: string) {
   return MOVEMENT_TYPES.find(m => m.value === type) || MOVEMENT_TYPES[0];
 }
 
+export const CONDITION_OPTIONS = [
+  { value: "normal", label: "ปกติ" },
+  { value: "defective", label: "เสีย/ชำรุด" },
+  { value: "pending_inspection", label: "รอตรวจสอบ" },
+] as const;
+
 export function getConditionDisplay(condition: string | null | undefined) {
   switch (condition) {
     case "normal":
