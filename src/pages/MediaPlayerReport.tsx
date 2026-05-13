@@ -123,6 +123,8 @@ interface ExpandedRow {
   warrantyDaysLeft: number | null;
   expiryDaysLeft: number | null;
   orderForProject: string;
+  rawStatus: string | null;
+  isRefurbished: boolean;
 }
 
 export default function MediaPlayerReport() {
