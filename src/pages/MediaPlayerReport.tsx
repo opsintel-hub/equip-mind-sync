@@ -33,27 +33,14 @@ import { GeneralInfoTab } from "@/components/media-player/profile/GeneralInfoTab
 import { JourneyTab } from "@/components/media-player/profile/JourneyTab";
 import { MovementTab } from "@/components/media-player/profile/MovementTab";
 
+import { getConditionDisplay, CONDITION_OPTIONS } from "@/components/media-player/profile/constants";
+
 const getConditionBadge = (condition: string) => {
-  switch (condition) {
-    case "normal":
-      return <Badge className="bg-green-100 text-green-800 border-green-200">ปกติ</Badge>;
-    case "defective":
-      return <Badge className="bg-red-100 text-red-800 border-red-200">ชำรุด</Badge>;
-    case "repaired":
-      return <Badge className="bg-amber-100 text-amber-800 border-amber-200">ซ่อมแล้ว</Badge>;
-    default:
-      return <Badge variant="outline">{condition}</Badge>;
-  }
+  const meta = getConditionDisplay(condition);
+  return <Badge className={meta.className}>{meta.label}</Badge>;
 };
 
-const getConditionLabel = (condition: string) => {
-  switch (condition) {
-    case "normal": return "ปกติ";
-    case "defective": return "ชำรุด";
-    case "repaired": return "ซ่อมแล้ว";
-    default: return condition;
-  }
-};
+const getConditionLabel = (condition: string) => getConditionDisplay(condition).label;
 
 interface MediaPlayerMaster {
   id: string;
