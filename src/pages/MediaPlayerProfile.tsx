@@ -3,9 +3,10 @@ import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { ProcessTracker, ProcessStep } from "@/components/ProcessTracker";
 import { differenceInDays, parseISO } from "date-fns";
-import { Search, Monitor, Loader2, FileDown } from "lucide-react";
+import { Search, Monitor, Loader2, FileDown, Info, History, BarChart3 } from "lucide-react";
 import { toast } from "sonner";
 import { formatBillboardLabel } from "@/lib/billboardUtils";
 import { useChartExport } from "@/hooks/useChartExport";
@@ -270,36 +271,55 @@ const MediaPlayerProfile = () => {
         <div ref={profileRef} className="space-y-6">
           <ProfileHeader player={player} modelName={modelName} statusLabel={statusLabel} images={images} />
 
-          {/* Quick jump links */}
-          <div className="flex flex-wrap gap-2">
-            <a href="#general" className="px-3 py-1.5 rounded-md border bg-background text-xs font-medium hover:bg-muted">ข้อมูลทั่วไป</a>
-            <a href="#journey" className="px-3 py-1.5 rounded-md border bg-background text-xs font-medium hover:bg-muted">ประวัติติดตั้ง</a>
-            <a href="#movements" className="px-3 py-1.5 rounded-md border bg-primary text-primary-foreground text-xs font-semibold hover:opacity-90">📊 Stock Card</a>
-          </div>
+          <Tabs defaultValue="general" className="w-full">
+            <TabsList className="inline-flex h-auto p-1.5 gap-1 bg-muted/60 backdrop-blur rounded-xl border border-border/50 shadow-sm">
+              <TabsTrigger
+                value="general"
+                className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-md data-[state=active]:border data-[state=active]:border-border/60 transition-all"
+              >
+                <Info className="w-4 h-4" />
+                ข้อมูลทั่วไป
+              </TabsTrigger>
+              <TabsTrigger
+                value="journey"
+                className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-md data-[state=active]:border data-[state=active]:border-border/60 transition-all"
+              >
+                <History className="w-4 h-4" />
+                ประวัติติดตั้ง
+              </TabsTrigger>
+              <TabsTrigger
+                value="movements"
+                className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md transition-all"
+              >
+                <BarChart3 className="w-4 h-4" />
+                Stock Card
+              </TabsTrigger>
+            </TabsList>
 
-          <section id="general" className="scroll-mt-4">
-            <GeneralInfoTab player={player} modelName={modelName} />
-          </section>
+            {/* ข้อมูลทั่วไป: ข้อมูลพื้นฐาน + สรุปสถานะ */}
+            <TabsContent value="general" className="mt-6 space-y-6 focus-visible:outline-none">
+              <GeneralInfoTab player={player} modelName={modelName} />
+              <SummaryCards player={player} journeys={journeys} />
+            </TabsContent>
 
-          <section id="journey" className="scroll-mt-4">
-            <JourneyTab player={player} journeys={journeys} />
-          </section>
+            {/* ประวัติติดตั้ง: รายการติดตั้ง + Lifecycle */}
+            <TabsContent value="journey" className="mt-6 space-y-6 focus-visible:outline-none">
+              <JourneyTab player={player} journeys={journeys} />
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base">Lifecycle</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <ProcessTracker steps={lifecycleSteps} />
+                </CardContent>
+              </Card>
+            </TabsContent>
 
-          <section id="movements" className="scroll-mt-4">
-            <MovementTab movements={movements} playerCode={player.code} />
-          </section>
-
-          <SummaryCards player={player} journeys={journeys} />
-
-          {/* Process Tracker */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Lifecycle</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ProcessTracker steps={lifecycleSteps} />
-            </CardContent>
-          </Card>
+            {/* Stock Card: เคลื่อนไหวสต๊อกอย่างเดียว */}
+            <TabsContent value="movements" className="mt-6 focus-visible:outline-none">
+              <MovementTab movements={movements} playerCode={player.code} />
+            </TabsContent>
+          </Tabs>
         </div>
       )}
     </div>
