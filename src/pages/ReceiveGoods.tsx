@@ -1688,9 +1688,9 @@ const ReceiveGoods = () => {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="normal">ใช้งานปกติ</SelectItem>
+                    <SelectItem value="normal">ปกติ</SelectItem>
                     <SelectItem value="defective">เสีย/ชำรุด</SelectItem>
-                    <SelectItem value="pending_inspection">รอตรวจสอบการใช้งาน</SelectItem>
+                    <SelectItem value="pending_inspection">รอตรวจสอบ</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -1799,9 +1799,9 @@ const ReceiveGoods = () => {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="normal">ใช้งานปกติ</SelectItem>
+                  <SelectItem value="normal">ปกติ</SelectItem>
                   <SelectItem value="defective">เสีย/ชำรุด</SelectItem>
-                  <SelectItem value="pending_inspection">รอตรวจสอบการใช้งาน</SelectItem>
+                  <SelectItem value="pending_inspection">รอตรวจสอบ</SelectItem>
                 </SelectContent>
               </Select>
             </div>

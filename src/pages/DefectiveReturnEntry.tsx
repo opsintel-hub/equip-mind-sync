@@ -833,7 +833,7 @@ const DefectiveReturnEntry = () => {
                       <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="defective">เสีย/ชำรุด</SelectItem>
-                        <SelectItem value="pending_inspection">รอตรวจสอบการใช้งาน</SelectItem>
+                        <SelectItem value="pending_inspection">รอตรวจสอบ</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
