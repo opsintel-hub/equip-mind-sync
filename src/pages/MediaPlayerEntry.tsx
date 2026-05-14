@@ -8,7 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Monitor, Search, Loader2, MapPin, Unplug, Plus, Download, Image as ImageIcon, FileText, Camera, X, Eye } from "lucide-react";
+import { Monitor, Search, Loader2, MapPin, Plus, Download, Image as ImageIcon, FileText, Camera, X, Eye, Pencil } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { MediaPlayerImageUpload } from "@/components/media-player/MediaPlayerImageUpload";
 import * as XLSX from "xlsx";
@@ -85,10 +85,15 @@ const MediaPlayerEntry = () => {
   const [mediaPlayers, setMediaPlayers] = useState<MediaPlayer[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [isInstallDialogOpen, setIsInstallDialogOpen] = useState(false);
   const [selectedPlayer, setSelectedPlayer] = useState<MediaPlayer | null>(null);
-  const [installBillboardId, setInstallBillboardId] = useState("");
-  const [installDate, setInstallDate] = useState("");
+  const [editPlayer, setEditPlayer] = useState<MediaPlayer | null>(null);
+  const [editForm, setEditForm] = useState({
+    name: "",
+    cms_type_id: "",
+    specification: "",
+    brand: "",
+    model_id: "",
+  });
   const [imageUploadPlayer, setImageUploadPlayer] = useState<MediaPlayer | null>(null);
   const [previewDocUrl, setPreviewDocUrl] = useState<string | null>(null);
   const [selectedPrefix, setSelectedPrefix] = useState("");
@@ -416,17 +421,25 @@ const MediaPlayerEntry = () => {
     return s?.label || status || "Active";
   };
 
-  const handleOpenInstallDialog = (player: MediaPlayer) => {
-    setSelectedPlayer(player);
-    setInstallBillboardId(player.billboard_id || "");
-    setInstallDate(player.install_date || format(new Date(), "yyyy-MM-dd"));
-    setIsInstallDialogOpen(true);
+  const handleOpenEditDialog = (player: MediaPlayer) => {
+    const nameId = mediaPlayerNames.find(n => n.name === player.name)?.id || "";
+    const specId = mediaPlayerSpecs.find(s => s.name === player.specification)?.id || "";
+    setEditPlayer(player);
+    setEditForm({
+      name: nameId,
+      cms_type_id: player.cms_type_id || "",
+      specification: specId,
+      brand: player.brand || "",
+      model_id: player.model_id || "",
+    });
   };
 
-  const handleInstallToBillboard = async () => {
-    if (!selectedPlayer) return;
-    if (!installBillboardId) {
-      toast.error("กรุณาเลือกป้ายโฆษณา");
+  const handleSaveEdit = async () => {
+    if (!editPlayer) return;
+    const selectedName = mediaPlayerNames.find(n => n.id === editForm.name);
+    const selectedSpec = mediaPlayerSpecs.find(s => s.id === editForm.specification);
+    if (!selectedName) {
+      toast.error("กรุณาเลือกชื่อสินค้า");
       return;
     }
 
@@ -435,36 +448,17 @@ const MediaPlayerEntry = () => {
       const { error } = await supabase
         .from("media_players")
         .update({
-          billboard_id: installBillboardId,
-          install_date: installDate || null,
-        })
-        .eq("id", selectedPlayer.id);
+          name: selectedName.name,
+          cms_type_id: editForm.cms_type_id || null,
+          specification: selectedSpec?.name || null,
+          brand: editForm.brand || null,
+          model_id: editForm.model_id || null,
+        } as any)
+        .eq("id", editPlayer.id);
 
       if (error) throw error;
-
-      toast.success("บันทึกการติดตั้งสำเร็จ");
-      setIsInstallDialogOpen(false);
-      setSelectedPlayer(null);
-      fetchMediaPlayers();
-    } catch (error) {
-      console.error("Error:", error);
-      toast.error("เกิดข้อผิดพลาดในการบันทึก");
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  const handleUninstallFromBillboard = async (player: MediaPlayer) => {
-    if (!confirm(`ต้องการยกเลิกการติดตั้ง ${player.name} จากป้ายโฆษณา?`)) return;
-
-    try {
-      const { error } = await supabase
-        .from("media_players")
-        .update({ billboard_id: null, install_date: null })
-        .eq("id", player.id);
-
-      if (error) throw error;
-      toast.success("ยกเลิกการติดตั้งสำเร็จ");
+      toast.success("แก้ไขข้อมูลสำเร็จ");
+      setEditPlayer(null);
       fetchMediaPlayers();
     } catch (error) {
       console.error("Error:", error);
@@ -920,28 +914,18 @@ const MediaPlayerEntry = () => {
                                   <Button
                                     variant="ghost"
                                     size="sm"
+                                    onClick={() => handleOpenEditDialog(player)}
+                                    title="แก้ไขข้อมูล"
+                                  >
+                                    <Pencil className="w-4 h-4 text-primary" />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
                                     onClick={() => setImageUploadPlayer(player)}
                                     title="Upload ภาพ"
                                   >
                                     <Camera className="w-4 h-4 text-primary" />
-                                  </Button>
-                                  {player.billboard_id ? (
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      onClick={() => handleUninstallFromBillboard(player)}
-                                      title="ถอดออกจากป้าย"
-                                    >
-                                      <Unplug className="w-4 h-4 text-destructive" />
-                                    </Button>
-                                  ) : null}
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => handleOpenInstallDialog(player)}
-                                    title="ติดตั้งที่ป้าย"
-                                  >
-                                    <MapPin className="w-4 h-4 text-primary" />
                                   </Button>
                                 </div>
                               </TableCell>
@@ -970,40 +954,60 @@ const MediaPlayerEntry = () => {
         />
       )}
 
-      {/* Install to Billboard Dialog */}
-      <Dialog open={isInstallDialogOpen} onOpenChange={setIsInstallDialogOpen}>
-        <DialogContent>
+      {/* Edit Media Player Dialog */}
+      <Dialog open={!!editPlayer} onOpenChange={(open) => !open && setEditPlayer(null)}>
+        <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>ติดตั้งที่ป้ายโฆษณา</DialogTitle>
+            <DialogTitle>แก้ไขข้อมูล Media Player</DialogTitle>
             <DialogDescription>
-              เลือกป้ายโฆษณาที่ต้องการติดตั้ง {selectedPlayer?.name}
+              รหัส: <span className="font-mono font-medium">{editPlayer?.code}</span>
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label>ป้ายโฆษณา *</Label>
-              <BillboardSelect
-                value={installBillboardId}
-                onChange={setInstallBillboardId}
-                placeholder="เลือกป้ายโฆษณา"
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2 md:col-span-2">
+              <Label>ชื่อสินค้า *</Label>
+              <MediaPlayerNameSelect
+                value={editForm.name}
+                onChange={(v) => setEditForm({ ...editForm, name: v })}
               />
             </div>
             <div className="space-y-2">
-              <Label>วันที่ติดตั้ง</Label>
-              <Input
-                type="date"
-                value={installDate}
-                onChange={(e) => setInstallDate(e.target.value)}
+              <Label>ประเภท (CMS)</Label>
+              <CMSTypeSelect
+                value={editForm.cms_type_id}
+                onChange={(v) => setEditForm({ ...editForm, cms_type_id: v })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>โมเดล</Label>
+              <ModelSelect
+                value={editForm.model_id}
+                onChange={(v) => setEditForm({ ...editForm, model_id: v })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>ยี่ห้อ</Label>
+              <BrandSelect
+                value={editForm.brand}
+                onChange={(v) => setEditForm({ ...editForm, brand: v })}
+                brandType="media_player"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Specification</Label>
+              <SpecificationSelect
+                value={editForm.specification}
+                onChange={(v) => setEditForm({ ...editForm, specification: v })}
               />
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsInstallDialogOpen(false)}>
+            <Button variant="outline" onClick={() => setEditPlayer(null)}>
               ยกเลิก
             </Button>
-            <Button onClick={handleInstallToBillboard} disabled={isSaving}>
+            <Button onClick={handleSaveEdit} disabled={isSaving}>
               {isSaving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-              บันทึก
+              บันทึกการแก้ไข
             </Button>
           </DialogFooter>
         </DialogContent>
