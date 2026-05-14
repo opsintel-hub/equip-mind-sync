@@ -2554,7 +2554,7 @@ const DeliveryEntry = () => {
 
               {/* Serial Number (only for non-Media Player) & Unit Price & Total Amount */}
               <div
-                className={`grid grid-cols-1 ${isMediaPlayerEntry || perUnitMode ? "md:grid-cols-2" : "md:grid-cols-3"} gap-4`}
+                className={`grid grid-cols-1 ${isStorageReceipt ? (isMediaPlayerEntry || perUnitMode ? "" : "md:grid-cols-1") : (isMediaPlayerEntry || perUnitMode ? "md:grid-cols-2" : "md:grid-cols-3")} gap-4`}
               >
                 {!isMediaPlayerEntry && !perUnitMode && (
                   <div className="space-y-2">
@@ -2567,65 +2567,56 @@ const DeliveryEntry = () => {
                     />
                   </div>
                 )}
-                <div className="space-y-2">
-                  <Label htmlFor="unitPrice">ราคาต่อชิ้น (บาท) {isPurchaseReceipt ? "*" : ""}</Label>
-                  {!isPurchaseReceipt && (selectedEquipmentId || selectedMediaPlayerId) ? (
-                    <Input
-                      id="unitPrice"
-                      type="number"
-                      step="0.01"
-                      value={unitPrice}
-                      readOnly
-                      className="bg-muted font-medium"
-                      title="ราคาดึงจากข้อมูลสินค้าในระบบ"
-                    />
-                  ) : (
-                    <Input
-                      id="unitPrice"
-                      type="number"
-                      step="0.01"
-                      placeholder="0.00"
-                      value={unitPrice}
-                      onChange={(e) => setUnitPrice(e.target.value)}
-                      required={isPurchaseReceipt}
-                    />
-                  )}
-                  {!isPurchaseReceipt && selectedEquipmentId && (
-                    <p className="text-xs text-muted-foreground">ดึงราคาจากข้อมูลสินค้าในระบบ</p>
-                  )}
-                </div>
-                <div className="space-y-2">
-                  <Label>จำนวนเงินทั้งหมด (บาท)</Label>
-                  {(() => {
-                    const effectiveQty = isMediaPlayerEntry
-                      ? mediaPlayerDevices.filter((d) => d.serial_number_1.trim()).length || mediaPlayerDevices.length
-                      : perUnitMode
-                        ? equipmentUnits.filter((u) => u.serial_number.trim()).length || equipmentUnits.length
-                        : parseInt(quantity) || 0;
-                    return (
-                      <>
-                        <Input
-                          readOnly
-                          value={
-                            (parseFloat(unitPrice) || 0) > 0 && effectiveQty > 0
-                              ? `฿${((parseFloat(unitPrice) || 0) * effectiveQty).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-                              : "-"
-                          }
-                          className="bg-muted font-medium text-primary"
-                        />
-                        {effectiveQty > 1 && (parseFloat(unitPrice) || 0) > 0 && (
-                          <p className="text-xs text-muted-foreground">
-                            {effectiveQty} ชิ้น × ฿{parseFloat(unitPrice).toLocaleString()} = ฿
-                            {((parseFloat(unitPrice) || 0) * effectiveQty).toLocaleString(undefined, {
-                              minimumFractionDigits: 2,
-                              maximumFractionDigits: 2,
-                            })}
-                          </p>
-                        )}
-                      </>
-                    );
-                  })()}
-                </div>
+                {!isStorageReceipt && (
+                  <>
+                    <div className="space-y-2">
+                      <Label htmlFor="unitPrice">ราคาต่อชิ้น (บาท) *</Label>
+                      <Input
+                        id="unitPrice"
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        placeholder="0.00"
+                        value={unitPrice}
+                        onChange={(e) => setUnitPrice(e.target.value)}
+                        required
+                      />
+                      <p className="text-xs text-muted-foreground">หากไม่มีราคา สามารถใส่ 0 ได้</p>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>จำนวนเงินทั้งหมด (บาท)</Label>
+                      {(() => {
+                        const effectiveQty = isMediaPlayerEntry
+                          ? mediaPlayerDevices.filter((d) => d.serial_number_1.trim()).length || mediaPlayerDevices.length
+                          : perUnitMode
+                            ? equipmentUnits.filter((u) => u.serial_number.trim()).length || equipmentUnits.length
+                            : parseInt(quantity) || 0;
+                        return (
+                          <>
+                            <Input
+                              readOnly
+                              value={
+                                (parseFloat(unitPrice) || 0) > 0 && effectiveQty > 0
+                                  ? `฿${((parseFloat(unitPrice) || 0) * effectiveQty).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                                  : "-"
+                              }
+                              className="bg-muted font-medium text-primary"
+                            />
+                            {effectiveQty > 1 && (parseFloat(unitPrice) || 0) > 0 && (
+                              <p className="text-xs text-muted-foreground">
+                                {effectiveQty} ชิ้น × ฿{parseFloat(unitPrice).toLocaleString()} = ฿
+                                {((parseFloat(unitPrice) || 0) * effectiveQty).toLocaleString(undefined, {
+                                  minimumFractionDigits: 2,
+                                  maximumFractionDigits: 2,
+                                })}
+                              </p>
+                            )}
+                          </>
+                        );
+                      })()}
+                    </div>
+                  </>
+                )}
               </div>
 
               {/* Storage Dimensions */}
