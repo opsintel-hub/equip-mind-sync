@@ -583,6 +583,82 @@ const DeliveryEntry = () => {
     return `TEMP-${dateStr}-${random}`;
   };
 
+  // Check optional fields and warn user about unfilled fields (non-blocking)
+  const gatherOptionalFieldWarnings = (): string[] => {
+    const warnings: string[] = [];
+
+    // Header-level optional fields
+    if (!deliveryPersonPhone.trim()) {
+      warnings.push("เบอร์โทรผู้นำส่ง");
+    }
+    if (isPurchaseReceipt) {
+      if (!poNumber.trim()) warnings.push("เลขที่ PO");
+      if (!prNumber.trim()) warnings.push("เลขที่ PR");
+      if (!invoiceNumber.trim()) warnings.push("เลขที่ Invoice");
+      if (!deliveryNoteNumber.trim()) warnings.push("เลขที่ใบส่งของ");
+      if (!purchaseDocumentFile && !poDocumentUrl && !prDocumentUrl && !invoiceDocumentUrl && !deliveryNoteDocumentUrl) {
+        warnings.push("เอกสารสั่งซื้อ/ใบส่งของ (PO/PR/Invoice)");
+      }
+    }
+
+    // Item-level optional fields
+    if (!selectedSupplierId && !supplierName.trim()) {
+      warnings.push("ผู้จัดจำหน่าย");
+    }
+    if (!lotNumber1.trim()) {
+      warnings.push("Lot Number 1");
+    }
+    if (!lotNumber2.trim()) {
+      warnings.push("Lot Number 2");
+    }
+    if (!expiryDate) {
+      warnings.push("วันหมดอายุ");
+    }
+    if (!warrantyExpiryDate) {
+      warnings.push("วันสิ้นสุดประกัน");
+    }
+    if (!storageWidthCm && !storageHeightCm && !storageDepthCm) {
+      warnings.push("ขนาดพื้นที่จัดเก็บ (กว้างxสูงxลึก)");
+    } else {
+      if (!storageWidthCm) warnings.push("ความกว้างจัดเก็บ (cm)");
+      if (!storageHeightCm) warnings.push("ความสูงจัดเก็บ (cm)");
+      if (!storageDepthCm) warnings.push("ความลึกจัดเก็บ (cm)");
+    }
+    if (!itemNotes.trim()) {
+      warnings.push("หมายเหตุ");
+    }
+
+    // Asset-related optional fields (when marked as asset)
+    if (isAsset) {
+      if (!waitingAssetCode && !assetCode.trim()) {
+        warnings.push("รหัสสินทรัพย์ (Asset Code)");
+      }
+      if (!waitingEquipmentId && !equipmentIdCode.trim()) {
+        warnings.push("รหัส Equipment ID");
+      }
+      if (!depreciationMonths) {
+        warnings.push("ค่าเสื่อมราคา (เดือน)");
+      }
+    }
+
+    // Media Player specific optional fields
+    if (isMediaPlayerEntry) {
+      if (!mediaPlayerSpecification.trim()) {
+        warnings.push("สเปค Media Player");
+      }
+      if (!mediaPlayerUsageLifespanMonths) {
+        warnings.push("อายุการใช้งาน (เดือน)");
+      }
+    }
+
+    // Standard mode: serial number (not required unless per-unit mode)
+    if (!isMediaPlayerEntry && !perUnitMode && !serialNumber.trim()) {
+      warnings.push("Serial Number");
+    }
+
+    return warnings;
+  };
+
   // Add item to cart
   const handleAddToCart = () => {
     // Validate header fields first
@@ -617,6 +693,15 @@ const DeliveryEntry = () => {
       if (validDevices.length === 0) {
         toast.error("กรุณากรอก Serial Number อย่างน้อย 1 เครื่อง");
         return;
+      }
+
+      // Check optional fields (non-blocking warning)
+      const optionalWarnings = gatherOptionalFieldWarnings();
+      if (optionalWarnings.length > 0) {
+        toast.warning(
+          `ยังไม่ได้กรอกข้อมูลเพิ่มเติม: ${optionalWarnings.join(", ")}`,
+          { duration: 5000 }
+        );
       }
 
       const selectedMP = mediaPlayers.find((mp) => mp.id === selectedMediaPlayerId);
@@ -693,6 +778,15 @@ const DeliveryEntry = () => {
           }
         }
 
+        // Check optional fields (non-blocking warning)
+        const optionalWarnings = gatherOptionalFieldWarnings();
+        if (optionalWarnings.length > 0) {
+          toast.warning(
+            `ยังไม่ได้กรอกข้อมูลเพิ่มเติม: ${optionalWarnings.join(", ")}`,
+            { duration: 5000 }
+          );
+        }
+
         // Create one cart item per unit
         const newItems: DeliveryCartItem[] = validUnits.map((unitEntry) => ({
           id: crypto.randomUUID(),
@@ -761,6 +855,16 @@ const DeliveryEntry = () => {
           toast.error("กรุณาระบุราคาต่อชิ้น (ใส่ 0 ได้หากไม่มีราคา)");
           return;
         }
+
+        // Check optional fields (non-blocking warning)
+        const optionalWarnings = gatherOptionalFieldWarnings();
+        if (optionalWarnings.length > 0) {
+          toast.warning(
+            `ยังไม่ได้กรอกข้อมูลเพิ่มเติม: ${optionalWarnings.join(", ")}`,
+            { duration: 5000 }
+          );
+        }
+
         const newItem: DeliveryCartItem = {
           id: crypto.randomUUID(),
           equipment_id: selectedEquipmentId || null,
