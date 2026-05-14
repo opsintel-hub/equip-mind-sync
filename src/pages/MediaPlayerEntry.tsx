@@ -20,9 +20,7 @@ import { SpecificationSelect } from "@/components/media-player/SpecificationSele
 import { ModelSelect } from "@/components/media-player/ModelSelect";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { format } from "date-fns";
 import { formatBillboardLabel } from "@/lib/billboardUtils";
-import BillboardSelect from "@/components/billboard/BillboardSelect";
 import { BrandSelect } from "@/components/equipment/BrandSelect";
 import { DocumentPreviewDialog } from "@/components/DocumentPreviewDialog";
 
