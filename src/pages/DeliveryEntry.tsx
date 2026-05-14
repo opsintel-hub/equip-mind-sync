@@ -420,6 +420,7 @@ const DeliveryEntry = () => {
   const selectedSupplier = suppliers.find((s) => s.id === selectedSupplierId);
   const selectedReceiptPurpose = receiptPurposes.find((p) => p.id === selectedReceiptPurposeId);
   const isPurchaseReceipt = selectedReceiptPurpose?.name === "นำเข้าจากการซื้อ";
+  const isStorageReceipt = selectedReceiptPurpose?.purpose_type === "storage";
 
   // Update unit and category when equipment is selected
   useEffect(() => {
@@ -607,8 +608,8 @@ const DeliveryEntry = () => {
         toast.error("กรุณาเลือก Media Player");
         return;
       }
-      if (!unitPrice) {
-        toast.error("กรุณาระบุราคาต่อชิ้น");
+      if (!isStorageReceipt && !unitPrice) {
+        toast.error("กรุณาระบุราคาต่อชิ้น (ใส่ 0 ได้หากไม่มีราคา)");
         return;
       }
       // Validate each device entry has at least S/N
@@ -635,7 +636,7 @@ const DeliveryEntry = () => {
         remote_name: device.device_name,
         specification: mediaPlayerSpecification,
         usage_lifespan_months: mediaPlayerUsageLifespanMonths,
-        unit_price: unitPrice ? parseFloat(unitPrice) : null,
+        unit_price: isStorageReceipt ? null : (unitPrice ? parseFloat(unitPrice) : null),
         supplier_id: selectedSupplierId || null,
         supplier_name: supplierName || selectedSupplier?.name || "",
         expiry_date: expiryDate,
@@ -673,8 +674,8 @@ const DeliveryEntry = () => {
           toast.error("กรุณากรอก Serial Number อย่างน้อย 1 ชิ้น");
           return;
         }
-        if (!unitPrice) {
-          toast.error("กรุณาระบุราคาต่อชิ้น");
+        if (!isStorageReceipt && !unitPrice) {
+          toast.error("กรุณาระบุราคาต่อชิ้น (ใส่ 0 ได้หากไม่มีราคา)");
           return;
         }
         if (!selectedEquipmentId) {
@@ -705,7 +706,7 @@ const DeliveryEntry = () => {
           lot_number_1: lotNumber1,
           lot_number_2: lotNumber2,
           serial_number: unitEntry.serial_number,
-          unit_price: unitPrice ? parseFloat(unitPrice) : null,
+          unit_price: isStorageReceipt ? null : (unitPrice ? parseFloat(unitPrice) : null),
           supplier_id: selectedSupplierId || null,
           supplier_name: supplierName || selectedSupplier?.name || "",
           expiry_date: expiryDate,
@@ -756,8 +757,8 @@ const DeliveryEntry = () => {
             return;
           }
         }
-        if (!unitPrice) {
-          toast.error("กรุณาระบุราคาต่อชิ้น");
+        if (!isStorageReceipt && !unitPrice) {
+          toast.error("กรุณาระบุราคาต่อชิ้น (ใส่ 0 ได้หากไม่มีราคา)");
           return;
         }
         const newItem: DeliveryCartItem = {
@@ -772,7 +773,7 @@ const DeliveryEntry = () => {
           lot_number_1: lotNumber1,
           lot_number_2: lotNumber2,
           serial_number: serialNumber,
-          unit_price: unitPrice ? parseFloat(unitPrice) : null,
+          unit_price: isStorageReceipt ? null : (unitPrice ? parseFloat(unitPrice) : null),
           supplier_id: selectedSupplierId || null,
           supplier_name: supplierName || selectedSupplier?.name || "",
           expiry_date: expiryDate,
@@ -2553,7 +2554,7 @@ const DeliveryEntry = () => {
 
               {/* Serial Number (only for non-Media Player) & Unit Price & Total Amount */}
               <div
-                className={`grid grid-cols-1 ${isMediaPlayerEntry || perUnitMode ? "md:grid-cols-2" : "md:grid-cols-3"} gap-4`}
+                className={`grid grid-cols-1 ${isStorageReceipt ? (isMediaPlayerEntry || perUnitMode ? "" : "md:grid-cols-1") : (isMediaPlayerEntry || perUnitMode ? "md:grid-cols-2" : "md:grid-cols-3")} gap-4`}
               >
                 {!isMediaPlayerEntry && !perUnitMode && (
                   <div className="space-y-2">
@@ -2566,65 +2567,56 @@ const DeliveryEntry = () => {
                     />
                   </div>
                 )}
-                <div className="space-y-2">
-                  <Label htmlFor="unitPrice">ราคาต่อชิ้น (บาท) {isPurchaseReceipt ? "*" : ""}</Label>
-                  {!isPurchaseReceipt && (selectedEquipmentId || selectedMediaPlayerId) ? (
-                    <Input
-                      id="unitPrice"
-                      type="number"
-                      step="0.01"
-                      value={unitPrice}
-                      readOnly
-                      className="bg-muted font-medium"
-                      title="ราคาดึงจากข้อมูลสินค้าในระบบ"
-                    />
-                  ) : (
-                    <Input
-                      id="unitPrice"
-                      type="number"
-                      step="0.01"
-                      placeholder="0.00"
-                      value={unitPrice}
-                      onChange={(e) => setUnitPrice(e.target.value)}
-                      required={isPurchaseReceipt}
-                    />
-                  )}
-                  {!isPurchaseReceipt && selectedEquipmentId && (
-                    <p className="text-xs text-muted-foreground">ดึงราคาจากข้อมูลสินค้าในระบบ</p>
-                  )}
-                </div>
-                <div className="space-y-2">
-                  <Label>จำนวนเงินทั้งหมด (บาท)</Label>
-                  {(() => {
-                    const effectiveQty = isMediaPlayerEntry
-                      ? mediaPlayerDevices.filter((d) => d.serial_number_1.trim()).length || mediaPlayerDevices.length
-                      : perUnitMode
-                        ? equipmentUnits.filter((u) => u.serial_number.trim()).length || equipmentUnits.length
-                        : parseInt(quantity) || 0;
-                    return (
-                      <>
-                        <Input
-                          readOnly
-                          value={
-                            (parseFloat(unitPrice) || 0) > 0 && effectiveQty > 0
-                              ? `฿${((parseFloat(unitPrice) || 0) * effectiveQty).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-                              : "-"
-                          }
-                          className="bg-muted font-medium text-primary"
-                        />
-                        {effectiveQty > 1 && (parseFloat(unitPrice) || 0) > 0 && (
-                          <p className="text-xs text-muted-foreground">
-                            {effectiveQty} ชิ้น × ฿{parseFloat(unitPrice).toLocaleString()} = ฿
-                            {((parseFloat(unitPrice) || 0) * effectiveQty).toLocaleString(undefined, {
-                              minimumFractionDigits: 2,
-                              maximumFractionDigits: 2,
-                            })}
-                          </p>
-                        )}
-                      </>
-                    );
-                  })()}
-                </div>
+                {!isStorageReceipt && (
+                  <>
+                    <div className="space-y-2">
+                      <Label htmlFor="unitPrice">ราคาต่อชิ้น (บาท) *</Label>
+                      <Input
+                        id="unitPrice"
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        placeholder="0.00"
+                        value={unitPrice}
+                        onChange={(e) => setUnitPrice(e.target.value)}
+                        required
+                      />
+                      <p className="text-xs text-muted-foreground">หากไม่มีราคา สามารถใส่ 0 ได้</p>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>จำนวนเงินทั้งหมด (บาท)</Label>
+                      {(() => {
+                        const effectiveQty = isMediaPlayerEntry
+                          ? mediaPlayerDevices.filter((d) => d.serial_number_1.trim()).length || mediaPlayerDevices.length
+                          : perUnitMode
+                            ? equipmentUnits.filter((u) => u.serial_number.trim()).length || equipmentUnits.length
+                            : parseInt(quantity) || 0;
+                        return (
+                          <>
+                            <Input
+                              readOnly
+                              value={
+                                (parseFloat(unitPrice) || 0) > 0 && effectiveQty > 0
+                                  ? `฿${((parseFloat(unitPrice) || 0) * effectiveQty).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                                  : "-"
+                              }
+                              className="bg-muted font-medium text-primary"
+                            />
+                            {effectiveQty > 1 && (parseFloat(unitPrice) || 0) > 0 && (
+                              <p className="text-xs text-muted-foreground">
+                                {effectiveQty} ชิ้น × ฿{parseFloat(unitPrice).toLocaleString()} = ฿
+                                {((parseFloat(unitPrice) || 0) * effectiveQty).toLocaleString(undefined, {
+                                  minimumFractionDigits: 2,
+                                  maximumFractionDigits: 2,
+                                })}
+                              </p>
+                            )}
+                          </>
+                        );
+                      })()}
+                    </div>
+                  </>
+                )}
               </div>
 
               {/* Storage Dimensions */}
