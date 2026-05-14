@@ -674,8 +674,8 @@ const DeliveryEntry = () => {
           toast.error("กรุณากรอก Serial Number อย่างน้อย 1 ชิ้น");
           return;
         }
-        if (!unitPrice) {
-          toast.error("กรุณาระบุราคาต่อชิ้น");
+        if (!isStorageReceipt && !unitPrice) {
+          toast.error("กรุณาระบุราคาต่อชิ้น (ใส่ 0 ได้หากไม่มีราคา)");
           return;
         }
         if (!selectedEquipmentId) {
