@@ -706,7 +706,7 @@ const DeliveryEntry = () => {
           lot_number_1: lotNumber1,
           lot_number_2: lotNumber2,
           serial_number: unitEntry.serial_number,
-          unit_price: unitPrice ? parseFloat(unitPrice) : null,
+          unit_price: isStorageReceipt ? null : (unitPrice ? parseFloat(unitPrice) : null),
           supplier_id: selectedSupplierId || null,
           supplier_name: supplierName || selectedSupplier?.name || "",
           expiry_date: expiryDate,
