@@ -420,6 +420,7 @@ const DeliveryEntry = () => {
   const selectedSupplier = suppliers.find((s) => s.id === selectedSupplierId);
   const selectedReceiptPurpose = receiptPurposes.find((p) => p.id === selectedReceiptPurposeId);
   const isPurchaseReceipt = selectedReceiptPurpose?.name === "นำเข้าจากการซื้อ";
+  const isStorageReceipt = selectedReceiptPurpose?.purpose_type === "storage";
 
   // Update unit and category when equipment is selected
   useEffect(() => {
