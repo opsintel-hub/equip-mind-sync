@@ -757,8 +757,8 @@ const DeliveryEntry = () => {
             return;
           }
         }
-        if (!unitPrice) {
-          toast.error("กรุณาระบุราคาต่อชิ้น");
+        if (!isStorageReceipt && !unitPrice) {
+          toast.error("กรุณาระบุราคาต่อชิ้น (ใส่ 0 ได้หากไม่มีราคา)");
           return;
         }
         const newItem: DeliveryCartItem = {
