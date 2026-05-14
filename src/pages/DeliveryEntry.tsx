@@ -636,7 +636,7 @@ const DeliveryEntry = () => {
         remote_name: device.device_name,
         specification: mediaPlayerSpecification,
         usage_lifespan_months: mediaPlayerUsageLifespanMonths,
-        unit_price: unitPrice ? parseFloat(unitPrice) : null,
+        unit_price: isStorageReceipt ? null : (unitPrice ? parseFloat(unitPrice) : null),
         supplier_id: selectedSupplierId || null,
         supplier_name: supplierName || selectedSupplier?.name || "",
         expiry_date: expiryDate,
