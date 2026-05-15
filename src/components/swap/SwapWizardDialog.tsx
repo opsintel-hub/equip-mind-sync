@@ -14,6 +14,8 @@ import { toast } from "sonner";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { SwapRejectReasonSelect } from "@/components/media-player/SwapRejectReasonSelect";
 import { useAllowedDepartments } from "@/hooks/useAllowedDepartments";
+import { SimpleDepartmentSelect } from "@/components/equipment/SimpleDepartmentSelect";
+import { WarehouseLocationSelect } from "@/components/location/WarehouseLocationSelect";
 
 interface SwapRequest {
   id: string;
