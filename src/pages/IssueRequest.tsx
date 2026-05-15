@@ -1390,24 +1390,6 @@ const IssueRequest = () => {
                     )}
                   </div>
                 </div>
-                <div className="space-y-2 md:col-span-2">
-                   <Label>ระบุ Serial Number เพื่อค้นหาสินค้าเฉพาะชิ้น</Label>
-                  <SerialNumberSelect
-                    value={currentItem.serial_number && currentItem.serial_number_source ? `${currentItem.serial_number_source}:${currentItem.equipment_id}:${currentItem.serial_number}` : ""}
-                    onChange={handleSerialNumberSelect}
-                    disabled={false}
-                    placeholder={currentItem.equipment_id ? "ค้นหา S/N ของสินค้าที่เลือก..." : "ค้นหา S/N จาก Equipment และ Media Player..."}
-                    equipmentId={currentItem.equipment_id || undefined}
-                    isMediaPlayer={equipment?.find(e => e.id === currentItem.equipment_id)?.is_media_player}
-                    mediaPlayerIds={selectedMediaPlayerIds}
-                  />
-                  {isQuantityLocked && currentItem.serial_number && (
-                    <p className="text-xs text-muted-foreground flex items-center gap-1">
-                      <Lock className="h-3 w-3" />
-                      เลือกจาก S/N: จำนวนถูกล็อคที่ 1 อัตโนมัติ
-                    </p>
-                  )}
-                </div>
                 <div className="space-y-2">
                   <Label className="flex items-center gap-1">
                     จำนวน
