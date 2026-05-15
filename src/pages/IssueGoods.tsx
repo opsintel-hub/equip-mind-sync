@@ -1211,26 +1211,70 @@ const IssueGoods = () => {
                 type="number"
                 min="1"
                 value={issueData.issued_quantity}
-                onChange={(e) => setIssueData({ ...issueData, issued_quantity: e.target.value })}
+                onChange={(e) => handleIssuedQuantityChange(e.target.value)}
               />
               <p className="text-xs text-muted-foreground">
                 หากจ่ายไม่ครบ ระบบจะเก็บจำนวนที่เหลือไว้รอสินค้าเข้าคลังแล้วจ่ายต่อ
               </p>
             </div>
 
-            {/* Billboard Selection - Can be added/changed here */}
-            <div className="space-y-2">
-              <Label>ป้ายโฆษณา (ระบุหรือเปลี่ยนได้)</Label>
-              <BillboardSelect
-                value={issueData.billboard_id}
-                onChange={(value) => setIssueData({ ...issueData, billboard_id: value })}
-              />
-              {selectedItem?.billboard_id && !issueData.billboard_id && (
-                <p className="text-xs text-muted-foreground">
-                  ป้ายที่ระบุไว้: จะใช้ป้ายที่ผู้ขอเลือกไว้
-                </p>
-              )}
-            </div>
+            {/* Per-unit S/N + Billboard assignments (Equipment only — Media Player handled above) */}
+            {!selectedItem?.is_media_player && unitAssignments.length > 0 && (
+              <div className="space-y-2">
+                <Label className="flex items-center gap-1">
+                  <Hash className="h-3 w-3" />
+                  ระบุ Serial Number และป้ายโฆษณาต่อเครื่อง ({unitAssignments.length} เครื่อง)
+                </Label>
+                <div className="border rounded-lg divide-y">
+                  {unitAssignments.map((u, idx) => (
+                    <div key={idx} className="p-3 space-y-2 bg-muted/20">
+                      <div className="text-xs font-medium text-muted-foreground">เครื่องที่ {idx + 1}</div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                        <div className="space-y-1">
+                          <Label className="text-xs">Serial Number</Label>
+                          <SerialNumberSelect
+                            value={u.serial_number
+                              ? `${u.serial_number_source || "equipment"}:${selectedItem?.equipment_id || ""}:${u.serial_number}`
+                              : ""}
+                            onChange={(item: SerialNumberItem | null) =>
+                              updateUnitAssignment(idx, {
+                                serial_number: item?.serial_number || "",
+                                serial_number_source: item?.source || "equipment",
+                              })
+                            }
+                            equipmentId={selectedItem?.equipment_id || undefined}
+                            placeholder="เลือก S/N..."
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs">ป้ายโฆษณา (ระบุหรือเปลี่ยนได้)</Label>
+                          <BillboardSelect
+                            value={u.billboard_id}
+                            onChange={(value) => updateUnitAssignment(idx, { billboard_id: value })}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Billboard Selection for Media Player (single unit) */}
+            {selectedItem?.is_media_player && (
+              <div className="space-y-2">
+                <Label>ป้ายโฆษณา (ระบุหรือเปลี่ยนได้)</Label>
+                <BillboardSelect
+                  value={issueData.billboard_id}
+                  onChange={(value) => setIssueData({ ...issueData, billboard_id: value })}
+                />
+                {selectedItem?.billboard_id && !issueData.billboard_id && (
+                  <p className="text-xs text-muted-foreground">
+                    ป้ายที่ระบุไว้: จะใช้ป้ายที่ผู้ขอเลือกไว้
+                  </p>
+                )}
+              </div>
+            )}
 
             {/* View Equipment Image Button */}
             {selectedItem?.equipment_id && (
