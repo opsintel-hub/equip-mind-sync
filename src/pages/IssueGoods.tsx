@@ -1198,29 +1198,66 @@ const IssueGoods = () => {
               </div>
             </div>
 
-            {/* Serial Number - Only show single field for Media Player (1 unit per S/N) */}
-            {selectedItem?.is_media_player && (
-              <div className="space-y-2">
-                <Label className="flex items-center gap-1">
-                  <Hash className="h-3 w-3" />
-                  Serial Number ที่จ่าย
-                </Label>
-                <SerialNumberSelect
-                  value={issueData.serial_number
-                    ? `${issueData.serial_number_source || "media_player_sn1"}:${selectedItem?.media_player_id || ""}:${issueData.serial_number}`
-                    : ""}
-                  onChange={(item: SerialNumberItem | null) => {
-                    setIssueData({
-                      ...issueData,
-                      serial_number: item?.serial_number || "",
-                      serial_number_source: item?.source || "",
-                    });
-                  }}
-                  equipmentId={selectedItem?.media_player_id || undefined}
-                  placeholder="เลือก S/N ที่จะจ่าย..."
-                />
-              </div>
-            )}
+            {/* Media Player: per-unit S/N + Billboard table (supports multi-unit) */}
+            {selectedItem?.is_media_player && mpUnitAssignments.length > 0 && (() => {
+              // Available MP units sharing the same code (in stock). Include the originally requested id even if quantity=0 (defensive).
+              const candidates = (availableMpUnits || []).filter((m: any) => m.code === selectedItem?.equipment_code);
+              return (
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-1">
+                    <Hash className="h-3 w-3" />
+                    ระบุ S/N และป้ายโฆษณาต่อเครื่อง ({mpUnitAssignments.length} เครื่อง)
+                  </Label>
+                  <div className="border rounded-lg divide-y">
+                    {mpUnitAssignments.map((u, idx) => {
+                      // Allowed list = not already picked by other rows
+                      const otherIds = new Set(mpUnitAssignments.filter((_, i) => i !== idx).map(x => x.media_player_id).filter(Boolean));
+                      const allowed = candidates.filter((m: any) => !otherIds.has(m.id));
+                      return (
+                        <div key={idx} className="p-3 space-y-2 bg-muted/20">
+                          <div className="text-xs font-medium text-muted-foreground">เครื่องที่ {idx + 1}</div>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                            <div className="space-y-1">
+                              <Label className="text-xs">Serial Number</Label>
+                              <select
+                                className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm"
+                                value={u.media_player_id}
+                                onChange={(e) => {
+                                  const mpId = e.target.value;
+                                  const mp = candidates.find((m: any) => m.id === mpId);
+                                  updateMpUnitAssignment(idx, {
+                                    media_player_id: mpId,
+                                    serial_number: mp?.serial_number_1 || mp?.serial_number_2 || "",
+                                  });
+                                }}
+                              >
+                                <option value="">-- เลือก S/N --</option>
+                                {allowed.map((m: any) => (
+                                  <option key={m.id} value={m.id}>
+                                    {m.serial_number_1 || m.serial_number_2 || "(ไม่มี S/N)"}
+                                    {m.locations?.warehouses?.name ? ` — ${m.locations.warehouses.name}` : ""}
+                                  </option>
+                                ))}
+                              </select>
+                              {allowed.length === 0 && (
+                                <p className="text-xs text-destructive">ไม่มี S/N คงเหลือในคลัง</p>
+                              )}
+                            </div>
+                            <div className="space-y-1">
+                              <Label className="text-xs">ป้ายโฆษณา (ระบุภายหลังที่ "รอระบุป้าย/รอคืน" ได้)</Label>
+                              <BillboardSelect
+                                value={u.billboard_id}
+                                onChange={(value) => updateMpUnitAssignment(idx, { billboard_id: value })}
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })()}
 
             {/* FIFO & Expiry Info */}
             {selectedItem?.equipment_id && (() => {
