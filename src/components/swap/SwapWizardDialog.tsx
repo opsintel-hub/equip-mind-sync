@@ -713,7 +713,14 @@ export function SwapWizardDialog({ open, onOpenChange, request, onCompleted }: P
                       <Badge variant={compatVariant as any}>{compatText}</Badge>
                       <span className="font-medium">{selectedSpare.label}</span>
                     </div>
-                    <div className="text-sm text-muted-foreground">{selectedSpare.description}</div>
+                    <div className="text-sm text-muted-foreground whitespace-pre-line">{selectedSpare.description}</div>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-3 text-xs">
+                      {selectedSpare.brand && <div className="bg-muted/40 rounded px-2 py-1"><span className="text-muted-foreground">ยี่ห้อ:</span> <span className="font-medium">{selectedSpare.brand}</span></div>}
+                      {selectedSpare.model_name && <div className="bg-muted/40 rounded px-2 py-1"><span className="text-muted-foreground">รุ่น:</span> <span className="font-medium">{selectedSpare.model_name}</span></div>}
+                      {selectedSpare.specification && <div className="bg-muted/40 rounded px-2 py-1 col-span-2"><span className="text-muted-foreground">Spec:</span> <span className="font-medium">{selectedSpare.specification}</span></div>}
+                      {selectedSpare.category && <div className="bg-muted/40 rounded px-2 py-1"><span className="text-muted-foreground">หมวด:</span> <span className="font-medium">{selectedSpare.category}</span></div>}
+                      {selectedSpare.warranty_expiry_date && <div className="bg-muted/40 rounded px-2 py-1"><span className="text-muted-foreground">ประกันถึง:</span> <span className="font-medium">{selectedSpare.warranty_expiry_date}</span></div>}
+                    </div>
                     {!isExact && request?.reported_item_code && (
                       <div className="text-xs text-muted-foreground mt-2">
                         เครื่องเก่าที่รายงาน: <span className="font-medium">{request.reported_item_code} {request.reported_item_name ? "- " + request.reported_item_name : ""}</span>
