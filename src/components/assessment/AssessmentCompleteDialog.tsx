@@ -195,15 +195,20 @@ export function AssessmentCompleteDialog({ open, onOpenChange, log, onCompleted 
         if (log.source_type === "swap" && log.source_reference_id) {
           const { data: sw } = await supabase
             .from("swap_requests")
-            .select("document_no, billboard_id, description, symptom_other, technician_name, photo_urls, created_at, billboard:billboards(equipment_id, old_code, location_name)")
+            .select("document_no, billboard_id, description, symptom_id, symptom_other, technician_name, photo_urls, created_at, billboard:billboards(equipment_id, old_code, location_name), symptom:mp_symptoms!swap_requests_symptom_id_fkey(name)")
             .eq("id", log.source_reference_id)
             .maybeSingle() as any;
           if (sw) {
             ctx.sourceLabel = `Swap ${sw.document_no}`;
-            ctx.description = sw.description || sw.symptom_other || null;
+            const symptomName = sw.symptom?.name || null;
+            const descParts = [symptomName, sw.symptom_other, sw.description].filter(Boolean);
+            ctx.description = descParts.length > 0 ? descParts.join(" — ") : null;
+            ctx.reportedSymptom = symptomName || sw.symptom_other || sw.description || ctx.reportedSymptom;
             ctx.reporter = sw.technician_name || null;
             ctx.reportedAt = sw.created_at || null;
             ctx.photos = Array.isArray(sw.photo_urls) ? sw.photo_urls : [];
+            // Pre-fill assessor's symptom dropdown when log doesn't already have one
+            if (!log.symptom_id && sw.symptom_id) setSymptomId(sw.symptom_id);
             if (sw.billboard && !ctx.billboardLabel) {
               const parts = [sw.billboard.old_code, sw.billboard.equipment_id, sw.billboard.location_name].filter(Boolean);
               ctx.billboardLabel = parts.join(" - ");
