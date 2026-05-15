@@ -151,14 +151,25 @@ export function SwapWizardDialog({ open, onOpenChange, request, onCompleted }: P
 
   const loadSpares = async () => {
     setLoading(true);
-    // Media Players: available spare = not installed, not defective/pending assessment
+    // Media Players: available spare = not installed, not defective/pending/in-transit
     const { data: mps, error: mpError } = await supabase
       .from("media_players")
-      .select("id, code, name, serial_number_1, serial_number_2, status, location_id, billboard_id, brand, specification, model_id, warranty_expiry_date, unit_price, media_player_models:model_id(name)")
+      .select("id, code, name, serial_number_1, serial_number_2, status, location_id, billboard_id, brand, specification, model_id, warranty_expiry_date, unit_price")
       .is("billboard_id", null)
-      .not("status", "in", "(defective,pending_assessment,claim)")
+      .not("status", "in", "(defective,pending_assessment,claim,pending_warehouse_return,under_repair,in_claim)")
       .order("created_at", { ascending: false })
       .limit(300);
+
+    // Lookup model names separately (no FK relationship for embed)
+    const modelIds = Array.from(new Set((mps || []).map((m: any) => m.model_id).filter(Boolean)));
+    let modelMap: Record<string, string> = {};
+    if (modelIds.length > 0) {
+      const { data: models } = await supabase
+        .from("media_player_models")
+        .select("id, name")
+        .in("id", modelIds);
+      (models || []).forEach((m: any) => { modelMap[m.id] = m.name; });
+    }
 
     // Equipment: pull serial numbers in_stock
     const { data: esns } = await supabase
