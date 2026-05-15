@@ -1,51 +1,43 @@
-# แผนแก้ไข 2 ประเด็นในหน้าเบิก-จ่าย
+# แก้ปัญหา: GI-REQ-000069 ยังกด "จ่าย" ได้ทั้งที่ยังไม่อนุมัติ
 
-## ปัญหาที่พบ
-จาก GI-REQ-000069 (Media Player, จำนวน 2 เครื่อง):
+## สาเหตุ
 
-1. **คำขอที่ "รออนุมัติ" ยังโผล่ไปหน้า "จ่ายสินค้า" ได้**
-   - ปัจจุบัน `IssueRequest.tsx` ตั้ง `requires_approval=true` เฉพาะกรณีมีอุปกรณ์ที่เป็น `is_asset` เท่านั้น
-   - คำขอที่มีแค่ Media Player จะได้ `requires_approval=false` + `status="pending"` ทำให้ผ่าน filter ของ `IssueGoods.tsx` ไปได้เลย แม้หน้า ManagerApproval จะแสดงเป็น "รออนุมัติ" (เพราะมี logic แยก override สำหรับ MP)
-   - ผลคือผู้ใช้สับสน: หน้านึงบอก "รออนุมัติ" อีกหน้านึงบอก "จ่ายได้"
+ตรวจ DB แล้วพบว่า GI-REQ-000069 มีค่า:
+- `requires_approval = false`
+- `approval_status = not_required`
+- `status = pending`
 
-2. **Dialog จ่าย MP รองรับแค่ 1 เครื่อง / 1 S/N**
-   - บังคับ `issuedQty===1` และเลือก S/N ได้ตัวเดียว
-   - ป้ายโฆษณาก็มีช่องเดียว
-   - ถ้าเบิกมา 2 เครื่อง ไม่มีทางใส่ S/N ตัวที่ 2 และป้ายตัวที่ 2 ได้
+ทั้งที่ในตะกร้ามี Media Player (MP-711 0001 จำนวน 2 เครื่อง)
 
-## สิ่งที่จะแก้
+เหตุที่เป็นแบบนี้คือ **คำขอนี้ถูกสร้างก่อนที่จะเพิ่ม logic บังคับอนุมัติสำหรับ Media Player** ใน `IssueRequest.tsx` (รอบที่แล้ว) จึงไม่ได้ถูกตั้ง flag ให้รออนุมัติ ส่งผลให้ผ่าน filter ของ `IssueGoods.tsx` และยังเห็นปุ่ม "จ่าย" อยู่
 
-### 1. บังคับสถานะ "รออนุมัติ" ให้ถูกต้อง (`src/pages/IssueRequest.tsx`)
-- ขยายเงื่อนไข `requiresApproval`: ถ้ารายการมี Media Player **หรือ** อุปกรณ์ที่เป็น `is_asset` → ต้องอนุมัติก่อน
-- ผลลัพธ์: header record จะถูกตั้ง `status="pending_approval"`, `approval_status="pending"`, `requires_approval=true`
-- หน้า IssueGoods (filter เดิม `!requires_approval || approval_status==="approved"`) จะกรองรายการนี้ออกอัตโนมัติ จนกว่า Manager จะกดอนุมัติ
+คำขอใหม่ที่สร้างหลังจากนี้จะถูกบังคับอนุมัติถูกต้องแล้ว — แต่คำขอเก่าๆ ที่ค้างใน DB ยังไม่ถูกแก้
 
-### 2. กันชั้นที่สองใน `src/pages/IssueGoods.tsx`
-- เพิ่มเงื่อนไข filter: ตัด record ที่ `status === "pending_approval"` ออกจากรายการที่จ่ายได้ (กันเคสข้อมูลเก่า/หลุด)
-- แสดง badge สถานะ "รออนุมัติ" ใน mapping `getStatusBadge` ให้ครบ (มีอยู่แล้วใน IssueRequest, เช็คให้ตรงกัน)
+## แผนแก้
 
-### 3. รองรับเบิก Media Player หลายเครื่อง (`src/pages/IssueGoods.tsx` — dialog จ่าย MP)
-ตามนโยบายเดิม: 1 record MP = 1 หน่วยจริง แต่หลาย record มี `code` เดียวกันได้ (memory: media-player-unit-individualization)
+### 1. Backfill ข้อมูลเก่าใน DB (migration)
+อัปเดตทุกแถวใน `goods_issue_pending` ที่:
+- `status = 'pending'` หรือ `status = 'partial'`
+- `requires_approval = false`
+- มี item ที่ `is_media_player = true` (join กับ `goods_issue_pending_items`)
 
-แนวทาง:
-- เมื่อ `selectedItem.is_media_player` และ `issued_quantity > 1` ให้ render ตารางย่อย 1 แถว/เครื่อง เช่นเดียวกับฝั่ง equipment ปกติ
-- แต่ละแถวมี:
-  - **MediaPlayerUnitSelect** (dropdown S/N ที่ stock>0 ของ `code` เดียวกัน + ตำแหน่งคลังเดียวกับเครื่อง parent) — ใช้ query `media_players` filter by `code = selectedItem.equipment_code` AND `quantity > 0` AND `is_active = true`
-  - **BillboardSelect** (optional — ไม่ระบุได้ ระบบจะส่งเข้า "รอระบุป้าย/รอคืน")
-- State ใหม่: `mpUnitAssignments: Array<{ media_player_id, serial_number, billboard_id }>` ขยาย/หดอัตโนมัติตาม `issued_quantity`
-- Validate: MP ID ห้ามซ้ำในตะกร้าเดียวกัน, ทุกแถวต้องเลือก S/N
-- Mutation:
-  - ลบเงื่อนไข `if (issuedQty !== 1)` สำหรับ MP
-  - Loop assignments: update `media_players.quantity = 0` ของแต่ละ id (เพราะ 1 record = 1 unit), insert `billboard_equipment` + `media_player_billboard_history` ถ้ามี billboard, log stock_movement ต่อหน่วย
-  - เก็บ S/N รวมใน `goods_issue_pending_items.serial_number` แบบขึ้นบรรทัดใหม่ (ตาม core memory)
-  - `billboard_id` ใน item: ถ้าทุกแถวเป็น billboard เดียวกันใช้ id นั้น, ถ้าต่าง/ไม่ครบใช้ null → record จะตกเข้าหน้า "รอระบุป้าย/รอคืน" ตาม flow เดิม
-- กรณี `issued_quantity = 1` คงรูปแบบ dialog เดิม (compact) ไม่กระทบ UX
+ให้กลายเป็น:
+- `requires_approval = true`
+- `approval_status = 'pending'`
+- `status = 'pending_approval'`
 
-### ไม่แตะ
-- Database schema (ใช้คอลัมน์เดิม)
-- หน้า ManagerApproval (logic เดิมยังคงถูก เพราะตอนนี้ `requires_approval` จะถูกตั้งให้ตรงกัน)
-- หน้า "รอระบุป้าย/รอคืน" (record ที่ billboard_id เป็น null จะตกมาตามปกติ)
+เพื่อให้คำขอ MP เก่าทั้งหมด (รวม GI-REQ-000069) เข้าคิวรออนุมัติเหมือนคำขอใหม่
+
+### 2. เพิ่ม defense-in-depth ใน `src/pages/IssueGoods.tsx`
+ปัจจุบัน filter ใช้แค่ `status !== 'pending_approval'` ถ้าข้อมูลในอนาคตหลุดมาอีก (เช่นสร้างจากช่องทางอื่น) ก็จะหลุดอีก เพิ่มเงื่อนไข:
+- ถ้า record มี item ที่ `is_media_player = true` → ต้องมี `approval_status = 'approved'` เท่านั้นถึงจะแสดงปุ่มจ่าย
+- มิฉะนั้นแสดง badge "รออนุมัติ" และซ่อน/disable ปุ่ม "จ่าย"
+
+### 3. ปรับ badge สถานะใน sub-table รายการสินค้า
+ใน sub-row ของ MP-711 0001 ตอนนี้แสดง "รอดำเนินการ" ทั้งที่หัวคำขอควรเป็น "รออนุมัติ" — ให้ derive badge ของ item จาก `parent.approval_status` ด้วย เพื่อไม่ให้ผู้ใช้สับสน
 
 ## ไฟล์ที่จะแก้
-- `src/pages/IssueRequest.tsx` (เงื่อนไข requiresApproval)
-- `src/pages/IssueGoods.tsx` (filter, MP multi-unit dialog + mutation)
+- migration ใหม่ (backfill `goods_issue_pending`)
+- `src/pages/IssueGoods.tsx` (เพิ่ม guard + ปรับ badge)
+
+ไม่แตะ `IssueRequest.tsx` (logic ใหม่ถูกต้องแล้ว) และไม่แตะ schema
