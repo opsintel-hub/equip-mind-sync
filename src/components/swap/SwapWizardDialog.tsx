@@ -185,9 +185,10 @@ export function SwapWizardDialog({ open, onOpenChange, request, onCompleted }: P
 
     (mps || []).forEach((m: any) => {
       const serial = [m.serial_number_1, m.serial_number_2].filter(Boolean).join(" / ");
+      const modelName = m.model_id ? modelMap[m.model_id] : null;
       const detailBits = [
         m.brand ? `ยี่ห้อ ${m.brand}` : null,
-        m.media_player_models?.name ? `รุ่น ${m.media_player_models.name}` : null,
+        modelName ? `รุ่น ${modelName}` : null,
         m.specification ? `Spec ${m.specification}` : null,
       ].filter(Boolean).join(" • ");
       opts.push({
@@ -202,7 +203,7 @@ export function SwapWizardDialog({ open, onOpenChange, request, onCompleted }: P
         item_name: m.name,
         brand: m.brand,
         specification: m.specification,
-        model_name: m.media_player_models?.name || null,
+        model_name: modelName,
         status: m.status,
         warranty_expiry_date: m.warranty_expiry_date,
         unit_price: m.unit_price,
