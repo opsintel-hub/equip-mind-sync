@@ -259,7 +259,37 @@ const IssueGoods = () => {
       const remainingQty = requestedQty - issuedQty;
       const previousIssued = selectedItem.issued_quantity || 0;
       const totalIssued = previousIssued + issuedQty;
-      
+      const isMediaPlayer = selectedItem.is_media_player;
+
+      // For non-Media Player items, validate per-unit assignments
+      let combinedSerial: string | null = null;
+      let combinedBillboardId: string | null = null;
+      const activeAssignments = unitAssignments.slice(0, issuedQty);
+      if (!isMediaPlayer && issuedQty > 0) {
+        if (activeAssignments.length !== issuedQty) {
+          throw new Error(`กรุณาระบุข้อมูลให้ครบ ${issuedQty} เครื่อง`);
+        }
+        // Validate S/N (must be present and unique). Allow empty if no S/N tracking.
+        const serials = activeAssignments.map(a => (a.serial_number || "").trim()).filter(Boolean);
+        const seen = new Set<string>();
+        for (const sn of serials) {
+          const k = sn.toLowerCase();
+          if (seen.has(k)) throw new Error(`Serial Number ซ้ำ: ${sn}`);
+          seen.add(k);
+        }
+        if (serials.length > 0) {
+          combinedSerial = activeAssignments.map(a => a.serial_number || "").join("\n").trim() || null;
+        }
+        // Combined billboard_id: if all rows use the same billboard, use it; otherwise null (history kept in billboard_equipment per row)
+        const bbSet = new Set(activeAssignments.map(a => a.billboard_id || ""));
+        if (bbSet.size === 1) {
+          const only = activeAssignments[0]?.billboard_id || "";
+          combinedBillboardId = only || null;
+        } else {
+          combinedBillboardId = null;
+        }
+      }
+
       // Determine new status
       let newStatus: string;
       if (remainingQty <= 0) {
@@ -277,9 +307,13 @@ const IssueGoods = () => {
           status: newStatus,
           issued_quantity: totalIssued,
           remaining_quantity: Math.max(0, remainingQty),
-          billboard_id: issueData.billboard_id || selectedItem.billboard_id,
+          billboard_id: isMediaPlayer
+            ? (issueData.billboard_id || selectedItem.billboard_id)
+            : (combinedBillboardId ?? selectedItem.billboard_id),
           notes: issueData.notes || selectedItem.notes,
-          serial_number: issueData.serial_number || selectedItem.serial_number || null,
+          serial_number: isMediaPlayer
+            ? (issueData.serial_number || selectedItem.serial_number || null)
+            : (combinedSerial ?? selectedItem.serial_number ?? null),
         })
         .eq("id", selectedItem.id);
 
