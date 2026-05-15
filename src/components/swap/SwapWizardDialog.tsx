@@ -51,6 +51,14 @@ interface SpareOption {
   equipment_id?: string | null;
   item_code?: string | null;
   item_name?: string | null;
+  // Detail (for richer display)
+  brand?: string | null;
+  specification?: string | null;
+  model_name?: string | null;
+  category?: string | null;
+  status?: string | null;
+  warranty_expiry_date?: string | null;
+  unit_price?: number | null;
 }
 
 interface OldOption {
@@ -62,6 +70,11 @@ interface OldOption {
   billboard_equipment_id: string;
   equipment_id?: string;
   media_player_id?: string;
+  brand?: string | null;
+  specification?: string | null;
+  model_name?: string | null;
+  category?: string | null;
+  install_date?: string | null;
 }
 
 export function SwapWizardDialog({ open, onOpenChange, request, onCompleted }: Props) {
