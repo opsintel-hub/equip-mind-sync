@@ -1216,26 +1216,24 @@ const IssueGoods = () => {
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                             <div className="space-y-1">
                               <Label className="text-xs">Serial Number</Label>
-                              <select
-                                className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm"
-                                value={u.media_player_id}
-                                onChange={(e) => {
-                                  const mpId = e.target.value;
+                              <SearchableSelect
+                                value={u.media_player_id || ""}
+                                onValueChange={(mpId) => {
                                   const mp = candidates.find((m: any) => m.id === mpId);
                                   updateMpUnitAssignment(idx, {
                                     media_player_id: mpId,
                                     serial_number: mp?.serial_number_1 || mp?.serial_number_2 || "",
                                   });
                                 }}
-                              >
-                                <option value="">-- เลือก S/N --</option>
-                                {allowed.map((m: any) => (
-                                  <option key={m.id} value={m.id}>
-                                    {m.serial_number_1 || m.serial_number_2 || "(ไม่มี S/N)"}
-                                    {m.locations?.warehouses?.name ? ` — ${m.locations.warehouses.name}` : ""}
-                                  </option>
-                                ))}
-                              </select>
+                                placeholder="-- เลือก S/N --"
+                                searchPlaceholder="ค้นหา S/N หรือคลัง..."
+                                emptyMessage="ไม่พบ S/N"
+                                options={allowed.map((m: any) => ({
+                                  value: m.id,
+                                  label: m.serial_number_1 || m.serial_number_2 || "(ไม่มี S/N)",
+                                  description: m.locations?.warehouses?.name || undefined,
+                                }))}
+                              />
                               {allowed.length === 0 && (
                                 <p className="text-xs text-destructive">ไม่มี S/N คงเหลือในคลัง</p>
                               )}
