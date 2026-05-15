@@ -397,6 +397,29 @@ export default function StockCard() {
     return map;
   }, [deliveryConfirmations]);
 
+  // ── Lookup billboards referenced by stock_movements (e.g. swap, transfer) ──
+  const swapMovementIds = useMemo(() => {
+    const ids = new Set<string>();
+    movements.forEach((m: any) => {
+      if (m.reference_type === "swap" && m.reference_id) ids.add(m.reference_id);
+    });
+    return Array.from(ids);
+  }, [movements]);
+
+  const { data: swapBillboardMap = new Map<string, any>() } = useQuery({
+    queryKey: ["stock-card-swap-billboards", swapMovementIds.join(",")],
+    staleTime: 2 * 60 * 1000,
+    enabled: swapMovementIds.length > 0,
+    queryFn: async () => {
+      const { data } = await supabase.from("swap_requests")
+        .select("id, billboard:billboards(equipment_id, old_code, location_name)")
+        .in("id", swapMovementIds);
+      const map = new Map<string, any>();
+      (data || []).forEach((r: any) => map.set(r.id, r.billboard));
+      return map;
+    },
+  });
+
   // ── Build timeline ──
   const timeline: TimelineEvent[] = useMemo(() => {
     if (!selectedItemId) return [];
