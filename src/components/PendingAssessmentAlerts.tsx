@@ -33,6 +33,7 @@ export function PendingAssessmentAlerts() {
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-2 text-sm">
+        <div className="flex justify-between"><span>รอเข้าคลัง (Swap)</span><span className="font-semibold text-amber-700">{data?.wr}</span></div>
         <div className="flex justify-between"><span>พักรอประเมิน</span><span className="font-semibold text-purple-700">{data?.pa}</span></div>
         <div className="flex justify-between"><span>กำลังซ่อม</span><span className="font-semibold text-cyan-700">{data?.ur}</span></div>
         <div className="flex justify-between"><span>รอเคลม</span><span className="font-semibold text-rose-700">{data?.ic}</span></div>
