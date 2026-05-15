@@ -674,7 +674,40 @@ const IssueGoods = () => {
       serial_number: item.serial_number || "",
       serial_number_source: item.is_media_player ? "media_player_sn1" : "equipment",
     });
+    // Initialize per-unit assignments for non-Media Player items
+    if (!item.is_media_player) {
+      const initial = Array.from({ length: qtyToIssue }, () => ({
+        serial_number: "",
+        serial_number_source: "equipment",
+        billboard_id: item.billboard_id || "",
+      }));
+      setUnitAssignments(initial);
+    } else {
+      setUnitAssignments([]);
+    }
     setItemIssueDialogOpen(true);
+  };
+
+  const handleIssuedQuantityChange = (value: string) => {
+    setIssueData((prev) => ({ ...prev, issued_quantity: value }));
+    if (selectedItem?.is_media_player) return;
+    const n = Math.max(0, parseInt(value) || 0);
+    setUnitAssignments((prev) => {
+      const next = [...prev];
+      const defaultBillboard = selectedItem?.billboard_id || "";
+      if (n > next.length) {
+        while (next.length < n) {
+          next.push({ serial_number: "", serial_number_source: "equipment", billboard_id: defaultBillboard });
+        }
+      } else if (n < next.length) {
+        next.length = n;
+      }
+      return next;
+    });
+  };
+
+  const updateUnitAssignment = (index: number, patch: Partial<{ serial_number: string; serial_number_source: string; billboard_id: string }>) => {
+    setUnitAssignments((prev) => prev.map((u, i) => (i === index ? { ...u, ...patch } : u)));
   };
 
   const handleReject = (request: PendingRequest) => {
