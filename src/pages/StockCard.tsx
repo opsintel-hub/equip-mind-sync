@@ -606,7 +606,9 @@ export default function StockCard() {
   const selectItem = (item: EquipmentItem) => {
     setSelectedItemId(item.id);
     setSelectedItemType(item.type);
-    setSearchText(`${item.code} — ${item.name}`);
+    const snParts = [item.serial_number, item.serial_number_2].filter(Boolean).join(" / ");
+    const snTag = snParts ? ` [S/N: ${snParts.replace(/\n/g, " / ")}]` : "";
+    setSearchText(`${item.code}${snTag} — ${item.name}`);
   };
 
   const typeIcon = (type: string) => {
