@@ -520,9 +520,9 @@ export function AssessmentCompleteDialog({ open, onOpenChange, log, onCompleted 
                   <div><span className="text-muted-foreground">ผู้แจ้ง: </span><span>{sourceCtx.reporter}</span></div>
                 )}
                 {(sourceCtx.description || sourceCtx.reportedSymptom) && (
-                  <div className="md:col-span-2">
-                    <span className="text-muted-foreground">อาการที่แจ้ง: </span>
-                    <span>{sourceCtx.description || sourceCtx.reportedSymptom}</span>
+                  <div className="md:col-span-2 rounded-md border border-amber-300 bg-amber-50 dark:bg-amber-900/10 dark:border-amber-800/40 p-2">
+                    <div className="text-xs font-medium text-amber-700 dark:text-amber-400 mb-0.5">อาการที่แจ้งตอนคีย์เข้า (ผู้ประเมินเพิ่มเติมได้ในฟอร์มด้านล่าง)</div>
+                    <div className="text-sm whitespace-pre-line">{sourceCtx.description || sourceCtx.reportedSymptom}</div>
                   </div>
                 )}
               </div>
