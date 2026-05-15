@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeftRight, ListChecks, PlusCircle, RefreshCw, MapPin, Wrench, Package, User, Camera, ClipboardList, ChevronLeft, ChevronRight } from "lucide-react";
+import { ArrowLeftRight, ListChecks, PlusCircle, RefreshCw, MapPin, Wrench, Package, User, Camera, ClipboardList, ChevronLeft, ChevronRight, Truck } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { th } from "date-fns/locale";
