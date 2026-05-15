@@ -164,6 +164,20 @@ const IssueGoods = () => {
     },
   });
 
+  // Fetch available Media Player units (in stock) for multi-unit issuance
+  const { data: availableMpUnits } = useQuery({
+    queryKey: ["available-media-player-units"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("media_players")
+        .select("id, code, name, serial_number_1, serial_number_2, quantity, billboard_id, location_id, locations(id, name, code, warehouses(id, name, code))")
+        .eq("is_active", true)
+        .gt("quantity", 0);
+      if (error) throw error;
+      return data as any[];
+    },
+  });
+
   // State for item rejection
   const [itemRejectDialogOpen, setItemRejectDialogOpen] = useState(false);
   const [selectedItemForReject, setSelectedItemForReject] = useState<PendingItem | null>(null);
