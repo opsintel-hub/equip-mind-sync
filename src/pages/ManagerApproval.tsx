@@ -96,7 +96,7 @@ const ManagerApproval = () => {
       const { data, error } = await supabase
         .from("goods_issue_pending")
         .select("*, companies(name), goods_issue_pending_items(id, equipment_id, media_player_id, is_media_player)")
-        .eq("status", "pending")
+        .in("status", ["pending", "pending_approval"])
         .or("approval_status.eq.pending,approval_status.eq.not_required")
         .order("created_at", { ascending: false });
       if (error) throw error;
