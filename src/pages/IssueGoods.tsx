@@ -96,6 +96,12 @@ const IssueGoods = () => {
     serial_number: "",
     serial_number_source: "",
   });
+  // Per-unit S/N + Billboard assignments (non-Media Player items support multi-unit)
+  const [unitAssignments, setUnitAssignments] = useState<Array<{
+    serial_number: string;
+    serial_number_source: string;
+    billboard_id: string;
+  }>>([]);
   const [rejectReason, setRejectReason] = useState("");
   const [imageDialogOpen, setImageDialogOpen] = useState(false);
   const [selectedEquipmentImages, setSelectedEquipmentImages] = useState<string[]>([]);
@@ -253,7 +259,37 @@ const IssueGoods = () => {
       const remainingQty = requestedQty - issuedQty;
       const previousIssued = selectedItem.issued_quantity || 0;
       const totalIssued = previousIssued + issuedQty;
-      
+      const isMediaPlayer = selectedItem.is_media_player;
+
+      // For non-Media Player items, validate per-unit assignments
+      let combinedSerial: string | null = null;
+      let combinedBillboardId: string | null = null;
+      const activeAssignments = unitAssignments.slice(0, issuedQty);
+      if (!isMediaPlayer && issuedQty > 0) {
+        if (activeAssignments.length !== issuedQty) {
+          throw new Error(`กรุณาระบุข้อมูลให้ครบ ${issuedQty} เครื่อง`);
+        }
+        // Validate S/N (must be present and unique). Allow empty if no S/N tracking.
+        const serials = activeAssignments.map(a => (a.serial_number || "").trim()).filter(Boolean);
+        const seen = new Set<string>();
+        for (const sn of serials) {
+          const k = sn.toLowerCase();
+          if (seen.has(k)) throw new Error(`Serial Number ซ้ำ: ${sn}`);
+          seen.add(k);
+        }
+        if (serials.length > 0) {
+          combinedSerial = activeAssignments.map(a => a.serial_number || "").join("\n").trim() || null;
+        }
+        // Combined billboard_id: if all rows use the same billboard, use it; otherwise null (history kept in billboard_equipment per row)
+        const bbSet = new Set(activeAssignments.map(a => a.billboard_id || ""));
+        if (bbSet.size === 1) {
+          const only = activeAssignments[0]?.billboard_id || "";
+          combinedBillboardId = only || null;
+        } else {
+          combinedBillboardId = null;
+        }
+      }
+
       // Determine new status
       let newStatus: string;
       if (remainingQty <= 0) {
@@ -271,16 +307,19 @@ const IssueGoods = () => {
           status: newStatus,
           issued_quantity: totalIssued,
           remaining_quantity: Math.max(0, remainingQty),
-          billboard_id: issueData.billboard_id || selectedItem.billboard_id,
+          billboard_id: isMediaPlayer
+            ? (issueData.billboard_id || selectedItem.billboard_id)
+            : (combinedBillboardId ?? selectedItem.billboard_id),
           notes: issueData.notes || selectedItem.notes,
-          serial_number: issueData.serial_number || selectedItem.serial_number || null,
+          serial_number: isMediaPlayer
+            ? (issueData.serial_number || selectedItem.serial_number || null)
+            : (combinedSerial ?? selectedItem.serial_number ?? null),
         })
         .eq("id", selectedItem.id);
 
       if (updateError) throw updateError;
 
       // Handle Media Player or Equipment stock update
-      const isMediaPlayer = selectedItem.is_media_player;
       
       if (isMediaPlayer && selectedItem.media_player_id && issuedQty > 0) {
         // Media Player: Update media_players table
@@ -424,16 +463,16 @@ const IssueGoods = () => {
           notes: issueData.notes || undefined,
         });
 
-        // Update equipment_serial_numbers status to issued
-        if (issueData.serial_number) {
-          const billboardId = issueData.billboard_id || selectedItem.billboard_id;
-          const newSnStatus = billboardId ? "installed" : "issued";
-          // Try updating from equipment_serial_numbers table
+        // Update equipment_serial_numbers status to issued/installed — per unit assignment
+        for (const a of activeAssignments) {
+          if (!a.serial_number) continue;
+          const billboardIdForUnit = a.billboard_id || selectedItem.billboard_id || null;
+          const newSnStatus = billboardIdForUnit ? "installed" : "issued";
           const { data: snRecord } = await supabase
             .from("equipment_serial_numbers")
             .select("id")
             .eq("equipment_id", selectedItem.equipment_id)
-            .eq("serial_number", issueData.serial_number)
+            .eq("serial_number", a.serial_number)
             .eq("status", "in_stock")
             .maybeSingle();
 
@@ -441,7 +480,7 @@ const IssueGoods = () => {
             await supabase.from("equipment_serial_numbers").update({
               status: newSnStatus,
               issue_document_no: parentRequest?.document_no || null,
-              billboard_id: billboardId || null,
+              billboard_id: billboardIdForUnit,
               issued_at: new Date().toISOString(),
             } as any).eq("id", snRecord.id);
           }
@@ -463,26 +502,37 @@ const IssueGoods = () => {
           });
         if (issueError) console.error("Error creating goods_issue:", issueError);
 
-        // If installing to billboard, create billboard_equipment record
-        const billboardId = issueData.billboard_id || selectedItem.billboard_id;
-        if (billboardId) {
+        // Per-unit billboard installation — group rows by billboard_id, insert 1 record per unit
+        const billboardLabelCache = new Map<string, string>();
+        const getBbLabel = async (bbId: string) => {
+          if (billboardLabelCache.has(bbId)) return billboardLabelCache.get(bbId)!;
           const { data: bbInfo } = await supabase
             .from("billboards")
             .select("old_code, location_name")
-            .eq("id", billboardId)
+            .eq("id", bbId)
             .maybeSingle();
-          const bbLabel = [bbInfo?.old_code, bbInfo?.location_name].filter(Boolean).join(" - ") || billboardId;
+          const label = [bbInfo?.old_code, bbInfo?.location_name].filter(Boolean).join(" - ") || bbId;
+          billboardLabelCache.set(bbId, label);
+          return label;
+        };
 
+        // Build per-unit billboard list (fall back to existing item.billboard_id if a row left blank)
+        const installRows = activeAssignments
+          .map(a => ({ billboard_id: a.billboard_id || selectedItem.billboard_id || "", serial_number: a.serial_number || null }))
+          .filter(r => r.billboard_id);
+
+        for (const r of installRows) {
+          const bbLabel = await getBbLabel(r.billboard_id);
           const { error: billboardError } = await supabase
             .from("billboard_equipment")
             .insert({
-              billboard_id: billboardId,
+              billboard_id: r.billboard_id,
               equipment_id: selectedItem.equipment_id,
-              quantity: issuedQty,
+              quantity: 1,
               installation_date: new Date().toISOString().split('T')[0],
               notes: issueData.notes || `เบิกจากเอกสาร ${parentRequest?.document_no}`,
               created_by: user.id,
-              serial_number: issueData.serial_number || null,
+              serial_number: r.serial_number,
             });
           if (billboardError) throw billboardError;
 
@@ -491,13 +541,13 @@ const IssueGoods = () => {
             equipment_code: selectedItem.equipment_code || "",
             equipment_name: selectedItem.equipment_name || "",
             movement_type: "install_to_billboard",
-            quantity: issuedQty,
+            quantity: 1,
             stock_before: currentStock,
             stock_after: newStock,
             reference_type: "billboard_equipment",
             reference_document: parentRequest?.document_no || "",
             location_id: equipment?.find(e => e.id === selectedItem.equipment_id)?.location_id || undefined,
-            notes: `ติดตั้งที่ป้าย ${bbLabel}`,
+            notes: `ติดตั้งที่ป้าย ${bbLabel}${r.serial_number ? ` S/N: ${r.serial_number}` : ""}`,
           });
         }
       }
@@ -563,6 +613,7 @@ const IssueGoods = () => {
       setItemIssueDialogOpen(false);
       setSelectedItem(null);
       setIssueData({ issued_quantity: "", notes: "", billboard_id: "", serial_number: "", serial_number_source: "" });
+      setUnitAssignments([]);
     },
     onError: (error) => {
       toast.error("เกิดข้อผิดพลาด: " + error.message);
@@ -668,7 +719,40 @@ const IssueGoods = () => {
       serial_number: item.serial_number || "",
       serial_number_source: item.is_media_player ? "media_player_sn1" : "equipment",
     });
+    // Initialize per-unit assignments for non-Media Player items
+    if (!item.is_media_player) {
+      const initial = Array.from({ length: qtyToIssue }, () => ({
+        serial_number: "",
+        serial_number_source: "equipment",
+        billboard_id: item.billboard_id || "",
+      }));
+      setUnitAssignments(initial);
+    } else {
+      setUnitAssignments([]);
+    }
     setItemIssueDialogOpen(true);
+  };
+
+  const handleIssuedQuantityChange = (value: string) => {
+    setIssueData((prev) => ({ ...prev, issued_quantity: value }));
+    if (selectedItem?.is_media_player) return;
+    const n = Math.max(0, parseInt(value) || 0);
+    setUnitAssignments((prev) => {
+      const next = [...prev];
+      const defaultBillboard = selectedItem?.billboard_id || "";
+      if (n > next.length) {
+        while (next.length < n) {
+          next.push({ serial_number: "", serial_number_source: "equipment", billboard_id: defaultBillboard });
+        }
+      } else if (n < next.length) {
+        next.length = n;
+      }
+      return next;
+    });
+  };
+
+  const updateUnitAssignment = (index: number, patch: Partial<{ serial_number: string; serial_number_source: string; billboard_id: string }>) => {
+    setUnitAssignments((prev) => prev.map((u, i) => (i === index ? { ...u, ...patch } : u)));
   };
 
   const handleReject = (request: PendingRequest) => {
@@ -1061,32 +1145,29 @@ const IssueGoods = () => {
               </div>
             </div>
 
-            {/* Serial Number - Warehouse staff can assign or override */}
-            <div className="space-y-2">
-              <Label className="flex items-center gap-1">
-                <Hash className="h-3 w-3" />
-                Serial Number ที่จ่าย {selectedItem?.serial_number ? "(ระบุมาจากผู้เบิก)" : "(เจ้าหน้าที่คลังระบุ)"}
-              </Label>
-              <SerialNumberSelect
-                value={issueData.serial_number
-                  ? `${issueData.serial_number_source || (selectedItem?.is_media_player ? "media_player_sn1" : "equipment")}:${selectedItem?.is_media_player ? (selectedItem?.media_player_id || "") : (selectedItem?.equipment_id || "")}:${issueData.serial_number}`
-                  : ""}
-                onChange={(item: SerialNumberItem | null) => {
-                  setIssueData({
-                    ...issueData,
-                    serial_number: item?.serial_number || "",
-                    serial_number_source: item?.source || "",
-                  });
-                }}
-                equipmentId={selectedItem?.is_media_player ? (selectedItem?.media_player_id || undefined) : (selectedItem?.equipment_id || undefined)}
-                placeholder={selectedItem?.serial_number ? selectedItem.serial_number : "เลือก S/N ที่จะจ่าย..."}
-              />
-              {selectedItem?.serial_number && (
-                <p className="text-xs text-muted-foreground">
-                  ผู้เบิกระบุ S/N: <strong>{selectedItem.serial_number}</strong> — สามารถเปลี่ยนได้หากจำเป็น
-                </p>
-              )}
-            </div>
+            {/* Serial Number - Only show single field for Media Player (1 unit per S/N) */}
+            {selectedItem?.is_media_player && (
+              <div className="space-y-2">
+                <Label className="flex items-center gap-1">
+                  <Hash className="h-3 w-3" />
+                  Serial Number ที่จ่าย
+                </Label>
+                <SerialNumberSelect
+                  value={issueData.serial_number
+                    ? `${issueData.serial_number_source || "media_player_sn1"}:${selectedItem?.media_player_id || ""}:${issueData.serial_number}`
+                    : ""}
+                  onChange={(item: SerialNumberItem | null) => {
+                    setIssueData({
+                      ...issueData,
+                      serial_number: item?.serial_number || "",
+                      serial_number_source: item?.source || "",
+                    });
+                  }}
+                  equipmentId={selectedItem?.media_player_id || undefined}
+                  placeholder="เลือก S/N ที่จะจ่าย..."
+                />
+              </div>
+            )}
 
             {/* FIFO & Expiry Info */}
             {selectedItem?.equipment_id && (() => {
@@ -1175,26 +1256,70 @@ const IssueGoods = () => {
                 type="number"
                 min="1"
                 value={issueData.issued_quantity}
-                onChange={(e) => setIssueData({ ...issueData, issued_quantity: e.target.value })}
+                onChange={(e) => handleIssuedQuantityChange(e.target.value)}
               />
               <p className="text-xs text-muted-foreground">
                 หากจ่ายไม่ครบ ระบบจะเก็บจำนวนที่เหลือไว้รอสินค้าเข้าคลังแล้วจ่ายต่อ
               </p>
             </div>
 
-            {/* Billboard Selection - Can be added/changed here */}
-            <div className="space-y-2">
-              <Label>ป้ายโฆษณา (ระบุหรือเปลี่ยนได้)</Label>
-              <BillboardSelect
-                value={issueData.billboard_id}
-                onChange={(value) => setIssueData({ ...issueData, billboard_id: value })}
-              />
-              {selectedItem?.billboard_id && !issueData.billboard_id && (
-                <p className="text-xs text-muted-foreground">
-                  ป้ายที่ระบุไว้: จะใช้ป้ายที่ผู้ขอเลือกไว้
-                </p>
-              )}
-            </div>
+            {/* Per-unit S/N + Billboard assignments (Equipment only — Media Player handled above) */}
+            {!selectedItem?.is_media_player && unitAssignments.length > 0 && (
+              <div className="space-y-2">
+                <Label className="flex items-center gap-1">
+                  <Hash className="h-3 w-3" />
+                  ระบุ Serial Number และป้ายโฆษณาต่อเครื่อง ({unitAssignments.length} เครื่อง)
+                </Label>
+                <div className="border rounded-lg divide-y">
+                  {unitAssignments.map((u, idx) => (
+                    <div key={idx} className="p-3 space-y-2 bg-muted/20">
+                      <div className="text-xs font-medium text-muted-foreground">เครื่องที่ {idx + 1}</div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                        <div className="space-y-1">
+                          <Label className="text-xs">Serial Number</Label>
+                          <SerialNumberSelect
+                            value={u.serial_number
+                              ? `${u.serial_number_source || "equipment"}:${selectedItem?.equipment_id || ""}:${u.serial_number}`
+                              : ""}
+                            onChange={(item: SerialNumberItem | null) =>
+                              updateUnitAssignment(idx, {
+                                serial_number: item?.serial_number || "",
+                                serial_number_source: item?.source || "equipment",
+                              })
+                            }
+                            equipmentId={selectedItem?.equipment_id || undefined}
+                            placeholder="เลือก S/N..."
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs">ป้ายโฆษณา (ระบุหรือเปลี่ยนได้)</Label>
+                          <BillboardSelect
+                            value={u.billboard_id}
+                            onChange={(value) => updateUnitAssignment(idx, { billboard_id: value })}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Billboard Selection for Media Player (single unit) */}
+            {selectedItem?.is_media_player && (
+              <div className="space-y-2">
+                <Label>ป้ายโฆษณา (ระบุหรือเปลี่ยนได้)</Label>
+                <BillboardSelect
+                  value={issueData.billboard_id}
+                  onChange={(value) => setIssueData({ ...issueData, billboard_id: value })}
+                />
+                {selectedItem?.billboard_id && !issueData.billboard_id && (
+                  <p className="text-xs text-muted-foreground">
+                    ป้ายที่ระบุไว้: จะใช้ป้ายที่ผู้ขอเลือกไว้
+                  </p>
+                )}
+              </div>
+            )}
 
             {/* View Equipment Image Button */}
             {selectedItem?.equipment_id && (
