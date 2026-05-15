@@ -281,8 +281,18 @@ export function SwapWizardDialog({ open, onOpenChange, request, onCompleted }: P
     // ดึงรายการ Media Player ที่ติดตั้งบนป้ายนี้ ณ ปัจจุบัน
     const { data: mpsOnBb } = await supabase
       .from("media_players")
-      .select("id, code, name, serial_number_1, serial_number_2, brand, specification, install_date, model_id, media_player_models:model_id(name)")
+      .select("id, code, name, serial_number_1, serial_number_2, brand, specification, install_date, model_id")
       .eq("billboard_id", billboardId);
+
+    const oldModelIds = Array.from(new Set((mpsOnBb || []).map((m: any) => m.model_id).filter(Boolean)));
+    const oldModelMap: Record<string, string> = {};
+    if (oldModelIds.length > 0) {
+      const { data: oldModels } = await supabase
+        .from("media_player_models")
+        .select("id, name")
+        .in("id", oldModelIds);
+      (oldModels || []).forEach((m: any) => { oldModelMap[m.id] = m.name; });
+    }
 
     const opts: OldOption[] = [];
     const seenIds = new Set<string>();
