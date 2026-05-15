@@ -22,6 +22,7 @@ import BillboardDisplay from "@/components/billboard/BillboardDisplay";
 import BillboardSelect from "@/components/billboard/BillboardSelect";
 import { logStockMovement } from "@/lib/stockMovement";
 import { SerialNumberSelect, SerialNumberItem } from "@/components/equipment/SerialNumberSelect";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 
 interface EquipmentWithDetails {
   id: string;
@@ -57,6 +58,8 @@ interface PendingRequest {
   created_at: string;
   billboard_id: string | null;
   total_items: number | null;
+  requires_approval?: boolean | null;
+  approval_status?: string | null;
 }
 
 interface PendingItem {
@@ -1112,26 +1115,39 @@ const IssueGoods = () => {
                                             <TableCell>{getStatusBadge(item.status)}</TableCell>
                                             <TableCell className="text-center">
                                               <div className="flex items-center justify-center gap-1">
-                                                {(item.status === "pending" || item.status === "waiting_stock") && (
-                                                  <>
-                                                    <Button size="sm" onClick={(e) => { e.stopPropagation(); handleIssueItem(item); }}>
-                                                      <CheckCircle className="h-4 w-4 mr-1" />
-                                                      {item.status === "waiting_stock" ? "จ่ายต่อ" : "จ่าย"}
-                                                    </Button>
-                                                    <Button
-                                                      size="sm"
-                                                      variant="outline"
-                                                      className="text-destructive hover:text-destructive"
-                                                      onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        setSelectedItemForReject(item);
-                                                        setItemRejectDialogOpen(true);
-                                                      }}
-                                                    >
-                                                      <XCircle className="h-4 w-4" />
-                                                    </Button>
-                                                  </>
-                                                )}
+                                                {(() => {
+                                                  const parentBlocked = req.requires_approval && req.approval_status !== "approved";
+                                                  if (parentBlocked) {
+                                                    return (
+                                                      <Badge variant="outline" className="bg-yellow-100 text-yellow-800 border-yellow-300">
+                                                        <Clock className="h-3 w-3 mr-1" />รออนุมัติ
+                                                      </Badge>
+                                                    );
+                                                  }
+                                                  if (item.status === "pending" || item.status === "waiting_stock") {
+                                                    return (
+                                                      <>
+                                                        <Button size="sm" onClick={(e) => { e.stopPropagation(); handleIssueItem(item); }}>
+                                                          <CheckCircle className="h-4 w-4 mr-1" />
+                                                          {item.status === "waiting_stock" ? "จ่ายต่อ" : "จ่าย"}
+                                                        </Button>
+                                                        <Button
+                                                          size="sm"
+                                                          variant="outline"
+                                                          className="text-destructive hover:text-destructive"
+                                                          onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            setSelectedItemForReject(item);
+                                                            setItemRejectDialogOpen(true);
+                                                          }}
+                                                        >
+                                                          <XCircle className="h-4 w-4" />
+                                                        </Button>
+                                                      </>
+                                                    );
+                                                  }
+                                                  return null;
+                                                })()}
                                               </div>
                                             </TableCell>
                                           </TableRow>
@@ -1215,26 +1231,24 @@ const IssueGoods = () => {
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                             <div className="space-y-1">
                               <Label className="text-xs">Serial Number</Label>
-                              <select
-                                className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm"
-                                value={u.media_player_id}
-                                onChange={(e) => {
-                                  const mpId = e.target.value;
+                              <SearchableSelect
+                                value={u.media_player_id || ""}
+                                onValueChange={(mpId) => {
                                   const mp = candidates.find((m: any) => m.id === mpId);
                                   updateMpUnitAssignment(idx, {
                                     media_player_id: mpId,
                                     serial_number: mp?.serial_number_1 || mp?.serial_number_2 || "",
                                   });
                                 }}
-                              >
-                                <option value="">-- เลือก S/N --</option>
-                                {allowed.map((m: any) => (
-                                  <option key={m.id} value={m.id}>
-                                    {m.serial_number_1 || m.serial_number_2 || "(ไม่มี S/N)"}
-                                    {m.locations?.warehouses?.name ? ` — ${m.locations.warehouses.name}` : ""}
-                                  </option>
-                                ))}
-                              </select>
+                                placeholder="-- เลือก S/N --"
+                                searchPlaceholder="ค้นหา S/N หรือคลัง..."
+                                emptyMessage="ไม่พบ S/N"
+                                options={allowed.map((m: any) => ({
+                                  value: m.id,
+                                  label: m.serial_number_1 || m.serial_number_2 || "(ไม่มี S/N)",
+                                  description: m.locations?.warehouses?.name || undefined,
+                                }))}
+                              />
                               {allowed.length === 0 && (
                                 <p className="text-xs text-destructive">ไม่มี S/N คงเหลือในคลัง</p>
                               )}
