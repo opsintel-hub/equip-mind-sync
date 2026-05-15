@@ -23,6 +23,7 @@ interface SwapRequest {
   billboard_id: string | null;
   description: string | null;
   symptom_other: string | null;
+  symptom_id?: string | null;
   defective_return_id?: string | null;
   reported_asset_type?: string | null;
   reported_billboard_equipment_id?: string | null;
