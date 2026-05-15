@@ -463,16 +463,16 @@ const IssueGoods = () => {
           notes: issueData.notes || undefined,
         });
 
-        // Update equipment_serial_numbers status to issued
-        if (issueData.serial_number) {
-          const billboardId = issueData.billboard_id || selectedItem.billboard_id;
-          const newSnStatus = billboardId ? "installed" : "issued";
-          // Try updating from equipment_serial_numbers table
+        // Update equipment_serial_numbers status to issued/installed — per unit assignment
+        for (const a of activeAssignments) {
+          if (!a.serial_number) continue;
+          const billboardIdForUnit = a.billboard_id || selectedItem.billboard_id || null;
+          const newSnStatus = billboardIdForUnit ? "installed" : "issued";
           const { data: snRecord } = await supabase
             .from("equipment_serial_numbers")
             .select("id")
             .eq("equipment_id", selectedItem.equipment_id)
-            .eq("serial_number", issueData.serial_number)
+            .eq("serial_number", a.serial_number)
             .eq("status", "in_stock")
             .maybeSingle();
 
@@ -480,7 +480,7 @@ const IssueGoods = () => {
             await supabase.from("equipment_serial_numbers").update({
               status: newSnStatus,
               issue_document_no: parentRequest?.document_no || null,
-              billboard_id: billboardId || null,
+              billboard_id: billboardIdForUnit,
               issued_at: new Date().toISOString(),
             } as any).eq("id", snRecord.id);
           }
@@ -502,26 +502,37 @@ const IssueGoods = () => {
           });
         if (issueError) console.error("Error creating goods_issue:", issueError);
 
-        // If installing to billboard, create billboard_equipment record
-        const billboardId = issueData.billboard_id || selectedItem.billboard_id;
-        if (billboardId) {
+        // Per-unit billboard installation — group rows by billboard_id, insert 1 record per unit
+        const billboardLabelCache = new Map<string, string>();
+        const getBbLabel = async (bbId: string) => {
+          if (billboardLabelCache.has(bbId)) return billboardLabelCache.get(bbId)!;
           const { data: bbInfo } = await supabase
             .from("billboards")
             .select("old_code, location_name")
-            .eq("id", billboardId)
+            .eq("id", bbId)
             .maybeSingle();
-          const bbLabel = [bbInfo?.old_code, bbInfo?.location_name].filter(Boolean).join(" - ") || billboardId;
+          const label = [bbInfo?.old_code, bbInfo?.location_name].filter(Boolean).join(" - ") || bbId;
+          billboardLabelCache.set(bbId, label);
+          return label;
+        };
 
+        // Build per-unit billboard list (fall back to existing item.billboard_id if a row left blank)
+        const installRows = activeAssignments
+          .map(a => ({ billboard_id: a.billboard_id || selectedItem.billboard_id || "", serial_number: a.serial_number || null }))
+          .filter(r => r.billboard_id);
+
+        for (const r of installRows) {
+          const bbLabel = await getBbLabel(r.billboard_id);
           const { error: billboardError } = await supabase
             .from("billboard_equipment")
             .insert({
-              billboard_id: billboardId,
+              billboard_id: r.billboard_id,
               equipment_id: selectedItem.equipment_id,
-              quantity: issuedQty,
+              quantity: 1,
               installation_date: new Date().toISOString().split('T')[0],
               notes: issueData.notes || `เบิกจากเอกสาร ${parentRequest?.document_no}`,
               created_by: user.id,
-              serial_number: issueData.serial_number || null,
+              serial_number: r.serial_number,
             });
           if (billboardError) throw billboardError;
 
@@ -530,13 +541,13 @@ const IssueGoods = () => {
             equipment_code: selectedItem.equipment_code || "",
             equipment_name: selectedItem.equipment_name || "",
             movement_type: "install_to_billboard",
-            quantity: issuedQty,
+            quantity: 1,
             stock_before: currentStock,
             stock_after: newStock,
             reference_type: "billboard_equipment",
             reference_document: parentRequest?.document_no || "",
             location_id: equipment?.find(e => e.id === selectedItem.equipment_id)?.location_id || undefined,
-            notes: `ติดตั้งที่ป้าย ${bbLabel}`,
+            notes: `ติดตั้งที่ป้าย ${bbLabel}${r.serial_number ? ` S/N: ${r.serial_number}` : ""}`,
           });
         }
       }
