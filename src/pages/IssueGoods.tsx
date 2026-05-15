@@ -1395,21 +1395,7 @@ const IssueGoods = () => {
               </div>
             )}
 
-            {/* Billboard Selection for Media Player (single unit) */}
-            {selectedItem?.is_media_player && (
-              <div className="space-y-2">
-                <Label>ป้ายโฆษณา (ระบุหรือเปลี่ยนได้)</Label>
-                <BillboardSelect
-                  value={issueData.billboard_id}
-                  onChange={(value) => setIssueData({ ...issueData, billboard_id: value })}
-                />
-                {selectedItem?.billboard_id && !issueData.billboard_id && (
-                  <p className="text-xs text-muted-foreground">
-                    ป้ายที่ระบุไว้: จะใช้ป้ายที่ผู้ขอเลือกไว้
-                  </p>
-                )}
-              </div>
-            )}
+            {/* MP billboard handled per-unit in the table above */}
 
             {/* View Equipment Image Button */}
             {selectedItem?.equipment_id && (
