@@ -153,7 +153,7 @@ export function SwapWizardDialog({ open, onOpenChange, request, onCompleted }: P
     // Media Players: available spare = not installed, not defective/pending assessment
     const { data: mps, error: mpError } = await supabase
       .from("media_players")
-      .select("id, code, name, serial_number_1, serial_number_2, status, location_id, billboard_id")
+      .select("id, code, name, serial_number_1, serial_number_2, status, location_id, billboard_id, brand, specification, model_id, warranty_expiry_date, unit_price, media_player_models:model_id(name)")
       .is("billboard_id", null)
       .not("status", "in", "(defective,pending_assessment,claim)")
       .order("created_at", { ascending: false })
@@ -162,7 +162,7 @@ export function SwapWizardDialog({ open, onOpenChange, request, onCompleted }: P
     // Equipment: pull serial numbers in_stock
     const { data: esns } = await supabase
       .from("equipment_serial_numbers")
-      .select("id, equipment_id, serial_number, status, location_id, equipment:equipment_id(id, code, name)")
+      .select("id, equipment_id, serial_number, status, location_id, equipment:equipment_id(id, code, name, brand, category, description, warranty_expiry_date, unit_price)")
       .eq("status", "in_stock")
       .limit(300);
 
@@ -173,29 +173,51 @@ export function SwapWizardDialog({ open, onOpenChange, request, onCompleted }: P
 
     (mps || []).forEach((m: any) => {
       const serial = [m.serial_number_1, m.serial_number_2].filter(Boolean).join(" / ");
+      const detailBits = [
+        m.brand ? `ยี่ห้อ ${m.brand}` : null,
+        m.media_player_models?.name ? `รุ่น ${m.media_player_models.name}` : null,
+        m.specification ? `Spec ${m.specification}` : null,
+      ].filter(Boolean).join(" • ");
       opts.push({
         value: `mp:${m.id}`,
         label: `${m.code} ${m.name ? "- " + m.name : ""}`,
-        description: `S/N: ${serial || "—"} • สถานะ: ${m.status || "—"}`,
+        description: `S/N: ${serial || "—"} • สถานะ: ${m.status || "—"}${detailBits ? "\n" + detailBits : ""}`,
         type: "media_player",
         serial_number: serial || null,
         location_id: m.location_id,
         equipment_id: null,
         item_code: m.code,
         item_name: m.name,
+        brand: m.brand,
+        specification: m.specification,
+        model_name: m.media_player_models?.name || null,
+        status: m.status,
+        warranty_expiry_date: m.warranty_expiry_date,
+        unit_price: m.unit_price,
       });
     });
     (esns || []).forEach((s: any) => {
+      const detailBits = [
+        s.equipment?.brand ? `ยี่ห้อ ${s.equipment.brand}` : null,
+        s.equipment?.category ? `หมวด ${s.equipment.category}` : null,
+        s.equipment?.description ? `Spec ${s.equipment.description}` : null,
+      ].filter(Boolean).join(" • ");
       opts.push({
         value: `eq:${s.equipment_id}:${s.id}`,
         label: `${s.equipment?.code || ""} ${s.equipment?.name ? "- " + s.equipment.name : ""}`,
-        description: `S/N: ${s.serial_number} • สถานะ: ${s.status}`,
+        description: `S/N: ${s.serial_number} • สถานะ: ${s.status}${detailBits ? "\n" + detailBits : ""}`,
         type: "equipment",
         serial_number: s.serial_number,
         location_id: s.location_id,
         equipment_id: s.equipment_id,
         item_code: s.equipment?.code,
         item_name: s.equipment?.name,
+        brand: s.equipment?.brand,
+        specification: s.equipment?.description,
+        category: s.equipment?.category,
+        status: s.status,
+        warranty_expiry_date: s.equipment?.warranty_expiry_date,
+        unit_price: s.equipment?.unit_price,
       });
     });
 
@@ -235,20 +257,6 @@ export function SwapWizardDialog({ open, onOpenChange, request, onCompleted }: P
     const oldCode = (request?.reported_item_code || "").toLowerCase();
     if (spareCode && oldCode && spareCode === oldCode) return { level: "exact", label: "ตรงรหัสอุปกรณ์" };
     return { level: spare.type === old.type ? "similar" : "cross", label: spare.type === old.type ? "ข้ามรุ่น (ประเภทเดียวกัน)" : "ข้ามประเภท" };
-  };
-
-  const loadLocations = async () => {
-    let query = supabase.from("locations").select("id, name, department").eq("is_active", true).order("name");
-    if (!isAdmin) {
-      const allowedNames = allowedDepartments.map((d) => d.name);
-      if (allowedNames.length === 0) {
-        setLocations([]);
-        return;
-      }
-      query = query.in("department", allowedNames);
-    }
-    const { data } = await query;
-    setLocations((data || []).map((l: any) => ({ id: l.id, name: l.name })));
   };
 
   const loadOldUnits = async (billboardId: string) => {
