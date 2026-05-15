@@ -61,6 +61,8 @@ interface TimelineEvent {
   document?: string | null;
   duration_days?: number | null;
   billboard_name?: string | null;
+  billboard_old_code?: string | null;
+  billboard_equipment_id?: string | null;
 }
 
 interface BillboardJourney {
