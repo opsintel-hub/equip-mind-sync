@@ -102,6 +102,12 @@ const IssueGoods = () => {
     serial_number_source: string;
     billboard_id: string;
   }>>([]);
+  // Per-unit MP assignments (one media_player_id + S/N + optional billboard per unit)
+  const [mpUnitAssignments, setMpUnitAssignments] = useState<Array<{
+    media_player_id: string;
+    serial_number: string;
+    billboard_id: string;
+  }>>([]);
   const [rejectReason, setRejectReason] = useState("");
   const [imageDialogOpen, setImageDialogOpen] = useState(false);
   const [selectedEquipmentImages, setSelectedEquipmentImages] = useState<string[]>([]);
