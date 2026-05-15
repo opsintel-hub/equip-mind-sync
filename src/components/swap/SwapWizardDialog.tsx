@@ -448,7 +448,7 @@ export function SwapWizardDialog({ open, onOpenChange, request, onCompleted }: P
       // ---------- (1) เครื่องเก่า: ถอดออกจากป้าย ----------
       try {
         if (oldMpId) {
-          // ปิด history ที่ยังเปิดอยู่
+          // ปิด history ที่ยังเปิดอยู่ (ของเครื่องเก่า)
           await supabase
             .from("media_player_billboard_history")
             .update({
@@ -460,6 +460,13 @@ export function SwapWizardDialog({ open, onOpenChange, request, onCompleted }: P
             })
             .eq("media_player_id", oldMpId)
             .is("uninstall_date", null);
+
+          // เคลียร์ billboard_equipment ของเครื่องเก่า (ถ้ามีถูกเก็บไว้ตอนเบิก)
+          await supabase
+            .from("billboard_equipment")
+            .delete()
+            .eq("billboard_id", request.billboard_id)
+            .eq("equipment_id", oldMpId);
 
           // เคลียร์ billboard_id + install_date + เปลี่ยน status เป็น pending_assessment
           await supabase
