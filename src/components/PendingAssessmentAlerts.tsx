@@ -9,17 +9,18 @@ export function PendingAssessmentAlerts() {
   const { data } = useQuery({
     queryKey: ["pending-assessment-counts"],
     queryFn: async () => {
-      const [pa, ur, ic] = await Promise.all([
+      const [wr, pa, ur, ic] = await Promise.all([
+        supabase.from("media_players").select("id", { count: "exact", head: true }).eq("status", "pending_warehouse_return"),
         supabase.from("media_players").select("id", { count: "exact", head: true }).eq("status", "pending_assessment"),
         supabase.from("media_players").select("id", { count: "exact", head: true }).eq("status", "under_repair"),
         supabase.from("media_players").select("id", { count: "exact", head: true }).eq("status", "in_claim"),
       ]);
-      return { pa: pa.count || 0, ur: ur.count || 0, ic: ic.count || 0 };
+      return { wr: wr.count || 0, pa: pa.count || 0, ur: ur.count || 0, ic: ic.count || 0 };
     },
     refetchInterval: 60000,
   });
 
-  const total = (data?.pa || 0) + (data?.ur || 0) + (data?.ic || 0);
+  const total = (data?.wr || 0) + (data?.pa || 0) + (data?.ur || 0) + (data?.ic || 0);
   if (total === 0) return null;
 
   return (
