@@ -613,6 +613,7 @@ const IssueGoods = () => {
       setItemIssueDialogOpen(false);
       setSelectedItem(null);
       setIssueData({ issued_quantity: "", notes: "", billboard_id: "", serial_number: "", serial_number_source: "" });
+      setUnitAssignments([]);
     },
     onError: (error) => {
       toast.error("เกิดข้อผิดพลาด: " + error.message);
