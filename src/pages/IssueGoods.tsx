@@ -473,8 +473,7 @@ const IssueGoods = () => {
           .eq("id", selectedItem.equipment_id);
         if (stockError) throw stockError;
 
-        // Get parent request for document_no
-        const parentRequest = pendingRequests?.find(r => r.id === selectedItem.pending_id);
+        // parentRequest already declared above
 
         // Log stock movement
         await logStockMovement({
