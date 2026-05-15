@@ -22,6 +22,7 @@ import BillboardDisplay from "@/components/billboard/BillboardDisplay";
 import BillboardSelect from "@/components/billboard/BillboardSelect";
 import { logStockMovement } from "@/lib/stockMovement";
 import { SerialNumberSelect, SerialNumberItem } from "@/components/equipment/SerialNumberSelect";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 
 interface EquipmentWithDetails {
   id: string;
