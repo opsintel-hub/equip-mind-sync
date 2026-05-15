@@ -58,6 +58,8 @@ interface PendingRequest {
   created_at: string;
   billboard_id: string | null;
   total_items: number | null;
+  requires_approval?: boolean | null;
+  approval_status?: string | null;
 }
 
 interface PendingItem {
