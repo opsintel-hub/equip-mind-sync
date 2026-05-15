@@ -430,6 +430,18 @@ export default function StockCard() {
     movements.forEach(m => {
       const rawDetail = m.notes || m.reference_document || "-";
       const cleanDetail = rawDetail.replace(UUID_RE, "(ป้าย)").replace(/\s+/g, " ").trim();
+      // Try to enrich with billboard via swap reference
+      let bbOldCode: string | null = null;
+      let bbEqId: string | null = null;
+      let bbName: string | null = null;
+      if (m.reference_type === "swap" && m.reference_id) {
+        const bb = (swapBillboardMap as Map<string, any>).get(m.reference_id);
+        if (bb) {
+          bbOldCode = bb.old_code || null;
+          bbEqId = bb.equipment_id || null;
+          bbName = bb.equipment_id || bb.old_code || bb.location_name || null;
+        }
+      }
       events.push({
         date: m.created_at,
         type: m.movement_type,
@@ -439,13 +451,17 @@ export default function StockCard() {
         stock_after: m.stock_after,
         condition: m.item_condition,
         document: m.reference_document,
-        billboard_name: null,
+        billboard_name: bbName,
+        billboard_old_code: bbOldCode,
+        billboard_equipment_id: bbEqId,
       });
     });
 
     // Billboard history (uninstalls) — equipment
     billboardHistory.forEach((h: any) => {
       const bbName = h.billboards?.equipment_id || h.billboards?.location_name || "ป้าย";
+      const bbOldCode = h.billboards?.old_code || null;
+      const bbEqId = h.billboards?.equipment_id || null;
       events.push({
         date: h.uninstall_date,
         type: "uninstall",
@@ -454,6 +470,8 @@ export default function StockCard() {
         condition: null,
         document: null,
         billboard_name: bbName,
+        billboard_old_code: bbOldCode,
+        billboard_equipment_id: bbEqId,
       });
       if (h.installation_date) {
         events.push({
@@ -464,6 +482,8 @@ export default function StockCard() {
           condition: null,
           document: null,
           billboard_name: bbName,
+          billboard_old_code: bbOldCode,
+          billboard_equipment_id: bbEqId,
         });
       }
     });
@@ -471,6 +491,8 @@ export default function StockCard() {
     // Billboard history (uninstalls) — media player
     mediaPlayerBillboardHistory.forEach((h: any) => {
       const bbName = h.billboards?.equipment_id || h.billboards?.location_name || "ป้าย";
+      const bbOldCode = h.billboards?.old_code || null;
+      const bbEqId = h.billboards?.equipment_id || null;
       events.push({
         date: h.uninstall_date,
         type: "uninstall",
@@ -479,6 +501,8 @@ export default function StockCard() {
         condition: null,
         document: null,
         billboard_name: bbName,
+        billboard_old_code: bbOldCode,
+        billboard_equipment_id: bbEqId,
       });
       if (h.installation_date) {
         events.push({
@@ -489,6 +513,8 @@ export default function StockCard() {
           condition: null,
           document: null,
           billboard_name: bbName,
+          billboard_old_code: bbOldCode,
+          billboard_equipment_id: bbEqId,
         });
       }
     });
@@ -504,7 +530,7 @@ export default function StockCard() {
     }
 
     return events;
-  }, [selectedItemId, movements, billboardHistory, mediaPlayerBillboardHistory]);
+  }, [selectedItemId, movements, billboardHistory, mediaPlayerBillboardHistory, swapBillboardMap]);
 
   // ── Filtered timeline ──
   const filteredTimeline = useMemo(() => {
