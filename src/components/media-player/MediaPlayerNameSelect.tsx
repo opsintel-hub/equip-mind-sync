@@ -105,7 +105,7 @@ export function MediaPlayerNameSelect({ value, onChange, disabled }: MediaPlayer
         <DialogTrigger asChild>
           <Button variant="outline" size="icon" type="button"><Settings className="h-4 w-4" /></Button>
         </DialogTrigger>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md z-[200]">
           <DialogHeader><DialogTitle>จัดการชื่อสินค้า</DialogTitle></DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
@@ -146,7 +146,7 @@ export function MediaPlayerNameSelect({ value, onChange, disabled }: MediaPlayer
         </DialogContent>
       </Dialog>
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <AlertDialogContent>
+        <AlertDialogContent className="z-[210]">
           <AlertDialogHeader>
             <AlertDialogTitle>ยืนยันการลบ</AlertDialogTitle>
             <AlertDialogDescription>คุณต้องการลบชื่อสินค้านี้หรือไม่?</AlertDialogDescription>

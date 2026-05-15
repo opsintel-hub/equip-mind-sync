@@ -105,7 +105,7 @@ export function SpecificationSelect({ value, onChange, disabled }: Specification
         <DialogTrigger asChild>
           <Button variant="outline" size="icon" type="button"><Settings className="h-4 w-4" /></Button>
         </DialogTrigger>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md z-[200]">
           <DialogHeader><DialogTitle>จัดการ Specification</DialogTitle></DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
@@ -146,7 +146,7 @@ export function SpecificationSelect({ value, onChange, disabled }: Specification
         </DialogContent>
       </Dialog>
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <AlertDialogContent>
+        <AlertDialogContent className="z-[210]">
           <AlertDialogHeader>
             <AlertDialogTitle>ยืนยันการลบ</AlertDialogTitle>
             <AlertDialogDescription>คุณต้องการลบ Specification นี้หรือไม่?</AlertDialogDescription>
