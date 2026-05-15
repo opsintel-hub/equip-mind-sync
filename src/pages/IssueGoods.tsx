@@ -102,6 +102,12 @@ const IssueGoods = () => {
     serial_number_source: string;
     billboard_id: string;
   }>>([]);
+  // Per-unit MP assignments (one media_player_id + S/N + optional billboard per unit)
+  const [mpUnitAssignments, setMpUnitAssignments] = useState<Array<{
+    media_player_id: string;
+    serial_number: string;
+    billboard_id: string;
+  }>>([]);
   const [rejectReason, setRejectReason] = useState("");
   const [imageDialogOpen, setImageDialogOpen] = useState(false);
   const [selectedEquipmentImages, setSelectedEquipmentImages] = useState<string[]>([]);
@@ -116,9 +122,12 @@ const IssueGoods = () => {
         .select("*, companies(name)")
         .order("created_at", { ascending: false });
       if (error) throw error;
-      // Filter out requests that require approval and are not yet approved
+      // Exclude requests still pending approval (defense-in-depth alongside requires_approval flag)
       return (data as (PendingRequest & { companies: { name: string } | null })[])
-        .filter((req: any) => !req.requires_approval || req.approval_status === "approved");
+        .filter((req: any) =>
+          req.status !== "pending_approval" &&
+          (!req.requires_approval || req.approval_status === "approved")
+        );
     },
   });
 
@@ -152,6 +161,20 @@ const IssueGoods = () => {
         location_id: string | null; 
         locations: { id: string; name: string; code: string; warehouse_id: string | null; warehouses: { id: string; name: string; code: string } | null } | null 
       })[];
+    },
+  });
+
+  // Fetch available Media Player units (in stock) for multi-unit issuance
+  const { data: availableMpUnits } = useQuery({
+    queryKey: ["available-media-player-units"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("media_players")
+        .select("id, code, name, serial_number_1, serial_number_2, quantity, billboard_id, location_id, locations(id, name, code, warehouses(id, name, code))")
+        .eq("is_active", true)
+        .gt("quantity", 0);
+      if (error) throw error;
+      return data as any[];
     },
   });
 
@@ -261,15 +284,37 @@ const IssueGoods = () => {
       const totalIssued = previousIssued + issuedQty;
       const isMediaPlayer = selectedItem.is_media_player;
 
-      // For non-Media Player items, validate per-unit assignments
+      // Per-unit assignment validation + combine values stored on the pending item row
       let combinedSerial: string | null = null;
       let combinedBillboardId: string | null = null;
       const activeAssignments = unitAssignments.slice(0, issuedQty);
-      if (!isMediaPlayer && issuedQty > 0) {
+      const activeMpAssignments = mpUnitAssignments.slice(0, issuedQty);
+
+      if (isMediaPlayer && issuedQty > 0) {
+        if (activeMpAssignments.length !== issuedQty) {
+          throw new Error(`กรุณาระบุข้อมูลให้ครบ ${issuedQty} เครื่อง`);
+        }
+        const mpIds = new Set<string>();
+        const mpSerials = new Set<string>();
+        for (const a of activeMpAssignments) {
+          if (!a.media_player_id || !a.serial_number) {
+            throw new Error("กรุณาเลือก S/N ของ Media Player ทุกเครื่อง");
+          }
+          if (mpIds.has(a.media_player_id)) {
+            throw new Error("เลือก Media Player ซ้ำเครื่องเดิม กรุณาเลือกเครื่องที่แตกต่างกัน");
+          }
+          mpIds.add(a.media_player_id);
+          const sk = a.serial_number.trim().toLowerCase();
+          if (mpSerials.has(sk)) throw new Error(`Serial Number ซ้ำ: ${a.serial_number}`);
+          mpSerials.add(sk);
+        }
+        combinedSerial = activeMpAssignments.map(a => a.serial_number).join("\n").trim() || null;
+        const bbSet = new Set(activeMpAssignments.map(a => a.billboard_id || ""));
+        combinedBillboardId = bbSet.size === 1 ? (activeMpAssignments[0]?.billboard_id || null) : null;
+      } else if (!isMediaPlayer && issuedQty > 0) {
         if (activeAssignments.length !== issuedQty) {
           throw new Error(`กรุณาระบุข้อมูลให้ครบ ${issuedQty} เครื่อง`);
         }
-        // Validate S/N (must be present and unique). Allow empty if no S/N tracking.
         const serials = activeAssignments.map(a => (a.serial_number || "").trim()).filter(Boolean);
         const seen = new Set<string>();
         for (const sn of serials) {
@@ -280,14 +325,8 @@ const IssueGoods = () => {
         if (serials.length > 0) {
           combinedSerial = activeAssignments.map(a => a.serial_number || "").join("\n").trim() || null;
         }
-        // Combined billboard_id: if all rows use the same billboard, use it; otherwise null (history kept in billboard_equipment per row)
         const bbSet = new Set(activeAssignments.map(a => a.billboard_id || ""));
-        if (bbSet.size === 1) {
-          const only = activeAssignments[0]?.billboard_id || "";
-          combinedBillboardId = only || null;
-        } else {
-          combinedBillboardId = null;
-        }
+        combinedBillboardId = bbSet.size === 1 ? (activeAssignments[0]?.billboard_id || null) : null;
       }
 
       // Determine new status
@@ -307,124 +346,113 @@ const IssueGoods = () => {
           status: newStatus,
           issued_quantity: totalIssued,
           remaining_quantity: Math.max(0, remainingQty),
-          billboard_id: isMediaPlayer
-            ? (issueData.billboard_id || selectedItem.billboard_id)
-            : (combinedBillboardId ?? selectedItem.billboard_id),
+          billboard_id: combinedBillboardId ?? selectedItem.billboard_id,
           notes: issueData.notes || selectedItem.notes,
-          serial_number: isMediaPlayer
-            ? (issueData.serial_number || selectedItem.serial_number || null)
-            : (combinedSerial ?? selectedItem.serial_number ?? null),
+          serial_number: combinedSerial ?? selectedItem.serial_number ?? null,
         })
         .eq("id", selectedItem.id);
 
       if (updateError) throw updateError;
 
       // Handle Media Player or Equipment stock update
-      
-      if (isMediaPlayer && selectedItem.media_player_id && issuedQty > 0) {
-        // Media Player: Update media_players table
-        const { data: currentMediaPlayer, error: fetchMpError } = await supabase
-          .from("media_players")
-          .select("quantity, code, name, location_id, serial_number_1")
-          .eq("id", selectedItem.media_player_id)
-          .single();
+      const parentRequest = pendingRequests?.find(r => r.id === selectedItem.pending_id);
 
-        if (fetchMpError) throw fetchMpError;
-        if (issuedQty !== 1) throw new Error("Media Player ต้องจ่ายครั้งละ 1 เครื่องตาม S/N เท่านั้น");
-        if ((currentMediaPlayer?.quantity || 0) <= 0) throw new Error("S/N นี้ไม่อยู่ในคลังแล้ว");
-        if (!issueData.serial_number) throw new Error("กรุณาเลือก S/N ของ Media Player ก่อนจ่าย");
-        if (issueData.serial_number && currentMediaPlayer?.serial_number_1 !== issueData.serial_number) {
-          throw new Error("S/N ที่เลือกไม่ตรงกับเครื่องที่จะจ่าย กรุณาเลือก S/N ใหม่");
-        }
-
-        const currentStock = currentMediaPlayer?.quantity || 0;
-        const newStock = Math.max(0, currentStock - issuedQty);
-        
-        const { error: stockError } = await supabase
-          .from("media_players")
-          .update({ quantity: newStock })
-          .eq("id", selectedItem.media_player_id);
-        if (stockError) throw stockError;
-
-        // Get parent request for document_no
-        const parentRequest = pendingRequests?.find(r => r.id === selectedItem.pending_id);
-
-        // Log stock movement for Media Player
-        await logStockMovement({
-          equipment_id: selectedItem.media_player_id,
-          equipment_code: currentMediaPlayer?.code || selectedItem.equipment_code || "",
-          equipment_name: currentMediaPlayer?.name || selectedItem.equipment_name || "",
-          movement_type: "issue",
-          quantity: issuedQty,
-          stock_before: currentStock,
-          stock_after: newStock,
-          reference_type: "goods_issue",
-          reference_document: parentRequest?.document_no || "",
-          location_id: currentMediaPlayer?.location_id || undefined,
-          notes: `Media Player - ${issueData.notes || ""}`.trim(),
-        });
-
-        // If installing to billboard for Media Player
-        const billboardId = issueData.billboard_id || selectedItem.billboard_id;
-        if (billboardId) {
-          // Look up billboard human-readable label
-          const { data: bbInfo } = await supabase
-            .from("billboards")
-            .select("old_code, location_name")
-            .eq("id", billboardId)
-            .maybeSingle();
-          const bbLabel = [bbInfo?.old_code, bbInfo?.location_name].filter(Boolean).join(" - ") || billboardId;
-
-          // 1) Update media_players.billboard_id + install_date so Profile/Reports stay in sync
-          await supabase
+      if (isMediaPlayer && issuedQty > 0) {
+        // Loop each MP unit assignment
+        for (const a of activeMpAssignments) {
+          const { data: currentMp, error: fetchMpError } = await supabase
             .from("media_players")
-            .update({
-              billboard_id: billboardId,
-              install_date: new Date().toISOString().split('T')[0],
-            })
-            .eq("id", selectedItem.media_player_id);
+            .select("quantity, code, name, location_id, serial_number_1, serial_number_2")
+            .eq("id", a.media_player_id)
+            .single();
+          if (fetchMpError) throw fetchMpError;
+          if ((currentMp?.quantity || 0) <= 0) {
+            throw new Error(`S/N ${a.serial_number} ไม่อยู่ในคลังแล้ว`);
+          }
+          if (currentMp?.serial_number_1 !== a.serial_number && currentMp?.serial_number_2 !== a.serial_number) {
+            throw new Error(`S/N ${a.serial_number} ไม่ตรงกับเครื่องที่จะจ่าย`);
+          }
 
-          // 2) Create billboard_equipment record for Media Player
-          const { error: billboardMpError } = await supabase
-            .from("billboard_equipment")
-            .insert({
-              billboard_id: billboardId,
-              equipment_id: selectedItem.media_player_id,
-              quantity: issuedQty,
-              installation_date: new Date().toISOString().split('T')[0],
-              notes: issueData.notes || `Media Player เบิกจากเอกสาร ${parentRequest?.document_no}`,
-              created_by: user.id,
-              serial_number: issueData.serial_number || null,
-            });
-          if (billboardMpError) console.error("Error creating billboard_equipment for MP:", billboardMpError);
+          const currentStock = currentMp?.quantity || 0;
+          const newStock = Math.max(0, currentStock - 1);
 
-          // 3) Insert media_player_billboard_history (installation entry; uninstall_date null = currently installed)
-          const today = new Date().toISOString().split('T')[0];
-          const { error: histError } = await supabase
-            .from("media_player_billboard_history")
-            .insert({
-              media_player_id: selectedItem.media_player_id,
-              billboard_id: billboardId,
-              installation_date: today,
-              uninstall_date: null,
-              installed_by: user.id,
-              installation_notes: issueData.notes || `จากเอกสาร ${parentRequest?.document_no}`,
-            } as any);
-          if (histError) console.error("Error inserting MP history:", histError);
+          const { error: stockError } = await supabase
+            .from("media_players")
+            .update({ quantity: newStock })
+            .eq("id", a.media_player_id);
+          if (stockError) throw stockError;
 
           await logStockMovement({
-            equipment_id: selectedItem.media_player_id,
-            equipment_code: currentMediaPlayer?.code || selectedItem.equipment_code || "",
-            equipment_name: currentMediaPlayer?.name || selectedItem.equipment_name || "",
-            movement_type: "install_to_billboard",
-            quantity: issuedQty,
+            equipment_id: a.media_player_id,
+            equipment_code: currentMp?.code || selectedItem.equipment_code || "",
+            equipment_name: currentMp?.name || selectedItem.equipment_name || "",
+            movement_type: "issue",
+            quantity: 1,
             stock_before: currentStock,
             stock_after: newStock,
-            reference_type: "billboard_equipment",
+            reference_type: "goods_issue",
             reference_document: parentRequest?.document_no || "",
-            location_id: currentMediaPlayer?.location_id || undefined,
-            notes: `Media Player ติดตั้งที่ป้าย ${bbLabel} S/N: ${issueData.serial_number || "-"}`,
+            location_id: currentMp?.location_id || undefined,
+            notes: `Media Player S/N: ${a.serial_number} - ${issueData.notes || ""}`.trim(),
           });
+
+          // Install to billboard (optional). If left blank, it will surface in the "รอระบุป้าย/รอคืน" workflow.
+          if (a.billboard_id) {
+            const { data: bbInfo } = await supabase
+              .from("billboards")
+              .select("old_code, location_name")
+              .eq("id", a.billboard_id)
+              .maybeSingle();
+            const bbLabel = [bbInfo?.old_code, bbInfo?.location_name].filter(Boolean).join(" - ") || a.billboard_id;
+
+            await supabase
+              .from("media_players")
+              .update({
+                billboard_id: a.billboard_id,
+                install_date: new Date().toISOString().split('T')[0],
+              })
+              .eq("id", a.media_player_id);
+
+            const { error: billboardMpError } = await supabase
+              .from("billboard_equipment")
+              .insert({
+                billboard_id: a.billboard_id,
+                equipment_id: a.media_player_id,
+                quantity: 1,
+                installation_date: new Date().toISOString().split('T')[0],
+                notes: issueData.notes || `Media Player เบิกจากเอกสาร ${parentRequest?.document_no}`,
+                created_by: user.id,
+                serial_number: a.serial_number,
+              });
+            if (billboardMpError) console.error("Error creating billboard_equipment for MP:", billboardMpError);
+
+            const today = new Date().toISOString().split('T')[0];
+            const { error: histError } = await supabase
+              .from("media_player_billboard_history")
+              .insert({
+                media_player_id: a.media_player_id,
+                billboard_id: a.billboard_id,
+                installation_date: today,
+                uninstall_date: null,
+                installed_by: user.id,
+                installation_notes: issueData.notes || `จากเอกสาร ${parentRequest?.document_no}`,
+              } as any);
+            if (histError) console.error("Error inserting MP history:", histError);
+
+            await logStockMovement({
+              equipment_id: a.media_player_id,
+              equipment_code: currentMp?.code || selectedItem.equipment_code || "",
+              equipment_name: currentMp?.name || selectedItem.equipment_name || "",
+              movement_type: "install_to_billboard",
+              quantity: 1,
+              stock_before: currentStock,
+              stock_after: newStock,
+              reference_type: "billboard_equipment",
+              reference_document: parentRequest?.document_no || "",
+              location_id: currentMp?.location_id || undefined,
+              notes: `Media Player ติดตั้งที่ป้าย ${bbLabel} S/N: ${a.serial_number}`,
+            });
+          }
         }
       } else if (selectedItem.equipment_id && issuedQty > 0) {
         // Regular Equipment: Update equipment table
@@ -445,8 +473,7 @@ const IssueGoods = () => {
           .eq("id", selectedItem.equipment_id);
         if (stockError) throw stockError;
 
-        // Get parent request for document_no
-        const parentRequest = pendingRequests?.find(r => r.id === selectedItem.pending_id);
+        // parentRequest already declared above
 
         // Log stock movement
         await logStockMovement({
@@ -727,16 +754,38 @@ const IssueGoods = () => {
         billboard_id: item.billboard_id || "",
       }));
       setUnitAssignments(initial);
+      setMpUnitAssignments([]);
     } else {
       setUnitAssignments([]);
+      // Initialize per-unit MP assignments. First slot pre-fills the originally requested MP id.
+      const mpInitial = Array.from({ length: qtyToIssue }, (_, i) => ({
+        media_player_id: i === 0 ? (item.media_player_id || "") : "",
+        serial_number: i === 0 ? (item.serial_number || "") : "",
+        billboard_id: item.billboard_id || "",
+      }));
+      setMpUnitAssignments(mpInitial);
     }
     setItemIssueDialogOpen(true);
   };
 
   const handleIssuedQuantityChange = (value: string) => {
     setIssueData((prev) => ({ ...prev, issued_quantity: value }));
-    if (selectedItem?.is_media_player) return;
     const n = Math.max(0, parseInt(value) || 0);
+    if (selectedItem?.is_media_player) {
+      setMpUnitAssignments((prev) => {
+        const next = [...prev];
+        const defaultBillboard = selectedItem?.billboard_id || "";
+        if (n > next.length) {
+          while (next.length < n) {
+            next.push({ media_player_id: "", serial_number: "", billboard_id: defaultBillboard });
+          }
+        } else if (n < next.length) {
+          next.length = n;
+        }
+        return next;
+      });
+      return;
+    }
     setUnitAssignments((prev) => {
       const next = [...prev];
       const defaultBillboard = selectedItem?.billboard_id || "";
@@ -749,6 +798,10 @@ const IssueGoods = () => {
       }
       return next;
     });
+  };
+
+  const updateMpUnitAssignment = (index: number, patch: Partial<{ media_player_id: string; serial_number: string; billboard_id: string }>) => {
+    setMpUnitAssignments((prev) => prev.map((u, i) => (i === index ? { ...u, ...patch } : u)));
   };
 
   const updateUnitAssignment = (index: number, patch: Partial<{ serial_number: string; serial_number_source: string; billboard_id: string }>) => {
@@ -1145,29 +1198,66 @@ const IssueGoods = () => {
               </div>
             </div>
 
-            {/* Serial Number - Only show single field for Media Player (1 unit per S/N) */}
-            {selectedItem?.is_media_player && (
-              <div className="space-y-2">
-                <Label className="flex items-center gap-1">
-                  <Hash className="h-3 w-3" />
-                  Serial Number ที่จ่าย
-                </Label>
-                <SerialNumberSelect
-                  value={issueData.serial_number
-                    ? `${issueData.serial_number_source || "media_player_sn1"}:${selectedItem?.media_player_id || ""}:${issueData.serial_number}`
-                    : ""}
-                  onChange={(item: SerialNumberItem | null) => {
-                    setIssueData({
-                      ...issueData,
-                      serial_number: item?.serial_number || "",
-                      serial_number_source: item?.source || "",
-                    });
-                  }}
-                  equipmentId={selectedItem?.media_player_id || undefined}
-                  placeholder="เลือก S/N ที่จะจ่าย..."
-                />
-              </div>
-            )}
+            {/* Media Player: per-unit S/N + Billboard table (supports multi-unit) */}
+            {selectedItem?.is_media_player && mpUnitAssignments.length > 0 && (() => {
+              // Available MP units sharing the same code (in stock). Include the originally requested id even if quantity=0 (defensive).
+              const candidates = (availableMpUnits || []).filter((m: any) => m.code === selectedItem?.equipment_code);
+              return (
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-1">
+                    <Hash className="h-3 w-3" />
+                    ระบุ S/N และป้ายโฆษณาต่อเครื่อง ({mpUnitAssignments.length} เครื่อง)
+                  </Label>
+                  <div className="border rounded-lg divide-y">
+                    {mpUnitAssignments.map((u, idx) => {
+                      // Allowed list = not already picked by other rows
+                      const otherIds = new Set(mpUnitAssignments.filter((_, i) => i !== idx).map(x => x.media_player_id).filter(Boolean));
+                      const allowed = candidates.filter((m: any) => !otherIds.has(m.id));
+                      return (
+                        <div key={idx} className="p-3 space-y-2 bg-muted/20">
+                          <div className="text-xs font-medium text-muted-foreground">เครื่องที่ {idx + 1}</div>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                            <div className="space-y-1">
+                              <Label className="text-xs">Serial Number</Label>
+                              <select
+                                className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm"
+                                value={u.media_player_id}
+                                onChange={(e) => {
+                                  const mpId = e.target.value;
+                                  const mp = candidates.find((m: any) => m.id === mpId);
+                                  updateMpUnitAssignment(idx, {
+                                    media_player_id: mpId,
+                                    serial_number: mp?.serial_number_1 || mp?.serial_number_2 || "",
+                                  });
+                                }}
+                              >
+                                <option value="">-- เลือก S/N --</option>
+                                {allowed.map((m: any) => (
+                                  <option key={m.id} value={m.id}>
+                                    {m.serial_number_1 || m.serial_number_2 || "(ไม่มี S/N)"}
+                                    {m.locations?.warehouses?.name ? ` — ${m.locations.warehouses.name}` : ""}
+                                  </option>
+                                ))}
+                              </select>
+                              {allowed.length === 0 && (
+                                <p className="text-xs text-destructive">ไม่มี S/N คงเหลือในคลัง</p>
+                              )}
+                            </div>
+                            <div className="space-y-1">
+                              <Label className="text-xs">ป้ายโฆษณา (ระบุภายหลังที่ "รอระบุป้าย/รอคืน" ได้)</Label>
+                              <BillboardSelect
+                                value={u.billboard_id}
+                                onChange={(value) => updateMpUnitAssignment(idx, { billboard_id: value })}
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })()}
 
             {/* FIFO & Expiry Info */}
             {selectedItem?.equipment_id && (() => {
@@ -1305,21 +1395,7 @@ const IssueGoods = () => {
               </div>
             )}
 
-            {/* Billboard Selection for Media Player (single unit) */}
-            {selectedItem?.is_media_player && (
-              <div className="space-y-2">
-                <Label>ป้ายโฆษณา (ระบุหรือเปลี่ยนได้)</Label>
-                <BillboardSelect
-                  value={issueData.billboard_id}
-                  onChange={(value) => setIssueData({ ...issueData, billboard_id: value })}
-                />
-                {selectedItem?.billboard_id && !issueData.billboard_id && (
-                  <p className="text-xs text-muted-foreground">
-                    ป้ายที่ระบุไว้: จะใช้ป้ายที่ผู้ขอเลือกไว้
-                  </p>
-                )}
-              </div>
-            )}
+            {/* MP billboard handled per-unit in the table above */}
 
             {/* View Equipment Image Button */}
             {selectedItem?.equipment_id && (

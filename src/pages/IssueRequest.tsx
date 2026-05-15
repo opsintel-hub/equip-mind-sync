@@ -556,10 +556,14 @@ const IssueRequest = () => {
       const firstItemIsMediaPlayer = itemsToSubmit[0]?.is_media_player || false;
       const totalRequestedQty = itemsToSubmit.reduce((sum, item) => sum + item.quantity, 0);
 
-      // Check if any item is an asset (is_asset = true) to determine if approval is needed
+      // Approval required if request contains any Media Player OR any asset (is_asset = true) item
       let requiresApproval = false;
       for (const item of itemsToSubmit) {
-        if (!item.is_media_player && item.equipment_id) {
+        if (item.is_media_player) {
+          requiresApproval = true;
+          break;
+        }
+        if (item.equipment_id) {
           const { data: eqData } = await supabase
             .from("equipment")
             .select("is_asset")
