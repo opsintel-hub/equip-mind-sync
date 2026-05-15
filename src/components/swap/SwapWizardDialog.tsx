@@ -262,18 +262,26 @@ export function SwapWizardDialog({ open, onOpenChange, request, onCompleted }: P
   const loadOldUnits = async (billboardId: string) => {
     const { data: be } = await supabase
       .from("billboard_equipment")
-      .select("id, equipment_id, serial_number, quantity, equipment:equipment_id(id, code, name)")
+      .select("id, equipment_id, serial_number, quantity, installation_date, equipment:equipment_id(id, code, name, brand, category, description)")
+      .eq("billboard_id", billboardId);
+
+    // ดึงรายการ Media Player ที่ติดตั้งบนป้ายนี้ ณ ปัจจุบัน
+    const { data: mpsOnBb } = await supabase
+      .from("media_players")
+      .select("id, code, name, serial_number_1, serial_number_2, brand, specification, install_date, model_id, media_player_models:model_id(name)")
       .eq("billboard_id", billboardId);
 
     const opts: OldOption[] = [];
+    const seenIds = new Set<string>();
 
     // Prefer the item already reported in the swap request. It may have been auto-uninstalled
     // when the request was created, so it will no longer appear in billboard_equipment.
     if (request?.reported_item_name || request?.reported_item_code || request?.reported_serial_number) {
+      const v = request.reported_asset_type === "media_player" && request.reported_media_player_id
+        ? `mp:${request.reported_media_player_id}`
+        : `reported:${request.id}`;
       opts.push({
-        value: request.reported_asset_type === "media_player" && request.reported_media_player_id
-          ? `mp:${request.reported_media_player_id}`
-          : `reported:${request.id}`,
+        value: v,
         label: `${request.reported_item_code || "—"} ${request.reported_item_name ? "- " + request.reported_item_name : ""}`,
         description: `S/N: ${request.reported_serial_number || "—"} • จากคำขอ Swap`,
         type: request.reported_asset_type === "media_player" ? "media_player" : "equipment",
@@ -282,17 +290,57 @@ export function SwapWizardDialog({ open, onOpenChange, request, onCompleted }: P
         equipment_id: request.reported_equipment_id || undefined,
         media_player_id: request.reported_media_player_id || undefined,
       });
+      seenIds.add(v);
     }
 
-    (be || []).forEach((b: any) => opts.push({
-      value: `be:${b.id}`,
-      label: `${b.equipment?.code || ""} ${b.equipment?.name ? "- " + b.equipment.name : ""}`,
-      description: `S/N: ${b.serial_number || "—"} • จำนวน: ${b.quantity}`,
-      type: "equipment",
-      serial_number: b.serial_number,
-      billboard_equipment_id: b.id,
-      equipment_id: b.equipment_id,
-    }));
+    (mpsOnBb || []).forEach((m: any) => {
+      const v = `mp:${m.id}`;
+      if (seenIds.has(v)) return;
+      const serial = [m.serial_number_1, m.serial_number_2].filter(Boolean).join(" / ");
+      const detailBits = [
+        m.brand ? `ยี่ห้อ ${m.brand}` : null,
+        m.media_player_models?.name ? `รุ่น ${m.media_player_models.name}` : null,
+        m.specification ? `Spec ${m.specification}` : null,
+      ].filter(Boolean).join(" • ");
+      opts.push({
+        value: v,
+        label: `${m.code} ${m.name ? "- " + m.name : ""}`,
+        description: `S/N: ${serial || "—"} • ติดตั้ง ${m.install_date || "—"}${detailBits ? "\n" + detailBits : ""}`,
+        type: "media_player",
+        serial_number: serial || null,
+        billboard_equipment_id: "",
+        media_player_id: m.id,
+        brand: m.brand,
+        specification: m.specification,
+        model_name: m.media_player_models?.name || null,
+        install_date: m.install_date,
+      });
+      seenIds.add(v);
+    });
+
+    (be || []).forEach((b: any) => {
+      const v = `be:${b.id}`;
+      if (seenIds.has(v)) return;
+      const detailBits = [
+        b.equipment?.brand ? `ยี่ห้อ ${b.equipment.brand}` : null,
+        b.equipment?.category ? `หมวด ${b.equipment.category}` : null,
+        b.equipment?.description ? `Spec ${b.equipment.description}` : null,
+      ].filter(Boolean).join(" • ");
+      opts.push({
+        value: v,
+        label: `${b.equipment?.code || ""} ${b.equipment?.name ? "- " + b.equipment.name : ""}`,
+        description: `S/N: ${b.serial_number || "—"} • จำนวน: ${b.quantity}${detailBits ? "\n" + detailBits : ""}`,
+        type: "equipment",
+        serial_number: b.serial_number,
+        billboard_equipment_id: b.id,
+        equipment_id: b.equipment_id,
+        brand: b.equipment?.brand,
+        specification: b.equipment?.description,
+        category: b.equipment?.category,
+        install_date: b.installation_date,
+      });
+      seenIds.add(v);
+    });
     setOldOptions(opts);
   };
 
