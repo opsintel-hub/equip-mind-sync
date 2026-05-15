@@ -320,7 +320,6 @@ const IssueGoods = () => {
       if (updateError) throw updateError;
 
       // Handle Media Player or Equipment stock update
-      const isMediaPlayer = selectedItem.is_media_player;
       
       if (isMediaPlayer && selectedItem.media_player_id && issuedQty > 0) {
         // Media Player: Update media_players table
