@@ -627,6 +627,7 @@ export function SwapWizardDialog({ open, onOpenChange, request, onCompleted }: P
         serial_number: selectedOld.serial_number || null,
         source_type: "swap",
         source_reference_id: request.id,
+        symptom_id: request.symptom_id || null,
         symptom_description: request.description || request.symptom_other || null,
         status: "pending",
         notes: `จากการ Swap (${request.document_no})`,
