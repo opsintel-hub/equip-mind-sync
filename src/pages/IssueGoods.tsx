@@ -750,16 +750,38 @@ const IssueGoods = () => {
         billboard_id: item.billboard_id || "",
       }));
       setUnitAssignments(initial);
+      setMpUnitAssignments([]);
     } else {
       setUnitAssignments([]);
+      // Initialize per-unit MP assignments. First slot pre-fills the originally requested MP id.
+      const mpInitial = Array.from({ length: qtyToIssue }, (_, i) => ({
+        media_player_id: i === 0 ? (item.media_player_id || "") : "",
+        serial_number: i === 0 ? (item.serial_number || "") : "",
+        billboard_id: item.billboard_id || "",
+      }));
+      setMpUnitAssignments(mpInitial);
     }
     setItemIssueDialogOpen(true);
   };
 
   const handleIssuedQuantityChange = (value: string) => {
     setIssueData((prev) => ({ ...prev, issued_quantity: value }));
-    if (selectedItem?.is_media_player) return;
     const n = Math.max(0, parseInt(value) || 0);
+    if (selectedItem?.is_media_player) {
+      setMpUnitAssignments((prev) => {
+        const next = [...prev];
+        const defaultBillboard = selectedItem?.billboard_id || "";
+        if (n > next.length) {
+          while (next.length < n) {
+            next.push({ media_player_id: "", serial_number: "", billboard_id: defaultBillboard });
+          }
+        } else if (n < next.length) {
+          next.length = n;
+        }
+        return next;
+      });
+      return;
+    }
     setUnitAssignments((prev) => {
       const next = [...prev];
       const defaultBillboard = selectedItem?.billboard_id || "";
@@ -772,6 +794,10 @@ const IssueGoods = () => {
       }
       return next;
     });
+  };
+
+  const updateMpUnitAssignment = (index: number, patch: Partial<{ media_player_id: string; serial_number: string; billboard_id: string }>) => {
+    setMpUnitAssignments((prev) => prev.map((u, i) => (i === index ? { ...u, ...patch } : u)));
   };
 
   const updateUnitAssignment = (index: number, patch: Partial<{ serial_number: string; serial_number_source: string; billboard_id: string }>) => {
