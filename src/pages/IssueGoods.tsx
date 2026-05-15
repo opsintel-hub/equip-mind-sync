@@ -116,9 +116,12 @@ const IssueGoods = () => {
         .select("*, companies(name)")
         .order("created_at", { ascending: false });
       if (error) throw error;
-      // Filter out requests that require approval and are not yet approved
+      // Exclude requests still pending approval (defense-in-depth alongside requires_approval flag)
       return (data as (PendingRequest & { companies: { name: string } | null })[])
-        .filter((req: any) => !req.requires_approval || req.approval_status === "approved");
+        .filter((req: any) =>
+          req.status !== "pending_approval" &&
+          (!req.requires_approval || req.approval_status === "approved")
+        );
     },
   });
 
