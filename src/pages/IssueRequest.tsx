@@ -374,11 +374,6 @@ const IssueRequest = () => {
     const requestedQty = parseInt(currentItem.quantity);
     const currentStock = currentItem.equipment_id ? getSelectableStock(currentItem.equipment_id) : 0;
 
-    if (isMediaPlayer && !currentItem.serial_number) {
-      toast.error("Media Player ต้องเลือก S/N เฉพาะเครื่องก่อนเพิ่มลงตะกร้า");
-      return;
-    }
-
     // Validate stock
     if (currentStock < requestedQty) {
       // Show stock warning dialog
