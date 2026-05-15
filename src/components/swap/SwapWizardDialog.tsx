@@ -780,19 +780,35 @@ export function SwapWizardDialog({ open, onOpenChange, request, onCompleted }: P
               )}
               {selectedOld && (
                 <Card>
-                  <CardContent className="pt-4">
-                    <div className="font-medium">{selectedOld.label}</div>
-                    <div className="text-sm text-muted-foreground">{selectedOld.description}</div>
+                  <CardContent className="pt-4 space-y-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <Badge variant="outline">{selectedOld.type === "media_player" ? "Media Player" : "Equipment"}</Badge>
+                      <span className="font-medium">{selectedOld.label}</span>
+                    </div>
+                    <div className="text-sm text-muted-foreground whitespace-pre-line">{selectedOld.description}</div>
                   </CardContent>
                 </Card>
               )}
-              <div className="space-y-2">
-                <Label>คลังปลายทางสำหรับเครื่องเก่า (Incoming)</Label>
-                <SearchableSelect
-                  options={locations.map((l) => ({ value: l.id, label: l.name }))}
-                  value={returnLocationId}
-                  onValueChange={setReturnLocationId}
-                  placeholder="เลือกคลังที่จะส่งเครื่องเก่ากลับ"
+              <div className="rounded-lg border bg-muted/30 p-3 space-y-3">
+                <div className="text-sm font-medium">คลังปลายทางสำหรับเครื่องเก่า (Incoming)</div>
+                <p className="text-xs text-muted-foreground">เลือกฝ่าย → คลัง → ตำแหน่งจัดเก็บ ตามลำดับ (แสดงเฉพาะคลังของฝ่ายที่คุณมีสิทธิ์)</p>
+                <div className="space-y-2">
+                  <Label>ฝ่าย</Label>
+                  <SimpleDepartmentSelect
+                    value={returnDept}
+                    onChange={(v) => {
+                      setReturnDept(v);
+                      setReturnWarehouseId("");
+                      setReturnLocationId("");
+                    }}
+                  />
+                </div>
+                <WarehouseLocationSelect
+                  department={returnDept}
+                  warehouseId={returnWarehouseId}
+                  onWarehouseChange={setReturnWarehouseId}
+                  locationId={returnLocationId}
+                  onLocationChange={setReturnLocationId}
                 />
               </div>
             </div>
