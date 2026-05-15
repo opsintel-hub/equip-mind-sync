@@ -151,14 +151,25 @@ export function SwapWizardDialog({ open, onOpenChange, request, onCompleted }: P
 
   const loadSpares = async () => {
     setLoading(true);
-    // Media Players: available spare = not installed, not defective/pending assessment
+    // Media Players: available spare = not installed, not defective/pending/in-transit
     const { data: mps, error: mpError } = await supabase
       .from("media_players")
-      .select("id, code, name, serial_number_1, serial_number_2, status, location_id, billboard_id, brand, specification, model_id, warranty_expiry_date, unit_price, media_player_models:model_id(name)")
+      .select("id, code, name, serial_number_1, serial_number_2, status, location_id, billboard_id, brand, specification, model_id, warranty_expiry_date, unit_price")
       .is("billboard_id", null)
-      .not("status", "in", "(defective,pending_assessment,claim)")
+      .not("status", "in", "(defective,pending_assessment,claim,pending_warehouse_return,under_repair,in_claim)")
       .order("created_at", { ascending: false })
       .limit(300);
+
+    // Lookup model names separately (no FK relationship for embed)
+    const modelIds = Array.from(new Set((mps || []).map((m: any) => m.model_id).filter(Boolean)));
+    let modelMap: Record<string, string> = {};
+    if (modelIds.length > 0) {
+      const { data: models } = await supabase
+        .from("media_player_models")
+        .select("id, name")
+        .in("id", modelIds);
+      (models || []).forEach((m: any) => { modelMap[m.id] = m.name; });
+    }
 
     // Equipment: pull serial numbers in_stock
     const { data: esns } = await supabase
@@ -174,9 +185,10 @@ export function SwapWizardDialog({ open, onOpenChange, request, onCompleted }: P
 
     (mps || []).forEach((m: any) => {
       const serial = [m.serial_number_1, m.serial_number_2].filter(Boolean).join(" / ");
+      const modelName = m.model_id ? modelMap[m.model_id] : null;
       const detailBits = [
         m.brand ? `ยี่ห้อ ${m.brand}` : null,
-        m.media_player_models?.name ? `รุ่น ${m.media_player_models.name}` : null,
+        modelName ? `รุ่น ${modelName}` : null,
         m.specification ? `Spec ${m.specification}` : null,
       ].filter(Boolean).join(" • ");
       opts.push({
@@ -191,7 +203,7 @@ export function SwapWizardDialog({ open, onOpenChange, request, onCompleted }: P
         item_name: m.name,
         brand: m.brand,
         specification: m.specification,
-        model_name: m.media_player_models?.name || null,
+        model_name: modelName,
         status: m.status,
         warranty_expiry_date: m.warranty_expiry_date,
         unit_price: m.unit_price,
@@ -269,8 +281,18 @@ export function SwapWizardDialog({ open, onOpenChange, request, onCompleted }: P
     // ดึงรายการ Media Player ที่ติดตั้งบนป้ายนี้ ณ ปัจจุบัน
     const { data: mpsOnBb } = await supabase
       .from("media_players")
-      .select("id, code, name, serial_number_1, serial_number_2, brand, specification, install_date, model_id, media_player_models:model_id(name)")
+      .select("id, code, name, serial_number_1, serial_number_2, brand, specification, install_date, model_id")
       .eq("billboard_id", billboardId);
+
+    const oldModelIds = Array.from(new Set((mpsOnBb || []).map((m: any) => m.model_id).filter(Boolean)));
+    const oldModelMap: Record<string, string> = {};
+    if (oldModelIds.length > 0) {
+      const { data: oldModels } = await supabase
+        .from("media_player_models")
+        .select("id, name")
+        .in("id", oldModelIds);
+      (oldModels || []).forEach((m: any) => { oldModelMap[m.id] = m.name; });
+    }
 
     const opts: OldOption[] = [];
     const seenIds = new Set<string>();
@@ -298,9 +320,10 @@ export function SwapWizardDialog({ open, onOpenChange, request, onCompleted }: P
       const v = `mp:${m.id}`;
       if (seenIds.has(v)) return;
       const serial = [m.serial_number_1, m.serial_number_2].filter(Boolean).join(" / ");
+      const modelName = m.model_id ? oldModelMap[m.model_id] : null;
       const detailBits = [
         m.brand ? `ยี่ห้อ ${m.brand}` : null,
-        m.media_player_models?.name ? `รุ่น ${m.media_player_models.name}` : null,
+        modelName ? `รุ่น ${modelName}` : null,
         m.specification ? `Spec ${m.specification}` : null,
       ].filter(Boolean).join(" • ");
       opts.push({
@@ -313,7 +336,7 @@ export function SwapWizardDialog({ open, onOpenChange, request, onCompleted }: P
         media_player_id: m.id,
         brand: m.brand,
         specification: m.specification,
-        model_name: m.media_player_models?.name || null,
+        model_name: modelName,
         install_date: m.install_date,
       });
       seenIds.add(v);
