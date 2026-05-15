@@ -1148,17 +1148,18 @@ export default function StockCard() {
             ) : (
               <>
                 <div className="overflow-x-auto">
-                  <Table>
+                  <Table className="min-w-[1200px]">
                     <TableHeader>
                       <TableRow>
                         <TableHead className="w-[120px]">วันที่</TableHead>
                         <TableHead className="w-[130px]">ประเภท</TableHead>
-                        <TableHead>รายละเอียด</TableHead>
-                        <TableHead className="w-[150px]">ป้ายโฆษณา</TableHead>
+                        <TableHead className="min-w-[200px]">รายละเอียด</TableHead>
+                        <TableHead className="w-[140px]">Old Code</TableHead>
+                        <TableHead className="w-[150px]">Equipment ID</TableHead>
                         <TableHead className="text-right w-[70px]">จำนวน</TableHead>
                         <TableHead className="text-center w-[110px]">สต็อก ก่อน→หลัง</TableHead>
                         <TableHead className="w-[80px]">สภาพ</TableHead>
-                        <TableHead className="text-right w-[70px]">ระยะเวลา</TableHead>
+                        <TableHead className="text-right w-[80px]">ระยะเวลา</TableHead>
                         <TableHead className="w-[180px]">เอกสาร</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -1167,6 +1168,7 @@ export default function StockCard() {
                         const meta = getMovementMeta(ev.type === "install" ? "install_to_billboard" : ev.type === "uninstall" ? "return_from_billboard" : ev.type);
                         const condMeta = ev.condition ? getConditionMeta(ev.condition) : null;
                         const isBillboardRelated = ev.type === "install" || ev.type === "uninstall" || ev.type === "install_to_billboard" || ev.type === "return_from_billboard";
+                        const dash = isBillboardRelated ? "-" : "—";
                         return (
                           <TableRow key={idx}>
                             <TableCell className="text-xs font-mono whitespace-nowrap">
@@ -1178,17 +1180,24 @@ export default function StockCard() {
                                 {meta.label}
                               </Badge>
                             </TableCell>
-                            <TableCell className="text-sm max-w-[200px] truncate">{ev.detail}</TableCell>
+                            <TableCell className="text-sm max-w-[260px] truncate" title={ev.detail}>{ev.detail}</TableCell>
                             <TableCell>
-                              {ev.billboard_name ? (
-                                <Badge variant="outline" className="text-xs gap-1 bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-800/30">
-                                  <MapPin className="w-3 h-3" />
-                                  {ev.billboard_name}
+                              {ev.billboard_old_code ? (
+                                <Badge variant="outline" className="text-xs font-mono bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-800/30">
+                                  {ev.billboard_old_code}
                                 </Badge>
-                              ) : isBillboardRelated ? (
-                                <span className="text-xs text-muted-foreground">-</span>
                               ) : (
-                                <span className="text-xs text-muted-foreground">—</span>
+                                <span className="text-xs text-muted-foreground">{dash}</span>
+                              )}
+                            </TableCell>
+                            <TableCell>
+                              {ev.billboard_equipment_id ? (
+                                <Badge variant="outline" className="text-xs font-mono gap-1 bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-800/30">
+                                  <MapPin className="w-3 h-3" />
+                                  {ev.billboard_equipment_id}
+                                </Badge>
+                              ) : (
+                                <span className="text-xs text-muted-foreground">{dash}</span>
                               )}
                             </TableCell>
                             <TableCell className="text-right font-medium">{ev.quantity}</TableCell>
