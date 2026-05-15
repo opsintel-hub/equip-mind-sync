@@ -835,14 +835,27 @@ export function SwapWizardDialog({ open, onOpenChange, request, onCompleted }: P
                 <CardContent className="pt-4 space-y-1">
                   <Badge variant="secondary">Spare เข้าใหม่</Badge>
                   <div className="font-medium mt-2">{selectedSpare?.label}</div>
-                  <div className="text-sm text-muted-foreground">{selectedSpare?.description}</div>
+                  <div className="text-sm text-muted-foreground whitespace-pre-line">{selectedSpare?.description}</div>
+                  <div className="grid grid-cols-2 gap-1 mt-2 text-xs">
+                    {selectedSpare?.brand && <div><span className="text-muted-foreground">ยี่ห้อ:</span> <span className="font-medium">{selectedSpare.brand}</span></div>}
+                    {selectedSpare?.model_name && <div><span className="text-muted-foreground">รุ่น:</span> <span className="font-medium">{selectedSpare.model_name}</span></div>}
+                    {selectedSpare?.specification && <div className="col-span-2"><span className="text-muted-foreground">Spec:</span> <span className="font-medium">{selectedSpare.specification}</span></div>}
+                    {selectedSpare?.category && <div><span className="text-muted-foreground">หมวด:</span> <span className="font-medium">{selectedSpare.category}</span></div>}
+                  </div>
                 </CardContent>
               </Card>
               <Card>
                 <CardContent className="pt-4 space-y-1">
                   <Badge variant="outline">เครื่องเก่าที่ถอด</Badge>
                   <div className="font-medium mt-2">{selectedOld?.label || "—"}</div>
-                  <div className="text-sm text-muted-foreground">{selectedOld?.description || "—"}</div>
+                  <div className="text-sm text-muted-foreground whitespace-pre-line">{selectedOld?.description || "—"}</div>
+                  <div className="grid grid-cols-2 gap-1 mt-2 text-xs">
+                    {selectedOld?.brand && <div><span className="text-muted-foreground">ยี่ห้อ:</span> <span className="font-medium">{selectedOld.brand}</span></div>}
+                    {selectedOld?.model_name && <div><span className="text-muted-foreground">รุ่น:</span> <span className="font-medium">{selectedOld.model_name}</span></div>}
+                    {selectedOld?.specification && <div className="col-span-2"><span className="text-muted-foreground">Spec:</span> <span className="font-medium">{selectedOld.specification}</span></div>}
+                    {selectedOld?.category && <div><span className="text-muted-foreground">หมวด:</span> <span className="font-medium">{selectedOld.category}</span></div>}
+                    {selectedOld?.install_date && <div><span className="text-muted-foreground">ติดตั้ง:</span> <span className="font-medium">{selectedOld.install_date}</span></div>}
+                  </div>
                 </CardContent>
               </Card>
             </div>
