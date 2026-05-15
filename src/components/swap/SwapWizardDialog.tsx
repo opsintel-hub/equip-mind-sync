@@ -91,8 +91,9 @@ export function SwapWizardDialog({ open, onOpenChange, request, onCompleted }: P
   // Step 2: Old unit selection
   const [oldOptions, setOldOptions] = useState<OldOption[]>([]);
   const [oldValue, setOldValue] = useState("");
+  const [returnDept, setReturnDept] = useState("");
+  const [returnWarehouseId, setReturnWarehouseId] = useState("");
   const [returnLocationId, setReturnLocationId] = useState("");
-  const [locations, setLocations] = useState<{ id: string; name: string }[]>([]);
 
   // Step 3: Confirm/Reject
   const [result, setResult] = useState<"approved" | "rejected">("approved");
@@ -106,6 +107,8 @@ export function SwapWizardDialog({ open, onOpenChange, request, onCompleted }: P
       setStep(1);
       setSpareValue("");
       setOldValue("");
+      setReturnDept("");
+      setReturnWarehouseId("");
       setReturnLocationId("");
       setResult("approved");
       setRejectReasonId("");
