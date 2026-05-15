@@ -374,6 +374,7 @@ export default function MediaPlayerReport() {
       if (statusFilter !== "all") {
         if (statusFilter === "installed" && !r.billboard_id) return false;
         if (statusFilter === "in_stock" && (r.billboard_id || r.rawStatus)) return false;
+        if (statusFilter === "pending_warehouse_return" && r.rawStatus !== "pending_warehouse_return") return false;
         if (statusFilter === "pending_assessment" && r.rawStatus !== "pending_assessment") return false;
         if (statusFilter === "under_repair" && r.rawStatus !== "under_repair") return false;
         if (statusFilter === "in_claim" && r.rawStatus !== "in_claim") return false;
