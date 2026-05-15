@@ -46,6 +46,8 @@ interface StatusMeta { label: string; className: string; }
 const getStatusMeta = (r: { billboard_id: string | null; rawStatus: string | null; isRefurbished: boolean }): StatusMeta => {
   const refurbSuffix = r.isRefurbished ? " · Refurbished" : "";
   switch (r.rawStatus) {
+    case "pending_warehouse_return":
+      return { label: "รอเข้าคลัง (Swap)" + refurbSuffix, className: "bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-900/30 dark:text-amber-300" };
     case "pending_assessment":
       return { label: "พักรอประเมิน" + refurbSuffix, className: "bg-purple-100 text-purple-700 border-purple-300 dark:bg-purple-900/30 dark:text-purple-300" };
     case "under_repair":
