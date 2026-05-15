@@ -320,9 +320,10 @@ export function SwapWizardDialog({ open, onOpenChange, request, onCompleted }: P
       const v = `mp:${m.id}`;
       if (seenIds.has(v)) return;
       const serial = [m.serial_number_1, m.serial_number_2].filter(Boolean).join(" / ");
+      const modelName = m.model_id ? oldModelMap[m.model_id] : null;
       const detailBits = [
         m.brand ? `ยี่ห้อ ${m.brand}` : null,
-        m.media_player_models?.name ? `รุ่น ${m.media_player_models.name}` : null,
+        modelName ? `รุ่น ${modelName}` : null,
         m.specification ? `Spec ${m.specification}` : null,
       ].filter(Boolean).join(" • ");
       opts.push({
@@ -335,7 +336,7 @@ export function SwapWizardDialog({ open, onOpenChange, request, onCompleted }: P
         media_player_id: m.id,
         brand: m.brand,
         specification: m.specification,
-        model_name: m.media_player_models?.name || null,
+        model_name: modelName,
         install_date: m.install_date,
       });
       seenIds.add(v);
