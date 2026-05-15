@@ -570,7 +570,7 @@ function EquipmentViewTab() {
       if (!m[sn.equipment_id]) m[sn.equipment_id] = { allSNs: [], inStockSNs: [], pendingAssessSNs: [], underRepairSNs: [], inClaimSNs: [] };
       m[sn.equipment_id].allSNs.push(sn.serial_number);
       if (sn.status === "in_stock") m[sn.equipment_id].inStockSNs.push(sn.serial_number);
-      else if (sn.status === "pending_assessment") m[sn.equipment_id].pendingAssessSNs.push(sn.serial_number);
+      else if (sn.status === "pending_assessment" || sn.status === "pending_warehouse_return") m[sn.equipment_id].pendingAssessSNs.push(sn.serial_number);
       else if (sn.status === "under_repair") m[sn.equipment_id].underRepairSNs.push(sn.serial_number);
       else if (sn.status === "in_claim") m[sn.equipment_id].inClaimSNs.push(sn.serial_number);
     });

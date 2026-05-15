@@ -469,18 +469,19 @@ export function SwapWizardDialog({ open, onOpenChange, request, onCompleted }: P
             .eq("billboard_id", request.billboard_id)
             .eq("equipment_id", oldMpId);
 
-          // เคลียร์ billboard_id + install_date + เปลี่ยน status เป็น pending_assessment
+          // เคลียร์ billboard_id + install_date + เปลี่ยน status เป็น pending_warehouse_return
+          // (เครื่องอยู่กับช่าง รอเข้าคลัง — location_id ยังว่างไว้จนกว่าคลังจะกดยืนยันรับ)
           await supabase
             .from("media_players")
             .update({
               billboard_id: null,
               install_date: null,
-              location_id: returnLocationId || null,
-              status: "pending_assessment",
+              location_id: null,
+              status: "pending_warehouse_return",
             } as any)
             .eq("id", oldMpId);
 
-          // log stock movement: return_from_billboard
+          // log stock movement: return_from_billboard (ยังไม่เข้าคลัง — location ว่าง)
           const { data: oldMp } = await supabase
             .from("media_players")
             .select("code, name")
@@ -493,22 +494,22 @@ export function SwapWizardDialog({ open, onOpenChange, request, onCompleted }: P
             movement_type: "return_from_billboard",
             quantity: 1,
             stock_before: 0,
-            stock_after: 1,
+            stock_after: 0,
             reference_type: "swap",
             reference_id: request.id,
             reference_document: request.document_no,
-            location_id: returnLocationId || null,
-            notes: `ถอดจากป้าย — ${swapNote}`,
-            item_condition: "pending_assessment",
+            location_id: null,
+            notes: `ถอดจากป้าย — ${swapNote} (รอเข้าคลัง: ${selectedOld?.label || ""})`,
+            item_condition: "pending_warehouse_return",
             created_by: user?.id ?? null,
           } as any);
         } else if (oldBeId) {
-          // Equipment: ลบ billboard_equipment + เปลี่ยน S/N status เป็น pending_assessment
+          // Equipment: ลบ billboard_equipment + เปลี่ยน S/N status เป็น pending_warehouse_return
           await supabase.from("billboard_equipment").delete().eq("id", oldBeId);
           if (selectedOld?.serial_number) {
             await supabase
               .from("equipment_serial_numbers")
-              .update({ status: "pending_assessment", location_id: returnLocationId || null } as any)
+              .update({ status: "pending_warehouse_return", location_id: null } as any)
               .eq("serial_number", selectedOld.serial_number);
           }
           if (oldEqId) {
@@ -524,13 +525,13 @@ export function SwapWizardDialog({ open, onOpenChange, request, onCompleted }: P
               movement_type: "return_from_billboard",
               quantity: 1,
               stock_before: 0,
-              stock_after: 1,
+              stock_after: 0,
               reference_type: "swap",
               reference_id: request.id,
               reference_document: request.document_no,
-              location_id: returnLocationId || null,
-              notes: `ถอดจากป้าย — ${swapNote} (รอประเมิน)`,
-              item_condition: "pending_assessment",
+              location_id: null,
+              notes: `ถอดจากป้าย — ${swapNote} (รอเข้าคลัง)`,
+              item_condition: "pending_warehouse_return",
               created_by: user?.id ?? null,
             } as any);
           }

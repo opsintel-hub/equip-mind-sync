@@ -46,6 +46,8 @@ interface StatusMeta { label: string; className: string; }
 const getStatusMeta = (r: { billboard_id: string | null; rawStatus: string | null; isRefurbished: boolean }): StatusMeta => {
   const refurbSuffix = r.isRefurbished ? " · Refurbished" : "";
   switch (r.rawStatus) {
+    case "pending_warehouse_return":
+      return { label: "รอเข้าคลัง (Swap)" + refurbSuffix, className: "bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-900/30 dark:text-amber-300" };
     case "pending_assessment":
       return { label: "พักรอประเมิน" + refurbSuffix, className: "bg-purple-100 text-purple-700 border-purple-300 dark:bg-purple-900/30 dark:text-purple-300" };
     case "under_repair":
@@ -253,6 +255,7 @@ export default function MediaPlayerReport() {
         ? formatBillboardLabel(p.billboard.old_code, p.billboard.location_name, p.billboard.equipment_id)
         : "-";
       const wfStatusMap: Record<string, string> = {
+        pending_warehouse_return: "รอเข้าคลัง (Swap)",
         pending_assessment: "พักรอประเมิน",
         under_repair: "กำลังซ่อม",
         in_claim: "รอเคลม",
@@ -371,6 +374,7 @@ export default function MediaPlayerReport() {
       if (statusFilter !== "all") {
         if (statusFilter === "installed" && !r.billboard_id) return false;
         if (statusFilter === "in_stock" && (r.billboard_id || r.rawStatus)) return false;
+        if (statusFilter === "pending_warehouse_return" && r.rawStatus !== "pending_warehouse_return") return false;
         if (statusFilter === "pending_assessment" && r.rawStatus !== "pending_assessment") return false;
         if (statusFilter === "under_repair" && r.rawStatus !== "under_repair") return false;
         if (statusFilter === "in_claim" && r.rawStatus !== "in_claim") return false;
@@ -595,6 +599,7 @@ export default function MediaPlayerReport() {
                 <SelectItem value="all">ทุกสถานะ</SelectItem>
                 <SelectItem value="installed">ติดตั้ง</SelectItem>
                 <SelectItem value="in_stock">ในคลัง</SelectItem>
+                <SelectItem value="pending_warehouse_return">รอเข้าคลัง (Swap)</SelectItem>
                 <SelectItem value="pending_assessment">พักรอประเมิน</SelectItem>
                 <SelectItem value="under_repair">กำลังซ่อม</SelectItem>
                 <SelectItem value="in_claim">รอเคลม</SelectItem>

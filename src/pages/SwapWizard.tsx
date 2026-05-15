@@ -9,13 +9,14 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeftRight, ListChecks, PlusCircle, RefreshCw, MapPin, Wrench, Package, User, Camera, ClipboardList, ChevronLeft, ChevronRight } from "lucide-react";
+import { ArrowLeftRight, ListChecks, PlusCircle, RefreshCw, MapPin, Wrench, Package, User, Camera, ClipboardList, ChevronLeft, ChevronRight, Truck } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { th } from "date-fns/locale";
 import BillboardSelect from "@/components/billboard/BillboardSelect";
 import { SymptomSelect } from "@/components/media-player/SymptomSelect";
 import { SwapWizardDialog } from "@/components/swap/SwapWizardDialog";
+import { SwapWarehouseReceive } from "@/components/swap/SwapWarehouseReceive";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { EquipmentImageUpload } from "@/components/equipment/EquipmentImageUpload";
 import { useFunctionPermissions } from "@/hooks/useFunctionPermissions";
@@ -421,12 +422,23 @@ export default function SwapWizard() {
               <ListChecks className="h-4 w-4 mr-2" /> รายการคำขอ
             </TabsTrigger>
           )}
+          {canManage && (
+            <TabsTrigger value="receive">
+              <Truck className="h-4 w-4 mr-2" /> รอรับเข้าคลัง
+            </TabsTrigger>
+          )}
           {canCreate && (
             <TabsTrigger value="new">
               <PlusCircle className="h-4 w-4 mr-2" /> แจ้ง Swap ใหม่
             </TabsTrigger>
           )}
         </TabsList>
+
+        {canManage && (
+          <TabsContent value="receive" className="mt-4">
+            <SwapWarehouseReceive />
+          </TabsContent>
+        )}
 
         <TabsContent value="list" className="mt-4">
           <Card>

@@ -359,7 +359,7 @@ export default function InventoryReport() {
       if (sn.status === "in_stock") {
         map[sn.equipment_id].inStockSNs.push(sn.serial_number);
         map[sn.equipment_id].inStockCount++;
-      } else if (sn.status === "pending_assessment") {
+      } else if (sn.status === "pending_assessment" || sn.status === "pending_warehouse_return") {
         map[sn.equipment_id].pendingAssessSNs.push(sn.serial_number);
       } else if (sn.status === "under_repair") {
         map[sn.equipment_id].underRepairSNs.push(sn.serial_number);

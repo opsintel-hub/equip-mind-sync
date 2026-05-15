@@ -7,6 +7,7 @@ import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from "recha
 const STATUS_LABELS: Record<string, string> = {
   active: "Active",
   claim: "Claim",
+  pending_warehouse_return: "รอเข้าคลัง (Swap)",
   pending_assessment: "พักรอประเมิน",
   under_repair: "กำลังซ่อม",
   in_claim: "รอเคลม",
@@ -17,6 +18,7 @@ const STATUS_COLORS: Record<string, string> = {
   "Spare": "hsl(221, 83%, 53%)",
   "ซ่อม": "hsl(0, 84%, 60%)",
   "Claim": "hsl(38, 92%, 50%)",
+  "รอเข้าคลัง (Swap)": "hsl(38, 92%, 50%)",
   "พักรอประเมิน": "hsl(270, 70%, 55%)",
   "กำลังซ่อม": "hsl(190, 80%, 45%)",
   "รอเคลม": "hsl(350, 70%, 45%)",
