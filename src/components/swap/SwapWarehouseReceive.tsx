@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { PackageCheck, Truck, Search } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
-import { SimpleDepartmentSelect } from "@/components/location/SimpleDepartmentSelect";
+import { SimpleDepartmentSelect } from "@/components/equipment/SimpleDepartmentSelect";
 import { WarehouseLocationSelect } from "@/components/location/WarehouseLocationSelect";
 
 interface PendingRow {
