@@ -61,6 +61,8 @@ interface TimelineEvent {
   document?: string | null;
   duration_days?: number | null;
   billboard_name?: string | null;
+  billboard_old_code?: string | null;
+  billboard_equipment_id?: string | null;
 }
 
 interface BillboardJourney {
@@ -395,6 +397,29 @@ export default function StockCard() {
     return map;
   }, [deliveryConfirmations]);
 
+  // ── Lookup billboards referenced by stock_movements (e.g. swap, transfer) ──
+  const swapMovementIds = useMemo(() => {
+    const ids = new Set<string>();
+    movements.forEach((m: any) => {
+      if (m.reference_type === "swap" && m.reference_id) ids.add(m.reference_id);
+    });
+    return Array.from(ids);
+  }, [movements]);
+
+  const { data: swapBillboardMap = new Map<string, any>() } = useQuery({
+    queryKey: ["stock-card-swap-billboards", swapMovementIds.join(",")],
+    staleTime: 2 * 60 * 1000,
+    enabled: swapMovementIds.length > 0,
+    queryFn: async () => {
+      const { data } = await supabase.from("swap_requests")
+        .select("id, billboard:billboards(equipment_id, old_code, location_name)")
+        .in("id", swapMovementIds);
+      const map = new Map<string, any>();
+      (data || []).forEach((r: any) => map.set(r.id, r.billboard));
+      return map;
+    },
+  });
+
   // ── Build timeline ──
   const timeline: TimelineEvent[] = useMemo(() => {
     if (!selectedItemId) return [];
@@ -405,6 +430,18 @@ export default function StockCard() {
     movements.forEach(m => {
       const rawDetail = m.notes || m.reference_document || "-";
       const cleanDetail = rawDetail.replace(UUID_RE, "(ป้าย)").replace(/\s+/g, " ").trim();
+      // Try to enrich with billboard via swap reference
+      let bbOldCode: string | null = null;
+      let bbEqId: string | null = null;
+      let bbName: string | null = null;
+      if (m.reference_type === "swap" && m.reference_id) {
+        const bb = (swapBillboardMap as Map<string, any>).get(m.reference_id);
+        if (bb) {
+          bbOldCode = bb.old_code || null;
+          bbEqId = bb.equipment_id || null;
+          bbName = bb.equipment_id || bb.old_code || bb.location_name || null;
+        }
+      }
       events.push({
         date: m.created_at,
         type: m.movement_type,
@@ -414,13 +451,17 @@ export default function StockCard() {
         stock_after: m.stock_after,
         condition: m.item_condition,
         document: m.reference_document,
-        billboard_name: null,
+        billboard_name: bbName,
+        billboard_old_code: bbOldCode,
+        billboard_equipment_id: bbEqId,
       });
     });
 
     // Billboard history (uninstalls) — equipment
     billboardHistory.forEach((h: any) => {
       const bbName = h.billboards?.equipment_id || h.billboards?.location_name || "ป้าย";
+      const bbOldCode = h.billboards?.old_code || null;
+      const bbEqId = h.billboards?.equipment_id || null;
       events.push({
         date: h.uninstall_date,
         type: "uninstall",
@@ -429,6 +470,8 @@ export default function StockCard() {
         condition: null,
         document: null,
         billboard_name: bbName,
+        billboard_old_code: bbOldCode,
+        billboard_equipment_id: bbEqId,
       });
       if (h.installation_date) {
         events.push({
@@ -439,6 +482,8 @@ export default function StockCard() {
           condition: null,
           document: null,
           billboard_name: bbName,
+          billboard_old_code: bbOldCode,
+          billboard_equipment_id: bbEqId,
         });
       }
     });
@@ -446,6 +491,8 @@ export default function StockCard() {
     // Billboard history (uninstalls) — media player
     mediaPlayerBillboardHistory.forEach((h: any) => {
       const bbName = h.billboards?.equipment_id || h.billboards?.location_name || "ป้าย";
+      const bbOldCode = h.billboards?.old_code || null;
+      const bbEqId = h.billboards?.equipment_id || null;
       events.push({
         date: h.uninstall_date,
         type: "uninstall",
@@ -454,6 +501,8 @@ export default function StockCard() {
         condition: null,
         document: null,
         billboard_name: bbName,
+        billboard_old_code: bbOldCode,
+        billboard_equipment_id: bbEqId,
       });
       if (h.installation_date) {
         events.push({
@@ -464,6 +513,8 @@ export default function StockCard() {
           condition: null,
           document: null,
           billboard_name: bbName,
+          billboard_old_code: bbOldCode,
+          billboard_equipment_id: bbEqId,
         });
       }
     });
@@ -479,7 +530,7 @@ export default function StockCard() {
     }
 
     return events;
-  }, [selectedItemId, movements, billboardHistory, mediaPlayerBillboardHistory]);
+  }, [selectedItemId, movements, billboardHistory, mediaPlayerBillboardHistory, swapBillboardMap]);
 
   // ── Filtered timeline ──
   const filteredTimeline = useMemo(() => {
@@ -555,7 +606,9 @@ export default function StockCard() {
   const selectItem = (item: EquipmentItem) => {
     setSelectedItemId(item.id);
     setSelectedItemType(item.type);
-    setSearchText(`${item.code} — ${item.name}`);
+    const snParts = [item.serial_number, item.serial_number_2].filter(Boolean).join(" / ");
+    const snTag = snParts ? ` [S/N: ${snParts.replace(/\n/g, " / ")}]` : "";
+    setSearchText(`${item.code}${snTag} — ${item.name}`);
   };
 
   const typeIcon = (type: string) => {
@@ -1097,17 +1150,18 @@ export default function StockCard() {
             ) : (
               <>
                 <div className="overflow-x-auto">
-                  <Table>
+                  <Table className="min-w-[1200px]">
                     <TableHeader>
                       <TableRow>
                         <TableHead className="w-[120px]">วันที่</TableHead>
                         <TableHead className="w-[130px]">ประเภท</TableHead>
-                        <TableHead>รายละเอียด</TableHead>
-                        <TableHead className="w-[150px]">ป้ายโฆษณา</TableHead>
+                        <TableHead className="min-w-[200px]">รายละเอียด</TableHead>
+                        <TableHead className="w-[140px]">Old Code</TableHead>
+                        <TableHead className="w-[150px]">Equipment ID</TableHead>
                         <TableHead className="text-right w-[70px]">จำนวน</TableHead>
                         <TableHead className="text-center w-[110px]">สต็อก ก่อน→หลัง</TableHead>
                         <TableHead className="w-[80px]">สภาพ</TableHead>
-                        <TableHead className="text-right w-[70px]">ระยะเวลา</TableHead>
+                        <TableHead className="text-right w-[80px]">ระยะเวลา</TableHead>
                         <TableHead className="w-[180px]">เอกสาร</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -1116,6 +1170,7 @@ export default function StockCard() {
                         const meta = getMovementMeta(ev.type === "install" ? "install_to_billboard" : ev.type === "uninstall" ? "return_from_billboard" : ev.type);
                         const condMeta = ev.condition ? getConditionMeta(ev.condition) : null;
                         const isBillboardRelated = ev.type === "install" || ev.type === "uninstall" || ev.type === "install_to_billboard" || ev.type === "return_from_billboard";
+                        const dash = isBillboardRelated ? "-" : "—";
                         return (
                           <TableRow key={idx}>
                             <TableCell className="text-xs font-mono whitespace-nowrap">
@@ -1127,17 +1182,24 @@ export default function StockCard() {
                                 {meta.label}
                               </Badge>
                             </TableCell>
-                            <TableCell className="text-sm max-w-[200px] truncate">{ev.detail}</TableCell>
+                            <TableCell className="text-sm max-w-[260px] truncate" title={ev.detail}>{ev.detail}</TableCell>
                             <TableCell>
-                              {ev.billboard_name ? (
-                                <Badge variant="outline" className="text-xs gap-1 bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-800/30">
-                                  <MapPin className="w-3 h-3" />
-                                  {ev.billboard_name}
+                              {ev.billboard_old_code ? (
+                                <Badge variant="outline" className="text-xs font-mono bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-800/30">
+                                  {ev.billboard_old_code}
                                 </Badge>
-                              ) : isBillboardRelated ? (
-                                <span className="text-xs text-muted-foreground">-</span>
                               ) : (
-                                <span className="text-xs text-muted-foreground">—</span>
+                                <span className="text-xs text-muted-foreground">{dash}</span>
+                              )}
+                            </TableCell>
+                            <TableCell>
+                              {ev.billboard_equipment_id ? (
+                                <Badge variant="outline" className="text-xs font-mono gap-1 bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-800/30">
+                                  <MapPin className="w-3 h-3" />
+                                  {ev.billboard_equipment_id}
+                                </Badge>
+                              ) : (
+                                <span className="text-xs text-muted-foreground">{dash}</span>
                               )}
                             </TableCell>
                             <TableCell className="text-right font-medium">{ev.quantity}</TableCell>

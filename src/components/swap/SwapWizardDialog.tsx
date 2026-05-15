@@ -23,6 +23,7 @@ interface SwapRequest {
   billboard_id: string | null;
   description: string | null;
   symptom_other: string | null;
+  symptom_id?: string | null;
   defective_return_id?: string | null;
   reported_asset_type?: string | null;
   reported_billboard_equipment_id?: string | null;
@@ -627,6 +628,7 @@ export function SwapWizardDialog({ open, onOpenChange, request, onCompleted }: P
         serial_number: selectedOld.serial_number || null,
         source_type: "swap",
         source_reference_id: request.id,
+        symptom_id: request.symptom_id || null,
         symptom_description: request.description || request.symptom_other || null,
         status: "pending",
         notes: `จากการ Swap (${request.document_no})`,

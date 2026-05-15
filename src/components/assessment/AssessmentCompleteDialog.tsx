@@ -195,15 +195,20 @@ export function AssessmentCompleteDialog({ open, onOpenChange, log, onCompleted 
         if (log.source_type === "swap" && log.source_reference_id) {
           const { data: sw } = await supabase
             .from("swap_requests")
-            .select("document_no, billboard_id, description, symptom_other, technician_name, photo_urls, created_at, billboard:billboards(equipment_id, old_code, location_name)")
+            .select("document_no, billboard_id, description, symptom_id, symptom_other, technician_name, photo_urls, created_at, billboard:billboards(equipment_id, old_code, location_name), symptom:mp_symptoms!swap_requests_symptom_id_fkey(name)")
             .eq("id", log.source_reference_id)
             .maybeSingle() as any;
           if (sw) {
             ctx.sourceLabel = `Swap ${sw.document_no}`;
-            ctx.description = sw.description || sw.symptom_other || null;
+            const symptomName = sw.symptom?.name || null;
+            const descParts = [symptomName, sw.symptom_other, sw.description].filter(Boolean);
+            ctx.description = descParts.length > 0 ? descParts.join(" — ") : null;
+            ctx.reportedSymptom = symptomName || sw.symptom_other || sw.description || ctx.reportedSymptom;
             ctx.reporter = sw.technician_name || null;
             ctx.reportedAt = sw.created_at || null;
             ctx.photos = Array.isArray(sw.photo_urls) ? sw.photo_urls : [];
+            // Pre-fill assessor's symptom dropdown when log doesn't already have one
+            if (!log.symptom_id && sw.symptom_id) setSymptomId(sw.symptom_id);
             if (sw.billboard && !ctx.billboardLabel) {
               const parts = [sw.billboard.old_code, sw.billboard.equipment_id, sw.billboard.location_name].filter(Boolean);
               ctx.billboardLabel = parts.join(" - ");
@@ -515,9 +520,9 @@ export function AssessmentCompleteDialog({ open, onOpenChange, log, onCompleted 
                   <div><span className="text-muted-foreground">ผู้แจ้ง: </span><span>{sourceCtx.reporter}</span></div>
                 )}
                 {(sourceCtx.description || sourceCtx.reportedSymptom) && (
-                  <div className="md:col-span-2">
-                    <span className="text-muted-foreground">อาการที่แจ้ง: </span>
-                    <span>{sourceCtx.description || sourceCtx.reportedSymptom}</span>
+                  <div className="md:col-span-2 rounded-md border border-amber-300 bg-amber-50 dark:bg-amber-900/10 dark:border-amber-800/40 p-2">
+                    <div className="text-xs font-medium text-amber-700 dark:text-amber-400 mb-0.5">อาการที่แจ้งตอนคีย์เข้า (ผู้ประเมินเพิ่มเติมได้ในฟอร์มด้านล่าง)</div>
+                    <div className="text-sm whitespace-pre-line">{sourceCtx.description || sourceCtx.reportedSymptom}</div>
                   </div>
                 )}
               </div>
