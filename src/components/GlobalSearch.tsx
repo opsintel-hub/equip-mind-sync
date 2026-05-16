@@ -150,7 +150,7 @@ export function GlobalSearch() {
           title: formatBillboardLabel(b.old_code, b.location_name, b.equipment_id),
           subtitle: [b.department, b.size].filter(Boolean).join(" | ") || undefined,
           meta: b.equipment_id ? `Equipment ID: ${b.equipment_id}` : undefined,
-          href: `/billboard/${b.id}`,
+          href: `/billboards/${b.id}`,
         });
       });
 
