@@ -1,6 +1,7 @@
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "./AppSidebar";
 import { NotificationCenter } from "./NotificationCenter";
+import { GlobalSearch } from "./GlobalSearch";
 import { UserInfoDisplay } from "./UserInfoDisplay";
 import { SidebarResizer, getStoredSidebarWidthRem } from "./SidebarResizer";
 import { Menu } from "lucide-react";
