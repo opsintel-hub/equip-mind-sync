@@ -26,6 +26,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
                 </SidebarTrigger>
               </div>
               <div className="flex items-center gap-2 sm:gap-4 min-w-0">
+                <GlobalSearch />
                 <UserInfoDisplay />
                 <NotificationCenter />
               </div>
