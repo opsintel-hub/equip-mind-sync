@@ -167,9 +167,10 @@ export function SwapWarehouseReceive() {
     try {
       const note = `รับเข้าคลังจาก Swap ${target.document_no}`;
       if (target.asset_kind === "media_player") {
+        // pending_assessment = quarantine bucket; ยังไม่นับเป็นคลังพร้อมใช้ (quantity=0)
         const { error } = await supabase
           .from("media_players")
-          .update({ location_id: locationId, status: "pending_assessment" } as any)
+          .update({ location_id: locationId, status: "pending_assessment", quantity: 0 } as any)
           .eq("id", target.item_id);
         if (error) throw error;
 
@@ -180,12 +181,12 @@ export function SwapWarehouseReceive() {
           movement_type: "pending_assessment_in",
           quantity: 1,
           stock_before: 0,
-          stock_after: 1,
+          stock_after: 0,
           reference_type: "swap",
           reference_id: target.id,
           reference_document: target.document_no,
           location_id: locationId,
-          notes: note,
+          notes: note + " (รอประเมิน — ยังไม่นับเป็นคลังพร้อมใช้)",
           item_condition: "pending_assessment",
           created_by: user?.id ?? null,
         } as any);
