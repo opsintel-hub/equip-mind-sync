@@ -1,6 +1,7 @@
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "./AppSidebar";
 import { NotificationCenter } from "./NotificationCenter";
+import { GlobalSearch } from "./GlobalSearch";
 import { UserInfoDisplay } from "./UserInfoDisplay";
 import { SidebarResizer, getStoredSidebarWidthRem } from "./SidebarResizer";
 import { Menu } from "lucide-react";
@@ -25,6 +26,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
                 </SidebarTrigger>
               </div>
               <div className="flex items-center gap-2 sm:gap-4 min-w-0">
+                <GlobalSearch />
                 <UserInfoDisplay />
                 <NotificationCenter />
               </div>
