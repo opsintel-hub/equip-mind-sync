@@ -438,11 +438,12 @@ export function AssessmentCompleteDialog({ open, onOpenChange, log, onCompleted 
           notes: `จาก Assessment ${log.document_no}`,
           created_by: user?.id ?? null,
         });
-        await flipStatus("in_claim", "in_claim");
+        await flipStatus("in_claim", "in_claim", false, 0);
       } else if (outcome === "self_repair") {
-        await flipStatus("under_repair", "under_repair");
+        await flipStatus("under_repair", "under_repair", false, 0);
       } else if (outcome === "return_refurb") {
-        await flipStatus("in_stock", "in_stock", true);
+        // คืนเข้าคลังพร้อมใช้ (active) — นับเป็น stock 1
+        await flipStatus("active", "in_stock", true, 1);
       }
     } catch (e: any) {
       toast.warning("บันทึกแล้ว แต่ side-effect บางส่วนล้มเหลว: " + (e?.message || ""));
