@@ -494,6 +494,7 @@ export function SwapWizardDialog({ open, onOpenChange, request, onCompleted }: P
 
           // เคลียร์ billboard_id + install_date + เปลี่ยน status เป็น pending_warehouse_return
           // (เครื่องอยู่กับช่าง รอเข้าคลัง — location_id ยังว่างไว้จนกว่าคลังจะกดยืนยันรับ)
+          // quantity=0 เพราะยังไม่อยู่ในคลังใดๆ (รายงานคงคลังต้องไม่นับ)
           await supabase
             .from("media_players")
             .update({
@@ -501,6 +502,7 @@ export function SwapWizardDialog({ open, onOpenChange, request, onCompleted }: P
               install_date: null,
               location_id: null,
               status: "pending_warehouse_return",
+              quantity: 0,
             } as any)
             .eq("id", oldMpId);
 
