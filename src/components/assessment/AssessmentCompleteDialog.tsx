@@ -376,9 +376,13 @@ export function AssessmentCompleteDialog({ open, onOpenChange, log, onCompleted 
     let createdDefectiveDocNo: string | null = null;
     try {
       // Helper: เปลี่ยนสถานะ MP + S/N (logical warehouse)
-      const flipStatus = async (mpStatus: string, snStatus: string, refurb = false) => {
+      // quantity rule:
+      //   - return_refurb (กลับเข้าคลัง active) → 1
+      //   - claim/under_repair (ยังไม่อยู่ในคลังพร้อมใช้) → 0
+      //   - defective (รอตัด stock จริงที่หน้า defective entry) → 0
+      const flipStatus = async (mpStatus: string, snStatus: string, refurb = false, qty = 0) => {
         if (log.media_player_id) {
-          const upd: any = { status: mpStatus };
+          const upd: any = { status: mpStatus, quantity: qty };
           if (refurb) { upd.is_refurbished = true; upd.refurbished_at = new Date().toISOString(); }
           await supabase.from("media_players").update(upd).eq("id", log.media_player_id);
         }
