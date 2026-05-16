@@ -577,14 +577,15 @@ export function SwapWizardDialog({ open, onOpenChange, request, onCompleted }: P
             installed_by: user?.id ?? null,
           } as any);
 
-          // อัปเดต media_players
+          // อัปเดต media_players (Spare ติดตั้งที่ป้าย — quantity=0 เพราะออกจากคลังแล้ว)
           await supabase
             .from("media_players")
             .update({
               billboard_id: request.billboard_id,
               install_date: today,
               location_id: null,
-            })
+              quantity: 0,
+            } as any)
             .eq("id", spareMpId);
 
           const { data: spMp } = await supabase
