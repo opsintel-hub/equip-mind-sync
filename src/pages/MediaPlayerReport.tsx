@@ -372,8 +372,10 @@ export default function MediaPlayerReport() {
       if (conditionFilter !== "all" && r.condition !== conditionFilter) return false;
       if (departmentFilter !== "all" && r.department !== departmentFilter) return false;
       if (statusFilter !== "all") {
+        const SPECIAL = ["pending_warehouse_return", "pending_assessment", "under_repair", "in_claim"];
+        const isSpecial = r.rawStatus ? SPECIAL.includes(r.rawStatus) : false;
         if (statusFilter === "installed" && !r.billboard_id) return false;
-        if (statusFilter === "in_stock" && (r.billboard_id || r.rawStatus)) return false;
+        if (statusFilter === "in_stock" && (r.billboard_id || isSpecial)) return false;
         if (statusFilter === "pending_warehouse_return" && r.rawStatus !== "pending_warehouse_return") return false;
         if (statusFilter === "pending_assessment" && r.rawStatus !== "pending_assessment") return false;
         if (statusFilter === "under_repair" && r.rawStatus !== "under_repair") return false;
