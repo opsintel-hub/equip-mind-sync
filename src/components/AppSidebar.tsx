@@ -259,7 +259,6 @@ const menuGroups: MenuGroup[] = [
       { title: "ค้นหาอุปกรณ์ป้าย", url: "/equipment-tracking", icon: Search, functionName: "reports" },
       { title: "ใบขอซื้อ (PR)", url: "/purchase-requests", icon: ClipboardList, functionName: "reports" },
       { title: "รายงาน KPI", url: "/kpi-report", icon: LayoutDashboard, functionName: "reports" },
-      { title: "ตรวจสอบยอดคงคลัง", url: "/stock-reconciliation", icon: CheckCircle2, functionName: "reports" },
     ]
   },
   {
@@ -269,6 +268,7 @@ const menuGroups: MenuGroup[] = [
       { title: "จัดการป้ายโฆษณา(Manual)", url: "/billboards", icon: MapPin, functionName: "billboards" },
       { title: "จัดการ Package ป้าย", url: "/billboard-packages", icon: Package, functionName: "billboards" },
       { title: "ตั้งค่าแจ้งเตือน", url: "/notification-settings", icon: Bell },
+      { title: "ตรวจสอบยอด & สถานะ Stock", url: "/stock-reconciliation", icon: CheckCircle2, functionName: "admin" },
       { title: "จัดการผู้ใช้", url: "/admin", icon: Shield, functionName: "admin" },
       { title: "คู่มือ Database", url: "/database-guide", icon: FileSearch, superAdminOnly: true },
     ]
