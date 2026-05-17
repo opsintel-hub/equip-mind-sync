@@ -50,7 +50,7 @@ import {
   SidebarFooter,
   useSidebar,
 } from "@/components/ui/sidebar";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -259,6 +259,7 @@ const menuGroups: MenuGroup[] = [
       { title: "ค้นหาอุปกรณ์ป้าย", url: "/equipment-tracking", icon: Search, functionName: "reports" },
       { title: "ใบขอซื้อ (PR)", url: "/purchase-requests", icon: ClipboardList, functionName: "reports" },
       { title: "รายงาน KPI", url: "/kpi-report", icon: LayoutDashboard, functionName: "reports" },
+      { title: "ตรวจสอบยอดคงคลัง", url: "/stock-reconciliation", icon: CheckCircle2, functionName: "reports" },
     ]
   },
   {
