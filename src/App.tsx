@@ -72,6 +72,7 @@ const SwapWizard = lazy(() => import("./pages/SwapWizard"));
 const AssessmentLog = lazy(() => import("./pages/AssessmentLog"));
 const ClaimTracker = lazy(() => import("./pages/ClaimTracker"));
 const DatabaseGuide = lazy(() => import("./pages/DatabaseGuide"));
+const StockReconciliation = lazy(() => import("./pages/StockReconciliation"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
