@@ -8,8 +8,9 @@ import {
   AlertTriangle, CheckCircle2, Loader2, RefreshCw, Wrench,
   Package, ClipboardList, Monitor, MapPin, FileSearch, ArrowLeftRight,
   ClipboardCheck, FileCheck2, Truck, Inbox, Send, ShieldAlert, Layers,
-  Hourglass, Hammer, Boxes, Archive,
+  Hourglass, Hammer, Boxes, Archive, Search,
 } from "lucide-react";
+import ItemTracer from "@/components/reconciliation/ItemTracer";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
