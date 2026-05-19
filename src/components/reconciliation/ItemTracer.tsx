@@ -156,7 +156,7 @@ export default function ItemTracer() {
 
       // billboard installations for MPs
       if (mpIds.length) {
-        const { data: be } = await supabase
+        const { data: be } = await (supabase as any)
           .from("billboard_equipment")
           .select("media_player_id, billboard_id, billboards:billboards(code, old_code, location_name)")
           .in("media_player_id", mpIds);
