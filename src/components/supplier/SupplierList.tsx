@@ -161,31 +161,22 @@ export function SupplierList({ refresh }: SupplierListProps) {
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>รหัส</TableHead>
             <TableHead>รหัส Vendor</TableHead>
             <TableHead>ชื่อผู้จัดจำหน่าย</TableHead>
             <TableHead>ผู้ติดต่อ</TableHead>
             <TableHead>เบอร์โทร</TableHead>
             <TableHead>อีเมล</TableHead>
-            <TableHead>สถานะ</TableHead>
             <TableHead className="text-right">จัดการ</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {pagination.paginatedData.map((supplier) => (
             <TableRow key={supplier.id}>
-              <TableCell className="font-medium">{supplier.code}</TableCell>
               <TableCell>{supplier.vendor_code || "-"}</TableCell>
-              <TableCell>{supplier.name}</TableCell>
+              <TableCell className="font-medium">{supplier.name}</TableCell>
               <TableCell>{supplier.contact_person || "-"}</TableCell>
               <TableCell>{supplier.phone || "-"}</TableCell>
               <TableCell>{supplier.email || "-"}</TableCell>
-              <TableCell>{supplier.email || "-"}</TableCell>
-              <TableCell>
-                <Badge variant={supplier.is_active ? "default" : "secondary"}>
-                  {supplier.is_active ? "ใช้งาน" : "ไม่ใช้งาน"}
-                </Badge>
-              </TableCell>
               <TableCell className="text-right">
                 <div className="flex justify-end gap-2">
                   <SupplierForm
