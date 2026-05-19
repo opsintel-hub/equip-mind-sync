@@ -511,8 +511,12 @@ export default function StockReconciliation() {
         })}
       </div>
 
-      <Tabs defaultValue="qty" className="space-y-4">
-        <TabsList className="grid w-full md:w-auto md:inline-grid grid-cols-3">
+      <Tabs defaultValue="tracer" className="space-y-4">
+        <TabsList className="grid w-full md:w-auto md:inline-grid grid-cols-2 md:grid-cols-4">
+          <TabsTrigger value="tracer" className="gap-2">
+            <Search className="h-4 w-4" />
+            ตรวจสอบรายตัว
+          </TabsTrigger>
           <TabsTrigger value="qty" className="gap-2">
             <Package className="h-4 w-4" />
             จำนวนตามรายงาน
@@ -526,6 +530,11 @@ export default function StockReconciliation() {
             สถานะรายการ
           </TabsTrigger>
         </TabsList>
+
+        <TabsContent value="tracer">
+          <ItemTracer />
+        </TabsContent>
+
 
         {/* ====================== TAB 1: QUANTITIES ====================== */}
         <TabsContent value="qty" className="space-y-5">
