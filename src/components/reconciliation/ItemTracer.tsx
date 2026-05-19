@@ -101,7 +101,7 @@ export default function ItemTracer() {
       // 1) media_players — by code, serial_number_1, serial_number_2
       const { data: mpData } = await supabase
         .from("media_players")
-        .select("id, code, name, status, quantity, billboard_id, location_id, warehouse_id, serial_number_1, serial_number_2, is_refurbished, is_active")
+        .select("id, code, name, status, quantity, billboard_id, location_id, serial_number_1, serial_number_2, is_refurbished, is_active")
         .or(`code.ilike.${like},name.ilike.${like},serial_number_1.ilike.${like},serial_number_2.ilike.${like}`)
         .limit(50);
 
