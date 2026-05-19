@@ -161,13 +161,11 @@ export function SupplierList({ refresh }: SupplierListProps) {
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>รหัส</TableHead>
             <TableHead>รหัส Vendor</TableHead>
             <TableHead>ชื่อผู้จัดจำหน่าย</TableHead>
             <TableHead>ผู้ติดต่อ</TableHead>
             <TableHead>เบอร์โทร</TableHead>
             <TableHead>อีเมล</TableHead>
-            <TableHead>สถานะ</TableHead>
             <TableHead className="text-right">จัดการ</TableHead>
           </TableRow>
         </TableHeader>
