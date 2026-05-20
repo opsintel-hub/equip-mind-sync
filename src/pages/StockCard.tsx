@@ -48,6 +48,8 @@ interface EquipmentItem {
   item_condition: string;
   type: "equipment" | "media_player" | "tool";
   serial_number_2?: string | null;
+  status?: string | null;
+  billboard_id?: string | null;
 }
 
 interface TimelineEvent {
@@ -214,7 +216,7 @@ export default function StockCard() {
 
       const [eqRes, mpRes, toolRes] = await Promise.all([
         supabase.from("equipment").select("id, code, name, serial_number, category, brand, unit, department, quantity_in_stock, item_condition").eq("is_active", true),
-        supabase.from("media_players").select("id, code, name, serial_number_1, serial_number_2, brand, unit, department, quantity, item_condition").eq("is_active", true),
+        supabase.from("media_players").select("id, code, name, serial_number_1, serial_number_2, brand, unit, department, quantity, item_condition, status, billboard_id").eq("is_active", true),
         supabase.from("tools").select("id, code, name, serial_number, brand, unit, department, current_quantity").eq("is_active", true),
       ]);
 
@@ -229,6 +231,7 @@ export default function StockCard() {
         serial_number_2: formatMergedSerials(m.serial_number_2) || null,
         brand: m.brand, unit: m.unit, department: m.department,
         quantity_in_stock: m.quantity, item_condition: m.item_condition, type: "media_player",
+        status: m.status, billboard_id: m.billboard_id,
       }));
 
       toolRes.data?.forEach(t => items.push({
