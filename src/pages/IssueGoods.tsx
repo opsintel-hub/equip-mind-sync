@@ -443,7 +443,13 @@ const IssueGoods = () => {
 
           const { error: stockError } = await supabase
             .from("media_players")
-            .update({ quantity: newStock })
+            .update({
+              quantity: newStock,
+              status: a.billboard_id ? "installed" : "issued",
+              location_id: null,
+              billboard_id: a.billboard_id || null,
+              install_date: a.billboard_id ? new Date().toISOString().split('T')[0] : null,
+            } as any)
             .eq("id", a.media_player_id);
           if (stockError) throw stockError;
 
@@ -469,14 +475,6 @@ const IssueGoods = () => {
               .eq("id", a.billboard_id)
               .maybeSingle();
             const bbLabel = [bbInfo?.old_code, bbInfo?.location_name].filter(Boolean).join(" - ") || a.billboard_id;
-
-            await supabase
-              .from("media_players")
-              .update({
-                billboard_id: a.billboard_id,
-                install_date: new Date().toISOString().split('T')[0],
-              })
-              .eq("id", a.media_player_id);
 
             const { error: billboardMpError } = await supabase
               .from("billboard_equipment")
