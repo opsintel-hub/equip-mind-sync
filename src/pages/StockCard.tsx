@@ -48,6 +48,8 @@ interface EquipmentItem {
   item_condition: string;
   type: "equipment" | "media_player" | "tool";
   serial_number_2?: string | null;
+  status?: string | null;
+  billboard_id?: string | null;
 }
 
 interface TimelineEvent {
@@ -214,7 +216,7 @@ export default function StockCard() {
 
       const [eqRes, mpRes, toolRes] = await Promise.all([
         supabase.from("equipment").select("id, code, name, serial_number, category, brand, unit, department, quantity_in_stock, item_condition").eq("is_active", true),
-        supabase.from("media_players").select("id, code, name, serial_number_1, serial_number_2, brand, unit, department, quantity, item_condition").eq("is_active", true),
+        supabase.from("media_players").select("id, code, name, serial_number_1, serial_number_2, brand, unit, department, quantity, item_condition, status, billboard_id").eq("is_active", true),
         supabase.from("tools").select("id, code, name, serial_number, brand, unit, department, current_quantity").eq("is_active", true),
       ]);
 
@@ -229,6 +231,7 @@ export default function StockCard() {
         serial_number_2: formatMergedSerials(m.serial_number_2) || null,
         brand: m.brand, unit: m.unit, department: m.department,
         quantity_in_stock: m.quantity, item_condition: m.item_condition, type: "media_player",
+        status: m.status, billboard_id: m.billboard_id,
       }));
 
       toolRes.data?.forEach(t => items.push({
@@ -271,6 +274,7 @@ export default function StockCard() {
   }, [selectedItemId, allItems]);
 
   const hasSN = selectedItem && (selectedItem.serial_number || selectedItem.serial_number_2);
+  const isMediaPlayerIssuedPending = selectedItem?.type === "media_player" && !selectedItem.billboard_id && ["issued", "in_transit"].includes(selectedItem.status || "");
 
   // ── Fetch stock movements ──
   const { data: movements = [] } = useQuery({
@@ -938,6 +942,15 @@ export default function StockCard() {
               </div>
             </div>
 
+            {isMediaPlayerIssuedPending && (
+              <div className="mt-4 p-3 bg-amber-50 dark:bg-amber-900/10 rounded-lg border border-amber-200 dark:border-amber-800/30">
+                <div className="flex items-center gap-2 text-amber-700 dark:text-amber-400 text-sm font-medium">
+                  <MapPin className="w-4 h-4" /> จ่ายแล้ว / รอระบุป้ายโฆษณา
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">เครื่องนี้ออกจากคลังแล้วและยังไม่มีป้ายปลายทาง จึงไม่นับเป็นสต็อกในคลังหรือรายการติดตั้งแล้ว</p>
+              </div>
+            )}
+
             {/* Current installations */}
             {currentInstallations.length > 0 && (
               <div className="mt-4 p-3 bg-amber-50 dark:bg-amber-900/10 rounded-lg border border-amber-200 dark:border-amber-800/30">
@@ -984,6 +997,7 @@ export default function StockCard() {
               const hasInstall = timeline.some(e => e.type === "install" || e.type === "install_to_billboard");
               const hasUninstall = timeline.some(e => e.type === "uninstall" || e.type === "return_from_billboard");
               const isCurrentlyInstalled = currentInstallations.length > 0;
+              const awaitingBillboard = selectedItem?.type === "media_player" && isMediaPlayerIssuedPending;
               const inStock = (selectedItem?.quantity_in_stock || 0) > 0;
 
               const steps: ProcessStep[] = [
@@ -1020,12 +1034,14 @@ export default function StockCard() {
                   // Step: ยืนยันรับสินค้า (gate before install)
                   // If install has happened or item is currently installed, treat as confirmed
                   // (installation implies the receiver already accepted the goods)
-                  const treatAsConfirmed = isLastIssueConfirmed || hasInstall || isCurrentlyInstalled;
+                  const treatAsConfirmed = awaitingBillboard || isLastIssueConfirmed || hasInstall || isCurrentlyInstalled;
                   steps.push({
                     label: "ยืนยันรับสินค้า",
                     status: treatAsConfirmed ? "done" : "current",
                     date: isLastIssueConfirmed
                       ? confirmationDateByDoc.get(lastIssueDoc!)
+                      : awaitingBillboard
+                        ? lastIssueEvent?.date
                       : (hasInstall || isCurrentlyInstalled)
                         ? (lastInstallEvent?.date || currentInstallations[0]?.installation_date)
                         : undefined,
@@ -1036,10 +1052,11 @@ export default function StockCard() {
                     label: "ติดตั้งป้าย",
                     status: isCurrentlyInstalled
                       ? "done"
-                      : hasInstall ? "done" : (treatAsConfirmed ? "current" : "pending"),
+                      : hasInstall ? "done" : (awaitingBillboard ? "current" : (treatAsConfirmed ? "current" : "pending")),
                     date: isCurrentlyInstalled
                       ? currentInstallations[0]?.installation_date
                       : lastInstallEvent?.date,
+                    sublabel: awaitingBillboard ? "รอระบุป้าย" : undefined,
                   });
 
                   // ถอด/คืนคลัง:
@@ -1084,6 +1101,9 @@ export default function StockCard() {
               const warningStep = steps.find(s => s.status === "warning");
               const allDone = steps.every(s => s.status === "done");
               const activeStep = rejectedStep || warningStep || currentStep;
+              const activeLabel = isMediaPlayerIssuedPending && activeStep?.label === "ติดตั้งป้าย"
+                ? "จ่ายแล้ว / รอระบุป้าย"
+                : activeStep?.label;
 
               return (
                 <div className="bg-muted/30 rounded-lg px-6 py-4 space-y-3">
@@ -1103,7 +1123,7 @@ export default function StockCard() {
                           activeStep.status === "current" && "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
                         )}>
                           <Clock className="w-3 h-3 animate-pulse" />
-                          {activeStep.label}
+                          {activeLabel}
                         </Badge>
                       ) : (
                         <Badge variant="outline">ไม่มีความเคลื่อนไหว</Badge>

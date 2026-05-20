@@ -84,7 +84,7 @@ const STATUS_LABEL: Record<string, string> = {
   pending_warehouse_return: "รอเข้าคลัง (Swap)",
   pending_warehouse_entry: "รอรับเข้าคลังของเสีย",
   // issue / receipt
-  issued: "จ่ายแล้ว",
+  issued: "จ่ายแล้ว / รอระบุป้าย",
   partial_issued: "จ่ายบางส่วน",
   received: "รับแล้ว",
   partial_received: "รับบางส่วน",
@@ -126,7 +126,7 @@ const STATUS_TONE: Record<string, string> = {
   refurbished: "bg-emerald-100 text-emerald-800 border-emerald-200",
   pending_warehouse_return: "bg-amber-100 text-amber-800 border-amber-200",
   pending_warehouse_entry: "bg-amber-100 text-amber-800 border-amber-200",
-  issued: "bg-blue-100 text-blue-800 border-blue-200",
+  issued: "bg-amber-100 text-amber-800 border-amber-200",
   partial_issued: "bg-amber-100 text-amber-800 border-amber-200",
   received: "bg-green-100 text-green-800 border-green-200",
   partial_received: "bg-amber-100 text-amber-800 border-amber-200",
@@ -262,6 +262,7 @@ export default function StockReconciliation() {
       const mpUnderRepair = mps.filter((m: any) => m.status === "under_repair").length;
       const mpInClaim = mps.filter((m: any) => m.status === "in_claim").length;
       const mpTransit = mps.filter((m: any) => m.status === "pending_warehouse_return").length;
+      const mpIssuedPending = mps.filter((m: any) => !m.billboard_id && (m.status === "issued" || m.status === "in_transit")).length;
 
       const mismatches: MPMismatch[] = [];
       mps.forEach((m: any) => {
@@ -333,6 +334,7 @@ export default function StockReconciliation() {
             { key: "mp_qty_sum", label: "Σ media_players.quantity", description: "ยอดคงคลัง MP (single source)", count: mpQuantitySum, link: "/media-player-report", icon: ClipboardList, tone: "good" },
             { key: "mp_in_stock", label: "อยู่ในคลังพร้อมใช้ (rule)", description: "billboard=null & status=active/in_stock", count: mpInStockRule, link: "/media-player-report", icon: Inbox, tone: "good" },
             { key: "mp_installed", label: "ติดตั้งบนป้าย", description: "billboard_id ≠ null", count: mpInstalled, link: "/equipment-tracking", icon: MapPin },
+            { key: "mp_issued_pending", label: "จ่ายแล้ว / รอระบุป้าย", description: "status=issued/in_transit & ยังไม่มี billboard", count: mpIssuedPending, link: "/incomplete-issues", icon: Send, tone: mpIssuedPending > 0 ? "warn" : "default" },
             { key: "mp_pending_assess", label: "พักรอประเมิน", description: "status = pending_assessment", count: mpPendingAssess, link: "/assessment", icon: Hourglass, tone: mpPendingAssess > 0 ? "warn" : "default" },
             { key: "mp_repair", label: "กำลังซ่อม", description: "status = under_repair", count: mpUnderRepair, link: "/assessment", icon: Hammer },
             { key: "mp_claim", label: "รอเคลม", description: "status = in_claim", count: mpInClaim, link: "/claims", icon: FileCheck2 },

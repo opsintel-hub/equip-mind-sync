@@ -50,6 +50,8 @@ interface PendingItem {
   id: string;
   pending_id: string;
   equipment_id: string | null;
+  media_player_id?: string | null;
+  is_media_player?: boolean | null;
   equipment_code: string | null;
   equipment_name: string | null;
   serial_number: string | null;
@@ -224,15 +226,82 @@ const IncompleteIssues = () => {
 
       if (itemError) throw itemError;
 
-      // Create billboard_equipment record
-      if (selectedItem.equipment_id) {
+      const installationDate = new Date().toISOString().split('T')[0];
+
+      // Create billboard_equipment record / update Media Player current location
+      if (selectedItem.media_player_id) {
+        const { data: currentMp, error: mpFetchError } = await supabase
+          .from("media_players")
+          .select("id, code, name, quantity, location_id")
+          .eq("id", selectedItem.media_player_id)
+          .maybeSingle();
+        if (mpFetchError) throw mpFetchError;
+
+        const { error: mpUpdateError } = await supabase
+          .from("media_players")
+          .update({
+            status: "installed",
+            billboard_id: billboardId,
+            install_date: installationDate,
+            location_id: null,
+            quantity: 0,
+          })
+          .eq("id", selectedItem.media_player_id);
+        if (mpUpdateError) throw mpUpdateError;
+
+        const { data: existingBE } = await supabase
+          .from("billboard_equipment")
+          .select("id")
+          .eq("equipment_id", selectedItem.media_player_id)
+          .eq("billboard_id", billboardId)
+          .eq("serial_number", selectedItem.serial_number || "")
+          .maybeSingle();
+
+        if (!existingBE) {
+          const { error: billboardMpError } = await supabase
+            .from("billboard_equipment")
+            .insert({
+              billboard_id: billboardId,
+              equipment_id: selectedItem.media_player_id,
+              quantity: 1,
+              installation_date: installationDate,
+              notes: `จากเอกสาร ${selectedIssue?.document_no} - ${selectedItem.equipment_name || currentMp?.name || "Media Player"}`,
+              created_by: user.id,
+              serial_number: selectedItem.serial_number,
+            });
+          if (billboardMpError) throw billboardMpError;
+        }
+
+        await (supabase as any).from("media_player_billboard_history").insert({
+          media_player_id: selectedItem.media_player_id,
+          billboard_id: billboardId,
+          installation_date: installationDate,
+          uninstall_date: null,
+          installed_by: user.id,
+          installation_notes: `จากเอกสาร ${selectedIssue?.document_no}`,
+        });
+
+        await logStockMovement({
+          equipment_id: selectedItem.media_player_id,
+          equipment_code: currentMp?.code || selectedItem.equipment_code || "",
+          equipment_name: currentMp?.name || selectedItem.equipment_name || "Media Player",
+          movement_type: "install_to_billboard",
+          quantity: 1,
+          stock_before: currentMp?.quantity || 0,
+          stock_after: 0,
+          reference_type: "billboard_equipment",
+          reference_document: selectedIssue?.document_no || "",
+          location_id: currentMp?.location_id || undefined,
+          notes: `ระบุป้ายให้ S/N ${selectedItem.serial_number || "-"}`,
+        });
+      } else if (selectedItem.equipment_id) {
         const { error: billboardError } = await supabase
           .from("billboard_equipment")
           .insert({
             billboard_id: billboardId,
             equipment_id: selectedItem.equipment_id,
             quantity: selectedItem.issued_quantity || selectedItem.quantity,
-            installation_date: new Date().toISOString().split('T')[0],
+            installation_date: installationDate,
             notes: `จากเอกสาร ${selectedIssue?.document_no} - ${selectedItem.equipment_name}`,
             created_by: user.id,
           });

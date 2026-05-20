@@ -58,12 +58,17 @@ const STATUS_TH: Record<string, string> = {
   active: "พร้อมใช้งาน", in_stock: "อยู่ในคลัง", installed: "ติดตั้งบนป้าย",
   pending: "รออนุมัติ", pending_approval: "รออนุมัติ", approved: "อนุมัติแล้ว",
   rejected: "ถูกปฏิเสธ", cancelled: "ยกเลิก", completed: "เสร็จสิ้น",
-  received: "รับเข้าแล้ว", waiting_stock: "รอสินค้าเข้า", issued: "จ่ายแล้ว/รอรับ",
+  received: "รับเข้าแล้ว", waiting_stock: "รอสินค้าเข้า", issued: "จ่ายแล้ว / รอระบุป้าย",
   pending_warehouse_return: "รอเข้าคลัง (Swap)", pending_assessment: "พักรอประเมิน",
   under_repair: "กำลังซ่อม", in_claim: "รอเคลม", claim: "เคลม",
   defective: "ของเสีย", damaged: "ชำรุด", lost: "สูญหาย",
 };
 const tr = (s: string | null | undefined) => (s ? STATUS_TH[s] || s : "—");
+
+const displayMpStatus = (mp: MPRow) => {
+  if (!mp.billboard_id && (mp.status === "issued" || mp.status === "in_transit")) return "จ่ายแล้ว / รอระบุป้าย";
+  return tr(mp.status);
+};
 
 function expectedQty(row: { billboard_id: string | null; location_id: string | null; status: string | null }) {
   if (!row.billboard_id && row.location_id && (row.status === "active" || row.status === "in_stock")) return 1;
@@ -334,7 +339,7 @@ export default function ItemTracer() {
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="font-semibold">{mp.code}</span>
                     <span className="text-muted-foreground">— {mp.name}</span>
-                    <Badge className={statusTone(mp.status)} variant="outline">{tr(mp.status)}</Badge>
+                    <Badge className={statusTone(mp.status)} variant="outline">{displayMpStatus(mp)}</Badge>
                     {mp.is_refurbished && <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-300">Refurbished</Badge>}
                     <Link to={`/media-player-profile/${mp.id}`} className="ml-auto text-xs text-primary hover:underline flex items-center gap-1">
                       เปิดโปรไฟล์ <ExternalLink className="h-3 w-3" />
@@ -409,7 +414,10 @@ export default function ItemTracer() {
         <TxSection title="รับเข้าคลัง (Goods Receipt)" icon={Inbox} rows={receipts}
           render={(r) => `${r.document_no || "—"} | จำนวน ${r.quantity ?? "—"} | ${tr(r.status)}`} link="/receive-goods" />
         <TxSection title="เบิก/จ่ายออก (Goods Issue)" icon={Send} rows={issues}
-          render={(r) => `${r.goods_issue_pending?.document_no || "—"} | เบิก ${r.issued_quantity ?? "—"} | ${tr(r.status)}`} link="/goods-issue" />
+          render={(r) => {
+            const statusText = r.status === "issued" && !r.billboard_id ? "จ่ายแล้ว / รอระบุป้าย" : tr(r.status);
+            return `${r.goods_issue_pending?.document_no || "—"} | เบิก ${r.issued_quantity ?? "—"} | ${statusText}`;
+          }} link="/goods-issue" />
         <TxSection title="Swap" icon={ArrowLeftRight} rows={swaps}
           render={(r) => `${r.document_no} | เก่า ${r.old_serial_number || "—"} → ใหม่ ${r.new_serial_number || "—"} | ${tr(r.status)}`} link="/swap-wizard" />
         <TxSection title="ประเมิน (Assessment)" icon={ClipboardCheck} rows={assessments}
