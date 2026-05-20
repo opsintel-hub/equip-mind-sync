@@ -71,6 +71,7 @@ const STATUS_TH: Record<string, string> = {
 const tr = (s: string | null | undefined) => (s ? STATUS_TH[s] || s : "—");
 
 const displayMpStatus = (mp: MPRow) => {
+  if (mp.billboard_id) return "ติดตั้งบนป้าย";
   if (!mp.billboard_id && (mp.status === "issued" || mp.status === "in_transit")) return "จ่ายแล้ว / รอระบุป้าย";
   return tr(mp.status);
 };
@@ -386,9 +387,8 @@ export default function ItemTracer() {
                       {bbs.map((b, i) => (
                         <span key={i} className="ml-1">
                           <Link to={`/billboards/${b.billboard_id}`} className="text-primary hover:underline">
-                            {b.billboards?.old_code || b.billboards?.code || b.billboard_id.slice(0, 8)}
+                            {formatBillboardLink(b)}
                           </Link>
-                          {b.billboards?.location_name ? ` (${b.billboards.location_name})` : ""}
                           {i < bbs.length - 1 ? "," : ""}
                         </span>
                       ))}
