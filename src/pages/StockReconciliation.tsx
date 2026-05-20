@@ -84,7 +84,7 @@ const STATUS_LABEL: Record<string, string> = {
   pending_warehouse_return: "รอเข้าคลัง (Swap)",
   pending_warehouse_entry: "รอรับเข้าคลังของเสีย",
   // issue / receipt
-  issued: "จ่ายแล้ว",
+  issued: "จ่ายแล้ว / รอระบุป้าย",
   partial_issued: "จ่ายบางส่วน",
   received: "รับแล้ว",
   partial_received: "รับบางส่วน",
@@ -126,7 +126,7 @@ const STATUS_TONE: Record<string, string> = {
   refurbished: "bg-emerald-100 text-emerald-800 border-emerald-200",
   pending_warehouse_return: "bg-amber-100 text-amber-800 border-amber-200",
   pending_warehouse_entry: "bg-amber-100 text-amber-800 border-amber-200",
-  issued: "bg-blue-100 text-blue-800 border-blue-200",
+  issued: "bg-amber-100 text-amber-800 border-amber-200",
   partial_issued: "bg-amber-100 text-amber-800 border-amber-200",
   received: "bg-green-100 text-green-800 border-green-200",
   partial_received: "bg-amber-100 text-amber-800 border-amber-200",
