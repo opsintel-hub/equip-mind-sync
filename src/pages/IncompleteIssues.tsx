@@ -249,30 +249,6 @@ const IncompleteIssues = () => {
           .eq("id", selectedItem.media_player_id);
         if (mpUpdateError) throw mpUpdateError;
 
-        const { data: existingBE, error: existingBEError } = await supabase
-          .from("billboard_equipment")
-          .select("id")
-          .eq("equipment_id", selectedItem.media_player_id)
-          .eq("billboard_id", billboardId)
-          .eq("serial_number", selectedItem.serial_number || "")
-          .maybeSingle();
-        if (existingBEError) throw existingBEError;
-
-        if (!existingBE) {
-          const { error: billboardMpError } = await supabase
-            .from("billboard_equipment")
-            .insert({
-              billboard_id: billboardId,
-              equipment_id: selectedItem.media_player_id,
-              quantity: 1,
-              installation_date: installationDate,
-              notes: `จากเอกสาร ${selectedIssue?.document_no} - ${selectedItem.equipment_name || currentMp?.name || "Media Player"}`,
-              created_by: user.id,
-              serial_number: selectedItem.serial_number,
-            });
-          if (billboardMpError) throw billboardMpError;
-        }
-
         const { error: historyError } = await (supabase as any).from("media_player_billboard_history").insert({
           media_player_id: selectedItem.media_player_id,
           billboard_id: billboardId,
