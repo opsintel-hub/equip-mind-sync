@@ -583,7 +583,7 @@ function EquipmentViewTab() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("media_players")
-        .select("id, name, code, serial_number_1, serial_number_2, brand, billboard_id, install_date, quantity, warranty_expiry_date, location_id")
+        .select("id, name, code, serial_number_1, serial_number_2, brand, billboard_id, install_date, quantity, warranty_expiry_date, location_id, status")
         .eq("is_active", true)
         .order("code");
       if (error) throw error;
@@ -664,6 +664,7 @@ function EquipmentViewTab() {
     });
     (mediaPlayers || []).forEach(mp => {
       const bb = mp.billboard_id ? bbLookup[mp.billboard_id] : null;
+      const isIssuedPending = !mp.billboard_id && (mp.status === "issued" || mp.status === "in_transit");
       items.push({
         id: mp.id,
         name: mp.name,
@@ -678,6 +679,8 @@ function EquipmentViewTab() {
         serialDisplay: [mp.serial_number_1, mp.serial_number_2].filter(Boolean).join("\n") || "-",
         installedBillboard: bb ? formatBillboardLabel(bb.old_code, bb.location_name) : null,
         isInstalled: !!mp.billboard_id,
+        isIssuedPending,
+        mp_status: mp.status,
         billboard_id: mp.billboard_id,
         install_date: mp.install_date,
       });
@@ -710,8 +713,9 @@ function EquipmentViewTab() {
   // Summary stats — based on FILTERED results so cards reflect what user is searching
   const summaryStats = useMemo(() => {
     const installed = filtered.filter(i => i.isInstalled).length;
-    const inStock = filtered.filter(i => !i.isInstalled).length;
-    return { total: filtered.length, installed, inStock };
+    const issuedPending = filtered.filter(i => !i.isInstalled && (i as any).isIssuedPending).length;
+    const inStock = filtered.filter(i => !i.isInstalled && !(i as any).isIssuedPending).length;
+    return { total: filtered.length, installed, inStock, issuedPending };
   }, [filtered]);
 
   // Pagination
@@ -741,9 +745,10 @@ function EquipmentViewTab() {
   return (
     <div className="space-y-4">
       {/* Summary Cards — reflect current filtered result */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
         <Card><CardContent className="p-3 text-center"><div className="text-2xl font-bold text-primary">{summaryStats.total}</div><div className="text-xs text-muted-foreground">{isFiltered ? "ผลค้นหา (รายการ S/N)" : "ทั้งหมด (รายการ S/N)"}</div></CardContent></Card>
         <Card><CardContent className="p-3 text-center"><div className="text-2xl font-bold text-emerald-600">{summaryStats.installed}</div><div className="text-xs text-muted-foreground">ติดตั้งบนป้ายอยู่</div></CardContent></Card>
+        <Card><CardContent className="p-3 text-center"><div className="text-2xl font-bold text-orange-600">{summaryStats.issuedPending}</div><div className="text-xs text-muted-foreground">จ่ายแล้ว / รอระบุป้าย</div></CardContent></Card>
         <Card><CardContent className="p-3 text-center"><div className="text-2xl font-bold text-blue-600">{summaryStats.inStock}</div><div className="text-xs text-muted-foreground">อยู่ในคลัง / ยังไม่ติดตั้ง</div></CardContent></Card>
         <Card><CardContent className="p-3 text-center"><div className="text-xs text-muted-foreground mb-1">💡 คลิก <Eye className="inline w-3 h-3" /> เพื่อดู<br/>รายการป้ายทั้งหมดที่ติดตั้ง<br/>+ วันหมดประกัน → วาง PM ครั้งเดียว</div></CardContent></Card>
       </div>
@@ -827,6 +832,8 @@ function EquipmentViewTab() {
                   <TableCell>
                     {item.installedBillboard ? (
                       <Badge className="bg-emerald-500 text-white hover:bg-emerald-600 text-xs"><MapPin className="w-3 h-3 mr-1" />{item.installedBillboard}</Badge>
+                    ) : item.isIssuedPending ? (
+                      <Badge variant="outline" className="text-xs bg-orange-500/10 text-orange-600 border-orange-500/20">จ่ายแล้ว / รอระบุป้าย</Badge>
                     ) : (
                       <span className="text-muted-foreground text-xs">ในคลัง</span>
                     )}
@@ -944,7 +951,7 @@ function EquipmentDetailDialog({ item, onClose, bbLookup }: { item: any; onClose
 
         <div className="space-y-6">
           {/* Summary Cards */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
             <Card>
               <CardContent className="p-3 text-center">
                 <div className="text-2xl font-bold text-primary">{item.quantity_in_stock}</div>
@@ -955,6 +962,12 @@ function EquipmentDetailDialog({ item, onClose, bbLookup }: { item: any; onClose
               <CardContent className="p-3 text-center">
                 <div className="text-2xl font-bold text-emerald-600">{totalInstalled}</div>
                 <div className="text-xs text-muted-foreground">ติดตั้งอยู่</div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="p-3 text-center">
+                <div className="text-2xl font-bold text-orange-600">{(item as any).isIssuedPending ? 1 : 0}</div>
+                <div className="text-xs text-muted-foreground">จ่ายแล้ว / รอระบุป้าย</div>
               </CardContent>
             </Card>
             <Card>
@@ -1000,6 +1013,11 @@ function EquipmentDetailDialog({ item, onClose, bbLookup }: { item: any; onClose
                   ))}
                 </TableBody>
               </Table>
+            ) : (item as any).isIssuedPending ? (
+              <div className="p-3 border rounded-lg bg-orange-50 dark:bg-orange-950/20 border-orange-200">
+                <Badge variant="outline" className="bg-orange-500/10 text-orange-700 border-orange-500/20">จ่ายแล้ว — รอระบุป้ายโฆษณา</Badge>
+                <p className="text-xs text-muted-foreground mt-1">เครื่องถูกเบิกออกจากคลังแล้ว แต่ยังไม่ได้ระบุป้ายปลายทาง (ไปที่เมนู "รายการเบิกที่ยังไม่สมบูรณ์" เพื่อระบุป้าย)</p>
+              </div>
             ) : (
               <p className="text-sm text-muted-foreground p-3 border rounded-lg">ไม่มีการติดตั้งปัจจุบัน (อยู่ในคลัง)</p>
             )}
