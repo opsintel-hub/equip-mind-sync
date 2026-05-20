@@ -476,19 +476,6 @@ const IssueGoods = () => {
               .maybeSingle();
             const bbLabel = [bbInfo?.old_code, bbInfo?.location_name].filter(Boolean).join(" - ") || a.billboard_id;
 
-            const { error: billboardMpError } = await supabase
-              .from("billboard_equipment")
-              .insert({
-                billboard_id: a.billboard_id,
-                equipment_id: a.media_player_id,
-                quantity: 1,
-                installation_date: new Date().toISOString().split('T')[0],
-                notes: issueData.notes || `Media Player เบิกจากเอกสาร ${parentRequest?.document_no}`,
-                created_by: user.id,
-                serial_number: a.serial_number,
-              });
-            if (billboardMpError) console.error("Error creating billboard_equipment for MP:", billboardMpError);
-
             const today = new Date().toISOString().split('T')[0];
             const { error: histError } = await supabase
               .from("media_player_billboard_history")
