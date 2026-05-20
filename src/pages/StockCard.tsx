@@ -293,6 +293,14 @@ export default function StockCard() {
 
   const hasSN = selectedItem && (selectedItem.serial_number || selectedItem.serial_number_2);
   const isMediaPlayerIssuedPending = selectedItem?.type === "media_player" && !selectedItem.billboard_id && ["issued", "in_transit"].includes(selectedItem.status || "");
+  const currentLocationLabel = useMemo(() => {
+    if (!selectedItem) return "-";
+    if (currentInstallations.length > 0) {
+      return currentInstallations.map((inst: any) => formatBillboardLocation(inst.billboards, inst.billboard_id)).join("\n");
+    }
+    if (isMediaPlayerIssuedPending) return "จ่ายแล้ว / รอระบุป้ายโฆษณา";
+    return selectedItem.current_location || (selectedItem.quantity_in_stock && selectedItem.quantity_in_stock > 0 ? "อยู่ในคลัง (ยังไม่ระบุตำแหน่ง)" : "ไม่พบตำแหน่งปัจจุบัน");
+  }, [selectedItem, currentInstallations, isMediaPlayerIssuedPending]);
 
   // ── Fetch stock movements ──
   const { data: movements = [] } = useQuery({
