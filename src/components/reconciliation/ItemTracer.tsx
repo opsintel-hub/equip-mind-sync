@@ -414,7 +414,10 @@ export default function ItemTracer() {
         <TxSection title="รับเข้าคลัง (Goods Receipt)" icon={Inbox} rows={receipts}
           render={(r) => `${r.document_no || "—"} | จำนวน ${r.quantity ?? "—"} | ${tr(r.status)}`} link="/receive-goods" />
         <TxSection title="เบิก/จ่ายออก (Goods Issue)" icon={Send} rows={issues}
-          render={(r) => `${r.goods_issue_pending?.document_no || "—"} | เบิก ${r.issued_quantity ?? "—"} | ${tr(r.status)}`} link="/goods-issue" />
+          render={(r) => {
+            const statusText = r.status === "issued" && !r.billboard_id ? "จ่ายแล้ว / รอระบุป้าย" : tr(r.status);
+            return `${r.goods_issue_pending?.document_no || "—"} | เบิก ${r.issued_quantity ?? "—"} | ${statusText}`;
+          }} link="/goods-issue" />
         <TxSection title="Swap" icon={ArrowLeftRight} rows={swaps}
           render={(r) => `${r.document_no} | เก่า ${r.old_serial_number || "—"} → ใหม่ ${r.new_serial_number || "—"} | ${tr(r.status)}`} link="/swap-wizard" />
         <TxSection title="ประเมิน (Assessment)" icon={ClipboardCheck} rows={assessments}
