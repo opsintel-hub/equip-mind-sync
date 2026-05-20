@@ -942,6 +942,15 @@ export default function StockCard() {
               </div>
             </div>
 
+            {isMediaPlayerIssuedPending && (
+              <div className="mt-4 p-3 bg-amber-50 dark:bg-amber-900/10 rounded-lg border border-amber-200 dark:border-amber-800/30">
+                <div className="flex items-center gap-2 text-amber-700 dark:text-amber-400 text-sm font-medium">
+                  <MapPin className="w-4 h-4" /> จ่ายแล้ว / รอระบุป้ายโฆษณา
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">เครื่องนี้ออกจากคลังแล้วและยังไม่มีป้ายปลายทาง จึงไม่นับเป็นสต็อกในคลังหรือรายการติดตั้งแล้ว</p>
+              </div>
+            )}
+
             {/* Current installations */}
             {currentInstallations.length > 0 && (
               <div className="mt-4 p-3 bg-amber-50 dark:bg-amber-900/10 rounded-lg border border-amber-200 dark:border-amber-800/30">
