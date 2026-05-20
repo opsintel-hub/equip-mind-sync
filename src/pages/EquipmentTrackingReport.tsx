@@ -583,7 +583,7 @@ function EquipmentViewTab() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("media_players")
-        .select("id, name, code, serial_number_1, serial_number_2, brand, billboard_id, install_date, quantity, warranty_expiry_date, location_id")
+        .select("id, name, code, serial_number_1, serial_number_2, brand, billboard_id, install_date, quantity, warranty_expiry_date, location_id, status")
         .eq("is_active", true)
         .order("code");
       if (error) throw error;
