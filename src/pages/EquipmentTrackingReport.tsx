@@ -951,7 +951,7 @@ function EquipmentDetailDialog({ item, onClose, bbLookup }: { item: any; onClose
 
         <div className="space-y-6">
           {/* Summary Cards */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
             <Card>
               <CardContent className="p-3 text-center">
                 <div className="text-2xl font-bold text-primary">{item.quantity_in_stock}</div>
@@ -962,6 +962,12 @@ function EquipmentDetailDialog({ item, onClose, bbLookup }: { item: any; onClose
               <CardContent className="p-3 text-center">
                 <div className="text-2xl font-bold text-emerald-600">{totalInstalled}</div>
                 <div className="text-xs text-muted-foreground">ติดตั้งอยู่</div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="p-3 text-center">
+                <div className="text-2xl font-bold text-orange-600">{(item as any).isIssuedPending ? 1 : 0}</div>
+                <div className="text-xs text-muted-foreground">จ่ายแล้ว / รอระบุป้าย</div>
               </CardContent>
             </Card>
             <Card>
