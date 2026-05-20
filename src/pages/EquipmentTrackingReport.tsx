@@ -830,6 +830,8 @@ function EquipmentViewTab() {
                   <TableCell>
                     {item.installedBillboard ? (
                       <Badge className="bg-emerald-500 text-white hover:bg-emerald-600 text-xs"><MapPin className="w-3 h-3 mr-1" />{item.installedBillboard}</Badge>
+                    ) : item.isIssuedPending ? (
+                      <Badge variant="outline" className="text-xs bg-orange-500/10 text-orange-600 border-orange-500/20">จ่ายแล้ว / รอระบุป้าย</Badge>
                     ) : (
                       <span className="text-muted-foreground text-xs">ในคลัง</span>
                     )}
