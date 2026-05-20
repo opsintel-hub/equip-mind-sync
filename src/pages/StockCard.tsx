@@ -939,6 +939,10 @@ export default function StockCard() {
                   {selectedItem.category && <div><span className="text-muted-foreground">หมวด:</span> <span className="font-medium">{selectedItem.category}</span></div>}
                   {selectedItem.brand && <div><span className="text-muted-foreground">ยี่ห้อ:</span> <span className="font-medium">{selectedItem.brand}</span></div>}
                   {selectedItem.department && <div><span className="text-muted-foreground">ฝ่าย:</span> <span className="font-medium">{selectedItem.department}</span></div>}
+                  <div className="md:col-span-2">
+                    <span className="text-muted-foreground">ตำแหน่งปัจจุบัน:</span>{" "}
+                    <span className="font-medium whitespace-pre-line">{currentLocationLabel}</span>
+                  </div>
                   <div>
                     <span className="text-muted-foreground">สภาพ:</span>{" "}
                     <Badge variant="outline" className={`text-xs ${getConditionMeta(selectedItem.item_condition).color}`}>
