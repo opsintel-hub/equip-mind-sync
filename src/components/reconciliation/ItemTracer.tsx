@@ -45,6 +45,7 @@ const statusTone = (s: string | null | undefined): string => {
   if (!s) return "bg-muted text-muted-foreground";
   if (["active", "in_stock", "completed", "approved", "received"].includes(s)) return "bg-emerald-100 text-emerald-800 border-emerald-300";
   if (["installed"].includes(s)) return "bg-blue-100 text-blue-800 border-blue-300";
+  if (["issued"].includes(s)) return "bg-warning/10 text-warning border-warning/30";
   if (["pending", "pending_approval", "waiting_stock", "pending_warehouse_return"].includes(s)) return "bg-amber-100 text-amber-800 border-amber-300";
   if (["pending_assessment"].includes(s)) return "bg-purple-100 text-purple-800 border-purple-300";
   if (["under_repair"].includes(s)) return "bg-cyan-100 text-cyan-800 border-cyan-300";
@@ -57,7 +58,7 @@ const STATUS_TH: Record<string, string> = {
   active: "พร้อมใช้งาน", in_stock: "อยู่ในคลัง", installed: "ติดตั้งบนป้าย",
   pending: "รออนุมัติ", pending_approval: "รออนุมัติ", approved: "อนุมัติแล้ว",
   rejected: "ถูกปฏิเสธ", cancelled: "ยกเลิก", completed: "เสร็จสิ้น",
-  received: "รับเข้าแล้ว", waiting_stock: "รอสินค้าเข้า",
+  received: "รับเข้าแล้ว", waiting_stock: "รอสินค้าเข้า", issued: "จ่ายแล้ว/รอรับ",
   pending_warehouse_return: "รอเข้าคลัง (Swap)", pending_assessment: "พักรอประเมิน",
   under_repair: "กำลังซ่อม", in_claim: "รอเคลม", claim: "เคลม",
   defective: "ของเสีย", damaged: "ชำรุด", lost: "สูญหาย",
