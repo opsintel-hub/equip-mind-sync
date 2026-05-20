@@ -923,7 +923,7 @@ function EquipmentDetailDialog({ item, onClose, bbLookup }: { item: any; onClose
       if (item.itemType === "equipment") {
         const { data, error } = await supabase
           .from("billboard_equipment")
-          .select("*, billboard:billboard_id(old_code, location_name)")
+          .select("*, billboard:billboard_id(old_code, location_name, equipment_id)")
           .eq("equipment_id", item.id);
         if (error) throw error;
         return data || [];
@@ -1008,7 +1008,7 @@ function EquipmentDetailDialog({ item, onClose, bbLookup }: { item: any; onClose
                 <TableBody>
                   {(currentInstalls || []).map((ci: any) => (
                     <TableRow key={ci.id}>
-                      <TableCell>{formatBillboardLabel((ci.billboard as any)?.old_code, (ci.billboard as any)?.location_name)}</TableCell>
+                      <TableCell>{formatBillboardLabel((ci.billboard as any)?.old_code, (ci.billboard as any)?.location_name, (ci.billboard as any)?.equipment_id)}</TableCell>
                       <TableCell className="text-center">{ci.quantity}</TableCell>
                       <TableCell className="text-xs">{fmtDate(ci.installation_date)}</TableCell>
                       <TableCell><Badge variant="outline"><Clock className="w-3 h-3 mr-1" />{daysSince(ci.installation_date)}</Badge></TableCell>
