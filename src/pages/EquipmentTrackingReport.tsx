@@ -583,7 +583,7 @@ function EquipmentViewTab() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("media_players")
-        .select("id, name, code, serial_number_1, serial_number_2, brand, billboard_id, install_date, quantity, warranty_expiry_date, location_id, status")
+        .select("id, name, code, serial_number_1, serial_number_2, brand, billboard_id, install_date, quantity, warranty_expiry_date, location_id, status, billboard:billboard_id(id, old_code, location_name, equipment_id)")
         .eq("is_active", true)
         .order("code");
       if (error) throw error;
@@ -597,7 +597,7 @@ function EquipmentViewTab() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("billboard_equipment")
-        .select("equipment_id, billboard_id, quantity, installation_date, billboard:billboard_id(old_code, location_name)");
+        .select("equipment_id, billboard_id, quantity, installation_date, billboard:billboard_id(old_code, location_name, equipment_id)");
       if (error) throw error;
       return data || [];
     },
@@ -607,7 +607,7 @@ function EquipmentViewTab() {
   const { data: billboards } = useQuery({
     queryKey: ["eq-tracking-bb-lookup"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("billboards").select("id, old_code, location_name");
+      const { data, error } = await supabase.from("billboards").select("id, old_code, location_name, equipment_id");
       if (error) throw error;
       return data || [];
     },
@@ -635,7 +635,7 @@ function EquipmentViewTab() {
     (equipment || []).forEach(eq => {
       const installed = installedAt[eq.id] || [];
       const bbInfo = installed.length > 0
-        ? installed.map(i => formatBillboardLabel((i.billboard as any)?.old_code, (i.billboard as any)?.location_name)).join(", ")
+        ? installed.map(i => formatBillboardLabel((i.billboard as any)?.old_code, (i.billboard as any)?.location_name, (i.billboard as any)?.equipment_id)).join(", ")
         : null;
       const snData = eqSNMap[eq.id];
       
@@ -663,10 +663,10 @@ function EquipmentViewTab() {
       }
     });
     (mediaPlayers || []).forEach(mp => {
-      const bb = mp.billboard_id ? bbLookup[mp.billboard_id] : null;
+      const bb = (mp as any).billboard || (mp.billboard_id ? bbLookup[mp.billboard_id] : null);
       const isIssuedPending = !mp.billboard_id && (mp.status === "issued" || mp.status === "in_transit");
       const installedBillboard = mp.billboard_id
-        ? (bb ? formatBillboardLabel(bb.old_code, bb.location_name) : "ติดตั้งบนป้าย")
+        ? (bb ? formatBillboardLabel(bb.old_code, bb.location_name, bb.equipment_id) : "ติดตั้งบนป้าย")
         : null;
       items.push({
         id: mp.id,
@@ -923,7 +923,7 @@ function EquipmentDetailDialog({ item, onClose, bbLookup }: { item: any; onClose
       if (item.itemType === "equipment") {
         const { data, error } = await supabase
           .from("billboard_equipment")
-          .select("*, billboard:billboard_id(old_code, location_name)")
+          .select("*, billboard:billboard_id(old_code, location_name, equipment_id)")
           .eq("equipment_id", item.id);
         if (error) throw error;
         return data || [];
@@ -1008,7 +1008,7 @@ function EquipmentDetailDialog({ item, onClose, bbLookup }: { item: any; onClose
                 <TableBody>
                   {(currentInstalls || []).map((ci: any) => (
                     <TableRow key={ci.id}>
-                      <TableCell>{formatBillboardLabel((ci.billboard as any)?.old_code, (ci.billboard as any)?.location_name)}</TableCell>
+                      <TableCell>{formatBillboardLabel((ci.billboard as any)?.old_code, (ci.billboard as any)?.location_name, (ci.billboard as any)?.equipment_id)}</TableCell>
                       <TableCell className="text-center">{ci.quantity}</TableCell>
                       <TableCell className="text-xs">{fmtDate(ci.installation_date)}</TableCell>
                       <TableCell><Badge variant="outline"><Clock className="w-3 h-3 mr-1" />{daysSince(ci.installation_date)}</Badge></TableCell>
@@ -1052,7 +1052,7 @@ function EquipmentDetailDialog({ item, onClose, bbLookup }: { item: any; onClose
                         : "-";
                       return (
                         <TableRow key={h.id}>
-                          <TableCell>{bb ? formatBillboardLabel(bb.old_code, bb.location_name) : h.billboard_id}</TableCell>
+                          <TableCell>{bb ? formatBillboardLabel(bb.old_code, bb.location_name, bb.equipment_id) : h.billboard_id}</TableCell>
                           <TableCell className="text-center">{h.quantity}</TableCell>
                           <TableCell className="text-xs">{fmtDate(h.installation_date)}</TableCell>
                           <TableCell className="text-xs">{fmtDate(h.uninstall_date)}</TableCell>
