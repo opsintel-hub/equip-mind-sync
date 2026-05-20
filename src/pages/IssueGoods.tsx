@@ -680,6 +680,7 @@ const IssueGoods = () => {
           quantity: headerQuantity,
           issued_quantity: headerIssued,
           remaining_quantity: headerRemaining,
+          total_items: latestItems?.length || 0,
         })
         .eq("id", selectedItem.pending_id);
 
