@@ -41,6 +41,11 @@ interface BillboardLink {
   billboards?: { code: string | null; old_code: string | null; location_name: string | null } | null;
 }
 
+const formatBillboardLink = (link?: BillboardLink | null) => {
+  const bb = link?.billboards;
+  return [bb?.old_code || bb?.code, bb?.location_name].filter(Boolean).join(" - ") || link?.billboard_id || "-";
+};
+
 const statusTone = (s: string | null | undefined): string => {
   if (!s) return "bg-muted text-muted-foreground";
   if (["active", "in_stock", "completed", "approved", "received"].includes(s)) return "bg-emerald-100 text-emerald-800 border-emerald-300";
@@ -162,14 +167,26 @@ export default function ItemTracer() {
 
       // billboard installations for MPs
       if (mpIds.length) {
-        const { data: be } = await (supabase as any)
-          .from("billboard_equipment")
-          .select("media_player_id, billboard_id, billboards:billboards(code, old_code, location_name)")
-          .in("media_player_id", mpIds);
+        const [{ data: be }, { data: mpHist }] = await Promise.all([
+          (supabase as any)
+            .from("billboard_equipment")
+            .select("equipment_id, billboard_id, billboards:billboards(code, old_code, location_name)")
+            .in("equipment_id", mpIds),
+          (supabase as any)
+            .from("media_player_billboard_history")
+            .select("media_player_id, billboard_id, billboards:billboards(code, old_code, location_name)")
+            .in("media_player_id", mpIds)
+            .is("uninstall_date", null),
+        ]);
         const grouped: Record<string, BillboardLink[]> = {};
         (be || []).forEach((row: any) => {
+          if (!row.equipment_id) return;
+          (grouped[row.equipment_id] ||= []).push(row);
+        });
+        (mpHist || []).forEach((row: any) => {
           if (!row.media_player_id) return;
-          (grouped[row.media_player_id] ||= []).push(row);
+          const exists = (grouped[row.media_player_id] || []).some(link => link.billboard_id === row.billboard_id);
+          if (!exists) (grouped[row.media_player_id] ||= []).push(row);
         });
         setBillboardLinks(grouped);
       }
