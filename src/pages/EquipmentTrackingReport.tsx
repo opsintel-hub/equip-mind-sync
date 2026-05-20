@@ -745,9 +745,10 @@ function EquipmentViewTab() {
   return (
     <div className="space-y-4">
       {/* Summary Cards — reflect current filtered result */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
         <Card><CardContent className="p-3 text-center"><div className="text-2xl font-bold text-primary">{summaryStats.total}</div><div className="text-xs text-muted-foreground">{isFiltered ? "ผลค้นหา (รายการ S/N)" : "ทั้งหมด (รายการ S/N)"}</div></CardContent></Card>
         <Card><CardContent className="p-3 text-center"><div className="text-2xl font-bold text-emerald-600">{summaryStats.installed}</div><div className="text-xs text-muted-foreground">ติดตั้งบนป้ายอยู่</div></CardContent></Card>
+        <Card><CardContent className="p-3 text-center"><div className="text-2xl font-bold text-orange-600">{summaryStats.issuedPending}</div><div className="text-xs text-muted-foreground">จ่ายแล้ว / รอระบุป้าย</div></CardContent></Card>
         <Card><CardContent className="p-3 text-center"><div className="text-2xl font-bold text-blue-600">{summaryStats.inStock}</div><div className="text-xs text-muted-foreground">อยู่ในคลัง / ยังไม่ติดตั้ง</div></CardContent></Card>
         <Card><CardContent className="p-3 text-center"><div className="text-xs text-muted-foreground mb-1">💡 คลิก <Eye className="inline w-3 h-3" /> เพื่อดู<br/>รายการป้ายทั้งหมดที่ติดตั้ง<br/>+ วันหมดประกัน → วาง PM ครั้งเดียว</div></CardContent></Card>
       </div>
