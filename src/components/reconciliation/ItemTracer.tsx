@@ -248,7 +248,7 @@ export default function ItemTracer() {
       setAssessments(as || []);
 
       // claim_records
-      const clParts = [snFilter];
+      const clParts = [...snParts];
       if (mpIds.length) clParts.push(`media_player_id.in.(${mpIds.join(",")})`);
       const { data: cl } = await supabase
         .from("claim_records")
