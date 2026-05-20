@@ -180,18 +180,21 @@ export default function ItemTracer() {
       }
 
       // รวบรวม S/N จริงทั้งหมดที่เจอจาก MP + equipment_serial_numbers
-      const allSerials = Array.from(new Set([
-        q,
+      // หมายเหตุ: ไม่รวม q (search term) เข้าไปตรงๆ เพราะอาจมีเว้นวรรค/อักขระพิเศษ
+      // ที่จะทำให้ PostgREST .or() parser พัง — ใช้เฉพาะ S/N จริงที่ดึงมาได้
+      const realSerials = Array.from(new Set([
         ...(mpData || []).flatMap((m: any) => [m.serial_number_1, m.serial_number_2]).filter(Boolean),
         ...(snAll || []).map((s: any) => s.serial_number).filter(Boolean),
       ])) as string[];
-      const snFilter = allSerials.length
-        ? allSerials.map(s => `serial_number.eq.${s}`).join(",")
-        : `serial_number.ilike.${like}`;
+      // ครอบค่าด้วย " เพื่อกัน comma/space/() ใน serial ทำให้ or() parser พัง
+      const quote = (v: string) => `"${String(v).replace(/"/g, '\\"')}"`;
+      const snParts = realSerials.length
+        ? realSerials.map(s => `serial_number.eq.${quote(s)}`)
+        : [`serial_number.ilike.${quote(q)}`];
 
       // helper: union OR query by serial + media_player_id + equipment_id
       const buildOr = (extra: string[] = []) => {
-        const parts = [snFilter, ...extra];
+        const parts = [...snParts, ...extra];
         if (mpIds.length) parts.push(`media_player_id.in.(${mpIds.join(",")})`);
         if (eqIds.length) parts.push(`equipment_id.in.(${eqIds.join(",")})`);
         return parts.join(",");
@@ -216,10 +219,10 @@ export default function ItemTracer() {
       setIssues(isu || []);
 
       // swap_requests (uses old/new_serial_number, no equipment_id)
-      const swapParts: string[] = [`document_no.ilike.${like}`];
-      allSerials.forEach(s => {
-        swapParts.push(`old_serial_number.eq.${s}`);
-        swapParts.push(`new_serial_number.eq.${s}`);
+      const swapParts: string[] = [`document_no.ilike.${quote(q)}`];
+      realSerials.forEach(s => {
+        swapParts.push(`old_serial_number.eq.${quote(s)}`);
+        swapParts.push(`new_serial_number.eq.${quote(s)}`);
       });
       if (mpIds.length) {
         swapParts.push(`old_media_player_id.in.(${mpIds.join(",")})`);
@@ -234,7 +237,7 @@ export default function ItemTracer() {
       setSwaps(sw || []);
 
       // assessment_logs
-      const asParts = [snFilter];
+      const asParts = [...snParts];
       if (mpIds.length) asParts.push(`media_player_id.in.(${mpIds.join(",")})`);
       const { data: as } = await supabase
         .from("assessment_logs")
@@ -245,7 +248,7 @@ export default function ItemTracer() {
       setAssessments(as || []);
 
       // claim_records
-      const clParts = [snFilter];
+      const clParts = [...snParts];
       if (mpIds.length) clParts.push(`media_player_id.in.(${mpIds.join(",")})`);
       const { data: cl } = await supabase
         .from("claim_records")
