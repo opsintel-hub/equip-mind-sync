@@ -179,59 +179,89 @@ export default function ItemTracer() {
         setMovements(mv || []);
       }
 
+      // รวบรวม S/N จริงทั้งหมดที่เจอจาก MP + equipment_serial_numbers
+      const allSerials = Array.from(new Set([
+        q,
+        ...(mpData || []).flatMap((m: any) => [m.serial_number_1, m.serial_number_2]).filter(Boolean),
+        ...(snAll || []).map((s: any) => s.serial_number).filter(Boolean),
+      ])) as string[];
+      const snFilter = allSerials.length
+        ? allSerials.map(s => `serial_number.eq.${s}`).join(",")
+        : `serial_number.ilike.${like}`;
+
+      // helper: union OR query by serial + media_player_id + equipment_id
+      const buildOr = (extra: string[] = []) => {
+        const parts = [snFilter, ...extra];
+        if (mpIds.length) parts.push(`media_player_id.in.(${mpIds.join(",")})`);
+        if (eqIds.length) parts.push(`equipment_id.in.(${eqIds.join(",")})`);
+        return parts.join(",");
+      };
+
       // goods_receipt_pending
-      const orParts: string[] = [`serial_number.ilike.${like}`];
       const { data: rcp } = await supabase
         .from("goods_receipt_pending")
         .select("id, document_no, status, serial_number, equipment_id, media_player_id, received_at, created_at, quantity")
-        .or(orParts.join(","))
+        .or(buildOr())
         .order("created_at", { ascending: false })
-        .limit(20);
+        .limit(30);
       setReceipts(rcp || []);
 
       // goods_issue_pending_items
       const { data: isu } = await supabase
         .from("goods_issue_pending_items")
         .select("id, serial_number, status, issued_quantity, equipment_id, media_player_id, billboard_id, created_at, goods_issue_pending:goods_issue_pending(document_no, status)")
-        .ilike("serial_number", like)
+        .or(buildOr())
         .order("created_at", { ascending: false })
-        .limit(20);
+        .limit(30);
       setIssues(isu || []);
 
-      // swap_requests
+      // swap_requests (uses old/new_serial_number, no equipment_id)
+      const swapParts: string[] = [`document_no.ilike.${like}`];
+      allSerials.forEach(s => {
+        swapParts.push(`old_serial_number.eq.${s}`);
+        swapParts.push(`new_serial_number.eq.${s}`);
+      });
+      if (mpIds.length) {
+        swapParts.push(`old_media_player_id.in.(${mpIds.join(",")})`);
+        swapParts.push(`new_media_player_id.in.(${mpIds.join(",")})`);
+      }
       const { data: sw } = await supabase
         .from("swap_requests")
         .select("id, document_no, status, old_serial_number, new_serial_number, created_at")
-        .or(`old_serial_number.ilike.${like},new_serial_number.ilike.${like},document_no.ilike.${like}`)
+        .or(swapParts.join(","))
         .order("created_at", { ascending: false })
-        .limit(15);
+        .limit(20);
       setSwaps(sw || []);
 
       // assessment_logs
+      const asParts = [snFilter];
+      if (mpIds.length) asParts.push(`media_player_id.in.(${mpIds.join(",")})`);
       const { data: as } = await supabase
         .from("assessment_logs")
         .select("id, document_no, status, outcome, serial_number, media_player_id, created_at")
-        .ilike("serial_number", like)
+        .or(asParts.join(","))
         .order("created_at", { ascending: false })
-        .limit(15);
+        .limit(20);
       setAssessments(as || []);
 
       // claim_records
+      const clParts = [snFilter];
+      if (mpIds.length) clParts.push(`media_player_id.in.(${mpIds.join(",")})`);
       const { data: cl } = await supabase
         .from("claim_records")
         .select("id, document_no, status, serial_number, media_player_id, created_at")
-        .ilike("serial_number", like)
+        .or(clParts.join(","))
         .order("created_at", { ascending: false })
-        .limit(15);
+        .limit(20);
       setClaims(cl || []);
 
       // defective_returns
       const { data: df } = await supabase
         .from("defective_returns")
         .select("id, document_no, status, serial_number, equipment_id, media_player_id, created_at")
-        .ilike("serial_number", like)
+        .or(buildOr())
         .order("created_at", { ascending: false })
-        .limit(15);
+        .limit(20);
       setDefective(df || []);
     } catch (e: any) {
       console.error(e);
