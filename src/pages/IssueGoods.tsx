@@ -338,23 +338,89 @@ const IssueGoods = () => {
         newStatus = selectedItem.status;
       }
       
-      // Update item record (including serial_number selected by warehouse staff)
-      const { error: updateError } = await supabase
-        .from("goods_issue_pending_items")
-        .update({
-          status: newStatus,
-          issued_quantity: totalIssued,
-          remaining_quantity: Math.max(0, remainingQty),
-          billboard_id: combinedBillboardId ?? selectedItem.billboard_id,
-          notes: issueData.notes || selectedItem.notes,
-          serial_number: combinedSerial ?? selectedItem.serial_number ?? null,
-        })
-        .eq("id", selectedItem.id);
+      const parentRequest = pendingRequests?.find(r => r.id === selectedItem.pending_id);
 
-      if (updateError) throw updateError;
+      // Update item record (including serial_number selected by warehouse staff)
+      // Media Player ต้องแยก 1 เครื่องต่อ 1 แถว เพื่อให้ตาม S/N แล้วเจอ media_player_id ถูกตัว
+      if (isMediaPlayer && issuedQty > 0) {
+        const [firstAssignment, ...extraAssignments] = activeMpAssignments;
+        const remainingUnissuedQty = Math.max(0, remainingQty);
+
+        const { error: updateError } = await supabase
+          .from("goods_issue_pending_items")
+          .update({
+            quantity: 1,
+            status: "issued",
+            issued_quantity: 1,
+            remaining_quantity: 0,
+            media_player_id: firstAssignment.media_player_id,
+            is_media_player: true,
+            billboard_id: firstAssignment.billboard_id || selectedItem.billboard_id || null,
+            notes: issueData.notes || selectedItem.notes,
+            serial_number: firstAssignment.serial_number,
+          } as any)
+          .eq("id", selectedItem.id);
+
+        if (updateError) throw updateError;
+
+        const splitRows = [
+          ...extraAssignments.map((a) => ({
+            pending_id: selectedItem.pending_id,
+            equipment_id: null,
+            media_player_id: a.media_player_id,
+            is_media_player: true,
+            equipment_code: selectedItem.equipment_code,
+            equipment_name: selectedItem.equipment_name,
+            quantity: 1,
+            unit: selectedItem.unit,
+            serial_number: a.serial_number,
+            billboard_id: a.billboard_id || selectedItem.billboard_id || null,
+            issued_quantity: 1,
+            remaining_quantity: 0,
+            status: "issued",
+            notes: issueData.notes || selectedItem.notes,
+          })),
+          ...(remainingUnissuedQty > 0 ? [{
+            pending_id: selectedItem.pending_id,
+            equipment_id: null,
+            media_player_id: null,
+            is_media_player: true,
+            equipment_code: selectedItem.equipment_code,
+            equipment_name: selectedItem.equipment_name,
+            quantity: remainingUnissuedQty,
+            unit: selectedItem.unit,
+            serial_number: null,
+            billboard_id: selectedItem.billboard_id,
+            issued_quantity: 0,
+            remaining_quantity: remainingUnissuedQty,
+            status: "waiting_stock",
+            notes: selectedItem.notes,
+          }] : []),
+        ];
+
+        if (splitRows.length > 0) {
+          const { error: splitError } = await supabase
+            .from("goods_issue_pending_items")
+            .insert(splitRows as any);
+          if (splitError) throw splitError;
+        }
+      } else {
+        const { error: updateError } = await supabase
+          .from("goods_issue_pending_items")
+          .update({
+            status: newStatus,
+            issued_quantity: totalIssued,
+            remaining_quantity: Math.max(0, remainingQty),
+            billboard_id: combinedBillboardId ?? selectedItem.billboard_id,
+            notes: issueData.notes || selectedItem.notes,
+            serial_number: combinedSerial ?? selectedItem.serial_number ?? null,
+          })
+          .eq("id", selectedItem.id);
+
+        if (updateError) throw updateError;
+      }
 
       // Handle Media Player or Equipment stock update
-      const parentRequest = pendingRequests?.find(r => r.id === selectedItem.pending_id);
 
       if (isMediaPlayer && issuedQty > 0) {
         // Loop each MP unit assignment
