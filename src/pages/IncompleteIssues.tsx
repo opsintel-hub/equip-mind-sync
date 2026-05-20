@@ -249,13 +249,14 @@ const IncompleteIssues = () => {
           .eq("id", selectedItem.media_player_id);
         if (mpUpdateError) throw mpUpdateError;
 
-        const { data: existingBE } = await supabase
+        const { data: existingBE, error: existingBEError } = await supabase
           .from("billboard_equipment")
           .select("id")
           .eq("equipment_id", selectedItem.media_player_id)
           .eq("billboard_id", billboardId)
           .eq("serial_number", selectedItem.serial_number || "")
           .maybeSingle();
+        if (existingBEError) throw existingBEError;
 
         if (!existingBE) {
           const { error: billboardMpError } = await supabase
@@ -272,7 +273,7 @@ const IncompleteIssues = () => {
           if (billboardMpError) throw billboardMpError;
         }
 
-        await (supabase as any).from("media_player_billboard_history").insert({
+        const { error: historyError } = await (supabase as any).from("media_player_billboard_history").insert({
           media_player_id: selectedItem.media_player_id,
           billboard_id: billboardId,
           installation_date: installationDate,
@@ -280,6 +281,7 @@ const IncompleteIssues = () => {
           installed_by: user.id,
           installation_notes: `จากเอกสาร ${selectedIssue?.document_no}`,
         });
+        if (historyError) throw historyError;
 
         await logStockMovement({
           equipment_id: selectedItem.media_player_id,
@@ -308,19 +310,24 @@ const IncompleteIssues = () => {
         if (billboardError) throw billboardError;
       }
 
-      // Check if all items now have billboard assigned
+      // Check from the database (not stale UI state) if all issued items now have billboard assigned
       if (selectedIssue) {
-        const issueItems = itemsByIssue.get(selectedIssue.id) || [];
-        const updatedItems = issueItems.map(item => 
-          item.id === selectedItem.id ? { ...item, billboard_id: billboardId } : item
+        const { data: latestItems, error: latestItemsError } = await supabase
+          .from("goods_issue_pending_items")
+          .select("id, status, billboard_id")
+          .eq("pending_id", selectedIssue.id);
+        if (latestItemsError) throw latestItemsError;
+
+        const allHaveBillboard = (latestItems || []).every(
+          (item: any) => item.status !== "issued" || !!item.billboard_id,
         );
-        const allHaveBillboard = updatedItems.every(item => item.billboard_id);
 
         if (allHaveBillboard) {
-          await supabase
+          const { error: completeError } = await supabase
             .from("goods_issue_pending")
-            .update({ is_complete: true, billboard_id: billboardId })
+            .update({ is_complete: true, billboard_id: selectedIssue.billboard_id || billboardId })
             .eq("id", selectedIssue.id);
+          if (completeError) throw completeError;
         }
       }
     },
@@ -328,6 +335,10 @@ const IncompleteIssues = () => {
       toast.success("บันทึกข้อมูลป้ายโฆษณาสำเร็จ");
       queryClient.invalidateQueries({ queryKey: ["incomplete-issues"] });
       queryClient.invalidateQueries({ queryKey: ["incomplete-issue-items"] });
+      queryClient.invalidateQueries({ queryKey: ["eq-tracking-media-players-all"] });
+      queryClient.invalidateQueries({ queryKey: ["billboard-tracking-media-players"] });
+      queryClient.invalidateQueries({ queryKey: ["media-player-report-v2"] });
+      queryClient.invalidateQueries({ queryKey: ["stock-card-items"] });
       setBillboardDialogOpen(false);
       setSelectedIssue(null);
       setSelectedItem(null);
