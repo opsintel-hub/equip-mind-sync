@@ -1092,6 +1092,9 @@ export default function StockCard() {
               const warningStep = steps.find(s => s.status === "warning");
               const allDone = steps.every(s => s.status === "done");
               const activeStep = rejectedStep || warningStep || currentStep;
+              const activeLabel = isMediaPlayerIssuedPending && activeStep?.label === "ติดตั้งป้าย"
+                ? "จ่ายแล้ว / รอระบุป้าย"
+                : activeStep?.label;
 
               return (
                 <div className="bg-muted/30 rounded-lg px-6 py-4 space-y-3">
@@ -1111,7 +1114,7 @@ export default function StockCard() {
                           activeStep.status === "current" && "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
                         )}>
                           <Clock className="w-3 h-3 animate-pulse" />
-                          {activeStep.label}
+                          {activeLabel}
                         </Badge>
                       ) : (
                         <Badge variant="outline">ไม่มีความเคลื่อนไหว</Badge>
