@@ -607,7 +607,7 @@ function EquipmentViewTab() {
   const { data: billboards } = useQuery({
     queryKey: ["eq-tracking-bb-lookup"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("billboards").select("id, old_code, location_name");
+      const { data, error } = await supabase.from("billboards").select("id, old_code, location_name, equipment_id");
       if (error) throw error;
       return data || [];
     },
@@ -1052,7 +1052,7 @@ function EquipmentDetailDialog({ item, onClose, bbLookup }: { item: any; onClose
                         : "-";
                       return (
                         <TableRow key={h.id}>
-                          <TableCell>{bb ? formatBillboardLabel(bb.old_code, bb.location_name) : h.billboard_id}</TableCell>
+                          <TableCell>{bb ? formatBillboardLabel(bb.old_code, bb.location_name, bb.equipment_id) : h.billboard_id}</TableCell>
                           <TableCell className="text-center">{h.quantity}</TableCell>
                           <TableCell className="text-xs">{fmtDate(h.installation_date)}</TableCell>
                           <TableCell className="text-xs">{fmtDate(h.uninstall_date)}</TableCell>
