@@ -108,26 +108,47 @@ const IncompleteIssues = () => {
 
       if (error) throw error;
 
+      // Load per-item billboard assignment to detect partially-assigned headers
+      const ids = (data || []).map((d: any) => d.id);
+      let itemsByPending = new Map<string, { billboard_id: string | null; status: string | null }[]>();
+      if (ids.length > 0) {
+        const { data: itemRows } = await supabase
+          .from("goods_issue_pending_items")
+          .select("pending_id, billboard_id, status")
+          .in("pending_id", ids);
+        (itemRows || []).forEach((r: any) => {
+          if (!itemsByPending.has(r.pending_id)) itemsByPending.set(r.pending_id, []);
+          itemsByPending.get(r.pending_id)!.push(r);
+        });
+      }
+
       // Filter to items that need billboard assignment or return
       const incomplete = (data || []).filter((item: IncompleteIssue) => {
         const purpose = item.purpose_id ? purposeMap.get(item.purpose_id) : null;
-        
-        // Need billboard assignment
-        if (purpose?.requires_billboard && !item.billboard_id) return true;
-        
+
+        // Need billboard assignment — either header has none, OR any issued line-item has none
+        if (purpose?.requires_billboard) {
+          const lineItems = itemsByPending.get(item.id) || [];
+          const anyItemMissing = lineItems.some(
+            (li) => li.status === "issued" && !li.billboard_id,
+          );
+          if (!item.billboard_id || anyItemMissing) return true;
+        }
+
         // Need return (claim vendor)
         if (purpose?.requires_return) {
           const returnedQty = item.return_quantity || 0;
           const issuedQty = item.issued_quantity || 0;
           if (returnedQty < issuedQty) return true;
         }
-        
+
         return false;
       });
 
       return { issues: incomplete as (IncompleteIssue & { companies: { name: string } | null })[], purposes };
     },
   });
+
 
   // Fetch defective returns pending warehouse entry
   const { data: defectiveReturns = [] } = useQuery({
