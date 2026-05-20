@@ -230,15 +230,16 @@ export default function StockCard() {
       const items: EquipmentItem[] = [];
 
       const [eqRes, mpRes, toolRes] = await Promise.all([
-        supabase.from("equipment").select("id, code, name, serial_number, category, brand, unit, department, quantity_in_stock, item_condition").eq("is_active", true),
-        supabase.from("media_players").select("id, code, name, serial_number_1, serial_number_2, brand, unit, department, quantity, item_condition, status, billboard_id").eq("is_active", true),
-        supabase.from("tools").select("id, code, name, serial_number, brand, unit, department, current_quantity").eq("is_active", true),
+        supabase.from("equipment").select("id, code, name, serial_number, category, brand, unit, department, quantity_in_stock, item_condition, location_id, locations:location_id(id, code, name, warehouses:warehouse_id(code, name))").eq("is_active", true),
+        supabase.from("media_players").select("id, code, name, serial_number_1, serial_number_2, brand, unit, department, quantity, item_condition, status, billboard_id, location_id, locations:location_id(id, code, name, warehouses:warehouse_id(code, name)), billboard:billboard_id(equipment_id, old_code, location_name)").eq("is_active", true),
+        supabase.from("tools").select("id, code, name, serial_number, brand, unit, department, current_quantity, location_id, locations:location_id(id, code, name, warehouses:warehouse_id(code, name))").eq("is_active", true),
       ]);
 
       eqRes.data?.forEach(e => items.push({
         id: e.id, code: e.code, name: e.name, serial_number: formatMergedSerials(e.serial_number, equipmentAliasMap[e.id]) || null,
         category: e.category, brand: e.brand, unit: e.unit, department: e.department,
         quantity_in_stock: e.quantity_in_stock, item_condition: e.item_condition, type: "equipment",
+        location_id: e.location_id, current_location: formatStorageLocation((e as any).locations),
       }));
 
       mpRes.data?.forEach(m => items.push({
@@ -247,12 +248,14 @@ export default function StockCard() {
         brand: m.brand, unit: m.unit, department: m.department,
         quantity_in_stock: m.quantity, item_condition: m.item_condition, type: "media_player",
         status: m.status, billboard_id: m.billboard_id,
+        location_id: m.location_id, current_location: m.billboard_id ? formatBillboardLocation((m as any).billboard) : formatStorageLocation((m as any).locations),
       }));
 
       toolRes.data?.forEach(t => items.push({
         id: t.id, code: t.code, name: t.name, serial_number: t.serial_number,
         brand: t.brand, unit: t.unit, department: t.department,
         quantity_in_stock: t.current_quantity, item_condition: "normal", type: "tool",
+        location_id: t.location_id, current_location: formatStorageLocation((t as any).locations),
       }));
 
       return items;
