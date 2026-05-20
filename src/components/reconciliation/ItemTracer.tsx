@@ -219,10 +219,10 @@ export default function ItemTracer() {
       setIssues(isu || []);
 
       // swap_requests (uses old/new_serial_number, no equipment_id)
-      const swapParts: string[] = [`document_no.ilike.${like}`];
-      allSerials.forEach(s => {
-        swapParts.push(`old_serial_number.eq.${s}`);
-        swapParts.push(`new_serial_number.eq.${s}`);
+      const swapParts: string[] = [`document_no.ilike.${quote(q)}`];
+      realSerials.forEach(s => {
+        swapParts.push(`old_serial_number.eq.${quote(s)}`);
+        swapParts.push(`new_serial_number.eq.${quote(s)}`);
       });
       if (mpIds.length) {
         swapParts.push(`old_media_player_id.in.(${mpIds.join(",")})`);
