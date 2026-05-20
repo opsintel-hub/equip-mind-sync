@@ -583,7 +583,7 @@ function EquipmentViewTab() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("media_players")
-        .select("id, name, code, serial_number_1, serial_number_2, brand, billboard_id, install_date, quantity, warranty_expiry_date, location_id, status")
+        .select("id, name, code, serial_number_1, serial_number_2, brand, billboard_id, install_date, quantity, warranty_expiry_date, location_id, status, billboard:billboard_id(id, old_code, location_name, equipment_id)")
         .eq("is_active", true)
         .order("code");
       if (error) throw error;
@@ -597,7 +597,7 @@ function EquipmentViewTab() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("billboard_equipment")
-        .select("equipment_id, billboard_id, quantity, installation_date, billboard:billboard_id(old_code, location_name)");
+        .select("equipment_id, billboard_id, quantity, installation_date, billboard:billboard_id(old_code, location_name, equipment_id)");
       if (error) throw error;
       return data || [];
     },
@@ -635,7 +635,7 @@ function EquipmentViewTab() {
     (equipment || []).forEach(eq => {
       const installed = installedAt[eq.id] || [];
       const bbInfo = installed.length > 0
-        ? installed.map(i => formatBillboardLabel((i.billboard as any)?.old_code, (i.billboard as any)?.location_name)).join(", ")
+        ? installed.map(i => formatBillboardLabel((i.billboard as any)?.old_code, (i.billboard as any)?.location_name, (i.billboard as any)?.equipment_id)).join(", ")
         : null;
       const snData = eqSNMap[eq.id];
       
@@ -663,10 +663,10 @@ function EquipmentViewTab() {
       }
     });
     (mediaPlayers || []).forEach(mp => {
-      const bb = mp.billboard_id ? bbLookup[mp.billboard_id] : null;
+      const bb = (mp as any).billboard || (mp.billboard_id ? bbLookup[mp.billboard_id] : null);
       const isIssuedPending = !mp.billboard_id && (mp.status === "issued" || mp.status === "in_transit");
       const installedBillboard = mp.billboard_id
-        ? (bb ? formatBillboardLabel(bb.old_code, bb.location_name) : "ติดตั้งบนป้าย")
+        ? (bb ? formatBillboardLabel(bb.old_code, bb.location_name, bb.equipment_id) : "ติดตั้งบนป้าย")
         : null;
       items.push({
         id: mp.id,
