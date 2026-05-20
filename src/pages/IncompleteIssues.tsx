@@ -418,9 +418,14 @@ const IncompleteIssues = () => {
 
   const getIssueType = (issue: IncompleteIssue): "billboard" | "return" => {
     const purpose = getPurposeInfo(issue.purpose_id);
-    if (purpose?.requires_billboard && !issue.billboard_id) return "billboard";
+    const items = itemsByIssue.get(issue.id) || [];
+    const anyItemMissingBillboard = items.some(
+      (it) => it.status === "issued" && !it.billboard_id,
+    );
+    if (purpose?.requires_billboard && (!issue.billboard_id || anyItemMissingBillboard)) return "billboard";
     return "return";
   };
+
 
   const getItemsNeedingBillboard = (issue: IncompleteIssue) => {
     const items = itemsByIssue.get(issue.id) || [];
