@@ -274,6 +274,7 @@ export default function StockCard() {
   }, [selectedItemId, allItems]);
 
   const hasSN = selectedItem && (selectedItem.serial_number || selectedItem.serial_number_2);
+  const isMediaPlayerIssuedPending = selectedItem?.type === "media_player" && !selectedItem.billboard_id && ["issued", "in_transit"].includes(selectedItem.status || "");
 
   // ── Fetch stock movements ──
   const { data: movements = [] } = useQuery({
@@ -987,6 +988,7 @@ export default function StockCard() {
               const hasInstall = timeline.some(e => e.type === "install" || e.type === "install_to_billboard");
               const hasUninstall = timeline.some(e => e.type === "uninstall" || e.type === "return_from_billboard");
               const isCurrentlyInstalled = currentInstallations.length > 0;
+              const awaitingBillboard = selectedItem?.type === "media_player" && isMediaPlayerIssuedPending;
               const inStock = (selectedItem?.quantity_in_stock || 0) > 0;
 
               const steps: ProcessStep[] = [
@@ -1023,12 +1025,14 @@ export default function StockCard() {
                   // Step: ยืนยันรับสินค้า (gate before install)
                   // If install has happened or item is currently installed, treat as confirmed
                   // (installation implies the receiver already accepted the goods)
-                  const treatAsConfirmed = isLastIssueConfirmed || hasInstall || isCurrentlyInstalled;
+                  const treatAsConfirmed = awaitingBillboard || isLastIssueConfirmed || hasInstall || isCurrentlyInstalled;
                   steps.push({
                     label: "ยืนยันรับสินค้า",
                     status: treatAsConfirmed ? "done" : "current",
                     date: isLastIssueConfirmed
                       ? confirmationDateByDoc.get(lastIssueDoc!)
+                      : awaitingBillboard
+                        ? lastIssueEvent?.date
                       : (hasInstall || isCurrentlyInstalled)
                         ? (lastInstallEvent?.date || currentInstallations[0]?.installation_date)
                         : undefined,
@@ -1039,10 +1043,11 @@ export default function StockCard() {
                     label: "ติดตั้งป้าย",
                     status: isCurrentlyInstalled
                       ? "done"
-                      : hasInstall ? "done" : (treatAsConfirmed ? "current" : "pending"),
+                      : hasInstall ? "done" : (awaitingBillboard ? "current" : (treatAsConfirmed ? "current" : "pending")),
                     date: isCurrentlyInstalled
                       ? currentInstallations[0]?.installation_date
                       : lastInstallEvent?.date,
+                    sublabel: awaitingBillboard ? "รอระบุป้าย" : undefined,
                   });
 
                   // ถอด/คืนคลัง:
