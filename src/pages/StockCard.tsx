@@ -1201,12 +1201,13 @@ export default function StockCard() {
             ) : (
               <>
                 <div className="overflow-x-auto">
-                  <Table className="min-w-[1200px]">
+                  <Table className="min-w-[1340px]">
                     <TableHeader>
                       <TableRow>
                         <TableHead className="w-[120px]">วันที่</TableHead>
                         <TableHead className="w-[130px]">ประเภท</TableHead>
                         <TableHead className="min-w-[200px]">รายละเอียด</TableHead>
+                        <TableHead className="min-w-[180px]">ตำแหน่งปัจจุบัน</TableHead>
                         <TableHead className="w-[140px]">Old Code</TableHead>
                         <TableHead className="w-[150px]">Equipment ID</TableHead>
                         <TableHead className="text-right w-[70px]">จำนวน</TableHead>
@@ -1234,6 +1235,7 @@ export default function StockCard() {
                               </Badge>
                             </TableCell>
                             <TableCell className="text-sm max-w-[260px] truncate" title={ev.detail}>{ev.detail}</TableCell>
+                            <TableCell className="text-xs whitespace-pre-line max-w-[240px]" title={currentLocationLabel}>{currentLocationLabel}</TableCell>
                             <TableCell>
                               {ev.billboard_old_code ? (
                                 <Badge variant="outline" className="text-xs font-mono bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-800/30">
