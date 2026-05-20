@@ -50,6 +50,8 @@ interface EquipmentItem {
   serial_number_2?: string | null;
   status?: string | null;
   billboard_id?: string | null;
+  location_id?: string | null;
+  current_location?: string | null;
 }
 
 interface TimelineEvent {
@@ -111,6 +113,19 @@ function getMovementMeta(type: string) {
 
 function getConditionMeta(cond: string | null | undefined) {
   return CONDITIONS.find(c => c.value === cond) || CONDITIONS[0];
+}
+
+function formatStorageLocation(location: any): string | null {
+  if (!location) return null;
+  const warehouse = location.warehouses;
+  const warehouseLabel = [warehouse?.code, warehouse?.name].filter(Boolean).join(" - ");
+  const locationLabel = [location.code, location.name].filter(Boolean).join(" - ");
+  if (warehouseLabel && locationLabel) return `${warehouseLabel} / ${locationLabel}`;
+  return locationLabel || warehouseLabel || null;
+}
+
+function formatBillboardLocation(billboard: any, fallback?: string | null): string {
+  return [billboard?.old_code, billboard?.equipment_id, billboard?.location_name].filter(Boolean).join(" - ") || fallback || "ป้าย";
 }
 
 // ── Multi-select filter component ──────────────────────────────
@@ -215,15 +230,16 @@ export default function StockCard() {
       const items: EquipmentItem[] = [];
 
       const [eqRes, mpRes, toolRes] = await Promise.all([
-        supabase.from("equipment").select("id, code, name, serial_number, category, brand, unit, department, quantity_in_stock, item_condition").eq("is_active", true),
-        supabase.from("media_players").select("id, code, name, serial_number_1, serial_number_2, brand, unit, department, quantity, item_condition, status, billboard_id").eq("is_active", true),
-        supabase.from("tools").select("id, code, name, serial_number, brand, unit, department, current_quantity").eq("is_active", true),
+        supabase.from("equipment").select("id, code, name, serial_number, category, brand, unit, department, quantity_in_stock, item_condition, location_id, locations:location_id(id, code, name, warehouses:warehouse_id(code, name))").eq("is_active", true),
+        supabase.from("media_players").select("id, code, name, serial_number_1, serial_number_2, brand, unit, department, quantity, item_condition, status, billboard_id, location_id, locations:location_id(id, code, name, warehouses:warehouse_id(code, name)), billboard:billboard_id(equipment_id, old_code, location_name)").eq("is_active", true),
+        supabase.from("tools").select("id, code, name, serial_number, brand, unit, department, current_quantity, location_id, locations:location_id(id, code, name, warehouses:warehouse_id(code, name))").eq("is_active", true),
       ]);
 
       eqRes.data?.forEach(e => items.push({
         id: e.id, code: e.code, name: e.name, serial_number: formatMergedSerials(e.serial_number, equipmentAliasMap[e.id]) || null,
         category: e.category, brand: e.brand, unit: e.unit, department: e.department,
         quantity_in_stock: e.quantity_in_stock, item_condition: e.item_condition, type: "equipment",
+        location_id: e.location_id, current_location: formatStorageLocation((e as any).locations),
       }));
 
       mpRes.data?.forEach(m => items.push({
@@ -232,12 +248,14 @@ export default function StockCard() {
         brand: m.brand, unit: m.unit, department: m.department,
         quantity_in_stock: m.quantity, item_condition: m.item_condition, type: "media_player",
         status: m.status, billboard_id: m.billboard_id,
+        location_id: m.location_id, current_location: m.billboard_id ? formatBillboardLocation((m as any).billboard) : formatStorageLocation((m as any).locations),
       }));
 
       toolRes.data?.forEach(t => items.push({
         id: t.id, code: t.code, name: t.name, serial_number: t.serial_number,
         brand: t.brand, unit: t.unit, department: t.department,
         quantity_in_stock: t.current_quantity, item_condition: "normal", type: "tool",
+        location_id: t.location_id, current_location: formatStorageLocation((t as any).locations),
       }));
 
       return items;
@@ -342,6 +360,15 @@ export default function StockCard() {
       return data || [];
     },
   });
+
+  const currentLocationLabel = useMemo(() => {
+    if (!selectedItem) return "-";
+    if (currentInstallations.length > 0) {
+      return currentInstallations.map((inst: any) => formatBillboardLocation(inst.billboards, inst.billboard_id)).join("\n");
+    }
+    if (isMediaPlayerIssuedPending) return "จ่ายแล้ว / รอระบุป้ายโฆษณา";
+    return selectedItem.current_location || (selectedItem.quantity_in_stock && selectedItem.quantity_in_stock > 0 ? "อยู่ในคลัง (ยังไม่ระบุตำแหน่ง)" : "ไม่พบตำแหน่งปัจจุบัน");
+  }, [selectedItem, currentInstallations, isMediaPlayerIssuedPending]);
 
   // ── Fetch media-player billboard history (uninstalls) ──
   const { data: mediaPlayerBillboardHistory = [] } = useQuery({
@@ -912,6 +939,10 @@ export default function StockCard() {
                   {selectedItem.category && <div><span className="text-muted-foreground">หมวด:</span> <span className="font-medium">{selectedItem.category}</span></div>}
                   {selectedItem.brand && <div><span className="text-muted-foreground">ยี่ห้อ:</span> <span className="font-medium">{selectedItem.brand}</span></div>}
                   {selectedItem.department && <div><span className="text-muted-foreground">ฝ่าย:</span> <span className="font-medium">{selectedItem.department}</span></div>}
+                  <div className="md:col-span-2">
+                    <span className="text-muted-foreground">ตำแหน่งปัจจุบัน:</span>{" "}
+                    <span className="font-medium whitespace-pre-line">{currentLocationLabel}</span>
+                  </div>
                   <div>
                     <span className="text-muted-foreground">สภาพ:</span>{" "}
                     <Badge variant="outline" className={`text-xs ${getConditionMeta(selectedItem.item_condition).color}`}>
@@ -1170,12 +1201,13 @@ export default function StockCard() {
             ) : (
               <>
                 <div className="overflow-x-auto">
-                  <Table className="min-w-[1200px]">
+                  <Table className="min-w-[1340px]">
                     <TableHeader>
                       <TableRow>
                         <TableHead className="w-[120px]">วันที่</TableHead>
                         <TableHead className="w-[130px]">ประเภท</TableHead>
                         <TableHead className="min-w-[200px]">รายละเอียด</TableHead>
+                        <TableHead className="min-w-[180px]">ตำแหน่งปัจจุบัน</TableHead>
                         <TableHead className="w-[140px]">Old Code</TableHead>
                         <TableHead className="w-[150px]">Equipment ID</TableHead>
                         <TableHead className="text-right w-[70px]">จำนวน</TableHead>
@@ -1203,6 +1235,7 @@ export default function StockCard() {
                               </Badge>
                             </TableCell>
                             <TableCell className="text-sm max-w-[260px] truncate" title={ev.detail}>{ev.detail}</TableCell>
+                            <TableCell className="text-xs whitespace-pre-line max-w-[240px]" title={currentLocationLabel}>{currentLocationLabel}</TableCell>
                             <TableCell>
                               {ev.billboard_old_code ? (
                                 <Badge variant="outline" className="text-xs font-mono bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-800/30">
