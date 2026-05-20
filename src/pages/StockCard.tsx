@@ -348,9 +348,19 @@ export default function StockCard() {
     queryFn: async () => {
       if (!selectedItemId) return [];
       if (selectedItemType === "media_player") {
+        // Source of truth = media_players.billboard_id. ถ้า MP ไม่ได้ผูกป้าย ให้ถือว่าไม่ติดตั้ง
+        // (กันกรณี history row ค้าง uninstall_date=NULL หลัง Swap/ถอด)
+        const { data: mpRow } = await supabase
+          .from("media_players")
+          .select("billboard_id")
+          .eq("id", selectedItemId)
+          .maybeSingle();
+        const currentBbId = (mpRow as any)?.billboard_id;
+        if (!currentBbId) return [];
         const { data } = await supabase.from("media_player_billboard_history")
           .select("*, billboards(equipment_id, old_code, location_name, description)")
           .eq("media_player_id", selectedItemId)
+          .eq("billboard_id", currentBbId)
           .is("uninstall_date", null);
         return (data || []).map((r: any) => ({ ...r, billboards: r.billboards }));
       }
