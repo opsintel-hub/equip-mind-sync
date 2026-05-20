@@ -733,7 +733,7 @@ function EquipmentViewTab() {
   const handleExport = () => {
     const rows = filtered.map(item => ({
       "Code": item.code, "ชื่อ": item.name, "S/N": item.serialDisplay, "ประเภท": item.itemType === "media_player" ? "Media Player" : item.category,
-      "Brand": item.brand || "-", "สต็อกคลัง": item.quantity_in_stock, "ติดตั้งที่ป้าย": item.installedBillboard || "ในคลัง",
+      "Brand": item.brand || "-", "สต็อกคลัง": item.quantity_in_stock, "ติดตั้งที่ป้าย": item.isInstalled ? (item.installedBillboard || "ติดตั้งบนป้าย") : (item.isIssuedPending ? "จ่ายแล้ว / รอระบุป้าย" : "ในคลัง"),
     }));
     const ws = XLSX.utils.json_to_sheet(rows);
     const wb = XLSX.utils.book_new();
@@ -833,8 +833,8 @@ function EquipmentViewTab() {
                   <TableCell className="text-xs">{item.brand || "-"}</TableCell>
                   <TableCell className="text-center">{item.quantity_in_stock}</TableCell>
                   <TableCell>
-                    {item.installedBillboard ? (
-                      <Badge className="bg-emerald-500 text-white hover:bg-emerald-600 text-xs"><MapPin className="w-3 h-3 mr-1" />{item.installedBillboard}</Badge>
+                    {item.isInstalled ? (
+                      <Badge className="bg-emerald-500 text-white hover:bg-emerald-600 text-xs"><MapPin className="w-3 h-3 mr-1" />{item.installedBillboard || "ติดตั้งบนป้าย"}</Badge>
                     ) : item.isIssuedPending ? (
                       <Badge variant="outline" className="text-xs bg-orange-500/10 text-orange-600 border-orange-500/20">จ่ายแล้ว / รอระบุป้าย</Badge>
                     ) : (
