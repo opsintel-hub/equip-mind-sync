@@ -713,8 +713,9 @@ function EquipmentViewTab() {
   // Summary stats — based on FILTERED results so cards reflect what user is searching
   const summaryStats = useMemo(() => {
     const installed = filtered.filter(i => i.isInstalled).length;
-    const inStock = filtered.filter(i => !i.isInstalled).length;
-    return { total: filtered.length, installed, inStock };
+    const issuedPending = filtered.filter(i => !i.isInstalled && (i as any).isIssuedPending).length;
+    const inStock = filtered.filter(i => !i.isInstalled && !(i as any).isIssuedPending).length;
+    return { total: filtered.length, installed, inStock, issuedPending };
   }, [filtered]);
 
   // Pagination
