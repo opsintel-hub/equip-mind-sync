@@ -50,6 +50,8 @@ interface EquipmentItem {
   serial_number_2?: string | null;
   status?: string | null;
   billboard_id?: string | null;
+  location_id?: string | null;
+  current_location?: string | null;
 }
 
 interface TimelineEvent {
@@ -111,6 +113,19 @@ function getMovementMeta(type: string) {
 
 function getConditionMeta(cond: string | null | undefined) {
   return CONDITIONS.find(c => c.value === cond) || CONDITIONS[0];
+}
+
+function formatStorageLocation(location: any): string | null {
+  if (!location) return null;
+  const warehouse = location.warehouses;
+  const warehouseLabel = [warehouse?.code, warehouse?.name].filter(Boolean).join(" - ");
+  const locationLabel = [location.code, location.name].filter(Boolean).join(" - ");
+  if (warehouseLabel && locationLabel) return `${warehouseLabel} / ${locationLabel}`;
+  return locationLabel || warehouseLabel || null;
+}
+
+function formatBillboardLocation(billboard: any, fallback?: string | null): string {
+  return [billboard?.old_code, billboard?.equipment_id, billboard?.location_name].filter(Boolean).join(" - ") || fallback || "ป้าย";
 }
 
 // ── Multi-select filter component ──────────────────────────────
