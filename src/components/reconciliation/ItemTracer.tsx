@@ -45,7 +45,7 @@ const statusTone = (s: string | null | undefined): string => {
   if (!s) return "bg-muted text-muted-foreground";
   if (["active", "in_stock", "completed", "approved", "received"].includes(s)) return "bg-emerald-100 text-emerald-800 border-emerald-300";
   if (["installed"].includes(s)) return "bg-blue-100 text-blue-800 border-blue-300";
-  if (["issued"].includes(s)) return "bg-orange-100 text-orange-800 border-orange-300";
+  if (["issued"].includes(s)) return "bg-warning/10 text-warning border-warning/30";
   if (["pending", "pending_approval", "waiting_stock", "pending_warehouse_return"].includes(s)) return "bg-amber-100 text-amber-800 border-amber-300";
   if (["pending_assessment"].includes(s)) return "bg-purple-100 text-purple-800 border-purple-300";
   if (["under_repair"].includes(s)) return "bg-cyan-100 text-cyan-800 border-cyan-300";
