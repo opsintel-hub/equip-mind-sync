@@ -237,7 +237,7 @@ export default function ItemTracer() {
       setSwaps(sw || []);
 
       // assessment_logs
-      const asParts = [snFilter];
+      const asParts = [...snParts];
       if (mpIds.length) asParts.push(`media_player_id.in.(${mpIds.join(",")})`);
       const { data: as } = await supabase
         .from("assessment_logs")
