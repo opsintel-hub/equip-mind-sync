@@ -440,6 +440,64 @@ const BillboardIssueReport = () => {
           <TablePagination currentPage={currentPage} totalPages={totalPages} totalItems={totalItems} pageSize={pageSize} onPageChange={handlePageChange} onPageSizeChange={handlePageSizeChange} />
         </CardContent>
       </Card>
+
+      {/* Per-item detail table — 1 row = 1 S/N */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Package className="w-5 h-5" />
+            รายละเอียดรายชิ้น (1 S/N = 1 แถว)
+          </CardTitle>
+          <CardDescription>รายการอุปกรณ์/Media Player ที่ติดตั้งบนป้ายแต่ละชิ้น</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="rounded-md border overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Old Code</TableHead>
+                  <TableHead>ตำแหน่ง</TableHead>
+                  <TableHead>รหัสสินค้า</TableHead>
+                  <TableHead>ชื่อสินค้า</TableHead>
+                  <TableHead>หมวดหมู่</TableHead>
+                  <TableHead>S/N</TableHead>
+                  <TableHead className="text-right">จำนวน</TableHead>
+                  <TableHead className="text-right">มูลค่า</TableHead>
+                  <TableHead>วันที่ติดตั้ง</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {isLoading ? (
+                  <TableRow><TableCell colSpan={9} className="text-center py-8">กำลังโหลด...</TableCell></TableRow>
+                ) : filteredData.length === 0 ? (
+                  <TableRow><TableCell colSpan={9} className="text-center py-8 text-muted-foreground">ไม่มีข้อมูล</TableCell></TableRow>
+                ) : (
+                  filteredData.map((item) => {
+                    const sn = (item.equipment as any)?.serial_number || "-";
+                    const cost = item.quantity * (item.equipment?.unit_price || 0);
+                    return (
+                      <TableRow key={item.id}>
+                        <TableCell className="font-mono font-medium">{item.billboard?.old_code || "-"}</TableCell>
+                        <TableCell className="text-sm">{item.billboard?.location_name || "-"}</TableCell>
+                        <TableCell className="font-mono text-xs">{item.equipment?.code || "-"}</TableCell>
+                        <TableCell>{item.equipment?.name || "-"}</TableCell>
+                        <TableCell><Badge variant="outline" className="text-xs">{item.equipment?.category || "-"}</Badge></TableCell>
+                        <TableCell className="font-mono text-xs whitespace-pre-line">{sn}</TableCell>
+                        <TableCell className="text-right">{item.quantity}</TableCell>
+                        <TableCell className="text-right">{formatCurrency(cost)}</TableCell>
+                        <TableCell className="text-xs text-muted-foreground">
+                          {item.installation_date ? format(new Date(item.installation_date), "d MMM yy", { locale: th }) : "-"}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })
+                )}
+              </TableBody>
+            </Table>
+          </div>
+          <div className="px-3 pt-2 text-sm text-muted-foreground border-t mt-2">แสดงทั้งหมด {filteredData.length.toLocaleString()} รายการ</div>
+        </CardContent>
+      </Card>
     </div>
   );
 };
