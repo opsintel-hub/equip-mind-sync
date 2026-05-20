@@ -358,7 +358,7 @@ const IssueGoods = () => {
             billboard_id: firstAssignment.billboard_id || selectedItem.billboard_id || null,
             notes: issueData.notes || selectedItem.notes,
             serial_number: firstAssignment.serial_number,
-          } as any)
+          })
           .eq("id", selectedItem.id);
 
         if (updateError) throw updateError;
@@ -401,7 +401,7 @@ const IssueGoods = () => {
         if (splitRows.length > 0) {
           const { error: splitError } = await supabase
             .from("goods_issue_pending_items")
-            .insert(splitRows as any);
+            .insert(splitRows);
           if (splitError) throw splitError;
         }
       } else {
@@ -449,7 +449,7 @@ const IssueGoods = () => {
               location_id: null,
               billboard_id: a.billboard_id || null,
               install_date: a.billboard_id ? new Date().toISOString().split('T')[0] : null,
-            } as any)
+            })
             .eq("id", a.media_player_id);
           if (stockError) throw stockError;
 
