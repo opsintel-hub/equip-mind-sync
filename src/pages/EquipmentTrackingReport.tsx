@@ -665,6 +665,9 @@ function EquipmentViewTab() {
     (mediaPlayers || []).forEach(mp => {
       const bb = mp.billboard_id ? bbLookup[mp.billboard_id] : null;
       const isIssuedPending = !mp.billboard_id && (mp.status === "issued" || mp.status === "in_transit");
+      const installedBillboard = mp.billboard_id
+        ? (bb ? formatBillboardLabel(bb.old_code, bb.location_name) : "ติดตั้งบนป้าย")
+        : null;
       items.push({
         id: mp.id,
         name: mp.name,
@@ -677,7 +680,7 @@ function EquipmentViewTab() {
         warranty_expiry_date: mp.warranty_expiry_date,
         itemType: "media_player",
         serialDisplay: [mp.serial_number_1, mp.serial_number_2].filter(Boolean).join("\n") || "-",
-        installedBillboard: bb ? formatBillboardLabel(bb.old_code, bb.location_name) : null,
+        installedBillboard,
         isInstalled: !!mp.billboard_id,
         isIssuedPending,
         mp_status: mp.status,
