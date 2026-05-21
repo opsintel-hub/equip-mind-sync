@@ -2098,6 +2098,45 @@ const DeliveryEntry = () => {
                               />
                             </div>
                           </div>
+                          {/* Per-device PO/OCR fields */}
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                            <div className="space-y-1">
+                              <Label className="text-xs">รุ่น (Model)</Label>
+                              <Input
+                                placeholder="เช่น DS-086GB2601-T"
+                                value={device.model}
+                                onChange={(e) => {
+                                  setMediaPlayerDevices((prev) =>
+                                    prev.map((d) => (d.id === device.id ? { ...d, model: e.target.value } : d)),
+                                  );
+                                }}
+                              />
+                            </div>
+                            <div className="space-y-1">
+                              <Label className="text-xs">ผู้ดูแลทรัพย์สิน</Label>
+                              <Input
+                                placeholder="ชื่อผู้ดูแล..."
+                                value={device.asset_caretaker}
+                                onChange={(e) => {
+                                  setMediaPlayerDevices((prev) =>
+                                    prev.map((d) => (d.id === device.id ? { ...d, asset_caretaker: e.target.value } : d)),
+                                  );
+                                }}
+                              />
+                            </div>
+                            <div className="space-y-1">
+                              <Label className="text-xs">Location ตามแผน PO</Label>
+                              <Input
+                                placeholder="เช่น Centerpoint of Siam Square"
+                                value={device.planned_install_location}
+                                onChange={(e) => {
+                                  setMediaPlayerDevices((prev) =>
+                                    prev.map((d) => (d.id === device.id ? { ...d, planned_install_location: e.target.value } : d)),
+                                  );
+                                }}
+                              />
+                            </div>
+                          </div>
                         </div>
                       ))}
                     </div>
