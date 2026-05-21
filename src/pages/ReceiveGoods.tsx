@@ -1445,38 +1445,49 @@ const ReceiveGoods = () => {
                 </div>
               </div>
 
-              {/* Lot Number 1, Lot Number 2, Serial Number & Unit Price - Read Only */}
+              {/* Lot Number 1, Lot Number 2, Serial Number 1/2 & Unit Price - Editable by warehouse */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div className="space-y-2">
                   <Label>Lot Number 1</Label>
-                  <Input 
-                    value={selectedReceipt.lot_number || "-"}
-                    disabled
-                    className={`bg-muted ${!selectedReceipt.lot_number ? 'text-muted-foreground' : ''}`}
+                  <Input
+                    value={editLot1}
+                    onChange={(e) => setEditLot1(e.target.value)}
+                    placeholder="-"
                   />
                 </div>
                 <div className="space-y-2">
                   <Label>Lot Number 2</Label>
-                  <Input 
-                    value={selectedReceipt.lot_number_2 || "-"}
-                    disabled
-                    className={`bg-muted ${!selectedReceipt.lot_number_2 ? 'text-muted-foreground' : ''}`}
+                  <Input
+                    value={editLot2}
+                    onChange={(e) => setEditLot2(e.target.value)}
+                    placeholder="-"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Serial Number</Label>
-                  <Input 
-                    value={selectedReceipt.serial_number || "-"}
-                    disabled
-                    className={`bg-muted ${!selectedReceipt.serial_number ? 'text-muted-foreground' : ''}`}
+                  <Label>Serial Number 1</Label>
+                  <Input
+                    value={editSerial1}
+                    onChange={(e) => setEditSerial1(e.target.value)}
+                    placeholder="กรอก S/N 1..."
                   />
                 </div>
                 <div className="space-y-2">
+                  <Label>Serial Number 2</Label>
+                  <Input
+                    value={editSerial2}
+                    onChange={(e) => setEditSerial2(e.target.value)}
+                    placeholder="กรอก S/N 2..."
+                  />
+                </div>
+                <div className="space-y-2 md:col-span-1">
                   <Label>ราคาต่อชิ้น</Label>
-                  <Input 
-                    value={selectedReceipt.unit_price ? selectedReceipt.unit_price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "-"}
-                    disabled
-                    className={`bg-muted ${!selectedReceipt.unit_price ? 'text-muted-foreground' : ''}`}
+                  <Input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={editUnitPrice}
+                    onChange={(e) => setEditUnitPrice(e.target.value)}
+                    placeholder="0.00"
                   />
                 </div>
               </div>
