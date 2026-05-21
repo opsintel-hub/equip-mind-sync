@@ -378,6 +378,12 @@ export function POUploadOCR({
     );
   };
 
+  const handleItemFieldChange = (index: number, field: keyof POOCRItem, value: any) => {
+    setItems((prev) =>
+      prev.map((item, i) => (i === index ? { ...item, [field]: value } : item))
+    );
+  };
+
   const handleImport = () => {
     if (!file) return;
 
