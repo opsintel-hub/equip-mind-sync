@@ -46,6 +46,11 @@ export interface POOCRItem {
   unit: string;
   unit_price: number | null;
   amount: number | null;
+  // Per-unit fields parsed from description
+  model?: string | null;
+  warranty_years?: number | null;
+  asset_caretaker?: string | null;
+  planned_location?: string | null;
   // Matching results
   matched_equipment_id?: string | null;
   matched_equipment_code?: string | null;
