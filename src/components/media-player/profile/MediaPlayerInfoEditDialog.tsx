@@ -3,50 +3,107 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogD
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { MediaPlayerRow } from "./types";
 
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  playerId: string;
-  initial: {
-    asset_caretaker?: string | null;
-    planned_install_location?: string | null;
-    asset_code?: string | null;
-    equipment_id_code?: string | null;
-  };
+  player: MediaPlayerRow;
   onSaved: () => void;
 }
 
-export function MediaPlayerInfoEditDialog({ open, onOpenChange, playerId, initial, onSaved }: Props) {
-  const [caretaker, setCaretaker] = useState("");
-  const [plannedLocation, setPlannedLocation] = useState("");
-  const [assetCode, setAssetCode] = useState("");
-  const [equipmentIdCode, setEquipmentIdCode] = useState("");
+type FormState = {
+  name: string;
+  brand: string;
+  specification: string;
+  serial_number_1: string;
+  serial_number_2: string;
+  remote_name: string;
+  activate_windows: string;
+  asset_caretaker: string;
+  planned_install_location: string;
+  asset_code: string;
+  equipment_id_code: string;
+  order_for_project: string;
+  po_number: string;
+  pr_number: string;
+  invoice_number: string;
+  unit_price: string;
+  depreciation_months: string;
+  usage_lifespan_months: string;
+  date_of_receipt: string;
+  warranty_expiry_date: string;
+  notes: string;
+};
+
+function init(p: MediaPlayerRow): FormState {
+  return {
+    name: p.name || "",
+    brand: p.brand || "",
+    specification: p.specification || "",
+    serial_number_1: p.serial_number_1 || "",
+    serial_number_2: p.serial_number_2 || "",
+    remote_name: p.remote_name || "",
+    activate_windows: p.activate_windows || "",
+    asset_caretaker: p.asset_caretaker || "",
+    planned_install_location: p.planned_install_location || "",
+    asset_code: p.asset_code || "",
+    equipment_id_code: p.equipment_id_code || "",
+    order_for_project: p.order_for_project || "",
+    po_number: p.po_number || "",
+    pr_number: p.pr_number || "",
+    invoice_number: p.invoice_number || "",
+    unit_price: p.unit_price?.toString() || "",
+    depreciation_months: p.depreciation_months?.toString() || "",
+    usage_lifespan_months: p.usage_lifespan_months?.toString() || "",
+    date_of_receipt: p.date_of_receipt || "",
+    warranty_expiry_date: p.warranty_expiry_date || "",
+    notes: p.notes || "",
+  };
+}
+
+export function MediaPlayerInfoEditDialog({ open, onOpenChange, player, onSaved }: Props) {
+  const [form, setForm] = useState<FormState>(() => init(player));
   const [saving, setSaving] = useState(false);
 
-  useEffect(() => {
-    if (open) {
-      setCaretaker(initial.asset_caretaker || "");
-      setPlannedLocation(initial.planned_install_location || "");
-      setAssetCode(initial.asset_code || "");
-      setEquipmentIdCode(initial.equipment_id_code || "");
-    }
-  }, [open, initial]);
+  useEffect(() => { if (open) setForm(init(player)); }, [open, player]);
+
+  const set = (k: keyof FormState) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
+    setForm((prev) => ({ ...prev, [k]: e.target.value }));
+
+  const toNull = (s: string) => (s.trim() ? s.trim() : null);
+  const toNum = (s: string) => { const n = parseFloat(s); return Number.isFinite(n) ? n : null; };
 
   const handleSave = async () => {
     setSaving(true);
     try {
-      const { error } = await supabase
-        .from("media_players")
-        .update({
-          asset_caretaker: caretaker.trim() || null,
-          planned_install_location: plannedLocation.trim() || null,
-          asset_code: assetCode.trim() || null,
-          equipment_id_code: equipmentIdCode.trim() || null,
-        } as any)
-        .eq("id", playerId);
+      const payload: any = {
+        name: form.name.trim() || player.name,
+        brand: toNull(form.brand),
+        specification: toNull(form.specification),
+        serial_number_1: toNull(form.serial_number_1),
+        serial_number_2: toNull(form.serial_number_2),
+        remote_name: toNull(form.remote_name),
+        activate_windows: toNull(form.activate_windows),
+        asset_caretaker: toNull(form.asset_caretaker),
+        planned_install_location: toNull(form.planned_install_location),
+        asset_code: toNull(form.asset_code),
+        equipment_id_code: toNull(form.equipment_id_code),
+        order_for_project: toNull(form.order_for_project),
+        po_number: toNull(form.po_number),
+        pr_number: toNull(form.pr_number),
+        invoice_number: toNull(form.invoice_number),
+        unit_price: toNum(form.unit_price),
+        depreciation_months: toNum(form.depreciation_months),
+        usage_lifespan_months: toNum(form.usage_lifespan_months),
+        date_of_receipt: toNull(form.date_of_receipt),
+        warranty_expiry_date: toNull(form.warranty_expiry_date),
+        notes: toNull(form.notes),
+      };
+      const { error } = await supabase.from("media_players").update(payload).eq("id", player.id);
       if (error) throw error;
       toast.success("บันทึกข้อมูลเรียบร้อย");
       onOpenChange(false);
@@ -60,31 +117,69 @@ export function MediaPlayerInfoEditDialog({ open, onOpenChange, playerId, initia
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>แก้ไขข้อมูลทรัพย์สิน</DialogTitle>
-          <DialogDescription>เฉพาะเจ้าหน้าที่คลังเท่านั้นที่สามารถแก้ไขได้</DialogDescription>
+          <DialogTitle>แก้ไขข้อมูล Media Player</DialogTitle>
+          <DialogDescription>
+            เฉพาะเจ้าหน้าที่คลังเท่านั้น • รหัส ({player.code}) และ จำนวนคงคลังแก้ไขที่นี่ไม่ได้
+          </DialogDescription>
         </DialogHeader>
-        <div className="space-y-3">
-          <div className="space-y-2">
-            <Label>ผู้ดูแลทรัพย์สิน</Label>
-            <Input value={caretaker} onChange={(e) => setCaretaker(e.target.value)} placeholder="ชื่อผู้ดูแล..." />
-          </div>
-          <div className="space-y-2">
-            <Label>Location ตามแผน PO</Label>
-            <Input value={plannedLocation} onChange={(e) => setPlannedLocation(e.target.value)} placeholder="ตำแหน่งติดตั้งตามแผน..." />
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-2">
-              <Label>รหัสทรัพย์สิน</Label>
-              <Input value={assetCode} onChange={(e) => setAssetCode(e.target.value)} />
+
+        <div className="space-y-5">
+          {/* Identity */}
+          <section className="space-y-3">
+            <h4 className="text-sm font-semibold text-primary">ข้อมูลทั่วไป</h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div className="space-y-1.5"><Label>ชื่อสินค้า</Label><Input value={form.name} onChange={set("name")} /></div>
+              <div className="space-y-1.5"><Label>ยี่ห้อ</Label><Input value={form.brand} onChange={set("brand")} /></div>
+              <div className="md:col-span-2 space-y-1.5"><Label>Specification</Label><Textarea value={form.specification} onChange={set("specification")} rows={2} /></div>
+              <div className="space-y-1.5"><Label>S/N 1</Label><Input value={form.serial_number_1} onChange={set("serial_number_1")} /></div>
+              <div className="space-y-1.5"><Label>S/N 2</Label><Input value={form.serial_number_2} onChange={set("serial_number_2")} /></div>
+              <div className="space-y-1.5"><Label>Remote Name</Label><Input value={form.remote_name} onChange={set("remote_name")} /></div>
+              <div className="space-y-1.5"><Label>Activate Windows</Label><Input value={form.activate_windows} onChange={set("activate_windows")} /></div>
             </div>
-            <div className="space-y-2">
-              <Label>Equipment ID</Label>
-              <Input value={equipmentIdCode} onChange={(e) => setEquipmentIdCode(e.target.value)} />
+          </section>
+
+          {/* Asset */}
+          <section className="space-y-3 p-3 bg-primary/5 border border-primary/20 rounded-lg">
+            <h4 className="text-sm font-semibold text-primary">ข้อมูลทรัพย์สิน</h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div className="space-y-1.5"><Label>ผู้ดูแลทรัพย์สิน</Label><Input value={form.asset_caretaker} onChange={set("asset_caretaker")} /></div>
+              <div className="space-y-1.5"><Label>Location ตามแผน PO</Label><Input value={form.planned_install_location} onChange={set("planned_install_location")} /></div>
+              <div className="space-y-1.5"><Label>รหัสทรัพย์สิน</Label><Input value={form.asset_code} onChange={set("asset_code")} /></div>
+              <div className="space-y-1.5"><Label>Equipment ID</Label><Input value={form.equipment_id_code} onChange={set("equipment_id_code")} /></div>
+              <div className="md:col-span-2 space-y-1.5"><Label>Order For Project</Label><Input value={form.order_for_project} onChange={set("order_for_project")} /></div>
             </div>
+          </section>
+
+          {/* Pricing & lifespan */}
+          <section className="space-y-3">
+            <h4 className="text-sm font-semibold text-primary">ราคา & อายุการใช้งาน</h4>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div className="space-y-1.5"><Label>ราคา (บาท)</Label><Input type="number" value={form.unit_price} onChange={set("unit_price")} /></div>
+              <div className="space-y-1.5"><Label>ค่าเสื่อม (เดือน)</Label><Input type="number" value={form.depreciation_months} onChange={set("depreciation_months")} /></div>
+              <div className="space-y-1.5"><Label>อายุใช้งาน (เดือน)</Label><Input type="number" value={form.usage_lifespan_months} onChange={set("usage_lifespan_months")} /></div>
+              <div className="space-y-1.5"><Label>วันที่รับเข้าคลัง</Label><Input type="date" value={form.date_of_receipt} onChange={set("date_of_receipt")} /></div>
+              <div className="space-y-1.5"><Label>วันหมดประกัน</Label><Input type="date" value={form.warranty_expiry_date} onChange={set("warranty_expiry_date")} /></div>
+            </div>
+          </section>
+
+          {/* Documents */}
+          <section className="space-y-3">
+            <h4 className="text-sm font-semibold text-primary">เลขที่เอกสาร</h4>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div className="space-y-1.5"><Label>PO No.</Label><Input value={form.po_number} onChange={set("po_number")} /></div>
+              <div className="space-y-1.5"><Label>PR No.</Label><Input value={form.pr_number} onChange={set("pr_number")} /></div>
+              <div className="space-y-1.5"><Label>Invoice No.</Label><Input value={form.invoice_number} onChange={set("invoice_number")} /></div>
+            </div>
+          </section>
+
+          <div className="space-y-1.5">
+            <Label>หมายเหตุ</Label>
+            <Textarea value={form.notes} onChange={set("notes")} rows={3} />
           </div>
         </div>
+
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>ยกเลิก</Button>
           <Button onClick={handleSave} disabled={saving}>{saving ? "กำลังบันทึก..." : "บันทึก"}</Button>
