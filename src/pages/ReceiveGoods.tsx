@@ -603,14 +603,12 @@ const ReceiveGoods = () => {
                 item_condition: itemCondition,
               };
 
-        // Receipt S/N is authoritative — always overwrite serial_number_1 and serial_number_2
-        const singleReceiptSerial = selectedReceipt.serial_number?.trim();
-        if (singleReceiptSerial) {
-          mpUpdatePayload.serial_number_1 = singleReceiptSerial;
+        // Use edited S/N values (warehouse can correct receipt values)
+        if (trimmedSerial1) {
+          mpUpdatePayload.serial_number_1 = trimmedSerial1;
         }
-        const singleReceiptSerial2 = (selectedReceipt as any).serial_number_2?.trim();
-        if (singleReceiptSerial2) {
-          mpUpdatePayload.serial_number_2 = singleReceiptSerial2;
+        if (trimmedSerial2) {
+          mpUpdatePayload.serial_number_2 = trimmedSerial2;
         }
 
         // Always update department from receipt (authoritative source)
@@ -623,7 +621,7 @@ const ReceiveGoods = () => {
         const sr: any = selectedReceipt;
         if (sr.supplier_id) mpUpdatePayload.supplier_id = sr.supplier_id;
         if (sr.company_id) mpUpdatePayload.company_id = sr.company_id;
-        if (sr.unit_price != null) mpUpdatePayload.unit_price = sr.unit_price;
+        if (parsedUnitPrice != null) mpUpdatePayload.unit_price = parsedUnitPrice;
         if (sr.received_at) mpUpdatePayload.date_of_receipt = String(sr.received_at).slice(0, 10);
         if (sr.po_number) mpUpdatePayload.po_number = sr.po_number;
         if (sr.pr_number) mpUpdatePayload.pr_number = sr.pr_number;
