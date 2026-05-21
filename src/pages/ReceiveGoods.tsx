@@ -700,7 +700,7 @@ const ReceiveGoods = () => {
             created_by: user?.id || "",
             notes: `นำเข้าจากเอกสาร ${selectedReceipt.document_no}. ${editNotes || ""}`.trim(),
             status: "completed",
-            unit_price: selectedReceipt.unit_price || null
+            unit_price: parsedUnitPrice ?? selectedReceipt.unit_price ?? null
           });
 
         if (grError) throw grError;
@@ -714,9 +714,8 @@ const ReceiveGoods = () => {
             item_condition: itemCondition,
           };
 
-        const singleEqSerial = selectedReceipt.serial_number?.trim();
-        if (singleEqSerial && !currentEquipment?.serial_number?.trim()) {
-          eqUpdatePayload.serial_number = singleEqSerial;
+        if (trimmedSerial1) {
+          eqUpdatePayload.serial_number = trimmedSerial1;
         }
 
         if (eqDeptName) {
