@@ -1340,103 +1340,133 @@ const DeliveryEntry = () => {
     );
     if (purchasePurpose) setSelectedReceiptPurposeId(purchasePurpose.id);
 
-    // Add items to cart
+    // Helper: ขยาย 1 PO row → N cart rows (1 ต่อเครื่อง) เพื่อรองรับ Asset No รายเครื่อง
+    // ถ้า PO row มี qty 1 จะได้ 1 บรรทัด ถ้ามากกว่า 1 จะ clone โดย Asset No/Caretaker/Location ใช้ของบรรทัดแรกแล้วคนแก้ภายหลัง
+    const calcWarrantyExpiry = (years: number | null | undefined): string => {
+      if (!years || years <= 0) return "";
+      const d = new Date();
+      d.setFullYear(d.getFullYear() + Math.floor(years));
+      // รองรับ 0.5 ปี = 6 เดือน
+      const extraMonths = Math.round((years - Math.floor(years)) * 12);
+      if (extraMonths > 0) d.setMonth(d.getMonth() + extraMonths);
+      return d.toISOString().slice(0, 10);
+    };
+
+    // Add items to cart (1 PO line → quantity จำนวน cart lines)
     const newCartItems: DeliveryCartItem[] = [];
     for (const item of data.items) {
-      if (item.matched_equipment_id && item.matched_is_media_player) {
-        const mp = mediaPlayers.find((m) => m.id === item.matched_equipment_id);
-        if (mp) {
+      const qty = Math.max(1, Math.round(item.quantity || 1));
+      const warrantyDate = calcWarrantyExpiry(item.warranty_years);
+      const baseAssetNo = item.asset_no || "";
+      const caretaker = item.asset_caretaker || "";
+      const planned = item.planned_location || "";
+      const modelNote = item.model ? `รุ่น: ${item.model}` : "";
+      const composedNotes = [item.description, modelNote].filter(Boolean).join(" | ");
+
+      for (let unitIdx = 0; unitIdx < qty; unitIdx++) {
+        const assetCodeForUnit = qty === 1 ? baseAssetNo : (unitIdx === 0 ? baseAssetNo : "");
+
+        if (item.matched_equipment_id && item.matched_is_media_player) {
+          const mp = mediaPlayers.find((m) => m.id === item.matched_equipment_id);
+          if (mp) {
+            newCartItems.push({
+              id: crypto.randomUUID(),
+              equipment_id: null,
+              equipment_code: mp.code,
+              equipment_name: mp.name,
+              quantity: 1,
+              unit: item.unit || "เครื่อง",
+              supplier_name: data.supplierName,
+              supplier_id: data.supplierId,
+              lot_number_1: "",
+              lot_number_2: "",
+              serial_number: "",
+              unit_price: item.unit_price ?? (mp.unit_price || 0),
+              notes: composedNotes,
+              expiry_date: "",
+              warranty_expiry_date: warrantyDate,
+              storage_width_cm: "",
+              storage_height_cm: "",
+              storage_depth_cm: "",
+              storage_volume_cm3: "",
+              is_asset: !!assetCodeForUnit,
+              asset_code: assetCodeForUnit,
+              equipment_id_code: "",
+              waiting_asset_code: !assetCodeForUnit,
+              waiting_equipment_id: false,
+              depreciation_months: "",
+              is_media_player: true,
+              media_player_id: mp.id,
+              asset_caretaker: caretaker,
+              planned_install_location: planned,
+            });
+            continue;
+          }
+        }
+        if (item.matched_equipment_id) {
+          const eq = equipment.find((e) => e.id === item.matched_equipment_id);
+          if (eq) {
+            newCartItems.push({
+              id: crypto.randomUUID(),
+              equipment_id: eq.id,
+              equipment_code: eq.code,
+              equipment_name: eq.name,
+              quantity: 1,
+              unit: eq.unit || item.unit,
+              supplier_name: data.supplierName,
+              supplier_id: data.supplierId,
+              lot_number_1: "",
+              lot_number_2: "",
+              serial_number: "",
+              unit_price: item.unit_price ?? eq.unit_price,
+              notes: composedNotes,
+              expiry_date: "",
+              warranty_expiry_date: warrantyDate,
+              storage_width_cm: "",
+              storage_height_cm: "",
+              storage_depth_cm: "",
+              storage_volume_cm3: "",
+              is_asset: !!assetCodeForUnit,
+              asset_code: assetCodeForUnit,
+              equipment_id_code: "",
+              waiting_asset_code: !assetCodeForUnit,
+              waiting_equipment_id: false,
+              depreciation_months: "",
+              asset_caretaker: caretaker,
+              planned_install_location: planned,
+            });
+          }
+        } else {
           newCartItems.push({
             id: crypto.randomUUID(),
             equipment_id: null,
-            equipment_code: mp.code,
-            equipment_name: mp.name,
-            quantity: item.quantity,
-            unit: item.unit || "เครื่อง",
+            equipment_code: item.item_no || "",
+            equipment_name: item.description,
+            quantity: 1,
+            unit: item.unit,
             supplier_name: data.supplierName,
             supplier_id: data.supplierId,
             lot_number_1: "",
             lot_number_2: "",
             serial_number: "",
-            unit_price: item.unit_price ?? (mp.unit_price || 0),
-            notes: item.description,
+            unit_price: item.unit_price ?? 0,
+            notes: `[จาก PO] ${composedNotes}`,
             expiry_date: "",
-            warranty_expiry_date: "",
+            warranty_expiry_date: warrantyDate,
             storage_width_cm: "",
             storage_height_cm: "",
             storage_depth_cm: "",
             storage_volume_cm3: "",
-            is_asset: false,
-            asset_code: "",
+            is_asset: !!assetCodeForUnit,
+            asset_code: assetCodeForUnit,
             equipment_id_code: "",
-            waiting_asset_code: false,
+            waiting_asset_code: !assetCodeForUnit,
             waiting_equipment_id: false,
             depreciation_months: "",
-            is_media_player: true,
-            media_player_id: mp.id,
-          });
-          continue;
-        }
-      }
-      if (item.matched_equipment_id) {
-        const eq = equipment.find((e) => e.id === item.matched_equipment_id);
-        if (eq) {
-          newCartItems.push({
-            id: crypto.randomUUID(),
-            equipment_id: eq.id,
-            equipment_code: eq.code,
-            equipment_name: eq.name,
-            quantity: item.quantity,
-            unit: eq.unit || item.unit,
-            supplier_name: data.supplierName,
-            supplier_id: data.supplierId,
-            lot_number_1: "",
-            lot_number_2: "",
-            serial_number: "",
-            unit_price: item.unit_price ?? eq.unit_price,
-            notes: item.description,
-            expiry_date: "",
-            warranty_expiry_date: "",
-            storage_width_cm: "",
-            storage_height_cm: "",
-            storage_depth_cm: "",
-            storage_volume_cm3: "",
-            is_asset: false,
-            asset_code: "",
-            equipment_id_code: "",
-            waiting_asset_code: false,
-            waiting_equipment_id: false,
-            depreciation_months: "",
+            asset_caretaker: caretaker,
+            planned_install_location: planned,
           });
         }
-      } else {
-        newCartItems.push({
-          id: crypto.randomUUID(),
-          equipment_id: null,
-          equipment_code: item.item_no || "",
-          equipment_name: item.description,
-          quantity: item.quantity,
-          unit: item.unit,
-          supplier_name: data.supplierName,
-          supplier_id: data.supplierId,
-          lot_number_1: "",
-          lot_number_2: "",
-          serial_number: "",
-          unit_price: item.unit_price ?? 0,
-          notes: `[จาก PO] ${item.description}`,
-          expiry_date: "",
-          warranty_expiry_date: "",
-          storage_width_cm: "",
-          storage_height_cm: "",
-          storage_depth_cm: "",
-          storage_volume_cm3: "",
-          is_asset: false,
-          asset_code: "",
-          equipment_id_code: "",
-          waiting_asset_code: false,
-          waiting_equipment_id: false,
-          depreciation_months: "",
-        });
       }
     }
 
