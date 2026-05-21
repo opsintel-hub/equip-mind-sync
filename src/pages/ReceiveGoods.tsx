@@ -146,6 +146,11 @@ const ReceiveGoods = () => {
   const [editEquipmentIdCode, setEditEquipmentIdCode] = useState("");
   const [editCaretaker, setEditCaretaker] = useState("");
   const [editPlannedLocation, setEditPlannedLocation] = useState("");
+  const [editSerial1, setEditSerial1] = useState("");
+  const [editSerial2, setEditSerial2] = useState("");
+  const [editLot1, setEditLot1] = useState("");
+  const [editLot2, setEditLot2] = useState("");
+  const [editUnitPrice, setEditUnitPrice] = useState("");
 
   // Form state for editing - only editable fields
   const [editNotes, setEditNotes] = useState("");
