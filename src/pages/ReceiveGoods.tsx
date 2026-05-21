@@ -144,6 +144,8 @@ const ReceiveGoods = () => {
   const [previewTitle, setPreviewTitle] = useState<string>("ดูเอกสารแนบ");
   const [editAssetCode, setEditAssetCode] = useState("");
   const [editEquipmentIdCode, setEditEquipmentIdCode] = useState("");
+  const [editCaretaker, setEditCaretaker] = useState("");
+  const [editPlannedLocation, setEditPlannedLocation] = useState("");
 
   // Form state for editing - only editable fields
   const [editNotes, setEditNotes] = useState("");
