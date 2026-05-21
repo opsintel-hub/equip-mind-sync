@@ -623,8 +623,10 @@ const ReceiveGoods = () => {
         const finalEquipmentIdCode = trimmedEquipmentIdCode || sr.equipment_id_code;
         if (finalAssetCode) mpUpdatePayload.asset_code = finalAssetCode;
         if (finalEquipmentIdCode) mpUpdatePayload.equipment_id_code = finalEquipmentIdCode;
-        if ((sr as any).asset_caretaker) mpUpdatePayload.asset_caretaker = (sr as any).asset_caretaker;
-        if ((sr as any).planned_install_location) mpUpdatePayload.planned_install_location = (sr as any).planned_install_location;
+        const finalCaretaker = editCaretaker.trim() || (sr as any).asset_caretaker;
+        const finalPlannedLocation = editPlannedLocation.trim() || (sr as any).planned_install_location;
+        if (finalCaretaker) mpUpdatePayload.asset_caretaker = finalCaretaker;
+        if (finalPlannedLocation) mpUpdatePayload.planned_install_location = finalPlannedLocation;
 
         const { error: mpError } = await supabase
               .from("media_players")
