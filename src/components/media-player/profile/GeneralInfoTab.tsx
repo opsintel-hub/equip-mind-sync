@@ -118,6 +118,20 @@ export function GeneralInfoTab({ player, modelName, onUpdated }: GeneralInfoTabP
       publicUrl={previewDocUrl}
       title="ดูเอกสาร Media Player"
     />
+    {canEdit && (
+      <MediaPlayerInfoEditDialog
+        open={editOpen}
+        onOpenChange={setEditOpen}
+        playerId={player.id}
+        initial={{
+          asset_caretaker: player.asset_caretaker,
+          planned_install_location: player.planned_install_location,
+          asset_code: player.asset_code,
+          equipment_id_code: player.equipment_id_code,
+        }}
+        onSaved={() => onUpdated?.()}
+      />
+    )}
     </>
   );
 }
