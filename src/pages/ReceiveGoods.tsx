@@ -146,6 +146,11 @@ const ReceiveGoods = () => {
   const [editEquipmentIdCode, setEditEquipmentIdCode] = useState("");
   const [editCaretaker, setEditCaretaker] = useState("");
   const [editPlannedLocation, setEditPlannedLocation] = useState("");
+  const [editSerial1, setEditSerial1] = useState("");
+  const [editSerial2, setEditSerial2] = useState("");
+  const [editLot1, setEditLot1] = useState("");
+  const [editLot2, setEditLot2] = useState("");
+  const [editUnitPrice, setEditUnitPrice] = useState("");
 
   // Form state for editing - only editable fields
   const [editNotes, setEditNotes] = useState("");
@@ -354,6 +359,11 @@ const ReceiveGoods = () => {
     setEditEquipmentIdCode(receipt.equipment_id_code || "");
     setEditCaretaker((receipt as any).asset_caretaker || "");
     setEditPlannedLocation((receipt as any).planned_install_location || "");
+    setEditSerial1(receipt.serial_number || "");
+    setEditSerial2((receipt as any).serial_number_2 || "");
+    setEditLot1(receipt.lot_number || "");
+    setEditLot2(receipt.lot_number_2 || "");
+    setEditUnitPrice(receipt.unit_price != null ? String(receipt.unit_price) : "");
     setIsDialogOpen(true);
   };
 
@@ -518,6 +528,11 @@ const ReceiveGoods = () => {
       // Update pending receipt status (และ persist รหัสทรัพย์สิน/อุปกรณ์ที่ผู้รับเข้ากรอก)
       const trimmedAssetCode = editAssetCode.trim();
       const trimmedEquipmentIdCode = editEquipmentIdCode.trim();
+      const trimmedSerial1 = editSerial1.trim();
+      const trimmedSerial2 = editSerial2.trim();
+      const trimmedLot1 = editLot1.trim();
+      const trimmedLot2 = editLot2.trim();
+      const parsedUnitPrice = editUnitPrice.trim() === "" ? null : Number(editUnitPrice);
       const { error: updateError } = await supabase
         .from("goods_receipt_pending")
         .update({
@@ -529,6 +544,13 @@ const ReceiveGoods = () => {
           received_sub_storage_slot_id: storageLocation.subStorageSlotId || null,
           notes: editNotes || null,
           storage_volume_cm3: storageVolumeValue,
+          serial_number: trimmedSerial1 || null,
+          serial_number_2: trimmedSerial2 || null,
+          lot_number: trimmedLot1 || null,
+          lot_number_2: trimmedLot2 || null,
+          unit_price: parsedUnitPrice,
+          asset_caretaker: editCaretaker.trim() || null,
+          planned_install_location: editPlannedLocation.trim() || null,
           ...(selectedReceipt.is_asset
             ? {
                 asset_code: trimmedAssetCode || null,
@@ -581,14 +603,12 @@ const ReceiveGoods = () => {
                 item_condition: itemCondition,
               };
 
-        // Receipt S/N is authoritative — always overwrite serial_number_1 and serial_number_2
-        const singleReceiptSerial = selectedReceipt.serial_number?.trim();
-        if (singleReceiptSerial) {
-          mpUpdatePayload.serial_number_1 = singleReceiptSerial;
+        // Use edited S/N values (warehouse can correct receipt values)
+        if (trimmedSerial1) {
+          mpUpdatePayload.serial_number_1 = trimmedSerial1;
         }
-        const singleReceiptSerial2 = (selectedReceipt as any).serial_number_2?.trim();
-        if (singleReceiptSerial2) {
-          mpUpdatePayload.serial_number_2 = singleReceiptSerial2;
+        if (trimmedSerial2) {
+          mpUpdatePayload.serial_number_2 = trimmedSerial2;
         }
 
         // Always update department from receipt (authoritative source)
@@ -601,7 +621,7 @@ const ReceiveGoods = () => {
         const sr: any = selectedReceipt;
         if (sr.supplier_id) mpUpdatePayload.supplier_id = sr.supplier_id;
         if (sr.company_id) mpUpdatePayload.company_id = sr.company_id;
-        if (sr.unit_price != null) mpUpdatePayload.unit_price = sr.unit_price;
+        if (parsedUnitPrice != null) mpUpdatePayload.unit_price = parsedUnitPrice;
         if (sr.received_at) mpUpdatePayload.date_of_receipt = String(sr.received_at).slice(0, 10);
         if (sr.po_number) mpUpdatePayload.po_number = sr.po_number;
         if (sr.pr_number) mpUpdatePayload.pr_number = sr.pr_number;
@@ -680,7 +700,7 @@ const ReceiveGoods = () => {
             created_by: user?.id || "",
             notes: `นำเข้าจากเอกสาร ${selectedReceipt.document_no}. ${editNotes || ""}`.trim(),
             status: "completed",
-            unit_price: selectedReceipt.unit_price || null
+            unit_price: parsedUnitPrice ?? selectedReceipt.unit_price ?? null
           });
 
         if (grError) throw grError;
@@ -694,9 +714,8 @@ const ReceiveGoods = () => {
             item_condition: itemCondition,
           };
 
-        const singleEqSerial = selectedReceipt.serial_number?.trim();
-        if (singleEqSerial && !currentEquipment?.serial_number?.trim()) {
-          eqUpdatePayload.serial_number = singleEqSerial;
+        if (trimmedSerial1) {
+          eqUpdatePayload.serial_number = trimmedSerial1;
         }
 
         if (eqDeptName) {
@@ -1426,38 +1445,49 @@ const ReceiveGoods = () => {
                 </div>
               </div>
 
-              {/* Lot Number 1, Lot Number 2, Serial Number & Unit Price - Read Only */}
+              {/* Lot Number 1, Lot Number 2, Serial Number 1/2 & Unit Price - Editable by warehouse */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div className="space-y-2">
                   <Label>Lot Number 1</Label>
-                  <Input 
-                    value={selectedReceipt.lot_number || "-"}
-                    disabled
-                    className={`bg-muted ${!selectedReceipt.lot_number ? 'text-muted-foreground' : ''}`}
+                  <Input
+                    value={editLot1}
+                    onChange={(e) => setEditLot1(e.target.value)}
+                    placeholder="-"
                   />
                 </div>
                 <div className="space-y-2">
                   <Label>Lot Number 2</Label>
-                  <Input 
-                    value={selectedReceipt.lot_number_2 || "-"}
-                    disabled
-                    className={`bg-muted ${!selectedReceipt.lot_number_2 ? 'text-muted-foreground' : ''}`}
+                  <Input
+                    value={editLot2}
+                    onChange={(e) => setEditLot2(e.target.value)}
+                    placeholder="-"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Serial Number</Label>
-                  <Input 
-                    value={selectedReceipt.serial_number || "-"}
-                    disabled
-                    className={`bg-muted ${!selectedReceipt.serial_number ? 'text-muted-foreground' : ''}`}
+                  <Label>Serial Number 1</Label>
+                  <Input
+                    value={editSerial1}
+                    onChange={(e) => setEditSerial1(e.target.value)}
+                    placeholder="กรอก S/N 1..."
                   />
                 </div>
                 <div className="space-y-2">
+                  <Label>Serial Number 2</Label>
+                  <Input
+                    value={editSerial2}
+                    onChange={(e) => setEditSerial2(e.target.value)}
+                    placeholder="กรอก S/N 2..."
+                  />
+                </div>
+                <div className="space-y-2 md:col-span-1">
                   <Label>ราคาต่อชิ้น</Label>
-                  <Input 
-                    value={selectedReceipt.unit_price ? selectedReceipt.unit_price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "-"}
-                    disabled
-                    className={`bg-muted ${!selectedReceipt.unit_price ? 'text-muted-foreground' : ''}`}
+                  <Input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={editUnitPrice}
+                    onChange={(e) => setEditUnitPrice(e.target.value)}
+                    placeholder="0.00"
                   />
                 </div>
               </div>
