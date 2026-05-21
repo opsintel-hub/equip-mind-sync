@@ -38,13 +38,23 @@ function DocLink({ label, number, url, onPreview }: { label: string; number?: st
   );
 }
 
-export function GeneralInfoTab({ player, modelName }: GeneralInfoTabProps) {
+export function GeneralInfoTab({ player, modelName, onUpdated }: GeneralInfoTabProps) {
   const [previewDocUrl, setPreviewDocUrl] = useState<string | null>(null);
+  const [editOpen, setEditOpen] = useState(false);
+  const { hasFunctionAccess } = useFunctionPermissions();
+  const canEdit = hasFunctionAccess("goods_receipt");
 
   return (
     <>
     <Card>
       <CardContent className="pt-6">
+        {canEdit && (
+          <div className="flex justify-end mb-3">
+            <Button size="sm" variant="outline" onClick={() => setEditOpen(true)}>
+              <Pencil className="w-3.5 h-3.5 mr-1.5" /> แก้ไขข้อมูลทรัพย์สิน
+            </Button>
+          </div>
+        )}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-4 text-sm">
           <InfoRow label="รหัส" value={player.code} />
           <InfoRow label="ชื่อสินค้า" value={player.name} />
