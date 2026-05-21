@@ -1514,6 +1514,24 @@ const ReceiveGoods = () => {
                       />
                     </div>
                   </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>ผู้ดูแลทรัพย์สิน</Label>
+                      <Input
+                        value={editCaretaker}
+                        onChange={(e) => setEditCaretaker(e.target.value)}
+                        placeholder="ชื่อผู้ดูแล..."
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Location ตามแผน PO</Label>
+                      <Input
+                        value={editPlannedLocation}
+                        onChange={(e) => setEditPlannedLocation(e.target.value)}
+                        placeholder="ตำแหน่งติดตั้งตามแผน..."
+                      />
+                    </div>
+                  </div>
                 </div>
               )}
 
