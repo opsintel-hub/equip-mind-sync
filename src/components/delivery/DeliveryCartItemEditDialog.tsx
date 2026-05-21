@@ -71,6 +71,9 @@ export function DeliveryCartItemEditDialog({
   const [waitingEquipmentId, setWaitingEquipmentId] = useState(false);
   const [depreciationMonths, setDepreciationMonths] = useState("");
   const [itemNotes, setItemNotes] = useState("");
+  const [assetCaretaker, setAssetCaretaker] = useState("");
+  const [plannedInstallLocation, setPlannedInstallLocation] = useState("");
+  const [model, setModel] = useState("");
 
   // Load item data when dialog opens
   useEffect(() => {
@@ -103,6 +106,9 @@ export function DeliveryCartItemEditDialog({
       setWaitingEquipmentId(item.waiting_equipment_id);
       setDepreciationMonths(item.depreciation_months);
       setItemNotes(item.notes);
+      setAssetCaretaker(item.asset_caretaker || "");
+      setPlannedInstallLocation(item.planned_install_location || "");
+      setModel(item.model || "");
     }
   }, [item, open]);
 
@@ -185,6 +191,9 @@ export function DeliveryCartItemEditDialog({
       activate_windows: activateWindows,
       media_player_image_url: item!.media_player_image_url,
       media_player_image_file: item!.media_player_image_file,
+      asset_caretaker: assetCaretaker,
+      planned_install_location: plannedInstallLocation,
+      model: model,
     };
 
     onSave(updatedItem);
@@ -464,6 +473,22 @@ export function DeliveryCartItemEditDialog({
                 </div>
               </div>
             )}
+          </div>
+
+          {/* PO/OCR per-unit fields */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="space-y-2">
+              <Label>รุ่น (Model)</Label>
+              <Input placeholder="เช่น DS-086GB2601-T" value={model} onChange={(e) => setModel(e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label>ผู้ดูแลทรัพย์สิน</Label>
+              <Input placeholder="ชื่อผู้ดูแล..." value={assetCaretaker} onChange={(e) => setAssetCaretaker(e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label>Location ตามแผน PO</Label>
+              <Input placeholder="เช่น Centerpoint of Siam Square" value={plannedInstallLocation} onChange={(e) => setPlannedInstallLocation(e.target.value)} />
+            </div>
           </div>
 
           {/* Notes */}
