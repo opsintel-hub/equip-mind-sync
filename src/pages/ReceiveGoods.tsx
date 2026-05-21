@@ -352,6 +352,8 @@ const ReceiveGoods = () => {
     setItemCondition("normal");
     setEditAssetCode(receipt.asset_code || "");
     setEditEquipmentIdCode(receipt.equipment_id_code || "");
+    setEditCaretaker((receipt as any).asset_caretaker || "");
+    setEditPlannedLocation((receipt as any).planned_install_location || "");
     setIsDialogOpen(true);
   };
 
