@@ -359,6 +359,11 @@ const ReceiveGoods = () => {
     setEditEquipmentIdCode(receipt.equipment_id_code || "");
     setEditCaretaker((receipt as any).asset_caretaker || "");
     setEditPlannedLocation((receipt as any).planned_install_location || "");
+    setEditSerial1(receipt.serial_number || "");
+    setEditSerial2((receipt as any).serial_number_2 || "");
+    setEditLot1(receipt.lot_number || "");
+    setEditLot2(receipt.lot_number_2 || "");
+    setEditUnitPrice(receipt.unit_price != null ? String(receipt.unit_price) : "");
     setIsDialogOpen(true);
   };
 
