@@ -238,6 +238,9 @@ const DeliveryEntry = () => {
     equipment_id_code: string;
     waiting_asset_code: boolean;
     waiting_equipment_id: boolean;
+    asset_caretaker: string;
+    planned_install_location: string;
+    model: string;
   }
   const [mediaPlayerDevices, setMediaPlayerDevices] = useState<MediaPlayerDeviceEntry[]>([
     {
@@ -252,6 +255,9 @@ const DeliveryEntry = () => {
       equipment_id_code: "",
       waiting_asset_code: false,
       waiting_equipment_id: false,
+      asset_caretaker: "",
+      planned_install_location: "",
+      model: "",
     },
   ]);
 
@@ -266,10 +272,13 @@ const DeliveryEntry = () => {
     equipment_id_code: string;
     waiting_asset_code: boolean;
     waiting_equipment_id: boolean;
+    asset_caretaker: string;
+    planned_install_location: string;
+    model: string;
   }
   const [perUnitMode, setPerUnitMode] = useState(false);
   const [equipmentUnits, setEquipmentUnits] = useState<EquipmentUnitEntry[]>([
-    { id: crypto.randomUUID(), serial_number: "", device_name: "", image_file: null, image_preview: null, asset_code: "", equipment_id_code: "", waiting_asset_code: false, waiting_equipment_id: false },
+    { id: crypto.randomUUID(), serial_number: "", device_name: "", image_file: null, image_preview: null, asset_code: "", equipment_id_code: "", waiting_asset_code: false, waiting_equipment_id: false, asset_caretaker: "", planned_install_location: "", model: "" },
   ]);
 
   // Storage dimensions
@@ -741,6 +750,9 @@ const DeliveryEntry = () => {
         media_player_id: selectedMediaPlayerId || null,
         activate_windows: device.activate_windows,
         media_player_image_file: device.image_file || undefined,
+        asset_caretaker: device.asset_caretaker,
+        planned_install_location: device.planned_install_location,
+        model: device.model,
       }));
 
       setCartItems([...cartItems, ...newItems]);
@@ -822,6 +834,9 @@ const DeliveryEntry = () => {
           temp_product_images: !selectedEquipmentId ? newProductImages : undefined,
           temp_min_stock_level: !selectedEquipmentId ? parseInt(minStockLevel) || 0 : undefined,
           media_player_image_file: unitEntry.image_file || undefined,
+          asset_caretaker: unitEntry.asset_caretaker,
+          planned_install_location: unitEntry.planned_install_location,
+          model: unitEntry.model,
         }));
 
         setCartItems([...cartItems, ...newItems]);
@@ -950,12 +965,15 @@ const DeliveryEntry = () => {
         equipment_id_code: "",
         waiting_asset_code: false,
         waiting_equipment_id: false,
+        asset_caretaker: "",
+        planned_install_location: "",
+        model: "",
       },
     ]);
     // Per-unit equipment entries
     setPerUnitMode(false);
     setEquipmentUnits([
-      { id: crypto.randomUUID(), serial_number: "", device_name: "", image_file: null, image_preview: null, asset_code: "", equipment_id_code: "", waiting_asset_code: false, waiting_equipment_id: false },
+      { id: crypto.randomUUID(), serial_number: "", device_name: "", image_file: null, image_preview: null, asset_code: "", equipment_id_code: "", waiting_asset_code: false, waiting_equipment_id: false, asset_caretaker: "", planned_install_location: "", model: "" },
     ]);
     // Category/Subcategory
     setSelectedCategoryId("");
@@ -1853,6 +1871,9 @@ const DeliveryEntry = () => {
                               equipment_id_code: "",
                               waiting_asset_code: false,
                               waiting_equipment_id: false,
+                              asset_caretaker: "",
+                              planned_install_location: "",
+                              model: "",
                             },
                           ]);
                         }}
@@ -2072,6 +2093,45 @@ const DeliveryEntry = () => {
                                     prev.map((d) =>
                                       d.id === device.id ? { ...d, equipment_id_code: e.target.value } : d,
                                     ),
+                                  );
+                                }}
+                              />
+                            </div>
+                          </div>
+                          {/* Per-device PO/OCR fields */}
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                            <div className="space-y-1">
+                              <Label className="text-xs">รุ่น (Model)</Label>
+                              <Input
+                                placeholder="เช่น DS-086GB2601-T"
+                                value={device.model}
+                                onChange={(e) => {
+                                  setMediaPlayerDevices((prev) =>
+                                    prev.map((d) => (d.id === device.id ? { ...d, model: e.target.value } : d)),
+                                  );
+                                }}
+                              />
+                            </div>
+                            <div className="space-y-1">
+                              <Label className="text-xs">ผู้ดูแลทรัพย์สิน</Label>
+                              <Input
+                                placeholder="ชื่อผู้ดูแล..."
+                                value={device.asset_caretaker}
+                                onChange={(e) => {
+                                  setMediaPlayerDevices((prev) =>
+                                    prev.map((d) => (d.id === device.id ? { ...d, asset_caretaker: e.target.value } : d)),
+                                  );
+                                }}
+                              />
+                            </div>
+                            <div className="space-y-1">
+                              <Label className="text-xs">Location ตามแผน PO</Label>
+                              <Input
+                                placeholder="เช่น Centerpoint of Siam Square"
+                                value={device.planned_install_location}
+                                onChange={(e) => {
+                                  setMediaPlayerDevices((prev) =>
+                                    prev.map((d) => (d.id === device.id ? { ...d, planned_install_location: e.target.value } : d)),
                                   );
                                 }}
                               />
@@ -2365,6 +2425,9 @@ const DeliveryEntry = () => {
                                 equipment_id_code: "",
                                 waiting_asset_code: false,
                                 waiting_equipment_id: false,
+                                asset_caretaker: "",
+                                planned_install_location: "",
+                                model: "",
                               },
                             ]);
                           }
@@ -2396,6 +2459,9 @@ const DeliveryEntry = () => {
                               equipment_id_code: "",
                               waiting_asset_code: false,
                               waiting_equipment_id: false,
+                              asset_caretaker: "",
+                              planned_install_location: "",
+                              model: "",
                             },
                           ]);
                         }}
@@ -2601,6 +2667,45 @@ const DeliveryEntry = () => {
                                 </div>
                               </div>
                             )}
+                            {/* Per-unit PO/OCR fields */}
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                              <div className="space-y-1">
+                                <Label className="text-xs">รุ่น (Model)</Label>
+                                <Input
+                                  placeholder="เช่น DS-086GB2601-T"
+                                  value={unitEntry.model}
+                                  onChange={(e) => {
+                                    setEquipmentUnits((prev) =>
+                                      prev.map((u) => (u.id === unitEntry.id ? { ...u, model: e.target.value } : u)),
+                                    );
+                                  }}
+                                />
+                              </div>
+                              <div className="space-y-1">
+                                <Label className="text-xs">ผู้ดูแลทรัพย์สิน</Label>
+                                <Input
+                                  placeholder="ชื่อผู้ดูแล..."
+                                  value={unitEntry.asset_caretaker}
+                                  onChange={(e) => {
+                                    setEquipmentUnits((prev) =>
+                                      prev.map((u) => (u.id === unitEntry.id ? { ...u, asset_caretaker: e.target.value } : u)),
+                                    );
+                                  }}
+                                />
+                              </div>
+                              <div className="space-y-1">
+                                <Label className="text-xs">Location ตามแผน PO</Label>
+                                <Input
+                                  placeholder="เช่น Centerpoint of Siam Square"
+                                  value={unitEntry.planned_install_location}
+                                  onChange={(e) => {
+                                    setEquipmentUnits((prev) =>
+                                      prev.map((u) => (u.id === unitEntry.id ? { ...u, planned_install_location: e.target.value } : u)),
+                                    );
+                                  }}
+                                />
+                              </div>
+                            </div>
                           </div>
                         ))}
                       </div>

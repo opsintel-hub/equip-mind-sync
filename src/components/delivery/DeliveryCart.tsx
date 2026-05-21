@@ -50,6 +50,7 @@ export interface DeliveryCartItem {
   // From PO/OCR (per-unit)
   asset_caretaker?: string;
   planned_install_location?: string;
+  model?: string;
 }
 
 interface DeliveryCartProps {
