@@ -1177,6 +1177,8 @@ const DeliveryEntry = () => {
         is_asset: item.is_asset,
         asset_code: item.asset_code || null,
         equipment_id_code: item.equipment_id_code || null,
+        asset_caretaker: item.asset_caretaker || null,
+        planned_install_location: item.planned_install_location || null,
         waiting_asset_code: item.waiting_asset_code,
         waiting_equipment_id: item.waiting_equipment_id,
         depreciation_months: item.depreciation_months ? parseInt(item.depreciation_months) : null,
