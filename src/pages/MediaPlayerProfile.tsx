@@ -298,7 +298,7 @@ const MediaPlayerProfile = () => {
 
             {/* ข้อมูลทั่วไป: ข้อมูลพื้นฐาน + สรุปสถานะ */}
             <TabsContent value="general" className="mt-6 space-y-6 focus-visible:outline-none">
-              <GeneralInfoTab player={player} modelName={modelName} />
+              <GeneralInfoTab player={player} modelName={modelName} onUpdated={() => loadPlayer(player.id)} />
               <SummaryCards player={player} journeys={journeys} />
             </TabsContent>
 
