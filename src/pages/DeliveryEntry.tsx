@@ -750,6 +750,9 @@ const DeliveryEntry = () => {
         media_player_id: selectedMediaPlayerId || null,
         activate_windows: device.activate_windows,
         media_player_image_file: device.image_file || undefined,
+        asset_caretaker: device.asset_caretaker,
+        planned_install_location: device.planned_install_location,
+        model: device.model,
       }));
 
       setCartItems([...cartItems, ...newItems]);
@@ -831,6 +834,9 @@ const DeliveryEntry = () => {
           temp_product_images: !selectedEquipmentId ? newProductImages : undefined,
           temp_min_stock_level: !selectedEquipmentId ? parseInt(minStockLevel) || 0 : undefined,
           media_player_image_file: unitEntry.image_file || undefined,
+          asset_caretaker: unitEntry.asset_caretaker,
+          planned_install_location: unitEntry.planned_install_location,
+          model: unitEntry.model,
         }));
 
         setCartItems([...cartItems, ...newItems]);
