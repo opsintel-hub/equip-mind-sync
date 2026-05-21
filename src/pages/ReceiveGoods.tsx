@@ -144,6 +144,8 @@ const ReceiveGoods = () => {
   const [previewTitle, setPreviewTitle] = useState<string>("ดูเอกสารแนบ");
   const [editAssetCode, setEditAssetCode] = useState("");
   const [editEquipmentIdCode, setEditEquipmentIdCode] = useState("");
+  const [editCaretaker, setEditCaretaker] = useState("");
+  const [editPlannedLocation, setEditPlannedLocation] = useState("");
 
   // Form state for editing - only editable fields
   const [editNotes, setEditNotes] = useState("");
@@ -350,6 +352,8 @@ const ReceiveGoods = () => {
     setItemCondition("normal");
     setEditAssetCode(receipt.asset_code || "");
     setEditEquipmentIdCode(receipt.equipment_id_code || "");
+    setEditCaretaker((receipt as any).asset_caretaker || "");
+    setEditPlannedLocation((receipt as any).planned_install_location || "");
     setIsDialogOpen(true);
   };
 
@@ -619,8 +623,10 @@ const ReceiveGoods = () => {
         const finalEquipmentIdCode = trimmedEquipmentIdCode || sr.equipment_id_code;
         if (finalAssetCode) mpUpdatePayload.asset_code = finalAssetCode;
         if (finalEquipmentIdCode) mpUpdatePayload.equipment_id_code = finalEquipmentIdCode;
-        if ((sr as any).asset_caretaker) mpUpdatePayload.asset_caretaker = (sr as any).asset_caretaker;
-        if ((sr as any).planned_install_location) mpUpdatePayload.planned_install_location = (sr as any).planned_install_location;
+        const finalCaretaker = editCaretaker.trim() || (sr as any).asset_caretaker;
+        const finalPlannedLocation = editPlannedLocation.trim() || (sr as any).planned_install_location;
+        if (finalCaretaker) mpUpdatePayload.asset_caretaker = finalCaretaker;
+        if (finalPlannedLocation) mpUpdatePayload.planned_install_location = finalPlannedLocation;
 
         const { error: mpError } = await supabase
               .from("media_players")
@@ -1505,6 +1511,24 @@ const ReceiveGoods = () => {
                         value={selectedReceipt.depreciation_months?.toString() || "-"}
                         disabled
                         className={`bg-muted ${!selectedReceipt.depreciation_months ? 'text-muted-foreground' : ''}`}
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>ผู้ดูแลทรัพย์สิน</Label>
+                      <Input
+                        value={editCaretaker}
+                        onChange={(e) => setEditCaretaker(e.target.value)}
+                        placeholder="ชื่อผู้ดูแล..."
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Location ตามแผน PO</Label>
+                      <Input
+                        value={editPlannedLocation}
+                        onChange={(e) => setEditPlannedLocation(e.target.value)}
+                        placeholder="ตำแหน่งติดตั้งตามแผน..."
                       />
                     </div>
                   </div>

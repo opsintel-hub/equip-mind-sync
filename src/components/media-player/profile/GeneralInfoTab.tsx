@@ -1,13 +1,17 @@
 import { useState } from "react";
-import { FileText, ExternalLink, MapPin } from "lucide-react";
+import { FileText, ExternalLink, MapPin, Pencil } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { MediaPlayerRow } from "./types";
 import { formatBillboardLabel } from "@/lib/billboardUtils";
 import { DocumentPreviewDialog } from "@/components/DocumentPreviewDialog";
+import { MediaPlayerInfoEditDialog } from "./MediaPlayerInfoEditDialog";
+import { useFunctionPermissions } from "@/hooks/useFunctionPermissions";
 
 interface GeneralInfoTabProps {
   player: MediaPlayerRow;
   modelName: string;
+  onUpdated?: () => void;
 }
 
 function InfoRow({ label, value, mono }: { label: string; value?: string | null; mono?: boolean }) {
@@ -34,13 +38,23 @@ function DocLink({ label, number, url, onPreview }: { label: string; number?: st
   );
 }
 
-export function GeneralInfoTab({ player, modelName }: GeneralInfoTabProps) {
+export function GeneralInfoTab({ player, modelName, onUpdated }: GeneralInfoTabProps) {
   const [previewDocUrl, setPreviewDocUrl] = useState<string | null>(null);
+  const [editOpen, setEditOpen] = useState(false);
+  const { hasFunctionAccess } = useFunctionPermissions();
+  const canEdit = hasFunctionAccess("goods_receipt");
 
   return (
     <>
     <Card>
       <CardContent className="pt-6">
+        {canEdit && (
+          <div className="flex justify-end mb-3">
+            <Button size="sm" variant="outline" onClick={() => setEditOpen(true)}>
+              <Pencil className="w-3.5 h-3.5 mr-1.5" /> แก้ไขข้อมูลทรัพย์สิน
+            </Button>
+          </div>
+        )}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-4 text-sm">
           <InfoRow label="รหัส" value={player.code} />
           <InfoRow label="ชื่อสินค้า" value={player.name} />
@@ -104,6 +118,20 @@ export function GeneralInfoTab({ player, modelName }: GeneralInfoTabProps) {
       publicUrl={previewDocUrl}
       title="ดูเอกสาร Media Player"
     />
+    {canEdit && (
+      <MediaPlayerInfoEditDialog
+        open={editOpen}
+        onOpenChange={setEditOpen}
+        playerId={player.id}
+        initial={{
+          asset_caretaker: player.asset_caretaker,
+          planned_install_location: player.planned_install_location,
+          asset_code: player.asset_code,
+          equipment_id_code: player.equipment_id_code,
+        }}
+        onSaved={() => onUpdated?.()}
+      />
+    )}
     </>
   );
 }
