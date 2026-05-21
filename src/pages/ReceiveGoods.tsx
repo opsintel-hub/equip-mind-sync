@@ -619,6 +619,8 @@ const ReceiveGoods = () => {
         const finalEquipmentIdCode = trimmedEquipmentIdCode || sr.equipment_id_code;
         if (finalAssetCode) mpUpdatePayload.asset_code = finalAssetCode;
         if (finalEquipmentIdCode) mpUpdatePayload.equipment_id_code = finalEquipmentIdCode;
+        if ((sr as any).asset_caretaker) mpUpdatePayload.asset_caretaker = (sr as any).asset_caretaker;
+        if ((sr as any).planned_install_location) mpUpdatePayload.planned_install_location = (sr as any).planned_install_location;
 
         const { error: mpError } = await supabase
               .from("media_players")
