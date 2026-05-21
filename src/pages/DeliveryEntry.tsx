@@ -959,12 +959,15 @@ const DeliveryEntry = () => {
         equipment_id_code: "",
         waiting_asset_code: false,
         waiting_equipment_id: false,
+        asset_caretaker: "",
+        planned_install_location: "",
+        model: "",
       },
     ]);
     // Per-unit equipment entries
     setPerUnitMode(false);
     setEquipmentUnits([
-      { id: crypto.randomUUID(), serial_number: "", device_name: "", image_file: null, image_preview: null, asset_code: "", equipment_id_code: "", waiting_asset_code: false, waiting_equipment_id: false },
+      { id: crypto.randomUUID(), serial_number: "", device_name: "", image_file: null, image_preview: null, asset_code: "", equipment_id_code: "", waiting_asset_code: false, waiting_equipment_id: false, asset_caretaker: "", planned_install_location: "", model: "" },
     ]);
     // Category/Subcategory
     setSelectedCategoryId("");
@@ -1862,6 +1865,9 @@ const DeliveryEntry = () => {
                               equipment_id_code: "",
                               waiting_asset_code: false,
                               waiting_equipment_id: false,
+                              asset_caretaker: "",
+                              planned_install_location: "",
+                              model: "",
                             },
                           ]);
                         }}
@@ -2374,6 +2380,9 @@ const DeliveryEntry = () => {
                                 equipment_id_code: "",
                                 waiting_asset_code: false,
                                 waiting_equipment_id: false,
+                                asset_caretaker: "",
+                                planned_install_location: "",
+                                model: "",
                               },
                             ]);
                           }
@@ -2405,6 +2414,9 @@ const DeliveryEntry = () => {
                               equipment_id_code: "",
                               waiting_asset_code: false,
                               waiting_equipment_id: false,
+                              asset_caretaker: "",
+                              planned_install_location: "",
+                              model: "",
                             },
                           ]);
                         }}
