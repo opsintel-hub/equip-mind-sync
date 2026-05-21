@@ -1,13 +1,17 @@
 import { useState } from "react";
-import { FileText, ExternalLink, MapPin } from "lucide-react";
+import { FileText, ExternalLink, MapPin, Pencil } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { MediaPlayerRow } from "./types";
 import { formatBillboardLabel } from "@/lib/billboardUtils";
 import { DocumentPreviewDialog } from "@/components/DocumentPreviewDialog";
+import { MediaPlayerInfoEditDialog } from "./MediaPlayerInfoEditDialog";
+import { useFunctionPermissions } from "@/hooks/useFunctionPermissions";
 
 interface GeneralInfoTabProps {
   player: MediaPlayerRow;
   modelName: string;
+  onUpdated?: () => void;
 }
 
 function InfoRow({ label, value, mono }: { label: string; value?: string | null; mono?: boolean }) {
