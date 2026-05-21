@@ -28,6 +28,8 @@ export interface MediaPlayerRow {
   remote_name: string | null;
   activate_windows: string | null;
   order_for_project: string | null;
+  asset_caretaker: string | null;
+  planned_install_location: string | null;
   notes: string | null;
   cms_type_id: string | null;
   company_id: string | null;

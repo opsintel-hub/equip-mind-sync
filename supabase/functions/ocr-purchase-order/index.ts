@@ -20,7 +20,14 @@ const DEFAULT_SYSTEM_PROMPT = `คุณเป็นผู้เชี่ยว�
 - Description คือรายละเอียดสินค้า/บริการ
 - ดึง Vendor Code (รหัสผู้ขาย) จากหัวเอกสาร
 - ดึง PR Number (เลขที่ใบขอซื้อ) จากช่อง Refer PR หรือ PR No.
-- buyer_company_name คือ "ชื่อบริษัทผู้ซื้อ/ผู้ออก PO" ที่ปรากฏบน หัวกระดาษ (Letterhead) ด้านบนสุดของเอกสาร เช่น "Plan B Media Public Company Limited", "บริษัท แพลน บี มีเดีย จำกัด (มหาชน)" — ห้ามสับสนกับ Vendor (ผู้ขาย/ผู้รับเงิน) เด็ดขาด ให้ดึงชื่อเต็มตามที่ปรากฏบนหัวกระดาษ`;
+- buyer_company_name คือ "ชื่อบริษัทผู้ซื้อ/ผู้ออก PO" ที่ปรากฏบน หัวกระดาษ (Letterhead) ด้านบนสุดของเอกสาร เช่น "Plan B Media Public Company Limited", "บริษัท แพลน บี มีเดีย จำกัด (มหาชน)" — ห้ามสับสนกับ Vendor (ผู้ขาย/ผู้รับเงิน) เด็ดขาด ให้ดึงชื่อเต็มตามที่ปรากฏบนหัวกระดาษ
+
+สำคัญมาก — สำหรับแต่ละ item ให้ "แยก" ข้อมูลย่อยที่ฝังในช่อง Description ออกมาเป็นฟิลด์เดี่ยว:
+- model: รุ่นสินค้า (ดึงจากบรรทัด "รุ่น …" หรือ "Model …" เช่น "DS-086GB2601-T")
+- warranty_years: จำนวนปีรับประกัน (ดึงจากบรรทัด "รับประกัน … N ปี" → ใส่เป็นตัวเลข เช่น 2, ถ้าระบุเป็นเดือนให้แปลงเป็นปีโดยหาร 12)
+- asset_caretaker: ชื่อผู้ดูแลทรัพย์สิน (ดึงจากบรรทัด "ผู้ดูแลทรัพย์สิน : …" เช่น "คุณกมล วังะยูนุช")
+- planned_location: จุดติดตั้งตามแผน (ดึงจากบรรทัด "Location : …" เช่น "Centerpoint of Siam Square", "แยกชิดลม")
+- asset_no: เลขทรัพย์สินจากคอลัมน์ Asset No (เช่น "TE26176")`;
 
 const DEFAULT_EXTRACTION_SCHEMA = {
   name: "extract_po_data",
@@ -55,6 +62,10 @@ const DEFAULT_EXTRACTION_SCHEMA = {
             unit: { type: "string", description: "หน่วยนับ เช่น UNIT, PCS, EA" },
             unit_price: { type: "number", description: "ราคาต่อหน่วย (ไม่รวม VAT)" },
             amount: { type: "number", description: "จำนวนเงินรวม (ไม่รวม VAT)" },
+            model: { type: "string", description: "รุ่นสินค้า ดึงจากบรรทัด 'รุ่น …' ใน description เช่น DS-086GB2601-T" },
+            warranty_years: { type: "number", description: "จำนวนปีรับประกัน ดึงจาก 'รับประกัน … N ปี' ใน description" },
+            asset_caretaker: { type: "string", description: "ผู้ดูแลทรัพย์สิน ดึงจาก 'ผู้ดูแลทรัพย์สิน : …' ใน description" },
+            planned_location: { type: "string", description: "จุดติดตั้งตามแผน ดึงจาก 'Location : …' ใน description" },
           },
           required: ["description", "quantity", "unit"],
         },

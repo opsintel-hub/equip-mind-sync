@@ -67,6 +67,8 @@ export function GeneralInfoTab({ player, modelName }: GeneralInfoTabProps) {
               </p>
             )}
           </div>
+          <InfoRow label="ผู้ดูแลทรัพย์สิน" value={player.asset_caretaker} />
+          <InfoRow label="Location ตามแผน PO" value={player.planned_install_location} />
           <InfoRow label="ผู้จัดจำหน่าย" value={player.suppliers?.name} />
           <InfoRow label="วันที่รับเข้าคลัง" value={player.date_of_receipt} />
           <InfoRow label="วันหมดประกัน" value={player.warranty_expiry_date} />

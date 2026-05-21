@@ -2853,6 +2853,7 @@ export type Database = {
       goods_receipt_pending: {
         Row: {
           activate_windows: string | null
+          asset_caretaker: string | null
           asset_code: string | null
           company_id: string | null
           created_at: string
@@ -2881,6 +2882,7 @@ export type Database = {
           media_player_image_url: string | null
           notes: string | null
           order_for_project: string | null
+          planned_install_location: string | null
           po_document_url: string | null
           po_number: string | null
           pr_document_url: string | null
@@ -2919,6 +2921,7 @@ export type Database = {
         }
         Insert: {
           activate_windows?: string | null
+          asset_caretaker?: string | null
           asset_code?: string | null
           company_id?: string | null
           created_at?: string
@@ -2947,6 +2950,7 @@ export type Database = {
           media_player_image_url?: string | null
           notes?: string | null
           order_for_project?: string | null
+          planned_install_location?: string | null
           po_document_url?: string | null
           po_number?: string | null
           pr_document_url?: string | null
@@ -2985,6 +2989,7 @@ export type Database = {
         }
         Update: {
           activate_windows?: string | null
+          asset_caretaker?: string | null
           asset_code?: string | null
           company_id?: string | null
           created_at?: string
@@ -3013,6 +3018,7 @@ export type Database = {
           media_player_image_url?: string | null
           notes?: string | null
           order_for_project?: string | null
+          planned_install_location?: string | null
           po_document_url?: string | null
           po_number?: string | null
           pr_document_url?: string | null
@@ -3587,6 +3593,7 @@ export type Database = {
       media_players: {
         Row: {
           activate_windows: string | null
+          asset_caretaker: string | null
           asset_code: string | null
           billboard_id: string | null
           brand: string | null
@@ -3616,6 +3623,7 @@ export type Database = {
           name: string
           notes: string | null
           order_for_project: string | null
+          planned_install_location: string | null
           po_document_url: string | null
           po_number: string | null
           pr_document_url: string | null
@@ -3639,6 +3647,7 @@ export type Database = {
         }
         Insert: {
           activate_windows?: string | null
+          asset_caretaker?: string | null
           asset_code?: string | null
           billboard_id?: string | null
           brand?: string | null
@@ -3668,6 +3677,7 @@ export type Database = {
           name: string
           notes?: string | null
           order_for_project?: string | null
+          planned_install_location?: string | null
           po_document_url?: string | null
           po_number?: string | null
           pr_document_url?: string | null
@@ -3691,6 +3701,7 @@ export type Database = {
         }
         Update: {
           activate_windows?: string | null
+          asset_caretaker?: string | null
           asset_code?: string | null
           billboard_id?: string | null
           brand?: string | null
@@ -3720,6 +3731,7 @@ export type Database = {
           name?: string
           notes?: string | null
           order_for_project?: string | null
+          planned_install_location?: string | null
           po_document_url?: string | null
           po_number?: string | null
           pr_document_url?: string | null

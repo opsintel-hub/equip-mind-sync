@@ -47,6 +47,9 @@ export interface DeliveryCartItem {
   activate_windows?: string;
   media_player_image_url?: string;
   media_player_image_file?: File;
+  // From PO/OCR (per-unit)
+  asset_caretaker?: string;
+  planned_install_location?: string;
 }
 
 interface DeliveryCartProps {

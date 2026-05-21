@@ -46,6 +46,11 @@ export interface POOCRItem {
   unit: string;
   unit_price: number | null;
   amount: number | null;
+  // Per-unit fields parsed from description
+  model?: string | null;
+  warranty_years?: number | null;
+  asset_caretaker?: string | null;
+  planned_location?: string | null;
   // Matching results
   matched_equipment_id?: string | null;
   matched_equipment_code?: string | null;
@@ -373,6 +378,12 @@ export function POUploadOCR({
     );
   };
 
+  const handleItemFieldChange = (index: number, field: keyof POOCRItem, value: any) => {
+    setItems((prev) =>
+      prev.map((item, i) => (i === index ? { ...item, [field]: value } : item))
+    );
+  };
+
   const handleImport = () => {
     if (!file) return;
 
@@ -627,12 +638,17 @@ export function POUploadOCR({
                     <TableHeader>
                       <TableRow>
                         <TableHead className="w-10">#</TableHead>
-                        <TableHead className="min-w-[120px]">รหัสสินค้า</TableHead>
-                        <TableHead className="min-w-[200px]">รายละเอียด</TableHead>
-                        <TableHead className="w-20 text-right">จำนวน</TableHead>
-                        <TableHead className="w-16">หน่วย</TableHead>
-                        <TableHead className="w-28 text-right">ราคา/หน่วย</TableHead>
-                        <TableHead className="min-w-[200px]">Match สินค้า</TableHead>
+                        <TableHead className="min-w-[110px]">รหัสสินค้า</TableHead>
+                        <TableHead className="min-w-[180px]">รายละเอียด</TableHead>
+                        <TableHead className="w-16 text-right">จำนวน</TableHead>
+                        <TableHead className="w-14">หน่วย</TableHead>
+                        <TableHead className="w-24 text-right">ราคา/หน่วย</TableHead>
+                        <TableHead className="min-w-[130px]">Asset No.</TableHead>
+                        <TableHead className="min-w-[140px]">รุ่น</TableHead>
+                        <TableHead className="w-20 text-right">รับประกัน (ปี)</TableHead>
+                        <TableHead className="min-w-[140px]">ผู้ดูแล</TableHead>
+                        <TableHead className="min-w-[180px]">Location ตามแผน</TableHead>
+                        <TableHead className="min-w-[180px]">Match สินค้า</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -640,13 +656,66 @@ export function POUploadOCR({
                         <TableRow key={idx}>
                           <TableCell className="text-muted-foreground">{idx + 1}</TableCell>
                           <TableCell className="font-mono text-xs">{item.item_no || "-"}</TableCell>
-                          <TableCell className="text-xs max-w-[250px] truncate" title={item.description}>
+                          <TableCell className="text-xs max-w-[220px] truncate" title={item.description}>
                             {item.description}
                           </TableCell>
                           <TableCell className="text-right">{item.quantity}</TableCell>
                           <TableCell>{item.unit}</TableCell>
                           <TableCell className="text-right">
                             {item.unit_price != null ? `฿${item.unit_price.toLocaleString()}` : "-"}
+                          </TableCell>
+                          <TableCell>
+                            <Input
+                              value={item.asset_no || ""}
+                              onChange={(e) => handleItemFieldChange(idx, "asset_no", e.target.value)}
+                              className="h-8 text-xs font-mono"
+                              placeholder="TE…"
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <Input
+                              value={item.model || ""}
+                              onChange={(e) => handleItemFieldChange(idx, "model", e.target.value)}
+                              className="h-8 text-xs"
+                              placeholder="รุ่น"
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <Input
+                              type="number"
+                              min={0}
+                              step={0.5}
+                              value={item.warranty_years ?? ""}
+                              onChange={(e) =>
+                                handleItemFieldChange(
+                                  idx,
+                                  "warranty_years",
+                                  e.target.value === "" ? null : Number(e.target.value)
+                                )
+                              }
+                              className="h-8 text-xs text-right"
+                              placeholder="ปี"
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <Input
+                              value={item.asset_caretaker || ""}
+                              onChange={(e) =>
+                                handleItemFieldChange(idx, "asset_caretaker", e.target.value)
+                              }
+                              className="h-8 text-xs"
+                              placeholder="ชื่อผู้ดูแล"
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <Input
+                              value={item.planned_location || ""}
+                              onChange={(e) =>
+                                handleItemFieldChange(idx, "planned_location", e.target.value)
+                              }
+                              className="h-8 text-xs"
+                              placeholder="จุดติดตั้ง"
+                            />
                           </TableCell>
                           <TableCell>
                             {item.match_status === "matched" ? (
