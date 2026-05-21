@@ -2667,6 +2667,45 @@ const DeliveryEntry = () => {
                                 </div>
                               </div>
                             )}
+                            {/* Per-unit PO/OCR fields */}
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                              <div className="space-y-1">
+                                <Label className="text-xs">รุ่น (Model)</Label>
+                                <Input
+                                  placeholder="เช่น DS-086GB2601-T"
+                                  value={unitEntry.model}
+                                  onChange={(e) => {
+                                    setEquipmentUnits((prev) =>
+                                      prev.map((u) => (u.id === unitEntry.id ? { ...u, model: e.target.value } : u)),
+                                    );
+                                  }}
+                                />
+                              </div>
+                              <div className="space-y-1">
+                                <Label className="text-xs">ผู้ดูแลทรัพย์สิน</Label>
+                                <Input
+                                  placeholder="ชื่อผู้ดูแล..."
+                                  value={unitEntry.asset_caretaker}
+                                  onChange={(e) => {
+                                    setEquipmentUnits((prev) =>
+                                      prev.map((u) => (u.id === unitEntry.id ? { ...u, asset_caretaker: e.target.value } : u)),
+                                    );
+                                  }}
+                                />
+                              </div>
+                              <div className="space-y-1">
+                                <Label className="text-xs">Location ตามแผน PO</Label>
+                                <Input
+                                  placeholder="เช่น Centerpoint of Siam Square"
+                                  value={unitEntry.planned_install_location}
+                                  onChange={(e) => {
+                                    setEquipmentUnits((prev) =>
+                                      prev.map((u) => (u.id === unitEntry.id ? { ...u, planned_install_location: e.target.value } : u)),
+                                    );
+                                  }}
+                                />
+                              </div>
+                            </div>
                           </div>
                         ))}
                       </div>
