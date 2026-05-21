@@ -122,13 +122,7 @@ export function GeneralInfoTab({ player, modelName, onUpdated }: GeneralInfoTabP
       <MediaPlayerInfoEditDialog
         open={editOpen}
         onOpenChange={setEditOpen}
-        playerId={player.id}
-        initial={{
-          asset_caretaker: player.asset_caretaker,
-          planned_install_location: player.planned_install_location,
-          asset_code: player.asset_code,
-          equipment_id_code: player.equipment_id_code,
-        }}
+        player={player}
         onSaved={() => onUpdated?.()}
       />
     )}
