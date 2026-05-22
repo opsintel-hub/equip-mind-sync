@@ -11,11 +11,16 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
 const AI_MODELS = [
+  { value: "google/gemini-3.1-flash-lite-preview", label: "Gemini 3.1 Flash Lite (เร็วสุด+ถูกสุด)" },
   { value: "google/gemini-3-flash-preview", label: "Gemini 3 Flash (เร็ว+ถูก)" },
+  { value: "google/gemini-3.5-flash", label: "Gemini 3.5 Flash (แนะนำ)" },
   { value: "google/gemini-2.5-flash", label: "Gemini 2.5 Flash (สมดุล)" },
   { value: "google/gemini-2.5-pro", label: "Gemini 2.5 Pro (แม่นยำสูง)" },
+  { value: "google/gemini-3.1-pro-preview", label: "Gemini 3.1 Pro Preview" },
   { value: "openai/gpt-5-mini", label: "GPT-5 Mini (สมดุล)" },
-  { value: "openai/gpt-5", label: "GPT-5 (แม่นยำสูงสุด)" },
+  { value: "openai/gpt-5", label: "GPT-5 (แม่นยำสูง)" },
+  { value: "openai/gpt-5.4-mini", label: "GPT-5.4 Mini" },
+  { value: "openai/gpt-5.5", label: "GPT-5.5 (แม่นยำสูงสุด)" },
 ];
 
 const DEFAULT_SYSTEM_PROMPT = `คุณเป็นผู้เชี่ยวชาญอ่านเอกสาร Purchase Order (PO) ภาษาไทยและภาษาอังกฤษ
@@ -26,10 +31,16 @@ const DEFAULT_SYSTEM_PROMPT = `คุณเป็นผู้เชี่ยว�
 - ราคาให้เป็นตัวเลขล้วน ไม่มี comma (เช่น 350,000 → 350000)
 - ถ้าอ่านไม่ได้หรือไม่มีข้อมูลให้ใส่ null
 - รองรับ PO หลาย format (Plan B Media, ทั่วไป, บริษัทอื่น)
-- Item No คือรหัสสินค้า/รหัสอะไหล่ที่ระบุในตาราง
+- Item No คือรหัสสินค้า/รหัสอะไหล่ที่ระบุในตาราง (เช่น DG-A03001-F001) — เก็บไว้แม้ระบบจะ match รหัสภายในไม่เจอ
 - Description คือรายละเอียดสินค้า/บริการ
 - ดึง Vendor Code (รหัสผู้ขาย) จากหัวเอกสาร
-- ดึง PR Number (เลขที่ใบขอซื้อ) จากช่อง Refer PR หรือ PR No.`;
+- ดึง PR Number (เลขที่ใบขอซื้อ) จากช่อง Refer PR หรือ PR No.
+
+ข้อมูลเพิ่มเติมต่อรายการ (per-item) ให้ดึงให้ครบหากปรากฏใน description หรือคอลัมน์ใดก็ตาม:
+- model: รุ่นสินค้า เช่น DS-086GB2601-T
+- warranty_years: ระยะเวลารับประกัน (ปี) ถ้าระบุเป็นเดือนให้แปลงเป็นปี (เช่น 24 เดือน → 2)
+- asset_caretaker: ชื่อผู้ดูแล/ผู้ใช้งานทรัพย์สิน (ถ้ามีระบุ)
+- planned_location: สถานที่ติดตั้ง/Location ปลายทางตามแผน PO`;
 
 const DEFAULT_EXTRACTION_SCHEMA = {
   name: "extract_po_data",
@@ -39,6 +50,7 @@ const DEFAULT_EXTRACTION_SCHEMA = {
     properties: {
       po_number: { type: "string", description: "เลขที่ PO เช่น PO20100177" },
       po_date: { type: "string", description: "วันที่ PO ในรูปแบบ YYYY-MM-DD" },
+      buyer_company_name: { type: "string", description: "ชื่อบริษัทผู้ซื้อ (หัวเอกสาร)" },
       vendor_code: { type: "string", description: "รหัสผู้ขาย/Vendor No เช่น 002402" },
       vendor_name: { type: "string", description: "ชื่อผู้ขาย/บริษัท Vendor" },
       vendor_address: { type: "string", description: "ที่อยู่ Vendor" },
@@ -56,13 +68,17 @@ const DEFAULT_EXTRACTION_SCHEMA = {
         items: {
           type: "object",
           properties: {
-            item_no: { type: "string", description: "รหัสสินค้า/Item No" },
+            item_no: { type: "string", description: "รหัสสินค้า/Item No (เช่น DG-A03001-F001)" },
             description: { type: "string", description: "รายละเอียดสินค้า/บริการ" },
             asset_no: { type: "string", description: "เลขทรัพย์สิน/Asset No" },
             quantity: { type: "number", description: "จำนวน" },
             unit: { type: "string", description: "หน่วยนับ เช่น UNIT, PCS, EA" },
             unit_price: { type: "number", description: "ราคาต่อหน่วย (ไม่รวม VAT)" },
             amount: { type: "number", description: "จำนวนเงินรวม (ไม่รวม VAT)" },
+            model: { type: "string", description: "รุ่นสินค้า เช่น DS-086GB2601-T" },
+            warranty_years: { type: "number", description: "ระยะเวลารับประกัน หน่วยปี (แปลงจากเดือนถ้าจำเป็น)" },
+            asset_caretaker: { type: "string", description: "ชื่อผู้ดูแลทรัพย์สิน/ผู้ใช้งาน" },
+            planned_location: { type: "string", description: "สถานที่ติดตั้ง/Location ปลายทางตามแผน PO" },
           },
           required: ["description", "quantity", "unit"],
         },
@@ -80,12 +96,13 @@ const DEFAULT_FIELD_MAPPING: Record<string, string> = {
   pr_number: "prNumber",
   vendor_code: "supplierId",
   vendor_name: "supplierName",
+  buyer_company_name: "buyerCompanyName",
   department: "departmentId",
   comment: "notes",
   receipt_date: "expectedDate",
 };
 
-const DEFAULT_MODEL = "google/gemini-3-flash-preview";
+const DEFAULT_MODEL = "google/gemini-3.5-flash";
 
 export function OCRConfigManager() {
   const [loading, setLoading] = useState(true);

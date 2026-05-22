@@ -19,6 +19,15 @@ interface Equipment {
   unit: string;
 }
 
+interface MediaPlayer {
+  id: string;
+  code: string;
+  name: string;
+  unit_price?: number | null;
+  specification?: string | null;
+  usage_lifespan_months?: number | null;
+}
+
 interface Supplier {
   id: string;
   code: string;
@@ -32,6 +41,7 @@ interface DeliveryCartItemEditDialogProps {
   onSave: (item: DeliveryCartItem) => void;
   equipment: Equipment[];
   suppliers: Supplier[];
+  mediaPlayers?: MediaPlayer[];
 }
 
 export function DeliveryCartItemEditDialog({
@@ -41,6 +51,7 @@ export function DeliveryCartItemEditDialog({
   onSave,
   equipment,
   suppliers,
+  mediaPlayers = [],
 }: DeliveryCartItemEditDialogProps) {
   // Form state
   const [selectedEquipmentId, setSelectedEquipmentId] = useState("");
@@ -74,6 +85,10 @@ export function DeliveryCartItemEditDialog({
   const [assetCaretaker, setAssetCaretaker] = useState("");
   const [plannedInstallLocation, setPlannedInstallLocation] = useState("");
   const [model, setModel] = useState("");
+  const [isMediaPlayer, setIsMediaPlayer] = useState(false);
+  const [selectedMediaPlayerId, setSelectedMediaPlayerId] = useState("");
+  const [poItemNo, setPoItemNo] = useState("");
+  const [warrantyYears, setWarrantyYears] = useState("");
 
   // Load item data when dialog opens
   useEffect(() => {
@@ -109,6 +124,10 @@ export function DeliveryCartItemEditDialog({
       setAssetCaretaker(item.asset_caretaker || "");
       setPlannedInstallLocation(item.planned_install_location || "");
       setModel(item.model || "");
+      setIsMediaPlayer(!!item.is_media_player);
+      setSelectedMediaPlayerId(item.media_player_id || "");
+      setPoItemNo(item.po_item_no || "");
+      setWarrantyYears(item.warranty_years != null ? String(item.warranty_years) : "");
     }
   }, [item, open]);
 
@@ -181,8 +200,8 @@ export function DeliveryCartItemEditDialog({
       temp_subcategory_id: item!.temp_subcategory_id,
       temp_product_images: item!.temp_product_images,
       temp_min_stock_level: item!.temp_min_stock_level,
-      is_media_player: item!.is_media_player,
-      media_player_id: item!.media_player_id,
+      is_media_player: isMediaPlayer,
+      media_player_id: isMediaPlayer ? (selectedMediaPlayerId || null) : null,
       cms_type_id: item!.cms_type_id,
       serial_number_2: serialNumber2,
       remote_name: remoteName,
@@ -194,6 +213,8 @@ export function DeliveryCartItemEditDialog({
       asset_caretaker: assetCaretaker,
       planned_install_location: plannedInstallLocation,
       model: model,
+      po_item_no: poItemNo || undefined,
+      warranty_years: warrantyYears ? parseFloat(warrantyYears) : null,
     };
 
     onSave(updatedItem);
@@ -211,26 +232,67 @@ export function DeliveryCartItemEditDialog({
         </DialogHeader>
         
         <div className="space-y-4 py-4">
-          {/* Equipment Selection */}
+          {/* Type Switch */}
+          <div className="flex items-center gap-3 p-3 rounded-lg border bg-muted/30">
+            <Switch
+              checked={isMediaPlayer}
+              onCheckedChange={(v) => {
+                setIsMediaPlayer(v);
+                if (v) {
+                  setSelectedEquipmentId("");
+                } else {
+                  setSelectedMediaPlayerId("");
+                }
+              }}
+            />
+            <Label className="cursor-pointer">เป็น Media Player (สลับเป็น Equipment เมื่อปิด)</Label>
+          </div>
+
+          {/* Equipment / Media Player Selection */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label>เลือกสินค้า</Label>
+              <Label>{isMediaPlayer ? "เลือกรหัส Media Player" : "เลือกสินค้า (Equipment)"}</Label>
               <div className="flex gap-2">
                 <div className="flex-1">
-                  <SearchableSelect
-                    options={equipment.map((eq) => ({
-                      value: eq.id,
-                      label: `${eq.code} - ${eq.name}`,
-                      searchableText: `${eq.code} ${eq.name}`,
-                    }))}
-                    value={selectedEquipmentId}
-                    onValueChange={setSelectedEquipmentId}
-                    placeholder="เลือกสินค้าจากระบบ..."
-                    searchPlaceholder="พิมพ์รหัสหรือชื่อสินค้า..."
-                    emptyMessage="ไม่พบสินค้า"
-                  />
+                  {isMediaPlayer ? (
+                    <SearchableSelect
+                      options={mediaPlayers.map((mp) => ({
+                        value: mp.id,
+                        label: `${mp.code} - ${mp.name}`,
+                        searchableText: `${mp.code} ${mp.name}`,
+                      }))}
+                      value={selectedMediaPlayerId}
+                      onValueChange={(val) => {
+                        setSelectedMediaPlayerId(val);
+                        const mp = mediaPlayers.find((m) => m.id === val);
+                        if (mp) {
+                          setEquipmentCode(mp.code);
+                          setEquipmentName(mp.name);
+                          if (mp.specification) setSpecification(mp.specification);
+                          if (mp.usage_lifespan_months) setUsageLifespanMonths(String(mp.usage_lifespan_months));
+                          if (mp.unit_price != null && !unitPrice) setUnitPrice(String(mp.unit_price));
+                        }
+                      }}
+                      placeholder="เลือก Media Player..."
+                      searchPlaceholder="พิมพ์รหัสหรือชื่อ MP..."
+                      emptyMessage="ไม่พบ Media Player"
+                    />
+                  ) : (
+                    <SearchableSelect
+                      options={equipment.map((eq) => ({
+                        value: eq.id,
+                        label: `${eq.code} - ${eq.name}`,
+                        searchableText: `${eq.code} ${eq.name}`,
+                      }))}
+                      value={selectedEquipmentId}
+                      onValueChange={setSelectedEquipmentId}
+                      placeholder="เลือกสินค้าจากระบบ..."
+                      searchPlaceholder="พิมพ์รหัสหรือชื่อสินค้า..."
+                      emptyMessage="ไม่พบสินค้า"
+                    />
+                  )}
                 </div>
-                {selectedEquipmentId && (
+                {!isMediaPlayer && selectedEquipmentId && (
                   <EquipmentImageViewer 
                     equipmentId={selectedEquipmentId} 
                     equipmentName={selectedEquipment?.name}
@@ -488,6 +550,18 @@ export function DeliveryCartItemEditDialog({
             <div className="space-y-2">
               <Label>Location ตามแผน PO</Label>
               <Input placeholder="เช่น Centerpoint of Siam Square" value={plannedInstallLocation} onChange={(e) => setPlannedInstallLocation(e.target.value)} />
+            </div>
+          </div>
+
+          {/* PO Item No / Warranty Years */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Item No. (PO)</Label>
+              <Input placeholder="เช่น DG-A03001-F001" value={poItemNo} onChange={(e) => setPoItemNo(e.target.value)} className="font-mono" />
+            </div>
+            <div className="space-y-2">
+              <Label>ระยะรับประกัน (ปี)</Label>
+              <Input type="number" step="0.5" placeholder="เช่น 2" value={warrantyYears} onChange={(e) => setWarrantyYears(e.target.value)} />
             </div>
           </div>
 
