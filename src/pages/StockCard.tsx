@@ -52,6 +52,9 @@ interface EquipmentItem {
   billboard_id?: string | null;
   location_id?: string | null;
   current_location?: string | null;
+  po_item_no?: string | null;
+  warranty_years?: number | null;
+  warranty_expiry_date?: string | null;
 }
 
 interface TimelineEvent {
