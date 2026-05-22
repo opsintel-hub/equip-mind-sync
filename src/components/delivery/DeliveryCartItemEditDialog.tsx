@@ -550,6 +550,17 @@ export function DeliveryCartItemEditDialog({
             <div className="space-y-2">
               <Label>Location ตามแผน PO</Label>
               <Input placeholder="เช่น Centerpoint of Siam Square" value={plannedInstallLocation} onChange={(e) => setPlannedInstallLocation(e.target.value)} />
+          </div>
+
+          {/* PO Item No / Warranty Years */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Item No. (PO)</Label>
+              <Input placeholder="เช่น DG-A03001-F001" value={poItemNo} onChange={(e) => setPoItemNo(e.target.value)} className="font-mono" />
+            </div>
+            <div className="space-y-2">
+              <Label>ระยะรับประกัน (ปี)</Label>
+              <Input type="number" step="0.5" placeholder="เช่น 2" value={warrantyYears} onChange={(e) => setWarrantyYears(e.target.value)} />
             </div>
           </div>
 
