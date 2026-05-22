@@ -500,8 +500,14 @@ export function POUploadOCR({
           <div className="space-y-2">
             <Label className="font-semibold">1. เลือกไฟล์ PO</Label>
             <div
-              className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-6 text-center cursor-pointer hover:border-primary/50 transition-colors"
+              className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors ${
+                isDragging ? "border-primary bg-primary/5" : "border-muted-foreground/25 hover:border-primary/50"
+              }`}
               onClick={() => fileInputRef.current?.click()}
+              onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+              onDragEnter={(e) => { e.preventDefault(); setIsDragging(true); }}
+              onDragLeave={(e) => { e.preventDefault(); setIsDragging(false); }}
+              onDrop={handleDrop}
             >
               {file ? (
                 <div className="flex items-center justify-center gap-2">
