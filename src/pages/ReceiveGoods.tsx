@@ -905,6 +905,8 @@ const ReceiveGoods = () => {
             if (br.equipment_id_code) batchMpPayload.equipment_id_code = br.equipment_id_code;
             if (br.asset_caretaker) batchMpPayload.asset_caretaker = br.asset_caretaker;
             if (br.planned_install_location) batchMpPayload.planned_install_location = br.planned_install_location;
+            if (br.po_item_no) batchMpPayload.po_item_no = br.po_item_no;
+            if (br.warranty_years != null) batchMpPayload.warranty_years = br.warranty_years;
 
             const { error: mpError } = await supabase
               .from("media_players")
