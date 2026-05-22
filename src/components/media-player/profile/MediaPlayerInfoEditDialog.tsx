@@ -167,6 +167,7 @@ export function MediaPlayerInfoEditDialog({ open, onOpenChange, player, onSaved 
               <div className="space-y-1.5"><Label>อายุใช้งาน (เดือน)</Label><Input type="number" value={form.usage_lifespan_months} onChange={set("usage_lifespan_months")} /></div>
               <div className="space-y-1.5"><Label>วันที่รับเข้าคลัง</Label><Input type="date" value={form.date_of_receipt} onChange={set("date_of_receipt")} /></div>
               <div className="space-y-1.5"><Label>วันหมดประกัน</Label><Input type="date" value={form.warranty_expiry_date} onChange={set("warranty_expiry_date")} /></div>
+              <div className="space-y-1.5"><Label>ระยะรับประกัน (ปี)</Label><Input type="number" step="0.5" value={form.warranty_years} onChange={set("warranty_years")} /></div>
             </div>
           </section>
 
@@ -174,6 +175,7 @@ export function MediaPlayerInfoEditDialog({ open, onOpenChange, player, onSaved 
           <section className="space-y-3">
             <h4 className="text-sm font-semibold text-primary">เลขที่เอกสาร</h4>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div className="space-y-1.5"><Label>Item No. (PO)</Label><Input value={form.po_item_no} onChange={set("po_item_no")} placeholder="เช่น DG-A03001-F001" /></div>
               <div className="space-y-1.5"><Label>PO No.</Label><Input value={form.po_number} onChange={set("po_number")} /></div>
               <div className="space-y-1.5"><Label>PR No.</Label><Input value={form.pr_number} onChange={set("pr_number")} /></div>
               <div className="space-y-1.5"><Label>Invoice No.</Label><Input value={form.invoice_number} onChange={set("invoice_number")} /></div>
