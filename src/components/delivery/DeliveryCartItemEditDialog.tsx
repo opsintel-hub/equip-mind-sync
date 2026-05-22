@@ -51,6 +51,7 @@ export function DeliveryCartItemEditDialog({
   onSave,
   equipment,
   suppliers,
+  mediaPlayers = [],
 }: DeliveryCartItemEditDialogProps) {
   // Form state
   const [selectedEquipmentId, setSelectedEquipmentId] = useState("");
