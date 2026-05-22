@@ -1328,7 +1328,13 @@ const ReceiveGoods = () => {
                 <Label>ชื่อสินค้า</Label>
                 <div className="flex gap-2">
                   <Input 
-                    value={selectedReceipt.equipment_code ? `${selectedReceipt.equipment_code} - ${selectedReceipt.equipment_name || ""}` : selectedReceipt.equipment_name || "-"}
+                    value={(() => {
+                      const baseName = selectedReceipt.equipment_code 
+                        ? `${selectedReceipt.equipment_code} - ${selectedReceipt.equipment_name || ""}` 
+                        : selectedReceipt.equipment_name || "-";
+                      const poItem = (selectedReceipt as any).po_item_no;
+                      return poItem ? `${baseName}  •  Item No.: ${poItem}` : baseName;
+                    })()}
                     disabled
                     className="bg-muted flex-1"
                   />
@@ -1340,6 +1346,16 @@ const ReceiveGoods = () => {
                     />
                   )}
                 </div>
+                {((selectedReceipt as any).po_item_no || (selectedReceipt as any).warranty_years != null) && (
+                  <div className="flex flex-wrap items-center gap-2 text-xs">
+                    {(selectedReceipt as any).po_item_no && (
+                      <Badge variant="outline" className="font-mono">Item No.: {(selectedReceipt as any).po_item_no}</Badge>
+                    )}
+                    {(selectedReceipt as any).warranty_years != null && (
+                      <Badge variant="outline">ระยะรับประกัน: {(selectedReceipt as any).warranty_years} ปี</Badge>
+                    )}
+                  </div>
+                )}
 
                 {/* Alert when no equipment_id - New Equipment */}
                 {!selectedReceipt.equipment_id && !(selectedReceipt as any).is_media_player && (
