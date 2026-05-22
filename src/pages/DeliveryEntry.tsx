@@ -1565,6 +1565,7 @@ const DeliveryEntry = () => {
         onSave={handleSaveEditItem}
         equipment={equipment}
         suppliers={suppliers}
+        mediaPlayers={mediaPlayers}
       />
 
       {/* Cart Display - moved to just above submit button */}
