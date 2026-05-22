@@ -183,8 +183,9 @@ export function POUploadOCR({
     setItems([]);
   }, []);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const selected = e.target.files?.[0];
+  const [isDragging, setIsDragging] = useState(false);
+
+  const acceptFile = (selected: File | undefined | null) => {
     if (!selected) return;
     if (selected.type !== "application/pdf") {
       toast.error("รองรับเฉพาะไฟล์ PDF เท่านั้น");
@@ -196,6 +197,16 @@ export function POUploadOCR({
     }
     setFile(selected);
     setOcrData(null);
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    acceptFile(e.target.files?.[0]);
+  };
+
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDragging(false);
+    acceptFile(e.dataTransfer.files?.[0]);
   };
 
   const matchSupplier = (vendorCode: string | null, vendorName: string | null) => {
