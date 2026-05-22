@@ -124,6 +124,10 @@ export function DeliveryCartItemEditDialog({
       setAssetCaretaker(item.asset_caretaker || "");
       setPlannedInstallLocation(item.planned_install_location || "");
       setModel(item.model || "");
+      setIsMediaPlayer(!!item.is_media_player);
+      setSelectedMediaPlayerId(item.media_player_id || "");
+      setPoItemNo(item.po_item_no || "");
+      setWarrantyYears(item.warranty_years != null ? String(item.warranty_years) : "");
     }
   }, [item, open]);
 
