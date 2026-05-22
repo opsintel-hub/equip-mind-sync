@@ -96,12 +96,13 @@ const DEFAULT_FIELD_MAPPING: Record<string, string> = {
   pr_number: "prNumber",
   vendor_code: "supplierId",
   vendor_name: "supplierName",
+  buyer_company_name: "buyerCompanyName",
   department: "departmentId",
   comment: "notes",
   receipt_date: "expectedDate",
 };
 
-const DEFAULT_MODEL = "google/gemini-3-flash-preview";
+const DEFAULT_MODEL = "google/gemini-3.5-flash";
 
 export function OCRConfigManager() {
   const [loading, setLoading] = useState(true);
