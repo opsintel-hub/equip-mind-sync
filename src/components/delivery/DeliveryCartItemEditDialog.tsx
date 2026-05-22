@@ -550,6 +550,7 @@ export function DeliveryCartItemEditDialog({
             <div className="space-y-2">
               <Label>Location ตามแผน PO</Label>
               <Input placeholder="เช่น Centerpoint of Siam Square" value={plannedInstallLocation} onChange={(e) => setPlannedInstallLocation(e.target.value)} />
+            </div>
           </div>
 
           {/* PO Item No / Warranty Years */}
