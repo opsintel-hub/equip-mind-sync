@@ -85,6 +85,10 @@ export function DeliveryCartItemEditDialog({
   const [assetCaretaker, setAssetCaretaker] = useState("");
   const [plannedInstallLocation, setPlannedInstallLocation] = useState("");
   const [model, setModel] = useState("");
+  const [isMediaPlayer, setIsMediaPlayer] = useState(false);
+  const [selectedMediaPlayerId, setSelectedMediaPlayerId] = useState("");
+  const [poItemNo, setPoItemNo] = useState("");
+  const [warrantyYears, setWarrantyYears] = useState("");
 
   // Load item data when dialog opens
   useEffect(() => {
