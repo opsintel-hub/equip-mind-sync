@@ -157,6 +157,7 @@ export default function MediaPlayerReport() {
           warranty_expiry_date, date_of_receipt, install_date, unit_price, po_number,
           asset_code, equipment_id_code, depreciation_months, activate_windows,
           image_url, specification, usage_lifespan_months, remote_name, is_refurbished,
+          po_item_no, warranty_years,
           companies:company_id (name),
           locations:location_id (name),
           billboard:billboards!media_players_billboard_id_fkey (id, equipment_id, old_code, location_name)
