@@ -200,8 +200,8 @@ export function DeliveryCartItemEditDialog({
       temp_subcategory_id: item!.temp_subcategory_id,
       temp_product_images: item!.temp_product_images,
       temp_min_stock_level: item!.temp_min_stock_level,
-      is_media_player: item!.is_media_player,
-      media_player_id: item!.media_player_id,
+      is_media_player: isMediaPlayer,
+      media_player_id: isMediaPlayer ? (selectedMediaPlayerId || null) : null,
       cms_type_id: item!.cms_type_id,
       serial_number_2: serialNumber2,
       remote_name: remoteName,
@@ -213,6 +213,8 @@ export function DeliveryCartItemEditDialog({
       asset_caretaker: assetCaretaker,
       planned_install_location: plannedInstallLocation,
       model: model,
+      po_item_no: poItemNo || undefined,
+      warranty_years: warrantyYears ? parseFloat(warrantyYears) : null,
     };
 
     onSave(updatedItem);
