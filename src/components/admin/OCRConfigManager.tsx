@@ -11,11 +11,16 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
 const AI_MODELS = [
+  { value: "google/gemini-3.1-flash-lite-preview", label: "Gemini 3.1 Flash Lite (เร็วสุด+ถูกสุด)" },
   { value: "google/gemini-3-flash-preview", label: "Gemini 3 Flash (เร็ว+ถูก)" },
+  { value: "google/gemini-3.5-flash", label: "Gemini 3.5 Flash (แนะนำ)" },
   { value: "google/gemini-2.5-flash", label: "Gemini 2.5 Flash (สมดุล)" },
   { value: "google/gemini-2.5-pro", label: "Gemini 2.5 Pro (แม่นยำสูง)" },
+  { value: "google/gemini-3.1-pro-preview", label: "Gemini 3.1 Pro Preview" },
   { value: "openai/gpt-5-mini", label: "GPT-5 Mini (สมดุล)" },
-  { value: "openai/gpt-5", label: "GPT-5 (แม่นยำสูงสุด)" },
+  { value: "openai/gpt-5", label: "GPT-5 (แม่นยำสูง)" },
+  { value: "openai/gpt-5.4-mini", label: "GPT-5.4 Mini" },
+  { value: "openai/gpt-5.5", label: "GPT-5.5 (แม่นยำสูงสุด)" },
 ];
 
 const DEFAULT_SYSTEM_PROMPT = `คุณเป็นผู้เชี่ยวชาญอ่านเอกสาร Purchase Order (PO) ภาษาไทยและภาษาอังกฤษ
