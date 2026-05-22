@@ -86,11 +86,13 @@ export function GeneralInfoTab({ player, modelName, onUpdated }: GeneralInfoTabP
           <InfoRow label="ผู้จัดจำหน่าย" value={player.suppliers?.name} />
           <InfoRow label="วันที่รับเข้าคลัง" value={player.date_of_receipt} />
           <InfoRow label="วันหมดประกัน" value={player.warranty_expiry_date} />
+          <InfoRow label="ระยะรับประกัน (ปี)" value={player.warranty_years != null ? String(player.warranty_years) : null} />
           <InfoRow label="ราคา (บาท)" value={player.unit_price?.toLocaleString()} />
           <InfoRow label="ค่าเสื่อม (เดือน)" value={player.depreciation_months?.toString()} />
           <InfoRow label="อายุใช้งาน (เดือน)" value={player.usage_lifespan_months?.toString()} />
           <InfoRow label="รหัสทรัพย์สิน" value={player.asset_code} />
           <InfoRow label="Equipment ID" value={player.equipment_id_code} />
+          <InfoRow label="Item No. (PO)" value={player.po_item_no} mono />
           <InfoRow label="Order For Project" value={player.order_for_project} />
         </div>
 
