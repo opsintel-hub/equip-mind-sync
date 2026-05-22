@@ -685,6 +685,8 @@ export default function MediaPlayerReport() {
                       <TableHead className="min-w-[110px]">บริษัท</TableHead>
                       <TableHead className="min-w-[100px] text-right">ราคา/ชิ้น</TableHead>
                       <TableHead className="min-w-[100px]">เลข PO</TableHead>
+                      <TableHead className="min-w-[130px]">Item No. (PO)</TableHead>
+                      <TableHead className="min-w-[100px] text-right">ระยะรับประกัน (ปี)</TableHead>
                       <TableHead className="min-w-[110px]">รหัสทรัพย์สิน</TableHead>
                       <TableHead className="min-w-[110px]">Equipment ID</TableHead>
                       <TableHead className="min-w-[100px] text-right">ค่าเสื่อมเหลือ (เดือน)</TableHead>
