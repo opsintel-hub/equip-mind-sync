@@ -265,8 +265,42 @@ export function POUploadOCR({
     }
   };
 
+  // Fallback regex parsing from description for fields AI may have missed
+  const parseFieldsFromDescription = (item: POOCRItem): POOCRItem => {
+    const desc = item.description || "";
+    let model = item.model;
+    let asset_caretaker = item.asset_caretaker;
+    let planned_location = item.planned_location;
+    let warranty_years = item.warranty_years;
+
+    if (!model) {
+      const m = desc.match(/(?:รุ่น|Model)\s*[:：]?\s*([A-Za-z0-9][A-Za-z0-9._/\-]*)/i);
+      if (m) model = m[1].trim();
+    }
+    if (!asset_caretaker) {
+      const m = desc.match(/ผู้ดูแล(?:ทรัพย์สิน)?\s*[:：]\s*(.+?)(?=\s+(?:Location|รุ่น|รับประกัน|อ้างอิง|จำนวน|Asset|$))/);
+      if (m) asset_caretaker = m[1].trim();
+    }
+    if (!planned_location) {
+      const m = desc.match(/Location\s*[:：]\s*(.+?)(?=\s+(?:ผู้ดูแล|รุ่น|รับประกัน|อ้างอิง|จำนวน|Asset)|\s*$)/i);
+      if (m) planned_location = m[1].trim();
+    }
+    if (warranty_years == null) {
+      const m = desc.match(/รับประกัน(?:สินค้า)?\s*(\d+(?:\.\d+)?)\s*ปี/);
+      if (m) warranty_years = Number(m[1]);
+    }
+    return {
+      ...item,
+      model: model || null,
+      asset_caretaker: asset_caretaker || null,
+      planned_location: planned_location || null,
+      warranty_years: warranty_years ?? null,
+    };
+  };
+
   const matchEquipmentItems = (ocrItems: POOCRItem[]) => {
-    return ocrItems.map((item) => {
+    return ocrItems.map((rawItem) => {
+      const item = parseFieldsFromDescription(rawItem);
       if (item.item_no) {
         const target = item.item_no.replace(/\s/g, "");
         const found = equipment.find(
@@ -718,12 +752,7 @@ export function POUploadOCR({
                             />
                           </TableCell>
                           <TableCell>
-                            {item.match_status === "matched" ? (
-                              <div className="flex items-center gap-1">
-                                <CheckCircle2 className="w-4 h-4 text-green-600 shrink-0" />
-                                <span className="text-xs truncate">{item.matched_equipment_code}</span>
-                              </div>
-                            ) : (
+                            <div className="space-y-1">
                               <SearchableSelect
                                 options={equipmentOptions}
                                 value={item.matched_equipment_id || ""}
@@ -733,7 +762,16 @@ export function POUploadOCR({
                                 emptyMessage="ไม่พบ"
                                 triggerClassName="h-8 text-xs"
                               />
-                            )}
+                              {item.match_status === "matched" && (
+                                <div className="flex items-center gap-1 text-[10px] text-green-600">
+                                  <CheckCircle2 className="w-3 h-3 shrink-0" />
+                                  <span className="truncate">
+                                    Auto: {item.matched_equipment_code}
+                                    {item.matched_is_media_player ? " (MP)" : ""}
+                                  </span>
+                                </div>
+                              )}
+                            </div>
                           </TableCell>
                         </TableRow>
                       ))}
