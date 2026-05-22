@@ -51,6 +51,8 @@ export interface DeliveryCartItem {
   asset_caretaker?: string;
   planned_install_location?: string;
   model?: string;
+  po_item_no?: string;
+  warranty_years?: number | null;
 }
 
 interface DeliveryCartProps {

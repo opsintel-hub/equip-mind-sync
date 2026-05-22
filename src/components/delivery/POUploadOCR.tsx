@@ -681,9 +681,45 @@ export function POUploadOCR({
 
               {/* Items table */}
               <div className="space-y-2">
-                <Label className="font-semibold text-sm">
-                  รายการสินค้า ({items.length} รายการ)
-                </Label>
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <Label className="font-semibold text-sm">
+                    รายการสินค้า ({items.length} รายการ)
+                  </Label>
+                  {mediaPlayers.length > 0 && (
+                    <div className="flex items-center gap-2">
+                      <Label className="text-xs whitespace-nowrap">ตั้งรหัส Media Player ให้ทุกรายการ:</Label>
+                      <div className="w-64">
+                        <SearchableSelect
+                          options={mediaPlayers.map((m) => ({
+                            value: m.id,
+                            label: `${m.code} - ${m.name}`,
+                            description: "Media Player",
+                          }))}
+                          value=""
+                          onValueChange={(v) => {
+                            const mp = mediaPlayers.find((m) => m.id === v);
+                            if (!mp) return;
+                            setItems((prev) =>
+                              prev.map((it) => ({
+                                ...it,
+                                matched_equipment_id: mp.id,
+                                matched_equipment_code: mp.code,
+                                matched_equipment_name: mp.name,
+                                matched_is_media_player: true,
+                                match_status: "matched" as const,
+                              }))
+                            );
+                            toast.success(`ตั้งรหัส ${mp.code} ให้ทุกรายการแล้ว`);
+                          }}
+                          placeholder="เลือก MP เพื่อใช้กับทุกรายการ..."
+                          searchPlaceholder="ค้นหา MP..."
+                          emptyMessage="ไม่พบ"
+                          triggerClassName="h-8 text-xs"
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
                 <div className="border rounded-lg overflow-auto max-h-[300px]">
                   <Table>
                     <TableHeader>
