@@ -968,6 +968,15 @@ export default function StockCard() {
                       {getConditionMeta(selectedItem.item_condition).label}
                     </Badge>
                   </div>
+                  {selectedItem.po_item_no && (
+                    <div><span className="text-muted-foreground">Item No. (PO):</span> <span className="font-mono font-medium">{selectedItem.po_item_no}</span></div>
+                  )}
+                  {selectedItem.warranty_years != null && (
+                    <div><span className="text-muted-foreground">ระยะรับประกัน:</span> <span className="font-medium">{selectedItem.warranty_years} ปี</span></div>
+                  )}
+                  {selectedItem.warranty_expiry_date && (
+                    <div><span className="text-muted-foreground">วันหมดประกัน:</span> <span className="font-medium">{format(parseISO(selectedItem.warranty_expiry_date), "dd/MM/yyyy")}</span></div>
+                  )}
                 </div>
               </div>
 
