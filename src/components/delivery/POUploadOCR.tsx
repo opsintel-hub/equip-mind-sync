@@ -752,12 +752,7 @@ export function POUploadOCR({
                             />
                           </TableCell>
                           <TableCell>
-                            {item.match_status === "matched" ? (
-                              <div className="flex items-center gap-1">
-                                <CheckCircle2 className="w-4 h-4 text-green-600 shrink-0" />
-                                <span className="text-xs truncate">{item.matched_equipment_code}</span>
-                              </div>
-                            ) : (
+                            <div className="space-y-1">
                               <SearchableSelect
                                 options={equipmentOptions}
                                 value={item.matched_equipment_id || ""}
@@ -767,7 +762,16 @@ export function POUploadOCR({
                                 emptyMessage="ไม่พบ"
                                 triggerClassName="h-8 text-xs"
                               />
-                            )}
+                              {item.match_status === "matched" && (
+                                <div className="flex items-center gap-1 text-[10px] text-green-600">
+                                  <CheckCircle2 className="w-3 h-3 shrink-0" />
+                                  <span className="truncate">
+                                    Auto: {item.matched_equipment_code}
+                                    {item.matched_is_media_player ? " (MP)" : ""}
+                                  </span>
+                                </div>
+                              )}
+                            </div>
                           </TableCell>
                         </TableRow>
                       ))}
