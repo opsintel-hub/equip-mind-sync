@@ -468,6 +468,8 @@ export default function MediaPlayerReport() {
       "บริษัท": r.company,
       "ราคา/ชิ้น": r.price ?? "",
       "เลข PO": r.poNumber,
+      "Item No. (PO)": r.poItemNo,
+      "ระยะรับประกัน (ปี)": r.warrantyYears ?? "",
       "รหัสทรัพย์สิน": r.assetCode,
       "Equipment ID": r.equipmentIdCode,
       "ค่าเสื่อมคงเหลือ (เดือน)": r.depreciationRemaining ?? "",
