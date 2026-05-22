@@ -19,6 +19,15 @@ interface Equipment {
   unit: string;
 }
 
+interface MediaPlayer {
+  id: string;
+  code: string;
+  name: string;
+  unit_price?: number | null;
+  specification?: string | null;
+  usage_lifespan_months?: number | null;
+}
+
 interface Supplier {
   id: string;
   code: string;
@@ -32,6 +41,7 @@ interface DeliveryCartItemEditDialogProps {
   onSave: (item: DeliveryCartItem) => void;
   equipment: Equipment[];
   suppliers: Supplier[];
+  mediaPlayers?: MediaPlayer[];
 }
 
 export function DeliveryCartItemEditDialog({
