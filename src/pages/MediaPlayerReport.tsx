@@ -127,6 +127,8 @@ interface ExpandedRow {
   orderForProject: string;
   rawStatus: string | null;
   isRefurbished: boolean;
+  poItemNo: string;
+  warrantyYears: number | null;
 }
 
 export default function MediaPlayerReport() {
