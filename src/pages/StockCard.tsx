@@ -233,8 +233,8 @@ export default function StockCard() {
       const items: EquipmentItem[] = [];
 
       const [eqRes, mpRes, toolRes] = await Promise.all([
-        supabase.from("equipment").select("id, code, name, serial_number, category, brand, unit, department, quantity_in_stock, item_condition, location_id, locations:location_id(id, code, name, warehouses:warehouse_id(code, name))").eq("is_active", true),
-        supabase.from("media_players").select("id, code, name, serial_number_1, serial_number_2, brand, unit, department, quantity, item_condition, status, billboard_id, location_id, locations:location_id(id, code, name, warehouses:warehouse_id(code, name)), billboard:billboard_id(equipment_id, old_code, location_name)").eq("is_active", true),
+        supabase.from("equipment").select("id, code, name, serial_number, category, brand, unit, department, quantity_in_stock, item_condition, location_id, po_item_no, warranty_years, warranty_expiry_date, locations:location_id(id, code, name, warehouses:warehouse_id(code, name))").eq("is_active", true),
+        supabase.from("media_players").select("id, code, name, serial_number_1, serial_number_2, brand, unit, department, quantity, item_condition, status, billboard_id, location_id, po_item_no, warranty_years, warranty_expiry_date, locations:location_id(id, code, name, warehouses:warehouse_id(code, name)), billboard:billboard_id(equipment_id, old_code, location_name)").eq("is_active", true),
         supabase.from("tools").select("id, code, name, serial_number, brand, unit, department, current_quantity, location_id, locations:location_id(id, code, name, warehouses:warehouse_id(code, name))").eq("is_active", true),
       ]);
 
@@ -243,6 +243,9 @@ export default function StockCard() {
         category: e.category, brand: e.brand, unit: e.unit, department: e.department,
         quantity_in_stock: e.quantity_in_stock, item_condition: e.item_condition, type: "equipment",
         location_id: e.location_id, current_location: formatStorageLocation((e as any).locations),
+        po_item_no: (e as any).po_item_no || null,
+        warranty_years: (e as any).warranty_years ?? null,
+        warranty_expiry_date: (e as any).warranty_expiry_date || null,
       }));
 
       mpRes.data?.forEach(m => items.push({
@@ -252,6 +255,9 @@ export default function StockCard() {
         quantity_in_stock: m.quantity, item_condition: m.item_condition, type: "media_player",
         status: m.status, billboard_id: m.billboard_id,
         location_id: m.location_id, current_location: m.billboard_id ? formatBillboardLocation((m as any).billboard) : formatStorageLocation((m as any).locations),
+        po_item_no: (m as any).po_item_no || null,
+        warranty_years: (m as any).warranty_years ?? null,
+        warranty_expiry_date: (m as any).warranty_expiry_date || null,
       }));
 
       toolRes.data?.forEach(t => items.push({
