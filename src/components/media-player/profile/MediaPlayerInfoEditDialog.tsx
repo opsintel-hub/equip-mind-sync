@@ -36,6 +36,8 @@ type FormState = {
   usage_lifespan_months: string;
   date_of_receipt: string;
   warranty_expiry_date: string;
+  warranty_years: string;
+  po_item_no: string;
   notes: string;
 };
 
@@ -61,6 +63,8 @@ function init(p: MediaPlayerRow): FormState {
     usage_lifespan_months: p.usage_lifespan_months?.toString() || "",
     date_of_receipt: p.date_of_receipt || "",
     warranty_expiry_date: p.warranty_expiry_date || "",
+    warranty_years: p.warranty_years != null ? String(p.warranty_years) : "",
+    po_item_no: p.po_item_no || "",
     notes: p.notes || "",
   };
 }
@@ -101,6 +105,8 @@ export function MediaPlayerInfoEditDialog({ open, onOpenChange, player, onSaved 
         usage_lifespan_months: toNum(form.usage_lifespan_months),
         date_of_receipt: toNull(form.date_of_receipt),
         warranty_expiry_date: toNull(form.warranty_expiry_date),
+        warranty_years: toNum(form.warranty_years),
+        po_item_no: toNull(form.po_item_no),
         notes: toNull(form.notes),
       };
       const { error } = await supabase.from("media_players").update(payload).eq("id", player.id);
