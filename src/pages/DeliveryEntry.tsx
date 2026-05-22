@@ -1221,6 +1221,8 @@ const DeliveryEntry = () => {
         temp_subcategory_id: item.temp_subcategory_id || null,
         temp_product_images: item.temp_product_images || null,
         temp_min_stock_level: item.temp_min_stock_level ?? 0,
+        po_item_no: (item as any).po_item_no || null,
+        warranty_years: (item as any).warranty_years ?? null,
       }));
       const { error } = await supabase.from("goods_receipt_pending").insert(itemsToInsert as any);
       if (error) throw error;
@@ -1419,6 +1421,8 @@ const DeliveryEntry = () => {
               media_player_id: mp.id,
               asset_caretaker: caretaker,
               planned_install_location: planned,
+              po_item_no: item.item_no || "",
+              warranty_years: item.warranty_years ?? null,
             });
             continue;
           }
@@ -1454,6 +1458,8 @@ const DeliveryEntry = () => {
               depreciation_months: "",
               asset_caretaker: caretaker,
               planned_install_location: planned,
+              po_item_no: item.item_no || "",
+              warranty_years: item.warranty_years ?? null,
             });
           }
         } else {
@@ -1485,6 +1491,8 @@ const DeliveryEntry = () => {
             depreciation_months: "",
             asset_caretaker: caretaker,
             planned_install_location: planned,
+            po_item_no: item.item_no || "",
+            warranty_years: item.warranty_years ?? null,
           });
         }
       }

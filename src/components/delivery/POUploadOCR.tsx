@@ -183,8 +183,9 @@ export function POUploadOCR({
     setItems([]);
   }, []);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const selected = e.target.files?.[0];
+  const [isDragging, setIsDragging] = useState(false);
+
+  const acceptFile = (selected: File | undefined | null) => {
     if (!selected) return;
     if (selected.type !== "application/pdf") {
       toast.error("รองรับเฉพาะไฟล์ PDF เท่านั้น");
@@ -196,6 +197,16 @@ export function POUploadOCR({
     }
     setFile(selected);
     setOcrData(null);
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    acceptFile(e.target.files?.[0]);
+  };
+
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDragging(false);
+    acceptFile(e.dataTransfer.files?.[0]);
   };
 
   const matchSupplier = (vendorCode: string | null, vendorName: string | null) => {
@@ -489,8 +500,14 @@ export function POUploadOCR({
           <div className="space-y-2">
             <Label className="font-semibold">1. เลือกไฟล์ PO</Label>
             <div
-              className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-6 text-center cursor-pointer hover:border-primary/50 transition-colors"
+              className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors ${
+                isDragging ? "border-primary bg-primary/5" : "border-muted-foreground/25 hover:border-primary/50"
+              }`}
               onClick={() => fileInputRef.current?.click()}
+              onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+              onDragEnter={(e) => { e.preventDefault(); setIsDragging(true); }}
+              onDragLeave={(e) => { e.preventDefault(); setIsDragging(false); }}
+              onDrop={handleDrop}
             >
               {file ? (
                 <div className="flex items-center justify-center gap-2">
@@ -664,9 +681,45 @@ export function POUploadOCR({
 
               {/* Items table */}
               <div className="space-y-2">
-                <Label className="font-semibold text-sm">
-                  รายการสินค้า ({items.length} รายการ)
-                </Label>
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <Label className="font-semibold text-sm">
+                    รายการสินค้า ({items.length} รายการ)
+                  </Label>
+                  {mediaPlayers.length > 0 && (
+                    <div className="flex items-center gap-2">
+                      <Label className="text-xs whitespace-nowrap">ตั้งรหัส Media Player ให้ทุกรายการ:</Label>
+                      <div className="w-64">
+                        <SearchableSelect
+                          options={mediaPlayers.map((m) => ({
+                            value: m.id,
+                            label: `${m.code} - ${m.name}`,
+                            description: "Media Player",
+                          }))}
+                          value=""
+                          onValueChange={(v) => {
+                            const mp = mediaPlayers.find((m) => m.id === v);
+                            if (!mp) return;
+                            setItems((prev) =>
+                              prev.map((it) => ({
+                                ...it,
+                                matched_equipment_id: mp.id,
+                                matched_equipment_code: mp.code,
+                                matched_equipment_name: mp.name,
+                                matched_is_media_player: true,
+                                match_status: "matched" as const,
+                              }))
+                            );
+                            toast.success(`ตั้งรหัส ${mp.code} ให้ทุกรายการแล้ว`);
+                          }}
+                          placeholder="เลือก MP เพื่อใช้กับทุกรายการ..."
+                          searchPlaceholder="ค้นหา MP..."
+                          emptyMessage="ไม่พบ"
+                          triggerClassName="h-8 text-xs"
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
                 <div className="border rounded-lg overflow-auto max-h-[300px]">
                   <Table>
                     <TableHeader>

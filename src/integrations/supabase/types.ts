@@ -1751,6 +1751,7 @@ export type Database = {
           min_stock_level: number | null
           name: string
           notes: string | null
+          po_item_no: string | null
           quantity_in_stock: number
           serial_number: string | null
           subcategory_id: string | null
@@ -1762,6 +1763,7 @@ export type Database = {
           volume_cm3: number | null
           warehouse_entry_date: string
           warranty_expiry_date: string | null
+          warranty_years: number | null
           watt: number | null
           width_cm: number | null
         }
@@ -1791,6 +1793,7 @@ export type Database = {
           min_stock_level?: number | null
           name: string
           notes?: string | null
+          po_item_no?: string | null
           quantity_in_stock?: number
           serial_number?: string | null
           subcategory_id?: string | null
@@ -1802,6 +1805,7 @@ export type Database = {
           volume_cm3?: number | null
           warehouse_entry_date?: string
           warranty_expiry_date?: string | null
+          warranty_years?: number | null
           watt?: number | null
           width_cm?: number | null
         }
@@ -1831,6 +1835,7 @@ export type Database = {
           min_stock_level?: number | null
           name?: string
           notes?: string | null
+          po_item_no?: string | null
           quantity_in_stock?: number
           serial_number?: string | null
           subcategory_id?: string | null
@@ -1842,6 +1847,7 @@ export type Database = {
           volume_cm3?: number | null
           warehouse_entry_date?: string
           warranty_expiry_date?: string | null
+          warranty_years?: number | null
           watt?: number | null
           width_cm?: number | null
         }
@@ -2884,6 +2890,7 @@ export type Database = {
           order_for_project: string | null
           planned_install_location: string | null
           po_document_url: string | null
+          po_item_no: string | null
           po_number: string | null
           pr_document_url: string | null
           pr_number: string | null
@@ -2918,6 +2925,7 @@ export type Database = {
           waiting_equipment_id: boolean | null
           warehouse_id: string | null
           warranty_expiry_date: string | null
+          warranty_years: number | null
         }
         Insert: {
           activate_windows?: string | null
@@ -2952,6 +2960,7 @@ export type Database = {
           order_for_project?: string | null
           planned_install_location?: string | null
           po_document_url?: string | null
+          po_item_no?: string | null
           po_number?: string | null
           pr_document_url?: string | null
           pr_number?: string | null
@@ -2986,6 +2995,7 @@ export type Database = {
           waiting_equipment_id?: boolean | null
           warehouse_id?: string | null
           warranty_expiry_date?: string | null
+          warranty_years?: number | null
         }
         Update: {
           activate_windows?: string | null
@@ -3020,6 +3030,7 @@ export type Database = {
           order_for_project?: string | null
           planned_install_location?: string | null
           po_document_url?: string | null
+          po_item_no?: string | null
           po_number?: string | null
           pr_document_url?: string | null
           pr_number?: string | null
@@ -3054,6 +3065,7 @@ export type Database = {
           waiting_equipment_id?: boolean | null
           warehouse_id?: string | null
           warranty_expiry_date?: string | null
+          warranty_years?: number | null
         }
         Relationships: [
           {
@@ -3625,6 +3637,7 @@ export type Database = {
           order_for_project: string | null
           planned_install_location: string | null
           po_document_url: string | null
+          po_item_no: string | null
           po_number: string | null
           pr_document_url: string | null
           pr_number: string | null
@@ -3644,6 +3657,7 @@ export type Database = {
           waiting_asset_code: boolean | null
           waiting_equipment_id: boolean | null
           warranty_expiry_date: string | null
+          warranty_years: number | null
         }
         Insert: {
           activate_windows?: string | null
@@ -3679,6 +3693,7 @@ export type Database = {
           order_for_project?: string | null
           planned_install_location?: string | null
           po_document_url?: string | null
+          po_item_no?: string | null
           po_number?: string | null
           pr_document_url?: string | null
           pr_number?: string | null
@@ -3698,6 +3713,7 @@ export type Database = {
           waiting_asset_code?: boolean | null
           waiting_equipment_id?: boolean | null
           warranty_expiry_date?: string | null
+          warranty_years?: number | null
         }
         Update: {
           activate_windows?: string | null
@@ -3733,6 +3749,7 @@ export type Database = {
           order_for_project?: string | null
           planned_install_location?: string | null
           po_document_url?: string | null
+          po_item_no?: string | null
           po_number?: string | null
           pr_document_url?: string | null
           pr_number?: string | null
@@ -3752,6 +3769,7 @@ export type Database = {
           waiting_asset_code?: boolean | null
           waiting_equipment_id?: boolean | null
           warranty_expiry_date?: string | null
+          warranty_years?: number | null
         }
         Relationships: [
           {

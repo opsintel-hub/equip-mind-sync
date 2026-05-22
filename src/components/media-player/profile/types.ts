@@ -30,6 +30,8 @@ export interface MediaPlayerRow {
   order_for_project: string | null;
   asset_caretaker: string | null;
   planned_install_location: string | null;
+  po_item_no: string | null;
+  warranty_years: number | null;
   notes: string | null;
   cms_type_id: string | null;
   company_id: string | null;
