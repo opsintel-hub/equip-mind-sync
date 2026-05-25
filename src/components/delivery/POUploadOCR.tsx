@@ -738,26 +738,26 @@ export function POUploadOCR({
                     <TableHeader>
                       <TableRow>
                         <TableHead className="w-10">#</TableHead>
-                        <TableHead className="min-w-[110px]">รหัสสินค้า</TableHead>
-                        <TableHead className="min-w-[180px]">รายละเอียด</TableHead>
+                        <TableHead className="w-[120px]">รหัสสินค้า</TableHead>
+                        <TableHead className="w-[260px]">รายละเอียด</TableHead>
                         <TableHead className="w-16 text-right">จำนวน</TableHead>
-                        <TableHead className="w-14">หน่วย</TableHead>
+                        <TableHead className="w-16">หน่วย</TableHead>
                         <TableHead className="w-24 text-right">ราคา/หน่วย</TableHead>
-                        <TableHead className="min-w-[130px]">Asset No.</TableHead>
-                        <TableHead className="min-w-[140px]">รุ่น</TableHead>
-                        <TableHead className="w-20 text-right">รับประกัน (ปี)</TableHead>
-                        <TableHead className="min-w-[140px]">ผู้ดูแล</TableHead>
-                        <TableHead className="min-w-[180px]">Location ตามแผน</TableHead>
-                        <TableHead className="min-w-[180px]">Match สินค้า</TableHead>
+                        <TableHead className="w-[120px]">Asset No.</TableHead>
+                        <TableHead className="w-[150px]">รุ่น</TableHead>
+                        <TableHead className="w-[90px] text-right">รับประกัน (ปี)</TableHead>
+                        <TableHead className="w-[170px]">ผู้ดูแล</TableHead>
+                        <TableHead className="w-[220px]">Location ตามแผน</TableHead>
+                        <TableHead className="w-[200px]">Match สินค้า</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {items.map((item, idx) => (
                         <TableRow key={idx}>
                           <TableCell className="text-muted-foreground">{idx + 1}</TableCell>
-                          <TableCell className="font-mono text-xs">{item.item_no || "-"}</TableCell>
-                          <TableCell className="text-xs max-w-[220px] truncate" title={item.description}>
-                            {item.description}
+                          <TableCell className="font-mono text-xs whitespace-nowrap">{item.item_no || "-"}</TableCell>
+                          <TableCell className="text-xs whitespace-pre-line align-top" title={item.description}>
+                            <div className="line-clamp-4">{item.description}</div>
                           </TableCell>
                           <TableCell className="text-right">{item.quantity}</TableCell>
                           <TableCell>{item.unit}</TableCell>
