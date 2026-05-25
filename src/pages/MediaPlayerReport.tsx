@@ -821,6 +821,10 @@ export default function MediaPlayerReport() {
             setSelectedPlayerId(null);
             navigate(`/media-player/${id}`);
           }}
+          onUpdated={() => {
+            queryClient.invalidateQueries({ queryKey: ["media-player-report-v2"] });
+            queryClient.invalidateQueries({ queryKey: ["media-player-report-receipts"] });
+          }}
         />
       )}
 
