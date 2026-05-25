@@ -176,7 +176,7 @@ export default function MediaPlayerReport() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("goods_receipt_pending")
-        .select("media_player_id, serial_number, unit_price, po_number, lot_number, lot_number_2, order_for_project, received_at, created_at, media_player_image_url, po_item_no, warranty_years")
+        .select("media_player_id, serial_number, unit_price, po_number, lot_number, lot_number_2, order_for_project, received_at, created_at, media_player_image_url, po_item_no, warranty_years, asset_caretaker")
         .eq("status", "received")
         .eq("is_media_player", true)
         .not("media_player_id", "is", null);
