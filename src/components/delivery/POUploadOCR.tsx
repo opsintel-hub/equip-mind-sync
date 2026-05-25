@@ -720,7 +720,7 @@ export function POUploadOCR({
                     </div>
                   )}
                 </div>
-                <div className="border rounded-lg overflow-auto max-h-[300px]">
+                <div className="border rounded-lg overflow-auto max-h-[60vh]">
                   <Table>
                     <TableHeader>
                       <TableRow>
