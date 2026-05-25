@@ -133,6 +133,7 @@ interface ExpandedRow {
 
 export default function MediaPlayerReport() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [snSearch, setSnSearch] = useState("");
   const [conditionFilter, setConditionFilter] = useState("all");
