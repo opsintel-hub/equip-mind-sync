@@ -858,10 +858,12 @@ function MediaPlayerProfileDialog({
   playerId,
   onClose,
   onOpenFullProfile,
+  onUpdated,
 }: {
   playerId: string;
   onClose: () => void;
   onOpenFullProfile: (id: string) => void;
+  onUpdated?: () => void;
 }) {
   const [player, setPlayer] = useState<MediaPlayerRow | null>(null);
   const [isLoading, setIsLoading] = useState(true);
