@@ -129,6 +129,7 @@ interface ExpandedRow {
   isRefurbished: boolean;
   poItemNo: string;
   warrantyYears: number | null;
+  assetCaretaker: string;
 }
 
 export default function MediaPlayerReport() {
