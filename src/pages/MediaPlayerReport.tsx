@@ -1042,7 +1042,7 @@ function MediaPlayerProfileDialog({
                 <JourneyTab player={player} journeys={journeys} />
               </TabsContent>
               <TabsContent value="movements">
-                <MovementTab movements={movements} playerCode={player.code} />
+                <MovementTab movements={movements} playerCode={player.code} serialNumber1={player.serial_number_1} serialNumber2={player.serial_number_2} />
               </TabsContent>
             </Tabs>
           </div>
