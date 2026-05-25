@@ -336,6 +336,7 @@ export default function MediaPlayerReport() {
         isRefurbished: !!(p as any).is_refurbished,
         poItemNo: (p as any).po_item_no || latestReceipt?.po_item_no || "",
         warrantyYears: (p as any).warranty_years ?? latestReceipt?.warranty_years ?? null,
+        assetCaretaker: (p as any).asset_caretaker || (latestReceipt as any)?.asset_caretaker || "",
       });
     });
     return rows;
