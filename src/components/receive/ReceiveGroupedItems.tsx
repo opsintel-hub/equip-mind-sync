@@ -60,6 +60,11 @@ export interface PendingReceipt {
   temp_category_id?: string | null;
   temp_subcategory_id?: string | null;
   temp_product_images?: string[] | null;
+  // Asset planning info
+  planned_install_location?: string | null;
+  asset_caretaker?: string | null;
+  po_item_no?: string | null;
+  warranty_years?: number | null;
 }
 
 interface GroupedReceipts {
