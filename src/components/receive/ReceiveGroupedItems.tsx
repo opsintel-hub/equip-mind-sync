@@ -304,6 +304,8 @@ export const ReceiveGroupedItems = ({
                       <TableHead>ชื่อสินค้า</TableHead>
                       <TableHead>จำนวน</TableHead>
                       <TableHead>Serial No.</TableHead>
+                      <TableHead className="min-w-[160px]">Location ตามแผน</TableHead>
+                      <TableHead>ผู้ดูแล</TableHead>
                       <TableHead>วัตถุประสงค์</TableHead>
                       <TableHead>ผู้จัดจำหน่าย</TableHead>
                       <TableHead>สถานะ</TableHead>
