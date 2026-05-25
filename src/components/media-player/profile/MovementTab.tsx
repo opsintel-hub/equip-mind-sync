@@ -53,7 +53,7 @@ export function MovementTab({ movements, playerCode, serialNumber1, serialNumber
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {movements.map((m) => {
+                {filtered.map((m) => {
                   const meta = getMovementMeta(m.movement_type);
                   const Icon = meta.icon;
                   const cond = m.item_condition ? getConditionDisplay(m.item_condition) : null;
