@@ -5713,6 +5713,20 @@ export type Database = {
         }
         Returns: boolean
       }
+      public_confirm_ad_issue_request: {
+        Args: { _receiver_name: string; _token: string }
+        Returns: boolean
+      }
+      public_get_ad_issue_request: { Args: { _token: string }; Returns: Json }
+      public_report_ad_issue: {
+        Args: {
+          _report_description: string
+          _report_type: string
+          _reporter_name: string
+          _token: string
+        }
+        Returns: boolean
+      }
       save_user_roles: {
         Args: {
           _roles: Database["public"]["Enums"]["app_role"][]
