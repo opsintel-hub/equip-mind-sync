@@ -306,6 +306,7 @@ export const ReceiveGroupedItems = ({
                       <TableHead>Serial No.</TableHead>
                       <TableHead className="min-w-[160px]">Location ตามแผน</TableHead>
                       <TableHead>ผู้ดูแล</TableHead>
+                      <TableHead className="w-24 text-right">รับประกัน (ปี)</TableHead>
                       <TableHead>วัตถุประสงค์</TableHead>
                       <TableHead>ผู้จัดจำหน่าย</TableHead>
                       <TableHead>สถานะ</TableHead>
@@ -368,6 +369,9 @@ export const ReceiveGroupedItems = ({
                           )}
                         </TableCell>
                         <TableCell className="text-sm">{item.asset_caretaker || "-"}</TableCell>
+                        <TableCell className="text-sm text-right">
+                          {item.warranty_years != null ? item.warranty_years : "-"}
+                        </TableCell>
                         <TableCell>
                           <Badge variant="outline" className="font-normal text-xs">
                             {getReceiptPurposeName(item.receipt_purpose_id)}

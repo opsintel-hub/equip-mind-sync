@@ -278,7 +278,8 @@ export function POUploadOCR({
 
   // Fallback regex parsing from description for fields AI may have missed
   const parseFieldsFromDescription = (item: POOCRItem): POOCRItem => {
-    const desc = item.description || "";
+    // Normalize newlines/extra spaces so lookaheads work consistently
+    const desc = (item.description || "").replace(/\r/g, " ").replace(/\n+/g, " ").replace(/\s{2,}/g, " ").trim();
     let model = item.model;
     let asset_caretaker = item.asset_caretaker;
     let planned_location = item.planned_location;
@@ -289,16 +290,28 @@ export function POUploadOCR({
       if (m) model = m[1].trim();
     }
     if (!asset_caretaker) {
-      const m = desc.match(/ผู้ดูแล(?:ทรัพย์สิน)?\s*[:：]\s*(.+?)(?=\s+(?:Location|รุ่น|รับประกัน|อ้างอิง|จำนวน|Asset|$))/);
-      if (m) asset_caretaker = m[1].trim();
+      // Match through end-of-string or until next known keyword. Allow ทรัพยสิน / ทรัพย์สิน variants.
+      const m = desc.match(/ผู้ดูแล(?:ทรัพย[์]?สิน)?\s*[:：]\s*(.+?)(?=\s*(?:Location|รุ่น|Model|รับประกัน|อ้างอิง|จำนวน|Asset|Item|$))/i);
+      if (m) asset_caretaker = m[1].replace(/[\s:：\-]+$/, "").trim();
     }
     if (!planned_location) {
-      const m = desc.match(/Location\s*[:：]\s*(.+?)(?=\s+(?:ผู้ดูแล|รุ่น|รับประกัน|อ้างอิง|จำนวน|Asset)|\s*$)/i);
-      if (m) planned_location = m[1].trim();
+      const m = desc.match(/Location\s*[:：]\s*(.+?)(?=\s*(?:ผู้ดูแล|รุ่น|Model|รับประกัน|อ้างอิง|จำนวน|Asset|Item|$))/i);
+      if (m) planned_location = m[1].replace(/[\s:：\-]+$/, "").trim();
     }
     if (warranty_years == null) {
-      const m = desc.match(/รับประกัน(?:สินค้า)?\s*(\d+(?:\.\d+)?)\s*ปี/);
-      if (m) warranty_years = Number(m[1]);
+      // Years
+      let m = desc.match(/รับประกัน(?:สินค้า)?\s*[:：]?\s*(\d+(?:\.\d+)?)\s*ปี/);
+      if (m) {
+        warranty_years = Number(m[1]);
+      } else {
+        // Months → years
+        m = desc.match(/รับประกัน(?:สินค้า)?\s*[:：]?\s*(\d+)\s*เดือน/);
+        if (m) warranty_years = Math.round((Number(m[1]) / 12) * 10) / 10;
+        else {
+          m = desc.match(/warranty\s*[:：]?\s*(\d+(?:\.\d+)?)\s*(year|yr|y)/i);
+          if (m) warranty_years = Number(m[1]);
+        }
+      }
     }
     return {
       ...item,
@@ -725,26 +738,26 @@ export function POUploadOCR({
                     <TableHeader>
                       <TableRow>
                         <TableHead className="w-10">#</TableHead>
-                        <TableHead className="min-w-[110px]">รหัสสินค้า</TableHead>
-                        <TableHead className="min-w-[180px]">รายละเอียด</TableHead>
+                        <TableHead className="w-[120px]">รหัสสินค้า</TableHead>
+                        <TableHead className="w-[260px]">รายละเอียด</TableHead>
                         <TableHead className="w-16 text-right">จำนวน</TableHead>
-                        <TableHead className="w-14">หน่วย</TableHead>
+                        <TableHead className="w-16">หน่วย</TableHead>
                         <TableHead className="w-24 text-right">ราคา/หน่วย</TableHead>
-                        <TableHead className="min-w-[130px]">Asset No.</TableHead>
-                        <TableHead className="min-w-[140px]">รุ่น</TableHead>
-                        <TableHead className="w-20 text-right">รับประกัน (ปี)</TableHead>
-                        <TableHead className="min-w-[140px]">ผู้ดูแล</TableHead>
-                        <TableHead className="min-w-[180px]">Location ตามแผน</TableHead>
-                        <TableHead className="min-w-[180px]">Match สินค้า</TableHead>
+                        <TableHead className="w-[120px]">Asset No.</TableHead>
+                        <TableHead className="w-[150px]">รุ่น</TableHead>
+                        <TableHead className="w-[90px] text-right">รับประกัน (ปี)</TableHead>
+                        <TableHead className="w-[170px]">ผู้ดูแล</TableHead>
+                        <TableHead className="w-[220px]">Location ตามแผน</TableHead>
+                        <TableHead className="w-[200px]">Match สินค้า</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {items.map((item, idx) => (
                         <TableRow key={idx}>
                           <TableCell className="text-muted-foreground">{idx + 1}</TableCell>
-                          <TableCell className="font-mono text-xs">{item.item_no || "-"}</TableCell>
-                          <TableCell className="text-xs max-w-[220px] truncate" title={item.description}>
-                            {item.description}
+                          <TableCell className="font-mono text-xs whitespace-nowrap">{item.item_no || "-"}</TableCell>
+                          <TableCell className="text-xs whitespace-pre-line align-top" title={item.description}>
+                            <div className="line-clamp-4">{item.description}</div>
                           </TableCell>
                           <TableCell className="text-right">{item.quantity}</TableCell>
                           <TableCell>{item.unit}</TableCell>

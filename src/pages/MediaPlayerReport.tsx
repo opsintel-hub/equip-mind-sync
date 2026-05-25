@@ -129,6 +129,7 @@ interface ExpandedRow {
   isRefurbished: boolean;
   poItemNo: string;
   warrantyYears: number | null;
+  assetCaretaker: string;
 }
 
 export default function MediaPlayerReport() {
@@ -158,7 +159,7 @@ export default function MediaPlayerReport() {
           warranty_expiry_date, date_of_receipt, install_date, unit_price, po_number,
           asset_code, equipment_id_code, depreciation_months, activate_windows,
           image_url, specification, usage_lifespan_months, remote_name, is_refurbished,
-          po_item_no, warranty_years,
+          po_item_no, warranty_years, asset_caretaker,
           companies:company_id (name),
           locations:location_id (name),
           billboard:billboards!media_players_billboard_id_fkey (id, equipment_id, old_code, location_name)
@@ -176,7 +177,7 @@ export default function MediaPlayerReport() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("goods_receipt_pending")
-        .select("media_player_id, serial_number, unit_price, po_number, lot_number, lot_number_2, order_for_project, received_at, created_at, media_player_image_url, po_item_no, warranty_years")
+        .select("media_player_id, serial_number, unit_price, po_number, lot_number, lot_number_2, order_for_project, received_at, created_at, media_player_image_url, po_item_no, warranty_years, asset_caretaker")
         .eq("status", "received")
         .eq("is_media_player", true)
         .not("media_player_id", "is", null);
@@ -336,6 +337,7 @@ export default function MediaPlayerReport() {
         isRefurbished: !!(p as any).is_refurbished,
         poItemNo: (p as any).po_item_no || latestReceipt?.po_item_no || "",
         warrantyYears: (p as any).warranty_years ?? latestReceipt?.warranty_years ?? null,
+        assetCaretaker: (p as any).asset_caretaker || (latestReceipt as any)?.asset_caretaker || "",
       });
     });
     return rows;
@@ -471,6 +473,7 @@ export default function MediaPlayerReport() {
       "เลข PO": r.poNumber,
       "Item No. (PO)": r.poItemNo,
       "ระยะรับประกัน (ปี)": r.warrantyYears ?? "",
+      "ผู้ดูแล": r.assetCaretaker,
       "รหัสทรัพย์สิน": r.assetCode,
       "Equipment ID": r.equipmentIdCode,
       "ค่าเสื่อมคงเหลือ (เดือน)": r.depreciationRemaining ?? "",
@@ -690,6 +693,7 @@ export default function MediaPlayerReport() {
                       <TableHead className="min-w-[100px]">เลข PO</TableHead>
                       <TableHead className="min-w-[130px]">Item No. (PO)</TableHead>
                       <TableHead className="min-w-[100px] text-right">ระยะรับประกัน (ปี)</TableHead>
+                      <TableHead className="min-w-[130px]">ผู้ดูแล</TableHead>
                       <TableHead className="min-w-[110px]">รหัสทรัพย์สิน</TableHead>
                       <TableHead className="min-w-[110px]">Equipment ID</TableHead>
                       <TableHead className="min-w-[100px] text-right">ค่าเสื่อมเหลือ (เดือน)</TableHead>
@@ -707,7 +711,7 @@ export default function MediaPlayerReport() {
                   <TableBody>
                     {paginatedData.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={27} className="text-center py-10 text-muted-foreground">
+                        <TableCell colSpan={28} className="text-center py-10 text-muted-foreground">
                           ไม่พบข้อมูล Media Player
                         </TableCell>
                       </TableRow>
@@ -754,6 +758,7 @@ export default function MediaPlayerReport() {
                             <TableCell>{r.poNumber || "-"}</TableCell>
                             <TableCell className="font-mono text-xs">{r.poItemNo || "-"}</TableCell>
                             <TableCell className="text-right">{r.warrantyYears != null ? r.warrantyYears : "-"}</TableCell>
+                            <TableCell className="text-sm">{r.assetCaretaker || "-"}</TableCell>
                             <TableCell>{r.assetCode || "-"}</TableCell>
                             <TableCell>{r.equipmentIdCode || "-"}</TableCell>
                             <TableCell className="text-right">
