@@ -8,17 +8,34 @@ import { getMovementMeta, getConditionDisplay } from "./constants";
 interface MovementTabProps {
   movements: StockMovement[];
   playerCode: string;
+  serialNumber1?: string | null;
+  serialNumber2?: string | null;
 }
 
-export function MovementTab({ movements, playerCode }: MovementTabProps) {
+export function MovementTab({ movements, playerCode, serialNumber1, serialNumber2 }: MovementTabProps) {
+  // Filter to only this S/N's movements when serial is provided.
+  // Match by serial number appearing in notes or reference_document; if no match found, fall back to all (master row case).
+  const sns = [serialNumber1, serialNumber2].filter(Boolean) as string[];
+  let filtered = movements;
+  if (sns.length > 0) {
+    const matched = movements.filter((m) => {
+      const hay = `${m.notes || ""} ${m.reference_document || ""}`.toLowerCase();
+      return sns.some((sn) => hay.includes(sn.toLowerCase()));
+    });
+    if (matched.length > 0) filtered = matched;
+  }
+
   return (
     <Card>
       <CardHeader>
         <CardTitle className="text-base">Stock Card Timeline</CardTitle>
-        <CardDescription>ความเคลื่อนไหวของสินค้ารหัส {playerCode}</CardDescription>
+        <CardDescription>
+          ความเคลื่อนไหวของสินค้ารหัส {playerCode}
+          {sns.length > 0 && <> • S/N: <span className="font-mono">{sns.join(" / ")}</span></>}
+        </CardDescription>
       </CardHeader>
       <CardContent>
-        {movements.length === 0 ? (
+        {filtered.length === 0 ? (
           <p className="text-center py-8 text-muted-foreground">ยังไม่มีข้อมูลความเคลื่อนไหว</p>
         ) : (
           <div className="overflow-x-auto">
@@ -36,7 +53,7 @@ export function MovementTab({ movements, playerCode }: MovementTabProps) {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {movements.map((m) => {
+                {filtered.map((m) => {
                   const meta = getMovementMeta(m.movement_type);
                   const Icon = meta.icon;
                   const cond = m.item_condition ? getConditionDisplay(m.item_condition) : null;

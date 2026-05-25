@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useTablePagination } from "@/hooks/useTablePagination";
@@ -133,6 +133,7 @@ interface ExpandedRow {
 
 export default function MediaPlayerReport() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [snSearch, setSnSearch] = useState("");
   const [conditionFilter, setConditionFilter] = useState("all");
@@ -820,6 +821,10 @@ export default function MediaPlayerReport() {
             setSelectedPlayerId(null);
             navigate(`/media-player/${id}`);
           }}
+          onUpdated={() => {
+            queryClient.invalidateQueries({ queryKey: ["media-player-report-v2"] });
+            queryClient.invalidateQueries({ queryKey: ["media-player-report-receipts"] });
+          }}
         />
       )}
 
@@ -853,10 +858,12 @@ function MediaPlayerProfileDialog({
   playerId,
   onClose,
   onOpenFullProfile,
+  onUpdated,
 }: {
   playerId: string;
   onClose: () => void;
   onOpenFullProfile: (id: string) => void;
+  onUpdated?: () => void;
 }) {
   const [player, setPlayer] = useState<MediaPlayerRow | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -1036,13 +1043,13 @@ function MediaPlayerProfileDialog({
                 <TabsTrigger value="movements">Stock Card</TabsTrigger>
               </TabsList>
               <TabsContent value="general">
-                <GeneralInfoTab player={player} modelName={modelName} />
+                <GeneralInfoTab player={player} modelName={modelName} onUpdated={() => { loadPlayer(); onUpdated?.(); }} />
               </TabsContent>
               <TabsContent value="journey">
                 <JourneyTab player={player} journeys={journeys} />
               </TabsContent>
               <TabsContent value="movements">
-                <MovementTab movements={movements} playerCode={player.code} />
+                <MovementTab movements={movements} playerCode={player.code} serialNumber1={player.serial_number_1} serialNumber2={player.serial_number_2} />
               </TabsContent>
             </Tabs>
           </div>

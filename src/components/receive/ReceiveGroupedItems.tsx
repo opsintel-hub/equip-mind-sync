@@ -60,6 +60,11 @@ export interface PendingReceipt {
   temp_category_id?: string | null;
   temp_subcategory_id?: string | null;
   temp_product_images?: string[] | null;
+  // Asset planning info
+  planned_install_location?: string | null;
+  asset_caretaker?: string | null;
+  po_item_no?: string | null;
+  warranty_years?: number | null;
 }
 
 interface GroupedReceipts {
@@ -299,6 +304,8 @@ export const ReceiveGroupedItems = ({
                       <TableHead>ชื่อสินค้า</TableHead>
                       <TableHead>จำนวน</TableHead>
                       <TableHead>Serial No.</TableHead>
+                      <TableHead className="min-w-[160px]">Location ตามแผน</TableHead>
+                      <TableHead>ผู้ดูแล</TableHead>
                       <TableHead>วัตถุประสงค์</TableHead>
                       <TableHead>ผู้จัดจำหน่าย</TableHead>
                       <TableHead>สถานะ</TableHead>
@@ -353,6 +360,14 @@ export const ReceiveGroupedItems = ({
                         </TableCell>
                         <TableCell>{item.quantity} {item.unit}</TableCell>
                         <TableCell className="text-sm">{item.serial_number || "-"}</TableCell>
+                        <TableCell className="text-sm">
+                          {item.planned_install_location ? (
+                            <span className="text-foreground">{item.planned_install_location}</span>
+                          ) : (
+                            <span className="text-muted-foreground">-</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-sm">{item.asset_caretaker || "-"}</TableCell>
                         <TableCell>
                           <Badge variant="outline" className="font-normal text-xs">
                             {getReceiptPurposeName(item.receipt_purpose_id)}

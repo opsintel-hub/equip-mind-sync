@@ -484,7 +484,7 @@ export function POUploadOCR({
         onOpenChange(v);
       }}
     >
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-[98vw] sm:max-w-[95vw] xl:max-w-[1600px] max-h-[95vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <ScanLine className="w-5 h-5" />
@@ -720,7 +720,7 @@ export function POUploadOCR({
                     </div>
                   )}
                 </div>
-                <div className="border rounded-lg overflow-auto max-h-[300px]">
+                <div className="border rounded-lg overflow-auto max-h-[60vh]">
                   <Table>
                     <TableHeader>
                       <TableRow>
