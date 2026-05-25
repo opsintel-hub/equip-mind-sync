@@ -278,7 +278,8 @@ export function POUploadOCR({
 
   // Fallback regex parsing from description for fields AI may have missed
   const parseFieldsFromDescription = (item: POOCRItem): POOCRItem => {
-    const desc = item.description || "";
+    // Normalize newlines/extra spaces so lookaheads work consistently
+    const desc = (item.description || "").replace(/\r/g, " ").replace(/\n+/g, " ").replace(/\s{2,}/g, " ").trim();
     let model = item.model;
     let asset_caretaker = item.asset_caretaker;
     let planned_location = item.planned_location;
@@ -289,16 +290,28 @@ export function POUploadOCR({
       if (m) model = m[1].trim();
     }
     if (!asset_caretaker) {
-      const m = desc.match(/ผู้ดูแล(?:ทรัพย์สิน)?\s*[:：]\s*(.+?)(?=\s+(?:Location|รุ่น|รับประกัน|อ้างอิง|จำนวน|Asset|$))/);
-      if (m) asset_caretaker = m[1].trim();
+      // Match through end-of-string or until next known keyword. Allow ทรัพยสิน / ทรัพย์สิน variants.
+      const m = desc.match(/ผู้ดูแล(?:ทรัพย[์]?สิน)?\s*[:：]\s*(.+?)(?=\s*(?:Location|รุ่น|Model|รับประกัน|อ้างอิง|จำนวน|Asset|Item|$))/i);
+      if (m) asset_caretaker = m[1].replace(/[\s:：\-]+$/, "").trim();
     }
     if (!planned_location) {
-      const m = desc.match(/Location\s*[:：]\s*(.+?)(?=\s+(?:ผู้ดูแล|รุ่น|รับประกัน|อ้างอิง|จำนวน|Asset)|\s*$)/i);
-      if (m) planned_location = m[1].trim();
+      const m = desc.match(/Location\s*[:：]\s*(.+?)(?=\s*(?:ผู้ดูแล|รุ่น|Model|รับประกัน|อ้างอิง|จำนวน|Asset|Item|$))/i);
+      if (m) planned_location = m[1].replace(/[\s:：\-]+$/, "").trim();
     }
     if (warranty_years == null) {
-      const m = desc.match(/รับประกัน(?:สินค้า)?\s*(\d+(?:\.\d+)?)\s*ปี/);
-      if (m) warranty_years = Number(m[1]);
+      // Years
+      let m = desc.match(/รับประกัน(?:สินค้า)?\s*[:：]?\s*(\d+(?:\.\d+)?)\s*ปี/);
+      if (m) {
+        warranty_years = Number(m[1]);
+      } else {
+        // Months → years
+        m = desc.match(/รับประกัน(?:สินค้า)?\s*[:：]?\s*(\d+)\s*เดือน/);
+        if (m) warranty_years = Math.round((Number(m[1]) / 12) * 10) / 10;
+        else {
+          m = desc.match(/warranty\s*[:：]?\s*(\d+(?:\.\d+)?)\s*(year|yr|y)/i);
+          if (m) warranty_years = Number(m[1]);
+        }
+      }
     }
     return {
       ...item,
