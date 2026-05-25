@@ -360,6 +360,14 @@ export const ReceiveGroupedItems = ({
                         </TableCell>
                         <TableCell>{item.quantity} {item.unit}</TableCell>
                         <TableCell className="text-sm">{item.serial_number || "-"}</TableCell>
+                        <TableCell className="text-sm">
+                          {item.planned_install_location ? (
+                            <span className="text-foreground">{item.planned_install_location}</span>
+                          ) : (
+                            <span className="text-muted-foreground">-</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-sm">{item.asset_caretaker || "-"}</TableCell>
                         <TableCell>
                           <Badge variant="outline" className="font-normal text-xs">
                             {getReceiptPurposeName(item.receipt_purpose_id)}
