@@ -758,6 +758,7 @@ export default function MediaPlayerReport() {
                             <TableCell>{r.poNumber || "-"}</TableCell>
                             <TableCell className="font-mono text-xs">{r.poItemNo || "-"}</TableCell>
                             <TableCell className="text-right">{r.warrantyYears != null ? r.warrantyYears : "-"}</TableCell>
+                            <TableCell className="text-sm">{r.assetCaretaker || "-"}</TableCell>
                             <TableCell>{r.assetCode || "-"}</TableCell>
                             <TableCell>{r.equipmentIdCode || "-"}</TableCell>
                             <TableCell className="text-right">
