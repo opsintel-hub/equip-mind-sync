@@ -369,6 +369,9 @@ export const ReceiveGroupedItems = ({
                           )}
                         </TableCell>
                         <TableCell className="text-sm">{item.asset_caretaker || "-"}</TableCell>
+                        <TableCell className="text-sm text-right">
+                          {item.warranty_years != null ? item.warranty_years : "-"}
+                        </TableCell>
                         <TableCell>
                           <Badge variant="outline" className="font-normal text-xs">
                             {getReceiptPurposeName(item.receipt_purpose_id)}
