@@ -26,9 +26,10 @@ export function SummaryCards({ player, journeys }: SummaryCardsProps) {
   }, [player]);
 
   const expiryStatus = useMemo(() => {
-    // Calculate expiry from date_of_receipt + usage_lifespan_months
-    if (!player.date_of_receipt || !player.usage_lifespan_months) return { label: "ไม่ระบุ", variant: "secondary" as const, icon: "normal" as const };
-    const expiryDate = addMonths(parseISO(player.date_of_receipt), player.usage_lifespan_months);
+    // Use usage_lifespan_months; fallback to depreciation_months
+    const lifespan = player.usage_lifespan_months ?? player.depreciation_months;
+    if (!player.date_of_receipt || !lifespan) return { label: "ไม่ระบุ", variant: "secondary" as const, icon: "normal" as const };
+    const expiryDate = addMonths(parseISO(player.date_of_receipt), lifespan);
     const diff = differenceInDays(expiryDate, new Date());
     if (diff < 0) return { label: `หมดอายุแล้ว (${Math.abs(diff)} วัน)`, variant: "destructive" as const, icon: "expired" as const };
     if (diff <= 90) return { label: `เหลือ ${diff} วัน`, variant: "outline" as const, icon: "warning" as const };
