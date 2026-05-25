@@ -18,8 +18,12 @@ export function SummaryCards({ player, journeys }: SummaryCardsProps) {
   }, [player]);
 
   const warrantyStatus = useMemo(() => {
-    if (!player.warranty_expiry_date) return { label: "ไม่ระบุ", variant: "secondary" as const };
-    const diff = differenceInDays(parseISO(player.warranty_expiry_date), new Date());
+    let expiry = player.warranty_expiry_date ? parseISO(player.warranty_expiry_date) : null;
+    if (!expiry && player.date_of_receipt && (player as any).warranty_years) {
+      expiry = addMonths(parseISO(player.date_of_receipt), Math.round(Number((player as any).warranty_years) * 12));
+    }
+    if (!expiry) return { label: "ไม่ระบุ", variant: "secondary" as const };
+    const diff = differenceInDays(expiry, new Date());
     if (diff < 0) return { label: `หมดประกันแล้ว (${Math.abs(diff)} วัน)`, variant: "destructive" as const };
     if (diff <= 90) return { label: `เหลือ ${diff} วัน`, variant: "outline" as const };
     return { label: `เหลือ ${diff} วัน`, variant: "secondary" as const };
