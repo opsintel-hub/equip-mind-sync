@@ -473,6 +473,7 @@ export default function MediaPlayerReport() {
       "เลข PO": r.poNumber,
       "Item No. (PO)": r.poItemNo,
       "ระยะรับประกัน (ปี)": r.warrantyYears ?? "",
+      "ผู้ดูแล": r.assetCaretaker,
       "รหัสทรัพย์สิน": r.assetCode,
       "Equipment ID": r.equipmentIdCode,
       "ค่าเสื่อมคงเหลือ (เดือน)": r.depreciationRemaining ?? "",
