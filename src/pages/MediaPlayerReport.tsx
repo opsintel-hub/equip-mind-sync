@@ -1043,7 +1043,7 @@ function MediaPlayerProfileDialog({
                 <TabsTrigger value="movements">Stock Card</TabsTrigger>
               </TabsList>
               <TabsContent value="general">
-                <GeneralInfoTab player={player} modelName={modelName} />
+                <GeneralInfoTab player={player} modelName={modelName} onUpdated={() => { loadPlayer(); onUpdated?.(); }} />
               </TabsContent>
               <TabsContent value="journey">
                 <JourneyTab player={player} journeys={journeys} />
