@@ -49,26 +49,12 @@ const AdPublicView = () => {
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ["ad-public-view", token],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("ad_issue_requests")
-        .select(`
-          *,
-          advertisement:advertisements (
-            id, code, name, total_quantity, entry_type,
-            photo_urls, supporting_doc_url, installation_details,
-            target_installation_date,
-            ad_versions (version_name, quantity),
-            ad_media_type:ad_media_types (name),
-            ad_size:ad_sizes (name)
-          ),
-          target_billboard:billboards!ad_issue_requests_target_billboard_id_fkey (
-            id, old_code, equipment_id, location_name, department, size, media_type
-          )
-        `)
-        .eq("confirmation_token", token)
-        .single();
+      const { data, error } = await supabase.rpc("public_get_ad_issue_request", {
+        _token: token,
+      });
       if (error) throw error;
-      return data;
+      if (!data) throw new Error("ไม่พบข้อมูลคำขอ");
+      return data as any;
     },
     enabled: !!token,
   });
@@ -76,25 +62,11 @@ const AdPublicView = () => {
   const confirmMutation = useMutation({
     mutationFn: async () => {
       if (!receiverName.trim()) throw new Error("กรุณากรอกชื่อผู้รับ");
-      const { error } = await supabase
-        .from("ad_issue_requests")
-        .update({
-          status: "completed",
-          confirmed_at: new Date().toISOString(),
-          confirmed_by_name: receiverName.trim(),
-          received_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        })
-        .eq("confirmation_token", token);
+      const { error } = await supabase.rpc("public_confirm_ad_issue_request", {
+        _token: token,
+        _receiver_name: receiverName.trim(),
+      });
       if (error) throw error;
-
-      // Also update advertisement status to installed
-      if (data?.advertisement) {
-        await supabase
-          .from("advertisements")
-          .update({ status: "installed", updated_at: new Date().toISOString() })
-          .eq("id", data.advertisement.id);
-      }
     },
     onSuccess: () => {
       toast.success("ยืนยันรับภาพโฆษณาเรียบร้อย");
@@ -107,16 +79,12 @@ const AdPublicView = () => {
     mutationFn: async () => {
       if (!receiverName.trim()) throw new Error("กรุณากรอกชื่อผู้แจ้ง");
       if (!reportType) throw new Error("กรุณาเลือกประเภทปัญหา");
-      const { error } = await supabase
-        .from("ad_issue_requests")
-        .update({
-          issue_report_type: reportType,
-          issue_report_description: reportDescription.trim() || null,
-          confirmed_by_name: receiverName.trim(),
-          confirmed_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        })
-        .eq("confirmation_token", token);
+      const { error } = await supabase.rpc("public_report_ad_issue", {
+        _token: token,
+        _reporter_name: receiverName.trim(),
+        _report_type: reportType,
+        _report_description: reportDescription.trim() || null,
+      });
       if (error) throw error;
     },
     onSuccess: () => {
