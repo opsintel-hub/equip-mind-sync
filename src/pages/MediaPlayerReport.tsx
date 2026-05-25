@@ -711,7 +711,7 @@ export default function MediaPlayerReport() {
                   <TableBody>
                     {paginatedData.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={27} className="text-center py-10 text-muted-foreground">
+                        <TableCell colSpan={28} className="text-center py-10 text-muted-foreground">
                           ไม่พบข้อมูล Media Player
                         </TableCell>
                       </TableRow>
