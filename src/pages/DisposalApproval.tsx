@@ -558,10 +558,71 @@ export default function DisposalApproval() {
           </DialogHeader>
 
           <div className="space-y-4">
-            <div className="rounded-lg bg-muted/40 p-3 text-sm space-y-1">
-              <div><span className="text-muted-foreground">เหตุผล:</span> <span className="whitespace-pre-line">{editing?.reason || "—"}</span></div>
-              <div><span className="text-muted-foreground">ที่มา:</span> {editing?.source_type === "billboard" ? "ถอดจากป้าย" : "คลัง/ภาคสนาม"}</div>
-            </div>
+            {editing && (() => {
+              const mp = editing.media_player;
+              const eq = editing.equipment;
+              const code = editing.is_media_player ? mp?.code : eq?.code;
+              const primaryName = editing.is_media_player ? (mp?.remote_name || mp?.name) : eq?.name;
+              const brand = editing.is_media_player ? mp?.brand : eq?.brand;
+              const department = editing.is_media_player ? mp?.department : eq?.department;
+              const sns = editing.is_media_player
+                ? [mp?.serial_number_1, mp?.serial_number_2].filter(Boolean)
+                : [eq?.serial_number].filter(Boolean);
+              const warrantyTxt = mp?.warranty_expiry_date ? format(new Date(mp.warranty_expiry_date), "dd MMM yyyy", { locale: th }) : null;
+              const inWarranty = mp?.warranty_expiry_date ? new Date(mp.warranty_expiry_date) >= new Date() : null;
+              return (
+                <div className="rounded-lg border border-border bg-muted/30 p-3 text-sm space-y-2">
+                  <div className="grid grid-cols-2 gap-x-4 gap-y-1.5">
+                    <div><span className="text-muted-foreground">รหัส:</span> <span className="font-mono font-medium">{code || "—"}</span></div>
+                    <div><span className="text-muted-foreground">{editing.is_media_player ? "ชื่อ Remote" : "ชื่อ"}:</span> <span className="font-medium">{primaryName || "—"}</span></div>
+                    <div><span className="text-muted-foreground">ยี่ห้อ:</span> {brand || "—"}</div>
+                    <div><span className="text-muted-foreground">ฝ่าย:</span> {department || "—"}</div>
+                    <div className="col-span-2"><span className="text-muted-foreground">S/N:</span> <span className="font-mono whitespace-pre-line">{sns.length ? sns.join(" / ") : "—"}</span></div>
+                    {editing.is_media_player && mp?.specification && (
+                      <div className="col-span-2"><span className="text-muted-foreground">Spec:</span> {mp.specification}</div>
+                    )}
+                    <div><span className="text-muted-foreground">จำนวน:</span> <span className="font-mono">{editing.quantity}</span></div>
+                    <div><span className="text-muted-foreground">สภาพ:</span> {editing.item_condition || "—"}</div>
+                    {warrantyTxt && (
+                      <div className="col-span-2 flex items-center gap-2">
+                        <Badge variant={inWarranty ? "default" : "destructive"} className="text-[10px] py-0 px-1.5 h-4">{inWarranty ? "ในประกัน" : "หมดประกัน"}</Badge>
+                        <span className="text-xs text-muted-foreground">หมดประกัน: {warrantyTxt}</span>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="pt-2 border-t border-border/60 space-y-1.5">
+                    <div><span className="text-muted-foreground">ที่มา:</span> <Badge variant="outline" className="text-xs ml-1">{editing.swap_info ? "จาก Swap" : editing.assessment_doc_no ? "จากการประเมิน" : editing.source_type === "billboard" ? "ถอดจากป้าย" : "คลัง/ภาคสนาม"}</Badge></div>
+                    {editing.billboard_label && <div className="text-xs">📍 <span className="text-muted-foreground">ป้าย:</span> <span className="text-foreground">{editing.billboard_label}</span></div>}
+                    {editing.assessment_doc_no && <div className="text-xs">📋 <span className="text-muted-foreground">ใบประเมิน:</span> <span className="font-mono">{editing.assessment_doc_no}</span></div>}
+                    {editing.swap_info && (
+                      <div className="text-xs rounded-md border border-blue-300/60 bg-blue-50/60 dark:border-blue-800/60 dark:bg-blue-950/30 px-2 py-1.5 space-y-0.5 mt-1">
+                        <div className="font-medium text-blue-700 dark:text-blue-300">🔄 จาก Swap: <span className="font-mono">{editing.swap_info.doc_no}</span></div>
+                        {(editing.swap_info.old_label || editing.swap_info.old_sn) && (
+                          <div>เครื่องเก่า (ถอด): <span className="font-medium">{editing.swap_info.old_label || "—"}</span>{editing.swap_info.old_sn && <> · S/N: <span className="font-mono">{editing.swap_info.old_sn}</span></>}</div>
+                        )}
+                        {(editing.swap_info.new_label || editing.swap_info.new_sn) && (
+                          <div>เครื่องใหม่ (ติดแทน): <span className="font-medium">{editing.swap_info.new_label || "—"}</span>{editing.swap_info.new_sn && <> · S/N: <span className="font-mono">{editing.swap_info.new_sn}</span></>}</div>
+                        )}
+                        {editing.swap_info.description && <div className="text-muted-foreground">อาการ: {editing.swap_info.description}</div>}
+                      </div>
+                    )}
+                    {(editing.reporter_name || editing.reporter_department) && (
+                      <div className="text-xs"><span className="text-muted-foreground">ผู้แจ้ง:</span> <span className="text-foreground font-medium">{editing.reporter_name || "—"}</span>{editing.reporter_department && <> · <span className="text-muted-foreground">ฝ่าย:</span> {editing.reporter_department}</>}</div>
+                    )}
+                  </div>
+
+                  <div className="pt-2 border-t border-border/60">
+                    <div className="text-muted-foreground text-xs mb-1">เหตุผล/สาเหตุ:</div>
+                    <div className="whitespace-pre-line text-sm bg-background rounded p-2 border">{editing.reason || "—"}</div>
+                    {editing.notes && (
+                      <div className="mt-2"><div className="text-muted-foreground text-xs mb-1">หมายเหตุ:</div><div className="whitespace-pre-line text-xs">{editing.notes}</div></div>
+                    )}
+                  </div>
+                </div>
+              );
+            })()}
+
 
             <div className="space-y-2">
               <Label>เลือกวิธีจัดการ *</Label>
