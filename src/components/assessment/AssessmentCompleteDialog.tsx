@@ -769,11 +769,15 @@ export function AssessmentCompleteDialog({ open, onOpenChange, log, onCompleted 
                   (opt.v === "claim" && claimDisabled);
                 const tooltip =
                   opt.v === "defective" && defectiveDisabled
-                    ? `ต้องหมดประกันก่อน — ปัจจุบันหมด ${warrantyDate || "—"} (เหลือ ${warrantyDaysLeft} วัน)`
+                    ? !isWriteOffResult
+                      ? `ต้องเลือกผลการประเมิน = "Write-off (ใช้งานต่อไม่ได้)" ก่อน`
+                      : `ต้องหมดประกันก่อน — ปัจจุบันหมด ${warrantyDate || "—"} (เหลือ ${warrantyDaysLeft} วัน)`
                     : opt.v === "claim" && claimDisabled
-                    ? warrantyState === "expired"
+                    ? !isExternalRepairResult
+                      ? `ต้องเลือกผลการประเมิน = "ส่งซ่อมภายนอก" ก่อน`
+                      : warrantyState === "expired"
                       ? `หมดประกันแล้ว ${warrantyDate || ""} — ส่งเคลมไม่ได้`
-                      : `ไม่พบข้อมูลประกัน — ส่งเคลมไม่ได้`
+                      : undefined
                     : undefined;
                 return (
                   <button
