@@ -162,7 +162,7 @@ export function AssessmentCompleteDialog({ open, onOpenChange, log, onCompleted 
           if (mpErr) console.error("MP fetch error:", mpErr);
           if (mp) {
             ctx.itemCode = mp.code; ctx.itemName = mp.name;
-            ctx.brand = mp.brand || mp.manufacturer || null;
+            ctx.brand = mp.brand || null;
             ctx.modelSpec = mp.specification || null;
             ctx.remoteName = mp.remote_name || null;
             ctx.unitPrice = mp.unit_price ?? null;
