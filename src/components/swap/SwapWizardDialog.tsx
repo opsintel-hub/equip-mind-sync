@@ -210,6 +210,7 @@ export function SwapWizardDialog({ open, onOpenChange, request, onCompleted }: P
         status: m.status,
         warranty_expiry_date: m.warranty_expiry_date,
         unit_price: m.unit_price,
+        remote_name: m.remote_name,
       });
     });
     (esns || []).forEach((s: any) => {
