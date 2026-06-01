@@ -442,7 +442,7 @@ export default function ItemTracer() {
         <TxSection title="เคลม (Claim)" icon={ShieldAlert} rows={claims}
           render={(r) => `${r.document_no} | ${tr(r.status)}`} link="/claim-tracker" />
         <TxSection title="ของเสีย / รับคืน" icon={Truck} rows={defective}
-          render={(r) => `${r.document_no || "—"} | ${tr(r.status)}`} link="/defective-return-entry" />
+          render={(r) => `${r.document_no || "—"} | ${tr(r.status)}`} link="/defective-return" />
       </div>
 
       {/* Stock movements timeline */}
