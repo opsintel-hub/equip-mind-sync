@@ -730,7 +730,7 @@ export function AssessmentCompleteDialog({ open, onOpenChange, log, onCompleted 
           {/* Outcome 4 paths */}
           <div className="rounded-lg border-2 border-primary/30 bg-primary/5 p-4 space-y-3">
             <div className="flex items-center justify-between flex-wrap gap-2">
-              <Label className="text-base font-semibold">ผลการตัดสินใจ <span className="text-destructive">*</span> (เลือก 1 ใน 4)</Label>
+              <Label className="text-base font-semibold">ผลการตัดสินใจ <span className="text-destructive">*</span> (เลือก 1 ใน 3)</Label>
               {supplierAutofill && (
                 <span className="text-xs text-muted-foreground">
                   ผู้จัดจำหน่ายล่าสุด: <span className="font-medium text-foreground">{supplierAutofill.name || "—"}</span>
@@ -738,38 +738,84 @@ export function AssessmentCompleteDialog({ open, onOpenChange, log, onCompleted 
                 </span>
               )}
             </div>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-              {OUTCOME_OPTIONS.map((opt) => (
-                <button
-                  key={opt.v}
-                  type="button"
-                  onClick={() => setOutcome(opt.v)}
-                  className={`text-left rounded-md border p-3 transition-colors ${
-                    outcome === opt.v
-                      ? "border-primary bg-primary/10 ring-2 ring-primary/40"
-                      : "border-input bg-background hover:bg-accent/50"
-                  }`}
-                >
-                  <div className="font-medium text-sm">{opt.label}</div>
-                  <div className="text-xs text-muted-foreground mt-0.5">{opt.desc}</div>
-                </button>
-              ))}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+              {OUTCOME_OPTIONS.map((opt) => {
+                const disabled =
+                  (opt.v === "defective" && defectiveDisabled) ||
+                  (opt.v === "claim" && claimDisabled);
+                const tooltip =
+                  opt.v === "defective" && defectiveDisabled
+                    ? `ต้องหมดประกันก่อน — ปัจจุบันหมด ${warrantyDate || "—"} (เหลือ ${warrantyDaysLeft} วัน)`
+                    : opt.v === "claim" && claimDisabled
+                    ? warrantyState === "expired"
+                      ? `หมดประกันแล้ว ${warrantyDate || ""} — ส่งเคลมไม่ได้`
+                      : `ไม่พบข้อมูลประกัน — ส่งเคลมไม่ได้`
+                    : undefined;
+                return (
+                  <button
+                    key={opt.v}
+                    type="button"
+                    title={tooltip}
+                    disabled={disabled}
+                    onClick={() => setOutcome(opt.v)}
+                    className={`text-left rounded-md border p-3 transition-colors ${
+                      outcome === opt.v
+                        ? "border-primary bg-primary/10 ring-2 ring-primary/40"
+                        : "border-input bg-background hover:bg-accent/50"
+                    } ${disabled ? "opacity-50 cursor-not-allowed hover:bg-background" : ""}`}
+                  >
+                    <div className="font-medium text-sm">{opt.label}</div>
+                    <div className="text-xs text-muted-foreground mt-0.5">{opt.desc}</div>
+                    {opt.v === "defective" && warrantyDate && (
+                      <div className="text-[10px] mt-1 text-muted-foreground">หมดประกัน: {warrantyDate}</div>
+                    )}
+                    {opt.v === "claim" && warrantyDate && (
+                      <div className="text-[10px] mt-1 text-muted-foreground">หมดประกัน: {warrantyDate}</div>
+                    )}
+                  </button>
+                );
+              })}
             </div>
 
             {outcome === "self_repair" && (
-              <div className="space-y-2 pt-2 border-t">
-                <Label>รายละเอียดการซ่อม <span className="text-destructive">*</span></Label>
-                <Textarea
-                  value={repairDescription}
-                  onChange={(e) => setRepairDescription(e.target.value)}
-                  placeholder="ระบุว่าซ่อมอะไรไป เปลี่ยนอะไหล่อะไร..."
-                  rows={2}
-                />
+              <div className="space-y-3 pt-2 border-t">
+                <div className="rounded-md border bg-muted/40 p-2 text-xs space-y-1">
+                  <div className="font-medium">ข้อมูลจากการประเมิน</div>
+                  <div><span className="text-muted-foreground">อาการเสีย (Symptom): </span><span>{symptomDescription || (symptomId ? "เลือกแล้ว" : "—")}</span></div>
+                  <div><span className="text-muted-foreground">ผลการประเมิน (Assessment): </span><span>{assessmentResultId ? "เลือกแล้ว" : "—"}</span></div>
+                </div>
+                <div className="space-y-2">
+                  <Label>รายละเอียดการซ่อม <span className="text-destructive">*</span></Label>
+                  <Textarea
+                    value={repairDescription}
+                    onChange={(e) => setRepairDescription(e.target.value)}
+                    placeholder="ระบุว่าซ่อมอะไรไป เปลี่ยนอะไหล่อะไร..."
+                    rows={2}
+                  />
+                </div>
+                <label className="flex items-start gap-2 text-sm cursor-pointer rounded-md border border-success/40 bg-success/10 p-2">
+                  <input type="checkbox" className="mt-1" checked={repairSuccess} onChange={(e) => setRepairSuccess(e.target.checked)} />
+                  <span>
+                    <span className="font-medium">ซ่อมสำเร็จ → คืน Spare เข้าคลัง</span>
+                    <span className="block text-xs text-muted-foreground">เครื่องจะถูกตั้งสถานะ refurbished + พร้อมเบิกใช้ในคลัง</span>
+                  </span>
+                </label>
               </div>
             )}
 
             {outcome === "claim" && (
               <div className="space-y-2 pt-2 border-t">
+                <Alert>
+                  <ShieldCheck className="h-4 w-4" />
+                  <AlertTitle>ส่งเคลม Supplier</AlertTitle>
+                  <AlertDescription className="text-xs space-y-1">
+                    <div>หมดประกัน: <span className="font-medium">{warrantyDate || "—"}</span> (เหลือ {warrantyDaysLeft} วัน)</div>
+                    <div>
+                      ระบบจะสร้างใบเคลม (CLM-...) ตั้งสถานะเครื่อง <strong>in_claim</strong> ติดตามได้ที่เมนู <strong>"ติดตามการเคลม"</strong>
+                      จนกว่า Supplier จะส่งเครื่องกลับ
+                    </div>
+                  </AlertDescription>
+                </Alert>
                 <p className="text-xs text-muted-foreground">
                   {supplierAutofill?.name
                     ? `จะส่งเคลมที่ ${supplierAutofill.name} (จากประวัติการซื้อ S/N นี้)`
@@ -787,36 +833,17 @@ export function AssessmentCompleteDialog({ open, onOpenChange, log, onCompleted 
 
             {outcome === "defective" && (
               <div className="pt-2 border-t space-y-2">
-                <p className="text-xs text-destructive">
-                  ⚠ หลังบันทึก ระบบจะแจ้งให้ไปคีย์ที่เมนู <strong>"นำของเสียเข้าระบบ"</strong> เพื่อตัด Stock เข้าคลังของเสีย
-                </p>
-                {needsDefectiveAck && (
-                  <Alert variant="destructive">
-                    <AlertTriangle className="h-4 w-4" />
-                    <AlertTitle>เครื่องนี้ยังอยู่ในประกัน!</AlertTitle>
-                    <AlertDescription className="space-y-2">
-                      <p>เหลือประกัน {warrantyDaysLeft} วัน — ปกติควรส่งเคลมก่อน หากยืนยันเข้าของเสียโปรดระบุเหตุผล</p>
-                      <Textarea
-                        value={defectiveAckReason}
-                        onChange={(e) => setDefectiveAckReason(e.target.value)}
-                        placeholder="เหตุผลที่ไม่ส่งเคลมแม้ยังในประกัน *"
-                        rows={2}
-                      />
-                      <label className="flex items-center gap-2 text-sm cursor-pointer">
-                        <input type="checkbox" checked={defectiveAck} onChange={(e) => setDefectiveAck(e.target.checked)} />
-                        ยืนยันสละสิทธิ์เคลม รับทราบและรับผิดชอบการตัดสินใจนี้
-                      </label>
-                    </AlertDescription>
-                  </Alert>
-                )}
+                <Alert variant="destructive">
+                  <ShieldAlert className="h-4 w-4" />
+                  <AlertTitle>เข้าของเสีย</AlertTitle>
+                  <AlertDescription className="text-xs">
+                    หมดประกัน: <span className="font-medium">{warrantyDate || "—"}</span> ({warrantyDaysLeft !== null ? `${Math.abs(warrantyDaysLeft)} วันก่อน` : "ไม่ระบุ"})
+                    <div>หลังบันทึก ระบบจะแจ้งให้ไปคีย์ที่เมนู <strong>"นำของเสียเข้าระบบ"</strong> เพื่อตัด Stock เข้าคลังของเสีย</div>
+                  </AlertDescription>
+                </Alert>
               </div>
             )}
 
-            {outcome === "return_refurb" && (
-              <p className="text-xs text-success pt-2 border-t">
-                ✓ S/N นี้จะถูกตั้งสถานะ <strong>refurbished</strong> และคืนเข้า Spare ปกติ
-              </p>
-            )}
           </div>
 
           <div className="grid md:grid-cols-2 gap-4">
