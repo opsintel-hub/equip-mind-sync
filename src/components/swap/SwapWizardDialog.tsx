@@ -60,6 +60,7 @@ interface SpareOption {
   status?: string | null;
   warranty_expiry_date?: string | null;
   unit_price?: number | null;
+  remote_name?: string | null;
 }
 
 interface OldOption {
@@ -76,6 +77,8 @@ interface OldOption {
   model_name?: string | null;
   category?: string | null;
   install_date?: string | null;
+  remote_name?: string | null;
+  billboard_label?: string | null;
 }
 
 export function SwapWizardDialog({ open, onOpenChange, request, onCompleted }: Props) {
