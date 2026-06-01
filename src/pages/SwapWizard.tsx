@@ -187,10 +187,22 @@ export default function SwapWizard() {
           .eq("billboard_id", billboardId),
         supabase
           .from("media_players")
-          .select("id, code, name, serial_number_1, serial_number_2")
+          .select("id, code, name, remote_name, model_id, serial_number_1, serial_number_2")
           .eq("billboard_id", billboardId)
           .eq("is_active", true),
       ]);
+
+      // Resolve model names
+      const modelIds = Array.from(new Set(((mpRes.data || []) as any[]).map((m) => m.model_id).filter(Boolean)));
+      let modelMap = new Map<string, string>();
+      if (modelIds.length) {
+        const { data: models } = await supabase
+          .from("media_player_models" as any)
+          .select("id, name")
+          .in("id", modelIds as string[]);
+        modelMap = new Map(((models as any[]) || []).map((m: any) => [m.id, m.name]));
+      }
+
       const opts: InstalledItemOption[] = [];
       (eqRes.data || []).forEach((b: any) => {
         opts.push({
@@ -208,16 +220,20 @@ export default function SwapWizard() {
       });
       (mpRes.data || []).forEach((mp: any) => {
         const sn = [mp.serial_number_1, mp.serial_number_2].filter(Boolean).join(" / ");
+        const modelName = mp.model_id ? modelMap.get(mp.model_id) || "" : "";
+        const displayName = mp.remote_name || mp.name || "Media Player";
         opts.push({
           value: `mp:${mp.id}`,
-          label: `${mp.code || "—"} — ${mp.name || "Media Player"} [Media Player]`,
+          label: `${mp.code || "—"} — ${displayName}${modelName ? ` (${modelName})` : ""} [Media Player]`,
           description: `S/N: ${sn || "—"}`,
-          searchableText: `${mp.code || ""} ${mp.name || ""} ${sn} media player`,
+          searchableText: `${mp.code || ""} ${mp.name || ""} ${mp.remote_name || ""} ${modelName} ${sn} media player`,
           asset_type: "media_player",
           media_player_id: mp.id,
           serial_number: mp.serial_number_1 || null,
           item_code: mp.code,
-          item_name: mp.name,
+          item_name: mp.remote_name || mp.name,
+          remote_name: mp.remote_name || "",
+          model_name: modelName,
         });
       });
       opts.push({
