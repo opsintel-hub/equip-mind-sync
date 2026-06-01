@@ -24,6 +24,7 @@ interface DefectiveRow {
   is_media_player: boolean;
   quantity: number;
   reason: string | null;
+  notes: string | null;
   item_condition: string | null;
   source_type: string | null;
   status: string;
@@ -33,10 +34,18 @@ interface DefectiveRow {
   disposal_evidence_urls: string[] | null;
   disposal_approved_at: string | null;
   swap_request_id: string | null;
+  assessment_log_id: string | null;
+  billboard_id: string | null;
+  reporter_name: string | null;
+  reporter_department: string | null;
   created_at: string;
   // joined
-  equipment?: { code: string; name: string } | null;
-  media_player?: { code: string; name: string } | null;
+  equipment?: { code: string; name: string; brand: string | null; serial_number: string | null; department: string | null } | null;
+  media_player?: { code: string; name: string; remote_name: string | null; brand: string | null; serial_number_1: string | null; serial_number_2: string | null; department: string | null; warranty_expiry_date: string | null; specification: string | null; unit_price: number | null } | null;
+  // extra enrichment
+  billboard_label?: string | null;
+  swap_info?: { doc_no: string; old_label: string | null; new_label: string | null; old_sn: string | null; new_sn: string | null; description: string | null } | null;
+  assessment_doc_no?: string | null;
 }
 
 const DISPOSAL_METHODS: Record<string, { label: string; icon: any; color: string }> = {
