@@ -1,22 +1,40 @@
 ## ปัญหา
-หน้า **นำของเสีย/ชำรุดเข้าระบบ** (`/defective-return`) แสดง "สูงสุด 0 (คงเหลือในคลัง)" และเตือน "จำนวนเกินกว่าที่มีอยู่ (สูงสุด 0)" — ทำให้บันทึกไม่ได้
 
-เหตุผลที่ผิด: ระบบกำลังเช็คจำนวน "คงเหลือในคลังหลัก" ของ Media Player ก่อนยอมให้บันทึก แต่จริง ๆ แล้ว **การนำของเสียเข้าระบบคือการเพิ่มเข้าคลังของเสีย (WH-DEFECT/LOC-DEFECT)** ไม่ได้ตัดจากคลังหลัก เพราะของเสียมักมาจากหน้างาน/ป้ายโฆษณา/Swap ไม่ใช่จากสต็อกในคลัง
+จากภาพ ตัวอย่าง `ASM-20260601-0007` (เครื่องเดียวกัน S/N `AB03/BB03`) สร้างรายการของเสียในคลังออกมา **3 ใบ** (`DR-...-0530`, `-0723`, `-7531`) — ทุกใบ `pending_warehouse_entry` รอรับเข้าทั้งหมด ตรวจสอบฐานข้อมูลยืนยันแล้วว่ามาจาก `assessment_log_id` เดียวกัน
 
-## ขอบเขตการแก้
+### สาเหตุ
 
-ไฟล์: `src/pages/DefectiveReturnEntry.tsx`
+ใน `src/components/assessment/AssessmentCompleteDialog.tsx` (`handleSubmit`):
+- เมื่อ outcome = `defective` จะ `insert` ลง `defective_returns` ทุกครั้งที่กด "บันทึก"
+- ไม่มีการเช็คว่ามี DR ของ assessment นี้อยู่แล้วหรือยัง
+- assessment ที่ `status='completed'` แล้วยังเปิด dialog แก้ไข + กดบันทึกซ้ำได้ → ทุกครั้งสร้าง DR ใบใหม่
+- นอกจากนี้ปุ่ม submit ก็ไม่มี guard กันการกดซ้อนระหว่าง network call (double-click)
 
-1. **เอา cap `max = quantity_in_stock` ออก** สำหรับช่อง "จำนวนของเสียที่จะนำเข้า"
-   - ลบ validation ที่ block การ submit เมื่อ qty > stock
-   - ลบข้อความ "จำนวนเกินกว่าที่มีอยู่ (สูงสุด N)"
-2. **เปลี่ยน label ใต้ช่อง input**
-   - จากเดิม: `สูงสุด 0 (คงเหลือในคลัง)`
-   - เป็น: `คงเหลือในคลังหลัก: N เครื่อง (เพื่อข้อมูลอ้างอิงเท่านั้น)`
-3. **คงข้อมูลคงเหลือใน panel ขวา** ไว้เพื่อให้ผู้ใช้เห็นบริบท แต่ไม่บังคับ
-4. **ขั้นตอน submit คงเดิม** — สร้าง `defective_returns` ตามจำนวนที่กรอก แล้วเมื่ออนุมัติจะถูกตัดเข้า WH-DEFECT/LOC-DEFECT ตาม Defective Stock Control เดิม
+## แผนแก้
 
-## หมายเหตุ
-- ไม่แตะ workflow อนุมัติ / disposal_method
-- ไม่แก้ schema, ไม่แตะ stock_movements logic
-- ครอบคลุมทั้ง Media Player, Equipment, Billboard asset
+### 1. กันสร้าง DR ซ้ำจาก assessment เดียวกัน (idempotency)
+ใน `handleSubmit` ก่อน `insert` ลง `defective_returns`:
+- query หา DR ที่มี `assessment_log_id = log.id` อยู่แล้วและ `status != 'cancelled'`
+- ถ้ามีอยู่แล้ว → ข้าม insert, ใช้ `document_no` เดิมแสดง toast แทน
+- ใช้ logic เดียวกันกับ `claim` (เช็ค `claim_records` โดย `source_reference_id = log.id` + `source_type='assessment'`)
+
+### 2. กันบันทึก assessment ซ้ำหลัง completed
+- ถ้า `log.status === 'completed'` แล้ว → ปิดปุ่มบันทึก + แสดง banner "การประเมินนี้บันทึกผลแล้ว ไม่สามารถแก้ไข/บันทึกซ้ำได้"
+- เปิด dialog ได้แบบ read-only เพื่อดูข้อมูล
+
+### 3. ล้างข้อมูลซ้ำที่ค้างอยู่ในระบบ
+ยกเลิก DR ซ้ำ 2 ใบจาก `ASM-20260601-0007` (เก็บใบแรกสุด `DR-20260601-0530` ที่เป็นต้นฉบับ ยกเลิก `-0723` และ `-7531`) โดย:
+- ตั้ง `status='cancelled'` + `notes` ระบุเหตุผล "ระบบสร้างซ้ำจาก bug — รวมกับ DR-20260601-0530"
+- สแกนหา assessment_log_id อื่น ๆ ที่มี DR ซ้ำ และ cancel ใบที่ไม่ใช่ใบแรกสุดด้วยวิธีเดียวกัน
+
+### 4. (เสริม) กันกดปุ่มซ้อน
+- ปุ่ม "บันทึก" ใน dialog ตั้ง `disabled={submitting}` (ปัจจุบันมี `setSubmitting(true)` แล้ว แต่ตรวจให้แน่ใจว่าปุ่ม disabled ตอน submitting)
+
+## ไฟล์ที่กระทบ
+- `src/components/assessment/AssessmentCompleteDialog.tsx` — เพิ่ม idempotency check + completed guard + submitting disabled
+- migration (data fix) — cancel DR/claim ซ้ำใน production data
+
+## ไม่กระทบ
+- หน้า `/defective-return-entry` (รับเข้าคลังของเสีย) — logic เดิม
+- หน้า `/disposal-approval` — logic เดิม
+- schema `defective_returns` / `assessment_logs` — ไม่เปลี่ยน

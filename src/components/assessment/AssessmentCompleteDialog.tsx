@@ -383,6 +383,22 @@ export function AssessmentCompleteDialog({ open, onOpenChange, log, onCompleted 
   const handleSubmit = async () => {
     setSubmitting(true);
 
+    // Guard: ถ้า assessment นี้บันทึก completed ไปแล้ว → ห้ามบันทึกซ้ำ (กันสร้าง DR/CLM ซ้ำ)
+    const { data: currentLog } = await supabase
+      .from("assessment_logs")
+      .select("status")
+      .eq("id", log.id)
+      .maybeSingle();
+    if ((currentLog as any)?.status === "completed") {
+      setSubmitting(false);
+      toast.error("การประเมินนี้บันทึกผลแล้ว ไม่สามารถบันทึกซ้ำได้");
+      onCompleted();
+      onOpenChange(false);
+      return;
+    }
+
+
+
     // Audit trail: บันทึกสถานะประกัน + อายุเครื่อง ตอนประเมิน
     const auditLines: string[] = [];
     if (warrantyState === "active") auditLines.push(`✅ ประเมินขณะ "ยังในประกัน" เหลือ ${warrantyDaysLeft} วัน (หมด ${warrantyDate})`);
@@ -449,28 +465,50 @@ export function AssessmentCompleteDialog({ open, onOpenChange, log, onCompleted 
       };
 
       if (outcome === "defective") {
-        // เครื่องค้างที่ pending_assessment จนกว่าคลังจะรับ
-        const { data: drRow } = await supabase
+        // Idempotency: เช็คว่ามี DR ของ assessment นี้อยู่แล้วหรือยัง
+        const { data: existingDR } = await supabase
           .from("defective_returns")
-          .insert({
-            equipment_id: log.equipment_id,
-            media_player_id: log.media_player_id,
-            is_media_player: !!log.media_player_id,
-            quantity: 1,
-            item_condition: "defective",
-            reason: `จากการประเมิน ${log.document_no}: ${diagnosisNotes.trim() || symptomDescription.trim() || "ซ่อมไม่ได้"}`,
-            status: "pending_warehouse_entry",
-            source_type: "from_assessment",
-            assessment_log_id: log.id,
-            dispose_status: "pending_disposal_review",
-            notes: log.serial_number ? `S/N: ${log.serial_number}` : null,
-            created_by: user?.id ?? null,
-          } as any)
           .select("document_no")
+          .eq("assessment_log_id", log.id)
+          .neq("status", "cancelled")
           .maybeSingle();
-        createdDefectiveDocNo = drRow?.document_no || null;
+
+        if (existingDR?.document_no) {
+          createdDefectiveDocNo = existingDR.document_no;
+        } else {
+          // เครื่องค้างที่ pending_assessment จนกว่าคลังจะรับ
+          const { data: drRow } = await supabase
+            .from("defective_returns")
+            .insert({
+              equipment_id: log.equipment_id,
+              media_player_id: log.media_player_id,
+              is_media_player: !!log.media_player_id,
+              quantity: 1,
+              item_condition: "defective",
+              reason: `จากการประเมิน ${log.document_no}: ${diagnosisNotes.trim() || symptomDescription.trim() || "ซ่อมไม่ได้"}`,
+              status: "pending_warehouse_entry",
+              source_type: "from_assessment",
+              assessment_log_id: log.id,
+              dispose_status: "pending_disposal_review",
+              notes: log.serial_number ? `S/N: ${log.serial_number}` : null,
+              created_by: user?.id ?? null,
+            } as any)
+            .select("document_no")
+            .maybeSingle();
+          createdDefectiveDocNo = drRow?.document_no || null;
+        }
       } else if (outcome === "claim") {
-        await supabase.from("claim_records").insert({
+        // Idempotency: เช็คว่ามี claim ของ assessment นี้อยู่แล้วหรือยัง
+        const { data: existingClaim } = await supabase
+          .from("claim_records")
+          .select("id")
+          .eq("source_type", "assessment")
+          .eq("source_reference_id", log.id)
+          .maybeSingle();
+
+        if (!existingClaim?.id) {
+          await supabase.from("claim_records").insert({
+
           document_no: "",
           subject_type: log.media_player_id ? "media_player" : "equipment",
           media_player_id: log.media_player_id,
@@ -487,7 +525,9 @@ export function AssessmentCompleteDialog({ open, onOpenChange, log, onCompleted 
           notes: `จาก Assessment ${log.document_no}`,
           created_by: user?.id ?? null,
         });
+        }
         await flipStatus("in_claim", "in_claim", false, 0);
+
       } else if (outcome === "self_repair") {
         if (repairSuccess) {
           // ซ่อมสำเร็จ → คืนกลับ Spare (active + refurbished)
