@@ -243,7 +243,7 @@ const DefectiveReturnEntry = () => {
     if (data) setEquipmentList(data);
   };
   const fetchMediaPlayers = async () => {
-    const { data } = await supabase.from("media_players").select("id, code, name, unit, brand, serial_number_1, serial_number_2, department, quantity, location_id, billboard_id").eq("is_active", true).order("code");
+    const { data } = await supabase.from("media_players").select("id, code, name, unit, brand, remote_name, serial_number_1, serial_number_2, department, quantity, location_id, billboard_id").eq("is_active", true).order("code");
     if (data) setMediaPlayerList(data as MediaPlayerItem[]);
   };
   const detectBillboardForEquipment = async (equipmentId: string) => {
