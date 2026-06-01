@@ -254,6 +254,7 @@ export default function SwapWizard() {
     if (!reportedSelectKey) return;
     if (reportedSelectKey === "__manual__") {
       setReportedItemName("");
+      setReportedModelName("");
       setReportedItemCode("");
       setReportedSerial("");
       return;
@@ -261,7 +262,8 @@ export default function SwapWizard() {
     const item = installedItems.find((o) => o.value === reportedSelectKey);
     if (item) {
       setReportedAssetType(item.asset_type);
-      setReportedItemName(item.item_name || "");
+      setReportedItemName(item.remote_name || item.item_name || "");
+      setReportedModelName(item.model_name || "");
       setReportedItemCode(item.item_code || "");
       setReportedSerial(item.serial_number || "");
     }
