@@ -142,18 +142,27 @@ export function AssessmentCompleteDialog({ open, onOpenChange, log, onCompleted 
         if (log.media_player_id) {
           const { data: mp } = await supabase
             .from("media_players")
-            .select("id, code, name, brand, specification, billboard_id, manufacturer, warranty_expiry_date, unit_price, depreciation_months, date_of_receipt, supplier:supplier_id(name, phone, contact_person), billboard:billboards(equipment_id, old_code, location_name)")
+            .select("id, code, name, brand, specification, billboard_id, manufacturer, warranty_expiry_date, unit_price, depreciation_months, date_of_receipt, model_id, remote_name, supplier:supplier_id(name, phone, contact_person), billboard:billboards(equipment_id, old_code, location_name)")
             .eq("id", log.media_player_id)
             .maybeSingle() as any;
           if (mp) {
             ctx.itemCode = mp.code; ctx.itemName = mp.name;
             ctx.brand = mp.brand || mp.manufacturer || null;
             ctx.modelSpec = mp.specification || null;
+            ctx.remoteName = mp.remote_name || null;
             ctx.unitPrice = mp.unit_price ?? null;
             ctx.depreciationMonths = mp.depreciation_months ?? null;
             ctx.dateOfReceipt = mp.date_of_receipt || null;
             ctx.mediaPlayerProfileId = mp.id;
             if (mp.date_of_receipt) ctx.ageMonths = differenceInMonths(new Date(), parseISO(mp.date_of_receipt));
+            if (mp.model_id) {
+              const { data: mm } = await supabase
+                .from("media_player_models")
+                .select("name")
+                .eq("id", mp.model_id)
+                .maybeSingle() as any;
+              ctx.modelName = mm?.name || null;
+            }
             if (mp.billboard) {
               const parts = [mp.billboard.old_code, mp.billboard.equipment_id, mp.billboard.location_name].filter(Boolean);
               ctx.billboardLabel = parts.join(" - ");
@@ -167,6 +176,7 @@ export function AssessmentCompleteDialog({ open, onOpenChange, log, onCompleted 
               contact: mp.supplier?.contact_person || null,
             });
           }
+
         } else if (log.equipment_id) {
           const { data: eq } = await supabase
             .from("equipment")
