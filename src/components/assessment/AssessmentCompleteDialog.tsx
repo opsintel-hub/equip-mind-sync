@@ -115,7 +115,7 @@ export function AssessmentCompleteDialog({ open, onOpenChange, log, onCompleted 
     setOutcome("");
     setRepairDescription("");
     setRepairSuccess(false);
-
+    setExternalRepairVendor("");
     setExternalRepairContact("");
     setExternalRepairPhone("");
     setSupplierAutofill(null);
@@ -130,12 +130,14 @@ export function AssessmentCompleteDialog({ open, onOpenChange, log, onCompleted 
         const ctx: SourceContext = {
           sourceLabel: "ป้อนเอง",
           itemCode: null, itemName: null, brand: null, modelSpec: null,
+          modelName: null, remoteName: null,
           billboardLabel: null, billboardId: null,
           reportedSymptom: log.symptom_description || null,
           reporter: null, reportedAt: null, photos: [], description: null,
           unitPrice: null, depreciationMonths: null, dateOfReceipt: null,
           ageMonths: null, mediaPlayerProfileId: null,
         };
+
 
         if (log.media_player_id) {
           const { data: mp } = await supabase
