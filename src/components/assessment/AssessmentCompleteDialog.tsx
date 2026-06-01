@@ -114,7 +114,8 @@ export function AssessmentCompleteDialog({ open, onOpenChange, log, onCompleted 
     setNotes(log.notes || "");
     setOutcome("");
     setRepairDescription("");
-    setExternalRepairVendor("");
+    setRepairSuccess(false);
+
     setExternalRepairContact("");
     setExternalRepairPhone("");
     setSupplierAutofill(null);
