@@ -154,11 +154,12 @@ export function AssessmentCompleteDialog({ open, onOpenChange, log, onCompleted 
 
 
         if (log.media_player_id) {
-          const { data: mp } = await supabase
+          const { data: mp, error: mpErr } = await supabase
             .from("media_players")
-            .select("id, code, name, brand, specification, billboard_id, manufacturer, warranty_expiry_date, unit_price, depreciation_months, date_of_receipt, model_id, remote_name, supplier:supplier_id(name, phone, contact_person), billboard:billboards(equipment_id, old_code, location_name)")
+            .select("id, code, name, brand, specification, billboard_id, warranty_expiry_date, unit_price, depreciation_months, date_of_receipt, model_id, remote_name, supplier:supplier_id(name, phone, contact_person), billboard:billboards(equipment_id, old_code, location_name)")
             .eq("id", log.media_player_id)
             .maybeSingle() as any;
+          if (mpErr) console.error("MP fetch error:", mpErr);
           if (mp) {
             ctx.itemCode = mp.code; ctx.itemName = mp.name;
             ctx.brand = mp.brand || mp.manufacturer || null;
