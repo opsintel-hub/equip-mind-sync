@@ -520,7 +520,7 @@ export default function SwapWizard() {
                 <Tabs value={statusFilter} onValueChange={(v) => setStatusFilter(v as any)} className="flex-1">
                   <TabsList className="flex flex-wrap h-auto">
                     <TabsTrigger value="all">ทั้งหมด ({stats.total})</TabsTrigger>
-                    <TabsTrigger value="in_progress">กำลัง Swap ({stats.inProgress + stats.pending})</TabsTrigger>
+                    <TabsTrigger value="in_progress">กำลัง Swap ({stats.inProgress})</TabsTrigger>
                     <TabsTrigger value="completed">Swap แล้ว ({stats.completed})</TabsTrigger>
                     <TabsTrigger value="rejected">Reject</TabsTrigger>
                   </TabsList>
