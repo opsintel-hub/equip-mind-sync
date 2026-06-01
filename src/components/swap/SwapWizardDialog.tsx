@@ -358,12 +358,17 @@ export function SwapWizardDialog({ open, onOpenChange, request, onCompleted }: P
       opts.push({
         value: v,
         label: `${request.reported_item_code || "—"} ${request.reported_item_name ? "- " + request.reported_item_name : ""}`,
-        description: `S/N: ${request.reported_serial_number || "—"} • จากคำขอ Swap`,
+        description: `S/N: ${request.reported_serial_number || "—"} • จากคำขอ Swap${billboardLabel ? "\nLocation: " + billboardLabel : ""}`,
         type: request.reported_asset_type === "media_player" ? "media_player" : "equipment",
         serial_number: request.reported_serial_number,
         billboard_equipment_id: request.reported_billboard_equipment_id || "",
         equipment_id: request.reported_equipment_id || undefined,
         media_player_id: request.reported_media_player_id || undefined,
+        brand: reportedBrand,
+        specification: reportedSpec,
+        model_name: reportedModelName,
+        remote_name: reportedRemoteName,
+        billboard_label: billboardLabel,
       });
       seenIds.add(v);
     }
