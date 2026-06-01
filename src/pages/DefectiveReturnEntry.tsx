@@ -393,12 +393,19 @@ const DefectiveReturnEntry = () => {
     }));
   }, [isMediaPlayer, mediaPlayerList, equipmentList]);
 
+  // Cap จำนวนเฉพาะกรณี "ถอดจากป้าย" (ถอดได้ไม่เกินที่ติดตั้งอยู่)
+  // กรณีอื่น (จากคลัง/หน้างาน/Swap) ไม่ cap เพราะของเสียคือ "นำเข้า" คลัง DEFECT ไม่ใช่ตัดจากคลังหลัก
   const maxQuantity = useMemo(() => {
     if (selectedBillboardRecord && !isMediaPlayer) return selectedBillboardRecord.quantity;
+    return 999;
+  }, [selectedBillboardRecord, isMediaPlayer]);
+
+  // ข้อมูลคงเหลือในคลังหลัก (เพื่อแสดงเป็นข้อมูลอ้างอิงเท่านั้น)
+  const stockOnHand = useMemo(() => {
     if (isMediaPlayer && selectedMediaPlayer) return selectedMediaPlayer.quantity;
     if (selectedEquipment) return selectedEquipment.quantity_in_stock;
-    return 999;
-  }, [selectedBillboardRecord, isMediaPlayer, selectedMediaPlayer, selectedEquipment]);
+    return null;
+  }, [isMediaPlayer, selectedMediaPlayer, selectedEquipment]);
 
   const isFromBillboard = selectedBillboardEquipmentId !== "" && detectedBillboards.length > 0;
   const generateDocNo = () => `DR-${format(new Date(), "yyyyMMdd")}-${Math.floor(Math.random() * 9999 + 1).toString().padStart(4, "0")}`;
@@ -916,7 +923,9 @@ const DefectiveReturnEntry = () => {
                   <div className="space-y-2">
                     <Label>จำนวนของเสียที่จะนำเข้า *</Label>
                     <Input type="number" min="1" max={maxQuantity} value={quantity} onChange={(e) => setQuantity(e.target.value)} />
-                    {maxQuantity < 999 && <p className="text-xs text-muted-foreground">{isFromBillboard ? `สูงสุด ${maxQuantity} (จำนวนที่ติดตั้งบนป้าย)` : `สูงสุด ${maxQuantity} (คงเหลือในคลัง)`}</p>}
+                    {maxQuantity < 999
+                      ? <p className="text-xs text-muted-foreground">สูงสุด {maxQuantity} (จำนวนที่ติดตั้งบนป้าย)</p>
+                      : stockOnHand !== null && <p className="text-xs text-muted-foreground">คงเหลือในคลังหลัก: {stockOnHand} (เพื่อข้อมูลอ้างอิงเท่านั้น)</p>}
                   </div>
                   <div className="space-y-2">
                     <Label>สถานะการใช้งาน *</Label>
