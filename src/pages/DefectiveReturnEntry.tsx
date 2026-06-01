@@ -706,8 +706,28 @@ const DefectiveReturnEntry = () => {
                         )}
                         {t.billboard_label && (
                           <div className="text-xs text-muted-foreground flex items-center gap-1">
-                            <MapPin className="w-3 h-3" /> {t.billboard_label}
+                            <MapPin className="w-3 h-3" /> ป้าย: <span className="text-foreground">{t.billboard_label}</span>
                           </div>
+                        )}
+                        {t.swap_info && (
+                          <div className="text-xs rounded-md border border-blue-300/60 bg-blue-50/60 dark:border-blue-800/60 dark:bg-blue-950/30 px-2 py-1.5 space-y-0.5">
+                            <div className="font-medium text-blue-700 dark:text-blue-300">
+                              🔄 จาก Swap: <span className="font-mono">{t.swap_info.doc_no}</span>
+                            </div>
+                            {(t.swap_info.old_label || t.swap_info.old_sn) && (
+                              <div>เครื่องเก่า (ถอดออก): <span className="text-foreground font-medium">{t.swap_info.old_label || "—"}</span>{t.swap_info.old_sn && <> · S/N: <span className="font-mono">{t.swap_info.old_sn}</span></>}</div>
+                            )}
+                            {(t.swap_info.new_label || t.swap_info.new_sn) && (
+                              <div>เครื่องใหม่ (ติดตั้งแทน): <span className="text-foreground font-medium">{t.swap_info.new_label || "—"}</span>{t.swap_info.new_sn && <> · S/N: <span className="font-mono">{t.swap_info.new_sn}</span></>}</div>
+                            )}
+                            {t.swap_info.description && <div className="text-muted-foreground">อาการ: {t.swap_info.description}</div>}
+                          </div>
+                        )}
+                        {t.assessment_doc_no && (
+                          <div className="text-xs text-muted-foreground">📋 จากการประเมิน: <span className="font-mono text-foreground">{t.assessment_doc_no}</span></div>
+                        )}
+                        {(t.reporter_name || t.reporter_department) && (
+                          <div className="text-xs text-muted-foreground">ผู้แจ้ง: <span className="text-foreground">{t.reporter_name || "—"}</span>{t.reporter_department && <> · ฝ่าย: <span className="text-foreground">{t.reporter_department}</span></>}</div>
                         )}
                         {t.reason && (
                           <div className="text-xs text-muted-foreground line-clamp-2">เหตุผล: {t.reason}</div>
