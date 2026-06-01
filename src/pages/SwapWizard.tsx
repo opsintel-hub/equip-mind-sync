@@ -750,13 +750,21 @@ export default function SwapWizard() {
                     </div>
                   </div>
 
-                  <div className="grid md:grid-cols-2 gap-4">
+                  <div className="grid md:grid-cols-3 gap-4">
                     <div className="space-y-2">
-                      <Label>ชื่อ/รุ่น</Label>
+                      <Label>ชื่อ (Remote Name)</Label>
                       <Input
                         value={reportedItemName}
                         onChange={(e) => setReportedItemName(e.target.value)}
-                        placeholder="ชื่ออุปกรณ์/รุ่น"
+                        placeholder="Remote Name / ชื่อเรียก"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>โมเดล</Label>
+                      <Input
+                        value={reportedModelName}
+                        onChange={(e) => setReportedModelName(e.target.value)}
+                        placeholder="รุ่น/Model"
                       />
                     </div>
                     <div className="space-y-2">
