@@ -580,9 +580,29 @@ export default function DocumentSearch() {
       // Fetch from swap_requests (Swap อุปกรณ์/MP)
       const { data: swapData } = await supabase
         .from("swap_requests")
-        .select("id, document_no, status, technician_name, description, created_at, old_serial_number, new_serial_number, reported_serial_number, reported_item_code, reported_item_name, billboard_id, billboards:billboard_id(equipment_id, old_code, location_name)")
+        .select("id, document_no, status, technician_name, description, created_at, old_serial_number, new_serial_number, reported_serial_number, reported_item_code, reported_item_name, billboard_id, billboards:billboard_id(equipment_id, old_code, location_name), asset_type, old_equipment_id, old_media_player_id, new_equipment_id, new_media_player_id")
         .order("created_at", { ascending: false })
         .limit(500);
+
+      // Resolve old/new product code+name labels for swap rows (for display)
+      const swapEqIds = new Set<string>();
+      const swapMpIds = new Set<string>();
+      for (const s of (swapData || []) as any[]) {
+        if (s.old_equipment_id) swapEqIds.add(s.old_equipment_id);
+        if (s.new_equipment_id) swapEqIds.add(s.new_equipment_id);
+        if (s.old_media_player_id) swapMpIds.add(s.old_media_player_id);
+        if (s.new_media_player_id) swapMpIds.add(s.new_media_player_id);
+      }
+      const swapEqMap = new Map<string, { code: string; name: string }>();
+      const swapMpMap = new Map<string, { code: string; name: string }>();
+      if (swapEqIds.size > 0) {
+        const { data: eqs } = await supabase.from("equipment").select("id, code, name").in("id", [...swapEqIds]);
+        for (const e of (eqs || []) as any[]) swapEqMap.set(e.id, { code: e.code, name: e.name });
+      }
+      if (swapMpIds.size > 0) {
+        const { data: mps } = await supabase.from("media_players").select("id, code, name").in("id", [...swapMpIds]);
+        for (const m of (mps || []) as any[]) swapMpMap.set(m.id, { code: m.code, name: m.name });
+      }
 
       // Fetch from stock_movements (Stock Card) — limit to recent for performance
       const { data: smData } = await supabase
