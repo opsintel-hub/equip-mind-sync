@@ -580,9 +580,29 @@ export default function DocumentSearch() {
       // Fetch from swap_requests (Swap อุปกรณ์/MP)
       const { data: swapData } = await supabase
         .from("swap_requests")
-        .select("id, document_no, status, technician_name, description, created_at, old_serial_number, new_serial_number, reported_serial_number, reported_item_code, reported_item_name, billboard_id, billboards:billboard_id(equipment_id, old_code, location_name)")
+        .select("id, document_no, status, technician_name, description, created_at, old_serial_number, new_serial_number, reported_serial_number, reported_item_code, reported_item_name, billboard_id, billboards:billboard_id(equipment_id, old_code, location_name), asset_type, old_equipment_id, old_media_player_id, new_equipment_id, new_media_player_id")
         .order("created_at", { ascending: false })
         .limit(500);
+
+      // Resolve old/new product code+name labels for swap rows (for display)
+      const swapEqIds = new Set<string>();
+      const swapMpIds = new Set<string>();
+      for (const s of (swapData || []) as any[]) {
+        if (s.old_equipment_id) swapEqIds.add(s.old_equipment_id);
+        if (s.new_equipment_id) swapEqIds.add(s.new_equipment_id);
+        if (s.old_media_player_id) swapMpIds.add(s.old_media_player_id);
+        if (s.new_media_player_id) swapMpIds.add(s.new_media_player_id);
+      }
+      const swapEqMap = new Map<string, { code: string; name: string }>();
+      const swapMpMap = new Map<string, { code: string; name: string }>();
+      if (swapEqIds.size > 0) {
+        const { data: eqs } = await supabase.from("equipment").select("id, code, name").in("id", [...swapEqIds]);
+        for (const e of (eqs || []) as any[]) swapEqMap.set(e.id, { code: e.code, name: e.name });
+      }
+      if (swapMpIds.size > 0) {
+        const { data: mps } = await supabase.from("media_players").select("id, code, name").in("id", [...swapMpIds]);
+        for (const m of (mps || []) as any[]) swapMpMap.set(m.id, { code: m.code, name: m.name });
+      }
 
       // Fetch from stock_movements (Stock Card) — limit to recent for performance
       const { data: smData } = await supabase
@@ -840,15 +860,32 @@ export default function DocumentSearch() {
         const sns = [item.reported_serial_number, item.old_serial_number, item.new_serial_number]
           .map((s: any) => (s || "").trim()).filter(Boolean);
         const bb = item.billboards;
+        const isMp = item.asset_type === "media_player";
+        const oldProd = isMp
+          ? (item.old_media_player_id ? swapMpMap.get(item.old_media_player_id) : null)
+          : (item.old_equipment_id ? swapEqMap.get(item.old_equipment_id) : null);
+        const newProd = isMp
+          ? (item.new_media_player_id ? swapMpMap.get(item.new_media_player_id) : null)
+          : (item.new_equipment_id ? swapEqMap.get(item.new_equipment_id) : null);
         return {
           id: item.id, document_no: item.document_no, document_url: null,
-          equipment_code: item.reported_item_code || null,
-          equipment_name: item.reported_item_name || item.description || null,
+          equipment_code: item.reported_item_code || oldProd?.code || null,
+          equipment_name: item.reported_item_name || oldProd?.name || item.description || null,
           serial_number: sns.length > 0 ? Array.from(new Set(sns)).join("\n") : null,
           supplier_name: bb ? `ป้าย ${bb.equipment_id || bb.old_code || ""} ${bb.location_name || ""}`.trim() : null,
           delivery_person_name: item.technician_name,
           quantity: 0, unit: "-", created_at: item.created_at, status: item.status,
-          source: "swap" as const, raw: item,
+          source: "swap" as const,
+          raw: {
+            ...item,
+            _swap_old_code: oldProd?.code || item.reported_item_code || null,
+            _swap_old_name: oldProd?.name || item.reported_item_name || null,
+            _swap_old_sn: item.old_serial_number || item.reported_serial_number || null,
+            _swap_new_code: newProd?.code || null,
+            _swap_new_name: newProd?.name || null,
+            _swap_new_sn: item.new_serial_number || null,
+            _swap_billboard_label: bb ? `${bb.old_code || bb.equipment_id || ""}${bb.location_name ? " - " + bb.location_name : ""}` : null,
+          },
         };
       });
 
@@ -1160,6 +1197,32 @@ export default function DocumentSearch() {
                             <div className="space-y-0.5">
                               {doc.equipment_code && <div className="font-semibold text-sm leading-tight">{doc.equipment_code}</div>}
                               {doc.equipment_name && <div className="text-xs text-muted-foreground leading-tight">{doc.equipment_name}</div>}
+                              {doc.source === "swap" && (() => {
+                                const r: any = doc.raw || {};
+                                const hasSwap = r._swap_old_sn || r._swap_new_sn || r._swap_new_code;
+                                if (!hasSwap) return null;
+                                return (
+                                  <div className="mt-1 rounded-md border border-border/60 bg-muted/40 px-2 py-1 space-y-0.5">
+                                    <div className="text-[10px] text-muted-foreground">รายละเอียดการ Swap</div>
+                                    <div className="text-[10px] leading-tight">
+                                      <span className="text-muted-foreground">เก่า:</span>{" "}
+                                      <span className="font-mono">{r._swap_old_code || "-"}</span>
+                                      {r._swap_old_sn && <> · S/N <span className="font-mono">{r._swap_old_sn}</span></>}
+                                    </div>
+                                    <div className="text-[10px] leading-tight">
+                                      <span className="text-muted-foreground">ใหม่:</span>{" "}
+                                      <span className="font-mono">{r._swap_new_code || "-"}</span>
+                                      {r._swap_new_sn && <> · S/N <span className="font-mono">{r._swap_new_sn}</span></>}
+                                    </div>
+                                    {r._swap_billboard_label && (
+                                      <div className="text-[10px] leading-tight">
+                                        <span className="text-muted-foreground">ป้าย:</span>{" "}
+                                        <span className="font-medium">{r._swap_billboard_label}</span>
+                                      </div>
+                                    )}
+                                  </div>
+                                );
+                              })()}
                             </div>
                           ) : <span className="text-muted-foreground/40">-</span>}
                         </TableCell>
