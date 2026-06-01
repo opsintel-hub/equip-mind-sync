@@ -50,6 +50,7 @@ export function MovementTab({ movements, playerCode, serialNumber1, serialNumber
                   <TableHead className="text-right">สต็อกหลัง</TableHead>
                   <TableHead>สภาพ</TableHead>
                   <TableHead>เอกสาร</TableHead>
+                  <TableHead>ป้ายโฆษณา</TableHead>
                   <TableHead>หมายเหตุ</TableHead>
                 </TableRow>
               </TableHeader>
@@ -58,6 +59,8 @@ export function MovementTab({ movements, playerCode, serialNumber1, serialNumber
                   const meta = getMovementMeta(m.movement_type);
                   const Icon = meta.icon;
                   const cond = m.item_condition ? getConditionDisplay(m.item_condition) : null;
+                  const refDoc = (m.reference_document || "").trim();
+                  const bbLabel = refDoc ? billboardByDoc[refDoc] : undefined;
                   return (
                     <TableRow key={m.id}>
                       <TableCell className="text-sm whitespace-nowrap">
@@ -78,6 +81,9 @@ export function MovementTab({ movements, playerCode, serialNumber1, serialNumber
                         ) : "-"}
                       </TableCell>
                       <TableCell className="text-sm font-mono">{m.reference_document || "-"}</TableCell>
+                      <TableCell className="text-xs text-muted-foreground whitespace-nowrap max-w-[200px] truncate" title={bbLabel || ""}>
+                        {bbLabel || "-"}
+                      </TableCell>
                       <TableCell className="text-sm text-muted-foreground max-w-[200px] truncate">{m.notes || "-"}</TableCell>
                     </TableRow>
                   );
