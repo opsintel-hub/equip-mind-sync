@@ -321,6 +321,7 @@ export default function SwapWizard() {
     setReportedSelectKey("");
     setReportedAssetType("equipment");
     setReportedItemName("");
+    setReportedModelName("");
     setReportedItemCode("");
     setReportedSerial("");
     setReportedPhotos([]);
