@@ -1197,6 +1197,32 @@ export default function DocumentSearch() {
                             <div className="space-y-0.5">
                               {doc.equipment_code && <div className="font-semibold text-sm leading-tight">{doc.equipment_code}</div>}
                               {doc.equipment_name && <div className="text-xs text-muted-foreground leading-tight">{doc.equipment_name}</div>}
+                              {doc.source === "swap" && (() => {
+                                const r: any = doc.raw || {};
+                                const hasSwap = r._swap_old_sn || r._swap_new_sn || r._swap_new_code;
+                                if (!hasSwap) return null;
+                                return (
+                                  <div className="mt-1 rounded-md border border-border/60 bg-muted/40 px-2 py-1 space-y-0.5">
+                                    <div className="text-[10px] text-muted-foreground">รายละเอียดการ Swap</div>
+                                    <div className="text-[10px] leading-tight">
+                                      <span className="text-muted-foreground">เก่า:</span>{" "}
+                                      <span className="font-mono">{r._swap_old_code || "-"}</span>
+                                      {r._swap_old_sn && <> · S/N <span className="font-mono">{r._swap_old_sn}</span></>}
+                                    </div>
+                                    <div className="text-[10px] leading-tight">
+                                      <span className="text-muted-foreground">ใหม่:</span>{" "}
+                                      <span className="font-mono">{r._swap_new_code || "-"}</span>
+                                      {r._swap_new_sn && <> · S/N <span className="font-mono">{r._swap_new_sn}</span></>}
+                                    </div>
+                                    {r._swap_billboard_label && (
+                                      <div className="text-[10px] leading-tight">
+                                        <span className="text-muted-foreground">ป้าย:</span>{" "}
+                                        <span className="font-medium">{r._swap_billboard_label}</span>
+                                      </div>
+                                    )}
+                                  </div>
+                                );
+                              })()}
                             </div>
                           ) : <span className="text-muted-foreground/40">-</span>}
                         </TableCell>
