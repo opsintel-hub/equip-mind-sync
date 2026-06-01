@@ -93,16 +93,58 @@ export default function DisposalApproval() {
     const { data, error } = await supabase
       .from("defective_returns")
       .select(`
-        id, document_no, equipment_id, media_player_id, is_media_player, quantity, reason,
+        id, document_no, equipment_id, media_player_id, is_media_player, quantity, reason, notes,
         item_condition, source_type, status, dispose_status, disposal_method, disposal_notes,
-        disposal_evidence_urls, disposal_approved_at, swap_request_id, created_at,
-        equipment:equipment_id(code, name),
-        media_player:media_player_id(code, name)
+        disposal_evidence_urls, disposal_approved_at, swap_request_id, assessment_log_id,
+        billboard_id, reporter_name, reporter_department, created_at,
+        equipment:equipment_id(code, name, brand, serial_number, department),
+        media_player:media_player_id(code, name, remote_name, brand, serial_number_1, serial_number_2, department, warranty_expiry_date, specification, unit_price)
       `)
       .order("created_at", { ascending: false })
       .limit(500);
-    if (error) toast.error("โหลดข้อมูลไม่สำเร็จ: " + error.message);
-    else setRows((data as any) || []);
+    if (error) { toast.error("โหลดข้อมูลไม่สำเร็จ: " + error.message); setLoading(false); return; }
+
+    const rowsRaw = (data as any[]) || [];
+    const swapIds = [...new Set(rowsRaw.map((r) => r.swap_request_id).filter(Boolean))];
+    const asmIds = [...new Set(rowsRaw.map((r) => r.assessment_log_id).filter(Boolean))];
+    const bbIds = [...new Set(rowsRaw.map((r) => r.billboard_id).filter(Boolean))];
+
+    const [swapRes, asmRes, bbRes] = await Promise.all([
+      swapIds.length ? supabase.from("swap_requests").select("id, document_no, billboard_id, description, old_serial_number, new_serial_number, old_media_player_id, new_media_player_id").in("id", swapIds) : Promise.resolve({ data: [] as any[] }),
+      asmIds.length ? supabase.from("assessment_logs").select("id, document_no").in("id", asmIds) : Promise.resolve({ data: [] as any[] }),
+      bbIds.length ? supabase.from("billboards").select("id, old_code, equipment_id, location_name").in("id", bbIds) : Promise.resolve({ data: [] as any[] }),
+    ]);
+    const swapBbIds = [...new Set(((swapRes.data as any[]) || []).map((s) => s.billboard_id).filter(Boolean))];
+    const swapMpIds = [...new Set(((swapRes.data as any[]) || []).flatMap((s) => [s.old_media_player_id, s.new_media_player_id]).filter(Boolean))];
+    const [extraBbRes, swapMpRes] = await Promise.all([
+      swapBbIds.length ? supabase.from("billboards").select("id, old_code, equipment_id, location_name").in("id", swapBbIds) : Promise.resolve({ data: [] as any[] }),
+      swapMpIds.length ? supabase.from("media_players").select("id, code, remote_name, name").in("id", swapMpIds) : Promise.resolve({ data: [] as any[] }),
+    ]);
+    const bbMap = new Map<string, any>([...((bbRes.data as any[]) || []), ...((extraBbRes.data as any[]) || [])].map((b) => [b.id, b]));
+    const swapMpMap = new Map<string, any>(((swapMpRes.data as any[]) || []).map((m) => [m.id, m]));
+    const swapMap = new Map<string, any>(((swapRes.data as any[]) || []).map((s) => [s.id, s]));
+    const asmMap = new Map<string, any>(((asmRes.data as any[]) || []).map((a) => [a.id, a]));
+    const labelOf = (mp: any) => mp ? `${mp.code}${mp.remote_name ? ` (${mp.remote_name})` : mp.name ? ` - ${mp.name}` : ""}` : null;
+
+    const enriched: DefectiveRow[] = rowsRaw.map((r) => {
+      const swap = r.swap_request_id ? swapMap.get(r.swap_request_id) : null;
+      const bbId = r.billboard_id || swap?.billboard_id || null;
+      const bb = bbId ? bbMap.get(bbId) : null;
+      return {
+        ...r,
+        billboard_label: bb ? [bb.old_code, bb.equipment_id, bb.location_name].filter(Boolean).join(" - ") : null,
+        assessment_doc_no: r.assessment_log_id ? asmMap.get(r.assessment_log_id)?.document_no || null : null,
+        swap_info: swap ? {
+          doc_no: swap.document_no,
+          description: swap.description,
+          old_sn: swap.old_serial_number,
+          new_sn: swap.new_serial_number,
+          old_label: labelOf(swap.old_media_player_id ? swapMpMap.get(swap.old_media_player_id) : null),
+          new_label: labelOf(swap.new_media_player_id ? swapMpMap.get(swap.new_media_player_id) : null),
+        } : null,
+      };
+    });
+    setRows(enriched);
     setLoading(false);
   };
 
