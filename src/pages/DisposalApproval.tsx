@@ -440,10 +440,15 @@ export default function DisposalApproval() {
                   <TableHeader>
                     <TableRow>
                       <TableHead>เลขที่</TableHead>
-                      <TableHead>รายการ</TableHead>
+                      <TableHead className="min-w-[200px]">รายการ</TableHead>
+                      <TableHead className="min-w-[140px]">S/N</TableHead>
+                      <TableHead>ยี่ห้อ</TableHead>
+                      <TableHead>ฝ่าย</TableHead>
                       <TableHead className="text-right">จำนวน</TableHead>
-                      <TableHead>เหตุผล</TableHead>
-                      <TableHead>ที่มา</TableHead>
+                      <TableHead>ประกัน</TableHead>
+                      <TableHead className="min-w-[180px]">ที่มา / ป้าย</TableHead>
+                      <TableHead className="min-w-[200px]">เหตุผล</TableHead>
+                      <TableHead className="min-w-[140px]">ผู้แจ้ง</TableHead>
                       <TableHead>วิธีจัดการ</TableHead>
                       <TableHead>สถานะ</TableHead>
                       <TableHead>วันที่</TableHead>
@@ -452,37 +457,68 @@ export default function DisposalApproval() {
                   </TableHeader>
                   <TableBody>
                     {loading ? (
-                      <TableRow><TableCell colSpan={9} className="text-center py-12 text-muted-foreground">กำลังโหลด...</TableCell></TableRow>
+                      <TableRow><TableCell colSpan={14} className="text-center py-12 text-muted-foreground">กำลังโหลด...</TableCell></TableRow>
                     ) : filtered.length === 0 ? (
-                      <TableRow><TableCell colSpan={9} className="text-center py-12 text-muted-foreground">ไม่มีรายการ</TableCell></TableRow>
+                      <TableRow><TableCell colSpan={14} className="text-center py-12 text-muted-foreground">ไม่มีรายการ</TableCell></TableRow>
                     ) : filtered.map((row) => {
-                      const item = row.is_media_player ? row.media_player : row.equipment;
+                      const mp = row.media_player;
+                      const eq = row.equipment;
+                      const code = row.is_media_player ? mp?.code : eq?.code;
+                      const primaryName = row.is_media_player ? (mp?.remote_name || mp?.name) : eq?.name;
+                      const brand = row.is_media_player ? mp?.brand : eq?.brand;
+                      const department = row.is_media_player ? mp?.department : eq?.department;
+                      const sns = row.is_media_player
+                        ? [mp?.serial_number_1, mp?.serial_number_2].filter(Boolean)
+                        : [eq?.serial_number].filter(Boolean);
+                      const warrantyTxt = mp?.warranty_expiry_date ? format(new Date(mp.warranty_expiry_date), "dd MMM yy", { locale: th }) : null;
+                      const inWarranty = mp?.warranty_expiry_date ? new Date(mp.warranty_expiry_date) >= new Date() : null;
                       const status = STATUS_LABEL[row.dispose_status] || { label: row.dispose_status, variant: "outline" as const };
                       const dm = row.disposal_method ? DISPOSAL_METHODS[row.disposal_method] : null;
                       return (
                         <TableRow key={row.id}>
-                          <TableCell className="font-mono text-xs">{row.document_no}</TableCell>
-                          <TableCell>
-                            <div className="font-medium">{item?.code || "—"}</div>
-                            <div className="text-xs text-muted-foreground">{item?.name || ""}</div>
+                          <TableCell className="font-mono text-xs align-top">{row.document_no}</TableCell>
+                          <TableCell className="align-top">
+                            <div className="font-mono font-medium">{code || "—"}</div>
+                            <div className="text-xs text-foreground">{primaryName || ""}</div>
+                            {row.is_media_player && mp?.specification && <div className="text-[10px] text-muted-foreground line-clamp-1">{mp.specification}</div>}
                           </TableCell>
-                          <TableCell className="text-right font-mono">{row.quantity}</TableCell>
-                          <TableCell className="max-w-[260px] text-xs whitespace-pre-line">{row.reason || "—"}</TableCell>
-                          <TableCell>
-                            <Badge variant="outline" className="text-xs">
-                              {row.source_type === "billboard" ? "ถอดจากป้าย" : row.swap_request_id ? "จาก Swap" : "คลัง/ภาคสนาม"}
+                          <TableCell className="align-top text-xs font-mono whitespace-pre-line">{sns.length ? sns.join("\n") : "—"}</TableCell>
+                          <TableCell className="align-top text-xs">{brand || "—"}</TableCell>
+                          <TableCell className="align-top text-xs">{department || "—"}</TableCell>
+                          <TableCell className="text-right font-mono align-top">{row.quantity}</TableCell>
+                          <TableCell className="align-top text-xs">
+                            {warrantyTxt ? (
+                              <div className="flex flex-col gap-0.5">
+                                <Badge variant={inWarranty ? "default" : "destructive"} className="text-[10px] py-0 px-1.5 h-4 w-fit">
+                                  {inWarranty ? "ในประกัน" : "หมดประกัน"}
+                                </Badge>
+                                <span className="text-muted-foreground">{warrantyTxt}</span>
+                              </div>
+                            ) : <span className="text-muted-foreground">—</span>}
+                          </TableCell>
+                          <TableCell className="align-top">
+                            <Badge variant="outline" className="text-xs mb-1">
+                              {row.swap_info ? "จาก Swap" : row.assessment_doc_no ? "จากการประเมิน" : row.source_type === "billboard" ? "ถอดจากป้าย" : "คลัง/ภาคสนาม"}
                             </Badge>
+                            {row.billboard_label && <div className="text-[11px] text-muted-foreground">📍 {row.billboard_label}</div>}
+                            {row.swap_info && <div className="text-[11px] text-blue-600 dark:text-blue-400 font-mono">{row.swap_info.doc_no}</div>}
+                            {row.assessment_doc_no && <div className="text-[11px] text-amber-600 dark:text-amber-400 font-mono">{row.assessment_doc_no}</div>}
                           </TableCell>
-                          <TableCell>
+                          <TableCell className="max-w-[260px] text-xs whitespace-pre-line align-top">{row.reason || "—"}</TableCell>
+                          <TableCell className="align-top text-xs">
+                            <div className="font-medium text-foreground">{row.reporter_name || "—"}</div>
+                            {row.reporter_department && <div className="text-muted-foreground">{row.reporter_department}</div>}
+                          </TableCell>
+                          <TableCell className="align-top">
                             {dm ? (
                               <span className={`inline-flex items-center gap-1 text-xs px-2 py-1 rounded-md border ${dm.color}`}>
                                 <dm.icon className="w-3 h-3" /> {dm.label}
                               </span>
                             ) : <span className="text-xs text-muted-foreground">—</span>}
                           </TableCell>
-                          <TableCell><Badge variant={status.variant}>{status.label}</Badge></TableCell>
-                          <TableCell className="text-xs">{format(new Date(row.created_at), "dd MMM yy HH:mm", { locale: th })}</TableCell>
-                          <TableCell className="text-right">
+                          <TableCell className="align-top"><Badge variant={status.variant}>{status.label}</Badge></TableCell>
+                          <TableCell className="text-xs align-top">{format(new Date(row.created_at), "dd MMM yy HH:mm", { locale: th })}</TableCell>
+                          <TableCell className="text-right align-top">
                             <div className="flex gap-1 justify-end">
                               <Button size="sm" variant="ghost" onClick={() => setPreviewing(row)} title="ดูเอกสาร">
                                 <Eye className="w-4 h-4" />
