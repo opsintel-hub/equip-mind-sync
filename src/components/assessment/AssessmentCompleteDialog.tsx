@@ -383,6 +383,22 @@ export function AssessmentCompleteDialog({ open, onOpenChange, log, onCompleted 
   const handleSubmit = async () => {
     setSubmitting(true);
 
+    // Guard: ถ้า assessment นี้บันทึก completed ไปแล้ว → ห้ามบันทึกซ้ำ (กันสร้าง DR/CLM ซ้ำ)
+    const { data: currentLog } = await supabase
+      .from("assessment_logs")
+      .select("status")
+      .eq("id", log.id)
+      .maybeSingle();
+    if ((currentLog as any)?.status === "completed") {
+      setSubmitting(false);
+      toast.error("การประเมินนี้บันทึกผลแล้ว ไม่สามารถบันทึกซ้ำได้");
+      onCompleted();
+      onOpenChange(false);
+      return;
+    }
+
+
+
     // Audit trail: บันทึกสถานะประกัน + อายุเครื่อง ตอนประเมิน
     const auditLines: string[] = [];
     if (warrantyState === "active") auditLines.push(`✅ ประเมินขณะ "ยังในประกัน" เหลือ ${warrantyDaysLeft} วัน (หมด ${warrantyDate})`);
