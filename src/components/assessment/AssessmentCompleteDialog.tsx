@@ -534,14 +534,21 @@ export function AssessmentCompleteDialog({ open, onOpenChange, log, onCompleted 
               </div>
               <div className="grid md:grid-cols-2 gap-x-4 gap-y-1 text-xs">
                 {sourceCtx.billboardLabel && (
-                  <div><span className="text-muted-foreground">ป้ายต้นทาง: </span><span className="font-medium">{sourceCtx.billboardLabel}</span></div>
+                  <div className="md:col-span-2"><span className="text-muted-foreground">Location ป้าย: </span><span className="font-medium">{sourceCtx.billboardLabel}</span></div>
                 )}
                 {log.serial_number && (
                   <div><span className="text-muted-foreground">S/N: </span><span className="font-mono">{log.serial_number}</span></div>
                 )}
+                {sourceCtx.modelName && (
+                  <div><span className="text-muted-foreground">Model: </span><span className="font-medium">{sourceCtx.modelName}</span></div>
+                )}
+                {sourceCtx.remoteName && (
+                  <div><span className="text-muted-foreground">Remote Name: </span><span className="font-medium">{sourceCtx.remoteName}</span></div>
+                )}
                 {sourceCtx.reporter && (
                   <div><span className="text-muted-foreground">ผู้แจ้ง: </span><span>{sourceCtx.reporter}</span></div>
                 )}
+
                 {(sourceCtx.description || sourceCtx.reportedSymptom) && (
                   <div className="md:col-span-2 rounded-md border border-amber-300 bg-amber-50 dark:bg-amber-900/10 dark:border-amber-800/40 p-2">
                     <div className="text-xs font-medium text-amber-700 dark:text-amber-400 mb-0.5">อาการที่แจ้งตอนคีย์เข้า (ผู้ประเมินเพิ่มเติมได้ในฟอร์มด้านล่าง)</div>
