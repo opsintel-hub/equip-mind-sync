@@ -38,6 +38,8 @@ interface SourceContext {
   itemName: string | null;
   brand: string | null;
   modelSpec: string | null;
+  modelName: string | null;
+  remoteName: string | null;
   billboardLabel: string | null;
   billboardId: string | null;
   reportedSymptom: string | null;
@@ -52,6 +54,7 @@ interface SourceContext {
   ageMonths: number | null;
   mediaPlayerProfileId: string | null;
 }
+
 
 interface DeviceHistory {
   installCount: number;
