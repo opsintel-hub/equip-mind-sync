@@ -386,7 +386,7 @@ export function SwapWizardDialog({ open, onOpenChange, request, onCompleted }: P
       opts.push({
         value: v,
         label: `${m.code} ${m.name ? "- " + m.name : ""}`,
-        description: `S/N: ${serial || "—"} • ติดตั้ง ${m.install_date || "—"}${detailBits ? "\n" + detailBits : ""}`,
+        description: `S/N: ${serial || "—"} • ติดตั้ง ${m.install_date || "—"}${billboardLabel ? "\nLocation: " + billboardLabel : ""}${detailBits ? "\n" + detailBits : ""}`,
         type: "media_player",
         serial_number: serial || null,
         billboard_equipment_id: "",
@@ -395,6 +395,8 @@ export function SwapWizardDialog({ open, onOpenChange, request, onCompleted }: P
         specification: m.specification,
         model_name: modelName,
         install_date: m.install_date,
+        remote_name: m.remote_name,
+        billboard_label: billboardLabel,
       });
       seenIds.add(v);
     });
