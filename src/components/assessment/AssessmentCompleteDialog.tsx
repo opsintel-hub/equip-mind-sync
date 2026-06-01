@@ -102,6 +102,20 @@ export function AssessmentCompleteDialog({ open, onOpenChange, log, onCompleted 
   const [history, setHistory] = useState<DeviceHistory | null>(null);
   const [defectiveAck, setDefectiveAck] = useState(false);
   const [defectiveAckReason, setDefectiveAckReason] = useState("");
+  const [assessmentResultName, setAssessmentResultName] = useState<string>("");
+
+  // Fetch the name of the selected assessment result for outcome gating
+  useEffect(() => {
+    if (!assessmentResultId) { setAssessmentResultName(""); return; }
+    (async () => {
+      const { data } = await supabase
+        .from("mp_assessment_results")
+        .select("name")
+        .eq("id", assessmentResultId)
+        .maybeSingle();
+      setAssessmentResultName((data as any)?.name || "");
+    })();
+  }, [assessmentResultId]);
 
   useEffect(() => {
     if (!open || !log) return;
