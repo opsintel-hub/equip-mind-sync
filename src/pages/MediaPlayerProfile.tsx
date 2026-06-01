@@ -189,6 +189,29 @@ const MediaPlayerProfile = () => {
       .limit(200);
     setMovements((movs as any) || []);
 
+    // Resolve billboard per movement via reference_document (Swap, install/uninstall)
+    const swapDocs = Array.from(
+      new Set(
+        ((movs as any[]) || [])
+          .map((m) => (m.reference_document || "").trim())
+          .filter((d) => d && d.startsWith("SWP-"))
+      )
+    );
+    const movBbMap: Record<string, string> = {};
+    if (swapDocs.length > 0) {
+      const { data: swReqs } = await supabase
+        .from("swap_requests")
+        .select("document_no, billboard_id, billboards:billboard_id(equipment_id, old_code, location_name)")
+        .in("document_no", swapDocs);
+      for (const s of (swReqs || []) as any[]) {
+        const bb = s.billboards;
+        if (bb) {
+          movBbMap[s.document_no] = formatBillboardLabel(bb.old_code, bb.location_name, bb.equipment_id);
+        }
+      }
+    }
+    setMovementBillboards(movBbMap);
+
     setIsLoading(false);
   };
 
