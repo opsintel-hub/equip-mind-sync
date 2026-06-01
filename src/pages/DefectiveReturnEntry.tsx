@@ -923,7 +923,9 @@ const DefectiveReturnEntry = () => {
                   <div className="space-y-2">
                     <Label>จำนวนของเสียที่จะนำเข้า *</Label>
                     <Input type="number" min="1" max={maxQuantity} value={quantity} onChange={(e) => setQuantity(e.target.value)} />
-                    {maxQuantity < 999 && <p className="text-xs text-muted-foreground">{isFromBillboard ? `สูงสุด ${maxQuantity} (จำนวนที่ติดตั้งบนป้าย)` : `สูงสุด ${maxQuantity} (คงเหลือในคลัง)`}</p>}
+                    {maxQuantity < 999
+                      ? <p className="text-xs text-muted-foreground">สูงสุด {maxQuantity} (จำนวนที่ติดตั้งบนป้าย)</p>
+                      : stockOnHand !== null && <p className="text-xs text-muted-foreground">คงเหลือในคลังหลัก: {stockOnHand} (เพื่อข้อมูลอ้างอิงเท่านั้น)</p>}
                   </div>
                   <div className="space-y-2">
                     <Label>สถานะการใช้งาน *</Label>
