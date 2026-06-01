@@ -280,36 +280,63 @@ const DefectiveReturnEntry = () => {
     try {
       const { data, error } = await supabase
         .from("defective_returns")
-        .select("id, document_no, status, source_type, reason, notes, quantity, is_media_player, equipment_id, media_player_id, billboard_id, assessment_log_id, swap_request_id, created_at")
+        .select("id, document_no, status, source_type, reason, notes, quantity, is_media_player, equipment_id, media_player_id, billboard_id, assessment_log_id, swap_request_id, reporter_name, reporter_department, created_at")
         .eq("status", "pending_warehouse_entry")
         .order("created_at", { ascending: false });
       if (error) throw error;
 
-      // Enrich with item code/name + billboard label
       const eqIds = [...new Set((data || []).filter((d: any) => d.equipment_id).map((d: any) => d.equipment_id))];
       const mpIds = [...new Set((data || []).filter((d: any) => d.media_player_id).map((d: any) => d.media_player_id))];
       const bbIds = [...new Set((data || []).filter((d: any) => d.billboard_id).map((d: any) => d.billboard_id))];
+      const swapIds = [...new Set((data || []).filter((d: any) => d.swap_request_id).map((d: any) => d.swap_request_id))];
+      const asmIds = [...new Set((data || []).filter((d: any) => d.assessment_log_id).map((d: any) => d.assessment_log_id))];
 
-      const [eqRes, mpRes, bbRes] = await Promise.all([
+      const [eqRes, mpRes, bbRes, swapRes, asmRes] = await Promise.all([
         eqIds.length ? supabase.from("equipment").select("id, code, name, brand, serial_number, department").in("id", eqIds) : Promise.resolve({ data: [] }),
         mpIds.length ? supabase.from("media_players").select("id, code, name, remote_name, brand, serial_number_1, serial_number_2, warranty_expiry_date, department, model_id, specification").in("id", mpIds) : Promise.resolve({ data: [] }),
         bbIds.length ? supabase.from("billboards").select("id, equipment_id, old_code, location_name").in("id", bbIds) : Promise.resolve({ data: [] }),
+        swapIds.length ? supabase.from("swap_requests").select("id, document_no, billboard_id, old_serial_number, new_serial_number, old_media_player_id, new_media_player_id, old_equipment_id, new_equipment_id, description").in("id", swapIds) : Promise.resolve({ data: [] }),
+        asmIds.length ? supabase.from("assessment_logs").select("id, document_no").in("id", asmIds) : Promise.resolve({ data: [] }),
       ]);
       const modelIds = [...new Set(((mpRes.data || []) as any[]).map((m) => m.model_id).filter(Boolean))];
       const modelRes = modelIds.length
         ? await supabase.from("media_player_models").select("id, name").in("id", modelIds)
         : { data: [] as any[] };
+      const swapBbIds = [...new Set(((swapRes.data || []) as any[]).map((s) => s.billboard_id).filter(Boolean))];
+      const extraBbRes = swapBbIds.length
+        ? await supabase.from("billboards").select("id, equipment_id, old_code, location_name").in("id", swapBbIds)
+        : { data: [] as any[] };
+      const swapMpIds = [...new Set(((swapRes.data || []) as any[]).flatMap((s) => [s.old_media_player_id, s.new_media_player_id]).filter(Boolean))];
+      const swapMpRes = swapMpIds.length
+        ? await supabase.from("media_players").select("id, code, name, remote_name").in("id", swapMpIds)
+        : { data: [] as any[] };
+
       const modelMap = new Map(((modelRes.data || []) as any[]).map((m) => [m.id, m.name]));
       const eqMap = new Map((eqRes.data || []).map((e: any) => [e.id, e]));
       const mpMap = new Map((mpRes.data || []).map((m: any) => [m.id, m]));
-      const bbMap = new Map((bbRes.data || []).map((b: any) => [b.id, b]));
+      const bbMap = new Map([...((bbRes.data || []) as any[]), ...((extraBbRes.data || []) as any[])].map((b: any) => [b.id, b]));
+      const swapMap = new Map(((swapRes.data || []) as any[]).map((s) => [s.id, s]));
+      const swapMpMap = new Map(((swapMpRes.data || []) as any[]).map((m) => [m.id, m]));
+      const asmMap = new Map(((asmRes.data || []) as any[]).map((a) => [a.id, a]));
 
       const enriched = (data || []).map((d: any) => {
         const item: any = d.is_media_player ? mpMap.get(d.media_player_id) : eqMap.get(d.equipment_id);
-        const bb: any = d.billboard_id ? bbMap.get(d.billboard_id) : null;
+        const swap: any = d.swap_request_id ? swapMap.get(d.swap_request_id) : null;
+        const bbId = d.billboard_id || swap?.billboard_id || null;
+        const bb: any = bbId ? bbMap.get(bbId) : null;
+        const asm: any = d.assessment_log_id ? asmMap.get(d.assessment_log_id) : null;
         const sns = d.is_media_player
           ? [item?.serial_number_1, item?.serial_number_2].filter(Boolean)
           : [item?.serial_number].filter(Boolean);
+        const labelOf = (mp: any) => mp ? `${mp.code}${mp.remote_name ? ` (${mp.remote_name})` : mp.name ? ` - ${mp.name}` : ""}` : null;
+        const swapInfo = swap ? {
+          doc_no: swap.document_no,
+          old_sn: swap.old_serial_number,
+          new_sn: swap.new_serial_number,
+          old_label: labelOf(swap.old_media_player_id ? swapMpMap.get(swap.old_media_player_id) : null),
+          new_label: labelOf(swap.new_media_player_id ? swapMpMap.get(swap.new_media_player_id) : null),
+          description: swap.description,
+        } : null;
         return {
           ...d,
           item_code: item?.code || "-",
@@ -322,7 +349,9 @@ const DefectiveReturnEntry = () => {
           warranty_expiry_date: item?.warranty_expiry_date || null,
           serial_numbers: sns,
           billboard_label: bb ? [bb.old_code, bb.equipment_id, bb.location_name].filter(Boolean).join(" - ") : null,
-          source_label: d.source_type === "from_assessment" ? "จากการประเมิน" : d.source_type === "billboard" ? "จากป้าย" : "ป้อนเอง",
+          assessment_doc_no: asm?.document_no || null,
+          swap_info: swapInfo,
+          source_label: swap ? "จาก Swap" : d.source_type === "from_assessment" ? "จากการประเมิน" : d.source_type === "billboard" ? "จากป้าย" : "ป้อนเอง",
         };
       });
       setPendingTickets(enriched);
