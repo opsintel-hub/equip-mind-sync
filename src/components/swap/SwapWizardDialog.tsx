@@ -298,6 +298,35 @@ export function SwapWizardDialog({ open, onOpenChange, request, onCompleted }: P
       (oldModels || []).forEach((m: any) => { oldModelMap[m.id] = m.name; });
     }
 
+    // Fetch billboard label (Location) เพื่อแสดงเป็น Location ของเครื่องเก่า
+    let billboardLabel: string | null = null;
+    {
+      const { data: bb } = await supabase
+        .from("billboards")
+        .select("old_code, location_name, equipment_id")
+        .eq("id", billboardId)
+        .maybeSingle();
+      if (bb) {
+        const parts = [bb.old_code, bb.location_name].filter(Boolean);
+        billboardLabel = parts.join(" - ") || null;
+      }
+    }
+
+    // หา remote_name ของเครื่องที่รายงาน (ถ้าเป็น media player)
+    let reportedRemoteName: string | null = null;
+    if (request?.reported_asset_type === "media_player" && request.reported_media_player_id) {
+      const found = (mpsOnBb || []).find((m: any) => m.id === request.reported_media_player_id);
+      if (found?.remote_name) reportedRemoteName = found.remote_name;
+      else {
+        const { data: rmp } = await supabase
+          .from("media_players")
+          .select("remote_name, model_id, brand, specification")
+          .eq("id", request.reported_media_player_id)
+          .maybeSingle();
+        if (rmp?.remote_name) reportedRemoteName = rmp.remote_name;
+      }
+    }
+
     const opts: OldOption[] = [];
     const seenIds = new Set<string>();
 
