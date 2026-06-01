@@ -384,12 +384,13 @@ export function SwapWizardDialog({ open, onOpenChange, request, onCompleted }: P
       const detailBits = [
         m.brand ? `ยี่ห้อ ${m.brand}` : null,
         modelName ? `รุ่น ${modelName}` : null,
-        m.specification ? `Spec ${m.specification}` : null,
+        m.remote_name ? `Remote ${m.remote_name}` : null,
       ].filter(Boolean).join(" • ");
       opts.push({
         value: v,
         label: `${m.code} ${m.name ? "- " + m.name : ""}`,
         description: `S/N: ${serial || "—"} • ติดตั้ง ${m.install_date || "—"}${billboardLabel ? "\nLocation: " + billboardLabel : ""}${detailBits ? "\n" + detailBits : ""}`,
+        searchableText: [m.code, m.name, serial, m.brand, modelName, m.remote_name, m.specification, billboardLabel].filter(Boolean).join(" "),
         type: "media_player",
         serial_number: serial || null,
         billboard_equipment_id: "",
@@ -410,12 +411,12 @@ export function SwapWizardDialog({ open, onOpenChange, request, onCompleted }: P
       const detailBits = [
         b.equipment?.brand ? `ยี่ห้อ ${b.equipment.brand}` : null,
         b.equipment?.category ? `หมวด ${b.equipment.category}` : null,
-        b.equipment?.description ? `Spec ${b.equipment.description}` : null,
       ].filter(Boolean).join(" • ");
       opts.push({
         value: v,
         label: `${b.equipment?.code || ""} ${b.equipment?.name ? "- " + b.equipment.name : ""}`,
         description: `S/N: ${b.serial_number || "—"} • จำนวน: ${b.quantity}${billboardLabel ? "\nLocation: " + billboardLabel : ""}${detailBits ? "\n" + detailBits : ""}`,
+        searchableText: [b.equipment?.code, b.equipment?.name, b.serial_number, b.equipment?.brand, b.equipment?.category, b.equipment?.description, billboardLabel].filter(Boolean).join(" "),
         type: "equipment",
         serial_number: b.serial_number,
         billboard_equipment_id: b.id,
