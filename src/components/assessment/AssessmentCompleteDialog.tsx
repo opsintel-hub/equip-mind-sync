@@ -73,10 +73,10 @@ interface Props {
 
 const OUTCOME_OPTIONS = [
   { v: "defective", label: "1. เข้าของเสีย", desc: "ซ่อมไม่ได้/หมดประกัน" },
-  { v: "claim", label: "2. ส่งเคลม", desc: "ส่งซ่อมกับ Supplier" },
-  { v: "self_repair", label: "3. ซ่อมเอง", desc: "บันทึกรายการซ่อม" },
-  { v: "return_refurb", label: "4. คืน Spare", desc: "Refurbished คืนคลัง" },
+  { v: "claim", label: "2. ส่งเคลม", desc: "ส่งซ่อมกับ Supplier (ในประกัน)" },
+  { v: "self_repair", label: "3. ซ่อมเอง", desc: "บันทึกการซ่อม + คืน Spare ได้" },
 ] as const;
+
 
 export function AssessmentCompleteDialog({ open, onOpenChange, log, onCompleted }: Props) {
   const { user } = useAuth();
