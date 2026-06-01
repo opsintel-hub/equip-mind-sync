@@ -341,7 +341,7 @@ const MediaPlayerProfile = () => {
 
             {/* Stock Card: เคลื่อนไหวสต๊อกอย่างเดียว */}
             <TabsContent value="movements" className="mt-6 focus-visible:outline-none">
-              <MovementTab movements={movements} playerCode={player.code} serialNumber1={player.serial_number_1} serialNumber2={player.serial_number_2} />
+              <MovementTab movements={movements} playerCode={player.code} serialNumber1={player.serial_number_1} serialNumber2={player.serial_number_2} billboardByDoc={movementBillboards} />
             </TabsContent>
           </Tabs>
         </div>
