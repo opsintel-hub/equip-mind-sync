@@ -525,7 +525,9 @@ export function AssessmentCompleteDialog({ open, onOpenChange, log, onCompleted 
           notes: `จาก Assessment ${log.document_no}`,
           created_by: user?.id ?? null,
         });
+        }
         await flipStatus("in_claim", "in_claim", false, 0);
+
       } else if (outcome === "self_repair") {
         if (repairSuccess) {
           // ซ่อมสำเร็จ → คืนกลับ Spare (active + refurbished)
