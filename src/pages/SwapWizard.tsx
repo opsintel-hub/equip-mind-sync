@@ -121,9 +121,48 @@ export default function SwapWizard() {
       .limit(200);
     if (error) {
       toast.error("โหลดข้อมูลไม่สำเร็จ");
-    } else {
-      setRequests((data as SwapRequest[]) || []);
+      setRequests([]);
+      setLoading(false);
+      return;
     }
+    const rows = (data as SwapRequest[]) || [];
+
+    // Enrich with billboard label + media player model/remote_name
+    const bbIds = Array.from(new Set(rows.map((r) => r.billboard_id).filter(Boolean) as string[]));
+    const mpIds = Array.from(new Set(rows.map((r) => r.reported_media_player_id).filter(Boolean) as string[]));
+
+    const [bbRes, mpRes] = await Promise.all([
+      bbIds.length
+        ? supabase.from("billboards").select("id, old_code, location_name, equipment_id").in("id", bbIds)
+        : Promise.resolve({ data: [] as any[] }),
+      mpIds.length
+        ? supabase.from("media_players").select("id, remote_name, model_id").in("id", mpIds)
+        : Promise.resolve({ data: [] as any[] }),
+    ]);
+    const bbMap = new Map<string, any>((bbRes.data || []).map((b: any) => [b.id, b]));
+    const mpMap = new Map<string, any>((mpRes.data || []).map((m: any) => [m.id, m]));
+
+    const modelIds = Array.from(new Set(Array.from(mpMap.values()).map((m: any) => m.model_id).filter(Boolean)));
+    let modelMap = new Map<string, string>();
+    if (modelIds.length) {
+      const { data: models } = await supabase
+        .from("media_player_models" as any)
+        .select("id, name")
+        .in("id", modelIds as string[]);
+      modelMap = new Map((models as any[] || []).map((m: any) => [m.id, m.name]));
+    }
+
+    const enriched = rows.map((r) => {
+      const bb = r.billboard_id ? bbMap.get(r.billboard_id) : null;
+      const mp = r.reported_media_player_id ? mpMap.get(r.reported_media_player_id) : null;
+      return {
+        ...r,
+        _billboard_label: bb ? formatBillboardLabel(bb.old_code, bb.location_name, bb.equipment_id) : undefined,
+        _remote_name: mp?.remote_name || undefined,
+        _model_name: mp?.model_id ? modelMap.get(mp.model_id) : undefined,
+      };
+    });
+    setRequests(enriched);
     setLoading(false);
   };
 
