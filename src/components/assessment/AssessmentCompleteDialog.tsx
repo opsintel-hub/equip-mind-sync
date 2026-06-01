@@ -38,6 +38,8 @@ interface SourceContext {
   itemName: string | null;
   brand: string | null;
   modelSpec: string | null;
+  modelName: string | null;
+  remoteName: string | null;
   billboardLabel: string | null;
   billboardId: string | null;
   reportedSymptom: string | null;
@@ -52,6 +54,7 @@ interface SourceContext {
   ageMonths: number | null;
   mediaPlayerProfileId: string | null;
 }
+
 
 interface DeviceHistory {
   installCount: number;
@@ -70,10 +73,10 @@ interface Props {
 
 const OUTCOME_OPTIONS = [
   { v: "defective", label: "1. เข้าของเสีย", desc: "ซ่อมไม่ได้/หมดประกัน" },
-  { v: "claim", label: "2. ส่งเคลม", desc: "ส่งซ่อมกับ Supplier" },
-  { v: "self_repair", label: "3. ซ่อมเอง", desc: "บันทึกรายการซ่อม" },
-  { v: "return_refurb", label: "4. คืน Spare", desc: "Refurbished คืนคลัง" },
+  { v: "claim", label: "2. ส่งเคลม", desc: "ส่งซ่อมกับ Supplier (ในประกัน)" },
+  { v: "self_repair", label: "3. ซ่อมเอง", desc: "บันทึกการซ่อม + คืน Spare ได้" },
 ] as const;
+
 
 export function AssessmentCompleteDialog({ open, onOpenChange, log, onCompleted }: Props) {
   const { user } = useAuth();
@@ -89,9 +92,11 @@ export function AssessmentCompleteDialog({ open, onOpenChange, log, onCompleted 
   const [notes, setNotes] = useState("");
   const [outcome, setOutcome] = useState<"" | "defective" | "claim" | "self_repair" | "return_refurb">("");
   const [repairDescription, setRepairDescription] = useState("");
+  const [repairSuccess, setRepairSuccess] = useState(false);
   const [externalRepairVendor, setExternalRepairVendor] = useState("");
   const [externalRepairContact, setExternalRepairContact] = useState("");
   const [externalRepairPhone, setExternalRepairPhone] = useState("");
+
   const [supplierAutofill, setSupplierAutofill] = useState<{ name: string; manufacturer: string | null; warranty: string | null; phone: string | null; contact: string | null } | null>(null);
   const [sourceCtx, setSourceCtx] = useState<SourceContext | null>(null);
   const [history, setHistory] = useState<DeviceHistory | null>(null);
@@ -109,6 +114,7 @@ export function AssessmentCompleteDialog({ open, onOpenChange, log, onCompleted 
     setNotes(log.notes || "");
     setOutcome("");
     setRepairDescription("");
+    setRepairSuccess(false);
     setExternalRepairVendor("");
     setExternalRepairContact("");
     setExternalRepairPhone("");
@@ -124,6 +130,7 @@ export function AssessmentCompleteDialog({ open, onOpenChange, log, onCompleted 
         const ctx: SourceContext = {
           sourceLabel: "ป้อนเอง",
           itemCode: null, itemName: null, brand: null, modelSpec: null,
+          modelName: null, remoteName: null,
           billboardLabel: null, billboardId: null,
           reportedSymptom: log.symptom_description || null,
           reporter: null, reportedAt: null, photos: [], description: null,
@@ -131,21 +138,31 @@ export function AssessmentCompleteDialog({ open, onOpenChange, log, onCompleted 
           ageMonths: null, mediaPlayerProfileId: null,
         };
 
+
         if (log.media_player_id) {
           const { data: mp } = await supabase
             .from("media_players")
-            .select("id, code, name, brand, specification, billboard_id, manufacturer, warranty_expiry_date, unit_price, depreciation_months, date_of_receipt, supplier:supplier_id(name, phone, contact_person), billboard:billboards(equipment_id, old_code, location_name)")
+            .select("id, code, name, brand, specification, billboard_id, manufacturer, warranty_expiry_date, unit_price, depreciation_months, date_of_receipt, model_id, remote_name, supplier:supplier_id(name, phone, contact_person), billboard:billboards(equipment_id, old_code, location_name)")
             .eq("id", log.media_player_id)
             .maybeSingle() as any;
           if (mp) {
             ctx.itemCode = mp.code; ctx.itemName = mp.name;
             ctx.brand = mp.brand || mp.manufacturer || null;
             ctx.modelSpec = mp.specification || null;
+            ctx.remoteName = mp.remote_name || null;
             ctx.unitPrice = mp.unit_price ?? null;
             ctx.depreciationMonths = mp.depreciation_months ?? null;
             ctx.dateOfReceipt = mp.date_of_receipt || null;
             ctx.mediaPlayerProfileId = mp.id;
             if (mp.date_of_receipt) ctx.ageMonths = differenceInMonths(new Date(), parseISO(mp.date_of_receipt));
+            if (mp.model_id) {
+              const { data: mm } = await supabase
+                .from("media_player_models")
+                .select("name")
+                .eq("id", mp.model_id)
+                .maybeSingle() as any;
+              ctx.modelName = mm?.name || null;
+            }
             if (mp.billboard) {
               const parts = [mp.billboard.old_code, mp.billboard.equipment_id, mp.billboard.location_name].filter(Boolean);
               ctx.billboardLabel = parts.join(" - ");
@@ -159,6 +176,7 @@ export function AssessmentCompleteDialog({ open, onOpenChange, log, onCompleted 
               contact: mp.supplier?.contact_person || null,
             });
           }
+
         } else if (log.equipment_id) {
           const { data: eq } = await supabase
             .from("equipment")
@@ -315,11 +333,17 @@ export function AssessmentCompleteDialog({ open, onOpenChange, log, onCompleted 
   const isRepeatFailure = (history?.recentRepairCount6m || 0) >= 2;
 
   const needsDefectiveAck = outcome === "defective" && isUnderWarranty;
+  // Outcome gating by warranty
+  const defectiveDisabled = warrantyState === "active" || warrantyState === "ending"; // ต้องหมดประกันก่อน
+  const claimDisabled = !isUnderWarranty; // ต้องอยู่ในประกัน
 
   const canSubmit =
     !!assessmentResultId &&
     !!outcome &&
+    (outcome !== "defective" || warrantyState === "expired" || warrantyState === "unknown") &&
+    (outcome !== "claim" || isUnderWarranty) &&
     (outcome !== "self_repair" || !!repairDescription.trim()) &&
+
     (outcome !== "claim" || !!supplierAutofill?.name || !!externalRepairVendor.trim()) &&
     (!needsDefectiveAck || (defectiveAck && !!defectiveAckReason.trim()));
 
@@ -440,7 +464,13 @@ export function AssessmentCompleteDialog({ open, onOpenChange, log, onCompleted 
         });
         await flipStatus("in_claim", "in_claim", false, 0);
       } else if (outcome === "self_repair") {
-        await flipStatus("under_repair", "under_repair", false, 0);
+        if (repairSuccess) {
+          // ซ่อมสำเร็จ → คืนกลับ Spare (active + refurbished)
+          await flipStatus("active", "in_stock", true, 1);
+        } else {
+          await flipStatus("under_repair", "under_repair", false, 0);
+        }
+
       } else if (outcome === "return_refurb") {
         // คืนเข้าคลังพร้อมใช้ (active) — นับเป็น stock 1
         await flipStatus("active", "in_stock", true, 1);
@@ -516,14 +546,21 @@ export function AssessmentCompleteDialog({ open, onOpenChange, log, onCompleted 
               </div>
               <div className="grid md:grid-cols-2 gap-x-4 gap-y-1 text-xs">
                 {sourceCtx.billboardLabel && (
-                  <div><span className="text-muted-foreground">ป้ายต้นทาง: </span><span className="font-medium">{sourceCtx.billboardLabel}</span></div>
+                  <div className="md:col-span-2"><span className="text-muted-foreground">Location ป้าย: </span><span className="font-medium">{sourceCtx.billboardLabel}</span></div>
                 )}
                 {log.serial_number && (
                   <div><span className="text-muted-foreground">S/N: </span><span className="font-mono">{log.serial_number}</span></div>
                 )}
+                {sourceCtx.modelName && (
+                  <div><span className="text-muted-foreground">Model: </span><span className="font-medium">{sourceCtx.modelName}</span></div>
+                )}
+                {sourceCtx.remoteName && (
+                  <div><span className="text-muted-foreground">Remote Name: </span><span className="font-medium">{sourceCtx.remoteName}</span></div>
+                )}
                 {sourceCtx.reporter && (
                   <div><span className="text-muted-foreground">ผู้แจ้ง: </span><span>{sourceCtx.reporter}</span></div>
                 )}
+
                 {(sourceCtx.description || sourceCtx.reportedSymptom) && (
                   <div className="md:col-span-2 rounded-md border border-amber-300 bg-amber-50 dark:bg-amber-900/10 dark:border-amber-800/40 p-2">
                     <div className="text-xs font-medium text-amber-700 dark:text-amber-400 mb-0.5">อาการที่แจ้งตอนคีย์เข้า (ผู้ประเมินเพิ่มเติมได้ในฟอร์มด้านล่าง)</div>
@@ -693,7 +730,7 @@ export function AssessmentCompleteDialog({ open, onOpenChange, log, onCompleted 
           {/* Outcome 4 paths */}
           <div className="rounded-lg border-2 border-primary/30 bg-primary/5 p-4 space-y-3">
             <div className="flex items-center justify-between flex-wrap gap-2">
-              <Label className="text-base font-semibold">ผลการตัดสินใจ <span className="text-destructive">*</span> (เลือก 1 ใน 4)</Label>
+              <Label className="text-base font-semibold">ผลการตัดสินใจ <span className="text-destructive">*</span> (เลือก 1 ใน 3)</Label>
               {supplierAutofill && (
                 <span className="text-xs text-muted-foreground">
                   ผู้จัดจำหน่ายล่าสุด: <span className="font-medium text-foreground">{supplierAutofill.name || "—"}</span>
@@ -701,38 +738,84 @@ export function AssessmentCompleteDialog({ open, onOpenChange, log, onCompleted 
                 </span>
               )}
             </div>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-              {OUTCOME_OPTIONS.map((opt) => (
-                <button
-                  key={opt.v}
-                  type="button"
-                  onClick={() => setOutcome(opt.v)}
-                  className={`text-left rounded-md border p-3 transition-colors ${
-                    outcome === opt.v
-                      ? "border-primary bg-primary/10 ring-2 ring-primary/40"
-                      : "border-input bg-background hover:bg-accent/50"
-                  }`}
-                >
-                  <div className="font-medium text-sm">{opt.label}</div>
-                  <div className="text-xs text-muted-foreground mt-0.5">{opt.desc}</div>
-                </button>
-              ))}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+              {OUTCOME_OPTIONS.map((opt) => {
+                const disabled =
+                  (opt.v === "defective" && defectiveDisabled) ||
+                  (opt.v === "claim" && claimDisabled);
+                const tooltip =
+                  opt.v === "defective" && defectiveDisabled
+                    ? `ต้องหมดประกันก่อน — ปัจจุบันหมด ${warrantyDate || "—"} (เหลือ ${warrantyDaysLeft} วัน)`
+                    : opt.v === "claim" && claimDisabled
+                    ? warrantyState === "expired"
+                      ? `หมดประกันแล้ว ${warrantyDate || ""} — ส่งเคลมไม่ได้`
+                      : `ไม่พบข้อมูลประกัน — ส่งเคลมไม่ได้`
+                    : undefined;
+                return (
+                  <button
+                    key={opt.v}
+                    type="button"
+                    title={tooltip}
+                    disabled={disabled}
+                    onClick={() => setOutcome(opt.v)}
+                    className={`text-left rounded-md border p-3 transition-colors ${
+                      outcome === opt.v
+                        ? "border-primary bg-primary/10 ring-2 ring-primary/40"
+                        : "border-input bg-background hover:bg-accent/50"
+                    } ${disabled ? "opacity-50 cursor-not-allowed hover:bg-background" : ""}`}
+                  >
+                    <div className="font-medium text-sm">{opt.label}</div>
+                    <div className="text-xs text-muted-foreground mt-0.5">{opt.desc}</div>
+                    {opt.v === "defective" && warrantyDate && (
+                      <div className="text-[10px] mt-1 text-muted-foreground">หมดประกัน: {warrantyDate}</div>
+                    )}
+                    {opt.v === "claim" && warrantyDate && (
+                      <div className="text-[10px] mt-1 text-muted-foreground">หมดประกัน: {warrantyDate}</div>
+                    )}
+                  </button>
+                );
+              })}
             </div>
 
             {outcome === "self_repair" && (
-              <div className="space-y-2 pt-2 border-t">
-                <Label>รายละเอียดการซ่อม <span className="text-destructive">*</span></Label>
-                <Textarea
-                  value={repairDescription}
-                  onChange={(e) => setRepairDescription(e.target.value)}
-                  placeholder="ระบุว่าซ่อมอะไรไป เปลี่ยนอะไหล่อะไร..."
-                  rows={2}
-                />
+              <div className="space-y-3 pt-2 border-t">
+                <div className="rounded-md border bg-muted/40 p-2 text-xs space-y-1">
+                  <div className="font-medium">ข้อมูลจากการประเมิน</div>
+                  <div><span className="text-muted-foreground">อาการเสีย (Symptom): </span><span>{symptomDescription || (symptomId ? "เลือกแล้ว" : "—")}</span></div>
+                  <div><span className="text-muted-foreground">ผลการประเมิน (Assessment): </span><span>{assessmentResultId ? "เลือกแล้ว" : "—"}</span></div>
+                </div>
+                <div className="space-y-2">
+                  <Label>รายละเอียดการซ่อม <span className="text-destructive">*</span></Label>
+                  <Textarea
+                    value={repairDescription}
+                    onChange={(e) => setRepairDescription(e.target.value)}
+                    placeholder="ระบุว่าซ่อมอะไรไป เปลี่ยนอะไหล่อะไร..."
+                    rows={2}
+                  />
+                </div>
+                <label className="flex items-start gap-2 text-sm cursor-pointer rounded-md border border-success/40 bg-success/10 p-2">
+                  <input type="checkbox" className="mt-1" checked={repairSuccess} onChange={(e) => setRepairSuccess(e.target.checked)} />
+                  <span>
+                    <span className="font-medium">ซ่อมสำเร็จ → คืน Spare เข้าคลัง</span>
+                    <span className="block text-xs text-muted-foreground">เครื่องจะถูกตั้งสถานะ refurbished + พร้อมเบิกใช้ในคลัง</span>
+                  </span>
+                </label>
               </div>
             )}
 
             {outcome === "claim" && (
               <div className="space-y-2 pt-2 border-t">
+                <Alert>
+                  <ShieldCheck className="h-4 w-4" />
+                  <AlertTitle>ส่งเคลม Supplier</AlertTitle>
+                  <AlertDescription className="text-xs space-y-1">
+                    <div>หมดประกัน: <span className="font-medium">{warrantyDate || "—"}</span> (เหลือ {warrantyDaysLeft} วัน)</div>
+                    <div>
+                      ระบบจะสร้างใบเคลม (CLM-...) ตั้งสถานะเครื่อง <strong>in_claim</strong> ติดตามได้ที่เมนู <strong>"ติดตามการเคลม"</strong>
+                      จนกว่า Supplier จะส่งเครื่องกลับ
+                    </div>
+                  </AlertDescription>
+                </Alert>
                 <p className="text-xs text-muted-foreground">
                   {supplierAutofill?.name
                     ? `จะส่งเคลมที่ ${supplierAutofill.name} (จากประวัติการซื้อ S/N นี้)`
@@ -750,36 +833,17 @@ export function AssessmentCompleteDialog({ open, onOpenChange, log, onCompleted 
 
             {outcome === "defective" && (
               <div className="pt-2 border-t space-y-2">
-                <p className="text-xs text-destructive">
-                  ⚠ หลังบันทึก ระบบจะแจ้งให้ไปคีย์ที่เมนู <strong>"นำของเสียเข้าระบบ"</strong> เพื่อตัด Stock เข้าคลังของเสีย
-                </p>
-                {needsDefectiveAck && (
-                  <Alert variant="destructive">
-                    <AlertTriangle className="h-4 w-4" />
-                    <AlertTitle>เครื่องนี้ยังอยู่ในประกัน!</AlertTitle>
-                    <AlertDescription className="space-y-2">
-                      <p>เหลือประกัน {warrantyDaysLeft} วัน — ปกติควรส่งเคลมก่อน หากยืนยันเข้าของเสียโปรดระบุเหตุผล</p>
-                      <Textarea
-                        value={defectiveAckReason}
-                        onChange={(e) => setDefectiveAckReason(e.target.value)}
-                        placeholder="เหตุผลที่ไม่ส่งเคลมแม้ยังในประกัน *"
-                        rows={2}
-                      />
-                      <label className="flex items-center gap-2 text-sm cursor-pointer">
-                        <input type="checkbox" checked={defectiveAck} onChange={(e) => setDefectiveAck(e.target.checked)} />
-                        ยืนยันสละสิทธิ์เคลม รับทราบและรับผิดชอบการตัดสินใจนี้
-                      </label>
-                    </AlertDescription>
-                  </Alert>
-                )}
+                <Alert variant="destructive">
+                  <ShieldAlert className="h-4 w-4" />
+                  <AlertTitle>เข้าของเสีย</AlertTitle>
+                  <AlertDescription className="text-xs">
+                    หมดประกัน: <span className="font-medium">{warrantyDate || "—"}</span> ({warrantyDaysLeft !== null ? `${Math.abs(warrantyDaysLeft)} วันก่อน` : "ไม่ระบุ"})
+                    <div>หลังบันทึก ระบบจะแจ้งให้ไปคีย์ที่เมนู <strong>"นำของเสียเข้าระบบ"</strong> เพื่อตัด Stock เข้าคลังของเสีย</div>
+                  </AlertDescription>
+                </Alert>
               </div>
             )}
 
-            {outcome === "return_refurb" && (
-              <p className="text-xs text-success pt-2 border-t">
-                ✓ S/N นี้จะถูกตั้งสถานะ <strong>refurbished</strong> และคืนเข้า Spare ปกติ
-              </p>
-            )}
           </div>
 
           <div className="grid md:grid-cols-2 gap-4">

@@ -479,24 +479,33 @@ export function SwapWizardDialog({ open, onOpenChange, request, onCompleted }: P
       oldMpId = selectedOld.media_player_id || (selectedOld.type === "media_player" ? selectedOld.value.split(":")[1] : null);
     }
 
+    // On Reject we don't touch real assets — null out FK ids to avoid stale-FK errors
+    // (reported_*_id can point to records that no longer exist in media_players/equipment)
+    const isApproved = result === "approved";
+    const execSpareMpId = isApproved ? spareMpId : null;
+    const execSpareEqId = isApproved ? spareEqId : null;
+    const execOldBeId = isApproved ? oldBeId : null;
+    const execOldEqId = isApproved ? oldEqId : null;
+    const execOldMpId = isApproved ? oldMpId : null;
+
     // Insert execution
     const { error: execError } = await supabase.from("swap_executions").insert({
       swap_request_id: request.id,
       spare_type: selectedSpare?.type || "equipment",
-      spare_media_player_id: spareMpId,
-      spare_equipment_id: spareEqId,
-      spare_serial_number: selectedSpare?.serial_number || null,
-      spare_source_location_id: selectedSpare?.location_id || null,
-      old_billboard_equipment_id: oldBeId,
-      old_equipment_id: oldEqId,
-      old_media_player_id: oldMpId,
-      old_serial_number: selectedOld?.serial_number || null,
-      return_location_id: returnLocationId || null,
+      spare_media_player_id: execSpareMpId,
+      spare_equipment_id: execSpareEqId,
+      spare_serial_number: isApproved ? (selectedSpare?.serial_number || null) : null,
+      spare_source_location_id: isApproved ? (selectedSpare?.location_id || null) : null,
+      old_billboard_equipment_id: execOldBeId,
+      old_equipment_id: execOldEqId,
+      old_media_player_id: execOldMpId,
+      old_serial_number: isApproved ? (selectedOld?.serial_number || null) : null,
+      return_location_id: isApproved ? (returnLocationId || null) : null,
       result,
-      reject_reason_id: result === "rejected" ? rejectReasonId || null : null,
-      reject_reason_other: result === "rejected" ? rejectReasonOther.trim() || null : null,
+      reject_reason_id: !isApproved ? rejectReasonId || null : null,
+      reject_reason_other: !isApproved ? rejectReasonOther.trim() || null : null,
       notes: [
-        isCrossModel && result === "approved" ? `[CROSS-MODEL SWAP] Spare: ${selectedSpare?.item_code || "—"} ↔ Old: ${request?.reported_item_code || selectedOld?.label || "—"}` : null,
+        isCrossModel && isApproved ? `[CROSS-MODEL SWAP] Spare: ${selectedSpare?.item_code || "—"} ↔ Old: ${request?.reported_item_code || selectedOld?.label || "—"}` : null,
         notes.trim() || null,
       ].filter(Boolean).join("\n") || null,
       executed_by: user?.id ?? null,
@@ -509,19 +518,20 @@ export function SwapWizardDialog({ open, onOpenChange, request, onCompleted }: P
     }
 
     // Update request with old/new fields + status + completion
-    const newStatus = result === "approved" ? "completed" : "rejected";
+    const newStatus = isApproved ? "completed" : "rejected";
     await supabase.from("swap_requests").update({
       status: newStatus,
       asset_type: selectedSpare?.type || "equipment",
-      old_equipment_id: oldEqId,
-      old_media_player_id: oldMpId,
-      old_serial_number: selectedOld?.serial_number || null,
-      new_equipment_id: spareEqId,
-      new_media_player_id: spareMpId,
-      new_serial_number: selectedSpare?.serial_number || null,
+      old_equipment_id: execOldEqId,
+      old_media_player_id: execOldMpId,
+      old_serial_number: isApproved ? (selectedOld?.serial_number || null) : null,
+      new_equipment_id: execSpareEqId,
+      new_media_player_id: execSpareMpId,
+      new_serial_number: isApproved ? (selectedSpare?.serial_number || null) : null,
       completed_at: new Date().toISOString(),
       completed_by: user?.id ?? null,
     }).eq("id", request.id);
+
 
     // NOTE: ไม่สร้าง defective_return อัตโนมัติแล้ว — เครื่องเก่าจะเข้าสถานะ "รอประเมิน"
     // ผ่าน assessment_logs (สร้างด้านล่าง) ผลประเมินถึงจะตัดสินว่าเข้าของเสีย/เคลม/ซ่อม/คืน Spare
