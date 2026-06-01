@@ -45,6 +45,7 @@ interface SpareOption {
   value: string;
   label: string;
   description?: string;
+  searchableText?: string;
   type: "media_player" | "equipment";
   serial_number?: string | null;
   location_id?: string | null;
