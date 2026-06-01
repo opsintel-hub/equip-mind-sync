@@ -436,23 +436,23 @@ export default function DisposalApproval() {
             </TabsList>
             <TabsContent value={tab} className="mt-4">
               <div className="overflow-x-auto">
-                <Table>
+                <Table className="min-w-[1800px]">
                   <TableHeader>
                     <TableRow>
-                      <TableHead>เลขที่</TableHead>
-                      <TableHead className="min-w-[200px]">รายการ</TableHead>
-                      <TableHead className="min-w-[140px]">S/N</TableHead>
-                      <TableHead>ยี่ห้อ</TableHead>
-                      <TableHead>ฝ่าย</TableHead>
-                      <TableHead className="text-right">จำนวน</TableHead>
-                      <TableHead>ประกัน</TableHead>
-                      <TableHead className="min-w-[180px]">ที่มา / ป้าย</TableHead>
-                      <TableHead className="min-w-[200px]">เหตุผล</TableHead>
+                      <TableHead className="min-w-[140px]">เลขที่</TableHead>
+                      <TableHead className="min-w-[220px]">รายการ</TableHead>
+                      <TableHead className="min-w-[150px]">S/N</TableHead>
+                      <TableHead className="min-w-[120px]">ยี่ห้อ</TableHead>
+                      <TableHead className="min-w-[120px]">ฝ่าย</TableHead>
+                      <TableHead className="min-w-[80px] text-right">จำนวน</TableHead>
+                      <TableHead className="min-w-[160px]">ประกัน</TableHead>
+                      <TableHead className="min-w-[220px]">ที่มา / ป้าย</TableHead>
+                      <TableHead className="min-w-[240px]">เหตุผล</TableHead>
                       <TableHead className="min-w-[140px]">ผู้แจ้ง</TableHead>
-                      <TableHead>วิธีจัดการ</TableHead>
-                      <TableHead>สถานะ</TableHead>
-                      <TableHead>วันที่</TableHead>
-                      <TableHead className="text-right">การจัดการ</TableHead>
+                      <TableHead className="min-w-[140px]">วิธีจัดการ</TableHead>
+                      <TableHead className="min-w-[130px]">สถานะ</TableHead>
+                      <TableHead className="min-w-[110px]">วันที่</TableHead>
+                      <TableHead className="min-w-[110px] text-right">การจัดการ</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
