@@ -860,15 +860,32 @@ export default function DocumentSearch() {
         const sns = [item.reported_serial_number, item.old_serial_number, item.new_serial_number]
           .map((s: any) => (s || "").trim()).filter(Boolean);
         const bb = item.billboards;
+        const isMp = item.asset_type === "media_player";
+        const oldProd = isMp
+          ? (item.old_media_player_id ? swapMpMap.get(item.old_media_player_id) : null)
+          : (item.old_equipment_id ? swapEqMap.get(item.old_equipment_id) : null);
+        const newProd = isMp
+          ? (item.new_media_player_id ? swapMpMap.get(item.new_media_player_id) : null)
+          : (item.new_equipment_id ? swapEqMap.get(item.new_equipment_id) : null);
         return {
           id: item.id, document_no: item.document_no, document_url: null,
-          equipment_code: item.reported_item_code || null,
-          equipment_name: item.reported_item_name || item.description || null,
+          equipment_code: item.reported_item_code || oldProd?.code || null,
+          equipment_name: item.reported_item_name || oldProd?.name || item.description || null,
           serial_number: sns.length > 0 ? Array.from(new Set(sns)).join("\n") : null,
           supplier_name: bb ? `ป้าย ${bb.equipment_id || bb.old_code || ""} ${bb.location_name || ""}`.trim() : null,
           delivery_person_name: item.technician_name,
           quantity: 0, unit: "-", created_at: item.created_at, status: item.status,
-          source: "swap" as const, raw: item,
+          source: "swap" as const,
+          raw: {
+            ...item,
+            _swap_old_code: oldProd?.code || item.reported_item_code || null,
+            _swap_old_name: oldProd?.name || item.reported_item_name || null,
+            _swap_old_sn: item.old_serial_number || item.reported_serial_number || null,
+            _swap_new_code: newProd?.code || null,
+            _swap_new_name: newProd?.name || null,
+            _swap_new_sn: item.new_serial_number || null,
+            _swap_billboard_label: bb ? `${bb.old_code || bb.equipment_id || ""}${bb.location_name ? " - " + bb.location_name : ""}` : null,
+          },
         };
       });
 
