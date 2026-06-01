@@ -41,6 +41,12 @@ interface SwapRequest {
   reported_serial_number?: string | null;
   reported_photos?: string[] | null;
   received_by_name?: string | null;
+  reported_media_player_id?: string | null;
+  reported_equipment_id?: string | null;
+  // enriched (display-only)
+  _billboard_label?: string;
+  _model_name?: string;
+  _remote_name?: string;
 }
 
 interface InstalledItemOption {
@@ -54,6 +60,8 @@ interface InstalledItemOption {
   serial_number?: string | null;
   item_code?: string;
   item_name?: string;
+  remote_name?: string;
+  model_name?: string;
   billboard_equipment_id?: string;
 }
 
