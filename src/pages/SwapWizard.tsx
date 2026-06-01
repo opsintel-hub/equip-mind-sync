@@ -108,6 +108,7 @@ export default function SwapWizard() {
   const [reportedSelectKey, setReportedSelectKey] = useState("");
   const [reportedAssetType, setReportedAssetType] = useState<"equipment" | "media_player">("equipment");
   const [reportedItemName, setReportedItemName] = useState("");
+  const [reportedModelName, setReportedModelName] = useState("");
   const [reportedItemCode, setReportedItemCode] = useState("");
   const [reportedSerial, setReportedSerial] = useState("");
   const [reportedPhotos, setReportedPhotos] = useState<string[]>([]);
