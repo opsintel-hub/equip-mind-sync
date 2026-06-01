@@ -347,15 +347,25 @@ export function AssessmentCompleteDialog({ open, onOpenChange, log, onCompleted 
   const isRepeatFailure = (history?.recentRepairCount6m || 0) >= 2;
 
   const needsDefectiveAck = outcome === "defective" && isUnderWarranty;
-  // Outcome gating by warranty
-  const defectiveDisabled = warrantyState === "active" || warrantyState === "ending"; // ต้องหมดประกันก่อน
-  const claimDisabled = !isUnderWarranty; // ต้องอยู่ในประกัน
+  // Result-name gating per spec:
+  //   "เข้าของเสีย" → ผลต้อง = "Write-off (ใช้งานต่อไม่ได้)"
+  //   "ส่งเคลม"    → ผลต้อง = "ส่งซ่อมภายนอก"
+  const isWriteOffResult = assessmentResultName.includes("Write-off");
+  const isExternalRepairResult = assessmentResultName.includes("ส่งซ่อมภายนอก");
+  // Warranty gating: ถ้าไม่มีวันหมดประกัน (unknown) → ปล่อยให้กดได้
+  // defective: ต้องหมดประกัน หรือไม่ทราบ
+  const warrantyAllowsDefective = warrantyState === "expired" || warrantyState === "unknown";
+  // claim: ต้องอยู่ในประกัน หรือไม่ทราบ
+  const warrantyAllowsClaim = isUnderWarranty || warrantyState === "unknown";
+
+  const defectiveDisabled = !isWriteOffResult || !warrantyAllowsDefective;
+  const claimDisabled = !isExternalRepairResult || !warrantyAllowsClaim;
 
   const canSubmit =
     !!assessmentResultId &&
     !!outcome &&
-    (outcome !== "defective" || warrantyState === "expired" || warrantyState === "unknown") &&
-    (outcome !== "claim" || isUnderWarranty) &&
+    (outcome !== "defective" || (isWriteOffResult && warrantyAllowsDefective)) &&
+    (outcome !== "claim" || (isExternalRepairResult && warrantyAllowsClaim)) &&
     (outcome !== "self_repair" || !!repairDescription.trim()) &&
 
     (outcome !== "claim" || !!supplierAutofill?.name || !!externalRepairVendor.trim()) &&
