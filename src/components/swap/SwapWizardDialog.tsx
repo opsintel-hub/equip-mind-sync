@@ -312,18 +312,37 @@ export function SwapWizardDialog({ open, onOpenChange, request, onCompleted }: P
       }
     }
 
-    // หา remote_name ของเครื่องที่รายงาน (ถ้าเป็น media player)
+    // หา remote_name + รายละเอียดของเครื่องที่รายงาน (ถ้าเป็น media player)
     let reportedRemoteName: string | null = null;
+    let reportedBrand: string | null = null;
+    let reportedSpec: string | null = null;
+    let reportedModelName: string | null = null;
     if (request?.reported_asset_type === "media_player" && request.reported_media_player_id) {
       const found = (mpsOnBb || []).find((m: any) => m.id === request.reported_media_player_id);
-      if (found?.remote_name) reportedRemoteName = found.remote_name;
-      else {
+      if (found) {
+        reportedRemoteName = found.remote_name || null;
+        reportedBrand = found.brand || null;
+        reportedSpec = found.specification || null;
+        reportedModelName = found.model_id ? oldModelMap[found.model_id] : null;
+      } else {
         const { data: rmp } = await supabase
           .from("media_players")
           .select("remote_name, model_id, brand, specification")
           .eq("id", request.reported_media_player_id)
           .maybeSingle();
-        if (rmp?.remote_name) reportedRemoteName = rmp.remote_name;
+        if (rmp) {
+          reportedRemoteName = rmp.remote_name || null;
+          reportedBrand = rmp.brand || null;
+          reportedSpec = rmp.specification || null;
+          if (rmp.model_id) {
+            const { data: mm } = await supabase
+              .from("media_player_models")
+              .select("name")
+              .eq("id", rmp.model_id)
+              .maybeSingle();
+            reportedModelName = mm?.name || null;
+          }
+        }
       }
     }
 
