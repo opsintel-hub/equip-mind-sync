@@ -185,7 +185,7 @@ export function AssessmentCompleteDialog({ open, onOpenChange, log, onCompleted 
             }
             setSupplierAutofill({
               name: mp.supplier?.name || "",
-              manufacturer: mp.manufacturer || mp.brand || null,
+              manufacturer: mp.brand || null,
               warranty: mp.warranty_expiry_date || null,
               phone: mp.supplier?.phone || null,
               contact: mp.supplier?.contact_person || null,
