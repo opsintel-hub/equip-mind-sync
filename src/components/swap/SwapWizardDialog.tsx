@@ -68,6 +68,7 @@ interface OldOption {
   value: string;
   label: string;
   description?: string;
+  searchableText?: string;
   type: "media_player" | "equipment";
   serial_number?: string | null;
   billboard_equipment_id: string;
