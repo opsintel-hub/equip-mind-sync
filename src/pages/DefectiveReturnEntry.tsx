@@ -23,6 +23,7 @@ interface EquipmentItem {
 }
 interface MediaPlayerItem {
   id: string; code: string; name: string; unit: string; brand: string | null;
+  remote_name: string | null;
   serial_number_1: string | null; serial_number_2: string | null; department: string | null; quantity: number;
   location_id: string | null; billboard_id: string | null;
 }
