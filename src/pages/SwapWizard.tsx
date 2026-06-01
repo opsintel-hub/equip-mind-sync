@@ -20,6 +20,7 @@ import { SwapWarehouseReceive } from "@/components/swap/SwapWarehouseReceive";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { EquipmentImageUpload } from "@/components/equipment/EquipmentImageUpload";
 import { useFunctionPermissions } from "@/hooks/useFunctionPermissions";
+import { formatBillboardLabel } from "@/lib/billboardUtils";
 
 interface SwapRequest {
   id: string;
