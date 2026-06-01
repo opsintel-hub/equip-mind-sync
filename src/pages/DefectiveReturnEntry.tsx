@@ -291,22 +291,37 @@ const DefectiveReturnEntry = () => {
       const bbIds = [...new Set((data || []).filter((d: any) => d.billboard_id).map((d: any) => d.billboard_id))];
 
       const [eqRes, mpRes, bbRes] = await Promise.all([
-        eqIds.length ? supabase.from("equipment").select("id, code, name").in("id", eqIds) : Promise.resolve({ data: [] }),
-        mpIds.length ? supabase.from("media_players").select("id, code, name").in("id", mpIds) : Promise.resolve({ data: [] }),
+        eqIds.length ? supabase.from("equipment").select("id, code, name, brand, serial_number, department").in("id", eqIds) : Promise.resolve({ data: [] }),
+        mpIds.length ? supabase.from("media_players").select("id, code, name, remote_name, brand, serial_number_1, serial_number_2, warranty_expiry_date, department, model_id, specification").in("id", mpIds) : Promise.resolve({ data: [] }),
         bbIds.length ? supabase.from("billboards").select("id, equipment_id, old_code, location_name").in("id", bbIds) : Promise.resolve({ data: [] }),
       ]);
+      const modelIds = [...new Set(((mpRes.data || []) as any[]).map((m) => m.model_id).filter(Boolean))];
+      const modelRes = modelIds.length
+        ? await supabase.from("media_player_models").select("id, name").in("id", modelIds)
+        : { data: [] as any[] };
+      const modelMap = new Map(((modelRes.data || []) as any[]).map((m) => [m.id, m.name]));
       const eqMap = new Map((eqRes.data || []).map((e: any) => [e.id, e]));
       const mpMap = new Map((mpRes.data || []).map((m: any) => [m.id, m]));
       const bbMap = new Map((bbRes.data || []).map((b: any) => [b.id, b]));
 
       const enriched = (data || []).map((d: any) => {
-        const item = d.is_media_player ? mpMap.get(d.media_player_id) : eqMap.get(d.equipment_id);
-        const bb = d.billboard_id ? bbMap.get(d.billboard_id) : null;
+        const item: any = d.is_media_player ? mpMap.get(d.media_player_id) : eqMap.get(d.equipment_id);
+        const bb: any = d.billboard_id ? bbMap.get(d.billboard_id) : null;
+        const sns = d.is_media_player
+          ? [item?.serial_number_1, item?.serial_number_2].filter(Boolean)
+          : [item?.serial_number].filter(Boolean);
         return {
           ...d,
-          item_code: (item as any)?.code || "-",
-          item_name: (item as any)?.name || "-",
-          billboard_label: bb ? [(bb as any).old_code, (bb as any).equipment_id, (bb as any).location_name].filter(Boolean).join(" - ") : null,
+          item_code: item?.code || "-",
+          item_name: item?.name || "-",
+          remote_name: item?.remote_name || null,
+          brand: item?.brand || null,
+          model_name: item?.model_id ? modelMap.get(item.model_id) || null : null,
+          specification: item?.specification || null,
+          department: item?.department || null,
+          warranty_expiry_date: item?.warranty_expiry_date || null,
+          serial_numbers: sns,
+          billboard_label: bb ? [bb.old_code, bb.equipment_id, bb.location_name].filter(Boolean).join(" - ") : null,
           source_label: d.source_type === "from_assessment" ? "จากการประเมิน" : d.source_type === "billboard" ? "จากป้าย" : "ป้อนเอง",
         };
       });
