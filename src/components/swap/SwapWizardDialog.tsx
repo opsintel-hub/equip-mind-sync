@@ -882,12 +882,18 @@ export function SwapWizardDialog({ open, onOpenChange, request, onCompleted }: P
               )}
               {selectedOld && (
                 <Card>
-                  <CardContent className="pt-4 space-y-1">
+                  <CardContent className="pt-4 space-y-2">
                     <div className="flex items-center gap-2 flex-wrap">
                       <Badge variant="outline">{selectedOld.type === "media_player" ? "Media Player" : "Equipment"}</Badge>
                       <span className="font-medium">{selectedOld.label}</span>
                     </div>
                     <div className="text-sm text-muted-foreground whitespace-pre-line">{selectedOld.description}</div>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-2 text-xs">
+                      {selectedOld.billboard_label && <div className="bg-muted/40 rounded px-2 py-1 col-span-2 sm:col-span-3"><span className="text-muted-foreground">Location ป้าย:</span> <span className="font-medium">{selectedOld.billboard_label}</span></div>}
+                      {selectedOld.model_name && <div className="bg-muted/40 rounded px-2 py-1"><span className="text-muted-foreground">รุ่น:</span> <span className="font-medium">{selectedOld.model_name}</span></div>}
+                      {selectedOld.remote_name && <div className="bg-muted/40 rounded px-2 py-1"><span className="text-muted-foreground">Remote Name:</span> <span className="font-medium">{selectedOld.remote_name}</span></div>}
+                      {selectedOld.brand && <div className="bg-muted/40 rounded px-2 py-1"><span className="text-muted-foreground">ยี่ห้อ:</span> <span className="font-medium">{selectedOld.brand}</span></div>}
+                    </div>
                   </CardContent>
                 </Card>
               )}
