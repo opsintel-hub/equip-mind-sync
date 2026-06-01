@@ -572,6 +572,24 @@ export default function SwapWizard() {
                                 </span>
                               ) : null}
                             </div>
+                            <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs">
+                              {req._billboard_label && (
+                                <span className="inline-flex items-center gap-1 text-foreground">
+                                  <MapPin className="h-3 w-3 text-primary" />
+                                  <span className="font-medium">ป้าย:</span> {req._billboard_label}
+                                </span>
+                              )}
+                              {req._model_name && (
+                                <span className="text-muted-foreground">
+                                  <span className="font-medium text-foreground">โมเดล:</span> {req._model_name}
+                                </span>
+                              )}
+                              {req._remote_name && (
+                                <span className="text-muted-foreground">
+                                  <span className="font-medium text-foreground">Remote:</span> {req._remote_name}
+                                </span>
+                              )}
+                            </div>
                             <div className="text-sm text-muted-foreground">
                               {req.description || req.symptom_other || "—"}
                             </div>
