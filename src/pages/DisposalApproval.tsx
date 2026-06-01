@@ -24,6 +24,7 @@ interface DefectiveRow {
   is_media_player: boolean;
   quantity: number;
   reason: string | null;
+  notes: string | null;
   item_condition: string | null;
   source_type: string | null;
   status: string;
@@ -33,10 +34,18 @@ interface DefectiveRow {
   disposal_evidence_urls: string[] | null;
   disposal_approved_at: string | null;
   swap_request_id: string | null;
+  assessment_log_id: string | null;
+  billboard_id: string | null;
+  reporter_name: string | null;
+  reporter_department: string | null;
   created_at: string;
   // joined
-  equipment?: { code: string; name: string } | null;
-  media_player?: { code: string; name: string } | null;
+  equipment?: { code: string; name: string; brand: string | null; serial_number: string | null; department: string | null } | null;
+  media_player?: { code: string; name: string; remote_name: string | null; brand: string | null; serial_number_1: string | null; serial_number_2: string | null; department: string | null; warranty_expiry_date: string | null; specification: string | null; unit_price: number | null } | null;
+  // extra enrichment
+  billboard_label?: string | null;
+  swap_info?: { doc_no: string; old_label: string | null; new_label: string | null; old_sn: string | null; new_sn: string | null; description: string | null } | null;
+  assessment_doc_no?: string | null;
 }
 
 const DISPOSAL_METHODS: Record<string, { label: string; icon: any; color: string }> = {
@@ -84,16 +93,58 @@ export default function DisposalApproval() {
     const { data, error } = await supabase
       .from("defective_returns")
       .select(`
-        id, document_no, equipment_id, media_player_id, is_media_player, quantity, reason,
+        id, document_no, equipment_id, media_player_id, is_media_player, quantity, reason, notes,
         item_condition, source_type, status, dispose_status, disposal_method, disposal_notes,
-        disposal_evidence_urls, disposal_approved_at, swap_request_id, created_at,
-        equipment:equipment_id(code, name),
-        media_player:media_player_id(code, name)
+        disposal_evidence_urls, disposal_approved_at, swap_request_id, assessment_log_id,
+        billboard_id, reporter_name, reporter_department, created_at,
+        equipment:equipment_id(code, name, brand, serial_number, department),
+        media_player:media_player_id(code, name, remote_name, brand, serial_number_1, serial_number_2, department, warranty_expiry_date, specification, unit_price)
       `)
       .order("created_at", { ascending: false })
       .limit(500);
-    if (error) toast.error("โหลดข้อมูลไม่สำเร็จ: " + error.message);
-    else setRows((data as any) || []);
+    if (error) { toast.error("โหลดข้อมูลไม่สำเร็จ: " + error.message); setLoading(false); return; }
+
+    const rowsRaw = (data as any[]) || [];
+    const swapIds = [...new Set(rowsRaw.map((r) => r.swap_request_id).filter(Boolean))];
+    const asmIds = [...new Set(rowsRaw.map((r) => r.assessment_log_id).filter(Boolean))];
+    const bbIds = [...new Set(rowsRaw.map((r) => r.billboard_id).filter(Boolean))];
+
+    const [swapRes, asmRes, bbRes] = await Promise.all([
+      swapIds.length ? supabase.from("swap_requests").select("id, document_no, billboard_id, description, old_serial_number, new_serial_number, old_media_player_id, new_media_player_id").in("id", swapIds) : Promise.resolve({ data: [] as any[] }),
+      asmIds.length ? supabase.from("assessment_logs").select("id, document_no").in("id", asmIds) : Promise.resolve({ data: [] as any[] }),
+      bbIds.length ? supabase.from("billboards").select("id, old_code, equipment_id, location_name").in("id", bbIds) : Promise.resolve({ data: [] as any[] }),
+    ]);
+    const swapBbIds = [...new Set(((swapRes.data as any[]) || []).map((s) => s.billboard_id).filter(Boolean))];
+    const swapMpIds = [...new Set(((swapRes.data as any[]) || []).flatMap((s) => [s.old_media_player_id, s.new_media_player_id]).filter(Boolean))];
+    const [extraBbRes, swapMpRes] = await Promise.all([
+      swapBbIds.length ? supabase.from("billboards").select("id, old_code, equipment_id, location_name").in("id", swapBbIds) : Promise.resolve({ data: [] as any[] }),
+      swapMpIds.length ? supabase.from("media_players").select("id, code, remote_name, name").in("id", swapMpIds) : Promise.resolve({ data: [] as any[] }),
+    ]);
+    const bbMap = new Map<string, any>([...((bbRes.data as any[]) || []), ...((extraBbRes.data as any[]) || [])].map((b) => [b.id, b]));
+    const swapMpMap = new Map<string, any>(((swapMpRes.data as any[]) || []).map((m) => [m.id, m]));
+    const swapMap = new Map<string, any>(((swapRes.data as any[]) || []).map((s) => [s.id, s]));
+    const asmMap = new Map<string, any>(((asmRes.data as any[]) || []).map((a) => [a.id, a]));
+    const labelOf = (mp: any) => mp ? `${mp.code}${mp.remote_name ? ` (${mp.remote_name})` : mp.name ? ` - ${mp.name}` : ""}` : null;
+
+    const enriched: DefectiveRow[] = rowsRaw.map((r) => {
+      const swap = r.swap_request_id ? swapMap.get(r.swap_request_id) : null;
+      const bbId = r.billboard_id || swap?.billboard_id || null;
+      const bb = bbId ? bbMap.get(bbId) : null;
+      return {
+        ...r,
+        billboard_label: bb ? [bb.old_code, bb.equipment_id, bb.location_name].filter(Boolean).join(" - ") : null,
+        assessment_doc_no: r.assessment_log_id ? asmMap.get(r.assessment_log_id)?.document_no || null : null,
+        swap_info: swap ? {
+          doc_no: swap.document_no,
+          description: swap.description,
+          old_sn: swap.old_serial_number,
+          new_sn: swap.new_serial_number,
+          old_label: labelOf(swap.old_media_player_id ? swapMpMap.get(swap.old_media_player_id) : null),
+          new_label: labelOf(swap.new_media_player_id ? swapMpMap.get(swap.new_media_player_id) : null),
+        } : null,
+      };
+    });
+    setRows(enriched);
     setLoading(false);
   };
 
@@ -389,10 +440,15 @@ export default function DisposalApproval() {
                   <TableHeader>
                     <TableRow>
                       <TableHead>เลขที่</TableHead>
-                      <TableHead>รายการ</TableHead>
+                      <TableHead className="min-w-[200px]">รายการ</TableHead>
+                      <TableHead className="min-w-[140px]">S/N</TableHead>
+                      <TableHead>ยี่ห้อ</TableHead>
+                      <TableHead>ฝ่าย</TableHead>
                       <TableHead className="text-right">จำนวน</TableHead>
-                      <TableHead>เหตุผล</TableHead>
-                      <TableHead>ที่มา</TableHead>
+                      <TableHead>ประกัน</TableHead>
+                      <TableHead className="min-w-[180px]">ที่มา / ป้าย</TableHead>
+                      <TableHead className="min-w-[200px]">เหตุผล</TableHead>
+                      <TableHead className="min-w-[140px]">ผู้แจ้ง</TableHead>
                       <TableHead>วิธีจัดการ</TableHead>
                       <TableHead>สถานะ</TableHead>
                       <TableHead>วันที่</TableHead>
@@ -401,37 +457,68 @@ export default function DisposalApproval() {
                   </TableHeader>
                   <TableBody>
                     {loading ? (
-                      <TableRow><TableCell colSpan={9} className="text-center py-12 text-muted-foreground">กำลังโหลด...</TableCell></TableRow>
+                      <TableRow><TableCell colSpan={14} className="text-center py-12 text-muted-foreground">กำลังโหลด...</TableCell></TableRow>
                     ) : filtered.length === 0 ? (
-                      <TableRow><TableCell colSpan={9} className="text-center py-12 text-muted-foreground">ไม่มีรายการ</TableCell></TableRow>
+                      <TableRow><TableCell colSpan={14} className="text-center py-12 text-muted-foreground">ไม่มีรายการ</TableCell></TableRow>
                     ) : filtered.map((row) => {
-                      const item = row.is_media_player ? row.media_player : row.equipment;
+                      const mp = row.media_player;
+                      const eq = row.equipment;
+                      const code = row.is_media_player ? mp?.code : eq?.code;
+                      const primaryName = row.is_media_player ? (mp?.remote_name || mp?.name) : eq?.name;
+                      const brand = row.is_media_player ? mp?.brand : eq?.brand;
+                      const department = row.is_media_player ? mp?.department : eq?.department;
+                      const sns = row.is_media_player
+                        ? [mp?.serial_number_1, mp?.serial_number_2].filter(Boolean)
+                        : [eq?.serial_number].filter(Boolean);
+                      const warrantyTxt = mp?.warranty_expiry_date ? format(new Date(mp.warranty_expiry_date), "dd MMM yy", { locale: th }) : null;
+                      const inWarranty = mp?.warranty_expiry_date ? new Date(mp.warranty_expiry_date) >= new Date() : null;
                       const status = STATUS_LABEL[row.dispose_status] || { label: row.dispose_status, variant: "outline" as const };
                       const dm = row.disposal_method ? DISPOSAL_METHODS[row.disposal_method] : null;
                       return (
                         <TableRow key={row.id}>
-                          <TableCell className="font-mono text-xs">{row.document_no}</TableCell>
-                          <TableCell>
-                            <div className="font-medium">{item?.code || "—"}</div>
-                            <div className="text-xs text-muted-foreground">{item?.name || ""}</div>
+                          <TableCell className="font-mono text-xs align-top">{row.document_no}</TableCell>
+                          <TableCell className="align-top">
+                            <div className="font-mono font-medium">{code || "—"}</div>
+                            <div className="text-xs text-foreground">{primaryName || ""}</div>
+                            {row.is_media_player && mp?.specification && <div className="text-[10px] text-muted-foreground line-clamp-1">{mp.specification}</div>}
                           </TableCell>
-                          <TableCell className="text-right font-mono">{row.quantity}</TableCell>
-                          <TableCell className="max-w-[260px] text-xs whitespace-pre-line">{row.reason || "—"}</TableCell>
-                          <TableCell>
-                            <Badge variant="outline" className="text-xs">
-                              {row.source_type === "billboard" ? "ถอดจากป้าย" : row.swap_request_id ? "จาก Swap" : "คลัง/ภาคสนาม"}
+                          <TableCell className="align-top text-xs font-mono whitespace-pre-line">{sns.length ? sns.join("\n") : "—"}</TableCell>
+                          <TableCell className="align-top text-xs">{brand || "—"}</TableCell>
+                          <TableCell className="align-top text-xs">{department || "—"}</TableCell>
+                          <TableCell className="text-right font-mono align-top">{row.quantity}</TableCell>
+                          <TableCell className="align-top text-xs">
+                            {warrantyTxt ? (
+                              <div className="flex flex-col gap-0.5">
+                                <Badge variant={inWarranty ? "default" : "destructive"} className="text-[10px] py-0 px-1.5 h-4 w-fit">
+                                  {inWarranty ? "ในประกัน" : "หมดประกัน"}
+                                </Badge>
+                                <span className="text-muted-foreground">{warrantyTxt}</span>
+                              </div>
+                            ) : <span className="text-muted-foreground">—</span>}
+                          </TableCell>
+                          <TableCell className="align-top">
+                            <Badge variant="outline" className="text-xs mb-1">
+                              {row.swap_info ? "จาก Swap" : row.assessment_doc_no ? "จากการประเมิน" : row.source_type === "billboard" ? "ถอดจากป้าย" : "คลัง/ภาคสนาม"}
                             </Badge>
+                            {row.billboard_label && <div className="text-[11px] text-muted-foreground">📍 {row.billboard_label}</div>}
+                            {row.swap_info && <div className="text-[11px] text-blue-600 dark:text-blue-400 font-mono">{row.swap_info.doc_no}</div>}
+                            {row.assessment_doc_no && <div className="text-[11px] text-amber-600 dark:text-amber-400 font-mono">{row.assessment_doc_no}</div>}
                           </TableCell>
-                          <TableCell>
+                          <TableCell className="max-w-[260px] text-xs whitespace-pre-line align-top">{row.reason || "—"}</TableCell>
+                          <TableCell className="align-top text-xs">
+                            <div className="font-medium text-foreground">{row.reporter_name || "—"}</div>
+                            {row.reporter_department && <div className="text-muted-foreground">{row.reporter_department}</div>}
+                          </TableCell>
+                          <TableCell className="align-top">
                             {dm ? (
                               <span className={`inline-flex items-center gap-1 text-xs px-2 py-1 rounded-md border ${dm.color}`}>
                                 <dm.icon className="w-3 h-3" /> {dm.label}
                               </span>
                             ) : <span className="text-xs text-muted-foreground">—</span>}
                           </TableCell>
-                          <TableCell><Badge variant={status.variant}>{status.label}</Badge></TableCell>
-                          <TableCell className="text-xs">{format(new Date(row.created_at), "dd MMM yy HH:mm", { locale: th })}</TableCell>
-                          <TableCell className="text-right">
+                          <TableCell className="align-top"><Badge variant={status.variant}>{status.label}</Badge></TableCell>
+                          <TableCell className="text-xs align-top">{format(new Date(row.created_at), "dd MMM yy HH:mm", { locale: th })}</TableCell>
+                          <TableCell className="text-right align-top">
                             <div className="flex gap-1 justify-end">
                               <Button size="sm" variant="ghost" onClick={() => setPreviewing(row)} title="ดูเอกสาร">
                                 <Eye className="w-4 h-4" />
@@ -471,10 +558,71 @@ export default function DisposalApproval() {
           </DialogHeader>
 
           <div className="space-y-4">
-            <div className="rounded-lg bg-muted/40 p-3 text-sm space-y-1">
-              <div><span className="text-muted-foreground">เหตุผล:</span> <span className="whitespace-pre-line">{editing?.reason || "—"}</span></div>
-              <div><span className="text-muted-foreground">ที่มา:</span> {editing?.source_type === "billboard" ? "ถอดจากป้าย" : "คลัง/ภาคสนาม"}</div>
-            </div>
+            {editing && (() => {
+              const mp = editing.media_player;
+              const eq = editing.equipment;
+              const code = editing.is_media_player ? mp?.code : eq?.code;
+              const primaryName = editing.is_media_player ? (mp?.remote_name || mp?.name) : eq?.name;
+              const brand = editing.is_media_player ? mp?.brand : eq?.brand;
+              const department = editing.is_media_player ? mp?.department : eq?.department;
+              const sns = editing.is_media_player
+                ? [mp?.serial_number_1, mp?.serial_number_2].filter(Boolean)
+                : [eq?.serial_number].filter(Boolean);
+              const warrantyTxt = mp?.warranty_expiry_date ? format(new Date(mp.warranty_expiry_date), "dd MMM yyyy", { locale: th }) : null;
+              const inWarranty = mp?.warranty_expiry_date ? new Date(mp.warranty_expiry_date) >= new Date() : null;
+              return (
+                <div className="rounded-lg border border-border bg-muted/30 p-3 text-sm space-y-2">
+                  <div className="grid grid-cols-2 gap-x-4 gap-y-1.5">
+                    <div><span className="text-muted-foreground">รหัส:</span> <span className="font-mono font-medium">{code || "—"}</span></div>
+                    <div><span className="text-muted-foreground">{editing.is_media_player ? "ชื่อ Remote" : "ชื่อ"}:</span> <span className="font-medium">{primaryName || "—"}</span></div>
+                    <div><span className="text-muted-foreground">ยี่ห้อ:</span> {brand || "—"}</div>
+                    <div><span className="text-muted-foreground">ฝ่าย:</span> {department || "—"}</div>
+                    <div className="col-span-2"><span className="text-muted-foreground">S/N:</span> <span className="font-mono whitespace-pre-line">{sns.length ? sns.join(" / ") : "—"}</span></div>
+                    {editing.is_media_player && mp?.specification && (
+                      <div className="col-span-2"><span className="text-muted-foreground">Spec:</span> {mp.specification}</div>
+                    )}
+                    <div><span className="text-muted-foreground">จำนวน:</span> <span className="font-mono">{editing.quantity}</span></div>
+                    <div><span className="text-muted-foreground">สภาพ:</span> {editing.item_condition || "—"}</div>
+                    {warrantyTxt && (
+                      <div className="col-span-2 flex items-center gap-2">
+                        <Badge variant={inWarranty ? "default" : "destructive"} className="text-[10px] py-0 px-1.5 h-4">{inWarranty ? "ในประกัน" : "หมดประกัน"}</Badge>
+                        <span className="text-xs text-muted-foreground">หมดประกัน: {warrantyTxt}</span>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="pt-2 border-t border-border/60 space-y-1.5">
+                    <div><span className="text-muted-foreground">ที่มา:</span> <Badge variant="outline" className="text-xs ml-1">{editing.swap_info ? "จาก Swap" : editing.assessment_doc_no ? "จากการประเมิน" : editing.source_type === "billboard" ? "ถอดจากป้าย" : "คลัง/ภาคสนาม"}</Badge></div>
+                    {editing.billboard_label && <div className="text-xs">📍 <span className="text-muted-foreground">ป้าย:</span> <span className="text-foreground">{editing.billboard_label}</span></div>}
+                    {editing.assessment_doc_no && <div className="text-xs">📋 <span className="text-muted-foreground">ใบประเมิน:</span> <span className="font-mono">{editing.assessment_doc_no}</span></div>}
+                    {editing.swap_info && (
+                      <div className="text-xs rounded-md border border-blue-300/60 bg-blue-50/60 dark:border-blue-800/60 dark:bg-blue-950/30 px-2 py-1.5 space-y-0.5 mt-1">
+                        <div className="font-medium text-blue-700 dark:text-blue-300">🔄 จาก Swap: <span className="font-mono">{editing.swap_info.doc_no}</span></div>
+                        {(editing.swap_info.old_label || editing.swap_info.old_sn) && (
+                          <div>เครื่องเก่า (ถอด): <span className="font-medium">{editing.swap_info.old_label || "—"}</span>{editing.swap_info.old_sn && <> · S/N: <span className="font-mono">{editing.swap_info.old_sn}</span></>}</div>
+                        )}
+                        {(editing.swap_info.new_label || editing.swap_info.new_sn) && (
+                          <div>เครื่องใหม่ (ติดแทน): <span className="font-medium">{editing.swap_info.new_label || "—"}</span>{editing.swap_info.new_sn && <> · S/N: <span className="font-mono">{editing.swap_info.new_sn}</span></>}</div>
+                        )}
+                        {editing.swap_info.description && <div className="text-muted-foreground">อาการ: {editing.swap_info.description}</div>}
+                      </div>
+                    )}
+                    {(editing.reporter_name || editing.reporter_department) && (
+                      <div className="text-xs"><span className="text-muted-foreground">ผู้แจ้ง:</span> <span className="text-foreground font-medium">{editing.reporter_name || "—"}</span>{editing.reporter_department && <> · <span className="text-muted-foreground">ฝ่าย:</span> {editing.reporter_department}</>}</div>
+                    )}
+                  </div>
+
+                  <div className="pt-2 border-t border-border/60">
+                    <div className="text-muted-foreground text-xs mb-1">เหตุผล/สาเหตุ:</div>
+                    <div className="whitespace-pre-line text-sm bg-background rounded p-2 border">{editing.reason || "—"}</div>
+                    {editing.notes && (
+                      <div className="mt-2"><div className="text-muted-foreground text-xs mb-1">หมายเหตุ:</div><div className="whitespace-pre-line text-xs">{editing.notes}</div></div>
+                    )}
+                  </div>
+                </div>
+              );
+            })()}
+
 
             <div className="space-y-2">
               <Label>เลือกวิธีจัดการ *</Label>
