@@ -636,21 +636,45 @@ const DefectiveReturnEntry = () => {
                 </div>
               ) : (
                 <div className="space-y-2">
-                  {pendingTickets.map((t) => (
+                  {pendingTickets.map((t) => {
+                    const warrantyTxt = t.warranty_expiry_date
+                      ? new Date(t.warranty_expiry_date).toLocaleDateString("th-TH", { year: "numeric", month: "short", day: "numeric" })
+                      : null;
+                    const inWarranty = t.warranty_expiry_date ? new Date(t.warranty_expiry_date) >= new Date() : null;
+                    return (
                     <div key={t.id} className="border rounded-lg p-3 flex items-start justify-between gap-3 hover:bg-muted/30 transition-colors">
-                      <div className="space-y-1 flex-1 min-w-0">
+                      <div className="space-y-1.5 flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className="font-mono font-semibold text-sm">{t.document_no}</span>
                           <Badge variant="secondary" className="text-xs">{t.source_label}</Badge>
                           {t.is_media_player && <Badge variant="outline" className="text-xs">Media Player</Badge>}
-                          <span className="text-xs text-muted-foreground">
+                          {t.quantity > 1 && <Badge variant="outline" className="text-xs">× {t.quantity}</Badge>}
+                          <span className="text-xs text-muted-foreground ml-auto">
                             {new Date(t.created_at).toLocaleString("th-TH", { dateStyle: "medium", timeStyle: "short" })}
                           </span>
                         </div>
                         <div className="text-sm">
-                          <span className="font-medium">{t.item_code}</span> — {t.item_name}
-                          {t.quantity > 1 && <span className="text-muted-foreground"> × {t.quantity}</span>}
+                          <span className="font-mono font-medium">{t.item_code}</span>
+                          {t.remote_name ? <> — <span className="font-medium">{t.remote_name}</span></> : t.item_name ? <> — {t.item_name}</> : null}
                         </div>
+                        <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-muted-foreground">
+                          {t.brand && <span>ยี่ห้อ: <span className="text-foreground">{t.brand}</span></span>}
+                          {t.model_name && <span>รุ่น: <span className="text-foreground">{t.model_name}</span></span>}
+                          {t.department && <span>แผนก: <span className="text-foreground">{t.department}</span></span>}
+                        </div>
+                        {t.serial_numbers?.length > 0 && (
+                          <div className="text-xs text-muted-foreground">
+                            S/N: <span className="font-mono text-foreground whitespace-pre-line">{t.serial_numbers.join("\n")}</span>
+                          </div>
+                        )}
+                        {warrantyTxt && (
+                          <div className="text-xs">
+                            <Badge variant={inWarranty ? "default" : "destructive"} className="text-[10px] py-0 px-1.5 h-4">
+                              {inWarranty ? "ในประกัน" : "หมดประกัน"}
+                            </Badge>
+                            <span className="ml-1 text-muted-foreground">หมดประกัน: {warrantyTxt}</span>
+                          </div>
+                        )}
                         {t.billboard_label && (
                           <div className="text-xs text-muted-foreground flex items-center gap-1">
                             <MapPin className="w-3 h-3" /> {t.billboard_label}
@@ -664,7 +688,8 @@ const DefectiveReturnEntry = () => {
                         ดำเนินการ <ArrowRight className="w-4 h-4 ml-1" />
                       </Button>
                     </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </CardContent>
