@@ -948,11 +948,8 @@ const DefectiveReturnEntry = () => {
               </div>
               <div className="space-y-2">
                 <Label>ฝ่าย <span className="text-destructive">*</span></Label>
-                <Input
-                  value={reporterDepartment}
-                  onChange={(e) => setReporterDepartment(e.target.value)}
-                  placeholder="ฝ่ายของผู้แจ้ง"
-                />
+                <SimpleDepartmentSelect value={reporterDepartment} onChange={setReporterDepartment} />
+                <p className="text-[11px] text-muted-foreground">เติมอัตโนมัติจากสิทธิ์ของผู้ล็อกอิน — เปลี่ยนได้</p>
               </div>
             </div>
 
