@@ -20,6 +20,7 @@ import { SwapWarehouseReceive } from "@/components/swap/SwapWarehouseReceive";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { EquipmentImageUpload } from "@/components/equipment/EquipmentImageUpload";
 import { useFunctionPermissions } from "@/hooks/useFunctionPermissions";
+import { formatBillboardLabel } from "@/lib/billboardUtils";
 
 interface SwapRequest {
   id: string;
@@ -41,6 +42,12 @@ interface SwapRequest {
   reported_serial_number?: string | null;
   reported_photos?: string[] | null;
   received_by_name?: string | null;
+  reported_media_player_id?: string | null;
+  reported_equipment_id?: string | null;
+  // enriched (display-only)
+  _billboard_label?: string;
+  _model_name?: string;
+  _remote_name?: string;
 }
 
 interface InstalledItemOption {
@@ -54,6 +61,8 @@ interface InstalledItemOption {
   serial_number?: string | null;
   item_code?: string;
   item_name?: string;
+  remote_name?: string;
+  model_name?: string;
   billboard_equipment_id?: string;
 }
 
@@ -99,6 +108,7 @@ export default function SwapWizard() {
   const [reportedSelectKey, setReportedSelectKey] = useState("");
   const [reportedAssetType, setReportedAssetType] = useState<"equipment" | "media_player">("equipment");
   const [reportedItemName, setReportedItemName] = useState("");
+  const [reportedModelName, setReportedModelName] = useState("");
   const [reportedItemCode, setReportedItemCode] = useState("");
   const [reportedSerial, setReportedSerial] = useState("");
   const [reportedPhotos, setReportedPhotos] = useState<string[]>([]);
@@ -113,9 +123,48 @@ export default function SwapWizard() {
       .limit(200);
     if (error) {
       toast.error("โหลดข้อมูลไม่สำเร็จ");
-    } else {
-      setRequests((data as SwapRequest[]) || []);
+      setRequests([]);
+      setLoading(false);
+      return;
     }
+    const rows = (data as SwapRequest[]) || [];
+
+    // Enrich with billboard label + media player model/remote_name
+    const bbIds = Array.from(new Set(rows.map((r) => r.billboard_id).filter(Boolean) as string[]));
+    const mpIds = Array.from(new Set(rows.map((r) => r.reported_media_player_id).filter(Boolean) as string[]));
+
+    const [bbRes, mpRes] = await Promise.all([
+      bbIds.length
+        ? supabase.from("billboards").select("id, old_code, location_name, equipment_id").in("id", bbIds)
+        : Promise.resolve({ data: [] as any[] }),
+      mpIds.length
+        ? supabase.from("media_players").select("id, remote_name, model_id").in("id", mpIds)
+        : Promise.resolve({ data: [] as any[] }),
+    ]);
+    const bbMap = new Map<string, any>((bbRes.data || []).map((b: any) => [b.id, b]));
+    const mpMap = new Map<string, any>((mpRes.data || []).map((m: any) => [m.id, m]));
+
+    const modelIds = Array.from(new Set(Array.from(mpMap.values()).map((m: any) => m.model_id).filter(Boolean)));
+    let modelMap = new Map<string, string>();
+    if (modelIds.length) {
+      const { data: models } = await supabase
+        .from("media_player_models" as any)
+        .select("id, name")
+        .in("id", modelIds as string[]);
+      modelMap = new Map((models as any[] || []).map((m: any) => [m.id, m.name]));
+    }
+
+    const enriched = rows.map((r) => {
+      const bb = r.billboard_id ? bbMap.get(r.billboard_id) : null;
+      const mp = r.reported_media_player_id ? mpMap.get(r.reported_media_player_id) : null;
+      return {
+        ...r,
+        _billboard_label: bb ? formatBillboardLabel(bb.old_code, bb.location_name, bb.equipment_id) : undefined,
+        _remote_name: mp?.remote_name || undefined,
+        _model_name: mp?.model_id ? modelMap.get(mp.model_id) : undefined,
+      };
+    });
+    setRequests(enriched);
     setLoading(false);
   };
 
@@ -139,10 +188,22 @@ export default function SwapWizard() {
           .eq("billboard_id", billboardId),
         supabase
           .from("media_players")
-          .select("id, code, name, serial_number_1, serial_number_2")
+          .select("id, code, name, remote_name, model_id, serial_number_1, serial_number_2")
           .eq("billboard_id", billboardId)
           .eq("is_active", true),
       ]);
+
+      // Resolve model names
+      const modelIds = Array.from(new Set(((mpRes.data || []) as any[]).map((m) => m.model_id).filter(Boolean)));
+      let modelMap = new Map<string, string>();
+      if (modelIds.length) {
+        const { data: models } = await supabase
+          .from("media_player_models" as any)
+          .select("id, name")
+          .in("id", modelIds as string[]);
+        modelMap = new Map(((models as any[]) || []).map((m: any) => [m.id, m.name]));
+      }
+
       const opts: InstalledItemOption[] = [];
       (eqRes.data || []).forEach((b: any) => {
         opts.push({
@@ -160,16 +221,20 @@ export default function SwapWizard() {
       });
       (mpRes.data || []).forEach((mp: any) => {
         const sn = [mp.serial_number_1, mp.serial_number_2].filter(Boolean).join(" / ");
+        const modelName = mp.model_id ? modelMap.get(mp.model_id) || "" : "";
+        const displayName = mp.remote_name || mp.name || "Media Player";
         opts.push({
           value: `mp:${mp.id}`,
-          label: `${mp.code || "—"} — ${mp.name || "Media Player"} [Media Player]`,
+          label: `${mp.code || "—"} — ${displayName}${modelName ? ` (${modelName})` : ""} [Media Player]`,
           description: `S/N: ${sn || "—"}`,
-          searchableText: `${mp.code || ""} ${mp.name || ""} ${sn} media player`,
+          searchableText: `${mp.code || ""} ${mp.name || ""} ${mp.remote_name || ""} ${modelName} ${sn} media player`,
           asset_type: "media_player",
           media_player_id: mp.id,
           serial_number: mp.serial_number_1 || null,
           item_code: mp.code,
-          item_name: mp.name,
+          item_name: mp.remote_name || mp.name,
+          remote_name: mp.remote_name || "",
+          model_name: modelName,
         });
       });
       opts.push({
@@ -189,6 +254,7 @@ export default function SwapWizard() {
     if (!reportedSelectKey) return;
     if (reportedSelectKey === "__manual__") {
       setReportedItemName("");
+      setReportedModelName("");
       setReportedItemCode("");
       setReportedSerial("");
       return;
@@ -196,7 +262,8 @@ export default function SwapWizard() {
     const item = installedItems.find((o) => o.value === reportedSelectKey);
     if (item) {
       setReportedAssetType(item.asset_type);
-      setReportedItemName(item.item_name || "");
+      setReportedItemName(item.remote_name || item.item_name || "");
+      setReportedModelName(item.model_name || "");
       setReportedItemCode(item.item_code || "");
       setReportedSerial(item.serial_number || "");
     }
@@ -254,6 +321,7 @@ export default function SwapWizard() {
     setReportedSelectKey("");
     setReportedAssetType("equipment");
     setReportedItemName("");
+    setReportedModelName("");
     setReportedItemCode("");
     setReportedSerial("");
     setReportedPhotos([]);
@@ -452,7 +520,6 @@ export default function SwapWizard() {
                 <Tabs value={statusFilter} onValueChange={(v) => setStatusFilter(v as any)} className="flex-1">
                   <TabsList className="flex flex-wrap h-auto">
                     <TabsTrigger value="all">ทั้งหมด ({stats.total})</TabsTrigger>
-                    <TabsTrigger value="pending">รอดำเนินการ ({stats.pending})</TabsTrigger>
                     <TabsTrigger value="in_progress">กำลัง Swap ({stats.inProgress})</TabsTrigger>
                     <TabsTrigger value="completed">Swap แล้ว ({stats.completed})</TabsTrigger>
                     <TabsTrigger value="rejected">Reject</TabsTrigger>
@@ -504,6 +571,24 @@ export default function SwapWizard() {
                                   {req.reported_item_code} {req.reported_item_name && `— ${req.reported_item_name}`}
                                 </span>
                               ) : null}
+                            </div>
+                            <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs">
+                              {req._billboard_label && (
+                                <span className="inline-flex items-center gap-1 text-foreground">
+                                  <MapPin className="h-3 w-3 text-primary" />
+                                  <span className="font-medium">ป้าย:</span> {req._billboard_label}
+                                </span>
+                              )}
+                              {req._model_name && (
+                                <span className="text-muted-foreground">
+                                  <span className="font-medium text-foreground">โมเดล:</span> {req._model_name}
+                                </span>
+                              )}
+                              {req._remote_name && (
+                                <span className="text-muted-foreground">
+                                  <span className="font-medium text-foreground">Remote:</span> {req._remote_name}
+                                </span>
+                              )}
                             </div>
                             <div className="text-sm text-muted-foreground">
                               {req.description || req.symptom_other || "—"}
@@ -682,13 +767,21 @@ export default function SwapWizard() {
                     </div>
                   </div>
 
-                  <div className="grid md:grid-cols-2 gap-4">
+                  <div className="grid md:grid-cols-3 gap-4">
                     <div className="space-y-2">
-                      <Label>ชื่อ/รุ่น</Label>
+                      <Label>ชื่อ (Remote Name)</Label>
                       <Input
                         value={reportedItemName}
                         onChange={(e) => setReportedItemName(e.target.value)}
-                        placeholder="ชื่ออุปกรณ์/รุ่น"
+                        placeholder="Remote Name / ชื่อเรียก"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>โมเดล</Label>
+                      <Input
+                        value={reportedModelName}
+                        onChange={(e) => setReportedModelName(e.target.value)}
+                        placeholder="รุ่น/Model"
                       />
                     </div>
                     <div className="space-y-2">
