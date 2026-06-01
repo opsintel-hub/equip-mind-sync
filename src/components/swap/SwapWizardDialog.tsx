@@ -193,12 +193,13 @@ export function SwapWizardDialog({ open, onOpenChange, request, onCompleted }: P
       const detailBits = [
         m.brand ? `ยี่ห้อ ${m.brand}` : null,
         modelName ? `รุ่น ${modelName}` : null,
-        m.specification ? `Spec ${m.specification}` : null,
+        m.remote_name ? `Remote ${m.remote_name}` : null,
       ].filter(Boolean).join(" • ");
       opts.push({
         value: `mp:${m.id}`,
         label: `${m.code} ${m.name ? "- " + m.name : ""}`,
         description: `S/N: ${serial || "—"} • สถานะ: ${m.status || "—"}${detailBits ? "\n" + detailBits : ""}`,
+        searchableText: [m.code, m.name, serial, m.brand, modelName, m.remote_name, m.specification].filter(Boolean).join(" "),
         type: "media_player",
         serial_number: serial || null,
         location_id: m.location_id,
@@ -218,12 +219,12 @@ export function SwapWizardDialog({ open, onOpenChange, request, onCompleted }: P
       const detailBits = [
         s.equipment?.brand ? `ยี่ห้อ ${s.equipment.brand}` : null,
         s.equipment?.category ? `หมวด ${s.equipment.category}` : null,
-        s.equipment?.description ? `Spec ${s.equipment.description}` : null,
       ].filter(Boolean).join(" • ");
       opts.push({
         value: `eq:${s.equipment_id}:${s.id}`,
         label: `${s.equipment?.code || ""} ${s.equipment?.name ? "- " + s.equipment.name : ""}`,
         description: `S/N: ${s.serial_number} • สถานะ: ${s.status}${detailBits ? "\n" + detailBits : ""}`,
+        searchableText: [s.equipment?.code, s.equipment?.name, s.serial_number, s.equipment?.brand, s.equipment?.category, s.equipment?.description].filter(Boolean).join(" "),
         type: "equipment",
         serial_number: s.serial_number,
         location_id: s.location_id,
