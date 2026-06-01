@@ -464,7 +464,13 @@ export function AssessmentCompleteDialog({ open, onOpenChange, log, onCompleted 
         });
         await flipStatus("in_claim", "in_claim", false, 0);
       } else if (outcome === "self_repair") {
-        await flipStatus("under_repair", "under_repair", false, 0);
+        if (repairSuccess) {
+          // ซ่อมสำเร็จ → คืนกลับ Spare (active + refurbished)
+          await flipStatus("active", "in_stock", true, 1);
+        } else {
+          await flipStatus("under_repair", "under_repair", false, 0);
+        }
+
       } else if (outcome === "return_refurb") {
         // คืนเข้าคลังพร้อมใช้ (active) — นับเป็น stock 1
         await flipStatus("active", "in_stock", true, 1);
