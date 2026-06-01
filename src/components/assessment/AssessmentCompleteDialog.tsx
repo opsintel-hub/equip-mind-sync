@@ -513,7 +513,7 @@ export function AssessmentCompleteDialog({ open, onOpenChange, log, onCompleted 
       onCompleted();
       // Navigate to defective entry with prefill so warehouse staff can confirm + cut stock
       setTimeout(() => {
-        navigate("/defective-return-entry", {
+        navigate("/defective-return", {
           state: {
             fromAssessment: {
               assessmentLogId: log.id,
