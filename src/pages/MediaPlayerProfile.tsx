@@ -30,6 +30,7 @@ const MediaPlayerProfile = () => {
   const [showSearch, setShowSearch] = useState(false);
   const [journeys, setJourneys] = useState<BillboardJourney[]>([]);
   const [movements, setMovements] = useState<StockMovement[]>([]);
+  const [movementBillboards, setMovementBillboards] = useState<Record<string, string>>({});
   const [images, setImages] = useState<string[]>([]);
   const [modelName, setModelName] = useState("-");
   const [statusLabel, setStatusLabel] = useState("Active");
