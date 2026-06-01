@@ -412,7 +412,7 @@ export function SwapWizardDialog({ open, onOpenChange, request, onCompleted }: P
       opts.push({
         value: v,
         label: `${b.equipment?.code || ""} ${b.equipment?.name ? "- " + b.equipment.name : ""}`,
-        description: `S/N: ${b.serial_number || "—"} • จำนวน: ${b.quantity}${detailBits ? "\n" + detailBits : ""}`,
+        description: `S/N: ${b.serial_number || "—"} • จำนวน: ${b.quantity}${billboardLabel ? "\nLocation: " + billboardLabel : ""}${detailBits ? "\n" + detailBits : ""}`,
         type: "equipment",
         serial_number: b.serial_number,
         billboard_equipment_id: b.id,
@@ -421,6 +421,7 @@ export function SwapWizardDialog({ open, onOpenChange, request, onCompleted }: P
         specification: b.equipment?.description,
         category: b.equipment?.category,
         install_date: b.installation_date,
+        billboard_label: billboardLabel,
       });
       seenIds.add(v);
     });
