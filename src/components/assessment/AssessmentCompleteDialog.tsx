@@ -333,11 +333,17 @@ export function AssessmentCompleteDialog({ open, onOpenChange, log, onCompleted 
   const isRepeatFailure = (history?.recentRepairCount6m || 0) >= 2;
 
   const needsDefectiveAck = outcome === "defective" && isUnderWarranty;
+  // Outcome gating by warranty
+  const defectiveDisabled = warrantyState === "active" || warrantyState === "ending"; // ต้องหมดประกันก่อน
+  const claimDisabled = !isUnderWarranty; // ต้องอยู่ในประกัน
 
   const canSubmit =
     !!assessmentResultId &&
     !!outcome &&
+    (outcome !== "defective" || warrantyState === "expired" || warrantyState === "unknown") &&
+    (outcome !== "claim" || isUnderWarranty) &&
     (outcome !== "self_repair" || !!repairDescription.trim()) &&
+
     (outcome !== "claim" || !!supplierAutofill?.name || !!externalRepairVendor.trim()) &&
     (!needsDefectiveAck || (defectiveAck && !!defectiveAckReason.trim()));
 
