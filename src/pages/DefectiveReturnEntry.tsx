@@ -981,7 +981,10 @@ const DefectiveReturnEntry = () => {
             {displayItem ? (
               <div className="space-y-3 text-sm">
                 <InfoRow label="รหัส" value={(displayItem as any).code} />
-                <InfoRow label="ชื่อ" value={(displayItem as any).name} />
+                <InfoRow
+                  label={isMediaPlayer ? "ชื่อ Remote" : "ชื่อ"}
+                  value={isMediaPlayer ? (selectedMediaPlayer?.remote_name || (displayItem as any).name) : (displayItem as any).name}
+                />
                 <InfoRow label="หน่วย" value={(displayItem as any).unit} />
                 {!isMediaPlayer && selectedEquipment && (<>
                   <InfoRow label="หมวดหมู่" value={selectedEquipment.category} />
@@ -992,7 +995,7 @@ const DefectiveReturnEntry = () => {
                 </>)}
                 {isMediaPlayer && selectedMediaPlayer && (<>
                   <InfoRow label="ยี่ห้อ" value={selectedMediaPlayer.brand || "-"} />
-                  <InfoRow label="Serial No." value={selectedMediaPlayer.serial_number_1 || "-"} />
+                  <InfoRow label="Serial No." value={[selectedMediaPlayer.serial_number_1, selectedMediaPlayer.serial_number_2].filter(Boolean).join(" / ") || "-"} />
                   <InfoRow label="ฝ่าย" value={selectedMediaPlayer.department || "-"} />
                   <InfoRow label="คงเหลือในคลัง" value={`${selectedMediaPlayer.quantity} เครื่อง`} />
                 </>)}
