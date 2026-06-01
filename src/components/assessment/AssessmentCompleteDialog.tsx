@@ -102,6 +102,20 @@ export function AssessmentCompleteDialog({ open, onOpenChange, log, onCompleted 
   const [history, setHistory] = useState<DeviceHistory | null>(null);
   const [defectiveAck, setDefectiveAck] = useState(false);
   const [defectiveAckReason, setDefectiveAckReason] = useState("");
+  const [assessmentResultName, setAssessmentResultName] = useState<string>("");
+
+  // Fetch the name of the selected assessment result for outcome gating
+  useEffect(() => {
+    if (!assessmentResultId) { setAssessmentResultName(""); return; }
+    (async () => {
+      const { data } = await supabase
+        .from("mp_assessment_results")
+        .select("name")
+        .eq("id", assessmentResultId)
+        .maybeSingle();
+      setAssessmentResultName((data as any)?.name || "");
+    })();
+  }, [assessmentResultId]);
 
   useEffect(() => {
     if (!open || !log) return;
@@ -333,15 +347,25 @@ export function AssessmentCompleteDialog({ open, onOpenChange, log, onCompleted 
   const isRepeatFailure = (history?.recentRepairCount6m || 0) >= 2;
 
   const needsDefectiveAck = outcome === "defective" && isUnderWarranty;
-  // Outcome gating by warranty
-  const defectiveDisabled = warrantyState === "active" || warrantyState === "ending"; // ต้องหมดประกันก่อน
-  const claimDisabled = !isUnderWarranty; // ต้องอยู่ในประกัน
+  // Result-name gating per spec:
+  //   "เข้าของเสีย" → ผลต้อง = "Write-off (ใช้งานต่อไม่ได้)"
+  //   "ส่งเคลม"    → ผลต้อง = "ส่งซ่อมภายนอก"
+  const isWriteOffResult = assessmentResultName.includes("Write-off");
+  const isExternalRepairResult = assessmentResultName.includes("ส่งซ่อมภายนอก");
+  // Warranty gating: ถ้าไม่มีวันหมดประกัน (unknown) → ปล่อยให้กดได้
+  // defective: ต้องหมดประกัน หรือไม่ทราบ
+  const warrantyAllowsDefective = warrantyState === "expired" || warrantyState === "unknown";
+  // claim: ต้องอยู่ในประกัน หรือไม่ทราบ
+  const warrantyAllowsClaim = isUnderWarranty || warrantyState === "unknown";
+
+  const defectiveDisabled = !isWriteOffResult || !warrantyAllowsDefective;
+  const claimDisabled = !isExternalRepairResult || !warrantyAllowsClaim;
 
   const canSubmit =
     !!assessmentResultId &&
     !!outcome &&
-    (outcome !== "defective" || warrantyState === "expired" || warrantyState === "unknown") &&
-    (outcome !== "claim" || isUnderWarranty) &&
+    (outcome !== "defective" || (isWriteOffResult && warrantyAllowsDefective)) &&
+    (outcome !== "claim" || (isExternalRepairResult && warrantyAllowsClaim)) &&
     (outcome !== "self_repair" || !!repairDescription.trim()) &&
 
     (outcome !== "claim" || !!supplierAutofill?.name || !!externalRepairVendor.trim()) &&
@@ -745,11 +769,15 @@ export function AssessmentCompleteDialog({ open, onOpenChange, log, onCompleted 
                   (opt.v === "claim" && claimDisabled);
                 const tooltip =
                   opt.v === "defective" && defectiveDisabled
-                    ? `ต้องหมดประกันก่อน — ปัจจุบันหมด ${warrantyDate || "—"} (เหลือ ${warrantyDaysLeft} วัน)`
+                    ? !isWriteOffResult
+                      ? `ต้องเลือกผลการประเมิน = "Write-off (ใช้งานต่อไม่ได้)" ก่อน`
+                      : `ต้องหมดประกันก่อน — ปัจจุบันหมด ${warrantyDate || "—"} (เหลือ ${warrantyDaysLeft} วัน)`
                     : opt.v === "claim" && claimDisabled
-                    ? warrantyState === "expired"
+                    ? !isExternalRepairResult
+                      ? `ต้องเลือกผลการประเมิน = "ส่งซ่อมภายนอก" ก่อน`
+                      : warrantyState === "expired"
                       ? `หมดประกันแล้ว ${warrantyDate || ""} — ส่งเคลมไม่ได้`
-                      : `ไม่พบข้อมูลประกัน — ส่งเคลมไม่ได้`
+                      : undefined
                     : undefined;
                 return (
                   <button
