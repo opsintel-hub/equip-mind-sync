@@ -10,9 +10,10 @@ interface MovementTabProps {
   playerCode: string;
   serialNumber1?: string | null;
   serialNumber2?: string | null;
+  billboardByDoc?: Record<string, string>;
 }
 
-export function MovementTab({ movements, playerCode, serialNumber1, serialNumber2 }: MovementTabProps) {
+export function MovementTab({ movements, playerCode, serialNumber1, serialNumber2, billboardByDoc = {} }: MovementTabProps) {
   // Filter to only this S/N's movements when serial is provided.
   // Match by serial number appearing in notes or reference_document; if no match found, fall back to all (master row case).
   const sns = [serialNumber1, serialNumber2].filter(Boolean) as string[];
