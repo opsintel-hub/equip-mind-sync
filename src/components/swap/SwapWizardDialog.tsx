@@ -60,6 +60,7 @@ interface SpareOption {
   status?: string | null;
   warranty_expiry_date?: string | null;
   unit_price?: number | null;
+  remote_name?: string | null;
 }
 
 interface OldOption {
@@ -76,6 +77,8 @@ interface OldOption {
   model_name?: string | null;
   category?: string | null;
   install_date?: string | null;
+  remote_name?: string | null;
+  billboard_label?: string | null;
 }
 
 export function SwapWizardDialog({ open, onOpenChange, request, onCompleted }: Props) {
@@ -154,7 +157,7 @@ export function SwapWizardDialog({ open, onOpenChange, request, onCompleted }: P
     // Media Players: available spare = not installed, not defective/pending/in-transit
     const { data: mps, error: mpError } = await supabase
       .from("media_players")
-      .select("id, code, name, serial_number_1, serial_number_2, status, location_id, billboard_id, brand, specification, model_id, warranty_expiry_date, unit_price")
+      .select("id, code, name, serial_number_1, serial_number_2, status, location_id, billboard_id, brand, specification, model_id, warranty_expiry_date, unit_price, remote_name")
       .is("billboard_id", null)
       .not("status", "in", "(defective,pending_assessment,claim,pending_warehouse_return,under_repair,in_claim)")
       .order("created_at", { ascending: false })
@@ -207,6 +210,7 @@ export function SwapWizardDialog({ open, onOpenChange, request, onCompleted }: P
         status: m.status,
         warranty_expiry_date: m.warranty_expiry_date,
         unit_price: m.unit_price,
+        remote_name: m.remote_name,
       });
     });
     (esns || []).forEach((s: any) => {
@@ -281,7 +285,7 @@ export function SwapWizardDialog({ open, onOpenChange, request, onCompleted }: P
     // ดึงรายการ Media Player ที่ติดตั้งบนป้ายนี้ ณ ปัจจุบัน
     const { data: mpsOnBb } = await supabase
       .from("media_players")
-      .select("id, code, name, serial_number_1, serial_number_2, brand, specification, install_date, model_id")
+      .select("id, code, name, serial_number_1, serial_number_2, brand, specification, install_date, model_id, remote_name")
       .eq("billboard_id", billboardId);
 
     const oldModelIds = Array.from(new Set((mpsOnBb || []).map((m: any) => m.model_id).filter(Boolean)));
@@ -292,6 +296,54 @@ export function SwapWizardDialog({ open, onOpenChange, request, onCompleted }: P
         .select("id, name")
         .in("id", oldModelIds);
       (oldModels || []).forEach((m: any) => { oldModelMap[m.id] = m.name; });
+    }
+
+    // Fetch billboard label (Location) เพื่อแสดงเป็น Location ของเครื่องเก่า
+    let billboardLabel: string | null = null;
+    {
+      const { data: bb } = await supabase
+        .from("billboards")
+        .select("old_code, location_name, equipment_id")
+        .eq("id", billboardId)
+        .maybeSingle();
+      if (bb) {
+        const parts = [bb.old_code, bb.location_name].filter(Boolean);
+        billboardLabel = parts.join(" - ") || null;
+      }
+    }
+
+    // หา remote_name + รายละเอียดของเครื่องที่รายงาน (ถ้าเป็น media player)
+    let reportedRemoteName: string | null = null;
+    let reportedBrand: string | null = null;
+    let reportedSpec: string | null = null;
+    let reportedModelName: string | null = null;
+    if (request?.reported_asset_type === "media_player" && request.reported_media_player_id) {
+      const found = (mpsOnBb || []).find((m: any) => m.id === request.reported_media_player_id);
+      if (found) {
+        reportedRemoteName = found.remote_name || null;
+        reportedBrand = found.brand || null;
+        reportedSpec = found.specification || null;
+        reportedModelName = found.model_id ? oldModelMap[found.model_id] : null;
+      } else {
+        const { data: rmp } = await supabase
+          .from("media_players")
+          .select("remote_name, model_id, brand, specification")
+          .eq("id", request.reported_media_player_id)
+          .maybeSingle();
+        if (rmp) {
+          reportedRemoteName = rmp.remote_name || null;
+          reportedBrand = rmp.brand || null;
+          reportedSpec = rmp.specification || null;
+          if (rmp.model_id) {
+            const { data: mm } = await supabase
+              .from("media_player_models")
+              .select("name")
+              .eq("id", rmp.model_id)
+              .maybeSingle();
+            reportedModelName = mm?.name || null;
+          }
+        }
+      }
     }
 
     const opts: OldOption[] = [];
@@ -306,12 +358,17 @@ export function SwapWizardDialog({ open, onOpenChange, request, onCompleted }: P
       opts.push({
         value: v,
         label: `${request.reported_item_code || "—"} ${request.reported_item_name ? "- " + request.reported_item_name : ""}`,
-        description: `S/N: ${request.reported_serial_number || "—"} • จากคำขอ Swap`,
+        description: `S/N: ${request.reported_serial_number || "—"} • จากคำขอ Swap${billboardLabel ? "\nLocation: " + billboardLabel : ""}`,
         type: request.reported_asset_type === "media_player" ? "media_player" : "equipment",
         serial_number: request.reported_serial_number,
         billboard_equipment_id: request.reported_billboard_equipment_id || "",
         equipment_id: request.reported_equipment_id || undefined,
         media_player_id: request.reported_media_player_id || undefined,
+        brand: reportedBrand,
+        specification: reportedSpec,
+        model_name: reportedModelName,
+        remote_name: reportedRemoteName,
+        billboard_label: billboardLabel,
       });
       seenIds.add(v);
     }
@@ -329,7 +386,7 @@ export function SwapWizardDialog({ open, onOpenChange, request, onCompleted }: P
       opts.push({
         value: v,
         label: `${m.code} ${m.name ? "- " + m.name : ""}`,
-        description: `S/N: ${serial || "—"} • ติดตั้ง ${m.install_date || "—"}${detailBits ? "\n" + detailBits : ""}`,
+        description: `S/N: ${serial || "—"} • ติดตั้ง ${m.install_date || "—"}${billboardLabel ? "\nLocation: " + billboardLabel : ""}${detailBits ? "\n" + detailBits : ""}`,
         type: "media_player",
         serial_number: serial || null,
         billboard_equipment_id: "",
@@ -338,6 +395,8 @@ export function SwapWizardDialog({ open, onOpenChange, request, onCompleted }: P
         specification: m.specification,
         model_name: modelName,
         install_date: m.install_date,
+        remote_name: m.remote_name,
+        billboard_label: billboardLabel,
       });
       seenIds.add(v);
     });
@@ -353,7 +412,7 @@ export function SwapWizardDialog({ open, onOpenChange, request, onCompleted }: P
       opts.push({
         value: v,
         label: `${b.equipment?.code || ""} ${b.equipment?.name ? "- " + b.equipment.name : ""}`,
-        description: `S/N: ${b.serial_number || "—"} • จำนวน: ${b.quantity}${detailBits ? "\n" + detailBits : ""}`,
+        description: `S/N: ${b.serial_number || "—"} • จำนวน: ${b.quantity}${billboardLabel ? "\nLocation: " + billboardLabel : ""}${detailBits ? "\n" + detailBits : ""}`,
         type: "equipment",
         serial_number: b.serial_number,
         billboard_equipment_id: b.id,
@@ -362,6 +421,7 @@ export function SwapWizardDialog({ open, onOpenChange, request, onCompleted }: P
         specification: b.equipment?.description,
         category: b.equipment?.category,
         install_date: b.installation_date,
+        billboard_label: billboardLabel,
       });
       seenIds.add(v);
     });
@@ -751,9 +811,8 @@ export function SwapWizardDialog({ open, onOpenChange, request, onCompleted }: P
                     </div>
                     <div className="text-sm text-muted-foreground whitespace-pre-line">{selectedSpare.description}</div>
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-3 text-xs">
-                      {selectedSpare.brand && <div className="bg-muted/40 rounded px-2 py-1"><span className="text-muted-foreground">ยี่ห้อ:</span> <span className="font-medium">{selectedSpare.brand}</span></div>}
                       {selectedSpare.model_name && <div className="bg-muted/40 rounded px-2 py-1"><span className="text-muted-foreground">รุ่น:</span> <span className="font-medium">{selectedSpare.model_name}</span></div>}
-                      {selectedSpare.specification && <div className="bg-muted/40 rounded px-2 py-1 col-span-2"><span className="text-muted-foreground">Spec:</span> <span className="font-medium">{selectedSpare.specification}</span></div>}
+                      {selectedSpare.remote_name && <div className="bg-muted/40 rounded px-2 py-1"><span className="text-muted-foreground">Remote Name:</span> <span className="font-medium">{selectedSpare.remote_name}</span></div>}
                       {selectedSpare.category && <div className="bg-muted/40 rounded px-2 py-1"><span className="text-muted-foreground">หมวด:</span> <span className="font-medium">{selectedSpare.category}</span></div>}
                       {selectedSpare.warranty_expiry_date && <div className="bg-muted/40 rounded px-2 py-1"><span className="text-muted-foreground">ประกันถึง:</span> <span className="font-medium">{selectedSpare.warranty_expiry_date}</span></div>}
                     </div>
@@ -823,12 +882,18 @@ export function SwapWizardDialog({ open, onOpenChange, request, onCompleted }: P
               )}
               {selectedOld && (
                 <Card>
-                  <CardContent className="pt-4 space-y-1">
+                  <CardContent className="pt-4 space-y-2">
                     <div className="flex items-center gap-2 flex-wrap">
                       <Badge variant="outline">{selectedOld.type === "media_player" ? "Media Player" : "Equipment"}</Badge>
                       <span className="font-medium">{selectedOld.label}</span>
                     </div>
                     <div className="text-sm text-muted-foreground whitespace-pre-line">{selectedOld.description}</div>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-2 text-xs">
+                      {selectedOld.billboard_label && <div className="bg-muted/40 rounded px-2 py-1 col-span-2 sm:col-span-3"><span className="text-muted-foreground">Location ป้าย:</span> <span className="font-medium">{selectedOld.billboard_label}</span></div>}
+                      {selectedOld.model_name && <div className="bg-muted/40 rounded px-2 py-1"><span className="text-muted-foreground">รุ่น:</span> <span className="font-medium">{selectedOld.model_name}</span></div>}
+                      {selectedOld.remote_name && <div className="bg-muted/40 rounded px-2 py-1"><span className="text-muted-foreground">Remote Name:</span> <span className="font-medium">{selectedOld.remote_name}</span></div>}
+                      {selectedOld.brand && <div className="bg-muted/40 rounded px-2 py-1"><span className="text-muted-foreground">ยี่ห้อ:</span> <span className="font-medium">{selectedOld.brand}</span></div>}
+                    </div>
                   </CardContent>
                 </Card>
               )}
@@ -871,12 +936,12 @@ export function SwapWizardDialog({ open, onOpenChange, request, onCompleted }: P
                 <CardContent className="pt-4 space-y-1">
                   <Badge variant="secondary">Spare เข้าใหม่</Badge>
                   <div className="font-medium mt-2">{selectedSpare?.label}</div>
-                  <div className="text-sm text-muted-foreground whitespace-pre-line">{selectedSpare?.description}</div>
                   <div className="grid grid-cols-2 gap-1 mt-2 text-xs">
-                    {selectedSpare?.brand && <div><span className="text-muted-foreground">ยี่ห้อ:</span> <span className="font-medium">{selectedSpare.brand}</span></div>}
-                    {selectedSpare?.model_name && <div><span className="text-muted-foreground">รุ่น:</span> <span className="font-medium">{selectedSpare.model_name}</span></div>}
-                    {selectedSpare?.specification && <div className="col-span-2"><span className="text-muted-foreground">Spec:</span> <span className="font-medium">{selectedSpare.specification}</span></div>}
-                    {selectedSpare?.category && <div><span className="text-muted-foreground">หมวด:</span> <span className="font-medium">{selectedSpare.category}</span></div>}
+                    <div className="col-span-2"><span className="text-muted-foreground">S/N:</span> <span className="font-medium">{selectedSpare?.serial_number || "—"}</span></div>
+                    <div><span className="text-muted-foreground">ยี่ห้อ:</span> <span className="font-medium">{selectedSpare?.brand || "—"}</span></div>
+                    <div><span className="text-muted-foreground">รุ่น:</span> <span className="font-medium">{selectedSpare?.model_name || "—"}</span></div>
+                    <div className="col-span-2"><span className="text-muted-foreground">Spec:</span> <span className="font-medium">{selectedSpare?.specification || "—"}</span></div>
+                    <div className="col-span-2"><span className="text-muted-foreground">Remote Name:</span> <span className="font-medium">{selectedSpare?.remote_name || "—"}</span></div>
                   </div>
                 </CardContent>
               </Card>
@@ -884,13 +949,13 @@ export function SwapWizardDialog({ open, onOpenChange, request, onCompleted }: P
                 <CardContent className="pt-4 space-y-1">
                   <Badge variant="outline">เครื่องเก่าที่ถอด</Badge>
                   <div className="font-medium mt-2">{selectedOld?.label || "—"}</div>
-                  <div className="text-sm text-muted-foreground whitespace-pre-line">{selectedOld?.description || "—"}</div>
                   <div className="grid grid-cols-2 gap-1 mt-2 text-xs">
-                    {selectedOld?.brand && <div><span className="text-muted-foreground">ยี่ห้อ:</span> <span className="font-medium">{selectedOld.brand}</span></div>}
-                    {selectedOld?.model_name && <div><span className="text-muted-foreground">รุ่น:</span> <span className="font-medium">{selectedOld.model_name}</span></div>}
-                    {selectedOld?.specification && <div className="col-span-2"><span className="text-muted-foreground">Spec:</span> <span className="font-medium">{selectedOld.specification}</span></div>}
-                    {selectedOld?.category && <div><span className="text-muted-foreground">หมวด:</span> <span className="font-medium">{selectedOld.category}</span></div>}
-                    {selectedOld?.install_date && <div><span className="text-muted-foreground">ติดตั้ง:</span> <span className="font-medium">{selectedOld.install_date}</span></div>}
+                    <div className="col-span-2"><span className="text-muted-foreground">S/N:</span> <span className="font-medium">{selectedOld?.serial_number || "—"}</span></div>
+                    <div><span className="text-muted-foreground">ยี่ห้อ:</span> <span className="font-medium">{selectedOld?.brand || "—"}</span></div>
+                    <div><span className="text-muted-foreground">รุ่น:</span> <span className="font-medium">{selectedOld?.model_name || "—"}</span></div>
+                    <div className="col-span-2"><span className="text-muted-foreground">Spec:</span> <span className="font-medium">{selectedOld?.specification || "—"}</span></div>
+                    <div className="col-span-2"><span className="text-muted-foreground">Remote Name:</span> <span className="font-medium">{selectedOld?.remote_name || "—"}</span></div>
+                    <div className="col-span-2"><span className="text-muted-foreground">Location ป้ายเก่า:</span> <span className="font-medium">{selectedOld?.billboard_label || "—"}</span></div>
                   </div>
                 </CardContent>
               </Card>
