@@ -45,8 +45,7 @@ const MediaPlayerPublicView = () => {
         billboard:billboards(id, equipment_id, old_code, location_name),
         companies(name),
         cms_types(name),
-        locations(name),
-        suppliers(name)
+        locations(name)
       `)
       .eq("id", playerId)
       .maybeSingle();
@@ -55,6 +54,15 @@ const MediaPlayerPublicView = () => {
       toast.error("ไม่พบข้อมูล Media Player");
       setIsLoading(false);
       return;
+    }
+
+    // Fetch supplier name via safe RPC (anon SELECT on suppliers is restricted)
+    if ((p as any).supplier_id) {
+      const { data: supplierName } = await supabase.rpc(
+        "public_get_supplier_name" as any,
+        { _id: (p as any).supplier_id }
+      );
+      if (supplierName) (p as any).suppliers = { name: supplierName };
     }
 
     setPlayer(p as unknown as MediaPlayerRow);

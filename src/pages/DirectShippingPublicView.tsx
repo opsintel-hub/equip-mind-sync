@@ -19,13 +19,10 @@ function DirectShippingPublicContent() {
     queryKey: ["ds-public-view", id],
     queryFn: async () => {
       if (!id) throw new Error("No ID");
-      const { data, error } = await supabase
-        .from("direct_shipments")
-        .select("*, companies(name), suppliers(name), direct_shipment_items(id, equipment_code, equipment_name, quantity, unit, serial_number, serial_number_2, is_media_player, unit_price, lot_number)")
-        .eq("id", id)
-        .single();
+      const { data, error } = await supabase.rpc("public_get_direct_shipment" as any, { _id: id });
       if (error) throw error;
-      return data;
+      if (!data) throw new Error("Not found");
+      return data as any;
     },
     enabled: !!id,
   });
