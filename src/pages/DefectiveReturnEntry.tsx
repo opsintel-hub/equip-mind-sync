@@ -655,7 +655,13 @@ const DefectiveReturnEntry = () => {
             .is("uninstall_date", null);
           await supabase.from("media_players").update({ billboard_id: null, status: "defective" }).eq("id", selectedItemId);
         }
-        toast.success(`บันทึกสำเร็จ (${docNo}) — ตัด Stock ${qty} หน่วยเข้า "คลังของเสีย" แล้ว`); handleReset();
+        if (existingTicket) {
+          toast.success(`ยืนยันตั๋ว ${docNo} แล้ว — ตัด Stock ${qty} หน่วยเข้า "คลังของเสีย"`);
+        } else {
+          toast.success(`บันทึกสำเร็จ (${docNo}) — ตัด Stock ${qty} หน่วยเข้า "คลังของเสีย" แล้ว`);
+        }
+        handleReset();
+        fetchPendingTickets();
       } catch (error: any) { toast.error("เกิดข้อผิดพลาด: " + error.message); } finally { setIsSubmitting(false); }
     }
   };
