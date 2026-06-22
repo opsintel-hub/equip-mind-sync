@@ -70,6 +70,7 @@ export default function AssessmentLog() {
   const { user } = useAuth();
   const location = useLocation();
   const [logs, setLogs] = useState<AssessmentLog[]>([]);
+  const [rejectionMap, setRejectionMap] = useState<Record<string, { document_no: string; rejection_reason: string | null; rejected_at: string | null; rejected_by_name: string | null }>>({});
   const [loading, setLoading] = useState(true);
   const { hasFunctionAccess } = useFunctionPermissions();
   const canView = hasFunctionAccess("assessment_view");
@@ -116,7 +117,32 @@ export default function AssessmentLog() {
     if (error) {
       toast.error("โหลดข้อมูลไม่สำเร็จ");
     } else {
-      setLogs((data as AssessmentLog[]) || []);
+      const rows = (data as AssessmentLog[]) || [];
+      setLogs(rows);
+      // Fetch any rejected DR tickets linked to these assessments
+      const ids = rows.filter(l => l.status === "pending").map(l => l.id);
+      if (ids.length > 0) {
+        const { data: drs } = await supabase
+          .from("defective_returns")
+          .select("assessment_log_id, document_no, rejection_reason, rejected_at, rejected_by_name")
+          .eq("status", "rejected_for_edit")
+          .in("assessment_log_id", ids)
+          .order("rejected_at", { ascending: false });
+        const map: typeof rejectionMap = {};
+        for (const d of (drs || []) as any[]) {
+          if (d.assessment_log_id && !map[d.assessment_log_id]) {
+            map[d.assessment_log_id] = {
+              document_no: d.document_no,
+              rejection_reason: d.rejection_reason,
+              rejected_at: d.rejected_at,
+              rejected_by_name: d.rejected_by_name,
+            };
+          }
+        }
+        setRejectionMap(map);
+      } else {
+        setRejectionMap({});
+      }
     }
     setLoading(false);
   };
@@ -519,15 +545,21 @@ export default function AssessmentLog() {
                   <div className="space-y-2">
                     {pagedLogs.map((log) => {
                       const status = STATUS_LABELS[log.status] || { label: log.status, variant: "outline" as const };
+                      const rejection = rejectionMap[log.id];
                       return (
                         <div
                           key={log.id}
-                          className="flex items-center justify-between gap-4 p-4 rounded-lg border hover:bg-accent/50 transition-colors flex-wrap"
+                          className={`flex items-center justify-between gap-4 p-4 rounded-lg border hover:bg-accent/50 transition-colors flex-wrap ${rejection ? "border-destructive/50 bg-destructive/5" : ""}`}
                         >
                           <div className="flex-1 min-w-[200px] space-y-1">
                             <div className="flex items-center gap-2 flex-wrap">
                               <span className="font-mono font-semibold">{log.document_no}</span>
                               <Badge variant={status.variant}>{status.label}</Badge>
+                              {rejection && (
+                                <Badge variant="destructive" className="gap-1">
+                                  ⟲ Reject จาก {rejection.document_no}
+                                </Badge>
+                              )}
                               {log.outcome && OUTCOME_LABELS[log.outcome] && (
                                 <Badge variant={OUTCOME_LABELS[log.outcome].variant}>
                                   {OUTCOME_LABELS[log.outcome].label}
@@ -537,6 +569,13 @@ export default function AssessmentLog() {
                                 <Badge variant="outline" className="font-mono text-xs">S/N: {log.serial_number}</Badge>
                               )}
                             </div>
+                            {rejection && (
+                              <div className="text-xs text-destructive bg-destructive/10 rounded px-2 py-1 border border-destructive/20">
+                                <span className="font-medium">เหตุผลที่ถูก Reject:</span> {rejection.rejection_reason || "—"}
+                                {rejection.rejected_by_name && <span className="ml-2 text-muted-foreground">โดย {rejection.rejected_by_name}</span>}
+                                {rejection.rejected_at && <span className="ml-2 text-muted-foreground">• {format(new Date(rejection.rejected_at), "dd MMM yyyy HH:mm", { locale: th })}</span>}
+                              </div>
+                            )}
                             <div className="text-sm text-muted-foreground">
                               {log.diagnosis_notes || log.symptom_description || "—"}
                             </div>
