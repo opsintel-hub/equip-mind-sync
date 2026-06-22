@@ -506,7 +506,11 @@ const DefectiveReturnEntry = () => {
         await supabase.from("assessment_logs").update({ status: "pending" } as any).eq("id", t.assessment_log_id);
       }
 
-      toast.success(`ส่งคืนตั๋ว ${t.document_no} เพื่อแก้ไขแล้ว`);
+      toast.success(
+        t.assessment_log_id
+          ? `ส่งคืนตั๋ว ${t.document_no} กลับไปที่เมนู "บันทึกการประเมิน" เพื่อแก้ไขผลแล้ว`
+          : `ส่งคืนตั๋ว ${t.document_no} ให้ผู้แจ้ง (${t.reporter_name || "-"}) แก้ไขแล้ว`
+      );
       closeReviewDialog();
       fetchPendingTickets();
     } catch (e: any) {
