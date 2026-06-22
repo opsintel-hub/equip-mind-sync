@@ -1,87 +1,79 @@
-## ปัญหาที่พบ
-
-ปุ่ม **ดำเนินการ** ในแท็บ **ตั๋วรอดำเนินการ** ปัจจุบันโยนผู้ใช้กลับไปแท็บ **สร้างใหม่** พร้อมข้อมูลเดิม ทำให้สับสนว่า "กำลังสร้างใบใหม่" แทนที่จะเป็น "ตรวจสอบและอนุมัติรับเข้าคลัง" และมีโอกาสกดบันทึกซ้ำ
-
-## Flow ใหม่
+## Flow ตอนนี้ทำงานยังไง
 
 ```text
-[แท็บ ตั๋วรอดำเนินการ]
-        │  กด "ดำเนินการ"
-        ▼
-[Review Dialog]  (ไม่ย้ายแท็บ)
-  ซ้าย: ข้อมูลตั๋ว (เลข DR, ที่มา ASM/Swap, ผู้แจ้ง, เหตุผล)
-  ขวา: ข้อมูลสินค้า/MP, S/N, ป้าย, จำนวน, สภาพ, รูป (read-only)
-       + แสดง "ผู้ตรวจสอบ" = ชื่อผู้ Login (auto, อ่านอย่างเดียว)
-       + เลือก "คลังของเสียปลายทาง" (required ก่อนยืนยัน)
-       + ช่องบันทึกเพิ่มเติม (optional)
-  ปุ่ม: [ยืนยันรับเข้าคลังของเสีย]  [Reject กลับไปแก้ไข]  [ปิด]
-        │                              │
-        │ ยืนยัน                       │ Reject (กรอกเหตุผล)
-        ▼                              ▼
-  UPDATE defective_returns           UPDATE defective_returns
-    status=completed                   status=rejected_for_edit
-    stock_deducted_at=now              rejection_reason=<กรอก>
-    confirmed_by, confirmed_at         rejected_by, rejected_at
-  + ตัด stock + log stock_movement   + ถ้ามี assessment_log_id →
-  ปิด dialog, refresh pending list     คืนสถานะ assessment เป็น pending
+1. คลังกด Reject ใบ DR-xxxx
+   → defective_returns: status='rejected_for_edit', rejection_reason=...
+   → assessment_logs: status='pending' (กลับมาให้ช่างแก้)
+
+2. ช่างเปิด ASM เดิม กด "บันทึกผลใหม่" → เลือก outcome='defective' อีกครั้ง
+   AssessmentCompleteDialog (บรรทัด 467-499) เช็ค idempotency:
+     SELECT FROM defective_returns
+       WHERE assessment_log_id = log.id AND status != 'cancelled'
+   → เจอใบเดิม (rejected_for_edit ≠ cancelled) → "reuse" document_no
+   → ❌ ไม่ INSERT ใบใหม่
+   → ❌ ไม่ UPDATE ใบเดิมกลับเป็น pending_warehouse_entry
+   → ❌ ไม่อัปเดต reason/notes ตามผลประเมินใหม่
 ```
 
-## รายละเอียดที่จะแก้ใน `src/pages/DefectiveReturnEntry.tsx`
+## ผลลัพธ์ที่ผิด
 
-1. **ปุ่ม "ดำเนินการ"**
-   - ไม่ทำ `setActiveTab("new")` และไม่ prefill ฟอร์มสร้างใหม่อีก
-   - เปิด `ReviewTicketDialog` ส่ง ticket object ที่ enrich แล้ว (equipment/MP/billboard/assessment)
+- ใบ DR ค้างที่ `rejected_for_edit` ตลอดไป
+- หน้า "ตั๋วรอดำเนินการ" ของคลัง query `status='pending_warehouse_entry'` → **ใบนี้หายไป ไม่โผล่ให้คลังตรวจอีกเลย**
+- assessment_log โดน flip กลับเป็น completed แต่ไม่มีใบ DR ที่ active → loop ตัน
+- toast แจ้ง "สร้าง DR-xxxx แล้ว" ทั้งที่จริงๆ ไม่ได้สร้าง/รีเซ็ตอะไร
 
-2. **สร้าง `ReviewTicketDialog` ในไฟล์เดียวกัน** (read-only review)
-   - Layout 2 คอลัมน์ (responsive)
-   - **ซ้าย:** เลข DR, ที่มา (ASM-xxx / SWAP-xxx + ลิงก์), ผู้แจ้ง+ฝ่าย, วันที่สร้าง, เหตุผล, หมายเหตุ
-   - **ขวา:** ประเภท, code+name+brand, S/N (รวม S/N2 ของ MP), ป้ายที่เกี่ยวข้อง, จำนวน, สภาพ, รูปแนบ
-   - **ส่วนล่าง (action area):**
-     - **ผู้ตรวจสอบ:** badge/field อ่านอย่างเดียว แสดง `profiles.full_name` ของผู้ Login (ดึงเหมือน `reporterName` ที่มีอยู่แล้ว) + email สำรองถ้าไม่มี full_name
-     - Select **"คลังของเสียปลายทาง"** (required) — ใช้ `LocationSelect`
-     - Textarea หมายเหตุเพิ่มเติม (optional, append เข้า `notes`)
+## สิ่งที่ควรเป็น
 
-3. **กดยืนยัน → `handleConfirmReceive(ticket)`**
-   - `UPDATE defective_returns` ใบเดิม:
-     - `quarantine_location_id`, `stock_deducted_at=now()`, `status='completed'`
-     - `confirmed_by=auth.uid()`, `confirmed_at=now()`, `confirmed_by_name=<ชื่อผู้ Login>`
-     - `notes` (append หมายเหตุเพิ่มเติม ถ้ามี)
-   - ตัด stock equipment/MP ตามจำนวน → `INSERT stock_movements` (`movement_type='transfer_in'` ไปคลังของเสีย, `reference_type='defective_return'`, `reference_id=ticket.id`, `reference_document=ticket.document_no`)
-   - Refresh pending list + toast สำเร็จ + ปิด dialog
-   - **ห้ามสร้าง `defective_returns` ใบใหม่** เพื่อปิดทาง bug ซ้ำ
+ตอนช่างประเมินใหม่แล้วเลือก `defective` อีกครั้ง ระบบควร **revive ใบ DR เดิม** (เลขเดิมเพื่อ audit trail ต่อเนื่อง) โดย:
 
-4. **กด Reject → `handleRejectTicket(ticket, reason)`**
-   - บังคับกรอก `rejection_reason`
-   - `UPDATE defective_returns`: `status='rejected_for_edit'`, `rejection_reason`, `rejected_by=auth.uid()`, `rejected_at=now()`, `rejected_by_name=<ชื่อผู้ Login>`
-   - ถ้ามี `assessment_log_id` → `UPDATE assessment_logs` กลับเป็น `status='pending'` เพื่อให้หน้า Assessment เปิดแก้ไขส่งใหม่ได้
-   - Refresh pending list + toast "ส่งคืนเพื่อแก้ไขแล้ว" + ปิด dialog
+1. UPDATE ใบ DR เดิม:
+   - `status` → `pending_warehouse_entry`
+   - `reason` → ผลประเมินใหม่ (overwrite)
+   - `notes` → append "ประเมินใหม่หลัง Reject (เหตุผลเดิม: ...)"
+   - `quantity`, `item_condition`, `equipment_id/media_player_id` → sync ตามผลใหม่ (เผื่อช่างแก้)
+   - เคลียร์ field reject: `rejected_at=null`, `rejected_by=null`, `rejected_by_name=null`, `rejection_reason=null`
+   - `updated_at=now()`
+2. ถ้าผลใหม่ไม่ใช่ `defective` (เช่น เปลี่ยนเป็น `claim` / `self_repair` / `return_refurb`) → set ใบ DR เดิมเป็น `cancelled` พร้อม note "ยกเลิกหลังประเมินใหม่ → <outcome ใหม่>" แล้วทำ side-effect ของ outcome ใหม่ตามปกติ (กันสองทาง: ของเสีย + claim ซ้อนกัน)
 
-5. **แท็บ "สร้างใหม่" คงเดิม**
-   - ใช้สำหรับเปิดเคสใหม่จากศูนย์เท่านั้น
-   - ลบ logic `existingTicket` ที่เคยผูกแท็บสร้างใหม่กับตั๋วเดิมออก
+## แก้ที่ไหน
 
-## ดึงชื่อผู้ตรวจสอบ
+ไฟล์เดียว: `src/components/assessment/AssessmentCompleteDialog.tsx`
 
-- ใช้ `useAuth().user` + query `profiles.full_name` (มี pattern เดียวกันใน `useEffect` ที่ auto-fill `reporterName` อยู่แล้ว — บรรทัด 72-86)
-- เก็บใน state `reviewerName` ที่ Dialog อ่านมาแสดงในฟิลด์ read-only
-- ส่งค่านี้พร้อม `auth.uid()` ลงคอลัมน์ `confirmed_by_name` / `rejected_by_name`
+### 1) Branch `outcome === "defective"` (บรรทัด ~467-499)
+- เปลี่ยน query idempotency ให้ดึงทั้ง `id, document_no, status`
+- ถ้าเจอใบเดิม:
+  - status = `pending_warehouse_entry` หรือ `completed` → reuse เลขเดิม (พฤติกรรมเดิม)
+  - status = `rejected_for_edit` → UPDATE revive ตามรายการข้างบน, log toast ว่า "ส่งใบ DR-xxxx กลับเข้าคลังอีกครั้ง"
+  - status = `cancelled` → INSERT ใบใหม่ (เหมือนไม่มีใบเดิม)
+- ถ้าไม่เจอใบเดิม → INSERT ตามเดิม
 
-## ตรวจสอบ Flow ปลายทาง
+### 2) Branch อื่น (`claim` / `self_repair` / `return_refurb`)
+- ก่อนทำ side-effect ของ outcome ใหม่ ให้เช็คว่ามีใบ DR `rejected_for_edit` ของ assessment นี้ค้างอยู่หรือไม่
+- ถ้ามี → UPDATE เป็น `cancelled` + notes อธิบายเหตุ ก่อนสร้าง claim/flip status
 
-- **Assessment → Defective:** `AssessmentCompleteDialog` ยังสร้าง DR (`pending_warehouse_entry`) → คลังเปิด Review Dialog → ยืนยัน/Reject ตาม flow ใหม่ ตรงกับ memory `assessment-defective-handoff`
-- **Swap → Defective:** Swap Wizard ปัจจุบันไม่สร้าง DR โดยตรง (สร้าง assessment_log) — flow ใหม่ไม่กระทบ
-- **กันซ้ำ:** หลัง confirm ตั๋วจะมี `stock_deducted_at` ทำให้หลุดจาก query `pending_warehouse_entry + stock_deducted_at IS NULL`
-- **Reject → resubmit:** ตั๋วเดิมคงอยู่ (status=`rejected_for_edit`) เพื่อ audit; การส่งใหม่จาก Assessment จะสร้าง DR ใบใหม่หลังแก้ผลแล้ว
-
-## Schema เพิ่ม (migration เล็ก)
-
-`defective_returns` เพิ่มคอลัมน์ (nullable):
-- `confirmed_by uuid`, `confirmed_at timestamptz`, `confirmed_by_name text`
-- `rejected_by uuid`, `rejected_at timestamptz`, `rejected_by_name text`, `rejection_reason text`
-- เพิ่มค่า `'rejected_for_edit'` ให้คอลัมน์ `status` (ถ้าเป็น text ไม่ต้องทำ)
+### 3) Toast หลังบันทึก
+- เพิ่มข้อความเฉพาะกรณี revive: "📦 ส่งใบ DR-xxxx กลับเข้าคลังของเสียอีกครั้ง (หลังแก้ผลประเมิน)"
 
 ## ไม่แตะ
 
-- ไม่แก้ `AssessmentCompleteDialog`, `SwapWizardDialog`, security findings อื่น
-- ไม่เปลี่ยน schema ตาราง stock_movements
-- ไม่ลบข้อมูลตั๋วเดิม
+- ไม่แก้ `DefectiveReturnEntry.tsx` (query `pending_warehouse_entry` ถูกต้องอยู่แล้ว — แค่ DR ฝั่งโน้นต้องถูก revive)
+- ไม่แก้ schema เพิ่ม (ใช้ฟิลด์ที่ migration ก่อนหน้าเพิ่มไว้แล้ว: `rejected_at/by/by_name`, `rejection_reason`)
+- ไม่แตะหน้า AssessmentLog (badge "Reject จาก DR-xxx" จะหายไปอัตโนมัติเมื่อใบ revive กลับเป็น `pending_warehouse_entry` เพราะ query กรอง `status='rejected_for_edit'`)
+- ไม่แตะ Swap flow
+
+## Flow ใหม่ (สรุปเป็น diagram)
+
+```text
+Reject ครั้งที่ 1               ประเมินใหม่ (outcome=defective)
+─────────────────────           ──────────────────────────────
+DR-001: pending_warehouse  →    DR-001: rejected_for_edit  →   DR-001: pending_warehouse
+ASM-009: completed              ASM-009: pending                ASM-009: completed
+                                                                (เลข DR เดิม, audit ต่อเนื่อง,
+                                                                 reason/notes อัปเดต)
+
+ประเมินใหม่ (outcome=claim แทน defective)
+─────────────────────────────────────────
+DR-001: rejected_for_edit  →   DR-001: cancelled
+                               CLM-xxx: submitted (ใหม่)
+                               MP/SN: in_claim
+```
