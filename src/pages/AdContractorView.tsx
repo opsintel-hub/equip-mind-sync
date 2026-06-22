@@ -21,56 +21,41 @@ const AdContractorView = () => {
   const [pin, setPin] = useState("");
   const [pinVerified, setPinVerified] = useState(false);
   const [pinError, setPinError] = useState("");
+  const [verifying, setVerifying] = useState(false);
 
   const { data, isLoading, error } = useQuery({
-    queryKey: ["ad-contractor-view", token, pinVerified],
+    queryKey: ["ad-contractor-view", token, pinVerified, pin],
     queryFn: async () => {
-      if (!token) throw new Error("ไม่พบ Token");
-
-      // First fetch minimal data to verify pin
-      const { data: ad, error: adError } = await supabase
-        .from("advertisements")
-        .select(`
-          id, code, name, entry_type, total_quantity, status,
-          photo_urls, target_installation_date, installation_details,
-          supporting_doc_url, notes, contact_name, contact_phone,
-          contractor_access_pin, created_at,
-          ad_size:ad_sizes!advertisements_ad_size_id_fkey (name),
-          ad_media_type:ad_media_types!advertisements_ad_media_type_id_fkey (name),
-          installation_team:contractors!advertisements_installation_team_id_fkey (code, name, contact_person),
-          ad_versions (version_name, quantity),
-          ad_target_billboards (billboard_id, billboards (equipment_id, old_code, location_name, department, size))
-        `)
-        .eq("contractor_access_token", token)
-        .single();
-
-      if (adError || !ad) throw new Error("ไม่พบข้อมูลภาพโฆษณา");
-      return ad;
+      if (!token || !pinVerified) return null;
+      const { data, error } = await supabase.rpc("public_get_ad_by_contractor_token" as any, {
+        _token: token,
+        _pin: pin,
+      });
+      if (error) throw error;
+      if (!data) throw new Error("ไม่พบข้อมูลภาพโฆษณา");
+      return data as any;
     },
-    enabled: !!token,
+    enabled: !!token && pinVerified,
   });
 
-  const handlePinSubmit = (e: React.FormEvent) => {
+  const handlePinSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!data) return;
-
-    if (pin === (data as any).contractor_access_pin) {
-      setPinVerified(true);
-      setPinError("");
-    } else {
+    if (!token || pin.length !== 4) return;
+    setVerifying(true);
+    const { data, error: rpcErr } = await supabase.rpc("public_get_ad_by_contractor_token" as any, {
+      _token: token,
+      _pin: pin,
+    });
+    setVerifying(false);
+    if (rpcErr || !data) {
       setPinError("รหัส PIN ไม่ถูกต้อง กรุณาลองใหม่");
+      return;
     }
+    setPinError("");
+    setPinVerified(true);
   };
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-muted/30 flex items-center justify-center">
-        <p className="text-muted-foreground">กำลังโหลด...</p>
-      </div>
-    );
-  }
-
-  if (error || !data) {
+  if (!token) {
     return (
       <div className="min-h-screen bg-muted/30 flex items-center justify-center p-4">
         <Card className="max-w-md w-full">
@@ -82,6 +67,7 @@ const AdContractorView = () => {
       </div>
     );
   }
+
 
   // PIN entry screen
   if (!pinVerified) {
