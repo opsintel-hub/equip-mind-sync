@@ -12,8 +12,10 @@ import { SearchableSelect } from "@/components/ui/searchable-select";
 import { SimpleDepartmentSelect } from "@/components/equipment/SimpleDepartmentSelect";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { AlertTriangle, Package, MapPin, Send, Loader2, Info, PlusCircle, X, ImagePlus, Search, Inbox, ArrowRight } from "lucide-react";
+import { AlertTriangle, Package, MapPin, Send, Loader2, Info, PlusCircle, X, ImagePlus, Search, Inbox, ArrowRight, CheckCircle2, XCircle, UserCheck } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { LocationSelect } from "@/components/location/LocationSelect";
 import { useAuth } from "@/hooks/useAuth";
 import { format } from "date-fns";
 
