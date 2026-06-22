@@ -285,6 +285,7 @@ const DefectiveReturnEntry = () => {
         .from("defective_returns")
         .select("id, document_no, status, source_type, reason, notes, quantity, is_media_player, equipment_id, media_player_id, billboard_id, assessment_log_id, swap_request_id, reporter_name, reporter_department, created_at")
         .eq("status", "pending_warehouse_entry")
+        .is("stock_deducted_at", null)
         .order("created_at", { ascending: false });
       if (error) throw error;
 
