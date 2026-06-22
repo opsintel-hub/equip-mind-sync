@@ -506,7 +506,11 @@ const DefectiveReturnEntry = () => {
         await supabase.from("assessment_logs").update({ status: "pending" } as any).eq("id", t.assessment_log_id);
       }
 
-      toast.success(`ส่งคืนตั๋ว ${t.document_no} เพื่อแก้ไขแล้ว`);
+      toast.success(
+        t.assessment_log_id
+          ? `ส่งคืนตั๋ว ${t.document_no} กลับไปที่เมนู "บันทึกการประเมิน" เพื่อแก้ไขผลแล้ว`
+          : `ส่งคืนตั๋ว ${t.document_no} ให้ผู้แจ้ง (${t.reporter_name || "-"}) แก้ไขแล้ว`
+      );
       closeReviewDialog();
       fetchPendingTickets();
     } catch (e: any) {
@@ -1342,7 +1346,26 @@ const DefectiveReturnEntry = () => {
                 </div>
 
                 {showRejectInput && (
-                  <div className="space-y-1 p-3 rounded-md border-2 border-destructive/40 bg-destructive/5">
+                  <div className="space-y-2 p-3 rounded-md border-2 border-destructive/40 bg-destructive/5">
+                    <div className="text-sm text-destructive font-medium flex items-start gap-2">
+                      <XCircle className="w-4 h-4 mt-0.5 shrink-0" />
+                      <div>
+                        ตั๋วนี้จะถูกส่งกลับไปที่:{" "}
+                        {reviewTicket?.assessment_log_id ? (
+                          <span className="font-semibold">เมนู "บันทึกการประเมิน" (/assessment)</span>
+                        ) : (
+                          <span className="font-semibold">ผู้แจ้ง — เพื่อสร้างใบใหม่ที่ถูกต้อง</span>
+                        )}
+                        <div className="text-xs font-normal text-muted-foreground mt-1">
+                          {reviewTicket?.assessment_log_id
+                            ? "ผลตรวจประเมินจะถูกคืนสถานะเป็น 'pending' ให้ผู้แจ้งเปิดแก้ไขผลแล้วส่งกลับมาใหม่"
+                            : "ตั๋วเดิมจะถูกบันทึกสถานะ 'rejected_for_edit' เพื่อ audit (ไม่ลบทิ้ง) ผู้แจ้งต้องเปิดเคสใหม่จากเมนูเดิม"}
+                          {" • ผู้แจ้ง: "}
+                          <span className="font-medium">{reviewTicket?.reporter_name || "-"}</span>
+                          {reviewTicket?.reporter_department ? ` (${reviewTicket.reporter_department})` : ""}
+                        </div>
+                      </div>
+                    </div>
                     <Label className="text-sm text-destructive">เหตุผลที่ Reject <span className="text-destructive">*</span></Label>
                     <Textarea
                       value={rejectReason}
