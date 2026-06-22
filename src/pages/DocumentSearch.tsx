@@ -562,7 +562,7 @@ export default function DocumentSearch() {
       // Fetch from defective_returns (นำของเสียเข้าระบบ)
       const { data: defData } = await supabase
         .from("defective_returns")
-        .select("id, document_no, status, dispose_status, disposal_method, quantity, reason, item_condition, source_type, reporter_name, reporter_department, billboard_id, created_at, equipment:equipment_id(code, name, unit), media_player:media_player_id(code, name, serial_number_1, serial_number_2), billboards:billboard_id(equipment_id, old_code, location_name)")
+        .select("id, document_no, status, dispose_status, disposal_method, quantity, reason, item_condition, source_type, reporter_name, reporter_department, billboard_id, created_at, updated_at, confirmed_at, rejected_at, stock_deducted_at, equipment:equipment_id(code, name, unit), media_player:media_player_id(code, name, serial_number_1, serial_number_2), billboards:billboard_id(equipment_id, old_code, location_name)")
         .order("created_at", { ascending: false });
 
       // Fetch from assessment_logs (บันทึกการประเมิน)
@@ -1176,7 +1176,7 @@ export default function DocumentSearch() {
                       : [];
                     const statusInfo = getCurrentStatusBadge(doc);
                     const r = doc.raw || {};
-                    const lastUpdate = r.confirmed_at || r.issued_at || r.approved_at || r.received_at || r.updated_at || doc.created_at;
+                    const lastUpdate = r.confirmed_at || r.rejected_at || r.stock_deducted_at || r.issued_at || r.approved_at || r.received_at || r.updated_at || doc.created_at;
                     return (
                       <TableRow key={`${doc.source}-${doc.id}`} className="border-border/30 hover:bg-muted/30">
                         <TableCell className="font-mono text-xs font-medium pl-6 whitespace-nowrap sticky left-0 z-10 bg-background shadow-[1px_0_0_0_hsl(var(--border))]">{doc.document_no}</TableCell>
