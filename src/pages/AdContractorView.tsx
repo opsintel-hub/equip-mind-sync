@@ -102,12 +102,20 @@ const AdContractorView = () => {
                 />
                 {pinError && <p className="text-sm text-destructive">{pinError}</p>}
               </div>
-              <Button type="submit" className="w-full" disabled={pin.length !== 4}>
-                <Eye className="h-4 w-4 mr-2" /> เปิดดูข้อมูล
+              <Button type="submit" className="w-full" disabled={pin.length !== 4 || verifying}>
+                <Eye className="h-4 w-4 mr-2" /> {verifying ? "กำลังตรวจสอบ..." : "เปิดดูข้อมูล"}
               </Button>
             </form>
           </CardContent>
         </Card>
+      </div>
+    );
+  }
+
+  if (isLoading || !data) {
+    return (
+      <div className="min-h-screen bg-muted/30 flex items-center justify-center">
+        <p className="text-muted-foreground">กำลังโหลด...</p>
       </div>
     );
   }
