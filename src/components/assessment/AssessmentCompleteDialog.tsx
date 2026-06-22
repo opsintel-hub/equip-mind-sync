@@ -597,10 +597,14 @@ export function AssessmentCompleteDialog({ open, onOpenChange, log, onCompleted 
 
     setSubmitting(false);
     if (outcome === "defective") {
+      const wasRevived = !!(window as any).__lastDRRevived;
       toast.success(
-        `สร้างใบของเสีย ${createdDefectiveDocNo || ""} แล้ว — กำลังพาไปยืนยันที่เมนู "นำของเสียเข้าระบบ"`,
+        wasRevived
+          ? `📦 ส่งใบ ${createdDefectiveDocNo || ""} กลับเข้าคลังของเสียอีกครั้ง (หลังแก้ผลประเมิน)`
+          : `สร้างใบของเสีย ${createdDefectiveDocNo || ""} แล้ว — กำลังพาไปยืนยันที่เมนู "นำของเสียเข้าระบบ"`,
         { duration: 4000 }
       );
+      (window as any).__lastDRRevived = false;
       onCompleted();
       // Navigate to defective entry with prefill so warehouse staff can confirm + cut stock
       setTimeout(() => {
