@@ -1,40 +1,37 @@
-## ปัญหา
+## สิ่งที่ตรวจพบ
 
-จากภาพ ตัวอย่าง `ASM-20260601-0007` (เครื่องเดียวกัน S/N `AB03/BB03`) สร้างรายการของเสียในคลังออกมา **3 ใบ** (`DR-...-0530`, `-0723`, `-7531`) — ทุกใบ `pending_warehouse_entry` รอรับเข้าทั้งหมด ตรวจสอบฐานข้อมูลยืนยันแล้วว่ามาจาก `assessment_log_id` เดียวกัน
-
-### สาเหตุ
-
-ใน `src/components/assessment/AssessmentCompleteDialog.tsx` (`handleSubmit`):
-- เมื่อ outcome = `defective` จะ `insert` ลง `defective_returns` ทุกครั้งที่กด "บันทึก"
-- ไม่มีการเช็คว่ามี DR ของ assessment นี้อยู่แล้วหรือยัง
-- assessment ที่ `status='completed'` แล้วยังเปิด dialog แก้ไข + กดบันทึกซ้ำได้ → ทุกครั้งสร้าง DR ใบใหม่
-- นอกจากนี้ปุ่ม submit ก็ไม่มี guard กันการกดซ้อนระหว่าง network call (double-click)
+- ปุ่ม **ดำเนินการ** ในแท็บ **ตั๋วรอดำเนินการ** ตอนนี้ไม่ได้ “รับเข้าคลังจากตั๋วเดิม” แต่แค่คัดลอกข้อมูลจากตั๋วเดิมไปหน้า **สร้างใหม่**
+- เมื่อกดบันทึก ระบบจึงสร้าง `defective_returns` ใบใหม่อีกใบ แทนที่จะอัปเดตใบเดิม
+- ข้อมูลจริงตอนนี้ `ASM-20260601-0007` มีใบ active ซ้ำ 4 ใบแล้ว: `DR-20260601-0530`, `DR-20260601-9877`, `DR-20260622-5915`, `DR-20260622-9115`
+- ก่อนหน้าที่แก้ที่ `AssessmentCompleteDialog` กันซ้ำจากหน้าประเมินแล้ว แต่ช่องโหว่รอบนี้อยู่ที่หน้า `DefectiveReturnEntry` จากปุ่ม **ดำเนินการ**
 
 ## แผนแก้
 
-### 1. กันสร้าง DR ซ้ำจาก assessment เดียวกัน (idempotency)
-ใน `handleSubmit` ก่อน `insert` ลง `defective_returns`:
-- query หา DR ที่มี `assessment_log_id = log.id` อยู่แล้วและ `status != 'cancelled'`
-- ถ้ามีอยู่แล้ว → ข้าม insert, ใช้ `document_no` เดิมแสดง toast แทน
-- ใช้ logic เดียวกันกับ `claim` (เช็ค `claim_records` โดย `source_reference_id = log.id` + `source_type='assessment'`)
+1. **เปลี่ยนปุ่ม “ดำเนินการ” ให้ผูกกับตั๋วเดิม**
+   - เมื่อเลือกตั๋วรอดำเนินการ ให้เก็บ `ticket.id`, `document_no`, `assessment_log_id`
+   - ปรับข้อความ toast ให้ชัดว่าเป็นการ “ยืนยันตั๋วเดิม” ไม่ใช่สร้างรายการใหม่
 
-### 2. กันบันทึก assessment ซ้ำหลัง completed
-- ถ้า `log.status === 'completed'` แล้ว → ปิดปุ่มบันทึก + แสดง banner "การประเมินนี้บันทึกผลแล้ว ไม่สามารถแก้ไข/บันทึกซ้ำได้"
-- เปิด dialog ได้แบบ read-only เพื่อดูข้อมูล
+2. **ตอนกดบันทึก ถ้ามาจากตั๋วเดิม ต้องอัปเดตใบเดิมเท่านั้น**
+   - ห้าม `insert` `defective_returns` ใหม่
+   - ใช้ `update` ใบเดิม: เติมข้อมูลรับเข้าคลังของเสีย เช่น `quarantine_location_id`, `stock_deducted_at`, `reporter_name`, `reporter_department`, เหตุผล/จำนวนถ้ามีการปรับ
+   - ตัด stock และสร้าง `stock_movements` โดยอ้างอิง `reference_id` เป็น `ticket.id` และ `reference_document` เป็นเลข DR เดิม
 
-### 3. ล้างข้อมูลซ้ำที่ค้างอยู่ในระบบ
-ยกเลิก DR ซ้ำ 2 ใบจาก `ASM-20260601-0007` (เก็บใบแรกสุด `DR-20260601-0530` ที่เป็นต้นฉบับ ยกเลิก `-0723` และ `-7531`) โดย:
-- ตั้ง `status='cancelled'` + `notes` ระบุเหตุผล "ระบบสร้างซ้ำจาก bug — รวมกับ DR-20260601-0530"
-- สแกนหา assessment_log_id อื่น ๆ ที่มี DR ซ้ำ และ cancel ใบที่ไม่ใช่ใบแรกสุดด้วยวิธีเดียวกัน
+3. **กันกดซ้ำหลังดำเนินการแล้ว**
+   - ถ้าตั๋วมี `stock_deducted_at` หรือสถานะไม่ใช่ `pending_warehouse_entry` แล้ว ให้ไม่แสดงเป็นตั๋วรอดำเนินการ หรือปิดปุ่มดำเนินการ
+   - หลังบันทึกสำเร็จให้ refresh รายการ pending เพื่อให้ใบที่ทำแล้วหายไป
 
-### 4. (เสริม) กันกดปุ่มซ้อน
-- ปุ่ม "บันทึก" ใน dialog ตั้ง `disabled={submitting}` (ปัจจุบันมี `setSubmitting(true)` แล้ว แต่ตรวจให้แน่ใจว่าปุ่ม disabled ตอน submitting)
+4. **ล้างข้อมูลซ้ำที่เกิดจาก bug รอบนี้**
+   - เก็บใบต้นฉบับ `DR-20260601-0530`
+   - ยกเลิกใบซ้ำ active ที่เกิดทีหลัง: `DR-20260601-9877`, `DR-20260622-5915`, `DR-20260622-9115`
+   - ระบุหมายเหตุว่าเป็นรายการซ้ำจาก bug และรวมกับใบต้นฉบับ
 
-## ไฟล์ที่กระทบ
-- `src/components/assessment/AssessmentCompleteDialog.tsx` — เพิ่ม idempotency check + completed guard + submitting disabled
-- migration (data fix) — cancel DR/claim ซ้ำใน production data
+## ไฟล์/ฐานข้อมูลที่กระทบ
 
-## ไม่กระทบ
-- หน้า `/defective-return-entry` (รับเข้าคลังของเสีย) — logic เดิม
-- หน้า `/disposal-approval` — logic เดิม
-- schema `defective_returns` / `assessment_logs` — ไม่เปลี่ยน
+- `src/pages/DefectiveReturnEntry.tsx` เท่านั้นสำหรับ logic ปุ่มดำเนินการและบันทึก
+- Migration/data fix สำหรับยกเลิกรายการซ้ำที่มีอยู่
+
+## ไม่แตะ
+
+- ไม่เปลี่ยน workflow หน้าประเมินที่เพิ่งแก้ไปแล้ว
+- ไม่เปลี่ยน schema ตาราง
+- ไม่แก้ security finding อื่น ๆ

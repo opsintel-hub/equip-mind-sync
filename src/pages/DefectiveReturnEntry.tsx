@@ -63,6 +63,7 @@ const DefectiveReturnEntry = () => {
   const [reporterName, setReporterName] = useState("");
   const [reporterDepartment, setReporterDepartment] = useState("");
   const [fromAssessmentInfo, setFromAssessmentInfo] = useState<{ assessmentLogId: string; docNo: string | null } | null>(null);
+  const [existingTicket, setExistingTicket] = useState<{ id: string; document_no: string } | null>(null);
   const [activeTab, setActiveTab] = useState<"new" | "pending">("new");
   const [pendingTickets, setPendingTickets] = useState<any[]>([]);
   const [pendingLoading, setPendingLoading] = useState(false);
@@ -284,6 +285,7 @@ const DefectiveReturnEntry = () => {
         .from("defective_returns")
         .select("id, document_no, status, source_type, reason, notes, quantity, is_media_player, equipment_id, media_player_id, billboard_id, assessment_log_id, swap_request_id, reporter_name, reporter_department, created_at")
         .eq("status", "pending_warehouse_entry")
+        .is("stock_deducted_at", null)
         .order("created_at", { ascending: false });
       if (error) throw error;
 
@@ -365,15 +367,19 @@ const DefectiveReturnEntry = () => {
   };
 
   const handleProcessTicket = (ticket: any) => {
-    // Switch to "new" tab and prefill the form (without re-creating defective_return)
+    // Switch to "new" tab and prefill the form, BIND to existing ticket so submit UPDATEs (not INSERTs)
     setActiveTab("new");
     setIsMediaPlayer(!!ticket.is_media_player);
     setSelectedItemId(ticket.is_media_player ? ticket.media_player_id : ticket.equipment_id);
     setReason(ticket.reason || "");
     setNotes(ticket.notes || "");
     setQuantity(String(ticket.quantity || 1));
+    setPerUnitMode(false);
     setFromAssessmentInfo(ticket.assessment_log_id ? { assessmentLogId: ticket.assessment_log_id, docNo: ticket.document_no } : null);
-    toast.info(`เลือกตั๋ว ${ticket.document_no} แล้ว — ยืนยันข้อมูลและกดบันทึกเพื่อตัด Stock`);
+    setExistingTicket({ id: ticket.id, document_no: ticket.document_no });
+    if (ticket.reporter_name) setReporterName(ticket.reporter_name);
+    if (ticket.reporter_department) setReporterDepartment(ticket.reporter_department);
+    toast.info(`เลือกตั๋ว ${ticket.document_no} แล้ว — ยืนยันข้อมูลและกดบันทึกเพื่อตัด Stock เข้าคลังของเสีย`);
   };
 
   const equipmentOptions = useMemo(() => {
@@ -483,6 +489,8 @@ const DefectiveReturnEntry = () => {
     setSelectedItemId(""); setSelectedBillboardEquipmentId(""); setDetectedBillboards([]);
     setQuantity("1"); setItemCondition("defective"); setReason(""); setNotes("");
     setPerUnitMode(false);
+    setExistingTicket(null);
+    setFromAssessmentInfo(null);
     setDefectiveUnits([{ id: crypto.randomUUID(), serial_number: "", reason: "", item_condition: "defective", image_file: null, image_preview: null }]);
   };
 
@@ -501,6 +509,7 @@ const DefectiveReturnEntry = () => {
     }
 
     if (perUnitMode) {
+      if (existingTicket) { toast.error("ตั๋วเดิมไม่รองรับโหมดรายชิ้น — กรุณาปิดสวิตช์ 'ระบุข้อมูลรายชิ้น'"); return; }
       const validUnits = defectiveUnits.filter(u => u.serial_number.trim() && u.reason.trim());
       if (validUnits.length === 0) { toast.error("กรุณากรอก Serial Number และเหตุผล อย่างน้อย 1 ชิ้น"); return; }
       setIsSubmitting(true);
@@ -577,31 +586,54 @@ const DefectiveReturnEntry = () => {
       if (qty > maxQuantity) { toast.error(`จำนวนเกินกว่าที่มีอยู่ (สูงสุด ${maxQuantity})`); return; }
       setIsSubmitting(true);
       try {
-        const docNo = generateDocNo();
         const billboardId = selectedBillboardRecord?.billboard_id || null;
         const nowIso = new Date().toISOString();
-        const { data: drRow, error: insertError } = await supabase.from("defective_returns").insert({
-          document_no: docNo, equipment_id: isMediaPlayer ? null : selectedItemId,
-          media_player_id: isMediaPlayer ? selectedItemId : null, is_media_player: isMediaPlayer,
-          quantity: qty, billboard_id: billboardId, item_condition: itemCondition,
-          reason: reason.trim(), status: "pending_warehouse_entry",
-          source_type: fromAssessmentInfo ? "from_assessment" : (isFromBillboard ? "billboard" : "warehouse"),
-          quarantine_location_id: quarantineLocId,
-          stock_deducted_at: nowIso,
-          dispose_status: "pending_disposal_review",
-          reporter_name: reporterName.trim() || null,
-          reporter_department: reporterDepartment.trim() || null,
-          assessment_log_id: fromAssessmentInfo?.assessmentLogId || null,
-          created_by: user?.id,
-        } as any).select("id").maybeSingle();
-        if (insertError) throw insertError;
-        if (drRow) {
-          // 🔒 Cut stock + log movement to quarantine
-          await deductStockToQuarantine({
-            isMP: isMediaPlayer, itemId: selectedItemId, qty,
-            docNo, drId: drRow.id, reasonText: reason.trim(), quarantineLocId,
-          });
+        let docNo: string;
+        let drId: string;
+
+        if (existingTicket) {
+          // UPDATE existing ticket — DO NOT insert a new defective_returns row
+          docNo = existingTicket.document_no;
+          drId = existingTicket.id;
+          const { error: updErr } = await supabase.from("defective_returns").update({
+            quantity: qty,
+            item_condition: itemCondition,
+            reason: reason.trim(),
+            billboard_id: billboardId,
+            quarantine_location_id: quarantineLocId,
+            stock_deducted_at: nowIso,
+            dispose_status: "pending_disposal_review",
+            reporter_name: reporterName.trim() || null,
+            reporter_department: reporterDepartment.trim() || null,
+            notes: notes.trim() || null,
+          } as any).eq("id", existingTicket.id);
+          if (updErr) throw updErr;
+        } else {
+          docNo = generateDocNo();
+          const { data: drRow, error: insertError } = await supabase.from("defective_returns").insert({
+            document_no: docNo, equipment_id: isMediaPlayer ? null : selectedItemId,
+            media_player_id: isMediaPlayer ? selectedItemId : null, is_media_player: isMediaPlayer,
+            quantity: qty, billboard_id: billboardId, item_condition: itemCondition,
+            reason: reason.trim(), status: "pending_warehouse_entry",
+            source_type: fromAssessmentInfo ? "from_assessment" : (isFromBillboard ? "billboard" : "warehouse"),
+            quarantine_location_id: quarantineLocId,
+            stock_deducted_at: nowIso,
+            dispose_status: "pending_disposal_review",
+            reporter_name: reporterName.trim() || null,
+            reporter_department: reporterDepartment.trim() || null,
+            assessment_log_id: fromAssessmentInfo?.assessmentLogId || null,
+            created_by: user?.id,
+          } as any).select("id").maybeSingle();
+          if (insertError) throw insertError;
+          if (!drRow) throw new Error("ไม่สามารถบันทึกใบนำของเสียได้");
+          drId = drRow.id;
         }
+
+        // 🔒 Cut stock + log movement to quarantine
+        await deductStockToQuarantine({
+          isMP: isMediaPlayer, itemId: selectedItemId, qty,
+          docNo, drId, reasonText: reason.trim(), quarantineLocId,
+        });
         if (isFromBillboard && billboardId && !isMediaPlayer) {
           const be = detectedBillboards.find(b => b.id === selectedBillboardEquipmentId);
           if (be) {
@@ -624,7 +656,13 @@ const DefectiveReturnEntry = () => {
             .is("uninstall_date", null);
           await supabase.from("media_players").update({ billboard_id: null, status: "defective" }).eq("id", selectedItemId);
         }
-        toast.success(`บันทึกสำเร็จ (${docNo}) — ตัด Stock ${qty} หน่วยเข้า "คลังของเสีย" แล้ว`); handleReset();
+        if (existingTicket) {
+          toast.success(`ยืนยันตั๋ว ${docNo} แล้ว — ตัด Stock ${qty} หน่วยเข้า "คลังของเสีย"`);
+        } else {
+          toast.success(`บันทึกสำเร็จ (${docNo}) — ตัด Stock ${qty} หน่วยเข้า "คลังของเสีย" แล้ว`);
+        }
+        handleReset();
+        fetchPendingTickets();
       } catch (error: any) { toast.error("เกิดข้อผิดพลาด: " + error.message); } finally { setIsSubmitting(false); }
     }
   };
@@ -762,6 +800,21 @@ const DefectiveReturnEntry = () => {
             <CardDescription>เลือกสินค้า ระบบจะดึงข้อมูลเดิมมาให้อัตโนมัติ รวมถึงตรวจสอบว่าติดตั้งบนป้ายโฆษณาหรือไม่</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
+            {existingTicket && (
+              <div className="flex items-start justify-between gap-3 p-3 rounded-lg border-2 border-amber-300 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-800">
+                <div className="text-sm space-y-0.5">
+                  <div className="font-semibold text-amber-800 dark:text-amber-300">
+                    กำลังยืนยันตั๋วเดิม: <span className="font-mono">{existingTicket.document_no}</span>
+                  </div>
+                  <div className="text-xs text-amber-700 dark:text-amber-400">
+                    กดบันทึกเพื่ออัปเดตใบเดิม + ตัด Stock เข้าคลังของเสีย (ระบบจะไม่สร้างใบใหม่)
+                  </div>
+                </div>
+                <Button type="button" variant="ghost" size="sm" onClick={handleReset} className="text-amber-700 hover:bg-amber-100">
+                  <X className="w-4 h-4 mr-1" /> ยกเลิกผูกตั๋ว
+                </Button>
+              </div>
+            )}
             <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
               <Label className="text-sm font-medium">ประเภทที่ต้องการค้นหา:</Label>
               <span className={`text-sm ${!isMediaPlayer ? "font-semibold text-primary" : "text-muted-foreground"}`}>สินค้า/อะไหล่</span>
