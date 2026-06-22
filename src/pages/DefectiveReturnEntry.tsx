@@ -1238,6 +1238,150 @@ const DefectiveReturnEntry = () => {
       </div>
         </TabsContent>
       </Tabs>
+
+      {/* Review Ticket Dialog — read-only review with Confirm / Reject actions */}
+      <Dialog open={!!reviewTicket} onOpenChange={(open) => { if (!open) closeReviewDialog(); }}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          {reviewTicket && (
+            <>
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                  <CheckCircle2 className="w-5 h-5 text-primary" />
+                  ตรวจสอบและยืนยันรับเข้าคลังของเสีย
+                </DialogTitle>
+                <DialogDescription>
+                  ตรวจสอบข้อมูลให้ครบถ้วนก่อนกดยืนยัน — ถ้าข้อมูลไม่ถูกต้องให้กด Reject เพื่อส่งคืนผู้แจ้งแก้ไข
+                </DialogDescription>
+              </DialogHeader>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2 p-3 rounded-lg border bg-muted/30">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-mono font-semibold">{reviewTicket.document_no}</span>
+                    <Badge variant="secondary" className="text-xs">{reviewTicket.source_label}</Badge>
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    สร้างเมื่อ: {new Date(reviewTicket.created_at).toLocaleString("th-TH", { dateStyle: "medium", timeStyle: "short" })}
+                  </div>
+                  <div className="text-sm border-t pt-2">
+                    <div><span className="text-muted-foreground">ผู้แจ้ง:</span> <span className="font-medium">{reviewTicket.reporter_name || "—"}</span></div>
+                    <div><span className="text-muted-foreground">ฝ่าย:</span> <span className="font-medium">{reviewTicket.reporter_department || "—"}</span></div>
+                  </div>
+                  {reviewTicket.assessment_doc_no && (
+                    <div className="text-xs border-t pt-2">📋 จากการประเมิน: <span className="font-mono font-medium">{reviewTicket.assessment_doc_no}</span></div>
+                  )}
+                  {reviewTicket.swap_info && (
+                    <div className="text-xs border-t pt-2 space-y-0.5">
+                      <div className="font-medium text-blue-700 dark:text-blue-300">🔄 จาก Swap: <span className="font-mono">{reviewTicket.swap_info.doc_no}</span></div>
+                      {reviewTicket.swap_info.description && <div className="text-muted-foreground">อาการ: {reviewTicket.swap_info.description}</div>}
+                    </div>
+                  )}
+                  <div className="text-sm border-t pt-2">
+                    <div className="text-muted-foreground text-xs mb-0.5">เหตุผล/สาเหตุ:</div>
+                    <div className="whitespace-pre-line">{reviewTicket.reason || "—"}</div>
+                  </div>
+                  {reviewTicket.notes && (
+                    <div className="text-sm border-t pt-2">
+                      <div className="text-muted-foreground text-xs mb-0.5">หมายเหตุเดิม:</div>
+                      <div className="whitespace-pre-line">{reviewTicket.notes}</div>
+                    </div>
+                  )}
+                </div>
+
+                <div className="space-y-2 p-3 rounded-lg border bg-muted/30">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {reviewTicket.is_media_player && <Badge variant="outline" className="text-xs">Media Player</Badge>}
+                    <Badge variant="outline" className="text-xs">จำนวน × {reviewTicket.quantity}</Badge>
+                    <Badge variant="outline" className={`text-xs ${reviewTicket.item_condition === "defective" ? "bg-destructive/10 text-destructive" : "bg-yellow-500/10 text-yellow-600"}`}>
+                      {reviewTicket.item_condition === "defective" ? "เสีย/ชำรุด" : "รอตรวจสอบ"}
+                    </Badge>
+                  </div>
+                  <div className="text-sm">
+                    <div className="font-mono font-semibold">{reviewTicket.item_code}</div>
+                    <div>{reviewTicket.remote_name || reviewTicket.item_name}</div>
+                  </div>
+                  <div className="text-xs space-y-0.5 border-t pt-2">
+                    {reviewTicket.brand && <div><span className="text-muted-foreground">ยี่ห้อ:</span> <span className="font-medium">{reviewTicket.brand}</span></div>}
+                    {reviewTicket.model_name && <div><span className="text-muted-foreground">รุ่น:</span> <span className="font-medium">{reviewTicket.model_name}</span></div>}
+                    {reviewTicket.department && <div><span className="text-muted-foreground">แผนก:</span> <span className="font-medium">{reviewTicket.department}</span></div>}
+                  </div>
+                  {reviewTicket.serial_numbers?.length > 0 && (
+                    <div className="text-xs border-t pt-2">
+                      <div className="text-muted-foreground mb-0.5">S/N:</div>
+                      <div className="font-mono whitespace-pre-line">{reviewTicket.serial_numbers.join("\n")}</div>
+                    </div>
+                  )}
+                  {reviewTicket.billboard_label && (
+                    <div className="text-xs border-t pt-2 flex items-center gap-1">
+                      <MapPin className="w-3 h-3" /> ป้าย: <span className="font-medium">{reviewTicket.billboard_label}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="space-y-3 pt-2 border-t">
+                <div className="flex items-center gap-2 p-2 rounded-md bg-primary/5 border border-primary/20">
+                  <UserCheck className="w-4 h-4 text-primary" />
+                  <span className="text-sm text-muted-foreground">ผู้ตรวจสอบ:</span>
+                  <span className="text-sm font-semibold">{reviewerName || "—"}</span>
+                </div>
+
+                <div className="space-y-1">
+                  <Label className="text-sm">คลังของเสียปลายทาง <span className="text-destructive">*</span></Label>
+                  <LocationSelect value={reviewQuarantineId} onChange={setReviewQuarantineId} />
+                </div>
+
+                <div className="space-y-1">
+                  <Label className="text-sm">หมายเหตุเพิ่มเติม (ถ้ามี)</Label>
+                  <Textarea
+                    value={reviewExtraNotes}
+                    onChange={(e) => setReviewExtraNotes(e.target.value)}
+                    placeholder="บันทึกความเห็นของผู้ตรวจสอบ..."
+                    rows={2}
+                  />
+                </div>
+
+                {showRejectInput && (
+                  <div className="space-y-1 p-3 rounded-md border-2 border-destructive/40 bg-destructive/5">
+                    <Label className="text-sm text-destructive">เหตุผลที่ Reject <span className="text-destructive">*</span></Label>
+                    <Textarea
+                      value={rejectReason}
+                      onChange={(e) => setRejectReason(e.target.value)}
+                      placeholder="ระบุสิ่งที่ผู้แจ้งต้องแก้ไขก่อนส่งกลับมา..."
+                      rows={2}
+                    />
+                  </div>
+                )}
+              </div>
+
+              <DialogFooter className="gap-2 flex-wrap">
+                <Button variant="outline" onClick={closeReviewDialog} disabled={reviewSubmitting}>ปิด</Button>
+                {showRejectInput ? (
+                  <>
+                    <Button variant="ghost" onClick={() => { setShowRejectInput(false); setRejectReason(""); }} disabled={reviewSubmitting}>
+                      ยกเลิก Reject
+                    </Button>
+                    <Button variant="destructive" onClick={handleRejectTicket} disabled={reviewSubmitting || !rejectReason.trim()}>
+                      {reviewSubmitting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <XCircle className="w-4 h-4 mr-2" />}
+                      ยืนยัน Reject
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <Button variant="destructive" onClick={() => setShowRejectInput(true)} disabled={reviewSubmitting}>
+                      <XCircle className="w-4 h-4 mr-2" /> Reject กลับไปแก้ไข
+                    </Button>
+                    <Button onClick={handleConfirmReceive} disabled={reviewSubmitting || !reviewQuarantineId}>
+                      {reviewSubmitting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <CheckCircle2 className="w-4 h-4 mr-2" />}
+                      ยืนยันรับเข้าคลังของเสีย
+                    </Button>
+                  </>
+                )}
+              </DialogFooter>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
