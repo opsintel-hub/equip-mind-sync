@@ -5717,7 +5717,13 @@ export type Database = {
         Args: { _receiver_name: string; _token: string }
         Returns: boolean
       }
+      public_get_ad_by_contractor_token: {
+        Args: { _pin: string; _token: string }
+        Returns: Json
+      }
       public_get_ad_issue_request: { Args: { _token: string }; Returns: Json }
+      public_get_direct_shipment: { Args: { _id: string }; Returns: Json }
+      public_get_supplier_name: { Args: { _id: string }; Returns: string }
       public_report_ad_issue: {
         Args: {
           _report_description: string
