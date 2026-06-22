@@ -69,6 +69,14 @@ const DefectiveReturnEntry = () => {
   const [activeTab, setActiveTab] = useState<"new" | "pending">("new");
   const [pendingTickets, setPendingTickets] = useState<any[]>([]);
   const [pendingLoading, setPendingLoading] = useState(false);
+  // Review Dialog state
+  const [reviewTicket, setReviewTicket] = useState<any | null>(null);
+  const [reviewerName, setReviewerName] = useState("");
+  const [reviewQuarantineId, setReviewQuarantineId] = useState("");
+  const [reviewExtraNotes, setReviewExtraNotes] = useState("");
+  const [reviewSubmitting, setReviewSubmitting] = useState(false);
+  const [showRejectInput, setShowRejectInput] = useState(false);
+  const [rejectReason, setRejectReason] = useState("");
 
   // Auto-fill reporter from logged-in user's profile + first allowed department
   useEffect(() => {
