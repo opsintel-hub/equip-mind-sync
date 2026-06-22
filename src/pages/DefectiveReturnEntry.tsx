@@ -508,6 +508,7 @@ const DefectiveReturnEntry = () => {
     }
 
     if (perUnitMode) {
+      if (existingTicket) { toast.error("ตั๋วเดิมไม่รองรับโหมดรายชิ้น — กรุณาปิดสวิตช์ 'ระบุข้อมูลรายชิ้น'"); return; }
       const validUnits = defectiveUnits.filter(u => u.serial_number.trim() && u.reason.trim());
       if (validUnits.length === 0) { toast.error("กรุณากรอก Serial Number และเหตุผล อย่างน้อย 1 ชิ้น"); return; }
       setIsSubmitting(true);
@@ -584,31 +585,54 @@ const DefectiveReturnEntry = () => {
       if (qty > maxQuantity) { toast.error(`จำนวนเกินกว่าที่มีอยู่ (สูงสุด ${maxQuantity})`); return; }
       setIsSubmitting(true);
       try {
-        const docNo = generateDocNo();
         const billboardId = selectedBillboardRecord?.billboard_id || null;
         const nowIso = new Date().toISOString();
-        const { data: drRow, error: insertError } = await supabase.from("defective_returns").insert({
-          document_no: docNo, equipment_id: isMediaPlayer ? null : selectedItemId,
-          media_player_id: isMediaPlayer ? selectedItemId : null, is_media_player: isMediaPlayer,
-          quantity: qty, billboard_id: billboardId, item_condition: itemCondition,
-          reason: reason.trim(), status: "pending_warehouse_entry",
-          source_type: fromAssessmentInfo ? "from_assessment" : (isFromBillboard ? "billboard" : "warehouse"),
-          quarantine_location_id: quarantineLocId,
-          stock_deducted_at: nowIso,
-          dispose_status: "pending_disposal_review",
-          reporter_name: reporterName.trim() || null,
-          reporter_department: reporterDepartment.trim() || null,
-          assessment_log_id: fromAssessmentInfo?.assessmentLogId || null,
-          created_by: user?.id,
-        } as any).select("id").maybeSingle();
-        if (insertError) throw insertError;
-        if (drRow) {
-          // 🔒 Cut stock + log movement to quarantine
-          await deductStockToQuarantine({
-            isMP: isMediaPlayer, itemId: selectedItemId, qty,
-            docNo, drId: drRow.id, reasonText: reason.trim(), quarantineLocId,
-          });
+        let docNo: string;
+        let drId: string;
+
+        if (existingTicket) {
+          // UPDATE existing ticket — DO NOT insert a new defective_returns row
+          docNo = existingTicket.document_no;
+          drId = existingTicket.id;
+          const { error: updErr } = await supabase.from("defective_returns").update({
+            quantity: qty,
+            item_condition: itemCondition,
+            reason: reason.trim(),
+            billboard_id: billboardId,
+            quarantine_location_id: quarantineLocId,
+            stock_deducted_at: nowIso,
+            dispose_status: "pending_disposal_review",
+            reporter_name: reporterName.trim() || null,
+            reporter_department: reporterDepartment.trim() || null,
+            notes: notes.trim() || null,
+          } as any).eq("id", existingTicket.id);
+          if (updErr) throw updErr;
+        } else {
+          docNo = generateDocNo();
+          const { data: drRow, error: insertError } = await supabase.from("defective_returns").insert({
+            document_no: docNo, equipment_id: isMediaPlayer ? null : selectedItemId,
+            media_player_id: isMediaPlayer ? selectedItemId : null, is_media_player: isMediaPlayer,
+            quantity: qty, billboard_id: billboardId, item_condition: itemCondition,
+            reason: reason.trim(), status: "pending_warehouse_entry",
+            source_type: fromAssessmentInfo ? "from_assessment" : (isFromBillboard ? "billboard" : "warehouse"),
+            quarantine_location_id: quarantineLocId,
+            stock_deducted_at: nowIso,
+            dispose_status: "pending_disposal_review",
+            reporter_name: reporterName.trim() || null,
+            reporter_department: reporterDepartment.trim() || null,
+            assessment_log_id: fromAssessmentInfo?.assessmentLogId || null,
+            created_by: user?.id,
+          } as any).select("id").maybeSingle();
+          if (insertError) throw insertError;
+          if (!drRow) throw new Error("ไม่สามารถบันทึกใบนำของเสียได้");
+          drId = drRow.id;
         }
+
+        // 🔒 Cut stock + log movement to quarantine
+        await deductStockToQuarantine({
+          isMP: isMediaPlayer, itemId: selectedItemId, qty,
+          docNo, drId, reasonText: reason.trim(), quarantineLocId,
+        });
         if (isFromBillboard && billboardId && !isMediaPlayer) {
           const be = detectedBillboards.find(b => b.id === selectedBillboardEquipmentId);
           if (be) {
