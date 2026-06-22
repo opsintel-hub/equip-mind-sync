@@ -464,19 +464,65 @@ export function AssessmentCompleteDialog({ open, onOpenChange, log, onCompleted 
         }
       };
 
+      // Helper: ยกเลิกใบ DR ที่ค้าง rejected_for_edit ของ assessment นี้ (เมื่อเปลี่ยน outcome เป็นไม่ใช่ defective)
+      const cancelStaleRejectedDR = async (newOutcome: string) => {
+        const { data: stale } = await supabase
+          .from("defective_returns")
+          .select("id, document_no, notes")
+          .eq("assessment_log_id", log.id)
+          .eq("status", "rejected_for_edit")
+          .maybeSingle();
+        if (stale?.id) {
+          const cancelNote = `[${new Date().toISOString()}] ยกเลิกหลังประเมินใหม่ → outcome=${newOutcome}`;
+          await supabase
+            .from("defective_returns")
+            .update({
+              status: "cancelled",
+              notes: stale.notes ? `${stale.notes}\n${cancelNote}` : cancelNote,
+            } as any)
+            .eq("id", stale.id);
+        }
+      };
+
+      let revivedDR = false;
+
       if (outcome === "defective") {
         // Idempotency: เช็คว่ามี DR ของ assessment นี้อยู่แล้วหรือยัง
         const { data: existingDR } = await supabase
           .from("defective_returns")
-          .select("document_no")
+          .select("id, document_no, status, notes, rejection_reason")
           .eq("assessment_log_id", log.id)
           .neq("status", "cancelled")
           .maybeSingle();
 
-        if (existingDR?.document_no) {
+        const newReason = `จากการประเมิน ${log.document_no}: ${diagnosisNotes.trim() || symptomDescription.trim() || "ซ่อมไม่ได้"}`;
+
+        if (existingDR?.id && existingDR.status === "rejected_for_edit") {
+          // Revive ใบเดิม — เก็บเลขเดิมเพื่อ audit trail ต่อเนื่อง
+          const reviveNote = `[${new Date().toISOString()}] ประเมินใหม่หลัง Reject (เหตุผล Reject เดิม: ${existingDR.rejection_reason || "-"})`;
+          await supabase
+            .from("defective_returns")
+            .update({
+              status: "pending_warehouse_entry",
+              equipment_id: log.equipment_id,
+              media_player_id: log.media_player_id,
+              is_media_player: !!log.media_player_id,
+              quantity: 1,
+              item_condition: "defective",
+              reason: newReason,
+              notes: existingDR.notes ? `${existingDR.notes}\n${reviveNote}` : reviveNote,
+              rejected_at: null,
+              rejected_by: null,
+              rejected_by_name: null,
+              rejection_reason: null,
+            } as any)
+            .eq("id", existingDR.id);
+          createdDefectiveDocNo = existingDR.document_no;
+          revivedDR = true;
+        } else if (existingDR?.document_no) {
+          // Active อยู่แล้ว (pending_warehouse_entry / completed) → reuse เลขเดิม
           createdDefectiveDocNo = existingDR.document_no;
         } else {
-          // เครื่องค้างที่ pending_assessment จนกว่าคลังจะรับ
           const { data: drRow } = await supabase
             .from("defective_returns")
             .insert({
@@ -485,7 +531,7 @@ export function AssessmentCompleteDialog({ open, onOpenChange, log, onCompleted 
               is_media_player: !!log.media_player_id,
               quantity: 1,
               item_condition: "defective",
-              reason: `จากการประเมิน ${log.document_no}: ${diagnosisNotes.trim() || symptomDescription.trim() || "ซ่อมไม่ได้"}`,
+              reason: newReason,
               status: "pending_warehouse_entry",
               source_type: "from_assessment",
               assessment_log_id: log.id,
@@ -498,6 +544,7 @@ export function AssessmentCompleteDialog({ open, onOpenChange, log, onCompleted 
           createdDefectiveDocNo = drRow?.document_no || null;
         }
       } else if (outcome === "claim") {
+        await cancelStaleRejectedDR("claim");
         // Idempotency: เช็คว่ามี claim ของ assessment นี้อยู่แล้วหรือยัง
         const { data: existingClaim } = await supabase
           .from("claim_records")
@@ -529,6 +576,7 @@ export function AssessmentCompleteDialog({ open, onOpenChange, log, onCompleted 
         await flipStatus("in_claim", "in_claim", false, 0);
 
       } else if (outcome === "self_repair") {
+        await cancelStaleRejectedDR("self_repair");
         if (repairSuccess) {
           // ซ่อมสำเร็จ → คืนกลับ Spare (active + refurbished)
           await flipStatus("active", "in_stock", true, 1);
@@ -537,9 +585,12 @@ export function AssessmentCompleteDialog({ open, onOpenChange, log, onCompleted 
         }
 
       } else if (outcome === "return_refurb") {
+        await cancelStaleRejectedDR("return_refurb");
         // คืนเข้าคลังพร้อมใช้ (active) — นับเป็น stock 1
         await flipStatus("active", "in_stock", true, 1);
       }
+
+      (window as any).__lastDRRevived = revivedDR;
     } catch (e: any) {
       toast.warning("บันทึกแล้ว แต่ side-effect บางส่วนล้มเหลว: " + (e?.message || ""));
     }
