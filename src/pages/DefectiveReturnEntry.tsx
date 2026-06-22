@@ -380,20 +380,140 @@ const DefectiveReturnEntry = () => {
     }
   };
 
-  const handleProcessTicket = (ticket: any) => {
-    // Switch to "new" tab and prefill the form, BIND to existing ticket so submit UPDATEs (not INSERTs)
-    setActiveTab("new");
-    setIsMediaPlayer(!!ticket.is_media_player);
-    setSelectedItemId(ticket.is_media_player ? ticket.media_player_id : ticket.equipment_id);
-    setReason(ticket.reason || "");
-    setNotes(ticket.notes || "");
-    setQuantity(String(ticket.quantity || 1));
-    setPerUnitMode(false);
-    setFromAssessmentInfo(ticket.assessment_log_id ? { assessmentLogId: ticket.assessment_log_id, docNo: ticket.document_no } : null);
-    setExistingTicket({ id: ticket.id, document_no: ticket.document_no });
-    if (ticket.reporter_name) setReporterName(ticket.reporter_name);
-    if (ticket.reporter_department) setReporterDepartment(ticket.reporter_department);
-    toast.info(`เลือกตั๋ว ${ticket.document_no} แล้ว — ยืนยันข้อมูลและกดบันทึกเพื่อตัด Stock เข้าคลังของเสีย`);
+  const handleProcessTicket = async (ticket: any) => {
+    // Open Review Dialog (read-only) — do NOT switch to "new" tab or prefill the create form
+    setReviewTicket(ticket);
+    setReviewExtraNotes("");
+    setShowRejectInput(false);
+    setRejectReason("");
+    // Default quarantine location = ticket's existing one, else LOC-DEFECT, else blank
+    if (ticket.quarantine_location_id) {
+      setReviewQuarantineId(ticket.quarantine_location_id);
+    } else {
+      const defLoc = await getQuarantineLocationId();
+      setReviewQuarantineId(defLoc || "");
+    }
+  };
+
+  const closeReviewDialog = () => {
+    setReviewTicket(null);
+    setReviewExtraNotes("");
+    setShowRejectInput(false);
+    setRejectReason("");
+  };
+
+  const handleConfirmReceive = async () => {
+    if (!reviewTicket) return;
+    if (!reviewQuarantineId) {
+      toast.error("กรุณาเลือกคลังของเสียปลายทาง");
+      return;
+    }
+    setReviewSubmitting(true);
+    try {
+      const t = reviewTicket;
+      const nowIso = new Date().toISOString();
+      const combinedNotes = [t.notes, reviewExtraNotes.trim() ? `[ตรวจสอบโดย ${reviewerName}]: ${reviewExtraNotes.trim()}` : null]
+        .filter(Boolean).join("\n");
+
+      // UPDATE existing defective_returns row — NEVER insert a new one
+      const { error: updErr } = await supabase.from("defective_returns").update({
+        quarantine_location_id: reviewQuarantineId,
+        stock_deducted_at: nowIso,
+        status: "completed",
+        dispose_status: t.dispose_status || "pending_disposal_review",
+        notes: combinedNotes || null,
+        confirmed_by: user?.id || null,
+        confirmed_at: nowIso,
+        confirmed_by_name: reviewerName || null,
+      } as any).eq("id", t.id);
+      if (updErr) throw updErr;
+
+      // Cut stock + log movement
+      const isMP = !!t.is_media_player;
+      const itemId = isMP ? t.media_player_id : t.equipment_id;
+      const qty = t.quantity || 1;
+      if (itemId) {
+        if (isMP) {
+          const { data: mp } = await supabase.from("media_players").select("code, name, quantity").eq("id", itemId).maybeSingle();
+          if (mp) {
+            const before = mp.quantity || 0;
+            const after = Math.max(0, before - qty);
+            await supabase.from("media_players").update({
+              quantity: after, location_id: reviewQuarantineId, status: "defective",
+            }).eq("id", itemId);
+            await supabase.from("stock_movements").insert({
+              equipment_id: itemId, equipment_code: mp.code, equipment_name: mp.name,
+              movement_type: "defective_quarantine", quantity: -qty,
+              stock_before: before, stock_after: after,
+              reference_type: "defective_return", reference_id: t.id, reference_document: t.document_no,
+              location_id: reviewQuarantineId,
+              notes: `[ของเสีย → คลังของเสีย] ยืนยันโดย ${reviewerName} — ${t.reason || ""}`,
+              item_condition: t.item_condition || "defective",
+              created_by: user?.id,
+            });
+          }
+        } else {
+          const { data: eq } = await supabase.from("equipment").select("code, name, quantity_in_stock").eq("id", itemId).maybeSingle();
+          if (eq) {
+            const before = eq.quantity_in_stock || 0;
+            const after = Math.max(0, before - qty);
+            await supabase.from("equipment").update({ quantity_in_stock: after }).eq("id", itemId);
+            await supabase.from("stock_movements").insert({
+              equipment_id: itemId, equipment_code: eq.code, equipment_name: eq.name,
+              movement_type: "defective_quarantine", quantity: -qty,
+              stock_before: before, stock_after: after,
+              reference_type: "defective_return", reference_id: t.id, reference_document: t.document_no,
+              location_id: reviewQuarantineId,
+              notes: `[ของเสีย → คลังของเสีย] ยืนยันโดย ${reviewerName} — ${t.reason || ""}`,
+              item_condition: t.item_condition || "defective",
+              created_by: user?.id,
+            });
+          }
+        }
+      }
+
+      toast.success(`ยืนยันตั๋ว ${t.document_no} — รับเข้าคลังของเสียแล้ว`);
+      closeReviewDialog();
+      fetchPendingTickets();
+    } catch (e: any) {
+      toast.error("ยืนยันไม่สำเร็จ: " + e.message);
+    } finally {
+      setReviewSubmitting(false);
+    }
+  };
+
+  const handleRejectTicket = async () => {
+    if (!reviewTicket) return;
+    if (!rejectReason.trim()) {
+      toast.error("กรุณาระบุเหตุผลที่ Reject");
+      return;
+    }
+    setReviewSubmitting(true);
+    try {
+      const t = reviewTicket;
+      const nowIso = new Date().toISOString();
+      const { error: updErr } = await supabase.from("defective_returns").update({
+        status: "rejected_for_edit",
+        rejection_reason: rejectReason.trim(),
+        rejected_by: user?.id || null,
+        rejected_at: nowIso,
+        rejected_by_name: reviewerName || null,
+      } as any).eq("id", t.id);
+      if (updErr) throw updErr;
+
+      // If from assessment, send the assessment back to pending so user can edit & resubmit
+      if (t.assessment_log_id) {
+        await supabase.from("assessment_logs").update({ status: "pending" } as any).eq("id", t.assessment_log_id);
+      }
+
+      toast.success(`ส่งคืนตั๋ว ${t.document_no} เพื่อแก้ไขแล้ว`);
+      closeReviewDialog();
+      fetchPendingTickets();
+    } catch (e: any) {
+      toast.error("Reject ไม่สำเร็จ: " + e.message);
+    } finally {
+      setReviewSubmitting(false);
+    }
   };
 
   const equipmentOptions = useMemo(() => {
