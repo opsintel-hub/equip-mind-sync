@@ -63,6 +63,7 @@ const DefectiveReturnEntry = () => {
   const [reporterName, setReporterName] = useState("");
   const [reporterDepartment, setReporterDepartment] = useState("");
   const [fromAssessmentInfo, setFromAssessmentInfo] = useState<{ assessmentLogId: string; docNo: string | null } | null>(null);
+  const [existingTicket, setExistingTicket] = useState<{ id: string; document_no: string } | null>(null);
   const [activeTab, setActiveTab] = useState<"new" | "pending">("new");
   const [pendingTickets, setPendingTickets] = useState<any[]>([]);
   const [pendingLoading, setPendingLoading] = useState(false);
@@ -365,15 +366,19 @@ const DefectiveReturnEntry = () => {
   };
 
   const handleProcessTicket = (ticket: any) => {
-    // Switch to "new" tab and prefill the form (without re-creating defective_return)
+    // Switch to "new" tab and prefill the form, BIND to existing ticket so submit UPDATEs (not INSERTs)
     setActiveTab("new");
     setIsMediaPlayer(!!ticket.is_media_player);
     setSelectedItemId(ticket.is_media_player ? ticket.media_player_id : ticket.equipment_id);
     setReason(ticket.reason || "");
     setNotes(ticket.notes || "");
     setQuantity(String(ticket.quantity || 1));
+    setPerUnitMode(false);
     setFromAssessmentInfo(ticket.assessment_log_id ? { assessmentLogId: ticket.assessment_log_id, docNo: ticket.document_no } : null);
-    toast.info(`เลือกตั๋ว ${ticket.document_no} แล้ว — ยืนยันข้อมูลและกดบันทึกเพื่อตัด Stock`);
+    setExistingTicket({ id: ticket.id, document_no: ticket.document_no });
+    if (ticket.reporter_name) setReporterName(ticket.reporter_name);
+    if (ticket.reporter_department) setReporterDepartment(ticket.reporter_department);
+    toast.info(`เลือกตั๋ว ${ticket.document_no} แล้ว — ยืนยันข้อมูลและกดบันทึกเพื่อตัด Stock เข้าคลังของเสีย`);
   };
 
   const equipmentOptions = useMemo(() => {
@@ -483,6 +488,8 @@ const DefectiveReturnEntry = () => {
     setSelectedItemId(""); setSelectedBillboardEquipmentId(""); setDetectedBillboards([]);
     setQuantity("1"); setItemCondition("defective"); setReason(""); setNotes("");
     setPerUnitMode(false);
+    setExistingTicket(null);
+    setFromAssessmentInfo(null);
     setDefectiveUnits([{ id: crypto.randomUUID(), serial_number: "", reason: "", item_condition: "defective", image_file: null, image_preview: null }]);
   };
 
