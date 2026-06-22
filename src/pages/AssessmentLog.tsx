@@ -117,7 +117,32 @@ export default function AssessmentLog() {
     if (error) {
       toast.error("โหลดข้อมูลไม่สำเร็จ");
     } else {
-      setLogs((data as AssessmentLog[]) || []);
+      const rows = (data as AssessmentLog[]) || [];
+      setLogs(rows);
+      // Fetch any rejected DR tickets linked to these assessments
+      const ids = rows.filter(l => l.status === "pending").map(l => l.id);
+      if (ids.length > 0) {
+        const { data: drs } = await supabase
+          .from("defective_returns")
+          .select("assessment_log_id, document_no, rejection_reason, rejected_at, rejected_by_name")
+          .eq("status", "rejected_for_edit")
+          .in("assessment_log_id", ids)
+          .order("rejected_at", { ascending: false });
+        const map: typeof rejectionMap = {};
+        for (const d of (drs || []) as any[]) {
+          if (d.assessment_log_id && !map[d.assessment_log_id]) {
+            map[d.assessment_log_id] = {
+              document_no: d.document_no,
+              rejection_reason: d.rejection_reason,
+              rejected_at: d.rejected_at,
+              rejected_by_name: d.rejected_by_name,
+            };
+          }
+        }
+        setRejectionMap(map);
+      } else {
+        setRejectionMap({});
+      }
     }
     setLoading(false);
   };
