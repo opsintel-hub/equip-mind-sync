@@ -87,7 +87,11 @@ const DefectiveReturnEntry = () => {
         supabase.from("user_departments").select("department").eq("user_id", user.id).limit(1).maybeSingle(),
       ]);
       if (profileRes.data) {
-        setReporterName((prev) => prev || (profileRes.data as any).full_name || "");
+        const fullName = (profileRes.data as any).full_name || "";
+        setReporterName((prev) => prev || fullName);
+        setReviewerName((prev) => prev || fullName || user.email || "");
+      } else {
+        setReviewerName((prev) => prev || user.email || "");
       }
       if (deptRes.data) {
         setReporterDepartment((prev) => prev || (deptRes.data as any).department || "");
