@@ -545,15 +545,21 @@ export default function AssessmentLog() {
                   <div className="space-y-2">
                     {pagedLogs.map((log) => {
                       const status = STATUS_LABELS[log.status] || { label: log.status, variant: "outline" as const };
+                      const rejection = rejectionMap[log.id];
                       return (
                         <div
                           key={log.id}
-                          className="flex items-center justify-between gap-4 p-4 rounded-lg border hover:bg-accent/50 transition-colors flex-wrap"
+                          className={`flex items-center justify-between gap-4 p-4 rounded-lg border hover:bg-accent/50 transition-colors flex-wrap ${rejection ? "border-destructive/50 bg-destructive/5" : ""}`}
                         >
                           <div className="flex-1 min-w-[200px] space-y-1">
                             <div className="flex items-center gap-2 flex-wrap">
                               <span className="font-mono font-semibold">{log.document_no}</span>
                               <Badge variant={status.variant}>{status.label}</Badge>
+                              {rejection && (
+                                <Badge variant="destructive" className="gap-1">
+                                  ⟲ Reject จาก {rejection.document_no}
+                                </Badge>
+                              )}
                               {log.outcome && OUTCOME_LABELS[log.outcome] && (
                                 <Badge variant={OUTCOME_LABELS[log.outcome].variant}>
                                   {OUTCOME_LABELS[log.outcome].label}
@@ -563,6 +569,13 @@ export default function AssessmentLog() {
                                 <Badge variant="outline" className="font-mono text-xs">S/N: {log.serial_number}</Badge>
                               )}
                             </div>
+                            {rejection && (
+                              <div className="text-xs text-destructive bg-destructive/10 rounded px-2 py-1 border border-destructive/20">
+                                <span className="font-medium">เหตุผลที่ถูก Reject:</span> {rejection.rejection_reason || "—"}
+                                {rejection.rejected_by_name && <span className="ml-2 text-muted-foreground">โดย {rejection.rejected_by_name}</span>}
+                                {rejection.rejected_at && <span className="ml-2 text-muted-foreground">• {format(new Date(rejection.rejected_at), "dd MMM yyyy HH:mm", { locale: th })}</span>}
+                              </div>
+                            )}
                             <div className="text-sm text-muted-foreground">
                               {log.diagnosis_notes || log.symptom_description || "—"}
                             </div>
