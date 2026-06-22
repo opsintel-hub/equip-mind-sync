@@ -800,6 +800,21 @@ const DefectiveReturnEntry = () => {
             <CardDescription>เลือกสินค้า ระบบจะดึงข้อมูลเดิมมาให้อัตโนมัติ รวมถึงตรวจสอบว่าติดตั้งบนป้ายโฆษณาหรือไม่</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
+            {existingTicket && (
+              <div className="flex items-start justify-between gap-3 p-3 rounded-lg border-2 border-amber-300 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-800">
+                <div className="text-sm space-y-0.5">
+                  <div className="font-semibold text-amber-800 dark:text-amber-300">
+                    กำลังยืนยันตั๋วเดิม: <span className="font-mono">{existingTicket.document_no}</span>
+                  </div>
+                  <div className="text-xs text-amber-700 dark:text-amber-400">
+                    กดบันทึกเพื่ออัปเดตใบเดิม + ตัด Stock เข้าคลังของเสีย (ระบบจะไม่สร้างใบใหม่)
+                  </div>
+                </div>
+                <Button type="button" variant="ghost" size="sm" onClick={handleReset} className="text-amber-700 hover:bg-amber-100">
+                  <X className="w-4 h-4 mr-1" /> ยกเลิกผูกตั๋ว
+                </Button>
+              </div>
+            )}
             <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
               <Label className="text-sm font-medium">ประเภทที่ต้องการค้นหา:</Label>
               <span className={`text-sm ${!isMediaPlayer ? "font-semibold text-primary" : "text-muted-foreground"}`}>สินค้า/อะไหล่</span>
