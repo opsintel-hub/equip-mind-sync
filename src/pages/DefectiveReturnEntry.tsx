@@ -12,8 +12,10 @@ import { SearchableSelect } from "@/components/ui/searchable-select";
 import { SimpleDepartmentSelect } from "@/components/equipment/SimpleDepartmentSelect";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { AlertTriangle, Package, MapPin, Send, Loader2, Info, PlusCircle, X, ImagePlus, Search, Inbox, ArrowRight } from "lucide-react";
+import { AlertTriangle, Package, MapPin, Send, Loader2, Info, PlusCircle, X, ImagePlus, Search, Inbox, ArrowRight, CheckCircle2, XCircle, UserCheck } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { LocationSelect } from "@/components/location/LocationSelect";
 import { useAuth } from "@/hooks/useAuth";
 import { format } from "date-fns";
 
@@ -67,6 +69,14 @@ const DefectiveReturnEntry = () => {
   const [activeTab, setActiveTab] = useState<"new" | "pending">("new");
   const [pendingTickets, setPendingTickets] = useState<any[]>([]);
   const [pendingLoading, setPendingLoading] = useState(false);
+  // Review Dialog state
+  const [reviewTicket, setReviewTicket] = useState<any | null>(null);
+  const [reviewerName, setReviewerName] = useState("");
+  const [reviewQuarantineId, setReviewQuarantineId] = useState("");
+  const [reviewExtraNotes, setReviewExtraNotes] = useState("");
+  const [reviewSubmitting, setReviewSubmitting] = useState(false);
+  const [showRejectInput, setShowRejectInput] = useState(false);
+  const [rejectReason, setRejectReason] = useState("");
 
   // Auto-fill reporter from logged-in user's profile + first allowed department
   useEffect(() => {
@@ -77,7 +87,11 @@ const DefectiveReturnEntry = () => {
         supabase.from("user_departments").select("department").eq("user_id", user.id).limit(1).maybeSingle(),
       ]);
       if (profileRes.data) {
-        setReporterName((prev) => prev || (profileRes.data as any).full_name || "");
+        const fullName = (profileRes.data as any).full_name || "";
+        setReporterName((prev) => prev || fullName);
+        setReviewerName((prev) => prev || fullName || user.email || "");
+      } else {
+        setReviewerName((prev) => prev || user.email || "");
       }
       if (deptRes.data) {
         setReporterDepartment((prev) => prev || (deptRes.data as any).department || "");
@@ -366,20 +380,140 @@ const DefectiveReturnEntry = () => {
     }
   };
 
-  const handleProcessTicket = (ticket: any) => {
-    // Switch to "new" tab and prefill the form, BIND to existing ticket so submit UPDATEs (not INSERTs)
-    setActiveTab("new");
-    setIsMediaPlayer(!!ticket.is_media_player);
-    setSelectedItemId(ticket.is_media_player ? ticket.media_player_id : ticket.equipment_id);
-    setReason(ticket.reason || "");
-    setNotes(ticket.notes || "");
-    setQuantity(String(ticket.quantity || 1));
-    setPerUnitMode(false);
-    setFromAssessmentInfo(ticket.assessment_log_id ? { assessmentLogId: ticket.assessment_log_id, docNo: ticket.document_no } : null);
-    setExistingTicket({ id: ticket.id, document_no: ticket.document_no });
-    if (ticket.reporter_name) setReporterName(ticket.reporter_name);
-    if (ticket.reporter_department) setReporterDepartment(ticket.reporter_department);
-    toast.info(`เลือกตั๋ว ${ticket.document_no} แล้ว — ยืนยันข้อมูลและกดบันทึกเพื่อตัด Stock เข้าคลังของเสีย`);
+  const handleProcessTicket = async (ticket: any) => {
+    // Open Review Dialog (read-only) — do NOT switch to "new" tab or prefill the create form
+    setReviewTicket(ticket);
+    setReviewExtraNotes("");
+    setShowRejectInput(false);
+    setRejectReason("");
+    // Default quarantine location = ticket's existing one, else LOC-DEFECT, else blank
+    if (ticket.quarantine_location_id) {
+      setReviewQuarantineId(ticket.quarantine_location_id);
+    } else {
+      const defLoc = await getQuarantineLocationId();
+      setReviewQuarantineId(defLoc || "");
+    }
+  };
+
+  const closeReviewDialog = () => {
+    setReviewTicket(null);
+    setReviewExtraNotes("");
+    setShowRejectInput(false);
+    setRejectReason("");
+  };
+
+  const handleConfirmReceive = async () => {
+    if (!reviewTicket) return;
+    if (!reviewQuarantineId) {
+      toast.error("กรุณาเลือกคลังของเสียปลายทาง");
+      return;
+    }
+    setReviewSubmitting(true);
+    try {
+      const t = reviewTicket;
+      const nowIso = new Date().toISOString();
+      const combinedNotes = [t.notes, reviewExtraNotes.trim() ? `[ตรวจสอบโดย ${reviewerName}]: ${reviewExtraNotes.trim()}` : null]
+        .filter(Boolean).join("\n");
+
+      // UPDATE existing defective_returns row — NEVER insert a new one
+      const { error: updErr } = await supabase.from("defective_returns").update({
+        quarantine_location_id: reviewQuarantineId,
+        stock_deducted_at: nowIso,
+        status: "completed",
+        dispose_status: t.dispose_status || "pending_disposal_review",
+        notes: combinedNotes || null,
+        confirmed_by: user?.id || null,
+        confirmed_at: nowIso,
+        confirmed_by_name: reviewerName || null,
+      } as any).eq("id", t.id);
+      if (updErr) throw updErr;
+
+      // Cut stock + log movement
+      const isMP = !!t.is_media_player;
+      const itemId = isMP ? t.media_player_id : t.equipment_id;
+      const qty = t.quantity || 1;
+      if (itemId) {
+        if (isMP) {
+          const { data: mp } = await supabase.from("media_players").select("code, name, quantity").eq("id", itemId).maybeSingle();
+          if (mp) {
+            const before = mp.quantity || 0;
+            const after = Math.max(0, before - qty);
+            await supabase.from("media_players").update({
+              quantity: after, location_id: reviewQuarantineId, status: "defective",
+            }).eq("id", itemId);
+            await supabase.from("stock_movements").insert({
+              equipment_id: itemId, equipment_code: mp.code, equipment_name: mp.name,
+              movement_type: "defective_quarantine", quantity: -qty,
+              stock_before: before, stock_after: after,
+              reference_type: "defective_return", reference_id: t.id, reference_document: t.document_no,
+              location_id: reviewQuarantineId,
+              notes: `[ของเสีย → คลังของเสีย] ยืนยันโดย ${reviewerName} — ${t.reason || ""}`,
+              item_condition: t.item_condition || "defective",
+              created_by: user?.id,
+            });
+          }
+        } else {
+          const { data: eq } = await supabase.from("equipment").select("code, name, quantity_in_stock").eq("id", itemId).maybeSingle();
+          if (eq) {
+            const before = eq.quantity_in_stock || 0;
+            const after = Math.max(0, before - qty);
+            await supabase.from("equipment").update({ quantity_in_stock: after }).eq("id", itemId);
+            await supabase.from("stock_movements").insert({
+              equipment_id: itemId, equipment_code: eq.code, equipment_name: eq.name,
+              movement_type: "defective_quarantine", quantity: -qty,
+              stock_before: before, stock_after: after,
+              reference_type: "defective_return", reference_id: t.id, reference_document: t.document_no,
+              location_id: reviewQuarantineId,
+              notes: `[ของเสีย → คลังของเสีย] ยืนยันโดย ${reviewerName} — ${t.reason || ""}`,
+              item_condition: t.item_condition || "defective",
+              created_by: user?.id,
+            });
+          }
+        }
+      }
+
+      toast.success(`ยืนยันตั๋ว ${t.document_no} — รับเข้าคลังของเสียแล้ว`);
+      closeReviewDialog();
+      fetchPendingTickets();
+    } catch (e: any) {
+      toast.error("ยืนยันไม่สำเร็จ: " + e.message);
+    } finally {
+      setReviewSubmitting(false);
+    }
+  };
+
+  const handleRejectTicket = async () => {
+    if (!reviewTicket) return;
+    if (!rejectReason.trim()) {
+      toast.error("กรุณาระบุเหตุผลที่ Reject");
+      return;
+    }
+    setReviewSubmitting(true);
+    try {
+      const t = reviewTicket;
+      const nowIso = new Date().toISOString();
+      const { error: updErr } = await supabase.from("defective_returns").update({
+        status: "rejected_for_edit",
+        rejection_reason: rejectReason.trim(),
+        rejected_by: user?.id || null,
+        rejected_at: nowIso,
+        rejected_by_name: reviewerName || null,
+      } as any).eq("id", t.id);
+      if (updErr) throw updErr;
+
+      // If from assessment, send the assessment back to pending so user can edit & resubmit
+      if (t.assessment_log_id) {
+        await supabase.from("assessment_logs").update({ status: "pending" } as any).eq("id", t.assessment_log_id);
+      }
+
+      toast.success(`ส่งคืนตั๋ว ${t.document_no} เพื่อแก้ไขแล้ว`);
+      closeReviewDialog();
+      fetchPendingTickets();
+    } catch (e: any) {
+      toast.error("Reject ไม่สำเร็จ: " + e.message);
+    } finally {
+      setReviewSubmitting(false);
+    }
   };
 
   const equipmentOptions = useMemo(() => {
@@ -1104,6 +1238,150 @@ const DefectiveReturnEntry = () => {
       </div>
         </TabsContent>
       </Tabs>
+
+      {/* Review Ticket Dialog — read-only review with Confirm / Reject actions */}
+      <Dialog open={!!reviewTicket} onOpenChange={(open) => { if (!open) closeReviewDialog(); }}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          {reviewTicket && (
+            <>
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                  <CheckCircle2 className="w-5 h-5 text-primary" />
+                  ตรวจสอบและยืนยันรับเข้าคลังของเสีย
+                </DialogTitle>
+                <DialogDescription>
+                  ตรวจสอบข้อมูลให้ครบถ้วนก่อนกดยืนยัน — ถ้าข้อมูลไม่ถูกต้องให้กด Reject เพื่อส่งคืนผู้แจ้งแก้ไข
+                </DialogDescription>
+              </DialogHeader>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2 p-3 rounded-lg border bg-muted/30">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-mono font-semibold">{reviewTicket.document_no}</span>
+                    <Badge variant="secondary" className="text-xs">{reviewTicket.source_label}</Badge>
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    สร้างเมื่อ: {new Date(reviewTicket.created_at).toLocaleString("th-TH", { dateStyle: "medium", timeStyle: "short" })}
+                  </div>
+                  <div className="text-sm border-t pt-2">
+                    <div><span className="text-muted-foreground">ผู้แจ้ง:</span> <span className="font-medium">{reviewTicket.reporter_name || "—"}</span></div>
+                    <div><span className="text-muted-foreground">ฝ่าย:</span> <span className="font-medium">{reviewTicket.reporter_department || "—"}</span></div>
+                  </div>
+                  {reviewTicket.assessment_doc_no && (
+                    <div className="text-xs border-t pt-2">📋 จากการประเมิน: <span className="font-mono font-medium">{reviewTicket.assessment_doc_no}</span></div>
+                  )}
+                  {reviewTicket.swap_info && (
+                    <div className="text-xs border-t pt-2 space-y-0.5">
+                      <div className="font-medium text-blue-700 dark:text-blue-300">🔄 จาก Swap: <span className="font-mono">{reviewTicket.swap_info.doc_no}</span></div>
+                      {reviewTicket.swap_info.description && <div className="text-muted-foreground">อาการ: {reviewTicket.swap_info.description}</div>}
+                    </div>
+                  )}
+                  <div className="text-sm border-t pt-2">
+                    <div className="text-muted-foreground text-xs mb-0.5">เหตุผล/สาเหตุ:</div>
+                    <div className="whitespace-pre-line">{reviewTicket.reason || "—"}</div>
+                  </div>
+                  {reviewTicket.notes && (
+                    <div className="text-sm border-t pt-2">
+                      <div className="text-muted-foreground text-xs mb-0.5">หมายเหตุเดิม:</div>
+                      <div className="whitespace-pre-line">{reviewTicket.notes}</div>
+                    </div>
+                  )}
+                </div>
+
+                <div className="space-y-2 p-3 rounded-lg border bg-muted/30">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {reviewTicket.is_media_player && <Badge variant="outline" className="text-xs">Media Player</Badge>}
+                    <Badge variant="outline" className="text-xs">จำนวน × {reviewTicket.quantity}</Badge>
+                    <Badge variant="outline" className={`text-xs ${reviewTicket.item_condition === "defective" ? "bg-destructive/10 text-destructive" : "bg-yellow-500/10 text-yellow-600"}`}>
+                      {reviewTicket.item_condition === "defective" ? "เสีย/ชำรุด" : "รอตรวจสอบ"}
+                    </Badge>
+                  </div>
+                  <div className="text-sm">
+                    <div className="font-mono font-semibold">{reviewTicket.item_code}</div>
+                    <div>{reviewTicket.remote_name || reviewTicket.item_name}</div>
+                  </div>
+                  <div className="text-xs space-y-0.5 border-t pt-2">
+                    {reviewTicket.brand && <div><span className="text-muted-foreground">ยี่ห้อ:</span> <span className="font-medium">{reviewTicket.brand}</span></div>}
+                    {reviewTicket.model_name && <div><span className="text-muted-foreground">รุ่น:</span> <span className="font-medium">{reviewTicket.model_name}</span></div>}
+                    {reviewTicket.department && <div><span className="text-muted-foreground">แผนก:</span> <span className="font-medium">{reviewTicket.department}</span></div>}
+                  </div>
+                  {reviewTicket.serial_numbers?.length > 0 && (
+                    <div className="text-xs border-t pt-2">
+                      <div className="text-muted-foreground mb-0.5">S/N:</div>
+                      <div className="font-mono whitespace-pre-line">{reviewTicket.serial_numbers.join("\n")}</div>
+                    </div>
+                  )}
+                  {reviewTicket.billboard_label && (
+                    <div className="text-xs border-t pt-2 flex items-center gap-1">
+                      <MapPin className="w-3 h-3" /> ป้าย: <span className="font-medium">{reviewTicket.billboard_label}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="space-y-3 pt-2 border-t">
+                <div className="flex items-center gap-2 p-2 rounded-md bg-primary/5 border border-primary/20">
+                  <UserCheck className="w-4 h-4 text-primary" />
+                  <span className="text-sm text-muted-foreground">ผู้ตรวจสอบ:</span>
+                  <span className="text-sm font-semibold">{reviewerName || "—"}</span>
+                </div>
+
+                <div className="space-y-1">
+                  <Label className="text-sm">คลังของเสียปลายทาง <span className="text-destructive">*</span></Label>
+                  <LocationSelect value={reviewQuarantineId} onChange={setReviewQuarantineId} />
+                </div>
+
+                <div className="space-y-1">
+                  <Label className="text-sm">หมายเหตุเพิ่มเติม (ถ้ามี)</Label>
+                  <Textarea
+                    value={reviewExtraNotes}
+                    onChange={(e) => setReviewExtraNotes(e.target.value)}
+                    placeholder="บันทึกความเห็นของผู้ตรวจสอบ..."
+                    rows={2}
+                  />
+                </div>
+
+                {showRejectInput && (
+                  <div className="space-y-1 p-3 rounded-md border-2 border-destructive/40 bg-destructive/5">
+                    <Label className="text-sm text-destructive">เหตุผลที่ Reject <span className="text-destructive">*</span></Label>
+                    <Textarea
+                      value={rejectReason}
+                      onChange={(e) => setRejectReason(e.target.value)}
+                      placeholder="ระบุสิ่งที่ผู้แจ้งต้องแก้ไขก่อนส่งกลับมา..."
+                      rows={2}
+                    />
+                  </div>
+                )}
+              </div>
+
+              <DialogFooter className="gap-2 flex-wrap">
+                <Button variant="outline" onClick={closeReviewDialog} disabled={reviewSubmitting}>ปิด</Button>
+                {showRejectInput ? (
+                  <>
+                    <Button variant="ghost" onClick={() => { setShowRejectInput(false); setRejectReason(""); }} disabled={reviewSubmitting}>
+                      ยกเลิก Reject
+                    </Button>
+                    <Button variant="destructive" onClick={handleRejectTicket} disabled={reviewSubmitting || !rejectReason.trim()}>
+                      {reviewSubmitting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <XCircle className="w-4 h-4 mr-2" />}
+                      ยืนยัน Reject
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <Button variant="destructive" onClick={() => setShowRejectInput(true)} disabled={reviewSubmitting}>
+                      <XCircle className="w-4 h-4 mr-2" /> Reject กลับไปแก้ไข
+                    </Button>
+                    <Button onClick={handleConfirmReceive} disabled={reviewSubmitting || !reviewQuarantineId}>
+                      {reviewSubmitting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <CheckCircle2 className="w-4 h-4 mr-2" />}
+                      ยืนยันรับเข้าคลังของเสีย
+                    </Button>
+                  </>
+                )}
+              </DialogFooter>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

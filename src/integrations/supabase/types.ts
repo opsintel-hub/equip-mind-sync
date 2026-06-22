@@ -1263,6 +1263,9 @@ export type Database = {
         Row: {
           assessment_log_id: string | null
           billboard_id: string | null
+          confirmed_at: string | null
+          confirmed_by: string | null
+          confirmed_by_name: string | null
           created_at: string
           created_by: string | null
           disposal_approved_at: string | null
@@ -1284,6 +1287,10 @@ export type Database = {
           receive_location_id: string | null
           received_at: string | null
           received_by: string | null
+          rejected_at: string | null
+          rejected_by: string | null
+          rejected_by_name: string | null
+          rejection_reason: string | null
           reporter_department: string | null
           reporter_name: string | null
           source_type: string
@@ -1296,6 +1303,9 @@ export type Database = {
         Insert: {
           assessment_log_id?: string | null
           billboard_id?: string | null
+          confirmed_at?: string | null
+          confirmed_by?: string | null
+          confirmed_by_name?: string | null
           created_at?: string
           created_by?: string | null
           disposal_approved_at?: string | null
@@ -1317,6 +1327,10 @@ export type Database = {
           receive_location_id?: string | null
           received_at?: string | null
           received_by?: string | null
+          rejected_at?: string | null
+          rejected_by?: string | null
+          rejected_by_name?: string | null
+          rejection_reason?: string | null
           reporter_department?: string | null
           reporter_name?: string | null
           source_type?: string
@@ -1329,6 +1343,9 @@ export type Database = {
         Update: {
           assessment_log_id?: string | null
           billboard_id?: string | null
+          confirmed_at?: string | null
+          confirmed_by?: string | null
+          confirmed_by_name?: string | null
           created_at?: string
           created_by?: string | null
           disposal_approved_at?: string | null
@@ -1350,6 +1367,10 @@ export type Database = {
           receive_location_id?: string | null
           received_at?: string | null
           received_by?: string | null
+          rejected_at?: string | null
+          rejected_by?: string | null
+          rejected_by_name?: string | null
+          rejection_reason?: string | null
           reporter_department?: string | null
           reporter_name?: string | null
           source_type?: string
