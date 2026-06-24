@@ -82,20 +82,12 @@ const MediaPlayerPublicView = () => {
 
     // Journeys
     const [{ data: history }, { data: currentInstalls }, { data: movs }] = await Promise.all([
-      supabase
-        .from("billboard_equipment_history")
-        .select("billboard_id, installation_date, uninstall_date, uninstall_reason, quantity")
-        .eq("equipment_id", playerId),
+      supabase.rpc("public_get_mp_billboard_history" as any, { _media_player_id: playerId }),
       supabase
         .from("billboard_equipment")
         .select("billboard_id, installation_date, quantity")
         .eq("equipment_id", playerId),
-      supabase
-        .from("stock_movements")
-        .select("id, created_at, movement_type, quantity, stock_before, stock_after, reference_document, notes, item_condition")
-        .eq("equipment_id", playerId)
-        .order("created_at", { ascending: false })
-        .limit(200),
+      supabase.rpc("public_get_mp_stock_movements" as any, { _media_player_id: playerId }),
     ]);
     setMovements((movs as any) || []);
 

@@ -5768,6 +5768,30 @@ export type Database = {
       }
       public_get_ad_issue_request: { Args: { _token: string }; Returns: Json }
       public_get_direct_shipment: { Args: { _id: string }; Returns: Json }
+      public_get_mp_billboard_history: {
+        Args: { _media_player_id: string }
+        Returns: {
+          billboard_id: string
+          installation_date: string
+          quantity: number
+          uninstall_date: string
+          uninstall_reason: string
+        }[]
+      }
+      public_get_mp_stock_movements: {
+        Args: { _media_player_id: string }
+        Returns: {
+          created_at: string
+          id: string
+          item_condition: string
+          movement_type: string
+          notes: string
+          quantity: number
+          reference_document: string
+          stock_after: number
+          stock_before: number
+        }[]
+      }
       public_get_supplier_name: { Args: { _id: string }; Returns: string }
       public_report_ad_issue: {
         Args: {
