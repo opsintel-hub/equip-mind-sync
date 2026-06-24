@@ -1,79 +1,66 @@
-## Flow ตอนนี้ทำงานยังไง
 
-```text
-1. คลังกด Reject ใบ DR-xxxx
-   → defective_returns: status='rejected_for_edit', rejection_reason=...
-   → assessment_logs: status='pending' (กลับมาให้ช่างแก้)
+## ปัญหาที่พบ
 
-2. ช่างเปิด ASM เดิม กด "บันทึกผลใหม่" → เลือก outcome='defective' อีกครั้ง
-   AssessmentCompleteDialog (บรรทัด 467-499) เช็ค idempotency:
-     SELECT FROM defective_returns
-       WHERE assessment_log_id = log.id AND status != 'cancelled'
-   → เจอใบเดิม (rejected_for_edit ≠ cancelled) → "reuse" document_no
-   → ❌ ไม่ INSERT ใบใหม่
-   → ❌ ไม่ UPDATE ใบเดิมกลับเป็น pending_warehouse_entry
-   → ❌ ไม่อัปเดต reason/notes ตามผลประเมินใหม่
-```
+จากการตรวจสอบ DB และโค้ด `src/pages/ReceiveGoods.tsx` (ทั้ง `confirmReceive` ~บรรทัด 585 และ `confirmBatchReceive` ~บรรทัด 847):
 
-## ผลลัพธ์ที่ผิด
+ทุกครั้งที่รับ Media Player เข้าคลัง โค้ดจะ **UPDATE row เดิม** ใน `media_players` (โดย `media_player_id`) แล้วบวก `quantity` พร้อมเขียนทับ `serial_number_1` ทำให้:
 
-- ใบ DR ค้างที่ `rejected_for_edit` ตลอดไป
-- หน้า "ตั๋วรอดำเนินการ" ของคลัง query `status='pending_warehouse_entry'` → **ใบนี้หายไป ไม่โผล่ให้คลังตรวจอีกเลย**
-- assessment_log โดน flip กลับเป็น completed แต่ไม่มีใบ DR ที่ active → loop ตัน
-- toast แจ้ง "สร้าง DR-xxxx แล้ว" ทั้งที่จริงๆ ไม่ได้สร้าง/รีเซ็ตอะไร
+- รับ 4 ใบ (KSA7399839, KSA7399896, KSA7399898, KSA7399905) → เกิดเพียง 3 rows
+- 1 row ถูกบวก quantity เป็น 2 และเก็บ S/N ของใบสุดท้ายเท่านั้น
+- ผิดกฎ `mem://data-model/media-player-unit-individualization` ที่บอกว่าต้อง **1 record ต่อ 1 เครื่อง**
 
-## สิ่งที่ควรเป็น
+ผลลัพธ์ลามไปทุกหน้า:
+- รายงานสินค้าคงคลัง: 3 แถว (ควรเป็น 4) แถวที่ qty=2 จับคู่ SN จาก stock_movements เลยโชว์ 2 SN รวมกัน
+- Media Player Profile / Report: เห็นเพียง 3 เครื่อง (ขาด KSA7399839)
+- หน่วย "ชิ้น" vs "เครื่อง" ไม่สม่ำเสมอ (เช่น Document Search โชว์ "ชิ้น" สำหรับ DR ของ Media Player)
 
-ตอนช่างประเมินใหม่แล้วเลือก `defective` อีกครั้ง ระบบควร **revive ใบ DR เดิม** (เลขเดิมเพื่อ audit trail ต่อเนื่อง) โดย:
+## สิ่งที่จะแก้
 
-1. UPDATE ใบ DR เดิม:
-   - `status` → `pending_warehouse_entry`
-   - `reason` → ผลประเมินใหม่ (overwrite)
-   - `notes` → append "ประเมินใหม่หลัง Reject (เหตุผลเดิม: ...)"
-   - `quantity`, `item_condition`, `equipment_id/media_player_id` → sync ตามผลใหม่ (เผื่อช่างแก้)
-   - เคลียร์ field reject: `rejected_at=null`, `rejected_by=null`, `rejected_by_name=null`, `rejection_reason=null`
-   - `updated_at=now()`
-2. ถ้าผลใหม่ไม่ใช่ `defective` (เช่น เปลี่ยนเป็น `claim` / `self_repair` / `return_refurb`) → set ใบ DR เดิมเป็น `cancelled` พร้อม note "ยกเลิกหลังประเมินใหม่ → <outcome ใหม่>" แล้วทำ side-effect ของ outcome ใหม่ตามปกติ (กันสองทาง: ของเสีย + claim ซ้อนกัน)
+### 1. `src/pages/ReceiveGoods.tsx` — Clone Media Player ทุกใบรับ
 
-## แก้ที่ไหน
+ทั้ง `confirmReceive` (single) และ `confirmBatchReceive` (batch) สำหรับสาขา `isMediaPlayer`:
 
-ไฟล์เดียว: `src/components/assessment/AssessmentCompleteDialog.tsx`
+- **ถ้า row เดิม (`media_player_id` ที่ผูกกับใบรับ) มี `quantity = 0` และยังไม่มี `serial_number_1`** → ใช้ row เดิม (เคสรับครั้งแรกของ master ที่เพิ่งสร้าง quantity=0 ตามกฎ `mem://features/media-player/setup-quantity-zero`)
+- **กรณีอื่น** (row เดิมมี SN/qty อยู่แล้ว) → **INSERT row ใหม่** โดย:
+  - copy ฟิลด์ identity จาก master row (code, name, model_id, brand, category ฯลฯ)
+  - set `quantity = 1`, `status = 'active'`, `serial_number_1 = SN ใบรับ`, `serial_number_2 = SN2 ถ้ามี`
+  - เติม payload จากใบรับ (department, location_id, supplier_id, company_id, unit_price, po/pr/invoice, depreciation, warranty, asset_code ฯลฯ — เหมือน payload เดิม)
+  - log `stock_movements` ผูกกับ `media_player_id` ของ row ใหม่ (stock_before=0, stock_after=1)
+- อัปเดต `goods_receipt_pending.media_player_id` (หรือ field ที่อ้างอิง) ของใบรับนั้นให้ชี้ไป row ใหม่ เพื่อให้ trace ย้อนได้
+- คง `quantity = 1` (ไม่บวกสะสม) ตามกฎ One Code to Many Units
 
-### 1) Branch `outcome === "defective"` (บรรทัด ~467-499)
-- เปลี่ยน query idempotency ให้ดึงทั้ง `id, document_no, status`
-- ถ้าเจอใบเดิม:
-  - status = `pending_warehouse_entry` หรือ `completed` → reuse เลขเดิม (พฤติกรรมเดิม)
-  - status = `rejected_for_edit` → UPDATE revive ตามรายการข้างบน, log toast ว่า "ส่งใบ DR-xxxx กลับเข้าคลังอีกครั้ง"
-  - status = `cancelled` → INSERT ใบใหม่ (เหมือนไม่มีใบเดิม)
-- ถ้าไม่เจอใบเดิม → INSERT ตามเดิม
+### 2. Data fix สำหรับ 4 ใบที่หลุดไปแล้ว (MP-DGT-0002)
 
-### 2) Branch อื่น (`claim` / `self_repair` / `return_refurb`)
-- ก่อนทำ side-effect ของ outcome ใหม่ ให้เช็คว่ามีใบ DR `rejected_for_edit` ของ assessment นี้ค้างอยู่หรือไม่
-- ถ้ามี → UPDATE เป็น `cancelled` + notes อธิบายเหตุ ก่อนสร้าง claim/flip status
+Migration/insert ครั้งเดียวเพื่อ:
+- INSERT row ใหม่สำหรับ **KSA7399839** (copy จาก row ใดก็ได้ของ MP-DGT-0002, qty=1, location_id เดิม)
+- ลด quantity ของ row d8049db5 (KSA7399898) จาก 2 → 1
+- อัปเดต `goods_receipt_pending` ของ PD-20260624-945-01 ให้ชี้ media_player_id ใหม่
+- เติม stock_movement ของ KSA7399839 ให้ครบ (ลบ movement ที่ผูกผิดหรือ rewire)
 
-### 3) Toast หลังบันทึก
-- เพิ่มข้อความเฉพาะกรณี revive: "📦 ส่งใบ DR-xxxx กลับเข้าคลังของเสียอีกครั้ง (หลังแก้ผลประเมิน)"
+### 3. หน่วยให้เป็น "เครื่อง" สำหรับ Media Player ทุกหน้า
 
-## ไม่แตะ
+ตรวจสอบและแก้จุดที่ใช้คำว่า "ชิ้น" hard-code ใน:
+- `src/pages/DocumentSearch.tsx` (คอลัมน์จำนวนของ DR/PD ที่เป็น Media Player)
+- `src/pages/DefectiveReturnEntry.tsx` (ถ้ามี)
+- หน้าอื่นที่ขึ้นกับประเภท → ใช้ helper เลือก `"เครื่อง"` เมื่อ `is_media_player === true` ไม่งั้น `"ชิ้น"`
 
-- ไม่แก้ `DefectiveReturnEntry.tsx` (query `pending_warehouse_entry` ถูกต้องอยู่แล้ว — แค่ DR ฝั่งโน้นต้องถูก revive)
-- ไม่แก้ schema เพิ่ม (ใช้ฟิลด์ที่ migration ก่อนหน้าเพิ่มไว้แล้ว: `rejected_at/by/by_name`, `rejection_reason`)
-- ไม่แตะหน้า AssessmentLog (badge "Reject จาก DR-xxx" จะหายไปอัตโนมัติเมื่อใบ revive กลับเป็น `pending_warehouse_entry` เพราะ query กรอง `status='rejected_for_edit'`)
-- ไม่แตะ Swap flow
+## รายละเอียดทางเทคนิค
 
-## Flow ใหม่ (สรุปเป็น diagram)
+ไฟล์ที่แก้:
+- `src/pages/ReceiveGoods.tsx` — เปลี่ยน flow รับ MP เป็น clone-per-unit ทั้ง 2 จุด
+- `src/pages/DocumentSearch.tsx` — render หน่วยตามประเภท
+- ไฟล์อื่นที่พบว่า hard-code "ชิ้น" สำหรับ MP (จะ rg หา)
 
-```text
-Reject ครั้งที่ 1               ประเมินใหม่ (outcome=defective)
-─────────────────────           ──────────────────────────────
-DR-001: pending_warehouse  →    DR-001: rejected_for_edit  →   DR-001: pending_warehouse
-ASM-009: completed              ASM-009: pending                ASM-009: completed
-                                                                (เลข DR เดิม, audit ต่อเนื่อง,
-                                                                 reason/notes อัปเดต)
+DB:
+- migration/insert แก้ข้อมูลย้อนหลัง 1 ครั้ง (KSA7399839 + ลด qty)
 
-ประเมินใหม่ (outcome=claim แทน defective)
-─────────────────────────────────────────
-DR-001: rejected_for_edit  →   DR-001: cancelled
-                               CLM-xxx: submitted (ใหม่)
-                               MP/SN: in_claim
-```
+ไม่แตะ:
+- Master data setup flow (quantity=0 ตามเดิม)
+- Schema `media_players`
+- Logic Assessment/Swap/Defective
+
+## ผลที่คาดหวัง
+
+- รับ MP 4 ใบ → 4 rows แยกตาม S/N ทุกหน้าตรงกัน (Inventory Report 4 บรรทัด, MP Profile/Report เห็น 4 เครื่อง)
+- หน่วย Media Player แสดง "เครื่อง" สม่ำเสมอทุกหน้า
+- ข้อมูล MP-DGT-0002 เดิมถูกแก้ให้ครบ 4 เครื่องย้อนหลัง
