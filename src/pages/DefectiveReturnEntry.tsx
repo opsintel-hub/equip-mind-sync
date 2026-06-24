@@ -674,6 +674,25 @@ const DefectiveReturnEntry = () => {
       return;
     }
 
+    // Guard: if this submit comes from an Assessment that already has a live DR,
+    // block the duplicate insert and send the user to Pending tab to confirm there.
+    if (fromAssessmentInfo?.assessmentLogId && !existingTicket) {
+      const { data: live } = await supabase
+        .from("defective_returns")
+        .select("id, document_no, status")
+        .eq("assessment_log_id", fromAssessmentInfo.assessmentLogId)
+        .in("status", ["pending_warehouse_entry", "completed"])
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (live?.id) {
+        toast.error(`มีใบ ${live.document_no} ของการประเมินนี้อยู่แล้ว (สถานะ: ${live.status}) — โปรดไปที่แท็บ "รอดำเนินการ" เพื่อยืนยัน`);
+        setActiveTab("pending");
+        await fetchPendingTickets();
+        return;
+      }
+    }
+
     const quarantineLocId = await getQuarantineLocationId();
     if (!quarantineLocId) {
       toast.error("ไม่พบ 'คลังของเสีย' ในระบบ — กรุณาติดต่อผู้ดูแล");
