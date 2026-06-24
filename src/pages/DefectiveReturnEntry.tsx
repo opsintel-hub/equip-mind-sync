@@ -231,8 +231,43 @@ const DefectiveReturnEntry = () => {
     if (!fa) return;
     setIsMediaPlayer(!!fa.isMediaPlayer);
     setFromAssessmentInfo({ assessmentLogId: fa.assessmentLogId, docNo: fa.docNo || null });
-    // Wait for lists to be loaded then select item
-    const tryApply = () => {
+
+    (async () => {
+      // Loop close: if a DR for this assessment is already pending warehouse entry
+      // (e.g. revived after a Reject), don't open the create form — jump straight
+      // to the Pending tab and open the Review Dialog so the user can Confirm + cut stock.
+      if (fa.assessmentLogId) {
+        const { data: existing } = await supabase
+          .from("defective_returns")
+          .select("id, document_no")
+          .eq("assessment_log_id", fa.assessmentLogId)
+          .eq("status", "pending_warehouse_entry")
+          .is("stock_deducted_at", null)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (existing?.id) {
+          setActiveTab("pending");
+          await fetchPendingTickets();
+          toast.info(`ใบ ${existing.document_no} ถูกส่งกลับเข้าคลังของเสียอีกครั้งหลังประเมินใหม่ — โปรดยืนยันเพื่อตัด Stock`);
+          window.history.replaceState({}, "");
+          // Open the Review dialog for that ticket after the list state settles
+          setTimeout(async () => {
+            const { data: full } = await supabase
+              .from("defective_returns")
+              .select("*")
+              .eq("id", existing.id)
+              .maybeSingle();
+            if (full) {
+              await handleProcessTicket(full as any);
+            }
+          }, 300);
+          return;
+        }
+      }
+
+      // Fallback: original prefill behaviour (create-new form)
       if (fa.itemId) setSelectedItemId(fa.itemId);
       if (fa.serial) {
         setPerUnitMode(true);
@@ -247,10 +282,9 @@ const DefectiveReturnEntry = () => {
       } else {
         setReason(fa.reason || "จากการประเมิน");
       }
-    };
-    tryApply();
-    toast.info(`เติมข้อมูลจากการประเมิน${fa.docNo ? ` (${fa.docNo})` : ""} แล้ว — โปรดยืนยันและบันทึกเพื่อตัด Stock`);
-    window.history.replaceState({}, "");
+      toast.info(`เติมข้อมูลจากการประเมิน${fa.docNo ? ` (${fa.docNo})` : ""} แล้ว — โปรดยืนยันและบันทึกเพื่อตัด Stock`);
+      window.history.replaceState({}, "");
+    })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [routerLocation.state, equipmentList.length, mediaPlayerList.length]);
 
@@ -638,6 +672,25 @@ const DefectiveReturnEntry = () => {
     if (!reporterName.trim() || !reporterDepartment.trim()) {
       toast.error("กรุณาระบุ 'ผู้แจ้งนำของเสียเข้าระบบ' และ 'ฝ่าย'");
       return;
+    }
+
+    // Guard: if this submit comes from an Assessment that already has a live DR,
+    // block the duplicate insert and send the user to Pending tab to confirm there.
+    if (fromAssessmentInfo?.assessmentLogId && !existingTicket) {
+      const { data: live } = await supabase
+        .from("defective_returns")
+        .select("id, document_no, status")
+        .eq("assessment_log_id", fromAssessmentInfo.assessmentLogId)
+        .in("status", ["pending_warehouse_entry", "completed"])
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (live?.id) {
+        toast.error(`มีใบ ${live.document_no} ของการประเมินนี้อยู่แล้ว (สถานะ: ${live.status}) — โปรดไปที่แท็บ "รอดำเนินการ" เพื่อยืนยัน`);
+        setActiveTab("pending");
+        await fetchPendingTickets();
+        return;
+      }
     }
 
     const quarantineLocId = await getQuarantineLocationId();

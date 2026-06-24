@@ -515,6 +515,10 @@ export function AssessmentCompleteDialog({ open, onOpenChange, log, onCompleted 
               rejected_by: null,
               rejected_by_name: null,
               rejection_reason: null,
+              stock_deducted_at: null,
+              confirmed_at: null,
+              confirmed_by: null,
+              confirmed_by_name: null,
             } as any)
             .eq("id", existingDR.id);
           createdDefectiveDocNo = existingDR.document_no;
