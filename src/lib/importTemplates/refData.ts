@@ -35,7 +35,7 @@ export async function fetchAllRefs(): Promise<RefLookups> {
     companies, departments, locations, billboards, mp_models, cms_types,
   ] = await Promise.all([
     fetchPaged<any>("categories", "name"),
-    fetchPaged<any>("subcategories", "id,name,department_id"),
+    fetchPaged<any>("subcategories", "id,name,category_id"),
     fetchPaged<any>("units", "name"),
     fetchPaged<any>("brands", "name,brand_type"),
     fetchPaged<any>("suppliers", "id,code,name"),
