@@ -2,7 +2,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 export interface RefLookups {
   categories: Array<{ name: string }>;
-  subcategories: Array<{ id: string; name: string; department_id: string | null }>;
+  subcategories: Array<{ id: string; name: string; category_id: string | null }>;
   units: Array<{ name: string }>;
   brands: Array<{ name: string; brand_type: string | null }>;
   suppliers: Array<{ id: string; code: string; name: string }>;
@@ -35,7 +35,7 @@ export async function fetchAllRefs(): Promise<RefLookups> {
     companies, departments, locations, billboards, mp_models, cms_types,
   ] = await Promise.all([
     fetchPaged<any>("categories", "name"),
-    fetchPaged<any>("subcategories", "id,name,department_id"),
+    fetchPaged<any>("subcategories", "id,name,category_id"),
     fetchPaged<any>("units", "name"),
     fetchPaged<any>("brands", "name,brand_type"),
     fetchPaged<any>("suppliers", "id,code,name"),
