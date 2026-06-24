@@ -61,10 +61,7 @@ export function SupplierList({ refresh }: SupplierListProps) {
   const fetchSuppliers = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
-        .from("suppliers")
-        .select("*")
-        .order("code");
+      const { data, error } = await supabase.rpc("get_suppliers_admin");
 
       if (error) throw error;
       setSuppliers(data || []);
