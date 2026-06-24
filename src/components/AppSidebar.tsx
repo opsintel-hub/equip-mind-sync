@@ -33,6 +33,7 @@ import {
   ClipboardCheck,
   FileCheck2,
   ShieldCheck,
+  Upload,
 } from "lucide-react";
 import {
   Sidebar,
@@ -272,6 +273,20 @@ const menuGroups: MenuGroup[] = [
       { title: "จัดการผู้ใช้", url: "/admin", icon: Shield, functionName: "admin" },
       { title: "คู่มือ Database", url: "/database-guide", icon: FileSearch, superAdminOnly: true },
     ]
+  },
+  {
+    label: "นำเข้าข้อมูลเริ่มต้น",
+    items: [
+      {
+        title: "นำเข้าข้อมูลเริ่มต้น",
+        icon: Upload,
+        functionName: "admin",
+        subItems: [
+          { title: "Import อุปกรณ์", url: "/setup/import-equipment", icon: Package, functionName: "admin" },
+          { title: "Import Media Player", url: "/setup/import-media-player", icon: Monitor, functionName: "admin" },
+        ],
+      },
+    ],
   },
   {
     label: "ช่วยเหลือ",
