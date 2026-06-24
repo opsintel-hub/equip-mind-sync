@@ -5758,6 +5758,8 @@ export type Database = {
         }
         Returns: boolean
       }
+      import_equipment_row: { Args: { p: Json }; Returns: Json }
+      import_media_player_row: { Args: { p: Json }; Returns: Json }
       public_confirm_ad_issue_request: {
         Args: { _receiver_name: string; _token: string }
         Returns: boolean
