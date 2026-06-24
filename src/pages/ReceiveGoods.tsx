@@ -154,7 +154,7 @@ async function resolveMediaPlayerRowForReceipt(
   };
   const { data: inserted, error: insErr } = await supabase
     .from("media_players")
-    .insert([clonePayload])
+    .insert([clonePayload as any])
     .select("id, code, name")
     .single();
   if (insErr || !inserted) throw insErr || new Error("clone failed");
