@@ -912,23 +912,19 @@ const ReceiveGoods = () => {
           if (updateError) throw updateError;
 
           if (isMediaPlayer) {
-            // Fetch current Media Player stock
-            const { data: currentMediaPlayer, error: fetchMpError } = await supabase
-              .from("media_players")
-              .select("quantity, code, name, department, serial_number_1, serial_number_2")
-              .eq("id", (receipt as any).media_player_id)
-              .single();
-
-            if (fetchMpError) throw fetchMpError;
-
-            const currentMpStock = currentMediaPlayer?.quantity || 0;
-            const newMpStock = currentMpStock + receivedQuantity;
+            // Resolve target row: reuse empty master, otherwise clone a new unit row
+            const resolved = await resolveMediaPlayerRowForReceipt(
+              (receipt as any).media_player_id,
+              receipt.id
+            );
+            const targetMpId = resolved.mpId;
 
             const batchMpDept = getDepartmentName(receipt.department_id);
             const batchMpPayload: Record<string, any> = {
-                quantity: newMpStock,
+                quantity: 1,
                 location_id: storageLocation.locationId,
                 item_condition: itemCondition,
+                status: "active",
               };
 
             // Receipt S/N is authoritative — always overwrite serial_number_1 and serial_number_2
@@ -978,22 +974,22 @@ const ReceiveGoods = () => {
             const { error: mpError } = await supabase
               .from("media_players")
               .update(batchMpPayload)
-              .eq("id", (receipt as any).media_player_id);
+              .eq("id", targetMpId);
 
             if (!mpError) {
-              // Log stock movement for Media Player
+              // Log stock movement for Media Player (always 0 → 1 per unit row)
               await logStockMovement({
-                equipment_id: (receipt as any).media_player_id!,
-                equipment_code: currentMediaPlayer?.code || receipt.equipment_code || "",
-                equipment_name: currentMediaPlayer?.name || receipt.equipment_name || "",
+                equipment_id: targetMpId,
+                equipment_code: resolved.code || receipt.equipment_code || "",
+                equipment_name: resolved.name || receipt.equipment_name || "",
                 movement_type: "receive",
-                quantity: receivedQuantity,
-                stock_before: currentMpStock,
-                stock_after: newMpStock,
+                quantity: 1,
+                stock_before: 0,
+                stock_after: 1,
                 reference_type: "goods_receipt",
                 reference_document: receipt.document_no,
                 location_id: storageLocation.locationId,
-                notes: `Media Player - ${editNotes || ""}`.trim(),
+                notes: `Media Player${resolved.cloned ? " (clone per S/N)" : ""} - ${editNotes || ""}`.trim(),
                 item_condition: itemCondition,
               });
             }
