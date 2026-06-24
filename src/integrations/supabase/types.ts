@@ -5712,6 +5712,30 @@ export type Database = {
       }
       get_next_tool_code: { Args: { p_prefix: string }; Returns: string }
       get_public_schema_info: { Args: never; Returns: Json }
+      get_suppliers_admin: {
+        Args: never
+        Returns: {
+          address: string | null
+          code: string
+          contact_person: string | null
+          created_at: string
+          created_by: string | null
+          email: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          notes: string | null
+          phone: string | null
+          updated_at: string
+          vendor_code: string | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "suppliers"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       get_users_emails: {
         Args: never
         Returns: {
