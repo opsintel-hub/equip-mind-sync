@@ -107,6 +107,73 @@ interface Location {
   used_volume_cm3: number | null;
 }
 
+/**
+ * Resolve which media_players row this receipt should land in.
+ * Rule (mem://data-model/media-player-unit-individualization):
+ * 1 master code → many rows (1 per physical unit, each with its own S/N).
+ *
+ * - ถ้า master row ยังว่าง (quantity=0 และยังไม่มี serial_number_1) → ใช้ row เดิม (เคสรับครั้งแรก)
+ * - ถ้า master row มีของอยู่แล้ว → CLONE row ใหม่ (copy ฟิลด์ identity) เพื่อให้ S/N ใหม่ไม่ทับของเดิม
+ * แล้ว re-point goods_receipt_pending.media_player_id ให้ชี้ row ใหม่ เพื่อ trace ย้อนได้
+ */
+async function resolveMediaPlayerRowForReceipt(
+  currentMpId: string,
+  pendingReceiptId: string
+): Promise<{ mpId: string; cloned: boolean; code: string; name: string }> {
+  const { data: master, error } = await supabase
+    .from("media_players")
+    .select("*")
+    .eq("id", currentMpId)
+    .single();
+  if (error || !master) throw error || new Error("media_player not found");
+
+  const hasSN = !!((master as any).serial_number_1 && String((master as any).serial_number_1).trim());
+  const qty = Number((master as any).quantity) || 0;
+
+  if (qty === 0 && !hasSN) {
+    return { mpId: currentMpId, cloned: false, code: (master as any).code, name: (master as any).name };
+  }
+
+  const m: any = master;
+  const clonePayload: Record<string, any> = {
+    code: m.code,
+    name: m.name,
+    description: m.description,
+    cms_type_id: m.cms_type_id,
+    specification: m.specification,
+    brand: m.brand,
+    model_id: m.model_id,
+    unit: m.unit,
+    is_asset: m.is_asset,
+    is_active: true,
+    status: "active",
+    quantity: 0,
+    image_url: m.image_url,
+    notes: m.notes,
+    created_by: m.created_by,
+  };
+  const { data: inserted, error: insErr } = await supabase
+    .from("media_players")
+    .insert(clonePayload)
+    .select("id, code, name")
+    .single();
+  if (insErr || !inserted) throw insErr || new Error("clone failed");
+
+  await supabase
+    .from("goods_receipt_pending")
+    .update({ media_player_id: (inserted as any).id })
+    .eq("id", pendingReceiptId);
+
+  return {
+    mpId: (inserted as any).id,
+    cloned: true,
+    code: (inserted as any).code,
+    name: (inserted as any).name,
+  };
+}
+
+
+
 const ReceiveGoods = () => {
   const { user } = useAuth();
   const [searchTerm, setSearchTerm] = useState("");
