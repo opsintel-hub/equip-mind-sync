@@ -107,6 +107,73 @@ interface Location {
   used_volume_cm3: number | null;
 }
 
+/**
+ * Resolve which media_players row this receipt should land in.
+ * Rule (mem://data-model/media-player-unit-individualization):
+ * 1 master code → many rows (1 per physical unit, each with its own S/N).
+ *
+ * - ถ้า master row ยังว่าง (quantity=0 และยังไม่มี serial_number_1) → ใช้ row เดิม (เคสรับครั้งแรก)
+ * - ถ้า master row มีของอยู่แล้ว → CLONE row ใหม่ (copy ฟิลด์ identity) เพื่อให้ S/N ใหม่ไม่ทับของเดิม
+ * แล้ว re-point goods_receipt_pending.media_player_id ให้ชี้ row ใหม่ เพื่อ trace ย้อนได้
+ */
+async function resolveMediaPlayerRowForReceipt(
+  currentMpId: string,
+  pendingReceiptId: string
+): Promise<{ mpId: string; cloned: boolean; code: string; name: string }> {
+  const { data: master, error } = await supabase
+    .from("media_players")
+    .select("*")
+    .eq("id", currentMpId)
+    .single();
+  if (error || !master) throw error || new Error("media_player not found");
+
+  const hasSN = !!((master as any).serial_number_1 && String((master as any).serial_number_1).trim());
+  const qty = Number((master as any).quantity) || 0;
+
+  if (qty === 0 && !hasSN) {
+    return { mpId: currentMpId, cloned: false, code: (master as any).code, name: (master as any).name };
+  }
+
+  const m: any = master;
+  const clonePayload: Record<string, any> = {
+    code: m.code,
+    name: m.name,
+    description: m.description,
+    cms_type_id: m.cms_type_id,
+    specification: m.specification,
+    brand: m.brand,
+    model_id: m.model_id,
+    unit: m.unit,
+    is_asset: m.is_asset,
+    is_active: true,
+    status: "active",
+    quantity: 0,
+    image_url: m.image_url,
+    notes: m.notes,
+    created_by: m.created_by,
+  };
+  const { data: inserted, error: insErr } = await supabase
+    .from("media_players")
+    .insert([clonePayload as any])
+    .select("id, code, name")
+    .single();
+  if (insErr || !inserted) throw insErr || new Error("clone failed");
+
+  await supabase
+    .from("goods_receipt_pending")
+    .update({ media_player_id: (inserted as any).id })
+    .eq("id", pendingReceiptId);
+
+  return {
+    mpId: (inserted as any).id,
+    cloned: true,
+    code: (inserted as any).code,
+    name: (inserted as any).name,
+  };
+}
+
+
+
 const ReceiveGoods = () => {
   const { user } = useAuth();
   const [searchTerm, setSearchTerm] = useState("");
@@ -583,27 +650,22 @@ const ReceiveGoods = () => {
 
       // Handle differently based on whether it's Media Player or Equipment
       if (isMediaPlayer) {
-        // Fetch current Media Player stock FIRST
-        const { data: currentMediaPlayer, error: fetchMpError } = await supabase
-          .from("media_players")
-          .select("quantity, code, name, department, serial_number_1, serial_number_2")
-          .eq("id", (selectedReceipt as any).media_player_id)
-          .single();
+        // Resolve target row: reuse empty master, otherwise clone a new unit row
+        const resolved = await resolveMediaPlayerRowForReceipt(
+          (selectedReceipt as any).media_player_id,
+          selectedReceipt.id
+        );
+        const targetMpId = resolved.mpId;
 
-        if (fetchMpError) throw fetchMpError;
-
-        const currentStock = currentMediaPlayer?.quantity || 0;
-        const newStock = currentStock + receivedQuantity;
-
-        // Update Media Player stock and location (same as equipment)
+        // Each MP receipt = 1 unit per row (One Code → Many Units rule)
         const mpDeptName = getDepartmentName(selectedReceipt.department_id);
         const mpUpdatePayload: Record<string, any> = {
-                quantity: newStock,
+                quantity: 1,
                 location_id: storageLocation.locationId,
                 item_condition: itemCondition,
+                status: "active",
               };
 
-        // Use edited S/N values (warehouse can correct receipt values)
         if (trimmedSerial1) {
           mpUpdatePayload.serial_number_1 = trimmedSerial1;
         }
@@ -623,6 +685,7 @@ const ReceiveGoods = () => {
         if (sr.company_id) mpUpdatePayload.company_id = sr.company_id;
         if (parsedUnitPrice != null) mpUpdatePayload.unit_price = parsedUnitPrice;
         if (sr.received_at) mpUpdatePayload.date_of_receipt = String(sr.received_at).slice(0, 10);
+        else mpUpdatePayload.date_of_receipt = new Date().toISOString().slice(0, 10);
         if (sr.po_number) mpUpdatePayload.po_number = sr.po_number;
         if (sr.pr_number) mpUpdatePayload.pr_number = sr.pr_number;
         if (sr.invoice_number) mpUpdatePayload.invoice_number = sr.invoice_number;
@@ -653,28 +716,32 @@ const ReceiveGoods = () => {
         const { error: mpError } = await supabase
               .from("media_players")
               .update(mpUpdatePayload)
-              .eq("id", (selectedReceipt as any).media_player_id);
+              .eq("id", targetMpId);
 
         if (mpError) {
           console.error("Media Player update error:", mpError);
           toast.warning("รับสินค้าสำเร็จแต่ไม่สามารถอัปเดต Stock Media Player ได้");
         } else {
-          // Log stock movement for Media Player
+          // Log stock movement for Media Player (always 0 → 1 per unit row)
               await logStockMovement({
-                equipment_id: (selectedReceipt as any).media_player_id!,
-                equipment_code: currentMediaPlayer?.code || selectedReceipt.equipment_code || "",
-                equipment_name: currentMediaPlayer?.name || selectedReceipt.equipment_name || "",
+                equipment_id: targetMpId,
+                equipment_code: resolved.code || selectedReceipt.equipment_code || "",
+                equipment_name: resolved.name || selectedReceipt.equipment_name || "",
                 movement_type: "receive",
-                quantity: receivedQuantity,
-                stock_before: currentStock,
-                stock_after: newStock,
+                quantity: 1,
+                stock_before: 0,
+                stock_after: 1,
                 reference_type: "goods_receipt",
                 reference_document: selectedReceipt.document_no,
                 location_id: storageLocation.locationId,
-                notes: `Media Player - ${editNotes || ""}`.trim(),
+                notes: `Media Player${resolved.cloned ? " (clone per S/N)" : ""} - ${editNotes || ""}`.trim(),
                 item_condition: itemCondition,
               });
-          toast.success(`รับ Media Player เข้าคลังสำเร็จ (Stock: ${currentStock} → ${newStock})`);
+          toast.success(
+            resolved.cloned
+              ? `รับ Media Player เข้าคลังสำเร็จ (สร้างแถวใหม่ 1 เครื่อง — S/N ${trimmedSerial1 || "-"})`
+              : `รับ Media Player เข้าคลังสำเร็จ (S/N ${trimmedSerial1 || "-"})`
+          );
         }
       } else {
         // Fetch current equipment stock FIRST
@@ -845,23 +912,19 @@ const ReceiveGoods = () => {
           if (updateError) throw updateError;
 
           if (isMediaPlayer) {
-            // Fetch current Media Player stock
-            const { data: currentMediaPlayer, error: fetchMpError } = await supabase
-              .from("media_players")
-              .select("quantity, code, name, department, serial_number_1, serial_number_2")
-              .eq("id", (receipt as any).media_player_id)
-              .single();
-
-            if (fetchMpError) throw fetchMpError;
-
-            const currentMpStock = currentMediaPlayer?.quantity || 0;
-            const newMpStock = currentMpStock + receivedQuantity;
+            // Resolve target row: reuse empty master, otherwise clone a new unit row
+            const resolved = await resolveMediaPlayerRowForReceipt(
+              (receipt as any).media_player_id,
+              receipt.id
+            );
+            const targetMpId = resolved.mpId;
 
             const batchMpDept = getDepartmentName(receipt.department_id);
             const batchMpPayload: Record<string, any> = {
-                quantity: newMpStock,
+                quantity: 1,
                 location_id: storageLocation.locationId,
                 item_condition: itemCondition,
+                status: "active",
               };
 
             // Receipt S/N is authoritative — always overwrite serial_number_1 and serial_number_2
@@ -911,22 +974,22 @@ const ReceiveGoods = () => {
             const { error: mpError } = await supabase
               .from("media_players")
               .update(batchMpPayload)
-              .eq("id", (receipt as any).media_player_id);
+              .eq("id", targetMpId);
 
             if (!mpError) {
-              // Log stock movement for Media Player
+              // Log stock movement for Media Player (always 0 → 1 per unit row)
               await logStockMovement({
-                equipment_id: (receipt as any).media_player_id!,
-                equipment_code: currentMediaPlayer?.code || receipt.equipment_code || "",
-                equipment_name: currentMediaPlayer?.name || receipt.equipment_name || "",
+                equipment_id: targetMpId,
+                equipment_code: resolved.code || receipt.equipment_code || "",
+                equipment_name: resolved.name || receipt.equipment_name || "",
                 movement_type: "receive",
-                quantity: receivedQuantity,
-                stock_before: currentMpStock,
-                stock_after: newMpStock,
+                quantity: 1,
+                stock_before: 0,
+                stock_after: 1,
                 reference_type: "goods_receipt",
                 reference_document: receipt.document_no,
                 location_id: storageLocation.locationId,
-                notes: `Media Player - ${editNotes || ""}`.trim(),
+                notes: `Media Player${resolved.cloned ? " (clone per S/N)" : ""} - ${editNotes || ""}`.trim(),
                 item_condition: itemCondition,
               });
             }
