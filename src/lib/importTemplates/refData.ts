@@ -2,7 +2,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 export interface RefLookups {
   categories: Array<{ name: string }>;
-  subcategories: Array<{ id: string; name: string; department_id: string | null }>;
+  subcategories: Array<{ id: string; name: string; category_id: string | null }>;
   units: Array<{ name: string }>;
   brands: Array<{ name: string; brand_type: string | null }>;
   suppliers: Array<{ id: string; code: string; name: string }>;
