@@ -830,7 +830,7 @@ export default function DocumentSearch() {
           serial_number: sns.length > 0 ? sns.join("\n") : null,
           supplier_name: bb ? `ป้าย ${bb.equipment_id || bb.old_code || ""} ${bb.location_name || ""}`.trim() : (item.reporter_department || null),
           delivery_person_name: item.reporter_name || null,
-          quantity: item.quantity || 0, unit: item.equipment?.unit || "ชิ้น",
+          quantity: item.quantity || 0, unit: mp ? "เครื่อง" : (item.equipment?.unit || "ชิ้น"),
           created_at: item.created_at, status: item.status,
           source: "defective" as const, raw: item,
         };
