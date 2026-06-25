@@ -309,6 +309,11 @@ const IssueGoods = () => {
           const sk = a.serial_number.trim().toLowerCase();
           if (mpSerials.has(sk)) throw new Error(`Serial Number ซ้ำ: ${a.serial_number}`);
           mpSerials.add(sk);
+          // 7-Eleven Media: sub_media_type required
+          const cand = (availableMpUnits || []).find((m: any) => m.id === a.media_player_id);
+          if (cand && requiresSubMediaType(cand.department) && !a.sub_media_type) {
+            throw new Error(`เครื่อง S/N ${a.serial_number} เป็นฝ่าย 7-Eleven Media ต้องเลือก Sub Media Type ก่อนจ่าย`);
+          }
         }
         combinedSerial = activeMpAssignments.map(a => a.serial_number).join("\n").trim() || null;
         const bbSet = new Set(activeMpAssignments.map(a => a.billboard_id || ""));
