@@ -1126,6 +1126,7 @@ const DeliveryEntry = () => {
                 specification: (original as any).specification,
                 company_id: (original as any).company_id,
                 department: (original as any).department,
+                sub_media_type: (original as any).sub_media_type ?? null,
                 brand: (original as any).brand,
                 quantity: 0,
                 unit: (original as any).unit || "เครื่อง",
