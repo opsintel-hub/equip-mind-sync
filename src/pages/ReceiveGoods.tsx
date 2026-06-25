@@ -151,6 +151,9 @@ async function resolveMediaPlayerRowForReceipt(
     image_url: m.image_url,
     notes: m.notes,
     created_by: m.created_by,
+    device_type: m.device_type || "MEDIA_PLAYER",
+    sub_media_type: m.sub_media_type,
+    department: m.department,
   };
   const { data: inserted, error: insErr } = await supabase
     .from("media_players")

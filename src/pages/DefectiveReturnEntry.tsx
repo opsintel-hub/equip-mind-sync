@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { DeviceTypeBadge } from "@/components/media-player/DeviceTypeBadge";
 import { Switch } from "@/components/ui/switch";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { SimpleDepartmentSelect } from "@/components/equipment/SimpleDepartmentSelect";
@@ -345,7 +346,7 @@ const DefectiveReturnEntry = () => {
 
       const [eqRes, mpRes, bbRes, swapRes, asmRes] = await Promise.all([
         eqIds.length ? supabase.from("equipment").select("id, code, name, brand, serial_number, department").in("id", eqIds) : Promise.resolve({ data: [] }),
-        mpIds.length ? supabase.from("media_players").select("id, code, name, remote_name, brand, serial_number_1, serial_number_2, warranty_expiry_date, department, model_id, specification").in("id", mpIds) : Promise.resolve({ data: [] }),
+        mpIds.length ? supabase.from("media_players").select("id, code, name, remote_name, brand, serial_number_1, serial_number_2, warranty_expiry_date, department, model_id, specification, device_type").in("id", mpIds) : Promise.resolve({ data: [] }),
         bbIds.length ? supabase.from("billboards").select("id, equipment_id, old_code, location_name").in("id", bbIds) : Promise.resolve({ data: [] }),
         swapIds.length ? supabase.from("swap_requests").select("id, document_no, billboard_id, old_serial_number, new_serial_number, old_media_player_id, new_media_player_id, old_equipment_id, new_equipment_id, description").in("id", swapIds) : Promise.resolve({ data: [] }),
         asmIds.length ? supabase.from("assessment_logs").select("id, document_no").in("id", asmIds) : Promise.resolve({ data: [] }),
@@ -398,6 +399,7 @@ const DefectiveReturnEntry = () => {
           model_name: item?.model_id ? modelMap.get(item.model_id) || null : null,
           specification: item?.specification || null,
           department: item?.department || null,
+          device_type: item?.device_type || null,
           warranty_expiry_date: item?.warranty_expiry_date || null,
           serial_numbers: sns,
           billboard_label: bb ? [bb.old_code, bb.equipment_id, bb.location_name].filter(Boolean).join(" - ") : null,
@@ -914,7 +916,7 @@ const DefectiveReturnEntry = () => {
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className="font-mono font-semibold text-sm">{t.document_no}</span>
                           <Badge variant="secondary" className="text-xs">{t.source_label}</Badge>
-                          {t.is_media_player && <Badge variant="outline" className="text-xs">Media Player</Badge>}
+                          {t.is_media_player && <DeviceTypeBadge value={t.device_type} />}
                           {t.quantity > 1 && <Badge variant="outline" className="text-xs">× {t.quantity}</Badge>}
                           <span className="text-xs text-muted-foreground ml-auto">
                             {new Date(t.created_at).toLocaleString("th-TH", { dateStyle: "medium", timeStyle: "short" })}
@@ -1347,7 +1349,7 @@ const DefectiveReturnEntry = () => {
 
                 <div className="space-y-2 p-3 rounded-lg border bg-muted/30">
                   <div className="flex items-center gap-2 flex-wrap">
-                    {reviewTicket.is_media_player && <Badge variant="outline" className="text-xs">Media Player</Badge>}
+                    {reviewTicket.is_media_player && <DeviceTypeBadge value={reviewTicket.device_type} />}
                     <Badge variant="outline" className="text-xs">จำนวน × {reviewTicket.quantity}</Badge>
                     <Badge variant="outline" className={`text-xs ${reviewTicket.item_condition === "defective" ? "bg-destructive/10 text-destructive" : "bg-yellow-500/10 text-yellow-600"}`}>
                       {reviewTicket.item_condition === "defective" ? "เสีย/ชำรุด" : "รอตรวจสอบ"}

@@ -38,6 +38,7 @@ export interface MediaPlayerRow {
   company_id: string | null;
   model_id: string | null;
   location_id: string | null;
+  device_type?: string | null;
   created_at: string;
   image_url: string | null;
   billboard?: { id: string; equipment_id: string; old_code: string | null; location_name: string | null } | null;

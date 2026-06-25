@@ -10,6 +10,7 @@ import QRCodeSVG from "react-qr-code";
 import { MediaPlayerRow } from "./types";
 import { getConditionDisplay } from "./constants";
 import { getPublicBaseUrl } from "@/lib/publicUrl";
+import { DeviceTypeBadge } from "@/components/media-player/DeviceTypeBadge";
 
 type StickerOptions = {
   widthMm: number;
@@ -354,6 +355,7 @@ export function ProfileHeader({ player, modelName, statusLabel, images }: Profil
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-3 flex-wrap">
                 <h2 className="text-2xl font-bold font-mono">{player.code}</h2>
+                <DeviceTypeBadge value={(player as any).device_type} />
                 <Badge variant="secondary">{statusLabel}</Badge>
                 <Badge variant="outline" className={`${condition.className} border`}>
                   {condition.label}
