@@ -479,6 +479,7 @@ export default function MediaPlayerReport() {
       "Refurbished": r.isRefurbished ? "ใช่" : "",
       "ป้ายปัจจุบัน": r.billboardLabel,
       "ฝ่าย": r.department,
+      "ประเภทอุปกรณ์": r.deviceType === "MONITOR" ? "จอภาพ" : "Media Player",
       "Sub Media Type": r.subMediaType || "",
       "บริษัท": r.company,
       "ราคา/ชิ้น": r.price ?? "",
