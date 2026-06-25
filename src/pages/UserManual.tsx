@@ -596,7 +596,7 @@ const UserManual = () => {
               <Lock className="h-4 w-4" /> Tab ที่จำกัดเฉพาะ Super Admin
             </h5>
             <p className="text-xs text-amber-700 dark:text-amber-300 mt-1">
-              Tab: <strong>อุปกรณ์, เครื่องมือ, คลังสินค้า, ตำแหน่งจัดเก็บ, Media Player</strong> — เฉพาะ Super Admin เท่านั้น
+              Tab: <strong>อุปกรณ์, เครื่องมือ, คลังสินค้า, ตำแหน่งจัดเก็บ, Media Player / จอภาพ</strong> — เฉพาะ Super Admin เท่านั้น
             </p>
           </div>
           <div className="space-y-3">
@@ -609,7 +609,7 @@ const UserManual = () => {
               { num: "4.6", title: "ผู้จัดจำหน่าย / ผู้รับเหมา", desc: "Suppliers + Contractors พร้อมข้อมูลติดต่อ Import Excel ได้" },
               { num: "4.7", title: "รหัสนำหน้า (Code Prefixes)", desc: "กำหนด Prefix สร้างรหัสสินค้าอัตโนมัติ เช่น 'EQ' → EQ-0001" },
               { num: "4.8", title: "วัตถุประสงค์นำเข้า/เบิก", desc: "Receipt Purposes + Issue Purposes พร้อมเงื่อนไข (บังคับสถานที่, จำกัดหมวดหมู่, บังคับป้าย)" },
-              { num: "4.9", title: "Media Player", desc: "CMS Type, Model, Spec, สถานะ, S/N 1 & S/N 2, เอกสารแนบ Import Excel ได้" },
+              { num: "4.9", title: "Media Player / จอภาพ (Monitor)", desc: "รองรับทั้ง Media Player และจอภาพในตารางเดียว (device_type) — CMS Type, Model, Spec, สถานะ, S/N 1 & 2, sub_media_type สำหรับ 7-Eleven Media, เอกสารแนบ Import Excel ได้ Swap ข้ามประเภทไม่ได้" },
               { num: "4.10", title: "ประเภทงาน PM", desc: "กำหนดประเภทงาน PM สำหรับป้ายโฆษณา เช่น ตรวจสอบโครงสร้าง, ล้างป้าย" },
             ].map((item, i) => (
               <div key={i} className="p-3 border rounded-lg">
