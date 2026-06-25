@@ -831,7 +831,7 @@ const IssueGoods = () => {
         const defaultBillboard = selectedItem?.billboard_id || "";
         if (n > next.length) {
           while (next.length < n) {
-            next.push({ media_player_id: "", serial_number: "", billboard_id: defaultBillboard });
+            next.push({ media_player_id: "", serial_number: "", billboard_id: defaultBillboard, sub_media_type: null });
           }
         } else if (n < next.length) {
           next.length = n;
