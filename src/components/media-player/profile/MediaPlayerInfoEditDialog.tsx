@@ -7,6 +7,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { MediaPlayerRow } from "./types";
+import { SubMediaTypeSelect } from "@/components/media-player/SubMediaTypeSelect";
+import { requiresSubMediaType } from "@/lib/mediaPlayerSubTypes";
 
 interface Props {
   open: boolean;
@@ -39,6 +41,7 @@ type FormState = {
   warranty_years: string;
   po_item_no: string;
   notes: string;
+  sub_media_type: string | null;
 };
 
 function init(p: MediaPlayerRow): FormState {
@@ -66,6 +69,7 @@ function init(p: MediaPlayerRow): FormState {
     warranty_years: p.warranty_years != null ? String(p.warranty_years) : "",
     po_item_no: p.po_item_no || "",
     notes: p.notes || "",
+    sub_media_type: p.sub_media_type ?? null,
   };
 }
 
@@ -108,7 +112,14 @@ export function MediaPlayerInfoEditDialog({ open, onOpenChange, player, onSaved 
         warranty_years: toNum(form.warranty_years),
         po_item_no: toNull(form.po_item_no),
         notes: toNull(form.notes),
+        sub_media_type: requiresSubMediaType(player.department) ? form.sub_media_type : null,
       };
+      if (requiresSubMediaType(player.department) && !form.sub_media_type) {
+        toast.error("ฝ่าย 7-Eleven Media: กรุณาเลือก Sub Media Type");
+        setSaving(false);
+        return;
+      }
+      
       const { error } = await supabase.from("media_players").update(payload).eq("id", player.id);
       if (error) throw error;
       toast.success("บันทึกข้อมูลเรียบร้อย");
@@ -155,6 +166,16 @@ export function MediaPlayerInfoEditDialog({ open, onOpenChange, player, onSaved 
               <div className="space-y-1.5"><Label>รหัสทรัพย์สิน</Label><Input value={form.asset_code} onChange={set("asset_code")} /></div>
               <div className="space-y-1.5"><Label>Equipment ID</Label><Input value={form.equipment_id_code} onChange={set("equipment_id_code")} /></div>
               <div className="md:col-span-2 space-y-1.5"><Label>Order For Project</Label><Input value={form.order_for_project} onChange={set("order_for_project")} /></div>
+              {requiresSubMediaType(player.department) && (
+                <div className="md:col-span-2">
+                  <SubMediaTypeSelect
+                    value={form.sub_media_type}
+                    onChange={(v) => setForm((prev) => ({ ...prev, sub_media_type: v }))}
+                    required
+                    hint={`ฝ่าย ${player.department} ต้องระบุตำแหน่งสื่อย่อย`}
+                  />
+                </div>
+              )}
             </div>
           </section>
 

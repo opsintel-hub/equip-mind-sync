@@ -87,6 +87,7 @@ interface MediaPlayerMaster {
   specification: string | null;
   usage_lifespan_months: number | null;
   remote_name: string | null;
+  sub_media_type: string | null;
   companies: { name: string } | null;
   locations: { name: string } | null;
   billboard: { id: string; equipment_id: string; old_code: string | null; location_name: string | null } | null;

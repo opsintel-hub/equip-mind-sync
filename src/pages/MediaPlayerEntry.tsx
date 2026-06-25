@@ -23,6 +23,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { formatBillboardLabel } from "@/lib/billboardUtils";
 import { BrandSelect } from "@/components/equipment/BrandSelect";
 import { DocumentPreviewDialog } from "@/components/DocumentPreviewDialog";
+import { SUB_MEDIA_TYPES, SEVEN_ELEVEN_DEPT_NAME } from "@/lib/mediaPlayerSubTypes";
 
 interface Billboard {
   id: string;
@@ -74,6 +75,7 @@ interface MediaPlayer {
   po_document_url: string | null;
   pr_document_url: string | null;
   invoice_document_url: string | null;
+  sub_media_type: string | null;
   billboard?: Billboard;
 }
 
@@ -104,6 +106,7 @@ const MediaPlayerEntry = () => {
   const [filterDepartment, setFilterDepartment] = useState("all");
   const [filterModel, setFilterModel] = useState("all");
   const [filterAlert, setFilterAlert] = useState("all");
+  const [filterSubMediaType, setFilterSubMediaType] = useState("all");
   const [alertDays, setAlertDays] = useState(30);
 
   // Filter data
@@ -324,6 +327,7 @@ const MediaPlayerEntry = () => {
       const matchCmsType = filterCmsType === "all" || player.cms_type_id === filterCmsType;
       const matchDepartment = filterDepartment === "all" || player.department === filterDepartment;
       const matchModel = filterModel === "all" || player.model_id === filterModel;
+      const matchSubMediaType = filterSubMediaType === "all" || player.sub_media_type === filterSubMediaType;
 
       let matchAlert = true;
       if (filterAlert === "warranty_expired") {
@@ -338,9 +342,9 @@ const MediaPlayerEntry = () => {
         matchAlert = !!(player.waiting_asset_code || player.waiting_equipment_id);
       }
       
-      return matchSearch && matchCompany && matchStatus && matchCmsType && matchDepartment && matchModel && matchAlert;
+      return matchSearch && matchCompany && matchStatus && matchCmsType && matchDepartment && matchModel && matchAlert && matchSubMediaType;
     });
-  }, [mediaPlayers, searchTerm, filterCompany, filterStatus, filterCmsType, filterDepartment, filterModel, filterAlert, alertDays]);
+  }, [mediaPlayers, searchTerm, filterCompany, filterStatus, filterCmsType, filterDepartment, filterModel, filterAlert, alertDays, filterSubMediaType]);
 
   const dashboardStats = useMemo(() => {
     const today = new Date();
@@ -473,6 +477,7 @@ const MediaPlayerEntry = () => {
     const exportData = filteredPlayers.map((p) => ({
       "รหัส": p.code,
       "ฝ่าย": p.department || "-",
+      "Sub Media Type": p.sub_media_type || "-",
       "บริษัท": getCompanyName(p.company_id),
       "ยี่ห้อสินค้า": p.name,
       "Model": modelsForFilter.find(m => m.id === p.model_id)?.name || "-",
@@ -753,6 +758,19 @@ const MediaPlayerEntry = () => {
                       ))}
                     </SelectContent>
                   </Select>
+                  {(filterDepartment === "all" || filterDepartment === SEVEN_ELEVEN_DEPT_NAME) && (
+                    <Select value={filterSubMediaType} onValueChange={setFilterSubMediaType}>
+                      <SelectTrigger className="w-[180px]">
+                        <SelectValue placeholder="ทุก Sub Type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">ทุก Sub Media Type</SelectItem>
+                        {SUB_MEDIA_TYPES.map((v) => (
+                          <SelectItem key={v} value={v}>{v}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
                   <Select value={filterAlert} onValueChange={setFilterAlert}>
                     <SelectTrigger className="w-[200px]">
                       <SelectValue placeholder="การแจ้งเตือน" />
@@ -797,6 +815,7 @@ const MediaPlayerEntry = () => {
                           <TableHead className="whitespace-nowrap">Specification</TableHead>
                           <TableHead className="whitespace-nowrap text-center">รูปภาพ</TableHead>
                           <TableHead className="whitespace-nowrap">ฝ่าย</TableHead>
+                          <TableHead className="whitespace-nowrap">Sub Media Type</TableHead>
                           <TableHead className="whitespace-nowrap">บริษัท</TableHead>
                           <TableHead className="whitespace-nowrap">ชื่อ</TableHead>
                           <TableHead className="whitespace-nowrap">S/N 1</TableHead>
@@ -824,7 +843,7 @@ const MediaPlayerEntry = () => {
                       <TableBody>
                         {filteredPlayers.length === 0 ? (
                           <TableRow>
-                            <TableCell colSpan={29} className="text-center py-8 text-muted-foreground">
+                            <TableCell colSpan={30} className="text-center py-8 text-muted-foreground">
                               ยังไม่มีข้อมูล Media Player
                             </TableCell>
                           </TableRow>
@@ -847,6 +866,11 @@ const MediaPlayerEntry = () => {
                                 ) : <span className="text-muted-foreground">-</span>}
                               </TableCell>
                               <TableCell className="text-sm whitespace-nowrap">{player.department || "-"}</TableCell>
+                              <TableCell className="text-sm whitespace-nowrap">
+                                {player.sub_media_type ? (
+                                  <Badge variant="outline" className="font-mono text-xs">{player.sub_media_type}</Badge>
+                                ) : <span className="text-muted-foreground">-</span>}
+                              </TableCell>
                               <TableCell className="text-sm whitespace-nowrap">{getCompanyName(player.company_id)}</TableCell>
                               <TableCell className="text-sm whitespace-nowrap">{player.remote_name || "-"}</TableCell>
                               <TableCell className="text-sm whitespace-nowrap">{player.serial_number_1 || "-"}</TableCell>

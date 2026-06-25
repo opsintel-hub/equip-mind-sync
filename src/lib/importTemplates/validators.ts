@@ -1,4 +1,5 @@
 import type { RefLookups } from "./refData";
+import { SUB_MEDIA_TYPES, requiresSubMediaType, isValidSubMediaType } from "@/lib/mediaPlayerSubTypes";
 
 export interface ValidatedRow {
   rowNumber: number;
@@ -260,6 +261,18 @@ export function validateMediaPlayerRows(rows: any[], refs: RefLookups, existingS
     const department = s(row.department);
     if (department && !deptNames.has(department)) errors.push(`department "${department}" ไม่อยู่ใน master`);
 
+    const subMediaTypeRaw = s(row.sub_media_type).toUpperCase();
+    let subMediaType: string | null = null;
+    if (requiresSubMediaType(department)) {
+      if (!subMediaTypeRaw) errors.push(`ฝ่าย 7-Eleven Media ต้องระบุ sub_media_type (${SUB_MEDIA_TYPES.join(" / ")})`);
+      else if (!isValidSubMediaType(subMediaTypeRaw)) errors.push(`sub_media_type "${subMediaTypeRaw}" ไม่ถูกต้อง`);
+      else subMediaType = subMediaTypeRaw;
+    } else if (subMediaTypeRaw) {
+      // silently ignore for non-7-Eleven, trigger will null it
+      subMediaType = null;
+    }
+
+
     const locationCode = s(row.location_code);
     let locationId: string | null = null;
     if (!locationCode) errors.push("location_code ว่าง");
@@ -326,6 +339,7 @@ export function validateMediaPlayerRows(rows: any[], refs: RefLookups, existingS
       planned_install_location: s(row.planned_install_location) || null,
       notes: s(row.notes) || null,
       billboard_id: billboardId,
+      sub_media_type: subMediaType,
       install_date: installDate === "INVALID" ? null : installDate,
     };
 

@@ -642,24 +642,43 @@ export function SwapWizardDialog({ open, onOpenChange, request, onCompleted }: P
       // ---------- (2) Spare: ติดตั้งที่ป้าย ----------
       try {
         if (spareMpId) {
+          // Inherit sub_media_type + department from old MP (7-Eleven Media position)
+          let inheritedDept: string | null = null;
+          let inheritedSubMediaType: string | null = null;
+          if (oldMpId) {
+            const { data: oldMpInherit } = await supabase
+              .from("media_players")
+              .select("department, sub_media_type")
+              .eq("id", oldMpId)
+              .maybeSingle();
+            inheritedDept = (oldMpInherit as any)?.department ?? null;
+            inheritedSubMediaType = (oldMpInherit as any)?.sub_media_type ?? null;
+          }
+
           // สร้าง history ใหม่
           await supabase.from("media_player_billboard_history").insert({
             media_player_id: spareMpId,
             billboard_id: request.billboard_id,
             installation_date: today,
-            installation_notes: swapNote,
+            installation_notes: [
+              swapNote,
+              inheritedSubMediaType ? `สืบทอด Sub Media Type: ${inheritedSubMediaType}` : null,
+            ].filter(Boolean).join(" — "),
             installed_by: user?.id ?? null,
           } as any);
 
           // อัปเดต media_players (Spare ติดตั้งที่ป้าย — quantity=0 เพราะออกจากคลังแล้ว)
+          const spareUpdate: any = {
+            billboard_id: request.billboard_id,
+            install_date: today,
+            location_id: null,
+            quantity: 0,
+          };
+          if (inheritedDept) spareUpdate.department = inheritedDept;
+          if (inheritedSubMediaType) spareUpdate.sub_media_type = inheritedSubMediaType;
           await supabase
             .from("media_players")
-            .update({
-              billboard_id: request.billboard_id,
-              install_date: today,
-              location_id: null,
-              quantity: 0,
-            } as any)
+            .update(spareUpdate)
             .eq("id", spareMpId);
 
           const { data: spMp } = await supabase

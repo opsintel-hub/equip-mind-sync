@@ -3670,6 +3670,7 @@ export type Database = {
           serial_number_2: string | null
           specification: string | null
           status: string | null
+          sub_media_type: string | null
           supplier_id: string | null
           unit: string
           unit_price: number | null
@@ -3726,6 +3727,7 @@ export type Database = {
           serial_number_2?: string | null
           specification?: string | null
           status?: string | null
+          sub_media_type?: string | null
           supplier_id?: string | null
           unit?: string
           unit_price?: number | null
@@ -3782,6 +3784,7 @@ export type Database = {
           serial_number_2?: string | null
           specification?: string | null
           status?: string | null
+          sub_media_type?: string | null
           supplier_id?: string | null
           unit?: string
           unit_price?: number | null
