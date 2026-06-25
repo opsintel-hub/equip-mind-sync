@@ -449,15 +449,17 @@ const IssueGoods = () => {
           const currentStock = currentMp?.quantity || 0;
           const newStock = Math.max(0, currentStock - 1);
 
+          const stockUpdatePayload: any = {
+            quantity: newStock,
+            status: a.billboard_id ? "installed" : "issued",
+            location_id: null,
+            billboard_id: a.billboard_id || null,
+            install_date: a.billboard_id ? new Date().toISOString().split('T')[0] : null,
+          };
+          if (a.sub_media_type) stockUpdatePayload.sub_media_type = a.sub_media_type;
           const { error: stockError } = await supabase
             .from("media_players")
-            .update({
-              quantity: newStock,
-              status: a.billboard_id ? "installed" : "issued",
-              location_id: null,
-              billboard_id: a.billboard_id || null,
-              install_date: a.billboard_id ? new Date().toISOString().split('T')[0] : null,
-            })
+            .update(stockUpdatePayload)
             .eq("id", a.media_player_id);
           if (stockError) throw stockError;
 
