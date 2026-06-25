@@ -67,6 +67,9 @@ export function GeneralInfoTab({ player, modelName, onUpdated }: GeneralInfoTabP
           <InfoRow label="Activate Windows" value={player.activate_windows} />
           <InfoRow label="ชื่อ (Remote Name)" value={player.remote_name} />
           <InfoRow label="ฝ่าย" value={player.department} />
+          {player.sub_media_type && (
+            <InfoRow label="ตำแหน่งสื่อย่อย" value={player.sub_media_type} />
+          )}
           <InfoRow label="บริษัท" value={player.companies?.name} />
           <div>
             <p className="text-muted-foreground text-xs">ที่อยู่ปัจจุบัน</p>

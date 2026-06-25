@@ -1,11 +1,12 @@
 import * as XLSX from "xlsx";
 import type { RefLookups } from "./refData";
+import { SUB_MEDIA_TYPES, SEVEN_ELEVEN_DEPT_NAME } from "@/lib/mediaPlayerSubTypes";
 
 const HEADERS = [
   "code", "name", "brand", "model", "cms_type", "specification",
   "serial_number_1", "serial_number_2", "asset_code", "equipment_id_code",
   "remote_name", "activate_windows",
-  "company_name", "department", "location_code", "supplier_code",
+  "company_name", "department", "sub_media_type", "location_code", "supplier_code",
   "item_condition", "unit_price",
   "depreciation_months", "usage_lifespan_months",
   "date_of_receipt", "warranty_expiry_date", "warranty_years",
@@ -33,6 +34,7 @@ export function downloadMediaPlayerTemplate(refs: RefLookups) {
     ["activate_windows", "", "Windows activation key/note"],
     ["company_name", "", "ดูชีต _ref_companies"],
     ["department", "", "ดูชีต _ref_departments"],
+    ["sub_media_type", `เฉพาะ ${SEVEN_ELEVEN_DEPT_NAME}`, `ต้องระบุเมื่อ department = "${SEVEN_ELEVEN_DEPT_NAME}" — เลือก 1 ใน 9 ค่า: ${SUB_MEDIA_TYPES.join(", ")}`],
     ["location_code", "✅", "ใช้ code จาก _ref_locations (คลังเริ่มต้น)"],
     ["supplier_code", "", "ใช้ code จาก _ref_suppliers"],
     ["item_condition", "✅", "new / used / refurbished"],
@@ -71,6 +73,7 @@ export function downloadMediaPlayerTemplate(refs: RefLookups) {
     activate_windows: "",
     company_name: refs.companies[0]?.name || "",
     department: refs.departments[0]?.name || "",
+    sub_media_type: "",
     location_code: refs.locations[0]?.code || "",
     supplier_code: refs.suppliers[0]?.code || "",
     item_condition: "new",
@@ -97,6 +100,7 @@ export function downloadMediaPlayerTemplate(refs: RefLookups) {
   appendRef(wb, "_ref_cms_types", ["name"], refs.cms_types.map((c) => ({ name: c.name })));
   appendRef(wb, "_ref_companies", ["name"], refs.companies.map((c) => ({ name: c.name })));
   appendRef(wb, "_ref_departments", ["name"], refs.departments);
+  appendRef(wb, "_ref_sub_media_types", ["value"], SUB_MEDIA_TYPES.map((v) => ({ value: v })));
   appendRef(wb, "_ref_suppliers", ["code", "name"], refs.suppliers.map((s) => ({ code: s.code, name: s.name })));
   appendRef(wb, "_ref_locations", ["code", "name", "department"], refs.locations.map((l) => ({ code: l.code, name: l.name, department: l.department || "" })));
   appendRef(wb, "_ref_billboards", ["old_code", "location_name", "equipment_id"],

@@ -23,6 +23,7 @@ import { ProcessTracker, ProcessStep } from "@/components/ProcessTracker";
 import { Monitor, Search, Download, Eye, Package, AlertTriangle, CheckCircle, Loader2, FileDown, Tag, Building2, Wrench, Shield, Image as ImageIcon, FolderKanban, Layers } from "lucide-react";
 import { differenceInDays, differenceInMonths, parseISO, format } from "date-fns";
 import { formatBillboardLabel } from "@/lib/billboardUtils";
+import { SUB_MEDIA_TYPES } from "@/lib/mediaPlayerSubTypes";
 import { toast } from "sonner";
 import * as XLSX from "xlsx";
 import { matchesSerialSearch } from "@/lib/serialSearch";
@@ -87,6 +88,7 @@ interface MediaPlayerMaster {
   specification: string | null;
   usage_lifespan_months: number | null;
   remote_name: string | null;
+  sub_media_type: string | null;
   companies: { name: string } | null;
   locations: { name: string } | null;
   billboard: { id: string; equipment_id: string; old_code: string | null; location_name: string | null } | null;
@@ -130,6 +132,7 @@ interface ExpandedRow {
   poItemNo: string;
   warrantyYears: number | null;
   assetCaretaker: string;
+  subMediaType: string;
 }
 
 export default function MediaPlayerReport() {
@@ -139,6 +142,7 @@ export default function MediaPlayerReport() {
   const [snSearch, setSnSearch] = useState("");
   const [conditionFilter, setConditionFilter] = useState("all");
   const [departmentFilter, setDepartmentFilter] = useState("all");
+  const [subMediaTypeFilter, setSubMediaTypeFilter] = useState("all");
   const [codePrefixFilter, setCodePrefixFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
   const [companyFilter, setCompanyFilter] = useState("all");
@@ -159,7 +163,7 @@ export default function MediaPlayerReport() {
           warranty_expiry_date, date_of_receipt, install_date, unit_price, po_number,
           asset_code, equipment_id_code, depreciation_months, activate_windows,
           image_url, specification, usage_lifespan_months, remote_name, is_refurbished,
-          po_item_no, warranty_years, asset_caretaker,
+          po_item_no, warranty_years, asset_caretaker, sub_media_type,
           companies:company_id (name),
           locations:location_id (name),
           billboard:billboards!media_players_billboard_id_fkey (id, equipment_id, old_code, location_name)
@@ -338,6 +342,7 @@ export default function MediaPlayerReport() {
         poItemNo: (p as any).po_item_no || latestReceipt?.po_item_no || "",
         warrantyYears: (p as any).warranty_years ?? latestReceipt?.warranty_years ?? null,
         assetCaretaker: (p as any).asset_caretaker || (latestReceipt as any)?.asset_caretaker || "",
+        subMediaType: (p as any).sub_media_type || "",
       });
     });
     return rows;
@@ -379,6 +384,7 @@ export default function MediaPlayerReport() {
     return expandedRows.filter((r) => {
       if (conditionFilter !== "all" && r.condition !== conditionFilter) return false;
       if (departmentFilter !== "all" && r.department !== departmentFilter) return false;
+      if (subMediaTypeFilter !== "all" && r.subMediaType !== subMediaTypeFilter) return false;
       if (statusFilter !== "all") {
         const SPECIAL = ["pending_warehouse_return", "pending_assessment", "under_repair", "in_claim"];
         const isSpecial = r.rawStatus ? SPECIAL.includes(r.rawStatus) : false;
@@ -420,7 +426,7 @@ export default function MediaPlayerReport() {
       }
       return true;
     });
-  }, [expandedRows, search, snSearch, conditionFilter, departmentFilter, statusFilter, companyFilter, brandFilter, codePrefixFilter, projectFilter, allReceiptSerialsMap]);
+  }, [expandedRows, search, snSearch, conditionFilter, departmentFilter, statusFilter, companyFilter, brandFilter, codePrefixFilter, projectFilter, allReceiptSerialsMap, subMediaTypeFilter]);
 
   const {
     paginatedData,
@@ -468,6 +474,7 @@ export default function MediaPlayerReport() {
       "Refurbished": r.isRefurbished ? "ใช่" : "",
       "ป้ายปัจจุบัน": r.billboardLabel,
       "ฝ่าย": r.department,
+      "Sub Media Type": r.subMediaType || "",
       "บริษัท": r.company,
       "ราคา/ชิ้น": r.price ?? "",
       "เลข PO": r.poNumber,
@@ -626,6 +633,13 @@ export default function MediaPlayerReport() {
                 {departments.map((d: string) => (<SelectItem key={d} value={d}>{d}</SelectItem>))}
               </SelectContent>
             </Select>
+            <Select value={subMediaTypeFilter} onValueChange={setSubMediaTypeFilter}>
+              <SelectTrigger className="w-[170px]"><SelectValue placeholder="Sub Media Type" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">ทุก Sub Media Type</SelectItem>
+                {SUB_MEDIA_TYPES.map((v) => (<SelectItem key={v} value={v}>{v}</SelectItem>))}
+              </SelectContent>
+            </Select>
             <Select value={companyFilter} onValueChange={setCompanyFilter}>
               <SelectTrigger className="w-[160px]"><SelectValue placeholder="บริษัท" /></SelectTrigger>
               <SelectContent>
@@ -688,6 +702,7 @@ export default function MediaPlayerReport() {
                       <TableHead className="min-w-[80px]">สถานะ</TableHead>
                       <TableHead className="min-w-[200px]">ป้ายปัจจุบัน</TableHead>
                       <TableHead className="min-w-[110px]">ฝ่าย</TableHead>
+                      <TableHead className="min-w-[120px]">Sub Media Type</TableHead>
                       <TableHead className="min-w-[110px]">บริษัท</TableHead>
                       <TableHead className="min-w-[100px] text-right">ราคา/ชิ้น</TableHead>
                       <TableHead className="min-w-[100px]">เลข PO</TableHead>
@@ -711,7 +726,7 @@ export default function MediaPlayerReport() {
                   <TableBody>
                     {paginatedData.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={28} className="text-center py-10 text-muted-foreground">
+                        <TableCell colSpan={29} className="text-center py-10 text-muted-foreground">
                           ไม่พบข้อมูล Media Player
                         </TableCell>
                       </TableRow>
@@ -753,6 +768,7 @@ export default function MediaPlayerReport() {
                             </TableCell>
                             <TableCell className="text-sm">{r.billboardLabel}</TableCell>
                             <TableCell>{r.department || "-"}</TableCell>
+                            <TableCell>{r.subMediaType ? <Badge variant="outline" className="font-mono text-xs">{r.subMediaType}</Badge> : <span className="text-muted-foreground">-</span>}</TableCell>
                             <TableCell>{r.company || "-"}</TableCell>
                             <TableCell className="text-right font-mono">{formatPrice(r.price)}</TableCell>
                             <TableCell>{r.poNumber || "-"}</TableCell>

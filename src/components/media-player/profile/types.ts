@@ -10,6 +10,7 @@ export interface MediaPlayerRow {
   status: string | null;
   item_condition: string;
   department: string | null;
+  sub_media_type: string | null;
   billboard_id: string | null;
   install_date: string | null;
   date_of_receipt: string | null;
