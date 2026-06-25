@@ -632,6 +632,13 @@ export default function MediaPlayerReport() {
                 {departments.map((d: string) => (<SelectItem key={d} value={d}>{d}</SelectItem>))}
               </SelectContent>
             </Select>
+            <Select value={subMediaTypeFilter} onValueChange={setSubMediaTypeFilter}>
+              <SelectTrigger className="w-[170px]"><SelectValue placeholder="Sub Media Type" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">ทุก Sub Media Type</SelectItem>
+                {SUB_MEDIA_TYPES.map((v) => (<SelectItem key={v} value={v}>{v}</SelectItem>))}
+              </SelectContent>
+            </Select>
             <Select value={companyFilter} onValueChange={setCompanyFilter}>
               <SelectTrigger className="w-[160px]"><SelectValue placeholder="บริษัท" /></SelectTrigger>
               <SelectContent>
