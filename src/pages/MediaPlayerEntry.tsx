@@ -437,6 +437,7 @@ const MediaPlayerEntry = () => {
     const nameId = mediaPlayerNames.find(n => n.name === player.name)?.id || "";
     const specId = mediaPlayerSpecs.find(s => s.name === player.specification)?.id || "";
     setEditPlayer(player);
+    setEditDeviceType((player.device_type as DeviceType) || "MEDIA_PLAYER");
     setEditForm({
       name: nameId,
       cms_type_id: player.cms_type_id || "",
