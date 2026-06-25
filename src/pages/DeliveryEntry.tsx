@@ -2152,6 +2152,17 @@ const DeliveryEntry = () => {
                               />
                             </div>
                           </div>
+                          {requiresSubMediaType(getDepartmentName(selectedDepartmentId)) && (
+                            <div className="border-t pt-3">
+                              <SubMediaTypeSelect
+                                value={device.sub_media_type}
+                                onChange={(v) => setMediaPlayerDevices((prev) => prev.map((d) => (d.id === device.id ? { ...d, sub_media_type: v } : d)))}
+                                required
+                                label={`ตำแหน่งสื่อย่อย (${SEVEN_ELEVEN_DEPT_NAME}) *`}
+                                hint="จำเป็นต้องเลือกเมื่อรับเข้าฝ่าย 7-Eleven Media"
+                              />
+                            </div>
+                          )}
                         </div>
                       ))}
                     </div>
