@@ -422,7 +422,7 @@ const DeliveryEntry = () => {
   const fetchMediaPlayers = async () => {
     const { data, error } = await supabase
       .from("media_players")
-      .select("id, code, name, unit_price, specification, usage_lifespan_months")
+      .select("id, code, name, unit_price, specification, usage_lifespan_months, device_type")
       .eq("is_active", true)
       .order("code");
     if (!error && data) {
@@ -1127,6 +1127,7 @@ const DeliveryEntry = () => {
                 company_id: (original as any).company_id,
                 department: (original as any).department,
                 sub_media_type: (original as any).sub_media_type ?? null,
+                device_type: (original as any).device_type ?? 'media_player',
                 brand: (original as any).brand,
                 quantity: 0,
                 unit: (original as any).unit || "เครื่อง",

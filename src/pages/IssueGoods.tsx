@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { DeviceTypeBadge } from "@/components/media-player/DeviceTypeBadge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 
 
@@ -172,7 +173,7 @@ const IssueGoods = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("media_players")
-        .select("id, code, name, serial_number_1, serial_number_2, quantity, billboard_id, location_id, department, sub_media_type, locations(id, name, code, warehouses(id, name, code))")
+        .select("id, code, name, serial_number_1, serial_number_2, quantity, billboard_id, location_id, department, sub_media_type, device_type, locations(id, name, code, warehouses(id, name, code))")
         .eq("is_active", true)
         .gt("quantity", 0);
       if (error) throw error;
@@ -1279,9 +1280,10 @@ const IssueGoods = () => {
               const candidates = (availableMpUnits || []).filter((m: any) => m.code === selectedItem?.equipment_code);
               return (
                 <div className="space-y-2">
-                  <Label className="flex items-center gap-1">
+                  <Label className="flex items-center gap-2">
                     <Hash className="h-3 w-3" />
                     ระบุ S/N และป้ายโฆษณาต่อเครื่อง ({mpUnitAssignments.length} เครื่อง)
+                    {candidates[0]?.device_type && <DeviceTypeBadge value={candidates[0].device_type} />}
                   </Label>
                   <div className="border rounded-lg divide-y">
                     {mpUnitAssignments.map((u, idx) => {
