@@ -349,6 +349,7 @@ export function validateMediaPlayerRows(rows: any[], refs: RefLookups, existingS
       notes: s(row.notes) || null,
       billboard_id: billboardId,
       sub_media_type: subMediaType,
+      device_type: deviceType,
       install_date: installDate === "INVALID" ? null : installDate,
     };
 
