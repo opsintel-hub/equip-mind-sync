@@ -103,6 +103,10 @@ export function downloadMediaPlayerTemplate(refs: RefLookups) {
   appendRef(wb, "_ref_companies", ["name"], refs.companies.map((c) => ({ name: c.name })));
   appendRef(wb, "_ref_departments", ["name"], refs.departments);
   appendRef(wb, "_ref_sub_media_types", ["value"], SUB_MEDIA_TYPES.map((v) => ({ value: v })));
+  appendRef(wb, "_ref_device_types", ["value", "label"], [
+    { value: "MEDIA_PLAYER", label: "Media Player" },
+    { value: "MONITOR", label: "จอภาพ (Monitor)" },
+  ]);
   appendRef(wb, "_ref_suppliers", ["code", "name"], refs.suppliers.map((s) => ({ code: s.code, name: s.name })));
   appendRef(wb, "_ref_locations", ["code", "name", "department"], refs.locations.map((l) => ({ code: l.code, name: l.name, department: l.department || "" })));
   appendRef(wb, "_ref_billboards", ["old_code", "location_name", "equipment_id"],
