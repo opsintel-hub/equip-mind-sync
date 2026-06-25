@@ -1016,9 +1016,11 @@ const MediaPlayerEntry = () => {
       <Dialog open={!!editPlayer} onOpenChange={(open) => !open && setEditPlayer(null)}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>แก้ไขข้อมูล Media Player</DialogTitle>
-            <DialogDescription>
-              รหัส: <span className="font-mono font-medium">{editPlayer?.code}</span>
+            <DialogTitle>แก้ไขข้อมูล {deviceLabel(editPlayer?.device_type)}</DialogTitle>
+            <DialogDescription className="flex items-center gap-2">
+              <span>รหัส: <span className="font-mono font-medium">{editPlayer?.code}</span></span>
+              <DeviceTypeBadge value={editPlayer?.device_type} />
+              <span className="text-xs text-muted-foreground">(ไม่สามารถเปลี่ยนประเภทอุปกรณ์หลังบันทึก)</span>
             </DialogDescription>
           </DialogHeader>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
