@@ -715,6 +715,7 @@ export default function MediaPlayerReport() {
                       <TableHead className="min-w-[80px]">สถานะ</TableHead>
                       <TableHead className="min-w-[200px]">ป้ายปัจจุบัน</TableHead>
                       <TableHead className="min-w-[110px]">ฝ่าย</TableHead>
+                      <TableHead className="min-w-[110px]">ประเภท</TableHead>
                       <TableHead className="min-w-[120px]">Sub Media Type</TableHead>
                       <TableHead className="min-w-[110px]">บริษัท</TableHead>
                       <TableHead className="min-w-[100px] text-right">ราคา/ชิ้น</TableHead>
