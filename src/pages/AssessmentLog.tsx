@@ -220,7 +220,7 @@ export default function AssessmentLog() {
       subjects.map((s) => ({
         value: `${s.type === "media_player" ? "mp" : "eq"}:${s.id}${s.type === "equipment" && s.serial ? `:${s.serial}` : ""}`,
         label: `${s.code} — ${s.name}${s.serial ? ` (S/N: ${s.serial})` : ""}`,
-        description: s.type === "media_player" ? "Media Player" : "Equipment",
+        description: s.type === "media_player" ? (isMonitor(s.device_type) ? "จอภาพ (Monitor)" : "Media Player") : "Equipment",
         searchableText: `${s.code} ${s.name} ${s.serial || ""}`,
       })),
     [subjects]
