@@ -18,6 +18,7 @@ import { th } from "date-fns/locale";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { WarehouseLocationSelect } from "@/components/location/WarehouseLocationSelect";
+import { DeviceTypeBadge } from "@/components/media-player/DeviceTypeBadge";
 import { SimpleDepartmentSelect } from "@/components/equipment/SimpleDepartmentSelect";
 import { logStockMovement } from "@/lib/stockMovement";
 
