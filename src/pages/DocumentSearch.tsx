@@ -1202,6 +1202,19 @@ export default function DocumentSearch() {
                             <div className="space-y-0.5">
                               {doc.equipment_code && <div className="font-semibold text-sm leading-tight">{doc.equipment_code}</div>}
                               {doc.equipment_name && <div className="text-xs text-muted-foreground leading-tight">{doc.equipment_name}</div>}
+                              {(() => {
+                                let smt: string | undefined;
+                                for (const sn of snList) {
+                                  const v = subMediaTypeMap.get(sn.toLowerCase());
+                                  if (v) { smt = v; break; }
+                                }
+                                if (!smt && doc.equipment_code) smt = subMediaTypeMap.get(`code:${doc.equipment_code.toLowerCase()}`);
+                                return smt ? (
+                                  <Badge variant="outline" className="mt-1 text-[10px] font-mono border-primary/40 text-primary">
+                                    {smt}
+                                  </Badge>
+                                ) : null;
+                              })()}
                               {doc.source === "swap" && (() => {
                                 const r: any = doc.raw || {};
                                 const hasSwap = r._swap_old_sn || r._swap_new_sn || r._swap_new_code;
