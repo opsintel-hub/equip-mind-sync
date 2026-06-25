@@ -112,6 +112,7 @@ const IssueGoods = () => {
     media_player_id: string;
     serial_number: string;
     billboard_id: string;
+    sub_media_type: string | null;
   }>>([]);
   const [rejectReason, setRejectReason] = useState("");
   const [imageDialogOpen, setImageDialogOpen] = useState(false);
