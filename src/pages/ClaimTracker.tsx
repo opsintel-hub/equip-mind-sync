@@ -120,7 +120,7 @@ export default function ClaimTracker() {
     const [mpRes, eqRes] = await Promise.all([
       supabase
         .from("media_players")
-        .select("id, code, name, serial_number, warranty_expiry_date, supplier_id")
+        .select("id, code, name, serial_number, warranty_expiry_date, supplier_id, device_type")
         .order("code")
         .limit(500),
       supabase
@@ -140,6 +140,7 @@ export default function ClaimTracker() {
         serial: mp.serial_number,
         warranty: mp.warranty_expiry_date,
         supplier_id: mp.supplier_id,
+        device_type: mp.device_type || "MEDIA_PLAYER",
       });
     });
     (eqRes.data || []).forEach((sn: any) => {
