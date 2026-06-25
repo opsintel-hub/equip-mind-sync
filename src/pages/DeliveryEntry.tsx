@@ -707,6 +707,14 @@ const DeliveryEntry = () => {
         toast.error("กรุณากรอก Serial Number อย่างน้อย 1 เครื่อง");
         return;
       }
+      // 7-Eleven Media requires sub_media_type per device
+      if (requiresSubMediaType(getDepartmentName(selectedDepartmentId))) {
+        const missing = validDevices.filter((d) => !d.sub_media_type);
+        if (missing.length > 0) {
+          toast.error(`ฝ่าย ${SEVEN_ELEVEN_DEPT_NAME}: กรุณาเลือก Sub Media Type ครบทุกเครื่อง (${missing.length} เครื่องยังไม่ได้เลือก)`);
+          return;
+        }
+      }
 
       // Check optional fields (non-blocking warning)
       const optionalWarnings = gatherOptionalFieldWarnings();
