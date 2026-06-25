@@ -2890,6 +2890,7 @@ export type Database = {
           delivery_person_phone: string | null
           department_id: string | null
           depreciation_months: number | null
+          device_type: string | null
           document_file_name: string | null
           document_no: string
           document_url: string | null
@@ -2961,6 +2962,7 @@ export type Database = {
           delivery_person_phone?: string | null
           department_id?: string | null
           depreciation_months?: number | null
+          device_type?: string | null
           document_file_name?: string | null
           document_no: string
           document_url?: string | null
@@ -3032,6 +3034,7 @@ export type Database = {
           delivery_person_phone?: string | null
           department_id?: string | null
           depreciation_months?: number | null
+          device_type?: string | null
           document_file_name?: string | null
           document_no?: string
           document_url?: string | null
@@ -3644,6 +3647,7 @@ export type Database = {
           department: string | null
           depreciation_months: number | null
           description: string | null
+          device_type: string
           equipment_id_code: string | null
           id: string
           image_url: string | null
@@ -3701,6 +3705,7 @@ export type Database = {
           department?: string | null
           depreciation_months?: number | null
           description?: string | null
+          device_type?: string
           equipment_id_code?: string | null
           id?: string
           image_url?: string | null
@@ -3758,6 +3763,7 @@ export type Database = {
           department?: string | null
           depreciation_months?: number | null
           description?: string | null
+          device_type?: string
           equipment_id_code?: string | null
           id?: string
           image_url?: string | null
