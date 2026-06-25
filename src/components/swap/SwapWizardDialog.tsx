@@ -443,8 +443,17 @@ export function SwapWizardDialog({ open, onOpenChange, request, onCompleted }: P
   const selectedSpare = spareOptions.find((o) => o.value === spareValue);
   const selectedOld = oldOptions.find((o) => o.value === oldValue);
 
-  const canNext1 = !!spareValue;
-  const canNext2 = !!oldValue;
+  // บล็อก swap ข้ามประเภทอุปกรณ์ (Media Player ↔ จอภาพ)
+  const isCrossDeviceType = (() => {
+    if (!selectedSpare || !selectedOld) return false;
+    if (selectedSpare.type !== "media_player" || selectedOld.type !== "media_player") return false;
+    const a = (selectedSpare.device_type || "MEDIA_PLAYER").toUpperCase();
+    const b = (selectedOld.device_type || "MEDIA_PLAYER").toUpperCase();
+    return a !== b;
+  })();
+
+  const canNext1 = !!spareValue && !isCrossDeviceType;
+  const canNext2 = !!oldValue && !isCrossDeviceType;
 
   // ตรวจ cross-model: spare กับ old ต่างรหัส/ต่าง equipment_id หรือไม่
   const isCrossModel = (() => {
@@ -461,7 +470,7 @@ export function SwapWizardDialog({ open, onOpenChange, request, onCompleted }: P
 
   const canSubmit =
     result === "approved"
-      ? (!isCrossModel || crossModelAck)
+      ? (!isCrossDeviceType && (!isCrossModel || crossModelAck))
       : !!rejectReasonId || !!rejectReasonOther.trim();
 
   const handleSubmit = async () => {
