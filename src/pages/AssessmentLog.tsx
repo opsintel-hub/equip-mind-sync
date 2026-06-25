@@ -51,6 +51,7 @@ interface SubjectOption {
   code: string;
   name: string;
   serial: string | null;
+  device_type?: string | null;
 }
 
 const STATUS_LABELS: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
