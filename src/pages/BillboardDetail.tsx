@@ -758,7 +758,10 @@ const BillboardDetail = () => {
                               <TableCell className="font-medium font-mono text-primary">{mp.code}</TableCell>
                               <TableCell>
                                 <div className="flex flex-col gap-1">
-                                  <span>{mp.name}</span>
+                                  <div className="flex items-center gap-2 flex-wrap">
+                                    <span>{mp.name}</span>
+                                    <DeviceTypeBadge value={(mp as any).device_type} />
+                                  </div>
                                   {(mp as any).sub_media_type && (
                                     <Badge variant="outline" className="font-mono text-[10px] w-fit border-primary/30 text-primary bg-primary/5">
                                       {(mp as any).sub_media_type}
