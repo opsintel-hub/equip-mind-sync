@@ -378,6 +378,7 @@ export function SwapWizardDialog({ open, onOpenChange, request, onCompleted }: P
         model_name: reportedModelName,
         remote_name: reportedRemoteName,
         billboard_label: billboardLabel,
+        device_type: reportedDeviceType,
       });
       seenIds.add(v);
     }
