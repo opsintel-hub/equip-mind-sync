@@ -323,6 +323,7 @@ export function SwapWizardDialog({ open, onOpenChange, request, onCompleted }: P
     let reportedBrand: string | null = null;
     let reportedSpec: string | null = null;
     let reportedModelName: string | null = null;
+    let reportedDeviceType: string | null = null;
     if (request?.reported_asset_type === "media_player" && request.reported_media_player_id) {
       const found = (mpsOnBb || []).find((m: any) => m.id === request.reported_media_player_id);
       if (found) {
@@ -330,16 +331,18 @@ export function SwapWizardDialog({ open, onOpenChange, request, onCompleted }: P
         reportedBrand = found.brand || null;
         reportedSpec = found.specification || null;
         reportedModelName = found.model_id ? oldModelMap[found.model_id] : null;
+        reportedDeviceType = found.device_type || "MEDIA_PLAYER";
       } else {
         const { data: rmp } = await supabase
           .from("media_players")
-          .select("remote_name, model_id, brand, specification")
+          .select("remote_name, model_id, brand, specification, device_type")
           .eq("id", request.reported_media_player_id)
           .maybeSingle();
         if (rmp) {
           reportedRemoteName = rmp.remote_name || null;
           reportedBrand = rmp.brand || null;
           reportedSpec = rmp.specification || null;
+          reportedDeviceType = (rmp as any).device_type || "MEDIA_PLAYER";
           if (rmp.model_id) {
             const { data: mm } = await supabase
               .from("media_player_models")
