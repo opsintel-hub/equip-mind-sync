@@ -218,11 +218,11 @@ export const TABLE_GUIDE: Record<string, TableMeta> = {
 
   // ==================== Media Player ====================
   media_players: {
-    category: "Media Player",
-    description: "ข้อมูลหลัก Media Player แต่ละเครื่อง",
+    category: "Media Player / จอภาพ",
+    description: "ข้อมูลหลัก Media Player และจอภาพ (Monitor) — แยกประเภทด้วยคอลัมน์ device_type ('MEDIA_PLAYER' / 'MONITOR') ใช้ workflow และตารางชุดเดียวกันทั้งหมด (1 เครื่อง = 1 row พร้อม S/N)",
     relatedRoutes: [
-      { label: "Media Player Profile", path: "/media-player/search" },
-      { label: "รายงาน Media Player", path: "/media-player-report" },
+      { label: "MP / จอภาพ Profile", path: "/media-player/search" },
+      { label: "รายงาน MP / จอภาพ", path: "/media-player-report" },
     ],
   },
   media_player_images: {
