@@ -389,6 +389,7 @@ export default function MediaPlayerReport() {
       if (conditionFilter !== "all" && r.condition !== conditionFilter) return false;
       if (departmentFilter !== "all" && r.department !== departmentFilter) return false;
       if (subMediaTypeFilter !== "all" && r.subMediaType !== subMediaTypeFilter) return false;
+      if (deviceTypeFilter !== "all" && (r.deviceType || "MEDIA_PLAYER") !== deviceTypeFilter) return false;
       if (statusFilter !== "all") {
         const SPECIAL = ["pending_warehouse_return", "pending_assessment", "under_repair", "in_claim"];
         const isSpecial = r.rawStatus ? SPECIAL.includes(r.rawStatus) : false;
