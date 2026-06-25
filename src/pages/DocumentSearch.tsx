@@ -929,9 +929,10 @@ export default function DocumentSearch() {
         supabase.from("equipment_serial_numbers")
           .select("serial_number, status, billboard_id, location_id, billboards(code, name, location_name), locations(code, name, warehouses(name))"),
         supabase.from("media_players")
-          .select("serial_number_1, serial_number_2, status, billboard_id, location_id, billboards(code, name, location_name), locations(code, name, warehouses(name))"),
+          .select("code, sub_media_type, serial_number_1, serial_number_2, status, billboard_id, location_id, billboards(code, name, location_name), locations(code, name, warehouses(name))"),
       ]);
       const map = new Map<string, LocationInfo>();
+      const smtMap = new Map<string, string>();
       const buildInfo = (row: any): LocationInfo => {
         const status = (row.status || "").toLowerCase();
         if (row.billboard_id && row.billboards) {
@@ -964,9 +965,12 @@ export default function DocumentSearch() {
         for (const sn of [r.serial_number_1, r.serial_number_2]) {
           const k = (sn || "").trim();
           if (k) map.set(k.toLowerCase(), info);
+          if (k && r.sub_media_type) smtMap.set(k.toLowerCase(), r.sub_media_type);
         }
+        if (r.code && r.sub_media_type) smtMap.set(`code:${r.code.toLowerCase()}`, r.sub_media_type);
       }
       setSnLocationMap(map);
+      setSubMediaTypeMap(smtMap);
     } catch (error) {
       console.error("Error fetching documents:", error);
       toast.error("ไม่สามารถโหลดเอกสารได้");
