@@ -487,6 +487,7 @@ const MediaPlayerEntry = () => {
   const handleExportExcel = () => {
     const exportData = filteredPlayers.map((p) => ({
       "รหัส": p.code,
+      "ประเภทอุปกรณ์": deviceLabel(p.device_type),
       "ฝ่าย": p.department || "-",
       "Sub Media Type": p.sub_media_type || "-",
       "บริษัท": getCompanyName(p.company_id),
@@ -532,16 +533,25 @@ const MediaPlayerEntry = () => {
       <div>
         <h1 className="text-3xl font-semibold text-foreground mb-2 flex items-center gap-2">
           <Monitor className="w-8 h-8" />
-          จัดการ Media Player
+          จัดการ Media Player / จอภาพ
         </h1>
-        <p className="text-muted-foreground">ตั้งค่าและลงทะเบียน Media Player ในระบบ</p>
+        <p className="text-muted-foreground">ตั้งค่าและลงทะเบียน Media Player และจอภาพในระบบ</p>
       </div>
+
+      <DeviceTypeTabs
+        value={filterDeviceType}
+        onChange={(v) => {
+          setFilterDeviceType(v);
+          // When user picks a specific tab, lock the new-form device_type to match
+          if (v === "MEDIA_PLAYER" || v === "MONITOR") setFormDeviceType(v);
+        }}
+      />
 
       <Tabs defaultValue="add" className="w-full">
         <TabsList className="grid w-full grid-cols-2 max-w-md">
           <TabsTrigger value="add" className="flex items-center gap-2">
             <Plus className="w-4 h-4" />
-            เพิ่ม Media Player ใหม่
+            เพิ่ม{filterDeviceType === "MONITOR" ? "จอภาพ" : "Media Player"}ใหม่
           </TabsTrigger>
           <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
         </TabsList>
