@@ -1294,6 +1294,7 @@ const IssueGoods = () => {
                                   updateMpUnitAssignment(idx, {
                                     media_player_id: mpId,
                                     serial_number: mp?.serial_number_1 || mp?.serial_number_2 || "",
+                                    sub_media_type: mp?.sub_media_type ?? null,
                                   });
                                 }}
                                 placeholder="-- เลือก S/N --"
@@ -1316,6 +1317,21 @@ const IssueGoods = () => {
                                 onChange={(value) => updateMpUnitAssignment(idx, { billboard_id: value })}
                               />
                             </div>
+                            {(() => {
+                              const picked = candidates.find((m: any) => m.id === u.media_player_id);
+                              if (!picked || !requiresSubMediaType(picked.department)) return null;
+                              return (
+                                <div className="md:col-span-2">
+                                  <SubMediaTypeSelect
+                                    value={u.sub_media_type}
+                                    onChange={(v) => updateMpUnitAssignment(idx, { sub_media_type: v })}
+                                    required
+                                    label="ตำแหน่งสื่อย่อย (7-Eleven Media) *"
+                                    hint={picked.sub_media_type ? `ค่าเดิม: ${picked.sub_media_type} — แก้ไขได้ก่อนยืนยันจ่าย` : "ฝ่าย 7-Eleven Media ต้องระบุก่อนจ่าย"}
+                                  />
+                                </div>
+                              );
+                            })()}
                           </div>
                         </div>
                       );
