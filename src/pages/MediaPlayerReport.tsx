@@ -782,6 +782,11 @@ export default function MediaPlayerReport() {
                             </TableCell>
                             <TableCell className="text-sm">{r.billboardLabel}</TableCell>
                             <TableCell>{r.department || "-"}</TableCell>
+                            <TableCell>
+                              <Badge variant="outline" className={r.deviceType === "MONITOR" ? "border-purple-400 text-purple-700 bg-purple-50" : "border-blue-400 text-blue-700 bg-blue-50"}>
+                                {r.deviceType === "MONITOR" ? "📺 จอภาพ" : "🖥️ Media Player"}
+                              </Badge>
+                            </TableCell>
                             <TableCell>{r.subMediaType ? <Badge variant="outline" className="font-mono text-xs">{r.subMediaType}</Badge> : <span className="text-muted-foreground">-</span>}</TableCell>
                             <TableCell>{r.company || "-"}</TableCell>
                             <TableCell className="text-right font-mono">{formatPrice(r.price)}</TableCell>
