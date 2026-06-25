@@ -345,6 +345,7 @@ export default function MediaPlayerReport() {
         warrantyYears: (p as any).warranty_years ?? latestReceipt?.warranty_years ?? null,
         assetCaretaker: (p as any).asset_caretaker || (latestReceipt as any)?.asset_caretaker || "",
         subMediaType: (p as any).sub_media_type || "",
+        deviceType: ((p as any).device_type || "MEDIA_PLAYER"),
       });
     });
     return rows;
