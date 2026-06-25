@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { DeviceTypeBadge } from "@/components/media-player/DeviceTypeBadge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -458,7 +459,7 @@ const DeliveryConfirmation = () => {
                   <div><span className="text-muted-foreground">ผู้ขอเบิก:</span> <span className="font-medium">{selectedRequest?.requester_name}</span></div>
                   <div><span className="text-muted-foreground">ฝ่าย:</span> <span className="font-medium">{selectedRequest?.requester_department || "-"}</span></div>
                   <div><span className="text-muted-foreground">ปลายทาง:</span> <span className="font-medium">{selectedRequest?.destination || "-"}</span></div>
-                  <div><span className="text-muted-foreground">สินค้า:</span> <span className="font-medium">{selectedRequest?.equipment_name || selectedRequest?.equipment?.name || "-"}</span></div>
+                  <div><span className="text-muted-foreground">สินค้า:</span> <span className="font-medium inline-flex items-center gap-2">{selectedRequest?.equipment_name || selectedRequest?.equipment?.name || "-"}{selectedRequest?.is_media_player && (selectedRequest as any)?.media_players?.device_type && <DeviceTypeBadge value={(selectedRequest as any).media_players.device_type} />}</span></div>
                   {selectedRequest?.equipment_code && (
                     <div><span className="text-muted-foreground">รหัสสินค้า:</span> <span className="font-medium font-mono">{selectedRequest.equipment_code}</span></div>
                   )}

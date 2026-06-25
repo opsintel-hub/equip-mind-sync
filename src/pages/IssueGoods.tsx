@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { DeviceTypeBadge } from "@/components/media-player/DeviceTypeBadge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 
 
@@ -1279,9 +1280,10 @@ const IssueGoods = () => {
               const candidates = (availableMpUnits || []).filter((m: any) => m.code === selectedItem?.equipment_code);
               return (
                 <div className="space-y-2">
-                  <Label className="flex items-center gap-1">
+                  <Label className="flex items-center gap-2">
                     <Hash className="h-3 w-3" />
                     ระบุ S/N และป้ายโฆษณาต่อเครื่อง ({mpUnitAssignments.length} เครื่อง)
+                    {candidates[0]?.device_type && <DeviceTypeBadge value={candidates[0].device_type} />}
                   </Label>
                   <div className="border rounded-lg divide-y">
                     {mpUnitAssignments.map((u, idx) => {
