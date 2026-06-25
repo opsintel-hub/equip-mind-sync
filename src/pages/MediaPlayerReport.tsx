@@ -638,6 +638,13 @@ export default function MediaPlayerReport() {
                 {departments.map((d: string) => (<SelectItem key={d} value={d}>{d}</SelectItem>))}
               </SelectContent>
             </Select>
+            <Select value={deviceTypeFilter} onValueChange={setDeviceTypeFilter}>
+              <SelectTrigger className="w-[160px]"><SelectValue placeholder="ประเภทอุปกรณ์" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">ทุกประเภท</SelectItem>
+                <SelectItem value="MEDIA_PLAYER">Media Player</SelectItem>
+                <SelectItem value="MONITOR">จอภาพ</SelectItem>
+              </SelectContent>
             <Select value={subMediaTypeFilter} onValueChange={setSubMediaTypeFilter}>
               <SelectTrigger className="w-[170px]"><SelectValue placeholder="Sub Media Type" /></SelectTrigger>
               <SelectContent>
