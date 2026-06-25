@@ -842,6 +842,7 @@ const MediaPlayerEntry = () => {
                       <TableHeader>
                         <TableRow className="bg-muted/50">
                           <TableHead className="whitespace-nowrap">รหัส</TableHead>
+                          <TableHead className="whitespace-nowrap">ประเภท</TableHead>
                           <TableHead className="whitespace-nowrap">ชื่อสินค้า</TableHead>
                           <TableHead className="whitespace-nowrap">โมเดล</TableHead>
                           <TableHead className="whitespace-nowrap">ยี่ห้อ</TableHead>
@@ -885,6 +886,7 @@ const MediaPlayerEntry = () => {
                           filteredPlayers.map((player) => (
                             <TableRow key={player.id} className="hover:bg-muted/30">
                               <TableCell className="font-mono text-sm whitespace-nowrap">{player.code}</TableCell>
+                              <TableCell className="whitespace-nowrap"><DeviceTypeBadge value={player.device_type} /></TableCell>
                               <TableCell className="whitespace-nowrap">{player.name}</TableCell>
                               <TableCell className="text-sm whitespace-nowrap">
                                 {modelsForFilter.find(m => m.id === player.model_id)?.name || "-"}
