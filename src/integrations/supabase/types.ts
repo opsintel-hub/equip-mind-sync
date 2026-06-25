@@ -2932,6 +2932,7 @@ export type Database = {
           storage_height_cm: number | null
           storage_volume_cm3: number | null
           storage_width_cm: number | null
+          sub_media_type: string | null
           supplier_id: string | null
           supplier_name: string | null
           temp_category_id: string | null
@@ -3002,6 +3003,7 @@ export type Database = {
           storage_height_cm?: number | null
           storage_volume_cm3?: number | null
           storage_width_cm?: number | null
+          sub_media_type?: string | null
           supplier_id?: string | null
           supplier_name?: string | null
           temp_category_id?: string | null
@@ -3072,6 +3074,7 @@ export type Database = {
           storage_height_cm?: number | null
           storage_volume_cm3?: number | null
           storage_width_cm?: number | null
+          sub_media_type?: string | null
           supplier_id?: string | null
           supplier_name?: string | null
           temp_category_id?: string | null
