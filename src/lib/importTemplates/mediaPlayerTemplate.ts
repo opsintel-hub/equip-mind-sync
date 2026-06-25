@@ -62,6 +62,7 @@ export function downloadMediaPlayerTemplate(refs: RefLookups) {
   const example: Record<string, any> = {
     code: "MP-EXAMPLE-001",
     name: "Media Player รุ่นตัวอย่าง",
+    device_type: "MEDIA_PLAYER",
     brand: (refs.brands.find((b) => b.brand_type === "media_player")?.name) || refs.brands[0]?.name || "",
     model: refs.mp_models[0]?.name || "",
     cms_type: refs.cms_types[0]?.name || "",
