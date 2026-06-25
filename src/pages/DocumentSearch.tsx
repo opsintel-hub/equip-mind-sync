@@ -468,6 +468,7 @@ export default function DocumentSearch() {
   const [hideRedundantStockCard, setHideRedundantStockCard] = useState(true);
   /** Map: serial_number(lowercased) -> current location info */
   const [snLocationMap, setSnLocationMap] = useState<Map<string, LocationInfo>>(new Map());
+  const [subMediaTypeMap, setSubMediaTypeMap] = useState<Map<string, string>>(new Map());
 
   /** Map a document record to a route + query params for "ดูรายละเอียด". Returns null when no detail page exists. */
   const getDetailRoute = (doc: DocumentRecord): string | null => {
@@ -928,9 +929,10 @@ export default function DocumentSearch() {
         supabase.from("equipment_serial_numbers")
           .select("serial_number, status, billboard_id, location_id, billboards(code, name, location_name), locations(code, name, warehouses(name))"),
         supabase.from("media_players")
-          .select("serial_number_1, serial_number_2, status, billboard_id, location_id, billboards(code, name, location_name), locations(code, name, warehouses(name))"),
+          .select("code, sub_media_type, serial_number_1, serial_number_2, status, billboard_id, location_id, billboards(code, name, location_name), locations(code, name, warehouses(name))"),
       ]);
       const map = new Map<string, LocationInfo>();
+      const smtMap = new Map<string, string>();
       const buildInfo = (row: any): LocationInfo => {
         const status = (row.status || "").toLowerCase();
         if (row.billboard_id && row.billboards) {
@@ -963,9 +965,12 @@ export default function DocumentSearch() {
         for (const sn of [r.serial_number_1, r.serial_number_2]) {
           const k = (sn || "").trim();
           if (k) map.set(k.toLowerCase(), info);
+          if (k && r.sub_media_type) smtMap.set(k.toLowerCase(), r.sub_media_type);
         }
+        if (r.code && r.sub_media_type) smtMap.set(`code:${r.code.toLowerCase()}`, r.sub_media_type);
       }
       setSnLocationMap(map);
+      setSubMediaTypeMap(smtMap);
     } catch (error) {
       console.error("Error fetching documents:", error);
       toast.error("ไม่สามารถโหลดเอกสารได้");
@@ -1197,6 +1202,19 @@ export default function DocumentSearch() {
                             <div className="space-y-0.5">
                               {doc.equipment_code && <div className="font-semibold text-sm leading-tight">{doc.equipment_code}</div>}
                               {doc.equipment_name && <div className="text-xs text-muted-foreground leading-tight">{doc.equipment_name}</div>}
+                              {(() => {
+                                let smt: string | undefined;
+                                for (const sn of snList) {
+                                  const v = subMediaTypeMap.get(sn.toLowerCase());
+                                  if (v) { smt = v; break; }
+                                }
+                                if (!smt && doc.equipment_code) smt = subMediaTypeMap.get(`code:${doc.equipment_code.toLowerCase()}`);
+                                return smt ? (
+                                  <Badge variant="outline" className="mt-1 text-[10px] font-mono border-primary/40 text-primary">
+                                    {smt}
+                                  </Badge>
+                                ) : null;
+                              })()}
                               {doc.source === "swap" && (() => {
                                 const r: any = doc.raw || {};
                                 const hasSwap = r._swap_old_sn || r._swap_new_sn || r._swap_new_code;
