@@ -28,6 +28,7 @@ import { toast } from "@/hooks/use-toast";
 import { exportStockCardExcel, exportStockCardPDF } from "@/lib/stockCardExport";
 import { useTablePagination } from "@/hooks/useTablePagination";
 import { TablePagination } from "@/components/TablePagination";
+import { DeviceTypeBadge } from "@/components/media-player/DeviceTypeBadge";
 import { DepartmentMultiFilter } from "@/components/DepartmentMultiFilter";
 import { useDepartmentPermissions } from "@/hooks/useDepartmentPermissions";
 import { StockMovementGroupRow, GroupedMovement } from "@/components/stock-movement/StockMovementGroupRow";
@@ -47,6 +48,7 @@ interface EquipmentItem {
   quantity_in_stock?: number;
   item_condition: string;
   type: "equipment" | "media_player" | "tool";
+  device_type?: string | null;
   serial_number_2?: string | null;
   status?: string | null;
   billboard_id?: string | null;
@@ -234,7 +236,7 @@ export default function StockCard() {
 
       const [eqRes, mpRes, toolRes] = await Promise.all([
         supabase.from("equipment").select("id, code, name, serial_number, category, brand, unit, department, quantity_in_stock, item_condition, location_id, po_item_no, warranty_years, warranty_expiry_date, locations:location_id(id, code, name, warehouses:warehouse_id(code, name))").eq("is_active", true),
-        supabase.from("media_players").select("id, code, name, serial_number_1, serial_number_2, brand, unit, department, quantity, item_condition, status, billboard_id, location_id, po_item_no, warranty_years, warranty_expiry_date, locations:location_id(id, code, name, warehouses:warehouse_id(code, name)), billboard:billboard_id(equipment_id, old_code, location_name)").eq("is_active", true),
+        supabase.from("media_players").select("id, code, name, serial_number_1, serial_number_2, brand, unit, department, quantity, item_condition, status, billboard_id, location_id, po_item_no, warranty_years, warranty_expiry_date, device_type, locations:location_id(id, code, name, warehouses:warehouse_id(code, name)), billboard:billboard_id(equipment_id, old_code, location_name)").eq("is_active", true),
         supabase.from("tools").select("id, code, name, serial_number, brand, unit, department, current_quantity, location_id, locations:location_id(id, code, name, warehouses:warehouse_id(code, name))").eq("is_active", true),
       ]);
 
@@ -253,6 +255,7 @@ export default function StockCard() {
         serial_number_2: formatMergedSerials(m.serial_number_2) || null,
         brand: m.brand, unit: m.unit, department: m.department,
         quantity_in_stock: m.quantity, item_condition: m.item_condition, type: "media_player",
+        device_type: (m as any).device_type || "MEDIA_PLAYER",
         status: m.status, billboard_id: m.billboard_id,
         location_id: m.location_id, current_location: m.billboard_id ? formatBillboardLocation((m as any).billboard) : formatStorageLocation((m as any).locations),
         po_item_no: (m as any).po_item_no || null,
@@ -946,6 +949,9 @@ export default function StockCard() {
                       <span className="flex items-center gap-1"><Hash className="w-3 h-3" />ไม่มี S/N — ดูเฉพาะยอดรวม</span>
                     )}
                   </Badge>
+                  {selectedItem.type === "media_player" && (
+                    <DeviceTypeBadge value={selectedItem.device_type} />
+                  )}
                 </div>
 
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">

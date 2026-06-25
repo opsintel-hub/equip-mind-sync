@@ -25,6 +25,7 @@ import {
 import { InventoryFilters, InventoryFiltersState, getConditionLabel, getConditionBadgeClass } from "@/components/inventory/InventoryFilters";
 import { EquipmentImageViewer } from "@/components/equipment/EquipmentImageViewer";
 import { MediaPlayerImageViewer } from "@/components/media-player/MediaPlayerImageViewer";
+import { DeviceTypeBadge } from "@/components/media-player/DeviceTypeBadge";
 import * as XLSX from "xlsx";
 import { toast } from "sonner";
 import { buildReceivedSerialAliasMap, formatMergedSerials, matchesSerialSearch } from "@/lib/serialSearch";
@@ -54,6 +55,7 @@ interface InventoryItem {
   locations: { id: string; name: string; code: string; warehouse_id: string; warehouses: { id: string; name: string; code: string } | null } | null;
   subcategories: { id: string; name: string; category_id: string } | null;
   item_type: 'equipment' | 'tools' | 'media_player';
+  device_type?: string | null;
   item_condition: string;
   // Issue tracking fields
   issue_status?: 'in_stock' | 'issued' | 'partial';
@@ -281,6 +283,7 @@ export default function InventoryReport() {
           location_id,
           warranty_expiry_date,
           item_condition,
+          device_type,
           companies:company_id (id, name, code),
           locations:location_id (id, name, code, warehouse_id, warehouses:warehouse_id (id, name, code))
         `)
@@ -327,6 +330,7 @@ export default function InventoryReport() {
           locations: item.locations as InventoryItem["locations"],
           subcategories: null,
           item_type: "media_player" as const,
+          device_type: item.device_type || "MEDIA_PLAYER",
           item_condition: item.item_condition || "normal",
         };
       });
@@ -844,7 +848,7 @@ export default function InventoryReport() {
         item.min_stock_level
       );
 
-      const itemTypeLabel = item.item_type === 'media_player' ? "Media Player" : item.item_type === 'tools' ? "เครื่องมือ" : "อะไหล่";
+      const itemTypeLabel = item.item_type === 'media_player' ? (item.device_type === 'MONITOR' ? "จอภาพ" : "Media Player") : item.item_type === 'tools' ? "เครื่องมือ" : "อะไหล่";
       const issueStatusLabel = item.issue_status === 'issued' ? "ถูกเบิกออก" : item.issue_status === 'partial' ? "เบิกบางส่วน" : "อยู่ในคลัง";
       
       return {
@@ -1067,10 +1071,7 @@ export default function InventoryReport() {
                           </TableCell>
                           <TableCell>
                             {item.item_type === 'media_player' ? (
-                              <Badge variant="secondary" className="bg-blue-100 text-blue-700">
-                                <Monitor className="h-3 w-3 mr-1" />
-                                Media Player
-                              </Badge>
+                              <DeviceTypeBadge value={item.device_type} />
                             ) : item.item_type === 'tools' ? (
                               <Badge variant="secondary" className="bg-purple-100 text-purple-700">
                                 <Wrench className="h-3 w-3 mr-1" />
