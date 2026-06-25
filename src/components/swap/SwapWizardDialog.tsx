@@ -62,6 +62,7 @@ interface SpareOption {
   warranty_expiry_date?: string | null;
   unit_price?: number | null;
   remote_name?: string | null;
+  device_type?: string | null;
 }
 
 interface OldOption {
