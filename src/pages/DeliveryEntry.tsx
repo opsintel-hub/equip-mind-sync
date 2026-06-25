@@ -765,6 +765,7 @@ const DeliveryEntry = () => {
         asset_caretaker: device.asset_caretaker,
         planned_install_location: device.planned_install_location,
         model: device.model,
+        sub_media_type: device.sub_media_type,
       }));
 
       setCartItems([...cartItems, ...newItems]);
