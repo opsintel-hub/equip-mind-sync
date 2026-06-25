@@ -645,6 +645,7 @@ export default function MediaPlayerReport() {
                 <SelectItem value="MEDIA_PLAYER">Media Player</SelectItem>
                 <SelectItem value="MONITOR">จอภาพ</SelectItem>
               </SelectContent>
+            </Select>
             <Select value={subMediaTypeFilter} onValueChange={setSubMediaTypeFilter}>
               <SelectTrigger className="w-[170px]"><SelectValue placeholder="Sub Media Type" /></SelectTrigger>
               <SelectContent>
