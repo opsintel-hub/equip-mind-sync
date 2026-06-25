@@ -172,7 +172,7 @@ const IssueGoods = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("media_players")
-        .select("id, code, name, serial_number_1, serial_number_2, quantity, billboard_id, location_id, locations(id, name, code, warehouses(id, name, code))")
+        .select("id, code, name, serial_number_1, serial_number_2, quantity, billboard_id, location_id, department, sub_media_type, locations(id, name, code, warehouses(id, name, code))")
         .eq("is_active", true)
         .gt("quantity", 0);
       if (error) throw error;
