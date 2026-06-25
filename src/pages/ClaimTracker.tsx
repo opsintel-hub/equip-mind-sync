@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
+import { isMonitor } from "@/lib/deviceTypes";
+import { DeviceTypeBadge } from "@/components/media-player/DeviceTypeBadge";
 import { useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
