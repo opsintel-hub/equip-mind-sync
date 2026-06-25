@@ -53,6 +53,7 @@ export interface DeliveryCartItem {
   model?: string;
   po_item_no?: string;
   warranty_years?: number | null;
+  sub_media_type?: string | null;
 }
 
 interface DeliveryCartProps {
