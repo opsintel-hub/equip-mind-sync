@@ -263,7 +263,12 @@ const MediaPlayerProfile = () => {
         <div>
           <h1 className="text-3xl font-semibold text-foreground flex items-center gap-2">
             <Monitor className="w-8 h-8" />
-            Media Player Profile
+            {player && ((player as any).device_type === "MONITOR") ? "จอภาพ Profile" : "Media Player Profile"}
+            {player && (
+              <Badge variant="outline" className={(player as any).device_type === "MONITOR" ? "border-purple-400 text-purple-700 bg-purple-50 ml-2" : "border-blue-400 text-blue-700 bg-blue-50 ml-2"}>
+                {(player as any).device_type === "MONITOR" ? "📺 จอภาพ" : "🖥️ Media Player"}
+              </Badge>
+            )}
           </h1>
           <p className="text-muted-foreground">ค้นหาด้วย S/N, รหัส, หรือชื่อ แล้วดูข้อมูลครบจบในหน้าเดียว</p>
         </div>
