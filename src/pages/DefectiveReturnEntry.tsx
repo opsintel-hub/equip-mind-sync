@@ -398,6 +398,7 @@ const DefectiveReturnEntry = () => {
           model_name: item?.model_id ? modelMap.get(item.model_id) || null : null,
           specification: item?.specification || null,
           department: item?.department || null,
+          device_type: item?.device_type || null,
           warranty_expiry_date: item?.warranty_expiry_date || null,
           serial_numbers: sns,
           billboard_label: bb ? [bb.old_code, bb.equipment_id, bb.location_name].filter(Boolean).join(" - ") : null,
