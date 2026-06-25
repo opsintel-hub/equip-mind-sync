@@ -244,10 +244,10 @@ const menuGroups: MenuGroup[] = [
     ]
   },
   {
-    label: "Media Player",
+    label: "Media Player / จอภาพ",
     items: [
-      { title: "Media Player Profile", url: "/media-player/search", icon: Search, functionName: "master_data" },
-      { title: "รายงาน Media Player", url: "/media-player-report", icon: Monitor, functionName: "reports" },
+      { title: "MP / จอภาพ Profile", url: "/media-player/search", icon: Search, functionName: "master_data" },
+      { title: "รายงาน MP / จอภาพ", url: "/media-player-report", icon: Monitor, functionName: "reports" },
     ]
   },
   {
@@ -283,7 +283,7 @@ const menuGroups: MenuGroup[] = [
         functionName: "admin",
         subItems: [
           { title: "Import อุปกรณ์", url: "/setup/import-equipment", icon: Package, functionName: "admin" },
-          { title: "Import Media Player", url: "/setup/import-media-player", icon: Monitor, functionName: "admin" },
+          { title: "Import MP / จอภาพ", url: "/setup/import-media-player", icon: Monitor, functionName: "admin" },
         ],
       },
     ],

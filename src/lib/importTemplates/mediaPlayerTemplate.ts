@@ -3,7 +3,7 @@ import type { RefLookups } from "./refData";
 import { SUB_MEDIA_TYPES, SEVEN_ELEVEN_DEPT_NAME } from "@/lib/mediaPlayerSubTypes";
 
 const HEADERS = [
-  "code", "name", "brand", "model", "cms_type", "specification",
+  "code", "name", "device_type", "brand", "model", "cms_type", "specification",
   "serial_number_1", "serial_number_2", "asset_code", "equipment_id_code",
   "remote_name", "activate_windows",
   "company_name", "department", "sub_media_type", "location_code", "supplier_code",
@@ -22,6 +22,7 @@ export function downloadMediaPlayerTemplate(refs: RefLookups) {
     ["คอลัมน์", "จำเป็น", "คำอธิบาย / ค่าที่ใช้ได้"],
     ["code", "✅", "รหัส MP (1 บรรทัด = 1 เครื่อง — code ซ้ำได้ในไฟล์เดียว ถ้าเป็นรุ่นเดียวกันคนละเครื่อง)"],
     ["name", "✅", "ชื่อรุ่น"],
+    ["device_type", "", "ประเภทอุปกรณ์ — MEDIA_PLAYER (default) หรือ MONITOR (จอภาพ)"],
     ["brand", "", "ดูชีต _ref_brands (brand_type = media_player)"],
     ["model", "", "ดูชีต _ref_mp_models"],
     ["cms_type", "", "ดูชีต _ref_cms_types"],
@@ -61,6 +62,7 @@ export function downloadMediaPlayerTemplate(refs: RefLookups) {
   const example: Record<string, any> = {
     code: "MP-EXAMPLE-001",
     name: "Media Player รุ่นตัวอย่าง",
+    device_type: "MEDIA_PLAYER",
     brand: (refs.brands.find((b) => b.brand_type === "media_player")?.name) || refs.brands[0]?.name || "",
     model: refs.mp_models[0]?.name || "",
     cms_type: refs.cms_types[0]?.name || "",
@@ -101,6 +103,10 @@ export function downloadMediaPlayerTemplate(refs: RefLookups) {
   appendRef(wb, "_ref_companies", ["name"], refs.companies.map((c) => ({ name: c.name })));
   appendRef(wb, "_ref_departments", ["name"], refs.departments);
   appendRef(wb, "_ref_sub_media_types", ["value"], SUB_MEDIA_TYPES.map((v) => ({ value: v })));
+  appendRef(wb, "_ref_device_types", ["value", "label"], [
+    { value: "MEDIA_PLAYER", label: "Media Player" },
+    { value: "MONITOR", label: "จอภาพ (Monitor)" },
+  ]);
   appendRef(wb, "_ref_suppliers", ["code", "name"], refs.suppliers.map((s) => ({ code: s.code, name: s.name })));
   appendRef(wb, "_ref_locations", ["code", "name", "department"], refs.locations.map((l) => ({ code: l.code, name: l.name, department: l.department || "" })));
   appendRef(wb, "_ref_billboards", ["old_code", "location_name", "equipment_id"],

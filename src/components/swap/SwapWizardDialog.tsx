@@ -62,6 +62,7 @@ interface SpareOption {
   warranty_expiry_date?: string | null;
   unit_price?: number | null;
   remote_name?: string | null;
+  device_type?: string | null;
 }
 
 interface OldOption {
@@ -81,6 +82,7 @@ interface OldOption {
   install_date?: string | null;
   remote_name?: string | null;
   billboard_label?: string | null;
+  device_type?: string | null;
 }
 
 export function SwapWizardDialog({ open, onOpenChange, request, onCompleted }: Props) {
@@ -159,7 +161,7 @@ export function SwapWizardDialog({ open, onOpenChange, request, onCompleted }: P
     // Media Players: available spare = not installed, not defective/pending/in-transit
     const { data: mps, error: mpError } = await supabase
       .from("media_players")
-      .select("id, code, name, serial_number_1, serial_number_2, status, location_id, billboard_id, brand, specification, model_id, warranty_expiry_date, unit_price, remote_name")
+      .select("id, code, name, serial_number_1, serial_number_2, status, location_id, billboard_id, brand, specification, model_id, warranty_expiry_date, unit_price, remote_name, device_type")
       .is("billboard_id", null)
       .not("status", "in", "(defective,pending_assessment,claim,pending_warehouse_return,under_repair,in_claim)")
       .order("created_at", { ascending: false })
@@ -214,6 +216,7 @@ export function SwapWizardDialog({ open, onOpenChange, request, onCompleted }: P
         warranty_expiry_date: m.warranty_expiry_date,
         unit_price: m.unit_price,
         remote_name: m.remote_name,
+        device_type: m.device_type || "MEDIA_PLAYER",
       });
     });
     (esns || []).forEach((s: any) => {
@@ -288,7 +291,7 @@ export function SwapWizardDialog({ open, onOpenChange, request, onCompleted }: P
     // ดึงรายการ Media Player ที่ติดตั้งบนป้ายนี้ ณ ปัจจุบัน
     const { data: mpsOnBb } = await supabase
       .from("media_players")
-      .select("id, code, name, serial_number_1, serial_number_2, brand, specification, install_date, model_id, remote_name")
+      .select("id, code, name, serial_number_1, serial_number_2, brand, specification, install_date, model_id, remote_name, device_type")
       .eq("billboard_id", billboardId);
 
     const oldModelIds = Array.from(new Set((mpsOnBb || []).map((m: any) => m.model_id).filter(Boolean)));
@@ -320,6 +323,7 @@ export function SwapWizardDialog({ open, onOpenChange, request, onCompleted }: P
     let reportedBrand: string | null = null;
     let reportedSpec: string | null = null;
     let reportedModelName: string | null = null;
+    let reportedDeviceType: string | null = null;
     if (request?.reported_asset_type === "media_player" && request.reported_media_player_id) {
       const found = (mpsOnBb || []).find((m: any) => m.id === request.reported_media_player_id);
       if (found) {
@@ -327,16 +331,18 @@ export function SwapWizardDialog({ open, onOpenChange, request, onCompleted }: P
         reportedBrand = found.brand || null;
         reportedSpec = found.specification || null;
         reportedModelName = found.model_id ? oldModelMap[found.model_id] : null;
+        reportedDeviceType = found.device_type || "MEDIA_PLAYER";
       } else {
         const { data: rmp } = await supabase
           .from("media_players")
-          .select("remote_name, model_id, brand, specification")
+          .select("remote_name, model_id, brand, specification, device_type")
           .eq("id", request.reported_media_player_id)
           .maybeSingle();
         if (rmp) {
           reportedRemoteName = rmp.remote_name || null;
           reportedBrand = rmp.brand || null;
           reportedSpec = rmp.specification || null;
+          reportedDeviceType = (rmp as any).device_type || "MEDIA_PLAYER";
           if (rmp.model_id) {
             const { data: mm } = await supabase
               .from("media_player_models")
@@ -372,6 +378,7 @@ export function SwapWizardDialog({ open, onOpenChange, request, onCompleted }: P
         model_name: reportedModelName,
         remote_name: reportedRemoteName,
         billboard_label: billboardLabel,
+        device_type: reportedDeviceType,
       });
       seenIds.add(v);
     }
@@ -401,6 +408,7 @@ export function SwapWizardDialog({ open, onOpenChange, request, onCompleted }: P
         install_date: m.install_date,
         remote_name: m.remote_name,
         billboard_label: billboardLabel,
+        device_type: m.device_type || "MEDIA_PLAYER",
       });
       seenIds.add(v);
     });
@@ -435,8 +443,17 @@ export function SwapWizardDialog({ open, onOpenChange, request, onCompleted }: P
   const selectedSpare = spareOptions.find((o) => o.value === spareValue);
   const selectedOld = oldOptions.find((o) => o.value === oldValue);
 
-  const canNext1 = !!spareValue;
-  const canNext2 = !!oldValue;
+  // บล็อก swap ข้ามประเภทอุปกรณ์ (Media Player ↔ จอภาพ)
+  const isCrossDeviceType = (() => {
+    if (!selectedSpare || !selectedOld) return false;
+    if (selectedSpare.type !== "media_player" || selectedOld.type !== "media_player") return false;
+    const a = (selectedSpare.device_type || "MEDIA_PLAYER").toUpperCase();
+    const b = (selectedOld.device_type || "MEDIA_PLAYER").toUpperCase();
+    return a !== b;
+  })();
+
+  const canNext1 = !!spareValue && !isCrossDeviceType;
+  const canNext2 = !!oldValue && !isCrossDeviceType;
 
   // ตรวจ cross-model: spare กับ old ต่างรหัส/ต่าง equipment_id หรือไม่
   const isCrossModel = (() => {
@@ -453,7 +470,7 @@ export function SwapWizardDialog({ open, onOpenChange, request, onCompleted }: P
 
   const canSubmit =
     result === "approved"
-      ? (!isCrossModel || crossModelAck)
+      ? (!isCrossDeviceType && (!isCrossModel || crossModelAck))
       : !!rejectReasonId || !!rejectReasonOther.trim();
 
   const handleSubmit = async () => {
@@ -993,6 +1010,15 @@ export function SwapWizardDialog({ open, onOpenChange, request, onCompleted }: P
                 </CardContent>
               </Card>
             </div>
+
+            {isCrossDeviceType && (
+              <div className="rounded-lg border-2 border-destructive/60 bg-destructive/10 p-4">
+                <div className="font-semibold text-destructive">⛔ ไม่สามารถสลับข้ามประเภทอุปกรณ์ได้ (Media Player ↔ จอภาพ)</div>
+                <div className="text-sm text-muted-foreground mt-1">
+                  กรุณาเลือก Spare ที่เป็นประเภทเดียวกับเครื่องเก่า
+                </div>
+              </div>
+            )}
 
             {isCrossModel && result === "approved" && (
               <div className="rounded-lg border-2 border-warning/50 bg-warning/10 p-4 space-y-3">

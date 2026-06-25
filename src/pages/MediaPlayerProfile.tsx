@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { ProcessTracker, ProcessStep } from "@/components/ProcessTracker";
 import { differenceInDays, parseISO } from "date-fns";
@@ -263,7 +264,12 @@ const MediaPlayerProfile = () => {
         <div>
           <h1 className="text-3xl font-semibold text-foreground flex items-center gap-2">
             <Monitor className="w-8 h-8" />
-            Media Player Profile
+            {player && ((player as any).device_type === "MONITOR") ? "จอภาพ Profile" : "Media Player Profile"}
+            {player && (
+              <Badge variant="outline" className={(player as any).device_type === "MONITOR" ? "border-purple-400 text-purple-700 bg-purple-50 ml-2" : "border-blue-400 text-blue-700 bg-blue-50 ml-2"}>
+                {(player as any).device_type === "MONITOR" ? "📺 จอภาพ" : "🖥️ Media Player"}
+              </Badge>
+            )}
           </h1>
           <p className="text-muted-foreground">ค้นหาด้วย S/N, รหัส, หรือชื่อ แล้วดูข้อมูลครบจบในหน้าเดียว</p>
         </div>

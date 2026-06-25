@@ -272,6 +272,15 @@ export function validateMediaPlayerRows(rows: any[], refs: RefLookups, existingS
       subMediaType = null;
     }
 
+    const deviceTypeRaw = s(row.device_type).toUpperCase();
+    let deviceType: string = "MEDIA_PLAYER";
+    if (deviceTypeRaw) {
+      if (deviceTypeRaw !== "MEDIA_PLAYER" && deviceTypeRaw !== "MONITOR")
+        errors.push(`device_type "${deviceTypeRaw}" ไม่ถูกต้อง — ใช้ MEDIA_PLAYER หรือ MONITOR`);
+      else deviceType = deviceTypeRaw;
+    }
+
+
 
     const locationCode = s(row.location_code);
     let locationId: string | null = null;
@@ -340,6 +349,7 @@ export function validateMediaPlayerRows(rows: any[], refs: RefLookups, existingS
       notes: s(row.notes) || null,
       billboard_id: billboardId,
       sub_media_type: subMediaType,
+      device_type: deviceType,
       install_date: installDate === "INVALID" ? null : installDate,
     };
 
