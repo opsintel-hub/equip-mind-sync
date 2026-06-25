@@ -141,6 +141,7 @@ export default function MediaPlayerReport() {
   const [snSearch, setSnSearch] = useState("");
   const [conditionFilter, setConditionFilter] = useState("all");
   const [departmentFilter, setDepartmentFilter] = useState("all");
+  const [subMediaTypeFilter, setSubMediaTypeFilter] = useState("all");
   const [codePrefixFilter, setCodePrefixFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
   const [companyFilter, setCompanyFilter] = useState("all");
