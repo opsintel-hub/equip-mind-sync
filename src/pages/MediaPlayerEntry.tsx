@@ -337,6 +337,7 @@ const MediaPlayerEntry = () => {
       const matchDepartment = filterDepartment === "all" || player.department === filterDepartment;
       const matchModel = filterModel === "all" || player.model_id === filterModel;
       const matchSubMediaType = filterSubMediaType === "all" || player.sub_media_type === filterSubMediaType;
+      const matchDeviceType = filterDeviceType === "ALL" || (player.device_type || "MEDIA_PLAYER") === filterDeviceType;
 
       let matchAlert = true;
       if (filterAlert === "warranty_expired") {
@@ -351,9 +352,9 @@ const MediaPlayerEntry = () => {
         matchAlert = !!(player.waiting_asset_code || player.waiting_equipment_id);
       }
       
-      return matchSearch && matchCompany && matchStatus && matchCmsType && matchDepartment && matchModel && matchAlert && matchSubMediaType;
+      return matchSearch && matchCompany && matchStatus && matchCmsType && matchDepartment && matchModel && matchAlert && matchSubMediaType && matchDeviceType;
     });
-  }, [mediaPlayers, searchTerm, filterCompany, filterStatus, filterCmsType, filterDepartment, filterModel, filterAlert, alertDays, filterSubMediaType]);
+  }, [mediaPlayers, searchTerm, filterCompany, filterStatus, filterCmsType, filterDepartment, filterModel, filterAlert, alertDays, filterSubMediaType, filterDeviceType]);
 
   const dashboardStats = useMemo(() => {
     const today = new Date();
