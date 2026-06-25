@@ -408,6 +408,7 @@ export function SwapWizardDialog({ open, onOpenChange, request, onCompleted }: P
         install_date: m.install_date,
         remote_name: m.remote_name,
         billboard_label: billboardLabel,
+        device_type: m.device_type || "MEDIA_PLAYER",
       });
       seenIds.add(v);
     });
