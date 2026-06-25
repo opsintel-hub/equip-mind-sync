@@ -259,6 +259,7 @@ const DeliveryEntry = () => {
       asset_caretaker: "",
       planned_install_location: "",
       model: "",
+      sub_media_type: null,
     },
   ]);
 
