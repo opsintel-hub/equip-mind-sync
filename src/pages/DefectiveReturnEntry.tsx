@@ -345,7 +345,7 @@ const DefectiveReturnEntry = () => {
 
       const [eqRes, mpRes, bbRes, swapRes, asmRes] = await Promise.all([
         eqIds.length ? supabase.from("equipment").select("id, code, name, brand, serial_number, department").in("id", eqIds) : Promise.resolve({ data: [] }),
-        mpIds.length ? supabase.from("media_players").select("id, code, name, remote_name, brand, serial_number_1, serial_number_2, warranty_expiry_date, department, model_id, specification").in("id", mpIds) : Promise.resolve({ data: [] }),
+        mpIds.length ? supabase.from("media_players").select("id, code, name, remote_name, brand, serial_number_1, serial_number_2, warranty_expiry_date, department, model_id, specification, device_type").in("id", mpIds) : Promise.resolve({ data: [] }),
         bbIds.length ? supabase.from("billboards").select("id, equipment_id, old_code, location_name").in("id", bbIds) : Promise.resolve({ data: [] }),
         swapIds.length ? supabase.from("swap_requests").select("id, document_no, billboard_id, old_serial_number, new_serial_number, old_media_player_id, new_media_player_id, old_equipment_id, new_equipment_id, description").in("id", swapIds) : Promise.resolve({ data: [] }),
         asmIds.length ? supabase.from("assessment_logs").select("id, document_no").in("id", asmIds) : Promise.resolve({ data: [] }),
