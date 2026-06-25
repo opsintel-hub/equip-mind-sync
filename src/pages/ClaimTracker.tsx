@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
+import { isMonitor } from "@/lib/deviceTypes";
+import { DeviceTypeBadge } from "@/components/media-player/DeviceTypeBadge";
 import { useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -55,6 +57,7 @@ interface SubjectOption {
   serial: string | null;
   warranty: string | null;
   supplier_id: string | null;
+  device_type?: string | null;
 }
 
 const STATUS_LABELS: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
@@ -119,7 +122,7 @@ export default function ClaimTracker() {
     const [mpRes, eqRes] = await Promise.all([
       supabase
         .from("media_players")
-        .select("id, code, name, serial_number, warranty_expiry_date, supplier_id")
+        .select("id, code, name, serial_number, warranty_expiry_date, supplier_id, device_type")
         .order("code")
         .limit(500),
       supabase
@@ -139,6 +142,7 @@ export default function ClaimTracker() {
         serial: mp.serial_number,
         warranty: mp.warranty_expiry_date,
         supplier_id: mp.supplier_id,
+        device_type: mp.device_type || "MEDIA_PLAYER",
       });
     });
     (eqRes.data || []).forEach((sn: any) => {
@@ -186,7 +190,7 @@ export default function ClaimTracker() {
       subjects.map((s) => ({
         value: `${s.type === "media_player" ? "mp" : "eq"}:${s.id}`,
         label: `${s.code} — ${s.name}${s.serial ? ` (S/N: ${s.serial})` : ""}`,
-        description: s.type === "media_player" ? "Media Player" : "Equipment",
+        description: s.type === "media_player" ? (isMonitor(s.device_type) ? "จอภาพ (Monitor)" : "Media Player") : "Equipment",
         searchableText: `${s.code} ${s.name} ${s.serial || ""}`,
       })),
     [subjects]

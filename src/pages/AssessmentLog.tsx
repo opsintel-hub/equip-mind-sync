@@ -19,6 +19,8 @@ import { SymptomSelect } from "@/components/media-player/SymptomSelect";
 import { AssessmentResultSelect } from "@/components/media-player/AssessmentResultSelect";
 import { useFunctionPermissions } from "@/hooks/useFunctionPermissions";
 import { AssessmentCompleteDialog } from "@/components/assessment/AssessmentCompleteDialog";
+import { isMonitor } from "@/lib/deviceTypes";
+import { DeviceTypeBadge } from "@/components/media-player/DeviceTypeBadge";
 
 interface AssessmentLog {
   id: string;
@@ -51,6 +53,7 @@ interface SubjectOption {
   code: string;
   name: string;
   serial: string | null;
+  device_type?: string | null;
 }
 
 const STATUS_LABELS: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
@@ -152,7 +155,7 @@ export default function AssessmentLog() {
     const [mpRes, eqRes] = await Promise.all([
       supabase
         .from("media_players")
-        .select("id, code, name, serial_number")
+        .select("id, code, name, serial_number, device_type")
         .order("code")
         .limit(500),
       supabase
@@ -170,6 +173,7 @@ export default function AssessmentLog() {
         code: mp.code,
         name: mp.name || "Media Player",
         serial: mp.serial_number,
+        device_type: mp.device_type || "MEDIA_PLAYER",
       });
     });
     (eqRes.data || []).forEach((sn: any) => {
@@ -218,7 +222,7 @@ export default function AssessmentLog() {
       subjects.map((s) => ({
         value: `${s.type === "media_player" ? "mp" : "eq"}:${s.id}${s.type === "equipment" && s.serial ? `:${s.serial}` : ""}`,
         label: `${s.code} — ${s.name}${s.serial ? ` (S/N: ${s.serial})` : ""}`,
-        description: s.type === "media_player" ? "Media Player" : "Equipment",
+        description: s.type === "media_player" ? (isMonitor(s.device_type) ? "จอภาพ (Monitor)" : "Media Player") : "Equipment",
         searchableText: `${s.code} ${s.name} ${s.serial || ""}`,
       })),
     [subjects]
