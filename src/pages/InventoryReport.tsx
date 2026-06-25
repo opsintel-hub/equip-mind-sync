@@ -25,6 +25,7 @@ import {
 import { InventoryFilters, InventoryFiltersState, getConditionLabel, getConditionBadgeClass } from "@/components/inventory/InventoryFilters";
 import { EquipmentImageViewer } from "@/components/equipment/EquipmentImageViewer";
 import { MediaPlayerImageViewer } from "@/components/media-player/MediaPlayerImageViewer";
+import { DeviceTypeBadge } from "@/components/media-player/DeviceTypeBadge";
 import * as XLSX from "xlsx";
 import { toast } from "sonner";
 import { buildReceivedSerialAliasMap, formatMergedSerials, matchesSerialSearch } from "@/lib/serialSearch";
