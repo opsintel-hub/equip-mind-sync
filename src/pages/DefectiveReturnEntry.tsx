@@ -916,7 +916,7 @@ const DefectiveReturnEntry = () => {
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className="font-mono font-semibold text-sm">{t.document_no}</span>
                           <Badge variant="secondary" className="text-xs">{t.source_label}</Badge>
-                          {t.is_media_player && <Badge variant="outline" className="text-xs">Media Player</Badge>}
+                          {t.is_media_player && <DeviceTypeBadge value={t.device_type} />}
                           {t.quantity > 1 && <Badge variant="outline" className="text-xs">× {t.quantity}</Badge>}
                           <span className="text-xs text-muted-foreground ml-auto">
                             {new Date(t.created_at).toLocaleString("th-TH", { dateStyle: "medium", timeStyle: "short" })}
