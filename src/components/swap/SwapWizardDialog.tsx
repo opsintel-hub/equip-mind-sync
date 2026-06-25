@@ -291,7 +291,7 @@ export function SwapWizardDialog({ open, onOpenChange, request, onCompleted }: P
     // ดึงรายการ Media Player ที่ติดตั้งบนป้ายนี้ ณ ปัจจุบัน
     const { data: mpsOnBb } = await supabase
       .from("media_players")
-      .select("id, code, name, serial_number_1, serial_number_2, brand, specification, install_date, model_id, remote_name")
+      .select("id, code, name, serial_number_1, serial_number_2, brand, specification, install_date, model_id, remote_name, device_type")
       .eq("billboard_id", billboardId);
 
     const oldModelIds = Array.from(new Set((mpsOnBb || []).map((m: any) => m.model_id).filter(Boolean)));
