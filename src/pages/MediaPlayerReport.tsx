@@ -134,6 +134,7 @@ interface ExpandedRow {
   warrantyYears: number | null;
   assetCaretaker: string;
   subMediaType: string;
+  deviceType: string;
 }
 
 export default function MediaPlayerReport() {
