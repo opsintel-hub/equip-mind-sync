@@ -712,6 +712,7 @@ const ReceiveGoods = () => {
         if (finalPlannedLocation) mpUpdatePayload.planned_install_location = finalPlannedLocation;
         if ((sr as any).po_item_no) mpUpdatePayload.po_item_no = (sr as any).po_item_no;
         if ((sr as any).warranty_years != null) mpUpdatePayload.warranty_years = (sr as any).warranty_years;
+        if ((sr as any).sub_media_type) mpUpdatePayload.sub_media_type = (sr as any).sub_media_type;
 
         const { error: mpError } = await supabase
               .from("media_players")
