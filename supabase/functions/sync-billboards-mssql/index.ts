@@ -64,16 +64,22 @@ async function getAuthUser(req: Request) {
   return { user, adminClient };
 }
 
+const ALLOWED_TABLES = new Set(["Asset", "Billboard"]);
+
 function parseConfig(body: any): ConnectionConfig {
   const password = body.password ||
     Deno.env.get("MSSQL_BILLBOARD_PASSWORD") || "";
+  const table = body.table || "Asset";
+  if (!ALLOWED_TABLES.has(table)) {
+    throw new Error("Invalid table name");
+  }
   return {
     host: body.host || "magicticket.magicsigncloud.com",
     port: Number(body.port) || 1433,
     database: body.database || "planb",
     username: body.username || "planb_viewer",
     password,
-    table: body.table || "Asset",
+    table,
   };
 }
 
