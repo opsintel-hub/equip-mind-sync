@@ -24,6 +24,10 @@ import { formatBillboardLabel } from "@/lib/billboardUtils";
 import { BrandSelect } from "@/components/equipment/BrandSelect";
 import { DocumentPreviewDialog } from "@/components/DocumentPreviewDialog";
 import { SUB_MEDIA_TYPES, SEVEN_ELEVEN_DEPT_NAME } from "@/lib/mediaPlayerSubTypes";
+import { DeviceTypeTabs, type DeviceTypeFilter } from "@/components/media-player/DeviceTypeTabs";
+import { DeviceTypeBadge } from "@/components/media-player/DeviceTypeBadge";
+import { DeviceTypeSelect } from "@/components/media-player/DeviceTypeSelect";
+import { type DeviceType, deviceLabel } from "@/lib/deviceTypes";
 
 interface Billboard {
   id: string;
@@ -76,6 +80,7 @@ interface MediaPlayer {
   pr_document_url: string | null;
   invoice_document_url: string | null;
   sub_media_type: string | null;
+  device_type: string | null;
   billboard?: Billboard;
 }
 
@@ -107,6 +112,9 @@ const MediaPlayerEntry = () => {
   const [filterModel, setFilterModel] = useState("all");
   const [filterAlert, setFilterAlert] = useState("all");
   const [filterSubMediaType, setFilterSubMediaType] = useState("all");
+  const [filterDeviceType, setFilterDeviceType] = useState<DeviceTypeFilter>("ALL");
+  const [formDeviceType, setFormDeviceType] = useState<DeviceType>("MEDIA_PLAYER");
+  const [editDeviceType, setEditDeviceType] = useState<DeviceType>("MEDIA_PLAYER");
   const [alertDays, setAlertDays] = useState(30);
 
   // Filter data
