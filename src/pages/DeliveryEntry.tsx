@@ -40,6 +40,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 
 import { DeliveryImport } from "@/components/delivery/DeliveryImport";
+import { SubMediaTypeSelect } from "@/components/media-player/SubMediaTypeSelect";
+import { requiresSubMediaType, SEVEN_ELEVEN_DEPT_NAME } from "@/lib/mediaPlayerSubTypes";
 import { POUploadOCR, POImportResult } from "@/components/delivery/POUploadOCR";
 import { useTablePagination } from "@/hooks/useTablePagination";
 import { TablePagination } from "@/components/TablePagination";
@@ -241,6 +243,7 @@ const DeliveryEntry = () => {
     asset_caretaker: string;
     planned_install_location: string;
     model: string;
+    sub_media_type: string | null;
   }
   const [mediaPlayerDevices, setMediaPlayerDevices] = useState<MediaPlayerDeviceEntry[]>([
     {
@@ -258,6 +261,7 @@ const DeliveryEntry = () => {
       asset_caretaker: "",
       planned_install_location: "",
       model: "",
+      sub_media_type: null,
     },
   ]);
 
@@ -703,6 +707,14 @@ const DeliveryEntry = () => {
         toast.error("กรุณากรอก Serial Number อย่างน้อย 1 เครื่อง");
         return;
       }
+      // 7-Eleven Media requires sub_media_type per device
+      if (requiresSubMediaType(getDepartmentName(selectedDepartmentId))) {
+        const missing = validDevices.filter((d) => !d.sub_media_type);
+        if (missing.length > 0) {
+          toast.error(`ฝ่าย ${SEVEN_ELEVEN_DEPT_NAME}: กรุณาเลือก Sub Media Type ครบทุกเครื่อง (${missing.length} เครื่องยังไม่ได้เลือก)`);
+          return;
+        }
+      }
 
       // Check optional fields (non-blocking warning)
       const optionalWarnings = gatherOptionalFieldWarnings();
@@ -753,6 +765,7 @@ const DeliveryEntry = () => {
         asset_caretaker: device.asset_caretaker,
         planned_install_location: device.planned_install_location,
         model: device.model,
+        sub_media_type: device.sub_media_type,
       }));
 
       setCartItems([...cartItems, ...newItems]);
@@ -968,6 +981,7 @@ const DeliveryEntry = () => {
         asset_caretaker: "",
         planned_install_location: "",
         model: "",
+        sub_media_type: null,
       },
     ]);
     // Per-unit equipment entries
@@ -1112,6 +1126,7 @@ const DeliveryEntry = () => {
                 specification: (original as any).specification,
                 company_id: (original as any).company_id,
                 department: (original as any).department,
+                sub_media_type: (original as any).sub_media_type ?? null,
                 brand: (original as any).brand,
                 quantity: 0,
                 unit: (original as any).unit || "เครื่อง",
@@ -1223,6 +1238,7 @@ const DeliveryEntry = () => {
         temp_min_stock_level: item.temp_min_stock_level ?? 0,
         po_item_no: (item as any).po_item_no || null,
         warranty_years: (item as any).warranty_years ?? null,
+        sub_media_type: (item as any).sub_media_type ?? null,
       }));
       const { error } = await supabase.from("goods_receipt_pending").insert(itemsToInsert as any);
       if (error) throw error;
@@ -1883,6 +1899,7 @@ const DeliveryEntry = () => {
                               asset_caretaker: "",
                               planned_install_location: "",
                               model: "",
+                              sub_media_type: null,
                             },
                           ]);
                         }}
@@ -2146,6 +2163,17 @@ const DeliveryEntry = () => {
                               />
                             </div>
                           </div>
+                          {requiresSubMediaType(getDepartmentName(selectedDepartmentId)) && (
+                            <div className="border-t pt-3">
+                              <SubMediaTypeSelect
+                                value={device.sub_media_type}
+                                onChange={(v) => setMediaPlayerDevices((prev) => prev.map((d) => (d.id === device.id ? { ...d, sub_media_type: v } : d)))}
+                                required
+                                label={`ตำแหน่งสื่อย่อย (${SEVEN_ELEVEN_DEPT_NAME}) *`}
+                                hint="จำเป็นต้องเลือกเมื่อรับเข้าฝ่าย 7-Eleven Media"
+                              />
+                            </div>
+                          )}
                         </div>
                       ))}
                     </div>

@@ -712,6 +712,7 @@ const ReceiveGoods = () => {
         if (finalPlannedLocation) mpUpdatePayload.planned_install_location = finalPlannedLocation;
         if ((sr as any).po_item_no) mpUpdatePayload.po_item_no = (sr as any).po_item_no;
         if ((sr as any).warranty_years != null) mpUpdatePayload.warranty_years = (sr as any).warranty_years;
+        if ((sr as any).sub_media_type) mpUpdatePayload.sub_media_type = (sr as any).sub_media_type;
 
         const { error: mpError } = await supabase
               .from("media_players")
@@ -970,6 +971,7 @@ const ReceiveGoods = () => {
             if (br.planned_install_location) batchMpPayload.planned_install_location = br.planned_install_location;
             if (br.po_item_no) batchMpPayload.po_item_no = br.po_item_no;
             if (br.warranty_years != null) batchMpPayload.warranty_years = br.warranty_years;
+            if (br.sub_media_type) batchMpPayload.sub_media_type = br.sub_media_type;
 
             const { error: mpError } = await supabase
               .from("media_players")

@@ -20,6 +20,8 @@ import { th } from "date-fns/locale";
 import { useAuth } from "@/hooks/useAuth";
 import BillboardDisplay from "@/components/billboard/BillboardDisplay";
 import BillboardSelect from "@/components/billboard/BillboardSelect";
+import { SubMediaTypeSelect } from "@/components/media-player/SubMediaTypeSelect";
+import { requiresSubMediaType } from "@/lib/mediaPlayerSubTypes";
 import { logStockMovement } from "@/lib/stockMovement";
 import { SerialNumberSelect, SerialNumberItem } from "@/components/equipment/SerialNumberSelect";
 import { SearchableSelect } from "@/components/ui/searchable-select";
@@ -110,6 +112,7 @@ const IssueGoods = () => {
     media_player_id: string;
     serial_number: string;
     billboard_id: string;
+    sub_media_type: string | null;
   }>>([]);
   const [rejectReason, setRejectReason] = useState("");
   const [imageDialogOpen, setImageDialogOpen] = useState(false);
@@ -169,7 +172,7 @@ const IssueGoods = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("media_players")
-        .select("id, code, name, serial_number_1, serial_number_2, quantity, billboard_id, location_id, locations(id, name, code, warehouses(id, name, code))")
+        .select("id, code, name, serial_number_1, serial_number_2, quantity, billboard_id, location_id, department, sub_media_type, locations(id, name, code, warehouses(id, name, code))")
         .eq("is_active", true)
         .gt("quantity", 0);
       if (error) throw error;
@@ -306,6 +309,11 @@ const IssueGoods = () => {
           const sk = a.serial_number.trim().toLowerCase();
           if (mpSerials.has(sk)) throw new Error(`Serial Number ซ้ำ: ${a.serial_number}`);
           mpSerials.add(sk);
+          // 7-Eleven Media: sub_media_type required
+          const cand = (availableMpUnits || []).find((m: any) => m.id === a.media_player_id);
+          if (cand && requiresSubMediaType(cand.department) && !a.sub_media_type) {
+            throw new Error(`เครื่อง S/N ${a.serial_number} เป็นฝ่าย 7-Eleven Media ต้องเลือก Sub Media Type ก่อนจ่าย`);
+          }
         }
         combinedSerial = activeMpAssignments.map(a => a.serial_number).join("\n").trim() || null;
         const bbSet = new Set(activeMpAssignments.map(a => a.billboard_id || ""));
@@ -441,15 +449,17 @@ const IssueGoods = () => {
           const currentStock = currentMp?.quantity || 0;
           const newStock = Math.max(0, currentStock - 1);
 
+          const stockUpdatePayload: any = {
+            quantity: newStock,
+            status: a.billboard_id ? "installed" : "issued",
+            location_id: null,
+            billboard_id: a.billboard_id || null,
+            install_date: a.billboard_id ? new Date().toISOString().split('T')[0] : null,
+          };
+          if (a.sub_media_type) stockUpdatePayload.sub_media_type = a.sub_media_type;
           const { error: stockError } = await supabase
             .from("media_players")
-            .update({
-              quantity: newStock,
-              status: a.billboard_id ? "installed" : "issued",
-              location_id: null,
-              billboard_id: a.billboard_id || null,
-              install_date: a.billboard_id ? new Date().toISOString().split('T')[0] : null,
-            })
+            .update(stockUpdatePayload)
             .eq("id", a.media_player_id);
           if (stockError) throw stockError;
 
@@ -813,6 +823,7 @@ const IssueGoods = () => {
         media_player_id: i === 0 ? (item.media_player_id || "") : "",
         serial_number: i === 0 ? (item.serial_number || "") : "",
         billboard_id: item.billboard_id || "",
+        sub_media_type: null as string | null,
       }));
       setMpUnitAssignments(mpInitial);
     }
@@ -828,7 +839,7 @@ const IssueGoods = () => {
         const defaultBillboard = selectedItem?.billboard_id || "";
         if (n > next.length) {
           while (next.length < n) {
-            next.push({ media_player_id: "", serial_number: "", billboard_id: defaultBillboard });
+            next.push({ media_player_id: "", serial_number: "", billboard_id: defaultBillboard, sub_media_type: null });
           }
         } else if (n < next.length) {
           next.length = n;
@@ -851,7 +862,7 @@ const IssueGoods = () => {
     });
   };
 
-  const updateMpUnitAssignment = (index: number, patch: Partial<{ media_player_id: string; serial_number: string; billboard_id: string }>) => {
+  const updateMpUnitAssignment = (index: number, patch: Partial<{ media_player_id: string; serial_number: string; billboard_id: string; sub_media_type: string | null }>) => {
     setMpUnitAssignments((prev) => prev.map((u, i) => (i === index ? { ...u, ...patch } : u)));
   };
 
@@ -1290,6 +1301,7 @@ const IssueGoods = () => {
                                   updateMpUnitAssignment(idx, {
                                     media_player_id: mpId,
                                     serial_number: mp?.serial_number_1 || mp?.serial_number_2 || "",
+                                    sub_media_type: mp?.sub_media_type ?? null,
                                   });
                                 }}
                                 placeholder="-- เลือก S/N --"
@@ -1312,6 +1324,21 @@ const IssueGoods = () => {
                                 onChange={(value) => updateMpUnitAssignment(idx, { billboard_id: value })}
                               />
                             </div>
+                            {(() => {
+                              const picked = candidates.find((m: any) => m.id === u.media_player_id);
+                              if (!picked || !requiresSubMediaType(picked.department)) return null;
+                              return (
+                                <div className="md:col-span-2">
+                                  <SubMediaTypeSelect
+                                    value={u.sub_media_type}
+                                    onChange={(v) => updateMpUnitAssignment(idx, { sub_media_type: v })}
+                                    required
+                                    label="ตำแหน่งสื่อย่อย (7-Eleven Media) *"
+                                    hint={picked.sub_media_type ? `ค่าเดิม: ${picked.sub_media_type} — แก้ไขได้ก่อนยืนยันจ่าย` : "ฝ่าย 7-Eleven Media ต้องระบุก่อนจ่าย"}
+                                  />
+                                </div>
+                              );
+                            })()}
                           </div>
                         </div>
                       );

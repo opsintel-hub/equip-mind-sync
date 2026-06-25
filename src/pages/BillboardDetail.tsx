@@ -116,7 +116,7 @@ const BillboardDetail = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("media_players")
-        .select("id, code, name, serial_number_1, serial_number_2, install_date, date_of_receipt, usage_lifespan_months, item_condition, brand, specification, status, remote_name")
+        .select("id, code, name, serial_number_1, serial_number_2, install_date, date_of_receipt, usage_lifespan_months, item_condition, brand, specification, status, remote_name, sub_media_type, department")
         .eq("billboard_id", id)
         .eq("is_active", true);
       if (error) throw error;
@@ -756,7 +756,16 @@ const BillboardDetail = () => {
                           return (
                             <TableRow key={mp.id}>
                               <TableCell className="font-medium font-mono text-primary">{mp.code}</TableCell>
-                              <TableCell>{mp.name}</TableCell>
+                              <TableCell>
+                                <div className="flex flex-col gap-1">
+                                  <span>{mp.name}</span>
+                                  {(mp as any).sub_media_type && (
+                                    <Badge variant="outline" className="font-mono text-[10px] w-fit border-primary/30 text-primary bg-primary/5">
+                                      {(mp as any).sub_media_type}
+                                    </Badge>
+                                  )}
+                                </div>
+                              </TableCell>
                               <TableCell className="text-sm">{(mp as any).remote_name || "-"}</TableCell>
                               <TableCell>
                                 {mp.serial_number_1 ? (
