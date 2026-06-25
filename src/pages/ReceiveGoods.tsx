@@ -971,6 +971,7 @@ const ReceiveGoods = () => {
             if (br.planned_install_location) batchMpPayload.planned_install_location = br.planned_install_location;
             if (br.po_item_no) batchMpPayload.po_item_no = br.po_item_no;
             if (br.warranty_years != null) batchMpPayload.warranty_years = br.warranty_years;
+            if (br.sub_media_type) batchMpPayload.sub_media_type = br.sub_media_type;
 
             const { error: mpError } = await supabase
               .from("media_players")
