@@ -10,6 +10,7 @@ import QRCodeSVG from "react-qr-code";
 import { MediaPlayerRow } from "./types";
 import { getConditionDisplay } from "./constants";
 import { getPublicBaseUrl } from "@/lib/publicUrl";
+import { DeviceTypeBadge } from "@/components/media-player/DeviceTypeBadge";
 
 type StickerOptions = {
   widthMm: number;
