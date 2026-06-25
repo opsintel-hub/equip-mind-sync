@@ -22,6 +22,7 @@ export function downloadMediaPlayerTemplate(refs: RefLookups) {
     ["คอลัมน์", "จำเป็น", "คำอธิบาย / ค่าที่ใช้ได้"],
     ["code", "✅", "รหัส MP (1 บรรทัด = 1 เครื่อง — code ซ้ำได้ในไฟล์เดียว ถ้าเป็นรุ่นเดียวกันคนละเครื่อง)"],
     ["name", "✅", "ชื่อรุ่น"],
+    ["device_type", "", "ประเภทอุปกรณ์ — MEDIA_PLAYER (default) หรือ MONITOR (จอภาพ)"],
     ["brand", "", "ดูชีต _ref_brands (brand_type = media_player)"],
     ["model", "", "ดูชีต _ref_mp_models"],
     ["cms_type", "", "ดูชีต _ref_cms_types"],
