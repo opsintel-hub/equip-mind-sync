@@ -241,6 +241,7 @@ const DeliveryEntry = () => {
     asset_caretaker: string;
     planned_install_location: string;
     model: string;
+    sub_media_type: string | null;
   }
   const [mediaPlayerDevices, setMediaPlayerDevices] = useState<MediaPlayerDeviceEntry[]>([
     {
