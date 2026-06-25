@@ -82,6 +82,7 @@ interface OldOption {
   install_date?: string | null;
   remote_name?: string | null;
   billboard_label?: string | null;
+  device_type?: string | null;
 }
 
 export function SwapWizardDialog({ open, onOpenChange, request, onCompleted }: Props) {
