@@ -3,7 +3,7 @@ import type { RefLookups } from "./refData";
 import { SUB_MEDIA_TYPES, SEVEN_ELEVEN_DEPT_NAME } from "@/lib/mediaPlayerSubTypes";
 
 const HEADERS = [
-  "code", "name", "brand", "model", "cms_type", "specification",
+  "code", "name", "device_type", "brand", "model", "cms_type", "specification",
   "serial_number_1", "serial_number_2", "asset_code", "equipment_id_code",
   "remote_name", "activate_windows",
   "company_name", "department", "sub_media_type", "location_code", "supplier_code",
