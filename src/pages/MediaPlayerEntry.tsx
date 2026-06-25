@@ -565,6 +565,19 @@ const MediaPlayerEntry = () => {
                 <CardTitle className="text-lg">ข้อมูลทั่วไป</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
+                <div className="max-w-xs">
+                  <DeviceTypeSelect
+                    value={formDeviceType}
+                    onChange={setFormDeviceType}
+                    required
+                    disabled={filterDeviceType === "MEDIA_PLAYER" || filterDeviceType === "MONITOR"}
+                    hint={
+                      filterDeviceType === "MEDIA_PLAYER" || filterDeviceType === "MONITOR"
+                        ? `ล็อกตามแท็บที่เลือก: ${deviceLabel(filterDeviceType)}`
+                        : "เลือกประเภทอุปกรณ์ที่ต้องการลงทะเบียน"
+                    }
+                  />
+                </div>
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                   <div className="space-y-2">
                     <Label>Prefix รหัส *</Label>
