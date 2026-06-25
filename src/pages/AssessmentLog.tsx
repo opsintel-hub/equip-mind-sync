@@ -19,6 +19,8 @@ import { SymptomSelect } from "@/components/media-player/SymptomSelect";
 import { AssessmentResultSelect } from "@/components/media-player/AssessmentResultSelect";
 import { useFunctionPermissions } from "@/hooks/useFunctionPermissions";
 import { AssessmentCompleteDialog } from "@/components/assessment/AssessmentCompleteDialog";
+import { isMonitor } from "@/lib/deviceTypes";
+import { DeviceTypeBadge } from "@/components/media-player/DeviceTypeBadge";
 
 interface AssessmentLog {
   id: string;
