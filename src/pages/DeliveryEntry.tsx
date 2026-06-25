@@ -1237,6 +1237,7 @@ const DeliveryEntry = () => {
         temp_min_stock_level: item.temp_min_stock_level ?? 0,
         po_item_no: (item as any).po_item_no || null,
         warranty_years: (item as any).warranty_years ?? null,
+        sub_media_type: (item as any).sub_media_type ?? null,
       }));
       const { error } = await supabase.from("goods_receipt_pending").insert(itemsToInsert as any);
       if (error) throw error;
