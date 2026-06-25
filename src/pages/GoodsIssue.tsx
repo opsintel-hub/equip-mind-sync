@@ -64,7 +64,7 @@ const GoodsIssue = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("goods_issue_pending_items")
-        .select("*")
+        .select("*, media_players:media_player_id(device_type)")
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data as IssuedItem[];
@@ -350,7 +350,7 @@ const GoodsIssue = () => {
                                           <div className="font-medium text-sm">{item.equipment_code || "-"}</div>
                                           <div className="text-xs text-muted-foreground">{item.equipment_name || "-"}</div>
                                           {item.is_media_player && (
-                                            <Badge variant="outline" className="text-xs mt-1">Media Player</Badge>
+                                            <DeviceTypeBadge value={(item as any).media_players?.device_type ?? 'media_player'} className="text-xs mt-1" />
                                           )}
                                         </TableCell>
                                         <TableCell>

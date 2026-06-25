@@ -188,7 +188,7 @@ const MediaPlayerPublicView = () => {
         {/* Public banner */}
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <Monitor className="w-4 h-4" />
-          <span>ข้อมูล Media Player (มุมมองสาธารณะ)</span>
+          <span>{(player as any).device_type === 'monitor' ? 'ข้อมูลจอภาพ (มุมมองสาธารณะ)' : 'ข้อมูล Media Player (มุมมองสาธารณะ)'}</span>
         </div>
 
         <ProfileHeader player={player} modelName={modelName} statusLabel={statusLabel} images={images} />

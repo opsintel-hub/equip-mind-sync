@@ -158,7 +158,7 @@ const IncompleteIssues = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("defective_returns")
-        .select("*")
+        .select("*, media_players:media_player_id(device_type)")
         .eq("status", "pending_warehouse_entry")
         .order("created_at", { ascending: false });
       if (error) throw error;
@@ -807,9 +807,11 @@ const IncompleteIssues = () => {
                           <TableRow key={dr.id}>
                             <TableCell className="font-medium">{dr.document_no}</TableCell>
                             <TableCell>
-                              <Badge variant="outline" className="text-xs">
-                                {dr.is_media_player ? "Media Player" : "สินค้า/อะไหล่"}
-                              </Badge>
+                              {dr.is_media_player ? (
+                                <DeviceTypeBadge value={(dr as any).media_players?.device_type ?? 'media_player'} className="text-xs" />
+                              ) : (
+                                <Badge variant="outline" className="text-xs">สินค้า/อะไหล่</Badge>
+                              )}
                             </TableCell>
                             <TableCell>
                               <Badge variant={dr.item_condition === "defective" ? "destructive" : "secondary"} className="text-xs">
