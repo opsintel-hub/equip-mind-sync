@@ -283,7 +283,7 @@ const menuGroups: MenuGroup[] = [
         functionName: "admin",
         subItems: [
           { title: "Import อุปกรณ์", url: "/setup/import-equipment", icon: Package, functionName: "admin" },
-          { title: "Import Media Player", url: "/setup/import-media-player", icon: Monitor, functionName: "admin" },
+          { title: "Import MP / จอภาพ", url: "/setup/import-media-player", icon: Monitor, functionName: "admin" },
         ],
       },
     ],
