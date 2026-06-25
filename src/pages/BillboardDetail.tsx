@@ -116,7 +116,7 @@ const BillboardDetail = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("media_players")
-        .select("id, code, name, serial_number_1, serial_number_2, install_date, date_of_receipt, usage_lifespan_months, item_condition, brand, specification, status, remote_name, sub_media_type, department")
+        .select("id, code, name, serial_number_1, serial_number_2, install_date, date_of_receipt, usage_lifespan_months, item_condition, brand, specification, status, remote_name, sub_media_type, department, device_type")
         .eq("billboard_id", id)
         .eq("is_active", true);
       if (error) throw error;
