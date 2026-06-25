@@ -294,8 +294,9 @@ export function ProfileHeader({ player, modelName, statusLabel, images }: Profil
     drawSticker(canvas, stickerOpts, layout, 24, false).then((ok) => {
       if (!ok) return;
       const dataUrl = canvas.toDataURL("image/png");
+      const escHtml = (s: string) => String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
       printWindow.document.write(`
-        <html><head><title>QR - ${player.code}</title>
+        <html><head><title>QR - ${escHtml(player.code)}</title>
         <style>
           @page { size: ${stickerOpts.widthMm}mm ${stickerOpts.heightMm}mm; margin: 0; }
           html, body { margin: 0; padding: 0; }
