@@ -244,10 +244,10 @@ const menuGroups: MenuGroup[] = [
     ]
   },
   {
-    label: "Media Player",
+    label: "Media Player / จอภาพ",
     items: [
-      { title: "Media Player Profile", url: "/media-player/search", icon: Search, functionName: "master_data" },
-      { title: "รายงาน Media Player", url: "/media-player-report", icon: Monitor, functionName: "reports" },
+      { title: "MP / จอภาพ Profile", url: "/media-player/search", icon: Search, functionName: "master_data" },
+      { title: "รายงาน MP / จอภาพ", url: "/media-player-report", icon: Monitor, functionName: "reports" },
     ]
   },
   {
