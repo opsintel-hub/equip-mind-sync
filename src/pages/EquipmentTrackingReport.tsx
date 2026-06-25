@@ -18,6 +18,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import * as XLSX from "xlsx";
 import { useAllowedDepartments } from "@/hooks/useAllowedDepartments";
 import { buildReceivedSerialAliasMap, formatMergedSerials, matchesSerialSearch } from "@/lib/serialSearch";
+import { DeviceTypeBadge } from "@/components/media-player/DeviceTypeBadge";
+import { deviceLabel } from "@/lib/deviceTypes";
 
 // ─── Helpers ─────────────────────────────────────────────
 
@@ -134,7 +136,7 @@ function BillboardViewTab() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("media_players")
-        .select("id, name, code, billboard_id, install_date, serial_number_1, serial_number_2, brand, warranty_expiry_date")
+        .select("id, name, code, billboard_id, install_date, serial_number_1, serial_number_2, brand, warranty_expiry_date, device_type")
         .not("billboard_id", "is", null);
       if (error) throw error;
       return data || [];
@@ -214,6 +216,7 @@ function BillboardViewTab() {
           category: "Media Player",
           brand: mp.brand,
           serial_number: formatMergedSerials(mp.serial_number_1, mp.serial_number_2, billboardMediaAliasMap[mp.id]) || null,
+          device_type: (mp as any).device_type || "MEDIA_PLAYER",
         },
         type: "media_player",
       });
@@ -495,7 +498,7 @@ function BillboardViewTab() {
                                       <TableCell className="font-medium">{eq.name}</TableCell>
                                       <TableCell className="text-xs font-mono">{eq.code}</TableCell>
                                       <TableCell className="text-xs whitespace-pre-line">{eq.serial_number || "-"}</TableCell>
-                                      <TableCell><Badge variant="outline" className="text-xs">{item.type === "media_player" ? "Media Player" : eq.category || "อุปกรณ์"}</Badge></TableCell>
+                                      <TableCell>{item.type === "media_player" ? <DeviceTypeBadge value={eq.device_type} /> : <Badge variant="outline" className="text-xs">{eq.category || "อุปกรณ์"}</Badge>}</TableCell>
                                       <TableCell className="text-center">{item.quantity}</TableCell>
                                       <TableCell className="text-xs">{fmtDate(item.installation_date)}</TableCell>
                                       <TableCell><Badge variant="outline"><Clock className="w-3 h-3 mr-1" />{daysSince(item.installation_date)}</Badge></TableCell>
@@ -583,7 +586,7 @@ function EquipmentViewTab() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("media_players")
-        .select("id, name, code, serial_number_1, serial_number_2, brand, billboard_id, install_date, quantity, warranty_expiry_date, location_id, status, billboard:billboard_id(id, old_code, location_name, equipment_id)")
+        .select("id, name, code, serial_number_1, serial_number_2, brand, billboard_id, install_date, quantity, warranty_expiry_date, location_id, status, device_type, billboard:billboard_id(id, old_code, location_name, equipment_id)")
         .eq("is_active", true)
         .order("code");
       if (error) throw error;
@@ -686,6 +689,7 @@ function EquipmentViewTab() {
         mp_status: mp.status,
         billboard_id: mp.billboard_id,
         install_date: mp.install_date,
+        device_type: (mp as any).device_type || "MEDIA_PLAYER",
       });
     });
     return items;
@@ -732,7 +736,7 @@ function EquipmentViewTab() {
   // Export
   const handleExport = () => {
     const rows = filtered.map(item => ({
-      "Code": item.code, "ชื่อ": item.name, "S/N": item.serialDisplay, "ประเภท": item.itemType === "media_player" ? "Media Player" : item.category,
+      "Code": item.code, "ชื่อ": item.name, "S/N": item.serialDisplay, "ประเภท": item.itemType === "media_player" ? deviceLabel(item.device_type) : item.category,
       "Brand": item.brand || "-", "สต็อกคลัง": item.quantity_in_stock, "ติดตั้งที่ป้าย": item.isInstalled ? (item.installedBillboard || "ติดตั้งบนป้าย") : (item.isIssuedPending ? "จ่ายแล้ว / รอระบุป้าย" : "ในคลัง"),
     }));
     const ws = XLSX.utils.json_to_sheet(rows);
@@ -829,7 +833,7 @@ function EquipmentViewTab() {
                   <TableCell className="font-mono text-xs">{item.code}</TableCell>
                   <TableCell className="font-medium">{item.name}</TableCell>
                   <TableCell className="text-xs whitespace-pre-line">{item.serialDisplay}</TableCell>
-                  <TableCell><Badge variant="outline" className="text-xs">{item.itemType === "media_player" ? "Media Player" : item.category}</Badge></TableCell>
+                  <TableCell>{item.itemType === "media_player" ? <DeviceTypeBadge value={item.device_type} /> : <Badge variant="outline" className="text-xs">{item.category}</Badge>}</TableCell>
                   <TableCell className="text-xs">{item.brand || "-"}</TableCell>
                   <TableCell className="text-center">{item.quantity_in_stock}</TableCell>
                   <TableCell>
