@@ -1011,6 +1011,15 @@ export function SwapWizardDialog({ open, onOpenChange, request, onCompleted }: P
               </Card>
             </div>
 
+            {isCrossDeviceType && (
+              <div className="rounded-lg border-2 border-destructive/60 bg-destructive/10 p-4">
+                <div className="font-semibold text-destructive">⛔ ไม่สามารถสลับข้ามประเภทอุปกรณ์ได้ (Media Player ↔ จอภาพ)</div>
+                <div className="text-sm text-muted-foreground mt-1">
+                  กรุณาเลือก Spare ที่เป็นประเภทเดียวกับเครื่องเก่า
+                </div>
+              </div>
+            )}
+
             {isCrossModel && result === "approved" && (
               <div className="rounded-lg border-2 border-warning/50 bg-warning/10 p-4 space-y-3">
                 <div className="flex items-start gap-2">
