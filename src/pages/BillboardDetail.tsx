@@ -756,7 +756,16 @@ const BillboardDetail = () => {
                           return (
                             <TableRow key={mp.id}>
                               <TableCell className="font-medium font-mono text-primary">{mp.code}</TableCell>
-                              <TableCell>{mp.name}</TableCell>
+                              <TableCell>
+                                <div className="flex flex-col gap-1">
+                                  <span>{mp.name}</span>
+                                  {(mp as any).sub_media_type && (
+                                    <Badge variant="outline" className="font-mono text-[10px] w-fit border-primary/30 text-primary bg-primary/5">
+                                      {(mp as any).sub_media_type}
+                                    </Badge>
+                                  )}
+                                </div>
+                              </TableCell>
                               <TableCell className="text-sm">{(mp as any).remote_name || "-"}</TableCell>
                               <TableCell>
                                 {mp.serial_number_1 ? (
