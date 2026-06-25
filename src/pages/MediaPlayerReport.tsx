@@ -474,6 +474,7 @@ export default function MediaPlayerReport() {
       "Refurbished": r.isRefurbished ? "ใช่" : "",
       "ป้ายปัจจุบัน": r.billboardLabel,
       "ฝ่าย": r.department,
+      "Sub Media Type": r.subMediaType || "",
       "บริษัท": r.company,
       "ราคา/ชิ้น": r.price ?? "",
       "เลข PO": r.poNumber,
