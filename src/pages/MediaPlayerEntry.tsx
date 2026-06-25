@@ -24,6 +24,10 @@ import { formatBillboardLabel } from "@/lib/billboardUtils";
 import { BrandSelect } from "@/components/equipment/BrandSelect";
 import { DocumentPreviewDialog } from "@/components/DocumentPreviewDialog";
 import { SUB_MEDIA_TYPES, SEVEN_ELEVEN_DEPT_NAME } from "@/lib/mediaPlayerSubTypes";
+import { DeviceTypeTabs, type DeviceTypeFilter } from "@/components/media-player/DeviceTypeTabs";
+import { DeviceTypeBadge } from "@/components/media-player/DeviceTypeBadge";
+import { DeviceTypeSelect } from "@/components/media-player/DeviceTypeSelect";
+import { type DeviceType, deviceLabel } from "@/lib/deviceTypes";
 
 interface Billboard {
   id: string;
@@ -76,6 +80,7 @@ interface MediaPlayer {
   pr_document_url: string | null;
   invoice_document_url: string | null;
   sub_media_type: string | null;
+  device_type: string | null;
   billboard?: Billboard;
 }
 
@@ -107,6 +112,9 @@ const MediaPlayerEntry = () => {
   const [filterModel, setFilterModel] = useState("all");
   const [filterAlert, setFilterAlert] = useState("all");
   const [filterSubMediaType, setFilterSubMediaType] = useState("all");
+  const [filterDeviceType, setFilterDeviceType] = useState<DeviceTypeFilter>("ALL");
+  const [formDeviceType, setFormDeviceType] = useState<DeviceType>("MEDIA_PLAYER");
+  const [editDeviceType, setEditDeviceType] = useState<DeviceType>("MEDIA_PLAYER");
   const [alertDays, setAlertDays] = useState(30);
 
   // Filter data
@@ -228,6 +236,7 @@ const MediaPlayerEntry = () => {
           model_id: formData.model_id || null,
           quantity: 0, // เริ่มต้นเป็น 0 — จะถูกเพิ่มจริงเมื่อรับเข้าคลังผ่าน Receive Goods (ป้องกันยอด stock เกินจริง)
           unit: "เครื่อง",
+          device_type: formDeviceType,
         } as any)
         .select("id")
         .single();
@@ -328,6 +337,7 @@ const MediaPlayerEntry = () => {
       const matchDepartment = filterDepartment === "all" || player.department === filterDepartment;
       const matchModel = filterModel === "all" || player.model_id === filterModel;
       const matchSubMediaType = filterSubMediaType === "all" || player.sub_media_type === filterSubMediaType;
+      const matchDeviceType = filterDeviceType === "ALL" || (player.device_type || "MEDIA_PLAYER") === filterDeviceType;
 
       let matchAlert = true;
       if (filterAlert === "warranty_expired") {
@@ -342,9 +352,9 @@ const MediaPlayerEntry = () => {
         matchAlert = !!(player.waiting_asset_code || player.waiting_equipment_id);
       }
       
-      return matchSearch && matchCompany && matchStatus && matchCmsType && matchDepartment && matchModel && matchAlert && matchSubMediaType;
+      return matchSearch && matchCompany && matchStatus && matchCmsType && matchDepartment && matchModel && matchAlert && matchSubMediaType && matchDeviceType;
     });
-  }, [mediaPlayers, searchTerm, filterCompany, filterStatus, filterCmsType, filterDepartment, filterModel, filterAlert, alertDays, filterSubMediaType]);
+  }, [mediaPlayers, searchTerm, filterCompany, filterStatus, filterCmsType, filterDepartment, filterModel, filterAlert, alertDays, filterSubMediaType, filterDeviceType]);
 
   const dashboardStats = useMemo(() => {
     const today = new Date();
@@ -427,6 +437,7 @@ const MediaPlayerEntry = () => {
     const nameId = mediaPlayerNames.find(n => n.name === player.name)?.id || "";
     const specId = mediaPlayerSpecs.find(s => s.name === player.specification)?.id || "";
     setEditPlayer(player);
+    setEditDeviceType((player.device_type as DeviceType) || "MEDIA_PLAYER");
     setEditForm({
       name: nameId,
       cms_type_id: player.cms_type_id || "",
@@ -476,6 +487,7 @@ const MediaPlayerEntry = () => {
   const handleExportExcel = () => {
     const exportData = filteredPlayers.map((p) => ({
       "รหัส": p.code,
+      "ประเภทอุปกรณ์": deviceLabel(p.device_type),
       "ฝ่าย": p.department || "-",
       "Sub Media Type": p.sub_media_type || "-",
       "บริษัท": getCompanyName(p.company_id),
@@ -521,16 +533,25 @@ const MediaPlayerEntry = () => {
       <div>
         <h1 className="text-3xl font-semibold text-foreground mb-2 flex items-center gap-2">
           <Monitor className="w-8 h-8" />
-          จัดการ Media Player
+          จัดการ Media Player / จอภาพ
         </h1>
-        <p className="text-muted-foreground">ตั้งค่าและลงทะเบียน Media Player ในระบบ</p>
+        <p className="text-muted-foreground">ตั้งค่าและลงทะเบียน Media Player และจอภาพในระบบ</p>
       </div>
+
+      <DeviceTypeTabs
+        value={filterDeviceType}
+        onChange={(v) => {
+          setFilterDeviceType(v);
+          // When user picks a specific tab, lock the new-form device_type to match
+          if (v === "MEDIA_PLAYER" || v === "MONITOR") setFormDeviceType(v);
+        }}
+      />
 
       <Tabs defaultValue="add" className="w-full">
         <TabsList className="grid w-full grid-cols-2 max-w-md">
           <TabsTrigger value="add" className="flex items-center gap-2">
             <Plus className="w-4 h-4" />
-            เพิ่ม Media Player ใหม่
+            เพิ่ม{filterDeviceType === "MONITOR" ? "จอภาพ" : "Media Player"}ใหม่
           </TabsTrigger>
           <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
         </TabsList>
@@ -544,6 +565,19 @@ const MediaPlayerEntry = () => {
                 <CardTitle className="text-lg">ข้อมูลทั่วไป</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
+                <div className="max-w-xs">
+                  <DeviceTypeSelect
+                    value={formDeviceType}
+                    onChange={setFormDeviceType}
+                    required
+                    disabled={filterDeviceType === "MEDIA_PLAYER" || filterDeviceType === "MONITOR"}
+                    hint={
+                      filterDeviceType === "MEDIA_PLAYER" || filterDeviceType === "MONITOR"
+                        ? `ล็อกตามแท็บที่เลือก: ${deviceLabel(filterDeviceType)}`
+                        : "เลือกประเภทอุปกรณ์ที่ต้องการลงทะเบียน"
+                    }
+                  />
+                </div>
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                   <div className="space-y-2">
                     <Label>Prefix รหัส *</Label>
@@ -808,6 +842,7 @@ const MediaPlayerEntry = () => {
                       <TableHeader>
                         <TableRow className="bg-muted/50">
                           <TableHead className="whitespace-nowrap">รหัส</TableHead>
+                          <TableHead className="whitespace-nowrap">ประเภท</TableHead>
                           <TableHead className="whitespace-nowrap">ชื่อสินค้า</TableHead>
                           <TableHead className="whitespace-nowrap">โมเดล</TableHead>
                           <TableHead className="whitespace-nowrap">ยี่ห้อ</TableHead>
@@ -851,6 +886,7 @@ const MediaPlayerEntry = () => {
                           filteredPlayers.map((player) => (
                             <TableRow key={player.id} className="hover:bg-muted/30">
                               <TableCell className="font-mono text-sm whitespace-nowrap">{player.code}</TableCell>
+                              <TableCell className="whitespace-nowrap"><DeviceTypeBadge value={player.device_type} /></TableCell>
                               <TableCell className="whitespace-nowrap">{player.name}</TableCell>
                               <TableCell className="text-sm whitespace-nowrap">
                                 {modelsForFilter.find(m => m.id === player.model_id)?.name || "-"}
@@ -980,9 +1016,11 @@ const MediaPlayerEntry = () => {
       <Dialog open={!!editPlayer} onOpenChange={(open) => !open && setEditPlayer(null)}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>แก้ไขข้อมูล Media Player</DialogTitle>
-            <DialogDescription>
-              รหัส: <span className="font-mono font-medium">{editPlayer?.code}</span>
+            <DialogTitle>แก้ไขข้อมูล {deviceLabel(editPlayer?.device_type)}</DialogTitle>
+            <DialogDescription className="flex items-center gap-2">
+              <span>รหัส: <span className="font-mono font-medium">{editPlayer?.code}</span></span>
+              <DeviceTypeBadge value={editPlayer?.device_type} />
+              <span className="text-xs text-muted-foreground">(ไม่สามารถเปลี่ยนประเภทอุปกรณ์หลังบันทึก)</span>
             </DialogDescription>
           </DialogHeader>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
