@@ -61,7 +61,7 @@ const DeliveryConfirmation = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("goods_issue_pending")
-        .select("*, companies(name), equipment(code, name, serial_number, unit), media_players(code, name, serial_number_1, serial_number_2, unit)")
+        .select("*, companies(name), equipment(code, name, serial_number, unit), media_players(code, name, serial_number_1, serial_number_2, unit, device_type)")
         .in("status", ["issued", "partial_issued"])
         .order("issued_at", { ascending: false });
       if (error) throw error;
@@ -115,7 +115,7 @@ const DeliveryConfirmation = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("goods_issue_pending_items")
-        .select("*, equipment(code, name, serial_number, unit), media_players(code, name, serial_number_1, serial_number_2, unit)")
+        .select("*, equipment(code, name, serial_number, unit), media_players(code, name, serial_number_1, serial_number_2, unit, device_type)")
         .order("created_at", { ascending: false });
       if (error) throw error;
       
