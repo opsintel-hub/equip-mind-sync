@@ -468,6 +468,7 @@ export default function DocumentSearch() {
   const [hideRedundantStockCard, setHideRedundantStockCard] = useState(true);
   /** Map: serial_number(lowercased) -> current location info */
   const [snLocationMap, setSnLocationMap] = useState<Map<string, LocationInfo>>(new Map());
+  const [subMediaTypeMap, setSubMediaTypeMap] = useState<Map<string, string>>(new Map());
 
   /** Map a document record to a route + query params for "ดูรายละเอียด". Returns null when no detail page exists. */
   const getDetailRoute = (doc: DocumentRecord): string | null => {
