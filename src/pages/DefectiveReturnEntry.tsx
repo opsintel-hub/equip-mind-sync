@@ -1349,7 +1349,7 @@ const DefectiveReturnEntry = () => {
 
                 <div className="space-y-2 p-3 rounded-lg border bg-muted/30">
                   <div className="flex items-center gap-2 flex-wrap">
-                    {reviewTicket.is_media_player && <Badge variant="outline" className="text-xs">Media Player</Badge>}
+                    {reviewTicket.is_media_player && <DeviceTypeBadge value={reviewTicket.device_type} />}
                     <Badge variant="outline" className="text-xs">จำนวน × {reviewTicket.quantity}</Badge>
                     <Badge variant="outline" className={`text-xs ${reviewTicket.item_condition === "defective" ? "bg-destructive/10 text-destructive" : "bg-yellow-500/10 text-yellow-600"}`}>
                       {reviewTicket.item_condition === "defective" ? "เสีย/ชำรุด" : "รอตรวจสอบ"}
