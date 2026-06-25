@@ -28,6 +28,7 @@ import { toast } from "@/hooks/use-toast";
 import { exportStockCardExcel, exportStockCardPDF } from "@/lib/stockCardExport";
 import { useTablePagination } from "@/hooks/useTablePagination";
 import { TablePagination } from "@/components/TablePagination";
+import { DeviceTypeBadge } from "@/components/media-player/DeviceTypeBadge";
 import { DepartmentMultiFilter } from "@/components/DepartmentMultiFilter";
 import { useDepartmentPermissions } from "@/hooks/useDepartmentPermissions";
 import { StockMovementGroupRow, GroupedMovement } from "@/components/stock-movement/StockMovementGroupRow";
