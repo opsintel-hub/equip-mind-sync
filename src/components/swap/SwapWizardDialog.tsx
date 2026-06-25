@@ -216,6 +216,7 @@ export function SwapWizardDialog({ open, onOpenChange, request, onCompleted }: P
         warranty_expiry_date: m.warranty_expiry_date,
         unit_price: m.unit_price,
         remote_name: m.remote_name,
+        device_type: m.device_type || "MEDIA_PLAYER",
       });
     });
     (esns || []).forEach((s: any) => {
