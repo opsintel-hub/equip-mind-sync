@@ -767,6 +767,7 @@ export default function MediaPlayerReport() {
                             </TableCell>
                             <TableCell className="text-sm">{r.billboardLabel}</TableCell>
                             <TableCell>{r.department || "-"}</TableCell>
+                            <TableCell>{r.subMediaType ? <Badge variant="outline" className="font-mono text-xs">{r.subMediaType}</Badge> : <span className="text-muted-foreground">-</span>}</TableCell>
                             <TableCell>{r.company || "-"}</TableCell>
                             <TableCell className="text-right font-mono">{formatPrice(r.price)}</TableCell>
                             <TableCell>{r.poNumber || "-"}</TableCell>
