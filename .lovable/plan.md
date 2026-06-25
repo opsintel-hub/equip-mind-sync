@@ -1,70 +1,91 @@
-# เพิ่ม Sub Media Type สำหรับฝ่าย 7-Eleven Media
 
-## 1. Database Migration (Safe)
-เพิ่มคอลัมน์ใหม่ลงตาราง `media_players`:
-- `sub_media_type` (TEXT, nullable) — รับค่า 1 ใน 9: `TOPSHELF_1, TOPSHELF_2, TOPSHELF_3, SPECIAL_1, SPECIAL_2, OVERVAULT_1, OVERVAULT_2, OPENTYPE_1, OPENTYPE_2`
-- ใช้ Validation Trigger (ไม่ใช่ CHECK constraint) เพื่อบังคับว่า:
-  - ถ้า `department = '7-Eleven Media'` → `sub_media_type` ต้อง NOT NULL และอยู่ใน 9 ตัวเลือก
-  - ถ้า department อื่น → บังคับ `sub_media_type = NULL` (ล้างค่าอัตโนมัติ)
-- ข้อมูลเก่าไม่กระทบ (default NULL, trigger เฉพาะ INSERT/UPDATE ใหม่)
-- อัปเดต RPC `import_media_player_row` ให้รับ/ตรวจ `sub_media_type` พร้อมข้อความ error ภาษาไทยชัดเจน
+# เพิ่มการจัดการ "จอภาพ (Monitor)" — ใช้ Workflow ร่วมกับ Media Player
 
-> หมายเหตุ: ใช้คอลัมน์ที่มีอยู่ `media_players.department` (TEXT) จับคู่ชื่อ `'7-Eleven Media'` แบบตรงตัว (case-insensitive ใน trigger)
+## หลักการ
+ใช้ตาราง `media_players` เดิม + เพิ่ม column `device_type` ('MEDIA_PLAYER' / 'MONITOR') ทุก workflow (รับเข้า, ติดตั้งป้าย, Swap, Assessment, Claim, Defective Return, รายงาน, Public QR) ใช้โค้ดและตารางชุดเดิม — เพิ่ม filter/badge/lock ตาม device_type เท่านั้น
 
-## 2. Frontend (UI/UX)
+## การตั้งชื่อ (ตามที่ตกลง)
+- **คำเรียกกลาง:** "MP / จอภาพ"
+- **Sidebar menu:** "Media Player / จอภาพ", "ตั้งค่า MP / จอภาพ", "รายงาน MP / จอภาพ", "นำเข้า MP / จอภาพ"
+- **Tabs ทุกหน้า list/report:** `[ ทั้งหมด ] [ Media Player ] [ จอภาพ ]` — default = **ทั้งหมด**
+- **Field label:** "ประเภทอุปกรณ์" — ตัวเลือก `Media Player` / `จอภาพ (Monitor)`
+- **คอลัมน์ตาราง/Excel:** "ประเภท"
+- **Badge:** 🔵 Media Player / 🟣 จอภาพ
+- **Error Swap:** "ไม่สามารถสลับข้ามประเภทอุปกรณ์ได้ (Media Player ↔ จอภาพ)"
 
-### ค่าคงที่กลาง
-สร้าง `src/lib/mediaPlayerSubTypes.ts` รวม:
-- `SEVEN_ELEVEN_DEPT_NAME = '7-Eleven Media'`
-- `SUB_MEDIA_TYPES = [TOPSHELF_1, ... OPENTYPE_2]`
-- helper `requiresSubMediaType(dept)` และ `normalizeSubMediaType(dept, value)`
+## 1. Database Migration
+- เพิ่ม `media_players.device_type TEXT NOT NULL DEFAULT 'MEDIA_PLAYER'` + CHECK ใน `('MEDIA_PLAYER','MONITOR')`
+- เพิ่ม `goods_receipt_pending.device_type TEXT` (propagate ผ่าน Delivery → Receive)
+- Backfill ข้อมูลเดิม = `MEDIA_PLAYER`
+- อัปเดต RPC `import_media_player_row` รับ `device_type`
+- อัปเดต RPC `public_get_mp_*` ส่ง `device_type` ออกไปด้วย
+- Trigger `validate_mp_sub_media_type` เดิม **ไม่ต้องแก้** (เช็ค department อย่างเดียว → คุม 7-Eleven ของทั้งสอง device_type อัตโนมัติ)
 
-### MP Setup (Master Data) — `MediaPlayerEntry.tsx` (ฟอร์ม Create/Edit หลัก)
-- เพิ่ม Select "ตำแหน่งสื่อย่อย (Sub Media Type)" — **แสดง + required เฉพาะเมื่อเลือกฝ่าย 7-Eleven Media**
-- เปลี่ยนฝ่ายเป็นฝ่ายอื่น → ซ่อนและล้างค่าอัตโนมัติ
-- เพิ่ม Filter ใหม่ "Sub Media Type" ในแถบ filter (เปิดใช้เมื่อเลือกฝ่าย 7-Eleven Media หรือเลือก "ทุกฝ่าย")
-- เพิ่ม Column "ตำแหน่งสื่อย่อย" ในตาราง List + Excel export
+## 2. Shared Constants & Components
+**สร้างใหม่:**
+- `src/lib/deviceTypes.ts` — `DEVICE_TYPES`, label TH, helpers `isMonitor()`, `deviceLabel(t)`, default prefix
+- `src/components/media-player/DeviceTypeTabs.tsx` — Tabs `[ทั้งหมด][Media Player][จอภาพ]` reusable + URL query sync
+- `src/components/media-player/DeviceTypeBadge.tsx` — badge สี (MP=blue, Monitor=purple)
+- `src/components/media-player/DeviceTypeSelect.tsx` — dropdown ใช้ใน Form/Delivery/Issue/Import
 
-### MP Edit Dialog — `MediaPlayerInfoEditDialog.tsx`
-- เพิ่มฟิลด์ Select เดียวกัน พร้อม conditional logic ตามฝ่ายปัจจุบันของเครื่อง
+## 3. UI Refactoring (Tabs + Shared Components)
 
-### MP Profile (Detail View) — `GeneralInfoTab.tsx`
-- แสดงค่าในส่วน "ข้อมูลทรัพย์สิน" (แสดงเฉพาะเมื่อมีค่า / เป็น 7-Eleven Media)
+### `MediaPlayerEntry.tsx` (ตั้งค่า MP / จอภาพ)
+- Header เพิ่ม `DeviceTypeTabs` control filter `device_type`
+- Form Create/Edit เพิ่ม `DeviceTypeSelect` — **lock ค่า** ตาม Tab ปัจจุบัน (ถ้า Tab = ทั้งหมด ให้เลือกเอง)
+- ตาราง List แสดงคอลัมน์ "ประเภท" (badge)
+- Excel export มีคอลัมน์ "ประเภทอุปกรณ์"
 
-### Import Template (Excel)
-- เพิ่มคอลัมน์ `sub_media_type` ใน `mediaPlayerTemplate.ts`
-- เพิ่ม sheet `_ref_sub_media_types` + Data Validation dropdown
-- `validators.ts` ตรวจ: ถ้า department = 7-Eleven Media → required + ต้องอยู่ใน 9 ค่า; อื่นๆ ต้องว่าง
+### `MediaPlayerReport.tsx` (รายงาน MP / จอภาพ)
+- `DeviceTypeTabs` + filter + คอลัมน์ "ประเภท" + Excel export
 
-## 3. Swap Logic — `SwapWizardDialog.tsx`
-- ตอนเลือกเครื่องเก่า → อ่าน `sub_media_type` แล้ว pre-fill ลงเครื่องใหม่
-- แสดง Select ในขั้นตอน "เครื่องใหม่" พร้อม hint *"สืบทอดจากเครื่องเดิม: TOPSHELF_1 (แก้ได้)"*
-- ตอน submit เขียนค่าลง `media_players.sub_media_type` ของเครื่องใหม่
-- ถ้าฝ่ายเครื่องใหม่ไม่ใช่ 7-Eleven Media → ไม่บันทึกค่า (NULL)
+### Profile — `MediaPlayerProfile.tsx`, `MediaPlayerInfoEditDialog.tsx`, `GeneralInfoTab.tsx`
+- แสดง badge device_type ใน header
+- field device_type ใน edit dialog (**readonly** หลังสร้าง — ป้องกัน integrity swap/history)
 
-## 4. Report / Search ที่กระทบ (อ่านอย่างเดียว — เพิ่ม column แสดงผล)
-- `MediaPlayerReport.tsx` — เพิ่ม column + filter
-- `DocumentSearch.tsx` (ส่วน MP) — รวม sub_media_type ในผลค้นหา
-- `BillboardDetail.tsx` ส่วน MP ที่ติดตั้ง — แสดง badge "TOPSHELF_1" ใต้ชื่อเครื่อง (เฉพาะที่มีค่า)
+### Public View — `MediaPlayerPublicView.tsx`
+- แสดง badge device_type, wording ปรับเป็น "อุปกรณ์"
 
-## 5. ไฟล์ที่จะแก้/สร้าง
-**สร้างใหม่**
-- `supabase/migrations/<ts>_add_mp_sub_media_type.sql`
-- `src/lib/mediaPlayerSubTypes.ts`
-- `src/components/media-player/SubMediaTypeSelect.tsx` (reusable)
+## 4. Workflow Integration
 
-**แก้ไข**
-- `src/pages/MediaPlayerEntry.tsx` (ฟอร์ม + filter + table + export)
-- `src/components/media-player/profile/MediaPlayerInfoEditDialog.tsx`
-- `src/components/media-player/profile/GeneralInfoTab.tsx`
-- `src/components/media-player/profile/types.ts` (เพิ่มฟิลด์)
-- `src/components/swap/SwapWizardDialog.tsx`
-- `src/lib/importTemplates/mediaPlayerTemplate.ts`
-- `src/lib/importTemplates/validators.ts`
-- `src/lib/importTemplates/refData.ts` (เพิ่ม static list)
-- `src/pages/MediaPlayerReport.tsx`
-- RPC `import_media_player_row` (ใน migration เดียวกัน)
+| Workflow | การแก้ |
+|---|---|
+| Delivery Entry | เพิ่ม `DeviceTypeSelect` ต่ออุปกรณ์ (lock=MP ถ้ากดจาก tab MP), บันทึก `goods_receipt_pending.device_type` |
+| Receive Goods | propagate `device_type` จาก pending → `media_players` ตอน clone row ต่อ unit |
+| Issue Goods / Delivery Confirmation | แสดง badge — ไม่แก้ logic |
+| Billboard Detail | แสดง badge ในตาราง MP ติดตั้ง + group หัวข้อย่อย |
+| Swap Wizard | **บังคับ same device_type** — กรอง spare list, guard error ก่อน submit, ปรับ compatibility score |
+| Assessment / Claim / Defective Return | ใช้โค้ดเดิม — เพิ่ม badge |
+| Document Search | เพิ่ม badge device_type ในผล MP |
+| Stock Card / Inventory Report / EquipmentTrackingReport | เพิ่ม filter + คอลัมน์ device_type |
+
+## 5. 7-Eleven Media Sub Media Type
+Trigger เดิมคุมอัตโนมัติ — `SubMediaTypeSelect` ทำงานทั้ง MP และ Monitor เมื่อ department = 7-Eleven Media (required)
+
+## 6. Import Template
+- `mediaPlayerTemplate.ts` + RPC: เพิ่มคอลัมน์ `device_type` (default `MEDIA_PLAYER`, validation 2 ค่า) + sheet `_ref_device_types`
+- `ImportMediaPlayerPage.tsx` → "นำเข้า MP / จอภาพ"
+
+## 7. Sidebar
+- เปลี่ยน label เมนู Media Player → **"Media Player / จอภาพ"** (และเมนูย่อยที่ระบุข้างบน)
+- ไม่เพิ่มเมนูใหม่
+
+## รายละเอียดทางเทคนิค (สำหรับ Dev)
+
+**Migration:** `add_device_type_to_media_players.sql` + update RPCs
+
+**ไฟล์ใหม่:** `src/lib/deviceTypes.ts`, `components/media-player/DeviceTypeTabs.tsx`, `DeviceTypeBadge.tsx`, `DeviceTypeSelect.tsx`
+
+**ไฟล์ที่แก้:**
+- MP core: `MediaPlayerEntry.tsx`, `MediaPlayerReport.tsx`, `MediaPlayerProfile.tsx`, `MediaPlayerPublicView.tsx`, `MediaPlayerInfoEditDialog.tsx`, `GeneralInfoTab.tsx`, `profile/types.ts`
+- Swap: `SwapWizardDialog.tsx` (filter + validation), `SwapWarehouseReceive.tsx` (badge)
+- Goods flow: `DeliveryEntry.tsx`, `ReceiveGoods.tsx`, `IssueGoods.tsx`, `DeliveryConfirmation.tsx`
+- Workflow: `DefectiveReturnEntry.tsx`, `AssessmentLog.tsx`, `ClaimTracker.tsx`, `AssessmentCompleteDialog.tsx`
+- Reports/Search: `BillboardDetail.tsx`, `DocumentSearch.tsx`, `InventoryReport.tsx`, `StockCard.tsx`, `EquipmentTrackingReport.tsx`
+- Import: `importTemplates/mediaPlayerTemplate.ts`, `validators.ts`, `setup/ImportMediaPlayerPage.tsx`
+- Nav: `AppSidebar.tsx`
 
 ## นอกขอบเขต
-- Receive Goods / Delivery Entry forms (ไม่ได้เลือก) — Trigger จะบังคับเฉพาะตอน INSERT ใหม่ที่ฝ่าย = 7-Eleven Media; ฟอร์มเหล่านี้ยังไม่มี UI แต่จะ fallback เป็น error ถ้าพยายามบันทึกโดยไม่มีค่า (ผู้ใช้ต้องไปกรอกที่ MP Setup/Edit แทน)
-- Equipment table (เฉพาะ Media Player เท่านั้น)
+- ไม่แยกตารางใหม่ / ไม่สร้างหน้าเมนูใหม่
+- ไม่แก้ Equipment table
+- ไม่แตะ Ad Management / Billboard PM
