@@ -431,7 +431,7 @@ export default function MediaPlayerReport() {
       }
       return true;
     });
-  }, [expandedRows, search, snSearch, conditionFilter, departmentFilter, statusFilter, companyFilter, brandFilter, codePrefixFilter, projectFilter, allReceiptSerialsMap, subMediaTypeFilter]);
+  }, [expandedRows, search, snSearch, conditionFilter, departmentFilter, statusFilter, companyFilter, brandFilter, codePrefixFilter, projectFilter, allReceiptSerialsMap, subMediaTypeFilter, deviceTypeFilter]);
 
   const {
     paginatedData,
