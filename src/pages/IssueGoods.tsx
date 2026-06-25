@@ -20,6 +20,8 @@ import { th } from "date-fns/locale";
 import { useAuth } from "@/hooks/useAuth";
 import BillboardDisplay from "@/components/billboard/BillboardDisplay";
 import BillboardSelect from "@/components/billboard/BillboardSelect";
+import { SubMediaTypeSelect } from "@/components/media-player/SubMediaTypeSelect";
+import { requiresSubMediaType } from "@/lib/mediaPlayerSubTypes";
 import { logStockMovement } from "@/lib/stockMovement";
 import { SerialNumberSelect, SerialNumberItem } from "@/components/equipment/SerialNumberSelect";
 import { SearchableSelect } from "@/components/ui/searchable-select";
