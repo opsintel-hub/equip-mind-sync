@@ -51,12 +51,15 @@ const BillboardQRCode = ({ billboardId, billboardCode, locationName }: Billboard
     if (!svg) return;
 
     const svgData = new XMLSerializer().serializeToString(svg);
+    const escHtml = (s: string) => String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+    const safeCode = escHtml(billboardCode);
+    const safeLocation = locationName ? escHtml(locationName) : '';
 
     printWindow.document.write(`
       <!DOCTYPE html>
       <html>
         <head>
-          <title>QR Code - ${billboardCode}</title>
+          <title>QR Code - ${safeCode}</title>
           <style>
             body {
               display: flex;
@@ -86,8 +89,8 @@ const BillboardQRCode = ({ billboardId, billboardCode, locationName }: Billboard
         <body>
           <div class="container">
             ${svgData}
-            <div class="code">${billboardCode}</div>
-            ${locationName ? `<div class="location">${locationName}</div>` : ""}
+            <div class="code">${safeCode}</div>
+            ${safeLocation ? `<div class="location">${safeLocation}</div>` : ""}
           </div>
           <script>
             window.onload = function() {
