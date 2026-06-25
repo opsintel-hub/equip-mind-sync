@@ -855,7 +855,7 @@ const IssueGoods = () => {
     });
   };
 
-  const updateMpUnitAssignment = (index: number, patch: Partial<{ media_player_id: string; serial_number: string; billboard_id: string }>) => {
+  const updateMpUnitAssignment = (index: number, patch: Partial<{ media_player_id: string; serial_number: string; billboard_id: string; sub_media_type: string | null }>) => {
     setMpUnitAssignments((prev) => prev.map((u, i) => (i === index ? { ...u, ...patch } : u)));
   };
 
