@@ -600,7 +600,7 @@ export default function AssessmentLog() {
             {log.outcome && OUTCOME_LABELS[log.outcome] && (
               <Badge variant={OUTCOME_LABELS[log.outcome].variant}>{OUTCOME_LABELS[log.outcome].label}</Badge>
             )}
-            {isMP && <DeviceTypeBadge deviceType={detail?.device_type || "MEDIA_PLAYER"} />}
+            {isMP && <DeviceTypeBadge value={detail?.device_type || "MEDIA_PLAYER"} />}
             <Badge variant="outline" className="font-mono text-xs">S/N: {serial}</Badge>
           </div>
           {rejection && (
