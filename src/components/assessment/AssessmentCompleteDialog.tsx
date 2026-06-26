@@ -80,7 +80,7 @@ const OUTCOME_OPTIONS = [
 
 export function AssessmentCompleteDialog({ open, onOpenChange, log, onCompleted }: Props) {
   const { user } = useAuth();
-  const navigate = useNavigate();
+  
   const [submitting, setSubmitting] = useState(false);
 
   const [symptomId, setSymptomId] = useState("");
