@@ -514,6 +514,11 @@ export default function AssessmentLog() {
               <PlusCircle className="h-4 w-4 mr-2" /> บันทึกการประเมินใหม่
             </TabsTrigger>
           )}
+          {canView && (
+            <TabsTrigger value="self_repair">
+              <Wrench className="h-4 w-4 mr-2" /> งานซ่อมเอง ({logs.filter(l => l.outcome === "self_repair" && (!l.repair_status || (l.repair_status !== "repaired" && l.repair_status !== "failed"))).length})
+            </TabsTrigger>
+          )}
         </TabsList>
 
         <TabsContent value="list" className="mt-4">
