@@ -45,15 +45,14 @@ serve(async (req) => {
       });
     }
 
-    // Check if requesting user is admin
+    // Check if requesting user is admin or super_admin
     const { data: roleData, error: roleError } = await supabaseAdmin
       .from("user_roles")
       .select("role")
       .eq("user_id", requestingUser.id)
-      .eq("role", "admin")
-      .maybeSingle();
+      .in("role", ["admin", "super_admin"]);
 
-    if (roleError || !roleData) {
+    if (roleError || !roleData || roleData.length === 0) {
       return new Response(JSON.stringify({ error: "Only admins can reset passwords" }), {
         status: 403,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
