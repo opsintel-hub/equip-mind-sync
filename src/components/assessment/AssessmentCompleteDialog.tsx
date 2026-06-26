@@ -353,9 +353,9 @@ export function AssessmentCompleteDialog({ open, onOpenChange, log, onCompleted 
   //   "ส่งเคลม"    → ผลต้อง = "ส่งซ่อมภายนอก"
   const isWriteOffResult = assessmentResultName.includes("Write-off");
   const isExternalRepairResult = assessmentResultName.includes("ส่งซ่อมภายนอก");
-  // Warranty gating: ถ้าไม่มีวันหมดประกัน (unknown) → ปล่อยให้กดได้
-  // defective: ต้องหมดประกัน หรือไม่ทราบ
-  const warrantyAllowsDefective = warrantyState === "expired" || warrantyState === "unknown";
+  // Warranty gating:
+  // defective (Write-off): ต้องหมดประกันเท่านั้น — ถ้ายังในประกันหรือไม่ทราบ ห้าม Write-off
+  const warrantyAllowsDefective = warrantyState === "expired";
   // claim: ต้องอยู่ในประกัน หรือไม่ทราบ
   const warrantyAllowsClaim = isUnderWarranty || warrantyState === "unknown";
 
