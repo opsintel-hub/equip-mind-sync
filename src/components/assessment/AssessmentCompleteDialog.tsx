@@ -871,7 +871,9 @@ export function AssessmentCompleteDialog({ open, onOpenChange, log, onCompleted 
                   opt.v === "defective" && defectiveDisabled
                     ? !isWriteOffResult
                       ? `ต้องเลือกผลการประเมิน = "Write-off (ใช้งานต่อไม่ได้)" ก่อน`
-                      : `ต้องหมดประกันก่อน — ปัจจุบันหมด ${warrantyDate || "—"} (เหลือ ${warrantyDaysLeft} วัน)`
+                      : warrantyState === "unknown"
+                      ? `ไม่พบข้อมูลประกัน — กรุณาตรวจสอบและกรอกวันหมดประกันที่โปรไฟล์เครื่องก่อน จึงจะ Write-off ได้`
+                      : `เครื่องยังอยู่ในประกัน (ถึง ${warrantyDate || "—"}, เหลือ ${warrantyDaysLeft} วัน) — ห้าม Write-off ต้องเลือก "ส่งเคลม"`
                     : opt.v === "claim" && claimDisabled
                     ? !isExternalRepairResult
                       ? `ต้องเลือกผลการประเมิน = "ส่งซ่อมภายนอก" ก่อน`
