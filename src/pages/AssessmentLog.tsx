@@ -23,6 +23,7 @@ import { RepairCompleteDialog } from "@/components/assessment/RepairCompleteDial
 import { isMonitor } from "@/lib/deviceTypes";
 import { DeviceTypeBadge } from "@/components/media-player/DeviceTypeBadge";
 import { Wrench } from "lucide-react";
+import { formatBillboardLabel } from "@/lib/billboardUtils";
 
 interface AssessmentLog {
   id: string;
