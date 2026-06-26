@@ -72,11 +72,23 @@ const OUTCOME_LABELS: Record<string, { label: string; variant: "default" | "seco
   return_refurb: { label: "คืน Spare (refurbished)", variant: "outline" },
 };
 
+interface LogDetail {
+  code: string;
+  name: string;
+  serial: string | null;
+  device_type?: string | null;
+  billboard_label?: string | null;
+  sub_media_type?: string | null;
+  brand?: string | null;
+  model?: string | null;
+}
+
 export default function AssessmentLog() {
   const { user } = useAuth();
   const location = useLocation();
   const [logs, setLogs] = useState<AssessmentLog[]>([]);
   const [rejectionMap, setRejectionMap] = useState<Record<string, { document_no: string; rejection_reason: string | null; rejected_at: string | null; rejected_by_name: string | null }>>({});
+  const [logDetails, setLogDetails] = useState<Record<string, LogDetail>>({});
   const [loading, setLoading] = useState(true);
   const { hasFunctionAccess } = useFunctionPermissions();
   const canView = hasFunctionAccess("assessment_view");
