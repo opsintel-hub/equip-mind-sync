@@ -604,27 +604,12 @@ export function AssessmentCompleteDialog({ open, onOpenChange, log, onCompleted 
       const wasRevived = !!(window as any).__lastDRRevived;
       toast.success(
         wasRevived
-          ? `📦 ส่งใบ ${createdDefectiveDocNo || ""} กลับเข้าคลังของเสียอีกครั้ง (หลังแก้ผลประเมิน)`
-          : `สร้างใบของเสีย ${createdDefectiveDocNo || ""} แล้ว — กำลังพาไปยืนยันที่เมนู "นำของเสียเข้าระบบ"`,
-        { duration: 4000 }
+          ? `📦 ส่งใบ ${createdDefectiveDocNo || ""} กลับเข้าคลังของเสียอีกครั้ง (หลังแก้ผลประเมิน) — ฝ่ายคลังจะดำเนินการตรวจรับเอง`
+          : `บันทึกการประเมินเสร็จ — ใบของเสีย ${createdDefectiveDocNo || ""} ถูกส่งไปยังฝ่ายคลังแล้ว (ฝ่ายคลังจะตรวจรับเอง)`,
+        { duration: 5000 }
       );
       (window as any).__lastDRRevived = false;
       onCompleted();
-      // Navigate to defective entry with prefill so warehouse staff can confirm + cut stock
-      setTimeout(() => {
-        navigate("/defective-return", {
-          state: {
-            fromAssessment: {
-              assessmentLogId: log.id,
-              isMediaPlayer: !!log.media_player_id,
-              itemId: log.media_player_id || log.equipment_id,
-              serial: log.serial_number,
-              reason: diagnosisNotes.trim() || symptomDescription.trim(),
-              docNo: createdDefectiveDocNo,
-            },
-          },
-        });
-      }, 400);
     } else {
       toast.success(
         outcome === "claim"
