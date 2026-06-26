@@ -88,7 +88,7 @@ export default function SwapWizard() {
   const { hasFunctionAccess } = useFunctionPermissions();
   const canManage = hasFunctionAccess("swap_request_manage");
   const canCreate = hasFunctionAccess("swap_request_create");
-  const [activeTab, setActiveTab] = useState(canManage ? "list" : "new");
+  const [activeTab, setActiveTab] = useState(canCreate ? "new" : "list");
   const [wizardOpen, setWizardOpen] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState<SwapRequest | null>(null);
 
