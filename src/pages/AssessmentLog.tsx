@@ -832,6 +832,48 @@ export default function AssessmentLog() {
             </CardContent>
           </Card>
         </TabsContent>
+
+        <TabsContent value="self_repair" className="mt-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>งานซ่อมเอง (under_repair)</CardTitle>
+              <CardDescription>รายการที่เลือก outcome = "ซ่อมเอง" และยังไม่ได้บันทึกผลซ่อม — กดปุ่มเพื่อบันทึกผลซ่อมและคืนคลัง</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {(() => {
+                const repairLogs = logs.filter(l => l.outcome === "self_repair" && (!l.repair_status || (l.repair_status !== "repaired" && l.repair_status !== "failed")));
+                if (repairLogs.length === 0) {
+                  return <div className="text-center py-10 text-muted-foreground">ไม่มีงานซ่อมที่ค้างอยู่</div>;
+                }
+                return (
+                  <div className="space-y-2">
+                    {repairLogs.map((log) => (
+                      <div key={log.id} className="flex items-center justify-between gap-4 p-4 rounded-lg border hover:bg-accent/50 flex-wrap">
+                        <div className="flex-1 min-w-[200px] space-y-1">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="font-mono font-semibold">{log.document_no}</span>
+                            <Badge variant="default">ซ่อมเอง</Badge>
+                            {log.serial_number && <span className="text-xs text-muted-foreground">S/N: {log.serial_number}</span>}
+                          </div>
+                          {log.repair_description && (
+                            <div className="text-sm text-muted-foreground">{log.repair_description}</div>
+                          )}
+                          <div className="text-xs text-muted-foreground">
+                            ผู้ประเมิน: {log.assessor_name || "—"} • {format(new Date(log.assessed_at), "dd MMM yyyy HH:mm", { locale: th })}
+                          </div>
+                        </div>
+                        <Button onClick={() => { setRepairTargetLog(log); setRepairDialogOpen(true); }}>
+                          <Wrench className="h-4 w-4 mr-2" />
+                          บันทึกผลซ่อม
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                );
+              })()}
+            </CardContent>
+          </Card>
+        </TabsContent>
       </Tabs>
 
       <AssessmentCompleteDialog
