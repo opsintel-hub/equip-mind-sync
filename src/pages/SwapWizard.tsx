@@ -88,7 +88,7 @@ export default function SwapWizard() {
   const { hasFunctionAccess } = useFunctionPermissions();
   const canManage = hasFunctionAccess("swap_request_manage");
   const canCreate = hasFunctionAccess("swap_request_create");
-  const [activeTab, setActiveTab] = useState(canManage ? "list" : "new");
+  const [activeTab, setActiveTab] = useState(canCreate ? "new" : "list");
   const [wizardOpen, setWizardOpen] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState<SwapRequest | null>(null);
 
@@ -485,6 +485,11 @@ export default function SwapWizard() {
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList>
+          {canCreate && (
+            <TabsTrigger value="new">
+              <PlusCircle className="h-4 w-4 mr-2" /> แจ้ง Swap ใหม่
+            </TabsTrigger>
+          )}
           {canManage && (
             <TabsTrigger value="list">
               <ListChecks className="h-4 w-4 mr-2" /> รายการคำขอ
@@ -493,11 +498,6 @@ export default function SwapWizard() {
           {canManage && (
             <TabsTrigger value="receive">
               <Truck className="h-4 w-4 mr-2" /> รอรับเข้าคลัง
-            </TabsTrigger>
-          )}
-          {canCreate && (
-            <TabsTrigger value="new">
-              <PlusCircle className="h-4 w-4 mr-2" /> แจ้ง Swap ใหม่
             </TabsTrigger>
           )}
         </TabsList>
