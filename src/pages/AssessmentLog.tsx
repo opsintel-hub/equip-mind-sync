@@ -462,6 +462,81 @@ export default function AssessmentLog() {
     fetchLogs();
   };
 
+  // Lookup subject (code/name/serial) from cached subjects list for consistent row display
+  const subjectByMpId = useMemo(() => {
+    const m = new Map<string, SubjectOption>();
+    subjects.filter((s) => s.type === "media_player").forEach((s) => m.set(s.id, s));
+    return m;
+  }, [subjects]);
+  const subjectByEqId = useMemo(() => {
+    const m = new Map<string, SubjectOption>();
+    subjects.filter((s) => s.type === "equipment").forEach((s) => m.set(s.id, s));
+    return m;
+  }, [subjects]);
+
+  const renderLogCard = (log: AssessmentLog, opts: { actions?: React.ReactNode } = {}) => {
+    const status = STATUS_LABELS[log.status] || { label: log.status, variant: "outline" as const };
+    const rejection = rejectionMap[log.id];
+    const subj = log.media_player_id
+      ? subjectByMpId.get(log.media_player_id)
+      : log.equipment_id
+        ? subjectByEqId.get(log.equipment_id)
+        : null;
+    const subjectLine = subj ? `${subj.code} — ${subj.name}` : "—";
+    return (
+      <div
+        key={log.id}
+        className={`flex items-start justify-between gap-4 p-4 rounded-lg border hover:bg-accent/50 transition-colors flex-wrap ${rejection ? "border-destructive/50 bg-destructive/5" : ""}`}
+      >
+        <div className="flex-1 min-w-[200px] space-y-1.5">
+          {/* Row 1: Doc + badges */}
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="font-mono font-semibold">{log.document_no}</span>
+            <Badge variant={status.variant}>{status.label}</Badge>
+            {rejection && (
+              <Badge variant="destructive" className="gap-1">⟲ Reject จาก {rejection.document_no}</Badge>
+            )}
+            {log.outcome && OUTCOME_LABELS[log.outcome] && (
+              <Badge variant={OUTCOME_LABELS[log.outcome].variant}>{OUTCOME_LABELS[log.outcome].label}</Badge>
+            )}
+            <Badge variant="outline" className="font-mono text-xs">S/N: {log.serial_number || "—"}</Badge>
+          </div>
+          {rejection && (
+            <div className="text-xs text-destructive bg-destructive/10 rounded px-2 py-1 border border-destructive/20">
+              <span className="font-medium">เหตุผลที่ถูก Reject:</span> {rejection.rejection_reason || "—"}
+              {rejection.rejected_by_name && <span className="ml-2 text-muted-foreground">โดย {rejection.rejected_by_name}</span>}
+              {rejection.rejected_at && <span className="ml-2 text-muted-foreground">• {format(new Date(rejection.rejected_at), "dd MMM yyyy HH:mm", { locale: th })}</span>}
+            </div>
+          )}
+          {/* Row 2: Subject */}
+          <div className="text-sm">
+            <span className="font-medium text-foreground">อุปกรณ์:</span>{" "}
+            <span className={subjectLine === "—" ? "text-muted-foreground" : "font-medium"}>{subjectLine}</span>
+          </div>
+          {/* Row 3: Symptom / diagnosis */}
+          <div className="text-sm">
+            <span className="font-medium text-foreground">อาการ/วินิจฉัย:</span>{" "}
+            <span className="text-muted-foreground">{log.diagnosis_notes || log.symptom_description || "—"}</span>
+          </div>
+          {/* Row 4: Repair description (if self_repair) — always visible when outcome=self_repair */}
+          {log.outcome === "self_repair" && (
+            <div className="text-sm">
+              <span className="font-medium text-foreground">รายละเอียดการซ่อม:</span>{" "}
+              <span className="text-muted-foreground">{log.repair_description || "—"}</span>
+            </div>
+          )}
+          {/* Row 5: Assessor / Date */}
+          <div className="text-xs text-muted-foreground">
+            ผู้ประเมิน: {log.assessor_name || "—"} • {format(new Date(log.assessed_at), "dd MMM yyyy HH:mm", { locale: th })}
+          </div>
+        </div>
+        <div className="flex gap-2">{opts.actions}</div>
+      </div>
+    );
+  };
+
+
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-4 flex-wrap">
@@ -557,63 +632,21 @@ export default function AssessmentLog() {
               ) : (
                 <>
                   <div className="space-y-2">
-                    {pagedLogs.map((log) => {
-                      const status = STATUS_LABELS[log.status] || { label: log.status, variant: "outline" as const };
-                      const rejection = rejectionMap[log.id];
-                      return (
-                        <div
-                          key={log.id}
-                          className={`flex items-center justify-between gap-4 p-4 rounded-lg border hover:bg-accent/50 transition-colors flex-wrap ${rejection ? "border-destructive/50 bg-destructive/5" : ""}`}
-                        >
-                          <div className="flex-1 min-w-[200px] space-y-1">
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <span className="font-mono font-semibold">{log.document_no}</span>
-                              <Badge variant={status.variant}>{status.label}</Badge>
-                              {rejection && (
-                                <Badge variant="destructive" className="gap-1">
-                                  ⟲ Reject จาก {rejection.document_no}
-                                </Badge>
-                              )}
-                              {log.outcome && OUTCOME_LABELS[log.outcome] && (
-                                <Badge variant={OUTCOME_LABELS[log.outcome].variant}>
-                                  {OUTCOME_LABELS[log.outcome].label}
-                                </Badge>
-                              )}
-                              {log.serial_number && (
-                                <Badge variant="outline" className="font-mono text-xs">S/N: {log.serial_number}</Badge>
-                              )}
-                            </div>
-                            {rejection && (
-                              <div className="text-xs text-destructive bg-destructive/10 rounded px-2 py-1 border border-destructive/20">
-                                <span className="font-medium">เหตุผลที่ถูก Reject:</span> {rejection.rejection_reason || "—"}
-                                {rejection.rejected_by_name && <span className="ml-2 text-muted-foreground">โดย {rejection.rejected_by_name}</span>}
-                                {rejection.rejected_at && <span className="ml-2 text-muted-foreground">• {format(new Date(rejection.rejected_at), "dd MMM yyyy HH:mm", { locale: th })}</span>}
-                              </div>
-                            )}
-                            <div className="text-sm text-muted-foreground">
-                              {log.diagnosis_notes || log.symptom_description || "—"}
-                            </div>
-                            <div className="text-xs text-muted-foreground">
-                              ผู้ประเมิน: {log.assessor_name || "—"} •{" "}
-                              {format(new Date(log.assessed_at), "dd MMM yyyy HH:mm", { locale: th })}
-                            </div>
-                          </div>
-                          <div className="flex gap-2">
-                            {log.status === "pending" && (
-                              <Button
-                                size="sm"
-                                onClick={() => {
-                                  setActiveLog(log);
-                                  setCompleteDialogOpen(true);
-                                }}
-                              >
-                                <ClipboardCheck className="h-4 w-4 mr-1" /> ประเมิน
-                              </Button>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })}
+                    {pagedLogs.map((log) =>
+                      renderLogCard(log, {
+                        actions: log.status === "pending" ? (
+                          <Button
+                            size="sm"
+                            onClick={() => {
+                              setActiveLog(log);
+                              setCompleteDialogOpen(true);
+                            }}
+                          >
+                            <ClipboardCheck className="h-4 w-4 mr-1" /> ประเมิน
+                          </Button>
+                        ) : null,
+                      })
+                    )}
                   </div>
 
                   {/* Pagination */}
@@ -847,27 +880,16 @@ export default function AssessmentLog() {
                 }
                 return (
                   <div className="space-y-2">
-                    {repairLogs.map((log) => (
-                      <div key={log.id} className="flex items-center justify-between gap-4 p-4 rounded-lg border hover:bg-accent/50 flex-wrap">
-                        <div className="flex-1 min-w-[200px] space-y-1">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <span className="font-mono font-semibold">{log.document_no}</span>
-                            <Badge variant="default">ซ่อมเอง</Badge>
-                            {log.serial_number && <span className="text-xs text-muted-foreground">S/N: {log.serial_number}</span>}
-                          </div>
-                          {log.repair_description && (
-                            <div className="text-sm text-muted-foreground">{log.repair_description}</div>
-                          )}
-                          <div className="text-xs text-muted-foreground">
-                            ผู้ประเมิน: {log.assessor_name || "—"} • {format(new Date(log.assessed_at), "dd MMM yyyy HH:mm", { locale: th })}
-                          </div>
-                        </div>
-                        <Button onClick={() => { setRepairTargetLog(log); setRepairDialogOpen(true); }}>
-                          <Wrench className="h-4 w-4 mr-2" />
-                          บันทึกผลซ่อม
-                        </Button>
-                      </div>
-                    ))}
+                    {repairLogs.map((log) =>
+                      renderLogCard(log, {
+                        actions: (
+                          <Button onClick={() => { setRepairTargetLog(log); setRepairDialogOpen(true); }}>
+                            <Wrench className="h-4 w-4 mr-2" />
+                            บันทึกผลซ่อม
+                          </Button>
+                        ),
+                      })
+                    )}
                   </div>
                 );
               })()}
