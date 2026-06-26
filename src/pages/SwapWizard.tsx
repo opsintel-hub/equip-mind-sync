@@ -544,58 +544,57 @@ export default function SwapWizard() {
                   <div className="space-y-2">
                     {pagedRequests.map((req) => {
                       const status = STATUS_LABELS[req.status] || { label: req.status, variant: "outline" as const };
+                      const itemLine = [req.reported_item_code, req.reported_item_name].filter(Boolean).join(" — ") || "—";
                       return (
                         <div
                           key={req.id}
-                          className="flex items-center justify-between gap-4 p-4 rounded-lg border hover:bg-accent/50 transition-colors flex-wrap"
+                          className="flex items-start justify-between gap-4 p-4 rounded-lg border hover:bg-accent/50 transition-colors flex-wrap"
                         >
-                          <div className="flex-1 min-w-[200px] space-y-1">
+                          <div className="flex-1 min-w-[200px] space-y-1.5">
+                            {/* Row 1: Doc no + status badges */}
                             <div className="flex items-center gap-2 flex-wrap">
                               <span className="font-mono font-semibold">{req.document_no}</span>
                               <Badge variant={status.variant}>{status.label}</Badge>
                               {req.priority !== "normal" && (
                                 <Badge variant="outline">Priority: {PRIORITY_LABELS[req.priority]}</Badge>
                               )}
-                              {req.reported_serial_number && (
-                                <Badge variant="outline" className="font-mono text-xs">S/N: {req.reported_serial_number}</Badge>
-                              )}
+                              <Badge variant="outline" className="font-mono text-xs">S/N: {req.reported_serial_number || "—"}</Badge>
                               {(req.reported_photos?.length ?? 0) > 0 && (
                                 <Badge variant="secondary" className="text-xs">
                                   <Camera className="h-3 w-3 mr-1" /> {req.reported_photos!.length} รูป
                                 </Badge>
                               )}
                             </div>
+                            {/* Row 2: Item */}
                             <div className="text-sm">
-                              {req.reported_item_code || req.reported_item_name ? (
-                                <span className="font-medium">
-                                  {req.reported_item_code} {req.reported_item_name && `— ${req.reported_item_name}`}
-                                </span>
-                              ) : null}
+                              <span className="font-medium text-foreground">อุปกรณ์:</span>{" "}
+                              <span className={itemLine === "—" ? "text-muted-foreground" : "font-medium"}>{itemLine}</span>
                             </div>
+                            {/* Row 3: Billboard / Model / Remote — always rendered */}
                             <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs">
-                              {req._billboard_label && (
-                                <span className="inline-flex items-center gap-1 text-foreground">
-                                  <MapPin className="h-3 w-3 text-primary" />
-                                  <span className="font-medium">ป้าย:</span> {req._billboard_label}
-                                </span>
-                              )}
-                              {req._model_name && (
-                                <span className="text-muted-foreground">
-                                  <span className="font-medium text-foreground">โมเดล:</span> {req._model_name}
-                                </span>
-                              )}
-                              {req._remote_name && (
-                                <span className="text-muted-foreground">
-                                  <span className="font-medium text-foreground">Remote:</span> {req._remote_name}
-                                </span>
-                              )}
+                              <span className="inline-flex items-center gap-1">
+                                <MapPin className="h-3 w-3 text-primary" />
+                                <span className="font-medium text-foreground">ป้าย:</span>
+                                <span className={req._billboard_label ? "" : "text-muted-foreground"}>{req._billboard_label || "—"}</span>
+                              </span>
+                              <span>
+                                <span className="font-medium text-foreground">โมเดล:</span>{" "}
+                                <span className={req._model_name ? "" : "text-muted-foreground"}>{req._model_name || "—"}</span>
+                              </span>
+                              <span>
+                                <span className="font-medium text-foreground">Remote:</span>{" "}
+                                <span className={req._remote_name ? "" : "text-muted-foreground"}>{req._remote_name || "—"}</span>
+                              </span>
                             </div>
-                            <div className="text-sm text-muted-foreground">
-                              {req.description || req.symptom_other || "—"}
+                            {/* Row 4: Symptom / description */}
+                            <div className="text-sm">
+                              <span className="font-medium text-foreground">อาการ:</span>{" "}
+                              <span className="text-muted-foreground">{req.description || req.symptom_other || "—"}</span>
                             </div>
+                            {/* Row 5: Tech / Receiver / Date */}
                             <div className="text-xs text-muted-foreground">
                               ช่าง: {req.technician_name || "—"}
-                              {req.received_by_name && ` • รับโดย: ${req.received_by_name}`}
+                              {" • "}รับโดย: {req.received_by_name || "—"}
                               {" • "}{format(new Date(req.created_at), "dd MMM yyyy HH:mm", { locale: th })}
                             </div>
                           </div>
