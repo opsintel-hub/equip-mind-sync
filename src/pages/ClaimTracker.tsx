@@ -109,6 +109,10 @@ export default function ClaimTracker() {
   const [resultNotes, setResultNotes] = useState("");
   const [receiverName, setReceiverName] = useState("");
   const [costAmount, setCostAmount] = useState("");
+  const [restockDecision, setRestockDecision] = useState<"refurb" | "defective" | "replacement">("refurb");
+  const [returnLocationId, setReturnLocationId] = useState("");
+  const [replacementSerial, setReplacementSerial] = useState("");
+  const [returnSubmitting, setReturnSubmitting] = useState(false);
 
   const fetchRecords = async () => {
     setLoading(true);
