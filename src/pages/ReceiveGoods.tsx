@@ -1888,7 +1888,7 @@ const ReceiveGoods = () => {
                   <div key={item.id} className="flex items-center justify-between text-sm">
                     <span className="text-muted-foreground">#{index + 1}</span>
                     <span className="flex-1 ml-2 truncate">{item.equipment_name || item.equipment_code || "-"}</span>
-                    <span className="font-medium">{item.quantity} {item.unit}</span>
+                    <span className="font-medium">{item.quantity} {(item as any).is_media_player ? "เครื่อง" : item.unit}</span>
                   </div>
                 ))}
               </div>
