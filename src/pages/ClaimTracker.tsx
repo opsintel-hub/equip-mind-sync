@@ -78,6 +78,7 @@ const STATUS_LABELS: Record<string, { label: string; variant: "default" | "secon
 export default function ClaimTracker() {
   const { user } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
   const [records, setRecords] = useState<ClaimRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const { hasFunctionAccess } = useFunctionPermissions();
