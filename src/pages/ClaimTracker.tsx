@@ -50,6 +50,10 @@ interface ClaimRecord {
   status: string;
   notes: string | null;
   created_at: string;
+  return_location_id?: string | null;
+  restock_decision?: string | null;
+  replacement_serial?: string | null;
+  closed_at?: string | null;
 }
 
 interface SubjectOption {
