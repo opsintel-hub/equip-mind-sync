@@ -19,8 +19,10 @@ import { SymptomSelect } from "@/components/media-player/SymptomSelect";
 import { AssessmentResultSelect } from "@/components/media-player/AssessmentResultSelect";
 import { useFunctionPermissions } from "@/hooks/useFunctionPermissions";
 import { AssessmentCompleteDialog } from "@/components/assessment/AssessmentCompleteDialog";
+import { RepairCompleteDialog } from "@/components/assessment/RepairCompleteDialog";
 import { isMonitor } from "@/lib/deviceTypes";
 import { DeviceTypeBadge } from "@/components/media-player/DeviceTypeBadge";
+import { Wrench } from "lucide-react";
 
 interface AssessmentLog {
   id: string;
