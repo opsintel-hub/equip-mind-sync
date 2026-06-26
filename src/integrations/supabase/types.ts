@@ -396,7 +396,13 @@ export type Database = {
           outcome: string | null
           photo_urls: string[] | null
           recommended_action: string | null
+          repair_completed_at: string | null
+          repair_completed_by: string | null
+          repair_cost: number | null
           repair_description: string | null
+          repair_result: string | null
+          repair_status: string | null
+          return_location_id: string | null
           serial_number: string | null
           source_reference_id: string | null
           source_type: string
@@ -426,7 +432,13 @@ export type Database = {
           outcome?: string | null
           photo_urls?: string[] | null
           recommended_action?: string | null
+          repair_completed_at?: string | null
+          repair_completed_by?: string | null
+          repair_cost?: number | null
           repair_description?: string | null
+          repair_result?: string | null
+          repair_status?: string | null
+          return_location_id?: string | null
           serial_number?: string | null
           source_reference_id?: string | null
           source_type?: string
@@ -456,7 +468,13 @@ export type Database = {
           outcome?: string | null
           photo_urls?: string[] | null
           recommended_action?: string | null
+          repair_completed_at?: string | null
+          repair_completed_by?: string | null
+          repair_cost?: number | null
           repair_description?: string | null
+          repair_result?: string | null
+          repair_status?: string | null
+          return_location_id?: string | null
           serial_number?: string | null
           source_reference_id?: string | null
           source_type?: string
@@ -485,6 +503,13 @@ export type Database = {
             columns: ["media_player_id"]
             isOneToOne: false
             referencedRelation: "media_players"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assessment_logs_return_location_id_fkey"
+            columns: ["return_location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
             referencedColumns: ["id"]
           },
           {
@@ -994,6 +1019,8 @@ export type Database = {
         Row: {
           claim_result_id: string | null
           claim_ticket_no: string | null
+          closed_at: string | null
+          closed_by: string | null
           cost_amount: number | null
           created_at: string
           created_by: string | null
@@ -1007,7 +1034,10 @@ export type Database = {
           notes: string | null
           photo_urls: string[] | null
           receiver_name: string | null
+          replacement_serial: string | null
+          restock_decision: string | null
           result_notes: string | null
+          return_location_id: string | null
           returned_at: string | null
           returned_by: string | null
           serial_number: string | null
@@ -1029,6 +1059,8 @@ export type Database = {
         Insert: {
           claim_result_id?: string | null
           claim_ticket_no?: string | null
+          closed_at?: string | null
+          closed_by?: string | null
           cost_amount?: number | null
           created_at?: string
           created_by?: string | null
@@ -1042,7 +1074,10 @@ export type Database = {
           notes?: string | null
           photo_urls?: string[] | null
           receiver_name?: string | null
+          replacement_serial?: string | null
+          restock_decision?: string | null
           result_notes?: string | null
+          return_location_id?: string | null
           returned_at?: string | null
           returned_by?: string | null
           serial_number?: string | null
@@ -1064,6 +1099,8 @@ export type Database = {
         Update: {
           claim_result_id?: string | null
           claim_ticket_no?: string | null
+          closed_at?: string | null
+          closed_by?: string | null
           cost_amount?: number | null
           created_at?: string
           created_by?: string | null
@@ -1077,7 +1114,10 @@ export type Database = {
           notes?: string | null
           photo_urls?: string[] | null
           receiver_name?: string | null
+          replacement_serial?: string | null
+          restock_decision?: string | null
           result_notes?: string | null
+          return_location_id?: string | null
           returned_at?: string | null
           returned_by?: string | null
           serial_number?: string | null
@@ -1116,6 +1156,13 @@ export type Database = {
             columns: ["media_player_id"]
             isOneToOne: false
             referencedRelation: "media_players"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "claim_records_return_location_id_fkey"
+            columns: ["return_location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
             referencedColumns: ["id"]
           },
           {
