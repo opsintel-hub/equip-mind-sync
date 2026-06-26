@@ -571,12 +571,19 @@ export default function AssessmentLog() {
   const renderLogCard = (log: AssessmentLog, opts: { actions?: React.ReactNode } = {}) => {
     const status = STATUS_LABELS[log.status] || { label: log.status, variant: "outline" as const };
     const rejection = rejectionMap[log.id];
-    const subj = log.media_player_id
+    const detail = logDetails[log.id];
+    const fallback = log.media_player_id
       ? subjectByMpId.get(log.media_player_id)
       : log.equipment_id
         ? subjectByEqId.get(log.equipment_id)
         : null;
-    const subjectLine = subj ? `${subj.code} — ${subj.name}` : "—";
+    const code = detail?.code || fallback?.code || "—";
+    const name = detail?.name || fallback?.name || "—";
+    const serial = log.serial_number || detail?.serial || fallback?.serial || "—";
+    const subjectLine = code === "—" && name === "—" ? "—" : `${code} — ${name}`;
+    const isMP = !!log.media_player_id;
+    const typeLabel = isMP ? (isMonitor(detail?.device_type) ? "จอภาพ (Monitor)" : "Media Player") : "Equipment";
+
     return (
       <div
         key={log.id}
@@ -593,7 +600,8 @@ export default function AssessmentLog() {
             {log.outcome && OUTCOME_LABELS[log.outcome] && (
               <Badge variant={OUTCOME_LABELS[log.outcome].variant}>{OUTCOME_LABELS[log.outcome].label}</Badge>
             )}
-            <Badge variant="outline" className="font-mono text-xs">S/N: {log.serial_number || "—"}</Badge>
+            {isMP && <DeviceTypeBadge deviceType={detail?.device_type || "MEDIA_PLAYER"} />}
+            <Badge variant="outline" className="font-mono text-xs">S/N: {serial}</Badge>
           </div>
           {rejection && (
             <div className="text-xs text-destructive bg-destructive/10 rounded px-2 py-1 border border-destructive/20">
@@ -602,25 +610,41 @@ export default function AssessmentLog() {
               {rejection.rejected_at && <span className="ml-2 text-muted-foreground">• {format(new Date(rejection.rejected_at), "dd MMM yyyy HH:mm", { locale: th })}</span>}
             </div>
           )}
-          {/* Row 2: Subject */}
-          <div className="text-sm">
-            <span className="font-medium text-foreground">อุปกรณ์:</span>{" "}
-            <span className={subjectLine === "—" ? "text-muted-foreground" : "font-medium"}>{subjectLine}</span>
-          </div>
-          {/* Row 3: Symptom / diagnosis */}
-          <div className="text-sm">
-            <span className="font-medium text-foreground">อาการ/วินิจฉัย:</span>{" "}
-            <span className="text-muted-foreground">{log.diagnosis_notes || log.symptom_description || "—"}</span>
-          </div>
-          {/* Row 4: Repair description (if self_repair) — always visible when outcome=self_repair */}
-          {log.outcome === "self_repair" && (
-            <div className="text-sm">
-              <span className="font-medium text-foreground">รายละเอียดการซ่อม:</span>{" "}
-              <span className="text-muted-foreground">{log.repair_description || "—"}</span>
+          {/* Structured rows — fixed template for consistent height across tabs */}
+          <div className="grid sm:grid-cols-2 gap-x-4 gap-y-1 text-sm">
+            <div>
+              <span className="font-medium text-foreground">ประเภท:</span>{" "}
+              <span className="text-muted-foreground">{typeLabel}</span>
             </div>
-          )}
-          {/* Row 5: Assessor / Date */}
-          <div className="text-xs text-muted-foreground">
+            <div>
+              <span className="font-medium text-foreground">อุปกรณ์:</span>{" "}
+              <span className={subjectLine === "—" ? "text-muted-foreground" : "font-medium"}>{subjectLine}</span>
+            </div>
+            <div>
+              <span className="font-medium text-foreground">ป้าย:</span>{" "}
+              <span className={detail?.billboard_label ? "font-medium" : "text-muted-foreground"}>{detail?.billboard_label || "—"}</span>
+            </div>
+            <div>
+              <span className="font-medium text-foreground">โมเดล/ยี่ห้อ:</span>{" "}
+              <span className="text-muted-foreground">{[detail?.brand, detail?.model].filter(Boolean).join(" / ") || "—"}</span>
+            </div>
+            {isMP && detail?.sub_media_type && (
+              <div>
+                <span className="font-medium text-foreground">ประเภทย่อย:</span>{" "}
+                <span className="text-muted-foreground">{detail.sub_media_type}</span>
+              </div>
+            )}
+            <div className="sm:col-span-2">
+              <span className="font-medium text-foreground">อาการ/วินิจฉัย:</span>{" "}
+              <span className="text-muted-foreground">{log.diagnosis_notes || log.symptom_description || "—"}</span>
+            </div>
+            <div className="sm:col-span-2">
+              <span className="font-medium text-foreground">รายละเอียดการซ่อม:</span>{" "}
+              <span className="text-muted-foreground">{log.outcome === "self_repair" ? (log.repair_description || "—") : "—"}</span>
+            </div>
+          </div>
+          {/* Footer: Assessor / Date */}
+          <div className="text-xs text-muted-foreground pt-1">
             ผู้ประเมิน: {log.assessor_name || "—"} • {format(new Date(log.assessed_at), "dd MMM yyyy HH:mm", { locale: th })}
           </div>
         </div>
