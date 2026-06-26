@@ -338,39 +338,135 @@ export default function ClaimTracker() {
     setResultNotes(record.result_notes || "");
     setReceiverName(record.receiver_name || "");
     setCostAmount(record.cost_amount?.toString() || "");
+    setRestockDecision((record.restock_decision as any) || "refurb");
+    setReturnLocationId(record.return_location_id || "");
+    setReplacementSerial(record.replacement_serial || "");
   };
 
   const handleReturnSubmit = async () => {
     if (!returnDialogId) return;
+    const record = records.find((r) => r.id === returnDialogId);
+    if (!record) return;
     if (!claimResultId) {
       toast.error("กรุณาเลือกผลการเคลม");
       return;
     }
-    const { error } = await supabase
-      .from("claim_records")
-      .update({
-        status: "returned",
-        claim_result_id: claimResultId,
-        result_notes: resultNotes.trim() || null,
-        receiver_name: receiverName.trim() || null,
-        cost_amount: costAmount ? parseFloat(costAmount) : 0,
-        returned_at: new Date().toISOString(),
-        returned_by: user?.id ?? null,
-      })
-      .eq("id", returnDialogId);
-    if (error) {
-      toast.error("อัปเดตไม่สำเร็จ");
+    if (restockDecision !== "defective" && !returnLocationId) {
+      toast.error("กรุณาเลือกคลังที่จะนำเครื่องกลับเข้า");
       return;
     }
-    toast.success("บันทึกการรับกลับเรียบร้อย");
-    setReturnDialogId(null);
-    fetchRecords();
+    if (restockDecision === "replacement" && !replacementSerial.trim()) {
+      toast.error("กรุณาระบุ S/N เครื่องทดแทนที่ vendor ส่งให้");
+      return;
+    }
+
+    setReturnSubmitting(true);
+    try {
+      // 1) Update claim record → returned
+      const { error: claimErr } = await supabase
+        .from("claim_records")
+        .update({
+          status: "returned",
+          claim_result_id: claimResultId,
+          result_notes: resultNotes.trim() || null,
+          receiver_name: receiverName.trim() || null,
+          cost_amount: costAmount ? parseFloat(costAmount) : 0,
+          returned_at: new Date().toISOString(),
+          returned_by: user?.id ?? null,
+          restock_decision: restockDecision,
+          return_location_id: restockDecision === "defective" ? null : returnLocationId,
+          replacement_serial: restockDecision === "replacement" ? replacementSerial.trim() : null,
+        })
+        .eq("id", returnDialogId);
+      if (claimErr) throw claimErr;
+
+      // 2) Flip media_player based on decision (only if linked to MP)
+      if (record.media_player_id) {
+        const { data: mpRow } = await supabase
+          .from("media_players")
+          .select("id, code, name, company_id")
+          .eq("id", record.media_player_id)
+          .maybeSingle();
+
+        if (restockDecision === "refurb") {
+          await supabase
+            .from("media_players")
+            .update({
+              status: "in_stock",
+              quantity: 1,
+              location_id: returnLocationId,
+              billboard_id: null,
+              is_refurbished: true,
+              refurbished_at: new Date().toISOString(),
+            })
+            .eq("id", record.media_player_id);
+        } else if (restockDecision === "replacement") {
+          await supabase
+            .from("media_players")
+            .update({
+              status: "in_stock",
+              quantity: 1,
+              location_id: returnLocationId,
+              billboard_id: null,
+              serial_number_1: replacementSerial.trim(),
+              is_refurbished: false,
+              refurbished_at: null,
+            })
+            .eq("id", record.media_player_id);
+        } else {
+          // defective → keep status defective, qty 0
+          await supabase
+            .from("media_players")
+            .update({ status: "defective", quantity: 0 })
+            .eq("id", record.media_player_id);
+        }
+
+        // 3) Stock movement for refurb/replacement
+        if (mpRow && restockDecision !== "defective") {
+          await supabase.from("stock_movements").insert({
+            equipment_id: record.media_player_id,
+            equipment_code: mpRow.code,
+            equipment_name: mpRow.name,
+            movement_type: "claim_return_in",
+            quantity: 1,
+            stock_before: 0,
+            stock_after: 1,
+            reference_type: "claim_record",
+            reference_id: record.id,
+            reference_document: record.document_no,
+            location_id: returnLocationId,
+            company_id: mpRow.company_id,
+            item_condition: restockDecision === "refurb" ? "refurbished" : "new",
+            created_by: user?.id ?? null,
+            notes:
+              restockDecision === "refurb"
+                ? "รับกลับจากเคลม — สถานะ Refurbished พร้อมเบิก"
+                : `รับเครื่องทดแทนจาก vendor — S/N ใหม่: ${replacementSerial.trim()}`,
+          });
+        }
+      }
+
+      toast.success("บันทึกการรับกลับและคืนคลังเรียบร้อย");
+      if (restockDecision === "defective") {
+        toast.info("เครื่องถูกตั้งสถานะ defective — กรุณาเข้าเมนู 'นำของเสียเข้าระบบ' เพื่อจัดการต่อ");
+      }
+      setReturnDialogId(null);
+      fetchRecords();
+    } catch (e: any) {
+      toast.error("อัปเดตไม่สำเร็จ: " + (e.message || e));
+    } finally {
+      setReturnSubmitting(false);
+    }
   };
 
   const closeRecord = async (record: ClaimRecord) => {
     const { error } = await supabase
       .from("claim_records")
-      .update({ status: "closed" })
+      .update({
+        status: "closed",
+        closed_at: new Date().toISOString(),
+        closed_by: user?.id ?? null,
+      })
       .eq("id", record.id);
     if (error) {
       toast.error("อัปเดตไม่สำเร็จ");
