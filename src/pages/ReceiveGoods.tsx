@@ -719,7 +719,7 @@ const ReceiveGoods = () => {
 
         const { error: mpError } = await supabase
               .from("media_players")
-              .update(mpUpdatePayload)
+              .update(mpUpdatePayload as never)
               .eq("id", targetMpId);
 
         if (mpError) {
@@ -798,7 +798,7 @@ const ReceiveGoods = () => {
         if ((selectedReceipt as any).warranty_years != null) eqUpdatePayload.warranty_years = (selectedReceipt as any).warranty_years;
         const { error: stockError } = await supabase
           .from("equipment")
-          .update(eqUpdatePayload)
+          .update(eqUpdatePayload as never)
           .eq("id", selectedReceipt.equipment_id);
 
         if (stockError) {
@@ -978,7 +978,7 @@ const ReceiveGoods = () => {
 
             const { error: mpError } = await supabase
               .from("media_players")
-              .update(batchMpPayload)
+              .update(batchMpPayload as never)
               .eq("id", targetMpId);
 
             if (!mpError) {
@@ -1045,7 +1045,7 @@ const ReceiveGoods = () => {
             }
             const { error: stockError } = await supabase
               .from("equipment")
-              .update(batchEqPayload)
+              .update(batchEqPayload as never)
               .eq("id", receipt.equipment_id!);
 
             if (!stockError) {
@@ -1483,7 +1483,7 @@ const ReceiveGoods = () => {
 
                         const { error } = await supabase
                           .from("goods_receipt_pending")
-                          .update(updatePayload)
+                          .update(updatePayload as never)
                           .eq("id", selectedReceipt.id);
 
                         if (error) {

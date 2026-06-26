@@ -300,7 +300,7 @@ export const LocationInventoryChart = ({ companyId }: LocationInventoryChartProp
                   labelStyle={{ color: "hsl(var(--foreground))" }}
                   formatter={(value: number, name: string) => [value, name === "totalQuantity" ? "จำนวนสินค้ารวม" : "รายการสินค้า"]}
                 />
-                  <Bar dataKey="totalQuantity" name="จำนวนสินค้ารวม" radius={[4, 4, 0, 0]} cursor="pointer" onClick={(data) => handleBarClick(data)}>
+                  <Bar dataKey="totalQuantity" name="จำนวนสินค้ารวม" radius={[4, 4, 0, 0]} cursor="pointer" onClick={(data: any) => handleBarClick(data as LocationData)}>
                     {locationData.map((_, index) => (
                       <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                     ))}
