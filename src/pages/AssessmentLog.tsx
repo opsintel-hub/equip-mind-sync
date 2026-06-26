@@ -161,6 +161,10 @@ export default function AssessmentLog() {
           }
         }
         setRejectionMap(map);
+      } else {
+        setRejectionMap({});
+      }
+
       // Enrich with subject + billboard details (works even for items not in cached subjects)
       try {
         const mpIds = Array.from(new Set(rows.map((l) => l.media_player_id).filter(Boolean) as string[]));
@@ -188,14 +192,14 @@ export default function AssessmentLog() {
             : Promise.resolve({ data: [] as any[] }),
         ]);
 
-        const mpMap = new Map<string, any>((mpRes.data || []).map((m: any) => [m.id, m]));
-        const eqMap = new Map<string, any>((eqRes.data || []).map((e: any) => [e.id, e]));
+        const mpMap = new Map<string, any>(((mpRes as any).data || []).map((m: any) => [m.id, m]));
+        const eqMap = new Map<string, any>(((eqRes as any).data || []).map((e: any) => [e.id, e]));
         const snBbMap = new Map<string, string>(((snRes as any).data || []).filter((s: any) => s.billboard_id).map((s: any) => [s.serial_number, s.billboard_id]));
 
         const bbIds = Array.from(new Set([
           ...Array.from(mpMap.values()).map((m: any) => m.billboard_id).filter(Boolean),
           ...Array.from(snBbMap.values()),
-        ]));
+        ])) as string[];
         const bbMap = new Map<string, any>();
         if (bbIds.length) {
           const { data: bbs } = await supabase
