@@ -886,6 +886,17 @@ export default function AssessmentLog() {
           fetchLogs();
         }}
       />
+
+      <RepairCompleteDialog
+        open={repairDialogOpen}
+        onOpenChange={setRepairDialogOpen}
+        assessmentLog={repairTargetLog}
+        onCompleted={() => {
+          setRepairDialogOpen(false);
+          setRepairTargetLog(null);
+          fetchLogs();
+        }}
+      />
     </div>
   );
 }
