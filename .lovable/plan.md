@@ -1,91 +1,96 @@
+## สรุปสถานะปัจจุบัน (Audit)
 
-# เพิ่มการจัดการ "จอภาพ (Monitor)" — ใช้ Workflow ร่วมกับ Media Player
+| Outcome | สถานะหลัง Assessment | มี Flow ปิดงาน/คืนคลังหรือยัง? |
+|---|---|---|
+| **1. claim (ส่งเคลม)** | `in_claim`, qty=0 | ❌ **ไม่ครบ** — `ClaimTracker` มี `submitted → returned → closed` แต่ตอน returned/closed **ไม่ได้** flip `media_players.status` กลับเป็น `in_stock` และไม่มี UI เลือก location + ไม่ set `quantity=1` / `is_refurbished` |
+| **2. self_repair (ซ่อมเอง)** | `under_repair`, qty=0 | ❌ **ไม่มีเลย** — ไม่มีหน้า/ปุ่ม "ซ่อมเสร็จ → คืนคลัง" เครื่องค้างสถานะ `under_repair` ตลอดไป |
+| **3. return_refurb** | `in_stock` + `is_refurbished=true`, qty=1 | ✅ **ครบแล้ว** — `AssessmentCompleteDialog` flip ครบทุก field, เครื่องพร้อมเบิกผ่าน `IssueGoods` ทันที |
 
-## หลักการ
-ใช้ตาราง `media_players` เดิม + เพิ่ม column `device_type` ('MEDIA_PLAYER' / 'MONITOR') ทุก workflow (รับเข้า, ติดตั้งป้าย, Swap, Assessment, Claim, Defective Return, รายงาน, Public QR) ใช้โค้ดและตารางชุดเดิม — เพิ่ม filter/badge/lock ตาม device_type เท่านั้น
+ดังนั้นต้องเพิ่ม **2 ส่วน**: ปิดงาน Claim และ ปิดงาน Self-Repair
 
-## การตั้งชื่อ (ตามที่ตกลง)
-- **คำเรียกกลาง:** "MP / จอภาพ"
-- **Sidebar menu:** "Media Player / จอภาพ", "ตั้งค่า MP / จอภาพ", "รายงาน MP / จอภาพ", "นำเข้า MP / จอภาพ"
-- **Tabs ทุกหน้า list/report:** `[ ทั้งหมด ] [ Media Player ] [ จอภาพ ]` — default = **ทั้งหมด**
-- **Field label:** "ประเภทอุปกรณ์" — ตัวเลือก `Media Player` / `จอภาพ (Monitor)`
-- **คอลัมน์ตาราง/Excel:** "ประเภท"
-- **Badge:** 🔵 Media Player / 🟣 จอภาพ
-- **Error Swap:** "ไม่สามารถสลับข้ามประเภทอุปกรณ์ได้ (Media Player ↔ จอภาพ)"
+---
 
-## 1. Database Migration
-- เพิ่ม `media_players.device_type TEXT NOT NULL DEFAULT 'MEDIA_PLAYER'` + CHECK ใน `('MEDIA_PLAYER','MONITOR')`
-- เพิ่ม `goods_receipt_pending.device_type TEXT` (propagate ผ่าน Delivery → Receive)
-- Backfill ข้อมูลเดิม = `MEDIA_PLAYER`
-- อัปเดต RPC `import_media_player_row` รับ `device_type`
-- อัปเดต RPC `public_get_mp_*` ส่ง `device_type` ออกไปด้วย
-- Trigger `validate_mp_sub_media_type` เดิม **ไม่ต้องแก้** (เช็ค department อย่างเดียว → คุม 7-Eleven ของทั้งสอง device_type อัตโนมัติ)
+## Phase 1 — ปิด Loop "ส่งเคลม" (`claim_records`)
 
-## 2. Shared Constants & Components
-**สร้างใหม่:**
-- `src/lib/deviceTypes.ts` — `DEVICE_TYPES`, label TH, helpers `isMonitor()`, `deviceLabel(t)`, default prefix
-- `src/components/media-player/DeviceTypeTabs.tsx` — Tabs `[ทั้งหมด][Media Player][จอภาพ]` reusable + URL query sync
-- `src/components/media-player/DeviceTypeBadge.tsx` — badge สี (MP=blue, Monitor=purple)
-- `src/components/media-player/DeviceTypeSelect.tsx` — dropdown ใช้ใน Form/Delivery/Issue/Import
+**เป้าหมาย:** เมื่อกดรับเคลมกลับ + ปิดงาน ในเมนู **ติดตามการเคลม (`/claims`)** ให้เครื่องกลับเข้าคลังพร้อมเบิก
 
-## 3. UI Refactoring (Tabs + Shared Components)
+**แก้ไข `src/pages/ClaimTracker.tsx`:**
+- ขยาย Return Dialog (`handleReturnSubmit`) เพิ่ม field:
+  - `return_location_id` (LocationSelect — ใช้ WarehouseLocationSelect บังคับเลือก)
+  - `restock_decision` radio: `กลับคลังพร้อมใช้ (refurb)` / `เครื่องเสียถาวร (defective)` / `เปลี่ยนเครื่องใหม่จาก vendor (replacement S/N)`
+  - ถ้าเลือก replacement → ให้กรอก S/N ใหม่ (อัปเดต `serial_number_1`)
+- ตอน `closeRecord` (สถานะ `closed`) → ตามผล `claim_result`/decision flip `media_players`:
+  - `refurb` → `status='in_stock'`, `quantity=1`, `location_id=<เลือก>`, `is_refurbished=true`, `refurbished_at=now()`
+  - `defective` → คงสถานะ `defective` + auto-redirect ไป `/defective-return-entry` (สร้าง DR pending)
+  - `replacement` → อัปเดต `serial_number_1`, `status='in_stock'`, `quantity=1`, `is_refurbished=false` (เครื่องใหม่จาก vendor)
+- เขียน `stock_movements` `claim_return_in` (qty +1) เพื่อให้ Stock Card / Movement Report เห็น
 
-### `MediaPlayerEntry.tsx` (ตั้งค่า MP / จอภาพ)
-- Header เพิ่ม `DeviceTypeTabs` control filter `device_type`
-- Form Create/Edit เพิ่ม `DeviceTypeSelect` — **lock ค่า** ตาม Tab ปัจจุบัน (ถ้า Tab = ทั้งหมด ให้เลือกเอง)
-- ตาราง List แสดงคอลัมน์ "ประเภท" (badge)
-- Excel export มีคอลัมน์ "ประเภทอุปกรณ์"
+**เมนูที่ผู้ใช้ต้องเข้า:**
+```
+/assessment (เลือก outcome=claim)
+  → /claims (สถานะ pending → ส่งเคลม → ระบุ RMA → submitted)
+  → vendor ซ่อม
+  → /claims (กด "รับกลับ" → กรอกผล + location + decision)
+  → /claims (กด "ปิดงาน" → เครื่องกลับคลัง)
+  → /issue-goods (พร้อมเบิก)
+```
 
-### `MediaPlayerReport.tsx` (รายงาน MP / จอภาพ)
-- `DeviceTypeTabs` + filter + คอลัมน์ "ประเภท" + Excel export
+---
 
-### Profile — `MediaPlayerProfile.tsx`, `MediaPlayerInfoEditDialog.tsx`, `GeneralInfoTab.tsx`
-- แสดง badge device_type ใน header
-- field device_type ใน edit dialog (**readonly** หลังสร้าง — ป้องกัน integrity swap/history)
+## Phase 2 — สร้างหน้าใหม่/ขยายหน้าเดิม "ซ่อมเอง" (`self_repair`)
 
-### Public View — `MediaPlayerPublicView.tsx`
-- แสดง badge device_type, wording ปรับเป็น "อุปกรณ์"
+**ปัญหา:** ตอนนี้เครื่อง `under_repair` ไม่มีที่ติดตาม/ปิดงานเลย
 
-## 4. Workflow Integration
+**ทางเลือก (เสนอ A):**
+- **A) ขยาย `/assessment` (Assessment Log)** — เพิ่มแท็บ "งานซ่อมเอง" รวบรวมทุกเครื่องสถานะ `under_repair` พร้อมปุ่ม "บันทึกผลซ่อม / คืนคลัง"
+- B) แยกเมนูใหม่ `/self-repair` ใต้ "จัดการทรัพย์สิน"
 
-| Workflow | การแก้ |
-|---|---|
-| Delivery Entry | เพิ่ม `DeviceTypeSelect` ต่ออุปกรณ์ (lock=MP ถ้ากดจาก tab MP), บันทึก `goods_receipt_pending.device_type` |
-| Receive Goods | propagate `device_type` จาก pending → `media_players` ตอน clone row ต่อ unit |
-| Issue Goods / Delivery Confirmation | แสดง badge — ไม่แก้ logic |
-| Billboard Detail | แสดง badge ในตาราง MP ติดตั้ง + group หัวข้อย่อย |
-| Swap Wizard | **บังคับ same device_type** — กรอง spare list, guard error ก่อน submit, ปรับ compatibility score |
-| Assessment / Claim / Defective Return | ใช้โค้ดเดิม — เพิ่ม badge |
-| Document Search | เพิ่ม badge device_type ในผล MP |
-| Stock Card / Inventory Report / EquipmentTrackingReport | เพิ่ม filter + คอลัมน์ device_type |
+**แนะนำ A** เพราะใช้ตาราง `assessment_logs` เดิม (เพิ่ม column `repair_result`, `repair_completed_at`, `repair_completed_by`, `repair_cost`, `return_location_id`) ไม่ต้องสร้างตารางใหม่
 
-## 5. 7-Eleven Media Sub Media Type
-Trigger เดิมคุมอัตโนมัติ — `SubMediaTypeSelect` ทำงานทั้ง MP และ Monitor เมื่อ department = 7-Eleven Media (required)
+**ขั้นตอน Phase 2:**
+1. **Migration:** เพิ่ม column ใน `assessment_logs` (repair_result, repair_completed_at, repair_completed_by, repair_cost, return_location_id) + `repair_status` enum (`in_progress`, `repaired`, `failed`)
+2. **หน้า `/assessment` แท็บใหม่ "งานซ่อมเอง":**
+   - List เครื่องที่ outcome=self_repair AND repair_status ≠ repaired/failed
+   - แสดงอายุงาน (วันที่เริ่มซ่อม), ช่างผู้รับผิดชอบ, อาการ
+   - ปุ่ม **"บันทึกผลซ่อม"** เปิด dialog:
+     - ผล: `ซ่อมสำเร็จ — คืนคลัง` / `ซ่อมไม่ได้ — ส่งของเสีย` / `ซ่อมไม่ได้ — ส่งเคลม`
+     - ค่าใช้จ่าย, รายละเอียด, รูป
+     - ถ้าคืนคลัง → บังคับเลือก `return_location_id`
+3. **Logic เมื่อบันทึก:**
+   - `ซ่อมสำเร็จ` → `media_players.status='in_stock', quantity=1, location_id=<เลือก>, is_refurbished=true` + `stock_movements` (`repair_return_in`)
+   - `ส่งของเสีย` → นำทางไป `/defective-return-entry` พร้อม prefill
+   - `ส่งเคลม` → นำทางไป `/claims` พร้อม prefill
 
-## 6. Import Template
-- `mediaPlayerTemplate.ts` + RPC: เพิ่มคอลัมน์ `device_type` (default `MEDIA_PLAYER`, validation 2 ค่า) + sheet `_ref_device_types`
-- `ImportMediaPlayerPage.tsx` → "นำเข้า MP / จอภาพ"
+**เมนูที่ผู้ใช้ต้องเข้า:**
+```
+/assessment (outcome=self_repair → status=under_repair)
+  → ช่างซ่อมเครื่อง
+  → /assessment แท็บ "งานซ่อมเอง" (กด "บันทึกผลซ่อม" + เลือก location)
+  → /issue-goods (พร้อมเบิก)
+```
 
-## 7. Sidebar
-- เปลี่ยน label เมนู Media Player → **"Media Player / จอภาพ"** (และเมนูย่อยที่ระบุข้างบน)
-- ไม่เพิ่มเมนูใหม่
+---
 
-## รายละเอียดทางเทคนิค (สำหรับ Dev)
+## Phase 3 — UI Polish & การมองเห็น
 
-**Migration:** `add_device_type_to_media_players.sql` + update RPCs
+- **Dashboard / `PendingAssessmentAlerts`:** เพิ่มการ์ด "เคลมค้าง vendor" (in_claim > X วัน) และ "ซ่อมค้างช่าง" (under_repair > X วัน)
+- **MediaPlayerProfile Timeline:** แสดง event `claim_return_in` และ `repair_return_in` พร้อมหมายเหตุ refurbished
+- **DocumentSearch:** มีอยู่แล้ว — ยืนยันว่ากรอง claim_records ที่ closed และ assessment_logs ที่ repair_status=repaired ได้ครบ
 
-**ไฟล์ใหม่:** `src/lib/deviceTypes.ts`, `components/media-player/DeviceTypeTabs.tsx`, `DeviceTypeBadge.tsx`, `DeviceTypeSelect.tsx`
+---
 
-**ไฟล์ที่แก้:**
-- MP core: `MediaPlayerEntry.tsx`, `MediaPlayerReport.tsx`, `MediaPlayerProfile.tsx`, `MediaPlayerPublicView.tsx`, `MediaPlayerInfoEditDialog.tsx`, `GeneralInfoTab.tsx`, `profile/types.ts`
-- Swap: `SwapWizardDialog.tsx` (filter + validation), `SwapWarehouseReceive.tsx` (badge)
-- Goods flow: `DeliveryEntry.tsx`, `ReceiveGoods.tsx`, `IssueGoods.tsx`, `DeliveryConfirmation.tsx`
-- Workflow: `DefectiveReturnEntry.tsx`, `AssessmentLog.tsx`, `ClaimTracker.tsx`, `AssessmentCompleteDialog.tsx`
-- Reports/Search: `BillboardDetail.tsx`, `DocumentSearch.tsx`, `InventoryReport.tsx`, `StockCard.tsx`, `EquipmentTrackingReport.tsx`
-- Import: `importTemplates/mediaPlayerTemplate.ts`, `validators.ts`, `setup/ImportMediaPlayerPage.tsx`
-- Nav: `AppSidebar.tsx`
+## รายละเอียดทางเทคนิค
 
-## นอกขอบเขต
-- ไม่แยกตารางใหม่ / ไม่สร้างหน้าเมนูใหม่
-- ไม่แก้ Equipment table
-- ไม่แตะ Ad Management / Billboard PM
+**ไฟล์ที่ต้องสร้าง/แก้:**
+- `supabase/migrations/...add_claim_close_fields.sql` — เพิ่ม `claim_records.return_location_id, restock_decision, replacement_serial`
+- `supabase/migrations/...add_self_repair_close.sql` — เพิ่ม `assessment_logs.repair_status, repair_result, repair_completed_at, repair_completed_by, repair_cost, return_location_id`
+- `src/pages/ClaimTracker.tsx` — ขยาย Return Dialog + closeRecord side-effects + stock_movements insert
+- `src/pages/AssessmentLog.tsx` — เพิ่มแท็บ "งานซ่อมเอง" + RepairCompleteDialog ใหม่
+- `src/components/assessment/RepairCompleteDialog.tsx` (ใหม่)
+- `src/components/PendingAssessmentAlerts.tsx` — เพิ่ม alert in_claim aging + under_repair aging
+- Memory: เพิ่ม `mem://features/asset-close-loop` สรุปทั้ง 3 flow
+
+**ไม่อยู่ในขอบเขต:**
+- ไม่แตะ Swap Wizard
+- ไม่แก้ defective return / return_refurb flow (ครบแล้ว)
+- ไม่สร้างตารางใหม่

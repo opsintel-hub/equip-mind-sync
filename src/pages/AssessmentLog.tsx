@@ -19,8 +19,10 @@ import { SymptomSelect } from "@/components/media-player/SymptomSelect";
 import { AssessmentResultSelect } from "@/components/media-player/AssessmentResultSelect";
 import { useFunctionPermissions } from "@/hooks/useFunctionPermissions";
 import { AssessmentCompleteDialog } from "@/components/assessment/AssessmentCompleteDialog";
+import { RepairCompleteDialog } from "@/components/assessment/RepairCompleteDialog";
 import { isMonitor } from "@/lib/deviceTypes";
 import { DeviceTypeBadge } from "@/components/media-player/DeviceTypeBadge";
+import { Wrench } from "lucide-react";
 
 interface AssessmentLog {
   id: string;
@@ -45,6 +47,7 @@ interface AssessmentLog {
   external_repair_phone: string | null;
   notes: string | null;
   created_at: string;
+  repair_status?: string | null;
 }
 
 interface SubjectOption {
@@ -85,6 +88,8 @@ export default function AssessmentLog() {
   const [currentPage, setCurrentPage] = useState(1);
   const [completeDialogOpen, setCompleteDialogOpen] = useState(false);
   const [activeLog, setActiveLog] = useState<AssessmentLog | null>(null);
+  const [repairDialogOpen, setRepairDialogOpen] = useState(false);
+  const [repairTargetLog, setRepairTargetLog] = useState<AssessmentLog | null>(null);
 
   // Subject options (combined media_players + equipment serials)
   const [subjects, setSubjects] = useState<SubjectOption[]>([]);
@@ -509,6 +514,11 @@ export default function AssessmentLog() {
               <PlusCircle className="h-4 w-4 mr-2" /> บันทึกการประเมินใหม่
             </TabsTrigger>
           )}
+          {canView && (
+            <TabsTrigger value="self_repair">
+              <Wrench className="h-4 w-4 mr-2" /> งานซ่อมเอง ({logs.filter(l => l.outcome === "self_repair" && (!l.repair_status || (l.repair_status !== "repaired" && l.repair_status !== "failed"))).length})
+            </TabsTrigger>
+          )}
         </TabsList>
 
         <TabsContent value="list" className="mt-4">
@@ -822,6 +832,48 @@ export default function AssessmentLog() {
             </CardContent>
           </Card>
         </TabsContent>
+
+        <TabsContent value="self_repair" className="mt-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>งานซ่อมเอง (under_repair)</CardTitle>
+              <CardDescription>รายการที่เลือก outcome = "ซ่อมเอง" และยังไม่ได้บันทึกผลซ่อม — กดปุ่มเพื่อบันทึกผลซ่อมและคืนคลัง</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {(() => {
+                const repairLogs = logs.filter(l => l.outcome === "self_repair" && (!l.repair_status || (l.repair_status !== "repaired" && l.repair_status !== "failed")));
+                if (repairLogs.length === 0) {
+                  return <div className="text-center py-10 text-muted-foreground">ไม่มีงานซ่อมที่ค้างอยู่</div>;
+                }
+                return (
+                  <div className="space-y-2">
+                    {repairLogs.map((log) => (
+                      <div key={log.id} className="flex items-center justify-between gap-4 p-4 rounded-lg border hover:bg-accent/50 flex-wrap">
+                        <div className="flex-1 min-w-[200px] space-y-1">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="font-mono font-semibold">{log.document_no}</span>
+                            <Badge variant="default">ซ่อมเอง</Badge>
+                            {log.serial_number && <span className="text-xs text-muted-foreground">S/N: {log.serial_number}</span>}
+                          </div>
+                          {log.repair_description && (
+                            <div className="text-sm text-muted-foreground">{log.repair_description}</div>
+                          )}
+                          <div className="text-xs text-muted-foreground">
+                            ผู้ประเมิน: {log.assessor_name || "—"} • {format(new Date(log.assessed_at), "dd MMM yyyy HH:mm", { locale: th })}
+                          </div>
+                        </div>
+                        <Button onClick={() => { setRepairTargetLog(log); setRepairDialogOpen(true); }}>
+                          <Wrench className="h-4 w-4 mr-2" />
+                          บันทึกผลซ่อม
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                );
+              })()}
+            </CardContent>
+          </Card>
+        </TabsContent>
       </Tabs>
 
       <AssessmentCompleteDialog
@@ -831,6 +883,17 @@ export default function AssessmentLog() {
         onCompleted={() => {
           setCompleteDialogOpen(false);
           setActiveLog(null);
+          fetchLogs();
+        }}
+      />
+
+      <RepairCompleteDialog
+        open={repairDialogOpen}
+        onOpenChange={setRepairDialogOpen}
+        assessmentLog={repairTargetLog}
+        onCompleted={() => {
+          setRepairDialogOpen(false);
+          setRepairTargetLog(null);
           fetchLogs();
         }}
       />
