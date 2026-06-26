@@ -45,6 +45,7 @@ interface AssessmentLog {
   external_repair_phone: string | null;
   notes: string | null;
   created_at: string;
+  repair_status?: string | null;
 }
 
 interface SubjectOption {
