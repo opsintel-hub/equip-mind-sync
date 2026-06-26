@@ -216,11 +216,13 @@ export function SearchableMultiSelect({
             <CommandGroup>
               {options.map((option) => {
                 const isSelected = values.includes(option.value);
-                // Combine label, description, and searchableText for better filtering
+                // Combine label, description, and searchableText for better filtering.
+                // Append option.value so duplicate labels remain unique in cmdk.
                 const searchValue = [
                   option.label,
                   option.description,
                   option.searchableText,
+                  option.value,
                 ].filter(Boolean).join(" ");
                 
                 return (
