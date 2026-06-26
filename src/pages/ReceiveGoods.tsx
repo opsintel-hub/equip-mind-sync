@@ -1993,7 +1993,7 @@ const ReceiveGoods = () => {
               <div className="p-3 bg-muted/30 rounded-lg space-y-2">
                 <p className="font-medium">{rejectReceipt.equipment_name || rejectReceipt.equipment_code || "-"}</p>
                 <div className="text-sm text-muted-foreground">
-                  <span>จำนวน: {rejectReceipt.quantity} {rejectReceipt.unit}</span>
+                  <span>จำนวน: {rejectReceipt.quantity} {(rejectReceipt as any).is_media_player ? "เครื่อง" : rejectReceipt.unit}</span>
                   <span className="mx-2">•</span>
                   <span>เอกสาร: {rejectReceipt.document_no}</span>
                 </div>
