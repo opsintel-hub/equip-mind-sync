@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -80,7 +80,7 @@ const OUTCOME_OPTIONS = [
 
 export function AssessmentCompleteDialog({ open, onOpenChange, log, onCompleted }: Props) {
   const { user } = useAuth();
-  const navigate = useNavigate();
+  
   const [submitting, setSubmitting] = useState(false);
 
   const [symptomId, setSymptomId] = useState("");
@@ -353,9 +353,9 @@ export function AssessmentCompleteDialog({ open, onOpenChange, log, onCompleted 
   //   "ส่งเคลม"    → ผลต้อง = "ส่งซ่อมภายนอก"
   const isWriteOffResult = assessmentResultName.includes("Write-off");
   const isExternalRepairResult = assessmentResultName.includes("ส่งซ่อมภายนอก");
-  // Warranty gating: ถ้าไม่มีวันหมดประกัน (unknown) → ปล่อยให้กดได้
-  // defective: ต้องหมดประกัน หรือไม่ทราบ
-  const warrantyAllowsDefective = warrantyState === "expired" || warrantyState === "unknown";
+  // Warranty gating:
+  // defective (Write-off): ต้องหมดประกันเท่านั้น — ถ้ายังในประกันหรือไม่ทราบ ห้าม Write-off
+  const warrantyAllowsDefective = warrantyState === "expired";
   // claim: ต้องอยู่ในประกัน หรือไม่ทราบ
   const warrantyAllowsClaim = isUnderWarranty || warrantyState === "unknown";
 
@@ -604,27 +604,12 @@ export function AssessmentCompleteDialog({ open, onOpenChange, log, onCompleted 
       const wasRevived = !!(window as any).__lastDRRevived;
       toast.success(
         wasRevived
-          ? `📦 ส่งใบ ${createdDefectiveDocNo || ""} กลับเข้าคลังของเสียอีกครั้ง (หลังแก้ผลประเมิน)`
-          : `สร้างใบของเสีย ${createdDefectiveDocNo || ""} แล้ว — กำลังพาไปยืนยันที่เมนู "นำของเสียเข้าระบบ"`,
-        { duration: 4000 }
+          ? `📦 ส่งใบ ${createdDefectiveDocNo || ""} กลับเข้าคลังของเสียอีกครั้ง (หลังแก้ผลประเมิน) — ฝ่ายคลังจะดำเนินการตรวจรับเอง`
+          : `บันทึกการประเมินเสร็จ — ใบของเสีย ${createdDefectiveDocNo || ""} ถูกส่งไปยังฝ่ายคลังแล้ว (ฝ่ายคลังจะตรวจรับเอง)`,
+        { duration: 5000 }
       );
       (window as any).__lastDRRevived = false;
       onCompleted();
-      // Navigate to defective entry with prefill so warehouse staff can confirm + cut stock
-      setTimeout(() => {
-        navigate("/defective-return", {
-          state: {
-            fromAssessment: {
-              assessmentLogId: log.id,
-              isMediaPlayer: !!log.media_player_id,
-              itemId: log.media_player_id || log.equipment_id,
-              serial: log.serial_number,
-              reason: diagnosisNotes.trim() || symptomDescription.trim(),
-              docNo: createdDefectiveDocNo,
-            },
-          },
-        });
-      }, 400);
     } else {
       toast.success(
         outcome === "claim"
@@ -871,7 +856,9 @@ export function AssessmentCompleteDialog({ open, onOpenChange, log, onCompleted 
                   opt.v === "defective" && defectiveDisabled
                     ? !isWriteOffResult
                       ? `ต้องเลือกผลการประเมิน = "Write-off (ใช้งานต่อไม่ได้)" ก่อน`
-                      : `ต้องหมดประกันก่อน — ปัจจุบันหมด ${warrantyDate || "—"} (เหลือ ${warrantyDaysLeft} วัน)`
+                      : warrantyState === "unknown"
+                      ? `ไม่พบข้อมูลประกัน — กรุณาตรวจสอบและกรอกวันหมดประกันที่โปรไฟล์เครื่องก่อน จึงจะ Write-off ได้`
+                      : `เครื่องยังอยู่ในประกัน (ถึง ${warrantyDate || "—"}, เหลือ ${warrantyDaysLeft} วัน) — ห้าม Write-off ต้องเลือก "ส่งเคลม"`
                     : opt.v === "claim" && claimDisabled
                     ? !isExternalRepairResult
                       ? `ต้องเลือกผลการประเมิน = "ส่งซ่อมภายนอก" ก่อน`
