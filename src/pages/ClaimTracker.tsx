@@ -742,16 +742,62 @@ export default function ClaimTracker() {
       {/* Return Dialog (inline modal) */}
       {returnDialogId && (
         <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setReturnDialogId(null)}>
-          <Card className="w-full max-w-lg" onClick={(e) => e.stopPropagation()}>
+          <Card className="w-full max-w-lg max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             <CardHeader>
               <CardTitle>บันทึกการรับกลับจากการเคลม</CardTitle>
-              <CardDescription>ระบุผลการเคลมและค่าใช้จ่าย (ถ้ามี)</CardDescription>
+              <CardDescription>ระบุผลเคลม + ปลายทางของเครื่อง (จะ flip สถานะ Media Player ให้อัตโนมัติ)</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
                 <Label>ผลการเคลม *</Label>
                 <ClaimResultSelect value={claimResultId} onChange={setClaimResultId} />
               </div>
+
+              <div className="space-y-2 rounded-lg border p-3 bg-muted/30">
+                <Label className="font-semibold">ปลายทางหลังรับกลับ *</Label>
+                <RadioGroup value={restockDecision} onValueChange={(v) => setRestockDecision(v as any)}>
+                  <div className="flex items-start gap-2">
+                    <RadioGroupItem value="refurb" id="rd-refurb" className="mt-1" />
+                    <label htmlFor="rd-refurb" className="text-sm cursor-pointer">
+                      <div className="font-medium text-success">✅ กลับเข้าคลังพร้อมเบิก (Refurbished)</div>
+                      <div className="text-xs text-muted-foreground">vendor ซ่อมเสร็จ ใช้งานได้ปกติ</div>
+                    </label>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <RadioGroupItem value="replacement" id="rd-replace" className="mt-1" />
+                    <label htmlFor="rd-replace" className="text-sm cursor-pointer">
+                      <div className="font-medium text-primary">🔄 เปลี่ยนเครื่องใหม่จาก vendor (Replacement)</div>
+                      <div className="text-xs text-muted-foreground">vendor ส่งเครื่องใหม่มาแทน — ต้องกรอก S/N ใหม่</div>
+                    </label>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <RadioGroupItem value="defective" id="rd-defect" className="mt-1" />
+                    <label htmlFor="rd-defect" className="text-sm cursor-pointer">
+                      <div className="font-medium text-destructive">❌ ซ่อมไม่ได้ / เครื่องเสียถาวร</div>
+                      <div className="text-xs text-muted-foreground">นำเข้าระบบของเสียเพื่อจำหน่ายต่อ</div>
+                    </label>
+                  </div>
+                </RadioGroup>
+              </div>
+
+              {restockDecision !== "defective" && (
+                <div className="space-y-2">
+                  <Label>คลังปลายทาง *</Label>
+                  <LocationSelect value={returnLocationId} onChange={setReturnLocationId} />
+                </div>
+              )}
+
+              {restockDecision === "replacement" && (
+                <div className="space-y-2">
+                  <Label>S/N เครื่องทดแทนจาก vendor *</Label>
+                  <Input
+                    value={replacementSerial}
+                    onChange={(e) => setReplacementSerial(e.target.value)}
+                    placeholder="กรอก S/N เครื่องใหม่ที่ vendor ส่งให้"
+                  />
+                </div>
+              )}
+
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>ชื่อผู้รับกลับ</Label>
@@ -773,10 +819,12 @@ export default function ClaimTracker() {
                 <Textarea value={resultNotes} onChange={(e) => setResultNotes(e.target.value)} rows={3} />
               </div>
               <div className="flex justify-end gap-2 pt-2">
-                <Button variant="outline" onClick={() => setReturnDialogId(null)}>
+                <Button variant="outline" onClick={() => setReturnDialogId(null)} disabled={returnSubmitting}>
                   ยกเลิก
                 </Button>
-                <Button onClick={handleReturnSubmit}>บันทึก</Button>
+                <Button onClick={handleReturnSubmit} disabled={returnSubmitting}>
+                  {returnSubmitting ? "กำลังบันทึก..." : "บันทึก + คืนคลัง"}
+                </Button>
               </div>
             </CardContent>
           </Card>
