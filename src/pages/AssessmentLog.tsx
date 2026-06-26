@@ -23,6 +23,7 @@ import { RepairCompleteDialog } from "@/components/assessment/RepairCompleteDial
 import { isMonitor } from "@/lib/deviceTypes";
 import { DeviceTypeBadge } from "@/components/media-player/DeviceTypeBadge";
 import { Wrench } from "lucide-react";
+import { formatBillboardLabel } from "@/lib/billboardUtils";
 
 interface AssessmentLog {
   id: string;
@@ -72,11 +73,23 @@ const OUTCOME_LABELS: Record<string, { label: string; variant: "default" | "seco
   return_refurb: { label: "คืน Spare (refurbished)", variant: "outline" },
 };
 
+interface LogDetail {
+  code: string;
+  name: string;
+  serial: string | null;
+  device_type?: string | null;
+  billboard_label?: string | null;
+  sub_media_type?: string | null;
+  brand?: string | null;
+  model?: string | null;
+}
+
 export default function AssessmentLog() {
   const { user } = useAuth();
   const location = useLocation();
   const [logs, setLogs] = useState<AssessmentLog[]>([]);
   const [rejectionMap, setRejectionMap] = useState<Record<string, { document_no: string; rejection_reason: string | null; rejected_at: string | null; rejected_by_name: string | null }>>({});
+  const [logDetails, setLogDetails] = useState<Record<string, LogDetail>>({});
   const [loading, setLoading] = useState(true);
   const { hasFunctionAccess } = useFunctionPermissions();
   const canView = hasFunctionAccess("assessment_view");
@@ -150,6 +163,87 @@ export default function AssessmentLog() {
         setRejectionMap(map);
       } else {
         setRejectionMap({});
+      }
+
+      // Enrich with subject + billboard details (works even for items not in cached subjects)
+      try {
+        const mpIds = Array.from(new Set(rows.map((l) => l.media_player_id).filter(Boolean) as string[]));
+        const eqIds = Array.from(new Set(rows.map((l) => l.equipment_id).filter(Boolean) as string[]));
+        const eqSerials = Array.from(new Set(rows.filter((l) => l.equipment_id && l.serial_number).map((l) => l.serial_number!)));
+
+        const [mpRes, eqRes, snRes] = await Promise.all([
+          mpIds.length
+            ? supabase
+                .from("media_players")
+                .select("id, code, name, serial_number, device_type, sub_media_type, manufacturer, model, billboard_id")
+                .in("id", mpIds)
+            : Promise.resolve({ data: [] as any[] }),
+          eqIds.length
+            ? supabase
+                .from("equipment")
+                .select("id, code, name, brand:brand_id(name)")
+                .in("id", eqIds)
+            : Promise.resolve({ data: [] as any[] }),
+          eqSerials.length
+            ? supabase
+                .from("equipment_serial_numbers")
+                .select("serial_number, billboard_id")
+                .in("serial_number", eqSerials)
+            : Promise.resolve({ data: [] as any[] }),
+        ]);
+
+        const mpMap = new Map<string, any>(((mpRes as any).data || []).map((m: any) => [m.id, m]));
+        const eqMap = new Map<string, any>(((eqRes as any).data || []).map((e: any) => [e.id, e]));
+        const snBbMap = new Map<string, string>(((snRes as any).data || []).filter((s: any) => s.billboard_id).map((s: any) => [s.serial_number, s.billboard_id]));
+
+        const bbIds = Array.from(new Set([
+          ...Array.from(mpMap.values()).map((m: any) => m.billboard_id).filter(Boolean),
+          ...Array.from(snBbMap.values()),
+        ])) as string[];
+        const bbMap = new Map<string, any>();
+        if (bbIds.length) {
+          const { data: bbs } = await supabase
+            .from("billboards")
+            .select("id, old_code, location_name, equipment_id")
+            .in("id", bbIds);
+          (bbs || []).forEach((b: any) => bbMap.set(b.id, b));
+        }
+
+        const details: Record<string, LogDetail> = {};
+        for (const log of rows) {
+          if (log.media_player_id) {
+            const mp = mpMap.get(log.media_player_id);
+            if (mp) {
+              const bb = mp.billboard_id ? bbMap.get(mp.billboard_id) : null;
+              details[log.id] = {
+                code: mp.code,
+                name: mp.name || "Media Player",
+                serial: log.serial_number || mp.serial_number,
+                device_type: mp.device_type,
+                sub_media_type: mp.sub_media_type,
+                brand: mp.manufacturer,
+                model: mp.model,
+                billboard_label: bb ? formatBillboardLabel(bb.old_code, bb.location_name, bb.equipment_id) : null,
+              };
+            }
+          } else if (log.equipment_id) {
+            const eq = eqMap.get(log.equipment_id);
+            if (eq) {
+              const bbId = log.serial_number ? snBbMap.get(log.serial_number) : null;
+              const bb = bbId ? bbMap.get(bbId) : null;
+              details[log.id] = {
+                code: eq.code,
+                name: eq.name || "Equipment",
+                serial: log.serial_number,
+                brand: eq.brand?.name || null,
+                billboard_label: bb ? formatBillboardLabel(bb.old_code, bb.location_name, bb.equipment_id) : null,
+              };
+            }
+          }
+        }
+        setLogDetails(details);
+      } catch {
+        // best-effort enrichment
       }
     }
     setLoading(false);
@@ -477,12 +571,19 @@ export default function AssessmentLog() {
   const renderLogCard = (log: AssessmentLog, opts: { actions?: React.ReactNode } = {}) => {
     const status = STATUS_LABELS[log.status] || { label: log.status, variant: "outline" as const };
     const rejection = rejectionMap[log.id];
-    const subj = log.media_player_id
+    const detail = logDetails[log.id];
+    const fallback = log.media_player_id
       ? subjectByMpId.get(log.media_player_id)
       : log.equipment_id
         ? subjectByEqId.get(log.equipment_id)
         : null;
-    const subjectLine = subj ? `${subj.code} — ${subj.name}` : "—";
+    const code = detail?.code || fallback?.code || "—";
+    const name = detail?.name || fallback?.name || "—";
+    const serial = log.serial_number || detail?.serial || fallback?.serial || "—";
+    const subjectLine = code === "—" && name === "—" ? "—" : `${code} — ${name}`;
+    const isMP = !!log.media_player_id;
+    const typeLabel = isMP ? (isMonitor(detail?.device_type) ? "จอภาพ (Monitor)" : "Media Player") : "Equipment";
+
     return (
       <div
         key={log.id}
@@ -499,7 +600,8 @@ export default function AssessmentLog() {
             {log.outcome && OUTCOME_LABELS[log.outcome] && (
               <Badge variant={OUTCOME_LABELS[log.outcome].variant}>{OUTCOME_LABELS[log.outcome].label}</Badge>
             )}
-            <Badge variant="outline" className="font-mono text-xs">S/N: {log.serial_number || "—"}</Badge>
+            {isMP && <DeviceTypeBadge value={detail?.device_type || "MEDIA_PLAYER"} />}
+            <Badge variant="outline" className="font-mono text-xs">S/N: {serial}</Badge>
           </div>
           {rejection && (
             <div className="text-xs text-destructive bg-destructive/10 rounded px-2 py-1 border border-destructive/20">
@@ -508,25 +610,41 @@ export default function AssessmentLog() {
               {rejection.rejected_at && <span className="ml-2 text-muted-foreground">• {format(new Date(rejection.rejected_at), "dd MMM yyyy HH:mm", { locale: th })}</span>}
             </div>
           )}
-          {/* Row 2: Subject */}
-          <div className="text-sm">
-            <span className="font-medium text-foreground">อุปกรณ์:</span>{" "}
-            <span className={subjectLine === "—" ? "text-muted-foreground" : "font-medium"}>{subjectLine}</span>
-          </div>
-          {/* Row 3: Symptom / diagnosis */}
-          <div className="text-sm">
-            <span className="font-medium text-foreground">อาการ/วินิจฉัย:</span>{" "}
-            <span className="text-muted-foreground">{log.diagnosis_notes || log.symptom_description || "—"}</span>
-          </div>
-          {/* Row 4: Repair description (if self_repair) — always visible when outcome=self_repair */}
-          {log.outcome === "self_repair" && (
-            <div className="text-sm">
-              <span className="font-medium text-foreground">รายละเอียดการซ่อม:</span>{" "}
-              <span className="text-muted-foreground">{log.repair_description || "—"}</span>
+          {/* Structured rows — fixed template for consistent height across tabs */}
+          <div className="grid sm:grid-cols-2 gap-x-4 gap-y-1 text-sm">
+            <div>
+              <span className="font-medium text-foreground">ประเภท:</span>{" "}
+              <span className="text-muted-foreground">{typeLabel}</span>
             </div>
-          )}
-          {/* Row 5: Assessor / Date */}
-          <div className="text-xs text-muted-foreground">
+            <div>
+              <span className="font-medium text-foreground">อุปกรณ์:</span>{" "}
+              <span className={subjectLine === "—" ? "text-muted-foreground" : "font-medium"}>{subjectLine}</span>
+            </div>
+            <div>
+              <span className="font-medium text-foreground">ป้าย:</span>{" "}
+              <span className={detail?.billboard_label ? "font-medium" : "text-muted-foreground"}>{detail?.billboard_label || "—"}</span>
+            </div>
+            <div>
+              <span className="font-medium text-foreground">โมเดล/ยี่ห้อ:</span>{" "}
+              <span className="text-muted-foreground">{[detail?.brand, detail?.model].filter(Boolean).join(" / ") || "—"}</span>
+            </div>
+            {isMP && detail?.sub_media_type && (
+              <div>
+                <span className="font-medium text-foreground">ประเภทย่อย:</span>{" "}
+                <span className="text-muted-foreground">{detail.sub_media_type}</span>
+              </div>
+            )}
+            <div className="sm:col-span-2">
+              <span className="font-medium text-foreground">อาการ/วินิจฉัย:</span>{" "}
+              <span className="text-muted-foreground">{log.diagnosis_notes || log.symptom_description || "—"}</span>
+            </div>
+            <div className="sm:col-span-2">
+              <span className="font-medium text-foreground">รายละเอียดการซ่อม:</span>{" "}
+              <span className="text-muted-foreground">{log.outcome === "self_repair" ? (log.repair_description || "—") : "—"}</span>
+            </div>
+          </div>
+          {/* Footer: Assessor / Date */}
+          <div className="text-xs text-muted-foreground pt-1">
             ผู้ประเมิน: {log.assessor_name || "—"} • {format(new Date(log.assessed_at), "dd MMM yyyy HH:mm", { locale: th })}
           </div>
         </div>
