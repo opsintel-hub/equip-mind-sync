@@ -161,8 +161,85 @@ export default function AssessmentLog() {
           }
         }
         setRejectionMap(map);
-      } else {
-        setRejectionMap({});
+      // Enrich with subject + billboard details (works even for items not in cached subjects)
+      try {
+        const mpIds = Array.from(new Set(rows.map((l) => l.media_player_id).filter(Boolean) as string[]));
+        const eqIds = Array.from(new Set(rows.map((l) => l.equipment_id).filter(Boolean) as string[]));
+        const eqSerials = Array.from(new Set(rows.filter((l) => l.equipment_id && l.serial_number).map((l) => l.serial_number!)));
+
+        const [mpRes, eqRes, snRes] = await Promise.all([
+          mpIds.length
+            ? supabase
+                .from("media_players")
+                .select("id, code, name, serial_number, device_type, sub_media_type, manufacturer, model, billboard_id")
+                .in("id", mpIds)
+            : Promise.resolve({ data: [] as any[] }),
+          eqIds.length
+            ? supabase
+                .from("equipment")
+                .select("id, code, name, brand:brand_id(name)")
+                .in("id", eqIds)
+            : Promise.resolve({ data: [] as any[] }),
+          eqSerials.length
+            ? supabase
+                .from("equipment_serial_numbers")
+                .select("serial_number, billboard_id")
+                .in("serial_number", eqSerials)
+            : Promise.resolve({ data: [] as any[] }),
+        ]);
+
+        const mpMap = new Map<string, any>((mpRes.data || []).map((m: any) => [m.id, m]));
+        const eqMap = new Map<string, any>((eqRes.data || []).map((e: any) => [e.id, e]));
+        const snBbMap = new Map<string, string>(((snRes as any).data || []).filter((s: any) => s.billboard_id).map((s: any) => [s.serial_number, s.billboard_id]));
+
+        const bbIds = Array.from(new Set([
+          ...Array.from(mpMap.values()).map((m: any) => m.billboard_id).filter(Boolean),
+          ...Array.from(snBbMap.values()),
+        ]));
+        const bbMap = new Map<string, any>();
+        if (bbIds.length) {
+          const { data: bbs } = await supabase
+            .from("billboards")
+            .select("id, old_code, location_name, equipment_id")
+            .in("id", bbIds);
+          (bbs || []).forEach((b: any) => bbMap.set(b.id, b));
+        }
+
+        const details: Record<string, LogDetail> = {};
+        for (const log of rows) {
+          if (log.media_player_id) {
+            const mp = mpMap.get(log.media_player_id);
+            if (mp) {
+              const bb = mp.billboard_id ? bbMap.get(mp.billboard_id) : null;
+              details[log.id] = {
+                code: mp.code,
+                name: mp.name || "Media Player",
+                serial: log.serial_number || mp.serial_number,
+                device_type: mp.device_type,
+                sub_media_type: mp.sub_media_type,
+                brand: mp.manufacturer,
+                model: mp.model,
+                billboard_label: bb ? formatBillboardLabel(bb.old_code, bb.location_name, bb.equipment_id) : null,
+              };
+            }
+          } else if (log.equipment_id) {
+            const eq = eqMap.get(log.equipment_id);
+            if (eq) {
+              const bbId = log.serial_number ? snBbMap.get(log.serial_number) : null;
+              const bb = bbId ? bbMap.get(bbId) : null;
+              details[log.id] = {
+                code: eq.code,
+                name: eq.name || "Equipment",
+                serial: log.serial_number,
+                brand: eq.brand?.name || null,
+                billboard_label: bb ? formatBillboardLabel(bb.old_code, bb.location_name, bb.equipment_id) : null,
+              };
+            }
+          }
+        }
+        setLogDetails(details);
+      } catch {
+        // best-effort enrichment
       }
     }
     setLoading(false);
