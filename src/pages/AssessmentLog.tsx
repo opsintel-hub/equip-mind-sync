@@ -88,6 +88,8 @@ export default function AssessmentLog() {
   const [currentPage, setCurrentPage] = useState(1);
   const [completeDialogOpen, setCompleteDialogOpen] = useState(false);
   const [activeLog, setActiveLog] = useState<AssessmentLog | null>(null);
+  const [repairDialogOpen, setRepairDialogOpen] = useState(false);
+  const [repairTargetLog, setRepairTargetLog] = useState<AssessmentLog | null>(null);
 
   // Subject options (combined media_players + equipment serials)
   const [subjects, setSubjects] = useState<SubjectOption[]>([]);
