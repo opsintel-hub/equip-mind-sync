@@ -111,18 +111,21 @@ export function AssessmentCompleteDialog({ open, onOpenChange, log, onCompleted 
   const [defectiveAckReason, setDefectiveAckReason] = useState("");
   const [assessmentResultName, setAssessmentResultName] = useState<string>("");
 
-  // Fetch the name of the selected assessment result for outcome gating
+  // Fetch the name of the selected assessment result + derive outcome automatically
   useEffect(() => {
-    if (!assessmentResultId) { setAssessmentResultName(""); return; }
+    if (!assessmentResultId) { setAssessmentResultName(""); setOutcome(""); return; }
     (async () => {
       const { data } = await supabase
         .from("mp_assessment_results")
         .select("name")
         .eq("id", assessmentResultId)
         .maybeSingle();
-      setAssessmentResultName((data as any)?.name || "");
+      const name = (data as any)?.name || "";
+      setAssessmentResultName(name);
+      setOutcome(deriveOutcome(name));
     })();
   }, [assessmentResultId]);
+
 
   useEffect(() => {
     if (!open || !log) return;
