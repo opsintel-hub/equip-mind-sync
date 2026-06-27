@@ -358,29 +358,37 @@ export function AssessmentCompleteDialog({ open, onOpenChange, log, onCompleted 
   const isRepeatFailure = (history?.recentRepairCount6m || 0) >= 2;
 
   const needsDefectiveAck = outcome === "defective" && isUnderWarranty;
-  // Result-name gating per spec:
-  //   "เข้าของเสีย" → ผลต้อง = "Write-off (ใช้งานต่อไม่ได้)"
-  //   "ส่งเคลม"    → ผลต้อง = "ส่งซ่อมภายนอก"
-  const isWriteOffResult = assessmentResultName.includes("Write-off");
-  const isExternalRepairResult = assessmentResultName.includes("ส่งซ่อมภายนอก");
-  // Warranty gating:
-  // defective (Write-off): ต้องหมดประกันเท่านั้น — ถ้ายังในประกันหรือไม่ทราบ ห้าม Write-off
+  // Warranty gating per business rules:
+  //   - self_repair: เลือกได้เสมอ (จะอยู่ในหรือนอกประกันก็ได้)
+  //   - claim: ต้อง "อยู่ในประกัน" เท่านั้น (unknown = block จนกว่าจะกรอกประกัน)
+  //   - defective (Write-off): ต้อง "หมดประกันแล้ว" เท่านั้น
+  //   - pending: บันทึก draft ไม่มีข้อจำกัด
   const warrantyAllowsDefective = warrantyState === "expired";
-  // claim: ต้องอยู่ในประกัน หรือไม่ทราบ
-  const warrantyAllowsClaim = isUnderWarranty || warrantyState === "unknown";
+  const warrantyAllowsClaim = isUnderWarranty; // expired/unknown → block
 
-  const defectiveDisabled = !isWriteOffResult || !warrantyAllowsDefective;
-  const claimDisabled = !isExternalRepairResult || !warrantyAllowsClaim;
+  // Conflict message ใต้ dropdown — ถ้ามี = ห้าม submit
+  const warrantyConflict: string | null = (() => {
+    if (outcome === "defective" && !warrantyAllowsDefective) {
+      if (warrantyState === "unknown") return "Write-off ต้องหมดประกันแล้วเท่านั้น — กรุณากรอกวันหมดประกันที่โปรไฟล์เครื่องก่อน";
+      if (warrantyState === "active" || warrantyState === "ending")
+        return `เครื่องยังในประกัน (ถึง ${warrantyDate}, เหลือ ${warrantyDaysLeft} วัน) — Write-off ไม่ได้ ต้องเลือก "เคลมประกัน Vendor"`;
+    }
+    if (outcome === "claim" && !warrantyAllowsClaim) {
+      if (warrantyState === "expired")
+        return `หมดประกันแล้ว ${Math.abs(warrantyDaysLeft!)} วัน (หมดเมื่อ ${warrantyDate}) — เคลม Vendor ไม่ได้`;
+      return "ไม่พบข้อมูลประกัน — กรุณากรอกวันหมดประกันก่อนเลือกเคลม";
+    }
+    return null;
+  })();
 
   const canSubmit =
     !!assessmentResultId &&
     !!outcome &&
-    (outcome !== "defective" || (isWriteOffResult && warrantyAllowsDefective)) &&
-    (outcome !== "claim" || (isExternalRepairResult && warrantyAllowsClaim)) &&
+    !warrantyConflict &&
     (outcome !== "self_repair" || !!repairDescription.trim()) &&
-
     (outcome !== "claim" || !!supplierAutofill?.name || !!externalRepairVendor.trim()) &&
     (!needsDefectiveAck || (defectiveAck && !!defectiveAckReason.trim()));
+
 
   const ageLabel = (() => {
     if (!sourceCtx?.ageMonths && sourceCtx?.ageMonths !== 0) return null;
