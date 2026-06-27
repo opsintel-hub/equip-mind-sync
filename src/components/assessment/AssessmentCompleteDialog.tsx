@@ -97,7 +97,7 @@ export function AssessmentCompleteDialog({ open, onOpenChange, log, onCompleted 
   const [recommendedAction, setRecommendedAction] = useState("");
   const [assessorName, setAssessorName] = useState("");
   const [notes, setNotes] = useState("");
-  const [outcome, setOutcome] = useState<"" | "defective" | "claim" | "self_repair" | "return_refurb">("");
+  const [outcome, setOutcome] = useState<OutcomeKind>("");
   const [repairDescription, setRepairDescription] = useState("");
   const [repairSuccess, setRepairSuccess] = useState(false);
   const [externalRepairVendor, setExternalRepairVendor] = useState("");
