@@ -71,11 +71,18 @@ interface Props {
   onCompleted: () => void;
 }
 
-const OUTCOME_OPTIONS = [
-  { v: "defective", label: "1. เข้าของเสีย", desc: "ซ่อมไม่ได้/หมดประกัน" },
-  { v: "claim", label: "2. ส่งเคลม", desc: "ส่งซ่อมกับ Supplier (ในประกัน)" },
-  { v: "self_repair", label: "3. ซ่อมเอง", desc: "บันทึกการซ่อม + คืน Spare ได้" },
-] as const;
+type OutcomeKind = "" | "defective" | "claim" | "self_repair" | "pending";
+
+// Map ชื่อผลการประเมิน (master data) → outcome จริงที่ระบบจะดำเนินการ
+function deriveOutcome(name: string): OutcomeKind {
+  const n = (name || "").toLowerCase();
+  if (n.includes("write-off") || n.includes("write off")) return "defective";
+  if (n.includes("เคลม") || n.includes("claim")) return "claim";
+  if (n.includes("ซ่อมเอง") || n.includes("self")) return "self_repair";
+  if (n.includes("รอประเมิน") || n.includes("pending")) return "pending";
+  return "";
+}
+
 
 
 export function AssessmentCompleteDialog({ open, onOpenChange, log, onCompleted }: Props) {
@@ -90,7 +97,7 @@ export function AssessmentCompleteDialog({ open, onOpenChange, log, onCompleted 
   const [recommendedAction, setRecommendedAction] = useState("");
   const [assessorName, setAssessorName] = useState("");
   const [notes, setNotes] = useState("");
-  const [outcome, setOutcome] = useState<"" | "defective" | "claim" | "self_repair" | "return_refurb">("");
+  const [outcome, setOutcome] = useState<OutcomeKind>("");
   const [repairDescription, setRepairDescription] = useState("");
   const [repairSuccess, setRepairSuccess] = useState(false);
   const [externalRepairVendor, setExternalRepairVendor] = useState("");
@@ -104,18 +111,21 @@ export function AssessmentCompleteDialog({ open, onOpenChange, log, onCompleted 
   const [defectiveAckReason, setDefectiveAckReason] = useState("");
   const [assessmentResultName, setAssessmentResultName] = useState<string>("");
 
-  // Fetch the name of the selected assessment result for outcome gating
+  // Fetch the name of the selected assessment result + derive outcome automatically
   useEffect(() => {
-    if (!assessmentResultId) { setAssessmentResultName(""); return; }
+    if (!assessmentResultId) { setAssessmentResultName(""); setOutcome(""); return; }
     (async () => {
       const { data } = await supabase
         .from("mp_assessment_results")
         .select("name")
         .eq("id", assessmentResultId)
         .maybeSingle();
-      setAssessmentResultName((data as any)?.name || "");
+      const name = (data as any)?.name || "";
+      setAssessmentResultName(name);
+      setOutcome(deriveOutcome(name));
     })();
   }, [assessmentResultId]);
+
 
   useEffect(() => {
     if (!open || !log) return;
@@ -348,29 +358,37 @@ export function AssessmentCompleteDialog({ open, onOpenChange, log, onCompleted 
   const isRepeatFailure = (history?.recentRepairCount6m || 0) >= 2;
 
   const needsDefectiveAck = outcome === "defective" && isUnderWarranty;
-  // Result-name gating per spec:
-  //   "เข้าของเสีย" → ผลต้อง = "Write-off (ใช้งานต่อไม่ได้)"
-  //   "ส่งเคลม"    → ผลต้อง = "ส่งซ่อมภายนอก"
-  const isWriteOffResult = assessmentResultName.includes("Write-off");
-  const isExternalRepairResult = assessmentResultName.includes("ส่งซ่อมภายนอก");
-  // Warranty gating:
-  // defective (Write-off): ต้องหมดประกันเท่านั้น — ถ้ายังในประกันหรือไม่ทราบ ห้าม Write-off
+  // Warranty gating per business rules:
+  //   - self_repair: เลือกได้เสมอ (จะอยู่ในหรือนอกประกันก็ได้)
+  //   - claim: ต้อง "อยู่ในประกัน" เท่านั้น (unknown = block จนกว่าจะกรอกประกัน)
+  //   - defective (Write-off): ต้อง "หมดประกันแล้ว" เท่านั้น
+  //   - pending: บันทึก draft ไม่มีข้อจำกัด
   const warrantyAllowsDefective = warrantyState === "expired";
-  // claim: ต้องอยู่ในประกัน หรือไม่ทราบ
-  const warrantyAllowsClaim = isUnderWarranty || warrantyState === "unknown";
+  const warrantyAllowsClaim = isUnderWarranty; // expired/unknown → block
 
-  const defectiveDisabled = !isWriteOffResult || !warrantyAllowsDefective;
-  const claimDisabled = !isExternalRepairResult || !warrantyAllowsClaim;
+  // Conflict message ใต้ dropdown — ถ้ามี = ห้าม submit
+  const warrantyConflict: string | null = (() => {
+    if (outcome === "defective" && !warrantyAllowsDefective) {
+      if (warrantyState === "unknown") return "Write-off ต้องหมดประกันแล้วเท่านั้น — กรุณากรอกวันหมดประกันที่โปรไฟล์เครื่องก่อน";
+      if (warrantyState === "active" || warrantyState === "ending")
+        return `เครื่องยังในประกัน (ถึง ${warrantyDate}, เหลือ ${warrantyDaysLeft} วัน) — Write-off ไม่ได้ ต้องเลือก "เคลมประกัน Vendor"`;
+    }
+    if (outcome === "claim" && !warrantyAllowsClaim) {
+      if (warrantyState === "expired")
+        return `หมดประกันแล้ว ${Math.abs(warrantyDaysLeft!)} วัน (หมดเมื่อ ${warrantyDate}) — เคลม Vendor ไม่ได้`;
+      return "ไม่พบข้อมูลประกัน — กรุณากรอกวันหมดประกันก่อนเลือกเคลม";
+    }
+    return null;
+  })();
 
   const canSubmit =
     !!assessmentResultId &&
     !!outcome &&
-    (outcome !== "defective" || (isWriteOffResult && warrantyAllowsDefective)) &&
-    (outcome !== "claim" || (isExternalRepairResult && warrantyAllowsClaim)) &&
+    !warrantyConflict &&
     (outcome !== "self_repair" || !!repairDescription.trim()) &&
-
     (outcome !== "claim" || !!supplierAutofill?.name || !!externalRepairVendor.trim()) &&
     (!needsDefectiveAck || (defectiveAck && !!defectiveAckReason.trim()));
+
 
   const ageLabel = (() => {
     if (!sourceCtx?.ageMonths && sourceCtx?.ageMonths !== 0) return null;
@@ -410,6 +428,8 @@ export function AssessmentCompleteDialog({ open, onOpenChange, log, onCompleted 
     if (isRepeatFailure) auditLines.push(`ปัญหาซ้ำซาก: ซ่อม ${history?.recentRepairCount6m} ครั้งใน 6 เดือน`);
     const finalNotes = [notes.trim(), auditLines.join("\n")].filter(Boolean).join("\n---\n");
 
+    const isPending = outcome === "pending";
+
     const { error } = await supabase
       .from("assessment_logs")
       .update({
@@ -420,14 +440,14 @@ export function AssessmentCompleteDialog({ open, onOpenChange, log, onCompleted 
         recommended_action: recommendedAction.trim() || null,
         assessor_name: assessorName.trim() || null,
         assessed_by: user?.id ?? null,
-        outcome,
+        outcome: isPending ? null : outcome,
         repair_description: outcome === "self_repair" ? repairDescription.trim() : null,
         external_repair_vendor: outcome === "claim" ? (externalRepairVendor.trim() || supplierAutofill?.name || null) : null,
         external_repair_contact: outcome === "claim" ? externalRepairContact.trim() || null : null,
         external_repair_phone: outcome === "claim" ? externalRepairPhone.trim() || null : null,
         notes: finalNotes || null,
-        status: "completed",
-        completed_at: new Date().toISOString(),
+        status: isPending ? "pending" : "completed",
+        completed_at: isPending ? null : new Date().toISOString(),
       })
       .eq("id", log.id);
 
@@ -436,6 +456,15 @@ export function AssessmentCompleteDialog({ open, onOpenChange, log, onCompleted 
       toast.error("บันทึกไม่สำเร็จ: " + error.message);
       return;
     }
+
+    // pending = draft, ไม่ทำ side-effect ใด ๆ
+    if (isPending) {
+      setSubmitting(false);
+      toast.success("บันทึกแบบ 'รอประเมินเพิ่มเติม' แล้ว — กลับมาทำต่อได้ภายหลัง");
+      onCompleted();
+      return;
+    }
+
 
     // Outcome side-effects
     let createdDefectiveDocNo: string | null = null;
@@ -588,11 +617,9 @@ export function AssessmentCompleteDialog({ open, onOpenChange, log, onCompleted 
           await flipStatus("under_repair", "under_repair", false, 0);
         }
 
-      } else if (outcome === "return_refurb") {
-        await cancelStaleRejectedDR("return_refurb");
-        // คืนเข้าคลังพร้อมใช้ (active) — นับเป็น stock 1
-        await flipStatus("active", "in_stock", true, 1);
       }
+
+
 
       (window as any).__lastDRRevived = revivedDR;
     } catch (e: any) {
@@ -836,10 +863,10 @@ export function AssessmentCompleteDialog({ open, onOpenChange, log, onCompleted 
             <Textarea value={diagnosisNotes} onChange={(e) => setDiagnosisNotes(e.target.value)} rows={2} />
           </div>
 
-          {/* Outcome 4 paths */}
+          {/* Outcome banner — derived from "ผลการประเมิน" dropdown above */}
           <div className="rounded-lg border-2 border-primary/30 bg-primary/5 p-4 space-y-3">
             <div className="flex items-center justify-between flex-wrap gap-2">
-              <Label className="text-base font-semibold">ผลการตัดสินใจ <span className="text-destructive">*</span> (เลือก 1 ใน 3)</Label>
+              <Label className="text-base font-semibold">การดำเนินการที่ระบบจะทำต่อ</Label>
               {supplierAutofill && (
                 <span className="text-xs text-muted-foreground">
                   ผู้จัดจำหน่ายล่าสุด: <span className="font-medium text-foreground">{supplierAutofill.name || "—"}</span>
@@ -847,50 +874,53 @@ export function AssessmentCompleteDialog({ open, onOpenChange, log, onCompleted 
                 </span>
               )}
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-              {OUTCOME_OPTIONS.map((opt) => {
-                const disabled =
-                  (opt.v === "defective" && defectiveDisabled) ||
-                  (opt.v === "claim" && claimDisabled);
-                const tooltip =
-                  opt.v === "defective" && defectiveDisabled
-                    ? !isWriteOffResult
-                      ? `ต้องเลือกผลการประเมิน = "Write-off (ใช้งานต่อไม่ได้)" ก่อน`
-                      : warrantyState === "unknown"
-                      ? `ไม่พบข้อมูลประกัน — กรุณาตรวจสอบและกรอกวันหมดประกันที่โปรไฟล์เครื่องก่อน จึงจะ Write-off ได้`
-                      : `เครื่องยังอยู่ในประกัน (ถึง ${warrantyDate || "—"}, เหลือ ${warrantyDaysLeft} วัน) — ห้าม Write-off ต้องเลือก "ส่งเคลม"`
-                    : opt.v === "claim" && claimDisabled
-                    ? !isExternalRepairResult
-                      ? `ต้องเลือกผลการประเมิน = "ส่งซ่อมภายนอก" ก่อน`
-                      : warrantyState === "expired"
-                      ? `หมดประกันแล้ว ${warrantyDate || ""} — ส่งเคลมไม่ได้`
-                      : undefined
-                    : undefined;
-                return (
-                  <button
-                    key={opt.v}
-                    type="button"
-                    title={tooltip}
-                    disabled={disabled}
-                    onClick={() => setOutcome(opt.v)}
-                    className={`text-left rounded-md border p-3 transition-colors ${
-                      outcome === opt.v
-                        ? "border-primary bg-primary/10 ring-2 ring-primary/40"
-                        : "border-input bg-background hover:bg-accent/50"
-                    } ${disabled ? "opacity-50 cursor-not-allowed hover:bg-background" : ""}`}
-                  >
-                    <div className="font-medium text-sm">{opt.label}</div>
-                    <div className="text-xs text-muted-foreground mt-0.5">{opt.desc}</div>
-                    {opt.v === "defective" && warrantyDate && (
-                      <div className="text-[10px] mt-1 text-muted-foreground">หมดประกัน: {warrantyDate}</div>
-                    )}
-                    {opt.v === "claim" && warrantyDate && (
-                      <div className="text-[10px] mt-1 text-muted-foreground">หมดประกัน: {warrantyDate}</div>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
+
+            {!outcome && (
+              <div className="text-sm text-muted-foreground">
+                กรุณาเลือก <strong>"ผลการประเมิน"</strong> ด้านบนก่อน — ระบบจะกำหนดการดำเนินการให้อัตโนมัติ
+              </div>
+            )}
+
+            {outcome === "self_repair" && (
+              <div className="rounded-md border border-primary/40 bg-background p-3 text-sm">
+                <div className="font-medium">🔧 ซ่อมเอง — คืน Spare Pool</div>
+                <div className="text-xs text-muted-foreground mt-1">
+                  ทำได้ทั้งในและนอกประกัน • ถ้าซ่อมสำเร็จจะคืนเข้าคลังเป็น refurbished พร้อมเบิกใช้
+                </div>
+              </div>
+            )}
+            {outcome === "claim" && (
+              <div className="rounded-md border border-primary/40 bg-background p-3 text-sm">
+                <div className="font-medium">📮 เคลมประกัน Vendor</div>
+                <div className="text-xs text-muted-foreground mt-1">
+                  ต้องอยู่ในประกันเท่านั้น • ระบบจะสร้างใบเคลม (CLM-...) และตั้งสถานะเครื่องเป็น <strong>in_claim</strong>
+                </div>
+              </div>
+            )}
+            {outcome === "defective" && (
+              <div className="rounded-md border border-primary/40 bg-background p-3 text-sm">
+                <div className="font-medium">🗑️ Write-off → เข้าคลังของเสีย</div>
+                <div className="text-xs text-muted-foreground mt-1">
+                  ต้องหมดประกันแล้วเท่านั้น • ระบบจะสร้างใบ DR-... ส่งให้ฝ่ายคลังตรวจรับเข้าคลังของเสีย
+                </div>
+              </div>
+            )}
+            {outcome === "pending" && (
+              <div className="rounded-md border border-warning/40 bg-warning/5 p-3 text-sm">
+                <div className="font-medium">⏳ รอประเมินเพิ่มเติม (บันทึกเป็น Draft)</div>
+                <div className="text-xs text-muted-foreground mt-1">
+                  บันทึกข้อมูลที่กรอกไว้ ยังไม่ปิดงานและไม่ทำ side-effect ใด ๆ • กลับมาแก้ไขและเลือกผลใหม่ได้ภายหลัง
+                </div>
+              </div>
+            )}
+
+            {warrantyConflict && (
+              <Alert variant="destructive">
+                <AlertTitle>เลือกผลนี้ไม่ได้</AlertTitle>
+                <AlertDescription className="text-xs">{warrantyConflict}</AlertDescription>
+              </Alert>
+            )}
+
 
             {outcome === "self_repair" && (
               <div className="space-y-3 pt-2 border-t">

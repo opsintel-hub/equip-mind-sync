@@ -1,41 +1,40 @@
-## ปัญหา 2 จุดที่จะแก้
+## ปัญหาที่พบ
+ในหน้า "บันทึกผลการประเมิน" มี input ที่ทำหน้าที่ซ้ำซ้อนกัน 2 จุด:
 
-### 1. การเช็คประกันก่อนเลือก "เข้าของเสีย" (Write-off) ใน `AssessmentCompleteDialog`
+1. **"ผลการประเมิน *"** (Dropdown ด้านบน) — มาจาก master data `mp_assessment_results`
+   ตัวเลือก: `ซ่อมเองได้ → คืน Spare Pool`, `เคลมประกัน Vendor`, `Write-off (ใช้งานต่อไม่ได้)`, `รอประเมินเพิ่มเติม`
+2. **"ผลการตัดสินใจ * (เลือก 1 ใน 3)"** (ปุ่มด้านล่าง) — hard-coded ในโค้ด
+   ตัวเลือก: `1. เข้าของเสีย`, `2. ส่งเคลม`, `3. ซ่อมเอง`
 
-**สถานะปัจจุบัน:**
-- มีการคำนวณ `warrantyState` (active / ending / expired / unknown) อยู่แล้ว
-- ปัจจุบันบล็อก "เข้าของเสีย" เมื่อ warranty = active หรือ ending ✅
-- **แต่ปล่อยให้กดได้เมื่อ warranty = unknown (ไม่พบข้อมูล)** ⚠️ → ตามภาพที่ 1 จึงเลือก Write-off ได้ทั้งที่ยังไม่ได้ตรวจสอบประกัน
+โค้ดปัจจุบันบังคับให้ผู้ใช้เลือก "สองครั้งให้ตรงกัน" (เช่น Write-off + เข้าของเสีย) — ถ้าไม่ตรงปุ่มจะ disable ทำให้ผู้ใช้งง และไม่มี action สำหรับ "รอประเมินเพิ่มเติม" เลย
 
-**สิ่งที่จะปรับ:**
-- เปลี่ยน `warrantyAllowsDefective` จาก `expired || unknown` → **`expired` เท่านั้น**
-- เมื่อ warranty = `unknown` หรือ `active/ending`:
-  - ปุ่ม "เข้าของเสีย" จะถูก disable
-  - แสดงข้อความเตือนใน box เหตุผลการ disable ให้ชัด เช่น
-    - active/ending → "เครื่องยังอยู่ในประกัน — ไม่อนุญาตให้ Write-off ต้องเลือก 'ส่งเคลม'"
-    - unknown → "ไม่พบข้อมูลประกัน — กรุณาตรวจสอบและกรอกวันหมดประกันที่โปรไฟล์เครื่องก่อน จึงจะเลือก 'เข้าของเสีย' ได้"
-- เพิ่ม "Override" สำหรับ super admin (optional): ติ๊กยอมรับ + กรอกเหตุผล (ใช้ `defectiveAck` mechanism เดิม) — เฉพาะกรณี `unknown` เท่านั้น ไม่ใช่ตอน active/ending
+## แนวทางแก้ (UI/UX only)
+รวมทั้งสองเป็น **แหล่งตัดสินใจเดียว** โดยใช้ Dropdown "ผลการประเมิน" เป็นตัวขับ outcome ตรง ๆ และลบบล็อกปุ่ม "ผลการตัดสินใจ" ออก
 
-> หมายเหตุ: ส่วน `claim` (ส่งเคลม) คงเดิม — อนุญาตเมื่อ active/ending/unknown
+### Mapping ใหม่ (ผลการประเมิน → outcome + เงื่อนไขประกัน)
+| ผลการประเมิน | outcome ที่ระบบบันทึก | เงื่อนไขประกัน |
+|---|---|---|
+| ซ่อมเองได้ → คืน Spare Pool | `self_repair` | เลือกได้เสมอ (ทั้งในและนอกประกัน) |
+| เคลมประกัน Vendor | `claim` | **เฉพาะยังในประกัน** — ถ้าหมด/ไม่ทราบ → block + tooltip |
+| Write-off (ใช้งานต่อไม่ได้) | `defective` | **เฉพาะหมดประกันเท่านั้น** — ถ้ายังในประกัน/ไม่ทราบ → block + tooltip ให้ไปเช็คข้อมูลประกันก่อน |
+| รอประเมินเพิ่มเติม | *(ไม่ปิดงาน)* | บันทึก diagnosis/notes แต่คง `status=pending` ไว้ให้ช่างกลับมาทดสอบเพิ่ม |
 
-### 2. ตัด Popup auto-navigate ไป /defective-return หลังบันทึก outcome=defective
+### การเปลี่ยน UI
+- **ลบ section** "ผลการตัดสินใจ * (เลือก 1 ใน 3)" ทั้งบล็อกออก
+- ใต้ Dropdown "ผลการประเมิน" แสดง **inline badge อธิบาย action ที่จะเกิดขึ้น** เช่น
+  - เลือก Write-off → badge แดง "จะสร้างใบนำของเสีย (DR) ส่งคลัง"
+  - เลือก เคลม → badge ส้ม "จะสร้าง Claim record + ตัด stock เป็น in_claim"
+  - เลือก ซ่อมเอง → badge ฟ้า "จะ flip สถานะเป็น under_repair + แสดงฟอร์มบันทึกการซ่อม"
+  - เลือก รอประเมินเพิ่มเติม → badge เทา "ยังไม่ปิดงาน — บันทึก draft ไว้ให้กลับมาทำต่อ"
+- ถ้าผลที่เลือกขัดกับสถานะประกัน → แสดง **Alert destructive ใต้ Dropdown** บอกเหตุผลแทนการ disable เงียบ ๆ และปุ่ม "บันทึกผล" ถูก disable พร้อม tooltip
+- คงฟอร์มเสริมตาม outcome เดิมไว้ (ฟอร์มซ่อมเอง / supplier autofill สำหรับเคลม / checkbox ack สำหรับ defective)
 
-**สถานะปัจจุบัน** (`AssessmentCompleteDialog.tsx` บรรทัด 603–627):
-- หลังบันทึก outcome=defective → toast + `setTimeout(() => navigate("/defective-return", { state: { fromAssessment }}), 400)`
-- หน้า `DefectiveReturnEntry` รับ state แล้วเปิด Review Dialog อัตโนมัติ (บรรทัด 230–268)
+### Backend
+- ไม่แตะ schema, RLS, RPC, master data
+- `outcome` ที่ส่งเข้า DB ยังเป็นค่าเดิม (`self_repair` / `claim` / `defective`) แค่ตัด state ตัวกลางออก
+- กรณี "รอประเมินเพิ่มเติม": บันทึก `assessment_result_id`, `diagnosis_notes`, `notes` แต่ **ไม่** set `status=completed` และ **ไม่** ทำ side-effect (ไม่สร้าง DR/claim, ไม่ flip MP status)
 
-**สิ่งที่จะปรับ:**
-- ลบทั้ง `setTimeout + navigate` block ออกจาก `AssessmentCompleteDialog`
-- คง toast แต่เปลี่ยนข้อความเป็นกลาง ๆ:
-  - "บันทึกการประเมินเสร็จ — ใบของเสีย DR-xxxx ถูกส่งไปยังฝ่ายคลังแล้ว (ฝ่ายคลังจะดำเนินการตรวจรับเอง)"
-- ปิด dialog ผ่าน `onCompleted()` แล้วอยู่หน้า Assessment Log เหมือนเดิม
-- ลบ `import { useNavigate }` ที่ไม่ได้ใช้แล้ว (และ `navigate` declaration)
-- หน้า `DefectiveReturnEntry` ไม่ต้องแก้ — auto-open via routerLocation.state จะถูก trigger เฉพาะเมื่อ user เดินไปเอง (จะไม่มี state ส่งมาเพราะตัด navigate แล้ว) → ทำงานปกติเป็นเมนูแยกของฝ่ายคลัง
+### ไฟล์ที่แก้
+- `src/components/assessment/AssessmentCompleteDialog.tsx` ทั้งหมด (ตัด OUTCOME_OPTIONS block, derive `outcome` จาก `assessmentResultName`, รวม warranty guard เข้ากับ dropdown, ใส่ branch "pending re-assessment")
 
-## ไฟล์ที่จะแก้
-- `src/components/assessment/AssessmentCompleteDialog.tsx`
-  - ปรับ `warrantyAllowsDefective` logic + ข้อความ disable
-  - ลบ `navigate`/`setTimeout` block หลัง outcome=defective
-  - ปรับข้อความ toast
-
-ไม่มีการแตะ DB / RPC / RLS — เป็น UI/flow ล้วน ๆ
+ยืนยันแนวทางนี้ไหมครับ? หรืออยากให้คงปุ่ม "ผลการตัดสินใจ" ไว้แล้วซ่อน Dropdown ด้านบนแทน?
