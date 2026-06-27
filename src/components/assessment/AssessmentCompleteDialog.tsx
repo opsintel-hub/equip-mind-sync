@@ -863,10 +863,10 @@ export function AssessmentCompleteDialog({ open, onOpenChange, log, onCompleted 
             <Textarea value={diagnosisNotes} onChange={(e) => setDiagnosisNotes(e.target.value)} rows={2} />
           </div>
 
-          {/* Outcome 4 paths */}
+          {/* Outcome banner — derived from "ผลการประเมิน" dropdown above */}
           <div className="rounded-lg border-2 border-primary/30 bg-primary/5 p-4 space-y-3">
             <div className="flex items-center justify-between flex-wrap gap-2">
-              <Label className="text-base font-semibold">ผลการตัดสินใจ <span className="text-destructive">*</span> (เลือก 1 ใน 3)</Label>
+              <Label className="text-base font-semibold">การดำเนินการที่ระบบจะทำต่อ</Label>
               {supplierAutofill && (
                 <span className="text-xs text-muted-foreground">
                   ผู้จัดจำหน่ายล่าสุด: <span className="font-medium text-foreground">{supplierAutofill.name || "—"}</span>
@@ -874,50 +874,53 @@ export function AssessmentCompleteDialog({ open, onOpenChange, log, onCompleted 
                 </span>
               )}
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-              {OUTCOME_OPTIONS.map((opt) => {
-                const disabled =
-                  (opt.v === "defective" && defectiveDisabled) ||
-                  (opt.v === "claim" && claimDisabled);
-                const tooltip =
-                  opt.v === "defective" && defectiveDisabled
-                    ? !isWriteOffResult
-                      ? `ต้องเลือกผลการประเมิน = "Write-off (ใช้งานต่อไม่ได้)" ก่อน`
-                      : warrantyState === "unknown"
-                      ? `ไม่พบข้อมูลประกัน — กรุณาตรวจสอบและกรอกวันหมดประกันที่โปรไฟล์เครื่องก่อน จึงจะ Write-off ได้`
-                      : `เครื่องยังอยู่ในประกัน (ถึง ${warrantyDate || "—"}, เหลือ ${warrantyDaysLeft} วัน) — ห้าม Write-off ต้องเลือก "ส่งเคลม"`
-                    : opt.v === "claim" && claimDisabled
-                    ? !isExternalRepairResult
-                      ? `ต้องเลือกผลการประเมิน = "ส่งซ่อมภายนอก" ก่อน`
-                      : warrantyState === "expired"
-                      ? `หมดประกันแล้ว ${warrantyDate || ""} — ส่งเคลมไม่ได้`
-                      : undefined
-                    : undefined;
-                return (
-                  <button
-                    key={opt.v}
-                    type="button"
-                    title={tooltip}
-                    disabled={disabled}
-                    onClick={() => setOutcome(opt.v)}
-                    className={`text-left rounded-md border p-3 transition-colors ${
-                      outcome === opt.v
-                        ? "border-primary bg-primary/10 ring-2 ring-primary/40"
-                        : "border-input bg-background hover:bg-accent/50"
-                    } ${disabled ? "opacity-50 cursor-not-allowed hover:bg-background" : ""}`}
-                  >
-                    <div className="font-medium text-sm">{opt.label}</div>
-                    <div className="text-xs text-muted-foreground mt-0.5">{opt.desc}</div>
-                    {opt.v === "defective" && warrantyDate && (
-                      <div className="text-[10px] mt-1 text-muted-foreground">หมดประกัน: {warrantyDate}</div>
-                    )}
-                    {opt.v === "claim" && warrantyDate && (
-                      <div className="text-[10px] mt-1 text-muted-foreground">หมดประกัน: {warrantyDate}</div>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
+
+            {!outcome && (
+              <div className="text-sm text-muted-foreground">
+                กรุณาเลือก <strong>"ผลการประเมิน"</strong> ด้านบนก่อน — ระบบจะกำหนดการดำเนินการให้อัตโนมัติ
+              </div>
+            )}
+
+            {outcome === "self_repair" && (
+              <div className="rounded-md border border-primary/40 bg-background p-3 text-sm">
+                <div className="font-medium">🔧 ซ่อมเอง — คืน Spare Pool</div>
+                <div className="text-xs text-muted-foreground mt-1">
+                  ทำได้ทั้งในและนอกประกัน • ถ้าซ่อมสำเร็จจะคืนเข้าคลังเป็น refurbished พร้อมเบิกใช้
+                </div>
+              </div>
+            )}
+            {outcome === "claim" && (
+              <div className="rounded-md border border-primary/40 bg-background p-3 text-sm">
+                <div className="font-medium">📮 เคลมประกัน Vendor</div>
+                <div className="text-xs text-muted-foreground mt-1">
+                  ต้องอยู่ในประกันเท่านั้น • ระบบจะสร้างใบเคลม (CLM-...) และตั้งสถานะเครื่องเป็น <strong>in_claim</strong>
+                </div>
+              </div>
+            )}
+            {outcome === "defective" && (
+              <div className="rounded-md border border-primary/40 bg-background p-3 text-sm">
+                <div className="font-medium">🗑️ Write-off → เข้าคลังของเสีย</div>
+                <div className="text-xs text-muted-foreground mt-1">
+                  ต้องหมดประกันแล้วเท่านั้น • ระบบจะสร้างใบ DR-... ส่งให้ฝ่ายคลังตรวจรับเข้าคลังของเสีย
+                </div>
+              </div>
+            )}
+            {outcome === "pending" && (
+              <div className="rounded-md border border-warning/40 bg-warning/5 p-3 text-sm">
+                <div className="font-medium">⏳ รอประเมินเพิ่มเติม (บันทึกเป็น Draft)</div>
+                <div className="text-xs text-muted-foreground mt-1">
+                  บันทึกข้อมูลที่กรอกไว้ ยังไม่ปิดงานและไม่ทำ side-effect ใด ๆ • กลับมาแก้ไขและเลือกผลใหม่ได้ภายหลัง
+                </div>
+              </div>
+            )}
+
+            {warrantyConflict && (
+              <Alert variant="destructive">
+                <AlertTitle>เลือกผลนี้ไม่ได้</AlertTitle>
+                <AlertDescription className="text-xs">{warrantyConflict}</AlertDescription>
+              </Alert>
+            )}
+
 
             {outcome === "self_repair" && (
               <div className="space-y-3 pt-2 border-t">
