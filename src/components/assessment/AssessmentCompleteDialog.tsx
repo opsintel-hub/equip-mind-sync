@@ -71,11 +71,18 @@ interface Props {
   onCompleted: () => void;
 }
 
-const OUTCOME_OPTIONS = [
-  { v: "defective", label: "1. เข้าของเสีย", desc: "ซ่อมไม่ได้/หมดประกัน" },
-  { v: "claim", label: "2. ส่งเคลม", desc: "ส่งซ่อมกับ Supplier (ในประกัน)" },
-  { v: "self_repair", label: "3. ซ่อมเอง", desc: "บันทึกการซ่อม + คืน Spare ได้" },
-] as const;
+type OutcomeKind = "" | "defective" | "claim" | "self_repair" | "pending";
+
+// Map ชื่อผลการประเมิน (master data) → outcome จริงที่ระบบจะดำเนินการ
+function deriveOutcome(name: string): OutcomeKind {
+  const n = (name || "").toLowerCase();
+  if (n.includes("write-off") || n.includes("write off")) return "defective";
+  if (n.includes("เคลม") || n.includes("claim")) return "claim";
+  if (n.includes("ซ่อมเอง") || n.includes("self")) return "self_repair";
+  if (n.includes("รอประเมิน") || n.includes("pending")) return "pending";
+  return "";
+}
+
 
 
 export function AssessmentCompleteDialog({ open, onOpenChange, log, onCompleted }: Props) {
