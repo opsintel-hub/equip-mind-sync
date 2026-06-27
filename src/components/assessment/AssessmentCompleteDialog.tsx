@@ -617,11 +617,15 @@ export function AssessmentCompleteDialog({ open, onOpenChange, log, onCompleted 
           await flipStatus("under_repair", "under_repair", false, 0);
         }
 
-      } else if (outcome === "return_refurb") {
-        await cancelStaleRejectedDR("return_refurb");
-        // คืนเข้าคลังพร้อมใช้ (active) — นับเป็น stock 1
-        await flipStatus("active", "in_stock", true, 1);
+      } else if (outcome === "self_repair") {
+        await cancelStaleRejectedDR("self_repair");
+        if (repairSuccess) {
+          await flipStatus("active", "in_stock", true, 1);
+        } else {
+          await flipStatus("under_repair", "under_repair", false, 0);
+        }
       }
+
 
       (window as any).__lastDRRevived = revivedDR;
     } catch (e: any) {
