@@ -428,6 +428,8 @@ export function AssessmentCompleteDialog({ open, onOpenChange, log, onCompleted 
     if (isRepeatFailure) auditLines.push(`ปัญหาซ้ำซาก: ซ่อม ${history?.recentRepairCount6m} ครั้งใน 6 เดือน`);
     const finalNotes = [notes.trim(), auditLines.join("\n")].filter(Boolean).join("\n---\n");
 
+    const isPending = outcome === "pending";
+
     const { error } = await supabase
       .from("assessment_logs")
       .update({
@@ -438,14 +440,14 @@ export function AssessmentCompleteDialog({ open, onOpenChange, log, onCompleted 
         recommended_action: recommendedAction.trim() || null,
         assessor_name: assessorName.trim() || null,
         assessed_by: user?.id ?? null,
-        outcome,
+        outcome: isPending ? null : outcome,
         repair_description: outcome === "self_repair" ? repairDescription.trim() : null,
         external_repair_vendor: outcome === "claim" ? (externalRepairVendor.trim() || supplierAutofill?.name || null) : null,
         external_repair_contact: outcome === "claim" ? externalRepairContact.trim() || null : null,
         external_repair_phone: outcome === "claim" ? externalRepairPhone.trim() || null : null,
         notes: finalNotes || null,
-        status: "completed",
-        completed_at: new Date().toISOString(),
+        status: isPending ? "pending" : "completed",
+        completed_at: isPending ? null : new Date().toISOString(),
       })
       .eq("id", log.id);
 
@@ -454,6 +456,15 @@ export function AssessmentCompleteDialog({ open, onOpenChange, log, onCompleted 
       toast.error("บันทึกไม่สำเร็จ: " + error.message);
       return;
     }
+
+    // pending = draft, ไม่ทำ side-effect ใด ๆ
+    if (isPending) {
+      setSubmitting(false);
+      toast.success("บันทึกแบบ 'รอประเมินเพิ่มเติม' แล้ว — กลับมาทำต่อได้ภายหลัง");
+      onCompleted();
+      return;
+    }
+
 
     // Outcome side-effects
     let createdDefectiveDocNo: string | null = null;
