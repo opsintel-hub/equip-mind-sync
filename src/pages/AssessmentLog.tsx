@@ -1019,6 +1019,28 @@ export default function AssessmentLog() {
             </CardContent>
           </Card>
         </TabsContent>
+
+        <TabsContent value="claim" className="mt-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>ส่งเคลมประกัน Vendor (in_claim)</CardTitle>
+              <CardDescription>รายการที่เลือก outcome = "ส่งเคลม" และอยู่ระหว่างรอ Vendor — ติดตามผลต่อที่เมนู "ติดตามการเคลม"</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {(() => {
+                const claimLogs = logs.filter(l => l.outcome === "claim");
+                if (claimLogs.length === 0) {
+                  return <div className="text-center py-10 text-muted-foreground">ไม่มีรายการส่งเคลม</div>;
+                }
+                return (
+                  <div className="space-y-2">
+                    {claimLogs.map((log) => renderLogCard(log))}
+                  </div>
+                );
+              })()}
+            </CardContent>
+          </Card>
+        </TabsContent>
       </Tabs>
 
       <AssessmentCompleteDialog
