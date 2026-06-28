@@ -146,7 +146,7 @@ export default function AssessmentLog() {
   const [submitting, setSubmitting] = useState(false);
 
   // Outcome fields (derived from assessment result name)
-  const [outcome, setOutcome] = useState<"" | "defective" | "claim" | "self_repair" | "return_refurb" | "pending">("");
+  const [outcome, setOutcome] = useState<"" | "defective" | "claim" | "self_repair" | "pending">("");
   const [assessmentResultName, setAssessmentResultName] = useState("");
   const [repairDescription, setRepairDescription] = useState("");
   const [externalRepairVendor, setExternalRepairVendor] = useState("");
@@ -165,12 +165,7 @@ export default function AssessmentLog() {
         .maybeSingle();
       const name = (data as any)?.name || "";
       setAssessmentResultName(name);
-      const derived = deriveOutcome(name);
-      if (derived === "return_refurb") {
-        setOutcome("return_refurb");
-      } else {
-        setOutcome(derived as any);
-      }
+      setOutcome(deriveOutcome(name));
     })();
   }, [assessmentResultId]);
 
