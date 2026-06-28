@@ -779,7 +779,7 @@ export function AssessmentCompleteDialog({ open, onOpenChange, log, onCompleted 
                   <div className="font-semibold text-sm">{text}</div>
                   {supplierAutofill?.name && (
                     <div className="text-xs flex flex-wrap items-center gap-x-3 gap-y-1">
-                      <span>ผู้จัดจำหน่าย: <span className="font-medium">{supplierAutofill.name}</span></span>
+                      <span>Vendor: <span className="font-medium">{supplierAutofill.name}</span></span>
                       {supplierAutofill.contact && <span>ผู้ติดต่อ: {supplierAutofill.contact}</span>}
                       {supplierAutofill.phone && (
                         <span className="inline-flex items-center gap-1">
@@ -912,7 +912,7 @@ export function AssessmentCompleteDialog({ open, onOpenChange, log, onCompleted 
               <Label className="text-base font-semibold">การดำเนินการที่ระบบจะทำต่อ</Label>
               {supplierAutofill && (
                 <span className="text-xs text-muted-foreground">
-                  ผู้จัดจำหน่ายล่าสุด: <span className="font-medium text-foreground">{supplierAutofill.name || "—"}</span>
+                  Vendor ล่าสุด: <span className="font-medium text-foreground">{supplierAutofill.name || "—"}</span>
                   {supplierAutofill.warranty && ` • ประกันถึง ${supplierAutofill.warranty}`}
                 </span>
               )}
@@ -995,12 +995,12 @@ export function AssessmentCompleteDialog({ open, onOpenChange, log, onCompleted 
               <div className="space-y-2 pt-2 border-t">
                 <Alert>
                   <ShieldCheck className="h-4 w-4" />
-                  <AlertTitle>ส่งเคลม Supplier</AlertTitle>
+                  <AlertTitle>ส่งเคลม Vendor</AlertTitle>
                   <AlertDescription className="text-xs space-y-1">
                     <div>หมดประกัน: <span className="font-medium">{warrantyDate || "—"}</span> (เหลือ {warrantyDaysLeft} วัน)</div>
                     <div>
                       ระบบจะสร้างใบเคลม (CLM-...) ตั้งสถานะเครื่อง <strong>in_claim</strong> ติดตามได้ที่เมนู <strong>"ติดตามการเคลม"</strong>
-                      จนกว่า Supplier จะส่งเครื่องกลับ
+                      จนกว่า Vendor จะส่งเครื่องกลับ
                     </div>
                   </AlertDescription>
                 </Alert>
