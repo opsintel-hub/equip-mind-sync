@@ -105,6 +105,20 @@ export function AssessmentCompleteDialog({ open, onOpenChange, log, onCompleted 
   const [externalRepairPhone, setExternalRepairPhone] = useState("");
 
   const [supplierAutofill, setSupplierAutofill] = useState<{ name: string; manufacturer: string | null; warranty: string | null; phone: string | null; contact: string | null } | null>(null);
+  const [purchaseInfo, setPurchaseInfo] = useState<{
+    po_number: string | null;
+    pr_number: string | null;
+    invoice_number: string | null;
+    delivery_note_number: string | null;
+    po_item_no: string | null;
+    date_of_receipt: string | null;
+    unit_price: number | null;
+    depreciation_months: number | null;
+    po_document_url: string | null;
+    pr_document_url: string | null;
+    invoice_document_url: string | null;
+    delivery_note_document_url: string | null;
+  } | null>(null);
   const [sourceCtx, setSourceCtx] = useState<SourceContext | null>(null);
   const [history, setHistory] = useState<DeviceHistory | null>(null);
   const [defectiveAck, setDefectiveAck] = useState(false);
