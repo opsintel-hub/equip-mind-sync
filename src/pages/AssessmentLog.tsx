@@ -10,9 +10,10 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ClipboardCheck, ListChecks, PlusCircle, RefreshCw, Search, ChevronLeft, ChevronRight } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { ClipboardCheck, ListChecks, PlusCircle, RefreshCw, Search, ChevronLeft, ChevronRight, ShieldCheck, ShieldAlert, Shield, Wrench } from "lucide-react";
 import { toast } from "sonner";
-import { format } from "date-fns";
+import { format, differenceInDays, parseISO } from "date-fns";
 import { th } from "date-fns/locale";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { SymptomSelect } from "@/components/media-player/SymptomSelect";
@@ -22,7 +23,6 @@ import { AssessmentCompleteDialog } from "@/components/assessment/AssessmentComp
 import { RepairCompleteDialog } from "@/components/assessment/RepairCompleteDialog";
 import { isMonitor } from "@/lib/deviceTypes";
 import { DeviceTypeBadge } from "@/components/media-player/DeviceTypeBadge";
-import { Wrench } from "lucide-react";
 import { formatBillboardLabel } from "@/lib/billboardUtils";
 
 interface AssessmentLog {
