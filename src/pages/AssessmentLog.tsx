@@ -84,6 +84,31 @@ interface LogDetail {
   model?: string | null;
 }
 
+const SOURCE_LABELS: Record<string, string> = {
+  swap: "จาก Swap",
+  manual: "ป้อนเอง",
+  defective: "จากของเสีย",
+};
+
+// Map ชื่อผลการประเมิน (master data) → outcome จริงที่ระบบจะดำเนินการ
+function deriveOutcome(name: string): "" | "defective" | "claim" | "self_repair" | "pending" {
+  const n = (name || "").toLowerCase();
+  if (n.includes("write-off") || n.includes("write off")) return "defective";
+  if (n.includes("เคลม") || n.includes("claim")) return "claim";
+  if (n.includes("ซ่อมเอง") || n.includes("self")) return "self_repair";
+  if (n.includes("รอประเมิน") || n.includes("pending")) return "pending";
+  return "";
+}
+
+function warrantyStateFromDate(warrantyDate: string | null): "active" | "ending" | "expired" | "unknown" {
+  if (!warrantyDate) return "unknown";
+  const days = differenceInDays(parseISO(warrantyDate), new Date());
+  if (days < 0) return "expired";
+  if (days <= 30) return "ending";
+  return "active";
+}
+
+
 export default function AssessmentLog() {
   const { user } = useAuth();
   const location = useLocation();
