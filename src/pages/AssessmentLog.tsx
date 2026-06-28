@@ -548,7 +548,7 @@ export default function AssessmentLog() {
           created_by: user?.id ?? null,
         });
         toast.success("สร้างคำขอเคลมและส่งให้ติดตามที่ 'ติดตามการเคลม' แล้ว");
-      } else if (outcome === "self_repair" || outcome === "return_refurb") {
+      } else if (outcome === "self_repair") {
         // Mark S/N as refurbished, return to spare stock (location stays as-is for now)
         if (finalSerial) {
           await supabase
