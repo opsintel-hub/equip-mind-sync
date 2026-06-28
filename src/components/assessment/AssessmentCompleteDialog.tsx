@@ -105,6 +105,20 @@ export function AssessmentCompleteDialog({ open, onOpenChange, log, onCompleted 
   const [externalRepairPhone, setExternalRepairPhone] = useState("");
 
   const [supplierAutofill, setSupplierAutofill] = useState<{ name: string; manufacturer: string | null; warranty: string | null; phone: string | null; contact: string | null } | null>(null);
+  const [purchaseInfo, setPurchaseInfo] = useState<{
+    po_number: string | null;
+    pr_number: string | null;
+    invoice_number: string | null;
+    delivery_note_number: string | null;
+    po_item_no: string | null;
+    date_of_receipt: string | null;
+    unit_price: number | null;
+    depreciation_months: number | null;
+    po_document_url: string | null;
+    pr_document_url: string | null;
+    invoice_document_url: string | null;
+    delivery_note_document_url: string | null;
+  } | null>(null);
   const [sourceCtx, setSourceCtx] = useState<SourceContext | null>(null);
   const [history, setHistory] = useState<DeviceHistory | null>(null);
   const [defectiveAck, setDefectiveAck] = useState(false);
@@ -143,6 +157,7 @@ export function AssessmentCompleteDialog({ open, onOpenChange, log, onCompleted 
     setExternalRepairContact("");
     setExternalRepairPhone("");
     setSupplierAutofill(null);
+    setPurchaseInfo(null);
     setSourceCtx(null);
     setHistory(null);
     setDefectiveAck(false);
@@ -166,7 +181,7 @@ export function AssessmentCompleteDialog({ open, onOpenChange, log, onCompleted 
         if (log.media_player_id) {
           const { data: mp, error: mpErr } = await supabase
             .from("media_players")
-            .select("id, code, name, brand, specification, billboard_id, warranty_expiry_date, unit_price, depreciation_months, date_of_receipt, model_id, remote_name, supplier:supplier_id(name, phone, contact_person), billboard:billboards(equipment_id, old_code, location_name)")
+            .select("id, code, name, brand, specification, billboard_id, warranty_expiry_date, unit_price, depreciation_months, date_of_receipt, model_id, remote_name, po_number, pr_number, invoice_number, delivery_note_number, po_item_no, po_document_url, pr_document_url, invoice_document_url, delivery_note_document_url, supplier:supplier_id(name, phone, contact_person), billboard:billboards(equipment_id, old_code, location_name)")
             .eq("id", log.media_player_id)
             .maybeSingle() as any;
           if (mpErr) console.error("MP fetch error:", mpErr);
@@ -200,12 +215,26 @@ export function AssessmentCompleteDialog({ open, onOpenChange, log, onCompleted 
               phone: mp.supplier?.phone || null,
               contact: mp.supplier?.contact_person || null,
             });
+            setPurchaseInfo({
+              po_number: mp.po_number || null,
+              pr_number: mp.pr_number || null,
+              invoice_number: mp.invoice_number || null,
+              delivery_note_number: mp.delivery_note_number || null,
+              po_item_no: mp.po_item_no || null,
+              date_of_receipt: mp.date_of_receipt || null,
+              unit_price: mp.unit_price ?? null,
+              depreciation_months: mp.depreciation_months ?? null,
+              po_document_url: mp.po_document_url || null,
+              pr_document_url: mp.pr_document_url || null,
+              invoice_document_url: mp.invoice_document_url || null,
+              delivery_note_document_url: mp.delivery_note_document_url || null,
+            });
           }
 
         } else if (log.equipment_id) {
           const { data: eq } = await supabase
             .from("equipment")
-            .select("code, name, brand:brand_id(name), supplier:supplier_id(name, phone, contact_person), unit_price, depreciation_months")
+            .select("code, name, brand:brand_id(name), supplier:supplier_id(name, phone, contact_person), unit_price, depreciation_months, po_item_no")
             .eq("id", log.equipment_id)
             .maybeSingle() as any;
           if (eq) {
@@ -213,6 +242,20 @@ export function AssessmentCompleteDialog({ open, onOpenChange, log, onCompleted 
             ctx.brand = eq.brand?.name || null;
             ctx.unitPrice = eq.unit_price ?? null;
             ctx.depreciationMonths = eq.depreciation_months ?? null;
+            setPurchaseInfo({
+              po_number: null,
+              pr_number: null,
+              invoice_number: null,
+              delivery_note_number: null,
+              po_item_no: eq.po_item_no || null,
+              date_of_receipt: null,
+              unit_price: eq.unit_price ?? null,
+              depreciation_months: eq.depreciation_months ?? null,
+              po_document_url: null,
+              pr_document_url: null,
+              invoice_document_url: null,
+              delivery_note_document_url: null,
+            });
           }
           if (log.serial_number) {
             const { data: sn } = await supabase
@@ -971,6 +1014,43 @@ export function AssessmentCompleteDialog({ open, onOpenChange, log, onCompleted 
                     <Input value={externalRepairVendor} onChange={(e) => setExternalRepairVendor(e.target.value)} placeholder="ชื่อร้าน/ผู้รับเคลม *" />
                     <Input value={externalRepairContact} onChange={(e) => setExternalRepairContact(e.target.value)} placeholder="ชื่อผู้ติดต่อ" />
                     <Input value={externalRepairPhone} onChange={(e) => setExternalRepairPhone(e.target.value)} placeholder="เบอร์ติดต่อ" />
+                  </div>
+                )}
+
+                {/* Purchase history */}
+                {purchaseInfo && (
+                  purchaseInfo.po_number || purchaseInfo.pr_number || purchaseInfo.invoice_number ||
+                  purchaseInfo.delivery_note_number || purchaseInfo.date_of_receipt || purchaseInfo.unit_price
+                ) && (
+                  <div className="rounded-md border bg-muted/30 p-3 space-y-2">
+                    <div className="text-sm font-semibold flex items-center gap-2">
+                      📄 ประวัติการซื้อ (สำหรับแนบใบเคลม)
+                    </div>
+                    <div className="grid sm:grid-cols-2 gap-x-4 gap-y-1 text-xs">
+                      <div><span className="text-muted-foreground">PO:</span> <span className="font-mono font-medium">{purchaseInfo.po_number || "—"}</span>{purchaseInfo.po_item_no && <span className="text-muted-foreground"> (item {purchaseInfo.po_item_no})</span>}</div>
+                      <div><span className="text-muted-foreground">PR:</span> <span className="font-mono font-medium">{purchaseInfo.pr_number || "—"}</span></div>
+                      <div><span className="text-muted-foreground">Invoice:</span> <span className="font-mono font-medium">{purchaseInfo.invoice_number || "—"}</span></div>
+                      <div><span className="text-muted-foreground">Delivery Note:</span> <span className="font-mono font-medium">{purchaseInfo.delivery_note_number || "—"}</span></div>
+                      <div><span className="text-muted-foreground">วันรับเข้า:</span> <span className="font-medium">{purchaseInfo.date_of_receipt || "—"}</span></div>
+                      <div><span className="text-muted-foreground">ราคา:</span> <span className="font-medium">{purchaseInfo.unit_price != null ? `${purchaseInfo.unit_price.toLocaleString()} บาท` : "—"}</span></div>
+                      <div><span className="text-muted-foreground">ค่าเสื่อม:</span> <span className="font-medium">{purchaseInfo.depreciation_months ? `${purchaseInfo.depreciation_months} เดือน` : "—"}</span></div>
+                    </div>
+                    {(purchaseInfo.po_document_url || purchaseInfo.pr_document_url || purchaseInfo.invoice_document_url || purchaseInfo.delivery_note_document_url) && (
+                      <div className="flex flex-wrap gap-2 pt-1">
+                        {purchaseInfo.po_document_url && (
+                          <a href={purchaseInfo.po_document_url} target="_blank" rel="noreferrer"><Button type="button" size="sm" variant="outline" className="h-7 text-xs"><ExternalLink className="h-3 w-3 mr-1" /> PO</Button></a>
+                        )}
+                        {purchaseInfo.pr_document_url && (
+                          <a href={purchaseInfo.pr_document_url} target="_blank" rel="noreferrer"><Button type="button" size="sm" variant="outline" className="h-7 text-xs"><ExternalLink className="h-3 w-3 mr-1" /> PR</Button></a>
+                        )}
+                        {purchaseInfo.invoice_document_url && (
+                          <a href={purchaseInfo.invoice_document_url} target="_blank" rel="noreferrer"><Button type="button" size="sm" variant="outline" className="h-7 text-xs"><ExternalLink className="h-3 w-3 mr-1" /> Invoice</Button></a>
+                        )}
+                        {purchaseInfo.delivery_note_document_url && (
+                          <a href={purchaseInfo.delivery_note_document_url} target="_blank" rel="noreferrer"><Button type="button" size="sm" variant="outline" className="h-7 text-xs"><ExternalLink className="h-3 w-3 mr-1" /> Delivery Note</Button></a>
+                        )}
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
