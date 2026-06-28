@@ -870,12 +870,20 @@ export default function AssessmentLog() {
         <TabsContent value="new" className="mt-4">
           <Card>
             <CardHeader>
-              <CardTitle>บันทึกการประเมินใหม่</CardTitle>
+              <CardTitle>บันทึกประเมินใหม่ (ป้อนเอง)</CardTitle>
               <CardDescription>
-                ระบุอุปกรณ์ + อาการ + ผลการประเมิน (ค่า dropdown มาจาก Master Data หมวด Media Player)
+                สร้างรายการประเมินใหม่ด้วยตนเอง — ระบุอุปกรณ์ + อาการ + ผลการประเมิน (ค่า dropdown มาจาก Master Data หมวด Media Player)
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
+              <Alert>
+                <ClipboardCheck className="h-4 w-4" />
+                <AlertTitle>Flow เดียวกันกับรายการจาก Swap</AlertTitle>
+                <AlertDescription className="text-xs">
+                  รายการที่บันทึกจากแท็บนี้จะเข้าร่วมกลุ่มเดียวกับรายการที่ถูกถอดจาก Swap — กด "ประเมิน" ที่แท็บ <strong>"รายการรอประเมิน"</strong> เพื่อปิดงาน
+                </AlertDescription>
+              </Alert>
+
               <div className="space-y-2">
                 <Label>อุปกรณ์/Media Player ที่ประเมิน *</Label>
                 <SearchableSelect
