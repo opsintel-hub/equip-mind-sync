@@ -157,6 +157,7 @@ export function AssessmentCompleteDialog({ open, onOpenChange, log, onCompleted 
     setExternalRepairContact("");
     setExternalRepairPhone("");
     setSupplierAutofill(null);
+    setPurchaseInfo(null);
     setSourceCtx(null);
     setHistory(null);
     setDefectiveAck(false);
