@@ -755,12 +755,12 @@ export default function AssessmentLog() {
         <TabsList>
           {canView && (
             <TabsTrigger value="list">
-              <ListChecks className="h-4 w-4 mr-2" /> รายการประเมิน
+              <ListChecks className="h-4 w-4 mr-2" /> รายการรอประเมิน
             </TabsTrigger>
           )}
           {canCreate && (
             <TabsTrigger value="new">
-              <PlusCircle className="h-4 w-4 mr-2" /> บันทึกการประเมินใหม่
+              <PlusCircle className="h-4 w-4 mr-2" /> บันทึกประเมินใหม่
             </TabsTrigger>
           )}
           {canView && (
@@ -778,8 +778,8 @@ export default function AssessmentLog() {
         <TabsContent value="list" className="mt-4">
           <Card>
             <CardHeader>
-              <CardTitle>รายการประเมินล่าสุด</CardTitle>
-              <CardDescription>คลิก "ประเมิน" เพื่อกรอกผลและปิดรายการที่ค้างอยู่ • กรองและค้นหาได้ด้านล่าง</CardDescription>
+              <CardTitle>รายการรอประเมิน</CardTitle>
+              <CardDescription>รายการจาก Swap, ของเสีย หรือที่ป้อนเอง — คลิก "ประเมิน" เพื่อกรอกผลและปิดรายการที่ค้างอยู่</CardDescription>
             </CardHeader>
             <CardContent>
               {/* Filter bar */}
