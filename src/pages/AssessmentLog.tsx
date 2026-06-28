@@ -809,7 +809,7 @@ export default function AssessmentLog() {
                 <div className="text-center py-8 text-muted-foreground">กำลังโหลด...</div>
               ) : filteredLogs.length === 0 ? (
                 <div className="text-center py-12 text-muted-foreground">
-                  {logs.length === 0 ? 'ยังไม่มีรายการประเมิน — กดแท็บ "บันทึกการประเมินใหม่" เพื่อเริ่ม' : "ไม่พบรายการที่ตรงตามตัวกรอง"}
+                  {logs.length === 0 ? 'ยังไม่มีรายการรอประเมิน — กดแท็บ "บันทึกประเมินใหม่" เพื่อเริ่ม' : "ไม่พบรายการที่ตรงตามตัวกรอง"}
                 </div>
               ) : (
                 <>
