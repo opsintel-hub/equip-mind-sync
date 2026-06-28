@@ -712,6 +712,11 @@ export default function AssessmentLog() {
               <Wrench className="h-4 w-4 mr-2" /> งานซ่อมเอง ({logs.filter(l => l.outcome === "self_repair" && (!l.repair_status || (l.repair_status !== "repaired" && l.repair_status !== "failed"))).length})
             </TabsTrigger>
           )}
+          {canView && (
+            <TabsTrigger value="claim">
+              <ClipboardCheck className="h-4 w-4 mr-2" /> ส่งเคลมประกัน Vendor ({logs.filter(l => l.outcome === "claim").length})
+            </TabsTrigger>
+          )}
         </TabsList>
 
         <TabsContent value="list" className="mt-4">
