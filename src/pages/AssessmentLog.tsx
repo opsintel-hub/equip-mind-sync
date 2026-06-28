@@ -145,13 +145,34 @@ export default function AssessmentLog() {
   const [statusForm, setStatusForm] = useState<"pending" | "completed">("completed");
   const [submitting, setSubmitting] = useState(false);
 
-  // Outcome fields
-  const [outcome, setOutcome] = useState<"" | "defective" | "claim" | "self_repair" | "return_refurb">("");
+  // Outcome fields (derived from assessment result name)
+  const [outcome, setOutcome] = useState<"" | "defective" | "claim" | "self_repair" | "return_refurb" | "pending">("");
+  const [assessmentResultName, setAssessmentResultName] = useState("");
   const [repairDescription, setRepairDescription] = useState("");
   const [externalRepairVendor, setExternalRepairVendor] = useState("");
   const [externalRepairContact, setExternalRepairContact] = useState("");
   const [externalRepairPhone, setExternalRepairPhone] = useState("");
   const [supplierAutofill, setSupplierAutofill] = useState<{ name: string; manufacturer: string | null; warranty: string | null } | null>(null);
+
+  // Fetch assessment result name + derive outcome automatically when dropdown changes
+  useEffect(() => {
+    if (!assessmentResultId) { setAssessmentResultName(""); setOutcome(""); return; }
+    (async () => {
+      const { data } = await supabase
+        .from("mp_assessment_results")
+        .select("name")
+        .eq("id", assessmentResultId)
+        .maybeSingle();
+      const name = (data as any)?.name || "";
+      setAssessmentResultName(name);
+      const derived = deriveOutcome(name);
+      if (derived === "return_refurb") {
+        setOutcome("return_refurb");
+      } else {
+        setOutcome(derived as any);
+      }
+    })();
+  }, [assessmentResultId]);
 
   const fetchLogs = async () => {
     setLoading(true);
