@@ -215,6 +215,20 @@ export function AssessmentCompleteDialog({ open, onOpenChange, log, onCompleted 
               phone: mp.supplier?.phone || null,
               contact: mp.supplier?.contact_person || null,
             });
+            setPurchaseInfo({
+              po_number: mp.po_number || null,
+              pr_number: mp.pr_number || null,
+              invoice_number: mp.invoice_number || null,
+              delivery_note_number: mp.delivery_note_number || null,
+              po_item_no: mp.po_item_no || null,
+              date_of_receipt: mp.date_of_receipt || null,
+              unit_price: mp.unit_price ?? null,
+              depreciation_months: mp.depreciation_months ?? null,
+              po_document_url: mp.po_document_url || null,
+              pr_document_url: mp.pr_document_url || null,
+              invoice_document_url: mp.invoice_document_url || null,
+              delivery_note_document_url: mp.delivery_note_document_url || null,
+            });
           }
 
         } else if (log.equipment_id) {
