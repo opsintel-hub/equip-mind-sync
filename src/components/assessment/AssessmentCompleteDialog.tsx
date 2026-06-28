@@ -234,7 +234,7 @@ export function AssessmentCompleteDialog({ open, onOpenChange, log, onCompleted 
         } else if (log.equipment_id) {
           const { data: eq } = await supabase
             .from("equipment")
-            .select("code, name, brand:brand_id(name), supplier:supplier_id(name, phone, contact_person), unit_price, depreciation_months")
+            .select("code, name, brand:brand_id(name), supplier:supplier_id(name, phone, contact_person), unit_price, depreciation_months, po_item_no")
             .eq("id", log.equipment_id)
             .maybeSingle() as any;
           if (eq) {
@@ -242,6 +242,20 @@ export function AssessmentCompleteDialog({ open, onOpenChange, log, onCompleted 
             ctx.brand = eq.brand?.name || null;
             ctx.unitPrice = eq.unit_price ?? null;
             ctx.depreciationMonths = eq.depreciation_months ?? null;
+            setPurchaseInfo({
+              po_number: null,
+              pr_number: null,
+              invoice_number: null,
+              delivery_note_number: null,
+              po_item_no: eq.po_item_no || null,
+              date_of_receipt: null,
+              unit_price: eq.unit_price ?? null,
+              depreciation_months: eq.depreciation_months ?? null,
+              po_document_url: null,
+              pr_document_url: null,
+              invoice_document_url: null,
+              delivery_note_document_url: null,
+            });
           }
           if (log.serial_number) {
             const { data: sn } = await supabase
