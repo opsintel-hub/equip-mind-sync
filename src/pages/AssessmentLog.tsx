@@ -658,6 +658,9 @@ export default function AssessmentLog() {
             )}
             {isMP && <DeviceTypeBadge value={detail?.device_type || "MEDIA_PLAYER"} />}
             <Badge variant="outline" className="font-mono text-xs">S/N: {serial}</Badge>
+            {log.source_type && SOURCE_LABELS[log.source_type] && (
+              <Badge variant="secondary" className="text-xs">{SOURCE_LABELS[log.source_type]}</Badge>
+            )}
           </div>
           {rejection && (
             <div className="text-xs text-destructive bg-destructive/10 rounded px-2 py-1 border border-destructive/20">
