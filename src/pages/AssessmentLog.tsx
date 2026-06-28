@@ -475,8 +475,23 @@ export default function AssessmentLog() {
       return;
     }
     if (statusForm === "completed" && !outcome) {
-      toast.error("กรุณาเลือก 'ผลการตัดสินใจ' (1-4) ก่อนบันทึก");
+      toast.error("กรุณาเลือก 'ผลการประเมิน' จาก Dropdown ก่อนบันทึก");
       return;
+    }
+    // Warranty guard
+    if (statusForm === "completed" && supplierAutofill?.warranty && outcome) {
+      const state = warrantyStateFromDate(supplierAutofill.warranty);
+      const days = differenceInDays(parseISO(supplierAutofill.warranty), new Date());
+      if (outcome === "defective" && state !== "expired") {
+        toast.error(state === "unknown"
+          ? "Write-off ต้องหมดประกันแล้วเท่านั้น"
+          : `เครื่องยังในประกัน (เหลือ ${days} วัน) — Write-off ไม่ได้ ต้องเลือก "เคลมประกัน Vendor"`);
+        return;
+      }
+      if (outcome === "claim" && (state === "expired" || state === "unknown")) {
+        toast.error(state === "expired" ? `หมดประกันแล้ว ${Math.abs(days)} วัน — เคลม Vendor ไม่ได้` : "ไม่พบข้อมูลประกัน — กรุณากรอกวันหมดประกันก่อนเลือกเคลม");
+        return;
+      }
     }
     if (outcome === "self_repair" && !repairDescription.trim()) {
       toast.error("กรุณาระบุรายละเอียดการซ่อม (กรณีซ่อมเอง)");
