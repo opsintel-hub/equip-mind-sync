@@ -94,6 +94,7 @@ export function MediaPlayerInfoEditDialog({ open, onOpenChange, player, onSaved 
     try {
       const payload: any = {
         name: form.name.trim() || player.name,
+        description: toNull(form.description),
         brand: toNull(form.brand),
         specification: toNull(form.specification),
         serial_number_1: toNull(form.serial_number_1),
@@ -108,6 +109,7 @@ export function MediaPlayerInfoEditDialog({ open, onOpenChange, player, onSaved 
         po_number: toNull(form.po_number),
         pr_number: toNull(form.pr_number),
         invoice_number: toNull(form.invoice_number),
+        delivery_note_number: toNull(form.delivery_note_number),
         unit_price: toNum(form.unit_price),
         depreciation_months: toNum(form.depreciation_months),
         usage_lifespan_months: toNum(form.usage_lifespan_months),
