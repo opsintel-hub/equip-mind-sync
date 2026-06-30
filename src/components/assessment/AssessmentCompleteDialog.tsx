@@ -15,6 +15,7 @@ import { AssessmentResultSelect } from "@/components/media-player/AssessmentResu
 import { differenceInDays, parseISO, differenceInMonths } from "date-fns";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { PhotoGalleryDialog } from "@/components/ui/PhotoGalleryDialog";
+import { DocumentPreviewDialog } from "@/components/DocumentPreviewDialog";
 
 interface AssessmentLogLite {
   id: string;
