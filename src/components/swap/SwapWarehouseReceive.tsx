@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import { format } from "date-fns";
 import { SimpleDepartmentSelect } from "@/components/equipment/SimpleDepartmentSelect";
 import { WarehouseLocationSelect } from "@/components/location/WarehouseLocationSelect";
+import { PhotoGalleryDialog } from "@/components/ui/PhotoGalleryDialog";
 
 interface PendingRow {
   id: string; // swap request id
