@@ -754,7 +754,9 @@ export default function InventoryReport() {
 
       // Global search across all key columns shown in report (excluding S/N)
       if (filters.search.trim()) {
-        const term = filters.search.trim().toLowerCase();
+        // Normalize: lowercase + collapse all whitespace, so "BB-ELE 0018" matches "BB-ELE0018"
+        const normalize = (s: any) => String(s ?? "").toLowerCase().replace(/\s+/g, "");
+        const term = normalize(filters.search);
         const searchableValues = [
           item.code,
           item.name,
@@ -780,7 +782,7 @@ export default function InventoryReport() {
         ];
 
         const matchesSearch = searchableValues.some(
-          (value) => value?.toString().toLowerCase().includes(term)
+          (value) => value != null && normalize(value).includes(term)
         );
 
         if (!matchesSearch) return false;
