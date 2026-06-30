@@ -827,7 +827,7 @@ const IssueGoods = () => {
         media_player_id: i === 0 ? (item.media_player_id || "") : "",
         serial_number: i === 0 ? (item.serial_number || "") : "",
         billboard_id: item.billboard_id || "",
-        sub_media_type: null as string | null,
+        sub_media_type: i === 0 ? ((item as any).sub_media_type ?? null) : null,
       }));
       setMpUnitAssignments(mpInitial);
     }
