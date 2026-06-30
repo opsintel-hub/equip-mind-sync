@@ -801,7 +801,7 @@ export default function InventoryReport() {
     totalItems,
     handlePageChange,
     handlePageSizeChange,
-  } = useTablePagination(filteredData, 20);
+  } = useTablePagination(filteredData, 10);
 
   // Reset page when filters change
   const handleFiltersChange = (newFilters: InventoryFiltersState) => {
