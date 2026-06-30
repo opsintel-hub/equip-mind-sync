@@ -72,6 +72,8 @@ interface CartItem {
   serial_number_source?: string; // Track the source prefix for S/N select value
   warehouse_name?: string;
   location_name?: string;
+  department?: string | null;
+  sub_media_type?: string | null;
 }
 
 const IssueRequest = () => {
