@@ -834,7 +834,7 @@ export function AssessmentCompleteDialog({ open, onOpenChange, log, onCompleted 
                 </div>
                 {sourceCtx.mediaPlayerProfileId && (
                   <a
-                    href={`/media-player-profile/${sourceCtx.mediaPlayerProfileId}`}
+                    href={`/media-player/${sourceCtx.mediaPlayerProfileId}`}
                     target="_blank"
                     rel="noreferrer"
                     className="text-xs text-primary inline-flex items-center gap-1 hover:underline"
