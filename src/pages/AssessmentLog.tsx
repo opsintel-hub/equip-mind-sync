@@ -85,6 +85,8 @@ interface LogDetail {
   brand?: string | null;
   model?: string | null;
   source_photos?: string[];
+  symptom_label?: string | null;
+  source_description?: string | null;
 }
 
 const SOURCE_LABELS: Record<string, string> = {
