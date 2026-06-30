@@ -1714,7 +1714,7 @@ const IssueRequest = () => {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filteredRequests?.map((req) => {
+                  historyPagination.paginatedData.map((req) => {
                     const items = getItemsForRequest(req.id);
                     const isExpanded = expandedRequests.has(req.id);
                     return (
