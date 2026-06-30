@@ -753,7 +753,11 @@ function EquipmentViewTab() {
   const handleExport = () => {
     const rows = filtered.map(item => ({
       "Code": item.code, "ชื่อ": item.name, "S/N": item.serialDisplay, "ประเภท": item.itemType === "media_player" ? deviceLabel(item.device_type) : item.category,
-      "Brand": item.brand || "-", "สต็อกคลัง": item.quantity_in_stock, "ติดตั้งที่ป้าย": item.isInstalled ? (item.installedBillboard || "ติดตั้งบนป้าย") : (item.isIssuedPending ? "จ่ายแล้ว / รอระบุป้าย" : "ในคลัง"),
+      "Brand": item.brand || "-", "สต็อกคลัง": item.quantity_in_stock,
+      "ติดตั้งที่ป้าย": item.isInstalled ? (item.installedBillboard || "ติดตั้งบนป้าย") : (item.isIssuedPending ? "จ่ายแล้ว / รอระบุป้าย" : "ในคลัง"),
+      "วันที่ติดตั้ง": item.isInstalled && item.install_date ? format(new Date(item.install_date), "dd/MM/yyyy") : "-",
+      "อายุการติดตั้ง": item.isInstalled ? durationSince(item.install_date) : "-",
+      "วันหมดประกัน": item.warranty_expiry_date ? format(new Date(item.warranty_expiry_date), "dd/MM/yyyy") : "-",
     }));
     const ws = XLSX.utils.json_to_sheet(rows);
     const wb = XLSX.utils.book_new();
