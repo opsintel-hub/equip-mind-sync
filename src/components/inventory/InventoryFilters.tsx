@@ -285,7 +285,7 @@ export function InventoryFilters({ filters, onFiltersChange }: InventoryFiltersP
                 onChange={(e) => setLocalSnSearch(e.target.value)}
                 onKeyDown={(e) => {
                   if (e.key === "Enter") {
-                    onFiltersChange({ ...filters, snSearch: localSnSearch });
+                    handleSearchSubmit();
                   }
                 }}
                 className="pl-9 h-10 bg-background focus-visible:ring-2 focus-visible:ring-primary/50"
@@ -294,15 +294,13 @@ export function InventoryFilters({ filters, onFiltersChange }: InventoryFiltersP
           </div>
           <div className="flex gap-2 shrink-0">
             <Button
-              onClick={() => {
-                handleSearchSubmit();
-                onFiltersChange({ ...filters, snSearch: localSnSearch });
-              }}
+              onClick={handleSearchSubmit}
               className="h-10 px-4"
             >
               <Search className="h-4 w-4 mr-2" />
               ค้นหา
             </Button>
+
             {hasActiveFilters && (
               <Button variant="outline" size="icon" className="h-10 w-10" onClick={handleClearFilters}>
                 <X className="h-4 w-4" />
