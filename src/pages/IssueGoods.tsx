@@ -15,7 +15,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Search, Package, Clock, CheckCircle, XCircle, MapPin, AlertTriangle, Calendar, Image, Warehouse, ChevronDown, ChevronUp, ShoppingCart, Hash } from "lucide-react";
+import { Search, Package, Clock, CheckCircle, XCircle, MapPin, AlertTriangle, Calendar, Image, Warehouse, ChevronDown, ChevronUp, ShoppingCart, Hash, ExternalLink, Info } from "lucide-react";
 import { format, differenceInDays } from "date-fns";
 import { th } from "date-fns/locale";
 import { useAuth } from "@/hooks/useAuth";
@@ -1250,7 +1250,7 @@ const IssueGoods = () => {
 
       {/* Issue Item Dialog - Fixed without scrollbar */}
       <Dialog open={itemIssueDialogOpen} onOpenChange={setItemIssueDialogOpen}>
-        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>จ่ายสินค้า - {selectedItem?.equipment_code || selectedItem?.equipment_name}</DialogTitle>
           </DialogHeader>
@@ -1291,6 +1291,22 @@ const IssueGoods = () => {
                     ระบุ S/N และป้ายโฆษณาต่อเครื่อง ({mpUnitAssignments.length} เครื่อง)
                     {candidates[0]?.device_type && <DeviceTypeBadge value={candidates[0].device_type} />}
                   </Label>
+                  <div className="flex items-start gap-2 p-2 rounded-md border border-amber-200 bg-amber-50 text-xs text-amber-900">
+                    <Info className="h-4 w-4 mt-0.5 shrink-0" />
+                    <div className="flex-1">
+                      ไม่พบ S/N ที่ต้องการ? อาจยังไม่ได้บันทึก S/N ตอนรับเข้าคลัง — เปิดหน้า Media Player Profile เพื่อเพิ่ม/แก้ไข S/N ได้
+                    </div>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      className="h-7 gap-1 border-amber-300 bg-white hover:bg-amber-100"
+                      onClick={() => window.open(`/media-player/search?code=${encodeURIComponent(selectedItem?.equipment_code || "")}`, "_blank")}
+                    >
+                      เพิ่ม/แก้ไข S/N
+                      <ExternalLink className="h-3 w-3" />
+                    </Button>
+                  </div>
                   <div className="border rounded-lg divide-y">
                     {mpUnitAssignments.map((u, idx) => {
                       // Allowed list = not already picked by other rows
