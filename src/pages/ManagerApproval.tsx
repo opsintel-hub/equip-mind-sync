@@ -297,6 +297,41 @@ const ManagerApproval = () => {
     );
   }
 
+  const hasShortage = (req: any): boolean => {
+    const items = getItemsForRequest(req.id);
+    return items.some((item: any) => {
+      const info = getStockInfo(item);
+      const stock = info?.quantity;
+      return stock !== undefined && stock !== null && Number(stock) < Number(item.quantity || 0);
+    });
+  };
+
+  const handleCreateShortagePR = async (req: any) => {
+    const items = getItemsForRequest(req.id);
+    let created = 0;
+    for (const item of items) {
+      const info = getStockInfo(item);
+      const stock = Number(info?.quantity ?? 0);
+      const qty = Number(item.quantity || 0);
+      if (stock >= qty) continue;
+      if (item.is_media_player || item.media_player_id) continue; // skip MP
+      if (!item.equipment_id) continue;
+      const { data, error } = await supabase.rpc("create_pr_from_shortage", {
+        _equipment_id: item.equipment_id,
+        _is_media_player: false,
+        _equipment_code: item.equipment_code,
+        _equipment_name: item.equipment_name,
+        _requested_qty: qty,
+        _available_qty: stock,
+        _requester_name: req.requester_name || "-",
+        _unit: item.unit || "ชิ้น",
+      });
+      if (!error && (data as any)?.success) created++;
+    }
+    if (created > 0) toast.success(`สร้าง/อัปเดตใบขอซื้อ ${created} รายการ — จัดซื้อจะดำเนินการต่อ`);
+    else toast.info("ไม่มีรายการที่ต้องสร้าง PR (หรือเป็น Media Player)");
+  };
+
   const renderRequestRow = (req: any, showActions: boolean) => {
     const items = getItemsForRequest(req.id);
     const isExpanded = expandedRequests.has(req.id);
