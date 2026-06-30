@@ -42,6 +42,17 @@ const MediaPlayerProfile = () => {
     else setShowSearch(true);
   }, [id]);
 
+  const refetchImages = async (playerId?: string) => {
+    const pid = playerId || player?.id;
+    if (!pid) return;
+    const { data: imgs } = await supabase
+      .from("media_player_images" as any)
+      .select("image_url")
+      .eq("media_player_id", pid)
+      .order("display_order");
+    setImages((imgs || []).map((i: any) => i.image_url));
+  };
+
   const loadPlayer = async (playerId: string) => {
     setIsLoading(true);
     setShowSearch(false);
