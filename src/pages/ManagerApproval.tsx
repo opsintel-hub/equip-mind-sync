@@ -461,6 +461,28 @@ const ManagerApproval = () => {
                           <TableCell>
                             {item.equipment_name}
                             {item.notes && <div className="text-xs text-muted-foreground">📝 {item.notes}</div>}
+                            {(() => {
+                              const mpInfo = item.media_player_id ? mpMap?.[item.media_player_id] : null;
+                              const dept = mpInfo?.department;
+                              return (
+                                <div className="mt-1">
+                                  <SubMediaTypeBadge
+                                    department={dept}
+                                    subMediaType={item.sub_media_type}
+                                    showPlaceholder
+                                    onEdit={async (next) => {
+                                      const { error } = await supabase
+                                        .from("goods_issue_pending_items")
+                                        .update({ sub_media_type: next } as any)
+                                        .eq("id", item.id);
+                                      if (error) { toast.error(error.message); return; }
+                                      toast.success("อัปเดต Sub Media Type แล้ว");
+                                      queryClient.invalidateQueries({ queryKey: ["approval-items"] });
+                                    }}
+                                  />
+                                </div>
+                              );
+                            })()}
                           </TableCell>
                           <TableCell className="text-xs whitespace-pre-line">{item.serial_number || "-"}</TableCell>
                           <TableCell className="text-right">{qty.toLocaleString()} {item.unit}</TableCell>
