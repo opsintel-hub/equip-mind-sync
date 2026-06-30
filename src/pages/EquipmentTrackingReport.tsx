@@ -40,6 +40,19 @@ function daysSince(dateStr: string | null) {
   return `${differenceInDays(new Date(), new Date(dateStr))} วัน`;
 }
 
+function durationSince(dateStr: string | null) {
+  if (!dateStr) return "-";
+  const days = differenceInDays(new Date(), new Date(dateStr));
+  if (days < 0) return "-";
+  if (days < 30) return `${days} วัน`;
+  const months = Math.floor(days / 30);
+  const remDays = days - months * 30;
+  if (months < 12) return `${months} เดือน ${remDays} วัน`;
+  const years = Math.floor(months / 12);
+  const remMonths = months - years * 12;
+  return `${years} ปี ${remMonths} เดือน`;
+}
+
 function fmtDate(dateStr: string | null) {
   if (!dateStr) return "-";
   return format(new Date(dateStr), "dd MMM yyyy", { locale: th });
