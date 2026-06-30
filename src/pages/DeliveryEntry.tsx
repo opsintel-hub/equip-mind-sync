@@ -132,6 +132,7 @@ const DeliveryEntry = () => {
       unit_price: number | null;
       specification: string | null;
       usage_lifespan_months: number | null;
+      device_type?: string | null;
     }[]
   >([]);
   const [categories, setCategories] = useState<Category[]>([]);

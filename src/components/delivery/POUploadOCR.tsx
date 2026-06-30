@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { SearchableSelect } from "@/components/ui/searchable-select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { FileText, Upload, Loader2, CheckCircle2, AlertTriangle, X, ScanLine } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -56,6 +57,7 @@ export interface POOCRItem {
   matched_equipment_code?: string | null;
   matched_equipment_name?: string | null;
   matched_is_media_player?: boolean;
+  device_kind?: "MEDIA_PLAYER" | "MONITOR" | "EQUIPMENT";
   match_status?: "matched" | "not_found" | "new";
 }
 
@@ -104,7 +106,16 @@ interface MediaPlayer {
   code: string;
   name: string;
   unit_price?: number | null;
+  device_type?: string | null;
 }
+
+type DeviceKind = "MEDIA_PLAYER" | "MONITOR" | "EQUIPMENT";
+
+const KIND_LABELS: Record<DeviceKind, string> = {
+  MEDIA_PLAYER: "Media Player",
+  MONITOR: "จอภาพ (Monitor)",
+  EQUIPMENT: "สินค้า/อุปกรณ์",
+};
 
 interface POUploadOCRProps {
   open: boolean;
@@ -144,6 +155,8 @@ export function POUploadOCR({
   const [comment, setComment] = useState("");
   const [items, setItems] = useState<POOCRItem[]>([]);
   const [fieldMapping, setFieldMapping] = useState<Record<string, string>>(DEFAULT_FIELD_MAPPING);
+  const [bulkKind, setBulkKind] = useState<DeviceKind>("MEDIA_PLAYER");
+  const [bulkCodeId, setBulkCodeId] = useState<string>("");
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -322,6 +335,9 @@ export function POUploadOCR({
     };
   };
 
+  const mpKind = (m: MediaPlayer): DeviceKind =>
+    String(m.device_type || "").toUpperCase() === "MONITOR" ? "MONITOR" : "MEDIA_PLAYER";
+
   const matchEquipmentItems = (ocrItems: POOCRItem[]) => {
     return ocrItems.map((rawItem) => {
       const item = parseFieldsFromDescription(rawItem);
@@ -337,6 +353,7 @@ export function POUploadOCR({
             matched_equipment_code: found.code,
             matched_equipment_name: found.name,
             matched_is_media_player: false,
+            device_kind: "EQUIPMENT" as DeviceKind,
             match_status: "matched" as const,
           };
         }
@@ -350,11 +367,19 @@ export function POUploadOCR({
             matched_equipment_code: foundMp.code,
             matched_equipment_name: foundMp.name,
             matched_is_media_player: true,
+            device_kind: mpKind(foundMp),
             match_status: "matched" as const,
           };
         }
       }
-      return { ...item, match_status: "not_found" as const };
+      // Default kind guess: if description mentions monitor/จอ → MONITOR, else EQUIPMENT
+      const desc = (item.description || "").toLowerCase();
+      const guess: DeviceKind = /monitor|จอภาพ|จอ\s|จอ$|display|screen/i.test(desc)
+        ? "MONITOR"
+        : /media\s*player|มีเดีย/i.test(desc)
+        ? "MEDIA_PLAYER"
+        : "EQUIPMENT";
+      return { ...item, device_kind: guess, match_status: "not_found" as const };
     });
   };
 
@@ -429,7 +454,27 @@ export function POUploadOCR({
               matched_equipment_code: eq?.code || mp?.code || null,
               matched_equipment_name: eq?.name || mp?.name || null,
               matched_is_media_player: !!mp,
+              device_kind: eq ? "EQUIPMENT" : mp ? mpKind(mp) : item.device_kind,
               match_status: equipmentId ? "matched" : "not_found",
+            }
+          : item
+      )
+    );
+  };
+
+  const handleItemKindChange = (index: number, kind: DeviceKind) => {
+    setItems((prev) =>
+      prev.map((item, i) =>
+        i === index
+          ? {
+              ...item,
+              device_kind: kind,
+              // Clear match if previous selection no longer fits new kind
+              matched_equipment_id: null,
+              matched_equipment_code: null,
+              matched_equipment_name: null,
+              matched_is_media_player: kind !== "EQUIPMENT",
+              match_status: "not_found",
             }
           : item
       )
@@ -476,18 +521,25 @@ export function POUploadOCR({
     label: d.name,
   }));
 
-  const equipmentOptions = [
-    ...equipment.map((e) => ({
-      value: e.id,
-      label: `${e.code} - ${e.name}`,
-      description: `${e.unit} | ฿${e.unit_price.toLocaleString()}`,
-    })),
-    ...mediaPlayers.map((m) => ({
-      value: m.id,
-      label: `${m.code} - ${m.name}`,
-      description: `Media Player${m.unit_price ? ` | ฿${Number(m.unit_price).toLocaleString()}` : ""}`,
-    })),
-  ];
+  const buildOptionsForKind = (kind: DeviceKind | undefined) => {
+    const k = kind || "EQUIPMENT";
+    if (k === "EQUIPMENT") {
+      return equipment.map((e) => ({
+        value: e.id,
+        label: `${e.code} - ${e.name}`,
+        description: `${e.unit}${e.unit_price ? ` | ฿${e.unit_price.toLocaleString()}` : ""}`,
+        searchableText: `${e.code} ${e.name}`,
+      }));
+    }
+    return mediaPlayers
+      .filter((m) => mpKind(m) === k)
+      .map((m) => ({
+        value: m.id,
+        label: `${m.code} - ${m.name}`,
+        description: `${KIND_LABELS[k]}${m.unit_price ? ` | ฿${Number(m.unit_price).toLocaleString()}` : ""}`,
+        searchableText: `${m.code} ${m.name}`,
+      }));
+  };
 
   return (
     <Dialog
@@ -698,40 +750,52 @@ export function POUploadOCR({
                   <Label className="font-semibold text-sm">
                     รายการสินค้า ({items.length} รายการ)
                   </Label>
-                  {mediaPlayers.length > 0 && (
-                    <div className="flex items-center gap-2">
-                      <Label className="text-xs whitespace-nowrap">ตั้งรหัส Media Player ให้ทุกรายการ:</Label>
-                      <div className="w-64">
-                        <SearchableSelect
-                          options={mediaPlayers.map((m) => ({
-                            value: m.id,
-                            label: `${m.code} - ${m.name}`,
-                            description: "Media Player",
-                          }))}
-                          value=""
-                          onValueChange={(v) => {
-                            const mp = mediaPlayers.find((m) => m.id === v);
-                            if (!mp) return;
-                            setItems((prev) =>
-                              prev.map((it) => ({
-                                ...it,
-                                matched_equipment_id: mp.id,
-                                matched_equipment_code: mp.code,
-                                matched_equipment_name: mp.name,
-                                matched_is_media_player: true,
-                                match_status: "matched" as const,
-                              }))
-                            );
-                            toast.success(`ตั้งรหัส ${mp.code} ให้ทุกรายการแล้ว`);
-                          }}
-                          placeholder="เลือก MP เพื่อใช้กับทุกรายการ..."
-                          searchPlaceholder="ค้นหา MP..."
-                          emptyMessage="ไม่พบ"
-                          triggerClassName="h-8 text-xs"
-                        />
-                      </div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Label className="text-xs whitespace-nowrap">ตั้งรหัสให้ทุกรายการ:</Label>
+                    <Select
+                      value={bulkKind}
+                      onValueChange={(v) => { setBulkKind(v as DeviceKind); setBulkCodeId(""); }}
+                    >
+                      <SelectTrigger className="h-8 w-[160px] text-xs">
+                        <SelectValue placeholder="เลือกประเภท" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="MEDIA_PLAYER">{KIND_LABELS.MEDIA_PLAYER}</SelectItem>
+                        <SelectItem value="MONITOR">{KIND_LABELS.MONITOR}</SelectItem>
+                        <SelectItem value="EQUIPMENT">{KIND_LABELS.EQUIPMENT}</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <div className="w-64">
+                      <SearchableSelect
+                        options={buildOptionsForKind(bulkKind)}
+                        value={bulkCodeId}
+                        onValueChange={(v) => {
+                          setBulkCodeId(v);
+                          const eq = equipment.find((e) => e.id === v);
+                          const mp = !eq ? mediaPlayers.find((m) => m.id === v) : null;
+                          if (!eq && !mp) return;
+                          const code = eq?.code || mp?.code || "";
+                          const name = eq?.name || mp?.name || "";
+                          setItems((prev) =>
+                            prev.map((it) => ({
+                              ...it,
+                              matched_equipment_id: v,
+                              matched_equipment_code: code,
+                              matched_equipment_name: name,
+                              matched_is_media_player: !!mp,
+                              device_kind: bulkKind,
+                              match_status: "matched" as const,
+                            }))
+                          );
+                          toast.success(`ตั้งรหัส ${code} (${KIND_LABELS[bulkKind]}) ให้ทุกรายการแล้ว`);
+                        }}
+                        placeholder={`เลือกรหัส${KIND_LABELS[bulkKind]}...`}
+                        searchPlaceholder="ค้นหา (รหัส / ชื่อ)..."
+                        emptyMessage="ไม่พบรหัสในประเภทนี้"
+                        triggerClassName="h-8 text-xs"
+                      />
                     </div>
-                  )}
+                  </div>
                 </div>
                 <div className="border rounded-lg overflow-auto max-h-[60vh]">
                   <Table>
@@ -748,7 +812,7 @@ export function POUploadOCR({
                         <TableHead className="w-[90px] text-right">รับประกัน (ปี)</TableHead>
                         <TableHead className="w-[170px]">ผู้ดูแล</TableHead>
                         <TableHead className="w-[220px]">Location ตามแผน</TableHead>
-                        <TableHead className="w-[200px]">Match สินค้า</TableHead>
+                        <TableHead className="w-[260px]">เลือกประเภท + รหัสสินค้าที่ตรงกัน</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -819,13 +883,26 @@ export function POUploadOCR({
                           </TableCell>
                           <TableCell>
                             <div className="space-y-1">
+                              <Select
+                                value={item.device_kind || "EQUIPMENT"}
+                                onValueChange={(v) => handleItemKindChange(idx, v as DeviceKind)}
+                              >
+                                <SelectTrigger className="h-7 text-[11px]">
+                                  <SelectValue placeholder="ประเภท" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="MEDIA_PLAYER">{KIND_LABELS.MEDIA_PLAYER}</SelectItem>
+                                  <SelectItem value="MONITOR">{KIND_LABELS.MONITOR}</SelectItem>
+                                  <SelectItem value="EQUIPMENT">{KIND_LABELS.EQUIPMENT}</SelectItem>
+                                </SelectContent>
+                              </Select>
                               <SearchableSelect
-                                options={equipmentOptions}
+                                options={buildOptionsForKind(item.device_kind)}
                                 value={item.matched_equipment_id || ""}
                                 onValueChange={(v) => handleItemEquipmentChange(idx, v)}
-                                placeholder="เลือกสินค้า..."
-                                searchPlaceholder="ค้นหา..."
-                                emptyMessage="ไม่พบ"
+                                placeholder={`เลือกรหัส${KIND_LABELS[item.device_kind || "EQUIPMENT"]}...`}
+                                searchPlaceholder="ค้นหา (รหัส / ชื่อ)..."
+                                emptyMessage="ไม่พบรหัสในประเภทนี้"
                                 triggerClassName="h-8 text-xs"
                               />
                               {item.match_status === "matched" && (
@@ -833,7 +910,7 @@ export function POUploadOCR({
                                   <CheckCircle2 className="w-3 h-3 shrink-0" />
                                   <span className="truncate">
                                     Auto: {item.matched_equipment_code}
-                                    {item.matched_is_media_player ? " (MP)" : ""}
+                                    {item.matched_is_media_player ? ` (${KIND_LABELS[item.device_kind || "MEDIA_PLAYER"]})` : ""}
                                   </span>
                                 </div>
                               )}
