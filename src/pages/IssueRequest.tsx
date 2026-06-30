@@ -1830,6 +1830,14 @@ const IssueRequest = () => {
               </TableBody>
             </Table>
           </div>
+          <TablePagination
+            currentPage={historyPagination.currentPage}
+            totalPages={historyPagination.totalPages}
+            totalItems={historyPagination.totalItems}
+            pageSize={historyPagination.pageSize}
+            onPageChange={historyPagination.handlePageChange}
+            onPageSizeChange={historyPagination.handlePageSizeChange}
+          />
         </CardContent>
       </Card>
 
