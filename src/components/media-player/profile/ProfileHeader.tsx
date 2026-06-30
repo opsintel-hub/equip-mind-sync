@@ -5,12 +5,13 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Monitor, QrCode, Download, Printer, ChevronLeft, ChevronRight, X, Move, RotateCcw } from "lucide-react";
+import { Monitor, QrCode, Download, Printer, ChevronLeft, ChevronRight, X, Move, RotateCcw, Camera, ExternalLink } from "lucide-react";
 import QRCodeSVG from "react-qr-code";
 import { MediaPlayerRow } from "./types";
 import { getConditionDisplay } from "./constants";
 import { getPublicBaseUrl } from "@/lib/publicUrl";
 import { DeviceTypeBadge } from "@/components/media-player/DeviceTypeBadge";
+import { MediaPlayerImageUpload } from "@/components/media-player/MediaPlayerImageUpload";
 
 type StickerOptions = {
   widthMm: number;
@@ -67,12 +68,15 @@ interface ProfileHeaderProps {
   modelName: string;
   statusLabel: string;
   images: string[];
+  editable?: boolean;
+  onImagesChange?: () => void;
 }
 
-export function ProfileHeader({ player, modelName, statusLabel, images }: ProfileHeaderProps) {
+export function ProfileHeader({ player, modelName, statusLabel, images, editable = false, onImagesChange }: ProfileHeaderProps) {
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(0);
   const [qrOpen, setQrOpen] = useState(false);
+  const [uploadOpen, setUploadOpen] = useState(false);
   const previewCanvasRef = useRef<HTMLCanvasElement>(null);
   const condition = getConditionDisplay(player.item_condition);
 
@@ -325,8 +329,16 @@ export function ProfileHeader({ player, modelName, statusLabel, images }: Profil
                   onClick={() => openLightbox(0)}
                 />
               ) : (
-                <div className="w-40 h-40 bg-muted rounded-xl flex items-center justify-center">
-                  <Monitor className="w-16 h-16 text-muted-foreground/30" />
+                <div
+                  className={`w-40 h-40 bg-muted rounded-xl flex flex-col items-center justify-center gap-2 ${editable ? "cursor-pointer hover:bg-muted/70 transition-colors" : ""}`}
+                  onClick={() => editable && setUploadOpen(true)}
+                >
+                  <Monitor className="w-12 h-12 text-muted-foreground/30" />
+                  {editable && (
+                    <span className="text-xs text-muted-foreground flex items-center gap-1">
+                      <Camera className="w-3 h-3" /> เพิ่มรูปภาพ
+                    </span>
+                  )}
                 </div>
               )}
               {images.length > 1 && (
@@ -340,15 +352,18 @@ export function ProfileHeader({ player, modelName, statusLabel, images }: Profil
                       onClick={() => openLightbox(i + 1)}
                     />
                   ))}
-                  {images.length > 5 && (
-                    <button
-                      className="w-9 h-9 flex items-center justify-center bg-muted rounded text-xs text-muted-foreground hover:bg-accent transition-colors"
-                      onClick={() => openLightbox(5)}
-                    >
-                      +{images.length - 5}
-                    </button>
-                  )}
                 </div>
+              )}
+              {editable && images.length > 0 && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="mt-2 w-40 h-7 text-xs gap-1"
+                  onClick={() => setUploadOpen(true)}
+                >
+                  <Camera className="w-3.5 h-3.5" />
+                  จัดการรูปภาพ ({images.length}/5)
+                </Button>
               )}
             </div>
 
@@ -577,14 +592,27 @@ export function ProfileHeader({ player, modelName, statusLabel, images }: Profil
               <img
                 src={images[lightboxIndex]}
                 alt={`${player.code} - ${lightboxIndex + 1}`}
-                className="max-h-[80vh] max-w-full object-contain"
+                className="max-h-[85vh] max-w-full object-contain cursor-zoom-in"
+                onClick={() => window.open(images[lightboxIndex], "_blank")}
               />
-              <button
-                onClick={() => setLightboxOpen(false)}
-                className="absolute top-3 right-3 text-white/80 hover:text-white bg-black/40 rounded-full p-2"
-              >
-                <X className="w-5 h-5" />
-              </button>
+              <div className="absolute top-3 right-3 flex gap-2">
+                <a
+                  href={images[lightboxIndex]}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-white/80 hover:text-white bg-black/40 rounded-full p-2 flex items-center gap-1 text-xs"
+                  title="เปิดภาพต้นฉบับในแท็บใหม่"
+                >
+                  <ExternalLink className="w-4 h-4" />
+                  ต้นฉบับ
+                </a>
+                <button
+                  onClick={() => setLightboxOpen(false)}
+                  className="text-white/80 hover:text-white bg-black/40 rounded-full p-2"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
               {images.length > 1 && (
                 <>
                   <button
@@ -607,6 +635,18 @@ export function ProfileHeader({ player, modelName, statusLabel, images }: Profil
             </div>
           </DialogContent>
         </Dialog>
+      )}
+
+      {/* Image Upload Dialog */}
+      {editable && uploadOpen && (
+        <MediaPlayerImageUpload
+          mediaPlayerId={player.id}
+          mediaPlayerCode={player.code}
+          onClose={() => {
+            setUploadOpen(false);
+            onImagesChange?.();
+          }}
+        />
       )}
     </>
   );

@@ -42,6 +42,17 @@ const MediaPlayerProfile = () => {
     else setShowSearch(true);
   }, [id]);
 
+  const refetchImages = async (playerId?: string) => {
+    const pid = playerId || player?.id;
+    if (!pid) return;
+    const { data: imgs } = await supabase
+      .from("media_player_images" as any)
+      .select("image_url")
+      .eq("media_player_id", pid)
+      .order("display_order");
+    setImages((imgs || []).map((i: any) => i.image_url));
+  };
+
   const loadPlayer = async (playerId: string) => {
     setIsLoading(true);
     setShowSearch(false);
@@ -93,12 +104,9 @@ const MediaPlayerProfile = () => {
     }
 
     // Images
-    const { data: imgs } = await supabase
-      .from("media_player_images" as any)
-      .select("image_url")
-      .eq("media_player_id", playerId)
-      .order("display_order");
-    setImages((imgs || []).map((i: any) => i.image_url));
+    await refetchImages(playerId);
+
+
 
     // Billboard journey (history + current + fallback from media_players)
     const { data: history } = await supabase
@@ -299,7 +307,14 @@ const MediaPlayerProfile = () => {
       {/* Player Profile */}
       {player && (
         <div ref={profileRef} className="space-y-6">
-          <ProfileHeader player={player} modelName={modelName} statusLabel={statusLabel} images={images} />
+          <ProfileHeader
+            player={player}
+            modelName={modelName}
+            statusLabel={statusLabel}
+            images={images}
+            editable
+            onImagesChange={() => refetchImages(player.id)}
+          />
 
           <Tabs defaultValue="general" className="w-full">
             <TabsList className="inline-flex h-auto p-1.5 gap-1 bg-muted/60 backdrop-blur rounded-xl border border-border/50 shadow-sm">

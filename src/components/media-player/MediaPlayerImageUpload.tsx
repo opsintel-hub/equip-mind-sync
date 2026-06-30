@@ -27,7 +27,7 @@ export function MediaPlayerImageUpload({ mediaPlayerId, mediaPlayerCode, onClose
   const [isUploading, setIsUploading] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
-  const MAX_IMAGES = 10;
+  const MAX_IMAGES = 5;
 
   useEffect(() => {
     fetchImages();
@@ -152,8 +152,8 @@ export function MediaPlayerImageUpload({ mediaPlayerId, mediaPlayerCode, onClose
             <Camera className="h-5 w-5" />
             Upload ภาพ Media Player — {mediaPlayerCode}
           </DialogTitle>
-          <p className="text-sm text-muted-foreground">
-            อัปโหลดได้สูงสุด {MAX_IMAGES} รูป (ปัจจุบัน {existingImages.length}/{MAX_IMAGES})
+          <p className="text-sm text-amber-600 font-medium">
+            ⚠ อัปโหลดได้ไม่เกิน {MAX_IMAGES} ภาพ (ปัจจุบัน {existingImages.length}/{MAX_IMAGES})
           </p>
         </DialogHeader>
 

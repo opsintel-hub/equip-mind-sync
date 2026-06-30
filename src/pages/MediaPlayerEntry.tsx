@@ -302,9 +302,9 @@ const MediaPlayerEntry = () => {
   const handleFormImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     if (files.length === 0) return;
-    const maxNew = 10 - formImages.length;
+    const maxNew = 5 - formImages.length;
     if (maxNew <= 0) {
-      toast.error("อัปโหลดได้สูงสุด 10 รูป");
+      toast.error("อัปโหลดได้สูงสุด 5 รูป");
       return;
     }
     const newFiles = files.slice(0, maxNew);
@@ -650,8 +650,8 @@ const MediaPlayerEntry = () => {
                   <Camera className="w-5 h-5" />
                   Upload ภาพ Media Player *
                 </CardTitle>
-                <CardDescription>
-                  อัปโหลดรูปภาพเครื่อง Media Player (สูงสุด 10 รูป) — จำเป็นต้องมีอย่างน้อย 1 รูป
+                <CardDescription className="text-amber-600 font-medium">
+                  ⚠ อัปโหลดได้ไม่เกิน 5 ภาพ — จำเป็นต้องมีอย่างน้อย 1 รูป
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -662,13 +662,13 @@ const MediaPlayerEntry = () => {
                   onChange={handleFormImageSelect}
                   className="hidden"
                   id="form-mp-image-upload"
-                  disabled={formImages.length >= 10}
+                  disabled={formImages.length >= 5}
                 />
                 <label htmlFor="form-mp-image-upload">
                   <div className="border-2 border-dashed rounded-lg p-6 text-center cursor-pointer hover:bg-muted/50 transition-colors">
                     <ImageIcon className="h-10 w-10 mx-auto text-muted-foreground mb-2" />
                     <p className="text-sm text-muted-foreground">
-                      คลิกเพื่อเลือกรูปภาพ (เพิ่มได้อีก {10 - formImages.length} รูป)
+                      คลิกเพื่อเลือกรูปภาพ (เพิ่มได้อีก {5 - formImages.length} รูป)
                     </p>
                   </div>
                 </label>
