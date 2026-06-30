@@ -302,9 +302,9 @@ const MediaPlayerEntry = () => {
   const handleFormImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     if (files.length === 0) return;
-    const maxNew = 10 - formImages.length;
+    const maxNew = 5 - formImages.length;
     if (maxNew <= 0) {
-      toast.error("อัปโหลดได้สูงสุด 10 รูป");
+      toast.error("อัปโหลดได้สูงสุด 5 รูป");
       return;
     }
     const newFiles = files.slice(0, maxNew);
