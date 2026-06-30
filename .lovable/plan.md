@@ -1,60 +1,57 @@
-## ปัญหา
 
-ภาพในการ์ด **MP-POOK 0007 / S/N BBB0010** เป็นภาพ "ตัวแทน" ที่ถูก clone มาจากเครื่องต้นแบบตอน Receive Goods ไม่ใช่ภาพถ่ายของเครื่องจริง และไม่มีจุดให้แก้/เพิ่มภาพเฉพาะรายเครื่อง
+## เป้าหมาย
+ฝ่าย **7-Eleven Media** มีคุณสมบัติพิเศษคือ `sub_media_type` (TOPSHELF_1/2/3, SPECIAL_1/2, OVERVAULT_1/2, OPENTYPE_1/2) ปัจจุบันแสดงและกรอกไม่ครบ flow ต้องทำให้:
+1. แสดงทุกหน้าที่เห็น MP/Monitor (ทั้ง `media_player` และ `monitor`)
+2. กรอก/แก้ไขได้ทุกขั้นตอนของ flow (ไม่ล็อค — เพราะหน้างานอาจเปลี่ยนตำแหน่งติดตั้งเมื่อไหร่ก็ได้)
+3. ค่าไหลต่อกันเป็น flow — ขั้นถัดไป default จากขั้นก่อนหน้า แต่แก้ได้
 
-## Flow ภาพปัจจุบัน
+## Flow การกรอก/แก้ไข (สำคัญสุด — ส่วนที่ขาด)
 
 ```text
-[Master Data → Media Player Setup]
-  └─ Upload ภาพ ← จุดเดียวที่ทำได้ตอนนี้
-        │
-        ▼  สร้าง master, quantity=0
-[Delivery Entry / Receive Goods]
-  └─ คีย์ S/N → clone master เป็น row ต่อ S/N
-     ★ ภาพถูก copy ไปทุกใบ → ทุก S/N โชว์ภาพเดียวกัน
-        │
-        ▼
-[แสดงผล]
-  ├─ Media Player Profile (/media-player/:id)
-  ├─ Public QR view (/p/media-player/:id)
-  ├─ Inventory Report (ปุ่มดูภาพ)
-  └─ Media Player Report
+Master MP Entry → Receive Goods → Issue Request (เบิก) → Manager Approval (อนุมัติ) → Issue Goods (จ่าย) → Billboard Detail (ติดตั้ง) → Swap/Defective/Assessment
+   [กรอกได้]        [กรอกได้]         [กรอกได้★ใหม่]        [แก้ไขได้★ใหม่]         [แก้ไขได้]          [แก้ไขได้★ใหม่]        [แสดง+แก้ไขได้★ใหม่]
 ```
 
-## สิ่งที่จะแก้
+### จุดที่จะเพิ่มการ "กรอก/แก้ไข" (ไม่ใช่แค่แสดง)
+- **`src/pages/IssueRequest.tsx` (เบิก)** — ในรายการสินค้า MP/Monitor ฝ่าย 7-Eleven ใส่ `SubMediaTypeSelect` ให้ผู้เบิกเลือกตำแหน่งที่ตั้งใจติดตั้ง (default จาก master ถ้ามี) บันทึกลง `goods_issue_pending_items.sub_media_type`
+- **`src/pages/ManagerApproval.tsx` (อนุมัติ)** — ใน expanded row แสดงค่าที่ผู้เบิกระบุ + **แก้ไขได้ inline** ก่อนกดอนุมัติ
+- **`src/pages/IssueGoods.tsx` (จ่าย)** — มี select แล้ว แต่ปรับให้ default มาจากค่าที่ผ่านการอนุมัติ (ไม่ใช่จาก master เดิม) และ**ไม่บังคับ block** หากเครื่องไม่มีค่า (เปลี่ยนจาก required เป็น warning) เพื่อให้แก้หน้างานได้
+- **`src/pages/BillboardDetail.tsx`** — ในรายการ MP ที่ติดตั้งบนป้าย เพิ่มปุ่มดินสอเล็ก inline แก้ `sub_media_type` ได้ (กรณีย้ายตำแหน่งบนป้ายเดียวกัน)
+- **`src/components/swap/SwapWizardDialog.tsx`** — ตอนเลือกเครื่องใหม่ ให้ default จากเครื่องเดิม + แก้ไขได้
+- **`src/pages/DefectiveReturnEntry.tsx` / `AssessmentLog.tsx`** — แสดง badge + ปุ่มแก้ไข inline (กรณีเครื่องกลับมาแล้วต้องเปลี่ยนตำแหน่งใหม่)
 
-### 1. เปลี่ยน limit ภาพจาก 10 → 5 ทั้งระบบ
-- แก้ `MAX_IMAGES = 5` ใน `MediaPlayerImageUpload.tsx`
-- ปรับข้อความ subtitle เป็น **"อัปโหลดได้สูงสุด 5 รูป"**
-- เพิ่ม inline hint สีส้มว่า **"⚠ อัปโหลดได้ไม่เกิน 5 ภาพ"**
-- ที่หน้า Master Setup (`MediaPlayerEntry.tsx`) ถ้ามีข้อความ/validation ที่อ้าง 10 รูป → แก้ตามให้ตรงกัน
+### Schema ที่ต้องเพิ่มคอลัมน์ (Migration)
+- `goods_issue_pending_items` — เพิ่ม `sub_media_type text null` (ปัจจุบันยังไม่มี — ทำให้ flow ขาดช่วงระหว่างเบิก→อนุมัติ)
+- ทุกที่ที่อ่าน/เขียน goods_issue_pending_items ปรับให้รวมคอลัมน์นี้
 
-### 2. เพิ่มปุ่มจัดการภาพในหน้า Media Player Profile
-- เพิ่มปุ่ม **"📷 จัดการรูปภาพ"** ใน `ProfileHeader.tsx` ข้างปุ่ม QR Code
-- เปิด `MediaPlayerImageUpload` ผูกกับ `media_player_id` ของเครื่องนั้น (ไม่ใช่ master)
-- หลังบันทึก refetch ภาพแล้วอัปเดต header ทันที
-- เฉพาะ user ที่มีสิทธิ์ (warehouse staff / admin); user ทั่วไป hide
-- Public QR view ไม่มีปุ่มนี้ (อ่านอย่างเดียว)
+## สิ่งที่จะทำ (รวม)
 
-### 3. แสดงภาพได้สูงสุด 5 ภาพ + คลิกดูภาพต้นฉบับ
-- ที่ `ProfileHeader.tsx` ถ้ามีหลายภาพ ให้แสดงเป็น thumbnail strip ใต้ภาพหลัก (สูงสุด 5)
-- คลิกภาพใดก็ได้ → เปิด **Lightbox** แสดงภาพขนาด **Original** (ใช้ `image_url` จาก storage โดยตรง ไม่ resize)
-- รองรับเลื่อนซ้าย/ขวา (← →), ปิดด้วย Esc, ปุ่มดาวน์โหลด/เปิดในแท็บใหม่
-- ถ้าไม่มีภาพ → placeholder + ปุ่ม "เพิ่มรูปภาพ" ตรงกลาง
+### 1. Migration
+เพิ่มคอลัมน์ `sub_media_type` ใน `goods_issue_pending_items` เพื่อให้ flow เบิก→อนุมัติ→จ่าย ส่งต่อค่าได้
 
-### 4. แสดง badge "ภาพต้นแบบ" (optional, ถ้าทำได้สะดวก)
-- ถ้าภาพยังเป็นชุดที่ clone มาจาก master (ตรวจจาก storage path prefix `{masterId}/...` ≠ id ปัจจุบัน) → แสดง badge เล็ก ๆ ใต้ภาพว่า **"ภาพต้นแบบ — แตะเพื่อแทนที่ด้วยภาพจริง"**
+### 2. Component กลาง `SubMediaTypeBadge`
+- ไฟล์ใหม่ `src/components/media-player/SubMediaTypeBadge.tsx`
+- Props: `department`, `subMediaType`, `size`, `onEdit?` (ถ้ามี → แสดงไอคอนดินสอเล็ก คลิกเปิด popover เลือกค่าใหม่)
+- คืน `null` ถ้าไม่ใช่ฝ่าย 7-Eleven Media
+- สี Brand 7-Eleven (เขียว/แดง/ส้ม) เด่นชัด
 
-## สิ่งที่ "ไม่" แก้
+### 3. เพิ่ม "แสดง" ในจุดที่ขาด
+โปรไฟล์: `MediaPlayerProfile.tsx`, `GeneralInfoTab.tsx`, `MediaPlayerPublicView.tsx`
+รายงาน: `EquipmentTrackingReport.tsx` (ทั้ง 2 Tab + Excel export), `InventoryReport.tsx` (+ Excel), `StockCard.tsx`
+ค้นหา: `GlobalSearch.tsx`, `ProfileSearch.tsx`
+Workflow: `IncompleteIssues.tsx`, `PendingAssetCodes.tsx`, `DeliveryDetailDialog.tsx`, `DeliveryConfirmation.tsx`, `SwapWarehouseReceive.tsx`, `SwapWizard.tsx` (ทั้ง 3 Tab), `DisposalApproval.tsx`, `ClaimTracker.tsx`
+Notifications: `NotificationCenter.tsx`, `PendingAssessmentAlerts.tsx`
+ปรับ `BillboardDetail.tsx` ที่มีอยู่แล้วให้ใช้ component กลาง
 
-- ไม่แตะตรรกะ clone ภาพตอน Receive Goods (เก็บ default ที่ดีไว้)
-- ไม่แตะ storage / RLS bucket
-- ไม่แตะหน้า Inventory Report / Media Player Report (ใช้ viewer เดิม)
+### 4. เพิ่ม "กรอก/แก้ไข" inline ตาม Flow ด้านบน (IssueRequest / ManagerApproval / IssueGoods / BillboardDetail / SwapWizardDialog / DefectiveReturnEntry / AssessmentLog)
 
-## ไฟล์ที่จะแก้
+### 5. ตรวจ Query Selects
+ทุก query ที่เพิ่ม badge/edit ต้อง select `sub_media_type` และ `department` มาด้วย
 
-- `src/components/media-player/MediaPlayerImageUpload.tsx` — `MAX_IMAGES = 5` + ข้อความ
-- `src/components/media-player/profile/ProfileHeader.tsx` — ปุ่มจัดการภาพ + thumbnail strip + Lightbox + badge
-- `src/pages/MediaPlayerProfile.tsx` — callback refetch หลังบันทึก
-- `src/pages/MediaPlayerEntry.tsx` — อัปเดตข้อความ "สูงสุด 5 รูป" ถ้ามี hardcoded 10
-- (ถ้ายังไม่มี Lightbox reusable) สร้าง `src/components/media-player/ImageLightbox.tsx` ใหม่ — modal เต็มจอ ภาพ original + nav
+## สิ่งที่จะ**ไม่**ทำ
+- ไม่ "บังคับ/ล็อค" ค่า — แก้ได้ทุกขั้นแม้กระทั่งหลังติดตั้งบนป้าย
+- ไม่เปลี่ยน workflow business logic อื่น
+- ไม่แตะ schema ตารางหลัก `media_players` (มี column อยู่แล้ว) นอกจาก `goods_issue_pending_items`
+
+## ผลลัพธ์
+ผู้ใช้เห็น sub_media_type ของฝ่าย 7-Eleven ตลอดทั้ง flow ตั้งแต่ master → เบิก → อนุมัติ → จ่าย → ติดตั้ง → swap/claim และสามารถแก้ไขได้ทุกจุดเพื่อรองรับการเปลี่ยนตำแหน่งหน้างาน
