@@ -808,11 +808,12 @@ function EquipmentViewTab() {
           </SelectContent>
         </Select>
         <Select value={installFilter} onValueChange={setInstallFilter}>
-          <SelectTrigger className="w-[160px]"><SelectValue placeholder="สถานะติดตั้ง" /></SelectTrigger>
+          <SelectTrigger className="w-[200px]"><SelectValue placeholder="สถานะติดตั้ง" /></SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">ทั้งหมด</SelectItem>
-            <SelectItem value="installed">ติดตั้งอยู่</SelectItem>
-            <SelectItem value="in_stock">ในคลัง</SelectItem>
+            <SelectItem value="all">ทั้งหมด (ทุกสถานะ)</SelectItem>
+            <SelectItem value="installed">เฉพาะที่ติดตั้งบนป้าย</SelectItem>
+            <SelectItem value="in_stock">เฉพาะที่อยู่ในคลัง</SelectItem>
+            <SelectItem value="pending">จ่ายแล้ว / รอระบุป้าย</SelectItem>
           </SelectContent>
         </Select>
         <Button variant="outline" size="sm" onClick={handleExport} className="gap-1">
