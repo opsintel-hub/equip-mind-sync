@@ -126,6 +126,7 @@ export function AssessmentCompleteDialog({ open, onOpenChange, log, onCompleted 
   const [defectiveAck, setDefectiveAck] = useState(false);
   const [defectiveAckReason, setDefectiveAckReason] = useState("");
   const [assessmentResultName, setAssessmentResultName] = useState<string>("");
+  const [docPreview, setDocPreview] = useState<{ url: string; title: string } | null>(null);
 
   // Fetch the name of the selected assessment result + derive outcome automatically
   useEffect(() => {
