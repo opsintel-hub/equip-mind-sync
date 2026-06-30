@@ -21,6 +21,7 @@ import { SearchableSelect } from "@/components/ui/searchable-select";
 import { EquipmentImageUpload } from "@/components/equipment/EquipmentImageUpload";
 import { useFunctionPermissions } from "@/hooks/useFunctionPermissions";
 import { formatBillboardLabel } from "@/lib/billboardUtils";
+import { PhotoGalleryDialog } from "@/components/ui/PhotoGalleryDialog";
 
 interface SwapRequest {
   id: string;
@@ -560,9 +561,10 @@ export default function SwapWizard() {
                               )}
                               <Badge variant="outline" className="font-mono text-xs">S/N: {req.reported_serial_number || "—"}</Badge>
                               {(req.reported_photos?.length ?? 0) > 0 && (
-                                <Badge variant="secondary" className="text-xs">
-                                  <Camera className="h-3 w-3 mr-1" /> {req.reported_photos!.length} รูป
-                                </Badge>
+                                <PhotoGalleryDialog
+                                  photos={req.reported_photos!}
+                                  title={`รูปประกอบ ${req.document_no}`}
+                                />
                               )}
                             </div>
                             {/* Row 2: Item */}

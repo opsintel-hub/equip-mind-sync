@@ -24,6 +24,7 @@ import { RepairCompleteDialog } from "@/components/assessment/RepairCompleteDial
 import { isMonitor } from "@/lib/deviceTypes";
 import { DeviceTypeBadge } from "@/components/media-player/DeviceTypeBadge";
 import { formatBillboardLabel } from "@/lib/billboardUtils";
+import { PhotoGalleryDialog } from "@/components/ui/PhotoGalleryDialog";
 
 interface AssessmentLog {
   id: string;
@@ -49,6 +50,7 @@ interface AssessmentLog {
   notes: string | null;
   created_at: string;
   repair_status?: string | null;
+  photo_urls?: string[] | null;
 }
 
 interface SubjectOption {
@@ -82,6 +84,7 @@ interface LogDetail {
   sub_media_type?: string | null;
   brand?: string | null;
   model?: string | null;
+  source_photos?: string[];
 }
 
 const SOURCE_LABELS: Record<string, string> = {
@@ -282,6 +285,34 @@ export default function AssessmentLog() {
             }
           }
         }
+
+        // Best-effort: enrich source photos for items originated from Swap
+        try {
+          const swapRefIds = Array.from(new Set(
+            rows
+              .filter((l) => l.source_type === "swap" && l.source_reference_id)
+              .map((l) => l.source_reference_id as string)
+          ));
+          if (swapRefIds.length) {
+            const { data: srs } = await supabase
+              .from("swap_requests")
+              .select("id, reported_photos")
+              .in("id", swapRefIds);
+            const photoMap = new Map<string, string[]>();
+            (srs || []).forEach((s: any) => photoMap.set(s.id, Array.isArray(s.reported_photos) ? s.reported_photos : []));
+            for (const log of rows) {
+              if (log.source_type === "swap" && log.source_reference_id) {
+                const arr = photoMap.get(log.source_reference_id);
+                if (arr && arr.length) {
+                  details[log.id] = { ...(details[log.id] || { code: "—", name: "—", serial: null }), source_photos: arr };
+                }
+              }
+            }
+          }
+        } catch {
+          // best-effort
+        }
+
         setLogDetails(details);
       } catch {
         // best-effort enrichment
@@ -661,6 +692,18 @@ export default function AssessmentLog() {
             {log.source_type && SOURCE_LABELS[log.source_type] && (
               <Badge variant="secondary" className="text-xs">{SOURCE_LABELS[log.source_type]}</Badge>
             )}
+            {(() => {
+              const photos = [
+                ...((detail?.source_photos) || []),
+                ...((log.photo_urls) || []),
+              ].filter(Boolean);
+              return photos.length > 0 ? (
+                <PhotoGalleryDialog
+                  photos={photos}
+                  title={`รูปประกอบ ${log.document_no}`}
+                />
+              ) : null;
+            })()}
           </div>
           {rejection && (
             <div className="text-xs text-destructive bg-destructive/10 rounded px-2 py-1 border border-destructive/20">

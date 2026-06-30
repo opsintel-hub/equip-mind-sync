@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import { format } from "date-fns";
 import { SimpleDepartmentSelect } from "@/components/equipment/SimpleDepartmentSelect";
 import { WarehouseLocationSelect } from "@/components/location/WarehouseLocationSelect";
+import { PhotoGalleryDialog } from "@/components/ui/PhotoGalleryDialog";
 
 interface PendingRow {
   id: string; // swap request id
@@ -27,6 +28,9 @@ interface PendingRow {
   return_location_label: string | null;
   technician_name: string | null;
   completed_at: string | null;
+  description: string | null;
+  symptom_other: string | null;
+  reported_photos: string[];
 }
 
 export function SwapWarehouseReceive() {
@@ -47,7 +51,7 @@ export function SwapWarehouseReceive() {
       // Find approved swap_executions whose old unit is still pending_warehouse_return
       const { data: execs, error } = await supabase
         .from("swap_executions")
-        .select("swap_request_id, old_media_player_id, old_equipment_id, old_serial_number, return_location_id, swap_requests:swap_request_id(id, document_no, technician_name, completed_at, status)")
+        .select("swap_request_id, old_media_player_id, old_equipment_id, old_serial_number, return_location_id, swap_requests:swap_request_id(id, document_no, technician_name, completed_at, status, description, symptom_other, reported_photos)")
         .eq("result", "approved")
         .order("created_at", { ascending: false })
         .limit(500);
@@ -103,6 +107,9 @@ export function SwapWarehouseReceive() {
               return_location_label: locLabel,
               technician_name: req.technician_name,
               completed_at: req.completed_at,
+              description: req.description || null,
+              symptom_other: req.symptom_other || null,
+              reported_photos: Array.isArray(req.reported_photos) ? req.reported_photos : [],
             });
           }
         } else if (e.old_equipment_id) {
@@ -123,6 +130,9 @@ export function SwapWarehouseReceive() {
               return_location_label: locLabel,
               technician_name: req.technician_name,
               completed_at: req.completed_at,
+              description: req.description || null,
+              symptom_other: req.symptom_other || null,
+              reported_photos: Array.isArray(req.reported_photos) ? req.reported_photos : [],
             });
           }
         }
@@ -277,10 +287,22 @@ export function SwapWarehouseReceive() {
                     {r.serial_number && (
                       <Badge variant="outline" className="font-mono text-xs">S/N: {r.serial_number}</Badge>
                     )}
+                    {r.reported_photos.length > 0 && (
+                      <PhotoGalleryDialog
+                        photos={r.reported_photos}
+                        title={`รูปประกอบ ${r.document_no}`}
+                      />
+                    )}
                   </div>
                   <div className="text-sm font-medium">
                     {r.item_code} — {r.item_name}
                   </div>
+                  {(r.description || r.symptom_other) && (
+                    <div className="text-xs">
+                      <span className="font-medium text-foreground">อาการ:</span>{" "}
+                      <span className="text-muted-foreground">{r.description || r.symptom_other}</span>
+                    </div>
+                  )}
                   <div className="text-xs text-muted-foreground">
                     คลังปลายทาง: <span className="font-medium">{r.return_location_label || "ยังไม่ระบุ"}</span>
                     {r.technician_name && <> • ช่าง: {r.technician_name}</>}

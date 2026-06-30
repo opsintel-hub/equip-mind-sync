@@ -14,6 +14,7 @@ import { SymptomSelect } from "@/components/media-player/SymptomSelect";
 import { AssessmentResultSelect } from "@/components/media-player/AssessmentResultSelect";
 import { differenceInDays, parseISO, differenceInMonths } from "date-fns";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { PhotoGalleryDialog } from "@/components/ui/PhotoGalleryDialog";
 
 interface AssessmentLogLite {
   id: string;
@@ -748,11 +749,21 @@ export function AssessmentCompleteDialog({ open, onOpenChange, log, onCompleted 
                 )}
               </div>
               {sourceCtx.photos.length > 0 && (
-                <div className="flex gap-2 flex-wrap pt-1">
+                <div className="flex items-center gap-2 flex-wrap pt-1">
+                  <span className="text-xs font-medium text-amber-700 dark:text-amber-400">รูปอาการที่แจ้ง:</span>
                   {sourceCtx.photos.map((url, i) => (
-                    <a key={i} href={url} target="_blank" rel="noreferrer">
-                      <img src={url} alt={`อาการ ${i + 1}`} className="h-16 w-16 object-cover rounded border hover:ring-2 hover:ring-primary" />
-                    </a>
+                    <PhotoGalleryDialog
+                      key={i}
+                      photos={sourceCtx.photos}
+                      title="รูปอาการที่ช่างแจ้ง"
+                      trigger={
+                        <img
+                          src={url}
+                          alt={`อาการ ${i + 1}`}
+                          className="h-16 w-16 object-cover rounded border hover:ring-2 hover:ring-primary cursor-pointer"
+                        />
+                      }
+                    />
                   ))}
                 </div>
               )}
