@@ -287,10 +287,22 @@ export function SwapWarehouseReceive() {
                     {r.serial_number && (
                       <Badge variant="outline" className="font-mono text-xs">S/N: {r.serial_number}</Badge>
                     )}
+                    {r.reported_photos.length > 0 && (
+                      <PhotoGalleryDialog
+                        photos={r.reported_photos}
+                        title={`รูปประกอบ ${r.document_no}`}
+                      />
+                    )}
                   </div>
                   <div className="text-sm font-medium">
                     {r.item_code} — {r.item_name}
                   </div>
+                  {(r.description || r.symptom_other) && (
+                    <div className="text-xs">
+                      <span className="font-medium text-foreground">อาการ:</span>{" "}
+                      <span className="text-muted-foreground">{r.description || r.symptom_other}</span>
+                    </div>
+                  )}
                   <div className="text-xs text-muted-foreground">
                     คลังปลายทาง: <span className="font-medium">{r.return_location_label || "ยังไม่ระบุ"}</span>
                     {r.technician_name && <> • ช่าง: {r.technician_name}</>}
