@@ -748,40 +748,52 @@ export function POUploadOCR({
                   <Label className="font-semibold text-sm">
                     รายการสินค้า ({items.length} รายการ)
                   </Label>
-                  {mediaPlayers.length > 0 && (
-                    <div className="flex items-center gap-2">
-                      <Label className="text-xs whitespace-nowrap">ตั้งรหัส Media Player ให้ทุกรายการ:</Label>
-                      <div className="w-64">
-                        <SearchableSelect
-                          options={mediaPlayers.map((m) => ({
-                            value: m.id,
-                            label: `${m.code} - ${m.name}`,
-                            description: "Media Player",
-                          }))}
-                          value=""
-                          onValueChange={(v) => {
-                            const mp = mediaPlayers.find((m) => m.id === v);
-                            if (!mp) return;
-                            setItems((prev) =>
-                              prev.map((it) => ({
-                                ...it,
-                                matched_equipment_id: mp.id,
-                                matched_equipment_code: mp.code,
-                                matched_equipment_name: mp.name,
-                                matched_is_media_player: true,
-                                match_status: "matched" as const,
-                              }))
-                            );
-                            toast.success(`ตั้งรหัส ${mp.code} ให้ทุกรายการแล้ว`);
-                          }}
-                          placeholder="เลือก MP เพื่อใช้กับทุกรายการ..."
-                          searchPlaceholder="ค้นหา MP..."
-                          emptyMessage="ไม่พบ"
-                          triggerClassName="h-8 text-xs"
-                        />
-                      </div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Label className="text-xs whitespace-nowrap">ตั้งรหัสให้ทุกรายการ:</Label>
+                    <Select
+                      value={bulkKind}
+                      onValueChange={(v) => { setBulkKind(v as DeviceKind); setBulkCodeId(""); }}
+                    >
+                      <SelectTrigger className="h-8 w-[160px] text-xs">
+                        <SelectValue placeholder="เลือกประเภท" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="MEDIA_PLAYER">{KIND_LABELS.MEDIA_PLAYER}</SelectItem>
+                        <SelectItem value="MONITOR">{KIND_LABELS.MONITOR}</SelectItem>
+                        <SelectItem value="EQUIPMENT">{KIND_LABELS.EQUIPMENT}</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <div className="w-64">
+                      <SearchableSelect
+                        options={buildOptionsForKind(bulkKind)}
+                        value={bulkCodeId}
+                        onValueChange={(v) => {
+                          setBulkCodeId(v);
+                          const eq = equipment.find((e) => e.id === v);
+                          const mp = !eq ? mediaPlayers.find((m) => m.id === v) : null;
+                          if (!eq && !mp) return;
+                          const code = eq?.code || mp?.code || "";
+                          const name = eq?.name || mp?.name || "";
+                          setItems((prev) =>
+                            prev.map((it) => ({
+                              ...it,
+                              matched_equipment_id: v,
+                              matched_equipment_code: code,
+                              matched_equipment_name: name,
+                              matched_is_media_player: !!mp,
+                              device_kind: bulkKind,
+                              match_status: "matched" as const,
+                            }))
+                          );
+                          toast.success(`ตั้งรหัส ${code} (${KIND_LABELS[bulkKind]}) ให้ทุกรายการแล้ว`);
+                        }}
+                        placeholder={`เลือกรหัส${KIND_LABELS[bulkKind]}...`}
+                        searchPlaceholder="ค้นหา (รหัส / ชื่อ)..."
+                        emptyMessage="ไม่พบรหัสในประเภทนี้"
+                        triggerClassName="h-8 text-xs"
+                      />
                     </div>
-                  )}
+                  </div>
                 </div>
                 <div className="border rounded-lg overflow-auto max-h-[60vh]">
                   <Table>
