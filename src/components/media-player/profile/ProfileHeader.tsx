@@ -636,6 +636,18 @@ export function ProfileHeader({ player, modelName, statusLabel, images, editable
           </DialogContent>
         </Dialog>
       )}
+
+      {/* Image Upload Dialog */}
+      {editable && uploadOpen && (
+        <MediaPlayerImageUpload
+          mediaPlayerId={player.id}
+          mediaPlayerCode={player.code}
+          onClose={() => {
+            setUploadOpen(false);
+            onImagesChange?.();
+          }}
+        />
+      )}
     </>
   );
 }
