@@ -28,6 +28,9 @@ interface PendingRow {
   return_location_label: string | null;
   technician_name: string | null;
   completed_at: string | null;
+  description: string | null;
+  symptom_other: string | null;
+  reported_photos: string[];
 }
 
 export function SwapWarehouseReceive() {
