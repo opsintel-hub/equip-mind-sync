@@ -155,6 +155,8 @@ export function POUploadOCR({
   const [comment, setComment] = useState("");
   const [items, setItems] = useState<POOCRItem[]>([]);
   const [fieldMapping, setFieldMapping] = useState<Record<string, string>>(DEFAULT_FIELD_MAPPING);
+  const [bulkKind, setBulkKind] = useState<DeviceKind>("MEDIA_PLAYER");
+  const [bulkCodeId, setBulkCodeId] = useState<string>("");
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
