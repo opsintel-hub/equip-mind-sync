@@ -24,6 +24,7 @@ import { SimpleDepartmentSelect } from "@/components/equipment/SimpleDepartmentS
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { TablePagination } from "@/components/TablePagination";
 import { useTablePagination } from "@/hooks/useTablePagination";
+import { SubMediaTypeBadge } from "@/components/media-player/SubMediaTypeBadge";
 interface EquipmentWithDetails {
   id: string;
   code: string;
