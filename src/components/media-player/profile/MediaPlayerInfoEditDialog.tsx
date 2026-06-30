@@ -207,6 +207,7 @@ export function MediaPlayerInfoEditDialog({ open, onOpenChange, player, onSaved 
               <div className="space-y-1.5"><Label>PO No.</Label><Input value={form.po_number} onChange={set("po_number")} /></div>
               <div className="space-y-1.5"><Label>PR No.</Label><Input value={form.pr_number} onChange={set("pr_number")} /></div>
               <div className="space-y-1.5"><Label>Invoice No.</Label><Input value={form.invoice_number} onChange={set("invoice_number")} /></div>
+              <div className="space-y-1.5"><Label>เลขที่ใบส่งของ (DN)</Label><Input value={form.delivery_note_number} onChange={set("delivery_note_number")} /></div>
             </div>
           </section>
 
