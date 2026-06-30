@@ -19,6 +19,7 @@ interface Props {
 
 type FormState = {
   name: string;
+  description: string;
   brand: string;
   specification: string;
   serial_number_1: string;
@@ -33,6 +34,7 @@ type FormState = {
   po_number: string;
   pr_number: string;
   invoice_number: string;
+  delivery_note_number: string;
   unit_price: string;
   depreciation_months: string;
   usage_lifespan_months: string;
