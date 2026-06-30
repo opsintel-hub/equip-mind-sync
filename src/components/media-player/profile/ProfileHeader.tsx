@@ -13,6 +13,8 @@ import { getPublicBaseUrl } from "@/lib/publicUrl";
 import { DeviceTypeBadge } from "@/components/media-player/DeviceTypeBadge";
 import { MediaPlayerImageUpload } from "@/components/media-player/MediaPlayerImageUpload";
 
+const MAX_PROFILE_IMAGES = 5;
+
 type StickerOptions = {
   widthMm: number;
   heightMm: number;
@@ -79,6 +81,7 @@ export function ProfileHeader({ player, modelName, statusLabel, images, editable
   const [uploadOpen, setUploadOpen] = useState(false);
   const previewCanvasRef = useRef<HTMLCanvasElement>(null);
   const condition = getConditionDisplay(player.item_condition);
+  const displayImages = (images.length > 0 ? images : ((player as any).image_url ? [(player as any).image_url] : [])).slice(0, MAX_PROFILE_IMAGES);
 
   const [stickerOpts, setStickerOpts] = useState<StickerOptions>({
     widthMm: 50,
@@ -321,9 +324,9 @@ export function ProfileHeader({ player, modelName, statusLabel, images, editable
           <div className="flex flex-col md:flex-row gap-6">
             {/* Image */}
             <div className="shrink-0">
-              {images.length > 0 ? (
+              {displayImages.length > 0 ? (
                 <img
-                  src={images[0]}
+                  src={displayImages[0]}
                   alt={player.code}
                   className="w-40 h-40 object-cover rounded-xl border cursor-pointer hover:opacity-80 transition-opacity"
                   onClick={() => openLightbox(0)}
@@ -341,9 +344,9 @@ export function ProfileHeader({ player, modelName, statusLabel, images, editable
                   )}
                 </div>
               )}
-              {images.length > 1 && (
+              {displayImages.length > 1 && (
                 <div className="flex gap-1 mt-2">
-                  {images.slice(1, 5).map((img, i) => (
+                  {displayImages.slice(1, MAX_PROFILE_IMAGES).map((img, i) => (
                     <img
                       key={i}
                       src={img}
@@ -354,16 +357,21 @@ export function ProfileHeader({ player, modelName, statusLabel, images, editable
                   ))}
                 </div>
               )}
-              {editable && images.length > 0 && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="mt-2 w-40 h-7 text-xs gap-1"
-                  onClick={() => setUploadOpen(true)}
-                >
-                  <Camera className="w-3.5 h-3.5" />
-                  จัดการรูปภาพ ({images.length}/5)
-                </Button>
+              {editable && (
+                <div className="mt-2 w-40 space-y-1.5">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full h-auto min-h-8 px-2 py-1.5 text-xs gap-1 whitespace-normal leading-snug"
+                    onClick={() => setUploadOpen(true)}
+                  >
+                    <Camera className="w-3.5 h-3.5 shrink-0" />
+                    📷 จัดการรูปภาพ ({Math.min(displayImages.length, MAX_PROFILE_IMAGES)}/{MAX_PROFILE_IMAGES})
+                  </Button>
+                  <div className="rounded-md border border-warning/30 bg-warning/10 px-2 py-1 text-[11px] leading-snug text-foreground">
+                    ⚠ อัปโหลดได้ไม่เกิน {MAX_PROFILE_IMAGES} ภาพ
+                  </div>
+                </div>
               )}
             </div>
 
@@ -582,7 +590,7 @@ export function ProfileHeader({ player, modelName, statusLabel, images, editable
       </Card>
 
       {/* Lightbox Dialog */}
-      {images.length > 0 && (
+      {displayImages.length > 0 && (
         <Dialog open={lightboxOpen} onOpenChange={setLightboxOpen}>
           <DialogContent className="max-w-3xl p-0 bg-black/95 border-0">
             <DialogHeader className="sr-only">
@@ -590,14 +598,14 @@ export function ProfileHeader({ player, modelName, statusLabel, images, editable
             </DialogHeader>
             <div className="relative flex items-center justify-center min-h-[60vh]">
               <img
-                src={images[lightboxIndex]}
+                src={displayImages[lightboxIndex]}
                 alt={`${player.code} - ${lightboxIndex + 1}`}
                 className="max-h-[85vh] max-w-full object-contain cursor-zoom-in"
-                onClick={() => window.open(images[lightboxIndex], "_blank")}
+                onClick={() => window.open(displayImages[lightboxIndex], "_blank")}
               />
               <div className="absolute top-3 right-3 flex gap-2">
                 <a
-                  href={images[lightboxIndex]}
+                  href={displayImages[lightboxIndex]}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-white/80 hover:text-white bg-black/40 rounded-full p-2 flex items-center gap-1 text-xs"
@@ -613,16 +621,16 @@ export function ProfileHeader({ player, modelName, statusLabel, images, editable
                   <X className="w-5 h-5" />
                 </button>
               </div>
-              {images.length > 1 && (
+              {displayImages.length > 1 && (
                 <>
                   <button
-                    onClick={() => setLightboxIndex((lightboxIndex - 1 + images.length) % images.length)}
+                    onClick={() => setLightboxIndex((lightboxIndex - 1 + displayImages.length) % displayImages.length)}
                     className="absolute left-3 top-1/2 -translate-y-1/2 text-white/80 hover:text-white bg-black/40 rounded-full p-2"
                   >
                     <ChevronLeft className="w-6 h-6" />
                   </button>
                   <button
-                    onClick={() => setLightboxIndex((lightboxIndex + 1) % images.length)}
+                    onClick={() => setLightboxIndex((lightboxIndex + 1) % displayImages.length)}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-white/80 hover:text-white bg-black/40 rounded-full p-2"
                   >
                     <ChevronRight className="w-6 h-6" />
@@ -630,7 +638,7 @@ export function ProfileHeader({ player, modelName, statusLabel, images, editable
                 </>
               )}
               <div className="absolute bottom-3 left-1/2 -translate-x-1/2 text-white/70 text-sm bg-black/40 px-3 py-1 rounded-full">
-                {lightboxIndex + 1} / {images.length}
+                {lightboxIndex + 1} / {displayImages.length}
               </div>
             </div>
           </DialogContent>
@@ -642,6 +650,7 @@ export function ProfileHeader({ player, modelName, statusLabel, images, editable
         <MediaPlayerImageUpload
           mediaPlayerId={player.id}
           mediaPlayerCode={player.code}
+          onImagesChange={onImagesChange}
           onClose={() => {
             setUploadOpen(false);
             onImagesChange?.();

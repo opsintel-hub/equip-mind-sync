@@ -136,6 +136,7 @@ const MediaPlayerEntry = () => {
   // Image upload in form
   const [formImages, setFormImages] = useState<File[]>([]);
   const [formImagePreviews, setFormImagePreviews] = useState<string[]>([]);
+  const MAX_FORM_IMAGES = 5;
 
   useEffect(() => {
     fetchMediaPlayers();
@@ -302,12 +303,15 @@ const MediaPlayerEntry = () => {
   const handleFormImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     if (files.length === 0) return;
-    const maxNew = 5 - formImages.length;
+    const maxNew = MAX_FORM_IMAGES - formImages.length;
     if (maxNew <= 0) {
-      toast.error("อัปโหลดได้สูงสุด 5 รูป");
+      toast.error(`อัปโหลดได้สูงสุด ${MAX_FORM_IMAGES} รูป`);
       return;
     }
     const newFiles = files.slice(0, maxNew);
+    if (newFiles.length < files.length) {
+      toast.warning(`เลือกได้เพิ่มอีก ${maxNew} รูปเท่านั้น — จำกัดสูงสุด ${MAX_FORM_IMAGES} ภาพ`);
+    }
     const newPreviews = newFiles.map(file => URL.createObjectURL(file));
     setFormImages(prev => [...prev, ...newFiles]);
     setFormImagePreviews(prev => [...prev, ...newPreviews]);
@@ -650,9 +654,9 @@ const MediaPlayerEntry = () => {
                   <Camera className="w-5 h-5" />
                   Upload ภาพ Media Player *
                 </CardTitle>
-                <CardDescription className="text-amber-600 font-medium">
-                  ⚠ อัปโหลดได้ไม่เกิน 5 ภาพ — จำเป็นต้องมีอย่างน้อย 1 รูป
-                </CardDescription>
+                <div className="mt-2 rounded-md border border-warning/30 bg-warning/10 px-3 py-2 text-sm font-medium text-foreground">
+                  ⚠ อัปโหลดได้ไม่เกิน {MAX_FORM_IMAGES} ภาพ — จำเป็นต้องมีอย่างน้อย 1 รูป (เลือกแล้ว {formImages.length}/{MAX_FORM_IMAGES})
+                </div>
               </CardHeader>
               <CardContent className="space-y-4">
                 <Input
@@ -662,13 +666,13 @@ const MediaPlayerEntry = () => {
                   onChange={handleFormImageSelect}
                   className="hidden"
                   id="form-mp-image-upload"
-                  disabled={formImages.length >= 5}
+                  disabled={formImages.length >= MAX_FORM_IMAGES}
                 />
                 <label htmlFor="form-mp-image-upload">
                   <div className="border-2 border-dashed rounded-lg p-6 text-center cursor-pointer hover:bg-muted/50 transition-colors">
                     <ImageIcon className="h-10 w-10 mx-auto text-muted-foreground mb-2" />
                     <p className="text-sm text-muted-foreground">
-                      คลิกเพื่อเลือกรูปภาพ (เพิ่มได้อีก {5 - formImages.length} รูป)
+                      คลิกเพื่อเลือกรูปภาพ (เพิ่มได้อีก {MAX_FORM_IMAGES - formImages.length} รูป)
                     </p>
                   </div>
                 </label>
