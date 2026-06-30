@@ -94,20 +94,8 @@ const MediaPlayerProfile = () => {
 
     // Images
     await refetchImages(playerId);
-  };
 
-  const refetchImages = async (playerId?: string) => {
-    const pid = playerId || player?.id;
-    if (!pid) return;
-    const { data: imgs } = await supabase
-      .from("media_player_images" as any)
-      .select("image_url")
-      .eq("media_player_id", pid)
-      .order("display_order");
-    setImages((imgs || []).map((i: any) => i.image_url));
-  };
 
-  const _continueLoad = async (playerId: string, p: any) => {
 
     // Billboard journey (history + current + fallback from media_players)
     const { data: history } = await supabase
