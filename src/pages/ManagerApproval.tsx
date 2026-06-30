@@ -384,16 +384,24 @@ const ManagerApproval = () => {
             </TableCell>
           )}
           <TableCell className="text-center">
-            {showActions && (
-              <div className="flex gap-1 justify-center">
-                <Button size="sm" onClick={(e) => { e.stopPropagation(); setSelectedRequest(req); setApproveDialogOpen(true); }}>
-                  <CheckCircle className="h-4 w-4 mr-1" />อนุมัติ
-                </Button>
-                <Button size="sm" variant="destructive" onClick={(e) => { e.stopPropagation(); setSelectedRequest(req); setRejectDialogOpen(true); }}>
-                  <XCircle className="h-4 w-4 mr-1" />ไม่อนุมัติ
-                </Button>
-              </div>
-            )}
+            {showActions && (() => {
+              const shortage = hasShortage(req);
+              return (
+                <div className="flex gap-1 justify-center">
+                  <Button
+                    size="sm"
+                    disabled={shortage}
+                    title={shortage ? "สต็อกไม่พอ — กด 'แจ้งขอซื้อ' ด้านล่างก่อน" : ""}
+                    onClick={(e) => { e.stopPropagation(); setSelectedRequest(req); setApproveDialogOpen(true); }}
+                  >
+                    <CheckCircle className="h-4 w-4 mr-1" />อนุมัติ
+                  </Button>
+                  <Button size="sm" variant="destructive" onClick={(e) => { e.stopPropagation(); setSelectedRequest(req); setRejectDialogOpen(true); }}>
+                    <XCircle className="h-4 w-4 mr-1" />ไม่อนุมัติ
+                  </Button>
+                </div>
+              );
+            })()}
           </TableCell>
         </TableRow>
         {isExpanded && items.length > 0 && (
