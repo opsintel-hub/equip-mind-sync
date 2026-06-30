@@ -1381,9 +1381,8 @@ const IssueGoods = () => {
                                   <SubMediaTypeSelect
                                     value={u.sub_media_type}
                                     onChange={(v) => updateMpUnitAssignment(idx, { sub_media_type: v })}
-                                    required
-                                    label="ตำแหน่งสื่อย่อย (7-Eleven Media) *"
-                                    hint={picked.sub_media_type ? `ค่าเดิม: ${picked.sub_media_type} — แก้ไขได้ก่อนยืนยันจ่าย` : "ฝ่าย 7-Eleven Media ต้องระบุก่อนจ่าย"}
+                                    label="ตำแหน่งสื่อย่อย (7-Eleven Media)"
+                                    hint={picked.sub_media_type ? `ค่าเดิม: ${picked.sub_media_type} — แก้ไขได้` : "แนะนำให้ระบุ (สามารถแก้ภายหลังได้)"}
                                   />
                                 </div>
                               );
