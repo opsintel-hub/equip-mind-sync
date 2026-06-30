@@ -207,8 +207,9 @@ export function InventoryFilters({ filters, onFiltersChange }: InventoryFiltersP
   }, [filters.warehouseId]);
 
   const handleSearchSubmit = () => {
-    onFiltersChange({ ...filters, search: localSearch });
+    onFiltersChange({ ...filters, search: localSearch, snSearch: localSnSearch });
   };
+
 
   const handleClearFilters = () => {
     setLocalSearch("");
