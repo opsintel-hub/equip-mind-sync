@@ -1060,6 +1060,9 @@ const IssueRequest = () => {
                   <SelectItem value="60">60 วัน</SelectItem>
                   <SelectItem value="90">90 วัน</SelectItem>
                   <SelectItem value="120">120 วัน</SelectItem>
+                  <SelectItem value="180">180 วัน</SelectItem>
+                  <SelectItem value="365">365 วัน</SelectItem>
+                  <SelectItem value="99999">ทั้งหมด</SelectItem>
                 </SelectContent>
               </Select>
               <Button
