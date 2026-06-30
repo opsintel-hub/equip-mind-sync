@@ -22,6 +22,8 @@ import { SectionSelect } from "@/components/section/SectionSelect";
 import { SerialNumberSelect, SerialNumberItem } from "@/components/equipment/SerialNumberSelect";
 import { SimpleDepartmentSelect } from "@/components/equipment/SimpleDepartmentSelect";
 import { SearchableSelect } from "@/components/ui/searchable-select";
+import { TablePagination } from "@/components/TablePagination";
+import { useTablePagination } from "@/hooks/useTablePagination";
 interface EquipmentWithDetails {
   id: string;
   code: string;
