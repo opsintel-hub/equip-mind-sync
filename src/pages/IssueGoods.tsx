@@ -832,6 +832,8 @@ const IssueGoods = () => {
       setMpUnitAssignments(mpInitial);
     }
     setItemIssueDialogOpen(true);
+    // Always refetch MP units so newly-edited S/Ns appear without page reload
+    if (item.is_media_player) refetchMpUnits();
   };
 
   const handleIssuedQuantityChange = (value: string) => {
