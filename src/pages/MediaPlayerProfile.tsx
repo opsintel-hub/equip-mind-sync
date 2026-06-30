@@ -307,7 +307,14 @@ const MediaPlayerProfile = () => {
       {/* Player Profile */}
       {player && (
         <div ref={profileRef} className="space-y-6">
-          <ProfileHeader player={player} modelName={modelName} statusLabel={statusLabel} images={images} />
+          <ProfileHeader
+            player={player}
+            modelName={modelName}
+            statusLabel={statusLabel}
+            images={images}
+            editable
+            onImagesChange={() => refetchImages(player.id)}
+          />
 
           <Tabs defaultValue="general" className="w-full">
             <TabsList className="inline-flex h-auto p-1.5 gap-1 bg-muted/60 backdrop-blur rounded-xl border border-border/50 shadow-sm">
