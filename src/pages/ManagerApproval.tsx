@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { SubMediaTypeBadge } from "@/components/media-player/SubMediaTypeBadge";
 import { Search, CheckCircle, XCircle, Shield, Clock, ShoppingCart, ChevronDown, ChevronUp, Package, Store, CalendarClock, Truck } from "lucide-react";
 import { format } from "date-fns";
 import { th } from "date-fns/locale";
