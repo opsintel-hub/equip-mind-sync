@@ -420,6 +420,18 @@ const ManagerApproval = () => {
                 )}
               </div>
 
+              {/* Shortage alert + Create PR */}
+              {showActions && hasShortage(req) && (
+                <div className="mb-4 p-3 rounded-lg border border-destructive/40 bg-destructive/5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                  <div className="text-sm text-destructive">
+                    ⚠️ <strong>สต็อกไม่พอเบิก</strong> — ไม่สามารถอนุมัติได้ กรุณาให้ผู้ขอแก้ไขจำนวน หรือกดปุ่มด้านขวาเพื่อแจ้งขอซื้อให้จัดซื้อดำเนินการ
+                  </div>
+                  <Button size="sm" variant="secondary" onClick={(e) => { e.stopPropagation(); handleCreateShortagePR(req); }}>
+                    📋 แจ้งขอซื้อ (สร้าง PR)
+                  </Button>
+                </div>
+              )}
+
               {/* Items table */}
               <div className="rounded-md border overflow-hidden">
                 <Table>
