@@ -156,6 +156,17 @@ export default function SwapWizard() {
       modelMap = new Map((models as any[] || []).map((m: any) => [m.id, m.name]));
     }
 
+    // Symptom name lookup
+    const symIds = Array.from(new Set(rows.map((r) => r.symptom_id).filter(Boolean) as string[]));
+    let symMap = new Map<string, string>();
+    if (symIds.length) {
+      const { data: syms } = await supabase
+        .from("mp_symptoms")
+        .select("id, name")
+        .in("id", symIds);
+      symMap = new Map((syms as any[] || []).map((s: any) => [s.id, s.name]));
+    }
+
     const enriched = rows.map((r) => {
       const bb = r.billboard_id ? bbMap.get(r.billboard_id) : null;
       const mp = r.reported_media_player_id ? mpMap.get(r.reported_media_player_id) : null;
@@ -164,6 +175,7 @@ export default function SwapWizard() {
         _billboard_label: bb ? formatBillboardLabel(bb.old_code, bb.location_name, bb.equipment_id) : undefined,
         _remote_name: mp?.remote_name || undefined,
         _model_name: mp?.model_id ? modelMap.get(mp.model_id) : undefined,
+        _symptom_label: r.symptom_id ? symMap.get(r.symptom_id) : undefined,
       };
     });
     setRequests(enriched);
