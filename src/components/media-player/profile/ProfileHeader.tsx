@@ -592,14 +592,27 @@ export function ProfileHeader({ player, modelName, statusLabel, images, editable
               <img
                 src={images[lightboxIndex]}
                 alt={`${player.code} - ${lightboxIndex + 1}`}
-                className="max-h-[80vh] max-w-full object-contain"
+                className="max-h-[85vh] max-w-full object-contain cursor-zoom-in"
+                onClick={() => window.open(images[lightboxIndex], "_blank")}
               />
-              <button
-                onClick={() => setLightboxOpen(false)}
-                className="absolute top-3 right-3 text-white/80 hover:text-white bg-black/40 rounded-full p-2"
-              >
-                <X className="w-5 h-5" />
-              </button>
+              <div className="absolute top-3 right-3 flex gap-2">
+                <a
+                  href={images[lightboxIndex]}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-white/80 hover:text-white bg-black/40 rounded-full p-2 flex items-center gap-1 text-xs"
+                  title="เปิดภาพต้นฉบับในแท็บใหม่"
+                >
+                  <ExternalLink className="w-4 h-4" />
+                  ต้นฉบับ
+                </a>
+                <button
+                  onClick={() => setLightboxOpen(false)}
+                  className="text-white/80 hover:text-white bg-black/40 rounded-full p-2"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
               {images.length > 1 && (
                 <>
                   <button
