@@ -1012,6 +1012,9 @@ const IssueRequest = () => {
     return expiryDays <= advanceDays || warrantyDays <= advanceDays;
   }) || false;
 
+  const fifoPagination = useTablePagination(priorityEquipment, 10);
+  const historyPagination = useTablePagination(filteredRequests || [], 10);
+
   return (
     <div className="space-y-6">
       <div>
