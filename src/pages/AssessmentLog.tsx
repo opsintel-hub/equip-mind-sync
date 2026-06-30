@@ -49,6 +49,7 @@ interface AssessmentLog {
   notes: string | null;
   created_at: string;
   repair_status?: string | null;
+  photo_urls?: string[] | null;
 }
 
 interface SubjectOption {
