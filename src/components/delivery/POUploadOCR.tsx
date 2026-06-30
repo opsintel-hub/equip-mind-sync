@@ -883,13 +883,26 @@ export function POUploadOCR({
                           </TableCell>
                           <TableCell>
                             <div className="space-y-1">
+                              <Select
+                                value={item.device_kind || "EQUIPMENT"}
+                                onValueChange={(v) => handleItemKindChange(idx, v as DeviceKind)}
+                              >
+                                <SelectTrigger className="h-7 text-[11px]">
+                                  <SelectValue placeholder="ประเภท" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="MEDIA_PLAYER">{KIND_LABELS.MEDIA_PLAYER}</SelectItem>
+                                  <SelectItem value="MONITOR">{KIND_LABELS.MONITOR}</SelectItem>
+                                  <SelectItem value="EQUIPMENT">{KIND_LABELS.EQUIPMENT}</SelectItem>
+                                </SelectContent>
+                              </Select>
                               <SearchableSelect
-                                options={equipmentOptions}
+                                options={buildOptionsForKind(item.device_kind)}
                                 value={item.matched_equipment_id || ""}
                                 onValueChange={(v) => handleItemEquipmentChange(idx, v)}
-                                placeholder="เลือกสินค้า..."
-                                searchPlaceholder="ค้นหา..."
-                                emptyMessage="ไม่พบ"
+                                placeholder={`เลือกรหัส${KIND_LABELS[item.device_kind || "EQUIPMENT"]}...`}
+                                searchPlaceholder="ค้นหา (รหัส / ชื่อ)..."
+                                emptyMessage="ไม่พบรหัสในประเภทนี้"
                                 triggerClassName="h-8 text-xs"
                               />
                               {item.match_status === "matched" && (
@@ -897,7 +910,7 @@ export function POUploadOCR({
                                   <CheckCircle2 className="w-3 h-3 shrink-0" />
                                   <span className="truncate">
                                     Auto: {item.matched_equipment_code}
-                                    {item.matched_is_media_player ? " (MP)" : ""}
+                                    {item.matched_is_media_player ? ` (${KIND_LABELS[item.device_kind || "MEDIA_PLAYER"]})` : ""}
                                   </span>
                                 </div>
                               )}
