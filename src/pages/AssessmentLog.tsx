@@ -83,6 +83,7 @@ interface LogDetail {
   sub_media_type?: string | null;
   brand?: string | null;
   model?: string | null;
+  source_photos?: string[];
 }
 
 const SOURCE_LABELS: Record<string, string> = {
