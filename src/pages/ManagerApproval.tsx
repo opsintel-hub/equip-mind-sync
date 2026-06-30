@@ -143,6 +143,47 @@ const ManagerApproval = () => {
     },
   });
 
+  // Purpose name lookup
+  const { data: purposesMap } = useQuery({
+    queryKey: ["ma-issue-purposes"],
+    queryFn: async () => {
+      const { data } = await supabase.from("issue_purposes").select("id, name");
+      const m: Record<string, string> = {};
+      data?.forEach((p: any) => { m[p.id] = p.name; });
+      return m;
+    },
+  });
+
+  // Equipment stock + unit price
+  const equipmentIds = Array.from(new Set((allItems || []).filter((i: any) => i.equipment_id && !i.is_media_player).map((i: any) => i.equipment_id)));
+  const mpIds = Array.from(new Set((allItems || []).filter((i: any) => i.media_player_id || i.is_media_player).map((i: any) => i.media_player_id).filter(Boolean)));
+
+  const { data: equipMap } = useQuery({
+    queryKey: ["ma-equip-stock", equipmentIds],
+    enabled: equipmentIds.length > 0,
+    queryFn: async () => {
+      const { data } = await supabase.from("equipment").select("id, quantity, unit_price, unit").in("id", equipmentIds as string[]);
+      const m: Record<string, any> = {};
+      data?.forEach((e: any) => { m[e.id] = e; });
+      return m;
+    },
+  });
+  const { data: mpMap } = useQuery({
+    queryKey: ["ma-mp-stock", mpIds],
+    enabled: mpIds.length > 0,
+    queryFn: async () => {
+      const { data } = await supabase.from("media_players").select("id, quantity, unit_price").in("id", mpIds as string[]);
+      const m: Record<string, any> = {};
+      data?.forEach((e: any) => { m[e.id] = e; });
+      return m;
+    },
+  });
+
+  const getStockInfo = (item: any) => {
+    if (item.is_media_player || item.media_player_id) return mpMap?.[item.media_player_id];
+    return equipMap?.[item.equipment_id];
+  };
+
   const getItemsForRequest = (requestId: string) => allItems?.filter((item: any) => item.pending_id === requestId) || [];
 
   const toggleExpand = (id: string) => {
