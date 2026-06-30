@@ -49,6 +49,7 @@ interface SwapRequest {
   _billboard_label?: string;
   _model_name?: string;
   _remote_name?: string;
+  _symptom_label?: string;
 }
 
 interface InstalledItemOption {
@@ -155,6 +156,17 @@ export default function SwapWizard() {
       modelMap = new Map((models as any[] || []).map((m: any) => [m.id, m.name]));
     }
 
+    // Symptom name lookup
+    const symIds = Array.from(new Set(rows.map((r) => r.symptom_id).filter(Boolean) as string[]));
+    let symMap = new Map<string, string>();
+    if (symIds.length) {
+      const { data: syms } = await supabase
+        .from("mp_symptoms")
+        .select("id, name")
+        .in("id", symIds);
+      symMap = new Map((syms as any[] || []).map((s: any) => [s.id, s.name]));
+    }
+
     const enriched = rows.map((r) => {
       const bb = r.billboard_id ? bbMap.get(r.billboard_id) : null;
       const mp = r.reported_media_player_id ? mpMap.get(r.reported_media_player_id) : null;
@@ -163,6 +175,7 @@ export default function SwapWizard() {
         _billboard_label: bb ? formatBillboardLabel(bb.old_code, bb.location_name, bb.equipment_id) : undefined,
         _remote_name: mp?.remote_name || undefined,
         _model_name: mp?.model_id ? modelMap.get(mp.model_id) : undefined,
+        _symptom_label: r.symptom_id ? symMap.get(r.symptom_id) : undefined,
       };
     });
     setRequests(enriched);
@@ -591,7 +604,9 @@ export default function SwapWizard() {
                             {/* Row 4: Symptom / description */}
                             <div className="text-sm">
                               <span className="font-medium text-foreground">อาการ:</span>{" "}
-                              <span className="text-muted-foreground">{req.description || req.symptom_other || "—"}</span>
+                              <span className={(req._symptom_label || req.symptom_other || req.description) ? "" : "text-muted-foreground"}>
+                                {[req._symptom_label, req.symptom_other, req.description].filter(Boolean).join(" — ") || "—"}
+                              </span>
                             </div>
                             {/* Row 5: Tech / Receiver / Date */}
                             <div className="text-xs text-muted-foreground">
