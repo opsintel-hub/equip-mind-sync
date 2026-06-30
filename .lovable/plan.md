@@ -1,63 +1,37 @@
-# ป้องกันการขอเบิกเกินสต็อก + Auto PR
+## เป้าหมาย
+แก้ไขให้สถานะ **"รออนุมัติ"** (`pending_approval`) สัมพันธ์กับสิทธิ์การจ่ายสินค้า — ตราบใดที่ยังไม่อนุมัติ จะจ่ายไม่ได้
 
-## ปัญหา
-- หน้า "ขอเบิก" กรองแค่ `quantity > 0` ตอน **โหลด** หน้า (snapshot) ไม่ได้ re-check ตอนกด "เพิ่มลงตะกร้า" หรือตอน "ส่งคำขอ"
-- ไม่ได้หัก pending requests ของคนอื่นที่ค้างอยู่ → 2 คนเลือกตัวเดียวกันได้
-- คำขอเก่าค้างนาน (เช่น GI-REQ-000027 จาก 12/02) ของอาจหมดไปแล้วก่อนถึงคิวอนุมัติ
+## การเปลี่ยนแปลง (frontend เท่านั้น)
 
-## แนวทาง (ตามที่ผู้ใช้เลือก)
-1. **Block ที่หน้าขอเบิก** ถ้าของไม่พอ (Available = Stock − Σ pending requests)
-2. **สร้าง PR อัตโนมัติ** เมื่อเกิดสถานะรอสต็อก
+ไฟล์: `src/pages/IssueGoods.tsx`
 
----
+**1. ขยายเงื่อนไข `parentBlocked` (บรรทัด ~1183)**
 
-## 1. RPC คำนวณ Available Stock (server-side, ป้องกัน race)
+จากเดิม:
+```ts
+const parentBlocked = req.requires_approval && req.approval_status !== "approved";
+```
+เปลี่ยนเป็น:
+```ts
+const parentBlocked =
+  req.status === "pending_approval" ||
+  (req.requires_approval && req.approval_status !== "approved");
+```
+ผล: ถ้า `status = pending_approval` คอลัมน์จัดการจะแสดง Badge 🟡 **"รออนุมัติ"** แทนปุ่ม "จ่าย" / "✕"
 
-สร้าง `get_available_stock(equipment_id, is_media_player)`:
-- อ่าน `stock` จาก `equipment.quantity_in_stock` หรือ `media_players.quantity`
-- หัก `SUM(quantity - issued_quantity)` ของ `goods_issue_pending_items` ที่ pending_id ยัง active (status ∈ pending/pending_approval/approved/partial/waiting_stock)
-- คืน `{ stock, reserved, available }`
+**2. ซ่อนปุ่ม "ปฏิเสธทั้งหมด" สำหรับคำขอที่รออนุมัติ (บรรทัด ~1070)**
 
-## 2. Block ที่หน้า IssueRequest
+ปัจจุบันแสดงเฉพาะ `req.status === "pending"` อยู่แล้ว — ยืนยันไม่ต้องแก้ (pending_approval จะไม่เห็นปุ่มอยู่แล้ว)
 
-ใน `src/pages/IssueRequest.tsx`:
-- เปลี่ยน `getSelectableStock()` ให้เรียก RPC ใหม่ (หรือ pre-fetch pending reservations map ครั้งเดียว)
-- แสดงคอลัมน์ "คงเหลือใช้ได้" (Available) แทน Stock ดิบ ใน dropdown/searchable select
-- ตอนกด "เพิ่มลงตะกร้า" → block + toast `"สต็อกไม่พอ (คงเหลือ X, ขอ Y) — กรุณาลดจำนวน หรือใช้ปุ่ม 'แจ้งขอซื้อ'"`
-- ตอนกด "ส่งคำขอ" → re-validate ทุก item อีกครั้ง (กันคนอื่นแทรกระหว่างกรอกฟอร์ม)
+**3. ปรับ Badge สถานะ `pending_approval` (บรรทัด ~883)**
 
-## 3. ปุ่ม "แจ้งขอซื้อ" (เมื่อ available < ขอ)
+ปรับสี/ไอคอนของ Badge ในคอลัมน์ "สถานะ" ให้ตรงกับ Badge ในคอลัมน์ "จัดการ" (เหลือง + ไอคอน Clock) เพื่อให้ผู้ใช้เข้าใจชัดเจนว่าทั้งสองที่หมายถึงสิ่งเดียวกัน
 
-ในกล่อง error stock-insufficient แสดงปุ่ม "📋 สร้างใบขอซื้อ (PR)":
-- เรียก RPC ใหม่ `create_pr_from_shortage(equipment_id, requested_qty, available, requester_name, reason)`
-- สร้าง record ใน `purchase_requests` (ใช้ `generate_pr_number()` ที่มีอยู่)
-- `reason` = `"คำขอเบิกของ {requester} เกินสต็อก ({requested}/{available})"`
-- `suggested_quantity` = ขอ − available + min_stock_level
-- กันสร้างซ้ำ: ถ้ามี PR pending ของ equipment เดิมอยู่แล้ว → อัปเดต `suggested_quantity` แทน
-- Toast: `"สร้างใบขอซื้อ PR-XXX สำเร็จ — รอจัดซื้อดำเนินการ"`
+**4. เพิ่ม tooltip บน Badge "รออนุมัติ" ในคอลัมน์จัดการ**
 
-## 4. Block ที่หน้า ManagerApproval (กันเคสค้างนาน)
+ใช้ `title="รออนุมัติจากผู้จัดการก่อนจ่ายได้"` เพื่อให้ user เข้าใจเหตุผลที่ปุ่มจ่ายหายไป
 
-ใน `src/pages/ManagerApproval.tsx` (ที่เพิ่ง refactor):
-- คอลัมน์ "สต็อกคงเหลือ" ที่แสดงสีแดง ⚠️ ไม่พอเบิก → **disable ปุ่ม "อนุมัติ"** ถ้ามี item ใดสต็อก < ขอ
-- แสดง alert ในแถว: `"⚠️ ไม่สามารถอนุมัติได้ — สต็อกไม่พอ กรุณาให้ผู้ขอแก้ไขคำขอ หรือกด 'แจ้งขอซื้อ'"`
-- เพิ่มปุ่ม "📋 สร้างใบขอซื้อ" ใน expand row (เรียก RPC เดียวกับข้อ 3)
-
-## 5. เคสที่เปลี่ยนเป็น waiting_stock อยู่แล้ว (ตอนคลังจ่าย)
-
-Trigger เดิม `check_and_create_pr` ทำงานเฉพาะตอน `stock <= min_stock_level` — เพิ่ม:
-- Trigger ใหม่บน `goods_issue_pending.status` เมื่อเปลี่ยนเป็น `waiting_stock` → auto-create PR ถ้ายังไม่มี (เหมือนข้อ 3 แต่ trigger ฝั่ง DB)
-
----
-
-## รายละเอียดเทคนิค
-
-**ไฟล์ที่แก้:**
-- `src/pages/IssueRequest.tsx` — re-validate + ปุ่มสร้าง PR
-- `src/pages/ManagerApproval.tsx` — disable approve + ปุ่ม PR
-- Migration: RPC `get_available_stock`, RPC `create_pr_from_shortage`, Trigger `auto_pr_on_waiting_stock`
-
-**ผลลัพธ์:**
-- ผู้ใช้สร้างคำขอเกินสต็อกไม่ได้ → ระบบบังคับกด "แจ้งขอซื้อ" แทน
-- ผู้อนุมัติเห็นชัดว่าคำขอไหนของหมด → กด PR ได้ทันที ไม่ต้องเปิดหน้าอื่น
-- จัดซื้อรู้ทันทีผ่าน `purchase_requests` (มีหน้า /purchase-requests อยู่แล้ว)
+## สิ่งที่ไม่แตะ
+- ไม่แก้ business logic / RPC / DB — เฉพาะการแสดงผลและการ gate ปุ่มฝั่ง UI
+- ไม่ซ่อนคำขอ `pending_approval` ออกจากรายการ (ยังคงเห็นได้เพื่อให้คลังทราบสถานะ)
+- ไม่แตะ `GoodsIssue.tsx` (หน้าประวัติ) — แสดงข้อมูลย้อนหลังเท่านั้น

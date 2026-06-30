@@ -881,7 +881,7 @@ const IssueGoods = () => {
       case "pending":
         return <Badge variant="secondary" className="bg-yellow-100 text-yellow-800"><Clock className="h-3 w-3 mr-1" />รอดำเนินการ</Badge>;
       case "pending_approval":
-        return <Badge variant="secondary" className="bg-amber-100 text-amber-800"><AlertTriangle className="h-3 w-3 mr-1" />รออนุมัติ</Badge>;
+        return <Badge variant="outline" className="bg-yellow-100 text-yellow-800 border-yellow-300"><Clock className="h-3 w-3 mr-1" />รออนุมัติ</Badge>;
       case "issued":
         return <Badge variant="default" className="bg-green-100 text-green-800"><CheckCircle className="h-3 w-3 mr-1" />จ่ายครบแล้ว</Badge>;
       case "waiting_stock":
@@ -1180,10 +1180,16 @@ const IssueGoods = () => {
                                             <TableCell className="text-center">
                                               <div className="flex items-center justify-center gap-1">
                                                 {(() => {
-                                                  const parentBlocked = req.requires_approval && req.approval_status !== "approved";
+                                                  const parentBlocked =
+                                                    req.status === "pending_approval" ||
+                                                    (req.requires_approval && req.approval_status !== "approved");
                                                   if (parentBlocked) {
                                                     return (
-                                                      <Badge variant="outline" className="bg-yellow-100 text-yellow-800 border-yellow-300">
+                                                      <Badge
+                                                        variant="outline"
+                                                        className="bg-yellow-100 text-yellow-800 border-yellow-300"
+                                                        title="รออนุมัติจากผู้จัดการก่อนจ่ายได้"
+                                                      >
                                                         <Clock className="h-3 w-3 mr-1" />รออนุมัติ
                                                       </Badge>
                                                     );
