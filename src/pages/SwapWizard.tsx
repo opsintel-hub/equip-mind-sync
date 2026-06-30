@@ -604,7 +604,9 @@ export default function SwapWizard() {
                             {/* Row 4: Symptom / description */}
                             <div className="text-sm">
                               <span className="font-medium text-foreground">อาการ:</span>{" "}
-                              <span className="text-muted-foreground">{req.description || req.symptom_other || "—"}</span>
+                              <span className={(req._symptom_label || req.symptom_other || req.description) ? "" : "text-muted-foreground"}>
+                                {[req._symptom_label, req.symptom_other, req.description].filter(Boolean).join(" — ") || "—"}
+                              </span>
                             </div>
                             {/* Row 5: Tech / Receiver / Date */}
                             <div className="text-xs text-muted-foreground">
