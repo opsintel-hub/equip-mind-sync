@@ -329,8 +329,16 @@ export function ProfileHeader({ player, modelName, statusLabel, images, editable
                   onClick={() => openLightbox(0)}
                 />
               ) : (
-                <div className="w-40 h-40 bg-muted rounded-xl flex items-center justify-center">
-                  <Monitor className="w-16 h-16 text-muted-foreground/30" />
+                <div
+                  className={`w-40 h-40 bg-muted rounded-xl flex flex-col items-center justify-center gap-2 ${editable ? "cursor-pointer hover:bg-muted/70 transition-colors" : ""}`}
+                  onClick={() => editable && setUploadOpen(true)}
+                >
+                  <Monitor className="w-12 h-12 text-muted-foreground/30" />
+                  {editable && (
+                    <span className="text-xs text-muted-foreground flex items-center gap-1">
+                      <Camera className="w-3 h-3" /> เพิ่มรูปภาพ
+                    </span>
+                  )}
                 </div>
               )}
               {images.length > 1 && (
@@ -344,15 +352,18 @@ export function ProfileHeader({ player, modelName, statusLabel, images, editable
                       onClick={() => openLightbox(i + 1)}
                     />
                   ))}
-                  {images.length > 5 && (
-                    <button
-                      className="w-9 h-9 flex items-center justify-center bg-muted rounded text-xs text-muted-foreground hover:bg-accent transition-colors"
-                      onClick={() => openLightbox(5)}
-                    >
-                      +{images.length - 5}
-                    </button>
-                  )}
                 </div>
+              )}
+              {editable && images.length > 0 && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="mt-2 w-40 h-7 text-xs gap-1"
+                  onClick={() => setUploadOpen(true)}
+                >
+                  <Camera className="w-3.5 h-3.5" />
+                  จัดการรูปภาพ ({images.length}/5)
+                </Button>
               )}
             </div>
 
