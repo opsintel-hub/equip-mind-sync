@@ -17,7 +17,7 @@ import { format } from "date-fns";
 import { th } from "date-fns/locale";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { SymptomSelect } from "@/components/media-player/SymptomSelect";
-import { ClaimResultSelect } from "@/components/media-player/ClaimResultSelect";
+import { ClaimResultSelect, type ClaimResultKind } from "@/components/media-player/ClaimResultSelect";
 import { SupplierSelect } from "@/components/supplier/SupplierSelect";
 import { LocationSelect } from "@/components/location/LocationSelect";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -106,10 +106,12 @@ export default function ClaimTracker() {
   // Return dialog state
   const [returnDialogId, setReturnDialogId] = useState<string | null>(null);
   const [claimResultId, setClaimResultId] = useState("");
+  const [claimResultKind, setClaimResultKind] = useState<ClaimResultKind>(null);
   const [resultNotes, setResultNotes] = useState("");
   const [receiverName, setReceiverName] = useState("");
   const [costAmount, setCostAmount] = useState("");
-  const [restockDecision, setRestockDecision] = useState<"refurb" | "defective" | "replacement">("refurb");
+  // For vendor_rejected: choose follow-up
+  const [rejectedAction, setRejectedAction] = useState<"write_off" | "defective">("defective");
   const [returnLocationId, setReturnLocationId] = useState("");
   const [replacementSerial, setReplacementSerial] = useState("");
   const [returnSubmitting, setReturnSubmitting] = useState(false);
@@ -332,55 +334,104 @@ export default function ClaimTracker() {
     fetchRecords();
   };
 
-  const openReturnDialog = (record: ClaimRecord) => {
+  const openReturnDialog = async (record: ClaimRecord) => {
     setReturnDialogId(record.id);
     setClaimResultId(record.claim_result_id || "");
+    // Hydrate kind from existing result (if present)
+    if (record.claim_result_id) {
+      const { data } = await supabase
+        .from("mp_claim_results")
+        .select("result_kind")
+        .eq("id", record.claim_result_id)
+        .maybeSingle();
+      setClaimResultKind(((data as any)?.result_kind ?? null) as ClaimResultKind);
+    } else {
+      setClaimResultKind(null);
+    }
     setResultNotes(record.result_notes || "");
     setReceiverName(record.receiver_name || "");
     setCostAmount(record.cost_amount?.toString() || "");
-    setRestockDecision((record.restock_decision as any) || "refurb");
+    setRejectedAction("defective");
     setReturnLocationId(record.return_location_id || "");
     setReplacementSerial(record.replacement_serial || "");
   };
+
+  const needsLocation =
+    claimResultKind === "refurb_return" ||
+    claimResultKind === "replacement";
 
   const handleReturnSubmit = async () => {
     if (!returnDialogId) return;
     const record = records.find((r) => r.id === returnDialogId);
     if (!record) return;
-    if (!claimResultId) {
+    if (!claimResultId || !claimResultKind) {
       toast.error("กรุณาเลือกผลการเคลม");
       return;
     }
-    if (restockDecision !== "defective" && !returnLocationId) {
-      toast.error("กรุณาเลือกคลังที่จะนำเครื่องกลับเข้า");
+    if (needsLocation && !returnLocationId) {
+      toast.error("กรุณาเลือกคลังปลายทาง");
       return;
     }
-    if (restockDecision === "replacement" && !replacementSerial.trim()) {
-      toast.error("กรุณาระบุ S/N เครื่องทดแทนที่ vendor ส่งให้");
+    if (claimResultKind === "replacement" && !replacementSerial.trim()) {
+      toast.error("กรุณาระบุ S/N เครื่องทดแทนที่ Vendor ส่งให้");
+      return;
+    }
+    if (claimResultKind === "vendor_rejected" && !resultNotes.trim()) {
+      toast.error("กรุณาระบุเหตุผลที่ Vendor ปฏิเสธในช่องหมายเหตุ");
       return;
     }
 
     setReturnSubmitting(true);
     try {
-      // 1) Update claim record → returned
+      const nowIso = new Date().toISOString();
+
+      // ──────────────────────────────────────────────
+      // 1) "in_progress" — แค่บันทึกหมายเหตุ ไม่ flip status
+      // ──────────────────────────────────────────────
+      if (claimResultKind === "in_progress") {
+        const { error } = await supabase
+          .from("claim_records")
+          .update({
+            claim_result_id: claimResultId,
+            result_notes: resultNotes.trim() || null,
+            cost_amount: costAmount ? parseFloat(costAmount) : 0,
+            // remain 'submitted'
+          })
+          .eq("id", returnDialogId);
+        if (error) throw error;
+        toast.success("บันทึกความคืบหน้าแล้ว — สถานะยังเป็น 'ส่งเคลมแล้ว'");
+        setReturnDialogId(null);
+        fetchRecords();
+        return;
+      }
+
+      // ──────────────────────────────────────────────
+      // 2) ทุก kind อื่น — flip claim → closed (auto-close)
+      // ──────────────────────────────────────────────
+      const claimUpdate: any = {
+        status: "closed",
+        claim_result_id: claimResultId,
+        result_notes: resultNotes.trim() || null,
+        receiver_name: receiverName.trim() || null,
+        cost_amount: costAmount ? parseFloat(costAmount) : 0,
+        returned_at: nowIso,
+        returned_by: user?.id ?? null,
+        closed_at: nowIso,
+        closed_by: user?.id ?? null,
+        restock_decision: claimResultKind,
+        return_location_id: needsLocation ? returnLocationId : null,
+        replacement_serial: claimResultKind === "replacement" ? replacementSerial.trim() : null,
+      };
       const { error: claimErr } = await supabase
         .from("claim_records")
-        .update({
-          status: "returned",
-          claim_result_id: claimResultId,
-          result_notes: resultNotes.trim() || null,
-          receiver_name: receiverName.trim() || null,
-          cost_amount: costAmount ? parseFloat(costAmount) : 0,
-          returned_at: new Date().toISOString(),
-          returned_by: user?.id ?? null,
-          restock_decision: restockDecision,
-          return_location_id: restockDecision === "defective" ? null : returnLocationId,
-          replacement_serial: restockDecision === "replacement" ? replacementSerial.trim() : null,
-        })
+        .update(claimUpdate)
         .eq("id", returnDialogId);
       if (claimErr) throw claimErr;
 
-      // 2) Flip media_player based on decision (only if linked to MP)
+      // ──────────────────────────────────────────────
+      // 3) flip Media Player + log stock_movement
+      //    (เฉพาะกรณีที่ผูกกับ media_player)
+      // ──────────────────────────────────────────────
       if (record.media_player_id) {
         const { data: mpRow } = await supabase
           .from("media_players")
@@ -388,7 +439,7 @@ export default function ClaimTracker() {
           .eq("id", record.media_player_id)
           .maybeSingle();
 
-        if (restockDecision === "refurb") {
+        if (claimResultKind === "refurb_return") {
           await supabase
             .from("media_players")
             .update({
@@ -397,10 +448,30 @@ export default function ClaimTracker() {
               location_id: returnLocationId,
               billboard_id: null,
               is_refurbished: true,
-              refurbished_at: new Date().toISOString(),
+              refurbished_at: nowIso,
             })
             .eq("id", record.media_player_id);
-        } else if (restockDecision === "replacement") {
+
+          if (mpRow) {
+            await supabase.from("stock_movements").insert({
+              equipment_id: record.media_player_id,
+              equipment_code: mpRow.code,
+              equipment_name: mpRow.name,
+              movement_type: "claim_return_in",
+              quantity: 1,
+              stock_before: 0,
+              stock_after: 1,
+              reference_type: "claim_record",
+              reference_id: record.id,
+              reference_document: record.document_no,
+              location_id: returnLocationId,
+              company_id: mpRow.company_id,
+              item_condition: "refurbished",
+              created_by: user?.id ?? null,
+              notes: "รับกลับจากเคลม — Refurbished พร้อมเบิก",
+            });
+          }
+        } else if (claimResultKind === "replacement") {
           await supabase
             .from("media_players")
             .update({
@@ -413,42 +484,110 @@ export default function ClaimTracker() {
               refurbished_at: null,
             })
             .eq("id", record.media_player_id);
-        } else {
-          // defective → keep status defective, qty 0
+
+          if (mpRow) {
+            await supabase.from("stock_movements").insert({
+              equipment_id: record.media_player_id,
+              equipment_code: mpRow.code,
+              equipment_name: mpRow.name,
+              movement_type: "claim_return_in",
+              quantity: 1,
+              stock_before: 0,
+              stock_after: 1,
+              reference_type: "claim_record",
+              reference_id: record.id,
+              reference_document: record.document_no,
+              location_id: returnLocationId,
+              company_id: mpRow.company_id,
+              item_condition: "new",
+              created_by: user?.id ?? null,
+              notes: `รับเครื่องทดแทนจาก Vendor — S/N ใหม่: ${replacementSerial.trim()}`,
+            });
+          }
+        } else if (claimResultKind === "write_off") {
           await supabase
             .from("media_players")
-            .update({ status: "defective", quantity: 0 })
+            .update({
+              status: "written_off",
+              quantity: 0,
+              billboard_id: null,
+              is_active: false,
+            })
             .eq("id", record.media_player_id);
-        }
 
-        // 3) Stock movement for refurb/replacement
-        if (mpRow && restockDecision !== "defective") {
-          await supabase.from("stock_movements").insert({
-            equipment_id: record.media_player_id,
-            equipment_code: mpRow.code,
-            equipment_name: mpRow.name,
-            movement_type: "claim_return_in",
-            quantity: 1,
-            stock_before: 0,
-            stock_after: 1,
-            reference_type: "claim_record",
-            reference_id: record.id,
-            reference_document: record.document_no,
-            location_id: returnLocationId,
-            company_id: mpRow.company_id,
-            item_condition: restockDecision === "refurb" ? "refurbished" : "new",
-            created_by: user?.id ?? null,
-            notes:
-              restockDecision === "refurb"
-                ? "รับกลับจากเคลม — สถานะ Refurbished พร้อมเบิก"
-                : `รับเครื่องทดแทนจาก vendor — S/N ใหม่: ${replacementSerial.trim()}`,
-          });
+          if (mpRow) {
+            await supabase.from("stock_movements").insert({
+              equipment_id: record.media_player_id,
+              equipment_code: mpRow.code,
+              equipment_name: mpRow.name,
+              movement_type: "write_off",
+              quantity: 1,
+              stock_before: 1,
+              stock_after: 0,
+              reference_type: "claim_record",
+              reference_id: record.id,
+              reference_document: record.document_no,
+              company_id: mpRow.company_id,
+              item_condition: "defective",
+              created_by: user?.id ?? null,
+              notes: "ตัดทรัพย์สิน (Write-off) จากผลเคลม — ซ่อมไม่ได้",
+            });
+          }
+        } else if (claimResultKind === "vendor_rejected") {
+          if (rejectedAction === "write_off") {
+            await supabase
+              .from("media_players")
+              .update({ status: "written_off", quantity: 0, billboard_id: null, is_active: false })
+              .eq("id", record.media_player_id);
+            if (mpRow) {
+              await supabase.from("stock_movements").insert({
+                equipment_id: record.media_player_id,
+                equipment_code: mpRow.code,
+                equipment_name: mpRow.name,
+                movement_type: "write_off",
+                quantity: 1,
+                stock_before: 1,
+                stock_after: 0,
+                reference_type: "claim_record",
+                reference_id: record.id,
+                reference_document: record.document_no,
+                company_id: mpRow.company_id,
+                item_condition: "defective",
+                created_by: user?.id ?? null,
+                notes: "Write-off หลัง Vendor ปฏิเสธการเคลม",
+              });
+            }
+          } else {
+            // defective → ส่งเข้าระบบของเสียเพื่อให้ฝ่ายคลังเลือกวิธีจำหน่าย
+            await supabase
+              .from("media_players")
+              .update({ status: "defective", quantity: 0, billboard_id: null })
+              .eq("id", record.media_player_id);
+            if (mpRow) {
+              await supabase.from("stock_movements").insert({
+                equipment_id: record.media_player_id,
+                equipment_code: mpRow.code,
+                equipment_name: mpRow.name,
+                movement_type: "defective_in",
+                quantity: 1,
+                stock_before: 1,
+                stock_after: 0,
+                reference_type: "claim_record",
+                reference_id: record.id,
+                reference_document: record.document_no,
+                company_id: mpRow.company_id,
+                item_condition: "defective",
+                created_by: user?.id ?? null,
+                notes: "Vendor ปฏิเสธ — ส่งเข้าระบบของเสียเพื่อจำหน่ายต่อ",
+              });
+            }
+          }
         }
       }
 
-      toast.success("บันทึกการรับกลับและคืนคลังเรียบร้อย");
-      if (restockDecision === "defective") {
-        toast.info("เครื่องถูกตั้งสถานะ defective — กรุณาเข้าเมนู 'นำของเสียเข้าระบบ' เพื่อจัดการต่อ");
+      toast.success("บันทึกการรับกลับและปิดงานเคลมเรียบร้อย");
+      if (claimResultKind === "vendor_rejected" && rejectedAction === "defective") {
+        toast.info("เครื่องถูกตั้งสถานะ defective — เข้าเมนู 'นำของเสียเข้าระบบ' เพื่อระบุวิธีจำหน่ายต่อ");
       }
       setReturnDialogId(null);
       fetchRecords();
@@ -745,58 +884,72 @@ export default function ClaimTracker() {
           <Card className="w-full max-w-lg max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             <CardHeader>
               <CardTitle>บันทึกการรับกลับจากการเคลม</CardTitle>
-              <CardDescription>ระบุผลเคลม + ปลายทางของเครื่อง (จะ flip สถานะ Media Player ให้อัตโนมัติ)</CardDescription>
+              <CardDescription>
+                เลือกผลการเคลม — ระบบจะกำหนดปลายทาง, อัปเดตสถานะ Media Player, บันทึก stock movement และปิดงานให้อัตโนมัติ
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
                 <Label>ผลการเคลม *</Label>
-                <ClaimResultSelect value={claimResultId} onChange={setClaimResultId} />
+                <ClaimResultSelect
+                  value={claimResultId}
+                  onChange={(id, kind) => {
+                    setClaimResultId(id);
+                    setClaimResultKind(kind);
+                  }}
+                />
+                {claimResultKind === "in_progress" && (
+                  <p className="text-xs text-muted-foreground">
+                    ℹ️ จะบันทึกเป็นความคืบหน้าเท่านั้น — สถานะเครื่องและสถานะเคลมจะไม่เปลี่ยน
+                  </p>
+                )}
+                {claimResultKind === "write_off" && (
+                  <p className="text-xs text-destructive">
+                    ⚠️ เครื่องจะถูกตัดทรัพย์สิน (written_off) และปิดการใช้งานถาวร
+                  </p>
+                )}
               </div>
 
-              <div className="space-y-2 rounded-lg border p-3 bg-muted/30">
-                <Label className="font-semibold">ปลายทางหลังรับกลับ *</Label>
-                <RadioGroup value={restockDecision} onValueChange={(v) => setRestockDecision(v as any)}>
-                  <div className="flex items-start gap-2">
-                    <RadioGroupItem value="refurb" id="rd-refurb" className="mt-1" />
-                    <label htmlFor="rd-refurb" className="text-sm cursor-pointer">
-                      <div className="font-medium text-success">✅ กลับเข้าคลังพร้อมเบิก (Refurbished)</div>
-                      <div className="text-xs text-muted-foreground">vendor ซ่อมเสร็จ ใช้งานได้ปกติ</div>
-                    </label>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <RadioGroupItem value="replacement" id="rd-replace" className="mt-1" />
-                    <label htmlFor="rd-replace" className="text-sm cursor-pointer">
-                      <div className="font-medium text-primary">🔄 เปลี่ยนเครื่องใหม่จาก vendor (Replacement)</div>
-                      <div className="text-xs text-muted-foreground">vendor ส่งเครื่องใหม่มาแทน — ต้องกรอก S/N ใหม่</div>
-                    </label>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <RadioGroupItem value="defective" id="rd-defect" className="mt-1" />
-                    <label htmlFor="rd-defect" className="text-sm cursor-pointer">
-                      <div className="font-medium text-destructive">❌ ซ่อมไม่ได้ / เครื่องเสียถาวร</div>
-                      <div className="text-xs text-muted-foreground">นำเข้าระบบของเสียเพื่อจำหน่ายต่อ</div>
-                    </label>
-                  </div>
-                </RadioGroup>
-              </div>
+              {claimResultKind === "vendor_rejected" && (
+                <div className="space-y-2 rounded-lg border p-3 bg-destructive/5">
+                  <Label className="font-semibold">วิธีจัดการต่อหลัง Vendor ปฏิเสธ *</Label>
+                  <RadioGroup value={rejectedAction} onValueChange={(v) => setRejectedAction(v as any)}>
+                    <div className="flex items-start gap-2">
+                      <RadioGroupItem value="defective" id="rj-defect" className="mt-1" />
+                      <label htmlFor="rj-defect" className="text-sm cursor-pointer">
+                        <div className="font-medium">📦 ส่งเข้าระบบของเสีย (Default)</div>
+                        <div className="text-xs text-muted-foreground">ให้ฝ่ายคลังเลือกวิธีจำหน่าย (ขายซาก / CSR / ทำลาย)</div>
+                      </label>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <RadioGroupItem value="write_off" id="rj-write" className="mt-1" />
+                      <label htmlFor="rj-write" className="text-sm cursor-pointer">
+                        <div className="font-medium text-destructive">❌ ตัดทรัพย์สินทันที (Write-off)</div>
+                        <div className="text-xs text-muted-foreground">ปิดทรัพย์สินถาวร</div>
+                      </label>
+                    </div>
+                  </RadioGroup>
+                </div>
+              )}
 
-              {restockDecision !== "defective" && (
+              {needsLocation && (
                 <div className="space-y-2">
                   <Label>คลังปลายทาง *</Label>
                   <LocationSelect value={returnLocationId} onChange={setReturnLocationId} />
                 </div>
               )}
 
-              {restockDecision === "replacement" && (
+              {claimResultKind === "replacement" && (
                 <div className="space-y-2">
-                  <Label>S/N เครื่องทดแทนจาก vendor *</Label>
+                  <Label>S/N เครื่องทดแทนจาก Vendor *</Label>
                   <Input
                     value={replacementSerial}
                     onChange={(e) => setReplacementSerial(e.target.value)}
-                    placeholder="กรอก S/N เครื่องใหม่ที่ vendor ส่งให้"
+                    placeholder="กรอก S/N เครื่องใหม่ที่ Vendor ส่งให้"
                   />
                 </div>
               )}
+
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
