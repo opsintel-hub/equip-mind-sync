@@ -1136,9 +1136,11 @@ export default function InventoryReport() {
                           </TableCell>
                           <TableCell>
                             {location ? (
-                              <div className="text-sm">
-                                <div>{location.code}</div>
-                                <div className="text-xs text-muted-foreground">{location.name}</div>
+                              <div className="text-sm leading-tight">
+                                <div className="font-medium">{location.code}</div>
+                                <div className="text-xs text-muted-foreground truncate max-w-[180px]" title={location.name}>
+                                  {location.name}
+                                </div>
                               </div>
                             ) : (
                               <span className="text-muted-foreground">-</span>
