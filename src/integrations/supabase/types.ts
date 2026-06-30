@@ -2774,6 +2774,7 @@ export type Database = {
           remaining_quantity: number | null
           serial_number: string | null
           status: string | null
+          sub_media_type: string | null
           unit: string
         }
         Insert: {
@@ -2792,6 +2793,7 @@ export type Database = {
           remaining_quantity?: number | null
           serial_number?: string | null
           status?: string | null
+          sub_media_type?: string | null
           unit?: string
         }
         Update: {
@@ -2810,6 +2812,7 @@ export type Database = {
           remaining_quantity?: number | null
           serial_number?: string | null
           status?: string | null
+          sub_media_type?: string | null
           unit?: string
         }
         Relationships: [

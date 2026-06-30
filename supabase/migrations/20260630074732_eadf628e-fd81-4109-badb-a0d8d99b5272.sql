@@ -1,0 +1,1 @@
+ALTER TABLE public.goods_issue_pending_items ADD COLUMN IF NOT EXISTS sub_media_type text NULL;
