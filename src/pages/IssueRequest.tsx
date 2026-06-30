@@ -219,14 +219,34 @@ const IssueRequest = () => {
       .map((item) => item.id);
   };
 
+  // Pending reservations (other people's pending requests) — reduce available stock
+  const { data: reservations } = useQuery({
+    queryKey: ["pending-reservations"],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("get_pending_reservations");
+      if (error) throw error;
+      const map: Record<string, number> = {};
+      (data || []).forEach((r: any) => {
+        const key = r.media_player_id || r.equipment_id;
+        if (key) map[key] = (map[key] || 0) + Number(r.reserved || 0);
+      });
+      return map;
+    },
+    staleTime: 30_000,
+  });
+
+  const getReserved = (id: string) => reservations?.[id] || 0;
+
   const getSelectableStock = (equipmentId: string) => {
     const selected = equipment.find((item) => item.id === equipmentId);
     if (!selected) return 0;
-    if (!selected.is_media_player) return selected.quantity_in_stock || 0;
+    if (!selected.is_media_player) {
+      return Math.max((selected.quantity_in_stock || 0) - getReserved(equipmentId), 0);
+    }
 
     return equipment
       .filter((item) => item.is_media_player && item.code === selected.code && item.name === selected.name)
-      .reduce((sum, item) => sum + (item.quantity_in_stock || 0), 0);
+      .reduce((sum, item) => sum + Math.max((item.quantity_in_stock || 0) - getReserved(item.id), 0), 0);
   };
 
   const selectedMediaPlayerIds = currentItem.equipment_id ? getMediaPlayerGroupIds(currentItem.equipment_id) : undefined;
