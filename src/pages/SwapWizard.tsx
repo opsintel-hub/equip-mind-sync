@@ -21,6 +21,7 @@ import { SearchableSelect } from "@/components/ui/searchable-select";
 import { EquipmentImageUpload } from "@/components/equipment/EquipmentImageUpload";
 import { useFunctionPermissions } from "@/hooks/useFunctionPermissions";
 import { formatBillboardLabel } from "@/lib/billboardUtils";
+import { PhotoGalleryDialog } from "@/components/ui/PhotoGalleryDialog";
 
 interface SwapRequest {
   id: string;
