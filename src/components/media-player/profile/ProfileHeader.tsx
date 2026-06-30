@@ -5,12 +5,13 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Monitor, QrCode, Download, Printer, ChevronLeft, ChevronRight, X, Move, RotateCcw } from "lucide-react";
+import { Monitor, QrCode, Download, Printer, ChevronLeft, ChevronRight, X, Move, RotateCcw, Camera, ExternalLink } from "lucide-react";
 import QRCodeSVG from "react-qr-code";
 import { MediaPlayerRow } from "./types";
 import { getConditionDisplay } from "./constants";
 import { getPublicBaseUrl } from "@/lib/publicUrl";
 import { DeviceTypeBadge } from "@/components/media-player/DeviceTypeBadge";
+import { MediaPlayerImageUpload } from "@/components/media-player/MediaPlayerImageUpload";
 
 type StickerOptions = {
   widthMm: number;
