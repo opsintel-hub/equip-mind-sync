@@ -659,7 +659,8 @@ const IssueRequest = () => {
         remaining_quantity: item.quantity,
         status: "pending",
         notes: item.notes || null,
-      }));
+        sub_media_type: item.sub_media_type || null,
+      })) as any;
 
       const { error: itemsError } = await supabase
         .from("goods_issue_pending_items")
