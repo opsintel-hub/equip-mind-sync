@@ -333,6 +333,9 @@ export function POUploadOCR({
     };
   };
 
+  const mpKind = (m: MediaPlayer): DeviceKind =>
+    String(m.device_type || "").toUpperCase() === "MONITOR" ? "MONITOR" : "MEDIA_PLAYER";
+
   const matchEquipmentItems = (ocrItems: POOCRItem[]) => {
     return ocrItems.map((rawItem) => {
       const item = parseFieldsFromDescription(rawItem);
@@ -348,6 +351,7 @@ export function POUploadOCR({
             matched_equipment_code: found.code,
             matched_equipment_name: found.name,
             matched_is_media_player: false,
+            device_kind: "EQUIPMENT" as DeviceKind,
             match_status: "matched" as const,
           };
         }
@@ -361,11 +365,19 @@ export function POUploadOCR({
             matched_equipment_code: foundMp.code,
             matched_equipment_name: foundMp.name,
             matched_is_media_player: true,
+            device_kind: mpKind(foundMp),
             match_status: "matched" as const,
           };
         }
       }
-      return { ...item, match_status: "not_found" as const };
+      // Default kind guess: if description mentions monitor/จอ → MONITOR, else EQUIPMENT
+      const desc = (item.description || "").toLowerCase();
+      const guess: DeviceKind = /monitor|จอภาพ|จอ\s|จอ$|display|screen/i.test(desc)
+        ? "MONITOR"
+        : /media\s*player|มีเดีย/i.test(desc)
+        ? "MEDIA_PLAYER"
+        : "EQUIPMENT";
+      return { ...item, device_kind: guess, match_status: "not_found" as const };
     });
   };
 
