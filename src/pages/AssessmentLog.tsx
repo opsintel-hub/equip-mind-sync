@@ -24,6 +24,7 @@ import { RepairCompleteDialog } from "@/components/assessment/RepairCompleteDial
 import { isMonitor } from "@/lib/deviceTypes";
 import { DeviceTypeBadge } from "@/components/media-player/DeviceTypeBadge";
 import { formatBillboardLabel } from "@/lib/billboardUtils";
+import { PhotoGalleryDialog } from "@/components/ui/PhotoGalleryDialog";
 
 interface AssessmentLog {
   id: string;
