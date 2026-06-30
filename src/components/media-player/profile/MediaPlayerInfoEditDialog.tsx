@@ -155,6 +155,7 @@ export function MediaPlayerInfoEditDialog({ open, onOpenChange, player, onSaved 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div className="space-y-1.5"><Label>ชื่อสินค้า</Label><Input value={form.name} onChange={set("name")} /></div>
               <div className="space-y-1.5"><Label>ยี่ห้อ</Label><Input value={form.brand} onChange={set("brand")} /></div>
+              <div className="md:col-span-2 space-y-1.5"><Label>รายละเอียด (Description)</Label><Textarea value={form.description} onChange={set("description")} rows={2} /></div>
               <div className="md:col-span-2 space-y-1.5"><Label>Specification</Label><Textarea value={form.specification} onChange={set("specification")} rows={2} /></div>
               <div className="space-y-1.5"><Label>S/N 1</Label><Input value={form.serial_number_1} onChange={set("serial_number_1")} /></div>
               <div className="space-y-1.5"><Label>S/N 2</Label><Input value={form.serial_number_2} onChange={set("serial_number_2")} /></div>
