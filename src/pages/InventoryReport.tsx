@@ -1012,7 +1012,7 @@ export default function InventoryReport() {
                     <TableHead className="min-w-[100px]">บริษัท</TableHead>
                     <TableHead className="min-w-[100px]">ฝ่าย</TableHead>
                     <TableHead className="min-w-[100px]">คลัง</TableHead>
-                    <TableHead className="min-w-[130px]">ตำแหน่งจัดเก็บ</TableHead>
+                    <TableHead className="min-w-[200px]">ตำแหน่งจัดเก็บ</TableHead>
                     <TableHead className="text-right min-w-[110px]" title="จำนวนคงเหลือในคลัง (ไม่รวมที่เบิกออกหรือติดตั้งอยู่บนป้าย)">คงเหลือในคลัง</TableHead>
                     <TableHead className="text-right min-w-[70px]">Min</TableHead>
                     <TableHead className="text-right min-w-[110px]">ราคา/ชิ้น</TableHead>
