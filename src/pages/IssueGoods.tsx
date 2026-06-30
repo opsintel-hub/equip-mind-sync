@@ -171,11 +171,12 @@ const IssueGoods = () => {
   const { data: availableMpUnits } = useQuery({
     queryKey: ["available-media-player-units"],
     queryFn: async () => {
+      // Include all active units (even quantity=0) so we can show them as disabled
+      // with a clear reason, instead of silently hiding newly-edited S/Ns.
       const { data, error } = await supabase
         .from("media_players")
-        .select("id, code, name, serial_number_1, serial_number_2, quantity, billboard_id, location_id, department, sub_media_type, device_type, locations(id, name, code, warehouses(id, name, code))")
-        .eq("is_active", true)
-        .gt("quantity", 0);
+        .select("id, code, name, serial_number_1, serial_number_2, quantity, billboard_id, location_id, department, sub_media_type, device_type, status, locations(id, name, code, warehouses(id, name, code))")
+        .eq("is_active", true);
       if (error) throw error;
       return data as any[];
     },
