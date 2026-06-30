@@ -1314,6 +1314,15 @@ const IssueGoods = () => {
                       เพิ่ม/แก้ไข S/N
                       <ExternalLink className="h-3 w-3" />
                     </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      className="h-7 border-amber-300 bg-white hover:bg-amber-100"
+                      onClick={() => refetchMpUnits()}
+                    >
+                      🔄 โหลดใหม่
+                    </Button>
                   </div>
                   <div className="border rounded-lg divide-y">
                     {mpUnitAssignments.map((u, idx) => {
