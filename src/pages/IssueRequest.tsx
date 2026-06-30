@@ -1588,6 +1588,16 @@ const IssueRequest = () => {
                           <TableCell>
                             {item.equipment_code && <div className="font-medium">{item.equipment_code}</div>}
                             <div className="text-sm text-muted-foreground">{item.equipment_name}</div>
+                            <div className="mt-1">
+                              <SubMediaTypeBadge
+                                department={item.department}
+                                subMediaType={item.sub_media_type}
+                                showPlaceholder
+                                onEdit={async (next) => {
+                                  setCartItems(prev => prev.map(ci => ci.id === item.id ? { ...ci, sub_media_type: next } : ci));
+                                }}
+                              />
+                            </div>
                           </TableCell>
                           <TableCell>{item.serial_number || "-"}</TableCell>
                           <TableCell>
