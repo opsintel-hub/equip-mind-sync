@@ -49,6 +49,7 @@ interface SwapRequest {
   _billboard_label?: string;
   _model_name?: string;
   _remote_name?: string;
+  _symptom_label?: string;
 }
 
 interface InstalledItemOption {
