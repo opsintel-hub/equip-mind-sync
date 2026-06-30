@@ -1291,6 +1291,22 @@ const IssueGoods = () => {
                     ระบุ S/N และป้ายโฆษณาต่อเครื่อง ({mpUnitAssignments.length} เครื่อง)
                     {candidates[0]?.device_type && <DeviceTypeBadge value={candidates[0].device_type} />}
                   </Label>
+                  <div className="flex items-start gap-2 p-2 rounded-md border border-amber-200 bg-amber-50 text-xs text-amber-900">
+                    <Info className="h-4 w-4 mt-0.5 shrink-0" />
+                    <div className="flex-1">
+                      ไม่พบ S/N ที่ต้องการ? อาจยังไม่ได้บันทึก S/N ตอนรับเข้าคลัง — เปิดหน้า Media Player Profile เพื่อเพิ่ม/แก้ไข S/N ได้
+                    </div>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      className="h-7 gap-1 border-amber-300 bg-white hover:bg-amber-100"
+                      onClick={() => window.open(`/media-player/search?code=${encodeURIComponent(selectedItem?.equipment_code || "")}`, "_blank")}
+                    >
+                      เพิ่ม/แก้ไข S/N
+                      <ExternalLink className="h-3 w-3" />
+                    </Button>
+                  </div>
                   <div className="border rounded-lg divide-y">
                     {mpUnitAssignments.map((u, idx) => {
                       // Allowed list = not already picked by other rows
