@@ -665,6 +665,7 @@ function EquipmentViewTab() {
             serialDisplay: sn,
             installedBillboard: bbInfo,
             isInstalled: installed.length > 0,
+            install_date: installed[0]?.installation_date || null,
             quantity_in_stock: isInStock ? 1 : 0,
           });
         }
@@ -675,6 +676,7 @@ function EquipmentViewTab() {
           serialDisplay: snData?.allSNs[0] || eq.serial_number || "-",
           installedBillboard: bbInfo,
           isInstalled: installed.length > 0,
+          install_date: installed[0]?.installation_date || null,
         });
       }
     });
