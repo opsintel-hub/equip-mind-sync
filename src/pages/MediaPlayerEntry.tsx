@@ -654,11 +654,9 @@ const MediaPlayerEntry = () => {
                   <Camera className="w-5 h-5" />
                   Upload ภาพ Media Player *
                 </CardTitle>
-                <CardDescription asChild>
-                  <div className="mt-2 rounded-md border border-warning/30 bg-warning/10 px-3 py-2 text-sm font-medium text-foreground">
-                    ⚠ อัปโหลดได้ไม่เกิน {MAX_FORM_IMAGES} ภาพ — จำเป็นต้องมีอย่างน้อย 1 รูป (เลือกแล้ว {formImages.length}/{MAX_FORM_IMAGES})
-                  </div>
-                </CardDescription>
+                <div className="mt-2 rounded-md border border-warning/30 bg-warning/10 px-3 py-2 text-sm font-medium text-foreground">
+                  ⚠ อัปโหลดได้ไม่เกิน {MAX_FORM_IMAGES} ภาพ — จำเป็นต้องมีอย่างน้อย 1 รูป (เลือกแล้ว {formImages.length}/{MAX_FORM_IMAGES})
+                </div>
               </CardHeader>
               <CardContent className="space-y-4">
                 <Input
