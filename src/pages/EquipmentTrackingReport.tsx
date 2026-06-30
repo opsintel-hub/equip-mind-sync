@@ -40,6 +40,19 @@ function daysSince(dateStr: string | null) {
   return `${differenceInDays(new Date(), new Date(dateStr))} วัน`;
 }
 
+function durationSince(dateStr: string | null) {
+  if (!dateStr) return "-";
+  const days = differenceInDays(new Date(), new Date(dateStr));
+  if (days < 0) return "-";
+  if (days < 30) return `${days} วัน`;
+  const months = Math.floor(days / 30);
+  const remDays = days - months * 30;
+  if (months < 12) return `${months} เดือน ${remDays} วัน`;
+  const years = Math.floor(months / 12);
+  const remMonths = months - years * 12;
+  return `${years} ปี ${remMonths} เดือน`;
+}
+
 function fmtDate(dateStr: string | null) {
   if (!dateStr) return "-";
   return format(new Date(dateStr), "dd MMM yyyy", { locale: th });
@@ -422,39 +435,59 @@ function BillboardViewTab() {
       {isLoading ? (
         <div className="space-y-2">{[1,2,3].map(i => <Skeleton key={i} className="h-12 w-full" />)}</div>
       ) : (
-        <div className="border rounded-lg">
-          <Table>
+        <div className="border rounded-lg overflow-x-auto">
+          <Table className="min-w-[1300px]">
             <TableHeader>
               <TableRow>
                 <TableHead className="w-10"></TableHead>
-                 <TableHead>Old Code</TableHead>
-                <TableHead>Location</TableHead>
-                <TableHead>Size</TableHead>
-                <TableHead>Region</TableHead>
-                <TableHead>Department</TableHead>
-                <TableHead>Media Type</TableHead>
-                <TableHead>สรุปอุปกรณ์ตามประเภท</TableHead>
-                <TableHead className="text-center">รวม</TableHead>
+                <TableHead className="whitespace-nowrap">Old Code</TableHead>
+                <TableHead className="whitespace-nowrap">Location</TableHead>
+                <TableHead className="whitespace-nowrap">Size</TableHead>
+                <TableHead className="whitespace-nowrap">Region</TableHead>
+                <TableHead className="whitespace-nowrap">Department</TableHead>
+                <TableHead className="whitespace-nowrap">Media Type</TableHead>
+                <TableHead className="whitespace-nowrap">สรุปอุปกรณ์ตามประเภท</TableHead>
+                <TableHead className="text-center whitespace-nowrap">รวม (ชิ้น)</TableHead>
+                <TableHead className="whitespace-nowrap">ติดตั้งล่าสุด</TableHead>
+                <TableHead className="whitespace-nowrap">อายุการติดตั้ง</TableHead>
+                <TableHead className="whitespace-nowrap">สถานะอุปกรณ์</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {paginatedData.length === 0 ? (
-                <TableRow><TableCell colSpan={9} className="text-center text-muted-foreground py-8">ไม่พบข้อมูล</TableCell></TableRow>
+                <TableRow><TableCell colSpan={12} className="text-center text-muted-foreground py-8">ไม่พบข้อมูล</TableCell></TableRow>
               ) : paginatedData.map(b => {
                 const items = equipByBillboard[b.id] || [];
                 const isExpanded = expandedId === b.id;
                 const breakdown = categoryBreakdown(b.id);
                 const totalPieces = items.reduce((s, it) => s + (it.quantity || 1), 0);
+                const latestInstall = items.reduce<string | null>((latest, it) => {
+                  if (!it.installation_date) return latest;
+                  if (!latest || new Date(it.installation_date) > new Date(latest)) return it.installation_date;
+                  return latest;
+                }, null);
+                const now = new Date();
+                let warnCount = 0;
+                let expiredCount = 0;
+                items.forEach(it => {
+                  const eq = it.equipmentData;
+                  [eq.expiry_date, eq.warranty_expiry_date].forEach(d => {
+                    if (!d) return;
+                    const diff = differenceInDays(new Date(d), now);
+                    if (diff < 0) expiredCount++;
+                    else if (diff <= EXPIRY_WARNING_DAYS) warnCount++;
+                  });
+                });
                 return (
                   <React.Fragment key={b.id}>
                     <TableRow className="cursor-pointer hover:bg-muted/50" onClick={() => setExpandedId(isExpanded ? null : b.id)}>
                       <TableCell>{isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}</TableCell>
-                      <TableCell className="font-medium">{b.old_code || "-"}</TableCell>
-                      <TableCell>{b.location_name || "-"}</TableCell>
-                      <TableCell>{(b as any).size || "-"}</TableCell>
-                      <TableCell>{b.region || "-"}</TableCell>
-                      <TableCell>{b.department || "-"}</TableCell>
-                      <TableCell>{b.media_type || "-"}</TableCell>
+                      <TableCell className="font-medium whitespace-nowrap">{b.old_code || "-"}</TableCell>
+                      <TableCell className="whitespace-nowrap">{b.location_name || "-"}</TableCell>
+                      <TableCell className="whitespace-nowrap">{(b as any).size || "-"}</TableCell>
+                      <TableCell className="whitespace-nowrap">{b.region || "-"}</TableCell>
+                      <TableCell className="whitespace-nowrap">{b.department || "-"}</TableCell>
+                      <TableCell className="whitespace-nowrap">{b.media_type || "-"}</TableCell>
                       <TableCell>
                         {breakdown.length === 0 ? (
                           <span className="text-muted-foreground text-xs">ไม่มี</span>
@@ -469,21 +502,37 @@ function BillboardViewTab() {
                       <TableCell className="text-center">
                         {totalPieces > 0 ? <Badge variant="secondary">{totalPieces} ชิ้น</Badge> : <span className="text-muted-foreground text-xs">-</span>}
                       </TableCell>
+                      <TableCell className="text-xs whitespace-nowrap">{fmtDate(latestInstall)}</TableCell>
+                      <TableCell className="whitespace-nowrap">
+                        {latestInstall ? <Badge variant="outline" className="text-xs"><Clock className="w-3 h-3 mr-1" />{durationSince(latestInstall)}</Badge> : <span className="text-muted-foreground text-xs">-</span>}
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap">
+                        {items.length === 0 ? (
+                          <span className="text-muted-foreground text-xs">-</span>
+                        ) : expiredCount > 0 ? (
+                          <Badge variant="destructive" className="text-xs">หมด {expiredCount}</Badge>
+                        ) : warnCount > 0 ? (
+                          <Badge className="bg-amber-500 text-white hover:bg-amber-600 text-xs">ใกล้หมด {warnCount}</Badge>
+                        ) : (
+                          <Badge variant="secondary" className="text-xs">ปกติ</Badge>
+                        )}
+                      </TableCell>
                     </TableRow>
                     {isExpanded && items.length > 0 && (
                       <TableRow>
-                        <TableCell colSpan={9} className="bg-muted/30 p-0">
-                          <div className="p-4">
-                            <Table>
+                        <TableCell colSpan={12} className="bg-muted/30 p-0">
+                          <div className="p-4 overflow-x-auto">
+                            <Table className="min-w-[1100px]">
                               <TableHeader>
                                 <TableRow>
                                   <TableHead>ชื่ออุปกรณ์</TableHead>
                                   <TableHead>Code</TableHead>
                                   <TableHead>S/N</TableHead>
                                   <TableHead>ประเภท</TableHead>
+                                  <TableHead>Brand</TableHead>
                                   <TableHead className="text-center">จำนวน</TableHead>
                                   <TableHead>วันที่ติดตั้ง</TableHead>
-                                  <TableHead>อายุใช้งาน</TableHead>
+                                  <TableHead>อายุการติดตั้ง</TableHead>
                                   <TableHead>วันหมดอายุ</TableHead>
                                   <TableHead>สถานะอายุ</TableHead>
                                   <TableHead>วันหมดประกัน</TableHead>
@@ -499,12 +548,13 @@ function BillboardViewTab() {
                                       <TableCell className="text-xs font-mono">{eq.code}</TableCell>
                                       <TableCell className="text-xs whitespace-pre-line">{eq.serial_number || "-"}</TableCell>
                                       <TableCell>{item.type === "media_player" ? <DeviceTypeBadge value={eq.device_type} /> : <Badge variant="outline" className="text-xs">{eq.category || "อุปกรณ์"}</Badge>}</TableCell>
+                                      <TableCell className="text-xs">{eq.brand || "-"}</TableCell>
                                       <TableCell className="text-center">{item.quantity}</TableCell>
-                                      <TableCell className="text-xs">{fmtDate(item.installation_date)}</TableCell>
-                                      <TableCell><Badge variant="outline"><Clock className="w-3 h-3 mr-1" />{daysSince(item.installation_date)}</Badge></TableCell>
-                                      <TableCell className="text-xs">{fmtDate(eq.expiry_date)}</TableCell>
+                                      <TableCell className="text-xs whitespace-nowrap">{fmtDate(item.installation_date)}</TableCell>
+                                      <TableCell className="whitespace-nowrap"><Badge variant="outline" className="text-xs"><Clock className="w-3 h-3 mr-1" />{durationSince(item.installation_date)}</Badge></TableCell>
+                                      <TableCell className="text-xs whitespace-nowrap">{fmtDate(eq.expiry_date)}</TableCell>
                                       <TableCell>{expiryBadge(eq.expiry_date, "")}</TableCell>
-                                      <TableCell className="text-xs">{fmtDate(eq.warranty_expiry_date)}</TableCell>
+                                      <TableCell className="text-xs whitespace-nowrap">{fmtDate(eq.warranty_expiry_date)}</TableCell>
                                       <TableCell>{expiryBadge(eq.warranty_expiry_date, "ประกัน")}</TableCell>
                                     </TableRow>
                                   );
@@ -520,7 +570,7 @@ function BillboardViewTab() {
               })}
             </TableBody>
           </Table>
-          <div className="px-3 pt-1 text-sm text-muted-foreground border-t">แสดง {filtered.length} ป้าย</div>
+          <div className="px-3 pt-1 text-sm text-muted-foreground border-t">แสดง {filtered.length} ป้าย • เลื่อนแถบด้านล่างเพื่อดูคอลัมน์เพิ่มเติม →</div>
           <SimplePagination currentPage={safeCurrentPage} totalPages={totalPages} onPageChange={setCurrentPage} />
         </div>
       )}
@@ -652,6 +702,7 @@ function EquipmentViewTab() {
             serialDisplay: sn,
             installedBillboard: bbInfo,
             isInstalled: installed.length > 0,
+            install_date: installed[0]?.installation_date || null,
             quantity_in_stock: isInStock ? 1 : 0,
           });
         }
@@ -662,6 +713,7 @@ function EquipmentViewTab() {
           serialDisplay: snData?.allSNs[0] || eq.serial_number || "-",
           installedBillboard: bbInfo,
           isInstalled: installed.length > 0,
+          install_date: installed[0]?.installation_date || null,
         });
       }
     });
@@ -712,7 +764,8 @@ function EquipmentViewTab() {
       if (categoryFilter !== "all" && item.category !== categoryFilter) return false;
       if (brandFilter !== "all" && item.brand !== brandFilter) return false;
       if (installFilter === "installed" && !item.isInstalled) return false;
-      if (installFilter === "in_stock" && item.isInstalled) return false;
+      if (installFilter === "in_stock" && (item.isInstalled || (item as any).isIssuedPending)) return false;
+      if (installFilter === "pending" && !(item as any).isIssuedPending) return false;
       return true;
     });
   }, [allItems, search, snSearch, typeFilter, categoryFilter, brandFilter, installFilter]);
@@ -737,7 +790,11 @@ function EquipmentViewTab() {
   const handleExport = () => {
     const rows = filtered.map(item => ({
       "Code": item.code, "ชื่อ": item.name, "S/N": item.serialDisplay, "ประเภท": item.itemType === "media_player" ? deviceLabel(item.device_type) : item.category,
-      "Brand": item.brand || "-", "สต็อกคลัง": item.quantity_in_stock, "ติดตั้งที่ป้าย": item.isInstalled ? (item.installedBillboard || "ติดตั้งบนป้าย") : (item.isIssuedPending ? "จ่ายแล้ว / รอระบุป้าย" : "ในคลัง"),
+      "Brand": item.brand || "-", "สต็อกคลัง": item.quantity_in_stock,
+      "ติดตั้งที่ป้าย": item.isInstalled ? (item.installedBillboard || "ติดตั้งบนป้าย") : (item.isIssuedPending ? "จ่ายแล้ว / รอระบุป้าย" : "ในคลัง"),
+      "วันที่ติดตั้ง": item.isInstalled && item.install_date ? format(new Date(item.install_date), "dd/MM/yyyy") : "-",
+      "อายุการติดตั้ง": item.isInstalled ? durationSince(item.install_date) : "-",
+      "วันหมดประกัน": item.warranty_expiry_date ? format(new Date(item.warranty_expiry_date), "dd/MM/yyyy") : "-",
     }));
     const ws = XLSX.utils.json_to_sheet(rows);
     const wb = XLSX.utils.book_new();
@@ -793,11 +850,12 @@ function EquipmentViewTab() {
           </SelectContent>
         </Select>
         <Select value={installFilter} onValueChange={setInstallFilter}>
-          <SelectTrigger className="w-[160px]"><SelectValue placeholder="สถานะติดตั้ง" /></SelectTrigger>
+          <SelectTrigger className="w-[200px]"><SelectValue placeholder="สถานะติดตั้ง" /></SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">ทั้งหมด</SelectItem>
-            <SelectItem value="installed">ติดตั้งอยู่</SelectItem>
-            <SelectItem value="in_stock">ในคลัง</SelectItem>
+            <SelectItem value="all">ทั้งหมด (ทุกสถานะ)</SelectItem>
+            <SelectItem value="installed">เฉพาะที่ติดตั้งบนป้าย</SelectItem>
+            <SelectItem value="in_stock">เฉพาะที่อยู่ในคลัง</SelectItem>
+            <SelectItem value="pending">จ่ายแล้ว / รอระบุป้าย</SelectItem>
           </SelectContent>
         </Select>
         <Button variant="outline" size="sm" onClick={handleExport} className="gap-1">
@@ -809,28 +867,30 @@ function EquipmentViewTab() {
       {isLoading ? (
         <div className="space-y-2">{[1,2,3].map(i => <Skeleton key={i} className="h-12 w-full" />)}</div>
       ) : (
-        <div className="border rounded-lg">
-          <Table>
+        <div className="border rounded-lg overflow-x-auto">
+          <Table className="min-w-[1400px]">
             <TableHeader>
               <TableRow>
-                <TableHead>Code</TableHead>
-                <TableHead>ชื่อ / Model</TableHead>
-                <TableHead>S/N</TableHead>
-                <TableHead>ประเภท</TableHead>
-                <TableHead>Brand</TableHead>
-                <TableHead className="text-center">คงเหลือในคลัง</TableHead>
-                <TableHead>ติดตั้งที่ป้าย</TableHead>
-                <TableHead>วันหมดประกัน</TableHead>
-                <TableHead>สถานะประกัน</TableHead>
-                <TableHead className="text-center">รายละเอียด</TableHead>
+                <TableHead className="whitespace-nowrap">Code</TableHead>
+                <TableHead className="whitespace-nowrap">ชื่อ / Model</TableHead>
+                <TableHead className="whitespace-nowrap">S/N</TableHead>
+                <TableHead className="whitespace-nowrap">ประเภท</TableHead>
+                <TableHead className="whitespace-nowrap">Brand</TableHead>
+                <TableHead className="text-center whitespace-nowrap">คงเหลือในคลัง</TableHead>
+                <TableHead className="whitespace-nowrap">ติดตั้งที่ป้าย</TableHead>
+                <TableHead className="whitespace-nowrap">วันที่ติดตั้ง</TableHead>
+                <TableHead className="whitespace-nowrap">อายุการติดตั้ง</TableHead>
+                <TableHead className="whitespace-nowrap">วันหมดประกัน</TableHead>
+                <TableHead className="whitespace-nowrap">สถานะประกัน</TableHead>
+                <TableHead className="text-center whitespace-nowrap">รายละเอียด</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {paginatedData.length === 0 ? (
-                <TableRow><TableCell colSpan={10} className="text-center text-muted-foreground py-8">ไม่พบข้อมูล</TableCell></TableRow>
+                <TableRow><TableCell colSpan={12} className="text-center text-muted-foreground py-8">ไม่พบข้อมูล</TableCell></TableRow>
               ) : paginatedData.map(item => (
-                <TableRow key={`${item.itemType}-${item.id}`}>
-                  <TableCell className="font-mono text-xs">{item.code}</TableCell>
+                <TableRow key={`${item.itemType}-${item.id}-${item.serialDisplay}`}>
+                  <TableCell className="font-mono text-xs whitespace-nowrap">{item.code}</TableCell>
                   <TableCell className="font-medium">{item.name}</TableCell>
                   <TableCell className="text-xs whitespace-pre-line">{item.serialDisplay}</TableCell>
                   <TableCell>{item.itemType === "media_player" ? <DeviceTypeBadge value={item.device_type} /> : <Badge variant="outline" className="text-xs">{item.category}</Badge>}</TableCell>
@@ -845,7 +905,13 @@ function EquipmentViewTab() {
                       <span className="text-muted-foreground text-xs">ในคลัง</span>
                     )}
                   </TableCell>
-                  <TableCell className="text-xs">{fmtDate(item.warranty_expiry_date)}</TableCell>
+                  <TableCell className="text-xs whitespace-nowrap">{item.isInstalled ? fmtDate(item.install_date) : <span className="text-muted-foreground">-</span>}</TableCell>
+                  <TableCell className="whitespace-nowrap">
+                    {item.isInstalled && item.install_date ? (
+                      <Badge variant="outline" className="text-xs"><Clock className="w-3 h-3 mr-1" />{durationSince(item.install_date)}</Badge>
+                    ) : <span className="text-muted-foreground text-xs">-</span>}
+                  </TableCell>
+                  <TableCell className="text-xs whitespace-nowrap">{fmtDate(item.warranty_expiry_date)}</TableCell>
                   <TableCell>{expiryBadge(item.warranty_expiry_date, "ประกัน")}</TableCell>
                   <TableCell className="text-center">
                     <Button variant="ghost" size="sm" onClick={() => setSelectedEquipment(item)} title="ดูรายการป้ายทั้งหมดที่ติดตั้ง + ประวัติ"><Eye className="w-4 h-4" /></Button>
@@ -854,7 +920,7 @@ function EquipmentViewTab() {
               ))}
             </TableBody>
           </Table>
-          <div className="px-3 pt-1 text-sm text-muted-foreground border-t">แสดง {filtered.length} รายการ</div>
+          <div className="px-3 pt-1 text-sm text-muted-foreground border-t">แสดง {filtered.length} รายการ • เลื่อนแถบด้านล่างเพื่อดูคอลัมน์เพิ่มเติม →</div>
           <SimplePagination currentPage={safeCurrentPage} totalPages={totalPages} onPageChange={setCurrentPage} />
         </div>
       )}
