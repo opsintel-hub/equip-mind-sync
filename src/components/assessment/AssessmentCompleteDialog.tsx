@@ -518,10 +518,41 @@ export function AssessmentCompleteDialog({ open, onOpenChange, log, onCompleted 
       //   - return_refurb (กลับเข้าคลัง active) → 1
       //   - claim/under_repair (ยังไม่อยู่ในคลังพร้อมใช้) → 0
       //   - defective (รอตัด stock จริงที่หน้า defective entry) → 0
+      // Resolve a fallback return-location when the unit goes back into stock:
+      //   1) assessment_logs.return_location_id (if set)
+      //   2) latest non-null location_id from this unit's stock_movements
+      const resolveReturnLocation = async (): Promise<string | null> => {
+        try {
+          const { data: logRow } = await supabase
+            .from("assessment_logs")
+            .select("return_location_id")
+            .eq("id", log.id)
+            .maybeSingle() as any;
+          if (logRow?.return_location_id) return logRow.return_location_id as string;
+        } catch {}
+        try {
+          const targetId = log.media_player_id || log.equipment_id;
+          if (!targetId) return null;
+          const { data: mv } = await supabase
+            .from("stock_movements")
+            .select("location_id")
+            .eq("equipment_id", targetId)
+            .not("location_id", "is", null)
+            .order("created_at", { ascending: false })
+            .limit(1)
+            .maybeSingle() as any;
+          return mv?.location_id || null;
+        } catch { return null; }
+      };
+
       const flipStatus = async (mpStatus: string, snStatus: string, refurb = false, qty = 0) => {
+        const returningToStock = qty > 0;
+        const returnLocId = returningToStock ? await resolveReturnLocation() : null;
+
         if (log.media_player_id) {
           const upd: any = { status: mpStatus, quantity: qty };
           if (refurb) { upd.is_refurbished = true; upd.refurbished_at = new Date().toISOString(); }
+          if (returningToStock && returnLocId) upd.location_id = returnLocId;
           await supabase.from("media_players").update(upd).eq("id", log.media_player_id);
         }
         if (log.serial_number) {
@@ -533,7 +564,45 @@ export function AssessmentCompleteDialog({ open, onOpenChange, log, onCompleted 
               ? `ซ่อมเอง: ${repairDescription.trim()}`
               : `คืน Spare หลังประเมิน/เคลม`;
           }
+          if (returningToStock && returnLocId) upd.location_id = returnLocId;
           await supabase.from("equipment_serial_numbers").update(upd).eq("serial_number", log.serial_number);
+        }
+
+        // Log stock movement for the back-to-stock event so Stock Card timeline reflects the action
+        if (returningToStock) {
+          try {
+            const targetId = log.media_player_id || log.equipment_id;
+            if (targetId) {
+              let code = "", name = "";
+              if (log.media_player_id) {
+                const { data: mp } = await supabase
+                  .from("media_players").select("code, name").eq("id", log.media_player_id).maybeSingle() as any;
+                code = mp?.code || ""; name = mp?.name || "";
+              } else if (log.equipment_id) {
+                const { data: eq } = await supabase
+                  .from("equipment").select("code, name").eq("id", log.equipment_id).maybeSingle() as any;
+                code = eq?.code || ""; name = eq?.name || "";
+              }
+              await supabase.from("stock_movements").insert({
+                equipment_id: targetId,
+                equipment_code: code,
+                equipment_name: name,
+                movement_type: refurb ? "refurb_to_stock" : "return_to_stock",
+                quantity: qty,
+                stock_before: 0,
+                stock_after: qty,
+                reference_type: "assessment",
+                reference_id: log.id,
+                reference_document: log.document_no,
+                location_id: returnLocId,
+                item_condition: refurb ? "refurbished" : "normal",
+                notes: outcome === "self_repair"
+                  ? `ซ่อมเองสำเร็จ — กลับเข้าคลังเป็น Refurbished`
+                  : `คืนเข้าคลังหลังประเมิน (${outcome})`,
+                created_by: user?.id ?? null,
+              } as any);
+            }
+          } catch (e) { console.error("stock_movement insert failed:", e); }
         }
       };
 
