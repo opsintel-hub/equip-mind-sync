@@ -519,18 +519,25 @@ export function POUploadOCR({
     label: d.name,
   }));
 
-  const equipmentOptions = [
-    ...equipment.map((e) => ({
-      value: e.id,
-      label: `${e.code} - ${e.name}`,
-      description: `${e.unit} | ฿${e.unit_price.toLocaleString()}`,
-    })),
-    ...mediaPlayers.map((m) => ({
-      value: m.id,
-      label: `${m.code} - ${m.name}`,
-      description: `Media Player${m.unit_price ? ` | ฿${Number(m.unit_price).toLocaleString()}` : ""}`,
-    })),
-  ];
+  const buildOptionsForKind = (kind: DeviceKind | undefined) => {
+    const k = kind || "EQUIPMENT";
+    if (k === "EQUIPMENT") {
+      return equipment.map((e) => ({
+        value: e.id,
+        label: `${e.code} - ${e.name}`,
+        description: `${e.unit}${e.unit_price ? ` | ฿${e.unit_price.toLocaleString()}` : ""}`,
+        searchableText: `${e.code} ${e.name}`,
+      }));
+    }
+    return mediaPlayers
+      .filter((m) => mpKind(m) === k)
+      .map((m) => ({
+        value: m.id,
+        label: `${m.code} - ${m.name}`,
+        description: `${KIND_LABELS[k]}${m.unit_price ? ` | ฿${Number(m.unit_price).toLocaleString()}` : ""}`,
+        searchableText: `${m.code} ${m.name}`,
+      }));
+  };
 
   return (
     <Dialog
