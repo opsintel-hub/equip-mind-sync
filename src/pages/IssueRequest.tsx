@@ -24,6 +24,7 @@ import { SimpleDepartmentSelect } from "@/components/equipment/SimpleDepartmentS
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { TablePagination } from "@/components/TablePagination";
 import { useTablePagination } from "@/hooks/useTablePagination";
+import { SubMediaTypeBadge } from "@/components/media-player/SubMediaTypeBadge";
 interface EquipmentWithDetails {
   id: string;
   code: string;
@@ -72,6 +73,8 @@ interface CartItem {
   serial_number_source?: string; // Track the source prefix for S/N select value
   warehouse_name?: string;
   location_name?: string;
+  department?: string | null;
+  sub_media_type?: string | null;
 }
 
 const IssueRequest = () => {
@@ -181,7 +184,7 @@ const IssueRequest = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("media_players")
-        .select("id, code, name, unit, quantity, serial_number_1, serial_number_2, warranty_expiry_date, created_at, location_id, locations:location_id(id, code, name, warehouse_id, warehouses(id, code, name))")
+        .select("id, code, name, unit, quantity, serial_number_1, serial_number_2, warranty_expiry_date, created_at, location_id, department, sub_media_type, device_type, locations:location_id(id, code, name, warehouse_id, warehouses(id, code, name))")
         .eq("is_active", true)
         .gt("quantity", 0)
         .order("created_at", { ascending: false });
@@ -203,6 +206,9 @@ const IssueRequest = () => {
         warehouse_code: mp.locations?.warehouses?.code || null,
         location_name: mp.locations?.name || null,
         location_code: mp.locations?.code || null,
+        department: mp.department || null,
+        sub_media_type: mp.sub_media_type || null,
+        device_type: mp.device_type || null,
       })) as EquipmentWithDetails[];
     },
   });
@@ -430,6 +436,8 @@ const IssueRequest = () => {
           media_player_id: isMediaPlayer ? currentItem.equipment_id : undefined,
           warehouse_name: selectedEquipment?.warehouse_name || undefined,
           location_name: selectedEquipment?.location_name || undefined,
+          department: (selectedEquipment as any)?.department || item.department || null,
+          sub_media_type: (selectedEquipment as any)?.sub_media_type || item.sub_media_type || null,
         } : item
       ));
       setEditingCartItemId(null);
@@ -450,6 +458,8 @@ const IssueRequest = () => {
         media_player_id: isMediaPlayer ? currentItem.equipment_id : undefined,
         warehouse_name: selectedEquipment?.warehouse_name || undefined,
         location_name: selectedEquipment?.location_name || undefined,
+        department: (selectedEquipment as any)?.department || null,
+        sub_media_type: (selectedEquipment as any)?.sub_media_type || null,
       };
 
       setCartItems([...cartItems, newItem]);
@@ -650,7 +660,8 @@ const IssueRequest = () => {
         remaining_quantity: item.quantity,
         status: "pending",
         notes: item.notes || null,
-      }));
+        sub_media_type: item.sub_media_type || null,
+      })) as any;
 
       const { error: itemsError } = await supabase
         .from("goods_issue_pending_items")
@@ -1578,6 +1589,16 @@ const IssueRequest = () => {
                           <TableCell>
                             {item.equipment_code && <div className="font-medium">{item.equipment_code}</div>}
                             <div className="text-sm text-muted-foreground">{item.equipment_name}</div>
+                            <div className="mt-1">
+                              <SubMediaTypeBadge
+                                department={item.department}
+                                subMediaType={item.sub_media_type}
+                                showPlaceholder
+                                onEdit={async (next) => {
+                                  setCartItems(prev => prev.map(ci => ci.id === item.id ? { ...ci, sub_media_type: next } : ci));
+                                }}
+                              />
+                            </div>
                           </TableCell>
                           <TableCell>{item.serial_number || "-"}</TableCell>
                           <TableCell>

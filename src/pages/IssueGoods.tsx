@@ -313,10 +313,10 @@ const IssueGoods = () => {
           const sk = a.serial_number.trim().toLowerCase();
           if (mpSerials.has(sk)) throw new Error(`Serial Number ซ้ำ: ${a.serial_number}`);
           mpSerials.add(sk);
-          // 7-Eleven Media: sub_media_type required
+          // 7-Eleven Media: sub_media_type recommended (not blocking — can be edited after install)
           const cand = (availableMpUnits || []).find((m: any) => m.id === a.media_player_id);
           if (cand && requiresSubMediaType(cand.department) && !a.sub_media_type) {
-            throw new Error(`เครื่อง S/N ${a.serial_number} เป็นฝ่าย 7-Eleven Media ต้องเลือก Sub Media Type ก่อนจ่าย`);
+            toast.warning(`เครื่อง S/N ${a.serial_number} ฝ่าย 7-Eleven Media ยังไม่ได้ระบุ Sub Media Type — สามารถระบุภายหลังได้`);
           }
         }
         combinedSerial = activeMpAssignments.map(a => a.serial_number).join("\n").trim() || null;
@@ -827,7 +827,7 @@ const IssueGoods = () => {
         media_player_id: i === 0 ? (item.media_player_id || "") : "",
         serial_number: i === 0 ? (item.serial_number || "") : "",
         billboard_id: item.billboard_id || "",
-        sub_media_type: null as string | null,
+        sub_media_type: i === 0 ? ((item as any).sub_media_type ?? null) : null,
       }));
       setMpUnitAssignments(mpInitial);
     }
@@ -1381,9 +1381,8 @@ const IssueGoods = () => {
                                   <SubMediaTypeSelect
                                     value={u.sub_media_type}
                                     onChange={(v) => updateMpUnitAssignment(idx, { sub_media_type: v })}
-                                    required
-                                    label="ตำแหน่งสื่อย่อย (7-Eleven Media) *"
-                                    hint={picked.sub_media_type ? `ค่าเดิม: ${picked.sub_media_type} — แก้ไขได้ก่อนยืนยันจ่าย` : "ฝ่าย 7-Eleven Media ต้องระบุก่อนจ่าย"}
+                                    label="ตำแหน่งสื่อย่อย (7-Eleven Media)"
+                                    hint={picked.sub_media_type ? `ค่าเดิม: ${picked.sub_media_type} — แก้ไขได้` : "แนะนำให้ระบุ (สามารถแก้ภายหลังได้)"}
                                   />
                                 </div>
                               );

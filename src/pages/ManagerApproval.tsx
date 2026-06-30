@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { SubMediaTypeBadge } from "@/components/media-player/SubMediaTypeBadge";
 import { Search, CheckCircle, XCircle, Shield, Clock, ShoppingCart, ChevronDown, ChevronUp, Package, Store, CalendarClock, Truck } from "lucide-react";
 import { format } from "date-fns";
 import { th } from "date-fns/locale";
@@ -172,7 +173,7 @@ const ManagerApproval = () => {
     queryKey: ["ma-mp-stock", mpIds],
     enabled: mpIds.length > 0,
     queryFn: async () => {
-      const { data } = await supabase.from("media_players").select("id, quantity, unit_price").in("id", mpIds as string[]);
+      const { data } = await supabase.from("media_players").select("id, quantity, unit_price, department, sub_media_type, device_type").in("id", mpIds as string[]);
       const m: Record<string, any> = {};
       data?.forEach((e: any) => { m[e.id] = e; });
       return m;
@@ -461,6 +462,28 @@ const ManagerApproval = () => {
                           <TableCell>
                             {item.equipment_name}
                             {item.notes && <div className="text-xs text-muted-foreground">📝 {item.notes}</div>}
+                            {(() => {
+                              const mpInfo = item.media_player_id ? mpMap?.[item.media_player_id] : null;
+                              const dept = mpInfo?.department;
+                              return (
+                                <div className="mt-1">
+                                  <SubMediaTypeBadge
+                                    department={dept}
+                                    subMediaType={item.sub_media_type}
+                                    showPlaceholder
+                                    onEdit={async (next) => {
+                                      const { error } = await supabase
+                                        .from("goods_issue_pending_items")
+                                        .update({ sub_media_type: next } as any)
+                                        .eq("id", item.id);
+                                      if (error) { toast.error(error.message); return; }
+                                      toast.success("อัปเดต Sub Media Type แล้ว");
+                                      queryClient.invalidateQueries({ queryKey: ["approval-items"] });
+                                    }}
+                                  />
+                                </div>
+                              );
+                            })()}
                           </TableCell>
                           <TableCell className="text-xs whitespace-pre-line">{item.serial_number || "-"}</TableCell>
                           <TableCell className="text-right">{qty.toLocaleString()} {item.unit}</TableCell>
