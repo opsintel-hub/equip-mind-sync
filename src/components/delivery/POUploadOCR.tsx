@@ -452,7 +452,27 @@ export function POUploadOCR({
               matched_equipment_code: eq?.code || mp?.code || null,
               matched_equipment_name: eq?.name || mp?.name || null,
               matched_is_media_player: !!mp,
+              device_kind: eq ? "EQUIPMENT" : mp ? mpKind(mp) : item.device_kind,
               match_status: equipmentId ? "matched" : "not_found",
+            }
+          : item
+      )
+    );
+  };
+
+  const handleItemKindChange = (index: number, kind: DeviceKind) => {
+    setItems((prev) =>
+      prev.map((item, i) =>
+        i === index
+          ? {
+              ...item,
+              device_kind: kind,
+              // Clear match if previous selection no longer fits new kind
+              matched_equipment_id: null,
+              matched_equipment_code: null,
+              matched_equipment_name: null,
+              matched_is_media_player: kind !== "EQUIPMENT",
+              match_status: "not_found",
             }
           : item
       )
