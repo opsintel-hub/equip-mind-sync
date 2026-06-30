@@ -104,7 +104,16 @@ interface MediaPlayer {
   code: string;
   name: string;
   unit_price?: number | null;
+  device_type?: string | null;
 }
+
+type DeviceKind = "MEDIA_PLAYER" | "MONITOR" | "EQUIPMENT";
+
+const KIND_LABELS: Record<DeviceKind, string> = {
+  MEDIA_PLAYER: "Media Player",
+  MONITOR: "จอภาพ (Monitor)",
+  EQUIPMENT: "สินค้า/อุปกรณ์",
+};
 
 interface POUploadOCRProps {
   open: boolean;
