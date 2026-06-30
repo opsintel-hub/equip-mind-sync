@@ -130,6 +130,9 @@ export function SwapWarehouseReceive() {
               return_location_label: locLabel,
               technician_name: req.technician_name,
               completed_at: req.completed_at,
+              description: req.description || null,
+              symptom_other: req.symptom_other || null,
+              reported_photos: Array.isArray(req.reported_photos) ? req.reported_photos : [],
             });
           }
         }
