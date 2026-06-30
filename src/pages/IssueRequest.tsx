@@ -22,6 +22,8 @@ import { SectionSelect } from "@/components/section/SectionSelect";
 import { SerialNumberSelect, SerialNumberItem } from "@/components/equipment/SerialNumberSelect";
 import { SimpleDepartmentSelect } from "@/components/equipment/SimpleDepartmentSelect";
 import { SearchableSelect } from "@/components/ui/searchable-select";
+import { TablePagination } from "@/components/TablePagination";
+import { useTablePagination } from "@/hooks/useTablePagination";
 interface EquipmentWithDetails {
   id: string;
   code: string;
@@ -1010,6 +1012,9 @@ const IssueRequest = () => {
     return expiryDays <= advanceDays || warrantyDays <= advanceDays;
   }) || false;
 
+  const fifoPagination = useTablePagination(priorityEquipment, 10);
+  const historyPagination = useTablePagination(filteredRequests || [], 10);
+
   return (
     <div className="space-y-6">
       <div>
@@ -1058,6 +1063,9 @@ const IssueRequest = () => {
                   <SelectItem value="60">60 วัน</SelectItem>
                   <SelectItem value="90">90 วัน</SelectItem>
                   <SelectItem value="120">120 วัน</SelectItem>
+                  <SelectItem value="180">180 วัน</SelectItem>
+                  <SelectItem value="365">365 วัน</SelectItem>
+                  <SelectItem value="99999">ทั้งหมด</SelectItem>
                 </SelectContent>
               </Select>
               <Button
@@ -1110,9 +1118,9 @@ const IssueRequest = () => {
               )}
             </div>
             
-            {/* 6 Columns Grid */}
+            {/* Grid with pagination */}
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2">
-              {priorityEquipment.slice(0, 12).map((eq) => (
+              {fifoPagination.paginatedData.map((eq) => (
                 <div 
                   key={eq.id} 
                   className="p-2 rounded-lg border border-warning/30 bg-background cursor-pointer hover:bg-muted/50 transition-colors"
@@ -1138,11 +1146,14 @@ const IssueRequest = () => {
                 ไม่พบสินค้าที่ตรงกับเงื่อนไข
               </div>
             )}
-            {priorityEquipment.length > 12 && (
-              <div className="text-center text-xs text-muted-foreground mt-2">
-                แสดง 12 จาก {priorityEquipment.length} รายการ (กรอกค้นหาเพื่อดูเพิ่มเติม)
-              </div>
-            )}
+            <TablePagination
+              currentPage={fifoPagination.currentPage}
+              totalPages={fifoPagination.totalPages}
+              totalItems={fifoPagination.totalItems}
+              pageSize={fifoPagination.pageSize}
+              onPageChange={fifoPagination.handlePageChange}
+              onPageSizeChange={fifoPagination.handlePageSizeChange}
+            />
           </CardContent>
         </Card>
       )}
@@ -1703,7 +1714,7 @@ const IssueRequest = () => {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filteredRequests?.map((req) => {
+                  historyPagination.paginatedData.map((req) => {
                     const items = getItemsForRequest(req.id);
                     const isExpanded = expandedRequests.has(req.id);
                     return (
@@ -1819,6 +1830,14 @@ const IssueRequest = () => {
               </TableBody>
             </Table>
           </div>
+          <TablePagination
+            currentPage={historyPagination.currentPage}
+            totalPages={historyPagination.totalPages}
+            totalItems={historyPagination.totalItems}
+            pageSize={historyPagination.pageSize}
+            onPageChange={historyPagination.handlePageChange}
+            onPageSizeChange={historyPagination.handlePageSizeChange}
+          />
         </CardContent>
       </Card>
 
