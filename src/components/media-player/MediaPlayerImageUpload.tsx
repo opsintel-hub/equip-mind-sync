@@ -11,6 +11,7 @@ interface MediaPlayerImageUploadProps {
   mediaPlayerId: string;
   mediaPlayerCode: string;
   onClose: () => void;
+  onImagesChange?: () => void;
 }
 
 interface MPImage {
@@ -20,14 +21,14 @@ interface MPImage {
   display_order: number | null;
 }
 
-export function MediaPlayerImageUpload({ mediaPlayerId, mediaPlayerCode, onClose }: MediaPlayerImageUploadProps) {
+const MAX_IMAGES = 5;
+
+export function MediaPlayerImageUpload({ mediaPlayerId, mediaPlayerCode, onClose, onImagesChange }: MediaPlayerImageUploadProps) {
   const [existingImages, setExistingImages] = useState<MPImage[]>([]);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-
-  const MAX_IMAGES = 5;
 
   useEffect(() => {
     fetchImages();
@@ -47,7 +48,8 @@ export function MediaPlayerImageUpload({ mediaPlayerId, mediaPlayerCode, onClose
     setIsLoading(false);
   };
 
-  const remainingSlots = MAX_IMAGES - existingImages.length;
+  const visibleExistingImages = existingImages.slice(0, MAX_IMAGES);
+  const remainingSlots = Math.max(0, MAX_IMAGES - existingImages.length);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
@@ -60,6 +62,9 @@ export function MediaPlayerImageUpload({ mediaPlayerId, mediaPlayerCode, onClose
     }
 
     const newFiles = files.slice(0, maxNew);
+    if (newFiles.length < files.length) {
+      toast.warning(`เลือกได้เพิ่มอีก ${maxNew} รูปเท่านั้น — จำกัดสูงสุด ${MAX_IMAGES} ภาพ`);
+    }
     const newPreviews = newFiles.map(file => URL.createObjectURL(file));
 
     setSelectedFiles(prev => [...prev, ...newFiles]);
@@ -91,7 +96,8 @@ export function MediaPlayerImageUpload({ mediaPlayerId, mediaPlayerCode, onClose
       if (error) throw error;
 
       toast.success("ลบรูปภาพสำเร็จ");
-      fetchImages();
+      await fetchImages();
+      onImagesChange?.();
     } catch (error) {
       console.error("Error deleting image:", error);
       toast.error("ลบรูปภาพไม่สำเร็จ");
@@ -135,7 +141,8 @@ export function MediaPlayerImageUpload({ mediaPlayerId, mediaPlayerCode, onClose
       toast.success(`อัปโหลด ${selectedFiles.length} รูปสำเร็จ`);
       setSelectedFiles([]);
       setPreviews([]);
-      fetchImages();
+      await fetchImages();
+      onImagesChange?.();
     } catch (error) {
       console.error("Upload error:", error);
       toast.error("อัปโหลดรูปภาพไม่สำเร็จ");
@@ -152,9 +159,9 @@ export function MediaPlayerImageUpload({ mediaPlayerId, mediaPlayerCode, onClose
             <Camera className="h-5 w-5" />
             Upload ภาพ Media Player — {mediaPlayerCode}
           </DialogTitle>
-          <p className="text-sm text-amber-600 font-medium">
-            ⚠ อัปโหลดได้ไม่เกิน {MAX_IMAGES} ภาพ (ปัจจุบัน {existingImages.length}/{MAX_IMAGES})
-          </p>
+          <div className="rounded-md border border-warning/30 bg-warning/10 px-3 py-2 text-sm font-medium text-foreground">
+            ⚠ อัปโหลดได้ไม่เกิน {MAX_IMAGES} ภาพ (ปัจจุบัน {Math.min(existingImages.length, MAX_IMAGES)}/{MAX_IMAGES})
+          </div>
         </DialogHeader>
 
         {/* Existing images */}
@@ -164,9 +171,9 @@ export function MediaPlayerImageUpload({ mediaPlayerId, mediaPlayerCode, onClose
           </div>
         ) : existingImages.length > 0 ? (
           <div className="space-y-2">
-            <Label>รูปภาพปัจจุบัน ({existingImages.length} รูป)</Label>
+            <Label>รูปภาพปัจจุบัน ({Math.min(existingImages.length, MAX_IMAGES)} / {MAX_IMAGES} รูป)</Label>
             <div className="grid grid-cols-5 gap-2">
-              {existingImages.map((img) => (
+              {visibleExistingImages.map((img) => (
                 <div key={img.id} className="relative group">
                   <img
                     src={img.image_url}
@@ -241,6 +248,12 @@ export function MediaPlayerImageUpload({ mediaPlayerId, mediaPlayerCode, onClose
                 </Button>
               </div>
             )}
+          </div>
+        )}
+
+        {remainingSlots === 0 && !isLoading && (
+          <div className="rounded-md border border-warning/30 bg-warning/10 px-3 py-2 text-sm text-foreground">
+            ครบ {MAX_IMAGES} ภาพแล้ว หากต้องการเพิ่มรูปใหม่ กรุณาลบรูปเดิมก่อน
           </div>
         )}
 
