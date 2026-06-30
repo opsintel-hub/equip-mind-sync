@@ -221,7 +221,7 @@ export default function AssessmentLog() {
           mpIds.length
             ? supabase
                 .from("media_players")
-                .select("id, code, name, serial_number, device_type, sub_media_type, manufacturer, model, billboard_id")
+                .select("id, code, name, serial_number_1, serial_number_2, device_type, sub_media_type, brand, model_id, billboard_id")
                 .in("id", mpIds)
             : Promise.resolve({ data: [] as any[] }),
           eqIds.length
@@ -242,9 +242,37 @@ export default function AssessmentLog() {
         const eqMap = new Map<string, any>(((eqRes as any).data || []).map((e: any) => [e.id, e]));
         const snBbMap = new Map<string, string>(((snRes as any).data || []).filter((s: any) => s.billboard_id).map((s: any) => [s.serial_number, s.billboard_id]));
 
+        // Lookup MP model names
+        const modelIds = Array.from(new Set(Array.from(mpMap.values()).map((m: any) => m.model_id).filter(Boolean))) as string[];
+        const modelMap = new Map<string, string>();
+        if (modelIds.length) {
+          const { data: models } = await supabase
+            .from("media_player_models")
+            .select("id, name")
+            .in("id", modelIds);
+          (models || []).forEach((m: any) => modelMap.set(m.id, m.name));
+        }
+
+        // Fetch swap_requests for source fallback (billboard + symptom + photos + description)
+        const swapRefIds = Array.from(new Set(
+          rows
+            .filter((l) => l.source_type === "swap" && l.source_reference_id)
+            .map((l) => l.source_reference_id as string)
+        ));
+        const swapMap = new Map<string, any>();
+        if (swapRefIds.length) {
+          const { data: srs } = await supabase
+            .from("swap_requests")
+            .select("id, billboard_id, symptom_id, symptom_other, description, reported_photos")
+            .in("id", swapRefIds);
+          (srs || []).forEach((s: any) => swapMap.set(s.id, s));
+        }
+
+        // Collect billboard ids (MP current + SN current + swap source)
         const bbIds = Array.from(new Set([
           ...Array.from(mpMap.values()).map((m: any) => m.billboard_id).filter(Boolean),
           ...Array.from(snBbMap.values()),
+          ...Array.from(swapMap.values()).map((s: any) => s.billboard_id).filter(Boolean),
         ])) as string[];
         const bbMap = new Map<string, any>();
         if (bbIds.length) {
@@ -255,27 +283,51 @@ export default function AssessmentLog() {
           (bbs || []).forEach((b: any) => bbMap.set(b.id, b));
         }
 
+        // Collect symptom ids (logs + swap requests)
+        const symIds = Array.from(new Set([
+          ...rows.map((l) => l.symptom_id).filter(Boolean) as string[],
+          ...Array.from(swapMap.values()).map((s: any) => s.symptom_id).filter(Boolean),
+        ])) as string[];
+        const symMap = new Map<string, string>();
+        if (symIds.length) {
+          const { data: syms } = await supabase
+            .from("mp_symptoms")
+            .select("id, name")
+            .in("id", symIds);
+          (syms || []).forEach((s: any) => symMap.set(s.id, s.name));
+        }
+
         const details: Record<string, LogDetail> = {};
         for (const log of rows) {
+          const swap = log.source_reference_id ? swapMap.get(log.source_reference_id) : null;
+          const symLabel = log.symptom_id ? symMap.get(log.symptom_id) : (swap?.symptom_id ? symMap.get(swap.symptom_id) : null);
+          const sourceDesc = swap ? [swap.symptom_other, swap.description].filter(Boolean).join(" — ") || null : null;
+          const sourcePhotos = swap && Array.isArray(swap.reported_photos) ? swap.reported_photos : undefined;
+
           if (log.media_player_id) {
             const mp = mpMap.get(log.media_player_id);
             if (mp) {
-              const bb = mp.billboard_id ? bbMap.get(mp.billboard_id) : null;
+              const fallbackBbId = mp.billboard_id || swap?.billboard_id || null;
+              const bb = fallbackBbId ? bbMap.get(fallbackBbId) : null;
               details[log.id] = {
                 code: mp.code,
                 name: mp.name || "Media Player",
-                serial: log.serial_number || mp.serial_number,
+                serial: log.serial_number || mp.serial_number_1 || mp.serial_number_2,
                 device_type: mp.device_type,
                 sub_media_type: mp.sub_media_type,
-                brand: mp.manufacturer,
-                model: mp.model,
+                brand: mp.brand,
+                model: mp.model_id ? modelMap.get(mp.model_id) || null : null,
                 billboard_label: bb ? formatBillboardLabel(bb.old_code, bb.location_name, bb.equipment_id) : null,
+                symptom_label: symLabel || null,
+                source_description: sourceDesc,
+                source_photos: sourcePhotos,
               };
+              continue;
             }
           } else if (log.equipment_id) {
             const eq = eqMap.get(log.equipment_id);
             if (eq) {
-              const bbId = log.serial_number ? snBbMap.get(log.serial_number) : null;
+              const bbId = (log.serial_number ? snBbMap.get(log.serial_number) : null) || swap?.billboard_id || null;
               const bb = bbId ? bbMap.get(bbId) : null;
               details[log.id] = {
                 code: eq.code,
@@ -283,36 +335,24 @@ export default function AssessmentLog() {
                 serial: log.serial_number,
                 brand: eq.brand?.name || null,
                 billboard_label: bb ? formatBillboardLabel(bb.old_code, bb.location_name, bb.equipment_id) : null,
+                symptom_label: symLabel || null,
+                source_description: sourceDesc,
+                source_photos: sourcePhotos,
               };
+              continue;
             }
           }
-        }
-
-        // Best-effort: enrich source photos for items originated from Swap
-        try {
-          const swapRefIds = Array.from(new Set(
-            rows
-              .filter((l) => l.source_type === "swap" && l.source_reference_id)
-              .map((l) => l.source_reference_id as string)
-          ));
-          if (swapRefIds.length) {
-            const { data: srs } = await supabase
-              .from("swap_requests")
-              .select("id, reported_photos")
-              .in("id", swapRefIds);
-            const photoMap = new Map<string, string[]>();
-            (srs || []).forEach((s: any) => photoMap.set(s.id, Array.isArray(s.reported_photos) ? s.reported_photos : []));
-            for (const log of rows) {
-              if (log.source_type === "swap" && log.source_reference_id) {
-                const arr = photoMap.get(log.source_reference_id);
-                if (arr && arr.length) {
-                  details[log.id] = { ...(details[log.id] || { code: "—", name: "—", serial: null }), source_photos: arr };
-                }
-              }
-            }
+          // Fallback when no subject row matched but we still want symptom/swap context
+          if (symLabel || sourceDesc || sourcePhotos) {
+            details[log.id] = {
+              code: "—",
+              name: "—",
+              serial: log.serial_number,
+              symptom_label: symLabel || null,
+              source_description: sourceDesc,
+              source_photos: sourcePhotos,
+            };
           }
-        } catch {
-          // best-effort
         }
 
         setLogDetails(details);
