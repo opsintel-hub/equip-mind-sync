@@ -284,6 +284,34 @@ export default function AssessmentLog() {
             }
           }
         }
+
+        // Best-effort: enrich source photos for items originated from Swap
+        try {
+          const swapRefIds = Array.from(new Set(
+            rows
+              .filter((l) => l.source_type === "swap" && l.source_reference_id)
+              .map((l) => l.source_reference_id as string)
+          ));
+          if (swapRefIds.length) {
+            const { data: srs } = await supabase
+              .from("swap_requests")
+              .select("id, reported_photos")
+              .in("id", swapRefIds);
+            const photoMap = new Map<string, string[]>();
+            (srs || []).forEach((s: any) => photoMap.set(s.id, Array.isArray(s.reported_photos) ? s.reported_photos : []));
+            for (const log of rows) {
+              if (log.source_type === "swap" && log.source_reference_id) {
+                const arr = photoMap.get(log.source_reference_id);
+                if (arr && arr.length) {
+                  details[log.id] = { ...(details[log.id] || { code: "—", name: "—", serial: null }), source_photos: arr };
+                }
+              }
+            }
+          }
+        } catch {
+          // best-effort
+        }
+
         setLogDetails(details);
       } catch {
         // best-effort enrichment
