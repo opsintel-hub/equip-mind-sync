@@ -5758,6 +5758,19 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      create_pr_from_shortage: {
+        Args: {
+          _available_qty: number
+          _equipment_code: string
+          _equipment_id: string
+          _equipment_name: string
+          _is_media_player: boolean
+          _requested_qty: number
+          _requester_name: string
+          _unit: string
+        }
+        Returns: Json
+      }
       generate_assessment_log_number: { Args: never; Returns: string }
       generate_claim_record_number: { Args: never; Returns: string }
       generate_equipment_pm_task_number: { Args: never; Returns: string }
@@ -5770,6 +5783,14 @@ export type Database = {
         Returns: string
       }
       get_next_tool_code: { Args: { p_prefix: string }; Returns: string }
+      get_pending_reservations: {
+        Args: never
+        Returns: {
+          equipment_id: string
+          media_player_id: string
+          reserved: number
+        }[]
+      }
       get_public_schema_info: { Args: never; Returns: Json }
       get_suppliers_admin: {
         Args: never
