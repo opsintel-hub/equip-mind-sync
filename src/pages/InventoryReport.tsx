@@ -754,7 +754,9 @@ export default function InventoryReport() {
 
       // Global search across all key columns shown in report (excluding S/N)
       if (filters.search.trim()) {
-        const term = filters.search.trim().toLowerCase();
+        // Normalize: lowercase + collapse all whitespace, so "BB-ELE 0018" matches "BB-ELE0018"
+        const normalize = (s: any) => String(s ?? "").toLowerCase().replace(/\s+/g, "");
+        const term = normalize(filters.search);
         const searchableValues = [
           item.code,
           item.name,
@@ -780,7 +782,7 @@ export default function InventoryReport() {
         ];
 
         const matchesSearch = searchableValues.some(
-          (value) => value?.toString().toLowerCase().includes(term)
+          (value) => value != null && normalize(value).includes(term)
         );
 
         if (!matchesSearch) return false;
@@ -799,7 +801,7 @@ export default function InventoryReport() {
     totalItems,
     handlePageChange,
     handlePageSizeChange,
-  } = useTablePagination(filteredData, 20);
+  } = useTablePagination(filteredData, 10);
 
   // Reset page when filters change
   const handleFiltersChange = (newFilters: InventoryFiltersState) => {
@@ -1010,7 +1012,7 @@ export default function InventoryReport() {
                     <TableHead className="min-w-[100px]">บริษัท</TableHead>
                     <TableHead className="min-w-[100px]">ฝ่าย</TableHead>
                     <TableHead className="min-w-[100px]">คลัง</TableHead>
-                    <TableHead className="min-w-[130px]">ตำแหน่งจัดเก็บ</TableHead>
+                    <TableHead className="min-w-[200px]">ตำแหน่งจัดเก็บ</TableHead>
                     <TableHead className="text-right min-w-[110px]" title="จำนวนคงเหลือในคลัง (ไม่รวมที่เบิกออกหรือติดตั้งอยู่บนป้าย)">คงเหลือในคลัง</TableHead>
                     <TableHead className="text-right min-w-[70px]">Min</TableHead>
                     <TableHead className="text-right min-w-[110px]">ราคา/ชิ้น</TableHead>
@@ -1134,9 +1136,11 @@ export default function InventoryReport() {
                           </TableCell>
                           <TableCell>
                             {location ? (
-                              <div className="text-sm">
-                                <div>{location.code}</div>
-                                <div className="text-xs text-muted-foreground">{location.name}</div>
+                              <div className="text-sm leading-tight">
+                                <div className="font-medium">{location.code}</div>
+                                <div className="text-xs text-muted-foreground truncate max-w-[180px]" title={location.name}>
+                                  {location.name}
+                                </div>
                               </div>
                             ) : (
                               <span className="text-muted-foreground">-</span>
