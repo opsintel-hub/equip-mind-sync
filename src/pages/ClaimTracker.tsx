@@ -884,58 +884,72 @@ export default function ClaimTracker() {
           <Card className="w-full max-w-lg max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             <CardHeader>
               <CardTitle>บันทึกการรับกลับจากการเคลม</CardTitle>
-              <CardDescription>ระบุผลเคลม + ปลายทางของเครื่อง (จะ flip สถานะ Media Player ให้อัตโนมัติ)</CardDescription>
+              <CardDescription>
+                เลือกผลการเคลม — ระบบจะกำหนดปลายทาง, อัปเดตสถานะ Media Player, บันทึก stock movement และปิดงานให้อัตโนมัติ
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
                 <Label>ผลการเคลม *</Label>
-                <ClaimResultSelect value={claimResultId} onChange={setClaimResultId} />
+                <ClaimResultSelect
+                  value={claimResultId}
+                  onChange={(id, kind) => {
+                    setClaimResultId(id);
+                    setClaimResultKind(kind);
+                  }}
+                />
+                {claimResultKind === "in_progress" && (
+                  <p className="text-xs text-muted-foreground">
+                    ℹ️ จะบันทึกเป็นความคืบหน้าเท่านั้น — สถานะเครื่องและสถานะเคลมจะไม่เปลี่ยน
+                  </p>
+                )}
+                {claimResultKind === "write_off" && (
+                  <p className="text-xs text-destructive">
+                    ⚠️ เครื่องจะถูกตัดทรัพย์สิน (written_off) และปิดการใช้งานถาวร
+                  </p>
+                )}
               </div>
 
-              <div className="space-y-2 rounded-lg border p-3 bg-muted/30">
-                <Label className="font-semibold">ปลายทางหลังรับกลับ *</Label>
-                <RadioGroup value={restockDecision} onValueChange={(v) => setRestockDecision(v as any)}>
-                  <div className="flex items-start gap-2">
-                    <RadioGroupItem value="refurb" id="rd-refurb" className="mt-1" />
-                    <label htmlFor="rd-refurb" className="text-sm cursor-pointer">
-                      <div className="font-medium text-success">✅ กลับเข้าคลังพร้อมเบิก (Refurbished)</div>
-                      <div className="text-xs text-muted-foreground">vendor ซ่อมเสร็จ ใช้งานได้ปกติ</div>
-                    </label>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <RadioGroupItem value="replacement" id="rd-replace" className="mt-1" />
-                    <label htmlFor="rd-replace" className="text-sm cursor-pointer">
-                      <div className="font-medium text-primary">🔄 เปลี่ยนเครื่องใหม่จาก vendor (Replacement)</div>
-                      <div className="text-xs text-muted-foreground">vendor ส่งเครื่องใหม่มาแทน — ต้องกรอก S/N ใหม่</div>
-                    </label>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <RadioGroupItem value="defective" id="rd-defect" className="mt-1" />
-                    <label htmlFor="rd-defect" className="text-sm cursor-pointer">
-                      <div className="font-medium text-destructive">❌ ซ่อมไม่ได้ / เครื่องเสียถาวร</div>
-                      <div className="text-xs text-muted-foreground">นำเข้าระบบของเสียเพื่อจำหน่ายต่อ</div>
-                    </label>
-                  </div>
-                </RadioGroup>
-              </div>
+              {claimResultKind === "vendor_rejected" && (
+                <div className="space-y-2 rounded-lg border p-3 bg-destructive/5">
+                  <Label className="font-semibold">วิธีจัดการต่อหลัง Vendor ปฏิเสธ *</Label>
+                  <RadioGroup value={rejectedAction} onValueChange={(v) => setRejectedAction(v as any)}>
+                    <div className="flex items-start gap-2">
+                      <RadioGroupItem value="defective" id="rj-defect" className="mt-1" />
+                      <label htmlFor="rj-defect" className="text-sm cursor-pointer">
+                        <div className="font-medium">📦 ส่งเข้าระบบของเสีย (Default)</div>
+                        <div className="text-xs text-muted-foreground">ให้ฝ่ายคลังเลือกวิธีจำหน่าย (ขายซาก / CSR / ทำลาย)</div>
+                      </label>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <RadioGroupItem value="write_off" id="rj-write" className="mt-1" />
+                      <label htmlFor="rj-write" className="text-sm cursor-pointer">
+                        <div className="font-medium text-destructive">❌ ตัดทรัพย์สินทันที (Write-off)</div>
+                        <div className="text-xs text-muted-foreground">ปิดทรัพย์สินถาวร</div>
+                      </label>
+                    </div>
+                  </RadioGroup>
+                </div>
+              )}
 
-              {restockDecision !== "defective" && (
+              {needsLocation && (
                 <div className="space-y-2">
                   <Label>คลังปลายทาง *</Label>
                   <LocationSelect value={returnLocationId} onChange={setReturnLocationId} />
                 </div>
               )}
 
-              {restockDecision === "replacement" && (
+              {claimResultKind === "replacement" && (
                 <div className="space-y-2">
-                  <Label>S/N เครื่องทดแทนจาก vendor *</Label>
+                  <Label>S/N เครื่องทดแทนจาก Vendor *</Label>
                   <Input
                     value={replacementSerial}
                     onChange={(e) => setReplacementSerial(e.target.value)}
-                    placeholder="กรอก S/N เครื่องใหม่ที่ vendor ส่งให้"
+                    placeholder="กรอก S/N เครื่องใหม่ที่ Vendor ส่งให้"
                   />
                 </div>
               )}
+
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
