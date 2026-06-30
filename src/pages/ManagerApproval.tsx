@@ -195,7 +195,8 @@ const ManagerApproval = () => {
       if (!selectedRequest || !user) throw new Error("Missing data");
       const { error } = await supabase.from("goods_issue_pending").update({
         approval_status: "approved", approved_by: user.id, approved_at: new Date().toISOString(), approval_notes: approvalNotes || null,
-      } as any).eq("id", selectedRequest.id);
+        status: "pending",
+      } as any).eq("id", selectedRequest.id).eq("status", "pending_approval");
       if (error) throw error;
     },
     onSuccess: () => {
