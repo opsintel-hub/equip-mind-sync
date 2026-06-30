@@ -1873,13 +1873,41 @@ const IssueRequest = () => {
               </div>
             </div>
           </div>
-          <DialogFooter className="gap-2">
+          <DialogFooter className="gap-2 flex-wrap">
             <Button variant="outline" onClick={() => setStockWarningOpen(false)}>
               ยกเลิก
             </Button>
-            <Button onClick={handleAcceptSuggestedQuantity}>
-              ใช้จำนวน {suggestedQuantity} แทน
+            <Button
+              variant="secondary"
+              onClick={async () => {
+                const selected = equipment?.find(e => e.id === currentItem.equipment_id);
+                if (!selected) return;
+                const { data, error } = await supabase.rpc("create_pr_from_shortage", {
+                  _equipment_id: selected.id,
+                  _is_media_player: !!selected.is_media_player,
+                  _equipment_code: selected.code,
+                  _equipment_name: selected.name,
+                  _requested_qty: parseInt(currentItem.quantity || "0"),
+                  _available_qty: currentStockInfo?.currentStock || 0,
+                  _requester_name: headerData.requester_name || "-",
+                  _unit: currentItem.unit || "ชิ้น",
+                });
+                if (error || !(data as any)?.success) {
+                  toast.error("สร้างใบขอซื้อไม่สำเร็จ: " + (error?.message || (data as any)?.error));
+                  return;
+                }
+                const d = data as any;
+                toast.success(d.updated ? `อัปเดตใบขอซื้อ ${d.pr_number} (รวมคำขอนี้แล้ว)` : `สร้างใบขอซื้อ ${d.pr_number} สำเร็จ`);
+                setStockWarningOpen(false);
+              }}
+            >
+              📋 แจ้งขอซื้อ
             </Button>
+            {suggestedQuantity > 0 && (
+              <Button onClick={handleAcceptSuggestedQuantity}>
+                ใช้จำนวน {suggestedQuantity} แทน
+              </Button>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>
