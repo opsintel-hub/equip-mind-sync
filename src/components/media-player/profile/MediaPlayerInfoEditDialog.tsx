@@ -19,6 +19,7 @@ interface Props {
 
 type FormState = {
   name: string;
+  description: string;
   brand: string;
   specification: string;
   serial_number_1: string;
@@ -33,6 +34,7 @@ type FormState = {
   po_number: string;
   pr_number: string;
   invoice_number: string;
+  delivery_note_number: string;
   unit_price: string;
   depreciation_months: string;
   usage_lifespan_months: string;
@@ -47,6 +49,7 @@ type FormState = {
 function init(p: MediaPlayerRow): FormState {
   return {
     name: p.name || "",
+    description: (p as any).description || "",
     brand: p.brand || "",
     specification: p.specification || "",
     serial_number_1: p.serial_number_1 || "",
@@ -61,6 +64,7 @@ function init(p: MediaPlayerRow): FormState {
     po_number: p.po_number || "",
     pr_number: p.pr_number || "",
     invoice_number: p.invoice_number || "",
+    delivery_note_number: (p as any).delivery_note_number || "",
     unit_price: p.unit_price?.toString() || "",
     depreciation_months: p.depreciation_months?.toString() || "",
     usage_lifespan_months: p.usage_lifespan_months?.toString() || "",
@@ -90,6 +94,7 @@ export function MediaPlayerInfoEditDialog({ open, onOpenChange, player, onSaved 
     try {
       const payload: any = {
         name: form.name.trim() || player.name,
+        description: toNull(form.description),
         brand: toNull(form.brand),
         specification: toNull(form.specification),
         serial_number_1: toNull(form.serial_number_1),
@@ -104,6 +109,7 @@ export function MediaPlayerInfoEditDialog({ open, onOpenChange, player, onSaved 
         po_number: toNull(form.po_number),
         pr_number: toNull(form.pr_number),
         invoice_number: toNull(form.invoice_number),
+        delivery_note_number: toNull(form.delivery_note_number),
         unit_price: toNum(form.unit_price),
         depreciation_months: toNum(form.depreciation_months),
         usage_lifespan_months: toNum(form.usage_lifespan_months),
@@ -149,6 +155,7 @@ export function MediaPlayerInfoEditDialog({ open, onOpenChange, player, onSaved 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div className="space-y-1.5"><Label>ชื่อสินค้า</Label><Input value={form.name} onChange={set("name")} /></div>
               <div className="space-y-1.5"><Label>ยี่ห้อ</Label><Input value={form.brand} onChange={set("brand")} /></div>
+              <div className="md:col-span-2 space-y-1.5"><Label>รายละเอียด (Description)</Label><Textarea value={form.description} onChange={set("description")} rows={2} /></div>
               <div className="md:col-span-2 space-y-1.5"><Label>Specification</Label><Textarea value={form.specification} onChange={set("specification")} rows={2} /></div>
               <div className="space-y-1.5"><Label>S/N 1</Label><Input value={form.serial_number_1} onChange={set("serial_number_1")} /></div>
               <div className="space-y-1.5"><Label>S/N 2</Label><Input value={form.serial_number_2} onChange={set("serial_number_2")} /></div>
@@ -200,6 +207,7 @@ export function MediaPlayerInfoEditDialog({ open, onOpenChange, player, onSaved 
               <div className="space-y-1.5"><Label>PO No.</Label><Input value={form.po_number} onChange={set("po_number")} /></div>
               <div className="space-y-1.5"><Label>PR No.</Label><Input value={form.pr_number} onChange={set("pr_number")} /></div>
               <div className="space-y-1.5"><Label>Invoice No.</Label><Input value={form.invoice_number} onChange={set("invoice_number")} /></div>
+              <div className="space-y-1.5"><Label>เลขที่ใบส่งของ (DN)</Label><Input value={form.delivery_note_number} onChange={set("delivery_note_number")} /></div>
             </div>
           </section>
 
