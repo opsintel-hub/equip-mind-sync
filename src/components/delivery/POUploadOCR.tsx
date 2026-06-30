@@ -798,7 +798,7 @@ export function POUploadOCR({
                   </div>
                 </div>
                 <div className="border rounded-lg overflow-auto max-h-[60vh]">
-                  <Table>
+                  <Table className="min-w-[1900px]">
                     <TableHeader>
                       <TableRow>
                         <TableHead className="w-10">#</TableHead>
@@ -812,7 +812,7 @@ export function POUploadOCR({
                         <TableHead className="w-[90px] text-right">รับประกัน (ปี)</TableHead>
                         <TableHead className="w-[170px]">ผู้ดูแล</TableHead>
                         <TableHead className="w-[220px]">Location ตามแผน</TableHead>
-                        <TableHead className="w-[260px]">เลือกประเภท + รหัสสินค้าที่ตรงกัน</TableHead>
+                        <TableHead className="w-[420px]">เลือกประเภท + รหัสสินค้าที่ตรงกัน</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
