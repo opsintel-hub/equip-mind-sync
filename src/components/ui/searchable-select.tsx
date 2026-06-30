@@ -82,6 +82,8 @@ export function SearchableSelect({
         className={cn("w-[--radix-popover-trigger-width] p-0 z-[9999]", className)} 
         align="start"
         sideOffset={4}
+        onWheel={(e) => e.stopPropagation()}
+        onTouchMove={(e) => e.stopPropagation()}
       >
         <Command>
           <CommandInput 
@@ -205,6 +207,8 @@ export function SearchableMultiSelect({
         className={cn("w-[--radix-popover-trigger-width] p-0 z-[9999]", className)} 
         align="start"
         sideOffset={4}
+        onWheel={(e) => e.stopPropagation()}
+        onTouchMove={(e) => e.stopPropagation()}
       >
         <Command>
           <CommandInput 
