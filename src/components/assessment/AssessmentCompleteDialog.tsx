@@ -1177,6 +1177,12 @@ export function AssessmentCompleteDialog({ open, onOpenChange, log, onCompleted 
           </Button>
         </DialogFooter>
       </DialogContent>
+      <DocumentPreviewDialog
+        open={!!docPreview}
+        onOpenChange={(o) => { if (!o) setDocPreview(null); }}
+        publicUrl={docPreview?.url || null}
+        title={docPreview ? `ดูเอกสาร ${docPreview.title}` : "ดูเอกสาร"}
+      />
     </Dialog>
   );
 }
