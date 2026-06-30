@@ -1270,20 +1270,28 @@ export default function StockCard() {
                             <TableCell className="text-sm max-w-[260px] truncate" title={ev.detail}>{ev.detail}</TableCell>
                             <TableCell className="text-xs whitespace-pre-line max-w-[240px]" title={currentLocationLabel}>{currentLocationLabel}</TableCell>
                             <TableCell>
-                              {ev.billboard_old_code ? (
-                                <Badge variant="outline" className="text-xs font-mono bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-800/30">
-                                  {ev.billboard_old_code}
-                                </Badge>
-                              ) : (
-                                <span className="text-xs text-muted-foreground">{dash}</span>
-                              )}
-                            </TableCell>
-                            <TableCell>
-                              {ev.billboard_equipment_id ? (
-                                <Badge variant="outline" className="text-xs font-mono gap-1 bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-800/30">
-                                  <MapPin className="w-3 h-3" />
-                                  {ev.billboard_equipment_id}
-                                </Badge>
+                              {(ev.billboard_old_code || ev.billboard_equipment_id) ? (
+                                <div
+                                  className="flex flex-col gap-0.5"
+                                  title="รหัสเก่า / รหัสใหม่ ของป้ายเดียวกัน"
+                                >
+                                  <div className="flex items-center gap-1 flex-wrap">
+                                    {ev.billboard_old_code && (
+                                      <Badge variant="outline" className="text-xs font-mono bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-800/30">
+                                        {ev.billboard_old_code}
+                                      </Badge>
+                                    )}
+                                    {ev.billboard_equipment_id && (
+                                      <Badge variant="outline" className="text-xs font-mono gap-1 bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-800/30">
+                                        <MapPin className="w-3 h-3" />
+                                        {ev.billboard_equipment_id}
+                                      </Badge>
+                                    )}
+                                  </div>
+                                  {ev.billboard_old_code && ev.billboard_equipment_id && (
+                                    <span className="text-[10px] text-muted-foreground">รหัสเก่า / รหัสใหม่ (ป้ายเดียวกัน)</span>
+                                  )}
+                                </div>
                               ) : (
                                 <span className="text-xs text-muted-foreground">{dash}</span>
                               )}
