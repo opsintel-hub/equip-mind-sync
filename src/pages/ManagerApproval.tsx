@@ -143,6 +143,47 @@ const ManagerApproval = () => {
     },
   });
 
+  // Purpose name lookup
+  const { data: purposesMap } = useQuery({
+    queryKey: ["ma-issue-purposes"],
+    queryFn: async () => {
+      const { data } = await supabase.from("issue_purposes").select("id, name");
+      const m: Record<string, string> = {};
+      data?.forEach((p: any) => { m[p.id] = p.name; });
+      return m;
+    },
+  });
+
+  // Equipment stock + unit price
+  const equipmentIds = Array.from(new Set((allItems || []).filter((i: any) => i.equipment_id && !i.is_media_player).map((i: any) => i.equipment_id)));
+  const mpIds = Array.from(new Set((allItems || []).filter((i: any) => i.media_player_id || i.is_media_player).map((i: any) => i.media_player_id).filter(Boolean)));
+
+  const { data: equipMap } = useQuery({
+    queryKey: ["ma-equip-stock", equipmentIds],
+    enabled: equipmentIds.length > 0,
+    queryFn: async () => {
+      const { data } = await supabase.from("equipment").select("id, quantity, unit_price, unit").in("id", equipmentIds as string[]);
+      const m: Record<string, any> = {};
+      data?.forEach((e: any) => { m[e.id] = e; });
+      return m;
+    },
+  });
+  const { data: mpMap } = useQuery({
+    queryKey: ["ma-mp-stock", mpIds],
+    enabled: mpIds.length > 0,
+    queryFn: async () => {
+      const { data } = await supabase.from("media_players").select("id, quantity, unit_price").in("id", mpIds as string[]);
+      const m: Record<string, any> = {};
+      data?.forEach((e: any) => { m[e.id] = e; });
+      return m;
+    },
+  });
+
+  const getStockInfo = (item: any) => {
+    if (item.is_media_player || item.media_player_id) return mpMap?.[item.media_player_id];
+    return equipMap?.[item.equipment_id];
+  };
+
   const getItemsForRequest = (requestId: string) => allItems?.filter((item: any) => item.pending_id === requestId) || [];
 
   const toggleExpand = (id: string) => {
@@ -323,17 +364,75 @@ const ManagerApproval = () => {
         {isExpanded && items.length > 0 && (
           <TableRow key={`${req.id}-items`}>
             <TableCell colSpan={showActions ? 10 : 11} className="bg-muted/20 p-4">
-              <div className="space-y-2">
-                {items.map((item: any) => (
-                  <div key={item.id} className="flex justify-between items-center bg-background rounded-lg px-4 py-2 border">
-                    <div>
-                      <span className="font-medium">{item.equipment_code}</span>
-                      <span className="text-muted-foreground ml-2">{item.equipment_name}</span>
-                      {item.serial_number && <span className="text-xs text-muted-foreground ml-2">S/N: {item.serial_number}</span>}
-                    </div>
-                    <span className="font-medium">{item.quantity} {item.unit}</span>
-                  </div>
-                ))}
+              {/* Header detail */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 mb-4 text-sm bg-background rounded-lg p-3 border">
+                <div><span className="text-muted-foreground">ฝ่าย/แผนกผู้ขอ:</span> <span className="font-medium">{req.requester_department || "-"}</span></div>
+                <div><span className="text-muted-foreground">เบอร์โทร:</span> <span className="font-medium">{req.requester_phone || "-"}</span></div>
+                <div className="md:col-span-2"><span className="text-muted-foreground">วัตถุประสงค์:</span> <span className="font-medium">{purposesMap?.[req.purpose_id] || req.purpose || "-"}</span></div>
+                {req.destination && (
+                  <div className="md:col-span-4"><span className="text-muted-foreground">จุดหมายจัดส่ง:</span> <span className="font-medium">{req.destination}</span></div>
+                )}
+                {req.notes && (
+                  <div className="md:col-span-4"><span className="text-muted-foreground">หมายเหตุ:</span> <span className="font-medium whitespace-pre-line">{req.notes}</span></div>
+                )}
+              </div>
+
+              {/* Items table */}
+              <div className="rounded-md border overflow-hidden">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-muted/40">
+                      <TableHead>รหัส</TableHead>
+                      <TableHead>ชื่อสินค้า</TableHead>
+                      <TableHead>S/N</TableHead>
+                      <TableHead className="text-right">จำนวนเบิก</TableHead>
+                      <TableHead className="text-right">สต็อกคงเหลือ</TableHead>
+                      <TableHead className="text-right">ราคา/หน่วย</TableHead>
+                      <TableHead className="text-right">มูลค่ารวม</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {items.map((item: any) => {
+                      const info = getStockInfo(item);
+                      const stock = info?.quantity ?? null;
+                      const price = Number(info?.unit_price ?? 0);
+                      const qty = Number(item.quantity || 0);
+                      const total = price * qty;
+                      const lowStock = stock !== null && stock < qty;
+                      return (
+                        <TableRow key={item.id}>
+                          <TableCell className="font-medium">{item.equipment_code}</TableCell>
+                          <TableCell>
+                            {item.equipment_name}
+                            {item.notes && <div className="text-xs text-muted-foreground">📝 {item.notes}</div>}
+                          </TableCell>
+                          <TableCell className="text-xs whitespace-pre-line">{item.serial_number || "-"}</TableCell>
+                          <TableCell className="text-right">{qty.toLocaleString()} {item.unit}</TableCell>
+                          <TableCell className={`text-right ${lowStock ? "text-destructive font-semibold" : ""}`}>
+                            {stock !== null ? `${Number(stock).toLocaleString()} ${item.unit}` : "-"}
+                            {lowStock && <div className="text-[10px]">⚠️ ไม่พอเบิก</div>}
+                          </TableCell>
+                          <TableCell className="text-right">{price > 0 ? price.toLocaleString(undefined, { minimumFractionDigits: 2 }) : "-"}</TableCell>
+                          <TableCell className="text-right font-medium">{total > 0 ? total.toLocaleString(undefined, { minimumFractionDigits: 2 }) : "-"}</TableCell>
+                        </TableRow>
+                      );
+                    })}
+                    {/* Grand total */}
+                    {(() => {
+                      const grand = items.reduce((sum: number, it: any) => {
+                        const info = getStockInfo(it);
+                        return sum + (Number(info?.unit_price ?? 0) * Number(it.quantity || 0));
+                      }, 0);
+                      if (grand <= 0) return null;
+                      return (
+                        <TableRow className="bg-muted/30">
+                          <TableCell colSpan={6} className="text-right font-semibold">มูลค่ารวมทั้งหมด</TableCell>
+                          <TableCell className="text-right font-bold text-primary">{grand.toLocaleString(undefined, { minimumFractionDigits: 2 })} บาท</TableCell>
+                        </TableRow>
+                      );
+                    })()}
+                  </TableBody>
+                </Table>
               </div>
             </TableCell>
           </TableRow>
