@@ -51,7 +51,7 @@ export function SwapWarehouseReceive() {
       // Find approved swap_executions whose old unit is still pending_warehouse_return
       const { data: execs, error } = await supabase
         .from("swap_executions")
-        .select("swap_request_id, old_media_player_id, old_equipment_id, old_serial_number, return_location_id, swap_requests:swap_request_id(id, document_no, technician_name, completed_at, status)")
+        .select("swap_request_id, old_media_player_id, old_equipment_id, old_serial_number, return_location_id, swap_requests:swap_request_id(id, document_no, technician_name, completed_at, status, description, symptom_other, reported_photos)")
         .eq("result", "approved")
         .order("created_at", { ascending: false })
         .limit(500);
