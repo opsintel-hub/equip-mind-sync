@@ -1242,8 +1242,7 @@ export default function StockCard() {
                         <TableHead className="w-[130px]">ประเภท</TableHead>
                         <TableHead className="min-w-[200px]">รายละเอียด</TableHead>
                         <TableHead className="min-w-[180px]">ตำแหน่งปัจจุบัน</TableHead>
-                        <TableHead className="w-[140px]">Old Code</TableHead>
-                        <TableHead className="w-[150px]">Equipment ID</TableHead>
+                        <TableHead className="min-w-[200px]">ป้ายโฆษณา</TableHead>
                         <TableHead className="text-right w-[70px]">จำนวน</TableHead>
                         <TableHead className="text-center w-[110px]">สต็อก ก่อน→หลัง</TableHead>
                         <TableHead className="w-[80px]">สภาพ</TableHead>
