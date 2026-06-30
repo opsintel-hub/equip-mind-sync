@@ -172,7 +172,7 @@ const ManagerApproval = () => {
     queryKey: ["ma-mp-stock", mpIds],
     enabled: mpIds.length > 0,
     queryFn: async () => {
-      const { data } = await supabase.from("media_players").select("id, quantity, unit_price").in("id", mpIds as string[]);
+      const { data } = await supabase.from("media_players").select("id, quantity, unit_price, department, sub_media_type, device_type").in("id", mpIds as string[]);
       const m: Record<string, any> = {};
       data?.forEach((e: any) => { m[e.id] = e; });
       return m;
