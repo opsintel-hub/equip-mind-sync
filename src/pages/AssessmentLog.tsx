@@ -692,6 +692,18 @@ export default function AssessmentLog() {
             {log.source_type && SOURCE_LABELS[log.source_type] && (
               <Badge variant="secondary" className="text-xs">{SOURCE_LABELS[log.source_type]}</Badge>
             )}
+            {(() => {
+              const photos = [
+                ...((detail?.source_photos) || []),
+                ...((log.photo_urls) || []),
+              ].filter(Boolean);
+              return photos.length > 0 ? (
+                <PhotoGalleryDialog
+                  photos={photos}
+                  title={`รูปประกอบ ${log.document_no}`}
+                />
+              ) : null;
+            })()}
           </div>
           {rejection && (
             <div className="text-xs text-destructive bg-destructive/10 rounded px-2 py-1 border border-destructive/20">
