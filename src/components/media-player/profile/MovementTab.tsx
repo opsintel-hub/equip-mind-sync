@@ -14,17 +14,10 @@ interface MovementTabProps {
 }
 
 export function MovementTab({ movements, playerCode, serialNumber1, serialNumber2, billboardByDoc = {} }: MovementTabProps) {
-  // Filter to only this S/N's movements when serial is provided.
-  // Match by serial number appearing in notes or reference_document; if no match found, fall back to all (master row case).
+  // stock_movements ระดับนี้ผูกกับ equipment_id (= media_player.id ของ unit เฉพาะ S/N นั้น)
+  // จึงแสดงทุก movement ที่ parent ส่งเข้ามาได้ตรงๆ — ไม่ต้องกรองด้วย S/N ใน notes (ทำให้ข้อมูลหาย)
   const sns = [serialNumber1, serialNumber2].filter(Boolean) as string[];
-  let filtered = movements;
-  if (sns.length > 0) {
-    const matched = movements.filter((m) => {
-      const hay = `${m.notes || ""} ${m.reference_document || ""}`.toLowerCase();
-      return sns.some((sn) => hay.includes(sn.toLowerCase()));
-    });
-    if (matched.length > 0) filtered = matched;
-  }
+  const filtered = movements;
 
   return (
     <Card>

@@ -1,57 +1,42 @@
+## สรุปสิ่งที่ตรวจสอบ — Stock Card ของ S/N AAA001 (MP-POOK 0007)
 
-## เป้าหมาย
-ฝ่าย **7-Eleven Media** มีคุณสมบัติพิเศษคือ `sub_media_type` (TOPSHELF_1/2/3, SPECIAL_1/2, OVERVAULT_1/2, OPENTYPE_1/2) ปัจจุบันแสดงและกรอกไม่ครบ flow ต้องทำให้:
-1. แสดงทุกหน้าที่เห็น MP/Monitor (ทั้ง `media_player` และ `monitor`)
-2. กรอก/แก้ไขได้ทุกขั้นตอนของ flow (ไม่ล็อค — เพราะหน้างานอาจเปลี่ยนตำแหน่งติดตั้งเมื่อไหร่ก็ได้)
-3. ค่าไหลต่อกันเป็น flow — ขั้นถัดไป default จากขั้นก่อนหน้า แต่แก้ได้
+ข้อมูลใน database มี **5 stock_movements** สำหรับ AAA001:
 
-## Flow การกรอก/แก้ไข (สำคัญสุด — ส่วนที่ขาด)
+| # | วันที่ | ประเภท | เอกสาร | หมายเหตุ |
+|---|---|---|---|---|
+| 1 | 30/06 11:22 | รับเข้า | PD-20260630-115-19 | Media Player - |
+| 2 | 30/06 14:01 | จ่ายออก | GI-REQ-000076 | Media Player S/N: AAA001 |
+| 3 | 30/06 14:01 | ติดตั้งป้าย | GI-REQ-000076 | ติดตั้งที่ป้าย 12129 |
+| 4 | 30/06 15:19 | ถอดจากป้าย | SWP-20260630-0014 | Swap |
+| 5 | 30/06 15:47 | กลับเข้าคลัง (Refurb) | ASM-20260630-0012 | ซ่อมเองสำเร็จ |
 
-```text
-Master MP Entry → Receive Goods → Issue Request (เบิก) → Manager Approval (อนุมัติ) → Issue Goods (จ่าย) → Billboard Detail (ติดตั้ง) → Swap/Defective/Assessment
-   [กรอกได้]        [กรอกได้]         [กรอกได้★ใหม่]        [แก้ไขได้★ใหม่]         [แก้ไขได้]          [แก้ไขได้★ใหม่]        [แสดง+แก้ไขได้★ใหม่]
-```
+### ปัญหาที่พบ
 
-### จุดที่จะเพิ่มการ "กรอก/แก้ไข" (ไม่ใช่แค่แสดง)
-- **`src/pages/IssueRequest.tsx` (เบิก)** — ในรายการสินค้า MP/Monitor ฝ่าย 7-Eleven ใส่ `SubMediaTypeSelect` ให้ผู้เบิกเลือกตำแหน่งที่ตั้งใจติดตั้ง (default จาก master ถ้ามี) บันทึกลง `goods_issue_pending_items.sub_media_type`
-- **`src/pages/ManagerApproval.tsx` (อนุมัติ)** — ใน expanded row แสดงค่าที่ผู้เบิกระบุ + **แก้ไขได้ inline** ก่อนกดอนุมัติ
-- **`src/pages/IssueGoods.tsx` (จ่าย)** — มี select แล้ว แต่ปรับให้ default มาจากค่าที่ผ่านการอนุมัติ (ไม่ใช่จาก master เดิม) และ**ไม่บังคับ block** หากเครื่องไม่มีค่า (เปลี่ยนจาก required เป็น warning) เพื่อให้แก้หน้างานได้
-- **`src/pages/BillboardDetail.tsx`** — ในรายการ MP ที่ติดตั้งบนป้าย เพิ่มปุ่มดินสอเล็ก inline แก้ `sub_media_type` ได้ (กรณีย้ายตำแหน่งบนป้ายเดียวกัน)
-- **`src/components/swap/SwapWizardDialog.tsx`** — ตอนเลือกเครื่องใหม่ ให้ default จากเครื่องเดิม + แก้ไขได้
-- **`src/pages/DefectiveReturnEntry.tsx` / `AssessmentLog.tsx`** — แสดง badge + ปุ่มแก้ไข inline (กรณีเครื่องกลับมาแล้วต้องเปลี่ยนตำแหน่งใหม่)
+**ภาพที่ 1 — Profile › Stock Card (แสดงแค่ 2 บรรทัด ❌)**
+- `MovementTab.tsx` กรองโดยต้องมีข้อความ "AAA001" อยู่ใน `notes` หรือ `reference_document`
+- มีเพียง 2 record (#2 จ่ายออก, #3 ติดตั้งป้าย) ที่มีข้อความ "AAA001" ในหมายเหตุ
+- record #1 รับเข้า, #4 ถอดจากป้าย, #5 กลับคืนคลัง ถูกตัดทิ้งทั้งที่เป็นของ AAA001
+- → **หายไป 3 บรรทัด** ดังนั้น Profile Stock Card ของแต่ละ S/N ไม่สะท้อนความจริง
 
-### Schema ที่ต้องเพิ่มคอลัมน์ (Migration)
-- `goods_issue_pending_items` — เพิ่ม `sub_media_type text null` (ปัจจุบันยังไม่มี — ทำให้ flow ขาดช่วงระหว่างเบิก→อนุมัติ)
-- ทุกที่ที่อ่าน/เขียน goods_issue_pending_items ปรับให้รวมคอลัมน์นี้
+**ภาพที่ 2 — เมนู Stock Card (ดูแปลก แต่ข้อมูลถูก ⚠️)**
+- ข้อมูลครบ 5 รายการ + 2 รายการ history ติดตั้ง/ถอด = 7 รวมถูกแล้ว
+- ที่อ่านสับสนเพราะคอลัมน์ **OLD CODE = 12129** และ **EQUIPMENT ID = A04012-PKN-01573** เป็นป้ายเดียวกัน (แสดง 2 รหัสของป้ายเดียว) — ผู้ใช้คิดว่าเป็นป้ายคนละตัว
+- แถว "ติดตั้ง" และ "ถอด" อยู่ที่ 30/06 00:00 (วันเดียวกัน) เพราะ backfill ใน history แต่ stock_movement จริงเกิด 11:22–15:47 → timeline เรียงดูขัดกัน
 
-## สิ่งที่จะทำ (รวม)
+### แผนการแก้
 
-### 1. Migration
-เพิ่มคอลัมน์ `sub_media_type` ใน `goods_issue_pending_items` เพื่อให้ flow เบิก→อนุมัติ→จ่าย ส่งต่อค่าได้
+**1. แก้บั๊กตัวกรอง Profile Stock Card (`src/components/media-player/profile/MovementTab.tsx`)**
+- ทิ้ง logic กรองด้วย "ต้องมี S/N ใน notes" — เพราะ stock_movements ระดับนี้ผูกกับ `equipment_id` (= media_player.id แท่นเฉพาะ S/N นั้นอยู่แล้ว) จึงเป็นของ unit นั้น 100%
+- เปลี่ยนเป็นแสดง `movements` ทั้งหมดที่ parent ส่งเข้ามา ลบ filter sn ออก
+- ผลลัพธ์: AAA001 จะเห็น 5 บรรทัดครบ (รับเข้า → จ่าย → ติดตั้ง → ถอด → กลับคลัง)
 
-### 2. Component กลาง `SubMediaTypeBadge`
-- ไฟล์ใหม่ `src/components/media-player/SubMediaTypeBadge.tsx`
-- Props: `department`, `subMediaType`, `size`, `onEdit?` (ถ้ามี → แสดงไอคอนดินสอเล็ก คลิกเปิด popover เลือกค่าใหม่)
-- คืน `null` ถ้าไม่ใช่ฝ่าย 7-Eleven Media
-- สี Brand 7-Eleven (เขียว/แดง/ส้ม) เด่นชัด
+**2. ปรับการแสดงป้ายในเมนู Stock Card ให้อ่านง่าย (`src/pages/StockCard.tsx`)**
+- รวมคอลัมน์ OLD CODE + EQUIPMENT ID เป็นคอลัมน์เดียว "ป้ายโฆษณา" แสดงเป็น `12129 · A04012-PKN-01573 · บ้านหัวดอน` แบบ stacked เพื่อสื่อชัดว่าเป็นป้ายเดียว
+- เพิ่ม tooltip "รหัสเก่า / รหัสใหม่ ของป้ายเดียวกัน"
+- คงคอลัมน์เดิมไว้ไม่ลบเพื่อกัน export ที่ใช้ตาม schema เดิม → แก้ที่ render เท่านั้น
 
-### 3. เพิ่ม "แสดง" ในจุดที่ขาด
-โปรไฟล์: `MediaPlayerProfile.tsx`, `GeneralInfoTab.tsx`, `MediaPlayerPublicView.tsx`
-รายงาน: `EquipmentTrackingReport.tsx` (ทั้ง 2 Tab + Excel export), `InventoryReport.tsx` (+ Excel), `StockCard.tsx`
-ค้นหา: `GlobalSearch.tsx`, `ProfileSearch.tsx`
-Workflow: `IncompleteIssues.tsx`, `PendingAssetCodes.tsx`, `DeliveryDetailDialog.tsx`, `DeliveryConfirmation.tsx`, `SwapWarehouseReceive.tsx`, `SwapWizard.tsx` (ทั้ง 3 Tab), `DisposalApproval.tsx`, `ClaimTracker.tsx`
-Notifications: `NotificationCenter.tsx`, `PendingAssessmentAlerts.tsx`
-ปรับ `BillboardDetail.tsx` ที่มีอยู่แล้วให้ใช้ component กลาง
+**3. ไม่แก้ข้อมูลในฐานข้อมูล** (ข้อมูลถูกต้องแล้ว, แค่ UI กรอง/แสดงผิด)
 
-### 4. เพิ่ม "กรอก/แก้ไข" inline ตาม Flow ด้านบน (IssueRequest / ManagerApproval / IssueGoods / BillboardDetail / SwapWizardDialog / DefectiveReturnEntry / AssessmentLog)
-
-### 5. ตรวจ Query Selects
-ทุก query ที่เพิ่ม badge/edit ต้อง select `sub_media_type` และ `department` มาด้วย
-
-## สิ่งที่จะ**ไม่**ทำ
-- ไม่ "บังคับ/ล็อค" ค่า — แก้ได้ทุกขั้นแม้กระทั่งหลังติดตั้งบนป้าย
-- ไม่เปลี่ยน workflow business logic อื่น
-- ไม่แตะ schema ตารางหลัก `media_players` (มี column อยู่แล้ว) นอกจาก `goods_issue_pending_items`
-
-## ผลลัพธ์
-ผู้ใช้เห็น sub_media_type ของฝ่าย 7-Eleven ตลอดทั้ง flow ตั้งแต่ master → เบิก → อนุมัติ → จ่าย → ติดตั้ง → swap/claim และสามารถแก้ไขได้ทุกจุดเพื่อรองรับการเปลี่ยนตำแหน่งหน้างาน
+### หมายเหตุที่จะแจ้งผู้ใช้
+- Profile Stock Card ตอนนี้แสดงไม่ครบเพราะตัวกรอง ไม่ใช่เพราะข้อมูลหาย
+- ป้าย 12129 กับ A04012-PKN-01573 คือป้ายเดียวกัน (รหัสเก่า/รหัสใหม่)

@@ -10,6 +10,8 @@ export const MOVEMENT_TYPES = [
   { value: "install_to_billboard", label: "ติดตั้งป้าย", icon: Hammer, color: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400" },
   { value: "return_from_billboard", label: "ถอดจากป้าย", icon: RotateCcw, color: "bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400" },
   { value: "defective_return", label: "ของเสียเข้า", icon: AlertTriangle, color: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400" },
+  { value: "refurb_to_stock", label: "กลับเข้าคลัง (Refurb)", icon: RotateCcw, color: "bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-400" },
+  { value: "return_to_stock", label: "กลับเข้าคลัง", icon: RotateCcw, color: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400" },
 ];
 
 export function getMovementMeta(type: string) {
