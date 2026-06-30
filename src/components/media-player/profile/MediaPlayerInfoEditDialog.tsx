@@ -49,6 +49,7 @@ type FormState = {
 function init(p: MediaPlayerRow): FormState {
   return {
     name: p.name || "",
+    description: (p as any).description || "",
     brand: p.brand || "",
     specification: p.specification || "",
     serial_number_1: p.serial_number_1 || "",
@@ -63,6 +64,7 @@ function init(p: MediaPlayerRow): FormState {
     po_number: p.po_number || "",
     pr_number: p.pr_number || "",
     invoice_number: p.invoice_number || "",
+    delivery_note_number: (p as any).delivery_note_number || "",
     unit_price: p.unit_price?.toString() || "",
     depreciation_months: p.depreciation_months?.toString() || "",
     usage_lifespan_months: p.usage_lifespan_months?.toString() || "",
