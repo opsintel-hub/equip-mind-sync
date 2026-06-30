@@ -1118,9 +1118,9 @@ const IssueRequest = () => {
               )}
             </div>
             
-            {/* 6 Columns Grid */}
+            {/* Grid with pagination */}
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2">
-              {priorityEquipment.slice(0, 12).map((eq) => (
+              {fifoPagination.paginatedData.map((eq) => (
                 <div 
                   key={eq.id} 
                   className="p-2 rounded-lg border border-warning/30 bg-background cursor-pointer hover:bg-muted/50 transition-colors"
@@ -1146,11 +1146,14 @@ const IssueRequest = () => {
                 ไม่พบสินค้าที่ตรงกับเงื่อนไข
               </div>
             )}
-            {priorityEquipment.length > 12 && (
-              <div className="text-center text-xs text-muted-foreground mt-2">
-                แสดง 12 จาก {priorityEquipment.length} รายการ (กรอกค้นหาเพื่อดูเพิ่มเติม)
-              </div>
-            )}
+            <TablePagination
+              currentPage={fifoPagination.currentPage}
+              totalPages={fifoPagination.totalPages}
+              totalItems={fifoPagination.totalItems}
+              pageSize={fifoPagination.pageSize}
+              onPageChange={fifoPagination.handlePageChange}
+              onPageSizeChange={fifoPagination.handlePageSizeChange}
+            />
           </CardContent>
         </Card>
       )}
