@@ -68,12 +68,15 @@ interface ProfileHeaderProps {
   modelName: string;
   statusLabel: string;
   images: string[];
+  editable?: boolean;
+  onImagesChange?: () => void;
 }
 
-export function ProfileHeader({ player, modelName, statusLabel, images }: ProfileHeaderProps) {
+export function ProfileHeader({ player, modelName, statusLabel, images, editable = false, onImagesChange }: ProfileHeaderProps) {
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(0);
   const [qrOpen, setQrOpen] = useState(false);
+  const [uploadOpen, setUploadOpen] = useState(false);
   const previewCanvasRef = useRef<HTMLCanvasElement>(null);
   const condition = getConditionDisplay(player.item_condition);
 
