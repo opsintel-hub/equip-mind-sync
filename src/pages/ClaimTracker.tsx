@@ -106,10 +106,12 @@ export default function ClaimTracker() {
   // Return dialog state
   const [returnDialogId, setReturnDialogId] = useState<string | null>(null);
   const [claimResultId, setClaimResultId] = useState("");
+  const [claimResultKind, setClaimResultKind] = useState<ClaimResultKind>(null);
   const [resultNotes, setResultNotes] = useState("");
   const [receiverName, setReceiverName] = useState("");
   const [costAmount, setCostAmount] = useState("");
-  const [restockDecision, setRestockDecision] = useState<"refurb" | "defective" | "replacement">("refurb");
+  // For vendor_rejected: choose follow-up
+  const [rejectedAction, setRejectedAction] = useState<"write_off" | "defective">("defective");
   const [returnLocationId, setReturnLocationId] = useState("");
   const [replacementSerial, setReplacementSerial] = useState("");
   const [returnSubmitting, setReturnSubmitting] = useState(false);
