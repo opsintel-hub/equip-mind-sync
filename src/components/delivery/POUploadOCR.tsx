@@ -56,6 +56,7 @@ export interface POOCRItem {
   matched_equipment_code?: string | null;
   matched_equipment_name?: string | null;
   matched_is_media_player?: boolean;
+  device_kind?: "MEDIA_PLAYER" | "MONITOR" | "EQUIPMENT";
   match_status?: "matched" | "not_found" | "new";
 }
 
