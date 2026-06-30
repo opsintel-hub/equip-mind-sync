@@ -181,7 +181,7 @@ const IssueRequest = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("media_players")
-        .select("id, code, name, unit, quantity, serial_number_1, serial_number_2, warranty_expiry_date, created_at, location_id, locations:location_id(id, code, name, warehouse_id, warehouses(id, code, name))")
+        .select("id, code, name, unit, quantity, serial_number_1, serial_number_2, warranty_expiry_date, created_at, location_id, department, sub_media_type, device_type, locations:location_id(id, code, name, warehouse_id, warehouses(id, code, name))")
         .eq("is_active", true)
         .gt("quantity", 0)
         .order("created_at", { ascending: false });
@@ -203,6 +203,9 @@ const IssueRequest = () => {
         warehouse_code: mp.locations?.warehouses?.code || null,
         location_name: mp.locations?.name || null,
         location_code: mp.locations?.code || null,
+        department: mp.department || null,
+        sub_media_type: mp.sub_media_type || null,
+        device_type: mp.device_type || null,
       })) as EquipmentWithDetails[];
     },
   });
