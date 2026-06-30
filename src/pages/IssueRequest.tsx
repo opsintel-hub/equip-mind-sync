@@ -435,6 +435,8 @@ const IssueRequest = () => {
           media_player_id: isMediaPlayer ? currentItem.equipment_id : undefined,
           warehouse_name: selectedEquipment?.warehouse_name || undefined,
           location_name: selectedEquipment?.location_name || undefined,
+          department: (selectedEquipment as any)?.department || item.department || null,
+          sub_media_type: (selectedEquipment as any)?.sub_media_type || item.sub_media_type || null,
         } : item
       ));
       setEditingCartItemId(null);
