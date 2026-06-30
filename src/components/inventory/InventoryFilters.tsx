@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   Select,
   SelectContent,
@@ -250,352 +251,390 @@ export function InventoryFilters({ filters, onFiltersChange }: InventoryFiltersP
     return v !== "";
   });
 
+  const activeFilterCount = (filters.statusFilters?.length || 0) + Object.entries(filters).filter(([key, v]) => {
+    if (key === 'statusFilters') return false;
+    return v !== "" && v !== undefined && v !== null && v !== 30;
+  }).length;
+
   return (
-    <div className="space-y-4">
-      {/* Row 1: Main filters */}
-      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
-        <Select
-          value={filters.companyId}
-          onValueChange={(value) =>
-            onFiltersChange({ ...filters, companyId: value === "all" ? "" : value })
-          }
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="บริษัท" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">บริษัททั้งหมด</SelectItem>
-            {companies.map((company) => (
-              <SelectItem key={company.id} value={company.id}>
-                {company.code} - {company.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-
-        <Select
-          value={filters.department}
-          onValueChange={(value) =>
-            onFiltersChange({ ...filters, department: value === "all" ? "" : value })
-          }
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="ฝ่าย" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">ฝ่ายทั้งหมด</SelectItem>
-            {departments.map((dept) => (
-              <SelectItem key={dept.id} value={dept.name}>
-                {dept.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-
-        {/* Item Type Filter - after ฝ่าย */}
-        <Select
-          value={filters.itemType || "all"}
-          onValueChange={(value) =>
-            onFiltersChange({ ...filters, itemType: value === "all" ? "" : value })
-          }
-        >
-          <SelectTrigger className="min-w-[140px]">
-            <SelectValue placeholder="ประเภทสินค้า" />
-          </SelectTrigger>
-          <SelectContent>
-            {ITEM_TYPE_OPTIONS.map((option) => (
-              <SelectItem key={option.value} value={option.value}>
-                {option.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-
-        <Select
-          value={filters.categoryId}
-          onValueChange={(value) =>
-            onFiltersChange({
-              ...filters,
-              categoryId: value === "all" ? "" : value,
-              subcategoryId: "",
-            })
-          }
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="หมวดหมู่" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">หมวดหมู่ทั้งหมด</SelectItem>
-            {categories.map((cat) => (
-              <SelectItem key={cat.id} value={cat.id}>
-                {cat.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-
-        <Select
-          value={filters.subcategoryId}
-          onValueChange={(value) =>
-            onFiltersChange({ ...filters, subcategoryId: value === "all" ? "" : value })
-          }
-          disabled={!filters.categoryId}
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="หมวดหมู่ย่อย" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">หมวดหมู่ย่อยทั้งหมด</SelectItem>
-            {subcategories.map((sub) => (
-              <SelectItem key={sub.id} value={sub.id}>
-                {sub.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-
-        <Select
-          value={filters.warehouseId}
-          onValueChange={(value) =>
-            onFiltersChange({
-              ...filters,
-              warehouseId: value === "all" ? "" : value,
-              locationId: "",
-            })
-          }
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="คลังสินค้า" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">คลังทั้งหมด</SelectItem>
-            {warehouses.map((wh) => (
-              <SelectItem key={wh.id} value={wh.id}>
-                {wh.code} - {wh.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-
-        <Select
-          value={filters.locationId}
-          onValueChange={(value) =>
-            onFiltersChange({ ...filters, locationId: value === "all" ? "" : value })
-          }
-          disabled={!filters.warehouseId}
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="ตำแหน่งจัดเก็บ" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">ตำแหน่งทั้งหมด</SelectItem>
-            {locations.map((loc) => (
-              <SelectItem key={loc.id} value={loc.id}>
-                {loc.code} - {loc.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
-      {/* Row 2: Multi-select status filter, Stock status & Search */}
-      <div className="flex flex-wrap gap-3 items-center">
-        {/* Multi-select Status Filter with Days Setting */}
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button variant="outline" className="min-w-[200px] justify-between">
-              <div className="flex items-center gap-2">
-                <Filter className="h-4 w-4" />
-                <span>สถานะสินค้า</span>
-                {(filters.statusFilters?.length || 0) > 0 && (
-                  <Badge variant="secondary" className="ml-1">
-                    {filters.statusFilters?.length}
-                  </Badge>
-                )}
-              </div>
-              <ChevronDown className="h-4 w-4 opacity-50" />
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-[280px] p-3" align="start">
-            <div className="space-y-3">
-              <div className="font-medium text-sm">เลือกสถานะ (เลือกได้หลายรายการ)</div>
-              {STATUS_FILTER_OPTIONS.map((option) => (
-                <div key={option.value} className="flex items-center space-x-2">
-                  <Checkbox
-                    id={`status-${option.value}`}
-                    checked={(filters.statusFilters || []).includes(option.value)}
-                    onCheckedChange={(checked) => 
-                      handleStatusFilterChange(option.value, checked === true)
-                    }
-                  />
-                  <Label 
-                    htmlFor={`status-${option.value}`}
-                    className="text-sm font-normal cursor-pointer"
-                  >
-                    {option.label}
-                  </Label>
-                </div>
-              ))}
-              {(filters.statusFilters?.length || 0) > 0 && (
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  className="w-full mt-2"
-                  onClick={() => onFiltersChange({ ...filters, statusFilters: [] })}
-                >
-                  ล้างการเลือก
-                </Button>
-              )}
-            </div>
-          </PopoverContent>
-        </Popover>
-
-        {/* Days Setting Dropdown */}
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button variant="outline" className="min-w-[120px] justify-between">
-              <div className="flex items-center gap-2">
-                <Settings className="h-4 w-4" />
-                <span>ค่าตั้ง ({filters.advanceDays || 30})</span>
-              </div>
-              <ChevronDown className="h-4 w-4 opacity-50" />
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-[200px] p-3" align="start">
-            <div className="space-y-3">
-              <div className="font-medium text-sm">ระยะเวลาแจ้งเตือนล่วงหน้า</div>
-              <div className="text-xs text-muted-foreground">
-                สำหรับ "ใกล้หมดอายุ" และ "ใกล้หมดประกัน"
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {ADVANCE_DAYS_OPTIONS.map((option) => (
-                  <Badge
-                    key={option.value}
-                    variant={(filters.advanceDays || 30) === option.value ? "default" : "outline"}
-                    className="cursor-pointer hover:bg-primary hover:text-primary-foreground"
-                    onClick={() => onFiltersChange({ ...filters, advanceDays: option.value })}
-                  >
-                    {option.label}
-                  </Badge>
-                ))}
-              </div>
-            </div>
-          </PopoverContent>
-        </Popover>
-
-        <Select
-          value={filters.stockStatus}
-          onValueChange={(value) =>
-            onFiltersChange({ ...filters, stockStatus: value === "all" ? "" : value })
-          }
-        >
-          <SelectTrigger className="w-[180px]">
-            <SelectValue placeholder="สถานะ Stock" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">สถานะทั้งหมด</SelectItem>
-            <SelectItem value="normal">ปกติ</SelectItem>
-            <SelectItem value="low">ใกล้หมด</SelectItem>
-            <SelectItem value="out">หมด</SelectItem>
-          </SelectContent>
-        </Select>
-
-        <Select
-          value={filters.issueStatus || "all"}
-          onValueChange={(value) =>
-            onFiltersChange({ ...filters, issueStatus: value === "all" ? "" : value })
-          }
-        >
-          <SelectTrigger className="w-[180px]">
-            <SelectValue placeholder="สถานะการเบิก" />
-          </SelectTrigger>
-          <SelectContent>
-            {ISSUE_STATUS_OPTIONS.map((option) => (
-              <SelectItem key={option.value} value={option.value}>
-                {option.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-
-        <Select
-          value={filters.itemCondition || "all"}
-          onValueChange={(value) =>
-            onFiltersChange({ ...filters, itemCondition: value === "all" ? "" : value })
-          }
-        >
-          <SelectTrigger className="w-[180px]">
-            <SelectValue placeholder="สภาพสินค้า" />
-          </SelectTrigger>
-          <SelectContent>
-            {ITEM_CONDITION_OPTIONS.map((option) => (
-              <SelectItem key={option.value} value={option.value}>
-                {option.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-
-        <div className="flex gap-2 flex-1 max-w-xs">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="ค้นหา S/N..."
-              value={localSnSearch}
-              onChange={(e) => setLocalSnSearch(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  onFiltersChange({ ...filters, snSearch: localSnSearch });
-                }
-              }}
-              className="pl-9"
-            />
+    <Card className="border border-border/60 bg-muted/30 shadow-sm">
+      <CardContent className="p-4 space-y-4">
+        {/* Hero search row */}
+        <div className="flex flex-col lg:flex-row gap-3 items-stretch lg:items-center">
+          <div className="flex items-center gap-2 text-sm font-medium text-foreground min-w-[5.5rem]">
+            <Search className="h-4 w-4 text-primary" />
+            ค้นหา
           </div>
-          <Button variant="outline" size="icon" onClick={() => onFiltersChange({ ...filters, snSearch: localSnSearch })}>
-            <Search className="h-4 w-4" />
-          </Button>
+          <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="relative group">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
+              <Input
+                placeholder="ค้นหารหัส, ชื่อ, ยี่ห้อ, เอกสาร..."
+                value={localSearch}
+                onChange={(e) => setLocalSearch(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleSearchSubmit()}
+                className="pl-9 h-10 bg-background focus-visible:ring-2 focus-visible:ring-primary/50"
+              />
+            </div>
+            <div className="relative group">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
+              <Input
+                placeholder="ค้นหา S/N..."
+                value={localSnSearch}
+                onChange={(e) => setLocalSnSearch(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    onFiltersChange({ ...filters, snSearch: localSnSearch });
+                  }
+                }}
+                className="pl-9 h-10 bg-background focus-visible:ring-2 focus-visible:ring-primary/50"
+              />
+            </div>
+          </div>
+          <div className="flex gap-2 shrink-0">
+            <Button
+              onClick={() => {
+                handleSearchSubmit();
+                onFiltersChange({ ...filters, snSearch: localSnSearch });
+              }}
+              className="h-10 px-4"
+            >
+              <Search className="h-4 w-4 mr-2" />
+              ค้นหา
+            </Button>
+            {hasActiveFilters && (
+              <Button variant="outline" size="icon" className="h-10 w-10" onClick={handleClearFilters}>
+                <X className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
         </div>
 
-        <div className="flex gap-2 flex-1 max-w-md">
-          <Input
-            placeholder="ค้นหารหัส, ชื่อ, ยี่ห้อ, เอกสาร..."
-            value={localSearch}
-            onChange={(e) => setLocalSearch(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && handleSearchSubmit()}
-            className="flex-1"
-          />
-          <Button variant="outline" size="icon" onClick={handleSearchSubmit}>
-            <Search className="h-4 w-4" />
-          </Button>
-        </div>
+        {/* Divider */}
+        <div className="border-t border-border/60" />
 
-        {hasActiveFilters && (
-          <Button variant="ghost" size="sm" onClick={handleClearFilters}>
-            <X className="h-4 w-4 mr-1" />
-            ล้างตัวกรอง
-          </Button>
-        )}
-      </div>
-
-      {/* Selected Status Filters Display */}
-      {(filters.statusFilters?.length || 0) > 0 && (
-        <div className="flex flex-wrap gap-2">
-          {filters.statusFilters?.map((filter) => {
-            const option = STATUS_FILTER_OPTIONS.find(o => o.value === filter);
-            return option ? (
-              <Badge 
-                key={filter} 
-                variant="secondary"
-                className="cursor-pointer hover:bg-destructive hover:text-destructive-foreground"
-                onClick={() => handleStatusFilterChange(filter, false)}
-              >
-                {option.label}
-                <X className="h-3 w-3 ml-1" />
+        {/* Section label + active count */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+            <Filter className="h-4 w-4" />
+            ตัวกรองขั้นสูง
+            {activeFilterCount > 0 && (
+              <Badge variant="secondary" className="text-xs">
+                {activeFilterCount} รายการ
               </Badge>
-            ) : null;
-          })}
+            )}
+          </div>
+          {hasActiveFilters && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleClearFilters}
+              className="h-7 text-xs text-muted-foreground hover:text-destructive"
+            >
+              <X className="h-3 w-3 mr-1" />
+              ล้างตัวกรอง
+            </Button>
+          )}
         </div>
-      )}
-    </div>
+
+        {/* Row 1: Master data filters */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 xl:grid-cols-6 gap-3">
+          <Select
+            value={filters.companyId}
+            onValueChange={(value) =>
+              onFiltersChange({ ...filters, companyId: value === "all" ? "" : value })
+            }
+          >
+            <SelectTrigger className="h-9 bg-background">
+              <SelectValue placeholder="บริษัท" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">บริษัททั้งหมด</SelectItem>
+              {companies.map((company) => (
+                <SelectItem key={company.id} value={company.id}>
+                  {company.code} - {company.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select
+            value={filters.department}
+            onValueChange={(value) =>
+              onFiltersChange({ ...filters, department: value === "all" ? "" : value })
+            }
+          >
+            <SelectTrigger className="h-9 bg-background">
+              <SelectValue placeholder="ฝ่าย" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">ฝ่ายทั้งหมด</SelectItem>
+              {departments.map((dept) => (
+                <SelectItem key={dept.id} value={dept.name}>
+                  {dept.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select
+            value={filters.itemType || "all"}
+            onValueChange={(value) =>
+              onFiltersChange({ ...filters, itemType: value === "all" ? "" : value })
+            }
+          >
+            <SelectTrigger className="h-9 bg-background min-w-[140px]">
+              <SelectValue placeholder="ประเภทสินค้า" />
+            </SelectTrigger>
+            <SelectContent>
+              {ITEM_TYPE_OPTIONS.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select
+            value={filters.categoryId}
+            onValueChange={(value) =>
+              onFiltersChange({
+                ...filters,
+                categoryId: value === "all" ? "" : value,
+                subcategoryId: "",
+              })
+            }
+          >
+            <SelectTrigger className="h-9 bg-background">
+              <SelectValue placeholder="หมวดหมู่" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">หมวดหมู่ทั้งหมด</SelectItem>
+              {categories.map((cat) => (
+                <SelectItem key={cat.id} value={cat.id}>
+                  {cat.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select
+            value={filters.subcategoryId}
+            onValueChange={(value) =>
+              onFiltersChange({ ...filters, subcategoryId: value === "all" ? "" : value })
+            }
+            disabled={!filters.categoryId}
+          >
+            <SelectTrigger className="h-9 bg-background">
+              <SelectValue placeholder="หมวดหมู่ย่อย" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">หมวดหมู่ย่อยทั้งหมด</SelectItem>
+              {subcategories.map((sub) => (
+                <SelectItem key={sub.id} value={sub.id}>
+                  {sub.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select
+            value={filters.warehouseId}
+            onValueChange={(value) =>
+              onFiltersChange({
+                ...filters,
+                warehouseId: value === "all" ? "" : value,
+                locationId: "",
+              })
+            }
+          >
+            <SelectTrigger className="h-9 bg-background">
+              <SelectValue placeholder="คลังสินค้า" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">คลังทั้งหมด</SelectItem>
+              {warehouses.map((wh) => (
+                <SelectItem key={wh.id} value={wh.id}>
+                  {wh.code} - {wh.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select
+            value={filters.locationId}
+            onValueChange={(value) =>
+              onFiltersChange({ ...filters, locationId: value === "all" ? "" : value })
+            }
+            disabled={!filters.warehouseId}
+          >
+            <SelectTrigger className="h-9 bg-background">
+              <SelectValue placeholder="ตำแหน่งจัดเก็บ" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">ตำแหน่งทั้งหมด</SelectItem>
+              {locations.map((loc) => (
+                <SelectItem key={loc.id} value={loc.id}>
+                  {loc.code} - {loc.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select
+            value={filters.stockStatus}
+            onValueChange={(value) =>
+              onFiltersChange({ ...filters, stockStatus: value === "all" ? "" : value })
+            }
+          >
+            <SelectTrigger className="h-9 bg-background w-full">
+              <SelectValue placeholder="สถานะ Stock" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">สถานะทั้งหมด</SelectItem>
+              <SelectItem value="normal">ปกติ</SelectItem>
+              <SelectItem value="low">ใกล้หมด</SelectItem>
+              <SelectItem value="out">หมด</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Select
+            value={filters.issueStatus || "all"}
+            onValueChange={(value) =>
+              onFiltersChange({ ...filters, issueStatus: value === "all" ? "" : value })
+            }
+          >
+            <SelectTrigger className="h-9 bg-background w-full">
+              <SelectValue placeholder="สถานะการเบิก" />
+            </SelectTrigger>
+            <SelectContent>
+              {ISSUE_STATUS_OPTIONS.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select
+            value={filters.itemCondition || "all"}
+            onValueChange={(value) =>
+              onFiltersChange({ ...filters, itemCondition: value === "all" ? "" : value })
+            }
+          >
+            <SelectTrigger className="h-9 bg-background w-full">
+              <SelectValue placeholder="สภาพสินค้า" />
+            </SelectTrigger>
+            <SelectContent>
+              {ITEM_CONDITION_OPTIONS.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <div className="flex gap-2 sm:col-span-2 lg:col-span-1 xl:col-span-1">
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" className="h-9 flex-1 justify-between bg-background">
+                  <div className="flex items-center gap-2">
+                    <Filter className="h-4 w-4" />
+                    <span>สถานะสินค้า</span>
+                    {(filters.statusFilters?.length || 0) > 0 && (
+                      <Badge variant="secondary" className="ml-1">
+                        {filters.statusFilters?.length}
+                      </Badge>
+                    )}
+                  </div>
+                  <ChevronDown className="h-4 w-4 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[280px] p-3" align="start">
+                <div className="space-y-3">
+                  <div className="font-medium text-sm">เลือกสถานะ (เลือกได้หลายรายการ)</div>
+                  {STATUS_FILTER_OPTIONS.map((option) => (
+                    <div key={option.value} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={`status-${option.value}`}
+                        checked={(filters.statusFilters || []).includes(option.value)}
+                        onCheckedChange={(checked) => 
+                          handleStatusFilterChange(option.value, checked === true)
+                        }
+                      />
+                      <Label 
+                        htmlFor={`status-${option.value}`}
+                        className="text-sm font-normal cursor-pointer"
+                      >
+                        {option.label}
+                      </Label>
+                    </div>
+                  ))}
+                  {(filters.statusFilters?.length || 0) > 0 && (
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="w-full mt-2"
+                      onClick={() => onFiltersChange({ ...filters, statusFilters: [] })}
+                    >
+                      ล้างการเลือก
+                    </Button>
+                  )}
+                </div>
+              </PopoverContent>
+            </Popover>
+
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" className="h-9 w-auto px-3 justify-between bg-background">
+                  <Settings className="h-4 w-4" />
+                  <span className="ml-2 hidden sm:inline">{filters.advanceDays || 30} วัน</span>
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[200px] p-3" align="start">
+                <div className="space-y-3">
+                  <div className="font-medium text-sm">ระยะเวลาแจ้งเตือนล่วงหน้า</div>
+                  <div className="text-xs text-muted-foreground">
+                    สำหรับ "ใกล้หมดอายุ" และ "ใกล้หมดประกัน"
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {ADVANCE_DAYS_OPTIONS.map((option) => (
+                      <Badge
+                        key={option.value}
+                        variant={(filters.advanceDays || 30) === option.value ? "default" : "outline"}
+                        className="cursor-pointer hover:bg-primary hover:text-primary-foreground"
+                        onClick={() => onFiltersChange({ ...filters, advanceDays: option.value })}
+                      >
+                        {option.label}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              </PopoverContent>
+            </Popover>
+          </div>
+        </div>
+
+        {/* Selected Status Filters Display */}
+        {(filters.statusFilters?.length || 0) > 0 && (
+          <div className="flex flex-wrap gap-2">
+            {filters.statusFilters?.map((filter) => {
+              const option = STATUS_FILTER_OPTIONS.find(o => o.value === filter);
+              return option ? (
+                <Badge 
+                  key={filter} 
+                  variant="secondary"
+                  className="cursor-pointer hover:bg-destructive hover:text-destructive-foreground"
+                  onClick={() => handleStatusFilterChange(filter, false)}
+                >
+                  {option.label}
+                  <X className="h-3 w-3 ml-1" />
+                </Badge>
+              ) : null;
+            })}
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 }
