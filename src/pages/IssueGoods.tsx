@@ -1250,7 +1250,7 @@ const IssueGoods = () => {
 
       {/* Issue Item Dialog - Fixed without scrollbar */}
       <Dialog open={itemIssueDialogOpen} onOpenChange={setItemIssueDialogOpen}>
-        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>จ่ายสินค้า - {selectedItem?.equipment_code || selectedItem?.equipment_name}</DialogTitle>
           </DialogHeader>
