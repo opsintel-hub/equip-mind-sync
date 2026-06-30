@@ -398,6 +398,7 @@ const IssueRequest = () => {
     if (currentStock < requestedQty) {
       // Show stock warning dialog
       setSuggestedQuantity(currentStock);
+      setCurrentStockInfo({ currentStock, remainingAfterIssue: 0 });
       setStockWarningOpen(true);
       return;
     }
