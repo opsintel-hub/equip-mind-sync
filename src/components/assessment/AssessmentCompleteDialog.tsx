@@ -1118,16 +1118,16 @@ export function AssessmentCompleteDialog({ open, onOpenChange, log, onCompleted 
                     {(purchaseInfo.po_document_url || purchaseInfo.pr_document_url || purchaseInfo.invoice_document_url || purchaseInfo.delivery_note_document_url) && (
                       <div className="flex flex-wrap gap-2 pt-1">
                         {purchaseInfo.po_document_url && (
-                          <a href={purchaseInfo.po_document_url} target="_blank" rel="noreferrer"><Button type="button" size="sm" variant="outline" className="h-7 text-xs"><ExternalLink className="h-3 w-3 mr-1" /> PO</Button></a>
+                          <Button type="button" size="sm" variant="outline" className="h-7 text-xs" onClick={() => setDocPreview({ url: purchaseInfo.po_document_url!, title: "PO" })}><ExternalLink className="h-3 w-3 mr-1" /> PO</Button>
                         )}
                         {purchaseInfo.pr_document_url && (
-                          <a href={purchaseInfo.pr_document_url} target="_blank" rel="noreferrer"><Button type="button" size="sm" variant="outline" className="h-7 text-xs"><ExternalLink className="h-3 w-3 mr-1" /> PR</Button></a>
+                          <Button type="button" size="sm" variant="outline" className="h-7 text-xs" onClick={() => setDocPreview({ url: purchaseInfo.pr_document_url!, title: "PR" })}><ExternalLink className="h-3 w-3 mr-1" /> PR</Button>
                         )}
                         {purchaseInfo.invoice_document_url && (
-                          <a href={purchaseInfo.invoice_document_url} target="_blank" rel="noreferrer"><Button type="button" size="sm" variant="outline" className="h-7 text-xs"><ExternalLink className="h-3 w-3 mr-1" /> Invoice</Button></a>
+                          <Button type="button" size="sm" variant="outline" className="h-7 text-xs" onClick={() => setDocPreview({ url: purchaseInfo.invoice_document_url!, title: "Invoice" })}><ExternalLink className="h-3 w-3 mr-1" /> Invoice</Button>
                         )}
                         {purchaseInfo.delivery_note_document_url && (
-                          <a href={purchaseInfo.delivery_note_document_url} target="_blank" rel="noreferrer"><Button type="button" size="sm" variant="outline" className="h-7 text-xs"><ExternalLink className="h-3 w-3 mr-1" /> Delivery Note</Button></a>
+                          <Button type="button" size="sm" variant="outline" className="h-7 text-xs" onClick={() => setDocPreview({ url: purchaseInfo.delivery_note_document_url!, title: "Delivery Note" })}><ExternalLink className="h-3 w-3 mr-1" /> Delivery Note</Button>
                         )}
                       </div>
                     )}
