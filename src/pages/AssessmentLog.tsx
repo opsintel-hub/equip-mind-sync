@@ -780,7 +780,11 @@ export default function AssessmentLog() {
             )}
             <div className="sm:col-span-2">
               <span className="font-medium text-foreground">อาการ/วินิจฉัย:</span>{" "}
-              <span className="text-muted-foreground">{log.diagnosis_notes || log.symptom_description || "—"}</span>
+              <span className="text-muted-foreground">
+                {[detail?.symptom_label, log.symptom_description, detail?.source_description, log.diagnosis_notes]
+                  .filter(Boolean)
+                  .join(" — ") || "—"}
+              </span>
             </div>
             <div className="sm:col-span-2">
               <span className="font-medium text-foreground">รายละเอียดการซ่อม:</span>{" "}
