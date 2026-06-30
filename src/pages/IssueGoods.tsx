@@ -168,7 +168,7 @@ const IssueGoods = () => {
   });
 
   // Fetch available Media Player units (in stock) for multi-unit issuance
-  const { data: availableMpUnits } = useQuery({
+  const { data: availableMpUnits, refetch: refetchMpUnits } = useQuery({
     queryKey: ["available-media-player-units"],
     queryFn: async () => {
       // Include all active units (even quantity=0) so we can show them as disabled
@@ -180,6 +180,8 @@ const IssueGoods = () => {
       if (error) throw error;
       return data as any[];
     },
+    staleTime: 0,
+    refetchOnWindowFocus: true,
   });
 
   // State for item rejection
