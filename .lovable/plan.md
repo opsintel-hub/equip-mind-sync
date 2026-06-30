@@ -1,54 +1,63 @@
-## แก้ไข UI/UX หน้าบันทึกการประเมินทรัพย์สิน
+# ป้องกันการขอเบิกเกินสต็อก + Auto PR
 
-### ปัญหาที่แก้
-1. ผู้ใช้งงระหว่าง 2 แท็บหลัก เพราะชื่อและคำอธิบายไม่ชัดว่าเป็น "Entry point คนละจุด แต่ Flow เดียวกัน"
-2. ใช้คำสลับกันไปมา: แท็บเขียน "Vendor" แต่ในฟอร์ม/การ์ดยังใช้ "Supplier" / "ผู้จัดจำหน่าย"
+## ปัญหา
+- หน้า "ขอเบิก" กรองแค่ `quantity > 0` ตอน **โหลด** หน้า (snapshot) ไม่ได้ re-check ตอนกด "เพิ่มลงตะกร้า" หรือตอน "ส่งคำขอ"
+- ไม่ได้หัก pending requests ของคนอื่นที่ค้างอยู่ → 2 คนเลือกตัวเดียวกันได้
+- คำขอเก่าค้างนาน (เช่น GI-REQ-000027 จาก 12/02) ของอาจหมดไปแล้วก่อนถึงคิวอนุมัติ
 
-### ขอบเขต
-จำกัดเฉพาะ `src/pages/AssessmentLog.tsx` และ `src/components/assessment/AssessmentCompleteDialog.tsx` (UI/UX + labels เท่านั้น ไม่แตะ schema/RLS/RPC)
+## แนวทาง (ตามที่ผู้ใช้เลือก)
+1. **Block ที่หน้าขอเบิก** ถ้าของไม่พอ (Available = Stock − Σ pending requests)
+2. **สร้าง PR อัตโนมัติ** เมื่อเกิดสถานะรอสต็อก
 
-### รายละเอียดการแก้ไข
+---
 
-#### 1. ปรับชื่อและคำอธิบายแท็บให้สะท้อนว่าเป็น Flow เดียวกัน
-- **แท็บ "รายการประเมิน"** → เปลี่ยนเป็น **"รายการรอประเมิน (จาก Swap/ของเสีย)"**
-- **แท็บ "บันทึกการประเมินใหม่"** → เปลี่ยนเป็น **"บันทึกประเมินใหม่ (ป้อนเอง)"**
-- ใต้แท็บ "บันทึกประเมินใหม่" เพิ่ม Alert/Description สั้น ๆ:
-  > "รายการที่บันทึกจากแท็บนี้จะเข้าร่วม Flow เดียวกับรายการจาก Swap — กด 'ประเมิน' ที่แท็บแรกเพื่อปิดงาน"
-- ในรายการ (List) เพิ่ม badge แสดงที่มา (source_type):
-  - `swap` → "จาก Swap"
-  - `manual` → "ป้อนเอง"
-  - `defective` → "จากของเสีย"
+## 1. RPC คำนวณ Available Stock (server-side, ป้องกัน race)
 
-#### 2. มาตรฐานคำว่า "Vendor" ทั้งหมด
-เปลี่ยนทุก user-facing label จาก Supplier/ผู้จัดจำหน่าย เป็น **Vendor** ในทั้ง 2 ไฟล์:
-- แท็บ "ส่งเคลมประกัน Vendor" → คงไว้ แต่ให้เป็นมาตรฐานเดียว
-- ฟอร์ม "ส่งซ่อมกับ Supplier" → "ส่งเคลม Vendor"
-- Label "ผู้จัดจำหน่ายล่าสุด" → "Vendor ล่าสุด"
-- ใน AssessmentCompleteDialog ทุกที่ที่ขึ้น "Supplier" / "ผู้จัดจำหน่าย" → เปลี่ยนเป็น "Vendor"
-- หัวข้อ "ประวัติการซื้อ" และข้อมูลที่เกี่ยวข้องให้ใช้ "Vendor" สม่ำเสมอ
+สร้าง `get_available_stock(equipment_id, is_media_player)`:
+- อ่าน `stock` จาก `equipment.quantity_in_stock` หรือ `media_players.quantity`
+- หัก `SUM(quantity - issued_quantity)` ของ `goods_issue_pending_items` ที่ pending_id ยัง active (status ∈ pending/pending_approval/approved/partial/waiting_stock)
+- คืน `{ stock, reserved, available }`
 
-#### 3. ลบปุ่ม "ผลการตัดสินใจ (เลือก 1 ใน 4)" ซ้ำซ้อนในหน้า New Entry
-ปัจจุบันแท็บ "บันทึกการประเมินใหม่" ยังมีบล็อกปุ่ม 4 ปุ่ม (เข้าของเสีย / ส่งเคลม / ซ่อมเอง / คืน Spare) ซ้ำกับ Dropdown "ผลการประเมิน" ด้านบน ทำให้ผู้ใช้ต้องเลือก 2 ครั้ง
-- ลบบล็อกปุ่มนี้ออก
-- ให้ `outcome` ถูก derived จากชื่อผลการประเมินที่เลือกใน Dropdown (เหมือนกับ AssessmentCompleteDialog)
-- แสดง inline badge ใต้ Dropdown อธิบาย action ที่จะเกิด (Write-off / เคลม Vendor / ซ่อมเอง / รอประเมินเพิ่ม)
-- ถ้ามี warranty conflict → แสดง Alert ใต้ dropdown และ disable ปุ่มบันทึก
+## 2. Block ที่หน้า IssueRequest
 
-#### 4. ปรับปรุงรูปแบบการ์ดและ filter labels
-- ให้การ์ดในแท็บ "รายการรอประเมิน" แสดง source badge ชัดเจน
-- ปรับ description ของ stats cards และ filter ให้ใช้คำสอดคล้องกับแท็บใหม่
+ใน `src/pages/IssueRequest.tsx`:
+- เปลี่ยน `getSelectableStock()` ให้เรียก RPC ใหม่ (หรือ pre-fetch pending reservations map ครั้งเดียว)
+- แสดงคอลัมน์ "คงเหลือใช้ได้" (Available) แทน Stock ดิบ ใน dropdown/searchable select
+- ตอนกด "เพิ่มลงตะกร้า" → block + toast `"สต็อกไม่พอ (คงเหลือ X, ขอ Y) — กรุณาลดจำนวน หรือใช้ปุ่ม 'แจ้งขอซื้อ'"`
+- ตอนกด "ส่งคำขอ" → re-validate ทุก item อีกครั้ง (กันคนอื่นแทรกระหว่างกรอกฟอร์ม)
 
-### ไฟล์ที่แก้ไข
-- `src/pages/AssessmentLog.tsx`
-- `src/components/assessment/AssessmentCompleteDialog.tsx`
+## 3. ปุ่ม "แจ้งขอซื้อ" (เมื่อ available < ขอ)
 
-### ไม่แก้ไข
-- Schema / RLS / RPC / Edge functions
-- Master data `mp_assessment_results` (ชื่อตัวเลือกยังให้ผู้ใช้จัดการเอง)
-- ตรรกะ outcome side-effects (DR, claim, self_repair) คงเดิม
+ในกล่อง error stock-insufficient แสดงปุ่ม "📋 สร้างใบขอซื้อ (PR)":
+- เรียก RPC ใหม่ `create_pr_from_shortage(equipment_id, requested_qty, available, requester_name, reason)`
+- สร้าง record ใน `purchase_requests` (ใช้ `generate_pr_number()` ที่มีอยู่)
+- `reason` = `"คำขอเบิกของ {requester} เกินสต็อก ({requested}/{available})"`
+- `suggested_quantity` = ขอ − available + min_stock_level
+- กันสร้างซ้ำ: ถ้ามี PR pending ของ equipment เดิมอยู่แล้ว → อัปเดต `suggested_quantity` แทน
+- Toast: `"สร้างใบขอซื้อ PR-XXX สำเร็จ — รอจัดซื้อดำเนินการ"`
 
-### วิธีตรวจสอบหลังแก้
-1. เปิดหน้า `/assessment` ตรวจแท็บและ badge ที่มา
-2. ตรวจว่าคำ "Supplier" หายจาก UI ทั้งหมด
-3. ทดสอบบันทึก New Entry โดยเลือกผลการประเมินเพียงครั้งเดียว และ outcome ถูกต้อง
-4. ทดสอบ Warranty conflict ว่า disable ปุ่มบันทึกและแสดง Alert
+## 4. Block ที่หน้า ManagerApproval (กันเคสค้างนาน)
+
+ใน `src/pages/ManagerApproval.tsx` (ที่เพิ่ง refactor):
+- คอลัมน์ "สต็อกคงเหลือ" ที่แสดงสีแดง ⚠️ ไม่พอเบิก → **disable ปุ่ม "อนุมัติ"** ถ้ามี item ใดสต็อก < ขอ
+- แสดง alert ในแถว: `"⚠️ ไม่สามารถอนุมัติได้ — สต็อกไม่พอ กรุณาให้ผู้ขอแก้ไขคำขอ หรือกด 'แจ้งขอซื้อ'"`
+- เพิ่มปุ่ม "📋 สร้างใบขอซื้อ" ใน expand row (เรียก RPC เดียวกับข้อ 3)
+
+## 5. เคสที่เปลี่ยนเป็น waiting_stock อยู่แล้ว (ตอนคลังจ่าย)
+
+Trigger เดิม `check_and_create_pr` ทำงานเฉพาะตอน `stock <= min_stock_level` — เพิ่ม:
+- Trigger ใหม่บน `goods_issue_pending.status` เมื่อเปลี่ยนเป็น `waiting_stock` → auto-create PR ถ้ายังไม่มี (เหมือนข้อ 3 แต่ trigger ฝั่ง DB)
+
+---
+
+## รายละเอียดเทคนิค
+
+**ไฟล์ที่แก้:**
+- `src/pages/IssueRequest.tsx` — re-validate + ปุ่มสร้าง PR
+- `src/pages/ManagerApproval.tsx` — disable approve + ปุ่ม PR
+- Migration: RPC `get_available_stock`, RPC `create_pr_from_shortage`, Trigger `auto_pr_on_waiting_stock`
+
+**ผลลัพธ์:**
+- ผู้ใช้สร้างคำขอเกินสต็อกไม่ได้ → ระบบบังคับกด "แจ้งขอซื้อ" แทน
+- ผู้อนุมัติเห็นชัดว่าคำขอไหนของหมด → กด PR ได้ทันที ไม่ต้องเปิดหน้าอื่น
+- จัดซื้อรู้ทันทีผ่าน `purchase_requests` (มีหน้า /purchase-requests อยู่แล้ว)

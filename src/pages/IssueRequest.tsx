@@ -219,14 +219,34 @@ const IssueRequest = () => {
       .map((item) => item.id);
   };
 
+  // Pending reservations (other people's pending requests) — reduce available stock
+  const { data: reservations } = useQuery({
+    queryKey: ["pending-reservations"],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("get_pending_reservations");
+      if (error) throw error;
+      const map: Record<string, number> = {};
+      (data || []).forEach((r: any) => {
+        const key = r.media_player_id || r.equipment_id;
+        if (key) map[key] = (map[key] || 0) + Number(r.reserved || 0);
+      });
+      return map;
+    },
+    staleTime: 30_000,
+  });
+
+  const getReserved = (id: string) => reservations?.[id] || 0;
+
   const getSelectableStock = (equipmentId: string) => {
     const selected = equipment.find((item) => item.id === equipmentId);
     if (!selected) return 0;
-    if (!selected.is_media_player) return selected.quantity_in_stock || 0;
+    if (!selected.is_media_player) {
+      return Math.max((selected.quantity_in_stock || 0) - getReserved(equipmentId), 0);
+    }
 
     return equipment
       .filter((item) => item.is_media_player && item.code === selected.code && item.name === selected.name)
-      .reduce((sum, item) => sum + (item.quantity_in_stock || 0), 0);
+      .reduce((sum, item) => sum + Math.max((item.quantity_in_stock || 0) - getReserved(item.id), 0), 0);
   };
 
   const selectedMediaPlayerIds = currentItem.equipment_id ? getMediaPlayerGroupIds(currentItem.equipment_id) : undefined;
@@ -378,6 +398,7 @@ const IssueRequest = () => {
     if (currentStock < requestedQty) {
       // Show stock warning dialog
       setSuggestedQuantity(currentStock);
+      setCurrentStockInfo({ currentStock, remainingAfterIssue: 0 });
       setStockWarningOpen(true);
       return;
     }
@@ -1853,13 +1874,41 @@ const IssueRequest = () => {
               </div>
             </div>
           </div>
-          <DialogFooter className="gap-2">
+          <DialogFooter className="gap-2 flex-wrap">
             <Button variant="outline" onClick={() => setStockWarningOpen(false)}>
               ยกเลิก
             </Button>
-            <Button onClick={handleAcceptSuggestedQuantity}>
-              ใช้จำนวน {suggestedQuantity} แทน
+            <Button
+              variant="secondary"
+              onClick={async () => {
+                const selected = equipment?.find(e => e.id === currentItem.equipment_id);
+                if (!selected) return;
+                const { data, error } = await supabase.rpc("create_pr_from_shortage", {
+                  _equipment_id: selected.id,
+                  _is_media_player: !!selected.is_media_player,
+                  _equipment_code: selected.code,
+                  _equipment_name: selected.name,
+                  _requested_qty: parseInt(currentItem.quantity || "0"),
+                  _available_qty: currentStockInfo?.currentStock || 0,
+                  _requester_name: headerData.requester_name || "-",
+                  _unit: currentItem.unit || "ชิ้น",
+                });
+                if (error || !(data as any)?.success) {
+                  toast.error("สร้างใบขอซื้อไม่สำเร็จ: " + (error?.message || (data as any)?.error));
+                  return;
+                }
+                const d = data as any;
+                toast.success(d.updated ? `อัปเดตใบขอซื้อ ${d.pr_number} (รวมคำขอนี้แล้ว)` : `สร้างใบขอซื้อ ${d.pr_number} สำเร็จ`);
+                setStockWarningOpen(false);
+              }}
+            >
+              📋 แจ้งขอซื้อ
             </Button>
+            {suggestedQuantity > 0 && (
+              <Button onClick={handleAcceptSuggestedQuantity}>
+                ใช้จำนวน {suggestedQuantity} แทน
+              </Button>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>

@@ -297,6 +297,41 @@ const ManagerApproval = () => {
     );
   }
 
+  const hasShortage = (req: any): boolean => {
+    const items = getItemsForRequest(req.id);
+    return items.some((item: any) => {
+      const info = getStockInfo(item);
+      const stock = info?.quantity;
+      return stock !== undefined && stock !== null && Number(stock) < Number(item.quantity || 0);
+    });
+  };
+
+  const handleCreateShortagePR = async (req: any) => {
+    const items = getItemsForRequest(req.id);
+    let created = 0;
+    for (const item of items) {
+      const info = getStockInfo(item);
+      const stock = Number(info?.quantity ?? 0);
+      const qty = Number(item.quantity || 0);
+      if (stock >= qty) continue;
+      if (item.is_media_player || item.media_player_id) continue; // skip MP
+      if (!item.equipment_id) continue;
+      const { data, error } = await supabase.rpc("create_pr_from_shortage", {
+        _equipment_id: item.equipment_id,
+        _is_media_player: false,
+        _equipment_code: item.equipment_code,
+        _equipment_name: item.equipment_name,
+        _requested_qty: qty,
+        _available_qty: stock,
+        _requester_name: req.requester_name || "-",
+        _unit: item.unit || "ชิ้น",
+      });
+      if (!error && (data as any)?.success) created++;
+    }
+    if (created > 0) toast.success(`สร้าง/อัปเดตใบขอซื้อ ${created} รายการ — จัดซื้อจะดำเนินการต่อ`);
+    else toast.info("ไม่มีรายการที่ต้องสร้าง PR (หรือเป็น Media Player)");
+  };
+
   const renderRequestRow = (req: any, showActions: boolean) => {
     const items = getItemsForRequest(req.id);
     const isExpanded = expandedRequests.has(req.id);
@@ -349,16 +384,24 @@ const ManagerApproval = () => {
             </TableCell>
           )}
           <TableCell className="text-center">
-            {showActions && (
-              <div className="flex gap-1 justify-center">
-                <Button size="sm" onClick={(e) => { e.stopPropagation(); setSelectedRequest(req); setApproveDialogOpen(true); }}>
-                  <CheckCircle className="h-4 w-4 mr-1" />อนุมัติ
-                </Button>
-                <Button size="sm" variant="destructive" onClick={(e) => { e.stopPropagation(); setSelectedRequest(req); setRejectDialogOpen(true); }}>
-                  <XCircle className="h-4 w-4 mr-1" />ไม่อนุมัติ
-                </Button>
-              </div>
-            )}
+            {showActions && (() => {
+              const shortage = hasShortage(req);
+              return (
+                <div className="flex gap-1 justify-center">
+                  <Button
+                    size="sm"
+                    disabled={shortage}
+                    title={shortage ? "สต็อกไม่พอ — กด 'แจ้งขอซื้อ' ด้านล่างก่อน" : ""}
+                    onClick={(e) => { e.stopPropagation(); setSelectedRequest(req); setApproveDialogOpen(true); }}
+                  >
+                    <CheckCircle className="h-4 w-4 mr-1" />อนุมัติ
+                  </Button>
+                  <Button size="sm" variant="destructive" onClick={(e) => { e.stopPropagation(); setSelectedRequest(req); setRejectDialogOpen(true); }}>
+                    <XCircle className="h-4 w-4 mr-1" />ไม่อนุมัติ
+                  </Button>
+                </div>
+              );
+            })()}
           </TableCell>
         </TableRow>
         {isExpanded && items.length > 0 && (
@@ -376,6 +419,18 @@ const ManagerApproval = () => {
                   <div className="md:col-span-4"><span className="text-muted-foreground">หมายเหตุ:</span> <span className="font-medium whitespace-pre-line">{req.notes}</span></div>
                 )}
               </div>
+
+              {/* Shortage alert + Create PR */}
+              {showActions && hasShortage(req) && (
+                <div className="mb-4 p-3 rounded-lg border border-destructive/40 bg-destructive/5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                  <div className="text-sm text-destructive">
+                    ⚠️ <strong>สต็อกไม่พอเบิก</strong> — ไม่สามารถอนุมัติได้ กรุณาให้ผู้ขอแก้ไขจำนวน หรือกดปุ่มด้านขวาเพื่อแจ้งขอซื้อให้จัดซื้อดำเนินการ
+                  </div>
+                  <Button size="sm" variant="secondary" onClick={(e) => { e.stopPropagation(); handleCreateShortagePR(req); }}>
+                    📋 แจ้งขอซื้อ (สร้าง PR)
+                  </Button>
+                </div>
+              )}
 
               {/* Items table */}
               <div className="rounded-md border overflow-hidden">
