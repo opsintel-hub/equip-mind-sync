@@ -1283,19 +1283,22 @@ const IssueGoods = () => {
 
             {/* Media Player: per-unit S/N + Billboard table (supports multi-unit) */}
             {selectedItem?.is_media_player && mpUnitAssignments.length > 0 && (() => {
-              // Available MP units sharing the same code (in stock). Include the originally requested id even if quantity=0 (defensive).
-              const candidates = (availableMpUnits || []).filter((m: any) => m.code === selectedItem?.equipment_code);
+              // All units sharing the same code; in-stock first, out-of-stock disabled with reason.
+              const allUnits = (availableMpUnits || []).filter((m: any) => m.code === selectedItem?.equipment_code);
+              const candidates = allUnits.filter((m: any) => (m.quantity ?? 0) > 0);
               return (
                 <div className="space-y-2">
                   <Label className="flex items-center gap-2">
                     <Hash className="h-3 w-3" />
                     ระบุ S/N และป้ายโฆษณาต่อเครื่อง ({mpUnitAssignments.length} เครื่อง)
-                    {candidates[0]?.device_type && <DeviceTypeBadge value={candidates[0].device_type} />}
+                    {allUnits[0]?.device_type && <DeviceTypeBadge value={allUnits[0].device_type} />}
                   </Label>
                   <div className="flex items-start gap-2 p-2 rounded-md border border-amber-200 bg-amber-50 text-xs text-amber-900">
                     <Info className="h-4 w-4 mt-0.5 shrink-0" />
                     <div className="flex-1">
                       ไม่พบ S/N ที่ต้องการ? อาจยังไม่ได้บันทึก S/N ตอนรับเข้าคลัง — เปิดหน้า Media Player Profile เพื่อเพิ่ม/แก้ไข S/N ได้
+                      <br />
+                      <span className="font-medium">หมายเหตุ:</span> S/N ที่แก้ไขในเครื่องที่ไม่ได้อยู่ในคลัง (quantity=0) จะแสดงเป็นสีเทาและเลือกไม่ได้ — ต้องรับเข้าคลังก่อนถึงจะจ่ายได้
                     </div>
                     <Button
                       type="button"
@@ -1313,6 +1316,18 @@ const IssueGoods = () => {
                       // Allowed list = not already picked by other rows
                       const otherIds = new Set(mpUnitAssignments.filter((_, i) => i !== idx).map(x => x.media_player_id).filter(Boolean));
                       const allowed = candidates.filter((m: any) => !otherIds.has(m.id));
+                      const outOfStock = allUnits.filter((m: any) => (m.quantity ?? 0) === 0 && !otherIds.has(m.id));
+                      const inStockOptions = allowed.map((m: any) => ({
+                        value: m.id,
+                        label: m.serial_number_1 || m.serial_number_2 || "(ไม่มี S/N)",
+                        description: m.locations?.warehouses?.name || undefined,
+                      }));
+                      const outOfStockOptions = outOfStock.map((m: any) => ({
+                        value: m.id,
+                        label: `${m.serial_number_1 || m.serial_number_2 || "(ไม่มี S/N)"} — ไม่อยู่ในคลัง`,
+                        description: m.status ? `สถานะ: ${m.status}` : "quantity = 0",
+                        disabled: true,
+                      }));
                       return (
                         <div key={idx} className="p-3 space-y-2 bg-muted/20">
                           <div className="text-xs font-medium text-muted-foreground">เครื่องที่ {idx + 1}</div>
@@ -1322,7 +1337,7 @@ const IssueGoods = () => {
                               <SearchableSelect
                                 value={u.media_player_id || ""}
                                 onValueChange={(mpId) => {
-                                  const mp = candidates.find((m: any) => m.id === mpId);
+                                  const mp = allUnits.find((m: any) => m.id === mpId);
                                   updateMpUnitAssignment(idx, {
                                     media_player_id: mpId,
                                     serial_number: mp?.serial_number_1 || mp?.serial_number_2 || "",
@@ -1332,11 +1347,7 @@ const IssueGoods = () => {
                                 placeholder="-- เลือก S/N --"
                                 searchPlaceholder="ค้นหา S/N หรือคลัง..."
                                 emptyMessage="ไม่พบ S/N"
-                                options={allowed.map((m: any) => ({
-                                  value: m.id,
-                                  label: m.serial_number_1 || m.serial_number_2 || "(ไม่มี S/N)",
-                                  description: m.locations?.warehouses?.name || undefined,
-                                }))}
+                                options={[...inStockOptions, ...outOfStockOptions]}
                               />
                               {allowed.length === 0 && (
                                 <p className="text-xs text-destructive">ไม่มี S/N คงเหลือในคลัง</p>
