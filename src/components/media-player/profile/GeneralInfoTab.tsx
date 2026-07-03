@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { FileText, ExternalLink, MapPin, Pencil } from "lucide-react";
+import { useEffect, useState } from "react";
+import { FileText, ExternalLink, MapPin, Pencil, Repeat } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { MediaPlayerRow } from "./types";
@@ -7,6 +7,9 @@ import { formatBillboardLabel } from "@/lib/billboardUtils";
 import { DocumentPreviewDialog } from "@/components/DocumentPreviewDialog";
 import { MediaPlayerInfoEditDialog } from "./MediaPlayerInfoEditDialog";
 import { useFunctionPermissions } from "@/hooks/useFunctionPermissions";
+import { supabase } from "@/integrations/supabase/client";
+import { format } from "date-fns";
+import { th } from "date-fns/locale";
 
 interface GeneralInfoTabProps {
   player: MediaPlayerRow;
