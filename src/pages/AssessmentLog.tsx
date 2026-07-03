@@ -850,6 +850,25 @@ export default function AssessmentLog() {
               </div>
             )}
           </div>
+          {/* Source chain — Swap doc / Defective doc / reviewers */}
+          {(detail?.swap_doc_no || detail?.defective_doc_no) && (
+            <div className="text-xs bg-muted/40 border rounded px-2 py-1.5 mt-1 space-y-0.5">
+              <div className="font-medium text-foreground">🔗 ต้นทาง</div>
+              {detail?.swap_doc_no && (
+                <div className="text-muted-foreground">
+                  Swap: <span className="font-mono text-foreground">{detail.swap_doc_no}</span>
+                  {detail.swap_technician_name && <> • ช่าง: <span className="text-foreground">{detail.swap_technician_name}</span></>}
+                </div>
+              )}
+              {detail?.defective_doc_no && (
+                <div className="text-muted-foreground">
+                  นำเข้าของเสีย: <span className="font-mono text-foreground">{detail.defective_doc_no}</span>
+                  {detail.defective_reporter_name && <> • ผู้แจ้ง: <span className="text-foreground">{detail.defective_reporter_name}</span></>}
+                  {detail.defective_confirmed_by_name && <> • ผู้ตรวจสอบ: <span className="text-foreground">{detail.defective_confirmed_by_name}</span></>}
+                </div>
+              )}
+            </div>
+          )}
           {/* Footer: Assessor / Date */}
           <div className="text-xs text-muted-foreground pt-1">
             ผู้ประเมิน: {log.assessor_name || "—"} • {format(new Date(log.assessed_at), "dd MMM yyyy HH:mm", { locale: th })}
@@ -859,6 +878,7 @@ export default function AssessmentLog() {
       </div>
     );
   };
+
 
 
 
