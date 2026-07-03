@@ -171,6 +171,8 @@ export default function RepairReport() {
     if (def?.locked) return;
     setVisibleCols((prev) => prev.includes(k) ? prev.filter((x) => x !== k) : [...prev, k]);
   };
+
+  const fetchRows = async () => {
     setLoading(true);
     try {
       const { data, error } = await supabase
