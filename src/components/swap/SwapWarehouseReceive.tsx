@@ -363,43 +363,133 @@ export function SwapWarehouseReceive() {
           </div>
         ) : (
           <div className="space-y-2">
-            {filtered.map((r) => (
-              <div key={`${r.id}-${r.item_id}`} className="flex items-center justify-between gap-4 p-4 rounded-lg border hover:bg-accent/50 flex-wrap">
-                <div className="flex-1 min-w-[220px] space-y-1">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="font-mono font-semibold">{r.document_no}</span>
-                    <Badge variant="secondary">{r.asset_kind === "media_player" ? "Media Player" : "Equipment"}</Badge>
-                    <Badge className="bg-amber-100 text-amber-800 border-amber-300">รอเข้าคลัง</Badge>
-                    {r.serial_number && (
-                      <Badge variant="outline" className="font-mono text-xs">S/N: {r.serial_number}</Badge>
-                    )}
-                    {r.reported_photos.length > 0 && (
-                      <PhotoGalleryDialog
-                        photos={r.reported_photos}
-                        title={`รูปประกอบ ${r.document_no}`}
-                      />
-                    )}
-                  </div>
-                  <div className="text-sm font-medium">
-                    {r.item_code} — {r.item_name}
-                  </div>
-                  {(r.description || r.symptom_other) && (
-                    <div className="text-xs">
-                      <span className="font-medium text-foreground">อาการ:</span>{" "}
-                      <span className="text-muted-foreground">{r.description || r.symptom_other}</span>
+            {filtered.map((r) => {
+              const key = `${r.id}-${r.item_id}`;
+              const isOpen = !!expanded[key];
+              const t = r.timeline;
+              return (
+              <div key={key} className="rounded-lg border hover:bg-accent/50">
+                <div className="flex items-center justify-between gap-4 p-4 flex-wrap">
+                  <div className="flex-1 min-w-[220px] space-y-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-mono font-semibold">{r.document_no}</span>
+                      <Badge variant="secondary">{r.asset_kind === "media_player" ? "Media Player" : "Equipment"}</Badge>
+                      <Badge className="bg-amber-100 text-amber-800 border-amber-300">รอเข้าคลัง</Badge>
+                      {r.serial_number && (
+                        <Badge variant="outline" className="font-mono text-xs">S/N: {r.serial_number}</Badge>
+                      )}
+                      {t.is_cross_model && (
+                        <Badge variant="outline" className="text-xs border-amber-400 text-amber-700">ข้ามรุ่น</Badge>
+                      )}
+                      {r.reported_photos.length > 0 && (
+                        <PhotoGalleryDialog
+                          photos={r.reported_photos}
+                          title={`รูปประกอบ ${r.document_no}`}
+                        />
+                      )}
                     </div>
-                  )}
-                  <div className="text-xs text-muted-foreground">
-                    คลังปลายทาง: <span className="font-medium">{r.return_location_label || "ยังไม่ระบุ"}</span>
-                    {r.technician_name && <> • ช่าง: {r.technician_name}</>}
-                    {r.completed_at && <> • อนุมัติเมื่อ: {format(new Date(r.completed_at), "dd/MM/yy HH:mm")}</>}
+                    <div className="text-sm font-medium">
+                      {r.item_code} — {r.item_name}
+                    </div>
+                    {(r.description || r.symptom_other) && (
+                      <div className="text-xs">
+                        <span className="font-medium text-foreground">อาการ:</span>{" "}
+                        <span className="text-muted-foreground">{r.description || r.symptom_other}</span>
+                      </div>
+                    )}
+                    <div className="text-xs text-muted-foreground">
+                      คลังปลายทาง: <span className="font-medium">{r.return_location_label || "ยังไม่ระบุ"}</span>
+                      {r.technician_name && <> • ช่าง: {r.technician_name}</>}
+                      {r.completed_at && <> • อนุมัติเมื่อ: {format(new Date(r.completed_at), "dd/MM/yy HH:mm")}</>}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => toggleExpand(key)}
+                      className="inline-flex items-center gap-1 text-xs text-primary hover:underline mt-1"
+                    >
+                      {isOpen ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+                      <History className="h-3 w-3" />
+                      {isOpen ? "ซ่อนประวัติต้นทาง" : "ดูประวัติต้นทาง (Timeline)"}
+                    </button>
                   </div>
+                  <Button onClick={() => openConfirm(r)}>
+                    <PackageCheck className="h-4 w-4 mr-2" /> ยืนยันรับเข้าคลัง
+                  </Button>
                 </div>
-                <Button onClick={() => openConfirm(r)}>
-                  <PackageCheck className="h-4 w-4 mr-2" /> ยืนยันรับเข้าคลัง
-                </Button>
+                {isOpen && (
+                  <div className="px-4 pb-4 pt-0 space-y-2">
+                    {/* Step 1: Swap request */}
+                    <div className="flex items-start gap-2 text-xs rounded border-l-2 border-primary bg-primary/5 px-2 py-1.5">
+                      <Badge className="text-[10px] bg-primary text-primary-foreground shrink-0">1. คำขอ Swap</Badge>
+                      <div className="flex-1 min-w-0 flex flex-wrap gap-x-3 gap-y-0.5">
+                        <span className="font-mono font-semibold">{r.document_no}</span>
+                        {t.request_created_at && (
+                          <span className="text-muted-foreground">{format(new Date(t.request_created_at), "dd MMM yy HH:mm", { locale: th })}</span>
+                        )}
+                        {t.request_priority && (
+                          <Badge variant="outline" className="text-[10px] h-4 px-1">Priority: {t.request_priority}</Badge>
+                        )}
+                        {t.reported_by_name && <span className="text-muted-foreground">แจ้งโดย: <span className="text-foreground">{t.reported_by_name}</span></span>}
+                        {r.technician_name && <span className="text-muted-foreground">ช่าง: <span className="text-foreground">{r.technician_name}</span></span>}
+                        {(t.billboard_code || t.billboard_name) && (
+                          <span className="w-full text-[11px] text-muted-foreground">
+                            ป้าย: <span className="text-foreground">{[t.billboard_code, t.billboard_name].filter(Boolean).join(" — ")}</span>
+                          </span>
+                        )}
+                        {t.symptom_label && (
+                          <span className="w-full text-[11px] text-muted-foreground">อาการที่แจ้ง: <span className="text-foreground">{t.symptom_label}</span></span>
+                        )}
+                        {r.description && (
+                          <span className="w-full text-[11px] text-muted-foreground">รายละเอียด: <span className="text-foreground">{r.description}</span></span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Step 2: Swap execution approved */}
+                    <div className="flex items-start gap-2 text-xs rounded border-l-2 border-success bg-success/5 px-2 py-1.5">
+                      <Badge className="text-[10px] bg-success text-success-foreground shrink-0">2. Swap สำเร็จ</Badge>
+                      <div className="flex-1 min-w-0 flex flex-wrap gap-x-3 gap-y-0.5">
+                        {t.execution_at && (
+                          <span className="text-muted-foreground">{format(new Date(t.execution_at), "dd MMM yy HH:mm", { locale: th })}</span>
+                        )}
+                        {t.execution_by_name && <span className="text-muted-foreground">โดย: <span className="text-foreground">{t.execution_by_name}</span></span>}
+                        <Badge variant="outline" className="text-[10px] h-4 px-1">ผล: {t.execution_result || "-"}</Badge>
+                        {t.spare_label && (
+                          <span className="w-full text-[11px] text-muted-foreground">
+                            Spare ที่ติดตั้งแทน: <span className="text-foreground">{t.spare_label}</span>
+                            {t.spare_serial && <> • S/N: <span className="font-mono text-foreground">{t.spare_serial}</span></>}
+                          </span>
+                        )}
+                        {t.execution_notes && (
+                          <span className="w-full text-[11px] text-muted-foreground">หมายเหตุ: <span className="text-foreground">{t.execution_notes}</span></span>
+                        )}
+                        {(t.before_photos.length > 0 || t.after_photos.length > 0) && (
+                          <div className="w-full flex gap-2 mt-1">
+                            {t.before_photos.length > 0 && (
+                              <PhotoGalleryDialog photos={t.before_photos} title={`ก่อน Swap ${r.document_no}`} />
+                            )}
+                            {t.after_photos.length > 0 && (
+                              <PhotoGalleryDialog photos={t.after_photos} title={`หลัง Swap ${r.document_no}`} />
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Step 3: Current — waiting warehouse */}
+                    <div className="flex items-start gap-2 text-xs rounded border-l-2 border-amber-400 bg-amber-50 px-2 py-1.5">
+                      <Badge className="text-[10px] bg-amber-500 text-white shrink-0">3. รอรับเข้าคลัง</Badge>
+                      <div className="flex-1 min-w-0 flex flex-wrap gap-x-3 gap-y-0.5">
+                        <span className="text-muted-foreground">ปลายทาง: <span className="text-foreground">{r.return_location_label || "ยังไม่ระบุ"}</span></span>
+                        <span className="text-muted-foreground">สถานะเครื่อง: <span className="text-foreground">pending_warehouse_return (ยังอยู่กับช่าง)</span></span>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
-            ))}
+              );
+            })}
+
           </div>
         )}
 
