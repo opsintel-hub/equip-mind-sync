@@ -159,6 +159,7 @@ const App = () => (
             <Route path="/media-player-report" element={<Protected><MediaPlayerReport /></Protected>} />
             <Route path="/swap" element={<Protected><SwapWizard /></Protected>} />
             <Route path="/assessment" element={<Protected><AssessmentLog /></Protected>} />
+            <Route path="/repair-report" element={<Protected><RepairReport /></Protected>} />
             <Route path="/claims" element={<Protected><ClaimTracker /></Protected>} />
             <Route path="/ad-entry" element={<Protected><AdEntry /></Protected>} />
             <Route path="/ad-receive" element={<Protected><AdManagement /></Protected>} />
