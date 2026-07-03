@@ -509,18 +509,9 @@ export default function SwapWizard() {
               <ListChecks className="h-4 w-4 mr-2" /> รายการคำขอ
             </TabsTrigger>
           )}
-          {canManage && (
-            <TabsTrigger value="receive">
-              <Truck className="h-4 w-4 mr-2" /> รอรับเข้าคลัง
-            </TabsTrigger>
-          )}
         </TabsList>
 
-        {canManage && (
-          <TabsContent value="receive" className="mt-4">
-            <SwapWarehouseReceive />
-          </TabsContent>
-        )}
+
 
         <TabsContent value="list" className="mt-4">
           <Card>
