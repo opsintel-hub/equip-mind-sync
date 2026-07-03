@@ -982,13 +982,19 @@ export default function ClaimTracker() {
                                         <div className="flex-1 min-w-0 flex flex-wrap gap-x-3 gap-y-0.5">
                                           <span className="font-mono font-semibold">{swap.document_no || swap.id?.slice(0,8)}</span>
                                           {swap.created_at && <span className="text-muted-foreground">{format(new Date(swap.created_at), "dd MMM yy", { locale: th })}</span>}
-                                          {swap.technician_name && <span className="text-muted-foreground">ช่าง: <span className="text-foreground">{swap.technician_name}</span></span>}
+                                          {swap.technician_name && <span className="text-muted-foreground">ช่าง: <span className="text-foreground">{swap.technician_name}</span>{swap.technician_phone && <span className="text-muted-foreground"> ({swap.technician_phone})</span>}</span>}
+                                          {swap.priority && <span className="text-muted-foreground">Priority: <span className="text-foreground">{swap.priority}</span></span>}
                                           {swap.status && <Badge variant="outline" className="text-[10px] h-4 px-1">{swap.status}</Badge>}
+                                          {(swap.description || swap.symptom_other) && (
+                                            <span className="w-full text-[11px] text-muted-foreground">อาการที่แจ้ง: <span className="text-foreground">{[swap.symptom_other, swap.description].filter(Boolean).join(" — ")}</span></span>
+                                          )}
+                                          {swap.notes && <span className="w-full text-[11px] text-muted-foreground">หมายเหตุ: <span className="text-foreground">{swap.notes}</span></span>}
                                           {swap.executions?.[0] && (
                                             <span className="w-full text-[11px] text-muted-foreground">
-                                              ผล: <span className="text-foreground">{swap.executions[0].result || "—"}</span>
+                                              ผลติดตั้ง: <span className="text-foreground">{swap.executions[0].result || "—"}</span>
                                               {swap.executions[0].old_serial_number && <> · เดิม <span className="font-mono">{swap.executions[0].old_serial_number}</span></>}
                                               {swap.executions[0].spare_serial_number && <> → ใหม่ <span className="font-mono">{swap.executions[0].spare_serial_number}</span></>}
+                                              {swap.executions[0].notes && <> · <span className="text-foreground">{swap.executions[0].notes}</span></>}
                                             </span>
                                           )}
                                         </div>
@@ -1002,7 +1008,13 @@ export default function ClaimTracker() {
                                           {defective.created_at && <span className="text-muted-foreground">{format(new Date(defective.created_at), "dd MMM yy", { locale: th })}</span>}
                                           {defective.reporter_name && <span className="text-muted-foreground">แจ้ง: <span className="text-foreground">{defective.reporter_name}</span></span>}
                                           {defective.confirmed_by_name && <span className="text-muted-foreground">ตรวจ: <span className="text-foreground">{defective.confirmed_by_name}</span></span>}
-                                          {defective.disposal_method && <Badge variant="outline" className="text-[10px] h-4 px-1">{defective.disposal_method}</Badge>}
+                                          {defective.quantity != null && <span className="text-muted-foreground">จำนวน: <span className="text-foreground">{defective.quantity}</span></span>}
+                                          {defective.item_condition && <Badge variant="outline" className="text-[10px] h-4 px-1">สภาพ: {defective.item_condition}</Badge>}
+                                          {defective.disposal_method && <Badge variant="outline" className="text-[10px] h-4 px-1">จัดการ: {defective.disposal_method}</Badge>}
+                                          {defective.reason && <span className="w-full text-[11px] text-muted-foreground">เหตุผล: <span className="text-foreground">{defective.reason}</span></span>}
+                                          {defective.notes && <span className="w-full text-[11px] text-muted-foreground">หมายเหตุ: <span className="text-foreground">{defective.notes}</span></span>}
+                                          {defective.disposal_notes && <span className="w-full text-[11px] text-muted-foreground">หมายเหตุจัดการ: <span className="text-foreground">{defective.disposal_notes}</span></span>}
+                                          {defective.rejection_reason && <span className="w-full text-[11px] text-destructive">เหตุผลที่ถูก reject: <span className="text-foreground">{defective.rejection_reason}</span>{defective.rejected_by_name && <span className="text-muted-foreground"> โดย {defective.rejected_by_name}</span>}</span>}
                                         </div>
                                       </div>
                                     )}
@@ -1014,22 +1026,52 @@ export default function ClaimTracker() {
                                           {assessment.assessed_at && <span className="text-muted-foreground">{format(new Date(assessment.assessed_at), "dd MMM yy", { locale: th })}</span>}
                                           {assessment.assessor_name && <span className="text-muted-foreground">ผู้ประเมิน: <span className="text-foreground">{assessment.assessor_name}</span></span>}
                                           {assessment.outcome && <Badge variant="outline" className="text-[10px] h-4 px-1">{assessment.outcome}</Badge>}
+                                          {assessment.mp_assessment_results?.name && <span className="text-muted-foreground">ผล: <span className="text-foreground">{assessment.mp_assessment_results.name}</span></span>}
                                           {(assessment.mp_symptoms?.name || assessment.symptom_description) && (
-                                            <span className="w-full text-[11px] text-muted-foreground">อาการ: <span className="text-foreground">{assessment.mp_symptoms?.name || assessment.symptom_description}</span></span>
+                                            <span className="w-full text-[11px] text-muted-foreground">อาการ: <span className="text-foreground">{[assessment.mp_symptoms?.name, assessment.symptom_description].filter(Boolean).join(" — ")}</span></span>
                                           )}
+                                          {assessment.diagnosis_notes && <span className="w-full text-[11px] text-muted-foreground">การวินิจฉัย: <span className="text-foreground">{assessment.diagnosis_notes}</span></span>}
+                                          {assessment.recommended_action && <span className="w-full text-[11px] text-muted-foreground">คำแนะนำ: <span className="text-foreground">{assessment.recommended_action}</span></span>}
                                           {assessment._repair_actions?.length > 0 && (
-                                            <span className="w-full text-[11px] text-muted-foreground">ซ่อม: <span className="text-foreground">{assessment._repair_actions.map((a: any) => a.name).join(", ")}</span></span>
+                                            <span className="w-full text-[11px] text-muted-foreground">รายการซ่อม: <span className="text-foreground">{assessment._repair_actions.map((a: any) => a.name).join(", ")}</span></span>
+                                          )}
+                                          {assessment.repair_description && <span className="w-full text-[11px] text-muted-foreground">รายละเอียดการซ่อม: <span className="text-foreground">{assessment.repair_description}</span></span>}
+                                          {(assessment.repair_result || assessment.repair_completed_at || (typeof assessment.repair_cost === "number" && assessment.repair_cost > 0)) && (
+                                            <span className="w-full text-[11px] text-muted-foreground flex flex-wrap gap-x-3">
+                                              {assessment.repair_result && <span>ผลซ่อม: <span className="text-foreground">{assessment.repair_result}</span></span>}
+                                              {assessment.repair_completed_at && <span>เสร็จ: <span className="text-foreground">{format(new Date(assessment.repair_completed_at), "dd MMM yy", { locale: th })}</span></span>}
+                                              {typeof assessment.repair_cost === "number" && assessment.repair_cost > 0 && <span>ค่าซ่อม: <span className="text-foreground">฿{Number(assessment.repair_cost).toLocaleString()}</span></span>}
+                                            </span>
                                           )}
                                           {assessment.external_repair_vendor && (
-                                            <span className="w-full text-[11px] text-muted-foreground">Vendor: <span className="text-foreground">{assessment.external_repair_vendor}</span></span>
+                                            <span className="w-full text-[11px] text-muted-foreground">Vendor: <span className="text-foreground">{assessment.external_repair_vendor}</span>{assessment.external_repair_contact && <> · {assessment.external_repair_contact}</>}{assessment.external_repair_phone && <> · {assessment.external_repair_phone}</>}</span>
                                           )}
+                                          {assessment.notes && <span className="w-full text-[11px] text-muted-foreground">หมายเหตุ: <span className="text-foreground">{assessment.notes}</span></span>}
                                         </div>
                                       </div>
                                     )}
-                                    <div className="flex items-center gap-2 text-xs rounded border-l-2 border-success bg-success/5 px-2 py-1.5">
+                                    <div className="flex items-start gap-2 text-xs rounded border-l-2 border-success bg-success/5 px-2 py-1.5">
                                       <Badge className="text-[10px] bg-success text-success-foreground shrink-0">เคลม</Badge>
-                                      <span className="font-mono font-semibold">{record.document_no}</span>
-                                      <Badge variant="outline" className="text-[10px] h-4 px-1">{STATUS_LABELS[record.status]?.label || record.status}</Badge>
+                                      <div className="flex-1 min-w-0 flex flex-wrap gap-x-3 gap-y-0.5">
+                                        <span className="font-mono font-semibold">{record.document_no}</span>
+                                        {record.submitted_at && <span className="text-muted-foreground">{format(new Date(record.submitted_at), "dd MMM yy", { locale: th })}</span>}
+                                        {record.submitter_name && <span className="text-muted-foreground">ส่งโดย: <span className="text-foreground">{record.submitter_name}</span></span>}
+                                        {record.claim_ticket_no && <span className="text-muted-foreground">Ticket: <span className="text-foreground font-mono">{record.claim_ticket_no}</span></span>}
+                                        {typeof record.is_under_warranty === "boolean" && <Badge variant="outline" className="text-[10px] h-4 px-1">{record.is_under_warranty ? "ในประกัน" : "หมดประกัน"}</Badge>}
+                                        <Badge variant="outline" className="text-[10px] h-4 px-1">{STATUS_LABELS[record.status]?.label || record.status}</Badge>
+                                        {record.symptom_description && <span className="w-full text-[11px] text-muted-foreground">อาการที่ส่ง: <span className="text-foreground">{record.symptom_description}</span></span>}
+                                        {record.warranty_notes && <span className="w-full text-[11px] text-muted-foreground">หมายเหตุประกัน: <span className="text-foreground">{record.warranty_notes}</span></span>}
+                                        {record.notes && <span className="w-full text-[11px] text-muted-foreground">หมายเหตุ: <span className="text-foreground">{record.notes}</span></span>}
+                                        {(record.returned_at || record.receiver_name) && (
+                                          <span className="w-full text-[11px] text-muted-foreground">
+                                            รับกลับ: {record.returned_at && <span className="text-foreground">{format(new Date(record.returned_at), "dd MMM yy", { locale: th })}</span>}
+                                            {record.receiver_name && <> · โดย <span className="text-foreground">{record.receiver_name}</span></>}
+                                            {record.replacement_serial && <> · S/N ใหม่ <span className="font-mono text-foreground">{record.replacement_serial}</span></>}
+                                          </span>
+                                        )}
+                                        {record.result_notes && <span className="w-full text-[11px] text-muted-foreground">ผลเคลม: <span className="text-foreground">{record.result_notes}</span></span>}
+                                        {typeof record.cost_amount === "number" && record.cost_amount > 0 && <span className="w-full text-[11px] text-muted-foreground">ค่าใช้จ่าย: <span className="text-foreground">฿{Number(record.cost_amount).toLocaleString()}</span></span>}
+                                      </div>
                                     </div>
                                   </div>
                                 </div>
