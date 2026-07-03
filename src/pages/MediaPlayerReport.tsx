@@ -269,7 +269,7 @@ export default function MediaPlayerReport() {
         ? formatBillboardLabel(p.billboard.old_code, p.billboard.location_name, p.billboard.equipment_id)
         : "-";
       const wfStatusMap: Record<string, string> = {
-        pending_warehouse_return: "รอเข้าคลัง (Swap)",
+        pending_warehouse_return: "พักรอประเมิน",
         pending_assessment: "พักรอประเมิน",
         under_repair: "กำลังซ่อม",
         in_claim: "รอเคลม",
