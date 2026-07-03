@@ -219,6 +219,48 @@ export function RepairCompleteDialog({ open, onOpenChange, assessmentLog, onComp
         </DialogHeader>
 
         <div className="space-y-4">
+          {/* Warranty Banner */}
+          <div
+            className={`rounded-lg border p-3 text-sm flex items-start gap-2 ${
+              warrantyStatus === "in_warranty"
+                ? "border-success/40 bg-success/10 text-success-foreground"
+                : warrantyStatus === "expired"
+                ? "border-destructive/40 bg-destructive/10"
+                : "border-warning/40 bg-warning/10"
+            }`}
+          >
+            {warrantyStatus === "in_warranty" ? (
+              <ShieldCheck className="h-4 w-4 mt-0.5 text-success" />
+            ) : warrantyStatus === "expired" ? (
+              <ShieldX className="h-4 w-4 mt-0.5 text-destructive" />
+            ) : (
+              <ShieldAlert className="h-4 w-4 mt-0.5 text-warning" />
+            )}
+            <div className="flex-1">
+              <div className="font-medium">
+                {warrantyLoading
+                  ? "กำลังตรวจสอบประกัน..."
+                  : warrantyStatus === "in_warranty"
+                  ? `อยู่ในประกัน (ถึง ${warrantyDate})`
+                  : warrantyStatus === "expired"
+                  ? `หมดประกันแล้ว (${warrantyDate})`
+                  : "ไม่พบวันหมดประกัน — กรุณาตรวจสอบ/บันทึกที่ Media Player Profile"}
+              </div>
+              <div className="text-xs text-muted-foreground mt-0.5">
+                {warrantyStatus === "in_warranty" && "เลือกได้เฉพาะ 'ส่งเคลม Vendor'"}
+                {warrantyStatus === "expired" && "เลือกได้เฉพาะ 'ส่งเข้าระบบของเสีย'"}
+              </div>
+            </div>
+            {assessmentLog?.media_player_id && (
+              <Button asChild variant="outline" size="sm" type="button">
+                <Link to={`/media-player/${assessmentLog.media_player_id}`} target="_blank">
+                  <ExternalLink className="h-3 w-3 mr-1" />
+                  Profile
+                </Link>
+              </Button>
+            )}
+          </div>
+
           <div className="space-y-2 rounded-lg border p-3 bg-muted/30">
             <Label className="font-semibold">ผลการซ่อม *</Label>
             <RadioGroup value={result} onValueChange={(v) => setResult(v as RepairResult)}>
@@ -229,16 +271,22 @@ export function RepairCompleteDialog({ open, onOpenChange, assessmentLog, onComp
                   <div className="text-xs text-muted-foreground">เครื่องจะถูกตั้งเป็น in_stock + is_refurbished</div>
                 </label>
               </div>
-              <div className="flex items-start gap-2">
-                <RadioGroupItem value="failed_defective" id="rep-def" className="mt-1" />
-                <label htmlFor="rep-def" className="text-sm cursor-pointer">
+              <div className={`flex items-start gap-2 ${!canDefective ? "opacity-50" : ""}`}>
+                <RadioGroupItem value="failed_defective" id="rep-def" className="mt-1" disabled={!canDefective} />
+                <label htmlFor="rep-def" className={`text-sm ${canDefective ? "cursor-pointer" : "cursor-not-allowed"}`}>
                   <div className="font-medium text-destructive">❌ ซ่อมไม่ได้ — ส่งเข้าระบบของเสีย</div>
+                  <div className="text-xs text-muted-foreground">
+                    {canDefective ? "เครื่องหมดประกันแล้ว" : "🔒 ใช้ได้เฉพาะเครื่องที่หมดประกันแล้วเท่านั้น"}
+                  </div>
                 </label>
               </div>
-              <div className="flex items-start gap-2">
-                <RadioGroupItem value="failed_claim" id="rep-clm" className="mt-1" />
-                <label htmlFor="rep-clm" className="text-sm cursor-pointer">
+              <div className={`flex items-start gap-2 ${!canClaim ? "opacity-50" : ""}`}>
+                <RadioGroupItem value="failed_claim" id="rep-clm" className="mt-1" disabled={!canClaim} />
+                <label htmlFor="rep-clm" className={`text-sm ${canClaim ? "cursor-pointer" : "cursor-not-allowed"}`}>
                   <div className="font-medium text-primary">🔁 ซ่อมไม่ได้ — เปลี่ยนเป็นส่งเคลม</div>
+                  <div className="text-xs text-muted-foreground">
+                    {canClaim ? "เครื่องยังอยู่ในประกัน" : "🔒 ใช้ได้เฉพาะเครื่องที่ยังอยู่ในประกันเท่านั้น"}
+                  </div>
                 </label>
               </div>
             </RadioGroup>
