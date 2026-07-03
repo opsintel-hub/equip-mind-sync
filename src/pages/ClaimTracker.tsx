@@ -389,6 +389,9 @@ export default function ClaimTracker() {
     setRejectedAction("defective");
     setReturnLocationId(record.return_location_id || "");
     setReplacementSerial(record.replacement_serial || "");
+    setReplacementWarranty("");
+    setReplacementPO("");
+    setReplacementInvoice("");
   };
 
   const needsLocation =
