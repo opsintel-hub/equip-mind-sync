@@ -70,6 +70,7 @@ const MediaPlayerReport = lazy(() => import("./pages/MediaPlayerReport"));
 const KPIReport = lazy(() => import("./pages/KPIReport"));
 const SwapWizard = lazy(() => import("./pages/SwapWizard"));
 const AssessmentLog = lazy(() => import("./pages/AssessmentLog"));
+const RepairReport = lazy(() => import("./pages/RepairReport"));
 const ClaimTracker = lazy(() => import("./pages/ClaimTracker"));
 const DatabaseGuide = lazy(() => import("./pages/DatabaseGuide"));
 const StockReconciliation = lazy(() => import("./pages/StockReconciliation"));
