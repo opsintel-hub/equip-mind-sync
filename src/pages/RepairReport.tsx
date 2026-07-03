@@ -416,6 +416,7 @@ export default function RepairReport() {
                   <SelectItem value="software">Software</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
             <div className="space-y-1">
               <Label className="text-xs">ความถี่การซ่อม (ต่อเครื่อง)</Label>
               <Select value={repeatFilter} onValueChange={(v: any) => setRepeatFilter(v)}>
