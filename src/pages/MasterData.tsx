@@ -40,6 +40,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { TechnicianForm } from "@/components/tools/TechnicianForm";
 import { TechnicianList } from "@/components/tools/TechnicianList";
 import { SimpleListManager } from "@/components/master-data/SimpleListManager";
+import { RepairActionsManager } from "@/components/master-data/RepairActionsManager";
 
 const MediaPlayerEntry = lazy(() => import("@/pages/MediaPlayerEntry"));
 
