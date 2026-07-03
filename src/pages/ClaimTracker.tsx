@@ -787,59 +787,124 @@ export default function ClaimTracker() {
                 </div>
               ) : (
                 <div className="space-y-2">
-                  {filteredRecords.map((record) => {
-                    const status = STATUS_LABELS[record.status] || { label: record.status, variant: "outline" as const };
                     return (
-                      <div
-                        key={record.id}
-                        className="flex items-center justify-between gap-4 p-4 rounded-lg border hover:bg-accent/50 transition-colors flex-wrap"
-                      >
-                        <div className="flex-1 min-w-[250px] space-y-1">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <span className="font-mono font-semibold">{record.document_no}</span>
-                            <Badge variant={status.variant}>{status.label}</Badge>
-                            {record.is_under_warranty ? (
-                              <Badge variant="outline" className="text-success border-success/50">
-                                <ShieldCheck className="h-3 w-3 mr-1" /> ในประกัน
-                              </Badge>
-                            ) : (
-                              <Badge variant="outline" className="text-destructive border-destructive/50">
-                                <ShieldAlert className="h-3 w-3 mr-1" /> หมดประกัน
-                              </Badge>
-                            )}
-                            {record.serial_number && <Badge variant="outline">S/N: {record.serial_number}</Badge>}
-                            {record.claim_ticket_no && (
-                              <Badge variant="secondary">RMA: {record.claim_ticket_no}</Badge>
-                            )}
+                      <div key={record.id} className="rounded-lg border hover:bg-accent/30 transition-colors">
+                        <div className="flex items-center justify-between gap-4 p-4 flex-wrap">
+                          <div className="flex-1 min-w-[250px] space-y-1">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="font-mono font-semibold">{record.document_no}</span>
+                              <Badge variant={status.variant}>{status.label}</Badge>
+                              {record.is_under_warranty ? (
+                                <Badge variant="outline" className="text-success border-success/50">
+                                  <ShieldCheck className="h-3 w-3 mr-1" /> ในประกัน
+                                </Badge>
+                              ) : (
+                                <Badge variant="outline" className="text-destructive border-destructive/50">
+                                  <ShieldAlert className="h-3 w-3 mr-1" /> หมดประกัน
+                                </Badge>
+                              )}
+                              {record.serial_number && <Badge variant="outline">S/N: {record.serial_number}</Badge>}
+                              {record.claim_ticket_no && (
+                                <Badge variant="secondary">RMA: {record.claim_ticket_no}</Badge>
+                              )}
+                              {record.replacement_serial && (
+                                <Badge variant="outline" className="text-primary border-primary/50">
+                                  <Repeat className="h-3 w-3 mr-1" /> เปลี่ยน S/N → {record.replacement_serial}
+                                </Badge>
+                              )}
+                            </div>
+                            <div className="text-sm text-muted-foreground">
+                              {record.symptom_description || "—"}
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              ผู้จัดจำหน่าย: {record.supplier_name || "—"} • ผู้ส่ง: {record.submitter_name || "—"} •{" "}
+                              สร้าง: {format(new Date(record.created_at), "dd MMM yyyy", { locale: th })}
+                              {record.cost_amount && record.cost_amount > 0 && (
+                                <> • ค่าใช้จ่าย: ฿{record.cost_amount.toLocaleString()}</>
+                              )}
+                            </div>
                           </div>
-                          <div className="text-sm text-muted-foreground">
-                            {record.symptom_description || "—"}
-                          </div>
-                          <div className="text-xs text-muted-foreground">
-                            ผู้จัดจำหน่าย: {record.supplier_name || "—"} • ผู้ส่ง: {record.submitter_name || "—"} •{" "}
-                            สร้าง: {format(new Date(record.created_at), "dd MMM yyyy", { locale: th })}
-                            {record.cost_amount && record.cost_amount > 0 && (
-                              <> • ค่าใช้จ่าย: ฿{record.cost_amount.toLocaleString()}</>
+                          <div className="flex gap-2 flex-wrap">
+                            <Button size="sm" variant="ghost" onClick={() => toggleExpand(record)}>
+                              <History className="h-3.5 w-3.5 mr-1" />
+                              ประวัติติดตาม
+                              {expandedId === record.id ? <ChevronUp className="h-3.5 w-3.5 ml-1" /> : <ChevronDown className="h-3.5 w-3.5 ml-1" />}
+                            </Button>
+                            {record.status === "pending" && (
+                              <Button size="sm" variant="outline" onClick={() => markSubmitted(record)}>
+                                <Send className="h-3.5 w-3.5 mr-1" /> ส่งเคลม
+                              </Button>
+                            )}
+                            {record.status === "submitted" && (
+                              <Button size="sm" variant="outline" onClick={() => openReturnDialog(record)}>
+                                <PackageCheck className="h-3.5 w-3.5 mr-1" /> รับกลับ
+                              </Button>
+                            )}
+                            {record.status === "returned" && (
+                              <Button size="sm" variant="outline" onClick={() => closeRecord(record)}>
+                                ปิดงาน
+                              </Button>
                             )}
                           </div>
                         </div>
-                        <div className="flex gap-2 flex-wrap">
-                          {record.status === "pending" && (
-                            <Button size="sm" variant="outline" onClick={() => markSubmitted(record)}>
-                              <Send className="h-3.5 w-3.5 mr-1" /> ส่งเคลม
-                            </Button>
-                          )}
-                          {record.status === "submitted" && (
-                            <Button size="sm" variant="outline" onClick={() => openReturnDialog(record)}>
-                              <PackageCheck className="h-3.5 w-3.5 mr-1" /> รับกลับ
-                            </Button>
-                          )}
-                          {record.status === "returned" && (
-                            <Button size="sm" variant="outline" onClick={() => closeRecord(record)}>
-                              ปิดงาน
-                            </Button>
-                          )}
-                        </div>
+
+                        {expandedId === record.id && (
+                          <div className="border-t bg-muted/30 p-4 space-y-3">
+                            <div>
+                              <h4 className="text-sm font-semibold mb-2 flex items-center gap-1">
+                                <History className="h-4 w-4" /> ประวัติการติดตามงาน (Progress Logs)
+                              </h4>
+                              {(progressLogs[record.id]?.length ?? 0) === 0 ? (
+                                <p className="text-xs text-muted-foreground pl-5">ยังไม่มีการติดตามงาน</p>
+                              ) : (
+                                <div className="space-y-2 pl-5">
+                                  {progressLogs[record.id].map((log: any) => (
+                                    <div key={log.id} className="text-xs border-l-2 border-primary/40 pl-3 py-1">
+                                      <div className="text-muted-foreground">
+                                        {format(new Date(log.logged_at), "dd MMM yyyy HH:mm", { locale: th })}
+                                        {log.logged_by_name && <> • โดย <span className="font-medium text-foreground">{log.logged_by_name}</span></>}
+                                        {log.cost_amount > 0 && <> • ฿{Number(log.cost_amount).toLocaleString()}</>}
+                                      </div>
+                                      <div className="mt-0.5">{log.note || "—"}</div>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+
+                            {(serialHistory[record.id]?.length ?? 0) > 0 && (
+                              <div>
+                                <h4 className="text-sm font-semibold mb-2 flex items-center gap-1">
+                                  <Repeat className="h-4 w-4" /> ประวัติการเปลี่ยน S/N ของเครื่องนี้
+                                </h4>
+                                <div className="space-y-2 pl-5">
+                                  {serialHistory[record.id].map((h: any) => (
+                                    <div key={h.id} className="text-xs border-l-2 border-warning/60 pl-3 py-1">
+                                      <div className="text-muted-foreground">
+                                        {format(new Date(h.changed_at), "dd MMM yyyy HH:mm", { locale: th })}
+                                        {h.changed_by_name && <> • โดย {h.changed_by_name}</>}
+                                        {h.claim_document_no && <> • อ้างอิง {h.claim_document_no}</>}
+                                      </div>
+                                      <div className="mt-0.5">
+                                        <span className="font-mono">{h.old_serial || "—"}</span>
+                                        <span className="mx-2">→</span>
+                                        <span className="font-mono font-semibold text-primary">{h.new_serial || "—"}</span>
+                                        {h.reason && <span className="text-muted-foreground"> ({h.reason})</span>}
+                                      </div>
+                                      {(h.new_warranty_expiry_date || h.new_po_number || h.new_invoice_number) && (
+                                        <div className="mt-0.5 text-muted-foreground">
+                                          {h.new_warranty_expiry_date && <>ประกันใหม่: {h.new_warranty_expiry_date} </>}
+                                          {h.new_po_number && <>• PO ใหม่: {h.new_po_number} </>}
+                                          {h.new_invoice_number && <>• Invoice ใหม่: {h.new_invoice_number}</>}
+                                        </div>
+                                      )}
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        )}
                       </div>
                     );
                   })}
