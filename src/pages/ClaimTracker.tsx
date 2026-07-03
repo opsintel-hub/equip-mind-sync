@@ -161,10 +161,49 @@ export default function ClaimTracker() {
       .limit(300);
     if (error) {
       toast.error("โหลดข้อมูลไม่สำเร็จ");
-    } else {
-      setRecords((data as ClaimRecord[]) || []);
+      setLoading(false);
+      return;
     }
+    const rows = (data as ClaimRecord[]) || [];
+    setRecords(rows);
     setLoading(false);
+
+    // Enrich media_player details (remote_name / brand / model / billboard / sub_media_type)
+    const mpIds = Array.from(new Set(rows.map((r) => r.media_player_id).filter(Boolean))) as string[];
+    if (mpIds.length) {
+      const { data: mps } = await supabase
+        .from("media_players")
+        .select("id, code, name, remote_name, brand, model_id, sub_media_type, device_type, billboard_id")
+        .in("id", mpIds);
+      const mpList = (mps as any[]) || [];
+      const modelIds = Array.from(new Set(mpList.map((m) => m.model_id).filter(Boolean)));
+      const bbIds = Array.from(new Set(mpList.map((m) => m.billboard_id).filter(Boolean)));
+      const [modelsRes, bbsRes] = await Promise.all([
+        modelIds.length
+          ? supabase.from("media_player_models").select("id, name").in("id", modelIds)
+          : Promise.resolve({ data: [] as any[] }),
+        bbIds.length
+          ? supabase.from("billboards").select("id, old_code, location_name, equipment_id").in("id", bbIds)
+          : Promise.resolve({ data: [] as any[] }),
+      ]);
+      const modelMap = new Map<string, string>(((modelsRes as any).data || []).map((m: any) => [m.id, m.name]));
+      const bbMap = new Map<string, any>(((bbsRes as any).data || []).map((b: any) => [b.id, b]));
+      const details: Record<string, any> = {};
+      mpList.forEach((m: any) => {
+        const bb = m.billboard_id ? bbMap.get(m.billboard_id) : null;
+        details[m.id] = {
+          code: m.code,
+          name: m.name,
+          remote_name: m.remote_name,
+          brand: m.brand,
+          model: m.model_id ? modelMap.get(m.model_id) || null : null,
+          sub_media_type: m.sub_media_type,
+          device_type: m.device_type,
+          billboard_label: bb ? formatBillboardLabel(bb.old_code, bb.location_name, bb.equipment_id) : null,
+        };
+      });
+      setMpDetails(details);
+    }
   };
 
   const fetchSubjects = async () => {
