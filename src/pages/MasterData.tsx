@@ -513,6 +513,8 @@ const MasterData = () => {
             description="ผลลัพธ์หลังรับเครื่องกลับจากการส่งเคลมประกัน Vendor"
             itemLabel="ผลการเคลม"
           />
+          <RepairActionsManager />
+
         </TabsContent>
         )}
 
