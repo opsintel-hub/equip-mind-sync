@@ -123,6 +123,7 @@ export default function ClaimTracker() {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [progressLogs, setProgressLogs] = useState<Record<string, any[]>>({});
   const [serialHistory, setSerialHistory] = useState<Record<string, any[]>>({});
+  const [mpDetails, setMpDetails] = useState<Record<string, { code?: string; name?: string; remote_name?: string | null; brand?: string | null; model?: string | null; sub_media_type?: string | null; device_type?: string | null; billboard_label?: string | null }>>({});
   const [userFullName, setUserFullName] = useState<string>("");
 
   useEffect(() => {
