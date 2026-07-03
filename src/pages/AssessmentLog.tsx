@@ -187,7 +187,7 @@ export default function AssessmentLog() {
     if (error) {
       toast.error("โหลดข้อมูลไม่สำเร็จ");
     } else {
-      const rows = (data as AssessmentLog[]) || [];
+      const rows = ((data as unknown) as AssessmentLog[]) || [];
       setLogs(rows);
       // Fetch any rejected DR tickets linked to these assessments
       const ids = rows.filter(l => l.status === "pending").map(l => l.id);
