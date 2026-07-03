@@ -278,7 +278,7 @@ export default function AssessmentLog() {
         if (swapRefIds.length) {
           const { data: srs } = await supabase
             .from("swap_requests")
-            .select("id, document_no, technician_name, billboard_id, symptom_id, symptom_other, description, reported_photos")
+            .select("id, document_no, technician_name, billboard_id, symptom_id, symptom_other, description, reported_photos, created_at, status, priority")
             .in("id", swapRefIds);
           (srs || []).forEach((s: any) => swapMap.set(s.id, s));
         }
@@ -288,7 +288,7 @@ export default function AssessmentLog() {
         if (rows.length > 0) {
           const { data: drs2 } = await supabase
             .from("defective_returns")
-            .select("assessment_log_id, document_no, confirmed_by_name, reporter_name, created_at, status")
+            .select("assessment_log_id, document_no, confirmed_by_name, reporter_name, created_at, status, notes")
             .in("assessment_log_id", rows.map((r) => r.id));
           for (const d of ((drs2 as any[]) || [])) {
             if (d.assessment_log_id && !drMap.has(d.assessment_log_id)) drMap.set(d.assessment_log_id, d);
