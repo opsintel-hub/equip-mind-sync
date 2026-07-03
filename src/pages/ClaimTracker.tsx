@@ -114,7 +114,42 @@ export default function ClaimTracker() {
   const [rejectedAction, setRejectedAction] = useState<"write_off" | "defective">("defective");
   const [returnLocationId, setReturnLocationId] = useState("");
   const [replacementSerial, setReplacementSerial] = useState("");
+  const [replacementWarranty, setReplacementWarranty] = useState("");
+  const [replacementPO, setReplacementPO] = useState("");
+  const [replacementInvoice, setReplacementInvoice] = useState("");
   const [returnSubmitting, setReturnSubmitting] = useState(false);
+
+  // Expanded row + progress logs cache
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [progressLogs, setProgressLogs] = useState<Record<string, any[]>>({});
+  const [serialHistory, setSerialHistory] = useState<Record<string, any[]>>({});
+  const [userFullName, setUserFullName] = useState<string>("");
+
+  useEffect(() => {
+    if (!user?.id) return;
+    supabase.from("profiles").select("full_name").eq("id", user.id).maybeSingle()
+      .then(({ data }) => setUserFullName((data as any)?.full_name || user.email || ""));
+  }, [user?.id]);
+
+  const loadHistoryFor = async (record: ClaimRecord) => {
+    const [pl, sh] = await Promise.all([
+      supabase.from("claim_progress_logs").select("*").eq("claim_record_id", record.id).order("logged_at", { ascending: false }),
+      record.media_player_id
+        ? supabase.from("media_player_serial_history").select("*").eq("media_player_id", record.media_player_id).order("changed_at", { ascending: false })
+        : Promise.resolve({ data: [] as any[] }),
+    ]);
+    setProgressLogs((p) => ({ ...p, [record.id]: (pl.data as any[]) || [] }));
+    setSerialHistory((p) => ({ ...p, [record.id]: (sh.data as any[]) || [] }));
+  };
+
+  const toggleExpand = (record: ClaimRecord) => {
+    if (expandedId === record.id) {
+      setExpandedId(null);
+    } else {
+      setExpandedId(record.id);
+      loadHistoryFor(record);
+    }
+  };
 
   const fetchRecords = async () => {
     setLoading(true);
