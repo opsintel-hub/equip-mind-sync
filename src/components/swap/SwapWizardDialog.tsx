@@ -476,7 +476,12 @@ export function SwapWizardDialog({ open, onOpenChange, request, onCompleted }: P
 
   const handleSubmit = async () => {
     if (!request) return;
+    if (result === "approved" && !returnLocationId) {
+      toast.error("กรุณาเลือกคลังปลายทางสำหรับเครื่องเก่าก่อนยืนยัน Swap");
+      return;
+    }
     setSubmitting(true);
+
 
     // Parse spare
     let spareMpId: string | null = null;
