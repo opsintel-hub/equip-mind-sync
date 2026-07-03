@@ -1005,9 +1005,10 @@ export function AssessmentCompleteDialog({ open, onOpenChange, log, onCompleted 
 
             {outcome === "self_repair" && (
               <div className="rounded-md border border-primary/40 bg-background p-3 text-sm">
-                <div className="font-medium">🔧 ซ่อมเอง — คืน Spare Pool</div>
+                <div className="font-medium">🔧 ซ่อมเอง</div>
                 <div className="text-xs text-muted-foreground mt-1">
-                  ทำได้ทั้งในและนอกประกัน • ถ้าซ่อมสำเร็จจะคืนเข้าคลังเป็น refurbished พร้อมเบิกใช้
+                  ทำได้ทั้งในและนอกประกัน • เครื่องจะเข้าสถานะ "กำลังซ่อม" แล้วไปปิดงานที่ Tab งานซ่อมเอง
+
                 </div>
               </div>
             )}
