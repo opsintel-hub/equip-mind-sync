@@ -431,7 +431,7 @@ export function AssessmentCompleteDialog({ open, onOpenChange, log, onCompleted 
     !!assessmentResultId &&
     !!outcome &&
     !warrantyConflict &&
-    (outcome !== "self_repair" || !!repairDescription.trim()) &&
+    
     (outcome !== "claim" || !!supplierAutofill?.name || !!externalRepairVendor.trim()) &&
     (!needsDefectiveAck || (defectiveAck && !!defectiveAckReason.trim()));
 
