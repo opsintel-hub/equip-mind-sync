@@ -318,6 +318,7 @@ export default function AssessmentLog() {
                 sub_media_type: mp.sub_media_type,
                 brand: mp.brand,
                 model: mp.model_id ? modelMap.get(mp.model_id) || null : null,
+                remote_name: mp.remote_name || null,
                 billboard_label: bb ? formatBillboardLabel(bb.old_code, bb.location_name, bb.equipment_id) : null,
                 symptom_label: symLabel || null,
                 source_description: sourceDesc,
