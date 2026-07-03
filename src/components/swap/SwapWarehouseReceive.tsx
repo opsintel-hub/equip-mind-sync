@@ -16,6 +16,25 @@ import { WarehouseLocationSelect } from "@/components/location/WarehouseLocation
 import { PhotoGalleryDialog } from "@/components/ui/PhotoGalleryDialog";
 
 
+interface TimelineData {
+  request_created_at: string | null;
+  request_status: string | null;
+  request_priority: string | null;
+  billboard_code: string | null;
+  billboard_name: string | null;
+  symptom_label: string | null;
+  reported_by_name: string | null;
+  execution_at: string | null;
+  execution_by_name: string | null;
+  execution_result: string | null;
+  execution_notes: string | null;
+  spare_label: string | null;
+  spare_serial: string | null;
+  before_photos: string[];
+  after_photos: string[];
+  is_cross_model: boolean;
+}
+
 interface PendingRow {
   id: string; // swap request id
   document_no: string;
@@ -33,7 +52,9 @@ interface PendingRow {
   description: string | null;
   symptom_other: string | null;
   reported_photos: string[];
+  timeline: TimelineData;
 }
+
 
 export function SwapWarehouseReceive() {
   const { user } = useAuth();
