@@ -710,27 +710,27 @@ export default function RepairReport() {
             <Table>
               <TableHeader className="sticky top-0 bg-background z-10">
                 <TableRow>
-                  <TableHead className="whitespace-nowrap">ASM</TableHead>
-                  <TableHead className="whitespace-nowrap">วันที่ซ่อม</TableHead>
-                  <TableHead className="whitespace-nowrap">ประเภท</TableHead>
-                  <TableHead className="whitespace-nowrap">อุปกรณ์</TableHead>
-                  <TableHead className="whitespace-nowrap">ฝ่าย</TableHead>
-                  <TableHead className="whitespace-nowrap">S/N</TableHead>
-                  <TableHead className="whitespace-nowrap text-center">ครั้งที่ซ่อม</TableHead>
-                  <TableHead className="whitespace-nowrap">ประเภทงาน</TableHead>
-                  <TableHead className="whitespace-nowrap">รายการซ่อม</TableHead>
-                  <TableHead className="whitespace-nowrap">รายละเอียด</TableHead>
-                  <TableHead className="whitespace-nowrap">ผู้ซ่อม</TableHead>
-                  <TableHead className="whitespace-nowrap text-right">ค่าใช้จ่าย</TableHead>
-                  <TableHead className="whitespace-nowrap">ผล</TableHead>
-                  <TableHead className="whitespace-nowrap min-w-[320px]">ประวัติป้ายที่เคยติดตั้ง</TableHead>
+                  {isVisible("document_no")  && <TableHead className="whitespace-nowrap">ASM</TableHead>}
+                  {isVisible("completed_at") && <TableHead className="whitespace-nowrap">วันที่ซ่อม</TableHead>}
+                  {isVisible("device_type")  && <TableHead className="whitespace-nowrap">ประเภท</TableHead>}
+                  {isVisible("device")       && <TableHead className="whitespace-nowrap">อุปกรณ์</TableHead>}
+                  {isVisible("department")   && <TableHead className="whitespace-nowrap">ฝ่าย</TableHead>}
+                  {isVisible("serial")       && <TableHead className="whitespace-nowrap">S/N</TableHead>}
+                  {isVisible("repeat")       && <TableHead className="whitespace-nowrap text-center">ครั้งที่ซ่อม</TableHead>}
+                  {isVisible("scope")        && <TableHead className="whitespace-nowrap">ประเภทงาน</TableHead>}
+                  {isVisible("actions")      && <TableHead className="whitespace-nowrap">รายการซ่อม</TableHead>}
+                  {isVisible("description")  && <TableHead className="whitespace-nowrap">รายละเอียด</TableHead>}
+                  {isVisible("assessor")     && <TableHead className="whitespace-nowrap">ผู้ซ่อม</TableHead>}
+                  {isVisible("cost")         && <TableHead className="whitespace-nowrap text-right">ค่าใช้จ่าย</TableHead>}
+                  {isVisible("result")       && <TableHead className="whitespace-nowrap">ผล</TableHead>}
+                  {isVisible("bb_history")   && <TableHead className="whitespace-nowrap min-w-[320px]">ประวัติป้ายที่เคยติดตั้ง</TableHead>}
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {loading ? (
-                  <TableRow><TableCell colSpan={14} className="text-center py-8 text-muted-foreground">กำลังโหลด...</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={visibleCols.length} className="text-center py-8 text-muted-foreground">กำลังโหลด...</TableCell></TableRow>
                 ) : paged.length === 0 ? (
-                  <TableRow><TableCell colSpan={14} className="text-center py-8 text-muted-foreground">ไม่มีข้อมูล</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={visibleCols.length} className="text-center py-8 text-muted-foreground">ไม่มีข้อมูล</TableCell></TableRow>
                 ) : paged.map((r) => {
                   const meta = RESULT_LABEL[r.repair_result || ""];
                   const Icon = meta?.icon;
