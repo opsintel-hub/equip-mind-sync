@@ -101,7 +101,7 @@ export function AssessmentCompleteDialog({ open, onOpenChange, log, onCompleted 
   const [notes, setNotes] = useState("");
   const [outcome, setOutcome] = useState<OutcomeKind>("");
   const [repairDescription, setRepairDescription] = useState("");
-  const [repairSuccess, setRepairSuccess] = useState(false);
+
   const [externalRepairVendor, setExternalRepairVendor] = useState("");
   const [externalRepairContact, setExternalRepairContact] = useState("");
   const [externalRepairPhone, setExternalRepairPhone] = useState("");
