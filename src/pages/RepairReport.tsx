@@ -165,15 +165,26 @@ export default function RepairReport() {
   }, [filtered]);
 
   const scopePie = useMemo(() => {
-    let hw = 0, sw = 0;
+    let hwOnly = 0, swOnly = 0, both = 0, none = 0;
     filtered.forEach((r) => {
-      (r.repair_scope || []).forEach((s) => {
-        if (s === "hardware") hw++;
-        else if (s === "software") sw++;
-      });
+      const hasHW = (r.repair_scope || []).includes("hardware");
+      const hasSW = (r.repair_scope || []).includes("software");
+      if (hasHW && hasSW) both++;
+      else if (hasHW) hwOnly++;
+      else if (hasSW) swOnly++;
+      else none++;
     });
-    const total = hw + sw || 1;
-    return { hw, sw, hwPct: Math.round((hw / total) * 100), swPct: Math.round((sw / total) * 100) };
+    const total = hwOnly + swOnly + both || 1;
+    const pct = (n: number) => Math.round((n / total) * 100);
+    return {
+      hwOnly, swOnly, both, none,
+      hwOnlyPct: pct(hwOnly), swOnlyPct: pct(swOnly), bothPct: pct(both),
+      // Aggregate "involves HW" / "involves SW" (each repair counted at most once per axis)
+      involvesHW: hwOnly + both,
+      involvesSW: swOnly + both,
+      involvesHWPct: pct(hwOnly + both),
+      involvesSWPct: pct(swOnly + both),
+    };
   }, [filtered]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
