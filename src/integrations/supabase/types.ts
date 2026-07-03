@@ -396,11 +396,14 @@ export type Database = {
           outcome: string | null
           photo_urls: string[] | null
           recommended_action: string | null
+          repair_action_ids: string[] | null
+          repair_actions_snapshot: Json | null
           repair_completed_at: string | null
           repair_completed_by: string | null
           repair_cost: number | null
           repair_description: string | null
           repair_result: string | null
+          repair_scope: string[] | null
           repair_status: string | null
           return_location_id: string | null
           serial_number: string | null
@@ -432,11 +435,14 @@ export type Database = {
           outcome?: string | null
           photo_urls?: string[] | null
           recommended_action?: string | null
+          repair_action_ids?: string[] | null
+          repair_actions_snapshot?: Json | null
           repair_completed_at?: string | null
           repair_completed_by?: string | null
           repair_cost?: number | null
           repair_description?: string | null
           repair_result?: string | null
+          repair_scope?: string[] | null
           repair_status?: string | null
           return_location_id?: string | null
           serial_number?: string | null
@@ -468,11 +474,14 @@ export type Database = {
           outcome?: string | null
           photo_urls?: string[] | null
           recommended_action?: string | null
+          repair_action_ids?: string[] | null
+          repair_actions_snapshot?: Json | null
           repair_completed_at?: string | null
           repair_completed_by?: string | null
           repair_cost?: number | null
           repair_description?: string | null
           repair_result?: string | null
+          repair_scope?: string[] | null
           repair_status?: string | null
           return_location_id?: string | null
           serial_number?: string | null
@@ -4663,6 +4672,39 @@ export type Database = {
           name?: string
           purpose_type?: string
           requires_location?: boolean
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      repair_actions: {
+        Row: {
+          applies_to_device: string
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          scope: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          applies_to_device?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          scope: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          applies_to_device?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          scope?: string
+          sort_order?: number
           updated_at?: string
         }
         Relationships: []
