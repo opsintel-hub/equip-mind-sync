@@ -416,6 +416,18 @@ export default function RepairReport() {
                   <SelectItem value="software">Software</SelectItem>
                 </SelectContent>
               </Select>
+            <div className="space-y-1">
+              <Label className="text-xs">ความถี่การซ่อม (ต่อเครื่อง)</Label>
+              <Select value={repeatFilter} onValueChange={(v: any) => setRepeatFilter(v)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">ทั้งหมด</SelectItem>
+                  <SelectItem value="1-2">ซ่อม 1-2 ครั้ง</SelectItem>
+                  <SelectItem value="3-4">ซ่อม 3-4 ครั้ง</SelectItem>
+                  <SelectItem value="5-6">ซ่อม 5-6 ครั้ง</SelectItem>
+                  <SelectItem value=">6">ซ่อม &gt; 6 ครั้ง</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-1">
               <Label className="text-xs">ค้นหา S/N</Label>
