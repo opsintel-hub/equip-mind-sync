@@ -67,6 +67,9 @@ export function SwapWarehouseReceive() {
   const [warehouseId, setWarehouseId] = useState("");
   const [locationId, setLocationId] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  const toggleExpand = (key: string) => setExpanded((prev) => ({ ...prev, [key]: !prev[key] }));
+
 
   const load = async () => {
     setLoading(true);
