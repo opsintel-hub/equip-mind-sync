@@ -63,7 +63,7 @@ export default function RepairReport() {
 
   // Pagination
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
+  const [pageSize, setPageSize] = useState<PageSize>(10);
 
   const fetchRows = async () => {
     setLoading(true);
