@@ -262,7 +262,7 @@ export default function AssessmentLog() {
           (models || []).forEach((m: any) => modelMap.set(m.id, m.name));
         }
 
-        // Fetch swap_requests for source fallback (billboard + symptom + photos + description)
+        // Fetch swap_requests for source fallback (billboard + symptom + photos + description + doc-no)
         const swapRefIds = Array.from(new Set(
           rows
             .filter((l) => l.source_type === "swap" && l.source_reference_id)
@@ -272,10 +272,23 @@ export default function AssessmentLog() {
         if (swapRefIds.length) {
           const { data: srs } = await supabase
             .from("swap_requests")
-            .select("id, billboard_id, symptom_id, symptom_other, description, reported_photos")
+            .select("id, document_no, technician_name, billboard_id, symptom_id, symptom_other, description, reported_photos")
             .in("id", swapRefIds);
           (srs || []).forEach((s: any) => swapMap.set(s.id, s));
         }
+
+        // Fetch defective_returns linked to these assessments (any status) for source-chain display
+        const drMap = new Map<string, any>();
+        if (rows.length > 0) {
+          const { data: drs2 } = await supabase
+            .from("defective_returns")
+            .select("assessment_log_id, document_no, confirmed_by_name, reporter_name, created_at, status")
+            .in("assessment_log_id", rows.map((r) => r.id));
+          for (const d of ((drs2 as any[]) || [])) {
+            if (d.assessment_log_id && !drMap.has(d.assessment_log_id)) drMap.set(d.assessment_log_id, d);
+          }
+        }
+
 
         // Collect billboard ids (MP current + SN current + swap source)
         const bbIds = Array.from(new Set([
