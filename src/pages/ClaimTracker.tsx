@@ -522,18 +522,37 @@ export default function ClaimTracker() {
             });
           }
         } else if (claimResultKind === "replacement") {
-          await supabase
-            .from("media_players")
-            .update({
-              status: "in_stock",
-              quantity: 1,
-              location_id: returnLocationId,
-              billboard_id: null,
-              serial_number_1: replacementSerial.trim(),
-              is_refurbished: false,
-              refurbished_at: null,
-            })
-            .eq("id", record.media_player_id);
+          const newSN = replacementSerial.trim();
+          const oldSN = record.serial_number || null;
+          const mpUpdate: any = {
+            status: "in_stock",
+            quantity: 1,
+            location_id: returnLocationId,
+            billboard_id: null,
+            serial_number_1: newSN,
+            is_refurbished: false,
+            refurbished_at: null,
+          };
+          if (replacementWarranty) mpUpdate.warranty_expiry_date = replacementWarranty;
+          if (replacementPO.trim()) mpUpdate.po_number = replacementPO.trim();
+          if (replacementInvoice.trim()) mpUpdate.invoice_number = replacementInvoice.trim();
+
+          await supabase.from("media_players").update(mpUpdate).eq("id", record.media_player_id);
+
+          // Log serial swap history (audit trail so profile shows past S/Ns)
+          await supabase.from("media_player_serial_history").insert({
+            media_player_id: record.media_player_id,
+            old_serial: oldSN,
+            new_serial: newSN,
+            reason: "เปลี่ยนเครื่องใหม่จากการเคลม Vendor",
+            claim_record_id: record.id,
+            claim_document_no: record.document_no,
+            new_warranty_expiry_date: replacementWarranty || null,
+            new_po_number: replacementPO.trim() || null,
+            new_invoice_number: replacementInvoice.trim() || null,
+            changed_by: user?.id ?? null,
+            changed_by_name: userFullName || user?.email || null,
+          });
 
           if (mpRow) {
             await supabase.from("stock_movements").insert({
@@ -551,7 +570,7 @@ export default function ClaimTracker() {
               company_id: mpRow.company_id,
               item_condition: "new",
               created_by: user?.id ?? null,
-              notes: `รับเครื่องทดแทนจาก Vendor — S/N ใหม่: ${replacementSerial.trim()}`,
+              notes: `รับเครื่องทดแทนจาก Vendor — S/N เดิม: ${oldSN || "—"} → S/N ใหม่: ${newSN}${replacementPO.trim() ? ` | PO ใหม่: ${replacementPO.trim()}` : ""}${replacementWarranty ? ` | ประกันใหม่ถึง: ${replacementWarranty}` : ""}`,
             });
           }
         } else if (claimResultKind === "write_off") {
