@@ -739,95 +739,123 @@ export default function RepairReport() {
                   const bbHist = r.media_player_id ? (bbHistMap.get(r.media_player_id) || []) : [];
                   return (
                     <TableRow key={r.id}>
-                      <TableCell className="font-mono text-xs whitespace-nowrap">{r.document_no}</TableCell>
-                      <TableCell className="text-xs whitespace-nowrap">
-                        {r.repair_completed_at ? format(parseISO(r.repair_completed_at), "dd MMM yy HH:mm", { locale: th }) : "-"}
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant={isMonitor(r.mp_device_type) ? "outline" : "secondary"} className="text-[10px]">
-                          {deviceLabel(r.mp_device_type)}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <div className="font-medium text-sm whitespace-nowrap">{r.mp_code || "-"}</div>
-                        <div className="text-xs text-muted-foreground truncate max-w-[200px]">{r.mp_name || ""}</div>
-                        {r.mp_brand && <div className="text-[10px] text-muted-foreground">{r.mp_brand}</div>}
-                      </TableCell>
-                      <TableCell className="text-xs whitespace-nowrap">{r.mp_department || "-"}</TableCell>
-                      <TableCell className="font-mono text-xs whitespace-nowrap">{r.serial_number || "-"}</TableCell>
-                      <TableCell className="text-center">
-                        {repeatBk ? (
-                          <Badge
-                            variant={repeatN > 6 ? "destructive" : repeatN > 4 ? "default" : "secondary"}
-                            className="text-[10px]"
-                          >
-                            {repeatN} ครั้ง
+                      {isVisible("document_no") && (
+                        <TableCell className="font-mono text-xs whitespace-nowrap">{r.document_no}</TableCell>
+                      )}
+                      {isVisible("completed_at") && (
+                        <TableCell className="text-xs whitespace-nowrap">
+                          {r.repair_completed_at ? format(parseISO(r.repair_completed_at), "dd MMM yy HH:mm", { locale: th }) : "-"}
+                        </TableCell>
+                      )}
+                      {isVisible("device_type") && (
+                        <TableCell>
+                          <Badge variant={isMonitor(r.mp_device_type) ? "outline" : "secondary"} className="text-[10px]">
+                            {deviceLabel(r.mp_device_type)}
                           </Badge>
-                        ) : "-"}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex flex-wrap gap-1">
-                          {(r.repair_scope || []).map((s) => (
-                            <Badge key={s} variant={s === "hardware" ? "secondary" : "outline"} className="text-[10px] px-1.5 py-0 gap-0.5">
-                              {s === "hardware" ? <Cpu className="h-2.5 w-2.5" /> : <Code2 className="h-2.5 w-2.5" />}
-                              {s === "hardware" ? "HW" : "SW"}
+                        </TableCell>
+                      )}
+                      {isVisible("device") && (
+                        <TableCell>
+                          <div className="font-medium text-sm whitespace-nowrap">{r.mp_code || "-"}</div>
+                          <div className="text-xs text-muted-foreground truncate max-w-[200px]">{r.mp_name || ""}</div>
+                          {r.mp_brand && <div className="text-[10px] text-muted-foreground">{r.mp_brand}</div>}
+                        </TableCell>
+                      )}
+                      {isVisible("department") && (
+                        <TableCell className="text-xs whitespace-nowrap">{r.mp_department || "-"}</TableCell>
+                      )}
+                      {isVisible("serial") && (
+                        <TableCell className="font-mono text-xs whitespace-nowrap">{r.serial_number || "-"}</TableCell>
+                      )}
+                      {isVisible("repeat") && (
+                        <TableCell className="text-center">
+                          {repeatBk ? (
+                            <Badge
+                              variant={repeatN > 6 ? "destructive" : repeatN > 4 ? "default" : "secondary"}
+                              className="text-[10px]"
+                            >
+                              {repeatN} ครั้ง
                             </Badge>
-                          ))}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex flex-wrap gap-1 max-w-[240px]">
-                          {(r.repair_actions_snapshot || []).map((a) => (
-                            <Badge key={a.id} variant="outline" className="text-[10px] px-1.5 py-0">{a.name}</Badge>
-                          ))}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="text-xs text-muted-foreground max-w-[240px] whitespace-pre-line line-clamp-3">
-                          {r.repair_description || "-"}
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-xs whitespace-nowrap">{r.assessor_name || "-"}</TableCell>
-                      <TableCell className="text-right font-mono text-xs whitespace-nowrap">{(r.repair_cost || 0).toLocaleString()}</TableCell>
-                      <TableCell>
-                        {meta && (
-                          <Badge variant="outline" className={`text-[10px] gap-1 whitespace-nowrap ${meta.className}`}>
-                            <Icon className="h-3 w-3" />
-                            {meta.label}
-                          </Badge>
-                        )}
-                      </TableCell>
-                      <TableCell className="min-w-[320px]">
-                        {bbHist.length === 0 ? (
-                          <span className="text-xs text-muted-foreground">— ไม่พบประวัติ —</span>
-                        ) : (
-                          <div className="space-y-1">
-                            {bbHist.slice(0, 4).map((h, i) => {
-                              const dur = daysBetween(h.installation_date, h.uninstall_date);
-                              const isCurrent = !h.uninstall_date;
-                              return (
-                                <div key={i} className="text-[11px] leading-tight border-l-2 pl-2 py-0.5"
-                                  style={{ borderColor: isCurrent ? "hsl(var(--success))" : "hsl(var(--border))" }}>
-                                  <div className="font-medium truncate max-w-[300px]">{h.billboard_label}</div>
-                                  <div className="text-muted-foreground">
-                                    {h.installation_date ? format(parseISO(h.installation_date), "dd/MM/yy") : "-"}
-                                    {" → "}
-                                    {isCurrent ? <span className="text-success font-medium">ยังติดตั้งอยู่</span> :
-                                      (h.uninstall_date ? format(parseISO(h.uninstall_date), "dd/MM/yy") : "-")}
-                                    <span className="ml-1 font-mono">({formatDuration(dur)})</span>
-                                  </div>
-                                  {h.uninstall_reason && (
-                                    <div className="text-muted-foreground italic truncate max-w-[300px]">เหตุ: {h.uninstall_reason}</div>
-                                  )}
-                                </div>
-                              );
-                            })}
-                            {bbHist.length > 4 && (
-                              <div className="text-[10px] text-muted-foreground">+ อีก {bbHist.length - 4} รายการ</div>
-                            )}
+                          ) : "-"}
+                        </TableCell>
+                      )}
+                      {isVisible("scope") && (
+                        <TableCell>
+                          <div className="flex flex-wrap gap-1">
+                            {(r.repair_scope || []).map((s) => (
+                              <Badge key={s} variant={s === "hardware" ? "secondary" : "outline"} className="text-[10px] px-1.5 py-0 gap-0.5">
+                                {s === "hardware" ? <Cpu className="h-2.5 w-2.5" /> : <Code2 className="h-2.5 w-2.5" />}
+                                {s === "hardware" ? "HW" : "SW"}
+                              </Badge>
+                            ))}
                           </div>
-                        )}
-                      </TableCell>
+                        </TableCell>
+                      )}
+                      {isVisible("actions") && (
+                        <TableCell>
+                          <div className="flex flex-wrap gap-1 max-w-[240px]">
+                            {(r.repair_actions_snapshot || []).map((a) => (
+                              <Badge key={a.id} variant="outline" className="text-[10px] px-1.5 py-0">{a.name}</Badge>
+                            ))}
+                          </div>
+                        </TableCell>
+                      )}
+                      {isVisible("description") && (
+                        <TableCell>
+                          <div className="text-xs text-muted-foreground max-w-[240px] whitespace-pre-line line-clamp-3">
+                            {r.repair_description || "-"}
+                          </div>
+                        </TableCell>
+                      )}
+                      {isVisible("assessor") && (
+                        <TableCell className="text-xs whitespace-nowrap">{r.assessor_name || "-"}</TableCell>
+                      )}
+                      {isVisible("cost") && (
+                        <TableCell className="text-right font-mono text-xs whitespace-nowrap">{(r.repair_cost || 0).toLocaleString()}</TableCell>
+                      )}
+                      {isVisible("result") && (
+                        <TableCell>
+                          {meta && (
+                            <Badge variant="outline" className={`text-[10px] gap-1 whitespace-nowrap ${meta.className}`}>
+                              <Icon className="h-3 w-3" />
+                              {meta.label}
+                            </Badge>
+                          )}
+                        </TableCell>
+                      )}
+                      {isVisible("bb_history") && (
+                        <TableCell className="min-w-[320px]">
+                          {bbHist.length === 0 ? (
+                            <span className="text-xs text-muted-foreground">— ไม่พบประวัติ —</span>
+                          ) : (
+                            <div className="space-y-1">
+                              {bbHist.slice(0, 4).map((h, i) => {
+                                const dur = daysBetween(h.installation_date, h.uninstall_date);
+                                const isCurrent = !h.uninstall_date;
+                                return (
+                                  <div key={i} className="text-[11px] leading-tight border-l-2 pl-2 py-0.5"
+                                    style={{ borderColor: isCurrent ? "hsl(var(--success))" : "hsl(var(--border))" }}>
+                                    <div className="font-medium truncate max-w-[300px]">{h.billboard_label}</div>
+                                    <div className="text-muted-foreground">
+                                      {h.installation_date ? format(parseISO(h.installation_date), "dd/MM/yy") : "-"}
+                                      {" → "}
+                                      {isCurrent ? <span className="text-success font-medium">ยังติดตั้งอยู่</span> :
+                                        (h.uninstall_date ? format(parseISO(h.uninstall_date), "dd/MM/yy") : "-")}
+                                      <span className="ml-1 font-mono">({formatDuration(dur)})</span>
+                                    </div>
+                                    {h.uninstall_reason && (
+                                      <div className="text-muted-foreground italic truncate max-w-[300px]">เหตุ: {h.uninstall_reason}</div>
+                                    )}
+                                  </div>
+                                );
+                              })}
+                              {bbHist.length > 4 && (
+                                <div className="text-[10px] text-muted-foreground">+ อีก {bbHist.length - 4} รายการ</div>
+                              )}
+                            </div>
+                          )}
+                        </TableCell>
+                      )}
                     </TableRow>
                   );
                 })}
