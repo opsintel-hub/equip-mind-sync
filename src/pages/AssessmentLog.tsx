@@ -92,15 +92,23 @@ interface LogDetail {
   source_description?: string | null;
   swap_doc_no?: string | null;
   swap_technician_name?: string | null;
+  swap_technician_phone?: string | null;
   swap_created_at?: string | null;
   swap_status?: string | null;
   swap_priority?: string | null;
+  swap_notes?: string | null;
   defective_doc_no?: string | null;
   defective_confirmed_by_name?: string | null;
   defective_reporter_name?: string | null;
   defective_created_at?: string | null;
   defective_status?: string | null;
   defective_notes?: string | null;
+  defective_reason?: string | null;
+  defective_item_condition?: string | null;
+  defective_disposal_method?: string | null;
+  defective_disposal_notes?: string | null;
+  defective_rejection_reason?: string | null;
+  defective_rejected_by_name?: string | null;
 }
 
 
@@ -284,7 +292,7 @@ export default function AssessmentLog() {
         if (swapRefIds.length) {
           const { data: srs } = await supabase
             .from("swap_requests")
-            .select("id, document_no, technician_name, billboard_id, symptom_id, symptom_other, description, reported_photos, created_at, status, priority")
+            .select("id, document_no, technician_name, technician_phone, billboard_id, symptom_id, symptom_other, description, reported_photos, created_at, status, priority, notes")
             .in("id", swapRefIds);
           (srs || []).forEach((s: any) => swapMap.set(s.id, s));
         }
@@ -294,7 +302,7 @@ export default function AssessmentLog() {
         if (rows.length > 0) {
           const { data: drs2 } = await supabase
             .from("defective_returns")
-            .select("assessment_log_id, document_no, confirmed_by_name, reporter_name, created_at, status, notes")
+            .select("assessment_log_id, document_no, confirmed_by_name, reporter_name, created_at, status, notes, reason, item_condition, disposal_method, disposal_notes, rejection_reason, rejected_by_name")
             .in("assessment_log_id", rows.map((r) => r.id));
           for (const d of ((drs2 as any[]) || [])) {
             if (d.assessment_log_id && !drMap.has(d.assessment_log_id)) drMap.set(d.assessment_log_id, d);
@@ -341,15 +349,23 @@ export default function AssessmentLog() {
           const commonSourceChain: Partial<LogDetail> = {
             swap_doc_no: swap?.document_no || null,
             swap_technician_name: swap?.technician_name || null,
+            swap_technician_phone: swap?.technician_phone || null,
             swap_created_at: swap?.created_at || null,
             swap_status: swap?.status || null,
             swap_priority: swap?.priority || null,
+            swap_notes: swap?.notes || null,
             defective_doc_no: dr?.document_no || null,
             defective_confirmed_by_name: dr?.confirmed_by_name || null,
             defective_reporter_name: dr?.reporter_name || null,
             defective_created_at: dr?.created_at || null,
             defective_status: dr?.status || null,
             defective_notes: dr?.notes || null,
+            defective_reason: dr?.reason || null,
+            defective_item_condition: dr?.item_condition || null,
+            defective_disposal_method: dr?.disposal_method || null,
+            defective_disposal_notes: dr?.disposal_notes || null,
+            defective_rejection_reason: dr?.rejection_reason || null,
+            defective_rejected_by_name: dr?.rejected_by_name || null,
           };
 
           if (log.media_player_id) {
