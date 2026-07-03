@@ -627,7 +627,7 @@ export default function MediaPlayerReport() {
                 <SelectItem value="all">ทุกสถานะ</SelectItem>
                 <SelectItem value="installed">ติดตั้ง</SelectItem>
                 <SelectItem value="in_stock">ในคลัง</SelectItem>
-                <SelectItem value="pending_warehouse_return">รอเข้าคลัง (Swap)</SelectItem>
+                
                 <SelectItem value="pending_assessment">พักรอประเมิน</SelectItem>
                 <SelectItem value="under_repair">กำลังซ่อม</SelectItem>
                 <SelectItem value="in_claim">รอเคลม</SelectItem>
