@@ -90,7 +90,13 @@ interface LogDetail {
   source_photos?: string[];
   symptom_label?: string | null;
   source_description?: string | null;
+  swap_doc_no?: string | null;
+  swap_technician_name?: string | null;
+  defective_doc_no?: string | null;
+  defective_confirmed_by_name?: string | null;
+  defective_reporter_name?: string | null;
 }
+
 
 const SOURCE_LABELS: Record<string, string> = {
   swap: "จาก Swap",
