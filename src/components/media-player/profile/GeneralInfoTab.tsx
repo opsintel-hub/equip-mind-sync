@@ -46,6 +46,17 @@ export function GeneralInfoTab({ player, modelName, onUpdated }: GeneralInfoTabP
   const [editOpen, setEditOpen] = useState(false);
   const { hasFunctionAccess } = useFunctionPermissions();
   const canEdit = hasFunctionAccess("goods_receipt");
+  const [snHistory, setSnHistory] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (!player?.id) return;
+    supabase
+      .from("media_player_serial_history")
+      .select("*")
+      .eq("media_player_id", player.id)
+      .order("changed_at", { ascending: false })
+      .then(({ data }) => setSnHistory((data as any[]) || []));
+  }, [player?.id]);
 
   return (
     <>
