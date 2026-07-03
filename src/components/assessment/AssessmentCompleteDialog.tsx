@@ -1052,23 +1052,20 @@ export function AssessmentCompleteDialog({ open, onOpenChange, log, onCompleted 
                   <div><span className="text-muted-foreground">ผลการประเมิน (Assessment): </span><span>{assessmentResultId ? "เลือกแล้ว" : "—"}</span></div>
                 </div>
                 <div className="space-y-2">
-                  <Label>รายละเอียดการซ่อม <span className="text-destructive">*</span></Label>
+                  <Label>บันทึกสั้น ๆ ก่อนเริ่มซ่อม <span className="text-xs text-muted-foreground font-normal">(ไม่บังคับ)</span></Label>
                   <Textarea
                     value={repairDescription}
                     onChange={(e) => setRepairDescription(e.target.value)}
-                    placeholder="ระบุว่าซ่อมอะไรไป เปลี่ยนอะไหล่อะไร..."
+                    placeholder="ระบุสาเหตุ/แผนซ่อมเบื้องต้น (รายละเอียดครบจะกรอกตอนปิดงานที่ Tab งานซ่อมเอง)"
                     rows={2}
                   />
                 </div>
-                <label className="flex items-start gap-2 text-sm cursor-pointer rounded-md border border-success/40 bg-success/10 p-2">
-                  <input type="checkbox" className="mt-1" checked={repairSuccess} onChange={(e) => setRepairSuccess(e.target.checked)} />
-                  <span>
-                    <span className="font-medium">ซ่อมสำเร็จ → คืน Spare เข้าคลัง</span>
-                    <span className="block text-xs text-muted-foreground">เครื่องจะถูกตั้งสถานะ refurbished + พร้อมเบิกใช้ในคลัง</span>
-                  </span>
-                </label>
+                <div className="rounded-md border border-cyan-300/60 bg-cyan-50/60 dark:bg-cyan-900/20 p-2 text-xs">
+                  ℹ️ เครื่องจะเข้าสถานะ <strong>กำลังซ่อม (under_repair)</strong> — ไปกด <strong>"บันทึกผลซ่อม"</strong> ที่ Tab <strong>"งานซ่อมเอง"</strong> เพื่อระบุ Hardware/Software, รายการอะไหล่, ค่าใช้จ่าย และปิดงาน (คืนคลังเป็น Refurbished / ส่งของเสีย / เปลี่ยนเป็นเคลม)
+                </div>
               </div>
             )}
+
 
             {outcome === "claim" && (
               <div className="space-y-2 pt-2 border-t">
