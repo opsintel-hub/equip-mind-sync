@@ -84,6 +84,7 @@ interface LogDetail {
   sub_media_type?: string | null;
   brand?: string | null;
   model?: string | null;
+  remote_name?: string | null;
   source_photos?: string[];
   symptom_label?: string | null;
   source_description?: string | null;
@@ -221,7 +222,7 @@ export default function AssessmentLog() {
           mpIds.length
             ? supabase
                 .from("media_players")
-                .select("id, code, name, serial_number_1, serial_number_2, device_type, sub_media_type, brand, model_id, billboard_id")
+                .select("id, code, name, serial_number_1, serial_number_2, device_type, sub_media_type, brand, model_id, billboard_id, remote_name")
                 .in("id", mpIds)
             : Promise.resolve({ data: [] as any[] }),
           eqIds.length
@@ -317,6 +318,7 @@ export default function AssessmentLog() {
                 sub_media_type: mp.sub_media_type,
                 brand: mp.brand,
                 model: mp.model_id ? modelMap.get(mp.model_id) || null : null,
+                remote_name: mp.remote_name || null,
                 billboard_label: bb ? formatBillboardLabel(bb.old_code, bb.location_name, bb.equipment_id) : null,
                 symptom_label: symLabel || null,
                 source_description: sourceDesc,
@@ -772,6 +774,12 @@ export default function AssessmentLog() {
               <span className="font-medium text-foreground">โมเดล/ยี่ห้อ:</span>{" "}
               <span className="text-muted-foreground">{[detail?.brand, detail?.model].filter(Boolean).join(" / ") || "—"}</span>
             </div>
+            {isMP && (
+              <div>
+                <span className="font-medium text-foreground">Remote:</span>{" "}
+                <span className={detail?.remote_name ? "" : "text-muted-foreground"}>{detail?.remote_name || "—"}</span>
+              </div>
+            )}
             {isMP && detail?.sub_media_type && (
               <div>
                 <span className="font-medium text-foreground">ประเภทย่อย:</span>{" "}

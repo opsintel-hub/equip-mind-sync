@@ -18,6 +18,7 @@ import { th } from "date-fns/locale";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { SymptomSelect } from "@/components/media-player/SymptomSelect";
 import { ClaimResultSelect, type ClaimResultKind } from "@/components/media-player/ClaimResultSelect";
+import { formatBillboardLabel } from "@/lib/billboardUtils";
 import { SupplierSelect } from "@/components/supplier/SupplierSelect";
 import { LocationSelect } from "@/components/location/LocationSelect";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -123,6 +124,7 @@ export default function ClaimTracker() {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [progressLogs, setProgressLogs] = useState<Record<string, any[]>>({});
   const [serialHistory, setSerialHistory] = useState<Record<string, any[]>>({});
+  const [mpDetails, setMpDetails] = useState<Record<string, { code?: string; name?: string; remote_name?: string | null; brand?: string | null; model?: string | null; sub_media_type?: string | null; device_type?: string | null; billboard_label?: string | null }>>({});
   const [userFullName, setUserFullName] = useState<string>("");
 
   useEffect(() => {
@@ -160,10 +162,49 @@ export default function ClaimTracker() {
       .limit(300);
     if (error) {
       toast.error("โหลดข้อมูลไม่สำเร็จ");
-    } else {
-      setRecords((data as ClaimRecord[]) || []);
+      setLoading(false);
+      return;
     }
+    const rows = (data as ClaimRecord[]) || [];
+    setRecords(rows);
     setLoading(false);
+
+    // Enrich media_player details (remote_name / brand / model / billboard / sub_media_type)
+    const mpIds = Array.from(new Set(rows.map((r) => r.media_player_id).filter(Boolean))) as string[];
+    if (mpIds.length) {
+      const { data: mps } = await supabase
+        .from("media_players")
+        .select("id, code, name, remote_name, brand, model_id, sub_media_type, device_type, billboard_id")
+        .in("id", mpIds);
+      const mpList = (mps as any[]) || [];
+      const modelIds = Array.from(new Set(mpList.map((m) => m.model_id).filter(Boolean)));
+      const bbIds = Array.from(new Set(mpList.map((m) => m.billboard_id).filter(Boolean)));
+      const [modelsRes, bbsRes] = await Promise.all([
+        modelIds.length
+          ? supabase.from("media_player_models").select("id, name").in("id", modelIds)
+          : Promise.resolve({ data: [] as any[] }),
+        bbIds.length
+          ? supabase.from("billboards").select("id, old_code, location_name, equipment_id").in("id", bbIds)
+          : Promise.resolve({ data: [] as any[] }),
+      ]);
+      const modelMap = new Map<string, string>(((modelsRes as any).data || []).map((m: any) => [m.id, m.name]));
+      const bbMap = new Map<string, any>(((bbsRes as any).data || []).map((b: any) => [b.id, b]));
+      const details: Record<string, any> = {};
+      mpList.forEach((m: any) => {
+        const bb = m.billboard_id ? bbMap.get(m.billboard_id) : null;
+        details[m.id] = {
+          code: m.code,
+          name: m.name,
+          remote_name: m.remote_name,
+          brand: m.brand,
+          model: m.model_id ? modelMap.get(m.model_id) || null : null,
+          sub_media_type: m.sub_media_type,
+          device_type: m.device_type,
+          billboard_label: bb ? formatBillboardLabel(bb.old_code, bb.location_name, bb.equipment_id) : null,
+        };
+      });
+      setMpDetails(details);
+    }
   };
 
   const fetchSubjects = async () => {
@@ -815,6 +856,28 @@ export default function ClaimTracker() {
                                 </Badge>
                               )}
                             </div>
+                            {(() => {
+                              const d = record.media_player_id ? mpDetails[record.media_player_id] : null;
+                              if (!d) return null;
+                              const modelLine = [d.brand, d.model].filter(Boolean).join(" / ");
+                              return (
+                                <div className="grid sm:grid-cols-2 gap-x-4 gap-y-0.5 text-xs text-muted-foreground">
+                                  {d.code && (
+                                    <div><span className="font-medium text-foreground">อุปกรณ์:</span> {d.code}{d.name ? ` — ${d.name}` : ""}</div>
+                                  )}
+                                  {d.billboard_label && (
+                                    <div><span className="font-medium text-foreground">ป้าย:</span> {d.billboard_label}</div>
+                                  )}
+                                  {modelLine && (
+                                    <div><span className="font-medium text-foreground">โมเดล/ยี่ห้อ:</span> {modelLine}</div>
+                                  )}
+                                  <div><span className="font-medium text-foreground">Remote:</span> {d.remote_name || "—"}</div>
+                                  {d.sub_media_type && (
+                                    <div><span className="font-medium text-foreground">ประเภทย่อย:</span> {d.sub_media_type}</div>
+                                  )}
+                                </div>
+                              );
+                            })()}
                             <div className="text-sm text-muted-foreground">
                               {record.symptom_description || "—"}
                             </div>
