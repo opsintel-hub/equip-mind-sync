@@ -160,7 +160,17 @@ export default function RepairReport() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState<PageSize>(10);
 
-  const fetchRows = async () => {
+  // Column visibility
+  const [visibleCols, setVisibleCols] = useState<ColKey[]>(() => loadVisibleCols());
+  useEffect(() => {
+    try { localStorage.setItem(COL_LS_KEY, JSON.stringify(visibleCols)); } catch {}
+  }, [visibleCols]);
+  const isVisible = (k: ColKey) => visibleCols.includes(k);
+  const toggleCol = (k: ColKey) => {
+    const def = COLUMN_DEFS.find((c) => c.key === k);
+    if (def?.locked) return;
+    setVisibleCols((prev) => prev.includes(k) ? prev.filter((x) => x !== k) : [...prev, k]);
+  };
     setLoading(true);
     try {
       const { data, error } = await supabase
