@@ -51,6 +51,8 @@ interface AssessmentLog {
   created_at: string;
   repair_status?: string | null;
   photo_urls?: string[] | null;
+  repair_scope?: string[] | null;
+  repair_actions_snapshot?: Array<{ id: string; name: string; scope: string }> | null;
 }
 
 interface SubjectOption {
