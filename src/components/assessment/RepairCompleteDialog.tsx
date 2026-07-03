@@ -45,6 +45,10 @@ export function RepairCompleteDialog({ open, onOpenChange, assessmentLog, onComp
   const [actionIds, setActionIds] = useState<string[]>([]);
   const [actionSnapshot, setActionSnapshot] = useState<RepairActionOption[]>([]);
 
+  // Warranty check
+  const [warrantyDate, setWarrantyDate] = useState<string | null>(null);
+  const [warrantyLoading, setWarrantyLoading] = useState(false);
+
   useEffect(() => {
     if (open) {
       setResult("repaired");
@@ -55,8 +59,30 @@ export function RepairCompleteDialog({ open, onOpenChange, assessmentLog, onComp
       setScopeSW(false);
       setActionIds([]);
       setActionSnapshot([]);
+      setWarrantyDate(null);
+      if (assessmentLog?.media_player_id) {
+        setWarrantyLoading(true);
+        supabase
+          .from("media_players")
+          .select("warranty_expiry_date")
+          .eq("id", assessmentLog.media_player_id)
+          .maybeSingle()
+          .then(({ data }) => {
+            setWarrantyDate((data?.warranty_expiry_date as string) || null);
+            setWarrantyLoading(false);
+          });
+      }
     }
-  }, [open]);
+  }, [open, assessmentLog?.media_player_id]);
+
+  const warrantyStatus: "in_warranty" | "expired" | "unknown" = warrantyDate
+    ? new Date(warrantyDate) >= new Date()
+      ? "in_warranty"
+      : "expired"
+    : "unknown";
+
+  const canDefective = warrantyStatus === "expired";
+  const canClaim = warrantyStatus === "in_warranty";
 
   const scopeFilter = [
     ...(scopeHW ? (["hardware"] as const) : []),
