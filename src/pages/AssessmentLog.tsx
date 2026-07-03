@@ -800,6 +800,24 @@ export default function AssessmentLog() {
               <span className="font-medium text-foreground">รายละเอียดการซ่อม:</span>{" "}
               <span className="text-muted-foreground">{log.outcome === "self_repair" ? (log.repair_description || "—") : "—"}</span>
             </div>
+            {log.outcome === "self_repair" && Array.isArray(log.repair_scope) && log.repair_scope.length > 0 && (
+              <div className="sm:col-span-2 flex flex-wrap items-center gap-1.5">
+                <span className="font-medium text-foreground text-sm">ประเภท:</span>
+                {log.repair_scope.map((s) => (
+                  <Badge key={s} variant={s === "hardware" ? "secondary" : "outline"} className="text-[10px] px-1.5 py-0">
+                    {s === "hardware" ? "🔧 Hardware" : "💻 Software"}
+                  </Badge>
+                ))}
+                {Array.isArray(log.repair_actions_snapshot) && log.repair_actions_snapshot.length > 0 && (
+                  <>
+                    <span className="font-medium text-foreground text-sm ml-2">รายการซ่อม:</span>
+                    {log.repair_actions_snapshot.map((a) => (
+                      <Badge key={a.id} variant="outline" className="text-[10px] px-1.5 py-0">{a.name}</Badge>
+                    ))}
+                  </>
+                )}
+              </div>
+            )}
           </div>
           {/* Footer: Assessor / Date */}
           <div className="text-xs text-muted-foreground pt-1">
