@@ -135,6 +135,12 @@ export default function AssessmentLog() {
   const [logs, setLogs] = useState<AssessmentLog[]>([]);
   const [rejectionMap, setRejectionMap] = useState<Record<string, { document_no: string; rejection_reason: string | null; rejected_at: string | null; rejected_by_name: string | null }>>({});
   const [logDetails, setLogDetails] = useState<Record<string, LogDetail>>({});
+  const [sourceOpenIds, setSourceOpenIds] = useState<Set<string>>(new Set());
+  const toggleSourceOpen = (id: string) => setSourceOpenIds((prev) => {
+    const next = new Set(prev);
+    if (next.has(id)) next.delete(id); else next.add(id);
+    return next;
+  });
   const [loading, setLoading] = useState(true);
   const { hasFunctionAccess } = useFunctionPermissions();
   const canView = hasFunctionAccess("assessment_view");
