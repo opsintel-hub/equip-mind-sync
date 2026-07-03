@@ -1076,13 +1076,35 @@ export default function ClaimTracker() {
               )}
 
               {claimResultKind === "replacement" && (
-                <div className="space-y-2">
-                  <Label>S/N เครื่องทดแทนจาก Vendor *</Label>
-                  <Input
-                    value={replacementSerial}
-                    onChange={(e) => setReplacementSerial(e.target.value)}
-                    placeholder="กรอก S/N เครื่องใหม่ที่ Vendor ส่งให้"
-                  />
+                <div className="space-y-3 rounded-lg border p-3 bg-primary/5">
+                  <div className="space-y-2">
+                    <Label>S/N เครื่องทดแทนจาก Vendor *</Label>
+                    <Input
+                      value={replacementSerial}
+                      onChange={(e) => setReplacementSerial(e.target.value)}
+                      placeholder="กรอก S/N เครื่องใหม่ที่ Vendor ส่งให้"
+                    />
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    💡 ประวัติการเปลี่ยน S/N จะถูกบันทึกอัตโนมัติ เพื่อให้ผู้ใช้ตรวจย้อนหลังได้จาก Media Player Profile
+                  </p>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                    <div className="space-y-1">
+                      <Label className="text-xs">ประกันใหม่หมดวันที่ (ถ้ามี)</Label>
+                      <Input type="date" value={replacementWarranty} onChange={(e) => setReplacementWarranty(e.target.value)} />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">PO ใหม่ (ถ้ามี)</Label>
+                      <Input value={replacementPO} onChange={(e) => setReplacementPO(e.target.value)} placeholder="เว้นว่างเพื่อคง PO เดิม" />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">Invoice ใหม่ (ถ้ามี)</Label>
+                      <Input value={replacementInvoice} onChange={(e) => setReplacementInvoice(e.target.value)} placeholder="เว้นว่างเพื่อคงเดิม" />
+                    </div>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    ⚠️ ปล่อยว่างทุกช่อง = คงข้อมูลประกัน/PO/Invoice ของเครื่องเดิมไว้ (Vendor เปลี่ยนภายใต้ประกันเดิม)
+                  </p>
                 </div>
               )}
 
