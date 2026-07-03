@@ -90,7 +90,13 @@ interface LogDetail {
   source_photos?: string[];
   symptom_label?: string | null;
   source_description?: string | null;
+  swap_doc_no?: string | null;
+  swap_technician_name?: string | null;
+  defective_doc_no?: string | null;
+  defective_confirmed_by_name?: string | null;
+  defective_reporter_name?: string | null;
 }
+
 
 const SOURCE_LABELS: Record<string, string> = {
   swap: "จาก Swap",
@@ -256,7 +262,7 @@ export default function AssessmentLog() {
           (models || []).forEach((m: any) => modelMap.set(m.id, m.name));
         }
 
-        // Fetch swap_requests for source fallback (billboard + symptom + photos + description)
+        // Fetch swap_requests for source fallback (billboard + symptom + photos + description + doc-no)
         const swapRefIds = Array.from(new Set(
           rows
             .filter((l) => l.source_type === "swap" && l.source_reference_id)
@@ -266,10 +272,23 @@ export default function AssessmentLog() {
         if (swapRefIds.length) {
           const { data: srs } = await supabase
             .from("swap_requests")
-            .select("id, billboard_id, symptom_id, symptom_other, description, reported_photos")
+            .select("id, document_no, technician_name, billboard_id, symptom_id, symptom_other, description, reported_photos")
             .in("id", swapRefIds);
           (srs || []).forEach((s: any) => swapMap.set(s.id, s));
         }
+
+        // Fetch defective_returns linked to these assessments (any status) for source-chain display
+        const drMap = new Map<string, any>();
+        if (rows.length > 0) {
+          const { data: drs2 } = await supabase
+            .from("defective_returns")
+            .select("assessment_log_id, document_no, confirmed_by_name, reporter_name, created_at, status")
+            .in("assessment_log_id", rows.map((r) => r.id));
+          for (const d of ((drs2 as any[]) || [])) {
+            if (d.assessment_log_id && !drMap.has(d.assessment_log_id)) drMap.set(d.assessment_log_id, d);
+          }
+        }
+
 
         // Collect billboard ids (MP current + SN current + swap source)
         const bbIds = Array.from(new Set([
@@ -306,6 +325,14 @@ export default function AssessmentLog() {
           const symLabel = log.symptom_id ? symMap.get(log.symptom_id) : (swap?.symptom_id ? symMap.get(swap.symptom_id) : null);
           const sourceDesc = swap ? [swap.symptom_other, swap.description].filter(Boolean).join(" — ") || null : null;
           const sourcePhotos = swap && Array.isArray(swap.reported_photos) ? swap.reported_photos : undefined;
+          const dr = drMap.get(log.id);
+          const commonSourceChain: Partial<LogDetail> = {
+            swap_doc_no: swap?.document_no || null,
+            swap_technician_name: swap?.technician_name || null,
+            defective_doc_no: dr?.document_no || null,
+            defective_confirmed_by_name: dr?.confirmed_by_name || null,
+            defective_reporter_name: dr?.reporter_name || null,
+          };
 
           if (log.media_player_id) {
             const mp = mpMap.get(log.media_player_id);
@@ -325,6 +352,7 @@ export default function AssessmentLog() {
                 symptom_label: symLabel || null,
                 source_description: sourceDesc,
                 source_photos: sourcePhotos,
+                ...commonSourceChain,
               };
               continue;
             }
@@ -342,12 +370,13 @@ export default function AssessmentLog() {
                 symptom_label: symLabel || null,
                 source_description: sourceDesc,
                 source_photos: sourcePhotos,
+                ...commonSourceChain,
               };
               continue;
             }
           }
           // Fallback when no subject row matched but we still want symptom/swap context
-          if (symLabel || sourceDesc || sourcePhotos) {
+          if (symLabel || sourceDesc || sourcePhotos || commonSourceChain.swap_doc_no || commonSourceChain.defective_doc_no) {
             details[log.id] = {
               code: "—",
               name: "—",
@@ -355,9 +384,11 @@ export default function AssessmentLog() {
               symptom_label: symLabel || null,
               source_description: sourceDesc,
               source_photos: sourcePhotos,
+              ...commonSourceChain,
             };
           }
         }
+
 
         setLogDetails(details);
       } catch {
@@ -819,6 +850,25 @@ export default function AssessmentLog() {
               </div>
             )}
           </div>
+          {/* Source chain — Swap doc / Defective doc / reviewers */}
+          {(detail?.swap_doc_no || detail?.defective_doc_no) && (
+            <div className="text-xs bg-muted/40 border rounded px-2 py-1.5 mt-1 space-y-0.5">
+              <div className="font-medium text-foreground">🔗 ต้นทาง</div>
+              {detail?.swap_doc_no && (
+                <div className="text-muted-foreground">
+                  Swap: <span className="font-mono text-foreground">{detail.swap_doc_no}</span>
+                  {detail.swap_technician_name && <> • ช่าง: <span className="text-foreground">{detail.swap_technician_name}</span></>}
+                </div>
+              )}
+              {detail?.defective_doc_no && (
+                <div className="text-muted-foreground">
+                  นำเข้าของเสีย: <span className="font-mono text-foreground">{detail.defective_doc_no}</span>
+                  {detail.defective_reporter_name && <> • ผู้แจ้ง: <span className="text-foreground">{detail.defective_reporter_name}</span></>}
+                  {detail.defective_confirmed_by_name && <> • ผู้ตรวจสอบ: <span className="text-foreground">{detail.defective_confirmed_by_name}</span></>}
+                </div>
+              )}
+            </div>
+          )}
           {/* Footer: Assessor / Date */}
           <div className="text-xs text-muted-foreground pt-1">
             ผู้ประเมิน: {log.assessor_name || "—"} • {format(new Date(log.assessed_at), "dd MMM yyyy HH:mm", { locale: th })}
@@ -828,6 +878,7 @@ export default function AssessmentLog() {
       </div>
     );
   };
+
 
 
 
