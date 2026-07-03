@@ -10,11 +10,61 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { TablePagination } from "@/components/TablePagination";
 import type { PageSize } from "@/hooks/useTablePagination";
-import { Wrench, Download, RefreshCw, Cpu, Code2, CheckCircle2, XCircle, AlertTriangle, Search } from "lucide-react";
+import { Wrench, Download, RefreshCw, Cpu, Code2, CheckCircle2, XCircle, AlertTriangle, Search, Columns as ColumnsIcon } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { th } from "date-fns/locale";
 import { toast } from "sonner";
 import { deviceLabel, isMonitor } from "@/lib/deviceTypes";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuTrigger,
+  DropdownMenuCheckboxItem,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
+
+type ColKey =
+  | "document_no" | "completed_at" | "device_type" | "device" | "department"
+  | "serial" | "repeat" | "scope" | "actions" | "description"
+  | "assessor" | "cost" | "result" | "bb_history";
+
+const COLUMN_DEFS: { key: ColKey; label: string; locked?: boolean; defaultVisible: boolean }[] = [
+  { key: "document_no",  label: "ASM",                        defaultVisible: true },
+  { key: "completed_at", label: "วันที่ซ่อม",                  defaultVisible: true, locked: true },
+  { key: "device_type",  label: "ประเภทเครื่อง",              defaultVisible: true },
+  { key: "device",       label: "อุปกรณ์ (รหัส / ชื่อ)",       defaultVisible: true, locked: true },
+  { key: "department",   label: "ฝ่าย",                        defaultVisible: true },
+  { key: "serial",       label: "S/N",                        defaultVisible: true },
+  { key: "repeat",       label: "ครั้งที่ซ่อม",                 defaultVisible: true },
+  { key: "scope",        label: "ประเภทงาน (HW/SW)",         defaultVisible: true },
+  { key: "actions",      label: "รายการซ่อม",                 defaultVisible: true },
+  { key: "description",  label: "รายละเอียด",                  defaultVisible: true },
+  { key: "assessor",     label: "ผู้ซ่อม",                     defaultVisible: true },
+  { key: "cost",         label: "ค่าใช้จ่าย",                   defaultVisible: true },
+  { key: "result",       label: "ผลการซ่อม",                  defaultVisible: true },
+  { key: "bb_history",   label: "ประวัติป้ายที่เคยติดตั้ง",     defaultVisible: true },
+];
+
+const COL_LS_KEY = "repair-report.visible-cols.v1";
+const defaultVisibleKeys = COLUMN_DEFS.filter((c) => c.defaultVisible).map((c) => c.key);
+const loadVisibleCols = (): ColKey[] => {
+  try {
+    const raw = localStorage.getItem(COL_LS_KEY);
+    if (!raw) return defaultVisibleKeys;
+    const arr = JSON.parse(raw) as ColKey[];
+    const valid = COLUMN_DEFS.map((c) => c.key);
+    const kept = arr.filter((k) => valid.includes(k));
+    // Always include locked columns
+    COLUMN_DEFS.filter((c) => c.locked).forEach((c) => {
+      if (!kept.includes(c.key)) kept.push(c.key);
+    });
+    return kept.length ? kept : defaultVisibleKeys;
+  } catch {
+    return defaultVisibleKeys;
+  }
+};
 
 interface RepairRow {
   id: string;
@@ -109,6 +159,18 @@ export default function RepairReport() {
   // Pagination
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState<PageSize>(10);
+
+  // Column visibility
+  const [visibleCols, setVisibleCols] = useState<ColKey[]>(() => loadVisibleCols());
+  useEffect(() => {
+    try { localStorage.setItem(COL_LS_KEY, JSON.stringify(visibleCols)); } catch {}
+  }, [visibleCols]);
+  const isVisible = (k: ColKey) => visibleCols.includes(k);
+  const toggleCol = (k: ColKey) => {
+    const def = COLUMN_DEFS.find((c) => c.key === k);
+    if (def?.locked) return;
+    setVisibleCols((prev) => prev.includes(k) ? prev.filter((x) => x !== k) : [...prev, k]);
+  };
 
   const fetchRows = async () => {
     setLoading(true);
@@ -296,29 +358,48 @@ export default function RepairReport() {
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
   const paged = filtered.slice((page - 1) * pageSize, page * pageSize);
 
-  const handleExport = () => {
-    const data = filtered.map((r) => ({
-      "เลขที่ ASM": r.document_no,
-      "วันที่ซ่อมเสร็จ": r.repair_completed_at ? format(parseISO(r.repair_completed_at), "dd/MM/yyyy HH:mm") : "-",
-      "ประเภทเครื่อง": deviceLabel(r.mp_device_type),
-      "รหัสอุปกรณ์": r.mp_code || "-",
-      "ชื่ออุปกรณ์": r.mp_name || "-",
-      "ยี่ห้อ": r.mp_brand || "-",
-      "ฝ่าย": r.mp_department || "-",
-      "Remote Name": r.mp_remote_name || "-",
-      "S/N": r.serial_number || "-",
-      "ประเภทงานซ่อม": (r.repair_scope || []).map((s) => s === "hardware" ? "Hardware" : "Software").join(", "),
-      "รายการซ่อม": (r.repair_actions_snapshot || []).map((a) => a.name).join(", "),
-      "รายละเอียด": r.repair_description || "",
-      "ผู้ซ่อม": r.assessor_name || "-",
-      "ค่าใช้จ่าย (บาท)": r.repair_cost || 0,
-      "ผลการซ่อม": RESULT_LABEL[r.repair_result || ""]?.label || "-",
-    }));
+  const buildExportRow = (r: RepairRow, includeHidden: boolean) => {
+    const show = (k: ColKey) => includeHidden || isVisible(k);
+    const bbHist = r.media_player_id ? (bbHistMap.get(r.media_player_id) || []) : [];
+    const bbSummary = bbHist.slice(0, 4).map((h) => {
+      const start = h.installation_date ? format(parseISO(h.installation_date), "dd/MM/yy") : "-";
+      const end = h.uninstall_date ? format(parseISO(h.uninstall_date), "dd/MM/yy") : "ยังติดตั้งอยู่";
+      const dur = formatDuration(daysBetween(h.installation_date, h.uninstall_date));
+      const reason = h.uninstall_reason ? ` [เหตุ: ${h.uninstall_reason}]` : "";
+      return `${h.billboard_label} — ${start} → ${end} (${dur})${reason}`;
+    }).join("\n") + (bbHist.length > 4 ? `\n+ อีก ${bbHist.length - 4} รายการ` : "");
+    const repeatN = r.media_player_id ? (repeatCountByMp.get(r.media_player_id) || 0) : 0;
+    const row: Record<string, any> = {};
+    if (show("document_no"))  row["เลขที่ ASM"] = r.document_no;
+    if (show("completed_at")) row["วันที่ซ่อมเสร็จ"] = r.repair_completed_at ? format(parseISO(r.repair_completed_at), "dd/MM/yyyy HH:mm") : "-";
+    if (show("device_type"))  row["ประเภทเครื่อง"] = deviceLabel(r.mp_device_type);
+    if (show("device")) {
+      row["รหัสอุปกรณ์"] = r.mp_code || "-";
+      row["ชื่ออุปกรณ์"] = r.mp_name || "-";
+      row["ยี่ห้อ"] = r.mp_brand || "-";
+      row["Remote Name"] = r.mp_remote_name || "-";
+    }
+    if (show("department"))   row["ฝ่าย"] = r.mp_department || "-";
+    if (show("serial"))       row["S/N"] = r.serial_number || "-";
+    if (show("repeat"))       row["ครั้งที่ซ่อม"] = repeatN || 0;
+    if (show("scope"))        row["ประเภทงานซ่อม"] = (r.repair_scope || []).map((s) => s === "hardware" ? "Hardware" : "Software").join(", ");
+    if (show("actions"))      row["รายการซ่อม"] = (r.repair_actions_snapshot || []).map((a) => a.name).join(", ");
+    if (show("description"))  row["รายละเอียด"] = r.repair_description || "";
+    if (show("assessor"))     row["ผู้ซ่อม"] = r.assessor_name || "-";
+    if (show("cost"))         row["ค่าใช้จ่าย (บาท)"] = r.repair_cost || 0;
+    if (show("result"))       row["ผลการซ่อม"] = RESULT_LABEL[r.repair_result || ""]?.label || "-";
+    if (show("bb_history"))   row["ประวัติป้ายที่เคยติดตั้ง"] = bbSummary || "-";
+    return row;
+  };
+
+  const handleExport = (includeHidden = false) => {
+    if (filtered.length === 0) return;
+    const data = filtered.map((r) => buildExportRow(r, includeHidden));
     const ws = XLSX.utils.json_to_sheet(data);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "รายงานงานซ่อมเอง");
-    XLSX.writeFile(wb, `repair-report-${format(new Date(), "yyyyMMdd-HHmm")}.xlsx`);
-    toast.success("ส่งออกไฟล์เรียบร้อย");
+    XLSX.writeFile(wb, `repair-report_${format(new Date(), "yyyy-MM-dd_HHmm")}.xlsx`);
+    toast.success(`ส่งออก ${data.length} รายการ${includeHidden ? " (ทุกคอลัมน์)" : ""} เรียบร้อย`);
   };
 
   return (
@@ -331,13 +412,57 @@ export default function RepairReport() {
           </h1>
           <p className="text-muted-foreground mt-1">สถิติการซ่อมเอง — Media Player และ จอภาพ (Monitor) รวมในหน้าเดียว</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           <Button variant="outline" onClick={fetchRows} disabled={loading}>
             <RefreshCw className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`} /> โหลดใหม่
           </Button>
-          <Button onClick={handleExport} disabled={filtered.length === 0}>
-            <Download className="h-4 w-4 mr-2" /> ส่งออก Excel
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline">
+                <ColumnsIcon className="h-4 w-4 mr-2" /> คอลัมน์ ({visibleCols.length}/{COLUMN_DEFS.length})
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-64 max-h-[70vh] overflow-auto">
+              <DropdownMenuLabel>เลือกคอลัมน์ที่ต้องการแสดง</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              {COLUMN_DEFS.map((c) => (
+                <DropdownMenuCheckboxItem
+                  key={c.key}
+                  checked={isVisible(c.key)}
+                  disabled={c.locked}
+                  onCheckedChange={() => toggleCol(c.key)}
+                  onSelect={(e) => e.preventDefault()}
+                >
+                  {c.label}{c.locked && <span className="ml-1 text-[10px] text-muted-foreground">(ล็อก)</span>}
+                </DropdownMenuCheckboxItem>
+              ))}
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onSelect={(e) => { e.preventDefault(); setVisibleCols(COLUMN_DEFS.map((c) => c.key)); }}>
+                เลือกทั้งหมด
+              </DropdownMenuItem>
+              <DropdownMenuItem onSelect={(e) => { e.preventDefault(); setVisibleCols(COLUMN_DEFS.filter((c) => c.locked).map((c) => c.key)); }}>
+                ล้าง (เหลือเฉพาะที่ล็อก)
+              </DropdownMenuItem>
+              <DropdownMenuItem onSelect={(e) => { e.preventDefault(); setVisibleCols(defaultVisibleKeys); }}>
+                ค่าเริ่มต้น
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button disabled={filtered.length === 0}>
+                <Download className="h-4 w-4 mr-2" /> ส่งออก Excel
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onSelect={() => handleExport(false)}>
+                ส่งออกเฉพาะคอลัมน์ที่แสดง
+              </DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => handleExport(true)}>
+                ส่งออกทุกคอลัมน์
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
 
@@ -585,27 +710,27 @@ export default function RepairReport() {
             <Table>
               <TableHeader className="sticky top-0 bg-background z-10">
                 <TableRow>
-                  <TableHead className="whitespace-nowrap">ASM</TableHead>
-                  <TableHead className="whitespace-nowrap">วันที่ซ่อม</TableHead>
-                  <TableHead className="whitespace-nowrap">ประเภท</TableHead>
-                  <TableHead className="whitespace-nowrap">อุปกรณ์</TableHead>
-                  <TableHead className="whitespace-nowrap">ฝ่าย</TableHead>
-                  <TableHead className="whitespace-nowrap">S/N</TableHead>
-                  <TableHead className="whitespace-nowrap text-center">ครั้งที่ซ่อม</TableHead>
-                  <TableHead className="whitespace-nowrap">ประเภทงาน</TableHead>
-                  <TableHead className="whitespace-nowrap">รายการซ่อม</TableHead>
-                  <TableHead className="whitespace-nowrap">รายละเอียด</TableHead>
-                  <TableHead className="whitespace-nowrap">ผู้ซ่อม</TableHead>
-                  <TableHead className="whitespace-nowrap text-right">ค่าใช้จ่าย</TableHead>
-                  <TableHead className="whitespace-nowrap">ผล</TableHead>
-                  <TableHead className="whitespace-nowrap min-w-[320px]">ประวัติป้ายที่เคยติดตั้ง</TableHead>
+                  {isVisible("document_no")  && <TableHead className="whitespace-nowrap">ASM</TableHead>}
+                  {isVisible("completed_at") && <TableHead className="whitespace-nowrap">วันที่ซ่อม</TableHead>}
+                  {isVisible("device_type")  && <TableHead className="whitespace-nowrap">ประเภท</TableHead>}
+                  {isVisible("device")       && <TableHead className="whitespace-nowrap">อุปกรณ์</TableHead>}
+                  {isVisible("department")   && <TableHead className="whitespace-nowrap">ฝ่าย</TableHead>}
+                  {isVisible("serial")       && <TableHead className="whitespace-nowrap">S/N</TableHead>}
+                  {isVisible("repeat")       && <TableHead className="whitespace-nowrap text-center">ครั้งที่ซ่อม</TableHead>}
+                  {isVisible("scope")        && <TableHead className="whitespace-nowrap">ประเภทงาน</TableHead>}
+                  {isVisible("actions")      && <TableHead className="whitespace-nowrap">รายการซ่อม</TableHead>}
+                  {isVisible("description")  && <TableHead className="whitespace-nowrap">รายละเอียด</TableHead>}
+                  {isVisible("assessor")     && <TableHead className="whitespace-nowrap">ผู้ซ่อม</TableHead>}
+                  {isVisible("cost")         && <TableHead className="whitespace-nowrap text-right">ค่าใช้จ่าย</TableHead>}
+                  {isVisible("result")       && <TableHead className="whitespace-nowrap">ผล</TableHead>}
+                  {isVisible("bb_history")   && <TableHead className="whitespace-nowrap min-w-[320px]">ประวัติป้ายที่เคยติดตั้ง</TableHead>}
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {loading ? (
-                  <TableRow><TableCell colSpan={14} className="text-center py-8 text-muted-foreground">กำลังโหลด...</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={visibleCols.length} className="text-center py-8 text-muted-foreground">กำลังโหลด...</TableCell></TableRow>
                 ) : paged.length === 0 ? (
-                  <TableRow><TableCell colSpan={14} className="text-center py-8 text-muted-foreground">ไม่มีข้อมูล</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={visibleCols.length} className="text-center py-8 text-muted-foreground">ไม่มีข้อมูล</TableCell></TableRow>
                 ) : paged.map((r) => {
                   const meta = RESULT_LABEL[r.repair_result || ""];
                   const Icon = meta?.icon;
@@ -614,95 +739,123 @@ export default function RepairReport() {
                   const bbHist = r.media_player_id ? (bbHistMap.get(r.media_player_id) || []) : [];
                   return (
                     <TableRow key={r.id}>
-                      <TableCell className="font-mono text-xs whitespace-nowrap">{r.document_no}</TableCell>
-                      <TableCell className="text-xs whitespace-nowrap">
-                        {r.repair_completed_at ? format(parseISO(r.repair_completed_at), "dd MMM yy HH:mm", { locale: th }) : "-"}
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant={isMonitor(r.mp_device_type) ? "outline" : "secondary"} className="text-[10px]">
-                          {deviceLabel(r.mp_device_type)}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <div className="font-medium text-sm whitespace-nowrap">{r.mp_code || "-"}</div>
-                        <div className="text-xs text-muted-foreground truncate max-w-[200px]">{r.mp_name || ""}</div>
-                        {r.mp_brand && <div className="text-[10px] text-muted-foreground">{r.mp_brand}</div>}
-                      </TableCell>
-                      <TableCell className="text-xs whitespace-nowrap">{r.mp_department || "-"}</TableCell>
-                      <TableCell className="font-mono text-xs whitespace-nowrap">{r.serial_number || "-"}</TableCell>
-                      <TableCell className="text-center">
-                        {repeatBk ? (
-                          <Badge
-                            variant={repeatN > 6 ? "destructive" : repeatN > 4 ? "default" : "secondary"}
-                            className="text-[10px]"
-                          >
-                            {repeatN} ครั้ง
+                      {isVisible("document_no") && (
+                        <TableCell className="font-mono text-xs whitespace-nowrap">{r.document_no}</TableCell>
+                      )}
+                      {isVisible("completed_at") && (
+                        <TableCell className="text-xs whitespace-nowrap">
+                          {r.repair_completed_at ? format(parseISO(r.repair_completed_at), "dd MMM yy HH:mm", { locale: th }) : "-"}
+                        </TableCell>
+                      )}
+                      {isVisible("device_type") && (
+                        <TableCell>
+                          <Badge variant={isMonitor(r.mp_device_type) ? "outline" : "secondary"} className="text-[10px]">
+                            {deviceLabel(r.mp_device_type)}
                           </Badge>
-                        ) : "-"}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex flex-wrap gap-1">
-                          {(r.repair_scope || []).map((s) => (
-                            <Badge key={s} variant={s === "hardware" ? "secondary" : "outline"} className="text-[10px] px-1.5 py-0 gap-0.5">
-                              {s === "hardware" ? <Cpu className="h-2.5 w-2.5" /> : <Code2 className="h-2.5 w-2.5" />}
-                              {s === "hardware" ? "HW" : "SW"}
+                        </TableCell>
+                      )}
+                      {isVisible("device") && (
+                        <TableCell>
+                          <div className="font-medium text-sm whitespace-nowrap">{r.mp_code || "-"}</div>
+                          <div className="text-xs text-muted-foreground truncate max-w-[200px]">{r.mp_name || ""}</div>
+                          {r.mp_brand && <div className="text-[10px] text-muted-foreground">{r.mp_brand}</div>}
+                        </TableCell>
+                      )}
+                      {isVisible("department") && (
+                        <TableCell className="text-xs whitespace-nowrap">{r.mp_department || "-"}</TableCell>
+                      )}
+                      {isVisible("serial") && (
+                        <TableCell className="font-mono text-xs whitespace-nowrap">{r.serial_number || "-"}</TableCell>
+                      )}
+                      {isVisible("repeat") && (
+                        <TableCell className="text-center">
+                          {repeatBk ? (
+                            <Badge
+                              variant={repeatN > 6 ? "destructive" : repeatN > 4 ? "default" : "secondary"}
+                              className="text-[10px]"
+                            >
+                              {repeatN} ครั้ง
                             </Badge>
-                          ))}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex flex-wrap gap-1 max-w-[240px]">
-                          {(r.repair_actions_snapshot || []).map((a) => (
-                            <Badge key={a.id} variant="outline" className="text-[10px] px-1.5 py-0">{a.name}</Badge>
-                          ))}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="text-xs text-muted-foreground max-w-[240px] whitespace-pre-line line-clamp-3">
-                          {r.repair_description || "-"}
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-xs whitespace-nowrap">{r.assessor_name || "-"}</TableCell>
-                      <TableCell className="text-right font-mono text-xs whitespace-nowrap">{(r.repair_cost || 0).toLocaleString()}</TableCell>
-                      <TableCell>
-                        {meta && (
-                          <Badge variant="outline" className={`text-[10px] gap-1 whitespace-nowrap ${meta.className}`}>
-                            <Icon className="h-3 w-3" />
-                            {meta.label}
-                          </Badge>
-                        )}
-                      </TableCell>
-                      <TableCell className="min-w-[320px]">
-                        {bbHist.length === 0 ? (
-                          <span className="text-xs text-muted-foreground">— ไม่พบประวัติ —</span>
-                        ) : (
-                          <div className="space-y-1">
-                            {bbHist.slice(0, 4).map((h, i) => {
-                              const dur = daysBetween(h.installation_date, h.uninstall_date);
-                              const isCurrent = !h.uninstall_date;
-                              return (
-                                <div key={i} className="text-[11px] leading-tight border-l-2 pl-2 py-0.5"
-                                  style={{ borderColor: isCurrent ? "hsl(var(--success))" : "hsl(var(--border))" }}>
-                                  <div className="font-medium truncate max-w-[300px]">{h.billboard_label}</div>
-                                  <div className="text-muted-foreground">
-                                    {h.installation_date ? format(parseISO(h.installation_date), "dd/MM/yy") : "-"}
-                                    {" → "}
-                                    {isCurrent ? <span className="text-success font-medium">ยังติดตั้งอยู่</span> :
-                                      (h.uninstall_date ? format(parseISO(h.uninstall_date), "dd/MM/yy") : "-")}
-                                    <span className="ml-1 font-mono">({formatDuration(dur)})</span>
-                                  </div>
-                                  {h.uninstall_reason && (
-                                    <div className="text-muted-foreground italic truncate max-w-[300px]">เหตุ: {h.uninstall_reason}</div>
-                                  )}
-                                </div>
-                              );
-                            })}
-                            {bbHist.length > 4 && (
-                              <div className="text-[10px] text-muted-foreground">+ อีก {bbHist.length - 4} รายการ</div>
-                            )}
+                          ) : "-"}
+                        </TableCell>
+                      )}
+                      {isVisible("scope") && (
+                        <TableCell>
+                          <div className="flex flex-wrap gap-1">
+                            {(r.repair_scope || []).map((s) => (
+                              <Badge key={s} variant={s === "hardware" ? "secondary" : "outline"} className="text-[10px] px-1.5 py-0 gap-0.5">
+                                {s === "hardware" ? <Cpu className="h-2.5 w-2.5" /> : <Code2 className="h-2.5 w-2.5" />}
+                                {s === "hardware" ? "HW" : "SW"}
+                              </Badge>
+                            ))}
                           </div>
-                        )}
-                      </TableCell>
+                        </TableCell>
+                      )}
+                      {isVisible("actions") && (
+                        <TableCell>
+                          <div className="flex flex-wrap gap-1 max-w-[240px]">
+                            {(r.repair_actions_snapshot || []).map((a) => (
+                              <Badge key={a.id} variant="outline" className="text-[10px] px-1.5 py-0">{a.name}</Badge>
+                            ))}
+                          </div>
+                        </TableCell>
+                      )}
+                      {isVisible("description") && (
+                        <TableCell>
+                          <div className="text-xs text-muted-foreground max-w-[240px] whitespace-pre-line line-clamp-3">
+                            {r.repair_description || "-"}
+                          </div>
+                        </TableCell>
+                      )}
+                      {isVisible("assessor") && (
+                        <TableCell className="text-xs whitespace-nowrap">{r.assessor_name || "-"}</TableCell>
+                      )}
+                      {isVisible("cost") && (
+                        <TableCell className="text-right font-mono text-xs whitespace-nowrap">{(r.repair_cost || 0).toLocaleString()}</TableCell>
+                      )}
+                      {isVisible("result") && (
+                        <TableCell>
+                          {meta && (
+                            <Badge variant="outline" className={`text-[10px] gap-1 whitespace-nowrap ${meta.className}`}>
+                              <Icon className="h-3 w-3" />
+                              {meta.label}
+                            </Badge>
+                          )}
+                        </TableCell>
+                      )}
+                      {isVisible("bb_history") && (
+                        <TableCell className="min-w-[320px]">
+                          {bbHist.length === 0 ? (
+                            <span className="text-xs text-muted-foreground">— ไม่พบประวัติ —</span>
+                          ) : (
+                            <div className="space-y-1">
+                              {bbHist.slice(0, 4).map((h, i) => {
+                                const dur = daysBetween(h.installation_date, h.uninstall_date);
+                                const isCurrent = !h.uninstall_date;
+                                return (
+                                  <div key={i} className="text-[11px] leading-tight border-l-2 pl-2 py-0.5"
+                                    style={{ borderColor: isCurrent ? "hsl(var(--success))" : "hsl(var(--border))" }}>
+                                    <div className="font-medium truncate max-w-[300px]">{h.billboard_label}</div>
+                                    <div className="text-muted-foreground">
+                                      {h.installation_date ? format(parseISO(h.installation_date), "dd/MM/yy") : "-"}
+                                      {" → "}
+                                      {isCurrent ? <span className="text-success font-medium">ยังติดตั้งอยู่</span> :
+                                        (h.uninstall_date ? format(parseISO(h.uninstall_date), "dd/MM/yy") : "-")}
+                                      <span className="ml-1 font-mono">({formatDuration(dur)})</span>
+                                    </div>
+                                    {h.uninstall_reason && (
+                                      <div className="text-muted-foreground italic truncate max-w-[300px]">เหตุ: {h.uninstall_reason}</div>
+                                    )}
+                                  </div>
+                                );
+                              })}
+                              {bbHist.length > 4 && (
+                                <div className="text-[10px] text-muted-foreground">+ อีก {bbHist.length - 4} รายการ</div>
+                              )}
+                            </div>
+                          )}
+                        </TableCell>
+                      )}
                     </TableRow>
                   );
                 })}
