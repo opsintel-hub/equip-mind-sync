@@ -74,7 +74,7 @@ export function SwapWarehouseReceive() {
       // Find approved swap_executions whose old unit is still pending_warehouse_return
       const { data: execs, error } = await supabase
         .from("swap_executions")
-        .select("swap_request_id, old_media_player_id, old_equipment_id, old_serial_number, return_location_id, swap_requests:swap_request_id(id, document_no, technician_name, completed_at, status, description, symptom_other, reported_photos)")
+        .select("id, swap_request_id, old_media_player_id, old_equipment_id, old_serial_number, return_location_id, executed_at, executed_by, result, notes, before_photo_urls, after_photo_urls, spare_type, spare_media_player_id, spare_equipment_id, spare_serial_number, swap_requests:swap_request_id(id, document_no, technician_name, completed_at, status, priority, description, symptom_other, reported_photos, created_at, created_by, billboard_id, symptom_id)")
         .eq("result", "approved")
         .order("created_at", { ascending: false })
         .limit(500);
@@ -83,8 +83,16 @@ export function SwapWarehouseReceive() {
       const mpIds = Array.from(new Set((execs || []).map((e: any) => e.old_media_player_id).filter(Boolean)));
       const eqIds = Array.from(new Set((execs || []).map((e: any) => e.old_equipment_id).filter(Boolean)));
       const locIds = Array.from(new Set((execs || []).map((e: any) => e.return_location_id).filter(Boolean)));
+      const bbIds = Array.from(new Set((execs || []).map((e: any) => e.swap_requests?.billboard_id).filter(Boolean)));
+      const symIds = Array.from(new Set((execs || []).map((e: any) => e.swap_requests?.symptom_id).filter(Boolean)));
+      const userIds = Array.from(new Set([
+        ...(execs || []).map((e: any) => e.executed_by).filter(Boolean),
+        ...(execs || []).map((e: any) => e.swap_requests?.created_by).filter(Boolean),
+      ]));
+      const spareMpIds = Array.from(new Set((execs || []).map((e: any) => e.spare_media_player_id).filter(Boolean)));
+      const spareEqIds = Array.from(new Set((execs || []).map((e: any) => e.spare_equipment_id).filter(Boolean)));
 
-      const [mpRes, eqRes, locRes] = await Promise.all([
+      const [mpRes, eqRes, locRes, bbRes, symRes, profRes, spMpRes, spEqRes] = await Promise.all([
         mpIds.length
           ? supabase.from("media_players").select("id, code, name, serial_number_1, serial_number_2, status").in("id", mpIds as string[])
           : Promise.resolve({ data: [] as any[] }),
@@ -93,6 +101,21 @@ export function SwapWarehouseReceive() {
           : Promise.resolve({ data: [] as any[] }),
         locIds.length
           ? supabase.from("locations").select("id, name, warehouse_id, warehouses:warehouse_id(id, name, department)").in("id", locIds as string[])
+          : Promise.resolve({ data: [] as any[] }),
+        bbIds.length
+          ? supabase.from("billboards").select("id, code, name").in("id", bbIds as string[])
+          : Promise.resolve({ data: [] as any[] }),
+        symIds.length
+          ? supabase.from("mp_symptoms").select("id, label").in("id", symIds as string[])
+          : Promise.resolve({ data: [] as any[] }),
+        userIds.length
+          ? supabase.from("profiles").select("id, full_name").in("id", userIds as string[])
+          : Promise.resolve({ data: [] as any[] }),
+        spareMpIds.length
+          ? supabase.from("media_players").select("id, code, name").in("id", spareMpIds as string[])
+          : Promise.resolve({ data: [] as any[] }),
+        spareEqIds.length
+          ? supabase.from("equipment").select("id, code, name").in("id", spareEqIds as string[])
           : Promise.resolve({ data: [] as any[] }),
       ]);
 
@@ -104,6 +127,40 @@ export function SwapWarehouseReceive() {
         eqSnByEqId.set(s.equipment_id, arr);
       });
       const locMap = new Map<string, any>(((locRes as any).data || []).map((x: any) => [x.id, x]));
+      const bbMap = new Map<string, any>(((bbRes as any).data || []).map((x: any) => [x.id, x]));
+      const symMap = new Map<string, any>(((symRes as any).data || []).map((x: any) => [x.id, x]));
+      const profMap = new Map<string, any>(((profRes as any).data || []).map((x: any) => [x.id, x]));
+      const spMpMap = new Map<string, any>(((spMpRes as any).data || []).map((x: any) => [x.id, x]));
+      const spEqMap = new Map<string, any>(((spEqRes as any).data || []).map((x: any) => [x.id, x]));
+
+      const buildTimeline = (e: any, req: any, oldCode: string): TimelineData => {
+        const bb = req.billboard_id ? bbMap.get(req.billboard_id) : null;
+        const sym = req.symptom_id ? symMap.get(req.symptom_id) : null;
+        const spareLabel = e.spare_type === "media_player" && e.spare_media_player_id
+          ? (() => { const s = spMpMap.get(e.spare_media_player_id); return s ? `${s.code} — ${s.name}` : null; })()
+          : e.spare_type === "equipment" && e.spare_equipment_id
+          ? (() => { const s = spEqMap.get(e.spare_equipment_id); return s ? `${s.code} — ${s.name}` : null; })()
+          : null;
+        const isCross = !!(spareLabel && oldCode && !spareLabel.startsWith(oldCode));
+        return {
+          request_created_at: req.created_at || null,
+          request_status: req.status || null,
+          request_priority: req.priority || null,
+          billboard_code: bb?.code || null,
+          billboard_name: bb?.name || null,
+          symptom_label: sym?.label || req.symptom_other || null,
+          reported_by_name: req.created_by ? profMap.get(req.created_by)?.full_name || null : null,
+          execution_at: e.executed_at || null,
+          execution_by_name: e.executed_by ? profMap.get(e.executed_by)?.full_name || null : null,
+          execution_result: e.result || null,
+          execution_notes: e.notes || null,
+          spare_label: spareLabel,
+          spare_serial: e.spare_serial_number || null,
+          before_photos: Array.isArray(e.before_photo_urls) ? e.before_photo_urls : [],
+          after_photos: Array.isArray(e.after_photo_urls) ? e.after_photo_urls : [],
+          is_cross_model: isCross,
+        };
+      };
 
       const out: PendingRow[] = [];
       (execs || []).forEach((e: any) => {
@@ -133,6 +190,7 @@ export function SwapWarehouseReceive() {
               description: req.description || null,
               symptom_other: req.symptom_other || null,
               reported_photos: Array.isArray(req.reported_photos) ? req.reported_photos : [],
+              timeline: buildTimeline(e, req, mp.code || ""),
             });
           }
         } else if (e.old_equipment_id) {
@@ -156,6 +214,7 @@ export function SwapWarehouseReceive() {
               description: req.description || null,
               symptom_other: req.symptom_other || null,
               reported_photos: Array.isArray(req.reported_photos) ? req.reported_photos : [],
+              timeline: buildTimeline(e, req, matched.equipment?.code || ""),
             });
           }
         }
@@ -163,6 +222,7 @@ export function SwapWarehouseReceive() {
       setRows(out);
     } catch (e: any) {
       toast.error("โหลดรายการไม่สำเร็จ: " + (e?.message || ""));
+
     } finally {
       setLoading(false);
     }
