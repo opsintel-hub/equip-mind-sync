@@ -84,6 +84,7 @@ interface LogDetail {
   sub_media_type?: string | null;
   brand?: string | null;
   model?: string | null;
+  remote_name?: string | null;
   source_photos?: string[];
   symptom_label?: string | null;
   source_description?: string | null;
