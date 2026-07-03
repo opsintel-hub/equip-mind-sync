@@ -12,6 +12,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { LocationSelect } from "@/components/location/LocationSelect";
 import { RepairActionsMultiSelect, RepairActionOption } from "./RepairActionsMultiSelect";
 import { toast } from "sonner";
+import { Link } from "react-router-dom";
+import { ExternalLink, ShieldCheck, ShieldX, ShieldAlert } from "lucide-react";
 
 interface RepairCompleteDialogProps {
   open: boolean;
