@@ -725,14 +725,11 @@ export function AssessmentCompleteDialog({ open, onOpenChange, log, onCompleted 
 
       } else if (outcome === "self_repair") {
         await cancelStaleRejectedDR("self_repair");
-        if (repairSuccess) {
-          // ซ่อมสำเร็จ → คืนกลับ Spare (active + refurbished)
-          await flipStatus("active", "in_stock", true, 1);
-        } else {
-          await flipStatus("under_repair", "under_repair", false, 0);
-        }
+        // เข้าสถานะกำลังซ่อม รอปิดงานที่ Tab "งานซ่อมเอง" (RepairCompleteDialog)
+        await flipStatus("under_repair", "under_repair", false, 0);
 
       }
+
 
 
 
