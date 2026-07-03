@@ -51,6 +51,8 @@ interface AssessmentLog {
   created_at: string;
   repair_status?: string | null;
   photo_urls?: string[] | null;
+  repair_scope?: string[] | null;
+  repair_actions_snapshot?: Array<{ id: string; name: string; scope: string }> | null;
 }
 
 interface SubjectOption {
@@ -185,7 +187,7 @@ export default function AssessmentLog() {
     if (error) {
       toast.error("โหลดข้อมูลไม่สำเร็จ");
     } else {
-      const rows = (data as AssessmentLog[]) || [];
+      const rows = ((data as unknown) as AssessmentLog[]) || [];
       setLogs(rows);
       // Fetch any rejected DR tickets linked to these assessments
       const ids = rows.filter(l => l.status === "pending").map(l => l.id);
@@ -798,6 +800,24 @@ export default function AssessmentLog() {
               <span className="font-medium text-foreground">รายละเอียดการซ่อม:</span>{" "}
               <span className="text-muted-foreground">{log.outcome === "self_repair" ? (log.repair_description || "—") : "—"}</span>
             </div>
+            {log.outcome === "self_repair" && Array.isArray(log.repair_scope) && log.repair_scope.length > 0 && (
+              <div className="sm:col-span-2 flex flex-wrap items-center gap-1.5">
+                <span className="font-medium text-foreground text-sm">ประเภท:</span>
+                {log.repair_scope.map((s) => (
+                  <Badge key={s} variant={s === "hardware" ? "secondary" : "outline"} className="text-[10px] px-1.5 py-0">
+                    {s === "hardware" ? "🔧 Hardware" : "💻 Software"}
+                  </Badge>
+                ))}
+                {Array.isArray(log.repair_actions_snapshot) && log.repair_actions_snapshot.length > 0 && (
+                  <>
+                    <span className="font-medium text-foreground text-sm ml-2">รายการซ่อม:</span>
+                    {log.repair_actions_snapshot.map((a) => (
+                      <Badge key={a.id} variant="outline" className="text-[10px] px-1.5 py-0">{a.name}</Badge>
+                    ))}
+                  </>
+                )}
+              </div>
+            )}
           </div>
           {/* Footer: Assessor / Date */}
           <div className="text-xs text-muted-foreground pt-1">
@@ -1251,7 +1271,7 @@ export default function AssessmentLog() {
       <RepairCompleteDialog
         open={repairDialogOpen}
         onOpenChange={setRepairDialogOpen}
-        assessmentLog={repairTargetLog}
+        assessmentLog={repairTargetLog ? { ...repairTargetLog, device_type: logDetails[repairTargetLog.id]?.device_type ?? null } : null}
         onCompleted={() => {
           setRepairDialogOpen(false);
           setRepairTargetLog(null);

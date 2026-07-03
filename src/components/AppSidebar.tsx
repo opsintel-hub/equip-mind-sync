@@ -241,6 +241,7 @@ const menuGroups: MenuGroup[] = [
       { title: "Swap อุปกรณ์/MP", url: "/swap", icon: ArrowLeftRight, functionName: "goods_issue" },
       { title: "บันทึกการประเมิน", url: "/assessment", icon: ClipboardCheck, functionName: "goods_issue" },
       { title: "ติดตามการเคลม", url: "/claims", icon: FileCheck2, functionName: "goods_issue" },
+      { title: "รายงานงานซ่อมเอง", url: "/repair-report", icon: Wrench, functionName: "reports" },
     ]
   },
   {

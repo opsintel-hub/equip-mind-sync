@@ -8,7 +8,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Checkbox } from "@/components/ui/checkbox";
 import { LocationSelect } from "@/components/location/LocationSelect";
+import { RepairActionsMultiSelect, RepairActionOption } from "./RepairActionsMultiSelect";
 import { toast } from "sonner";
 
 interface RepairCompleteDialogProps {
@@ -19,6 +21,7 @@ interface RepairCompleteDialogProps {
     document_no: string;
     media_player_id: string | null;
     serial_number: string | null;
+    device_type?: string | null;
   } | null;
   onCompleted: () => void;
 }
@@ -34,28 +37,44 @@ export function RepairCompleteDialog({ open, onOpenChange, assessmentLog, onComp
   const [description, setDescription] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
+  // Repair scope + actions
+  const [scopeHW, setScopeHW] = useState(false);
+  const [scopeSW, setScopeSW] = useState(false);
+  const [actionIds, setActionIds] = useState<string[]>([]);
+  const [actionSnapshot, setActionSnapshot] = useState<RepairActionOption[]>([]);
+
   useEffect(() => {
     if (open) {
       setResult("repaired");
       setLocationId("");
       setCost("");
       setDescription("");
+      setScopeHW(false);
+      setScopeSW(false);
+      setActionIds([]);
+      setActionSnapshot([]);
     }
   }, [open]);
 
+  const scopeFilter = [
+    ...(scopeHW ? (["hardware"] as const) : []),
+    ...(scopeSW ? (["software"] as const) : []),
+  ];
+
+  const actionsSummary = actionSnapshot.map((a) => a.name).join(", ");
+
   const handleSubmit = async () => {
     if (!assessmentLog) return;
-    if (result === "repaired" && !locationId) {
-      toast.error("กรุณาเลือกคลังปลายทาง");
-      return;
-    }
-    if (!description.trim()) {
-      toast.error("กรุณาบันทึกรายละเอียดการซ่อม");
-      return;
-    }
+    if (result === "repaired" && !locationId) { toast.error("กรุณาเลือกคลังปลายทาง"); return; }
+    if (!scopeHW && !scopeSW) { toast.error("กรุณาเลือกประเภทงานซ่อม (Hardware/Software)"); return; }
+    if (actionIds.length === 0) { toast.error("กรุณาเลือกรายการที่ซ่อม/เปลี่ยน อย่างน้อย 1 รายการ"); return; }
+    if (!description.trim()) { toast.error("กรุณาบันทึกรายละเอียดการซ่อม"); return; }
 
     setSubmitting(true);
     try {
+      const scopeArr = [scopeHW ? "hardware" : null, scopeSW ? "software" : null].filter(Boolean) as string[];
+      const enrichedDescription = `[${scopeArr.join("+")}] ${actionsSummary ? actionsSummary + " — " : ""}${description.trim()}`;
+
       // 1) Update assessment_logs
       const repairStatus = result === "repaired" ? "repaired" : "failed";
       await supabase
@@ -68,6 +87,9 @@ export function RepairCompleteDialog({ open, onOpenChange, assessmentLog, onComp
           repair_cost: cost ? parseFloat(cost) : null,
           return_location_id: result === "repaired" ? locationId : null,
           repair_description: description.trim(),
+          repair_scope: scopeArr,
+          repair_action_ids: actionIds,
+          repair_actions_snapshot: actionSnapshot as any,
         })
         .eq("id", assessmentLog.id);
 
@@ -108,7 +130,7 @@ export function RepairCompleteDialog({ open, onOpenChange, assessmentLog, onComp
               company_id: mpRow.company_id,
               item_condition: "refurbished",
               created_by: user?.id ?? null,
-              notes: `ซ่อมเองสำเร็จ — คืนคลังพร้อมเบิก (refurbished). ${description.trim()}`,
+              notes: `ซ่อมเองสำเร็จ — คืนคลังพร้อมเบิก (refurbished). ${enrichedDescription}`,
             });
           }
           toast.success("บันทึกการซ่อมและคืนคลังเรียบร้อย — เครื่องพร้อมเบิก");
@@ -122,7 +144,7 @@ export function RepairCompleteDialog({ open, onOpenChange, assessmentLog, onComp
                 isMediaPlayer: true,
                 itemId: assessmentLog.media_player_id,
                 serial: assessmentLog.serial_number,
-                symptomDescription: `ซ่อมเองไม่ได้: ${description.trim()}`,
+                symptomDescription: `ซ่อมเองไม่ได้: ${enrichedDescription}`,
               },
             },
           });
@@ -137,7 +159,7 @@ export function RepairCompleteDialog({ open, onOpenChange, assessmentLog, onComp
                 isMediaPlayer: true,
                 itemId: assessmentLog.media_player_id,
                 serial: assessmentLog.serial_number,
-                symptomDescription: `ซ่อมเองไม่ได้ ส่งเคลม: ${description.trim()}`,
+                symptomDescription: `ซ่อมเองไม่ได้ ส่งเคลม: ${enrichedDescription}`,
               },
             },
           });
@@ -192,6 +214,32 @@ export function RepairCompleteDialog({ open, onOpenChange, assessmentLog, onComp
             </RadioGroup>
           </div>
 
+          {/* Repair scope */}
+          <div className="space-y-2">
+            <Label>ประเภทงานซ่อม * <span className="text-xs text-muted-foreground font-normal">(เลือกได้หลายรายการ)</span></Label>
+            <div className="flex gap-4 rounded-lg border p-3">
+              <label className="flex items-center gap-2 text-sm cursor-pointer">
+                <Checkbox checked={scopeHW} onCheckedChange={(v) => setScopeHW(!!v)} />
+                <span>🔧 Hardware</span>
+              </label>
+              <label className="flex items-center gap-2 text-sm cursor-pointer">
+                <Checkbox checked={scopeSW} onCheckedChange={(v) => setScopeSW(!!v)} />
+                <span>💻 Software</span>
+              </label>
+            </div>
+          </div>
+
+          {/* Repair actions multi-select */}
+          <div className="space-y-2">
+            <Label>รายการที่ซ่อม/เปลี่ยน * <span className="text-xs text-muted-foreground font-normal">(เลือกได้หลายรายการ / เพิ่มใหม่ได้)</span></Label>
+            <RepairActionsMultiSelect
+              deviceType={assessmentLog?.device_type}
+              scopeFilter={scopeFilter as ("hardware" | "software")[]}
+              selectedIds={actionIds}
+              onChange={(ids, snap) => { setActionIds(ids); setActionSnapshot(snap); }}
+            />
+          </div>
+
           {result === "repaired" && (
             <div className="space-y-2">
               <Label>คลังปลายทาง *</Label>
@@ -205,7 +253,7 @@ export function RepairCompleteDialog({ open, onOpenChange, assessmentLog, onComp
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               rows={3}
-              placeholder="อะไหล่ที่เปลี่ยน / วิธีซ่อม / สาเหตุที่ซ่อมไม่ได้"
+              placeholder="รายละเอียดเพิ่มเติม / วิธีซ่อม / สาเหตุที่ซ่อมไม่ได้"
             />
           </div>
 

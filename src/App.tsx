@@ -70,6 +70,7 @@ const MediaPlayerReport = lazy(() => import("./pages/MediaPlayerReport"));
 const KPIReport = lazy(() => import("./pages/KPIReport"));
 const SwapWizard = lazy(() => import("./pages/SwapWizard"));
 const AssessmentLog = lazy(() => import("./pages/AssessmentLog"));
+const RepairReport = lazy(() => import("./pages/RepairReport"));
 const ClaimTracker = lazy(() => import("./pages/ClaimTracker"));
 const DatabaseGuide = lazy(() => import("./pages/DatabaseGuide"));
 const StockReconciliation = lazy(() => import("./pages/StockReconciliation"));
@@ -158,6 +159,7 @@ const App = () => (
             <Route path="/media-player-report" element={<Protected><MediaPlayerReport /></Protected>} />
             <Route path="/swap" element={<Protected><SwapWizard /></Protected>} />
             <Route path="/assessment" element={<Protected><AssessmentLog /></Protected>} />
+            <Route path="/repair-report" element={<Protected><RepairReport /></Protected>} />
             <Route path="/claims" element={<Protected><ClaimTracker /></Protected>} />
             <Route path="/ad-entry" element={<Protected><AdEntry /></Protected>} />
             <Route path="/ad-receive" element={<Protected><AdManagement /></Protected>} />
