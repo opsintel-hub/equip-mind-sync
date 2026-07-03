@@ -41,6 +41,49 @@ interface RepairRow {
   mp_remote_name?: string;
 }
 
+interface BillboardHist {
+  billboard_id: string;
+  billboard_label: string;
+  installation_date: string | null;
+  uninstall_date: string | null;
+  uninstall_reason: string | null;
+}
+
+type RepeatBucket = "all" | "1-2" | "3-4" | "5-6" | ">6";
+
+const bucketOf = (n: number): Exclude<RepeatBucket, "all"> => {
+  if (n <= 2) return "1-2";
+  if (n <= 4) return "3-4";
+  if (n <= 6) return "5-6";
+  return ">6";
+};
+
+const BUCKET_META: Record<Exclude<RepeatBucket, "all">, { label: string; color: string }> = {
+  "1-2": { label: "ซ่อม 1-2 ครั้ง", color: "bg-success" },
+  "3-4": { label: "ซ่อม 3-4 ครั้ง", color: "bg-primary" },
+  "5-6": { label: "ซ่อม 5-6 ครั้ง", color: "bg-warning" },
+  ">6": { label: "ซ่อม > 6 ครั้ง", color: "bg-destructive" },
+};
+
+const daysBetween = (a?: string | null, b?: string | null) => {
+  if (!a) return null;
+  const start = new Date(a).getTime();
+  const end = b ? new Date(b).getTime() : Date.now();
+  if (isNaN(start) || isNaN(end)) return null;
+  return Math.max(0, Math.round((end - start) / 86400000));
+};
+
+const formatDuration = (days: number | null) => {
+  if (days == null) return "-";
+  if (days < 30) return `${days} วัน`;
+  const months = Math.floor(days / 30);
+  const rest = days % 30;
+  if (months < 12) return rest ? `${months} ด. ${rest} วัน` : `${months} เดือน`;
+  const years = Math.floor(months / 12);
+  const rm = months % 12;
+  return rm ? `${years} ปี ${rm} ด.` : `${years} ปี`;
+};
+
 const RESULT_LABEL: Record<string, { label: string; className: string; icon: any }> = {
   repaired: { label: "ซ่อมสำเร็จ", className: "bg-success/15 text-success border-success/30", icon: CheckCircle2 },
   failed_defective: { label: "ซ่อมไม่ได้ → ของเสีย", className: "bg-destructive/15 text-destructive border-destructive/30", icon: XCircle },
