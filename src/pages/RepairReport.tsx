@@ -358,29 +358,48 @@ export default function RepairReport() {
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
   const paged = filtered.slice((page - 1) * pageSize, page * pageSize);
 
-  const handleExport = () => {
-    const data = filtered.map((r) => ({
-      "เลขที่ ASM": r.document_no,
-      "วันที่ซ่อมเสร็จ": r.repair_completed_at ? format(parseISO(r.repair_completed_at), "dd/MM/yyyy HH:mm") : "-",
-      "ประเภทเครื่อง": deviceLabel(r.mp_device_type),
-      "รหัสอุปกรณ์": r.mp_code || "-",
-      "ชื่ออุปกรณ์": r.mp_name || "-",
-      "ยี่ห้อ": r.mp_brand || "-",
-      "ฝ่าย": r.mp_department || "-",
-      "Remote Name": r.mp_remote_name || "-",
-      "S/N": r.serial_number || "-",
-      "ประเภทงานซ่อม": (r.repair_scope || []).map((s) => s === "hardware" ? "Hardware" : "Software").join(", "),
-      "รายการซ่อม": (r.repair_actions_snapshot || []).map((a) => a.name).join(", "),
-      "รายละเอียด": r.repair_description || "",
-      "ผู้ซ่อม": r.assessor_name || "-",
-      "ค่าใช้จ่าย (บาท)": r.repair_cost || 0,
-      "ผลการซ่อม": RESULT_LABEL[r.repair_result || ""]?.label || "-",
-    }));
+  const buildExportRow = (r: RepairRow, includeHidden: boolean) => {
+    const show = (k: ColKey) => includeHidden || isVisible(k);
+    const bbHist = r.media_player_id ? (bbHistMap.get(r.media_player_id) || []) : [];
+    const bbSummary = bbHist.slice(0, 4).map((h) => {
+      const start = h.installation_date ? format(parseISO(h.installation_date), "dd/MM/yy") : "-";
+      const end = h.uninstall_date ? format(parseISO(h.uninstall_date), "dd/MM/yy") : "ยังติดตั้งอยู่";
+      const dur = formatDuration(daysBetween(h.installation_date, h.uninstall_date));
+      const reason = h.uninstall_reason ? ` [เหตุ: ${h.uninstall_reason}]` : "";
+      return `${h.billboard_label} — ${start} → ${end} (${dur})${reason}`;
+    }).join("\n") + (bbHist.length > 4 ? `\n+ อีก ${bbHist.length - 4} รายการ` : "");
+    const repeatN = r.media_player_id ? (repeatCountByMp.get(r.media_player_id) || 0) : 0;
+    const row: Record<string, any> = {};
+    if (show("document_no"))  row["เลขที่ ASM"] = r.document_no;
+    if (show("completed_at")) row["วันที่ซ่อมเสร็จ"] = r.repair_completed_at ? format(parseISO(r.repair_completed_at), "dd/MM/yyyy HH:mm") : "-";
+    if (show("device_type"))  row["ประเภทเครื่อง"] = deviceLabel(r.mp_device_type);
+    if (show("device")) {
+      row["รหัสอุปกรณ์"] = r.mp_code || "-";
+      row["ชื่ออุปกรณ์"] = r.mp_name || "-";
+      row["ยี่ห้อ"] = r.mp_brand || "-";
+      row["Remote Name"] = r.mp_remote_name || "-";
+    }
+    if (show("department"))   row["ฝ่าย"] = r.mp_department || "-";
+    if (show("serial"))       row["S/N"] = r.serial_number || "-";
+    if (show("repeat"))       row["ครั้งที่ซ่อม"] = repeatN || 0;
+    if (show("scope"))        row["ประเภทงานซ่อม"] = (r.repair_scope || []).map((s) => s === "hardware" ? "Hardware" : "Software").join(", ");
+    if (show("actions"))      row["รายการซ่อม"] = (r.repair_actions_snapshot || []).map((a) => a.name).join(", ");
+    if (show("description"))  row["รายละเอียด"] = r.repair_description || "";
+    if (show("assessor"))     row["ผู้ซ่อม"] = r.assessor_name || "-";
+    if (show("cost"))         row["ค่าใช้จ่าย (บาท)"] = r.repair_cost || 0;
+    if (show("result"))       row["ผลการซ่อม"] = RESULT_LABEL[r.repair_result || ""]?.label || "-";
+    if (show("bb_history"))   row["ประวัติป้ายที่เคยติดตั้ง"] = bbSummary || "-";
+    return row;
+  };
+
+  const handleExport = (includeHidden = false) => {
+    if (filtered.length === 0) return;
+    const data = filtered.map((r) => buildExportRow(r, includeHidden));
     const ws = XLSX.utils.json_to_sheet(data);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "รายงานงานซ่อมเอง");
-    XLSX.writeFile(wb, `repair-report-${format(new Date(), "yyyyMMdd-HHmm")}.xlsx`);
-    toast.success("ส่งออกไฟล์เรียบร้อย");
+    XLSX.writeFile(wb, `repair-report_${format(new Date(), "yyyy-MM-dd_HHmm")}.xlsx`);
+    toast.success(`ส่งออก ${data.length} รายการ${includeHidden ? " (ทุกคอลัมน์)" : ""} เรียบร้อย`);
   };
 
   return (
