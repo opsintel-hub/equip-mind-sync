@@ -222,7 +222,7 @@ export default function AssessmentLog() {
           mpIds.length
             ? supabase
                 .from("media_players")
-                .select("id, code, name, serial_number_1, serial_number_2, device_type, sub_media_type, brand, model_id, billboard_id")
+                .select("id, code, name, serial_number_1, serial_number_2, device_type, sub_media_type, brand, model_id, billboard_id, remote_name")
                 .in("id", mpIds)
             : Promise.resolve({ data: [] as any[] }),
           eqIds.length
