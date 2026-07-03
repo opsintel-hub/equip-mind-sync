@@ -861,10 +861,36 @@ export default function AssessmentLog() {
                   .join(" — ") || "—"}
               </span>
             </div>
+            {log.recommended_action && (
+              <div className="sm:col-span-2">
+                <span className="font-medium text-foreground">คำแนะนำ:</span>{" "}
+                <span className="text-muted-foreground">{log.recommended_action}</span>
+              </div>
+            )}
+            {log.notes && (
+              <div className="sm:col-span-2">
+                <span className="font-medium text-foreground">หมายเหตุ:</span>{" "}
+                <span className="text-muted-foreground">{log.notes}</span>
+              </div>
+            )}
             {log.outcome === "self_repair" && log.repair_description && (
               <div className="sm:col-span-2">
                 <span className="font-medium text-foreground">รายละเอียดการซ่อม:</span>{" "}
                 <span className="text-muted-foreground">{log.repair_description}</span>
+              </div>
+            )}
+            {log.outcome === "self_repair" && (log.repair_result || log.repair_completed_at || (typeof (log as any).repair_cost === "number" && (log as any).repair_cost > 0)) && (
+              <div className="sm:col-span-2 flex flex-wrap gap-x-4 gap-y-0.5 text-xs">
+                {log.repair_result && <span><span className="font-medium text-foreground">ผลซ่อม:</span> <span className="text-muted-foreground">{log.repair_result}</span></span>}
+                {log.repair_completed_at && <span><span className="font-medium text-foreground">ซ่อมเสร็จ:</span> <span className="text-muted-foreground">{format(new Date(log.repair_completed_at), "dd MMM yyyy", { locale: th })}</span></span>}
+                {typeof (log as any).repair_cost === "number" && (log as any).repair_cost > 0 && <span><span className="font-medium text-foreground">ค่าซ่อม:</span> <span className="text-muted-foreground">฿{Number((log as any).repair_cost).toLocaleString()}</span></span>}
+              </div>
+            )}
+            {log.outcome === "claim" && (log.external_repair_vendor || log.external_repair_contact || log.external_repair_phone) && (
+              <div className="sm:col-span-2 flex flex-wrap gap-x-4 gap-y-0.5 text-xs">
+                {log.external_repair_vendor && <span><span className="font-medium text-foreground">Vendor:</span> <span className="text-muted-foreground">{log.external_repair_vendor}</span></span>}
+                {log.external_repair_contact && <span><span className="font-medium text-foreground">ผู้ติดต่อ:</span> <span className="text-muted-foreground">{log.external_repair_contact}</span></span>}
+                {log.external_repair_phone && <span><span className="font-medium text-foreground">โทร:</span> <span className="text-muted-foreground">{log.external_repair_phone}</span></span>}
               </div>
             )}
             {log.outcome === "self_repair" && Array.isArray(log.repair_scope) && log.repair_scope.length > 0 && (
@@ -911,8 +937,11 @@ export default function AssessmentLog() {
                         <div className="flex-1 min-w-0 flex flex-wrap gap-x-3 gap-y-0.5">
                           <span className="font-mono font-semibold">{detail.swap_doc_no}</span>
                           {detail.swap_created_at && <span className="text-muted-foreground">{format(new Date(detail.swap_created_at), "dd MMM yy HH:mm", { locale: th })}</span>}
-                          {detail.swap_technician_name && <span className="text-muted-foreground">ช่าง: <span className="text-foreground">{detail.swap_technician_name}</span></span>}
+                          {detail.swap_technician_name && <span className="text-muted-foreground">ช่าง: <span className="text-foreground">{detail.swap_technician_name}</span>{detail.swap_technician_phone && <span className="text-muted-foreground"> ({detail.swap_technician_phone})</span>}</span>}
+                          {detail.swap_priority && <span className="text-muted-foreground">Priority: <span className="text-foreground">{detail.swap_priority}</span></span>}
                           {detail.swap_status && <Badge variant="outline" className="text-[10px] h-4 px-1">{detail.swap_status}</Badge>}
+                          {detail.source_description && <span className="w-full text-[11px] text-muted-foreground">อาการที่แจ้ง: <span className="text-foreground">{detail.source_description}</span></span>}
+                          {detail.swap_notes && <span className="w-full text-[11px] text-muted-foreground">หมายเหตุ: <span className="text-foreground">{detail.swap_notes}</span></span>}
                         </div>
                       </div>
                     )}
@@ -924,7 +953,13 @@ export default function AssessmentLog() {
                           {detail.defective_created_at && <span className="text-muted-foreground">{format(new Date(detail.defective_created_at), "dd MMM yy HH:mm", { locale: th })}</span>}
                           {detail.defective_reporter_name && <span className="text-muted-foreground">แจ้ง: <span className="text-foreground">{detail.defective_reporter_name}</span></span>}
                           {detail.defective_confirmed_by_name && <span className="text-muted-foreground">ตรวจ: <span className="text-foreground">{detail.defective_confirmed_by_name}</span></span>}
-                          {detail.defective_notes && <span className="text-muted-foreground w-full">หมายเหตุ: <span className="text-foreground">{detail.defective_notes}</span></span>}
+                          {detail.defective_item_condition && <Badge variant="outline" className="text-[10px] h-4 px-1">สภาพ: {detail.defective_item_condition}</Badge>}
+                          {detail.defective_disposal_method && <Badge variant="outline" className="text-[10px] h-4 px-1">จัดการ: {detail.defective_disposal_method}</Badge>}
+                          {detail.defective_status && <Badge variant="outline" className="text-[10px] h-4 px-1">{detail.defective_status}</Badge>}
+                          {detail.defective_reason && <span className="w-full text-[11px] text-muted-foreground">เหตุผล: <span className="text-foreground">{detail.defective_reason}</span></span>}
+                          {detail.defective_notes && <span className="w-full text-[11px] text-muted-foreground">หมายเหตุ: <span className="text-foreground">{detail.defective_notes}</span></span>}
+                          {detail.defective_disposal_notes && <span className="w-full text-[11px] text-muted-foreground">หมายเหตุจัดการ: <span className="text-foreground">{detail.defective_disposal_notes}</span></span>}
+                          {detail.defective_rejection_reason && <span className="w-full text-[11px] text-destructive">เหตุผลที่ถูก reject: <span className="text-foreground">{detail.defective_rejection_reason}</span>{detail.defective_rejected_by_name && <span className="text-muted-foreground"> โดย {detail.defective_rejected_by_name}</span>}</span>}
                         </div>
                       </div>
                     )}
