@@ -92,9 +92,15 @@ interface LogDetail {
   source_description?: string | null;
   swap_doc_no?: string | null;
   swap_technician_name?: string | null;
+  swap_created_at?: string | null;
+  swap_status?: string | null;
+  swap_priority?: string | null;
   defective_doc_no?: string | null;
   defective_confirmed_by_name?: string | null;
   defective_reporter_name?: string | null;
+  defective_created_at?: string | null;
+  defective_status?: string | null;
+  defective_notes?: string | null;
 }
 
 
