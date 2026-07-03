@@ -412,13 +412,57 @@ export default function RepairReport() {
           </h1>
           <p className="text-muted-foreground mt-1">สถิติการซ่อมเอง — Media Player และ จอภาพ (Monitor) รวมในหน้าเดียว</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           <Button variant="outline" onClick={fetchRows} disabled={loading}>
             <RefreshCw className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`} /> โหลดใหม่
           </Button>
-          <Button onClick={handleExport} disabled={filtered.length === 0}>
-            <Download className="h-4 w-4 mr-2" /> ส่งออก Excel
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline">
+                <ColumnsIcon className="h-4 w-4 mr-2" /> คอลัมน์ ({visibleCols.length}/{COLUMN_DEFS.length})
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-64 max-h-[70vh] overflow-auto">
+              <DropdownMenuLabel>เลือกคอลัมน์ที่ต้องการแสดง</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              {COLUMN_DEFS.map((c) => (
+                <DropdownMenuCheckboxItem
+                  key={c.key}
+                  checked={isVisible(c.key)}
+                  disabled={c.locked}
+                  onCheckedChange={() => toggleCol(c.key)}
+                  onSelect={(e) => e.preventDefault()}
+                >
+                  {c.label}{c.locked && <span className="ml-1 text-[10px] text-muted-foreground">(ล็อก)</span>}
+                </DropdownMenuCheckboxItem>
+              ))}
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onSelect={(e) => { e.preventDefault(); setVisibleCols(COLUMN_DEFS.map((c) => c.key)); }}>
+                เลือกทั้งหมด
+              </DropdownMenuItem>
+              <DropdownMenuItem onSelect={(e) => { e.preventDefault(); setVisibleCols(COLUMN_DEFS.filter((c) => c.locked).map((c) => c.key)); }}>
+                ล้าง (เหลือเฉพาะที่ล็อก)
+              </DropdownMenuItem>
+              <DropdownMenuItem onSelect={(e) => { e.preventDefault(); setVisibleCols(defaultVisibleKeys); }}>
+                ค่าเริ่มต้น
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button disabled={filtered.length === 0}>
+                <Download className="h-4 w-4 mr-2" /> ส่งออก Excel
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onSelect={() => handleExport(false)}>
+                ส่งออกเฉพาะคอลัมน์ที่แสดง
+              </DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => handleExport(true)}>
+                ส่งออกทุกคอลัมน์
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
 
