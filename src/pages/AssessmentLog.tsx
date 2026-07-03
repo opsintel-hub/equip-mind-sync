@@ -335,9 +335,15 @@ export default function AssessmentLog() {
           const commonSourceChain: Partial<LogDetail> = {
             swap_doc_no: swap?.document_no || null,
             swap_technician_name: swap?.technician_name || null,
+            swap_created_at: swap?.created_at || null,
+            swap_status: swap?.status || null,
+            swap_priority: swap?.priority || null,
             defective_doc_no: dr?.document_no || null,
             defective_confirmed_by_name: dr?.confirmed_by_name || null,
             defective_reporter_name: dr?.reporter_name || null,
+            defective_created_at: dr?.created_at || null,
+            defective_status: dr?.status || null,
+            defective_notes: dr?.notes || null,
           };
 
           if (log.media_player_id) {
