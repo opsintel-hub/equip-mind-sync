@@ -7,12 +7,33 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { PackageCheck, Truck, Search } from "lucide-react";
+import { PackageCheck, Truck, Search, History, ChevronDown, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import { th } from "date-fns/locale";
 import { SimpleDepartmentSelect } from "@/components/equipment/SimpleDepartmentSelect";
 import { WarehouseLocationSelect } from "@/components/location/WarehouseLocationSelect";
 import { PhotoGalleryDialog } from "@/components/ui/PhotoGalleryDialog";
+
+
+interface TimelineData {
+  request_created_at: string | null;
+  request_status: string | null;
+  request_priority: string | null;
+  billboard_code: string | null;
+  billboard_name: string | null;
+  symptom_label: string | null;
+  reported_by_name: string | null;
+  execution_at: string | null;
+  execution_by_name: string | null;
+  execution_result: string | null;
+  execution_notes: string | null;
+  spare_label: string | null;
+  spare_serial: string | null;
+  before_photos: string[];
+  after_photos: string[];
+  is_cross_model: boolean;
+}
 
 interface PendingRow {
   id: string; // swap request id
@@ -31,7 +52,9 @@ interface PendingRow {
   description: string | null;
   symptom_other: string | null;
   reported_photos: string[];
+  timeline: TimelineData;
 }
+
 
 export function SwapWarehouseReceive() {
   const { user } = useAuth();
@@ -44,6 +67,9 @@ export function SwapWarehouseReceive() {
   const [warehouseId, setWarehouseId] = useState("");
   const [locationId, setLocationId] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  const toggleExpand = (key: string) => setExpanded((prev) => ({ ...prev, [key]: !prev[key] }));
+
 
   const load = async () => {
     setLoading(true);
@@ -51,7 +77,7 @@ export function SwapWarehouseReceive() {
       // Find approved swap_executions whose old unit is still pending_warehouse_return
       const { data: execs, error } = await supabase
         .from("swap_executions")
-        .select("swap_request_id, old_media_player_id, old_equipment_id, old_serial_number, return_location_id, swap_requests:swap_request_id(id, document_no, technician_name, completed_at, status, description, symptom_other, reported_photos)")
+        .select("id, swap_request_id, old_media_player_id, old_equipment_id, old_serial_number, return_location_id, executed_at, executed_by, result, notes, before_photo_urls, after_photo_urls, spare_type, spare_media_player_id, spare_equipment_id, spare_serial_number, swap_requests:swap_request_id(id, document_no, technician_name, completed_at, status, priority, description, symptom_other, reported_photos, created_at, created_by, billboard_id, symptom_id)")
         .eq("result", "approved")
         .order("created_at", { ascending: false })
         .limit(500);
@@ -60,8 +86,16 @@ export function SwapWarehouseReceive() {
       const mpIds = Array.from(new Set((execs || []).map((e: any) => e.old_media_player_id).filter(Boolean)));
       const eqIds = Array.from(new Set((execs || []).map((e: any) => e.old_equipment_id).filter(Boolean)));
       const locIds = Array.from(new Set((execs || []).map((e: any) => e.return_location_id).filter(Boolean)));
+      const bbIds = Array.from(new Set((execs || []).map((e: any) => e.swap_requests?.billboard_id).filter(Boolean)));
+      const symIds = Array.from(new Set((execs || []).map((e: any) => e.swap_requests?.symptom_id).filter(Boolean)));
+      const userIds = Array.from(new Set([
+        ...(execs || []).map((e: any) => e.executed_by).filter(Boolean),
+        ...(execs || []).map((e: any) => e.swap_requests?.created_by).filter(Boolean),
+      ]));
+      const spareMpIds = Array.from(new Set((execs || []).map((e: any) => e.spare_media_player_id).filter(Boolean)));
+      const spareEqIds = Array.from(new Set((execs || []).map((e: any) => e.spare_equipment_id).filter(Boolean)));
 
-      const [mpRes, eqRes, locRes] = await Promise.all([
+      const [mpRes, eqRes, locRes, bbRes, symRes, profRes, spMpRes, spEqRes] = await Promise.all([
         mpIds.length
           ? supabase.from("media_players").select("id, code, name, serial_number_1, serial_number_2, status").in("id", mpIds as string[])
           : Promise.resolve({ data: [] as any[] }),
@@ -70,6 +104,21 @@ export function SwapWarehouseReceive() {
           : Promise.resolve({ data: [] as any[] }),
         locIds.length
           ? supabase.from("locations").select("id, name, warehouse_id, warehouses:warehouse_id(id, name, department)").in("id", locIds as string[])
+          : Promise.resolve({ data: [] as any[] }),
+        bbIds.length
+          ? supabase.from("billboards").select("id, code, name").in("id", bbIds as string[])
+          : Promise.resolve({ data: [] as any[] }),
+        symIds.length
+          ? supabase.from("mp_symptoms").select("id, label").in("id", symIds as string[])
+          : Promise.resolve({ data: [] as any[] }),
+        userIds.length
+          ? supabase.from("profiles").select("id, full_name").in("id", userIds as string[])
+          : Promise.resolve({ data: [] as any[] }),
+        spareMpIds.length
+          ? supabase.from("media_players").select("id, code, name").in("id", spareMpIds as string[])
+          : Promise.resolve({ data: [] as any[] }),
+        spareEqIds.length
+          ? supabase.from("equipment").select("id, code, name").in("id", spareEqIds as string[])
           : Promise.resolve({ data: [] as any[] }),
       ]);
 
@@ -81,6 +130,40 @@ export function SwapWarehouseReceive() {
         eqSnByEqId.set(s.equipment_id, arr);
       });
       const locMap = new Map<string, any>(((locRes as any).data || []).map((x: any) => [x.id, x]));
+      const bbMap = new Map<string, any>(((bbRes as any).data || []).map((x: any) => [x.id, x]));
+      const symMap = new Map<string, any>(((symRes as any).data || []).map((x: any) => [x.id, x]));
+      const profMap = new Map<string, any>(((profRes as any).data || []).map((x: any) => [x.id, x]));
+      const spMpMap = new Map<string, any>(((spMpRes as any).data || []).map((x: any) => [x.id, x]));
+      const spEqMap = new Map<string, any>(((spEqRes as any).data || []).map((x: any) => [x.id, x]));
+
+      const buildTimeline = (e: any, req: any, oldCode: string): TimelineData => {
+        const bb = req.billboard_id ? bbMap.get(req.billboard_id) : null;
+        const sym = req.symptom_id ? symMap.get(req.symptom_id) : null;
+        const spareLabel = e.spare_type === "media_player" && e.spare_media_player_id
+          ? (() => { const s = spMpMap.get(e.spare_media_player_id); return s ? `${s.code} — ${s.name}` : null; })()
+          : e.spare_type === "equipment" && e.spare_equipment_id
+          ? (() => { const s = spEqMap.get(e.spare_equipment_id); return s ? `${s.code} — ${s.name}` : null; })()
+          : null;
+        const isCross = !!(spareLabel && oldCode && !spareLabel.startsWith(oldCode));
+        return {
+          request_created_at: req.created_at || null,
+          request_status: req.status || null,
+          request_priority: req.priority || null,
+          billboard_code: bb?.code || null,
+          billboard_name: bb?.name || null,
+          symptom_label: sym?.label || req.symptom_other || null,
+          reported_by_name: req.created_by ? profMap.get(req.created_by)?.full_name || null : null,
+          execution_at: e.executed_at || null,
+          execution_by_name: e.executed_by ? profMap.get(e.executed_by)?.full_name || null : null,
+          execution_result: e.result || null,
+          execution_notes: e.notes || null,
+          spare_label: spareLabel,
+          spare_serial: e.spare_serial_number || null,
+          before_photos: Array.isArray(e.before_photo_urls) ? e.before_photo_urls : [],
+          after_photos: Array.isArray(e.after_photo_urls) ? e.after_photo_urls : [],
+          is_cross_model: isCross,
+        };
+      };
 
       const out: PendingRow[] = [];
       (execs || []).forEach((e: any) => {
@@ -110,6 +193,7 @@ export function SwapWarehouseReceive() {
               description: req.description || null,
               symptom_other: req.symptom_other || null,
               reported_photos: Array.isArray(req.reported_photos) ? req.reported_photos : [],
+              timeline: buildTimeline(e, req, mp.code || ""),
             });
           }
         } else if (e.old_equipment_id) {
@@ -133,6 +217,7 @@ export function SwapWarehouseReceive() {
               description: req.description || null,
               symptom_other: req.symptom_other || null,
               reported_photos: Array.isArray(req.reported_photos) ? req.reported_photos : [],
+              timeline: buildTimeline(e, req, matched.equipment?.code || ""),
             });
           }
         }
@@ -140,6 +225,7 @@ export function SwapWarehouseReceive() {
       setRows(out);
     } catch (e: any) {
       toast.error("โหลดรายการไม่สำเร็จ: " + (e?.message || ""));
+
     } finally {
       setLoading(false);
     }
@@ -277,43 +363,133 @@ export function SwapWarehouseReceive() {
           </div>
         ) : (
           <div className="space-y-2">
-            {filtered.map((r) => (
-              <div key={`${r.id}-${r.item_id}`} className="flex items-center justify-between gap-4 p-4 rounded-lg border hover:bg-accent/50 flex-wrap">
-                <div className="flex-1 min-w-[220px] space-y-1">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="font-mono font-semibold">{r.document_no}</span>
-                    <Badge variant="secondary">{r.asset_kind === "media_player" ? "Media Player" : "Equipment"}</Badge>
-                    <Badge className="bg-amber-100 text-amber-800 border-amber-300">รอเข้าคลัง</Badge>
-                    {r.serial_number && (
-                      <Badge variant="outline" className="font-mono text-xs">S/N: {r.serial_number}</Badge>
-                    )}
-                    {r.reported_photos.length > 0 && (
-                      <PhotoGalleryDialog
-                        photos={r.reported_photos}
-                        title={`รูปประกอบ ${r.document_no}`}
-                      />
-                    )}
-                  </div>
-                  <div className="text-sm font-medium">
-                    {r.item_code} — {r.item_name}
-                  </div>
-                  {(r.description || r.symptom_other) && (
-                    <div className="text-xs">
-                      <span className="font-medium text-foreground">อาการ:</span>{" "}
-                      <span className="text-muted-foreground">{r.description || r.symptom_other}</span>
+            {filtered.map((r) => {
+              const key = `${r.id}-${r.item_id}`;
+              const isOpen = !!expanded[key];
+              const t = r.timeline;
+              return (
+              <div key={key} className="rounded-lg border hover:bg-accent/50">
+                <div className="flex items-center justify-between gap-4 p-4 flex-wrap">
+                  <div className="flex-1 min-w-[220px] space-y-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-mono font-semibold">{r.document_no}</span>
+                      <Badge variant="secondary">{r.asset_kind === "media_player" ? "Media Player" : "Equipment"}</Badge>
+                      <Badge className="bg-amber-100 text-amber-800 border-amber-300">รอเข้าคลัง</Badge>
+                      {r.serial_number && (
+                        <Badge variant="outline" className="font-mono text-xs">S/N: {r.serial_number}</Badge>
+                      )}
+                      {t.is_cross_model && (
+                        <Badge variant="outline" className="text-xs border-amber-400 text-amber-700">ข้ามรุ่น</Badge>
+                      )}
+                      {r.reported_photos.length > 0 && (
+                        <PhotoGalleryDialog
+                          photos={r.reported_photos}
+                          title={`รูปประกอบ ${r.document_no}`}
+                        />
+                      )}
                     </div>
-                  )}
-                  <div className="text-xs text-muted-foreground">
-                    คลังปลายทาง: <span className="font-medium">{r.return_location_label || "ยังไม่ระบุ"}</span>
-                    {r.technician_name && <> • ช่าง: {r.technician_name}</>}
-                    {r.completed_at && <> • อนุมัติเมื่อ: {format(new Date(r.completed_at), "dd/MM/yy HH:mm")}</>}
+                    <div className="text-sm font-medium">
+                      {r.item_code} — {r.item_name}
+                    </div>
+                    {(r.description || r.symptom_other) && (
+                      <div className="text-xs">
+                        <span className="font-medium text-foreground">อาการ:</span>{" "}
+                        <span className="text-muted-foreground">{r.description || r.symptom_other}</span>
+                      </div>
+                    )}
+                    <div className="text-xs text-muted-foreground">
+                      คลังปลายทาง: <span className="font-medium">{r.return_location_label || "ยังไม่ระบุ"}</span>
+                      {r.technician_name && <> • ช่าง: {r.technician_name}</>}
+                      {r.completed_at && <> • อนุมัติเมื่อ: {format(new Date(r.completed_at), "dd/MM/yy HH:mm")}</>}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => toggleExpand(key)}
+                      className="inline-flex items-center gap-1 text-xs text-primary hover:underline mt-1"
+                    >
+                      {isOpen ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+                      <History className="h-3 w-3" />
+                      {isOpen ? "ซ่อนประวัติต้นทาง" : "ดูประวัติต้นทาง (Timeline)"}
+                    </button>
                   </div>
+                  <Button onClick={() => openConfirm(r)}>
+                    <PackageCheck className="h-4 w-4 mr-2" /> ยืนยันรับเข้าคลัง
+                  </Button>
                 </div>
-                <Button onClick={() => openConfirm(r)}>
-                  <PackageCheck className="h-4 w-4 mr-2" /> ยืนยันรับเข้าคลัง
-                </Button>
+                {isOpen && (
+                  <div className="px-4 pb-4 pt-0 space-y-2">
+                    {/* Step 1: Swap request */}
+                    <div className="flex items-start gap-2 text-xs rounded border-l-2 border-primary bg-primary/5 px-2 py-1.5">
+                      <Badge className="text-[10px] bg-primary text-primary-foreground shrink-0">1. คำขอ Swap</Badge>
+                      <div className="flex-1 min-w-0 flex flex-wrap gap-x-3 gap-y-0.5">
+                        <span className="font-mono font-semibold">{r.document_no}</span>
+                        {t.request_created_at && (
+                          <span className="text-muted-foreground">{format(new Date(t.request_created_at), "dd MMM yy HH:mm", { locale: th })}</span>
+                        )}
+                        {t.request_priority && (
+                          <Badge variant="outline" className="text-[10px] h-4 px-1">Priority: {t.request_priority}</Badge>
+                        )}
+                        {t.reported_by_name && <span className="text-muted-foreground">แจ้งโดย: <span className="text-foreground">{t.reported_by_name}</span></span>}
+                        {r.technician_name && <span className="text-muted-foreground">ช่าง: <span className="text-foreground">{r.technician_name}</span></span>}
+                        {(t.billboard_code || t.billboard_name) && (
+                          <span className="w-full text-[11px] text-muted-foreground">
+                            ป้าย: <span className="text-foreground">{[t.billboard_code, t.billboard_name].filter(Boolean).join(" — ")}</span>
+                          </span>
+                        )}
+                        {t.symptom_label && (
+                          <span className="w-full text-[11px] text-muted-foreground">อาการที่แจ้ง: <span className="text-foreground">{t.symptom_label}</span></span>
+                        )}
+                        {r.description && (
+                          <span className="w-full text-[11px] text-muted-foreground">รายละเอียด: <span className="text-foreground">{r.description}</span></span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Step 2: Swap execution approved */}
+                    <div className="flex items-start gap-2 text-xs rounded border-l-2 border-success bg-success/5 px-2 py-1.5">
+                      <Badge className="text-[10px] bg-success text-success-foreground shrink-0">2. Swap สำเร็จ</Badge>
+                      <div className="flex-1 min-w-0 flex flex-wrap gap-x-3 gap-y-0.5">
+                        {t.execution_at && (
+                          <span className="text-muted-foreground">{format(new Date(t.execution_at), "dd MMM yy HH:mm", { locale: th })}</span>
+                        )}
+                        {t.execution_by_name && <span className="text-muted-foreground">โดย: <span className="text-foreground">{t.execution_by_name}</span></span>}
+                        <Badge variant="outline" className="text-[10px] h-4 px-1">ผล: {t.execution_result || "-"}</Badge>
+                        {t.spare_label && (
+                          <span className="w-full text-[11px] text-muted-foreground">
+                            Spare ที่ติดตั้งแทน: <span className="text-foreground">{t.spare_label}</span>
+                            {t.spare_serial && <> • S/N: <span className="font-mono text-foreground">{t.spare_serial}</span></>}
+                          </span>
+                        )}
+                        {t.execution_notes && (
+                          <span className="w-full text-[11px] text-muted-foreground">หมายเหตุ: <span className="text-foreground">{t.execution_notes}</span></span>
+                        )}
+                        {(t.before_photos.length > 0 || t.after_photos.length > 0) && (
+                          <div className="w-full flex gap-2 mt-1">
+                            {t.before_photos.length > 0 && (
+                              <PhotoGalleryDialog photos={t.before_photos} title={`ก่อน Swap ${r.document_no}`} />
+                            )}
+                            {t.after_photos.length > 0 && (
+                              <PhotoGalleryDialog photos={t.after_photos} title={`หลัง Swap ${r.document_no}`} />
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Step 3: Current — waiting warehouse */}
+                    <div className="flex items-start gap-2 text-xs rounded border-l-2 border-amber-400 bg-amber-50 px-2 py-1.5">
+                      <Badge className="text-[10px] bg-amber-500 text-white shrink-0">3. รอรับเข้าคลัง</Badge>
+                      <div className="flex-1 min-w-0 flex flex-wrap gap-x-3 gap-y-0.5">
+                        <span className="text-muted-foreground">ปลายทาง: <span className="text-foreground">{r.return_location_label || "ยังไม่ระบุ"}</span></span>
+                        <span className="text-muted-foreground">สถานะเครื่อง: <span className="text-foreground">pending_warehouse_return (ยังอยู่กับช่าง)</span></span>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
-            ))}
+              );
+            })}
+
           </div>
         )}
 
