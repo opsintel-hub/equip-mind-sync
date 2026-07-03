@@ -856,6 +856,28 @@ export default function ClaimTracker() {
                                 </Badge>
                               )}
                             </div>
+                            {(() => {
+                              const d = record.media_player_id ? mpDetails[record.media_player_id] : null;
+                              if (!d) return null;
+                              const modelLine = [d.brand, d.model].filter(Boolean).join(" / ");
+                              return (
+                                <div className="grid sm:grid-cols-2 gap-x-4 gap-y-0.5 text-xs text-muted-foreground">
+                                  {d.code && (
+                                    <div><span className="font-medium text-foreground">อุปกรณ์:</span> {d.code}{d.name ? ` — ${d.name}` : ""}</div>
+                                  )}
+                                  {d.billboard_label && (
+                                    <div><span className="font-medium text-foreground">ป้าย:</span> {d.billboard_label}</div>
+                                  )}
+                                  {modelLine && (
+                                    <div><span className="font-medium text-foreground">โมเดล/ยี่ห้อ:</span> {modelLine}</div>
+                                  )}
+                                  <div><span className="font-medium text-foreground">Remote:</span> {d.remote_name || "—"}</div>
+                                  {d.sub_media_type && (
+                                    <div><span className="font-medium text-foreground">ประเภทย่อย:</span> {d.sub_media_type}</div>
+                                  )}
+                                </div>
+                              );
+                            })()}
                             <div className="text-sm text-muted-foreground">
                               {record.symptom_description || "—"}
                             </div>
