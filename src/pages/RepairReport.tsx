@@ -418,38 +418,6 @@ export default function RepairReport() {
           </Button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline">
-                <ColumnsIcon className="h-4 w-4 mr-2" /> คอลัมน์ ({visibleCols.length}/{COLUMN_DEFS.length})
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-64 max-h-[70vh] overflow-auto">
-              <DropdownMenuLabel>เลือกคอลัมน์ที่ต้องการแสดง</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              {COLUMN_DEFS.map((c) => (
-                <DropdownMenuCheckboxItem
-                  key={c.key}
-                  checked={isVisible(c.key)}
-                  disabled={c.locked}
-                  onCheckedChange={() => toggleCol(c.key)}
-                  onSelect={(e) => e.preventDefault()}
-                >
-                  {c.label}{c.locked && <span className="ml-1 text-[10px] text-muted-foreground">(ล็อก)</span>}
-                </DropdownMenuCheckboxItem>
-              ))}
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onSelect={(e) => { e.preventDefault(); setVisibleCols(COLUMN_DEFS.map((c) => c.key)); }}>
-                เลือกทั้งหมด
-              </DropdownMenuItem>
-              <DropdownMenuItem onSelect={(e) => { e.preventDefault(); setVisibleCols(COLUMN_DEFS.filter((c) => c.locked).map((c) => c.key)); }}>
-                ล้าง (เหลือเฉพาะที่ล็อก)
-              </DropdownMenuItem>
-              <DropdownMenuItem onSelect={(e) => { e.preventDefault(); setVisibleCols(defaultVisibleKeys); }}>
-                ค่าเริ่มต้น
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
               <Button disabled={filtered.length === 0}>
                 <Download className="h-4 w-4 mr-2" /> ส่งออก Excel
               </Button>
