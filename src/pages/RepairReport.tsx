@@ -165,15 +165,26 @@ export default function RepairReport() {
   }, [filtered]);
 
   const scopePie = useMemo(() => {
-    let hw = 0, sw = 0;
+    let hwOnly = 0, swOnly = 0, both = 0, none = 0;
     filtered.forEach((r) => {
-      (r.repair_scope || []).forEach((s) => {
-        if (s === "hardware") hw++;
-        else if (s === "software") sw++;
-      });
+      const hasHW = (r.repair_scope || []).includes("hardware");
+      const hasSW = (r.repair_scope || []).includes("software");
+      if (hasHW && hasSW) both++;
+      else if (hasHW) hwOnly++;
+      else if (hasSW) swOnly++;
+      else none++;
     });
-    const total = hw + sw || 1;
-    return { hw, sw, hwPct: Math.round((hw / total) * 100), swPct: Math.round((sw / total) * 100) };
+    const total = hwOnly + swOnly + both || 1;
+    const pct = (n: number) => Math.round((n / total) * 100);
+    return {
+      hwOnly, swOnly, both, none,
+      hwOnlyPct: pct(hwOnly), swOnlyPct: pct(swOnly), bothPct: pct(both),
+      // Aggregate "involves HW" / "involves SW" (each repair counted at most once per axis)
+      involvesHW: hwOnly + both,
+      involvesSW: swOnly + both,
+      involvesHWPct: pct(hwOnly + both),
+      involvesSWPct: pct(swOnly + both),
+    };
   }, [filtered]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
@@ -323,25 +334,56 @@ export default function RepairReport() {
         <Card>
           <CardHeader>
             <CardTitle className="text-base">สัดส่วนประเภทงาน</CardTitle>
+            <CardDescription className="text-xs">
+              นับ 1 งานซ่อม = 1 หน่วย · 1 งานสามารถทำได้ทั้ง HW และ SW พร้อมกัน (นับเป็น "ทั้ง 2 ประเภท")
+            </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-3">
-              <div>
-                <div className="flex items-center justify-between text-sm mb-1">
-                  <span className="flex items-center gap-1"><Cpu className="h-3.5 w-3.5" /> Hardware</span>
-                  <span className="font-mono">{scopePie.hw} ({scopePie.hwPct}%)</span>
+            <div className="space-y-4">
+              {/* Breakdown: mutually exclusive buckets */}
+              <div className="space-y-2">
+                <p className="text-xs font-medium text-muted-foreground">แบ่งตามชนิดของงาน (ไม่ทับซ้อน)</p>
+                <div>
+                  <div className="flex items-center justify-between text-sm mb-1">
+                    <span className="flex items-center gap-1"><Cpu className="h-3.5 w-3.5" /> Hardware อย่างเดียว</span>
+                    <span className="font-mono">{scopePie.hwOnly} ({scopePie.hwOnlyPct}%)</span>
+                  </div>
+                  <div className="h-2 bg-muted rounded overflow-hidden">
+                    <div className="h-full bg-secondary" style={{ width: `${scopePie.hwOnlyPct}%` }} />
+                  </div>
                 </div>
-                <div className="h-2 bg-muted rounded overflow-hidden">
-                  <div className="h-full bg-secondary" style={{ width: `${scopePie.hwPct}%` }} />
+                <div>
+                  <div className="flex items-center justify-between text-sm mb-1">
+                    <span className="flex items-center gap-1"><Code2 className="h-3.5 w-3.5" /> Software อย่างเดียว</span>
+                    <span className="font-mono">{scopePie.swOnly} ({scopePie.swOnlyPct}%)</span>
+                  </div>
+                  <div className="h-2 bg-muted rounded overflow-hidden">
+                    <div className="h-full bg-primary" style={{ width: `${scopePie.swOnlyPct}%` }} />
+                  </div>
+                </div>
+                <div>
+                  <div className="flex items-center justify-between text-sm mb-1">
+                    <span className="flex items-center gap-1">
+                      <Cpu className="h-3.5 w-3.5" /><Code2 className="h-3.5 w-3.5" /> ทั้ง HW และ SW
+                    </span>
+                    <span className="font-mono">{scopePie.both} ({scopePie.bothPct}%)</span>
+                  </div>
+                  <div className="h-2 bg-muted rounded overflow-hidden">
+                    <div className="h-full bg-warning" style={{ width: `${scopePie.bothPct}%` }} />
+                  </div>
                 </div>
               </div>
-              <div>
-                <div className="flex items-center justify-between text-sm mb-1">
-                  <span className="flex items-center gap-1"><Code2 className="h-3.5 w-3.5" /> Software</span>
-                  <span className="font-mono">{scopePie.sw} ({scopePie.swPct}%)</span>
+
+              {/* Aggregate: overlap allowed */}
+              <div className="pt-2 border-t space-y-1 text-xs">
+                <p className="font-medium text-muted-foreground mb-1">งานที่เกี่ยวข้อง (นับซ้ำได้)</p>
+                <div className="flex items-center justify-between">
+                  <span className="flex items-center gap-1"><Cpu className="h-3 w-3" /> มี Hardware</span>
+                  <span className="font-mono">{scopePie.involvesHW} งาน ({scopePie.involvesHWPct}%)</span>
                 </div>
-                <div className="h-2 bg-muted rounded overflow-hidden">
-                  <div className="h-full bg-primary" style={{ width: `${scopePie.swPct}%` }} />
+                <div className="flex items-center justify-between">
+                  <span className="flex items-center gap-1"><Code2 className="h-3 w-3" /> มี Software</span>
+                  <span className="font-mono">{scopePie.involvesSW} งาน ({scopePie.involvesSWPct}%)</span>
                 </div>
               </div>
             </div>
