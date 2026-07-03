@@ -184,8 +184,8 @@ export default function RepairReport() {
 
   useEffect(() => { fetchRows(); /* eslint-disable-next-line */ }, [dateFrom, dateTo]);
 
-  // Client-side filters
-  const filtered = useMemo(() => {
+  // Base filter (everything except repeat bucket) — used to compute per-unit repeat counts
+  const baseFiltered = useMemo(() => {
     return rows.filter((r) => {
       if (deviceFilter !== "all" && (r.mp_device_type || "MEDIA_PLAYER") !== deviceFilter) return false;
       if (resultFilter !== "all" && r.repair_result !== resultFilter) return false;
@@ -203,6 +203,25 @@ export default function RepairReport() {
       return true;
     });
   }, [rows, deviceFilter, resultFilter, scopeFilter, serialSearch, generalSearch]);
+
+  // Count per MP within baseFiltered
+  const repeatCountByMp = useMemo(() => {
+    const m = new Map<string, number>();
+    baseFiltered.forEach((r) => {
+      if (!r.media_player_id) return;
+      m.set(r.media_player_id, (m.get(r.media_player_id) || 0) + 1);
+    });
+    return m;
+  }, [baseFiltered]);
+
+  // Apply repeat bucket filter
+  const filtered = useMemo(() => {
+    if (repeatFilter === "all") return baseFiltered;
+    return baseFiltered.filter((r) => {
+      const n = r.media_player_id ? (repeatCountByMp.get(r.media_player_id) || 0) : 0;
+      return n > 0 && bucketOf(n) === repeatFilter;
+    });
+  }, [baseFiltered, repeatCountByMp, repeatFilter]);
 
   const stats = useMemo(() => {
     const total = filtered.length;
@@ -224,19 +243,32 @@ export default function RepairReport() {
     return Array.from(counts.entries()).sort((a, b) => b[1] - a[1]).slice(0, 10);
   }, [filtered]);
 
-  const repeatUnits = useMemo(() => {
-    const counts = new Map<string, { code: string; name: string; sn: string; count: number }>();
-    filtered.forEach((r) => {
-      if (!r.media_player_id) return;
-      const key = r.media_player_id;
-      const prev = counts.get(key);
-      counts.set(key, {
-        code: r.mp_code || "-", name: r.mp_name || "-", sn: r.serial_number || "-",
-        count: (prev?.count || 0) + 1,
-      });
+  // Bucket distribution (units per bucket) — based on baseFiltered so switching bucket filter doesn't collapse the chart
+  const repeatBuckets = useMemo(() => {
+    const b: Record<Exclude<RepeatBucket, "all">, { units: number; sample: Array<{ code: string; sn: string; count: number }> }> = {
+      "1-2": { units: 0, sample: [] },
+      "3-4": { units: 0, sample: [] },
+      "5-6": { units: 0, sample: [] },
+      ">6":  { units: 0, sample: [] },
+    };
+    // Build a code/sn lookup per MP
+    const info = new Map<string, { code: string; sn: string }>();
+    baseFiltered.forEach((r) => {
+      if (r.media_player_id && !info.has(r.media_player_id)) {
+        info.set(r.media_player_id, { code: r.mp_code || "-", sn: r.serial_number || "-" });
+      }
     });
-    return Array.from(counts.values()).filter((v) => v.count >= 2).sort((a, b) => b.count - a.count).slice(0, 10);
-  }, [filtered]);
+    repeatCountByMp.forEach((count, mpId) => {
+      const bk = bucketOf(count);
+      b[bk].units += 1;
+      const meta = info.get(mpId);
+      if (meta && b[bk].sample.length < 5) b[bk].sample.push({ code: meta.code, sn: meta.sn, count });
+    });
+    Object.values(b).forEach((v) => v.sample.sort((a, z) => z.count - a.count));
+    const max = Math.max(1, ...Object.values(b).map((v) => v.units));
+    return { data: b, max };
+  }, [baseFiltered, repeatCountByMp]);
+
 
   const scopePie = useMemo(() => {
     let hwOnly = 0, swOnly = 0, both = 0, none = 0;
