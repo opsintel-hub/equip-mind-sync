@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { FileText, ExternalLink, MapPin, Pencil } from "lucide-react";
+import { useEffect, useState } from "react";
+import { FileText, ExternalLink, MapPin, Pencil, Repeat } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { MediaPlayerRow } from "./types";
@@ -7,6 +7,9 @@ import { formatBillboardLabel } from "@/lib/billboardUtils";
 import { DocumentPreviewDialog } from "@/components/DocumentPreviewDialog";
 import { MediaPlayerInfoEditDialog } from "./MediaPlayerInfoEditDialog";
 import { useFunctionPermissions } from "@/hooks/useFunctionPermissions";
+import { supabase } from "@/integrations/supabase/client";
+import { format } from "date-fns";
+import { th } from "date-fns/locale";
 
 interface GeneralInfoTabProps {
   player: MediaPlayerRow;
@@ -43,6 +46,17 @@ export function GeneralInfoTab({ player, modelName, onUpdated }: GeneralInfoTabP
   const [editOpen, setEditOpen] = useState(false);
   const { hasFunctionAccess } = useFunctionPermissions();
   const canEdit = hasFunctionAccess("goods_receipt");
+  const [snHistory, setSnHistory] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (!player?.id) return;
+    supabase
+      .from("media_player_serial_history")
+      .select("*")
+      .eq("media_player_id", player.id)
+      .order("changed_at", { ascending: false })
+      .then(({ data }) => setSnHistory((data as any[]) || []));
+  }, [player?.id]);
 
   return (
     <>
@@ -108,6 +122,38 @@ export function GeneralInfoTab({ player, modelName, onUpdated }: GeneralInfoTabP
             <DocLink label="Invoice" number={player.invoice_number} url={player.invoice_document_url} onPreview={setPreviewDocUrl} />
           </div>
         </div>
+
+        {snHistory.length > 0 && (
+          <div className="mt-4 pt-4 border-t">
+            <h4 className="text-sm font-semibold mb-3 flex items-center gap-1.5">
+              <Repeat className="w-4 h-4 text-warning" /> ประวัติการเปลี่ยน S/N ของเครื่องนี้
+            </h4>
+            <div className="space-y-2">
+              {snHistory.map((h) => (
+                <div key={h.id} className="text-xs border-l-2 border-warning/60 pl-3 py-1.5 bg-muted/30 rounded-r">
+                  <div className="text-muted-foreground">
+                    {format(new Date(h.changed_at), "dd MMM yyyy HH:mm", { locale: th })}
+                    {h.changed_by_name && <> • โดย {h.changed_by_name}</>}
+                    {h.claim_document_no && <> • อ้างอิงเคลม: <span className="font-mono">{h.claim_document_no}</span></>}
+                  </div>
+                  <div className="mt-1">
+                    <span className="font-mono line-through text-muted-foreground">{h.old_serial || "—"}</span>
+                    <span className="mx-2">→</span>
+                    <span className="font-mono font-semibold text-primary">{h.new_serial || "—"}</span>
+                    {h.reason && <span className="text-muted-foreground ml-2">({h.reason})</span>}
+                  </div>
+                  {(h.new_warranty_expiry_date || h.new_po_number || h.new_invoice_number) && (
+                    <div className="mt-1 text-muted-foreground">
+                      {h.new_warranty_expiry_date && <>ประกันใหม่: {h.new_warranty_expiry_date} </>}
+                      {h.new_po_number && <>• PO ใหม่: {h.new_po_number} </>}
+                      {h.new_invoice_number && <>• Invoice ใหม่: {h.new_invoice_number}</>}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {player.notes && (
           <div className="mt-4 pt-4 border-t">

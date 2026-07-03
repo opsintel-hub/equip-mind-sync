@@ -1015,6 +1015,47 @@ export type Database = {
         }
         Relationships: []
       }
+      claim_progress_logs: {
+        Row: {
+          claim_record_id: string
+          cost_amount: number | null
+          created_at: string
+          id: string
+          logged_at: string
+          logged_by: string | null
+          logged_by_name: string | null
+          note: string | null
+        }
+        Insert: {
+          claim_record_id: string
+          cost_amount?: number | null
+          created_at?: string
+          id?: string
+          logged_at?: string
+          logged_by?: string | null
+          logged_by_name?: string | null
+          note?: string | null
+        }
+        Update: {
+          claim_record_id?: string
+          cost_amount?: number | null
+          created_at?: string
+          id?: string
+          logged_at?: string
+          logged_by?: string | null
+          logged_by_name?: string | null
+          note?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "claim_progress_logs_claim_record_id_fkey"
+            columns: ["claim_record_id"]
+            isOneToOne: false
+            referencedRelation: "claim_records"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       claim_records: {
         Row: {
           claim_result_id: string | null
@@ -3621,6 +3662,72 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      media_player_serial_history: {
+        Row: {
+          changed_at: string
+          changed_by: string | null
+          changed_by_name: string | null
+          claim_document_no: string | null
+          claim_record_id: string | null
+          created_at: string
+          id: string
+          media_player_id: string
+          new_invoice_number: string | null
+          new_po_number: string | null
+          new_serial: string | null
+          new_warranty_expiry_date: string | null
+          old_serial: string | null
+          reason: string | null
+        }
+        Insert: {
+          changed_at?: string
+          changed_by?: string | null
+          changed_by_name?: string | null
+          claim_document_no?: string | null
+          claim_record_id?: string | null
+          created_at?: string
+          id?: string
+          media_player_id: string
+          new_invoice_number?: string | null
+          new_po_number?: string | null
+          new_serial?: string | null
+          new_warranty_expiry_date?: string | null
+          old_serial?: string | null
+          reason?: string | null
+        }
+        Update: {
+          changed_at?: string
+          changed_by?: string | null
+          changed_by_name?: string | null
+          claim_document_no?: string | null
+          claim_record_id?: string | null
+          created_at?: string
+          id?: string
+          media_player_id?: string
+          new_invoice_number?: string | null
+          new_po_number?: string | null
+          new_serial?: string | null
+          new_warranty_expiry_date?: string | null
+          old_serial?: string | null
+          reason?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "media_player_serial_history_claim_record_id_fkey"
+            columns: ["claim_record_id"]
+            isOneToOne: false
+            referencedRelation: "claim_records"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "media_player_serial_history_media_player_id_fkey"
+            columns: ["media_player_id"]
+            isOneToOne: false
+            referencedRelation: "media_players"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       media_player_specifications: {
         Row: {

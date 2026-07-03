@@ -11,7 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { FileCheck2, ListChecks, PlusCircle, RefreshCw, Search, ShieldCheck, ShieldAlert, PackageCheck, Send } from "lucide-react";
+import { FileCheck2, ListChecks, PlusCircle, RefreshCw, Search, ShieldCheck, ShieldAlert, PackageCheck, Send, ChevronDown, ChevronUp, History, Repeat } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { th } from "date-fns/locale";
@@ -114,7 +114,42 @@ export default function ClaimTracker() {
   const [rejectedAction, setRejectedAction] = useState<"write_off" | "defective">("defective");
   const [returnLocationId, setReturnLocationId] = useState("");
   const [replacementSerial, setReplacementSerial] = useState("");
+  const [replacementWarranty, setReplacementWarranty] = useState("");
+  const [replacementPO, setReplacementPO] = useState("");
+  const [replacementInvoice, setReplacementInvoice] = useState("");
   const [returnSubmitting, setReturnSubmitting] = useState(false);
+
+  // Expanded row + progress logs cache
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [progressLogs, setProgressLogs] = useState<Record<string, any[]>>({});
+  const [serialHistory, setSerialHistory] = useState<Record<string, any[]>>({});
+  const [userFullName, setUserFullName] = useState<string>("");
+
+  useEffect(() => {
+    if (!user?.id) return;
+    supabase.from("profiles").select("full_name").eq("id", user.id).maybeSingle()
+      .then(({ data }) => setUserFullName((data as any)?.full_name || user.email || ""));
+  }, [user?.id]);
+
+  const loadHistoryFor = async (record: ClaimRecord) => {
+    const [pl, sh] = await Promise.all([
+      supabase.from("claim_progress_logs").select("*").eq("claim_record_id", record.id).order("logged_at", { ascending: false }),
+      record.media_player_id
+        ? supabase.from("media_player_serial_history").select("*").eq("media_player_id", record.media_player_id).order("changed_at", { ascending: false })
+        : Promise.resolve({ data: [] as any[] }),
+    ]);
+    setProgressLogs((p) => ({ ...p, [record.id]: (pl.data as any[]) || [] }));
+    setSerialHistory((p) => ({ ...p, [record.id]: (sh.data as any[]) || [] }));
+  };
+
+  const toggleExpand = (record: ClaimRecord) => {
+    if (expandedId === record.id) {
+      setExpandedId(null);
+    } else {
+      setExpandedId(record.id);
+      loadHistoryFor(record);
+    }
+  };
 
   const fetchRecords = async () => {
     setLoading(true);
@@ -354,6 +389,9 @@ export default function ClaimTracker() {
     setRejectedAction("defective");
     setReturnLocationId(record.return_location_id || "");
     setReplacementSerial(record.replacement_serial || "");
+    setReplacementWarranty("");
+    setReplacementPO("");
+    setReplacementInvoice("");
   };
 
   const needsLocation =
@@ -389,19 +427,31 @@ export default function ClaimTracker() {
       // 1) "in_progress" — แค่บันทึกหมายเหตุ ไม่ flip status
       // ──────────────────────────────────────────────
       if (claimResultKind === "in_progress") {
+        // Log a persistent progress entry (append-only history)
+        const { error: logErr } = await supabase.from("claim_progress_logs").insert({
+          claim_record_id: returnDialogId,
+          note: resultNotes.trim() || null,
+          cost_amount: costAmount ? parseFloat(costAmount) : 0,
+          logged_by: user?.id ?? null,
+          logged_by_name: userFullName || user?.email || null,
+        });
+        if (logErr) throw logErr;
+        // Also update latest snapshot on the claim record
         const { error } = await supabase
           .from("claim_records")
           .update({
             claim_result_id: claimResultId,
             result_notes: resultNotes.trim() || null,
             cost_amount: costAmount ? parseFloat(costAmount) : 0,
-            // remain 'submitted'
           })
           .eq("id", returnDialogId);
         if (error) throw error;
-        toast.success("บันทึกความคืบหน้าแล้ว — สถานะยังเป็น 'ส่งเคลมแล้ว'");
+        toast.success("บันทึกการติดตามงานแล้ว — สถานะยังเป็น 'ส่งเคลมแล้ว'");
         setReturnDialogId(null);
         fetchRecords();
+        if (expandedId === returnDialogId) {
+          loadHistoryFor(record);
+        }
         return;
       }
 
@@ -472,18 +522,37 @@ export default function ClaimTracker() {
             });
           }
         } else if (claimResultKind === "replacement") {
-          await supabase
-            .from("media_players")
-            .update({
-              status: "in_stock",
-              quantity: 1,
-              location_id: returnLocationId,
-              billboard_id: null,
-              serial_number_1: replacementSerial.trim(),
-              is_refurbished: false,
-              refurbished_at: null,
-            })
-            .eq("id", record.media_player_id);
+          const newSN = replacementSerial.trim();
+          const oldSN = record.serial_number || null;
+          const mpUpdate: any = {
+            status: "in_stock",
+            quantity: 1,
+            location_id: returnLocationId,
+            billboard_id: null,
+            serial_number_1: newSN,
+            is_refurbished: false,
+            refurbished_at: null,
+          };
+          if (replacementWarranty) mpUpdate.warranty_expiry_date = replacementWarranty;
+          if (replacementPO.trim()) mpUpdate.po_number = replacementPO.trim();
+          if (replacementInvoice.trim()) mpUpdate.invoice_number = replacementInvoice.trim();
+
+          await supabase.from("media_players").update(mpUpdate).eq("id", record.media_player_id);
+
+          // Log serial swap history (audit trail so profile shows past S/Ns)
+          await supabase.from("media_player_serial_history").insert({
+            media_player_id: record.media_player_id,
+            old_serial: oldSN,
+            new_serial: newSN,
+            reason: "เปลี่ยนเครื่องใหม่จากการเคลม Vendor",
+            claim_record_id: record.id,
+            claim_document_no: record.document_no,
+            new_warranty_expiry_date: replacementWarranty || null,
+            new_po_number: replacementPO.trim() || null,
+            new_invoice_number: replacementInvoice.trim() || null,
+            changed_by: user?.id ?? null,
+            changed_by_name: userFullName || user?.email || null,
+          });
 
           if (mpRow) {
             await supabase.from("stock_movements").insert({
@@ -501,7 +570,7 @@ export default function ClaimTracker() {
               company_id: mpRow.company_id,
               item_condition: "new",
               created_by: user?.id ?? null,
-              notes: `รับเครื่องทดแทนจาก Vendor — S/N ใหม่: ${replacementSerial.trim()}`,
+              notes: `รับเครื่องทดแทนจาก Vendor — S/N เดิม: ${oldSN || "—"} → S/N ใหม่: ${newSN}${replacementPO.trim() ? ` | PO ใหม่: ${replacementPO.trim()}` : ""}${replacementWarranty ? ` | ประกันใหม่ถึง: ${replacementWarranty}` : ""}`,
             });
           }
         } else if (claimResultKind === "write_off") {
@@ -721,56 +790,123 @@ export default function ClaimTracker() {
                   {filteredRecords.map((record) => {
                     const status = STATUS_LABELS[record.status] || { label: record.status, variant: "outline" as const };
                     return (
-                      <div
-                        key={record.id}
-                        className="flex items-center justify-between gap-4 p-4 rounded-lg border hover:bg-accent/50 transition-colors flex-wrap"
-                      >
-                        <div className="flex-1 min-w-[250px] space-y-1">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <span className="font-mono font-semibold">{record.document_no}</span>
-                            <Badge variant={status.variant}>{status.label}</Badge>
-                            {record.is_under_warranty ? (
-                              <Badge variant="outline" className="text-success border-success/50">
-                                <ShieldCheck className="h-3 w-3 mr-1" /> ในประกัน
-                              </Badge>
-                            ) : (
-                              <Badge variant="outline" className="text-destructive border-destructive/50">
-                                <ShieldAlert className="h-3 w-3 mr-1" /> หมดประกัน
-                              </Badge>
-                            )}
-                            {record.serial_number && <Badge variant="outline">S/N: {record.serial_number}</Badge>}
-                            {record.claim_ticket_no && (
-                              <Badge variant="secondary">RMA: {record.claim_ticket_no}</Badge>
-                            )}
+                      <div key={record.id} className="rounded-lg border hover:bg-accent/30 transition-colors">
+                        <div className="flex items-center justify-between gap-4 p-4 flex-wrap">
+                          <div className="flex-1 min-w-[250px] space-y-1">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="font-mono font-semibold">{record.document_no}</span>
+                              <Badge variant={status.variant}>{status.label}</Badge>
+                              {record.is_under_warranty ? (
+                                <Badge variant="outline" className="text-success border-success/50">
+                                  <ShieldCheck className="h-3 w-3 mr-1" /> ในประกัน
+                                </Badge>
+                              ) : (
+                                <Badge variant="outline" className="text-destructive border-destructive/50">
+                                  <ShieldAlert className="h-3 w-3 mr-1" /> หมดประกัน
+                                </Badge>
+                              )}
+                              {record.serial_number && <Badge variant="outline">S/N: {record.serial_number}</Badge>}
+                              {record.claim_ticket_no && (
+                                <Badge variant="secondary">RMA: {record.claim_ticket_no}</Badge>
+                              )}
+                              {record.replacement_serial && (
+                                <Badge variant="outline" className="text-primary border-primary/50">
+                                  <Repeat className="h-3 w-3 mr-1" /> เปลี่ยน S/N → {record.replacement_serial}
+                                </Badge>
+                              )}
+                            </div>
+                            <div className="text-sm text-muted-foreground">
+                              {record.symptom_description || "—"}
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              ผู้จัดจำหน่าย: {record.supplier_name || "—"} • ผู้ส่ง: {record.submitter_name || "—"} •{" "}
+                              สร้าง: {format(new Date(record.created_at), "dd MMM yyyy", { locale: th })}
+                              {record.cost_amount && record.cost_amount > 0 && (
+                                <> • ค่าใช้จ่าย: ฿{record.cost_amount.toLocaleString()}</>
+                              )}
+                            </div>
                           </div>
-                          <div className="text-sm text-muted-foreground">
-                            {record.symptom_description || "—"}
-                          </div>
-                          <div className="text-xs text-muted-foreground">
-                            ผู้จัดจำหน่าย: {record.supplier_name || "—"} • ผู้ส่ง: {record.submitter_name || "—"} •{" "}
-                            สร้าง: {format(new Date(record.created_at), "dd MMM yyyy", { locale: th })}
-                            {record.cost_amount && record.cost_amount > 0 && (
-                              <> • ค่าใช้จ่าย: ฿{record.cost_amount.toLocaleString()}</>
+                          <div className="flex gap-2 flex-wrap">
+                            <Button size="sm" variant="ghost" onClick={() => toggleExpand(record)}>
+                              <History className="h-3.5 w-3.5 mr-1" />
+                              ประวัติติดตาม
+                              {expandedId === record.id ? <ChevronUp className="h-3.5 w-3.5 ml-1" /> : <ChevronDown className="h-3.5 w-3.5 ml-1" />}
+                            </Button>
+                            {record.status === "pending" && (
+                              <Button size="sm" variant="outline" onClick={() => markSubmitted(record)}>
+                                <Send className="h-3.5 w-3.5 mr-1" /> ส่งเคลม
+                              </Button>
+                            )}
+                            {record.status === "submitted" && (
+                              <Button size="sm" variant="outline" onClick={() => openReturnDialog(record)}>
+                                <PackageCheck className="h-3.5 w-3.5 mr-1" /> รับกลับ
+                              </Button>
+                            )}
+                            {record.status === "returned" && (
+                              <Button size="sm" variant="outline" onClick={() => closeRecord(record)}>
+                                ปิดงาน
+                              </Button>
                             )}
                           </div>
                         </div>
-                        <div className="flex gap-2 flex-wrap">
-                          {record.status === "pending" && (
-                            <Button size="sm" variant="outline" onClick={() => markSubmitted(record)}>
-                              <Send className="h-3.5 w-3.5 mr-1" /> ส่งเคลม
-                            </Button>
-                          )}
-                          {record.status === "submitted" && (
-                            <Button size="sm" variant="outline" onClick={() => openReturnDialog(record)}>
-                              <PackageCheck className="h-3.5 w-3.5 mr-1" /> รับกลับ
-                            </Button>
-                          )}
-                          {record.status === "returned" && (
-                            <Button size="sm" variant="outline" onClick={() => closeRecord(record)}>
-                              ปิดงาน
-                            </Button>
-                          )}
-                        </div>
+
+                        {expandedId === record.id && (
+                          <div className="border-t bg-muted/30 p-4 space-y-3">
+                            <div>
+                              <h4 className="text-sm font-semibold mb-2 flex items-center gap-1">
+                                <History className="h-4 w-4" /> ประวัติการติดตามงาน (Progress Logs)
+                              </h4>
+                              {(progressLogs[record.id]?.length ?? 0) === 0 ? (
+                                <p className="text-xs text-muted-foreground pl-5">ยังไม่มีการติดตามงาน</p>
+                              ) : (
+                                <div className="space-y-2 pl-5">
+                                  {progressLogs[record.id].map((log: any) => (
+                                    <div key={log.id} className="text-xs border-l-2 border-primary/40 pl-3 py-1">
+                                      <div className="text-muted-foreground">
+                                        {format(new Date(log.logged_at), "dd MMM yyyy HH:mm", { locale: th })}
+                                        {log.logged_by_name && <> • โดย <span className="font-medium text-foreground">{log.logged_by_name}</span></>}
+                                        {log.cost_amount > 0 && <> • ฿{Number(log.cost_amount).toLocaleString()}</>}
+                                      </div>
+                                      <div className="mt-0.5">{log.note || "—"}</div>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+
+                            {(serialHistory[record.id]?.length ?? 0) > 0 && (
+                              <div>
+                                <h4 className="text-sm font-semibold mb-2 flex items-center gap-1">
+                                  <Repeat className="h-4 w-4" /> ประวัติการเปลี่ยน S/N ของเครื่องนี้
+                                </h4>
+                                <div className="space-y-2 pl-5">
+                                  {serialHistory[record.id].map((h: any) => (
+                                    <div key={h.id} className="text-xs border-l-2 border-warning/60 pl-3 py-1">
+                                      <div className="text-muted-foreground">
+                                        {format(new Date(h.changed_at), "dd MMM yyyy HH:mm", { locale: th })}
+                                        {h.changed_by_name && <> • โดย {h.changed_by_name}</>}
+                                        {h.claim_document_no && <> • อ้างอิง {h.claim_document_no}</>}
+                                      </div>
+                                      <div className="mt-0.5">
+                                        <span className="font-mono">{h.old_serial || "—"}</span>
+                                        <span className="mx-2">→</span>
+                                        <span className="font-mono font-semibold text-primary">{h.new_serial || "—"}</span>
+                                        {h.reason && <span className="text-muted-foreground"> ({h.reason})</span>}
+                                      </div>
+                                      {(h.new_warranty_expiry_date || h.new_po_number || h.new_invoice_number) && (
+                                        <div className="mt-0.5 text-muted-foreground">
+                                          {h.new_warranty_expiry_date && <>ประกันใหม่: {h.new_warranty_expiry_date} </>}
+                                          {h.new_po_number && <>• PO ใหม่: {h.new_po_number} </>}
+                                          {h.new_invoice_number && <>• Invoice ใหม่: {h.new_invoice_number}</>}
+                                        </div>
+                                      )}
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        )}
                       </div>
                     );
                   })}
@@ -940,13 +1076,35 @@ export default function ClaimTracker() {
               )}
 
               {claimResultKind === "replacement" && (
-                <div className="space-y-2">
-                  <Label>S/N เครื่องทดแทนจาก Vendor *</Label>
-                  <Input
-                    value={replacementSerial}
-                    onChange={(e) => setReplacementSerial(e.target.value)}
-                    placeholder="กรอก S/N เครื่องใหม่ที่ Vendor ส่งให้"
-                  />
+                <div className="space-y-3 rounded-lg border p-3 bg-primary/5">
+                  <div className="space-y-2">
+                    <Label>S/N เครื่องทดแทนจาก Vendor *</Label>
+                    <Input
+                      value={replacementSerial}
+                      onChange={(e) => setReplacementSerial(e.target.value)}
+                      placeholder="กรอก S/N เครื่องใหม่ที่ Vendor ส่งให้"
+                    />
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    💡 ประวัติการเปลี่ยน S/N จะถูกบันทึกอัตโนมัติ เพื่อให้ผู้ใช้ตรวจย้อนหลังได้จาก Media Player Profile
+                  </p>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                    <div className="space-y-1">
+                      <Label className="text-xs">ประกันใหม่หมดวันที่ (ถ้ามี)</Label>
+                      <Input type="date" value={replacementWarranty} onChange={(e) => setReplacementWarranty(e.target.value)} />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">PO ใหม่ (ถ้ามี)</Label>
+                      <Input value={replacementPO} onChange={(e) => setReplacementPO(e.target.value)} placeholder="เว้นว่างเพื่อคง PO เดิม" />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">Invoice ใหม่ (ถ้ามี)</Label>
+                      <Input value={replacementInvoice} onChange={(e) => setReplacementInvoice(e.target.value)} placeholder="เว้นว่างเพื่อคงเดิม" />
+                    </div>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    ⚠️ ปล่อยว่างทุกช่อง = คงข้อมูลประกัน/PO/Invoice ของเครื่องเดิมไว้ (Vendor เปลี่ยนภายใต้ประกันเดิม)
+                  </p>
                 </div>
               )}
 
