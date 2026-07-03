@@ -427,19 +427,31 @@ export default function ClaimTracker() {
       // 1) "in_progress" — แค่บันทึกหมายเหตุ ไม่ flip status
       // ──────────────────────────────────────────────
       if (claimResultKind === "in_progress") {
+        // Log a persistent progress entry (append-only history)
+        const { error: logErr } = await supabase.from("claim_progress_logs").insert({
+          claim_record_id: returnDialogId,
+          note: resultNotes.trim() || null,
+          cost_amount: costAmount ? parseFloat(costAmount) : 0,
+          logged_by: user?.id ?? null,
+          logged_by_name: userFullName || user?.email || null,
+        });
+        if (logErr) throw logErr;
+        // Also update latest snapshot on the claim record
         const { error } = await supabase
           .from("claim_records")
           .update({
             claim_result_id: claimResultId,
             result_notes: resultNotes.trim() || null,
             cost_amount: costAmount ? parseFloat(costAmount) : 0,
-            // remain 'submitted'
           })
           .eq("id", returnDialogId);
         if (error) throw error;
-        toast.success("บันทึกความคืบหน้าแล้ว — สถานะยังเป็น 'ส่งเคลมแล้ว'");
+        toast.success("บันทึกการติดตามงานแล้ว — สถานะยังเป็น 'ส่งเคลมแล้ว'");
         setReturnDialogId(null);
         fetchRecords();
+        if (expandedId === returnDialogId) {
+          loadHistoryFor(record);
+        }
         return;
       }
 
