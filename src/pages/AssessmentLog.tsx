@@ -845,10 +845,12 @@ export default function AssessmentLog() {
                   .join(" — ") || "—"}
               </span>
             </div>
-            <div className="sm:col-span-2">
-              <span className="font-medium text-foreground">รายละเอียดการซ่อม:</span>{" "}
-              <span className="text-muted-foreground">{log.outcome === "self_repair" ? (log.repair_description || "—") : "—"}</span>
-            </div>
+            {log.outcome === "self_repair" && log.repair_description && (
+              <div className="sm:col-span-2">
+                <span className="font-medium text-foreground">รายละเอียดการซ่อม:</span>{" "}
+                <span className="text-muted-foreground">{log.repair_description}</span>
+              </div>
+            )}
             {log.outcome === "self_repair" && Array.isArray(log.repair_scope) && log.repair_scope.length > 0 && (
               <div className="sm:col-span-2 flex flex-wrap items-center gap-1.5">
                 <span className="font-medium text-foreground text-sm">ประเภท:</span>
@@ -886,72 +888,30 @@ export default function AssessmentLog() {
                   {isOpen ? <ChevronUp className="h-3.5 w-3.5 ml-1" /> : <ChevronDown className="h-3.5 w-3.5 ml-1" />}
                 </Button>
                 {isOpen && (
-                  <div className="mt-2 rounded-md border bg-muted/30 p-3">
-                    <div className="text-xs font-semibold mb-2 flex items-center gap-1">
-                      <FileCheck2 className="h-3.5 w-3.5" /> Source Timeline
-                    </div>
-                    <div className="pl-2 space-y-2">
-                      {detail?.swap_doc_no && (
-                        <div className="rounded-md border border-primary/30 bg-primary/5 p-2.5 text-xs space-y-1">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <Badge variant="default" className="text-[10px]"><Repeat className="h-3 w-3 mr-1" />1. SWAP</Badge>
-                            <span className="font-mono font-semibold">{detail.swap_doc_no}</span>
-                            {detail.swap_status && <Badge variant="outline" className="text-[10px]">{detail.swap_status}</Badge>}
-                          </div>
-                          <div className="grid sm:grid-cols-2 gap-x-4 gap-y-0.5 text-muted-foreground">
-                            {detail.swap_created_at && <div>วันที่: <span className="text-foreground">{format(new Date(detail.swap_created_at), "dd MMM yyyy HH:mm", { locale: th })}</span></div>}
-                            {detail.swap_technician_name && <div>ช่าง: <span className="text-foreground">{detail.swap_technician_name}</span></div>}
-                            {detail.swap_priority && <div>ความเร่งด่วน: <span className="text-foreground">{detail.swap_priority}</span></div>}
-                            {detail.source_description && <div className="sm:col-span-2">อาการ: <span className="text-foreground">{detail.source_description}</span></div>}
-                          </div>
-                        </div>
-                      )}
-                      {detail?.defective_doc_no && (
-                        <div className="rounded-md border border-destructive/30 bg-destructive/5 p-2.5 text-xs space-y-1">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <Badge variant="destructive" className="text-[10px]"><PackageX className="h-3 w-3 mr-1" />2. นำเข้าของเสีย</Badge>
-                            <span className="font-mono font-semibold">{detail.defective_doc_no}</span>
-                            {detail.defective_status && <Badge variant="outline" className="text-[10px]">{detail.defective_status}</Badge>}
-                          </div>
-                          <div className="grid sm:grid-cols-2 gap-x-4 gap-y-0.5 text-muted-foreground">
-                            {detail.defective_created_at && <div>วันที่: <span className="text-foreground">{format(new Date(detail.defective_created_at), "dd MMM yyyy HH:mm", { locale: th })}</span></div>}
-                            {detail.defective_reporter_name && <div>ผู้แจ้ง: <span className="text-foreground">{detail.defective_reporter_name}</span></div>}
-                            {detail.defective_confirmed_by_name && <div>ผู้ตรวจสอบ: <span className="text-foreground">{detail.defective_confirmed_by_name}</span></div>}
-                            {detail.defective_notes && <div className="sm:col-span-2">หมายเหตุ: <span className="text-foreground">{detail.defective_notes}</span></div>}
-                          </div>
-                        </div>
-                      )}
-                      <div className="rounded-md border border-secondary/40 bg-secondary/10 p-2.5 text-xs space-y-1">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <Badge variant="secondary" className="text-[10px]"><ClipboardCheck className="h-3 w-3 mr-1" />3. บันทึกการประเมิน</Badge>
-                          <span className="font-mono font-semibold">{log.document_no}</span>
-                          {log.status && <Badge variant="outline" className="text-[10px]">{STATUS_LABELS[log.status]?.label || log.status}</Badge>}
-                          {log.outcome && OUTCOME_LABELS[log.outcome] && (
-                            <Badge variant={OUTCOME_LABELS[log.outcome].variant} className="text-[10px]">{OUTCOME_LABELS[log.outcome].label}</Badge>
-                          )}
-                        </div>
-                        <div className="grid sm:grid-cols-2 gap-x-4 gap-y-0.5 text-muted-foreground">
-                          <div>ประเมินเมื่อ: <span className="text-foreground">{format(new Date(log.assessed_at), "dd MMM yyyy HH:mm", { locale: th })}</span></div>
-                          {log.assessor_name && <div>ผู้ประเมิน: <span className="text-foreground">{log.assessor_name}</span></div>}
-                          {detail?.symptom_label && <div className="sm:col-span-2">อาการ/วินิจฉัย: <span className="text-foreground">{detail.symptom_label}</span></div>}
-                          {log.diagnosis_notes && <div className="sm:col-span-2">บันทึก: <span className="text-foreground">{log.diagnosis_notes}</span></div>}
-                          {log.outcome === "self_repair" && log.repair_description && (
-                            <div className="sm:col-span-2">การซ่อม: <span className="text-foreground">{log.repair_description}</span></div>
-                          )}
-                          {log.outcome === "self_repair" && Array.isArray(log.repair_actions_snapshot) && log.repair_actions_snapshot.length > 0 && (
-                            <div className="sm:col-span-2 flex flex-wrap items-center gap-1">
-                              <span>รายการซ่อม:</span>
-                              {log.repair_actions_snapshot.map((a) => (
-                                <Badge key={a.id} variant="outline" className="text-[10px] px-1.5 py-0">{a.name}</Badge>
-                              ))}
-                            </div>
-                          )}
-                          {log.outcome === "claim" && log.external_repair_vendor && (
-                            <div className="sm:col-span-2">Vendor: <span className="text-foreground">{log.external_repair_vendor}</span></div>
-                          )}
+                  <div className="mt-2 rounded-md border bg-muted/30 p-2 space-y-1.5">
+                    {detail?.swap_doc_no && (
+                      <div className="flex items-start gap-2 text-xs rounded border-l-2 border-primary bg-primary/5 px-2 py-1.5">
+                        <Badge variant="default" className="text-[10px] shrink-0"><Repeat className="h-3 w-3 mr-0.5" />SWAP</Badge>
+                        <div className="flex-1 min-w-0 flex flex-wrap gap-x-3 gap-y-0.5">
+                          <span className="font-mono font-semibold">{detail.swap_doc_no}</span>
+                          {detail.swap_created_at && <span className="text-muted-foreground">{format(new Date(detail.swap_created_at), "dd MMM yy HH:mm", { locale: th })}</span>}
+                          {detail.swap_technician_name && <span className="text-muted-foreground">ช่าง: <span className="text-foreground">{detail.swap_technician_name}</span></span>}
+                          {detail.swap_status && <Badge variant="outline" className="text-[10px] h-4 px-1">{detail.swap_status}</Badge>}
                         </div>
                       </div>
-                    </div>
+                    )}
+                    {detail?.defective_doc_no && (
+                      <div className="flex items-start gap-2 text-xs rounded border-l-2 border-destructive bg-destructive/5 px-2 py-1.5">
+                        <Badge variant="destructive" className="text-[10px] shrink-0"><PackageX className="h-3 w-3 mr-0.5" />ของเสีย</Badge>
+                        <div className="flex-1 min-w-0 flex flex-wrap gap-x-3 gap-y-0.5">
+                          <span className="font-mono font-semibold">{detail.defective_doc_no}</span>
+                          {detail.defective_created_at && <span className="text-muted-foreground">{format(new Date(detail.defective_created_at), "dd MMM yy HH:mm", { locale: th })}</span>}
+                          {detail.defective_reporter_name && <span className="text-muted-foreground">แจ้ง: <span className="text-foreground">{detail.defective_reporter_name}</span></span>}
+                          {detail.defective_confirmed_by_name && <span className="text-muted-foreground">ตรวจ: <span className="text-foreground">{detail.defective_confirmed_by_name}</span></span>}
+                          {detail.defective_notes && <span className="text-muted-foreground w-full">หมายเหตุ: <span className="text-foreground">{detail.defective_notes}</span></span>}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
