@@ -787,6 +787,8 @@ export default function ClaimTracker() {
                 </div>
               ) : (
                 <div className="space-y-2">
+                  {filteredRecords.map((record) => {
+                    const status = STATUS_LABELS[record.status] || { label: record.status, variant: "outline" as const };
                     return (
                       <div key={record.id} className="rounded-lg border hover:bg-accent/30 transition-colors">
                         <div className="flex items-center justify-between gap-4 p-4 flex-wrap">
