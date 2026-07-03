@@ -530,28 +530,185 @@ export default function RepairReport() {
         <Card>
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-1.5">
-              <AlertTriangle className="h-4 w-4 text-warning" /> เครื่องที่ซ่อมซ้ำ (≥ 2 ครั้ง)
+              <AlertTriangle className="h-4 w-4 text-warning" /> ความถี่การซ่อมต่อเครื่อง
             </CardTitle>
+            <CardDescription className="text-xs">
+              จำนวนเครื่องที่ถูกซ่อมในแต่ละช่วงความถี่ · คลิกเพื่อกรองตาราง
+            </CardDescription>
           </CardHeader>
           <CardContent>
-            {repeatUnits.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-6">—</p>
-            ) : (
-              <div className="space-y-1.5">
-                {repeatUnits.map((u) => (
-                  <div key={u.sn} className="flex items-center justify-between text-sm gap-2">
-                    <div className="flex-1 min-w-0">
-                      <div className="font-medium truncate">{u.code}</div>
-                      <div className="text-[11px] text-muted-foreground font-mono">S/N: {u.sn}</div>
+            <div className="space-y-2.5">
+              {(Object.keys(BUCKET_META) as Array<Exclude<RepeatBucket, "all">>).map((bk) => {
+                const meta = BUCKET_META[bk];
+                const bd = repeatBuckets.data[bk];
+                const pct = Math.round((bd.units / repeatBuckets.max) * 100);
+                const active = repeatFilter === bk;
+                return (
+                  <button
+                    key={bk}
+                    onClick={() => setRepeatFilter(active ? "all" : bk)}
+                    className={`w-full text-left rounded-md p-2 transition ${active ? "bg-accent ring-1 ring-primary" : "hover:bg-accent/50"}`}
+                  >
+                    <div className="flex items-center justify-between text-sm mb-1">
+                      <span className="font-medium">{meta.label}</span>
+                      <span className="font-mono text-xs">{bd.units} เครื่อง</span>
                     </div>
-                    <Badge variant="destructive">{u.count} ครั้ง</Badge>
-                  </div>
-                ))}
-              </div>
-            )}
+                    <div className="h-2 bg-muted rounded overflow-hidden">
+                      <div className={`h-full ${meta.color}`} style={{ width: `${pct}%` }} />
+                    </div>
+                    {bd.sample.length > 0 && (
+                      <div className="mt-1 text-[11px] text-muted-foreground truncate">
+                        เช่น {bd.sample.slice(0, 3).map((s) => `${s.code} (${s.count})`).join(", ")}
+                      </div>
+                    )}
+                  </button>
+                );
+              })}
+              {repeatFilter !== "all" && (
+                <Button variant="ghost" size="sm" className="w-full" onClick={() => setRepeatFilter("all")}>
+                  ล้างตัวกรองความถี่
+                </Button>
+              )}
+            </div>
           </CardContent>
         </Card>
       </div>
+
+      {/* Table */}
+      <Card>
+        <CardHeader>
+          <CardTitle>รายการงานซ่อม ({filtered.length})</CardTitle>
+          <CardDescription>1 บรรทัดต่อ 1 งานซ่อม · เลื่อนแนวนอนด้วยแถบเลื่อนด้านล่าง · ใช้ลูกกลิ้งเมาส์เลื่อนขึ้น-ลงในตาราง</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="max-h-[640px] overflow-auto rounded-md border">
+            <Table>
+              <TableHeader className="sticky top-0 bg-background z-10">
+                <TableRow>
+                  <TableHead className="whitespace-nowrap">ASM</TableHead>
+                  <TableHead className="whitespace-nowrap">วันที่ซ่อม</TableHead>
+                  <TableHead className="whitespace-nowrap">ประเภท</TableHead>
+                  <TableHead className="whitespace-nowrap">อุปกรณ์</TableHead>
+                  <TableHead className="whitespace-nowrap">ฝ่าย</TableHead>
+                  <TableHead className="whitespace-nowrap">S/N</TableHead>
+                  <TableHead className="whitespace-nowrap text-center">ครั้งที่ซ่อม</TableHead>
+                  <TableHead className="whitespace-nowrap">ประเภทงาน</TableHead>
+                  <TableHead className="whitespace-nowrap">รายการซ่อม</TableHead>
+                  <TableHead className="whitespace-nowrap">รายละเอียด</TableHead>
+                  <TableHead className="whitespace-nowrap">ผู้ซ่อม</TableHead>
+                  <TableHead className="whitespace-nowrap text-right">ค่าใช้จ่าย</TableHead>
+                  <TableHead className="whitespace-nowrap">ผล</TableHead>
+                  <TableHead className="whitespace-nowrap min-w-[320px]">ประวัติป้ายที่เคยติดตั้ง</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {loading ? (
+                  <TableRow><TableCell colSpan={14} className="text-center py-8 text-muted-foreground">กำลังโหลด...</TableCell></TableRow>
+                ) : paged.length === 0 ? (
+                  <TableRow><TableCell colSpan={14} className="text-center py-8 text-muted-foreground">ไม่มีข้อมูล</TableCell></TableRow>
+                ) : paged.map((r) => {
+                  const meta = RESULT_LABEL[r.repair_result || ""];
+                  const Icon = meta?.icon;
+                  const repeatN = r.media_player_id ? (repeatCountByMp.get(r.media_player_id) || 0) : 0;
+                  const repeatBk = repeatN > 0 ? bucketOf(repeatN) : null;
+                  const bbHist = r.media_player_id ? (bbHistMap.get(r.media_player_id) || []) : [];
+                  return (
+                    <TableRow key={r.id}>
+                      <TableCell className="font-mono text-xs whitespace-nowrap">{r.document_no}</TableCell>
+                      <TableCell className="text-xs whitespace-nowrap">
+                        {r.repair_completed_at ? format(parseISO(r.repair_completed_at), "dd MMM yy HH:mm", { locale: th }) : "-"}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={isMonitor(r.mp_device_type) ? "outline" : "secondary"} className="text-[10px]">
+                          {deviceLabel(r.mp_device_type)}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <div className="font-medium text-sm whitespace-nowrap">{r.mp_code || "-"}</div>
+                        <div className="text-xs text-muted-foreground truncate max-w-[200px]">{r.mp_name || ""}</div>
+                        {r.mp_brand && <div className="text-[10px] text-muted-foreground">{r.mp_brand}</div>}
+                      </TableCell>
+                      <TableCell className="text-xs whitespace-nowrap">{r.mp_department || "-"}</TableCell>
+                      <TableCell className="font-mono text-xs whitespace-nowrap">{r.serial_number || "-"}</TableCell>
+                      <TableCell className="text-center">
+                        {repeatBk ? (
+                          <Badge
+                            variant={repeatN > 6 ? "destructive" : repeatN > 4 ? "default" : "secondary"}
+                            className="text-[10px]"
+                          >
+                            {repeatN} ครั้ง
+                          </Badge>
+                        ) : "-"}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex flex-wrap gap-1">
+                          {(r.repair_scope || []).map((s) => (
+                            <Badge key={s} variant={s === "hardware" ? "secondary" : "outline"} className="text-[10px] px-1.5 py-0 gap-0.5">
+                              {s === "hardware" ? <Cpu className="h-2.5 w-2.5" /> : <Code2 className="h-2.5 w-2.5" />}
+                              {s === "hardware" ? "HW" : "SW"}
+                            </Badge>
+                          ))}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex flex-wrap gap-1 max-w-[240px]">
+                          {(r.repair_actions_snapshot || []).map((a) => (
+                            <Badge key={a.id} variant="outline" className="text-[10px] px-1.5 py-0">{a.name}</Badge>
+                          ))}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="text-xs text-muted-foreground max-w-[240px] whitespace-pre-line line-clamp-3">
+                          {r.repair_description || "-"}
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-xs whitespace-nowrap">{r.assessor_name || "-"}</TableCell>
+                      <TableCell className="text-right font-mono text-xs whitespace-nowrap">{(r.repair_cost || 0).toLocaleString()}</TableCell>
+                      <TableCell>
+                        {meta && (
+                          <Badge variant="outline" className={`text-[10px] gap-1 whitespace-nowrap ${meta.className}`}>
+                            <Icon className="h-3 w-3" />
+                            {meta.label}
+                          </Badge>
+                        )}
+                      </TableCell>
+                      <TableCell className="min-w-[320px]">
+                        {bbHist.length === 0 ? (
+                          <span className="text-xs text-muted-foreground">— ไม่พบประวัติ —</span>
+                        ) : (
+                          <div className="space-y-1">
+                            {bbHist.slice(0, 4).map((h, i) => {
+                              const dur = daysBetween(h.installation_date, h.uninstall_date);
+                              const isCurrent = !h.uninstall_date;
+                              return (
+                                <div key={i} className="text-[11px] leading-tight border-l-2 pl-2 py-0.5"
+                                  style={{ borderColor: isCurrent ? "hsl(var(--success))" : "hsl(var(--border))" }}>
+                                  <div className="font-medium truncate max-w-[300px]">{h.billboard_label}</div>
+                                  <div className="text-muted-foreground">
+                                    {h.installation_date ? format(parseISO(h.installation_date), "dd/MM/yy") : "-"}
+                                    {" → "}
+                                    {isCurrent ? <span className="text-success font-medium">ยังติดตั้งอยู่</span> :
+                                      (h.uninstall_date ? format(parseISO(h.uninstall_date), "dd/MM/yy") : "-")}
+                                    <span className="ml-1 font-mono">({formatDuration(dur)})</span>
+                                  </div>
+                                  {h.uninstall_reason && (
+                                    <div className="text-muted-foreground italic truncate max-w-[300px]">เหตุ: {h.uninstall_reason}</div>
+                                  )}
+                                </div>
+                              );
+                            })}
+                            {bbHist.length > 4 && (
+                              <div className="text-[10px] text-muted-foreground">+ อีก {bbHist.length - 4} รายการ</div>
+                            )}
+                          </div>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </div>
 
       {/* Table */}
       <Card>
