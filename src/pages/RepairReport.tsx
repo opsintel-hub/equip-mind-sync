@@ -143,6 +143,35 @@ export default function RepairReport() {
           } : r;
         });
       }
+      // Fetch billboard install history for units in view
+      const hmap = new Map<string, BillboardHist[]>();
+      if (mpIds.length > 0) {
+        const { data: hist } = await supabase
+          .from("media_player_billboard_history")
+          .select("media_player_id, billboard_id, installation_date, uninstall_date, uninstall_reason")
+          .in("media_player_id", mpIds)
+          .order("installation_date", { ascending: false });
+        const bbIds = Array.from(new Set((hist || []).map((h: any) => h.billboard_id).filter(Boolean))) as string[];
+        const bbMap = new Map<string, string>();
+        if (bbIds.length > 0) {
+          const { data: bbs } = await supabase.from("billboards").select("id, old_code, location_name").in("id", bbIds);
+          (bbs || []).forEach((b: any) => {
+            bbMap.set(b.id, [b.old_code, b.location_name].filter(Boolean).join(" - ") || b.id.slice(0, 8));
+          });
+        }
+        (hist || []).forEach((h: any) => {
+          const list = hmap.get(h.media_player_id) || [];
+          list.push({
+            billboard_id: h.billboard_id,
+            billboard_label: bbMap.get(h.billboard_id) || "(ไม่พบป้าย)",
+            installation_date: h.installation_date,
+            uninstall_date: h.uninstall_date,
+            uninstall_reason: h.uninstall_reason,
+          });
+          hmap.set(h.media_player_id, list);
+        });
+      }
+      setBbHistMap(hmap);
 
       setRows(list);
       setPage(1);
