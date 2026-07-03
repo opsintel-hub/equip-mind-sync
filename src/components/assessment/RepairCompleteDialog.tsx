@@ -94,6 +94,8 @@ export function RepairCompleteDialog({ open, onOpenChange, assessmentLog, onComp
   const handleSubmit = async () => {
     if (!assessmentLog) return;
     if (result === "repaired" && !locationId) { toast.error("กรุณาเลือกคลังปลายทาง"); return; }
+    if (result === "failed_defective" && !canDefective) { toast.error("เครื่องยังอยู่ในประกัน — ต้องส่งเคลม Vendor ก่อน"); return; }
+    if (result === "failed_claim" && !canClaim) { toast.error("เครื่องหมดประกันแล้ว — ส่งเคลมไม่ได้ ให้ส่งเข้าระบบของเสียแทน"); return; }
     if (!scopeHW && !scopeSW) { toast.error("กรุณาเลือกประเภทงานซ่อม (Hardware/Software)"); return; }
     if (actionIds.length === 0) { toast.error("กรุณาเลือกรายการที่ซ่อม/เปลี่ยน อย่างน้อย 1 รายการ"); return; }
     if (!description.trim()) { toast.error("กรุณาบันทึกรายละเอียดการซ่อม"); return; }
