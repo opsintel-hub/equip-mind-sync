@@ -325,6 +325,14 @@ export default function AssessmentLog() {
           const symLabel = log.symptom_id ? symMap.get(log.symptom_id) : (swap?.symptom_id ? symMap.get(swap.symptom_id) : null);
           const sourceDesc = swap ? [swap.symptom_other, swap.description].filter(Boolean).join(" — ") || null : null;
           const sourcePhotos = swap && Array.isArray(swap.reported_photos) ? swap.reported_photos : undefined;
+          const dr = drMap.get(log.id);
+          const commonSourceChain: Partial<LogDetail> = {
+            swap_doc_no: swap?.document_no || null,
+            swap_technician_name: swap?.technician_name || null,
+            defective_doc_no: dr?.document_no || null,
+            defective_confirmed_by_name: dr?.confirmed_by_name || null,
+            defective_reporter_name: dr?.reporter_name || null,
+          };
 
           if (log.media_player_id) {
             const mp = mpMap.get(log.media_player_id);
@@ -344,6 +352,7 @@ export default function AssessmentLog() {
                 symptom_label: symLabel || null,
                 source_description: sourceDesc,
                 source_photos: sourcePhotos,
+                ...commonSourceChain,
               };
               continue;
             }
@@ -361,12 +370,13 @@ export default function AssessmentLog() {
                 symptom_label: symLabel || null,
                 source_description: sourceDesc,
                 source_photos: sourcePhotos,
+                ...commonSourceChain,
               };
               continue;
             }
           }
           // Fallback when no subject row matched but we still want symptom/swap context
-          if (symLabel || sourceDesc || sourcePhotos) {
+          if (symLabel || sourceDesc || sourcePhotos || commonSourceChain.swap_doc_no || commonSourceChain.defective_doc_no) {
             details[log.id] = {
               code: "—",
               name: "—",
@@ -374,9 +384,11 @@ export default function AssessmentLog() {
               symptom_label: symLabel || null,
               source_description: sourceDesc,
               source_photos: sourcePhotos,
+              ...commonSourceChain,
             };
           }
         }
+
 
         setLogDetails(details);
       } catch {
