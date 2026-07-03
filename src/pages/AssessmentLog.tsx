@@ -774,6 +774,12 @@ export default function AssessmentLog() {
               <span className="font-medium text-foreground">โมเดล/ยี่ห้อ:</span>{" "}
               <span className="text-muted-foreground">{[detail?.brand, detail?.model].filter(Boolean).join(" / ") || "—"}</span>
             </div>
+            {isMP && (
+              <div>
+                <span className="font-medium text-foreground">Remote:</span>{" "}
+                <span className={detail?.remote_name ? "" : "text-muted-foreground"}>{detail?.remote_name || "—"}</span>
+              </div>
+            )}
             {isMP && detail?.sub_media_type && (
               <div>
                 <span className="font-medium text-foreground">ประเภทย่อย:</span>{" "}
