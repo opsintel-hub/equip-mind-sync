@@ -16,7 +16,7 @@ import { th } from "date-fns/locale";
 import BillboardSelect from "@/components/billboard/BillboardSelect";
 import { SymptomSelect } from "@/components/media-player/SymptomSelect";
 import { SwapWizardDialog } from "@/components/swap/SwapWizardDialog";
-import { SwapWarehouseReceive } from "@/components/swap/SwapWarehouseReceive";
+
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { EquipmentImageUpload } from "@/components/equipment/EquipmentImageUpload";
 import { useFunctionPermissions } from "@/hooks/useFunctionPermissions";
