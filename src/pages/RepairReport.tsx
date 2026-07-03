@@ -92,6 +92,7 @@ const RESULT_LABEL: Record<string, { label: string; className: string; icon: any
 
 export default function RepairReport() {
   const [rows, setRows] = useState<RepairRow[]>([]);
+  const [bbHistMap, setBbHistMap] = useState<Map<string, BillboardHist[]>>(new Map());
   const [loading, setLoading] = useState(true);
 
   // Filters
@@ -101,6 +102,7 @@ export default function RepairReport() {
   const [deviceFilter, setDeviceFilter] = useState<"all" | "MEDIA_PLAYER" | "MONITOR">("all");
   const [resultFilter, setResultFilter] = useState<string>("all");
   const [scopeFilter, setScopeFilter] = useState<string>("all");
+  const [repeatFilter, setRepeatFilter] = useState<RepeatBucket>("all");
   const [serialSearch, setSerialSearch] = useState("");
   const [generalSearch, setGeneralSearch] = useState("");
 
