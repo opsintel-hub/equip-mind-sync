@@ -338,7 +338,7 @@ export default function StockReconciliation() {
             { key: "mp_pending_assess", label: "พักรอประเมิน", description: "status = pending_assessment", count: mpPendingAssess, link: "/assessment", icon: Hourglass, tone: mpPendingAssess > 0 ? "warn" : "default" },
             { key: "mp_repair", label: "กำลังซ่อม", description: "status = under_repair", count: mpUnderRepair, link: "/assessment", icon: Hammer },
             { key: "mp_claim", label: "รอเคลม", description: "status = in_claim", count: mpInClaim, link: "/claims", icon: FileCheck2 },
-            { key: "mp_transit", label: "รอเข้าคลัง (Swap)", description: "status = pending_warehouse_return", count: mpTransit, link: "/swap", icon: Truck, tone: mpTransit > 0 ? "warn" : "default" },
+            
             { key: "mp_defective", label: "ของเสีย (Defective)", description: "status = defective", count: mpDefective, link: "/incomplete-issues", icon: ShieldAlert, tone: mpDefective > 0 ? "warn" : "default" },
           ],
         },

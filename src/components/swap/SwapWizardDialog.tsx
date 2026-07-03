@@ -163,7 +163,7 @@ export function SwapWizardDialog({ open, onOpenChange, request, onCompleted }: P
       .from("media_players")
       .select("id, code, name, serial_number_1, serial_number_2, status, location_id, billboard_id, brand, specification, model_id, warranty_expiry_date, unit_price, remote_name, device_type")
       .is("billboard_id", null)
-      .not("status", "in", "(defective,pending_assessment,claim,pending_warehouse_return,under_repair,in_claim)")
+      .not("status", "in", "(defective,pending_assessment,claim,under_repair,in_claim)")
       .order("created_at", { ascending: false })
       .limit(300);
 
@@ -470,12 +470,18 @@ export function SwapWizardDialog({ open, onOpenChange, request, onCompleted }: P
 
   const canSubmit =
     result === "approved"
-      ? (!isCrossDeviceType && (!isCrossModel || crossModelAck))
+      ? (!isCrossDeviceType && (!isCrossModel || crossModelAck) && !!returnLocationId)
       : !!rejectReasonId || !!rejectReasonOther.trim();
+
 
   const handleSubmit = async () => {
     if (!request) return;
+    if (result === "approved" && !returnLocationId) {
+      toast.error("กรุณาเลือกคลังปลายทางสำหรับเครื่องเก่าก่อนยืนยัน Swap");
+      return;
+    }
     setSubmitting(true);
+
 
     // Parse spare
     let spareMpId: string | null = null;
@@ -583,21 +589,20 @@ export function SwapWizardDialog({ open, onOpenChange, request, onCompleted }: P
             .eq("billboard_id", request.billboard_id)
             .eq("equipment_id", oldMpId);
 
-          // เคลียร์ billboard_id + install_date + เปลี่ยน status เป็น pending_warehouse_return
-          // (เครื่องอยู่กับช่าง รอเข้าคลัง — location_id ยังว่างไว้จนกว่าคลังจะกดยืนยันรับ)
-          // quantity=0 เพราะยังไม่อยู่ในคลังใดๆ (รายงานคงคลังต้องไม่นับ)
+          // เคลียร์ billboard_id + install_date + ส่งเข้า pending_assessment ทันที
+          // location_id = คลังปลายทางที่ช่างเลือก (returnLocationId) — คลังหาเจอ
+          // quantity=0 กันเบิกจนกว่าจะประเมินเสร็จ (self_repair สำเร็จ หรือ Vendor คืน)
           await supabase
             .from("media_players")
             .update({
               billboard_id: null,
               install_date: null,
-              location_id: null,
-              status: "pending_warehouse_return",
+              location_id: returnLocationId || null,
+              status: "pending_assessment",
               quantity: 0,
             } as any)
             .eq("id", oldMpId);
 
-          // log stock movement: return_from_billboard (ยังไม่เข้าคลัง — location ว่าง)
           const { data: oldMp } = await supabase
             .from("media_players")
             .select("code, name")
@@ -607,25 +612,25 @@ export function SwapWizardDialog({ open, onOpenChange, request, onCompleted }: P
             equipment_id: oldMpId,
             equipment_code: oldMp?.code || "",
             equipment_name: oldMp?.name || "",
-            movement_type: "return_from_billboard",
+            movement_type: "pending_assessment_in",
             quantity: 1,
             stock_before: 0,
             stock_after: 0,
             reference_type: "swap",
             reference_id: request.id,
             reference_document: request.document_no,
-            location_id: null,
-            notes: `ถอดจากป้าย — ${swapNote} (รอเข้าคลัง: ${selectedOld?.label || ""})`,
-            item_condition: "pending_warehouse_return",
+            location_id: returnLocationId || null,
+            notes: `ถอดจากป้ายเข้าพักรอประเมิน — ${swapNote} (${selectedOld?.label || ""})`,
+            item_condition: "pending_assessment",
             created_by: user?.id ?? null,
           } as any);
         } else if (oldBeId) {
-          // Equipment: ลบ billboard_equipment + เปลี่ยน S/N status เป็น pending_warehouse_return
+          // Equipment: ลบ billboard_equipment + ส่ง S/N เข้า pending_assessment ที่คลังปลายทาง
           await supabase.from("billboard_equipment").delete().eq("id", oldBeId);
           if (selectedOld?.serial_number) {
             await supabase
               .from("equipment_serial_numbers")
-              .update({ status: "pending_warehouse_return", location_id: null } as any)
+              .update({ status: "pending_assessment", location_id: returnLocationId || null } as any)
               .eq("serial_number", selectedOld.serial_number);
           }
           if (oldEqId) {
@@ -638,20 +643,21 @@ export function SwapWizardDialog({ open, onOpenChange, request, onCompleted }: P
               equipment_id: oldEqId,
               equipment_code: oldEq?.code || "",
               equipment_name: oldEq?.name || "",
-              movement_type: "return_from_billboard",
+              movement_type: "pending_assessment_in",
               quantity: 1,
               stock_before: 0,
               stock_after: 0,
               reference_type: "swap",
               reference_id: request.id,
               reference_document: request.document_no,
-              location_id: null,
-              notes: `ถอดจากป้าย — ${swapNote} (รอเข้าคลัง)`,
-              item_condition: "pending_warehouse_return",
+              location_id: returnLocationId || null,
+              notes: `ถอดจากป้ายเข้าพักรอประเมิน — ${swapNote}`,
+              item_condition: "pending_assessment",
               created_by: user?.id ?? null,
             } as any);
           }
         }
+
       } catch (e: any) {
         console.error("Uninstall old unit failed:", e);
       }
