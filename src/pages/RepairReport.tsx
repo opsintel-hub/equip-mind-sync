@@ -10,7 +10,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { TablePagination } from "@/components/TablePagination";
 import type { PageSize } from "@/hooks/useTablePagination";
-import { Wrench, Download, RefreshCw, Cpu, Code2, CheckCircle2, XCircle, AlertTriangle, Search, Columns as ColumnsIcon } from "lucide-react";
+import { Wrench, Download, RefreshCw, Cpu, Code2, CheckCircle2, XCircle, AlertTriangle, Search } from "lucide-react";
+import { ColumnChooser } from "@/components/ColumnChooser";
 import { format, parseISO } from "date-fns";
 import { th } from "date-fns/locale";
 import { toast } from "sonner";
@@ -19,10 +20,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuTrigger,
-  DropdownMenuCheckboxItem,
   DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 
 type ColKey =
@@ -418,38 +416,6 @@ export default function RepairReport() {
           </Button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline">
-                <ColumnsIcon className="h-4 w-4 mr-2" /> คอลัมน์ ({visibleCols.length}/{COLUMN_DEFS.length})
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-64 max-h-[70vh] overflow-auto">
-              <DropdownMenuLabel>เลือกคอลัมน์ที่ต้องการแสดง</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              {COLUMN_DEFS.map((c) => (
-                <DropdownMenuCheckboxItem
-                  key={c.key}
-                  checked={isVisible(c.key)}
-                  disabled={c.locked}
-                  onCheckedChange={() => toggleCol(c.key)}
-                  onSelect={(e) => e.preventDefault()}
-                >
-                  {c.label}{c.locked && <span className="ml-1 text-[10px] text-muted-foreground">(ล็อก)</span>}
-                </DropdownMenuCheckboxItem>
-              ))}
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onSelect={(e) => { e.preventDefault(); setVisibleCols(COLUMN_DEFS.map((c) => c.key)); }}>
-                เลือกทั้งหมด
-              </DropdownMenuItem>
-              <DropdownMenuItem onSelect={(e) => { e.preventDefault(); setVisibleCols(COLUMN_DEFS.filter((c) => c.locked).map((c) => c.key)); }}>
-                ล้าง (เหลือเฉพาะที่ล็อก)
-              </DropdownMenuItem>
-              <DropdownMenuItem onSelect={(e) => { e.preventDefault(); setVisibleCols(defaultVisibleKeys); }}>
-                ค่าเริ่มต้น
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
               <Button disabled={filtered.length === 0}>
                 <Download className="h-4 w-4 mr-2" /> ส่งออก Excel
               </Button>
@@ -702,8 +668,18 @@ export default function RepairReport() {
       {/* Table */}
       <Card>
         <CardHeader>
-          <CardTitle>รายการงานซ่อม ({filtered.length})</CardTitle>
-          <CardDescription>1 บรรทัดต่อ 1 งานซ่อม · เลื่อนแนวนอนด้วยแถบเลื่อนด้านล่าง · ใช้ลูกกลิ้งเมาส์เลื่อนขึ้น-ลงในตาราง</CardDescription>
+          <div className="flex items-start justify-between gap-3 flex-wrap">
+            <div>
+              <CardTitle>รายการงานซ่อม ({filtered.length})</CardTitle>
+              <CardDescription>1 บรรทัดต่อ 1 งานซ่อม · เลื่อนแนวนอนด้วยแถบเลื่อนด้านล่าง · ใช้ลูกกลิ้งเมาส์เลื่อนขึ้น-ลงในตาราง</CardDescription>
+            </div>
+            <ColumnChooser
+              columns={COLUMN_DEFS}
+              visible={visibleCols}
+              onChange={setVisibleCols}
+              defaults={defaultVisibleKeys}
+            />
+          </div>
         </CardHeader>
         <CardContent>
           <div className="max-h-[640px] overflow-auto rounded-md border">
