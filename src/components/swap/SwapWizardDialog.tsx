@@ -163,7 +163,7 @@ export function SwapWizardDialog({ open, onOpenChange, request, onCompleted }: P
       .from("media_players")
       .select("id, code, name, serial_number_1, serial_number_2, status, location_id, billboard_id, brand, specification, model_id, warranty_expiry_date, unit_price, remote_name, device_type")
       .is("billboard_id", null)
-      .not("status", "in", "(defective,pending_assessment,claim,pending_warehouse_return,under_repair,in_claim)")
+      .not("status", "in", "(defective,pending_assessment,claim,under_repair,in_claim)")
       .order("created_at", { ascending: false })
       .limit(300);
 
