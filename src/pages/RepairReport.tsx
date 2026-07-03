@@ -671,8 +671,18 @@ export default function RepairReport() {
       {/* Table */}
       <Card>
         <CardHeader>
-          <CardTitle>รายการงานซ่อม ({filtered.length})</CardTitle>
-          <CardDescription>1 บรรทัดต่อ 1 งานซ่อม · เลื่อนแนวนอนด้วยแถบเลื่อนด้านล่าง · ใช้ลูกกลิ้งเมาส์เลื่อนขึ้น-ลงในตาราง</CardDescription>
+          <div className="flex items-start justify-between gap-3 flex-wrap">
+            <div>
+              <CardTitle>รายการงานซ่อม ({filtered.length})</CardTitle>
+              <CardDescription>1 บรรทัดต่อ 1 งานซ่อม · เลื่อนแนวนอนด้วยแถบเลื่อนด้านล่าง · ใช้ลูกกลิ้งเมาส์เลื่อนขึ้น-ลงในตาราง</CardDescription>
+            </div>
+            <ColumnChooser
+              columns={COLUMN_DEFS}
+              visible={visibleCols}
+              onChange={setVisibleCols}
+              defaults={defaultVisibleKeys}
+            />
+          </div>
         </CardHeader>
         <CardContent>
           <div className="max-h-[640px] overflow-auto rounded-md border">
