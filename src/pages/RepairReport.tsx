@@ -10,11 +10,61 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { TablePagination } from "@/components/TablePagination";
 import type { PageSize } from "@/hooks/useTablePagination";
-import { Wrench, Download, RefreshCw, Cpu, Code2, CheckCircle2, XCircle, AlertTriangle, Search } from "lucide-react";
+import { Wrench, Download, RefreshCw, Cpu, Code2, CheckCircle2, XCircle, AlertTriangle, Search, Columns as ColumnsIcon } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { th } from "date-fns/locale";
 import { toast } from "sonner";
 import { deviceLabel, isMonitor } from "@/lib/deviceTypes";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuTrigger,
+  DropdownMenuCheckboxItem,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
+
+type ColKey =
+  | "document_no" | "completed_at" | "device_type" | "device" | "department"
+  | "serial" | "repeat" | "scope" | "actions" | "description"
+  | "assessor" | "cost" | "result" | "bb_history";
+
+const COLUMN_DEFS: { key: ColKey; label: string; locked?: boolean; defaultVisible: boolean }[] = [
+  { key: "document_no",  label: "ASM",                        defaultVisible: true },
+  { key: "completed_at", label: "วันที่ซ่อม",                  defaultVisible: true, locked: true },
+  { key: "device_type",  label: "ประเภทเครื่อง",              defaultVisible: true },
+  { key: "device",       label: "อุปกรณ์ (รหัส / ชื่อ)",       defaultVisible: true, locked: true },
+  { key: "department",   label: "ฝ่าย",                        defaultVisible: true },
+  { key: "serial",       label: "S/N",                        defaultVisible: true },
+  { key: "repeat",       label: "ครั้งที่ซ่อม",                 defaultVisible: true },
+  { key: "scope",        label: "ประเภทงาน (HW/SW)",         defaultVisible: true },
+  { key: "actions",      label: "รายการซ่อม",                 defaultVisible: true },
+  { key: "description",  label: "รายละเอียด",                  defaultVisible: true },
+  { key: "assessor",     label: "ผู้ซ่อม",                     defaultVisible: true },
+  { key: "cost",         label: "ค่าใช้จ่าย",                   defaultVisible: true },
+  { key: "result",       label: "ผลการซ่อม",                  defaultVisible: true },
+  { key: "bb_history",   label: "ประวัติป้ายที่เคยติดตั้ง",     defaultVisible: true },
+];
+
+const COL_LS_KEY = "repair-report.visible-cols.v1";
+const defaultVisibleKeys = COLUMN_DEFS.filter((c) => c.defaultVisible).map((c) => c.key);
+const loadVisibleCols = (): ColKey[] => {
+  try {
+    const raw = localStorage.getItem(COL_LS_KEY);
+    if (!raw) return defaultVisibleKeys;
+    const arr = JSON.parse(raw) as ColKey[];
+    const valid = COLUMN_DEFS.map((c) => c.key);
+    const kept = arr.filter((k) => valid.includes(k));
+    // Always include locked columns
+    COLUMN_DEFS.filter((c) => c.locked).forEach((c) => {
+      if (!kept.includes(c.key)) kept.push(c.key);
+    });
+    return kept.length ? kept : defaultVisibleKeys;
+  } catch {
+    return defaultVisibleKeys;
+  }
+};
 
 interface RepairRow {
   id: string;
