@@ -124,6 +124,7 @@ export default function ClaimTracker() {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [progressLogs, setProgressLogs] = useState<Record<string, any[]>>({});
   const [serialHistory, setSerialHistory] = useState<Record<string, any[]>>({});
+  const [sourceChain, setSourceChain] = useState<Record<string, { assessment?: any; defective?: any; swap?: any }>>({});
   const [mpDetails, setMpDetails] = useState<Record<string, { code?: string; name?: string; remote_name?: string | null; brand?: string | null; model?: string | null; sub_media_type?: string | null; device_type?: string | null; billboard_label?: string | null }>>({});
   const [userFullName, setUserFullName] = useState<string>("");
 
@@ -133,15 +134,62 @@ export default function ClaimTracker() {
       .then(({ data }) => setUserFullName((data as any)?.full_name || user.email || ""));
   }, [user?.id]);
 
+  const fetchSourceChain = async (record: any) => {
+    const chain: { assessment?: any; defective?: any; swap?: any } = {};
+    const srcType = record.source_type;
+    const srcId = record.source_reference_id;
+    if (!srcType || !srcId) return chain;
+
+    if (srcType === "assessment" || srcType === "assessment_log") {
+      const { data: asm } = await supabase
+        .from("assessment_logs")
+        .select("*, mp_assessment_results(name), mp_symptoms(name)")
+        .eq("id", srcId)
+        .maybeSingle();
+      if (asm) {
+        // Enrich repair action names
+        const ids: string[] = ((asm as any).repair_action_ids as string[]) || [];
+        if (ids.length) {
+          const { data: acts } = await supabase.from("repair_actions").select("id,name").in("id", ids);
+          (asm as any)._repair_actions = acts || [];
+        }
+        chain.assessment = asm;
+        // Trace assessment origin
+        const aSrcType = (asm as any).source_type;
+        const aSrcId = (asm as any).source_reference_id;
+        if (aSrcType && aSrcId) {
+          if (aSrcType === "defective_return" || aSrcType === "defective") {
+            const { data: dr } = await supabase.from("defective_returns").select("*").eq("id", aSrcId).maybeSingle();
+            if (dr) chain.defective = dr;
+          } else if (aSrcType === "swap" || aSrcType === "swap_request") {
+            const { data: swReq } = await supabase.from("swap_requests").select("*").eq("id", aSrcId).maybeSingle();
+            const { data: swExecs } = await supabase.from("swap_executions").select("*").eq("swap_request_id", aSrcId);
+            if (swReq) chain.swap = { ...swReq, executions: swExecs || [] };
+          }
+        }
+      }
+    } else if (srcType === "defective_return" || srcType === "defective") {
+      const { data: dr } = await supabase.from("defective_returns").select("*").eq("id", srcId).maybeSingle();
+      if (dr) chain.defective = dr;
+    } else if (srcType === "swap" || srcType === "swap_request") {
+      const { data: swReq } = await supabase.from("swap_requests").select("*").eq("id", srcId).maybeSingle();
+      const { data: swExecs } = await supabase.from("swap_executions").select("*").eq("swap_request_id", srcId);
+      if (swReq) chain.swap = { ...swReq, executions: swExecs || [] };
+    }
+    return chain;
+  };
+
   const loadHistoryFor = async (record: ClaimRecord) => {
-    const [pl, sh] = await Promise.all([
+    const [pl, sh, chain] = await Promise.all([
       supabase.from("claim_progress_logs").select("*").eq("claim_record_id", record.id).order("logged_at", { ascending: false }),
       record.media_player_id
         ? supabase.from("media_player_serial_history").select("*").eq("media_player_id", record.media_player_id).order("changed_at", { ascending: false })
         : Promise.resolve({ data: [] as any[] }),
+      fetchSourceChain(record as any),
     ]);
     setProgressLogs((p) => ({ ...p, [record.id]: (pl.data as any[]) || [] }));
     setSerialHistory((p) => ({ ...p, [record.id]: (sh.data as any[]) || [] }));
+    setSourceChain((p) => ({ ...p, [record.id]: chain }));
   };
 
   const toggleExpand = (record: ClaimRecord) => {
@@ -152,6 +200,7 @@ export default function ClaimTracker() {
       loadHistoryFor(record);
     }
   };
+
 
   const fetchRecords = async () => {
     setLoading(true);
