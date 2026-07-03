@@ -1251,7 +1251,7 @@ export default function AssessmentLog() {
       <RepairCompleteDialog
         open={repairDialogOpen}
         onOpenChange={setRepairDialogOpen}
-        assessmentLog={repairTargetLog}
+        assessmentLog={repairTargetLog ? { ...repairTargetLog, device_type: logDetails[repairTargetLog.id]?.device_type ?? null } : null}
         onCompleted={() => {
           setRepairDialogOpen(false);
           setRepairTargetLog(null);
