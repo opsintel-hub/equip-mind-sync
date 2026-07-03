@@ -155,7 +155,7 @@ export function AssessmentCompleteDialog({ open, onOpenChange, log, onCompleted 
     setNotes(log.notes || "");
     setOutcome("");
     setRepairDescription("");
-    setRepairSuccess(false);
+    
     setExternalRepairVendor("");
     setExternalRepairContact("");
     setExternalRepairPhone("");
