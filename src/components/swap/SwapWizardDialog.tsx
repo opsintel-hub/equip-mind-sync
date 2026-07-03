@@ -470,8 +470,9 @@ export function SwapWizardDialog({ open, onOpenChange, request, onCompleted }: P
 
   const canSubmit =
     result === "approved"
-      ? (!isCrossDeviceType && (!isCrossModel || crossModelAck))
+      ? (!isCrossDeviceType && (!isCrossModel || crossModelAck) && !!returnLocationId)
       : !!rejectReasonId || !!rejectReasonOther.trim();
+
 
   const handleSubmit = async () => {
     if (!request) return;
