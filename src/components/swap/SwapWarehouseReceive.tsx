@@ -7,12 +7,14 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { PackageCheck, Truck, Search } from "lucide-react";
+import { PackageCheck, Truck, Search, History, ChevronDown, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import { th } from "date-fns/locale";
 import { SimpleDepartmentSelect } from "@/components/equipment/SimpleDepartmentSelect";
 import { WarehouseLocationSelect } from "@/components/location/WarehouseLocationSelect";
 import { PhotoGalleryDialog } from "@/components/ui/PhotoGalleryDialog";
+
 
 interface PendingRow {
   id: string; // swap request id
