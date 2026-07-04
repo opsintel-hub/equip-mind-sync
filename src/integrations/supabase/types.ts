@@ -5947,6 +5947,7 @@ export type Database = {
         }[]
       }
       get_public_schema_info: { Args: never; Returns: Json }
+      get_public_schema_relations: { Args: never; Returns: Json }
       get_suppliers_admin: {
         Args: never
         Returns: {
