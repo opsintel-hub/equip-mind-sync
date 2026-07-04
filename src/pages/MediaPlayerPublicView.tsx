@@ -38,17 +38,11 @@ const MediaPlayerPublicView = () => {
   const loadPlayer = async (playerId: string) => {
     setIsLoading(true);
 
-    const { data: p, error } = await supabase
-      .from("media_players")
-      .select(`
-        *,
-        billboard:billboards(id, equipment_id, old_code, location_name),
-        companies(name),
-        cms_types(name),
-        locations(name)
-      `)
-      .eq("id", playerId)
-      .maybeSingle();
+    const { data: pRaw, error } = await supabase.rpc(
+      "public_get_media_player_profile" as any,
+      { _id: playerId }
+    );
+    const p: any = pRaw;
 
     if (error || !p) {
       toast.error("ไม่พบข้อมูล Media Player");
