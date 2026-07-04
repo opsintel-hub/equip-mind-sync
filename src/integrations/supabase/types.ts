@@ -6005,6 +6005,7 @@ export type Database = {
       }
       public_get_ad_issue_request: { Args: { _token: string }; Returns: Json }
       public_get_direct_shipment: { Args: { _id: string }; Returns: Json }
+      public_get_media_player_profile: { Args: { _id: string }; Returns: Json }
       public_get_mp_billboard_history: {
         Args: { _media_player_id: string }
         Returns: {
