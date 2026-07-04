@@ -8,9 +8,11 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Database, Search, RefreshCw, AlertTriangle, Info, ChevronRight, ExternalLink } from "lucide-react";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { TABLE_GUIDE, CATEGORY_ORDER } from "@/lib/databaseGuide";
 import { toast } from "sonner";
 import TableDetailDialog from "@/components/database-guide/TableDetailDialog";
+import RelationsTab from "@/components/database-guide/RelationsTab";
 
 interface ColumnInfo {
   name: string;
