@@ -5,7 +5,15 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Cpu, Code2, ChevronDown, Plus, X } from "lucide-react";
 import { toast } from "sonner";
 
@@ -93,6 +101,7 @@ export function RepairActionsMultiSelect({ deviceType, scopeFilter, selectedIds,
       const snap = [...options, created].filter((o) => next.includes(o.id));
       onChange(next, snap);
       setNewName("");
+      setCreateOpen(false);
       toast.success("เพิ่มรายการใหม่แล้ว");
     } catch (e: any) {
       toast.error("เพิ่มไม่สำเร็จ: " + (e.message || e));
@@ -167,30 +176,68 @@ export function RepairActionsMultiSelect({ deviceType, scopeFilter, selectedIds,
                 <Plus className="h-4 w-4" />
               </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-72 p-3 space-y-2" align="end">
-              <p className="text-xs font-medium">เพิ่มรายการใหม่ <span className="text-muted-foreground font-normal">(จะเข้า Master Data)</span></p>
-              <div className="flex gap-1">
-                <Input
-                  placeholder="ชื่อรายการใหม่..."
-                  value={newName}
-                  onChange={(e) => setNewName(e.target.value)}
-                  className="h-8 flex-1"
-                />
-                <select
-                  value={newScope}
-                  onChange={(e) => setNewScope(e.target.value as any)}
-                  className="h-8 text-xs border rounded px-1 bg-background"
+            <PopoverContent className="w-96 p-0" align="end">
+              <div className="p-4 border-b">
+                <h4 className="text-sm font-semibold">เพิ่มรายการใหม่</h4>
+                <p className="text-xs text-muted-foreground">สร้างรายการ Master Data สำหรับการซ่อม/เปลี่ยน</p>
+              </div>
+              <div className="p-4 space-y-4">
+                <div className="space-y-1.5">
+                  <Label htmlFor="new-repair-action-name" className="text-xs">
+                    ชื่อรายการ
+                  </Label>
+                  <Input
+                    id="new-repair-action-name"
+                    placeholder="ระบุชื่อรายการ..."
+                    value={newName}
+                    onChange={(e) => setNewName(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="new-repair-action-scope" className="text-xs">
+                    ประเภท
+                  </Label>
+                  <Select
+                    value={newScope}
+                    onValueChange={(value) => setNewScope(value as "hardware" | "software")}
+                  >
+                    <SelectTrigger id="new-repair-action-scope" className="w-full">
+                      <SelectValue placeholder="เลือกประเภท" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="hardware">
+                        <div className="flex items-center gap-2">
+                          <Cpu className="h-3.5 w-3.5" />
+                          <span>Hardware (HW)</span>
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="software">
+                        <div className="flex items-center gap-2">
+                          <Code2 className="h-3.5 w-3.5" />
+                          <span>Software (SW)</span>
+                        </div>
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div className="p-4 border-t flex justify-end gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  type="button"
+                  onClick={() => { setCreateOpen(false); setNewName(""); }}
                 >
-                  <option value="hardware">HW</option>
-                  <option value="software">SW</option>
-                </select>
+                  ยกเลิก
+                </Button>
                 <Button
                   size="sm"
-                  className="h-8"
-                  onClick={async () => { await handleCreate(); if (newName.trim() === "") setCreateOpen(false); }}
+                  type="button"
+                  onClick={handleCreate}
                   disabled={creating || !newName.trim()}
                 >
-                  <Plus className="h-3 w-3" />
+                  <Plus className="h-4 w-4 mr-1.5" />
+                  เพิ่มรายการ
                 </Button>
               </div>
             </PopoverContent>
