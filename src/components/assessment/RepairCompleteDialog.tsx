@@ -210,7 +210,7 @@ export function RepairCompleteDialog({ open, onOpenChange, assessmentLog, onComp
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>บันทึกผลการซ่อมเอง</DialogTitle>
           <DialogDescription>
@@ -218,26 +218,26 @@ export function RepairCompleteDialog({ open, onOpenChange, assessmentLog, onComp
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4">
+        <div className="space-y-5">
           {/* Warranty Banner */}
           <div
-            className={`rounded-lg border p-3 text-sm flex items-start gap-2 ${
+            className={`rounded-lg border p-4 text-sm flex items-start gap-3 ${
               warrantyStatus === "in_warranty"
-                ? "border-success/40 bg-success/10 text-success-foreground"
+                ? "border-success/50 bg-success/10 text-foreground"
                 : warrantyStatus === "expired"
-                ? "border-destructive/40 bg-destructive/10"
-                : "border-warning/40 bg-warning/10"
+                ? "border-destructive/50 bg-destructive/10 text-foreground"
+                : "border-warning/50 bg-warning/10 text-foreground"
             }`}
           >
             {warrantyStatus === "in_warranty" ? (
-              <ShieldCheck className="h-4 w-4 mt-0.5 text-success" />
+              <ShieldCheck className="h-5 w-5 mt-0.5 text-success shrink-0" />
             ) : warrantyStatus === "expired" ? (
-              <ShieldX className="h-4 w-4 mt-0.5 text-destructive" />
+              <ShieldX className="h-5 w-5 mt-0.5 text-destructive shrink-0" />
             ) : (
-              <ShieldAlert className="h-4 w-4 mt-0.5 text-warning" />
+              <ShieldAlert className="h-5 w-5 mt-0.5 text-warning shrink-0" />
             )}
             <div className="flex-1">
-              <div className="font-medium">
+              <div className="font-semibold text-foreground">
                 {warrantyLoading
                   ? "กำลังตรวจสอบประกัน..."
                   : warrantyStatus === "in_warranty"
@@ -246,7 +246,7 @@ export function RepairCompleteDialog({ open, onOpenChange, assessmentLog, onComp
                   ? `หมดประกันแล้ว (${warrantyDate})`
                   : "ไม่พบวันหมดประกัน — กรุณาตรวจสอบ/บันทึกที่ Media Player Profile"}
               </div>
-              <div className="text-xs text-muted-foreground mt-0.5">
+              <div className="text-xs text-muted-foreground mt-1">
                 {warrantyStatus === "in_warranty" && "เลือกได้เฉพาะ 'ส่งเคลม Vendor'"}
                 {warrantyStatus === "expired" && "เลือกได้เฉพาะ 'ส่งเข้าระบบของเสีย'"}
               </div>
@@ -261,90 +261,120 @@ export function RepairCompleteDialog({ open, onOpenChange, assessmentLog, onComp
             )}
           </div>
 
-          <div className="space-y-2 rounded-lg border p-3 bg-muted/30">
-            <Label className="font-semibold">ผลการซ่อม *</Label>
-            <RadioGroup value={result} onValueChange={(v) => setResult(v as RepairResult)}>
-              <div className="flex items-start gap-2">
-                <RadioGroupItem value="repaired" id="rep-ok" className="mt-1" />
-                <label htmlFor="rep-ok" className="text-sm cursor-pointer">
-                  <div className="font-medium text-success">✅ ซ่อมสำเร็จ — คืนคลังพร้อมเบิก</div>
-                  <div className="text-xs text-muted-foreground">เครื่องจะถูกตั้งเป็น in_stock + is_refurbished</div>
-                </label>
-              </div>
-              <div className={`flex items-start gap-2 ${!canDefective ? "opacity-50" : ""}`}>
-                <RadioGroupItem value="failed_defective" id="rep-def" className="mt-1" disabled={!canDefective} />
-                <label htmlFor="rep-def" className={`text-sm ${canDefective ? "cursor-pointer" : "cursor-not-allowed"}`}>
-                  <div className="font-medium text-destructive">❌ ซ่อมไม่ได้ — ส่งเข้าระบบของเสีย</div>
-                  <div className="text-xs text-muted-foreground">
-                    {canDefective ? "เครื่องหมดประกันแล้ว" : "🔒 ใช้ได้เฉพาะเครื่องที่หมดประกันแล้วเท่านั้น"}
+          {/* Section: ผลการซ่อม */}
+          <section className="rounded-lg border bg-card">
+            <div className="border-b px-4 py-2 bg-muted/40">
+              <h3 className="text-sm font-semibold">1. ผลการซ่อม *</h3>
+            </div>
+            <div className="p-4">
+              <RadioGroup value={result} onValueChange={(v) => setResult(v as RepairResult)} className="grid gap-3 md:grid-cols-3">
+                <label
+                  htmlFor="rep-ok"
+                  className="flex items-start gap-2 rounded-md border p-3 cursor-pointer hover:bg-accent/50 has-[[data-state=checked]]:border-success has-[[data-state=checked]]:bg-success/5"
+                >
+                  <RadioGroupItem value="repaired" id="rep-ok" className="mt-1" />
+                  <div className="text-sm">
+                    <div className="font-medium text-success">✅ ซ่อมสำเร็จ</div>
+                    <div className="text-xs text-muted-foreground mt-0.5">คืนคลัง — ตั้งเป็น in_stock + refurbished</div>
                   </div>
                 </label>
-              </div>
-              <div className={`flex items-start gap-2 ${!canClaim ? "opacity-50" : ""}`}>
-                <RadioGroupItem value="failed_claim" id="rep-clm" className="mt-1" disabled={!canClaim} />
-                <label htmlFor="rep-clm" className={`text-sm ${canClaim ? "cursor-pointer" : "cursor-not-allowed"}`}>
-                  <div className="font-medium text-primary">🔁 ซ่อมไม่ได้ — เปลี่ยนเป็นส่งเคลม</div>
-                  <div className="text-xs text-muted-foreground">
-                    {canClaim ? "เครื่องยังอยู่ในประกัน" : "🔒 ใช้ได้เฉพาะเครื่องที่ยังอยู่ในประกันเท่านั้น"}
+                <label
+                  htmlFor="rep-def"
+                  className={`flex items-start gap-2 rounded-md border p-3 hover:bg-accent/50 has-[[data-state=checked]]:border-destructive has-[[data-state=checked]]:bg-destructive/5 ${
+                    canDefective ? "cursor-pointer" : "cursor-not-allowed opacity-50"
+                  }`}
+                >
+                  <RadioGroupItem value="failed_defective" id="rep-def" className="mt-1" disabled={!canDefective} />
+                  <div className="text-sm">
+                    <div className="font-medium text-destructive">❌ ส่งเข้าระบบของเสีย</div>
+                    <div className="text-xs text-muted-foreground mt-0.5">
+                      {canDefective ? "เครื่องหมดประกันแล้ว" : "🔒 เฉพาะเครื่องหมดประกัน"}
+                    </div>
                   </div>
                 </label>
+                <label
+                  htmlFor="rep-clm"
+                  className={`flex items-start gap-2 rounded-md border p-3 hover:bg-accent/50 has-[[data-state=checked]]:border-primary has-[[data-state=checked]]:bg-primary/5 ${
+                    canClaim ? "cursor-pointer" : "cursor-not-allowed opacity-50"
+                  }`}
+                >
+                  <RadioGroupItem value="failed_claim" id="rep-clm" className="mt-1" disabled={!canClaim} />
+                  <div className="text-sm">
+                    <div className="font-medium text-primary">🔁 เปลี่ยนเป็นส่งเคลม</div>
+                    <div className="text-xs text-muted-foreground mt-0.5">
+                      {canClaim ? "เครื่องยังอยู่ในประกัน" : "🔒 เฉพาะเครื่องยังในประกัน"}
+                    </div>
+                  </div>
+                </label>
+              </RadioGroup>
+            </div>
+          </section>
+
+          {/* Section: ขอบเขต & รายการงาน */}
+          <section className="rounded-lg border bg-card">
+            <div className="border-b px-4 py-2 bg-muted/40">
+              <h3 className="text-sm font-semibold">2. ขอบเขตงานซ่อม *</h3>
+            </div>
+            <div className="p-4 space-y-4">
+              <div className="space-y-2">
+                <Label className="text-xs">ประเภท <span className="text-muted-foreground font-normal">(เลือกได้หลายรายการ)</span></Label>
+                <div className="flex gap-6 rounded-md border p-3 bg-muted/20">
+                  <label className="flex items-center gap-2 text-sm cursor-pointer">
+                    <Checkbox checked={scopeHW} onCheckedChange={(v) => setScopeHW(!!v)} />
+                    <span>🔧 Hardware</span>
+                  </label>
+                  <label className="flex items-center gap-2 text-sm cursor-pointer">
+                    <Checkbox checked={scopeSW} onCheckedChange={(v) => setScopeSW(!!v)} />
+                    <span>💻 Software</span>
+                  </label>
+                </div>
               </div>
-            </RadioGroup>
-          </div>
 
-          {/* Repair scope */}
-          <div className="space-y-2">
-            <Label>ประเภทงานซ่อม * <span className="text-xs text-muted-foreground font-normal">(เลือกได้หลายรายการ)</span></Label>
-            <div className="flex gap-4 rounded-lg border p-3">
-              <label className="flex items-center gap-2 text-sm cursor-pointer">
-                <Checkbox checked={scopeHW} onCheckedChange={(v) => setScopeHW(!!v)} />
-                <span>🔧 Hardware</span>
-              </label>
-              <label className="flex items-center gap-2 text-sm cursor-pointer">
-                <Checkbox checked={scopeSW} onCheckedChange={(v) => setScopeSW(!!v)} />
-                <span>💻 Software</span>
-              </label>
+              <div className="space-y-2">
+                <Label className="text-xs">รายการที่ซ่อม/เปลี่ยน * <span className="text-muted-foreground font-normal">(เลือกได้หลายรายการ / เพิ่มใหม่ได้)</span></Label>
+                <RepairActionsMultiSelect
+                  deviceType={assessmentLog?.device_type}
+                  scopeFilter={scopeFilter as ("hardware" | "software")[]}
+                  selectedIds={actionIds}
+                  onChange={(ids, snap) => { setActionIds(ids); setActionSnapshot(snap); }}
+                />
+              </div>
             </div>
-          </div>
+          </section>
 
-          {/* Repair actions multi-select */}
-          <div className="space-y-2">
-            <Label>รายการที่ซ่อม/เปลี่ยน * <span className="text-xs text-muted-foreground font-normal">(เลือกได้หลายรายการ / เพิ่มใหม่ได้)</span></Label>
-            <RepairActionsMultiSelect
-              deviceType={assessmentLog?.device_type}
-              scopeFilter={scopeFilter as ("hardware" | "software")[]}
-              selectedIds={actionIds}
-              onChange={(ids, snap) => { setActionIds(ids); setActionSnapshot(snap); }}
-            />
-          </div>
-
-          {result === "repaired" && (
-            <div className="space-y-2">
-              <Label>คลังปลายทาง *</Label>
-              <LocationSelect value={locationId} onChange={setLocationId} />
+          {/* Section: รายละเอียดเพิ่มเติม */}
+          <section className="rounded-lg border bg-card">
+            <div className="border-b px-4 py-2 bg-muted/40">
+              <h3 className="text-sm font-semibold">3. รายละเอียด & ค่าใช้จ่าย</h3>
             </div>
-          )}
-
-          <div className="space-y-2">
-            <Label>รายละเอียดการซ่อม *</Label>
-            <Textarea
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              rows={3}
-              placeholder="รายละเอียดเพิ่มเติม / วิธีซ่อม / สาเหตุที่ซ่อมไม่ได้"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label>ค่าใช้จ่ายในการซ่อม (บาท)</Label>
-            <Input
-              type="number"
-              step="0.01"
-              value={cost}
-              onChange={(e) => setCost(e.target.value)}
-              placeholder="0.00"
-            />
-          </div>
+            <div className="p-4 grid gap-4 md:grid-cols-2">
+              {result === "repaired" && (
+                <div className="space-y-2 md:col-span-2">
+                  <Label className="text-xs">คลังปลายทาง *</Label>
+                  <LocationSelect value={locationId} onChange={setLocationId} />
+                </div>
+              )}
+              <div className="space-y-2 md:col-span-2">
+                <Label className="text-xs">รายละเอียดการซ่อม *</Label>
+                <Textarea
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  rows={3}
+                  placeholder="รายละเอียดเพิ่มเติม / วิธีซ่อม / สาเหตุที่ซ่อมไม่ได้"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-xs">ค่าใช้จ่ายในการซ่อม (บาท)</Label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  value={cost}
+                  onChange={(e) => setCost(e.target.value)}
+                  placeholder="0.00"
+                />
+              </div>
+            </div>
+          </section>
         </div>
 
         <DialogFooter>
