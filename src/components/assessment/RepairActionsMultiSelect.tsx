@@ -101,62 +101,74 @@ export function RepairActionsMultiSelect({ deviceType, scopeFilter, selectedIds,
     }
   };
 
+  const [createOpen, setCreateOpen] = useState(false);
+
   return (
     <div className="space-y-2">
-      <Popover open={open} onOpenChange={setOpen}>
-        <PopoverTrigger asChild>
-          <Button variant="outline" className="w-full justify-between font-normal">
-            <span className="text-muted-foreground">
-              {selectedIds.length === 0 ? "เลือกรายการที่ซ่อม/เปลี่ยน..." : `เลือกแล้ว ${selectedIds.length} รายการ`}
-            </span>
-            <ChevronDown className="h-4 w-4 opacity-60" />
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
-          <div className="p-2 border-b">
-            <Input
-              placeholder="ค้นหารายการ..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="h-8"
-            />
-            {scopeFilter.length === 0 && (
-              <p className="text-[11px] text-warning mt-1">กรุณาเลือกประเภทงานซ่อม (Hardware/Software) ก่อน</p>
-            )}
-          </div>
-          <ScrollArea className="h-64">
-            {loading ? (
-              <div className="p-3 text-sm text-muted-foreground text-center">กำลังโหลด...</div>
-            ) : filtered.length === 0 ? (
-              <div className="p-3 text-sm text-muted-foreground text-center">
-                {scopeFilter.length === 0 ? "—" : "ไม่พบรายการ ลองเพิ่มใหม่ด้านล่าง"}
-              </div>
-            ) : (
-              <div className="p-1">
-                {filtered.map((o) => {
-                  const checked = selectedIds.includes(o.id);
-                  return (
-                    <button
-                      key={o.id}
-                      type="button"
-                      onClick={() => toggle(o.id)}
-                      className="w-full flex items-center gap-2 px-2 py-1.5 text-left text-sm rounded hover:bg-accent"
-                    >
-                      <Checkbox checked={checked} onCheckedChange={() => toggle(o.id)} onClick={(e) => e.stopPropagation()} />
-                      <span className="flex-1">{o.name}</span>
-                      <Badge variant={o.scope === "hardware" ? "secondary" : "outline"} className="gap-1 text-[10px] px-1.5 py-0">
-                        {o.scope === "hardware" ? <Cpu className="h-3 w-3" /> : <Code2 className="h-3 w-3" />}
-                        {o.scope === "hardware" ? "HW" : "SW"}
-                      </Badge>
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-          </ScrollArea>
-          {canCreate && (
-            <div className="border-t p-2 space-y-2 bg-muted/30">
-              <p className="text-[11px] text-muted-foreground font-medium">+ เพิ่มรายการใหม่ (จะเข้า Master Data)</p>
+      <div className="flex gap-1.5">
+        <Popover open={open} onOpenChange={setOpen}>
+          <PopoverTrigger asChild>
+            <Button variant="outline" className="flex-1 justify-between font-normal">
+              <span className="text-muted-foreground">
+                {selectedIds.length === 0 ? "เลือกรายการที่ซ่อม/เปลี่ยน..." : `เลือกแล้ว ${selectedIds.length} รายการ`}
+              </span>
+              <ChevronDown className="h-4 w-4 opacity-60" />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+            <div className="p-2 border-b">
+              <Input
+                placeholder="ค้นหารายการ..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="h-8"
+              />
+              {scopeFilter.length === 0 && (
+                <p className="text-[11px] text-warning mt-1">กรุณาเลือกประเภทงานซ่อม (Hardware/Software) ก่อน</p>
+              )}
+            </div>
+            <ScrollArea className="h-64">
+              {loading ? (
+                <div className="p-3 text-sm text-muted-foreground text-center">กำลังโหลด...</div>
+              ) : filtered.length === 0 ? (
+                <div className="p-3 text-sm text-muted-foreground text-center">
+                  {scopeFilter.length === 0 ? "—" : "ไม่พบรายการ ลองกดปุ่ม + เพื่อเพิ่มใหม่"}
+                </div>
+              ) : (
+                <div className="p-1">
+                  {filtered.map((o) => {
+                    const checked = selectedIds.includes(o.id);
+                    return (
+                      <button
+                        key={o.id}
+                        type="button"
+                        onClick={() => toggle(o.id)}
+                        className="w-full flex items-center gap-2 px-2 py-1.5 text-left text-sm rounded hover:bg-accent"
+                      >
+                        <Checkbox checked={checked} onCheckedChange={() => toggle(o.id)} onClick={(e) => e.stopPropagation()} />
+                        <span className="flex-1">{o.name}</span>
+                        <Badge variant={o.scope === "hardware" ? "secondary" : "outline"} className="gap-1 text-[10px] px-1.5 py-0">
+                          {o.scope === "hardware" ? <Cpu className="h-3 w-3" /> : <Code2 className="h-3 w-3" />}
+                          {o.scope === "hardware" ? "HW" : "SW"}
+                        </Badge>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </ScrollArea>
+          </PopoverContent>
+        </Popover>
+
+        {canCreate && (
+          <Popover open={createOpen} onOpenChange={setCreateOpen}>
+            <PopoverTrigger asChild>
+              <Button variant="outline" size="icon" type="button" title="เพิ่มรายการใหม่ (Master Data)">
+                <Plus className="h-4 w-4" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-72 p-3 space-y-2" align="end">
+              <p className="text-xs font-medium">เพิ่มรายการใหม่ <span className="text-muted-foreground font-normal">(จะเข้า Master Data)</span></p>
               <div className="flex gap-1">
                 <Input
                   placeholder="ชื่อรายการใหม่..."
@@ -172,14 +184,19 @@ export function RepairActionsMultiSelect({ deviceType, scopeFilter, selectedIds,
                   <option value="hardware">HW</option>
                   <option value="software">SW</option>
                 </select>
-                <Button size="sm" className="h-8" onClick={handleCreate} disabled={creating || !newName.trim()}>
+                <Button
+                  size="sm"
+                  className="h-8"
+                  onClick={async () => { await handleCreate(); if (newName.trim() === "") setCreateOpen(false); }}
+                  disabled={creating || !newName.trim()}
+                >
                   <Plus className="h-3 w-3" />
                 </Button>
               </div>
-            </div>
-          )}
-        </PopoverContent>
-      </Popover>
+            </PopoverContent>
+          </Popover>
+        )}
+      </div>
 
       {selectedOptions.length > 0 && (
         <div className="flex flex-wrap gap-1.5">
