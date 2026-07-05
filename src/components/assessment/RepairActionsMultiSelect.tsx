@@ -101,6 +101,7 @@ export function RepairActionsMultiSelect({ deviceType, scopeFilter, selectedIds,
       const snap = [...options, created].filter((o) => next.includes(o.id));
       onChange(next, snap);
       setNewName("");
+      setCreateOpen(false);
       toast.success("เพิ่มรายการใหม่แล้ว");
     } catch (e: any) {
       toast.error("เพิ่มไม่สำเร็จ: " + (e.message || e));
