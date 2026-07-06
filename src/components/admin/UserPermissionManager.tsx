@@ -550,7 +550,7 @@ export function UserPermissionManager() {
                   <TableHead>อีเมล</TableHead>
                   <TableHead>เบอร์โทร</TableHead>
                     <TableHead>คำขอสมัคร</TableHead>
-                  <TableHead>บทบาท</TableHead>
+                  <TableHead>บทบาท / ตั้งสิทธิ์เร็ว</TableHead>
                   <TableHead className="text-right">จัดการ</TableHead>
                 </TableRow>
               </TableHeader>
