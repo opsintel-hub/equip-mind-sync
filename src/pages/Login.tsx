@@ -25,6 +25,7 @@ const loginSchema = z.object({
 
 const signupSchema = loginSchema.extend({
   fullName: z.string().min(2, "กรุณากรอกชื่อ-นามสกุล"),
+  displayName: z.string().min(1, "กรุณากรอกชื่อที่ต้องการให้แสดงในระบบ").max(50, "ชื่อที่แสดงต้องไม่เกิน 50 ตัวอักษร"),
   phone: z.string().optional(),
   requestedJobRole: z.string().min(1, "กรุณาเลือกตำแหน่งงาน"),
   requestedDepartment: z.string().min(1, "กรุณาเลือกฝ่ายที่สังกัด"),
