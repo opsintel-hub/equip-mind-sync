@@ -502,6 +502,7 @@ export function UserPermissionManager() {
                   <TableRow className="bg-muted/50">
                   <TableHead>ชื่อ-นามสกุล</TableHead>
                   <TableHead>ชื่อที่แสดงในระบบ</TableHead>
+                  <TableHead>ฝ่าย</TableHead>
                   <TableHead>อีเมล</TableHead>
                   <TableHead>เบอร์โทร</TableHead>
                     <TableHead>คำขอสมัคร</TableHead>
