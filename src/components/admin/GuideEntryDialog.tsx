@@ -1,14 +1,16 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { SearchableMultiSelect } from "@/components/ui/searchable-select";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Trash2, Plus, X } from "lucide-react";
+import { Plus, X } from "lucide-react";
 import { GUIDE_ICON_NAMES, GUIDE_COLOR_PRESETS, GuideIcon } from "./guideEntryIcons";
+import { MENU_TITLES } from "./guideMenuOptions";
 
 export interface GuideEntry {
   id?: string;
