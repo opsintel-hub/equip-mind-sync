@@ -188,7 +188,7 @@ const MasterData = () => {
 
         </div>
 
-        {isSuperAdmin && (
+        {can("md_equipment") && (
         <TabsContent value="equipment" className="space-y-4">
           <Card>
             <CardHeader>
@@ -216,7 +216,7 @@ const MasterData = () => {
         </TabsContent>
         )}
 
-        {isSuperAdmin && (
+        {can("md_tools") && (
         <TabsContent value="tools" className="space-y-4">
           <Card>
             <CardHeader>
@@ -244,6 +244,7 @@ const MasterData = () => {
         </TabsContent>
         )}
 
+        {can("md_categories") && (
         <TabsContent value="categories" className="space-y-4">
           <Card>
             <CardHeader>
@@ -279,8 +280,9 @@ const MasterData = () => {
             </CardContent>
           </Card>
         </TabsContent>
+        )}
 
-        {isSuperAdmin && (
+        {can("md_warehouses") && (
         <TabsContent value="warehouses" className="space-y-4">
           <Card>
             <CardHeader>
@@ -301,7 +303,7 @@ const MasterData = () => {
         </TabsContent>
         )}
 
-        {isSuperAdmin && (
+        {can("md_locations") && (
         <TabsContent value="locations" className="space-y-4">
           <Card>
             <CardHeader>
@@ -325,6 +327,7 @@ const MasterData = () => {
         </TabsContent>
         )}
 
+        {can("md_suppliers") && (
         <TabsContent value="suppliers" className="space-y-4">
           <Card>
             <CardHeader>
@@ -346,7 +349,9 @@ const MasterData = () => {
             </CardContent>
           </Card>
         </TabsContent>
+        )}
 
+        {can("md_contractors") && (
         <TabsContent value="contractors" className="space-y-4">
           <Card>
             <CardHeader>
@@ -365,7 +370,9 @@ const MasterData = () => {
             </CardContent>
           </Card>
         </TabsContent>
+        )}
 
+        {can("md_departments") && (
         <TabsContent value="departments" className="space-y-4">
           <Card>
             <CardHeader>
@@ -384,7 +391,9 @@ const MasterData = () => {
             </CardContent>
           </Card>
         </TabsContent>
+        )}
 
+        {can("md_sections") && (
         <TabsContent value="sections" className="space-y-4">
           <Card>
             <CardHeader>
@@ -403,7 +412,9 @@ const MasterData = () => {
             </CardContent>
           </Card>
         </TabsContent>
+        )}
 
+        {can("md_companies") && (
         <TabsContent value="companies" className="space-y-4">
           <Card>
             <CardHeader>
@@ -422,7 +433,9 @@ const MasterData = () => {
             </CardContent>
           </Card>
         </TabsContent>
+        )}
 
+        {can("md_issue_purposes") && (
         <TabsContent value="issue_purposes" className="space-y-4">
           <Card>
             <CardHeader>
@@ -441,7 +454,9 @@ const MasterData = () => {
             </CardContent>
           </Card>
         </TabsContent>
+        )}
 
+        {can("md_receipt_purposes") && (
         <TabsContent value="receipt_purposes" className="space-y-4">
           <Card>
             <CardHeader>
@@ -464,7 +479,9 @@ const MasterData = () => {
             </CardContent>
           </Card>
         </TabsContent>
+        )}
 
+        {can("md_technicians") && (
         <TabsContent value="technicians" className="space-y-4">
           <Card>
             <CardHeader>
@@ -486,7 +503,9 @@ const MasterData = () => {
             </CardContent>
           </Card>
         </TabsContent>
+        )}
 
+        {can("md_pm_action_types") && (
         <TabsContent value="pm_action_types" className="space-y-4">
           <Card>
             <CardHeader>
@@ -505,8 +524,9 @@ const MasterData = () => {
             </CardContent>
           </Card>
         </TabsContent>
+        )}
 
-        {isSuperAdmin && (
+        {can("md_media_player") && (
         <TabsContent value="media_player" className="space-y-6">
           <Suspense fallback={<div className="flex justify-center py-8"><div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full" /></div>}>
             <MediaPlayerEntry />
