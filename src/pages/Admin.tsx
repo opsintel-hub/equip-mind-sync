@@ -14,6 +14,8 @@ import { OCRConfigManager } from "@/components/admin/OCRConfigManager";
 
 const Admin = () => {
   const { isAdmin, isSuperAdmin, loading: permLoading } = useDepartmentPermissions();
+  const [viewMode, setViewMode] = useState<"card" | "matrix">("card");
+
 
   if (permLoading) {
     return <div className="flex items-center justify-center h-screen">กำลังโหลด...</div>;
