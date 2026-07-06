@@ -11,18 +11,20 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 
 import { Separator } from "@/components/ui/separator";
-import { 
-  Search, 
-  UserCog, 
-  Shield, 
-  Settings2, 
+import {
+  Search,
+  UserCog,
+  Shield,
+  Settings2,
   KeyRound,
   Building2,
   Check,
   X,
   Info,
   Lock,
-  Sparkles
+  Sparkles,
+  Pencil,
+  Trash2,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
