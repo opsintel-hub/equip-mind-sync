@@ -523,6 +523,16 @@ export function UserPermissionManager() {
                         ? <span className="font-medium text-primary">{user.display_name}</span>
                         : <span className="text-muted-foreground">-</span>}
                     </TableCell>
+                    <TableCell>
+                      {user.department ? (
+                        <div className="flex items-center gap-1 text-sm">
+                          <Building2 className="h-3 w-3 text-muted-foreground" />
+                          {user.department}
+                        </div>
+                      ) : (
+                        <span className="text-muted-foreground">-</span>
+                      )}
+                    </TableCell>
                     <TableCell className="text-muted-foreground">{user.email || "-"}</TableCell>
                     <TableCell>{user.phone || "-"}</TableCell>
                       <TableCell>
