@@ -96,6 +96,10 @@ export function UserPermissionManager() {
   const [selectedUserRoles, setSelectedUserRoles] = useState<UserRole[]>([]);
   const [userPermissions, setUserPermissions] = useState<UserPermission[]>([]);
   const [userFunctionPermissions, setUserFunctionPermissions] = useState<FunctionPermission[]>([]);
+  // For quick preset auto-detect & default departments
+  const [presets, setPresets] = useState<PermissionPreset[]>([]);
+  const [userFunctionsByUser, setUserFunctionsByUser] = useState<Record<string, string[]>>({});
+  const [userDeptsByUser, setUserDeptsByUser] = useState<Record<string, string[]>>({});
   const [loading, setLoading] = useState(true);
   
   // Dialog states
