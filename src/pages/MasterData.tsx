@@ -47,7 +47,7 @@ const MediaPlayerEntry = lazy(() => import("@/pages/MediaPlayerEntry"));
 
 const MasterData = () => {
   const [refreshKey, setRefreshKey] = useState(0);
-  const { isSuperAdmin, isAdmin, loading: permLoading } = useDepartmentPermissions();
+  const { loading: permLoading } = useDepartmentPermissions();
   const { hasFunctionAccess, loading: fnLoading } = useFunctionPermissions();
 
   const handleSuccess = () => {
