@@ -85,6 +85,17 @@ const BillboardFilters = ({ filters, onFilterChange, onClearFilters }: Billboard
     enabled: allowedDepartments.length > 0 || isAdmin,
   });
 
+  const equipmentStatusValues = filters.equipmentStatus
+    ? filters.equipmentStatus.split(",").filter(Boolean)
+    : [];
+
+  const toggleEquipmentStatus = (val: string) => {
+    const set = new Set(equipmentStatusValues);
+    if (set.has(val)) set.delete(val);
+    else set.add(val);
+    onFilterChange("equipmentStatus", Array.from(set).join(","));
+  };
+
   const activeEntries = (Object.entries(filters) as [keyof BillboardFiltersState, string][]).filter(
     ([, v]) => v !== "",
   );
@@ -92,7 +103,13 @@ const BillboardFilters = ({ filters, onFilterChange, onClearFilters }: Billboard
 
   const formatChipValue = (key: keyof BillboardFiltersState, value: string): string => {
     if (key === "status") return STATUS_LABEL[value] ?? value;
-    if (key === "equipmentStatus") return EQUIPMENT_STATUS_LABEL[value] ?? value;
+    if (key === "equipmentStatus") {
+      return value
+        .split(",")
+        .filter(Boolean)
+        .map((v) => EQUIPMENT_STATUS_LABEL[v] ?? v)
+        .join(", ");
+    }
     return value;
   };
 
