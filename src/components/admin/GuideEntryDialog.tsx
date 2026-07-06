@@ -1,14 +1,16 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { SearchableMultiSelect } from "@/components/ui/searchable-select";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Trash2, Plus, X } from "lucide-react";
+import { Plus, X } from "lucide-react";
 import { GUIDE_ICON_NAMES, GUIDE_COLOR_PRESETS, GuideIcon } from "./guideEntryIcons";
+import { MENU_TITLES } from "./guideMenuOptions";
 
 export interface GuideEntry {
   id?: string;
@@ -45,6 +47,7 @@ export function GuideEntryDialog({ open, onOpenChange, kind, entry, onSaved }: P
     display_order: 0,
   });
   const [saving, setSaving] = useState(false);
+  const [functionLabels, setFunctionLabels] = useState<string[]>([]);
 
   useEffect(() => {
     if (open) {
@@ -61,6 +64,27 @@ export function GuideEntryDialog({ open, onOpenChange, kind, entry, onSaved }: P
       });
     }
   }, [open, entry, kind]);
+
+  // For role dialog, load function labels to build the dropdown options.
+  useEffect(() => {
+    if (!open || kind !== "role") return;
+    (supabase as any)
+      .from("admin_guide_entries")
+      .select("label")
+      .eq("kind", "function")
+      .order("display_order")
+      .then(({ data }: any) => {
+        setFunctionLabels((data || []).map((d: any) => d.label));
+      });
+  }, [open, kind]);
+
+  const relatedOptions = useMemo(() => {
+    const source = kind === "role" ? functionLabels : MENU_TITLES;
+    // Merge in any legacy values already saved on this entry so they remain visible.
+    const merged = Array.from(new Set([...source, ...(form.related || [])]));
+    return merged.map((v) => ({ value: v, label: v }));
+  }, [kind, functionLabels, form.related]);
+
 
   const updateArrayItem = (key: "bullets" | "related", idx: number, val: string) => {
     setForm((f) => ({ ...f, [key]: f[key].map((x, i) => (i === idx ? val : x)) }));
@@ -184,13 +208,24 @@ export function GuideEntryDialog({ open, onOpenChange, kind, entry, onSaved }: P
             onAdd={() => addArrayItem("bullets")}
             onRemove={(i) => removeArrayItem("bullets", i)}
           />
-          <ArrayEditor
-            label="หน้าที่เข้าถึงได้"
-            items={form.related}
-            onChange={(i, v) => updateArrayItem("related", i, v)}
-            onAdd={() => addArrayItem("related")}
-            onRemove={(i) => removeArrayItem("related", i)}
-          />
+          <div>
+            <Label>หน้าที่เข้าถึงได้</Label>
+            <SearchableMultiSelect
+              options={relatedOptions}
+              values={form.related}
+              onValuesChange={(vals) => setForm({ ...form, related: vals })}
+              placeholder={kind === "role" ? "เลือกฟังก์ชันที่เข้าถึงได้..." : "เลือกเมนูที่เข้าถึงได้..."}
+              searchPlaceholder="ค้นหา..."
+              emptyMessage="ไม่พบข้อมูล"
+              maxDisplay={3}
+            />
+            <p className="text-[11px] text-muted-foreground mt-1">
+              {kind === "role"
+                ? "รายการฟังก์ชันดึงจากแท็บ 'แนวทางสิทธิ์ตามฟังก์ชัน' แก้ไข/เพิ่มได้จากแท็บนั้น"
+                : "รายการเมนูสอดคล้องกับเมนูจริงในระบบ"}
+            </p>
+          </div>
+
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>
