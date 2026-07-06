@@ -94,77 +94,98 @@ const MasterData = () => {
       <Tabs defaultValue={defaultTab} className="w-full">
         <div className="w-full overflow-x-auto pb-2">
           <TabsList className="inline-flex w-max h-10 mb-0">
-            {isSuperAdmin && (
+            {can("md_equipment") && (
               <TabsTrigger value="equipment" className="gap-1.5 text-xs px-3">
                 <Package className="h-3.5 w-3.5" />
                 อุปกรณ์
               </TabsTrigger>
             )}
-            {isSuperAdmin && (
+            {can("md_tools") && (
               <TabsTrigger value="tools" className="gap-1.5 text-xs px-3">
                 <Wrench className="h-3.5 w-3.5" />
                 เครื่องมือ
               </TabsTrigger>
             )}
-            <TabsTrigger value="categories" className="gap-1.5 text-xs px-3">
-              <FolderTree className="h-3.5 w-3.5" />
-              หมวดหมู่
-            </TabsTrigger>
-            {isSuperAdmin && (
+            {can("md_categories") && (
+              <TabsTrigger value="categories" className="gap-1.5 text-xs px-3">
+                <FolderTree className="h-3.5 w-3.5" />
+                หมวดหมู่
+              </TabsTrigger>
+            )}
+            {can("md_warehouses") && (
               <TabsTrigger value="warehouses" className="gap-1.5 text-xs px-3">
                 <Warehouse className="h-3.5 w-3.5" />
                 คลังสินค้า
               </TabsTrigger>
             )}
-            {isSuperAdmin && (
+            {can("md_locations") && (
               <TabsTrigger value="locations" className="gap-1.5 text-xs px-3">
                 <MapPin className="h-3.5 w-3.5" />
                 ตำแหน่ง
               </TabsTrigger>
             )}
-            <TabsTrigger value="suppliers" className="gap-1.5 text-xs px-3">
-              <Truck className="h-3.5 w-3.5" />
-              ผู้จัดจำหน่าย
-            </TabsTrigger>
-            <TabsTrigger value="contractors" className="gap-1.5 text-xs px-3">
-              <HardHat className="h-3.5 w-3.5" />
-              ผู้รับเหมา
-            </TabsTrigger>
-            <TabsTrigger value="departments" className="gap-1.5 text-xs px-3">
-              <Building2 className="h-3.5 w-3.5" />
-              ฝ่าย
-            </TabsTrigger>
-            <TabsTrigger value="sections" className="gap-1.5 text-xs px-3">
-              <Layers className="h-3.5 w-3.5" />
-              แผนก
-            </TabsTrigger>
-            <TabsTrigger value="companies" className="gap-1.5 text-xs px-3">
-              <Building className="h-3.5 w-3.5" />
-              บริษัท
-            </TabsTrigger>
-            <TabsTrigger value="issue_purposes" className="gap-1.5 text-xs px-3">
-              <Target className="h-3.5 w-3.5" />
-              วัตถุประสงค์เบิก
-            </TabsTrigger>
-            <TabsTrigger value="receipt_purposes" className="gap-1.5 text-xs px-3">
-              <PackageOpen className="h-3.5 w-3.5" />
-              วัตถุประสงค์รับ
-            </TabsTrigger>
-            <TabsTrigger value="technicians" className="gap-1.5 text-xs px-3">
-              <Users className="h-3.5 w-3.5" />
-              ช่าง
-            </TabsTrigger>
-            <TabsTrigger value="pm_action_types" className="gap-1.5 text-xs px-3">
-              <Zap className="h-3.5 w-3.5" />
-              PM Action Types
-            </TabsTrigger>
-            {isSuperAdmin && (
+            {can("md_suppliers") && (
+              <TabsTrigger value="suppliers" className="gap-1.5 text-xs px-3">
+                <Truck className="h-3.5 w-3.5" />
+                ผู้จัดจำหน่าย
+              </TabsTrigger>
+            )}
+            {can("md_contractors") && (
+              <TabsTrigger value="contractors" className="gap-1.5 text-xs px-3">
+                <HardHat className="h-3.5 w-3.5" />
+                ผู้รับเหมา
+              </TabsTrigger>
+            )}
+            {can("md_departments") && (
+              <TabsTrigger value="departments" className="gap-1.5 text-xs px-3">
+                <Building2 className="h-3.5 w-3.5" />
+                ฝ่าย
+              </TabsTrigger>
+            )}
+            {can("md_sections") && (
+              <TabsTrigger value="sections" className="gap-1.5 text-xs px-3">
+                <Layers className="h-3.5 w-3.5" />
+                แผนก
+              </TabsTrigger>
+            )}
+            {can("md_companies") && (
+              <TabsTrigger value="companies" className="gap-1.5 text-xs px-3">
+                <Building className="h-3.5 w-3.5" />
+                บริษัท
+              </TabsTrigger>
+            )}
+            {can("md_issue_purposes") && (
+              <TabsTrigger value="issue_purposes" className="gap-1.5 text-xs px-3">
+                <Target className="h-3.5 w-3.5" />
+                วัตถุประสงค์เบิก
+              </TabsTrigger>
+            )}
+            {can("md_receipt_purposes") && (
+              <TabsTrigger value="receipt_purposes" className="gap-1.5 text-xs px-3">
+                <PackageOpen className="h-3.5 w-3.5" />
+                วัตถุประสงค์รับ
+              </TabsTrigger>
+            )}
+            {can("md_technicians") && (
+              <TabsTrigger value="technicians" className="gap-1.5 text-xs px-3">
+                <Users className="h-3.5 w-3.5" />
+                ช่าง
+              </TabsTrigger>
+            )}
+            {can("md_pm_action_types") && (
+              <TabsTrigger value="pm_action_types" className="gap-1.5 text-xs px-3">
+                <Zap className="h-3.5 w-3.5" />
+                PM Action Types
+              </TabsTrigger>
+            )}
+            {can("md_media_player") && (
               <TabsTrigger value="media_player" className="gap-1.5 text-xs px-3">
                 <Monitor className="h-3.5 w-3.5" />
                 จัดการ Media Player
               </TabsTrigger>
             )}
           </TabsList>
+
         </div>
 
         {isSuperAdmin && (
