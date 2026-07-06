@@ -151,7 +151,17 @@ export function AssessmentCompleteDialog({ open, onOpenChange, log, onCompleted 
     setAssessmentResultId(log.assessment_result_id || "");
     setDiagnosisNotes(log.diagnosis_notes || "");
     setRecommendedAction(log.recommended_action || "");
-    setAssessorName(log.assessor_name || "");
+    // Assessor name is auto-loaded from signed-in user below; do not restore old value from log
+    // to prevent someone re-editing under another person's name.
+    (async () => {
+      if (user?.id) {
+        const { data } = await supabase.from("profiles").select("full_name, display_name").eq("id", user.id).maybeSingle();
+        const p = data as any;
+        setAssessorName(p?.display_name || p?.full_name || user.email || log.assessor_name || "");
+      } else {
+        setAssessorName(log.assessor_name || "");
+      }
+    })();
     setNotes(log.notes || "");
     setOutcome("");
     setRepairDescription("");
