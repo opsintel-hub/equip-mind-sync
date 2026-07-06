@@ -1668,9 +1668,12 @@ const DeliveryEntry = () => {
                     id="deliveryPerson"
                     placeholder="ระบุชื่อผู้ดำเนินการนำเข้าข้อมูล"
                     value={deliveryPersonName}
-                    onChange={(e) => setDeliveryPersonName(e.target.value)}
+                    readOnly
+                    className="bg-muted cursor-not-allowed"
+                    title="ดึงจากชื่อที่แสดงในระบบของผู้ใช้ที่ล็อกอิน"
                     required
                   />
+                  <p className="text-[11px] text-muted-foreground">ดึงอัตโนมัติจากผู้ใช้ที่ล็อกอิน ไม่สามารถแก้ไขได้</p>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="phone">เบอร์โทรติดต่อ</Label>
