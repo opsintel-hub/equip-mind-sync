@@ -21,7 +21,7 @@ import {
 import {
   MapPin,
   Search,
-  Plus,
+  
 
   Edit,
   Trash2,
