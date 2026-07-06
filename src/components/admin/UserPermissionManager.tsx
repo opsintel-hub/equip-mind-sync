@@ -601,20 +601,8 @@ export function UserPermissionManager() {
                             </Badge>
                           )}
                         </div>
-                        <QuickPresetSelector
-                          userId={user.id}
-                          userFullName={user.display_name || user.full_name || user.email || ""}
-                          allDepartments={allDepartments}
-                          presets={presets}
-                          currentPresetKey={detectCurrentPresetKey(
-                            presets,
-                            userRoles[user.id] || [],
-                            userFunctionsByUser[user.id] || [],
-                          )}
-                          currentDepartments={userDeptsByUser[user.id] || []}
-                          requestedDepartment={user.requested_department}
-                          onApplied={fetchUsers}
-                        />
+                        {/* Preset ถูกย้ายไปที่มุมมอง Matrix สิทธิ์ — ที่นี่เก็บเฉพาะ Wizard ตั้งค่ารายคน */}
+
                         <button
                           type="button"
                           onClick={() => handleOpenWizard(user)}
