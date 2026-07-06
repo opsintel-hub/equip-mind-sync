@@ -19,18 +19,68 @@ interface ConnectionConfig {
   table: string;
 }
 
-async function connectMssql(cfg: ConnectionConfig) {
-  const pool = await sql.connect({
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+// Translate common MSSQL / network errors into user-friendly Thai messages
+function translateError(err: any): string {
+  const raw = String(err?.message || err?.code || err || "");
+  const lower = raw.toLowerCase();
+  if (lower.includes("login failed") || lower.includes("18456")) {
+    return `ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง (${raw})`;
+  }
+  if (lower.includes("etimeout") || lower.includes("timeout")) {
+    return `เชื่อมต่อ MSSQL เกินเวลา — ตรวจสอบ firewall ฝั่ง server ว่าเปิดพอร์ต 1433 ให้ IP ของระบบ (${raw})`;
+  }
+  if (
+    lower.includes("econnrefused") ||
+    lower.includes("enotfound") ||
+    lower.includes("ehostunreach")
+  ) {
+    return `ไม่สามารถเชื่อมต่อไปยัง server ได้ — ตรวจสอบชื่อ host/port และการเปิด TCP/IP (${raw})`;
+  }
+  if (lower.includes("tls") || lower.includes("ssl") || lower.includes("handshake")) {
+    return `TLS handshake ล้มเหลว — server อาจบังคับใช้ SSL ที่ไม่รองรับ (${raw})`;
+  }
+  if (lower.includes("invalid object name") || lower.includes("208")) {
+    return `ไม่พบตารางที่ระบุใน database (${raw})`;
+  }
+  return raw || "ไม่ทราบสาเหตุ";
+}
+
+async function connectMssqlOnce(cfg: ConnectionConfig) {
+  return await sql.connect({
     user: cfg.username,
     password: cfg.password,
     server: cfg.host,
     port: cfg.port,
     database: cfg.database,
-    options: { encrypt: false, trustServerCertificate: true },
-    connectionTimeout: 15000,
-    requestTimeout: 60000,
+    options: {
+      encrypt: false,
+      trustServerCertificate: true,
+      enableArithAbort: true,
+      tdsVersion: "7_4",
+      useUTC: true,
+    },
+    pool: { max: 1, min: 0, idleTimeoutMillis: 30000 },
+    connectionTimeout: 60000,
+    requestTimeout: 300000,
+    stream: false,
   });
-  return pool;
+}
+
+async function connectMssql(cfg: ConnectionConfig) {
+  const delays = [0, 2000, 4000]; // 3 attempts, exp backoff
+  let lastErr: any = null;
+  for (let attempt = 0; attempt < delays.length; attempt++) {
+    if (delays[attempt] > 0) await sleep(delays[attempt]);
+    try {
+      return await connectMssqlOnce(cfg);
+    } catch (err) {
+      lastErr = err;
+      console.warn(`MSSQL connect attempt ${attempt + 1} failed:`, err);
+    }
+  }
+  throw new Error(translateError(lastErr));
 }
 
 async function runQuery(pool: any, query: string): Promise<any[]> {
@@ -73,9 +123,18 @@ function parseConfig(body: any): ConnectionConfig {
   if (!ALLOWED_TABLES.has(table)) {
     throw new Error("Invalid table name");
   }
+  // Support "host:port" written in the host field
+  let hostRaw = String(body.host || "magicticket.magicsigncloud.com").trim();
+  let port = Number(body.port) || 1433;
+  if (hostRaw.includes(":")) {
+    const [h, p] = hostRaw.split(":");
+    hostRaw = h.trim();
+    const parsed = parseInt(p, 10);
+    if (!isNaN(parsed) && parsed > 0) port = parsed;
+  }
   return {
-    host: body.host || "magicticket.magicsigncloud.com",
-    port: Number(body.port) || 1433,
+    host: hostRaw,
+    port,
     database: body.database || "planb",
     username: body.username || "planb_viewer",
     password,
@@ -126,7 +185,7 @@ Deno.serve(async (req) => {
           },
         );
       } finally {
-        await pool.close();
+        try { await pool.close(); } catch { /* ignore */ }
       }
     }
 
@@ -149,7 +208,7 @@ Deno.serve(async (req) => {
           },
         );
       } finally {
-        await pool.close();
+        try { await pool.close(); } catch { /* ignore */ }
       }
     }
 
@@ -172,10 +231,14 @@ Deno.serve(async (req) => {
       const pool = await connectMssql(cfg);
       let inserted = 0, updated = 0, skipped = 0, failed = 0, fetched = 0;
       const errors: string[] = [];
+      const nowIso = new Date().toISOString();
 
       try {
         const rows = await runQuery(pool, `SELECT * FROM [${cfg.table}]`);
         fetched = rows.length;
+
+        // Close the pool immediately after fetching to free the connection
+        try { await pool.close(); } catch { /* ignore */ }
 
         // Build mapped rows — OldCode is the PRIMARY match key
         const mappedRows: any[] = [];
@@ -201,6 +264,8 @@ Deno.serve(async (req) => {
             bkk_upc: row.BKK_UPC ?? row.UPC ?? null,
             department: row.Department ?? null,
             status: "active",
+            sync_source: "mssql",
+            last_synced_at: nowIso,
           });
         }
 
@@ -212,9 +277,9 @@ Deno.serve(async (req) => {
         }
         const finalRows = Array.from(dedupMap.values());
 
-        // Fetch existing rows by old_code to classify insert vs update
-        const existingByOldCode = new Map<string, { old_code: string; equipment_id: string }>();
-        const existingByEquipmentId = new Map<string, { old_code: string; equipment_id: string }>();
+        // Fetch existing rows (need sync_source to protect manual entries)
+        const existingByOldCode = new Map<string, { old_code: string; equipment_id: string; sync_source: string | null }>();
+        const existingByEquipmentId = new Map<string, { old_code: string; equipment_id: string; sync_source: string | null }>();
         const chunkSize = 500;
         const allCodes = finalRows.map((r) => r.old_code);
         const allEquipmentIds = finalRows.map((r) => r.equipment_id);
@@ -223,7 +288,7 @@ Deno.serve(async (req) => {
           const chunk = allCodes.slice(i, i + chunkSize);
           const { data: existing, error } = await adminClient
             .from("billboards")
-            .select("old_code, equipment_id")
+            .select("old_code, equipment_id, sync_source")
             .in("old_code", chunk);
           if (error) throw error;
           (existing ?? []).forEach((row: any) => {
@@ -236,7 +301,7 @@ Deno.serve(async (req) => {
           const chunk = allEquipmentIds.slice(i, i + chunkSize);
           const { data: existing, error } = await adminClient
             .from("billboards")
-            .select("old_code, equipment_id")
+            .select("old_code, equipment_id, sync_source")
             .in("equipment_id", chunk);
           if (error) throw error;
           (existing ?? []).forEach((row: any) => {
@@ -247,6 +312,12 @@ Deno.serve(async (req) => {
         const upsertRows: any[] = [];
         for (const row of finalRows) {
           const existingOldCode = existingByOldCode.get(row.old_code);
+
+          // Protect manual entries — never overwrite
+          if (existingOldCode && existingOldCode.sync_source === "manual") {
+            skipped++;
+            continue;
+          }
 
           if (existingOldCode) {
             // OldCode is the canonical match key.
@@ -260,7 +331,7 @@ Deno.serve(async (req) => {
               row.equipment_id = existingOldCode.equipment_id;
               if (errors.length < 20) {
                 errors.push(
-                  `${row.old_code}: kept existing equipment_id ${existingOldCode.equipment_id} because ${occupiedEquipment.old_code} already uses ${row.equipment_id}`,
+                  `${row.old_code}: คง equipment_id เดิม ${existingOldCode.equipment_id} เพราะ ${occupiedEquipment.old_code} ใช้ ${row.equipment_id} อยู่แล้ว`,
                 );
               }
             }
@@ -274,7 +345,7 @@ Deno.serve(async (req) => {
             failed++;
             if (errors.length < 20) {
               errors.push(
-                `${row.old_code}: equipment_id ${row.equipment_id} already belongs to ${occupiedEquipment.old_code}`,
+                `${row.old_code}: equipment_id ${row.equipment_id} เป็นของ ${occupiedEquipment.old_code} แล้ว`,
               );
             }
             continue;
@@ -284,8 +355,8 @@ Deno.serve(async (req) => {
           upsertRows.push(row);
         }
 
-        // Fast batch upsert using OldCode only
-        const batchSize = 500;
+        // Batch upsert (200/batch) using OldCode as conflict key
+        const batchSize = 200;
         for (let i = 0; i < upsertRows.length; i += batchSize) {
           const batch = upsertRows.slice(i, i + batchSize);
           const { error } = await adminClient
@@ -332,11 +403,12 @@ Deno.serve(async (req) => {
           { headers: { ...corsHeaders, "Content-Type": "application/json" } },
         );
       } catch (err: any) {
+        const friendly = translateError(err);
         await adminClient
           .from("billboard_sync_logs")
           .update({
             status: "failed",
-            error_message: err.message,
+            error_message: friendly,
             rows_fetched: fetched,
             rows_inserted: inserted,
             rows_updated: updated,
@@ -345,9 +417,9 @@ Deno.serve(async (req) => {
             completed_at: new Date().toISOString(),
           })
           .eq("id", logRow!.id);
-        throw err;
+        throw new Error(friendly);
       } finally {
-        await pool.close();
+        try { await pool.close(); } catch { /* ignore */ }
       }
     }
 

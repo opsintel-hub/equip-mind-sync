@@ -884,6 +884,7 @@ export type Database = {
           extra_2: string | null
           extra_3: string | null
           id: string
+          last_synced_at: string | null
           location_name: string | null
           media_class: string | null
           media_segment: string | null
@@ -897,6 +898,7 @@ export type Database = {
           route_report_photo: string | null
           size: string | null
           status: string
+          sync_source: string
           target_monitoring: string | null
           territory: string | null
           updated_at: string
@@ -913,6 +915,7 @@ export type Database = {
           extra_2?: string | null
           extra_3?: string | null
           id?: string
+          last_synced_at?: string | null
           location_name?: string | null
           media_class?: string | null
           media_segment?: string | null
@@ -926,6 +929,7 @@ export type Database = {
           route_report_photo?: string | null
           size?: string | null
           status?: string
+          sync_source?: string
           target_monitoring?: string | null
           territory?: string | null
           updated_at?: string
@@ -942,6 +946,7 @@ export type Database = {
           extra_2?: string | null
           extra_3?: string | null
           id?: string
+          last_synced_at?: string | null
           location_name?: string | null
           media_class?: string | null
           media_segment?: string | null
@@ -955,6 +960,7 @@ export type Database = {
           route_report_photo?: string | null
           size?: string | null
           status?: string
+          sync_source?: string
           target_monitoring?: string | null
           territory?: string | null
           updated_at?: string

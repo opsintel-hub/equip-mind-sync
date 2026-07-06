@@ -43,6 +43,9 @@ import BillboardExport from "@/components/billboard/BillboardExport";
 import { BillboardSummaryCards } from "@/components/billboard/BillboardSummaryCards";
 import { DraggableScrollTable } from "@/components/ui/draggable-scroll-table";
 import { useIsSuperAdmin } from "@/hooks/useIsSuperAdmin";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { BillboardDbConnection } from "@/components/master-data/BillboardDbConnection";
+import { Database as DatabaseIcon } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -507,13 +510,8 @@ const Billboards = () => {
     );
   };
 
-  return (
+  const billboardsContent = (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-semibold text-foreground mb-2">ฐานข้อมูลป้ายโฆษณา</h1>
-        <p className="text-muted-foreground">จัดการข้อมูลป้ายโฆษณาและอุปกรณ์ที่ติดตั้ง</p>
-      </div>
-
       <BillboardSummaryCards filters={filters} searchTerm={searchTerm} />
 
       <Card>
@@ -752,6 +750,36 @@ const Billboards = () => {
           />
         </DialogContent>
       </Dialog>
+    </div>
+  );
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-3xl font-semibold text-foreground mb-2">ฐานข้อมูลป้ายโฆษณา</h1>
+        <p className="text-muted-foreground">จัดการข้อมูลป้ายโฆษณาและเชื่อมต่อข้อมูลจากระบบภายนอก</p>
+      </div>
+
+      {isSuperAdmin ? (
+        <Tabs defaultValue="list" className="space-y-4">
+          <TabsList>
+            <TabsTrigger value="list" className="gap-2">
+              <MapPin className="h-4 w-4" />
+              รายการป้าย
+            </TabsTrigger>
+            <TabsTrigger value="connection" className="gap-2">
+              <DatabaseIcon className="h-4 w-4" />
+              เชื่อมต่อ &amp; Sync
+            </TabsTrigger>
+          </TabsList>
+          <TabsContent value="list">{billboardsContent}</TabsContent>
+          <TabsContent value="connection">
+            <BillboardDbConnection />
+          </TabsContent>
+        </Tabs>
+      ) : (
+        billboardsContent
+      )}
     </div>
   );
 };
