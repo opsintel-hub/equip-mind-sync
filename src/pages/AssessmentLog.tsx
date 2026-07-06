@@ -182,6 +182,18 @@ export default function AssessmentLog() {
   const [statusForm, setStatusForm] = useState<"pending" | "completed">("completed");
   const [submitting, setSubmitting] = useState(false);
 
+  // Auto-fill assessor from signed-in user (anti-impersonation)
+  useEffect(() => {
+    if (!user?.id) return;
+    supabase.from("profiles").select("full_name, display_name").eq("id", user.id).maybeSingle()
+      .then(({ data }) => {
+        const p = data as any;
+        const name = p?.display_name || p?.full_name || user.email || "";
+        setAssessorName((prev) => prev || name);
+      });
+  }, [user?.id]);
+
+
   // Outcome fields (derived from assessment result name)
   const [outcome, setOutcome] = useState<"" | "defective" | "claim" | "self_repair" | "pending">("");
   const [assessmentResultName, setAssessmentResultName] = useState("");
