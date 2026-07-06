@@ -198,6 +198,16 @@ const menuGroups: MenuGroup[] = [
   {
     label: "ป้ายโฆษณา",
     items: [
+      {
+        title: "จัดการป้ายโฆษณา",
+        icon: MapPin,
+        functionName: "billboards",
+        subItems: [
+          { title: "รายการป้ายโฆษณา", url: "/billboards", icon: MapPin },
+          { title: "เชื่อมต่อ & Sync", url: "/billboards?tab=sync", icon: Database, superAdminOnly: true },
+          { title: "จัดการ Package ป้าย", url: "/billboard-packages", icon: Package },
+        ]
+      },
       { 
         title: "PM ป้ายโฆษณา", 
         icon: Calendar,
@@ -267,8 +277,6 @@ const menuGroups: MenuGroup[] = [
     label: "ตั้งค่าระบบ",
     items: [
       { title: "ข้อมูลหลัก", url: "/master-data", icon: Database, functionName: "master_data" },
-      { title: "จัดการป้ายโฆษณา", url: "/billboards", icon: MapPin, functionName: "billboards" },
-      { title: "จัดการ Package ป้าย", url: "/billboard-packages", icon: Package, functionName: "billboards" },
       { title: "ตั้งค่าแจ้งเตือน", url: "/notification-settings", icon: Bell },
       { title: "ตรวจสอบยอด & สถานะ Stock", url: "/stock-reconciliation", icon: CheckCircle2, functionName: "admin" },
       { title: "จัดการผู้ใช้", url: "/admin", icon: Shield, functionName: "admin" },
