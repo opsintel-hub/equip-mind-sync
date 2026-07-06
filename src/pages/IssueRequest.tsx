@@ -1207,10 +1207,12 @@ const IssueRequest = () => {
                   <Input
                     id="requester_name"
                     value={headerData.requester_name}
-                    onChange={(e) => setHeaderData({ ...headerData, requester_name: e.target.value })}
-                    placeholder="กรอกชื่อ-นามสกุล"
+                    readOnly
+                    className="bg-muted cursor-not-allowed"
+                    title="ดึงจากชื่อที่แสดงในระบบของผู้ใช้ที่ล็อกอิน"
                     required
                   />
+                  <p className="text-[11px] text-muted-foreground">ดึงอัตโนมัติจากผู้ใช้ที่ล็อกอิน</p>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="requester_phone">เบอร์โทรศัพท์</Label>
@@ -1227,7 +1229,11 @@ const IssueRequest = () => {
                   <SimpleDepartmentSelect
                     value={headerData.requester_department}
                     onChange={(value) => setHeaderData({ ...headerData, requester_department: value, section: "" })}
+                    disabled={!!currentProfile?.department}
                   />
+                  {currentProfile?.department && (
+                    <p className="text-[11px] text-muted-foreground">ดึงอัตโนมัติจากฝ่ายของผู้ใช้</p>
+                  )}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="section">แผนก</Label>
