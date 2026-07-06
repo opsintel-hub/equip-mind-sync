@@ -437,6 +437,17 @@ export function UserPermissionManager() {
     setEditDisplayName(user.display_name || "");
     setEditPhone(user.phone || "");
     setEditDepartment(user.department || user.requested_department || "");
+    // Pre-select preset: detected from current roles/functions, else requested_job_role
+    const uRoles = userRoles[user.id] || [];
+    const uFns = userFunctionsByUser[user.id] || [];
+    const detected = detectCurrentPresetKey(allPresets, uRoles, uFns);
+    if (detected) {
+      setEditSelectedPresets([detected]);
+    } else if (user.requested_job_role) {
+      setEditSelectedPresets([user.requested_job_role]);
+    } else {
+      setEditSelectedPresets([]);
+    }
     setEditDialogOpen(true);
   };
 
