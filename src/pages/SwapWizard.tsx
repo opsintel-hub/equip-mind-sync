@@ -104,6 +104,18 @@ export default function SwapWizard() {
   const [priority, setPriority] = useState("normal");
   const [submitting, setSubmitting] = useState(false);
 
+  // Auto-fill technician name + phone from signed-in user
+  useEffect(() => {
+    if (!user?.id) return;
+    supabase.from("profiles").select("full_name, display_name, phone").eq("id", user.id).maybeSingle()
+      .then(({ data }) => {
+        const p = data as any;
+        const name = p?.display_name || p?.full_name || user.email || "";
+        setTechnicianName((prev) => prev || name);
+        if (p?.phone) setTechnicianPhone((prev) => prev || p.phone);
+      });
+  }, [user?.id]);
+
   // Reported asset (ของที่ช่างเอามาคืน)
   const [installedItems, setInstalledItems] = useState<InstalledItemOption[]>([]);
   const [installedLoading, setInstalledLoading] = useState(false);
