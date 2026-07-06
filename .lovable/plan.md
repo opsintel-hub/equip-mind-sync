@@ -1,79 +1,73 @@
-## เป้าหมาย
-ลดความยุ่งยากของการตั้งสิทธิ์จาก 3 ขั้น (Role + ฟังก์ชัน + ฝ่าย) ให้เหลือ **1 คลิก** ผ่าน Preset สำเร็จรูป โดยยังเก็บ Wizard เดิมไว้เป็นโหมดขั้นสูง
 
-## หลักการ: Preset คุมทุกอย่างในคลิกเดียว
-แต่ละ Preset = แพ็กเกจสิทธิ์ครบชุด ประกอบด้วย 3 ส่วนที่เชื่อมกัน:
-1. **Role** — บทบาทพื้นฐาน
-2. **ฟังก์ชันที่เปิด** — คุมว่าจะเห็น **เมนู/แท็บ** ไหนบ้าง (Sidebar เช็ค `user_function_permissions` อยู่แล้ว → เมนูโผล่/หายอัตโนมัติ)
-3. **สิทธิ์ในฝ่าย** — ดู/สร้าง/แก้/ลบ ในฝ่ายที่รับผิดชอบ
+# แผน: Permission Matrix (User × Function)
 
-## Preset ที่จะมีให้เลือก
+หน้าจัดการผู้ใช้ตอนนี้ใช้การ์ดต่อคน + Wizard 3 ขั้น กด "ใช้เลย" ทีละคน — ตั้งค่าเยอะครั้งเสียเวลา แผนนี้เพิ่ม Matrix รวมสำหรับดูภาพรวม + แก้เป็น bulk
 
-| Preset | Role | เมนูที่เห็น | สิทธิ์ในฝ่าย |
-|---|---|---|---|
-| **ผู้ดูแลระบบสูงสุด** | super_admin | ทุกเมนู รวม Master Data / OCR / System Settings | ดู+สร้าง+แก้+ลบ ทุกฝ่าย |
-| **ผู้ดูแลระบบ (Admin)** | admin | ทุกเมนูปฏิบัติการ (ไม่รวม System Settings บางส่วน) | **ดู+สร้าง เฉพาะฝ่ายที่เลือก (หลายฝ่ายได้) — แก้/ลบ ไม่ได้** |
-| **ผู้จัดการฝ่าย** | manager | Dashboard, รายงาน, อนุมัติคำขอ, Approval Center | ดู+แก้ เฉพาะฝ่ายที่เลือก |
-| **เจ้าหน้าที่คลัง** | warehouse_staff | รับเข้าคลัง, จ่ายสินค้า, สต็อก, จัดเก็บ, DC, S/N | ดู+สร้าง+แก้ เฉพาะฝ่ายที่เลือก |
-| **เจ้าหน้าที่รับเข้า** | receiver | นำสินค้าเข้า (Delivery Entry) เท่านั้น | ดู+สร้าง เฉพาะฝ่ายที่เลือก |
-| **ผู้ขอเบิก** | requester | ขอเบิกสินค้า, ดูสถานะคำขอของตัวเอง | ดู+สร้าง เฉพาะฝ่ายที่เลือก |
+## รูปแบบ
 
-> เอา **"ผู้ชมอย่างเดียว"** ออกตามที่ขอ
-> **Admin ใหม่**: ไม่ใช่ super-user อีกต่อไป → ผูกกับฝ่ายที่เลือก (หลายฝ่ายได้) และแก้/ลบไม่ได้
+**Tab ใหม่ "Matrix สิทธิ์"** ในหน้า `/admin` (ข้าง Tab เดิม "ผู้ใช้")
 
-## ผลกระทบต่อ Admin เดิม
-- **RLS/UI ที่เคยเช็ค `has_role(admin)` แล้วเปิดทุกอย่าง** ต้องปรับให้ Admin ถูกจำกัดตามฝ่ายและไม่ให้ทำ update/delete
-- สรุปการเปลี่ยน:
-  - `has_department_permission()` — ปรับ: **admin ไม่ bypass อัตโนมัติอีกต่อไป** ต้องอ่านจาก `user_departments` เหมือน role อื่น (super_admin ยัง bypass)
-  - RLS policies ที่ใช้ `has_role(uid,'admin')` สำหรับ UPDATE/DELETE → เปลี่ยนเป็น `has_role(uid,'super_admin')` เท่านั้น (ตารางหลัก เช่น profiles, media_player_images, goods_issue_pending, purchase_requests, master data)
-  - UI ปุ่ม "แก้ไข/ลบ" ที่เช็ค `isAdmin` → เปลี่ยนเป็น `isSuperAdmin`
-- **หมายเหตุความปลอดภัย**: การจำกัด Admin แบบนี้จะย้ายภาระ "ผู้ดูแลระบบเต็มรูปแบบ" ไปที่ Super Admin ทั้งหมด — ต้องมี Super Admin อย่างน้อย 1 คนเสมอ (จะเพิ่ม guard ห้ามลบ/ดาวน์เกรด Super Admin คนสุดท้าย)
+```
+                  │ นำเข้า │ รับเข้า │ ขอเบิก │ จ่าย │ Master │ รายงาน │ Swap │ ...
+────────────────────────────────────────────────────────────────────────────
+สมชาย  [7-Eleven] │   ✓    │   ✓    │        │      │        │   ✓    │      │
+สมหญิง [Fresh]   │        │        │   ✓    │      │        │   ✓    │      │
+[+เลือกทั้งแถว]   │  ▢     │  ▢     │  ▢     │  ▢  │   ▢    │  ▢     │  ▢   │
+────────────────────────────────────────────────────────────────────────────
+[✓เลือกทั้งคอลัมน์]
+```
 
-## UI ที่จะเปลี่ยน
+- **แถว** = ผู้ใช้ 1 คน (ชื่อ + Badge บทบาท + Badge ฝ่าย)
+- **คอลัมน์** = 41 ฟังก์ชัน จัดกลุ่มเป็น 8 หมวด (นำเข้า/รับเข้า/เบิก/จ่าย/Master Data/รายงาน/Swap-ประเมิน-เคลม/แอดมิน) มี header กลุ่ม + freeze คอลัมน์ชื่อผู้ใช้
+- **Cell** = Checkbox ติ๊กเดียว (ไม่มี CRUD ในนี้ — CRUD อยู่ที่ department ซึ่งจัดการต่างหาก)
 
-### 1. หน้ารายชื่อผู้ใช้ (UserPermissionManager)
-เพิ่มแถบ **"ตั้งสิทธิ์เร็ว"** แทนคอลัมน์ "บทบาท" เดิม:
-- **Dropdown Preset** (แสดง Preset ปัจจุบันของ user หรือ "ยังไม่ตั้ง")
-- **Multi-select ฝ่าย** (chips) — default = ฝ่ายที่ผู้ใช้ขอตอนสมัคร
-- ปุ่ม **"ใช้เลย"** — apply ทันที (เขียน user_roles + user_function_permissions + user_departments)
-- ลิงก์เล็ก ๆ **"ตั้งค่าขั้นสูง"** → เปิด Wizard เดิม
+## ฟีเจอร์หลัก
 
-Flow: เลือก Preset → เลือกฝ่าย(หลายได้) → กดใช้เลย → toast สำเร็จ
+1. **Multi-select แถว** — Checkbox ซ้ายสุดแต่ละแถว → เลือกหลายคน แล้ว bulk apply/revoke ฟังก์ชันได้
+2. **เลือกทั้งคอลัมน์** — คลิก header คอลัมน์ → ให้/ถอนสิทธิ์ฟังก์ชันนั้นแก่ทุกคนที่กรอง
+3. **Bulk toolbar** (ลอยเมื่อเลือกแถว): [ให้สิทธิ์...] [ถอนสิทธิ์...] [Apply Preset...] [เคลียร์]
+4. **ตัวกรอง** ด้านบน: ค้นหาชื่อ, กรองบทบาท, กรองฝ่าย, ซ่อนคอลัมน์ที่ทุกคนไม่มีสิทธิ์ (declutter)
+5. **แสดงสถานะ Preset** — คอลัมน์ 2 (ติดกับชื่อ): ป้ายบอกว่าคนนี้ตรงกับ Preset ไหน (Admin/Warehouse/Manager/...) หรือ "กำหนดเอง" — คลิก dropdown "Apply Preset" ในแถวเดี่ยวก็ได้
+6. **Auto-save พร้อม Undo** — ติ๊ก 1 ครั้ง = บันทึกทันที + toast "แก้แล้ว (undo ได้ 5 วิ)"
+7. **Super Admin lock** — แถว super_admin ทุกช่องแสดง ✓ สีเทา แก้ไม่ได้ (มีไอคอน 🔒)
+8. **ปุ่ม "แก้แบบละเอียด"** ในแต่ละแถว → เปิด Wizard เดิม (ยังใช้จัดการ Department CRUD)
 
-### 2. Preview ก่อนกดใช้
-เมื่อเลือก Preset จะแสดง preview inline: "จะเปิดเมนู: รับเข้า, จ่าย, สต็อก... | สิทธิ์ในฝ่าย: ดู+สร้าง+แก้" เพื่อให้ Super Admin เห็นก่อนกด
+## จุดที่ Preset ยังอยู่
 
-### 3. หน้าคู่มือ (Help tab)
-เพิ่มการ์ด **"Preset สิทธิ์"** ที่แสดงตารางข้างต้นแบบขยาย พร้อมรายชื่อเมนูจริงในแต่ละ Preset
-
-### 4. Wizard เดิม
-คงไว้เหมือนเดิม (เปิดผ่านลิงก์ "ตั้งค่าขั้นสูง") — สำหรับเคสพิเศษที่ต้องผสมสิทธิ์เอง
+- Quick Preset ในหน้าเดิม (Tab "ผู้ใช้") **คงไว้เหมือนเดิม** — ไม่แตะ
+- ใน Matrix เพิ่มปุ่ม "Apply Preset..." ใน bulk toolbar และในแต่ละแถว → เลือก preset + ฝ่าย → เขียนทับ function permissions + roles + departments (ใช้ `applyPresetToUser` ที่มีอยู่)
 
 ## รายละเอียดเทคนิค
 
-### Data
-- ใช้ตาราง `permission_templates` เดิม
-- Migration:
-  - เพิ่ม `is_quick_preset boolean default true`
-  - อัปเดต seed 6 Preset ข้างต้น (พร้อม `suggested_functions` ที่ match กับ `SYSTEM_FUNCTIONS`)
-  - ลบ preset "viewer/ผู้ชม" ออก
-- แก้ `has_department_permission()`: ตัด admin bypass เหลือแค่ super_admin
-- ปรับ RLS policies ที่ให้สิทธิ์ admin update/delete → เปลี่ยนเป็น super_admin เท่านั้น (ทำเป็น migration ใหม่)
-- เพิ่ม trigger ป้องกันลบ/ดาวน์เกรด Super Admin คนสุดท้าย
+**ไฟล์ใหม่:**
+- `src/components/admin/PermissionMatrix.tsx` — หน้า Matrix
+- `src/components/admin/PermissionMatrixCell.tsx` — เซลล์ checkbox (memoized)
 
-### Code
-- Helper ใหม่ `src/lib/permissions.ts` → `applyPresetToUser(userId, presetKey, departments)` ใช้ร่วมกันระหว่าง QuickPreset และ Wizard
-- Component ใหม่ `QuickPresetSelector.tsx` ฝังในแถวผู้ใช้ของ `UserPermissionManager`
-- `AppSidebar` ไม่ต้องแก้ — ใช้ `useFunctionPermissions` ที่มีอยู่แล้ว
-- Sweep components ที่ใช้ `isAdmin` เพื่อ gate ปุ่ม edit/delete → เปลี่ยนเป็น `isSuperAdmin` (จะทำ audit list ตอน build)
+**แก้:**
+- `src/pages/Admin.tsx` — เพิ่ม Tab "Matrix สิทธิ์"
 
-## สิ่งที่ **ไม่** เปลี่ยน
-- Schema ของ `user_roles`, `user_function_permissions`, `user_departments`
-- หน้า Login/signup
-- Sidebar และ logic การซ่อนเมนู (ทำงานอัตโนมัติจาก function permissions)
-- Wizard เดิม (แค่ย้ายเป็นโหมดขั้นสูง)
+**Data:**
+- โหลด `profiles`, `user_roles`, `user_function_permissions`, `user_departments` รอบเดียว → เก็บเป็น `Map<userId, Set<functionName>>`
+- Toggle cell → optimistic update + upsert/delete ใน `user_function_permissions`
+- Bulk = batch insert/delete ใน 1 query
 
-## ผลลัพธ์
-- เคสปกติ 90%: ตั้งสิทธิ์เสร็จใน 2 คลิก (เลือก Preset + ฝ่าย → ใช้เลย)
-- Admin ถูกจำกัดตามฝ่ายและแก้/ลบไม่ได้ตามที่ต้องการ
-- เคสพิเศษ: กด "ตั้งค่าขั้นสูง" เข้า Wizard เดิม
+**Layout:**
+- Sticky ซ้าย 2 คอลัมน์ (checkbox + ชื่อ), sticky บน 2 แถว (group + function)
+- ScrollArea แนวนอน, virtualize ถ้า > 50 users (ยังไม่ทำในเฟสแรก — ระบบมีผู้ใช้น้อย)
+- Header กลุ่มมีปุ่ม collapse ทั้งหมวด (ซ่อนคอลัมน์ในกลุ่มนั้น)
+
+**Performance:**
+- `useMemo` cache Set lookup, `React.memo` cell component
+- Debounce search 200ms
+
+## สิ่งที่ไม่ทำในเฟสนี้
+
+- ไม่ย้าย Department CRUD (ดู/สร้าง/แก้/ลบ) เข้า Matrix — ยังใช้ Wizard เดิม (Matrix นี้คุมแค่ "เปิด/ปิดเมนู")
+- ไม่แตะ Backend/RLS
+- ไม่ทำ virtualization
+
+## ผลที่ได้
+
+- ตั้งสิทธิ์ 10 คนพร้อมกันได้ใน 3 คลิก (เลือกแถว → คลิกคอลัมน์ → Apply)
+- ดูภาพรวมทั้งบริษัทได้ในหน้าเดียว รู้ทันทีใครมีสิทธิ์อะไร
+- ผู้ที่ชอบวิธีเดิมยังใช้ Quick Preset + Wizard ได้เหมือนเดิม
