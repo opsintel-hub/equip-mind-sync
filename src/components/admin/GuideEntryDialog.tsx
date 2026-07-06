@@ -47,6 +47,7 @@ export function GuideEntryDialog({ open, onOpenChange, kind, entry, onSaved }: P
     display_order: 0,
   });
   const [saving, setSaving] = useState(false);
+  const [functionLabels, setFunctionLabels] = useState<string[]>([]);
 
   useEffect(() => {
     if (open) {
@@ -63,6 +64,27 @@ export function GuideEntryDialog({ open, onOpenChange, kind, entry, onSaved }: P
       });
     }
   }, [open, entry, kind]);
+
+  // For role dialog, load function labels to build the dropdown options.
+  useEffect(() => {
+    if (!open || kind !== "role") return;
+    (supabase as any)
+      .from("admin_guide_entries")
+      .select("label")
+      .eq("kind", "function")
+      .order("display_order")
+      .then(({ data }: any) => {
+        setFunctionLabels((data || []).map((d: any) => d.label));
+      });
+  }, [open, kind]);
+
+  const relatedOptions = useMemo(() => {
+    const source = kind === "role" ? functionLabels : MENU_TITLES;
+    // Merge in any legacy values already saved on this entry so they remain visible.
+    const merged = Array.from(new Set([...source, ...(form.related || [])]));
+    return merged.map((v) => ({ value: v, label: v }));
+  }, [kind, functionLabels, form.related]);
+
 
   const updateArrayItem = (key: "bullets" | "related", idx: number, val: string) => {
     setForm((f) => ({ ...f, [key]: f[key].map((x, i) => (i === idx ? val : x)) }));
