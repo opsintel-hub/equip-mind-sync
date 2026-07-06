@@ -564,13 +564,8 @@ const Billboards = () => {
                   </DropdownMenuContent>
                 </DropdownMenu>
                 <BillboardExport currentFilters={filters} />
-                {isSuperAdmin && (
-                  <Button onClick={() => setIsFormOpen(true)} data-no-drag>
-                    <Plus className="w-4 h-4 mr-2" />
-                    เพิ่มป้าย
-                  </Button>
-                )}
               </div>
+
             </div>
           </div>
         </CardHeader>
