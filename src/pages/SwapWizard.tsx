@@ -848,7 +848,8 @@ export default function SwapWizard() {
               <div className="grid md:grid-cols-3 gap-4">
                 <div className="space-y-2">
                   <Label>ชื่อช่างผู้แจ้ง <span className="text-destructive">*</span></Label>
-                  <Input value={technicianName} onChange={(e) => setTechnicianName(e.target.value)} placeholder="ชื่อ-สกุล" />
+                  <Input value={technicianName} readOnly className="bg-muted cursor-not-allowed" placeholder="ชื่อ-สกุล" title="ดึงจากผู้ใช้ที่ล็อกอิน" />
+                  <p className="text-[11px] text-muted-foreground">ดึงอัตโนมัติจากผู้ใช้ที่ล็อกอิน</p>
                 </div>
                 <div className="space-y-2">
                   <Label>เบอร์ติดต่อช่าง</Label>
