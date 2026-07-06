@@ -114,8 +114,9 @@ export function UserPermissionManager() {
       setFilteredUsers(users);
     } else {
       const query = searchQuery.toLowerCase();
-      setFilteredUsers(users.filter(user => 
+      setFilteredUsers(users.filter(user =>
         user.full_name?.toLowerCase().includes(query) ||
+        user.display_name?.toLowerCase().includes(query) ||
         user.email?.toLowerCase().includes(query) ||
         user.phone?.includes(query)
       ));
