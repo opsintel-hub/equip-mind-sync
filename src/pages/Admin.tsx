@@ -48,14 +48,10 @@ const Admin = () => {
       </div>
 
       <Tabs defaultValue="users" className="space-y-4">
-        <TabsList className={`grid w-full lg:w-auto lg:inline-grid ${isSuperAdmin ? 'grid-cols-4 lg:grid-cols-4' : 'grid-cols-3 lg:grid-cols-3'}`}>
+        <TabsList className={`grid w-full lg:w-auto lg:inline-grid ${isSuperAdmin ? 'grid-cols-3 lg:grid-cols-3' : 'grid-cols-2 lg:grid-cols-2'}`}>
           <TabsTrigger value="users" className="flex items-center gap-2">
             <Users className="h-4 w-4" />
             จัดการผู้ใช้
-          </TabsTrigger>
-          <TabsTrigger value="matrix" className="flex items-center gap-2">
-            <Grid3x3 className="h-4 w-4" />
-            Matrix สิทธิ์
           </TabsTrigger>
           <TabsTrigger value="help" className="flex items-center gap-2">
             <HelpCircle className="h-4 w-4" />
@@ -70,12 +66,32 @@ const Admin = () => {
         </TabsList>
 
         <TabsContent value="users" className="space-y-4">
-          <UserPermissionManager />
+          <div className="flex items-center justify-between flex-wrap gap-3">
+            <div className="text-sm text-muted-foreground">
+              {viewMode === "card"
+                ? "มุมมองรายผู้ใช้ — ตั้งค่ารายคนแบบละเอียด (Wizard, รีเซ็ตรหัส, แก้ไขผู้ใช้)"
+                : "มุมมอง Matrix — ปรับสิทธิ์ Function หลายคนพร้อมกันแบบ Bulk พร้อม Apply Preset"}
+            </div>
+            <ToggleGroup
+              type="single"
+              value={viewMode}
+              onValueChange={(v) => v && setViewMode(v as "card" | "matrix")}
+              className="border rounded-md"
+            >
+              <ToggleGroupItem value="card" aria-label="Card view" className="gap-2">
+                <LayoutList className="h-4 w-4" />
+                รายการผู้ใช้
+              </ToggleGroupItem>
+              <ToggleGroupItem value="matrix" aria-label="Matrix view" className="gap-2">
+                <Grid3x3 className="h-4 w-4" />
+                Matrix สิทธิ์
+              </ToggleGroupItem>
+            </ToggleGroup>
+          </div>
+          {viewMode === "card" ? <UserPermissionManager /> : <PermissionMatrix />}
         </TabsContent>
 
-        <TabsContent value="matrix" className="space-y-4">
-          <PermissionMatrix />
-        </TabsContent>
+
 
 
         <TabsContent value="help" className="space-y-6">
