@@ -500,12 +500,11 @@ export function PermissionMatrix() {
                               </TooltipContent>
                             </Tooltip>
                             <Checkbox
-                              checked={state === true}
-                              // @ts-expect-error radix supports indeterminate via data-state
-                              data-state={state === "indeterminate" ? "indeterminate" : undefined}
+                              checked={state === "indeterminate" ? "indeterminate" : state === true}
                               onCheckedChange={() => toggleColumn(fn)}
                               className="h-3.5 w-3.5"
                             />
+
                           </div>
                         </th>
                       );
