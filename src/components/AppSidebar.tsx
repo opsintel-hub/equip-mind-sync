@@ -198,6 +198,16 @@ const menuGroups: MenuGroup[] = [
   {
     label: "ป้ายโฆษณา",
     items: [
+      {
+        title: "จัดการป้ายโฆษณา",
+        icon: MapPin,
+        functionName: "billboards",
+        subItems: [
+          { title: "รายการป้ายโฆษณา", url: "/billboards", icon: MapPin },
+          { title: "เชื่อมต่อ & Sync", url: "/billboards?tab=sync", icon: Database, superAdminOnly: true },
+          { title: "จัดการ Package ป้าย", url: "/billboard-packages", icon: Package },
+        ]
+      },
       { 
         title: "PM ป้ายโฆษณา", 
         icon: Calendar,
