@@ -104,6 +104,7 @@ export function UserPermissionManager() {
   const [editFullName, setEditFullName] = useState("");
   const [editDisplayName, setEditDisplayName] = useState("");
   const [editPhone, setEditPhone] = useState("");
+  const [editDepartment, setEditDepartment] = useState<string>("");
   const [editSaving, setEditSaving] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleteBusy, setDeleteBusy] = useState(false);
