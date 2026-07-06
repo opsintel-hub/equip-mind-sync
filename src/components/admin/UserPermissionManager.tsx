@@ -388,6 +388,7 @@ export function UserPermissionManager() {
     setEditFullName(user.full_name || "");
     setEditDisplayName(user.display_name || "");
     setEditPhone(user.phone || "");
+    setEditDepartment(user.department || user.requested_department || "");
     setEditDialogOpen(true);
   };
 
@@ -405,7 +406,8 @@ export function UserPermissionManager() {
           full_name: editFullName.trim(),
           display_name: editDisplayName.trim() || null,
           phone: editPhone.trim() || null,
-        })
+          department: editDepartment || null,
+        } as any)
         .eq("id", selectedUser.id);
       if (error) throw error;
       toast.success("บันทึกข้อมูลผู้ใช้สำเร็จ");
