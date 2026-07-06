@@ -69,7 +69,7 @@ const Admin = () => {
           <div className="flex items-center justify-between flex-wrap gap-3">
             <div className="text-sm text-muted-foreground">
               {viewMode === "card"
-                ? "มุมมองรายผู้ใช้ — ตั้งค่ารายคนแบบละเอียด (Wizard, รีเซ็ตรหัส, แก้ไขผู้ใช้)"
+                ? "มุมมองรายผู้ใช้ — แก้ Role/ฝ่าย/Preset ที่ปุ่มดินสอ, ตั้งค่าละเอียดที่ Wizard, รีเซ็ตรหัสผ่าน"
                 : "มุมมอง Matrix — ปรับสิทธิ์ Function หลายคนพร้อมกันแบบ Bulk พร้อม Apply Preset"}
             </div>
             <ToggleGroup
