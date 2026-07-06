@@ -2648,6 +2648,7 @@ export type Database = {
           billboard_id: string | null
           company_id: string | null
           created_at: string
+          created_by: string | null
           destination: string | null
           document_no: string
           equipment_code: string | null
@@ -2693,6 +2694,7 @@ export type Database = {
           billboard_id?: string | null
           company_id?: string | null
           created_at?: string
+          created_by?: string | null
           destination?: string | null
           document_no?: string
           equipment_code?: string | null
@@ -2738,6 +2740,7 @@ export type Database = {
           billboard_id?: string | null
           company_id?: string | null
           created_at?: string
+          created_by?: string | null
           destination?: string | null
           document_no?: string
           equipment_code?: string | null
@@ -6023,6 +6026,16 @@ export type Database = {
         Returns: Json
       }
       public_get_ad_issue_request: { Args: { _token: string }; Returns: Json }
+      public_get_billboard: { Args: { _id: string }; Returns: Json }
+      public_get_billboards_min: {
+        Args: { _ids: string[] }
+        Returns: {
+          equipment_id: string
+          id: string
+          location_name: string
+          old_code: string
+        }[]
+      }
       public_get_direct_shipment: { Args: { _id: string }; Returns: Json }
       public_get_media_player_profile: { Args: { _id: string }; Returns: Json }
       public_get_mp_billboard_history: {
