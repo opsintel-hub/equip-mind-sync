@@ -175,12 +175,46 @@ export function UserPermissionManager() {
       
       setUsers(usersWithEmail);
       setFilteredUsers(usersWithEmail);
-      await fetchAllUserRoles();
+      await Promise.all([
+        fetchAllUserRoles(),
+        fetchAllPresetsAndUserScopes(usersWithEmail.map((u) => u.id)),
+      ]);
     } catch (error: any) {
       console.error("Error fetching users:", error);
       toast.error("เกิดข้อผิดพลาดในการโหลดข้อมูล");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchAllPresetsAndUserScopes = async (userIds: string[]) => {
+    try {
+      const [presetRows, fnRes, deptRes] = await Promise.all([
+        fetchPermissionPresets(true),
+        supabase
+          .from("user_function_permissions")
+          .select("user_id, function_name, can_access")
+          .in("user_id", userIds.length ? userIds : ["00000000-0000-0000-0000-000000000000"]),
+        supabase
+          .from("user_departments")
+          .select("user_id, department, can_view")
+          .in("user_id", userIds.length ? userIds : ["00000000-0000-0000-0000-000000000000"]),
+      ]);
+      setPresets(presetRows);
+      const fnMap: Record<string, string[]> = {};
+      (fnRes.data || []).forEach((r: any) => {
+        if (!r.can_access) return;
+        (fnMap[r.user_id] ||= []).push(r.function_name);
+      });
+      setUserFunctionsByUser(fnMap);
+      const deptMap: Record<string, string[]> = {};
+      (deptRes.data || []).forEach((r: any) => {
+        if (!r.can_view) return;
+        (deptMap[r.user_id] ||= []).push(r.department);
+      });
+      setUserDeptsByUser(deptMap);
+    } catch (e) {
+      console.error("Error loading presets/scopes:", e);
     }
   };
 
