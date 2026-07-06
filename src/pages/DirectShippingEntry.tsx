@@ -287,7 +287,8 @@ export default function DirectShippingEntry() {
             </div>
             <div className="space-y-2">
               <Label>ชื่อผู้ขอ *</Label>
-              <Input value={requesterName} onChange={e => setRequesterName(e.target.value)} placeholder="ชื่อ-นามสกุล" />
+              <Input value={requesterName} readOnly className="bg-muted cursor-not-allowed" placeholder="ชื่อ-นามสกุล" title="ดึงจากผู้ใช้ที่ล็อกอิน" />
+              <p className="text-[11px] text-muted-foreground">ดึงอัตโนมัติจากผู้ใช้ที่ล็อกอิน</p>
             </div>
             <div className="space-y-2">
               <Label>เบอร์ติดต่อ</Label>
