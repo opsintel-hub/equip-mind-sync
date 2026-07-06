@@ -729,10 +729,9 @@ const Billboards = () => {
       <Dialog open={isFormOpen} onOpenChange={handleFormClose}>
         <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>
-              {selectedBillboard ? "แก้ไขข้อมูลป้าย" : "เพิ่มป้ายใหม่"}
-            </DialogTitle>
+            <DialogTitle>แก้ไขข้อมูลป้าย</DialogTitle>
           </DialogHeader>
+
           <BillboardForm
             billboard={selectedBillboard}
             onSuccess={() => handleFormSuccess(selectedBillboard?.id)}
