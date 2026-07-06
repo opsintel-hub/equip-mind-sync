@@ -126,7 +126,7 @@ export function UserPermissionManager() {
   const fetchUsers = async () => {
     try {
       const [profilesRes, deptRes, templateRes] = await Promise.all([
-        supabase.from("profiles").select("*").order("full_name"),
+        supabase.from("profiles").select("*").eq("is_hidden", false).order("full_name"),
         supabase.from("departments").select("name").eq("is_active", true).order("name"),
         (supabase as any).from("permission_templates").select("template_key, label").eq("is_active", true),
       ]);
