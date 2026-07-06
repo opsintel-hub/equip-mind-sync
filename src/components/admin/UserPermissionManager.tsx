@@ -1105,6 +1105,55 @@ export function UserPermissionManager() {
                 </p>
               )}
             </div>
+
+            <div className="space-y-2">
+              <Label className="flex items-center gap-2">
+                <Sparkles className="h-4 w-4 text-primary" />
+                บทบาทงาน / Preset สิทธิ์
+                <span className="text-xs text-muted-foreground font-normal">(เลือกได้หลายอัน)</span>
+              </Label>
+              <div className="rounded-md border max-h-48 overflow-y-auto divide-y">
+                {allPresets.length === 0 && (
+                  <div className="p-3 text-xs text-muted-foreground">กำลังโหลด Preset...</div>
+                )}
+                {allPresets.map((p) => {
+                  const checked = editSelectedPresets.includes(p.template_key);
+                  return (
+                    <label
+                      key={p.template_key}
+                      className="flex items-start gap-2 p-2 hover:bg-muted/50 cursor-pointer text-sm"
+                    >
+                      <Checkbox
+                        checked={checked}
+                        onCheckedChange={(v) => {
+                          setEditSelectedPresets((prev) =>
+                            v
+                              ? Array.from(new Set([...prev, p.template_key]))
+                              : prev.filter((k) => k !== p.template_key)
+                          );
+                        }}
+                        disabled={editSaving}
+                        className="mt-0.5"
+                      />
+                      <div className="flex-1 min-w-0">
+                        <div className="font-medium truncate">{p.label}</div>
+                        {p.description && (
+                          <div className="text-xs text-muted-foreground truncate">{p.description}</div>
+                        )}
+                      </div>
+                    </label>
+                  );
+                })}
+              </div>
+              {selectedUser?.requested_job_role && (
+                <p className="text-xs text-muted-foreground">
+                  ผู้ใช้ขอสมัครเป็น: <strong>{templateLabels[selectedUser.requested_job_role] || selectedUser.requested_job_role}</strong>
+                </p>
+              )}
+              <p className="text-xs text-muted-foreground">
+                บันทึก = เขียนทับ Role + สิทธิ์ฟังก์ชันด้วย Preset ที่เลือก · ต้องการปรับรายเมนู? สลับไปมุมมอง <strong>Matrix สิทธิ์</strong>
+              </p>
+            </div>
             <div className="flex justify-end gap-2 pt-2">
               <Button variant="outline" onClick={() => setEditDialogOpen(false)} disabled={editSaving}>
                 ยกเลิก
