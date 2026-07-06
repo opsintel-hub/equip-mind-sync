@@ -2,6 +2,7 @@ import { useState, lazy, Suspense } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useDepartmentPermissions } from "@/hooks/useDepartmentPermissions";
+import { useFunctionPermissions } from "@/hooks/useFunctionPermissions";
 import { Package, MapPin, Truck, Warehouse, Building2, Target, Building, Wrench, PackageOpen, HardHat, Layers, FolderTree, Zap, Users, Monitor, Database } from "lucide-react";
 
 import { PMActionTypeList } from "@/components/pm/PMActionTypeList";
@@ -47,20 +48,39 @@ const MediaPlayerEntry = lazy(() => import("@/pages/MediaPlayerEntry"));
 const MasterData = () => {
   const [refreshKey, setRefreshKey] = useState(0);
   const { isSuperAdmin, isAdmin, loading: permLoading } = useDepartmentPermissions();
+  const { hasFunctionAccess, loading: fnLoading } = useFunctionPermissions();
 
   const handleSuccess = () => {
     setRefreshKey((prev) => prev + 1);
   };
 
-  // Tabs restricted to Super Admin only
-  const superAdminTabs = ["equipment", "tools", "warehouses", "locations", "media_player"];
+  // Per-tab visibility (Super Admin sees all; others need md_* function key)
+  const can = (key: string) => hasFunctionAccess(key);
 
-  if (permLoading) {
+  if (permLoading || fnLoading) {
     return <div className="flex items-center justify-center h-64">กำลังโหลด...</div>;
   }
 
-  // Determine default tab based on access
-  const defaultTab = isSuperAdmin ? "equipment" : "categories";
+  // First accessible tab becomes default
+  const tabOrder: Array<[string, boolean]> = [
+    ["equipment", can("md_equipment")],
+    ["tools", can("md_tools")],
+    ["categories", can("md_categories")],
+    ["warehouses", can("md_warehouses")],
+    ["locations", can("md_locations")],
+    ["suppliers", can("md_suppliers")],
+    ["contractors", can("md_contractors")],
+    ["departments", can("md_departments")],
+    ["sections", can("md_sections")],
+    ["companies", can("md_companies")],
+    ["issue_purposes", can("md_issue_purposes")],
+    ["receipt_purposes", can("md_receipt_purposes")],
+    ["technicians", can("md_technicians")],
+    ["pm_action_types", can("md_pm_action_types")],
+    ["media_player", can("md_media_player")],
+  ];
+  const defaultTab = tabOrder.find(([, v]) => v)?.[0] ?? "categories";
+
 
   return (
     <div className="space-y-6">
