@@ -45,6 +45,7 @@ const Login = () => {
   const [signupEmail, setSignupEmail] = useState("");
   const [signupPassword, setSignupPassword] = useState("");
   const [fullName, setFullName] = useState("");
+  const [displayName, setDisplayName] = useState("");
   const [phone, setPhone] = useState("");
   const [requestedJobRole, setRequestedJobRole] = useState("");
   const [requestedDepartment, setRequestedDepartment] = useState("");
