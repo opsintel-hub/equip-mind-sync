@@ -253,17 +253,57 @@ const BillboardFilters = ({ filters, onFilterChange, onClearFilters }: Billboard
 
         <div className="flex flex-col gap-1">
           <span className="text-xs text-muted-foreground">สถานะอุปกรณ์</span>
-          <Select value={filters.equipmentStatus || "__all__"} onValueChange={(v) => onFilterChange("equipmentStatus", v === "__all__" ? "" : v)}>
-            <SelectTrigger><SelectValue placeholder="สถานะอุปกรณ์" /></SelectTrigger>
-            <SelectContent position="popper" sideOffset={4} className="bg-background z-[200] max-h-60 overflow-y-auto">
-              <SelectItem value="__all__">ทั้งหมด</SelectItem>
-              <SelectItem value="expired">มีอุปกรณ์หมดอายุ</SelectItem>
-              <SelectItem value="warranty_expired">มีอุปกรณ์หมดประกัน</SelectItem>
-              <SelectItem value="expiring_soon">ใกล้หมดอายุ (30 วัน)</SelectItem>
-              <SelectItem value="warranty_expiring_soon">ใกล้หมดประกัน (30 วัน)</SelectItem>
-            </SelectContent>
-          </Select>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                className="w-full justify-between font-normal"
+              >
+                <span className="truncate text-left">
+                  {equipmentStatusValues.length === 0
+                    ? "ทั้งหมด"
+                    : equipmentStatusValues.length === 1
+                    ? EQUIPMENT_STATUS_LABEL[equipmentStatusValues[0]] ?? equipmentStatusValues[0]
+                    : `เลือกแล้ว ${equipmentStatusValues.length} รายการ`}
+                </span>
+                <ChevronDown className="h-4 w-4 opacity-50 shrink-0" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-64 p-2 bg-background z-[200]" align="start">
+              <div className="flex items-center justify-between px-2 py-1">
+                <span className="text-xs font-medium text-muted-foreground">เลือกได้หลายรายการ</span>
+                {equipmentStatusValues.length > 0 && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 px-2 text-xs"
+                    onClick={() => onFilterChange("equipmentStatus", "")}
+                  >
+                    ล้าง
+                  </Button>
+                )}
+              </div>
+              <div className="space-y-1">
+                {Object.entries(EQUIPMENT_STATUS_LABEL).map(([val, label]) => {
+                  const checked = equipmentStatusValues.includes(val);
+                  return (
+                    <label
+                      key={val}
+                      className="flex items-center gap-2 px-2 py-1.5 rounded-sm hover:bg-accent cursor-pointer text-sm"
+                    >
+                      <Checkbox
+                        checked={checked}
+                        onCheckedChange={() => toggleEquipmentStatus(val)}
+                      />
+                      <span>{label}</span>
+                    </label>
+                  );
+                })}
+              </div>
+            </PopoverContent>
+          </Popover>
         </div>
+
       </div>
     </div>
   );
