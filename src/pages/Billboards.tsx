@@ -238,6 +238,7 @@ const Billboards = () => {
       let billboardIdsWithEquipmentIssues: string[] | null = null;
 
       if (filters.equipmentStatus) {
+        const selected = filters.equipmentStatus.split(",").filter(Boolean);
         const today = new Date().toISOString().split("T")[0];
         const thirtyDaysFromNow = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
 
@@ -254,20 +255,12 @@ const Billboards = () => {
         billboardEquipment?.forEach((be) => {
           const eq = be.equipment as { expiry_date: string | null; warranty_expiry_date: string | null } | null;
           if (!eq) return;
-          switch (filters.equipmentStatus) {
-            case "expired":
-              if (eq.expiry_date && eq.expiry_date < today) matchingBillboardIds.add(be.billboard_id);
-              break;
-            case "warranty_expired":
-              if (eq.warranty_expiry_date && eq.warranty_expiry_date < today) matchingBillboardIds.add(be.billboard_id);
-              break;
-            case "expiring_soon":
-              if (eq.expiry_date && eq.expiry_date >= today && eq.expiry_date <= thirtyDaysFromNow) matchingBillboardIds.add(be.billboard_id);
-              break;
-            case "warranty_expiring_soon":
-              if (eq.warranty_expiry_date && eq.warranty_expiry_date >= today && eq.warranty_expiry_date <= thirtyDaysFromNow) matchingBillboardIds.add(be.billboard_id);
-              break;
-          }
+          const matches =
+            (selected.includes("expired") && eq.expiry_date && eq.expiry_date < today) ||
+            (selected.includes("warranty_expired") && eq.warranty_expiry_date && eq.warranty_expiry_date < today) ||
+            (selected.includes("expiring_soon") && eq.expiry_date && eq.expiry_date >= today && eq.expiry_date <= thirtyDaysFromNow) ||
+            (selected.includes("warranty_expiring_soon") && eq.warranty_expiry_date && eq.warranty_expiry_date >= today && eq.warranty_expiry_date <= thirtyDaysFromNow);
+          if (matches) matchingBillboardIds.add(be.billboard_id);
         });
 
         billboardIdsWithEquipmentIssues = Array.from(matchingBillboardIds);
@@ -275,6 +268,7 @@ const Billboards = () => {
           return { data: [], count: 0 };
         }
       }
+
 
       let query = supabase
         .from("billboards")
