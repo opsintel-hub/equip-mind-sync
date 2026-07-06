@@ -208,13 +208,24 @@ export function GuideEntryDialog({ open, onOpenChange, kind, entry, onSaved }: P
             onAdd={() => addArrayItem("bullets")}
             onRemove={(i) => removeArrayItem("bullets", i)}
           />
-          <ArrayEditor
-            label="หน้าที่เข้าถึงได้"
-            items={form.related}
-            onChange={(i, v) => updateArrayItem("related", i, v)}
-            onAdd={() => addArrayItem("related")}
-            onRemove={(i) => removeArrayItem("related", i)}
-          />
+          <div>
+            <Label>หน้าที่เข้าถึงได้</Label>
+            <SearchableMultiSelect
+              options={relatedOptions}
+              values={form.related}
+              onValuesChange={(vals) => setForm({ ...form, related: vals })}
+              placeholder={kind === "role" ? "เลือกฟังก์ชันที่เข้าถึงได้..." : "เลือกเมนูที่เข้าถึงได้..."}
+              searchPlaceholder="ค้นหา..."
+              emptyMessage="ไม่พบข้อมูล"
+              maxDisplay={3}
+            />
+            <p className="text-[11px] text-muted-foreground mt-1">
+              {kind === "role"
+                ? "รายการฟังก์ชันดึงจากแท็บ 'แนวทางสิทธิ์ตามฟังก์ชัน' แก้ไข/เพิ่มได้จากแท็บนั้น"
+                : "รายการเมนูสอดคล้องกับเมนูจริงในระบบ"}
+            </p>
+          </div>
+
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>
