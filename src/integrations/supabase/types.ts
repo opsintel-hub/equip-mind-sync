@@ -226,6 +226,51 @@ export type Database = {
           },
         ]
       }
+      admin_guide_entries: {
+        Row: {
+          bullets: string[]
+          color: string | null
+          created_at: string
+          description: string | null
+          display_order: number
+          entry_key: string
+          icon: string | null
+          id: string
+          kind: string
+          label: string
+          related: string[]
+          updated_at: string
+        }
+        Insert: {
+          bullets?: string[]
+          color?: string | null
+          created_at?: string
+          description?: string | null
+          display_order?: number
+          entry_key: string
+          icon?: string | null
+          id?: string
+          kind: string
+          label: string
+          related?: string[]
+          updated_at?: string
+        }
+        Update: {
+          bullets?: string[]
+          color?: string | null
+          created_at?: string
+          description?: string | null
+          display_order?: number
+          entry_key?: string
+          icon?: string | null
+          id?: string
+          kind?: string
+          label?: string
+          related?: string[]
+          updated_at?: string
+        }
+        Relationships: []
+      }
       advertisements: {
         Row: {
           ad_media_type_id: string | null
