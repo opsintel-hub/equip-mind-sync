@@ -208,6 +208,18 @@ const Login = () => {
                   />
                 </div>
                 <div className="space-y-2">
+                  <Label htmlFor="display-name">ชื่อที่ต้องการให้แสดงในระบบ</Label>
+                  <Input
+                    id="display-name"
+                    type="text"
+                    placeholder="เช่น สมชาย, Boy, Aey"
+                    value={displayName}
+                    onChange={(e) => setDisplayName(e.target.value)}
+                    disabled={isLoading}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
                   <Label htmlFor="phone">เบอร์โทรศัพท์ (ไม่บังคับ)</Label>
                   <Input
                     id="phone"
