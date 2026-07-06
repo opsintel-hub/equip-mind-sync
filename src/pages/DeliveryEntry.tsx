@@ -124,6 +124,7 @@ const DeliveryEntry = () => {
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   // cmsTypes removed - no longer used
   const { allowedDepartments, isSingleDepartment, loading: deptLoading } = useAllowedDepartments("create");
+  const { profile: currentProfile, actorName: currentActorName } = useCurrentUserProfile();
   const [mediaPlayers, setMediaPlayers] = useState<
     {
       id: string;
