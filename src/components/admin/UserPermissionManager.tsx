@@ -379,6 +379,67 @@ export function UserPermissionManager() {
     setWizardOpen(true);
   };
 
+  const handleOpenEditDialog = (user: User) => {
+    setSelectedUser(user);
+    setEditFullName(user.full_name || "");
+    setEditDisplayName(user.display_name || "");
+    setEditPhone(user.phone || "");
+    setEditDialogOpen(true);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!selectedUser) return;
+    if (!editFullName.trim()) {
+      toast.error("กรุณากรอกชื่อ-นามสกุล");
+      return;
+    }
+    setEditSaving(true);
+    try {
+      const { error } = await supabase
+        .from("profiles")
+        .update({
+          full_name: editFullName.trim(),
+          display_name: editDisplayName.trim() || null,
+          phone: editPhone.trim() || null,
+        })
+        .eq("id", selectedUser.id);
+      if (error) throw error;
+      toast.success("บันทึกข้อมูลผู้ใช้สำเร็จ");
+      setEditDialogOpen(false);
+      await fetchUsers();
+    } catch (error: any) {
+      console.error("Error updating user:", error);
+      toast.error("เกิดข้อผิดพลาด: " + error.message);
+    } finally {
+      setEditSaving(false);
+    }
+  };
+
+  const handleOpenDeleteDialog = (user: User) => {
+    setSelectedUser(user);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!selectedUser) return;
+    setDeleteBusy(true);
+    try {
+      const { error } = await supabase
+        .from("profiles")
+        .update({ is_hidden: true } as any)
+        .eq("id", selectedUser.id);
+      if (error) throw error;
+      toast.success("ซ่อนผู้ใช้ออกจากรายการแล้ว (ประวัติเดิมยังอยู่ในระบบ)");
+      setDeleteDialogOpen(false);
+      await fetchUsers();
+    } catch (error: any) {
+      console.error("Error hiding user:", error);
+      toast.error("เกิดข้อผิดพลาด: " + error.message);
+    } finally {
+      setDeleteBusy(false);
+    }
+  };
+
   const getRoleSummary = (userId: string) => {
     const roles = userRoles[userId] || [];
     if (roles.length === 0) return null;
