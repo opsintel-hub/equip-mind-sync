@@ -160,7 +160,7 @@ export default function PurchaseRequests() {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-foreground">ใบขอซื้อ (Purchase Requests)</h1>
+            <h1 className="text-3xl font-bold text-foreground">ร่างใบขอซื้อ (Purchase Requests)</h1>
             <p className="text-muted-foreground mt-1">จัดการใบขอซื้ออะไหล่ที่สร้างอัตโนมัติเมื่อ Stock ต่ำ</p>
           </div>
           {pendingCount > 0 && (
