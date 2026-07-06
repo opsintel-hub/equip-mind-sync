@@ -114,6 +114,17 @@ const IssueRequest = () => {
     pickup_time: "",
   });
 
+  // Auto-fill requester identity from signed-in user (anti-impersonation)
+  useEffect(() => {
+    setHeaderData((prev) => {
+      const next = { ...prev };
+      if (currentActorName && !prev.requester_name) next.requester_name = currentActorName;
+      if (currentProfile?.phone && !prev.requester_phone) next.requester_phone = currentProfile.phone;
+      if (currentProfile?.department && !prev.requester_department) next.requester_department = currentProfile.department;
+      return next;
+    });
+  }, [currentActorName, currentProfile?.phone, currentProfile?.department]);
+
   // Current item form data
   const [currentItem, setCurrentItem] = useState({
     equipment_id: "",
