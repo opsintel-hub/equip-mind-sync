@@ -59,6 +59,7 @@ interface User {
   display_name?: string | null;
   phone: string | null;
   email?: string;
+  department?: string | null;
   requested_job_role?: string | null;
   requested_department?: string | null;
   is_hidden?: boolean | null;
