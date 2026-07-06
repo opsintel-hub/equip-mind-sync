@@ -93,12 +93,10 @@ const MediaPlayerPublicView = () => {
 
     let bbMap = new Map<string, any>();
     if (allBbIds.size > 0) {
-      const { data: billboards } = await supabase
-        .from("billboards")
-        .select("id, equipment_id, old_code, location_name")
-        .in("id", [...allBbIds]);
-      bbMap = new Map((billboards || []).map((b: any) => [b.id, b]));
+      const { data: billboards } = await supabase.rpc("public_get_billboards_min" as any, { _ids: [...allBbIds] });
+      bbMap = new Map(((billboards as any[]) || []).map((b: any) => [b.id, b]));
     }
+
 
     for (const h of (history || []) as any[]) {
       const bb = bbMap.get(h.billboard_id);

@@ -15,16 +15,14 @@ const BillboardPublicView = () => {
   const { data: billboard, isLoading, error } = useQuery({
     queryKey: ["billboard-public", id],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("billboards")
-        .select("*")
-        .eq("id", id)
-        .single();
+      const { data, error } = await supabase.rpc("public_get_billboard" as any, { _id: id });
       if (error) throw error;
-      return data;
+      if (!data) throw new Error("not_found");
+      return data as any;
     },
     enabled: !!id,
   });
+
 
   const { data: installedEquipment } = useQuery({
     queryKey: ["billboard-equipment-public", id],
