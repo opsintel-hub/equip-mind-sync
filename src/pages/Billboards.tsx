@@ -485,22 +485,6 @@ const Billboards = () => {
             >
               <Eye className="w-4 h-4" />
             </Button>
-            {isSuperAdmin && (
-              <>
-                <Button variant="ghost" size="sm" onClick={() => handleEdit(billboard)} data-no-drag>
-                  <Edit className="w-4 h-4" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => handleDelete(billboard.id)}
-                  className="text-destructive hover:text-destructive"
-                  data-no-drag
-                >
-                  <Trash2 className="w-4 h-4" />
-                </Button>
-              </>
-            )}
           </div>
         </TableCell>
       </TableRow>
