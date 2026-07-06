@@ -933,6 +933,87 @@ export function UserPermissionManager() {
         </DialogContent>
       </Dialog>
 
+      {/* Edit user dialog */}
+      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Pencil className="h-5 w-5 text-primary" />
+              แก้ไขข้อมูลผู้ใช้
+            </DialogTitle>
+            <DialogDescription>{selectedUser?.email}</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label htmlFor="edit-full-name">ชื่อ-นามสกุล</Label>
+              <Input
+                id="edit-full-name"
+                value={editFullName}
+                onChange={(e) => setEditFullName(e.target.value)}
+                disabled={editSaving}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-display-name">ชื่อที่ต้องการให้แสดงในระบบ</Label>
+              <Input
+                id="edit-display-name"
+                value={editDisplayName}
+                onChange={(e) => setEditDisplayName(e.target.value)}
+                placeholder="เช่น Boy, Aey"
+                disabled={editSaving}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-phone">เบอร์โทรศัพท์</Label>
+              <Input
+                id="edit-phone"
+                value={editPhone}
+                onChange={(e) => setEditPhone(e.target.value)}
+                placeholder="08-XXXX-XXXX"
+                disabled={editSaving}
+              />
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button variant="outline" onClick={() => setEditDialogOpen(false)} disabled={editSaving}>
+                ยกเลิก
+              </Button>
+              <Button onClick={handleSaveEdit} disabled={editSaving}>
+                {editSaving ? "กำลังบันทึก..." : "บันทึก"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete (hide) user dialog */}
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-destructive">
+              <Trash2 className="h-5 w-5" />
+              ลบผู้ใช้ออกจากรายการ
+            </DialogTitle>
+            <DialogDescription>
+              ต้องการลบ <strong>{selectedUser?.full_name}</strong> ({selectedUser?.email}) ออกจากหน้าจอจัดการผู้ใช้ใช่หรือไม่?
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex gap-2 p-3 rounded-md bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-xs text-amber-800 dark:text-amber-200">
+            <Info className="h-4 w-4 flex-shrink-0 mt-0.5" />
+            <span>
+              ผู้ใช้จะถูกซ่อนออกจากหน้า UI เท่านั้น <strong>ประวัติการทำรายการทั้งหมดยังคงบันทึกอยู่ในระบบ</strong> สามารถกู้คืนได้ในภายหลัง
+            </span>
+          </div>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button variant="outline" onClick={() => setDeleteDialogOpen(false)} disabled={deleteBusy}>
+              ยกเลิก
+            </Button>
+            <Button variant="destructive" onClick={handleConfirmDelete} disabled={deleteBusy}>
+              {deleteBusy ? "กำลังลบ..." : "ยืนยันลบ"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* Permission Wizard */}
       <PermissionWizard
         open={wizardOpen}
