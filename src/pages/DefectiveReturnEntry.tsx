@@ -1195,15 +1195,17 @@ const DefectiveReturnEntry = () => {
                 <Label>ผู้แจ้งนำของเสียเข้าระบบ <span className="text-destructive">*</span></Label>
                 <Input
                   value={reporterName}
-                  onChange={(e) => setReporterName(e.target.value)}
-                  placeholder="ชื่อ-สกุลผู้แจ้ง (เช่น ช่างที่นำของมาให้คลัง)"
+                  readOnly
+                  className="bg-muted cursor-not-allowed"
+                  placeholder="ชื่อ-สกุลผู้แจ้ง"
+                  title="ดึงจากชื่อที่แสดงในระบบของผู้ใช้ที่ล็อกอิน"
                 />
-                <p className="text-[11px] text-muted-foreground">เติมอัตโนมัติจากผู้ล็อกอิน — แก้ไขได้ถ้าแจ้งแทนคนอื่น</p>
+                <p className="text-[11px] text-muted-foreground">ดึงอัตโนมัติจากผู้ใช้ที่ล็อกอิน ไม่สามารถแก้ไขได้</p>
               </div>
               <div className="space-y-2">
                 <Label>ฝ่าย <span className="text-destructive">*</span></Label>
-                <SimpleDepartmentSelect value={reporterDepartment} onChange={setReporterDepartment} />
-                <p className="text-[11px] text-muted-foreground">เติมอัตโนมัติจากสิทธิ์ของผู้ล็อกอิน — เปลี่ยนได้</p>
+                <SimpleDepartmentSelect value={reporterDepartment} onChange={setReporterDepartment} disabled={!!reporterDepartment} />
+                <p className="text-[11px] text-muted-foreground">ดึงอัตโนมัติจากฝ่ายของผู้ใช้</p>
               </div>
             </div>
 
