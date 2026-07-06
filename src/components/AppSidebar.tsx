@@ -65,6 +65,8 @@ interface SubMenuItem {
   url: string;
   icon: React.ComponentType<{ className?: string }>;
   functionName?: string;
+  /** OR-mode: user only needs ONE of these keys to see the item */
+  functionNames?: string[];
   superAdminOnly?: boolean;
 }
 
@@ -73,9 +75,12 @@ interface MenuItem {
   url?: string;
   icon: React.ComponentType<{ className?: string }>;
   functionName?: string;
+  /** OR-mode: user only needs ONE of these keys to see the item */
+  functionNames?: string[];
   superAdminOnly?: boolean;
   subItems?: SubMenuItem[];
 }
+
 
 interface MenuGroup {
   label: string;
@@ -240,9 +245,9 @@ const menuGroups: MenuGroup[] = [
   {
     label: "Swap & ซ่อมบำรุง",
     items: [
-      { title: "Swap อุปกรณ์/MP", url: "/swap", icon: ArrowLeftRight, functionName: "goods_issue" },
-      { title: "บันทึกการประเมิน", url: "/assessment", icon: ClipboardCheck, functionName: "goods_issue" },
-      { title: "ติดตามการเคลม", url: "/claims", icon: FileCheck2, functionName: "goods_issue" },
+      { title: "Swap อุปกรณ์/MP", url: "/swap", icon: ArrowLeftRight, functionNames: ["swap_request_create", "swap_request_manage"] },
+      { title: "บันทึกการประเมิน", url: "/assessment", icon: ClipboardCheck, functionNames: ["assessment_view", "assessment_create"] },
+      { title: "ติดตามการเคลม", url: "/claims", icon: FileCheck2, functionNames: ["claim_view", "claim_create"] },
       { title: "รายงานงานซ่อมเอง", url: "/repair-report", icon: Wrench, functionName: "reports" },
     ]
   },
@@ -373,12 +378,15 @@ export function AppSidebar() {
     return menuGroups.map(group => ({
       ...group,
       items: group.items.map(item => {
-        // Filter sub-items by their own functionName / superAdminOnly
+        // Filter sub-items by their own functionName(s) / superAdminOnly
         if (item.subItems) {
           const filteredSubItems = item.subItems.filter(sub => {
             if (sub.superAdminOnly && !isSuperAdmin) return false;
-            if (!sub.functionName) return true;
             if (isAdmin) return true;
+            if (sub.functionNames && sub.functionNames.length > 0) {
+              return sub.functionNames.some(fn => hasFunctionAccess(fn));
+            }
+            if (!sub.functionName) return true;
             return hasFunctionAccess(sub.functionName);
           });
           return { ...item, subItems: filteredSubItems };
@@ -388,13 +396,17 @@ export function AppSidebar() {
         // Hide parent if it has subItems but none are visible
         if (item.subItems && item.subItems.length === 0) return false;
         if (item.superAdminOnly && !isSuperAdmin) return false;
-        // Check parent-level functionName
-        if (!item.functionName) return true;
         if (isAdmin) return true;
+        // Check parent-level functionNames (OR) then functionName
+        if (item.functionNames && item.functionNames.length > 0) {
+          return item.functionNames.some(fn => hasFunctionAccess(fn));
+        }
+        if (!item.functionName) return true;
         return hasFunctionAccess(item.functionName);
       })
     })).filter(group => group.items.length > 0);
   }, [hasFunctionAccess, isAdmin, permLoading, isSuperAdmin, superLoading]);
+
 
   const handleLogout = () => {
     signOut();
