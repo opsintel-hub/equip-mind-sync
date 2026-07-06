@@ -123,6 +123,8 @@ export function UserPermissionManager() {
 
   useEffect(() => {
     fetchUsers();
+    // Load ALL presets (not just quick) for the edit-user multi-select
+    fetchPermissionPresets(false).then(setAllPresets).catch(() => setAllPresets([]));
   }, []);
 
   useEffect(() => {
