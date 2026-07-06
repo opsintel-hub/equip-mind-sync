@@ -32,6 +32,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { SYSTEM_FUNCTIONS } from "@/hooks/useFunctionPermissions";
 import { PermissionWizard } from "./PermissionWizard";
+import { QuickPresetSelector } from "./QuickPresetSelector";
+import {
+  fetchPermissionPresets,
+  detectCurrentPresetKey,
+  type PermissionPreset,
+} from "@/lib/permissions";
 import type { Database } from "@/integrations/supabase/types";
 import {
   Tooltip,
@@ -90,6 +96,10 @@ export function UserPermissionManager() {
   const [selectedUserRoles, setSelectedUserRoles] = useState<UserRole[]>([]);
   const [userPermissions, setUserPermissions] = useState<UserPermission[]>([]);
   const [userFunctionPermissions, setUserFunctionPermissions] = useState<FunctionPermission[]>([]);
+  // For quick preset auto-detect & default departments
+  const [presets, setPresets] = useState<PermissionPreset[]>([]);
+  const [userFunctionsByUser, setUserFunctionsByUser] = useState<Record<string, string[]>>({});
+  const [userDeptsByUser, setUserDeptsByUser] = useState<Record<string, string[]>>({});
   const [loading, setLoading] = useState(true);
   
   // Dialog states
@@ -165,12 +175,46 @@ export function UserPermissionManager() {
       
       setUsers(usersWithEmail);
       setFilteredUsers(usersWithEmail);
-      await fetchAllUserRoles();
+      await Promise.all([
+        fetchAllUserRoles(),
+        fetchAllPresetsAndUserScopes(usersWithEmail.map((u) => u.id)),
+      ]);
     } catch (error: any) {
       console.error("Error fetching users:", error);
       toast.error("เกิดข้อผิดพลาดในการโหลดข้อมูล");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchAllPresetsAndUserScopes = async (userIds: string[]) => {
+    try {
+      const [presetRows, fnRes, deptRes] = await Promise.all([
+        fetchPermissionPresets(true),
+        supabase
+          .from("user_function_permissions")
+          .select("user_id, function_name, can_access")
+          .in("user_id", userIds.length ? userIds : ["00000000-0000-0000-0000-000000000000"]),
+        supabase
+          .from("user_departments")
+          .select("user_id, department, can_view")
+          .in("user_id", userIds.length ? userIds : ["00000000-0000-0000-0000-000000000000"]),
+      ]);
+      setPresets(presetRows);
+      const fnMap: Record<string, string[]> = {};
+      (fnRes.data || []).forEach((r: any) => {
+        if (!r.can_access) return;
+        (fnMap[r.user_id] ||= []).push(r.function_name);
+      });
+      setUserFunctionsByUser(fnMap);
+      const deptMap: Record<string, string[]> = {};
+      (deptRes.data || []).forEach((r: any) => {
+        if (!r.can_view) return;
+        (deptMap[r.user_id] ||= []).push(r.department);
+      });
+      setUserDeptsByUser(deptMap);
+    } catch (e) {
+      console.error("Error loading presets/scopes:", e);
     }
   };
 
@@ -481,7 +525,7 @@ export function UserPermissionManager() {
                 )}
               </CardTitle>
               <CardDescription>
-                ผู้สมัครใหม่จะแสดงเป็น “ยังไม่ตั้งสิทธิ์” พร้อมตำแหน่ง/ฝ่ายที่ขอ ให้ Super Admin กดตั้งสิทธิ์อัตโนมัติเพื่ออนุมัติ
+                เลือก <strong>Preset</strong> ในคอลัมน์ "บทบาท / ตั้งสิทธิ์เร็ว" แล้วกด <strong>ใช้เลย</strong> — ระบบจะตั้ง Role + เมนู + สิทธิ์ในฝ่ายให้ครบใน 2 คลิก (กรณีพิเศษใช้ "ตั้งค่าขั้นสูง")
               </CardDescription>
             </div>
             <div className="relative w-64">
@@ -506,7 +550,7 @@ export function UserPermissionManager() {
                   <TableHead>อีเมล</TableHead>
                   <TableHead>เบอร์โทร</TableHead>
                     <TableHead>คำขอสมัคร</TableHead>
-                  <TableHead>บทบาท</TableHead>
+                  <TableHead>บทบาท / ตั้งสิทธิ์เร็ว</TableHead>
                   <TableHead className="text-right">จัดการ</TableHead>
                 </TableRow>
               </TableHeader>
@@ -548,21 +592,36 @@ export function UserPermissionManager() {
                           <span className="text-muted-foreground">-</span>
                         )}
                       </TableCell>
-                    <TableCell>
-                      <div className="flex gap-1 flex-wrap items-center">
-                        {getRoleSummary(user.id) || (
-                          <div className="flex flex-col gap-1">
+                    <TableCell onClick={(e) => e.stopPropagation()}>
+                      <div className="flex flex-col gap-2 min-w-[240px]">
+                        <div className="flex gap-1 flex-wrap items-center">
+                          {getRoleSummary(user.id) || (
                             <Badge variant="outline" className="text-amber-700 border-amber-300 bg-amber-50 dark:bg-amber-950 dark:text-amber-300 w-fit">
                               ยังไม่ตั้งสิทธิ์
                             </Badge>
-                            {(user.requested_job_role || user.requested_department) && (
-                              <span className="text-[11px] text-muted-foreground">
-                                ขอ: {getRequestedJobRoleLabel(user.requested_job_role)}
-                                {user.requested_department ? ` / ${user.requested_department}` : ""}
-                              </span>
-                            )}
-                          </div>
-                        )}
+                          )}
+                        </div>
+                        <QuickPresetSelector
+                          userId={user.id}
+                          userFullName={user.display_name || user.full_name || user.email || ""}
+                          allDepartments={allDepartments}
+                          presets={presets}
+                          currentPresetKey={detectCurrentPresetKey(
+                            presets,
+                            userRoles[user.id] || [],
+                            userFunctionsByUser[user.id] || [],
+                          )}
+                          currentDepartments={userDeptsByUser[user.id] || []}
+                          requestedDepartment={user.requested_department}
+                          onApplied={fetchUsers}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => handleOpenWizard(user)}
+                          className="text-[11px] text-muted-foreground hover:text-primary underline underline-offset-2 text-left w-fit"
+                        >
+                          ตั้งค่าขั้นสูง (Wizard)
+                        </button>
                       </div>
                     </TableCell>
                     <TableCell className="text-right">
@@ -610,42 +669,20 @@ export function UserPermissionManager() {
                             <TooltipContent>ลบออกจากรายการ (เก็บประวัติในระบบ)</TooltipContent>
                           </Tooltip>
                         </TooltipProvider>
-                        {hasNoRoles(user.id) ? (
-                          <Button
-                            variant="default"
-                            size="sm"
-                            onClick={() => handleOpenWizard(user)}
-                            className="bg-gradient-to-r from-primary to-primary/80"
-                          >
-                            <Sparkles className="h-4 w-4 mr-2" />
-                            ตั้งสิทธิ์อัตโนมัติ
-                          </Button>
-                        ) : (
-                          <>
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => handleOpenWizard(user)}
-                                  >
-                                    <Sparkles className="h-4 w-4" />
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>ตั้งสิทธิ์ใหม่ด้วย Wizard</TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
-                            <Button
-                              variant="default"
-                              size="sm"
-                              onClick={() => handleOpenDialog(user)}
-                            >
-                              <Shield className="h-4 w-4 mr-2" />
-                              จัดการสิทธิ์
-                            </Button>
-                          </>
-                        )}
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleOpenDialog(user)}
+                              >
+                                <Shield className="h-4 w-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>จัดการสิทธิ์แบบละเอียด</TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
                       </div>
                     </TableCell>
                   </TableRow>

@@ -1,115 +1,79 @@
-## บริบทปัจจุบัน (สิ่งที่มีอยู่แล้ว)
-
-ระบบมีโครงสร้างเชื่อมต่อ MSSQL ที่ใช้งานได้บางส่วนอยู่แล้ว:
-
-- **ตาราง `external_db_connections`** — เก็บ config การเชื่อมต่อ (host, port, db, user, password, table, auto_sync)
-- **ตาราง `billboard_sync_logs`** — เก็บประวัติ sync (fetched/inserted/updated/skipped/failed + error)
-- **ตาราง `billboards`** — ปลายทางของข้อมูล ใช้ `old_code` เป็น match key
-- **Edge Function `sync-billboards-mssql`** — มี endpoint `test-connection`, `preview`, `sync` (ใช้ `npm:mssql@11.0.1`)
-- **UI `BillboardDbConnection.tsx`** — อยู่ในหน้า Master Data มี form + ปุ่ม test/save/sync + ตารางประวัติ
-- **เมนู sidebar** `"จัดการป้ายโฆษณา(Manual)"` ชี้ไปที่ `/billboards` ซึ่งใช้ `BillboardImport.tsx` (614 บรรทัด) เพื่ออัปโหลด Excel
-
-ดังนั้น **ไม่ต้องสร้างตาราง `asset` / `connection_settings` / `sync_logs` ใหม่** ตามสเปกดิบ — ใช้ของเดิมและปรับปรุงให้ครบตามที่ต้องการ เพราะ downstream ทั้งหมด (BillboardSelect, PM, Packages, Ad target, Equipment install) อ่านจาก `billboards` อยู่แล้ว จึงเป็นการ "แทนที่ไร้รอยต่อ" จริง
-
----
-
 ## เป้าหมาย
+ลดความยุ่งยากของการตั้งสิทธิ์จาก 3 ขั้น (Role + ฟังก์ชัน + ฝ่าย) ให้เหลือ **1 คลิก** ผ่าน Preset สำเร็จรูป โดยยังเก็บ Wizard เดิมไว้เป็นโหมดขั้นสูง
 
-1. ยกเลิกการนำเข้าแบบ Excel Manual
-2. ให้ MSSQL Sync เป็นแหล่งข้อมูลหลักของ `billboards`
-3. ทุกเมนูที่ใช้ป้าย (Select, PM, Packages, Ads, Equipment) ทำงานต่อไม่มีสะดุด
-4. เสริมความทนทานของการเชื่อม MSSQL ตามสเปก (retry, timeout, TLS options, pool close)
+## หลักการ: Preset คุมทุกอย่างในคลิกเดียว
+แต่ละ Preset = แพ็กเกจสิทธิ์ครบชุด ประกอบด้วย 3 ส่วนที่เชื่อมกัน:
+1. **Role** — บทบาทพื้นฐาน
+2. **ฟังก์ชันที่เปิด** — คุมว่าจะเห็น **เมนู/แท็บ** ไหนบ้าง (Sidebar เช็ค `user_function_permissions` อยู่แล้ว → เมนูโผล่/หายอัตโนมัติ)
+3. **สิทธิ์ในฝ่าย** — ดู/สร้าง/แก้/ลบ ในฝ่ายที่รับผิดชอบ
 
----
+## Preset ที่จะมีให้เลือก
 
-## แผนการทำ
+| Preset | Role | เมนูที่เห็น | สิทธิ์ในฝ่าย |
+|---|---|---|---|
+| **ผู้ดูแลระบบสูงสุด** | super_admin | ทุกเมนู รวม Master Data / OCR / System Settings | ดู+สร้าง+แก้+ลบ ทุกฝ่าย |
+| **ผู้ดูแลระบบ (Admin)** | admin | ทุกเมนูปฏิบัติการ (ไม่รวม System Settings บางส่วน) | **ดู+สร้าง เฉพาะฝ่ายที่เลือก (หลายฝ่ายได้) — แก้/ลบ ไม่ได้** |
+| **ผู้จัดการฝ่าย** | manager | Dashboard, รายงาน, อนุมัติคำขอ, Approval Center | ดู+แก้ เฉพาะฝ่ายที่เลือก |
+| **เจ้าหน้าที่คลัง** | warehouse_staff | รับเข้าคลัง, จ่ายสินค้า, สต็อก, จัดเก็บ, DC, S/N | ดู+สร้าง+แก้ เฉพาะฝ่ายที่เลือก |
+| **เจ้าหน้าที่รับเข้า** | receiver | นำสินค้าเข้า (Delivery Entry) เท่านั้น | ดู+สร้าง เฉพาะฝ่ายที่เลือก |
+| **ผู้ขอเบิก** | requester | ขอเบิกสินค้า, ดูสถานะคำขอของตัวเอง | ดู+สร้าง เฉพาะฝ่ายที่เลือก |
 
-### 1. ปรับปรุง Edge Function `sync-billboards-mssql`
+> เอา **"ผู้ชมอย่างเดียว"** ออกตามที่ขอ
+> **Admin ใหม่**: ไม่ใช่ super-user อีกต่อไป → ผูกกับฝ่ายที่เลือก (หลายฝ่ายได้) และแก้/ลบไม่ได้
 
-- Parse `host:port` ในกรณี user กรอกรวมกัน
-- ตั้ง `options`: `encrypt: false`, `trustServerCertificate: true`, `tdsVersion: "7_4"`, `enableArithAbort: true`, `useUTC: true`
-- ตั้ง `connectionTimeout: 60000`, `requestTimeout: 300000`
-- ตั้ง `pool: { max: 1, min: 0, idleTimeoutMillis: 30000 }`, `stream: false`
-- ใส่ **retry 3 ครั้ง** พร้อม exponential backoff (2s, 4s) รอบ `connectMssql`
-- ปิด pool ทุกกรณีใน `finally`
-- แปลง error message เป็นภาษาไทยที่เข้าใจง่าย (timeout / auth failed / firewall / TLS)
-- Batch upsert 200 rows/ครั้ง (ปัจจุบัน 500) เพื่อลด payload
+## ผลกระทบต่อ Admin เดิม
+- **RLS/UI ที่เคยเช็ค `has_role(admin)` แล้วเปิดทุกอย่าง** ต้องปรับให้ Admin ถูกจำกัดตามฝ่ายและไม่ให้ทำ update/delete
+- สรุปการเปลี่ยน:
+  - `has_department_permission()` — ปรับ: **admin ไม่ bypass อัตโนมัติอีกต่อไป** ต้องอ่านจาก `user_departments` เหมือน role อื่น (super_admin ยัง bypass)
+  - RLS policies ที่ใช้ `has_role(uid,'admin')` สำหรับ UPDATE/DELETE → เปลี่ยนเป็น `has_role(uid,'super_admin')` เท่านั้น (ตารางหลัก เช่น profiles, media_player_images, goods_issue_pending, purchase_requests, master data)
+  - UI ปุ่ม "แก้ไข/ลบ" ที่เช็ค `isAdmin` → เปลี่ยนเป็น `isSuperAdmin`
+- **หมายเหตุความปลอดภัย**: การจำกัด Admin แบบนี้จะย้ายภาระ "ผู้ดูแลระบบเต็มรูปแบบ" ไปที่ Super Admin ทั้งหมด — ต้องมี Super Admin อย่างน้อย 1 คนเสมอ (จะเพิ่ม guard ห้ามลบ/ดาวน์เกรด Super Admin คนสุดท้าย)
 
-### 2. ปรับหน้า `/billboards` (แทนที่ Manual Import)
+## UI ที่จะเปลี่ยน
 
-- ลบปุ่ม/Dialog "นำเข้า Excel" (`BillboardImport`) ออกจากหน้า `Billboards.tsx`
-- เพิ่ม **แถบสถานะ Sync** ด้านบน: เวลาที่ sync ล่าสุด, สถานะสำเร็จ/ล้มเหลว, จำนวนแถว
-- เพิ่มปุ่ม **"Sync ทันที"** เรียก `sync-billboards-mssql/sync` ด้วย config ที่บันทึกไว้ (จำกัดสิทธิ์ admin/super_admin)
-- ปุ่ม "เพิ่มป้าย" (manual add) ยังคงอยู่สำหรับกรณีป้ายที่ไม่มีใน MSSQL (เช่น 7-Eleven ภายใน) แต่แสดง badge `manual`
-- Field ที่มาจาก MSSQL (region, district, territory, media_type ฯลฯ) ให้ read-only ในหน้าแก้ไข ถ้า `sync_source = 'mssql'` เพื่อกัน sync ครั้งถัดไปทับ
+### 1. หน้ารายชื่อผู้ใช้ (UserPermissionManager)
+เพิ่มแถบ **"ตั้งสิทธิ์เร็ว"** แทนคอลัมน์ "บทบาท" เดิม:
+- **Dropdown Preset** (แสดง Preset ปัจจุบันของ user หรือ "ยังไม่ตั้ง")
+- **Multi-select ฝ่าย** (chips) — default = ฝ่ายที่ผู้ใช้ขอตอนสมัคร
+- ปุ่ม **"ใช้เลย"** — apply ทันที (เขียน user_roles + user_function_permissions + user_departments)
+- ลิงก์เล็ก ๆ **"ตั้งค่าขั้นสูง"** → เปิด Wizard เดิม
 
-### 3. เพิ่ม column `sync_source` ในตาราง `billboards`
+Flow: เลือก Preset → เลือกฝ่าย(หลายได้) → กดใช้เลย → toast สำเร็จ
 
-Migration: เพิ่ม `sync_source text default 'manual'` และ `last_synced_at timestamptz`
-- Edge Function อัปเดต `sync_source = 'mssql'` และ `last_synced_at = now()` ทุกแถวที่ upsert
-- ป้ายที่สร้างจาก UI manual จะเป็น `'manual'` ไม่ถูก sync ทับ (แก้ logic upsert ให้ข้ามแถว `sync_source='manual'`)
+### 2. Preview ก่อนกดใช้
+เมื่อเลือก Preset จะแสดง preview inline: "จะเปิดเมนู: รับเข้า, จ่าย, สต็อก... | สิทธิ์ในฝ่าย: ดู+สร้าง+แก้" เพื่อให้ Super Admin เห็นก่อนกด
 
-### 4. ย้าย/เปลี่ยน UI จัดการการเชื่อมต่อ
+### 3. หน้าคู่มือ (Help tab)
+เพิ่มการ์ด **"Preset สิทธิ์"** ที่แสดงตารางข้างต้นแบบขยาย พร้อมรายชื่อเมนูจริงในแต่ละ Preset
 
-- ย้าย `BillboardDbConnection` จาก Master Data มาเป็น **Tab ในหน้า `/billboards`** (Tab: "รายการป้าย" / "ตั้งค่าการเชื่อมต่อ" / "ประวัติ Sync") เพื่อรวมทุกอย่างเกี่ยวกับป้ายไว้จุดเดียว
-- เปลี่ยนชื่อ sidebar `"จัดการป้ายโฆษณา(Manual)"` → `"ป้ายโฆษณา"`
-- ตัด import/export ของ Master Data ที่อ้างถึง component เดิม
+### 4. Wizard เดิม
+คงไว้เหมือนเดิม (เปิดผ่านลิงก์ "ตั้งค่าขั้นสูง") — สำหรับเคสพิเศษที่ต้องผสมสิทธิ์เอง
 
-### 5. Cron Sync อัตโนมัติ (Auto Sync)
+## รายละเอียดเทคนิค
 
-- ใช้ `auto_sync_enabled` + `auto_sync_days` ที่มีอยู่แล้ว
-- เพิ่ม `pg_cron` job รายวันเวลา 02:00 เรียก `sync-billboards-mssql/sync` ผ่าน `pg_net` ถ้าวันนั้นตรงกับ `auto_sync_days`
-- Trigger type = `'scheduled'` ใน log
+### Data
+- ใช้ตาราง `permission_templates` เดิม
+- Migration:
+  - เพิ่ม `is_quick_preset boolean default true`
+  - อัปเดต seed 6 Preset ข้างต้น (พร้อม `suggested_functions` ที่ match กับ `SYSTEM_FUNCTIONS`)
+  - ลบ preset "viewer/ผู้ชม" ออก
+- แก้ `has_department_permission()`: ตัด admin bypass เหลือแค่ super_admin
+- ปรับ RLS policies ที่ให้สิทธิ์ admin update/delete → เปลี่ยนเป็น super_admin เท่านั้น (ทำเป็น migration ใหม่)
+- เพิ่ม trigger ป้องกันลบ/ดาวน์เกรด Super Admin คนสุดท้าย
 
-### 6. ล้างของเก่า
+### Code
+- Helper ใหม่ `src/lib/permissions.ts` → `applyPresetToUser(userId, presetKey, departments)` ใช้ร่วมกันระหว่าง QuickPreset และ Wizard
+- Component ใหม่ `QuickPresetSelector.tsx` ฝังในแถวผู้ใช้ของ `UserPermissionManager`
+- `AppSidebar` ไม่ต้องแก้ — ใช้ `useFunctionPermissions` ที่มีอยู่แล้ว
+- Sweep components ที่ใช้ `isAdmin` เพื่อ gate ปุ่ม edit/delete → เปลี่ยนเป็น `isSuperAdmin` (จะทำ audit list ตอน build)
 
-- ลบ `src/components/billboard/BillboardImport.tsx` (614 บรรทัด) และไฟล์ template Excel ที่เกี่ยวข้อง (ถ้ามีไฟล์ standalone)
-- ลบ button `นำเข้า Excel` ในหน้า `Billboards.tsx`
-- อัปเดต memory `billboard/core-management-v2` ให้บันทึกว่า MSSQL sync คือแหล่งข้อมูลหลัก
+## สิ่งที่ **ไม่** เปลี่ยน
+- Schema ของ `user_roles`, `user_function_permissions`, `user_departments`
+- หน้า Login/signup
+- Sidebar และ logic การซ่อนเมนู (ทำงานอัตโนมัติจาก function permissions)
+- Wizard เดิม (แค่ย้ายเป็นโหมดขั้นสูง)
 
-### 7. Downstream ที่ต้องตรวจ (ไม่ต้องแก้ code แค่ verify)
-
-- `BillboardSelect` — อ่าน `billboards` ตามเดิม ✔
-- `BillboardPackages` — อ้าง `billboard_id` ตามเดิม ✔
-- `ad_target_billboards` — อ้าง `billboard_id` ตามเดิม ✔
-- `billboard_equipment` — install อุปกรณ์บนป้าย อ้าง `billboard_id` ✔
-- Billboard PM — trigger จาก expiry ✔
-- Public view / QR — อ่านตามเดิม ✔
-
----
-
-## รายละเอียดเชิงเทคนิค
-
-**Migration ที่ต้องรัน:**
-```sql
-ALTER TABLE public.billboards
-  ADD COLUMN IF NOT EXISTS sync_source text NOT NULL DEFAULT 'manual',
-  ADD COLUMN IF NOT EXISTS last_synced_at timestamptz;
-CREATE INDEX IF NOT EXISTS idx_billboards_sync_source ON public.billboards(sync_source);
-```
-Cron job แยกอีก migration (ไม่รวมกับ SQL structure) ตามแนวทาง `pg_cron` + `pg_net`
-
-**ไฟล์ที่จะแก้:**
-- `supabase/functions/sync-billboards-mssql/index.ts` — เพิ่ม retry, options, port parse, Thai error, sync_source
-- `src/pages/Billboards.tsx` — เพิ่ม Tabs, ลบ Excel import button
-- `src/components/master-data/BillboardDbConnection.tsx` — ย้าย import path (ยังใช้ component เดิม)
-- `src/pages/MasterData.tsx` — ลบ BillboardDbConnection ออก
-- `src/components/AppSidebar.tsx` — เปลี่ยนชื่อเมนู
-- `src/components/billboard/BillboardImport.tsx` — **ลบ**
-- `src/components/billboard/BillboardForm.tsx` — ทำ field read-only เมื่อ `sync_source='mssql'`
-
-**ไม่แตะ:**
-- Downstream tables/components (ไม่มีการเปลี่ยน schema `billboards` ที่กระทบ)
-- Types file (จะ regen อัตโนมัติหลัง migration)
-
----
-
-## Acceptance Criteria
-
-- กด "ทดสอบเชื่อมต่อ" กับ config `magicticket.magicsigncloud.com:1433 / planb / planb_viewer` แล้วสำเร็จ
-- กด "Sync ทันที" ได้ข้อมูล > 8000 แถวเข้า `billboards`
-- Sync ครั้งที่ 2 ไม่สร้างซ้ำ (upsert ตาม `old_code`)
-- ป้ายที่สร้าง manual ไม่ถูก sync ทับ
-- BillboardSelect, PM, Packages, Ads, Equipment install ยังทำงานปกติ
-- Error ทุกกรณีมีข้อความไทยเข้าใจง่ายและบันทึกใน `billboard_sync_logs`
-- เมนู sidebar และหน้า `/billboards` ไม่มีปุ่ม Excel import แล้ว
+## ผลลัพธ์
+- เคสปกติ 90%: ตั้งสิทธิ์เสร็จใน 2 คลิก (เลือก Preset + ฝ่าย → ใช้เลย)
+- Admin ถูกจำกัดตามฝ่ายและแก้/ลบไม่ได้ตามที่ต้องการ
+- เคสพิเศษ: กด "ตั้งค่าขั้นสูง" เข้า Wizard เดิม
