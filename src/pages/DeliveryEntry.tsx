@@ -337,6 +337,22 @@ const DeliveryEntry = () => {
     }
   }, [deptLoading, isSingleDepartment, allowedDepartments, selectedDepartmentId]);
 
+  // Auto-fill operator name from the signed-in user (anti-impersonation)
+  useEffect(() => {
+    if (currentActorName && !deliveryPersonName) {
+      setDeliveryPersonName(currentActorName);
+    }
+  }, [currentActorName]);
+
+  // Auto-select department by matching user's assigned department name
+  useEffect(() => {
+    if (deptLoading || selectedDepartmentId) return;
+    const userDept = currentProfile?.department;
+    if (!userDept) return;
+    const match = allowedDepartments.find((d) => d.name === userDept);
+    if (match) setSelectedDepartmentId(match.id);
+  }, [deptLoading, allowedDepartments, currentProfile?.department, selectedDepartmentId]);
+
   useEffect(() => {
     fetchEquipment();
     fetchCompanies();
