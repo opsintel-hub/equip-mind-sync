@@ -1161,7 +1161,8 @@ export function AssessmentCompleteDialog({ open, onOpenChange, log, onCompleted 
           <div className="grid md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>ชื่อผู้ประเมิน</Label>
-              <Input value={assessorName} onChange={(e) => setAssessorName(e.target.value)} placeholder="ชื่อ-สกุล" />
+              <Input value={assessorName} readOnly className="bg-muted cursor-not-allowed" placeholder="ชื่อ-สกุล" title="ดึงจากผู้ใช้ที่ล็อกอิน" />
+              <p className="text-[11px] text-muted-foreground">ดึงอัตโนมัติจากผู้ใช้ที่ล็อกอิน</p>
             </div>
             <div className="space-y-2">
               <Label>หมายเหตุอื่น ๆ</Label>
