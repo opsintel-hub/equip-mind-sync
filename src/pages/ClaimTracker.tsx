@@ -1213,7 +1213,8 @@ export default function ClaimTracker() {
                 </div>
                 <div className="space-y-2">
                   <Label>ชื่อผู้ส่งเคลม</Label>
-                  <Input value={submitterName} onChange={(e) => setSubmitterName(e.target.value)} placeholder="ชื่อ-สกุล" />
+                  <Input value={submitterName} readOnly className="bg-muted cursor-not-allowed" placeholder="ชื่อ-สกุล" title="ดึงจากผู้ใช้ที่ล็อกอิน" />
+                  <p className="text-[11px] text-muted-foreground">ดึงอัตโนมัติจากผู้ใช้ที่ล็อกอิน</p>
                 </div>
               </div>
 
