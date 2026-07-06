@@ -134,7 +134,9 @@ const formatCellValue = (billboard: BillboardRecord, key: keyof BillboardRecord)
 
 const Billboards = () => {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { isSuperAdmin } = useIsSuperAdmin();
+  const activeTab = searchParams.get("tab") === "sync" ? "sync" : "list";
   const [searchTerm, setSearchTerm] = useState("");
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [selectedBillboard, setSelectedBillboard] = useState<BillboardRecord | null>(null);
