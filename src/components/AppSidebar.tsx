@@ -205,7 +205,7 @@ const menuGroups: MenuGroup[] = [
     items: [
       { title: "รายการป้ายโฆษณา", url: "/billboards", icon: MapPin, functionName: "billboards" },
       { 
-        title: "PM ป้ายโฆษณา", 
+        title: "แจ้ง PM ป้ายโฆษณา", 
         icon: Calendar,
         functionName: "pm_schedule",
         subItems: [
