@@ -63,6 +63,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     email: string,
     password: string,
     fullName: string,
+    displayName?: string,
     phone?: string,
     requestedJobRole?: string,
     requestedDepartment?: string,
@@ -77,6 +78,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           emailRedirectTo: redirectUrl,
           data: {
             full_name: fullName,
+            display_name: displayName || '',
             phone: phone || '',
             requested_job_role: requestedJobRole || '',
             requested_department: requestedDepartment || '',
