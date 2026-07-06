@@ -26,7 +26,7 @@ const loginSchema = z.object({
 const signupSchema = loginSchema.extend({
   fullName: z.string().min(2, "กรุณากรอกชื่อ-นามสกุล"),
   displayName: z.string().min(1, "กรุณากรอกชื่อที่ต้องการให้แสดงในระบบ").max(50, "ชื่อที่แสดงต้องไม่เกิน 50 ตัวอักษร"),
-  phone: z.string().optional(),
+  phone: z.string().trim().min(9, "กรุณากรอกเบอร์โทรศัพท์").max(20, "เบอร์โทรศัพท์ยาวเกินไป"),
   requestedJobRole: z.string().min(1, "กรุณาเลือกตำแหน่งงาน"),
   requestedDepartment: z.string().min(1, "กรุณาเลือกฝ่ายที่สังกัด"),
 });
@@ -220,7 +220,7 @@ const Login = () => {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="phone">เบอร์โทรศัพท์ (ไม่บังคับ)</Label>
+                  <Label htmlFor="phone">เบอร์โทรศัพท์</Label>
                   <Input
                     id="phone"
                     type="tel"
@@ -228,6 +228,7 @@ const Login = () => {
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
                     disabled={isLoading}
+                    required
                   />
                 </div>
                 <div className="space-y-2">
