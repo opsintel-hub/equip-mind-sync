@@ -6038,6 +6038,14 @@ export type Database = {
       }
       public_get_direct_shipment: { Args: { _id: string }; Returns: Json }
       public_get_media_player_profile: { Args: { _id: string }; Returns: Json }
+      public_get_mp_billboard_equipment: {
+        Args: { _media_player_id: string }
+        Returns: {
+          billboard_id: string
+          installation_date: string
+          quantity: number
+        }[]
+      }
       public_get_mp_billboard_history: {
         Args: { _media_player_id: string }
         Returns: {
