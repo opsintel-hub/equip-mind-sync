@@ -510,13 +510,8 @@ const Billboards = () => {
     );
   };
 
-  return (
+  const billboardsContent = (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-semibold text-foreground mb-2">ฐานข้อมูลป้ายโฆษณา</h1>
-        <p className="text-muted-foreground">จัดการข้อมูลป้ายโฆษณาและอุปกรณ์ที่ติดตั้ง</p>
-      </div>
-
       <BillboardSummaryCards filters={filters} searchTerm={searchTerm} />
 
       <Card>
