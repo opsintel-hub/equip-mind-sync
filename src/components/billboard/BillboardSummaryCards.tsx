@@ -44,6 +44,7 @@ export function BillboardSummaryCards({ filters, searchTerm }: BillboardSummaryC
       // Equipment-status filter -> billboard ids (paginated)
       let billboardIdFilter: string[] | null = null;
       if (filters.equipmentStatus) {
+        const selected = filters.equipmentStatus.split(",").filter(Boolean);
         const today = new Date().toISOString().split("T")[0];
         const in30 = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
         const ids = new Set<string>();
@@ -59,21 +60,12 @@ export function BillboardSummaryCards({ filters, searchTerm }: BillboardSummaryC
           be.forEach((row) => {
             const eq = row.equipment as { expiry_date: string | null; warranty_expiry_date: string | null } | null;
             if (!eq) return;
-            switch (filters.equipmentStatus) {
-              case "expired":
-                if (eq.expiry_date && eq.expiry_date < today) ids.add(row.billboard_id);
-                break;
-              case "warranty_expired":
-                if (eq.warranty_expiry_date && eq.warranty_expiry_date < today) ids.add(row.billboard_id);
-                break;
-              case "expiring_soon":
-                if (eq.expiry_date && eq.expiry_date >= today && eq.expiry_date <= in30) ids.add(row.billboard_id);
-                break;
-              case "warranty_expiring_soon":
-                if (eq.warranty_expiry_date && eq.warranty_expiry_date >= today && eq.warranty_expiry_date <= in30)
-                  ids.add(row.billboard_id);
-                break;
-            }
+            const matches =
+              (selected.includes("expired") && eq.expiry_date && eq.expiry_date < today) ||
+              (selected.includes("warranty_expired") && eq.warranty_expiry_date && eq.warranty_expiry_date < today) ||
+              (selected.includes("expiring_soon") && eq.expiry_date && eq.expiry_date >= today && eq.expiry_date <= in30) ||
+              (selected.includes("warranty_expiring_soon") && eq.warranty_expiry_date && eq.warranty_expiry_date >= today && eq.warranty_expiry_date <= in30);
+            if (matches) ids.add(row.billboard_id);
           });
           if (be.length < pageSize) break;
           from += pageSize;
@@ -83,6 +75,7 @@ export function BillboardSummaryCards({ filters, searchTerm }: BillboardSummaryC
           return { total: 0, active: 0, maintenance: 0, inactive: 0, expired: 0, warrantyExpired: 0, byDepartment: [] };
         }
       }
+
 
       const fetchAll = async (includeDept: boolean): Promise<BillboardRow[]> => {
         const all: BillboardRow[] = [];
