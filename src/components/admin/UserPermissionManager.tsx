@@ -469,6 +469,58 @@ export function UserPermissionManager() {
         } as any)
         .eq("id", selectedUser.id);
       if (error) throw error;
+
+      // Apply selected presets (roles + function permissions) as a merged union
+      if (editSelectedPresets.length > 0) {
+        const chosen = allPresets.filter((p) => editSelectedPresets.includes(p.template_key));
+        const roleUnion = Array.from(new Set(chosen.flatMap((p) => p.suggested_roles)));
+        const fnUnion = Array.from(new Set(chosen.flatMap((p) => p.suggested_functions)));
+
+        const { error: roleErr } = await supabase.rpc("save_user_roles" as any, {
+          _target_user_id: selectedUser.id,
+          _roles: roleUnion,
+        });
+        if (roleErr) throw roleErr;
+
+        const { error: delFnErr } = await supabase
+          .from("user_function_permissions")
+          .delete()
+          .eq("user_id", selectedUser.id);
+        if (delFnErr) throw delFnErr;
+
+        if (fnUnion.length > 0) {
+          const { error: insFnErr } = await supabase
+            .from("user_function_permissions")
+            .insert(fnUnion.map((fn) => ({
+              user_id: selectedUser.id,
+              function_name: fn,
+              can_access: true,
+            })));
+          if (insFnErr) throw insFnErr;
+        }
+
+        // Department scope: ensure the chosen department exists with OR of preset defaults
+        if (editDepartment) {
+          const canView = chosen.some((p) => p.default_dept_can_view);
+          const canCreate = chosen.some((p) => p.default_dept_can_create);
+          const canEdit = chosen.some((p) => p.default_dept_can_edit);
+          const canDelete = chosen.some((p) => p.default_dept_can_delete);
+          await supabase
+            .from("user_departments")
+            .delete()
+            .eq("user_id", selectedUser.id)
+            .eq("department", editDepartment);
+          await supabase.from("user_departments").insert({
+            user_id: selectedUser.id,
+            department: editDepartment,
+            can_view: canView,
+            can_create: canCreate,
+            can_edit: canEdit,
+            can_delete: canDelete,
+          });
+        }
+      }
+
       toast.success("บันทึกข้อมูลผู้ใช้สำเร็จ");
       setEditDialogOpen(false);
       await fetchUsers();
