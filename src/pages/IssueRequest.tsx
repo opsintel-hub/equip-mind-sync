@@ -80,6 +80,7 @@ interface CartItem {
 
 const IssueRequest = () => {
   const queryClient = useQueryClient();
+  const { profile: currentProfile, actorName: currentActorName } = useCurrentUserProfile();
   const [searchTerm, setSearchTerm] = useState("");
   const [fifoSearchTerm, setFifoSearchTerm] = useState("");
   const [fifoShowExpiring, setFifoShowExpiring] = useState(true);
