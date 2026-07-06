@@ -60,13 +60,17 @@ export default function DirectShippingEntry() {
 
   const departmentNames = allowedDepartments.map(d => d.name);
 
-  // Auto-fill requester name from profile
+  // Auto-fill requester identity + department from profile (anti-impersonation)
   useEffect(() => {
     if (user) {
-      supabase.from("profiles").select("full_name, phone").eq("id", user.id).single().then(({ data }) => {
+      supabase.from("profiles").select("full_name, display_name, phone, department").eq("id", user.id).single().then(({ data }) => {
         if (data) {
-          setRequesterName(data.full_name || "");
-          setRequesterPhone(data.phone || "");
+          const p = data as any;
+          setRequesterName(p.display_name || p.full_name || "");
+          setRequesterPhone(p.phone || "");
+          if (p.department) {
+            setSelectedDepartment((prev) => prev || p.department);
+          }
         }
       });
     }
@@ -74,10 +78,10 @@ export default function DirectShippingEntry() {
 
   // Auto-select department if single
   useEffect(() => {
-    if (isSingleDepartment && allowedDepartments.length === 1) {
+    if (isSingleDepartment && allowedDepartments.length === 1 && !selectedDepartment) {
       setSelectedDepartment(allowedDepartments[0].name);
     }
-  }, [isSingleDepartment, allowedDepartments]);
+  }, [isSingleDepartment, allowedDepartments, selectedDepartment]);
 
   // Fetch my requests
   const { data: myRequests = [], isLoading } = useQuery({
