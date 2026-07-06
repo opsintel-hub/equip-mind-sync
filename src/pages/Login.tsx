@@ -220,7 +220,7 @@ const Login = () => {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="phone">เบอร์โทรศัพท์ (ไม่บังคับ)</Label>
+                  <Label htmlFor="phone">เบอร์โทรศัพท์</Label>
                   <Input
                     id="phone"
                     type="tel"
@@ -228,6 +228,7 @@ const Login = () => {
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
                     disabled={isLoading}
+                    required
                   />
                 </div>
                 <div className="space-y-2">
