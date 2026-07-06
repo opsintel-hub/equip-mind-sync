@@ -342,7 +342,10 @@ const DeliveryEntry = () => {
     if (currentActorName && !deliveryPersonName) {
       setDeliveryPersonName(currentActorName);
     }
-  }, [currentActorName]);
+    if (currentProfile?.phone && !deliveryPersonPhone) {
+      setDeliveryPersonPhone(currentProfile.phone);
+    }
+  }, [currentActorName, currentProfile?.phone]);
 
   // Auto-select department by matching user's assigned department name
   useEffect(() => {
