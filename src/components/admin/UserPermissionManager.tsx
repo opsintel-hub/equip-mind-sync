@@ -564,6 +564,35 @@ export function UserPermissionManager() {
                             <TooltipContent>รีเซ็ตรหัสผ่าน</TooltipContent>
                           </Tooltip>
                         </TooltipProvider>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleOpenEditDialog(user)}
+                              >
+                                <Pencil className="h-4 w-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>แก้ไขข้อมูลผู้ใช้</TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleOpenDeleteDialog(user)}
+                                className="text-destructive hover:text-destructive"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>ลบออกจากรายการ (เก็บประวัติในระบบ)</TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
                         {hasNoRoles(user.id) ? (
                           <Button
                             variant="default"
