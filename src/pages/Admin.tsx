@@ -69,7 +69,7 @@ const Admin = () => {
           <div className="flex items-center justify-between flex-wrap gap-3">
             <div className="text-sm text-muted-foreground">
               {viewMode === "card"
-                ? "มุมมองรายผู้ใช้ — ตั้งค่ารายคนแบบละเอียด (Wizard, รีเซ็ตรหัส, แก้ไขผู้ใช้)"
+                ? "มุมมองรายผู้ใช้ — แก้ Role/ฝ่าย/Preset ที่ปุ่มดินสอ, ตั้งค่าละเอียดที่ Wizard, รีเซ็ตรหัสผ่าน"
                 : "มุมมอง Matrix — ปรับสิทธิ์ Function หลายคนพร้อมกันแบบ Bulk พร้อม Apply Preset"}
             </div>
             <ToggleGroup
@@ -95,6 +95,39 @@ const Admin = () => {
 
 
         <TabsContent value="help" className="space-y-6">
+          {/* 3-Step workflow */}
+          <Card className="border-primary/30">
+            <CardContent className="pt-6">
+              <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                <Shield className="h-5 w-5 text-primary" />
+                ขั้นตอนกำหนดสิทธิ์ (3 ขั้น)
+              </h3>
+              <div className="grid gap-3 md:grid-cols-3">
+                <div className="p-4 rounded-lg bg-muted/40 border">
+                  <div className="text-xs text-muted-foreground mb-1">ขั้นที่ 1 — ตั้งครั้งเดียว</div>
+                  <div className="font-semibold mb-1">ตั้งมาตรฐานสิทธิ์</div>
+                  <p className="text-xs text-muted-foreground">
+                    ทบทวน Role และแนวทางฟังก์ชันด้านล่าง ปรับ Preset ให้ตรงกับกระบวนการทำงานของบริษัท
+                  </p>
+                </div>
+                <div className="p-4 rounded-lg bg-muted/40 border">
+                  <div className="text-xs text-muted-foreground mb-1">ขั้นที่ 2 — ทุกครั้งที่มีสมัครใหม่</div>
+                  <div className="font-semibold mb-1">ปรับ Role/ฝ่ายราย Person</div>
+                  <p className="text-xs text-muted-foreground">
+                    Tab "จัดการผู้ใช้" → มุมมอง <strong>รายการผู้ใช้</strong> → กด ✏️ เพื่อแก้ชื่อ ฝ่าย และเลือก Preset (หลายอันได้)
+                  </p>
+                </div>
+                <div className="p-4 rounded-lg bg-muted/40 border">
+                  <div className="text-xs text-muted-foreground mb-1">ขั้นที่ 3 — เมื่อต้องการปรับละเอียด</div>
+                  <div className="font-semibold mb-1">ปรับ Matrix / Bulk</div>
+                  <p className="text-xs text-muted-foreground">
+                    สลับไปมุมมอง <strong>Matrix สิทธิ์</strong> เพื่อติ๊กสิทธิ์รายเมนู หรือ Apply Preset หลายคนพร้อมกัน
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
           {/* System Overview */}
           <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950 dark:to-indigo-950 border-blue-200 dark:border-blue-800">
             <CardContent className="pt-6">

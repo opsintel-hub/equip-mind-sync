@@ -1,73 +1,67 @@
+# แผน: กระบวนการกำหนดสิทธิ์ (3 ขั้นตอน) + เพิ่มช่องปรับสิทธิใน Dialog แก้ไขผู้ใช้
 
-# แผน: Permission Matrix (User × Function)
-
-หน้าจัดการผู้ใช้ตอนนี้ใช้การ์ดต่อคน + Wizard 3 ขั้น กด "ใช้เลย" ทีละคน — ตั้งค่าเยอะครั้งเสียเวลา แผนนี้เพิ่ม Matrix รวมสำหรับดูภาพรวม + แก้เป็น bulk
-
-## รูปแบบ
-
-**Tab ใหม่ "Matrix สิทธิ์"** ในหน้า `/admin` (ข้าง Tab เดิม "ผู้ใช้")
+## ภาพรวมกระบวนการ (สิ่งที่จะสื่อสารในหน้า Admin)
 
 ```
-                  │ นำเข้า │ รับเข้า │ ขอเบิก │ จ่าย │ Master │ รายงาน │ Swap │ ...
-────────────────────────────────────────────────────────────────────────────
-สมชาย  [7-Eleven] │   ✓    │   ✓    │        │      │        │   ✓    │      │
-สมหญิง [Fresh]   │        │        │   ✓    │      │        │   ✓    │      │
-[+เลือกทั้งแถว]   │  ▢     │  ▢     │  ▢     │  ▢  │   ▢    │  ▢     │  ▢   │
-────────────────────────────────────────────────────────────────────────────
-[✓เลือกทั้งคอลัมน์]
+[1] ตั้งมาตรฐาน (ครั้งเดียว)      [2] ผู้ใช้สมัคร → Admin ปรับ         [3] ปรับละเอียด/ Bulk
+    Tab: คู่มือและแนวทางสิทธิ์         Tab: จัดการผู้ใช้ (Card view)         Tab: จัดการผู้ใช้ (Matrix view)
+    - ทบทวน Role/Function             - รีวิวคำขอสมัคร                    - ติ๊ก/ยกเลิกสิทธิ์รายเมนู
+    - แก้ Preset ให้ตรงธุรกิจ          - ปรับ Role + ฝ่ายใน Dialog          - Bulk หลายคนพร้อมกัน
+                                       - Apply Preset ผ่าน Wizard           - Apply Preset ข้ามคน
 ```
 
-- **แถว** = ผู้ใช้ 1 คน (ชื่อ + Badge บทบาท + Badge ฝ่าย)
-- **คอลัมน์** = 41 ฟังก์ชัน จัดกลุ่มเป็น 8 หมวด (นำเข้า/รับเข้า/เบิก/จ่าย/Master Data/รายงาน/Swap-ประเมิน-เคลม/แอดมิน) มี header กลุ่ม + freeze คอลัมน์ชื่อผู้ใช้
-- **Cell** = Checkbox ติ๊กเดียว (ไม่มี CRUD ในนี้ — CRUD อยู่ที่ department ซึ่งจัดการต่างหาก)
+## ปัญหาปัจจุบัน
 
-## ฟีเจอร์หลัก
+Dialog "แก้ไขข้อมูลผู้ใช้" (ภาพที่ 4) มีแค่ ชื่อ / Display / เบอร์ / ฝ่าย
+→ Super Admin **แก้บทบาท/สิทธิ์ตรงนั้นไม่ได้** ต้องปิด dialog แล้วกด Wizard อีกที
+→ กรณีผู้ใช้สมัครมาแล้วเลือก Job Role ผิด (ภาพที่ 3) ควรแก้ได้ในหน้าเดียว
 
-1. **Multi-select แถว** — Checkbox ซ้ายสุดแต่ละแถว → เลือกหลายคน แล้ว bulk apply/revoke ฟังก์ชันได้
-2. **เลือกทั้งคอลัมน์** — คลิก header คอลัมน์ → ให้/ถอนสิทธิ์ฟังก์ชันนั้นแก่ทุกคนที่กรอง
-3. **Bulk toolbar** (ลอยเมื่อเลือกแถว): [ให้สิทธิ์...] [ถอนสิทธิ์...] [Apply Preset...] [เคลียร์]
-4. **ตัวกรอง** ด้านบน: ค้นหาชื่อ, กรองบทบาท, กรองฝ่าย, ซ่อนคอลัมน์ที่ทุกคนไม่มีสิทธิ์ (declutter)
-5. **แสดงสถานะ Preset** — คอลัมน์ 2 (ติดกับชื่อ): ป้ายบอกว่าคนนี้ตรงกับ Preset ไหน (Admin/Warehouse/Manager/...) หรือ "กำหนดเอง" — คลิก dropdown "Apply Preset" ในแถวเดี่ยวก็ได้
-6. **Auto-save พร้อม Undo** — ติ๊ก 1 ครั้ง = บันทึกทันที + toast "แก้แล้ว (undo ได้ 5 วิ)"
-7. **Super Admin lock** — แถว super_admin ทุกช่องแสดง ✓ สีเทา แก้ไม่ได้ (มีไอคอน 🔒)
-8. **ปุ่ม "แก้แบบละเอียด"** ในแต่ละแถว → เปิด Wizard เดิม (ยังใช้จัดการ Department CRUD)
+## สิ่งที่จะทำ
 
-## จุดที่ Preset ยังอยู่
+### 1) เพิ่มช่อง "บทบาท/Preset" ใน Edit User Dialog (Multi-Select)
 
-- Quick Preset ในหน้าเดิม (Tab "ผู้ใช้") **คงไว้เหมือนเดิม** — ไม่แตะ
-- ใน Matrix เพิ่มปุ่ม "Apply Preset..." ใน bulk toolbar และในแต่ละแถว → เลือก preset + ฝ่าย → เขียนทับ function permissions + roles + departments (ใช้ `applyPresetToUser` ที่มีอยู่)
+ใน `src/components/admin/UserPermissionManager.tsx` — Dialog บรรทัด 979-1051
+
+เพิ่มระหว่าง "ฝ่าย" กับปุ่ม "บันทึก":
+
+- **ช่อง "บทบาทงาน (Preset)"** — Multi-select (checkbox list) แสดง `permission_templates` ทั้งหมด
+  - Pre-check preset ที่ตรงกับสิทธิ์ผู้ใช้ปัจจุบัน (ใช้ `detectCurrentPresetKey`) + preset ที่ผู้ใช้ขอตอนสมัคร (`requested_job_role`) ถ้ายังไม่ตั้ง
+  - เลือกได้หลายอัน (เช่น "ผู้เบิก" + "ผู้รับเหมา")
+  - Badge แจ้ง "ผู้ใช้ขอสมัครเป็น: <label>" เหมือน field ฝ่าย
+- **Behavior ตอน "บันทึก"**:
+  - ถ้าเลือก preset ≥1: รวม `suggested_roles` + `suggested_functions` จากทุก preset (union), แล้วเรียก logic เดียวกับ `applyPresetToUser` แต่ merge หลาย preset:
+    - `save_user_roles` ด้วย union ของ roles
+    - Replace `user_function_permissions` ด้วย union ของ functions
+    - Replace `user_departments` ด้วยฝ่ายที่เลือก (ใช้ default flags ของ preset แรก หรือ OR รวมทุก preset)
+  - ถ้าไม่เลือก preset ใดเลย: อัปเดตแค่ profile fields (เหมือนเดิม) — ไม่แตะ roles/functions
+- **หมายเหตุใต้ช่อง**: "ต้องการปรับแบบละเอียดรายเมนู? สลับไปมุมมอง **Matrix สิทธิ์** ด้านบน"
+
+### 2) ปรับ Hint ในหน้า Card view ให้สื่อกระบวนการ 3 ขั้น
+
+ใน `src/pages/Admin.tsx` (บรรทัดคำอธิบาย viewMode) — เพิ่มข้อความสั้น ๆ:
+
+> "ขั้นตอน: (1) ตั้งมาตรฐานที่ Tab 'คู่มือฯ' → (2) แก้ Role/ฝ่าย/Preset ที่ Dialog แก้ไขผู้ใช้ → (3) ปรับละเอียดหรือ Bulk ที่ Matrix สิทธิ์"
+
+### 3) เพิ่ม Section "ขั้นตอนกำหนดสิทธิ์" ใน Tab "คู่มือและแนวทางสิทธิ์"
+
+เพิ่มการ์ดใหม่ก่อน "ระบบสิทธิ์ 3 ชั้น" แสดง flow 3 ขั้นตอนแบบ visual (ไอคอน + ลูกศร) ตรงกับที่วาดไว้ด้านบนของแผนนี้ เพื่อให้ Super Admin คนใหม่เข้าใจทันที
 
 ## รายละเอียดเทคนิค
 
-**ไฟล์ใหม่:**
-- `src/components/admin/PermissionMatrix.tsx` — หน้า Matrix
-- `src/components/admin/PermissionMatrixCell.tsx` — เซลล์ checkbox (memoized)
+**ไฟล์แก้:**
+- `src/components/admin/UserPermissionManager.tsx`
+  - เพิ่ม state: `editSelectedPresets: string[]`
+  - โหลด presets ตอนเปิด dialog (ใช้ `fetchPermissionPresets()` ที่มีอยู่)
+  - Pre-select ด้วย `detectCurrentPresetKey(presets, userRoles[selectedUser.id], userFunctionsByUser[selectedUser.id])` (ถ้าเจอ = 1 preset), มิฉะนั้นใช้ `requested_job_role`
+  - UI: ใช้ `Popover` + `Command` (multi-check) หรือรายการ Checkbox กะทัดรัด — เลือกให้เข้ากับ pattern ที่ใช้ในหน้าอื่น
+  - `handleSaveEdit`: หลัง update profile → ถ้ามี preset เลือก, run merge logic ข้างต้น
+- `src/pages/Admin.tsx` — ปรับ 1 บรรทัด hint
+- `src/pages/Admin.tsx` (Help tab) — เพิ่ม card "ขั้นตอนกำหนดสิทธิ์ 3 ขั้น"
 
-**แก้:**
-- `src/pages/Admin.tsx` — เพิ่ม Tab "Matrix สิทธิ์"
-
-**Data:**
-- โหลด `profiles`, `user_roles`, `user_function_permissions`, `user_departments` รอบเดียว → เก็บเป็น `Map<userId, Set<functionName>>`
-- Toggle cell → optimistic update + upsert/delete ใน `user_function_permissions`
-- Bulk = batch insert/delete ใน 1 query
-
-**Layout:**
-- Sticky ซ้าย 2 คอลัมน์ (checkbox + ชื่อ), sticky บน 2 แถว (group + function)
-- ScrollArea แนวนอน, virtualize ถ้า > 50 users (ยังไม่ทำในเฟสแรก — ระบบมีผู้ใช้น้อย)
-- Header กลุ่มมีปุ่ม collapse ทั้งหมวด (ซ่อนคอลัมน์ในกลุ่มนั้น)
-
-**Performance:**
-- `useMemo` cache Set lookup, `React.memo` cell component
-- Debounce search 200ms
-
-## สิ่งที่ไม่ทำในเฟสนี้
-
-- ไม่ย้าย Department CRUD (ดู/สร้าง/แก้/ลบ) เข้า Matrix — ยังใช้ Wizard เดิม (Matrix นี้คุมแค่ "เปิด/ปิดเมนู")
-- ไม่แตะ Backend/RLS
-- ไม่ทำ virtualization
+**ไม่แตะ:** DB schema, Matrix component, Wizard component, Card view โครงสร้างเดิม
 
 ## ผลที่ได้
 
-- ตั้งสิทธิ์ 10 คนพร้อมกันได้ใน 3 คลิก (เลือกแถว → คลิกคอลัมน์ → Apply)
-- ดูภาพรวมทั้งบริษัทได้ในหน้าเดียว รู้ทันทีใครมีสิทธิ์อะไร
-- ผู้ที่ชอบวิธีเดิมยังใช้ Quick Preset + Wizard ได้เหมือนเดิม
+- Super Admin แก้ผู้ใช้ 1 คน ได้ครบใน dialog เดียว: ชื่อ + ฝ่าย + **บทบาท/สิทธิ์ (Multi Preset)**
+- กระบวนการ 3 ขั้นชัดเจนบนหน้าจอ ผู้ใช้ใหม่เข้าใจว่าเริ่มตรงไหน ไปต่อยังไง
+- Wizard/Matrix ยังใช้ได้เหมือนเดิมสำหรับงานละเอียด/Bulk

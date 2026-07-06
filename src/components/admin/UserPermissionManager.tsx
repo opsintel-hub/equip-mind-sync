@@ -116,11 +116,15 @@ export function UserPermissionManager() {
   const [editPhone, setEditPhone] = useState("");
   const [editDepartment, setEditDepartment] = useState<string>("");
   const [editSaving, setEditSaving] = useState(false);
+  const [editSelectedPresets, setEditSelectedPresets] = useState<string[]>([]);
+  const [allPresets, setAllPresets] = useState<PermissionPreset[]>([]);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleteBusy, setDeleteBusy] = useState(false);
 
   useEffect(() => {
     fetchUsers();
+    // Load ALL presets (not just quick) for the edit-user multi-select
+    fetchPermissionPresets(false).then(setAllPresets).catch(() => setAllPresets([]));
   }, []);
 
   useEffect(() => {
@@ -433,6 +437,17 @@ export function UserPermissionManager() {
     setEditDisplayName(user.display_name || "");
     setEditPhone(user.phone || "");
     setEditDepartment(user.department || user.requested_department || "");
+    // Pre-select preset: detected from current roles/functions, else requested_job_role
+    const uRoles = userRoles[user.id] || [];
+    const uFns = userFunctionsByUser[user.id] || [];
+    const detected = detectCurrentPresetKey(allPresets, uRoles, uFns);
+    if (detected) {
+      setEditSelectedPresets([detected]);
+    } else if (user.requested_job_role) {
+      setEditSelectedPresets([user.requested_job_role]);
+    } else {
+      setEditSelectedPresets([]);
+    }
     setEditDialogOpen(true);
   };
 
@@ -454,6 +469,58 @@ export function UserPermissionManager() {
         } as any)
         .eq("id", selectedUser.id);
       if (error) throw error;
+
+      // Apply selected presets (roles + function permissions) as a merged union
+      if (editSelectedPresets.length > 0) {
+        const chosen = allPresets.filter((p) => editSelectedPresets.includes(p.template_key));
+        const roleUnion = Array.from(new Set(chosen.flatMap((p) => p.suggested_roles)));
+        const fnUnion = Array.from(new Set(chosen.flatMap((p) => p.suggested_functions)));
+
+        const { error: roleErr } = await supabase.rpc("save_user_roles" as any, {
+          _target_user_id: selectedUser.id,
+          _roles: roleUnion,
+        });
+        if (roleErr) throw roleErr;
+
+        const { error: delFnErr } = await supabase
+          .from("user_function_permissions")
+          .delete()
+          .eq("user_id", selectedUser.id);
+        if (delFnErr) throw delFnErr;
+
+        if (fnUnion.length > 0) {
+          const { error: insFnErr } = await supabase
+            .from("user_function_permissions")
+            .insert(fnUnion.map((fn) => ({
+              user_id: selectedUser.id,
+              function_name: fn,
+              can_access: true,
+            })));
+          if (insFnErr) throw insFnErr;
+        }
+
+        // Department scope: ensure the chosen department exists with OR of preset defaults
+        if (editDepartment) {
+          const canView = chosen.some((p) => p.default_dept_can_view);
+          const canCreate = chosen.some((p) => p.default_dept_can_create);
+          const canEdit = chosen.some((p) => p.default_dept_can_edit);
+          const canDelete = chosen.some((p) => p.default_dept_can_delete);
+          await supabase
+            .from("user_departments")
+            .delete()
+            .eq("user_id", selectedUser.id)
+            .eq("department", editDepartment);
+          await supabase.from("user_departments").insert({
+            user_id: selectedUser.id,
+            department: editDepartment,
+            can_view: canView,
+            can_create: canCreate,
+            can_edit: canEdit,
+            can_delete: canDelete,
+          });
+        }
+      }
+
       toast.success("บันทึกข้อมูลผู้ใช้สำเร็จ");
       setEditDialogOpen(false);
       await fetchUsers();
@@ -977,7 +1044,7 @@ export function UserPermissionManager() {
 
       {/* Edit user dialog */}
       <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Pencil className="h-5 w-5 text-primary" />
@@ -1037,6 +1104,55 @@ export function UserPermissionManager() {
                   ผู้ใช้ขอสมัครฝ่าย: <strong>{selectedUser.requested_department}</strong>
                 </p>
               )}
+            </div>
+
+            <div className="space-y-2">
+              <Label className="flex items-center gap-2">
+                <Sparkles className="h-4 w-4 text-primary" />
+                บทบาทงาน / Preset สิทธิ์
+                <span className="text-xs text-muted-foreground font-normal">(เลือกได้หลายอัน)</span>
+              </Label>
+              <div className="rounded-md border max-h-48 overflow-y-auto divide-y">
+                {allPresets.length === 0 && (
+                  <div className="p-3 text-xs text-muted-foreground">กำลังโหลด Preset...</div>
+                )}
+                {allPresets.map((p) => {
+                  const checked = editSelectedPresets.includes(p.template_key);
+                  return (
+                    <label
+                      key={p.template_key}
+                      className="flex items-start gap-2 p-2 hover:bg-muted/50 cursor-pointer text-sm"
+                    >
+                      <Checkbox
+                        checked={checked}
+                        onCheckedChange={(v) => {
+                          setEditSelectedPresets((prev) =>
+                            v
+                              ? Array.from(new Set([...prev, p.template_key]))
+                              : prev.filter((k) => k !== p.template_key)
+                          );
+                        }}
+                        disabled={editSaving}
+                        className="mt-0.5"
+                      />
+                      <div className="flex-1 min-w-0">
+                        <div className="font-medium truncate">{p.label}</div>
+                        {p.description && (
+                          <div className="text-xs text-muted-foreground truncate">{p.description}</div>
+                        )}
+                      </div>
+                    </label>
+                  );
+                })}
+              </div>
+              {selectedUser?.requested_job_role && (
+                <p className="text-xs text-muted-foreground">
+                  ผู้ใช้ขอสมัครเป็น: <strong>{templateLabels[selectedUser.requested_job_role] || selectedUser.requested_job_role}</strong>
+                </p>
+              )}
+              <p className="text-xs text-muted-foreground">
+                บันทึก = เขียนทับ Role + สิทธิ์ฟังก์ชันด้วย Preset ที่เลือก · ต้องการปรับรายเมนู? สลับไปมุมมอง <strong>Matrix สิทธิ์</strong>
+              </p>
             </div>
             <div className="flex justify-end gap-2 pt-2">
               <Button variant="outline" onClick={() => setEditDialogOpen(false)} disabled={editSaving}>
