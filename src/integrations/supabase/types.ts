@@ -4313,6 +4313,7 @@ export type Database = {
           icon: string | null
           id: string
           is_active: boolean
+          is_quick_preset: boolean
           label: string
           suggested_functions: string[]
           suggested_roles: Database["public"]["Enums"]["app_role"][]
@@ -4330,6 +4331,7 @@ export type Database = {
           icon?: string | null
           id?: string
           is_active?: boolean
+          is_quick_preset?: boolean
           label: string
           suggested_functions?: string[]
           suggested_roles?: Database["public"]["Enums"]["app_role"][]
@@ -4347,6 +4349,7 @@ export type Database = {
           icon?: string | null
           id?: string
           is_active?: boolean
+          is_quick_preset?: boolean
           label?: string
           suggested_functions?: string[]
           suggested_roles?: Database["public"]["Enums"]["app_role"][]
