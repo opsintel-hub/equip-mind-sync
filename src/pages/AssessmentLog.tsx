@@ -182,6 +182,18 @@ export default function AssessmentLog() {
   const [statusForm, setStatusForm] = useState<"pending" | "completed">("completed");
   const [submitting, setSubmitting] = useState(false);
 
+  // Auto-fill assessor from signed-in user (anti-impersonation)
+  useEffect(() => {
+    if (!user?.id) return;
+    supabase.from("profiles").select("full_name, display_name").eq("id", user.id).maybeSingle()
+      .then(({ data }) => {
+        const p = data as any;
+        const name = p?.display_name || p?.full_name || user.email || "";
+        setAssessorName((prev) => prev || name);
+      });
+  }, [user?.id]);
+
+
   // Outcome fields (derived from assessment result name)
   const [outcome, setOutcome] = useState<"" | "defective" | "claim" | "self_repair" | "pending">("");
   const [assessmentResultName, setAssessmentResultName] = useState("");
@@ -1327,7 +1339,8 @@ export default function AssessmentLog() {
               <div className="grid md:grid-cols-3 gap-4">
                 <div className="space-y-2">
                   <Label>ชื่อผู้ประเมิน</Label>
-                  <Input value={assessorName} onChange={(e) => setAssessorName(e.target.value)} placeholder="ชื่อ-สกุล" />
+                  <Input value={assessorName} readOnly className="bg-muted cursor-not-allowed" placeholder="ชื่อ-สกุล" title="ดึงจากผู้ใช้ที่ล็อกอิน" />
+                  <p className="text-[11px] text-muted-foreground">ดึงอัตโนมัติจากผู้ใช้ที่ล็อกอิน</p>
                 </div>
                 <div className="space-y-2">
                   <Label>สถานะ</Label>

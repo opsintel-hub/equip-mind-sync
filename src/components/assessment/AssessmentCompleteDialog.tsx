@@ -151,7 +151,17 @@ export function AssessmentCompleteDialog({ open, onOpenChange, log, onCompleted 
     setAssessmentResultId(log.assessment_result_id || "");
     setDiagnosisNotes(log.diagnosis_notes || "");
     setRecommendedAction(log.recommended_action || "");
-    setAssessorName(log.assessor_name || "");
+    // Assessor name is auto-loaded from signed-in user below; do not restore old value from log
+    // to prevent someone re-editing under another person's name.
+    (async () => {
+      if (user?.id) {
+        const { data } = await supabase.from("profiles").select("full_name, display_name").eq("id", user.id).maybeSingle();
+        const p = data as any;
+        setAssessorName(p?.display_name || p?.full_name || user.email || log.assessor_name || "");
+      } else {
+        setAssessorName(log.assessor_name || "");
+      }
+    })();
     setNotes(log.notes || "");
     setOutcome("");
     setRepairDescription("");
@@ -1151,7 +1161,8 @@ export function AssessmentCompleteDialog({ open, onOpenChange, log, onCompleted 
           <div className="grid md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>ชื่อผู้ประเมิน</Label>
-              <Input value={assessorName} onChange={(e) => setAssessorName(e.target.value)} placeholder="ชื่อ-สกุล" />
+              <Input value={assessorName} readOnly className="bg-muted cursor-not-allowed" placeholder="ชื่อ-สกุล" title="ดึงจากผู้ใช้ที่ล็อกอิน" />
+              <p className="text-[11px] text-muted-foreground">ดึงอัตโนมัติจากผู้ใช้ที่ล็อกอิน</p>
             </div>
             <div className="space-y-2">
               <Label>หมายเหตุอื่น ๆ</Label>

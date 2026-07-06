@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { useCurrentUserProfile } from "@/hooks/useCurrentUserProfile";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -79,6 +80,7 @@ interface CartItem {
 
 const IssueRequest = () => {
   const queryClient = useQueryClient();
+  const { profile: currentProfile, actorName: currentActorName } = useCurrentUserProfile();
   const [searchTerm, setSearchTerm] = useState("");
   const [fifoSearchTerm, setFifoSearchTerm] = useState("");
   const [fifoShowExpiring, setFifoShowExpiring] = useState(true);
@@ -111,6 +113,17 @@ const IssueRequest = () => {
     pickup_date: "",
     pickup_time: "",
   });
+
+  // Auto-fill requester identity from signed-in user (anti-impersonation)
+  useEffect(() => {
+    setHeaderData((prev) => {
+      const next = { ...prev };
+      if (currentActorName && !prev.requester_name) next.requester_name = currentActorName;
+      if (currentProfile?.phone && !prev.requester_phone) next.requester_phone = currentProfile.phone;
+      if (currentProfile?.department && !prev.requester_department) next.requester_department = currentProfile.department;
+      return next;
+    });
+  }, [currentActorName, currentProfile?.phone, currentProfile?.department]);
 
   // Current item form data
   const [currentItem, setCurrentItem] = useState({
@@ -1194,10 +1207,12 @@ const IssueRequest = () => {
                   <Input
                     id="requester_name"
                     value={headerData.requester_name}
-                    onChange={(e) => setHeaderData({ ...headerData, requester_name: e.target.value })}
-                    placeholder="กรอกชื่อ-นามสกุล"
+                    readOnly
+                    className="bg-muted cursor-not-allowed"
+                    title="ดึงจากชื่อที่แสดงในระบบของผู้ใช้ที่ล็อกอิน"
                     required
                   />
+                  <p className="text-[11px] text-muted-foreground">ดึงอัตโนมัติจากผู้ใช้ที่ล็อกอิน</p>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="requester_phone">เบอร์โทรศัพท์</Label>
@@ -1214,7 +1229,11 @@ const IssueRequest = () => {
                   <SimpleDepartmentSelect
                     value={headerData.requester_department}
                     onChange={(value) => setHeaderData({ ...headerData, requester_department: value, section: "" })}
+                    disabled={!!currentProfile?.department}
                   />
+                  {currentProfile?.department && (
+                    <p className="text-[11px] text-muted-foreground">ดึงอัตโนมัติจากฝ่ายของผู้ใช้</p>
+                  )}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="section">แผนก</Label>

@@ -51,6 +51,7 @@ import { DeliveryDetailDialog } from "@/components/delivery/DeliveryDetailDialog
 import { DocumentUploadField } from "@/components/media-player/DocumentUploadField";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { useAllowedDepartments } from "@/hooks/useAllowedDepartments";
+import { useCurrentUserProfile } from "@/hooks/useCurrentUserProfile";
 import { dedupeMediaPlayersByCode } from "@/lib/mediaPlayerOptions";
 interface Equipment {
   id: string;
@@ -124,6 +125,7 @@ const DeliveryEntry = () => {
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   // cmsTypes removed - no longer used
   const { allowedDepartments, isSingleDepartment, loading: deptLoading } = useAllowedDepartments("create");
+  const { profile: currentProfile, actorName: currentActorName } = useCurrentUserProfile();
   const [mediaPlayers, setMediaPlayers] = useState<
     {
       id: string;
@@ -334,6 +336,25 @@ const DeliveryEntry = () => {
       setSelectedDepartmentId(allowedDepartments[0].id);
     }
   }, [deptLoading, isSingleDepartment, allowedDepartments, selectedDepartmentId]);
+
+  // Auto-fill operator name from the signed-in user (anti-impersonation)
+  useEffect(() => {
+    if (currentActorName && !deliveryPersonName) {
+      setDeliveryPersonName(currentActorName);
+    }
+    if (currentProfile?.phone && !deliveryPersonPhone) {
+      setDeliveryPersonPhone(currentProfile.phone);
+    }
+  }, [currentActorName, currentProfile?.phone]);
+
+  // Auto-select department by matching user's assigned department name
+  useEffect(() => {
+    if (deptLoading || selectedDepartmentId) return;
+    const userDept = currentProfile?.department;
+    if (!userDept) return;
+    const match = allowedDepartments.find((d) => d.name === userDept);
+    if (match) setSelectedDepartmentId(match.id);
+  }, [deptLoading, allowedDepartments, currentProfile?.department, selectedDepartmentId]);
 
   useEffect(() => {
     fetchEquipment();
@@ -1650,9 +1671,12 @@ const DeliveryEntry = () => {
                     id="deliveryPerson"
                     placeholder="ระบุชื่อผู้ดำเนินการนำเข้าข้อมูล"
                     value={deliveryPersonName}
-                    onChange={(e) => setDeliveryPersonName(e.target.value)}
+                    readOnly
+                    className="bg-muted cursor-not-allowed"
+                    title="ดึงจากชื่อที่แสดงในระบบของผู้ใช้ที่ล็อกอิน"
                     required
                   />
+                  <p className="text-[11px] text-muted-foreground">ดึงอัตโนมัติจากผู้ใช้ที่ล็อกอิน ไม่สามารถแก้ไขได้</p>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="phone">เบอร์โทรติดต่อ</Label>

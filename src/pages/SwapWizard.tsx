@@ -104,6 +104,18 @@ export default function SwapWizard() {
   const [priority, setPriority] = useState("normal");
   const [submitting, setSubmitting] = useState(false);
 
+  // Auto-fill technician name + phone from signed-in user
+  useEffect(() => {
+    if (!user?.id) return;
+    supabase.from("profiles").select("full_name, display_name, phone").eq("id", user.id).maybeSingle()
+      .then(({ data }) => {
+        const p = data as any;
+        const name = p?.display_name || p?.full_name || user.email || "";
+        setTechnicianName((prev) => prev || name);
+        if (p?.phone) setTechnicianPhone((prev) => prev || p.phone);
+      });
+  }, [user?.id]);
+
   // Reported asset (ของที่ช่างเอามาคืน)
   const [installedItems, setInstalledItems] = useState<InstalledItemOption[]>([]);
   const [installedLoading, setInstalledLoading] = useState(false);
@@ -836,7 +848,8 @@ export default function SwapWizard() {
               <div className="grid md:grid-cols-3 gap-4">
                 <div className="space-y-2">
                   <Label>ชื่อช่างผู้แจ้ง <span className="text-destructive">*</span></Label>
-                  <Input value={technicianName} onChange={(e) => setTechnicianName(e.target.value)} placeholder="ชื่อ-สกุล" />
+                  <Input value={technicianName} readOnly className="bg-muted cursor-not-allowed" placeholder="ชื่อ-สกุล" title="ดึงจากผู้ใช้ที่ล็อกอิน" />
+                  <p className="text-[11px] text-muted-foreground">ดึงอัตโนมัติจากผู้ใช้ที่ล็อกอิน</p>
                 </div>
                 <div className="space-y-2">
                   <Label>เบอร์ติดต่อช่าง</Label>

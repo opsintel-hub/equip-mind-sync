@@ -79,23 +79,21 @@ const DefectiveReturnEntry = () => {
   const [showRejectInput, setShowRejectInput] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
 
-  // Auto-fill reporter from logged-in user's profile + first allowed department
+  // Auto-fill reporter from logged-in user's profile (anti-impersonation)
   useEffect(() => {
     if (!user?.id) return;
     (async () => {
-      const [profileRes, deptRes] = await Promise.all([
-        supabase.from("profiles").select("full_name").eq("id", user.id).maybeSingle(),
-        supabase.from("user_departments").select("department").eq("user_id", user.id).limit(1).maybeSingle(),
-      ]);
-      if (profileRes.data) {
-        const fullName = (profileRes.data as any).full_name || "";
-        setReporterName((prev) => prev || fullName);
-        setReviewerName((prev) => prev || fullName || user.email || "");
-      } else {
-        setReviewerName((prev) => prev || user.email || "");
-      }
-      if (deptRes.data) {
-        setReporterDepartment((prev) => prev || (deptRes.data as any).department || "");
+      const { data: profileData } = await supabase
+        .from("profiles")
+        .select("full_name, display_name, department")
+        .eq("id", user.id)
+        .maybeSingle();
+      const p = profileData as any;
+      const displayName = p?.display_name || p?.full_name || "";
+      setReporterName((prev) => prev || displayName);
+      setReviewerName((prev) => prev || displayName || user.email || "");
+      if (p?.department) {
+        setReporterDepartment((prev) => prev || p.department);
       }
     })();
   }, [user?.id]);
@@ -1197,15 +1195,17 @@ const DefectiveReturnEntry = () => {
                 <Label>ผู้แจ้งนำของเสียเข้าระบบ <span className="text-destructive">*</span></Label>
                 <Input
                   value={reporterName}
-                  onChange={(e) => setReporterName(e.target.value)}
-                  placeholder="ชื่อ-สกุลผู้แจ้ง (เช่น ช่างที่นำของมาให้คลัง)"
+                  readOnly
+                  className="bg-muted cursor-not-allowed"
+                  placeholder="ชื่อ-สกุลผู้แจ้ง"
+                  title="ดึงจากชื่อที่แสดงในระบบของผู้ใช้ที่ล็อกอิน"
                 />
-                <p className="text-[11px] text-muted-foreground">เติมอัตโนมัติจากผู้ล็อกอิน — แก้ไขได้ถ้าแจ้งแทนคนอื่น</p>
+                <p className="text-[11px] text-muted-foreground">ดึงอัตโนมัติจากผู้ใช้ที่ล็อกอิน ไม่สามารถแก้ไขได้</p>
               </div>
               <div className="space-y-2">
                 <Label>ฝ่าย <span className="text-destructive">*</span></Label>
-                <SimpleDepartmentSelect value={reporterDepartment} onChange={setReporterDepartment} />
-                <p className="text-[11px] text-muted-foreground">เติมอัตโนมัติจากสิทธิ์ของผู้ล็อกอิน — เปลี่ยนได้</p>
+                <SimpleDepartmentSelect value={reporterDepartment} onChange={setReporterDepartment} disabled={!!reporterDepartment} />
+                <p className="text-[11px] text-muted-foreground">ดึงอัตโนมัติจากฝ่ายของผู้ใช้</p>
               </div>
             </div>
 

@@ -130,8 +130,13 @@ export default function ClaimTracker() {
 
   useEffect(() => {
     if (!user?.id) return;
-    supabase.from("profiles").select("full_name").eq("id", user.id).maybeSingle()
-      .then(({ data }) => setUserFullName((data as any)?.full_name || user.email || ""));
+    supabase.from("profiles").select("full_name, display_name").eq("id", user.id).maybeSingle()
+      .then(({ data }) => {
+        const p = data as any;
+        const name = p?.display_name || p?.full_name || user.email || "";
+        setUserFullName(name);
+        setSubmitterName((prev) => prev || name);
+      });
   }, [user?.id]);
 
   const fetchSourceChain = async (record: any) => {
@@ -1208,7 +1213,8 @@ export default function ClaimTracker() {
                 </div>
                 <div className="space-y-2">
                   <Label>ชื่อผู้ส่งเคลม</Label>
-                  <Input value={submitterName} onChange={(e) => setSubmitterName(e.target.value)} placeholder="ชื่อ-สกุล" />
+                  <Input value={submitterName} readOnly className="bg-muted cursor-not-allowed" placeholder="ชื่อ-สกุล" title="ดึงจากผู้ใช้ที่ล็อกอิน" />
+                  <p className="text-[11px] text-muted-foreground">ดึงอัตโนมัติจากผู้ใช้ที่ล็อกอิน</p>
                 </div>
               </div>
 
