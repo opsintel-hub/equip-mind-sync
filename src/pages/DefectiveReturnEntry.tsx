@@ -79,23 +79,21 @@ const DefectiveReturnEntry = () => {
   const [showRejectInput, setShowRejectInput] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
 
-  // Auto-fill reporter from logged-in user's profile + first allowed department
+  // Auto-fill reporter from logged-in user's profile (anti-impersonation)
   useEffect(() => {
     if (!user?.id) return;
     (async () => {
-      const [profileRes, deptRes] = await Promise.all([
-        supabase.from("profiles").select("full_name").eq("id", user.id).maybeSingle(),
-        supabase.from("user_departments").select("department").eq("user_id", user.id).limit(1).maybeSingle(),
-      ]);
-      if (profileRes.data) {
-        const fullName = (profileRes.data as any).full_name || "";
-        setReporterName((prev) => prev || fullName);
-        setReviewerName((prev) => prev || fullName || user.email || "");
-      } else {
-        setReviewerName((prev) => prev || user.email || "");
-      }
-      if (deptRes.data) {
-        setReporterDepartment((prev) => prev || (deptRes.data as any).department || "");
+      const { data: profileData } = await supabase
+        .from("profiles")
+        .select("full_name, display_name, department")
+        .eq("id", user.id)
+        .maybeSingle();
+      const p = profileData as any;
+      const displayName = p?.display_name || p?.full_name || "";
+      setReporterName((prev) => prev || displayName);
+      setReviewerName((prev) => prev || displayName || user.email || "");
+      if (p?.department) {
+        setReporterDepartment((prev) => prev || p.department);
       }
     })();
   }, [user?.id]);
