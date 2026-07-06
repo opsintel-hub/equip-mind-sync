@@ -4542,8 +4542,10 @@ export type Database = {
       profiles: {
         Row: {
           created_at: string
+          display_name: string | null
           full_name: string
           id: string
+          is_hidden: boolean
           phone: string | null
           requested_department: string | null
           requested_job_role: string | null
@@ -4551,8 +4553,10 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          display_name?: string | null
           full_name: string
           id: string
+          is_hidden?: boolean
           phone?: string | null
           requested_department?: string | null
           requested_job_role?: string | null
@@ -4560,8 +4564,10 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          display_name?: string | null
           full_name?: string
           id?: string
+          is_hidden?: boolean
           phone?: string | null
           requested_department?: string | null
           requested_job_role?: string | null

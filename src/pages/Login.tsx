@@ -25,6 +25,7 @@ const loginSchema = z.object({
 
 const signupSchema = loginSchema.extend({
   fullName: z.string().min(2, "กรุณากรอกชื่อ-นามสกุล"),
+  displayName: z.string().min(1, "กรุณากรอกชื่อที่ต้องการให้แสดงในระบบ").max(50, "ชื่อที่แสดงต้องไม่เกิน 50 ตัวอักษร"),
   phone: z.string().optional(),
   requestedJobRole: z.string().min(1, "กรุณาเลือกตำแหน่งงาน"),
   requestedDepartment: z.string().min(1, "กรุณาเลือกฝ่ายที่สังกัด"),
@@ -44,6 +45,7 @@ const Login = () => {
   const [signupEmail, setSignupEmail] = useState("");
   const [signupPassword, setSignupPassword] = useState("");
   const [fullName, setFullName] = useState("");
+  const [displayName, setDisplayName] = useState("");
   const [phone, setPhone] = useState("");
   const [requestedJobRole, setRequestedJobRole] = useState("");
   const [requestedDepartment, setRequestedDepartment] = useState("");
@@ -113,6 +115,7 @@ const Login = () => {
         email: signupEmail,
         password: signupPassword,
         fullName,
+        displayName,
         phone,
         requestedJobRole,
         requestedDepartment,
@@ -121,6 +124,7 @@ const Login = () => {
         signupEmail,
         signupPassword,
         fullName,
+        displayName,
         phone,
         requestedJobRole,
         requestedDepartment,
@@ -199,6 +203,18 @@ const Login = () => {
                     placeholder="นาย สมชาย ใจดี"
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
+                    disabled={isLoading}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="display-name">ชื่อที่ต้องการให้แสดงในระบบ</Label>
+                  <Input
+                    id="display-name"
+                    type="text"
+                    placeholder="เช่น สมชาย, Boy, Aey"
+                    value={displayName}
+                    onChange={(e) => setDisplayName(e.target.value)}
                     disabled={isLoading}
                     required
                   />

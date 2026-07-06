@@ -11,18 +11,20 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 
 import { Separator } from "@/components/ui/separator";
-import { 
-  Search, 
-  UserCog, 
-  Shield, 
-  Settings2, 
+import {
+  Search,
+  UserCog,
+  Shield,
+  Settings2,
   KeyRound,
   Building2,
   Check,
   X,
   Info,
   Lock,
-  Sparkles
+  Sparkles,
+  Pencil,
+  Trash2,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -52,10 +54,12 @@ const ROLES: { value: UserRole; label: string; description: string; color: strin
 interface User {
   id: string;
   full_name: string;
+  display_name?: string | null;
   phone: string | null;
   email?: string;
   requested_job_role?: string | null;
   requested_department?: string | null;
+  is_hidden?: boolean | null;
 }
 
 interface UserPermission {
@@ -93,6 +97,13 @@ export function UserPermissionManager() {
   const [resetLoading, setResetLoading] = useState(false);
   const [wizardOpen, setWizardOpen] = useState(false);
   const [wizardUser, setWizardUser] = useState<User | null>(null);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [editFullName, setEditFullName] = useState("");
+  const [editDisplayName, setEditDisplayName] = useState("");
+  const [editPhone, setEditPhone] = useState("");
+  const [editSaving, setEditSaving] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deleteBusy, setDeleteBusy] = useState(false);
 
   useEffect(() => {
     fetchUsers();
@@ -103,8 +114,9 @@ export function UserPermissionManager() {
       setFilteredUsers(users);
     } else {
       const query = searchQuery.toLowerCase();
-      setFilteredUsers(users.filter(user => 
+      setFilteredUsers(users.filter(user =>
         user.full_name?.toLowerCase().includes(query) ||
+        user.display_name?.toLowerCase().includes(query) ||
         user.email?.toLowerCase().includes(query) ||
         user.phone?.includes(query)
       ));
@@ -114,7 +126,7 @@ export function UserPermissionManager() {
   const fetchUsers = async () => {
     try {
       const [profilesRes, deptRes, templateRes] = await Promise.all([
-        supabase.from("profiles").select("*").order("full_name"),
+        supabase.from("profiles").select("*").eq("is_hidden", false).order("full_name"),
         supabase.from("departments").select("name").eq("is_active", true).order("name"),
         (supabase as any).from("permission_templates").select("template_key, label").eq("is_active", true),
       ]);
@@ -367,6 +379,67 @@ export function UserPermissionManager() {
     setWizardOpen(true);
   };
 
+  const handleOpenEditDialog = (user: User) => {
+    setSelectedUser(user);
+    setEditFullName(user.full_name || "");
+    setEditDisplayName(user.display_name || "");
+    setEditPhone(user.phone || "");
+    setEditDialogOpen(true);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!selectedUser) return;
+    if (!editFullName.trim()) {
+      toast.error("กรุณากรอกชื่อ-นามสกุล");
+      return;
+    }
+    setEditSaving(true);
+    try {
+      const { error } = await supabase
+        .from("profiles")
+        .update({
+          full_name: editFullName.trim(),
+          display_name: editDisplayName.trim() || null,
+          phone: editPhone.trim() || null,
+        })
+        .eq("id", selectedUser.id);
+      if (error) throw error;
+      toast.success("บันทึกข้อมูลผู้ใช้สำเร็จ");
+      setEditDialogOpen(false);
+      await fetchUsers();
+    } catch (error: any) {
+      console.error("Error updating user:", error);
+      toast.error("เกิดข้อผิดพลาด: " + error.message);
+    } finally {
+      setEditSaving(false);
+    }
+  };
+
+  const handleOpenDeleteDialog = (user: User) => {
+    setSelectedUser(user);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!selectedUser) return;
+    setDeleteBusy(true);
+    try {
+      const { error } = await supabase
+        .from("profiles")
+        .update({ is_hidden: true } as any)
+        .eq("id", selectedUser.id);
+      if (error) throw error;
+      toast.success("ซ่อนผู้ใช้ออกจากรายการแล้ว (ประวัติเดิมยังอยู่ในระบบ)");
+      setDeleteDialogOpen(false);
+      await fetchUsers();
+    } catch (error: any) {
+      console.error("Error hiding user:", error);
+      toast.error("เกิดข้อผิดพลาด: " + error.message);
+    } finally {
+      setDeleteBusy(false);
+    }
+  };
+
   const getRoleSummary = (userId: string) => {
     const roles = userRoles[userId] || [];
     if (roles.length === 0) return null;
@@ -422,6 +495,7 @@ export function UserPermissionManager() {
               <TableHeader>
                   <TableRow className="bg-muted/50">
                   <TableHead>ชื่อ-นามสกุล</TableHead>
+                  <TableHead>ชื่อที่แสดงในระบบ</TableHead>
                   <TableHead>อีเมล</TableHead>
                   <TableHead>เบอร์โทร</TableHead>
                     <TableHead>คำขอสมัคร</TableHead>
@@ -437,6 +511,11 @@ export function UserPermissionManager() {
                     onClick={() => handleOpenDialog(user)}
                   >
                     <TableCell className="font-medium">{user.full_name || "-"}</TableCell>
+                    <TableCell>
+                      {user.display_name
+                        ? <span className="font-medium text-primary">{user.display_name}</span>
+                        : <span className="text-muted-foreground">-</span>}
+                    </TableCell>
                     <TableCell className="text-muted-foreground">{user.email || "-"}</TableCell>
                     <TableCell>{user.phone || "-"}</TableCell>
                       <TableCell>
@@ -485,6 +564,35 @@ export function UserPermissionManager() {
                             <TooltipContent>รีเซ็ตรหัสผ่าน</TooltipContent>
                           </Tooltip>
                         </TooltipProvider>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleOpenEditDialog(user)}
+                              >
+                                <Pencil className="h-4 w-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>แก้ไขข้อมูลผู้ใช้</TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleOpenDeleteDialog(user)}
+                                className="text-destructive hover:text-destructive"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>ลบออกจากรายการ (เก็บประวัติในระบบ)</TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
                         {hasNoRoles(user.id) ? (
                           <Button
                             variant="default"
@@ -527,7 +635,7 @@ export function UserPermissionManager() {
                 ))}
                 {filteredUsers.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
                       ไม่พบผู้ใช้งาน
                     </TableCell>
                   </TableRow>
@@ -821,6 +929,87 @@ export function UserPermissionManager() {
                 {resetLoading ? "กำลังรีเซ็ต..." : "รีเซ็ตรหัสผ่าน"}
               </Button>
             </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit user dialog */}
+      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Pencil className="h-5 w-5 text-primary" />
+              แก้ไขข้อมูลผู้ใช้
+            </DialogTitle>
+            <DialogDescription>{selectedUser?.email}</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label htmlFor="edit-full-name">ชื่อ-นามสกุล</Label>
+              <Input
+                id="edit-full-name"
+                value={editFullName}
+                onChange={(e) => setEditFullName(e.target.value)}
+                disabled={editSaving}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-display-name">ชื่อที่ต้องการให้แสดงในระบบ</Label>
+              <Input
+                id="edit-display-name"
+                value={editDisplayName}
+                onChange={(e) => setEditDisplayName(e.target.value)}
+                placeholder="เช่น Boy, Aey"
+                disabled={editSaving}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-phone">เบอร์โทรศัพท์</Label>
+              <Input
+                id="edit-phone"
+                value={editPhone}
+                onChange={(e) => setEditPhone(e.target.value)}
+                placeholder="08-XXXX-XXXX"
+                disabled={editSaving}
+              />
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button variant="outline" onClick={() => setEditDialogOpen(false)} disabled={editSaving}>
+                ยกเลิก
+              </Button>
+              <Button onClick={handleSaveEdit} disabled={editSaving}>
+                {editSaving ? "กำลังบันทึก..." : "บันทึก"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete (hide) user dialog */}
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-destructive">
+              <Trash2 className="h-5 w-5" />
+              ลบผู้ใช้ออกจากรายการ
+            </DialogTitle>
+            <DialogDescription>
+              ต้องการลบ <strong>{selectedUser?.full_name}</strong> ({selectedUser?.email}) ออกจากหน้าจอจัดการผู้ใช้ใช่หรือไม่?
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex gap-2 p-3 rounded-md bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-xs text-amber-800 dark:text-amber-200">
+            <Info className="h-4 w-4 flex-shrink-0 mt-0.5" />
+            <span>
+              ผู้ใช้จะถูกซ่อนออกจากหน้า UI เท่านั้น <strong>ประวัติการทำรายการทั้งหมดยังคงบันทึกอยู่ในระบบ</strong> สามารถกู้คืนได้ในภายหลัง
+            </span>
+          </div>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button variant="outline" onClick={() => setDeleteDialogOpen(false)} disabled={deleteBusy}>
+              ยกเลิก
+            </Button>
+            <Button variant="destructive" onClick={handleConfirmDelete} disabled={deleteBusy}>
+              {deleteBusy ? "กำลังลบ..." : "ยืนยันลบ"}
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
