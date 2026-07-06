@@ -525,7 +525,7 @@ export function UserPermissionManager() {
                 )}
               </CardTitle>
               <CardDescription>
-                ผู้สมัครใหม่จะแสดงเป็น “ยังไม่ตั้งสิทธิ์” พร้อมตำแหน่ง/ฝ่ายที่ขอ ให้ Super Admin กดตั้งสิทธิ์อัตโนมัติเพื่ออนุมัติ
+                เลือก <strong>Preset</strong> ในคอลัมน์ "บทบาท / ตั้งสิทธิ์เร็ว" แล้วกด <strong>ใช้เลย</strong> — ระบบจะตั้ง Role + เมนู + สิทธิ์ในฝ่ายให้ครบใน 2 คลิก (กรณีพิเศษใช้ "ตั้งค่าขั้นสูง")
               </CardDescription>
             </div>
             <div className="relative w-64">
