@@ -9,7 +9,7 @@ interface AuthContextType {
   session: Session | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
-  signUp: (email: string, password: string, fullName: string, phone?: string, requestedJobRole?: string, requestedDepartment?: string) => Promise<{ error: any }>;
+  signUp: (email: string, password: string, fullName: string, displayName?: string, phone?: string, requestedJobRole?: string, requestedDepartment?: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
 }
 
