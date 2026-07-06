@@ -724,20 +724,6 @@ export function UserPermissionManager() {
                             <TooltipContent>ลบออกจากรายการ (เก็บประวัติในระบบ)</TooltipContent>
                           </Tooltip>
                         </TooltipProvider>
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => handleOpenDialog(user)}
-                              >
-                                <Shield className="h-4 w-4" />
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>จัดการสิทธิ์แบบละเอียด</TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
                       </div>
                     </TableCell>
                   </TableRow>
