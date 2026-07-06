@@ -990,6 +990,29 @@ export function UserPermissionManager() {
                 disabled={editSaving}
               />
             </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-department">ฝ่าย</Label>
+              <Select
+                value={editDepartment || "__none__"}
+                onValueChange={(v) => setEditDepartment(v === "__none__" ? "" : v)}
+                disabled={editSaving}
+              >
+                <SelectTrigger id="edit-department">
+                  <SelectValue placeholder="เลือกฝ่าย..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__">— ไม่ระบุ —</SelectItem>
+                  {allDepartments.map((d) => (
+                    <SelectItem key={d} value={d}>{d}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {selectedUser?.requested_department && selectedUser.requested_department !== editDepartment && (
+                <p className="text-xs text-muted-foreground">
+                  ผู้ใช้ขอสมัครฝ่าย: <strong>{selectedUser.requested_department}</strong>
+                </p>
+              )}
+            </div>
             <div className="flex justify-end gap-2 pt-2">
               <Button variant="outline" onClick={() => setEditDialogOpen(false)} disabled={editSaving}>
                 ยกเลิก
