@@ -1,11 +1,13 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Shield, Users, Info, HelpCircle, Settings2 } from "lucide-react";
+import { Shield, Users, Info, HelpCircle, Settings2, Grid3x3 } from "lucide-react";
 import { useDepartmentPermissions } from "@/hooks/useDepartmentPermissions";
 import { RoleDescriptions } from "@/components/admin/RoleDescriptions";
 import { FunctionDescriptions } from "@/components/admin/FunctionDescriptions";
 import { UserPermissionManager } from "@/components/admin/UserPermissionManager";
+import { PermissionMatrix } from "@/components/admin/PermissionMatrix";
 import { OCRConfigManager } from "@/components/admin/OCRConfigManager";
+
 
 const Admin = () => {
   const { isAdmin, isSuperAdmin, loading: permLoading } = useDepartmentPermissions();
@@ -41,10 +43,14 @@ const Admin = () => {
       </div>
 
       <Tabs defaultValue="users" className="space-y-4">
-        <TabsList className={`grid w-full lg:w-auto lg:inline-grid ${isSuperAdmin ? 'grid-cols-3 lg:grid-cols-3' : 'grid-cols-2 lg:grid-cols-2'}`}>
+        <TabsList className={`grid w-full lg:w-auto lg:inline-grid ${isSuperAdmin ? 'grid-cols-4 lg:grid-cols-4' : 'grid-cols-3 lg:grid-cols-3'}`}>
           <TabsTrigger value="users" className="flex items-center gap-2">
             <Users className="h-4 w-4" />
             จัดการผู้ใช้
+          </TabsTrigger>
+          <TabsTrigger value="matrix" className="flex items-center gap-2">
+            <Grid3x3 className="h-4 w-4" />
+            Matrix สิทธิ์
           </TabsTrigger>
           <TabsTrigger value="help" className="flex items-center gap-2">
             <HelpCircle className="h-4 w-4" />
@@ -61,6 +67,11 @@ const Admin = () => {
         <TabsContent value="users" className="space-y-4">
           <UserPermissionManager />
         </TabsContent>
+
+        <TabsContent value="matrix" className="space-y-4">
+          <PermissionMatrix />
+        </TabsContent>
+
 
         <TabsContent value="help" className="space-y-6">
           {/* System Overview */}
