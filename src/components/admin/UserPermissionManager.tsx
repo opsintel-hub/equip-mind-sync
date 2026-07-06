@@ -495,6 +495,7 @@ export function UserPermissionManager() {
               <TableHeader>
                   <TableRow className="bg-muted/50">
                   <TableHead>ชื่อ-นามสกุล</TableHead>
+                  <TableHead>ชื่อที่แสดงในระบบ</TableHead>
                   <TableHead>อีเมล</TableHead>
                   <TableHead>เบอร์โทร</TableHead>
                     <TableHead>คำขอสมัคร</TableHead>
@@ -510,6 +511,11 @@ export function UserPermissionManager() {
                     onClick={() => handleOpenDialog(user)}
                   >
                     <TableCell className="font-medium">{user.full_name || "-"}</TableCell>
+                    <TableCell>
+                      {user.display_name
+                        ? <span className="font-medium text-primary">{user.display_name}</span>
+                        : <span className="text-muted-foreground">-</span>}
+                    </TableCell>
                     <TableCell className="text-muted-foreground">{user.email || "-"}</TableCell>
                     <TableCell>{user.phone || "-"}</TableCell>
                       <TableCell>
