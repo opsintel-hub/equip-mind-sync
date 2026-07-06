@@ -2,6 +2,7 @@ import { useState, lazy, Suspense } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useDepartmentPermissions } from "@/hooks/useDepartmentPermissions";
+import { useFunctionPermissions } from "@/hooks/useFunctionPermissions";
 import { Package, MapPin, Truck, Warehouse, Building2, Target, Building, Wrench, PackageOpen, HardHat, Layers, FolderTree, Zap, Users, Monitor, Database } from "lucide-react";
 
 import { PMActionTypeList } from "@/components/pm/PMActionTypeList";
@@ -46,21 +47,40 @@ const MediaPlayerEntry = lazy(() => import("@/pages/MediaPlayerEntry"));
 
 const MasterData = () => {
   const [refreshKey, setRefreshKey] = useState(0);
-  const { isSuperAdmin, isAdmin, loading: permLoading } = useDepartmentPermissions();
+  const { loading: permLoading } = useDepartmentPermissions();
+  const { hasFunctionAccess, loading: fnLoading } = useFunctionPermissions();
 
   const handleSuccess = () => {
     setRefreshKey((prev) => prev + 1);
   };
 
-  // Tabs restricted to Super Admin only
-  const superAdminTabs = ["equipment", "tools", "warehouses", "locations", "media_player"];
+  // Per-tab visibility (Super Admin sees all; others need md_* function key)
+  const can = (key: string) => hasFunctionAccess(key);
 
-  if (permLoading) {
+  if (permLoading || fnLoading) {
     return <div className="flex items-center justify-center h-64">กำลังโหลด...</div>;
   }
 
-  // Determine default tab based on access
-  const defaultTab = isSuperAdmin ? "equipment" : "categories";
+  // First accessible tab becomes default
+  const tabOrder: Array<[string, boolean]> = [
+    ["equipment", can("md_equipment")],
+    ["tools", can("md_tools")],
+    ["categories", can("md_categories")],
+    ["warehouses", can("md_warehouses")],
+    ["locations", can("md_locations")],
+    ["suppliers", can("md_suppliers")],
+    ["contractors", can("md_contractors")],
+    ["departments", can("md_departments")],
+    ["sections", can("md_sections")],
+    ["companies", can("md_companies")],
+    ["issue_purposes", can("md_issue_purposes")],
+    ["receipt_purposes", can("md_receipt_purposes")],
+    ["technicians", can("md_technicians")],
+    ["pm_action_types", can("md_pm_action_types")],
+    ["media_player", can("md_media_player")],
+  ];
+  const defaultTab = tabOrder.find(([, v]) => v)?.[0] ?? "categories";
+
 
   return (
     <div className="space-y-6">
@@ -74,80 +94,101 @@ const MasterData = () => {
       <Tabs defaultValue={defaultTab} className="w-full">
         <div className="w-full overflow-x-auto pb-2">
           <TabsList className="inline-flex w-max h-10 mb-0">
-            {isSuperAdmin && (
+            {can("md_equipment") && (
               <TabsTrigger value="equipment" className="gap-1.5 text-xs px-3">
                 <Package className="h-3.5 w-3.5" />
                 อุปกรณ์
               </TabsTrigger>
             )}
-            {isSuperAdmin && (
+            {can("md_tools") && (
               <TabsTrigger value="tools" className="gap-1.5 text-xs px-3">
                 <Wrench className="h-3.5 w-3.5" />
                 เครื่องมือ
               </TabsTrigger>
             )}
-            <TabsTrigger value="categories" className="gap-1.5 text-xs px-3">
-              <FolderTree className="h-3.5 w-3.5" />
-              หมวดหมู่
-            </TabsTrigger>
-            {isSuperAdmin && (
+            {can("md_categories") && (
+              <TabsTrigger value="categories" className="gap-1.5 text-xs px-3">
+                <FolderTree className="h-3.5 w-3.5" />
+                หมวดหมู่
+              </TabsTrigger>
+            )}
+            {can("md_warehouses") && (
               <TabsTrigger value="warehouses" className="gap-1.5 text-xs px-3">
                 <Warehouse className="h-3.5 w-3.5" />
                 คลังสินค้า
               </TabsTrigger>
             )}
-            {isSuperAdmin && (
+            {can("md_locations") && (
               <TabsTrigger value="locations" className="gap-1.5 text-xs px-3">
                 <MapPin className="h-3.5 w-3.5" />
                 ตำแหน่ง
               </TabsTrigger>
             )}
-            <TabsTrigger value="suppliers" className="gap-1.5 text-xs px-3">
-              <Truck className="h-3.5 w-3.5" />
-              ผู้จัดจำหน่าย
-            </TabsTrigger>
-            <TabsTrigger value="contractors" className="gap-1.5 text-xs px-3">
-              <HardHat className="h-3.5 w-3.5" />
-              ผู้รับเหมา
-            </TabsTrigger>
-            <TabsTrigger value="departments" className="gap-1.5 text-xs px-3">
-              <Building2 className="h-3.5 w-3.5" />
-              ฝ่าย
-            </TabsTrigger>
-            <TabsTrigger value="sections" className="gap-1.5 text-xs px-3">
-              <Layers className="h-3.5 w-3.5" />
-              แผนก
-            </TabsTrigger>
-            <TabsTrigger value="companies" className="gap-1.5 text-xs px-3">
-              <Building className="h-3.5 w-3.5" />
-              บริษัท
-            </TabsTrigger>
-            <TabsTrigger value="issue_purposes" className="gap-1.5 text-xs px-3">
-              <Target className="h-3.5 w-3.5" />
-              วัตถุประสงค์เบิก
-            </TabsTrigger>
-            <TabsTrigger value="receipt_purposes" className="gap-1.5 text-xs px-3">
-              <PackageOpen className="h-3.5 w-3.5" />
-              วัตถุประสงค์รับ
-            </TabsTrigger>
-            <TabsTrigger value="technicians" className="gap-1.5 text-xs px-3">
-              <Users className="h-3.5 w-3.5" />
-              ช่าง
-            </TabsTrigger>
-            <TabsTrigger value="pm_action_types" className="gap-1.5 text-xs px-3">
-              <Zap className="h-3.5 w-3.5" />
-              PM Action Types
-            </TabsTrigger>
-            {isSuperAdmin && (
+            {can("md_suppliers") && (
+              <TabsTrigger value="suppliers" className="gap-1.5 text-xs px-3">
+                <Truck className="h-3.5 w-3.5" />
+                ผู้จัดจำหน่าย
+              </TabsTrigger>
+            )}
+            {can("md_contractors") && (
+              <TabsTrigger value="contractors" className="gap-1.5 text-xs px-3">
+                <HardHat className="h-3.5 w-3.5" />
+                ผู้รับเหมา
+              </TabsTrigger>
+            )}
+            {can("md_departments") && (
+              <TabsTrigger value="departments" className="gap-1.5 text-xs px-3">
+                <Building2 className="h-3.5 w-3.5" />
+                ฝ่าย
+              </TabsTrigger>
+            )}
+            {can("md_sections") && (
+              <TabsTrigger value="sections" className="gap-1.5 text-xs px-3">
+                <Layers className="h-3.5 w-3.5" />
+                แผนก
+              </TabsTrigger>
+            )}
+            {can("md_companies") && (
+              <TabsTrigger value="companies" className="gap-1.5 text-xs px-3">
+                <Building className="h-3.5 w-3.5" />
+                บริษัท
+              </TabsTrigger>
+            )}
+            {can("md_issue_purposes") && (
+              <TabsTrigger value="issue_purposes" className="gap-1.5 text-xs px-3">
+                <Target className="h-3.5 w-3.5" />
+                วัตถุประสงค์เบิก
+              </TabsTrigger>
+            )}
+            {can("md_receipt_purposes") && (
+              <TabsTrigger value="receipt_purposes" className="gap-1.5 text-xs px-3">
+                <PackageOpen className="h-3.5 w-3.5" />
+                วัตถุประสงค์รับ
+              </TabsTrigger>
+            )}
+            {can("md_technicians") && (
+              <TabsTrigger value="technicians" className="gap-1.5 text-xs px-3">
+                <Users className="h-3.5 w-3.5" />
+                ช่าง
+              </TabsTrigger>
+            )}
+            {can("md_pm_action_types") && (
+              <TabsTrigger value="pm_action_types" className="gap-1.5 text-xs px-3">
+                <Zap className="h-3.5 w-3.5" />
+                PM Action Types
+              </TabsTrigger>
+            )}
+            {can("md_media_player") && (
               <TabsTrigger value="media_player" className="gap-1.5 text-xs px-3">
                 <Monitor className="h-3.5 w-3.5" />
                 จัดการ Media Player
               </TabsTrigger>
             )}
           </TabsList>
+
         </div>
 
-        {isSuperAdmin && (
+        {can("md_equipment") && (
         <TabsContent value="equipment" className="space-y-4">
           <Card>
             <CardHeader>
@@ -175,7 +216,7 @@ const MasterData = () => {
         </TabsContent>
         )}
 
-        {isSuperAdmin && (
+        {can("md_tools") && (
         <TabsContent value="tools" className="space-y-4">
           <Card>
             <CardHeader>
@@ -203,6 +244,7 @@ const MasterData = () => {
         </TabsContent>
         )}
 
+        {can("md_categories") && (
         <TabsContent value="categories" className="space-y-4">
           <Card>
             <CardHeader>
@@ -238,8 +280,9 @@ const MasterData = () => {
             </CardContent>
           </Card>
         </TabsContent>
+        )}
 
-        {isSuperAdmin && (
+        {can("md_warehouses") && (
         <TabsContent value="warehouses" className="space-y-4">
           <Card>
             <CardHeader>
@@ -260,7 +303,7 @@ const MasterData = () => {
         </TabsContent>
         )}
 
-        {isSuperAdmin && (
+        {can("md_locations") && (
         <TabsContent value="locations" className="space-y-4">
           <Card>
             <CardHeader>
@@ -284,6 +327,7 @@ const MasterData = () => {
         </TabsContent>
         )}
 
+        {can("md_suppliers") && (
         <TabsContent value="suppliers" className="space-y-4">
           <Card>
             <CardHeader>
@@ -305,7 +349,9 @@ const MasterData = () => {
             </CardContent>
           </Card>
         </TabsContent>
+        )}
 
+        {can("md_contractors") && (
         <TabsContent value="contractors" className="space-y-4">
           <Card>
             <CardHeader>
@@ -324,7 +370,9 @@ const MasterData = () => {
             </CardContent>
           </Card>
         </TabsContent>
+        )}
 
+        {can("md_departments") && (
         <TabsContent value="departments" className="space-y-4">
           <Card>
             <CardHeader>
@@ -343,7 +391,9 @@ const MasterData = () => {
             </CardContent>
           </Card>
         </TabsContent>
+        )}
 
+        {can("md_sections") && (
         <TabsContent value="sections" className="space-y-4">
           <Card>
             <CardHeader>
@@ -362,7 +412,9 @@ const MasterData = () => {
             </CardContent>
           </Card>
         </TabsContent>
+        )}
 
+        {can("md_companies") && (
         <TabsContent value="companies" className="space-y-4">
           <Card>
             <CardHeader>
@@ -381,7 +433,9 @@ const MasterData = () => {
             </CardContent>
           </Card>
         </TabsContent>
+        )}
 
+        {can("md_issue_purposes") && (
         <TabsContent value="issue_purposes" className="space-y-4">
           <Card>
             <CardHeader>
@@ -400,7 +454,9 @@ const MasterData = () => {
             </CardContent>
           </Card>
         </TabsContent>
+        )}
 
+        {can("md_receipt_purposes") && (
         <TabsContent value="receipt_purposes" className="space-y-4">
           <Card>
             <CardHeader>
@@ -423,7 +479,9 @@ const MasterData = () => {
             </CardContent>
           </Card>
         </TabsContent>
+        )}
 
+        {can("md_technicians") && (
         <TabsContent value="technicians" className="space-y-4">
           <Card>
             <CardHeader>
@@ -445,7 +503,9 @@ const MasterData = () => {
             </CardContent>
           </Card>
         </TabsContent>
+        )}
 
+        {can("md_pm_action_types") && (
         <TabsContent value="pm_action_types" className="space-y-4">
           <Card>
             <CardHeader>
@@ -464,8 +524,9 @@ const MasterData = () => {
             </CardContent>
           </Card>
         </TabsContent>
+        )}
 
-        {isSuperAdmin && (
+        {can("md_media_player") && (
         <TabsContent value="media_player" className="space-y-6">
           <Suspense fallback={<div className="flex justify-center py-8"><div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full" /></div>}>
             <MediaPlayerEntry />

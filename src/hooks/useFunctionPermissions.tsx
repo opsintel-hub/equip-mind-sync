@@ -33,7 +33,24 @@ export const SYSTEM_FUNCTIONS = [
   { name: "assessment_view", label: "ดูรายการประเมิน (ช่าง)", description: "ดูรายการประเมินทรัพย์สิน (สำหรับช่าง/ผู้เกี่ยวข้อง)" },
   { name: "claim_create", label: "สร้างเคลม (คลัง)", description: "สร้างคำขอเคลมไปยังผู้จำหน่าย (สำหรับเจ้าหน้าที่คลัง)" },
   { name: "claim_view", label: "ดูรายการเคลม (ช่าง)", description: "ติดตามสถานะการเคลม (สำหรับช่าง/ผู้เกี่ยวข้อง)" },
+  // ─── Master Data Tabs (per-tab control) ───
+  { name: "md_equipment", label: "MD: อุปกรณ์/อะไหล่", description: "Tab อุปกรณ์ในหน้าข้อมูลหลัก" },
+  { name: "md_tools", label: "MD: เครื่องมือ", description: "Tab เครื่องมือในหน้าข้อมูลหลัก" },
+  { name: "md_categories", label: "MD: หมวดหมู่", description: "Tab หมวดหมู่/หมวดหมู่ย่อย" },
+  { name: "md_warehouses", label: "MD: คลังสินค้า", description: "Tab คลังสินค้า" },
+  { name: "md_locations", label: "MD: ตำแหน่งจัดเก็บ", description: "Tab ตำแหน่งจัดเก็บ" },
+  { name: "md_suppliers", label: "MD: ผู้จัดจำหน่าย", description: "Tab ผู้จัดจำหน่าย (Suppliers)" },
+  { name: "md_contractors", label: "MD: ผู้รับเหมา", description: "Tab ผู้รับเหมา" },
+  { name: "md_departments", label: "MD: ฝ่าย", description: "Tab ฝ่าย (Departments)" },
+  { name: "md_sections", label: "MD: แผนก", description: "Tab แผนก (Sections)" },
+  { name: "md_companies", label: "MD: บริษัท", description: "Tab บริษัท" },
+  { name: "md_issue_purposes", label: "MD: วัตถุประสงค์เบิก", description: "Tab วัตถุประสงค์การเบิก" },
+  { name: "md_receipt_purposes", label: "MD: วัตถุประสงค์รับ", description: "Tab วัตถุประสงค์การรับสินค้า" },
+  { name: "md_technicians", label: "MD: ทะเบียนช่าง", description: "Tab ช่างและเครื่องมือประจำตัว" },
+  { name: "md_pm_action_types", label: "MD: PM Action Types", description: "Tab ประเภท PM Action" },
+  { name: "md_media_player", label: "MD: จัดการ Media Player", description: "Tab จัดการ Media Player + workflow lists" },
 ];
+
 
 export function useFunctionPermissions() {
   const { user } = useAuth();
