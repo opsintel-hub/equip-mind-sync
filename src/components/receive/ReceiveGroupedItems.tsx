@@ -8,6 +8,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { ChevronDown, ChevronRight, Clock, CheckCircle2, Edit, Eye, Package, Monitor, XCircle } from "lucide-react";
 import { format } from "date-fns";
+import { ColumnChooser, ColumnDef, useVisibleCols } from "@/components/ColumnChooser";
 
 export interface PendingReceipt {
   id: string;
@@ -42,7 +43,6 @@ export interface PendingReceipt {
   received_location_id?: string | null;
   received_storage_slot_id?: string | null;
   received_sub_storage_slot_id?: string | null;
-  // Additional fields for complete display
   po_number?: string | null;
   pr_number?: string | null;
   document_url?: string | null;
@@ -56,11 +56,9 @@ export interface PendingReceipt {
   waiting_asset_code?: boolean | null;
   waiting_equipment_id?: boolean | null;
   depreciation_months?: number | null;
-  // Temp fields for new products
   temp_category_id?: string | null;
   temp_subcategory_id?: string | null;
   temp_product_images?: string[] | null;
-  // Asset planning info
   planned_install_location?: string | null;
   asset_caretaker?: string | null;
   po_item_no?: string | null;
@@ -101,15 +99,38 @@ const getStatusBadge = (status: string) => {
   }
 };
 
-// Extract parent document number (e.g., PD-20250125-001 from PD-20250125-001-01)
 const getParentDocNo = (docNo: string): string => {
-  // Pattern: PD-YYYYMMDD-XXX-YY -> return PD-YYYYMMDD-XXX
   const match = docNo.match(/^(PD-\d{8}-\d{3})(-\d+)?$/);
-  if (match) {
-    return match[1];
-  }
+  if (match) return match[1];
   return docNo;
 };
+
+type ColKey =
+  | "seq"
+  | "name"
+  | "qty"
+  | "serial"
+  | "location"
+  | "caretaker"
+  | "warranty"
+  | "purpose"
+  | "supplier"
+  | "status"
+  | "actions";
+
+const COLUMNS: ColumnDef<ColKey>[] = [
+  { key: "seq", label: "ลำดับ", locked: true },
+  { key: "name", label: "ชื่อสินค้า", locked: true },
+  { key: "qty", label: "จำนวน" },
+  { key: "serial", label: "Serial No." },
+  { key: "location", label: "Location ตามแผน" },
+  { key: "caretaker", label: "ผู้ดูแล" },
+  { key: "warranty", label: "รับประกัน (ปี)" },
+  { key: "purpose", label: "วัตถุประสงค์" },
+  { key: "supplier", label: "ผู้จัดจำหน่าย" },
+  { key: "status", label: "สถานะ", locked: true },
+  { key: "actions", label: "จัดการ", locked: true },
+];
 
 export const ReceiveGroupedItems = ({
   receipts,
@@ -121,12 +142,13 @@ export const ReceiveGroupedItems = ({
 }: ReceiveGroupedItemsProps) => {
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
   const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
+  const [visibleCols, setVisibleCols] = useVisibleCols<ColKey>("receive-grouped-cols-v1", COLUMNS);
+  const visibleSet = new Set(visibleCols);
+  const show = (k: ColKey) => visibleSet.has(k);
 
-  // Group receipts by parent document number
   const groupedReceipts: GroupedReceipts[] = Object.values(
     receipts.reduce((acc, receipt) => {
       const parentDocNo = getParentDocNo(receipt.document_no);
-      
       if (!acc[parentDocNo]) {
         acc[parentDocNo] = {
           parentDocNo,
@@ -140,17 +162,11 @@ export const ReceiveGroupedItems = ({
           totalItems: 0,
         };
       }
-      
       acc[parentDocNo].items.push(receipt);
       acc[parentDocNo].totalItems++;
-      if (receipt.status === "pending") {
-        acc[parentDocNo].pendingCount++;
-      } else if (receipt.status === "received") {
-        acc[parentDocNo].receivedCount++;
-      } else if (receipt.status === "rejected") {
-        acc[parentDocNo].rejectedCount++;
-      }
-      
+      if (receipt.status === "pending") acc[parentDocNo].pendingCount++;
+      else if (receipt.status === "received") acc[parentDocNo].receivedCount++;
+      else if (receipt.status === "rejected") acc[parentDocNo].rejectedCount++;
       return acc;
     }, {} as Record<string, GroupedReceipts>)
   ).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
@@ -159,81 +175,59 @@ export const ReceiveGroupedItems = ({
 
   const toggleGroup = (parentDocNo: string) => {
     const newExpanded = new Set(expandedGroups);
-    if (newExpanded.has(parentDocNo)) {
-      newExpanded.delete(parentDocNo);
-    } else {
-      newExpanded.add(parentDocNo);
-    }
+    if (newExpanded.has(parentDocNo)) newExpanded.delete(parentDocNo);
+    else newExpanded.add(parentDocNo);
     setExpandedGroups(newExpanded);
   };
 
-  const toggleItemSelection = (itemId: string, parentDocNo: string) => {
+  const toggleItemSelection = (itemId: string) => {
     const newSelected = new Set(selectedItems);
-    if (newSelected.has(itemId)) {
-      newSelected.delete(itemId);
-    } else {
-      newSelected.add(itemId);
-    }
+    if (newSelected.has(itemId)) newSelected.delete(itemId);
+    else newSelected.add(itemId);
     setSelectedItems(newSelected);
   };
 
   const toggleAllInGroup = (group: GroupedReceipts) => {
     const pendingItems = group.items.filter(item => item.status === "pending");
     const allSelected = pendingItems.every(item => selectedItems.has(item.id));
-    
     const newSelected = new Set(selectedItems);
-    if (allSelected) {
-      pendingItems.forEach(item => newSelected.delete(item.id));
-    } else {
-      pendingItems.forEach(item => newSelected.add(item.id));
-    }
+    if (allSelected) pendingItems.forEach(item => newSelected.delete(item.id));
+    else pendingItems.forEach(item => newSelected.add(item.id));
     setSelectedItems(newSelected);
   };
 
-  const getSelectedPendingItems = (group: GroupedReceipts) => {
-    return group.items.filter(item => 
-      item.status === "pending" && selectedItems.has(item.id)
-    );
-  };
+  const getSelectedPendingItems = (group: GroupedReceipts) =>
+    group.items.filter(item => item.status === "pending" && selectedItems.has(item.id));
 
   const handleBatchReceive = (group: GroupedReceipts) => {
     const selectedPendingItems = getSelectedPendingItems(group);
-    if (selectedPendingItems.length > 0) {
-      onReceiveBatch(selectedPendingItems);
-    }
+    if (selectedPendingItems.length > 0) onReceiveBatch(selectedPendingItems);
   };
 
   if (groupedReceipts.length === 0) {
-    return (
-      <div className="text-center py-8 text-muted-foreground">
-        ไม่มีรายการ
-      </div>
-    );
+    return <div className="text-center py-8 text-muted-foreground">ไม่มีรายการ</div>;
   }
 
   return (
     <div className="space-y-4">
+      <div className="flex justify-end">
+        <ColumnChooser columns={COLUMNS} visible={visibleCols} onChange={setVisibleCols} />
+      </div>
       {paginatedData.map((group) => {
         const isExpanded = expandedGroups.has(group.parentDocNo);
         const pendingItems = group.items.filter(item => item.status === "pending");
-        const allPendingSelected = pendingItems.length > 0 && 
-          pendingItems.every(item => selectedItems.has(item.id));
-        const somePendingSelected = pendingItems.some(item => selectedItems.has(item.id));
+        const allPendingSelected = pendingItems.length > 0 && pendingItems.every(item => selectedItems.has(item.id));
         const selectedCount = getSelectedPendingItems(group).length;
+        const showSelectCol = pendingItems.length > 1;
 
         return (
           <div key={group.parentDocNo} className="border rounded-lg overflow-hidden">
-            {/* Group Header */}
             <Collapsible open={isExpanded} onOpenChange={() => toggleGroup(group.parentDocNo)}>
               <CollapsibleTrigger asChild>
                 <div className="flex items-center justify-between p-4 bg-muted/30 hover:bg-muted/50 cursor-pointer transition-colors">
                   <div className="flex items-center gap-4">
                     <div className="flex items-center gap-2">
-                      {isExpanded ? (
-                        <ChevronDown className="w-5 h-5 text-muted-foreground" />
-                      ) : (
-                        <ChevronRight className="w-5 h-5 text-muted-foreground" />
-                      )}
+                      {isExpanded ? <ChevronDown className="w-5 h-5 text-muted-foreground" /> : <ChevronRight className="w-5 h-5 text-muted-foreground" />}
                       <Package className="w-5 h-5 text-primary" />
                     </div>
                     <div>
@@ -245,49 +239,26 @@ export const ReceiveGroupedItems = ({
                   </div>
                   <div className="flex items-center gap-4">
                     <div className="flex items-center gap-2">
-                      <Badge variant="outline" className="font-normal">
-                        {group.totalItems} รายการ
-                      </Badge>
-                      {group.pendingCount > 0 && (
-                        <Badge variant="secondary" className="bg-warning/10 text-warning">
-                          รอรับ {group.pendingCount}
-                        </Badge>
-                      )}
-                      {group.receivedCount > 0 && (
-                        <Badge variant="secondary" className="bg-success/10 text-success">
-                          รับแล้ว {group.receivedCount}
-                        </Badge>
-                      )}
-                      {group.rejectedCount > 0 && (
-                        <Badge variant="secondary" className="bg-destructive/10 text-destructive">
-                          ปฏิเสธ {group.rejectedCount}
-                        </Badge>
-                      )}
+                      <Badge variant="outline" className="font-normal">{group.totalItems} รายการ</Badge>
+                      {group.pendingCount > 0 && <Badge variant="secondary" className="bg-warning/10 text-warning">รอรับ {group.pendingCount}</Badge>}
+                      {group.receivedCount > 0 && <Badge variant="secondary" className="bg-success/10 text-success">รับแล้ว {group.receivedCount}</Badge>}
+                      {group.rejectedCount > 0 && <Badge variant="secondary" className="bg-destructive/10 text-destructive">ปฏิเสธ {group.rejectedCount}</Badge>}
                     </div>
                   </div>
                 </div>
               </CollapsibleTrigger>
 
               <CollapsibleContent>
-                {/* Batch Action Bar */}
-                {pendingItems.length > 1 && (
+                {showSelectCol && (
                   <div className="flex items-center justify-between px-4 py-2 bg-primary/5 border-b">
                     <div className="flex items-center gap-3">
-                      <Checkbox
-                        checked={allPendingSelected}
-                        onCheckedChange={() => toggleAllInGroup(group)}
-                        className="border-primary"
-                      />
+                      <Checkbox checked={allPendingSelected} onCheckedChange={() => toggleAllInGroup(group)} className="border-primary" />
                       <span className="text-sm text-muted-foreground">
                         {allPendingSelected ? "ยกเลิกเลือกทั้งหมด" : "เลือกทั้งหมดที่รอรับ"}
                       </span>
                     </div>
                     {selectedCount > 0 && (
-                      <Button
-                        size="sm"
-                        onClick={() => handleBatchReceive(group)}
-                        className="gap-2"
-                      >
+                      <Button size="sm" onClick={() => handleBatchReceive(group)} className="gap-2">
                         <CheckCircle2 className="w-4 h-4" />
                         รับเข้าคลัง {selectedCount} รายการ
                       </Button>
@@ -295,138 +266,117 @@ export const ReceiveGroupedItems = ({
                   </div>
                 )}
 
-                {/* Items Table */}
-                <Table>
-                  <TableHeader>
-                    <TableRow className="bg-muted/20">
-                      {pendingItems.length > 1 && <TableHead className="w-12"></TableHead>}
-                      <TableHead>ลำดับ</TableHead>
-                      <TableHead>ชื่อสินค้า</TableHead>
-                      <TableHead>จำนวน</TableHead>
-                      <TableHead>Serial No.</TableHead>
-                      <TableHead className="min-w-[160px]">Location ตามแผน</TableHead>
-                      <TableHead>ผู้ดูแล</TableHead>
-                      <TableHead className="w-24 text-right">รับประกัน (ปี)</TableHead>
-                      <TableHead>วัตถุประสงค์</TableHead>
-                      <TableHead>ผู้จัดจำหน่าย</TableHead>
-                      <TableHead>สถานะ</TableHead>
-                      <TableHead className="w-24">จัดการ</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {group.items.map((item, index) => (
-                      <TableRow key={item.id} className="hover:bg-muted/30">
-                        {pendingItems.length > 1 && (
-                          <TableCell>
-                            {item.status === "pending" && (
-                              <Checkbox
-                                checked={selectedItems.has(item.id)}
-                                onCheckedChange={() => toggleItemSelection(item.id, group.parentDocNo)}
-                              />
-                            )}
-                          </TableCell>
-                        )}
-                        <TableCell className="font-medium text-muted-foreground">
-                          #{index + 1}
-                        </TableCell>
-                        <TableCell>
-                          <div>
-                            <div className="flex items-center gap-2">
-                              {item.is_media_player && (
-                                <Monitor className="w-4 h-4 text-blue-500" />
-                              )}
-                              <p className="font-medium">{item.equipment_name || "-"}</p>
-                            </div>
-                            {item.equipment_code && (
-                              <p className="text-xs text-muted-foreground">{item.equipment_code}</p>
-                            )}
-                            <div className="flex gap-1 mt-1">
-                              {item.is_media_player && (
-                                <Badge variant="secondary" className="bg-blue-500/10 text-blue-600 text-xs">
-                                  Media Player
-                                </Badge>
-                              )}
-                              {!item.equipment_id && !item.media_player_id && (
-                                <Badge variant="outline" className="text-warning border-warning text-xs">
-                                  สินค้าใหม่
-                                </Badge>
-                              )}
-                              {item.temp_product_images && item.temp_product_images.length > 0 && (
-                                <Badge variant="outline" className="text-blue-500 border-blue-300 text-xs">
-                                  📷 {item.temp_product_images.length} รูป
-                                </Badge>
-                              )}
-                            </div>
-                          </div>
-                        </TableCell>
-                        <TableCell>{item.quantity} {item.unit}</TableCell>
-                        <TableCell className="text-sm">{item.serial_number || "-"}</TableCell>
-                        <TableCell className="text-sm">
-                          {item.planned_install_location ? (
-                            <span className="text-foreground">{item.planned_install_location}</span>
-                          ) : (
-                            <span className="text-muted-foreground">-</span>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-sm">{item.asset_caretaker || "-"}</TableCell>
-                        <TableCell className="text-sm text-right">
-                          {item.warranty_years != null ? item.warranty_years : "-"}
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="outline" className="font-normal text-xs">
-                            {getReceiptPurposeName(item.receipt_purpose_id)}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-sm">{item.supplier_name || "-"}</TableCell>
-                        <TableCell>{getStatusBadge(item.status)}</TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            {item.status === "received" && onViewReceipt && (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  onViewReceipt(item);
-                                }}
-                              >
-                                <Eye className="w-4 h-4 mr-1" />
-                                ดูรับเข้า
-                              </Button>
-                            )}
-                            {item.status === "pending" && (
-                              <>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  onReceiveSingle(item);
-                                }}
-                              >
-                                <Edit className="w-4 h-4 mr-1" />
-                                รับเข้า
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="text-destructive border-destructive/50 hover:bg-destructive/10"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  onRejectSingle(item);
-                                }}
-                              >
-                                <XCircle className="w-4 h-4 mr-1" />
-                                ปฏิเสธ
-                              </Button>
-                              </>
-                            )}
-                          </div>
-                        </TableCell>
+                <div className="overflow-x-auto">
+                  <Table className="min-w-max">
+                    <TableHeader>
+                      <TableRow className="bg-muted/20">
+                        {showSelectCol && <TableHead className="w-12 sticky left-0 bg-muted/40 z-10"></TableHead>}
+                        {show("seq") && <TableHead className="w-16 whitespace-nowrap">ลำดับ</TableHead>}
+                        {show("name") && <TableHead className="min-w-[240px]">ชื่อสินค้า</TableHead>}
+                        {show("qty") && <TableHead className="w-24 whitespace-nowrap">จำนวน</TableHead>}
+                        {show("serial") && <TableHead className="min-w-[140px] whitespace-nowrap">Serial No.</TableHead>}
+                        {show("location") && <TableHead className="min-w-[200px]">Location ตามแผน</TableHead>}
+                        {show("caretaker") && <TableHead className="min-w-[140px]">ผู้ดูแล</TableHead>}
+                        {show("warranty") && <TableHead className="w-28 text-right whitespace-nowrap">รับประกัน (ปี)</TableHead>}
+                        {show("purpose") && <TableHead className="min-w-[140px] whitespace-nowrap">วัตถุประสงค์</TableHead>}
+                        {show("supplier") && <TableHead className="min-w-[180px]">ผู้จัดจำหน่าย</TableHead>}
+                        {show("status") && <TableHead className="w-28 whitespace-nowrap">สถานะ</TableHead>}
+                        {show("actions") && <TableHead className="min-w-[180px] whitespace-nowrap">จัดการ</TableHead>}
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                    </TableHeader>
+                    <TableBody>
+                      {group.items.map((item, index) => (
+                        <TableRow key={item.id} className="hover:bg-muted/30">
+                          {showSelectCol && (
+                            <TableCell className="sticky left-0 bg-background z-10">
+                              {item.status === "pending" && (
+                                <Checkbox checked={selectedItems.has(item.id)} onCheckedChange={() => toggleItemSelection(item.id)} />
+                              )}
+                            </TableCell>
+                          )}
+                          {show("seq") && (
+                            <TableCell className="font-medium text-muted-foreground whitespace-nowrap">#{index + 1}</TableCell>
+                          )}
+                          {show("name") && (
+                            <TableCell>
+                              <div>
+                                <div className="flex items-center gap-2">
+                                  {item.is_media_player && <Monitor className="w-4 h-4 text-blue-500 flex-shrink-0" />}
+                                  <p className="font-medium">{item.equipment_name || "-"}</p>
+                                </div>
+                                {item.equipment_code && <p className="text-xs text-muted-foreground">{item.equipment_code}</p>}
+                                <div className="flex flex-wrap gap-1 mt-1">
+                                  {item.is_media_player && (
+                                    <Badge variant="secondary" className="bg-blue-500/10 text-blue-600 text-xs">Media Player</Badge>
+                                  )}
+                                  {!item.equipment_id && !item.media_player_id && (
+                                    <Badge variant="outline" className="text-warning border-warning text-xs">สินค้าใหม่</Badge>
+                                  )}
+                                  {item.temp_product_images && item.temp_product_images.length > 0 && (
+                                    <Badge variant="outline" className="text-blue-500 border-blue-300 text-xs">
+                                      📷 {item.temp_product_images.length} รูป
+                                    </Badge>
+                                  )}
+                                </div>
+                              </div>
+                            </TableCell>
+                          )}
+                          {show("qty") && <TableCell className="whitespace-nowrap">{item.quantity} {item.unit}</TableCell>}
+                          {show("serial") && <TableCell className="text-sm whitespace-pre-line">{item.serial_number || "-"}</TableCell>}
+                          {show("location") && (
+                            <TableCell className="text-sm">
+                              {item.planned_install_location ? (
+                                <span className="text-foreground">{item.planned_install_location}</span>
+                              ) : (
+                                <span className="text-muted-foreground">-</span>
+                              )}
+                            </TableCell>
+                          )}
+                          {show("caretaker") && <TableCell className="text-sm whitespace-nowrap">{item.asset_caretaker || "-"}</TableCell>}
+                          {show("warranty") && (
+                            <TableCell className="text-sm text-right whitespace-nowrap">
+                              {item.warranty_years != null ? item.warranty_years : "-"}
+                            </TableCell>
+                          )}
+                          {show("purpose") && (
+                            <TableCell>
+                              <Badge variant="outline" className="font-normal text-xs whitespace-nowrap">
+                                {getReceiptPurposeName(item.receipt_purpose_id)}
+                              </Badge>
+                            </TableCell>
+                          )}
+                          {show("supplier") && <TableCell className="text-sm">{item.supplier_name || "-"}</TableCell>}
+                          {show("status") && <TableCell className="whitespace-nowrap">{getStatusBadge(item.status)}</TableCell>}
+                          {show("actions") && (
+                            <TableCell>
+                              <div className="flex items-center gap-2 whitespace-nowrap">
+                                {item.status === "received" && onViewReceipt && (
+                                  <Button size="sm" variant="outline" onClick={(e) => { e.stopPropagation(); onViewReceipt(item); }}>
+                                    <Eye className="w-4 h-4 mr-1" />
+                                    ดูรับเข้า
+                                  </Button>
+                                )}
+                                {item.status === "pending" && (
+                                  <>
+                                    <Button size="sm" variant="outline" onClick={(e) => { e.stopPropagation(); onReceiveSingle(item); }}>
+                                      <Edit className="w-4 h-4 mr-1" />
+                                      รับเข้า
+                                    </Button>
+                                    <Button size="sm" variant="outline" className="text-destructive border-destructive/50 hover:bg-destructive/10"
+                                      onClick={(e) => { e.stopPropagation(); onRejectSingle(item); }}>
+                                      <XCircle className="w-4 h-4 mr-1" />
+                                      ปฏิเสธ
+                                    </Button>
+                                  </>
+                                )}
+                              </div>
+                            </TableCell>
+                          )}
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
               </CollapsibleContent>
             </Collapsible>
           </div>
