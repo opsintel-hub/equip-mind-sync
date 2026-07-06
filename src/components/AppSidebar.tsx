@@ -198,16 +198,7 @@ const menuGroups: MenuGroup[] = [
   {
     label: "ป้ายโฆษณา",
     items: [
-      {
-        title: "จัดการป้ายโฆษณา",
-        icon: MapPin,
-        functionName: "billboards",
-        subItems: [
-          { title: "รายการป้ายโฆษณา", url: "/billboards", icon: MapPin },
-          { title: "เชื่อมต่อ & Sync", url: "/billboards?tab=sync", icon: Database, superAdminOnly: true },
-          { title: "จัดการ Package ป้าย", url: "/billboard-packages", icon: Package },
-        ]
-      },
+      { title: "รายการป้ายโฆษณา", url: "/billboards", icon: MapPin, functionName: "billboards" },
       { 
         title: "PM ป้ายโฆษณา", 
         icon: Calendar,
@@ -217,6 +208,7 @@ const menuGroups: MenuGroup[] = [
           { title: "ประวัติ PM ป้าย", url: "/pm-history", icon: History },
         ]
       },
+      { title: "จัดการ Package ป้ายโฆษณา", url: "/billboard-packages", icon: Package, functionName: "billboards" },
     ]
   },
   {
