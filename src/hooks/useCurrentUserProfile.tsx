@@ -54,8 +54,16 @@ export function useCurrentUserProfile() {
     };
   }, [user?.id]);
 
-  /** Preferred name to show as the actor: display_name → full_name → email */
-  const actorName = profile?.displayName || profile?.fullName || user?.email || "";
+  /**
+   * Preferred name to show as the actor: display_name → full_name → email.
+   * While the profile is still loading we return "" so that consumers which
+   * initialize form fields with `if (!field) setField(actorName)` don't lock
+   * in the email before the real name arrives.
+   */
+  const resolvedName = profile?.displayName || profile?.fullName || "";
+  const actorName = loading
+    ? ""
+    : resolvedName || user?.email || "";
 
   return { profile, loading, actorName };
 }
