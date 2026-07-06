@@ -1,12 +1,15 @@
+import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Shield, Users, Info, HelpCircle, Settings2, Grid3x3 } from "lucide-react";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { Shield, Users, Info, HelpCircle, Settings2, Grid3x3, LayoutList } from "lucide-react";
 import { useDepartmentPermissions } from "@/hooks/useDepartmentPermissions";
 import { RoleDescriptions } from "@/components/admin/RoleDescriptions";
 import { FunctionDescriptions } from "@/components/admin/FunctionDescriptions";
 import { UserPermissionManager } from "@/components/admin/UserPermissionManager";
 import { PermissionMatrix } from "@/components/admin/PermissionMatrix";
 import { OCRConfigManager } from "@/components/admin/OCRConfigManager";
+
 
 
 const Admin = () => {
