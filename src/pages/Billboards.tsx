@@ -613,7 +613,7 @@ const Billboards = () => {
               <div>
                 <p className="font-medium">ไม่พบข้อมูลป้ายโฆษณา</p>
                 <p className="text-sm text-muted-foreground">
-                  ลองล้างตัวกรองหรือคำค้นหา หรือเพิ่มป้ายใหม่เพื่อเริ่มต้น
+                  ลองล้างตัวกรอง/คำค้นหา หรือกด "Sync ทันที" ในแท็บเชื่อมต่อเพื่อดึงข้อมูลจากระบบภายนอก
                 </p>
               </div>
               <div className="flex gap-2">
@@ -629,13 +629,8 @@ const Billboards = () => {
                     ล้างตัวกรอง
                   </Button>
                 )}
-                {isSuperAdmin && (
-                  <Button onClick={() => setIsFormOpen(true)}>
-                    <Plus className="w-4 h-4 mr-1" />
-                    เพิ่มป้าย
-                  </Button>
-                )}
               </div>
+
             </div>
           ) : (
             <>
