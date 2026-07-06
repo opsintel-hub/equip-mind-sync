@@ -9,6 +9,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
 
 import { Separator } from "@/components/ui/separator";
 import {
@@ -57,6 +59,7 @@ interface User {
   display_name?: string | null;
   phone: string | null;
   email?: string;
+  department?: string | null;
   requested_job_role?: string | null;
   requested_department?: string | null;
   is_hidden?: boolean | null;
@@ -101,6 +104,7 @@ export function UserPermissionManager() {
   const [editFullName, setEditFullName] = useState("");
   const [editDisplayName, setEditDisplayName] = useState("");
   const [editPhone, setEditPhone] = useState("");
+  const [editDepartment, setEditDepartment] = useState<string>("");
   const [editSaving, setEditSaving] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleteBusy, setDeleteBusy] = useState(false);
@@ -384,6 +388,7 @@ export function UserPermissionManager() {
     setEditFullName(user.full_name || "");
     setEditDisplayName(user.display_name || "");
     setEditPhone(user.phone || "");
+    setEditDepartment(user.department || user.requested_department || "");
     setEditDialogOpen(true);
   };
 
@@ -401,7 +406,8 @@ export function UserPermissionManager() {
           full_name: editFullName.trim(),
           display_name: editDisplayName.trim() || null,
           phone: editPhone.trim() || null,
-        })
+          department: editDepartment || null,
+        } as any)
         .eq("id", selectedUser.id);
       if (error) throw error;
       toast.success("บันทึกข้อมูลผู้ใช้สำเร็จ");
@@ -496,6 +502,7 @@ export function UserPermissionManager() {
                   <TableRow className="bg-muted/50">
                   <TableHead>ชื่อ-นามสกุล</TableHead>
                   <TableHead>ชื่อที่แสดงในระบบ</TableHead>
+                  <TableHead>ฝ่าย</TableHead>
                   <TableHead>อีเมล</TableHead>
                   <TableHead>เบอร์โทร</TableHead>
                     <TableHead>คำขอสมัคร</TableHead>
@@ -515,6 +522,16 @@ export function UserPermissionManager() {
                       {user.display_name
                         ? <span className="font-medium text-primary">{user.display_name}</span>
                         : <span className="text-muted-foreground">-</span>}
+                    </TableCell>
+                    <TableCell>
+                      {user.department ? (
+                        <div className="flex items-center gap-1 text-sm">
+                          <Building2 className="h-3 w-3 text-muted-foreground" />
+                          {user.department}
+                        </div>
+                      ) : (
+                        <span className="text-muted-foreground">-</span>
+                      )}
                     </TableCell>
                     <TableCell className="text-muted-foreground">{user.email || "-"}</TableCell>
                     <TableCell>{user.phone || "-"}</TableCell>
@@ -635,7 +652,7 @@ export function UserPermissionManager() {
                 ))}
                 {filteredUsers.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
                       ไม่พบผู้ใช้งาน
                     </TableCell>
                   </TableRow>
@@ -972,6 +989,29 @@ export function UserPermissionManager() {
                 placeholder="08-XXXX-XXXX"
                 disabled={editSaving}
               />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-department">ฝ่าย</Label>
+              <Select
+                value={editDepartment || "__none__"}
+                onValueChange={(v) => setEditDepartment(v === "__none__" ? "" : v)}
+                disabled={editSaving}
+              >
+                <SelectTrigger id="edit-department">
+                  <SelectValue placeholder="เลือกฝ่าย..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__">— ไม่ระบุ —</SelectItem>
+                  {allDepartments.map((d) => (
+                    <SelectItem key={d} value={d}>{d}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {selectedUser?.requested_department && selectedUser.requested_department !== editDepartment && (
+                <p className="text-xs text-muted-foreground">
+                  ผู้ใช้ขอสมัครฝ่าย: <strong>{selectedUser.requested_department}</strong>
+                </p>
+              )}
             </div>
             <div className="flex justify-end gap-2 pt-2">
               <Button variant="outline" onClick={() => setEditDialogOpen(false)} disabled={editSaving}>
