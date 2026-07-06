@@ -43,6 +43,9 @@ import BillboardExport from "@/components/billboard/BillboardExport";
 import { BillboardSummaryCards } from "@/components/billboard/BillboardSummaryCards";
 import { DraggableScrollTable } from "@/components/ui/draggable-scroll-table";
 import { useIsSuperAdmin } from "@/hooks/useIsSuperAdmin";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { BillboardDbConnection } from "@/components/master-data/BillboardDbConnection";
+import { Database as DatabaseIcon } from "lucide-react";
 import {
   Select,
   SelectContent,
