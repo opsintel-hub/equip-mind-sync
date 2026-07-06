@@ -525,7 +525,7 @@ export function UserPermissionManager() {
                 )}
               </CardTitle>
               <CardDescription>
-                เลือก <strong>Preset</strong> ในคอลัมน์ "บทบาท / ตั้งสิทธิ์เร็ว" แล้วกด <strong>ใช้เลย</strong> — ระบบจะตั้ง Role + เมนู + สิทธิ์ในฝ่ายให้ครบใน 2 คลิก (กรณีพิเศษใช้ "ตั้งค่าขั้นสูง")
+                กด <strong>ตั้งค่าขั้นสูง (Wizard)</strong> เพื่อกำหนด Role, เมนู และสิทธิ์ในฝ่ายรายคน — หากต้องการตั้งสิทธิ์หลายคนพร้อมกันหรือใช้ <strong>Preset</strong> ให้สลับไปที่มุมมอง <strong>Matrix สิทธิ์</strong> ด้านบน
               </CardDescription>
             </div>
             <div className="relative w-64">
