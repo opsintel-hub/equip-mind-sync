@@ -210,7 +210,7 @@ const menuGroups: MenuGroup[] = [
         functionName: "pm_schedule",
         subItems: [
           { title: "แจ้ง PM ป้ายโฆษณา", url: "/pm-billboard", icon: AlertTriangleIcon },
-          { title: "ประวัติ PM ป้าย", url: "/pm-history", icon: History },
+          { title: "ประวัติแจ้ง PM ป้าย", url: "/pm-history", icon: History },
         ]
       },
       { title: "จัดการ Package ป้ายโฆษณา", url: "/billboard-packages", icon: Package, functionName: "billboards" },
