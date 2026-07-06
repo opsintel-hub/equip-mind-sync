@@ -747,19 +747,28 @@ const Billboards = () => {
       </div>
 
       {isSuperAdmin ? (
-        <Tabs defaultValue="list" className="space-y-4">
+        <Tabs
+          value={activeTab}
+          onValueChange={(v) => {
+            const next = new URLSearchParams(searchParams);
+            if (v === "sync") next.set("tab", "sync");
+            else next.delete("tab");
+            setSearchParams(next, { replace: true });
+          }}
+          className="space-y-4"
+        >
           <TabsList>
             <TabsTrigger value="list" className="gap-2">
               <MapPin className="h-4 w-4" />
               รายการป้าย
             </TabsTrigger>
-            <TabsTrigger value="connection" className="gap-2">
+            <TabsTrigger value="sync" className="gap-2">
               <DatabaseIcon className="h-4 w-4" />
               เชื่อมต่อ &amp; Sync
             </TabsTrigger>
           </TabsList>
           <TabsContent value="list">{billboardsContent}</TabsContent>
-          <TabsContent value="connection">
+          <TabsContent value="sync">
             <BillboardDbConnection />
           </TabsContent>
         </Tabs>
