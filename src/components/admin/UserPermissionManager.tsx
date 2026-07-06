@@ -97,6 +97,13 @@ export function UserPermissionManager() {
   const [resetLoading, setResetLoading] = useState(false);
   const [wizardOpen, setWizardOpen] = useState(false);
   const [wizardUser, setWizardUser] = useState<User | null>(null);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [editFullName, setEditFullName] = useState("");
+  const [editDisplayName, setEditDisplayName] = useState("");
+  const [editPhone, setEditPhone] = useState("");
+  const [editSaving, setEditSaving] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deleteBusy, setDeleteBusy] = useState(false);
 
   useEffect(() => {
     fetchUsers();
