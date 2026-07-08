@@ -256,8 +256,15 @@ export default function RepairReport() {
       }
       if (generalSearch.trim()) {
         const q = generalSearch.trim().toLowerCase();
-        const hay = [r.mp_code, r.mp_name, r.mp_brand, r.assessor_name, r.document_no, r.repair_description,
-          ...(r.repair_actions_snapshot || []).map((a) => a.name)].filter(Boolean).join(" ").toLowerCase();
+        const bbLabels = (bbHistMap.get(r.media_player_id || "") || []).map((h) => h.billboard_label).join(" ");
+        const hay = [
+          r.mp_code, r.mp_name, r.mp_brand, r.mp_department, r.mp_remote_name,
+          r.assessor_name, r.repair_completed_by, r.document_no,
+          r.repair_description, r.repair_result, r.serial_number,
+          ...(r.repair_scope || []),
+          ...(r.repair_actions_snapshot || []).map((a) => a.name),
+          bbLabels,
+        ].filter(Boolean).join(" ").toLowerCase();
         if (!hay.includes(q)) return false;
       }
       return true;
