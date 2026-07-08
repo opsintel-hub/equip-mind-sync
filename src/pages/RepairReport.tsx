@@ -536,10 +536,10 @@ export default function RepairReport() {
               </div>
             </div>
             <div className="space-y-1 md:col-span-2">
-              <Label className="text-xs">ค้นหาทั่วไป (รหัส / ชื่อ / ยี่ห้อ / รายการซ่อม / ผู้ซ่อม)</Label>
+              <Label className="text-xs">ค้นหาทั่วไป (S/N • รหัส • ชื่อ • ยี่ห้อ • ฝ่าย • รีโมท • เลขเอกสาร • ผู้ประเมิน • ผู้ซ่อม • ประเภทงาน • รายการซ่อม • รายละเอียด • ผลซ่อม • ป้ายที่เคยติดตั้ง)</Label>
               <div className="relative">
                 <Search className="absolute left-2 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
-                <Input value={generalSearch} onChange={(e) => setGeneralSearch(e.target.value)} placeholder="ค้นหา..." className="pl-7" />
+                <Input value={generalSearch} onChange={(e) => setGeneralSearch(e.target.value)} placeholder="ค้นหาได้ทุกฟิลด์ที่แสดงในตาราง เช่น S/N, รหัส, ผู้ซ่อม, รายการซ่อม, ป้าย..." className="pl-7" />
               </div>
             </div>
           </div>
