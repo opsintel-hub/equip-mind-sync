@@ -269,7 +269,7 @@ export default function RepairReport() {
       }
       return true;
     });
-  }, [rows, deviceFilter, resultFilter, scopeFilter, serialSearch, generalSearch]);
+  }, [rows, deviceFilter, resultFilter, scopeFilter, serialSearch, generalSearch, bbHistMap]);
 
   // Count per MP within baseFiltered
   const repeatCountByMp = useMemo(() => {
