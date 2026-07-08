@@ -256,13 +256,20 @@ export default function RepairReport() {
       }
       if (generalSearch.trim()) {
         const q = generalSearch.trim().toLowerCase();
-        const hay = [r.mp_code, r.mp_name, r.mp_brand, r.assessor_name, r.document_no, r.repair_description,
-          ...(r.repair_actions_snapshot || []).map((a) => a.name)].filter(Boolean).join(" ").toLowerCase();
+        const bbLabels = (bbHistMap.get(r.media_player_id || "") || []).map((h) => h.billboard_label).join(" ");
+        const hay = [
+          r.mp_code, r.mp_name, r.mp_brand, r.mp_department, r.mp_remote_name,
+          r.assessor_name, r.repair_completed_by, r.document_no,
+          r.repair_description, r.repair_result, r.serial_number,
+          ...(r.repair_scope || []),
+          ...(r.repair_actions_snapshot || []).map((a) => a.name),
+          bbLabels,
+        ].filter(Boolean).join(" ").toLowerCase();
         if (!hay.includes(q)) return false;
       }
       return true;
     });
-  }, [rows, deviceFilter, resultFilter, scopeFilter, serialSearch, generalSearch]);
+  }, [rows, deviceFilter, resultFilter, scopeFilter, serialSearch, generalSearch, bbHistMap]);
 
   // Count per MP within baseFiltered
   const repeatCountByMp = useMemo(() => {
@@ -529,10 +536,10 @@ export default function RepairReport() {
               </div>
             </div>
             <div className="space-y-1 md:col-span-2">
-              <Label className="text-xs">ค้นหาทั่วไป (รหัส / ชื่อ / ยี่ห้อ / รายการซ่อม / ผู้ซ่อม)</Label>
+              <Label className="text-xs">ค้นหาทั่วไป (S/N • รหัส • ชื่อ • ยี่ห้อ • ฝ่าย • รีโมท • เลขเอกสาร • ผู้ประเมิน • ผู้ซ่อม • ประเภทงาน • รายการซ่อม • รายละเอียด • ผลซ่อม • ป้ายที่เคยติดตั้ง)</Label>
               <div className="relative">
                 <Search className="absolute left-2 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
-                <Input value={generalSearch} onChange={(e) => setGeneralSearch(e.target.value)} placeholder="ค้นหา..." className="pl-7" />
+                <Input value={generalSearch} onChange={(e) => setGeneralSearch(e.target.value)} placeholder="ค้นหาได้ทุกฟิลด์ที่แสดงในตาราง เช่น S/N, รหัส, ผู้ซ่อม, รายการซ่อม, ป้าย..." className="pl-7" />
               </div>
             </div>
           </div>
