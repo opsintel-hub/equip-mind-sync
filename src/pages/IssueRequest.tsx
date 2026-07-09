@@ -2048,7 +2048,46 @@ const IssueRequest = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Cross-billboard compatibility confirmation */}
+      <Dialog open={compatCheckOpen} onOpenChange={setCompatCheckOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="text-amber-600">⚠️ ยืนยันเบิกข้ามป้าย</DialogTitle>
+            <DialogDescription>
+              อุปกรณ์ <b>{compatCheckInfo?.equipmentName}</b> ระบุว่ารองรับเฉพาะบางป้ายเท่านั้น
+              ({compatCheckInfo?.mode === 'specific' ? 'เฉพาะป้าย' : 'บางป้าย'} — รวม {compatCheckInfo?.supportedCount} ป้าย)
+              และป้ายปลายทางนี้<b>ไม่อยู่ในรายการที่รองรับ</b> อาจใช้งานไม่ได้
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <Label className="text-sm">เหตุผลที่ต้องเบิกข้ามป้าย <span className="text-destructive">*</span></Label>
+              <Textarea
+                value={compatCheckReason}
+                onChange={(e) => setCompatCheckReason(e.target.value)}
+                placeholder="เช่น ใช้ทดแทนชั่วคราว / รอสั่งของรุ่นที่รองรับ..."
+                rows={3}
+              />
+            </div>
+            <label className="flex items-start gap-2 text-sm cursor-pointer">
+              <input
+                type="checkbox"
+                checked={compatCheckAck}
+                onChange={(e) => setCompatCheckAck(e.target.checked)}
+                className="mt-1"
+              />
+              <span>ข้าพเจ้ารับทราบว่าอุปกรณ์นี้อาจใช้งานไม่ได้กับป้ายปลายทาง และรับผิดชอบผลที่ตามมา</span>
+            </label>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCompatCheckOpen(false)}>ยกเลิก</Button>
+            <Button onClick={confirmCompatOverride}>ยืนยันเบิกข้ามป้าย</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
+
   );
 };
 
