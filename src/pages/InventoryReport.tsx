@@ -29,6 +29,9 @@ import { DeviceTypeBadge } from "@/components/media-player/DeviceTypeBadge";
 import * as XLSX from "xlsx";
 import { toast } from "sonner";
 import { buildReceivedSerialAliasMap, formatMergedSerials, matchesSerialSearch } from "@/lib/serialSearch";
+import BillboardSelect from "@/components/billboard/BillboardSelect";
+import { getCompatibilityBadge } from "@/components/equipment/BillboardCompatibilityField";
+
 
 // Removed hardcoded ITEMS_PER_PAGE - now using useTablePagination hook
 const DEFAULT_ADVANCE_DAYS = 30; // Default days to consider as "near expiry/warranty"
