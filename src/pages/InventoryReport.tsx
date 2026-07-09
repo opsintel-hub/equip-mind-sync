@@ -1312,7 +1312,33 @@ export default function InventoryReport() {
                               <span className="text-muted-foreground">-</span>
                             )}
                           </TableCell>
+                          {/* Compatibility Column */}
+                          <TableCell>
+                            {item.item_type === 'equipment' ? (() => {
+                              const mode = item.billboard_compatibility_mode || 'unrestricted';
+                              const count = compatMap[item.id]?.size;
+                              const b = getCompatibilityBadge(mode, count);
+                              return (
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Badge variant="outline" className={`${b.className} text-xs cursor-help`}>
+                                        {b.icon} {b.label}
+                                      </Badge>
+                                    </TooltipTrigger>
+                                    <TooltipContent className="max-w-xs">
+                                      {mode === 'unrestricted' ? 'ใช้ได้กับป้ายทั้งหมด' : `รองรับ ${count || 0} ป้าย`}
+                                      {item.compatibility_notes && <div className="mt-1 text-xs text-muted-foreground">{item.compatibility_notes}</div>}
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
+                              );
+                            })() : (
+                              <span className="text-muted-foreground text-xs">-</span>
+                            )}
+                          </TableCell>
                           {/* Order For Project Column */}
+
                           <TableCell>
                             {item.order_for_project ? (
                               <span className="text-sm">{item.order_for_project}</span>
