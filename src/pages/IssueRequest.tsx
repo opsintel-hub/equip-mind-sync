@@ -456,8 +456,53 @@ const IssueRequest = () => {
       return;
     }
 
+    // Compatibility check (equipment/spare parts only, not media players)
+    if (!isMediaPlayer && currentItem.equipment_id && currentItem.billboard_id) {
+      const mode = (selectedEquipment as any)?.billboard_compatibility_mode;
+      if (mode && mode !== 'unrestricted') {
+        const set = compatMap[currentItem.equipment_id];
+        const supported = set?.has(currentItem.billboard_id) || false;
+        if (!supported) {
+          setCompatCheckInfo({
+            equipmentName: currentItem.equipment_name,
+            equipmentId: currentItem.equipment_id,
+            billboardId: currentItem.billboard_id,
+            isMediaPlayer,
+            mode,
+            supportedCount: set?.size || 0,
+          });
+          setCompatCheckReason("");
+          setCompatCheckAck(false);
+          setCompatCheckOpen(true);
+          return;
+        }
+      }
+    }
+
     addItemToCartInternal(isMediaPlayer);
   };
+
+  // Confirm cross-billboard withdrawal
+  const confirmCompatOverride = () => {
+    if (!compatCheckAck) {
+      toast.error("กรุณาติ๊กยืนยันว่าเข้าใจว่าอาจใช้ไม่ได้กับป้ายนี้");
+      return;
+    }
+    if (!compatCheckReason.trim()) {
+      toast.error("กรุณาระบุเหตุผลเบิกข้ามป้าย");
+      return;
+    }
+    // Prepend reason to notes
+    const prefix = `[เบิกข้ามป้าย] ${compatCheckReason.trim()}`;
+    setCurrentItem((prev) => ({
+      ...prev,
+      notes: prev.notes ? `${prefix}\n${prev.notes}` : prefix,
+    }));
+    setCompatCheckOpen(false);
+    // Now proceed
+    setTimeout(() => addItemToCartInternal(compatCheckInfo?.isMediaPlayer || false), 0);
+  };
+
 
   // Internal function to add item to cart
   const addItemToCartInternal = (isMediaPlayer: boolean) => {
