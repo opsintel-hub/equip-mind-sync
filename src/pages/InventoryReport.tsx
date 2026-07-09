@@ -1075,7 +1075,9 @@ export default function InventoryReport() {
                     <TableHead className="min-w-[120px]">สถานะการเบิก</TableHead>
                     <TableHead className="min-w-[120px]">วัตถุประสงค์</TableHead>
                     <TableHead className="min-w-[120px]">ป้าย/Billboard</TableHead>
+                    <TableHead className="min-w-[140px]">ป้ายที่รองรับ</TableHead>
                     <TableHead className="min-w-[150px]">Order For Project</TableHead>
+
                   </TableRow>
                 </TableHeader>
                 <TableBody>
