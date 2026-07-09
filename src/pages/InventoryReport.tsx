@@ -703,7 +703,18 @@ export default function InventoryReport() {
     if (!combinedData) return [];
 
     return combinedData.filter((item) => {
+      // Compatibility filter (equipment only): show items that support selected billboard
+      if (compatBillboardId && item.item_type === 'equipment') {
+        const mode = item.billboard_compatibility_mode;
+        if (mode && mode !== 'unrestricted') {
+          const set = compatMap[item.id];
+          if (!set || !set.has(compatBillboardId)) return false;
+        }
+        // unrestricted or null → always match
+      }
+
       // Filter by category (need to check subcategory's category_id)
+
       if (filters.categoryId) {
         // Media players and tools don't have subcategories, so skip them if category filter is set
         if (item.item_type !== 'equipment') return false;
