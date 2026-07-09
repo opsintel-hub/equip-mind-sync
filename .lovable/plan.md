@@ -1,67 +1,158 @@
-# แผน: กระบวนการกำหนดสิทธิ์ (3 ขั้นตอน) + เพิ่มช่องปรับสิทธิใน Dialog แก้ไขผู้ใช้
+# ระบบระบุ "ป้ายที่รองรับ" สำหรับอุปกรณ์/อะไหล่ (Final v2 — ใช้ Package ช่วย)
 
-## ภาพรวมกระบวนการ (สิ่งที่จะสื่อสารในหน้า Admin)
+## สรุปคำตอบผู้ใช้
+1. **ไม่ backfill** — ของเก่า default `unrestricted`
+2. **หน้าแก้เดียว** — `EquipmentEditForm` เป็น single source of truth ทุกเมนูลิงก์มาที่นี่
+3. **หน้าเบิก**: แสดงทั้งหมด + badge เตือน + ต้องติ๊กยืนยันเมื่อเบิกข้ามป้าย (บันทึกเหตุผลใน notes)
+4. **ใช้ Package ช่วยจัดกลุ่ม** — เลือกได้ทั้ง Package + ป้ายรายตัวในฟิลด์เดียวกัน
+5. **หน้าค้นหาอะไหล่ตามป้าย** — เพิ่ม filter เลือกป้ายเพื่อดูว่าอะไหล่ตัวไหนใช้ได้กับป้ายนั้น
 
+## Package ซ้อนกันไม่ชนข้อมูล ✅
+ตาราง `billboard_package_items` PK = `(package_id, billboard_id)` — ป้ายเดียวอยู่หลาย Package ได้อิสระ (คนละ row) ไม่กระทบ compatibility เพราะระบบเก็บ **ป้ายที่ resolve แล้ว** ไม่ใช่ package_id (ดูข้อ 1 ด้านล่าง)
+
+---
+
+## 1. Database (Migration)
+
+```sql
+ALTER TABLE public.equipment
+  ADD COLUMN billboard_compatibility_mode text NOT NULL DEFAULT 'unrestricted'
+    CHECK (billboard_compatibility_mode IN ('unrestricted','multi_partial','specific')),
+  ADD COLUMN compatibility_notes text;
+
+-- เก็บป้ายที่ resolve แล้ว (จาก Package + ป้ายรายตัว รวมกัน)
+CREATE TABLE public.equipment_billboard_compatibility (
+  equipment_id uuid NOT NULL REFERENCES public.equipment(id) ON DELETE CASCADE,
+  billboard_id uuid NOT NULL REFERENCES public.billboards(id) ON DELETE CASCADE,
+  source text NOT NULL DEFAULT 'manual', -- 'manual' | 'package'
+  source_package_id uuid REFERENCES public.billboard_packages(id) ON DELETE SET NULL,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY (equipment_id, billboard_id)
+);
+
+-- เก็บ Package ที่ผู้ใช้เลือก (เพื่อ re-resolve ได้ถ้าสมาชิก Package เปลี่ยน)
+CREATE TABLE public.equipment_compatibility_packages (
+  equipment_id uuid NOT NULL REFERENCES public.equipment(id) ON DELETE CASCADE,
+  package_id uuid NOT NULL REFERENCES public.billboard_packages(id) ON DELETE CASCADE,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY (equipment_id, package_id)
+);
+
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.equipment_billboard_compatibility TO authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.equipment_compatibility_packages TO authenticated;
+GRANT ALL ON public.equipment_billboard_compatibility TO service_role;
+GRANT ALL ON public.equipment_compatibility_packages TO service_role;
+
+ALTER TABLE public.equipment_billboard_compatibility ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.equipment_compatibility_packages ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "auth read compat" ON public.equipment_billboard_compatibility
+  FOR SELECT TO authenticated USING (true);
+CREATE POLICY "warehouse/admin write compat" ON public.equipment_billboard_compatibility
+  FOR ALL TO authenticated
+  USING (public.has_role(auth.uid(),'admin') OR public.has_function_permission(auth.uid(),'goods_receipt'))
+  WITH CHECK (public.has_role(auth.uid(),'admin') OR public.has_function_permission(auth.uid(),'goods_receipt'));
+
+-- (นโยบายเดียวกันสำหรับ equipment_compatibility_packages)
+CREATE POLICY "auth read compat pkg" ON public.equipment_compatibility_packages
+  FOR SELECT TO authenticated USING (true);
+CREATE POLICY "warehouse/admin write compat pkg" ON public.equipment_compatibility_packages
+  FOR ALL TO authenticated
+  USING (public.has_role(auth.uid(),'admin') OR public.has_function_permission(auth.uid(),'goods_receipt'))
+  WITH CHECK (public.has_role(auth.uid(),'admin') OR public.has_function_permission(auth.uid(),'goods_receipt'));
+
+CREATE INDEX idx_ebc_billboard ON public.equipment_billboard_compatibility(billboard_id);
 ```
-[1] ตั้งมาตรฐาน (ครั้งเดียว)      [2] ผู้ใช้สมัคร → Admin ปรับ         [3] ปรับละเอียด/ Bulk
-    Tab: คู่มือและแนวทางสิทธิ์         Tab: จัดการผู้ใช้ (Card view)         Tab: จัดการผู้ใช้ (Matrix view)
-    - ทบทวน Role/Function             - รีวิวคำขอสมัคร                    - ติ๊ก/ยกเลิกสิทธิ์รายเมนู
-    - แก้ Preset ให้ตรงธุรกิจ          - ปรับ Role + ฝ่ายใน Dialog          - Bulk หลายคนพร้อมกัน
-                                       - Apply Preset ผ่าน Wizard           - Apply Preset ข้ามคน
-```
 
-## ปัญหาปัจจุบัน
+### RPC: `save_equipment_compatibility(equipment_id, mode, package_ids[], billboard_ids[], notes)`
+- ถ้า `unrestricted` → เคลียร์ทั้ง 2 ตาราง
+- อื่นๆ → เขียน `equipment_compatibility_packages` แล้ว **expand** สมาชิกของ package ทั้งหมด + `billboard_ids[]` (manual) รวมเป็น distinct set เขียนลง `equipment_billboard_compatibility` (upsert, source ระบุที่มา)
 
-Dialog "แก้ไขข้อมูลผู้ใช้" (ภาพที่ 4) มีแค่ ชื่อ / Display / เบอร์ / ฝ่าย
-→ Super Admin **แก้บทบาท/สิทธิ์ตรงนั้นไม่ได้** ต้องปิด dialog แล้วกด Wizard อีกที
-→ กรณีผู้ใช้สมัครมาแล้วเลือก Job Role ผิด (ภาพที่ 3) ควรแก้ได้ในหน้าเดียว
+### Trigger: sync เมื่อสมาชิก Package เปลี่ยน
+- Trigger บน `billboard_package_items` (AFTER INSERT/DELETE) → re-resolve ทุก equipment ที่ link Package นั้นให้ตรงกัน อัตโนมัติ (แก้ปัญหา "เพิ่มป้ายใน Pack A ภายหลัง")
 
-## สิ่งที่จะทำ
+### RPC `import_equipment_row` update
+เพิ่ม params: `compatibility_mode`, `compatible_billboard_ids uuid[]`, `compatible_package_ids uuid[]`, `compatibility_notes`
 
-### 1) เพิ่มช่อง "บทบาท/Preset" ใน Edit User Dialog (Multi-Select)
+---
 
-ใน `src/components/admin/UserPermissionManager.tsx` — Dialog บรรทัด 979-1051
+## 2. UI — หน้าแก้ไขเดียว
 
-เพิ่มระหว่าง "ฝ่าย" กับปุ่ม "บันทึก":
+### Component ใหม่: `src/components/equipment/BillboardCompatibilityField.tsx`
+- **RadioGroup 3 โหมด**: unrestricted / multi_partial / specific
+- เมื่อไม่ใช่ unrestricted แสดง 2 selector รวมกัน:
+  - **`BillboardPackageMultiSelect`** (ใหม่) — เลือกได้หลาย Package + แสดง preview "จะได้ N ป้าย"
+  - **`BillboardMultiSelect`** — ป้ายรายตัวเพิ่มเติม (นอกเหนือจาก Package)
+- แสดง **preview รวม** ด้านล่าง: "รวมทั้งสิ้น 47 ป้าย (Package: 42, เพิ่มรายตัว: 5)" + collapse list
+- Textarea "หมายเหตุความเข้ากันได้"
+- ต้องมีสมาชิกรวม ≥ 1 (นับ resolved) เมื่อไม่ใช่ unrestricted
 
-- **ช่อง "บทบาทงาน (Preset)"** — Multi-select (checkbox list) แสดง `permission_templates` ทั้งหมด
-  - Pre-check preset ที่ตรงกับสิทธิ์ผู้ใช้ปัจจุบัน (ใช้ `detectCurrentPresetKey`) + preset ที่ผู้ใช้ขอตอนสมัคร (`requested_job_role`) ถ้ายังไม่ตั้ง
-  - เลือกได้หลายอัน (เช่น "ผู้เบิก" + "ผู้รับเหมา")
-  - Badge แจ้ง "ผู้ใช้ขอสมัครเป็น: <label>" เหมือน field ฝ่าย
-- **Behavior ตอน "บันทึก"**:
-  - ถ้าเลือก preset ≥1: รวม `suggested_roles` + `suggested_functions` จากทุก preset (union), แล้วเรียก logic เดียวกับ `applyPresetToUser` แต่ merge หลาย preset:
-    - `save_user_roles` ด้วย union ของ roles
-    - Replace `user_function_permissions` ด้วย union ของ functions
-    - Replace `user_departments` ด้วยฝ่ายที่เลือก (ใช้ default flags ของ preset แรก หรือ OR รวมทุก preset)
-  - ถ้าไม่เลือก preset ใดเลย: อัปเดตแค่ profile fields (เหมือนเดิม) — ไม่แตะ roles/functions
-- **หมายเหตุใต้ช่อง**: "ต้องการปรับแบบละเอียดรายเมนู? สลับไปมุมมอง **Matrix สิทธิ์** ด้านบน"
+### เสียบเข้า `EquipmentEditForm` (+ `EquipmentForm` สร้างใหม่ถ้ายังไม่มี)
+ทุก entry point ชี้มาที่ฟอร์มเดียว:
+- Master Data → Equipment (list ปุ่มดินสอ)
+- InventoryReport → ปุ่มดินสอทุกแถว
+- StockCard header → "แก้ไขข้อมูลอุปกรณ์"
+- EquipmentTrackingReport → ปุ่มดินสอ
 
-### 2) ปรับ Hint ในหน้า Card view ให้สื่อกระบวนการ 3 ขั้น
+---
 
-ใน `src/pages/Admin.tsx` (บรรทัดคำอธิบาย viewMode) — เพิ่มข้อความสั้น ๆ:
+## 3. แสดงผล (read-only badge)
+เพิ่มคอลัมน์/badge ใน:
+- EquipmentList, InventoryReport, StockCard, EquipmentTrackingReport, DeadStockReport
+- 🟢 "ใช้ได้ทุกป้าย" / 🟡 "บางป้าย (N)" / 🔵 "เฉพาะป้าย (N)"
+- Tooltip แสดง Package name + จำนวนป้ายรวม
 
-> "ขั้นตอน: (1) ตั้งมาตรฐานที่ Tab 'คู่มือฯ' → (2) แก้ Role/ฝ่าย/Preset ที่ Dialog แก้ไขผู้ใช้ → (3) ปรับละเอียดหรือ Bulk ที่ Matrix สิทธิ์"
+---
 
-### 3) เพิ่ม Section "ขั้นตอนกำหนดสิทธิ์" ใน Tab "คู่มือและแนวทางสิทธิ์"
+## 4. หน้าเบิก / ค้นหา
 
-เพิ่มการ์ดใหม่ก่อน "ระบบสิทธิ์ 3 ชั้น" แสดง flow 3 ขั้นตอนแบบ visual (ไอคอน + ลูกศร) ตรงกับที่วาดไว้ด้านบนของแผนนี้ เพื่อให้ Super Admin คนใหม่เข้าใจทันที
+### 4.1 IssueRequest (ผู้ขอเลือกป้ายปลายทางแล้ว)
+- แสดงอุปกรณ์ทั้งหมด จัดกลุ่ม:
+  - **ตรงป้าย** (`unrestricted` หรือมีป้ายนี้ใน compat set) — ปกติ
+  - **ไม่ระบุว่ารองรับ** — badge ส้ม + tooltip "อาจใช้ไม่ได้กับป้ายนี้"
+- เพิ่มลงตะกร้ารายการส้ม → dialog **"ยืนยันเบิกข้ามป้าย"** (checkbox บังคับ + textarea เหตุผล → บันทึกใน `goods_issue_pending_items.notes`)
 
-## รายละเอียดเทคนิค
+### 4.2 InventoryReport / InventoryFilters
+- เพิ่ม filter **"ป้ายที่รองรับ"** — เลือกได้ทั้ง Package + ป้ายรายตัว
+- Query: `mode='unrestricted' OR EXISTS (compat WHERE billboard_id IN (:resolved_ids))`
 
-**ไฟล์แก้:**
-- `src/components/admin/UserPermissionManager.tsx`
-  - เพิ่ม state: `editSelectedPresets: string[]`
-  - โหลด presets ตอนเปิด dialog (ใช้ `fetchPermissionPresets()` ที่มีอยู่)
-  - Pre-select ด้วย `detectCurrentPresetKey(presets, userRoles[selectedUser.id], userFunctionsByUser[selectedUser.id])` (ถ้าเจอ = 1 preset), มิฉะนั้นใช้ `requested_job_role`
-  - UI: ใช้ `Popover` + `Command` (multi-check) หรือรายการ Checkbox กะทัดรัด — เลือกให้เข้ากับ pattern ที่ใช้ในหน้าอื่น
-  - `handleSaveEdit`: หลัง update profile → ถ้ามี preset เลือก, run merge logic ข้างต้น
-- `src/pages/Admin.tsx` — ปรับ 1 บรรทัด hint
-- `src/pages/Admin.tsx` (Help tab) — เพิ่ม card "ขั้นตอนกำหนดสิทธิ์ 3 ขั้น"
+### 4.3 GoodsIssue / IssueGoods (ฝั่ง Store)
+- Header คำขอเห็น badge ต่อ row + แถบเตือนแดงถ้ามีรายการเบิกข้ามป้าย (พร้อมเหตุผล)
 
-**ไม่แตะ:** DB schema, Matrix component, Wizard component, Card view โครงสร้างเดิม
+---
 
-## ผลที่ได้
+## 5. Import Template
+- `equipmentTemplate.ts`: เพิ่มคอลัมน์
+  - `billboard_compatibility_mode`
+  - `compatible_package_names` (คั่น `|`)
+  - `compatible_billboard_old_codes` (คั่น `|`)
+  - `compatibility_notes`
+- `validators.ts`: ถ้า mode ≠ unrestricted ต้องมี package หรือ billboard ≥ 1 (validate names/codes มีจริง)
+- Instructions sheet: อธิบาย 3 โหมด + ตัวอย่างใช้ Package
 
-- Super Admin แก้ผู้ใช้ 1 คน ได้ครบใน dialog เดียว: ชื่อ + ฝ่าย + **บทบาท/สิทธิ์ (Multi Preset)**
-- กระบวนการ 3 ขั้นชัดเจนบนหน้าจอ ผู้ใช้ใหม่เข้าใจว่าเริ่มตรงไหน ไปต่อยังไง
-- Wizard/Matrix ยังใช้ได้เหมือนเดิมสำหรับงานละเอียด/Bulk
+---
+
+## 6. ลำดับ Implementation
+1. Migration + RPC `save_equipment_compatibility` + Trigger sync จาก `billboard_package_items`
+2. Update `import_equipment_row` RPC
+3. `BillboardPackageMultiSelect` + `BillboardCompatibilityField`
+4. เสียบใน EquipmentForm + EquipmentEditForm
+5. Badge/คอลัมน์ในทุก report + tooltip
+6. Route ปุ่มแก้ไขจากทุก entry point → EquipmentEditForm
+7. InventoryFilters + query compat
+8. IssueRequest badge + dialog ยืนยันเบิกข้ามป้าย
+9. GoodsIssue/IssueGoods แสดง badge + warning
+10. Import template + validator
+11. อัปเดต `mem://features/inventory/*` + `mem://features/billboard/package-management`
+
+---
+
+## 7. ข้อกังวลที่ตอบแล้ว
+- **Package ซ้อนกัน**: ไม่ชน — PK `(package_id, billboard_id)`; ตอน resolve เป็น distinct set
+- **สมาชิก Package เปลี่ยนภายหลัง**: Trigger auto-sync compat set
+- **ลบ Package**: ON DELETE CASCADE ใน `equipment_compatibility_packages` + จะเหลือเฉพาะป้ายที่ระบุ manual (source='manual')
+- **Multi_partial กับ Package 100 ป้าย**: 1 คลิกเลือก Package = ครอบ 100 ป้าย ผู้ใช้ไม่ต้องคลิกทีละป้าย
+
+## 8. ขอบเขต (คงเดิม)
+- **ไม่แตะ**: `media_players`, `advertisements`, `billboard_equipment` (ตารางติดตั้งจริง)
+- **ไม่ backfill** — ของเก่า mode = `unrestricted`

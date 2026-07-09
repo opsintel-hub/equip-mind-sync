@@ -1897,10 +1897,12 @@ export type Database = {
         Row: {
           amp: number | null
           asset_code: string | null
+          billboard_compatibility_mode: string
           brand: string | null
           category: string
           code: string
           company_id: string | null
+          compatibility_notes: string | null
           created_at: string
           created_by: string | null
           department: string | null
@@ -1939,10 +1941,12 @@ export type Database = {
         Insert: {
           amp?: number | null
           asset_code?: string | null
+          billboard_compatibility_mode?: string
           brand?: string | null
           category: string
           code: string
           company_id?: string | null
+          compatibility_notes?: string | null
           created_at?: string
           created_by?: string | null
           department?: string | null
@@ -1981,10 +1985,12 @@ export type Database = {
         Update: {
           amp?: number | null
           asset_code?: string | null
+          billboard_compatibility_mode?: string
           brand?: string | null
           category?: string
           code?: string
           company_id?: string | null
+          compatibility_notes?: string | null
           created_at?: string
           created_by?: string | null
           department?: string | null
@@ -2051,6 +2057,52 @@ export type Database = {
           },
         ]
       }
+      equipment_billboard_compatibility: {
+        Row: {
+          billboard_id: string
+          created_at: string
+          equipment_id: string
+          source: string
+          source_package_id: string | null
+        }
+        Insert: {
+          billboard_id: string
+          created_at?: string
+          equipment_id: string
+          source?: string
+          source_package_id?: string | null
+        }
+        Update: {
+          billboard_id?: string
+          created_at?: string
+          equipment_id?: string
+          source?: string
+          source_package_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "equipment_billboard_compatibility_billboard_id_fkey"
+            columns: ["billboard_id"]
+            isOneToOne: false
+            referencedRelation: "billboards"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "equipment_billboard_compatibility_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "equipment"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "equipment_billboard_compatibility_source_package_id_fkey"
+            columns: ["source_package_id"]
+            isOneToOne: false
+            referencedRelation: "billboard_packages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       equipment_code_prefixes: {
         Row: {
           created_at: string
@@ -2083,6 +2135,39 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      equipment_compatibility_packages: {
+        Row: {
+          created_at: string
+          equipment_id: string
+          package_id: string
+        }
+        Insert: {
+          created_at?: string
+          equipment_id: string
+          package_id: string
+        }
+        Update: {
+          created_at?: string
+          equipment_id?: string
+          package_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "equipment_compatibility_packages_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "equipment"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "equipment_compatibility_packages_package_id_fkey"
+            columns: ["package_id"]
+            isOneToOne: false
+            referencedRelation: "billboard_packages"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       equipment_images: {
         Row: {
@@ -6124,6 +6209,16 @@ export type Database = {
           _token: string
         }
         Returns: boolean
+      }
+      save_equipment_compatibility: {
+        Args: {
+          _billboard_ids: string[]
+          _equipment_id: string
+          _mode: string
+          _notes: string
+          _package_ids: string[]
+        }
+        Returns: Json
       }
       save_user_roles: {
         Args: {

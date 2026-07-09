@@ -143,6 +143,38 @@ const IssueRequest = () => {
     currentStock: number;
     remainingAfterIssue: number;
   } | null>(null);
+
+  // Compatibility check dialog
+  const [compatCheckOpen, setCompatCheckOpen] = useState(false);
+  const [compatCheckReason, setCompatCheckReason] = useState("");
+  const [compatCheckAck, setCompatCheckAck] = useState(false);
+  const [compatCheckInfo, setCompatCheckInfo] = useState<{
+    equipmentName: string;
+    equipmentId: string;
+    billboardId: string;
+    isMediaPlayer: boolean;
+    mode: string;
+    supportedCount: number;
+  } | null>(null);
+
+  // Fetch compatibility map for equipment: equipment_id -> Set<billboard_id>
+  const { data: compatMap = {} } = useQuery({
+    queryKey: ["issue-request-compat-map"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("equipment_billboard_compatibility")
+        .select("equipment_id, billboard_id");
+      if (error) throw error;
+      const map: Record<string, Set<string>> = {};
+      (data || []).forEach((row: any) => {
+        if (!map[row.equipment_id]) map[row.equipment_id] = new Set();
+        map[row.equipment_id].add(row.billboard_id);
+      });
+      return map;
+    },
+  });
+
+
   
   // Stock warning dialog
   const [stockWarningOpen, setStockWarningOpen] = useState(false);
@@ -176,7 +208,7 @@ const IssueRequest = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("equipment")
-        .select("id, code, name, unit, quantity_in_stock, serial_number, expiry_date, warranty_expiry_date, warehouse_entry_date, category, location_id, locations(id, code, name, warehouse_id, warehouses(id, code, name))")
+        .select("id, code, name, unit, quantity_in_stock, serial_number, expiry_date, warranty_expiry_date, warehouse_entry_date, category, location_id, billboard_compatibility_mode, compatibility_notes, locations(id, code, name, warehouse_id, warehouses(id, code, name))")
         .eq("is_active", true)
         .gt("quantity_in_stock", 0)
         .order("warehouse_entry_date", { ascending: true });
@@ -424,8 +456,53 @@ const IssueRequest = () => {
       return;
     }
 
+    // Compatibility check (equipment/spare parts only, not media players)
+    if (!isMediaPlayer && currentItem.equipment_id && currentItem.billboard_id) {
+      const mode = (selectedEquipment as any)?.billboard_compatibility_mode;
+      if (mode && mode !== 'unrestricted') {
+        const set = compatMap[currentItem.equipment_id];
+        const supported = set?.has(currentItem.billboard_id) || false;
+        if (!supported) {
+          setCompatCheckInfo({
+            equipmentName: currentItem.equipment_name,
+            equipmentId: currentItem.equipment_id,
+            billboardId: currentItem.billboard_id,
+            isMediaPlayer,
+            mode,
+            supportedCount: set?.size || 0,
+          });
+          setCompatCheckReason("");
+          setCompatCheckAck(false);
+          setCompatCheckOpen(true);
+          return;
+        }
+      }
+    }
+
     addItemToCartInternal(isMediaPlayer);
   };
+
+  // Confirm cross-billboard withdrawal
+  const confirmCompatOverride = () => {
+    if (!compatCheckAck) {
+      toast.error("กรุณาติ๊กยืนยันว่าเข้าใจว่าอาจใช้ไม่ได้กับป้ายนี้");
+      return;
+    }
+    if (!compatCheckReason.trim()) {
+      toast.error("กรุณาระบุเหตุผลเบิกข้ามป้าย");
+      return;
+    }
+    // Prepend reason to notes
+    const prefix = `[เบิกข้ามป้าย] ${compatCheckReason.trim()}`;
+    setCurrentItem((prev) => ({
+      ...prev,
+      notes: prev.notes ? `${prefix}\n${prev.notes}` : prefix,
+    }));
+    setCompatCheckOpen(false);
+    // Now proceed
+    setTimeout(() => addItemToCartInternal(compatCheckInfo?.isMediaPlayer || false), 0);
+  };
+
 
   // Internal function to add item to cart
   const addItemToCartInternal = (isMediaPlayer: boolean) => {
@@ -1971,7 +2048,46 @@ const IssueRequest = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Cross-billboard compatibility confirmation */}
+      <Dialog open={compatCheckOpen} onOpenChange={setCompatCheckOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="text-amber-600">⚠️ ยืนยันเบิกข้ามป้าย</DialogTitle>
+            <DialogDescription>
+              อุปกรณ์ <b>{compatCheckInfo?.equipmentName}</b> ระบุว่ารองรับเฉพาะบางป้ายเท่านั้น
+              ({compatCheckInfo?.mode === 'specific' ? 'เฉพาะป้าย' : 'บางป้าย'} — รวม {compatCheckInfo?.supportedCount} ป้าย)
+              และป้ายปลายทางนี้<b>ไม่อยู่ในรายการที่รองรับ</b> อาจใช้งานไม่ได้
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <Label className="text-sm">เหตุผลที่ต้องเบิกข้ามป้าย <span className="text-destructive">*</span></Label>
+              <Textarea
+                value={compatCheckReason}
+                onChange={(e) => setCompatCheckReason(e.target.value)}
+                placeholder="เช่น ใช้ทดแทนชั่วคราว / รอสั่งของรุ่นที่รองรับ..."
+                rows={3}
+              />
+            </div>
+            <label className="flex items-start gap-2 text-sm cursor-pointer">
+              <input
+                type="checkbox"
+                checked={compatCheckAck}
+                onChange={(e) => setCompatCheckAck(e.target.checked)}
+                className="mt-1"
+              />
+              <span>ข้าพเจ้ารับทราบว่าอุปกรณ์นี้อาจใช้งานไม่ได้กับป้ายปลายทาง และรับผิดชอบผลที่ตามมา</span>
+            </label>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCompatCheckOpen(false)}>ยกเลิก</Button>
+            <Button onClick={confirmCompatOverride}>ยืนยันเบิกข้ามป้าย</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
+
   );
 };
 

@@ -29,6 +29,9 @@ import { DeviceTypeBadge } from "@/components/media-player/DeviceTypeBadge";
 import * as XLSX from "xlsx";
 import { toast } from "sonner";
 import { buildReceivedSerialAliasMap, formatMergedSerials, matchesSerialSearch } from "@/lib/serialSearch";
+import BillboardSelect from "@/components/billboard/BillboardSelect";
+import { getCompatibilityBadge } from "@/components/equipment/BillboardCompatibilityField";
+
 
 // Removed hardcoded ITEMS_PER_PAGE - now using useTablePagination hook
 const DEFAULT_ADVANCE_DAYS = 30; // Default days to consider as "near expiry/warranty"
@@ -65,7 +68,10 @@ interface InventoryItem {
   issued_quantity?: number;
   all_prices?: number[];
   order_for_project?: string | null;
+  billboard_compatibility_mode?: string | null;
+  compatibility_notes?: string | null;
 }
+
 
 interface ReceivedSerialItem {
   equipment_id: string | null;
@@ -93,7 +99,28 @@ export default function InventoryReport() {
     issueStatus: "",
     itemCondition: "",
   });
+  // Compatibility filter: filter equipment by billboard support
+  const [compatBillboardId, setCompatBillboardId] = useState<string>("");
+
   // Pagination is handled by useTablePagination below
+
+  // Fetch all compat data (mode + billboard ids per equipment)
+  const { data: compatMap = {} } = useQuery({
+    queryKey: ["equipment-compat-map"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("equipment_billboard_compatibility")
+        .select("equipment_id, billboard_id");
+      if (error) throw error;
+      const map: Record<string, Set<string>> = {};
+      (data || []).forEach((row: any) => {
+        if (!map[row.equipment_id]) map[row.equipment_id] = new Set();
+        map[row.equipment_id].add(row.billboard_id);
+      });
+      return map;
+    },
+  });
+
 
   // Fetch categories for mapping
   const { data: categories = [] } = useQuery({
@@ -145,10 +172,13 @@ export default function InventoryReport() {
           expiry_date,
           warranty_expiry_date,
           item_condition,
+          billboard_compatibility_mode,
+          compatibility_notes,
           companies:company_id (id, name, code),
           locations:location_id (id, name, code, warehouse_id, warehouses:warehouse_id (id, name, code)),
           subcategories:subcategory_id (id, name, category_id)
         `)
+
         .eq("is_active", true)
         .order("code");
 
@@ -676,7 +706,18 @@ export default function InventoryReport() {
     if (!combinedData) return [];
 
     return combinedData.filter((item) => {
+      // Compatibility filter (equipment only): show items that support selected billboard
+      if (compatBillboardId && item.item_type === 'equipment') {
+        const mode = item.billboard_compatibility_mode;
+        if (mode && mode !== 'unrestricted') {
+          const set = compatMap[item.id];
+          if (!set || !set.has(compatBillboardId)) return false;
+        }
+        // unrestricted or null → always match
+      }
+
       // Filter by category (need to check subcategory's category_id)
+
       if (filters.categoryId) {
         // Media players and tools don't have subcategories, so skip them if category filter is set
         if (item.item_type !== 'equipment') return false;
@@ -990,9 +1031,22 @@ export default function InventoryReport() {
           <CardHeader>
             <CardTitle className="text-base">ตัวกรอง</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-3">
             <InventoryFilters filters={filters} onFiltersChange={handleFiltersChange} />
+            <div className="pt-3 border-t">
+              <label className="text-sm font-medium mb-1 block">
+                ค้นหาอุปกรณ์/อะไหล่ที่รองรับป้าย <span className="text-xs text-muted-foreground">(กรองอุปกรณ์ที่ใช้ได้กับป้ายนี้)</span>
+              </label>
+              <div className="max-w-md">
+                <BillboardSelect
+                  value={compatBillboardId}
+                  onChange={setCompatBillboardId}
+                  placeholder="เลือกป้ายเพื่อดูอะไหล่ที่รองรับ..."
+                />
+              </div>
+            </div>
           </CardContent>
+
         </Card>
 
         {/* Data Table */}
@@ -1021,19 +1075,21 @@ export default function InventoryReport() {
                     <TableHead className="min-w-[120px]">สถานะการเบิก</TableHead>
                     <TableHead className="min-w-[120px]">วัตถุประสงค์</TableHead>
                     <TableHead className="min-w-[120px]">ป้าย/Billboard</TableHead>
+                    <TableHead className="min-w-[140px]">ป้ายที่รองรับ</TableHead>
                     <TableHead className="min-w-[150px]">Order For Project</TableHead>
+
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {isLoading ? (
                     <TableRow>
-                       <TableCell colSpan={20} className="text-center py-8">
+                       <TableCell colSpan={21} className="text-center py-8">
                         กำลังโหลด...
                       </TableCell>
                     </TableRow>
                   ) : paginatedData.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={20} className="text-center py-8 text-muted-foreground">
+                      <TableCell colSpan={21} className="text-center py-8 text-muted-foreground">
                         ไม่พบข้อมูล
                       </TableCell>
                     </TableRow>
@@ -1256,7 +1312,33 @@ export default function InventoryReport() {
                               <span className="text-muted-foreground">-</span>
                             )}
                           </TableCell>
+                          {/* Compatibility Column */}
+                          <TableCell>
+                            {item.item_type === 'equipment' ? (() => {
+                              const mode = item.billboard_compatibility_mode || 'unrestricted';
+                              const count = compatMap[item.id]?.size;
+                              const b = getCompatibilityBadge(mode, count);
+                              return (
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Badge variant="outline" className={`${b.className} text-xs cursor-help`}>
+                                        {b.icon} {b.label}
+                                      </Badge>
+                                    </TooltipTrigger>
+                                    <TooltipContent className="max-w-xs">
+                                      {mode === 'unrestricted' ? 'ใช้ได้กับป้ายทั้งหมด' : `รองรับ ${count || 0} ป้าย`}
+                                      {item.compatibility_notes && <div className="mt-1 text-xs text-muted-foreground">{item.compatibility_notes}</div>}
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
+                              );
+                            })() : (
+                              <span className="text-muted-foreground text-xs">-</span>
+                            )}
+                          </TableCell>
                           {/* Order For Project Column */}
+
                           <TableCell>
                             {item.order_for_project ? (
                               <span className="text-sm">{item.order_for_project}</span>

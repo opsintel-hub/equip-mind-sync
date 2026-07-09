@@ -21,6 +21,13 @@ import { BrandSelect } from "./BrandSelect";
 import { WarehouseLocationSelect } from "@/components/location/WarehouseLocationSelect";
 import { CompanySelect } from "@/components/company/CompanySelect";
 import { SupplierSelect } from "@/components/supplier/SupplierSelect";
+import {
+  BillboardCompatibilityField,
+  CompatibilityValue,
+  loadEquipmentCompatibility,
+  saveEquipmentCompatibility,
+} from "./BillboardCompatibilityField";
+
 
 const equipmentSchema = z.object({
   code: z.string().min(1, "กรุณากรอกรหัสอุปกรณ์").max(50, "รหัสอุปกรณ์ต้องไม่เกิน 50 ตัวอักษร"),
@@ -88,8 +95,10 @@ export function EquipmentEditForm({ equipment, onSuccess }: EquipmentEditFormPro
   const [open, setOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [warehouseId, setWarehouseId] = useState("");
+  const [compat, setCompat] = useState<CompatibilityValue>({ mode: "unrestricted", packageIds: [], billboardIds: [], notes: "" });
 
   const form = useForm<EquipmentFormValues>({
+
     resolver: zodResolver(equipmentSchema),
     defaultValues: {
       code: equipment.code,
@@ -161,8 +170,10 @@ export function EquipmentEditForm({ equipment, onSuccess }: EquipmentEditFormPro
         setWarehouseId(data?.warehouse_id || "");
       };
       preloadWarehouseId();
+      loadEquipmentCompatibility(equipment.id).then(setCompat).catch(() => {});
     }
   }, [open, equipment, form]);
+
 
   const selectedCategory = form.watch("category");
 
@@ -201,9 +212,16 @@ export function EquipmentEditForm({ equipment, onSuccess }: EquipmentEditFormPro
 
       if (error) throw error;
 
+      // Validate + save compatibility
+      if (compat.mode !== "unrestricted" && compat.packageIds.length === 0 && compat.billboardIds.length === 0) {
+        throw new Error("กรุณาเลือก Package หรือป้ายรายตัวอย่างน้อย 1 เมื่อไม่ได้เลือก 'ใช้ได้ทุกป้าย'");
+      }
+      await saveEquipmentCompatibility(equipment.id, compat);
+
       toast.success("อัพเดทอุปกรณ์สำเร็จ");
       setOpen(false);
       onSuccess?.();
+
     } catch (error: any) {
       console.error("Error updating equipment:", error);
       toast.error(error.message || "อัพเดทอุปกรณ์ไม่สำเร็จ");
@@ -743,6 +761,10 @@ export function EquipmentEditForm({ equipment, onSuccess }: EquipmentEditFormPro
                 </FormItem>
               )}
             />
+
+            <BillboardCompatibilityField value={compat} onChange={setCompat} disabled={isLoading} />
+
+
 
             <div className="flex justify-end gap-2 pt-4">
               <Button type="button" variant="outline" onClick={() => setOpen(false)} disabled={isLoading}>
