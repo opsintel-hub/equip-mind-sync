@@ -96,7 +96,28 @@ export default function InventoryReport() {
     issueStatus: "",
     itemCondition: "",
   });
+  // Compatibility filter: filter equipment by billboard support
+  const [compatBillboardId, setCompatBillboardId] = useState<string>("");
+
   // Pagination is handled by useTablePagination below
+
+  // Fetch all compat data (mode + billboard ids per equipment)
+  const { data: compatMap = {} } = useQuery({
+    queryKey: ["equipment-compat-map"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("equipment_billboard_compatibility")
+        .select("equipment_id, billboard_id");
+      if (error) throw error;
+      const map: Record<string, Set<string>> = {};
+      (data || []).forEach((row: any) => {
+        if (!map[row.equipment_id]) map[row.equipment_id] = new Set();
+        map[row.equipment_id].add(row.billboard_id);
+      });
+      return map;
+    },
+  });
+
 
   // Fetch categories for mapping
   const { data: categories = [] } = useQuery({
