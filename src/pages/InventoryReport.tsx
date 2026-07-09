@@ -1031,9 +1031,22 @@ export default function InventoryReport() {
           <CardHeader>
             <CardTitle className="text-base">ตัวกรอง</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-3">
             <InventoryFilters filters={filters} onFiltersChange={handleFiltersChange} />
+            <div className="pt-3 border-t">
+              <label className="text-sm font-medium mb-1 block">
+                ค้นหาอุปกรณ์/อะไหล่ที่รองรับป้าย <span className="text-xs text-muted-foreground">(กรองอุปกรณ์ที่ใช้ได้กับป้ายนี้)</span>
+              </label>
+              <div className="max-w-md">
+                <BillboardSelect
+                  value={compatBillboardId}
+                  onChange={setCompatBillboardId}
+                  placeholder="เลือกป้ายเพื่อดูอะไหล่ที่รองรับ..."
+                />
+              </div>
+            </div>
           </CardContent>
+
         </Card>
 
         {/* Data Table */}
