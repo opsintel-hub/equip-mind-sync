@@ -65,7 +65,10 @@ interface InventoryItem {
   issued_quantity?: number;
   all_prices?: number[];
   order_for_project?: string | null;
+  billboard_compatibility_mode?: string | null;
+  compatibility_notes?: string | null;
 }
+
 
 interface ReceivedSerialItem {
   equipment_id: string | null;
@@ -145,10 +148,13 @@ export default function InventoryReport() {
           expiry_date,
           warranty_expiry_date,
           item_condition,
+          billboard_compatibility_mode,
+          compatibility_notes,
           companies:company_id (id, name, code),
           locations:location_id (id, name, code, warehouse_id, warehouses:warehouse_id (id, name, code)),
           subcategories:subcategory_id (id, name, category_id)
         `)
+
         .eq("is_active", true)
         .order("code");
 

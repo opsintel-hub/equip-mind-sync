@@ -26,6 +26,12 @@ import { UnitSelect } from "./UnitSelect";
 import { DimensionFields } from "./DimensionFields";
 import { EquipmentImageUpload } from "./EquipmentImageUpload";
 import { SupplierSelect } from "@/components/supplier/SupplierSelect";
+import {
+  BillboardCompatibilityField,
+  CompatibilityValue,
+  saveEquipmentCompatibility,
+} from "./BillboardCompatibilityField";
+
 
 const equipmentSchema = z.object({
   code_prefix: z.string().min(1, "กรุณาเลือก Prefix รหัสอุปกรณ์"),
@@ -93,6 +99,8 @@ export function EquipmentForm({ onSuccess, prefillData, triggerButton }: Equipme
   const [duplicateWarning, setDuplicateWarning] = useState<string | null>(null);
   const [isCheckingDuplicate, setIsCheckingDuplicate] = useState(false);
   const [warehouseId, setWarehouseId] = useState("");
+  const [compat, setCompat] = useState<CompatibilityValue>({ mode: "unrestricted", packageIds: [], billboardIds: [], notes: "" });
+
 
   const form = useForm<EquipmentFormValues>({
     resolver: zodResolver(equipmentSchema),
@@ -283,14 +291,26 @@ export function EquipmentForm({ onSuccess, prefillData, triggerButton }: Equipme
         }
       }
 
+      // Save compatibility if configured
+      if (equipmentData) {
+        if (compat.mode !== "unrestricted" && compat.packageIds.length === 0 && compat.billboardIds.length === 0) {
+          throw new Error("กรุณาเลือก Package หรือป้ายรายตัวอย่างน้อย 1 เมื่อไม่ได้เลือก 'ใช้ได้ทุกป้าย'");
+        }
+        if (compat.mode !== "unrestricted") {
+          await saveEquipmentCompatibility(equipmentData.id, compat);
+        }
+      }
+
       toast.success(`เพิ่มอุปกรณ์สำเร็จ (รหัส: ${generatedCode})`);
       form.reset();
       setPreviewCode("");
       setImages([]);
       setDuplicateWarning(null);
+      setCompat({ mode: "unrestricted", packageIds: [], billboardIds: [], notes: "" });
       setOpen(false);
       // Pass the new equipment ID back to the caller
       onSuccess?.(equipmentData?.id);
+
     } catch (error: any) {
       console.error("Error adding equipment:", error);
       toast.error(error.message || "เพิ่มอุปกรณ์ไม่สำเร็จ");
@@ -843,6 +863,10 @@ export function EquipmentForm({ onSuccess, prefillData, triggerButton }: Equipme
                 </FormItem>
               )}
             />
+
+            <BillboardCompatibilityField value={compat} onChange={setCompat} disabled={isLoading} />
+
+
 
             <div className="flex justify-end gap-2 pt-4">
               <Button type="button" variant="outline" onClick={() => setOpen(false)} disabled={isLoading}>
