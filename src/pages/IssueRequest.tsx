@@ -143,6 +143,38 @@ const IssueRequest = () => {
     currentStock: number;
     remainingAfterIssue: number;
   } | null>(null);
+
+  // Compatibility check dialog
+  const [compatCheckOpen, setCompatCheckOpen] = useState(false);
+  const [compatCheckReason, setCompatCheckReason] = useState("");
+  const [compatCheckAck, setCompatCheckAck] = useState(false);
+  const [compatCheckInfo, setCompatCheckInfo] = useState<{
+    equipmentName: string;
+    equipmentId: string;
+    billboardId: string;
+    isMediaPlayer: boolean;
+    mode: string;
+    supportedCount: number;
+  } | null>(null);
+
+  // Fetch compatibility map for equipment: equipment_id -> Set<billboard_id>
+  const { data: compatMap = {} } = useQuery({
+    queryKey: ["issue-request-compat-map"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("equipment_billboard_compatibility")
+        .select("equipment_id, billboard_id");
+      if (error) throw error;
+      const map: Record<string, Set<string>> = {};
+      (data || []).forEach((row: any) => {
+        if (!map[row.equipment_id]) map[row.equipment_id] = new Set();
+        map[row.equipment_id].add(row.billboard_id);
+      });
+      return map;
+    },
+  });
+
+
   
   // Stock warning dialog
   const [stockWarningOpen, setStockWarningOpen] = useState(false);
