@@ -1083,13 +1083,13 @@ export default function InventoryReport() {
                 <TableBody>
                   {isLoading ? (
                     <TableRow>
-                       <TableCell colSpan={20} className="text-center py-8">
+                       <TableCell colSpan={21} className="text-center py-8">
                         กำลังโหลด...
                       </TableCell>
                     </TableRow>
                   ) : paginatedData.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={20} className="text-center py-8 text-muted-foreground">
+                      <TableCell colSpan={21} className="text-center py-8 text-muted-foreground">
                         ไม่พบข้อมูล
                       </TableCell>
                     </TableRow>
