@@ -27,23 +27,24 @@ const BillboardPublicView = () => {
   const { data: installedEquipment } = useQuery({
     queryKey: ["billboard-equipment-public", id],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("billboard_equipment")
-        .select(`
-          *,
-          equipment:equipment_id (
-            id,
-            code,
-            name,
-            unit,
-            category,
-            expiry_date,
-            warranty_expiry_date
-          )
-        `)
-        .eq("billboard_id", id);
+      const { data, error } = await supabase.rpc(
+        "public_get_billboard_equipment" as any,
+        { _billboard_id: id }
+      );
       if (error) throw error;
-      return data;
+      return ((data as any[]) || []).map((row) => ({
+        id: row.id,
+        quantity: row.quantity,
+        installation_date: row.installation_date,
+        equipment: {
+          code: row.equipment_code,
+          name: row.equipment_name,
+          unit: row.equipment_unit,
+          category: row.equipment_category,
+          expiry_date: row.expiry_date,
+          warranty_expiry_date: row.warranty_expiry_date,
+        },
+      }));
     },
     enabled: !!id,
   });
