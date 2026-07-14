@@ -6157,6 +6157,22 @@ export type Database = {
       }
       public_get_ad_issue_request: { Args: { _token: string }; Returns: Json }
       public_get_billboard: { Args: { _id: string }; Returns: Json }
+      public_get_billboard_equipment: {
+        Args: { _billboard_id: string }
+        Returns: {
+          billboard_id: string
+          equipment_category: string
+          equipment_code: string
+          equipment_id: string
+          equipment_name: string
+          equipment_unit: string
+          expiry_date: string
+          id: string
+          installation_date: string
+          quantity: number
+          warranty_expiry_date: string
+        }[]
+      }
       public_get_billboards_min: {
         Args: { _ids: string[] }
         Returns: {
