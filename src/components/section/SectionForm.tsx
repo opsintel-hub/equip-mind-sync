@@ -29,6 +29,10 @@ interface SectionFormProps {
     name: string;
     description: string | null;
   };
+  defaultDepartmentId?: string;
+  triggerLabel?: string;
+  triggerVariant?: "default" | "outline" | "ghost" | "secondary" | "destructive" | "link";
+  triggerClassName?: string;
 }
 
 export function SectionForm({ onSuccess, editData }: SectionFormProps) {
