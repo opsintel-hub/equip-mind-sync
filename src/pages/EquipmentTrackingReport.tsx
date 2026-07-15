@@ -20,6 +20,8 @@ import { useAllowedDepartments } from "@/hooks/useAllowedDepartments";
 import { buildReceivedSerialAliasMap, formatMergedSerials, matchesSerialSearch } from "@/lib/serialSearch";
 import { DeviceTypeBadge } from "@/components/media-player/DeviceTypeBadge";
 import { deviceLabel } from "@/lib/deviceTypes";
+import { CompatibilityBadgeCell } from "@/components/reports/CompatibilityBadgeCell";
+
 
 // ─── Helpers ─────────────────────────────────────────────
 
@@ -529,6 +531,7 @@ function BillboardViewTab() {
                                   <TableHead>Code</TableHead>
                                   <TableHead>S/N</TableHead>
                                   <TableHead>ประเภท</TableHead>
+                                  <TableHead>ป้ายที่รองรับ</TableHead>
                                   <TableHead>Brand</TableHead>
                                   <TableHead className="text-center">จำนวน</TableHead>
                                   <TableHead>วันที่ติดตั้ง</TableHead>
@@ -538,6 +541,7 @@ function BillboardViewTab() {
                                   <TableHead>วันหมดประกัน</TableHead>
                                   <TableHead>สถานะประกัน</TableHead>
                                 </TableRow>
+
                               </TableHeader>
                               <TableBody>
                                 {items.map(item => {
@@ -548,6 +552,7 @@ function BillboardViewTab() {
                                       <TableCell className="text-xs font-mono">{eq.code}</TableCell>
                                       <TableCell className="text-xs whitespace-pre-line">{eq.serial_number || "-"}</TableCell>
                                       <TableCell>{item.type === "media_player" ? <DeviceTypeBadge value={eq.device_type} /> : <Badge variant="outline" className="text-xs">{eq.category || "อุปกรณ์"}</Badge>}</TableCell>
+                                      <TableCell><CompatibilityBadgeCell equipmentId={item.type === "equipment" ? eq.id : null} skip={item.type !== "equipment"} /></TableCell>
                                       <TableCell className="text-xs">{eq.brand || "-"}</TableCell>
                                       <TableCell className="text-center">{item.quantity}</TableCell>
                                       <TableCell className="text-xs whitespace-nowrap">{fmtDate(item.installation_date)}</TableCell>
@@ -557,6 +562,7 @@ function BillboardViewTab() {
                                       <TableCell className="text-xs whitespace-nowrap">{fmtDate(eq.warranty_expiry_date)}</TableCell>
                                       <TableCell>{expiryBadge(eq.warranty_expiry_date, "ประกัน")}</TableCell>
                                     </TableRow>
+
                                   );
                                 })}
                               </TableBody>
@@ -875,6 +881,7 @@ function EquipmentViewTab() {
                 <TableHead className="whitespace-nowrap">ชื่อ / Model</TableHead>
                 <TableHead className="whitespace-nowrap">S/N</TableHead>
                 <TableHead className="whitespace-nowrap">ประเภท</TableHead>
+                <TableHead className="whitespace-nowrap">ป้ายที่รองรับ</TableHead>
                 <TableHead className="whitespace-nowrap">Brand</TableHead>
                 <TableHead className="text-center whitespace-nowrap">คงเหลือในคลัง</TableHead>
                 <TableHead className="whitespace-nowrap">ติดตั้งที่ป้าย</TableHead>
@@ -884,18 +891,21 @@ function EquipmentViewTab() {
                 <TableHead className="whitespace-nowrap">สถานะประกัน</TableHead>
                 <TableHead className="text-center whitespace-nowrap">รายละเอียด</TableHead>
               </TableRow>
+
             </TableHeader>
             <TableBody>
               {paginatedData.length === 0 ? (
-                <TableRow><TableCell colSpan={12} className="text-center text-muted-foreground py-8">ไม่พบข้อมูล</TableCell></TableRow>
+                <TableRow><TableCell colSpan={13} className="text-center text-muted-foreground py-8">ไม่พบข้อมูล</TableCell></TableRow>
               ) : paginatedData.map(item => (
                 <TableRow key={`${item.itemType}-${item.id}-${item.serialDisplay}`}>
                   <TableCell className="font-mono text-xs whitespace-nowrap">{item.code}</TableCell>
                   <TableCell className="font-medium">{item.name}</TableCell>
                   <TableCell className="text-xs whitespace-pre-line">{item.serialDisplay}</TableCell>
                   <TableCell>{item.itemType === "media_player" ? <DeviceTypeBadge value={item.device_type} /> : <Badge variant="outline" className="text-xs">{item.category}</Badge>}</TableCell>
+                  <TableCell><CompatibilityBadgeCell equipmentId={item.itemType === "equipment" ? item.id : null} skip={item.itemType !== "equipment"} /></TableCell>
                   <TableCell className="text-xs">{item.brand || "-"}</TableCell>
                   <TableCell className="text-center">{item.quantity_in_stock}</TableCell>
+
                   <TableCell>
                     {item.isInstalled ? (
                       <Badge className="bg-emerald-500 text-white hover:bg-emerald-600 text-xs"><MapPin className="w-3 h-3 mr-1" />{item.installedBillboard || "ติดตั้งบนป้าย"}</Badge>

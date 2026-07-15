@@ -12,6 +12,8 @@ import { format, differenceInDays } from "date-fns";
 import * as XLSX from "xlsx";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import { useAllowedDepartments } from "@/hooks/useAllowedDepartments";
+import { CompatibilityBadgeCell } from "@/components/reports/CompatibilityBadgeCell";
+
 
 interface Equipment {
   id: string;
@@ -512,6 +514,7 @@ const DeadStockReport = () => {
                   <TableHead>รหัส</TableHead>
                   <TableHead>ชื่อสินค้า</TableHead>
                   <TableHead>หมวดหมู่</TableHead>
+                  <TableHead>ป้ายที่รองรับ</TableHead>
                   <TableHead>ฝ่าย</TableHead>
                   <TableHead>คลัง</TableHead>
                   <TableHead>สภาพ</TableHead>
@@ -521,11 +524,12 @@ const DeadStockReport = () => {
                   <TableHead>วันที่นำเข้า</TableHead>
                   <TableHead>ช่วงอายุ</TableHead>
                 </TableRow>
+
               </TableHeader>
               <TableBody>
                 {isLoading ? (
                   <TableRow>
-                    <TableCell colSpan={11} className="text-center py-8">
+                    <TableCell colSpan={12} className="text-center py-8">
                       กำลังโหลด...
                     </TableCell>
                   </TableRow>
@@ -538,9 +542,11 @@ const DeadStockReport = () => {
                           <TableCell className="font-medium">{item.code}</TableCell>
                           <TableCell>{item.name}</TableCell>
                           <TableCell>{item.category}</TableCell>
+                          <TableCell><CompatibilityBadgeCell equipmentId={item.id} /></TableCell>
                           <TableCell>{item.department || "-"}</TableCell>
                           <TableCell>{getLocationName(item.location_id)}</TableCell>
                           <TableCell>
+
                             <Badge variant="outline" className={`text-xs ${
                               (item.item_condition || 'normal') === 'defective' ? 'bg-destructive/10 text-destructive border-destructive/30' :
                               (item.item_condition || 'normal') === 'pending_inspection' ? 'bg-warning/10 text-warning border-warning/30' :
@@ -563,7 +569,7 @@ const DeadStockReport = () => {
                     })}
                 {!isLoading && paginatedEquipment.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={11} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={12} className="text-center py-8 text-muted-foreground">
                       ไม่พบข้อมูล
                     </TableCell>
                   </TableRow>

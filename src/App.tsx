@@ -52,6 +52,8 @@ const AdIssue = lazy(() => import("./pages/AdIssue"));
 const AdPublicView = lazy(() => import("./pages/AdPublicView"));
 const AdContractorView = lazy(() => import("./pages/AdContractorView"));
 const EquipmentTrackingReport = lazy(() => import("./pages/EquipmentTrackingReport"));
+const BillboardPartsAvailability = lazy(() => import("./pages/BillboardPartsAvailability"));
+
 const BillboardPMPage = lazy(() => import("./pages/BillboardPMPage"));
 const DefectiveReturnEntry = lazy(() => import("./pages/DefectiveReturnEntry"));
 const DisposalApproval = lazy(() => import("./pages/DisposalApproval"));
@@ -166,6 +168,8 @@ const App = () => (
             <Route path="/ad-request" element={<Protected><AdRequest /></Protected>} />
             <Route path="/ad-issue" element={<Protected><AdIssue /></Protected>} />
             <Route path="/equipment-tracking" element={<Protected><EquipmentTrackingReport /></Protected>} />
+            <Route path="/billboard-parts-availability" element={<Protected><BillboardPartsAvailability /></Protected>} />
+
             <Route path="/pm-billboard" element={<Protected><BillboardPMPage /></Protected>} />
             <Route path="/billboard-packages" element={<Protected><BillboardPackages /></Protected>} />
             <Route path="/defective-return" element={<Protected><DefectiveReturnEntry /></Protected>} />

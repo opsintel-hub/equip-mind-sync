@@ -34,6 +34,8 @@ import { useDepartmentPermissions } from "@/hooks/useDepartmentPermissions";
 import { StockMovementGroupRow, GroupedMovement } from "@/components/stock-movement/StockMovementGroupRow";
 import { StockMovementDocumentDialog } from "@/components/stock-movement/StockMovementDocumentDialog";
 import { buildReceivedSerialAliasMap, formatMergedSerials, matchesSerialSearch } from "@/lib/serialSearch";
+import { CompatibilityBadgeCell } from "@/components/reports/CompatibilityBadgeCell";
+
 
 // ── Types ──────────────────────────────────────────────────────
 interface EquipmentItem {
@@ -952,6 +954,10 @@ export default function StockCard() {
                   {selectedItem.type === "media_player" && (
                     <DeviceTypeBadge value={selectedItem.device_type} />
                   )}
+                  {selectedItem.type === "equipment" && (
+                    <CompatibilityBadgeCell equipmentId={selectedItem.id} />
+                  )}
+
                 </div>
 
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
