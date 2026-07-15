@@ -192,13 +192,17 @@ export function ToolForm({ onSuccess }: ToolFormProps) {
           เพิ่มเครื่องมือ
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Plus className="h-5 w-5" />
             เพิ่มเครื่องมือใหม่
           </DialogTitle>
+          <p className="text-xs text-muted-foreground">
+            💡 จัดการหมวดหมู่ / ยี่ห้อ / ผู้จัดจำหน่าย ได้ที่เมนู "ข้อมูลหลัก" (Master Data)
+          </p>
         </DialogHeader>
+
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
