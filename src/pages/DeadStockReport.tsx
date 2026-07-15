@@ -514,6 +514,7 @@ const DeadStockReport = () => {
                   <TableHead>รหัส</TableHead>
                   <TableHead>ชื่อสินค้า</TableHead>
                   <TableHead>หมวดหมู่</TableHead>
+                  <TableHead>ป้ายที่รองรับ</TableHead>
                   <TableHead>ฝ่าย</TableHead>
                   <TableHead>คลัง</TableHead>
                   <TableHead>สภาพ</TableHead>
@@ -523,6 +524,7 @@ const DeadStockReport = () => {
                   <TableHead>วันที่นำเข้า</TableHead>
                   <TableHead>ช่วงอายุ</TableHead>
                 </TableRow>
+
               </TableHeader>
               <TableBody>
                 {isLoading ? (
