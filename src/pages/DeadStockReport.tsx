@@ -12,6 +12,8 @@ import { format, differenceInDays } from "date-fns";
 import * as XLSX from "xlsx";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import { useAllowedDepartments } from "@/hooks/useAllowedDepartments";
+import { CompatibilityBadgeCell } from "@/components/reports/CompatibilityBadgeCell";
+
 
 interface Equipment {
   id: string;
