@@ -132,16 +132,10 @@ const MasterData = () => {
                 ผู้รับเหมา
               </TabsTrigger>
             )}
-            {can("md_departments") && (
+            {(can("md_departments") || can("md_sections")) && (
               <TabsTrigger value="departments" className="gap-1.5 text-xs px-3">
                 <Building2 className="h-3.5 w-3.5" />
-                ฝ่าย
-              </TabsTrigger>
-            )}
-            {can("md_sections") && (
-              <TabsTrigger value="sections" className="gap-1.5 text-xs px-3">
-                <Layers className="h-3.5 w-3.5" />
-                แผนก
+                ฝ่าย & แผนก
               </TabsTrigger>
             )}
             {can("md_companies") && (
