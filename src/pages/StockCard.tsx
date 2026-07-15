@@ -952,6 +952,10 @@ export default function StockCard() {
                   {selectedItem.type === "media_player" && (
                     <DeviceTypeBadge value={selectedItem.device_type} />
                   )}
+                  {selectedItem.type === "equipment" && (
+                    <CompatibilityBadgeCell equipmentId={selectedItem.id} />
+                  )}
+
                 </div>
 
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
