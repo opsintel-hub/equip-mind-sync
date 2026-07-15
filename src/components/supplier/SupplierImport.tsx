@@ -114,6 +114,8 @@ export function SupplierImport({ onSuccess }: SupplierImportProps) {
           company_code: pick(row, HEADERS.company) || existing.company_code || null,
           tax_id: pick(row, HEADERS.tax_id) || existing.tax_id || null,
           name: name || existing.name,
+          description: pick(row, HEADERS.description) || existing.description || null,
+          media_site_name: pick(row, HEADERS.media_site_name) || existing.media_site_name || null,
           contact_person: pick(row, HEADERS.contact_person) || existing.contact_person || null,
           phone: pick(row, HEADERS.phone) || existing.phone || null,
           email: pick(row, HEADERS.email) || existing.email || null,
