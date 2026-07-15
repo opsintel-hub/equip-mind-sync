@@ -1,81 +1,61 @@
+
+# ปรับ UI หมวดหมู่: รวมหลัก-ย่อยเป็น Accordion Tree
+
 ## เป้าหมาย
+แทนที่การแยก 2 ตาราง (หลัก / ย่อย) ในแต่ละ tab ด้วย **Accordion tree เดียว** ที่แสดงหมวดหมู่ย่อยไหลลงมาใต้หมวดหลัก กด ▼/▶ เพื่อขยาย-ยุบได้ ทำให้เห็นความสัมพันธ์ทันทีในหน้าจอเดียว
 
-1. เพิ่ม **หมวดหมู่ย่อยเครื่องมือ** ให้ผูกกับหมวดหมู่หลักเครื่องมือ (คล้ายอุปกรณ์)
-2. ออกแบบการจัดการหมวดหมู่ที่หน้า **Master Data → หมวดหมู่** ให้แยก "อุปกรณ์" กับ "เครื่องมือ" ชัดเจน ไม่สับสน
+## ขอบเขต
+ปรับทั้ง 2 tab ใน `MasterData → หมวดหมู่` ให้ใช้ pattern เดียวกัน:
+- 📦 หมวดหมู่อุปกรณ์/อะไหล่ (`categories` + `subcategories`)
+- 🔧 หมวดหมู่เครื่องมือ (`tool_categories` + `tool_subcategories`)
 
----
-
-## Part 1: เพิ่มหมวดหมู่ย่อยของเครื่องมือ
-
-### ฐานข้อมูล (migration)
-- สร้างตารางใหม่ `public.tool_subcategories`
-  - fields: `name`, `description`, `tool_category_id` (FK → tool_categories), `is_active`
-  - มาตรฐาน RLS + GRANT + trigger updated_at ตามระบบ
-- เพิ่มคอลัมน์ `tool_subcategory_id` (nullable) ในตาราง `tools`
-
-### UI Component
-- สร้าง `src/components/tools/ToolSubcategorySelect.tsx` (โมเดลเดียวกับ `SubcategorySelect.tsx` ของอุปกรณ์):
-  - รับ prop `toolCategoryId` เพื่อกรองหมวดหมู่ย่อยตามหมวดหมู่หลักที่เลือก
-  - มีปุ่ม ⚙ จัดการ CRUD หมวดหมู่ย่อย (เลือกหมวดหมู่หลักในฟอร์ม)
-  - ถ้ายังไม่เลือกหมวดหมู่หลัก → disable + placeholder "เลือกหมวดหมู่เครื่องมือก่อน"
-
-### แก้ ToolForm / ToolEditForm
-- ใต้ช่อง "หมวดหมู่เครื่องมือ" ใน grid → เพิ่มช่อง **"หมวดหมู่ย่อยเครื่องมือ"**
-- reset ค่า subcategory เมื่อเปลี่ยน category
-- บันทึก `tool_subcategory_id` ลง DB
-
-### หน้าอื่นที่แสดง/import
-- `ToolList` + Excel export → เพิ่มคอลัมน์ "หมวดหมู่ย่อย"
-- `ToolImport` template → เพิ่มคอลัมน์ `tool_subcategory` (match ตามชื่อ + tool_category)
-
----
-
-## Part 2: ออกแบบหน้า Master Data → "หมวดหมู่" ให้แยกอุปกรณ์กับเครื่องมือ
-
-### ปัญหาปัจจุบัน
-Tab "หมวดหมู่" (ภาพที่ 2) แสดงเฉพาะ **หมวดหมู่หลัก/ย่อยของอุปกรณ์** ส่วน **หมวดหมู่เครื่องมือ** ไปแอบอยู่ในปุ่ม ⚙ ของฟอร์มเพิ่มเครื่องมือเท่านั้น → ผู้ใช้หายาก และหลังเพิ่มหมวดหมู่ย่อยเครื่องมือแล้วจะยิ่งซ้อนกัน
-
-### แนวทางออกแบบ (เลือกใช้ Sub-tab ภายในแท็บ "หมวดหมู่")
+## หน้าตาที่จะได้
 
 ```text
-Master Data
-└── แท็บ "หมวดหมู่"
-    ├── Sub-tab: [ อุปกรณ์ ]  ← default
-    │   ├── การ์ด "หมวดหมู่หลัก (อุปกรณ์)"
-    │   └── การ์ด "หมวดหมู่ย่อย (อุปกรณ์)"  → dropdown กรองตามหมวดหลัก
-    │
-    └── Sub-tab: [ เครื่องมือ ]
-        ├── การ์ด "หมวดหมู่หลัก (เครื่องมือ)"
-        └── การ์ด "หมวดหมู่ย่อย (เครื่องมือ)"  → dropdown กรองตามหมวดหลัก
+[+ เพิ่มหมวดหมู่หลัก]        [ขยายทั้งหมด] [ยุบทั้งหมด]
+
+▼ 📁 เครื่องมือช่างไฟฟ้า          [3 ย่อย] [ใช้งาน]  [✏️] [🗑️]
+   ├─ 🔧 ไขควง                            [ใช้งาน]  [✏️] [🗑️]
+   ├─ 🔧 คีม                              [ใช้งาน]  [✏️] [🗑️]
+   ├─ 🔧 สว่าน                            [ใช้งาน]  [✏️] [🗑️]
+   └─ [+ เพิ่มหมวดหมู่ย่อยในกลุ่มนี้]
+
+▶ 📁 เครื่องมือช่างประปา          [5 ย่อย] [ใช้งาน]  [✏️] [🗑️]
+▶ 📁 อุปกรณ์วัด                    [0 ย่อย] [ใช้งาน]  [✏️] [🗑️]
 ```
 
-เหตุผลที่เลือกวิธีนี้:
-- ใช้ layout เดิม (การ์ดคู่ หลัก/ย่อย) ที่ผู้ใช้คุ้นแล้ว → คงความคุ้นเคย
-- แยก scope ชัดเจนด้วย sub-tab หัวสี ป้องกันสร้าง "หมวดหมู่อุปกรณ์" ผิดไปโผล่ในเครื่องมือ
-- ไม่ต้องเพิ่มเมนูใหม่ในไซด์บาร์
-- ปุ่ม ⚙ ในฟอร์มเพิ่มเครื่องมือ/อุปกรณ์ยังใช้งานได้ (สำหรับสร้างเร็ว ๆ ระหว่างกรอกฟอร์ม)
+## พฤติกรรมหลัก
 
-### สิ่งที่ต้องแก้
-- `src/pages/MasterData.tsx` (หรือ component ของแท็บหมวดหมู่) → เพิ่ม `<Tabs>` ระดับใน ที่มี 2 sub-tab
-- ใต้ sub-tab "เครื่องมือ" → render component ใหม่ 2 ตัว:
-  - `ToolCategoryList` (การ์ดหมวดหมู่หลักเครื่องมือ + ปุ่มเพิ่ม/แก้/ลบ)
-  - `ToolSubcategoryList` (การ์ดหมวดหมู่ย่อยเครื่องมือ + dropdown filter หมวดหมู่หลัก)
-- Sub-tab "อุปกรณ์" คงของเดิม
+1. **Accordion** — คลิกหัวกลุ่ม (หรือลูกศร ▼/▶) เพื่อขยาย-ยุบ; ขยายได้หลายกลุ่มพร้อมกัน
+2. **ปุ่ม "+ เพิ่มหมวดหมู่ย่อย" inline** ท้ายรายการย่อยของแต่ละกลุ่มที่ขยายอยู่ → เปิด dialog พร้อม **pre-fill หมวดหลัก** ให้อัตโนมัติ (ไม่ต้องเลือก dropdown อีก)
+3. **ปุ่ม + เพิ่มหมวดหมู่หลัก** ด้านบนสุด
+4. **แก้ไข/ลบ** ทั้งระดับหลักและย่อย ใช้ dialog เดิม (ตรรกะไม่เปลี่ยน)
+5. **ป้องกันลบหลัก** ถ้ายังมีย่อยอยู่ (มีอยู่แล้ว)
+6. **ปุ่ม ขยายทั้งหมด / ยุบทั้งหมด** ด้านบน
+7. **จำสถานะ expand** ใน localStorage (key แยกต่อ tab) เพื่อไม่ต้องขยายใหม่ทุกครั้ง
+8. **Badge นับจำนวนย่อย** ที่หัวกลุ่ม
 
----
+## รายละเอียดทางเทคนิค
 
-## ไฟล์ที่จะสร้าง / แก้
+**Component ใหม่:**
+- `src/components/category/CategoryAccordion.tsx` — reusable accordion tree ใช้ทั้ง equipment และ tools ผ่าน props:
+  ```
+  parentTable, childTable, childFkColumn, storageKey, labels
+  ```
+- ใช้ shadcn `Accordion` (`type="multiple"`) เป็นฐาน
+- Query: โหลด parents + children พร้อมกัน แล้ว group ฝั่ง client (`children.filter(c => c.parent_id === parent.id)`)
 
-**สร้างใหม่**
-- migration: `tool_subcategories` + `tools.tool_subcategory_id`
-- `src/components/tools/ToolSubcategorySelect.tsx`
-- `src/components/tools/ToolCategoryList.tsx` (การ์ดจัดการหมวดหมู่หลักเครื่องมือ)
-- `src/components/tools/ToolSubcategoryList.tsx` (การ์ดจัดการหมวดหมู่ย่อยเครื่องมือ)
+**Dialog เพิ่ม/แก้ไข:**
+- ใช้ dialog เดิมของ list components (CategoryList / SubcategoryList / ToolCategoryList / ToolSubcategoryList)
+- Sub dialog รับ prop `defaultParentId` เพื่อ pre-fill เวลาเปิดจากปุ่ม inline
 
-**แก้**
-- `src/components/tools/ToolForm.tsx` + `ToolEditForm.tsx` → เพิ่มช่องหมวดหมู่ย่อย
-- `src/components/tools/ToolList.tsx` → คอลัมน์หมวดหมู่ย่อย
-- `src/components/tools/ToolImport.tsx` + template → รองรับ subcategory
-- `src/pages/MasterData.tsx` → เพิ่ม sub-tab อุปกรณ์/เครื่องมือ ในแท็บหมวดหมู่
+**ไฟล์ที่แก้:**
+- สร้าง: `src/components/category/CategoryAccordion.tsx`
+- แก้: `src/pages/MasterData.tsx` — เปลี่ยนเนื้อหาแต่ละ tab จาก 2 ตารางเป็น `<CategoryAccordion .../>` ตัวเดียว
+- ปรับ dialog form ของ Subcategory/ToolSubcategory ให้รองรับ `defaultParentId`
+- คงไฟล์เดิม `CategoryList`, `SubcategoryList`, `ToolCategoryList`, `ToolSubcategoryList` ไว้ (อาจ deprecate ทีหลัง) — เพื่อลดความเสี่ยง
 
-**ไม่แตะ**: ตาราง `categories`/`subcategories` และหน้าอื่นที่ใช้อยู่
+## สิ่งที่ไม่ทำ (out of scope)
+- ไม่ทำ drag & drop ย้ายหมวดย่อยข้ามหลัก (แก้ผ่านปุ่ม ✏️ ได้อยู่แล้ว)
+- ไม่ทำ search box (เพิ่มภายหลังได้ถ้ารายการเยอะขึ้น)
+- ไม่แตะ schema ฐานข้อมูล
