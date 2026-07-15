@@ -207,6 +207,10 @@ export function ToolForm({ onSuccess }: ToolFormProps) {
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {/* Section: ข้อมูลพื้นฐาน */}
+            <div className="space-y-3">
+              <h3 className="text-sm font-semibold text-primary border-b pb-1">📋 ข้อมูลพื้นฐาน</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {/* Prefix code select */}
               <FormField control={form.control} name="prefix" render={({ field }) => (
                 <FormItem>
@@ -235,42 +239,6 @@ export function ToolForm({ onSuccess }: ToolFormProps) {
                 </FormItem>
               )} />
 
-              <FormField control={form.control} name="tool_category_id" render={({ field }) => (
-                <FormItem>
-                  <FormLabel>หมวดหมู่เครื่องมือ</FormLabel>
-                  <FormControl><ToolCategorySelect value={field.value || ""} onChange={(v) => { field.onChange(v); form.setValue("tool_subcategory_id", ""); }} /></FormControl>
-                </FormItem>
-              )} />
-
-              <FormField control={form.control} name="tool_subcategory_id" render={({ field }) => (
-                <FormItem>
-                  <FormLabel>หมวดหมู่ย่อยเครื่องมือ</FormLabel>
-                  <FormControl>
-                    <ToolSubcategorySelect
-                      toolCategoryId={form.watch("tool_category_id") || ""}
-                      value={field.value || ""}
-                      onChange={field.onChange}
-                    />
-                  </FormControl>
-                </FormItem>
-              )} />
-
-              <FormField control={form.control} name="department" render={({ field }) => (
-                <FormItem>
-                  <FormLabel>ฝ่าย</FormLabel>
-                  <FormControl>
-                    <SimpleDepartmentSelect value={field.value || ""} onChange={field.onChange} />
-                  </FormControl>
-                </FormItem>
-              )} />
-
-              <FormField control={form.control} name="company_id" render={({ field }) => (
-                <FormItem>
-                  <FormLabel>บริษัท</FormLabel>
-                  <FormControl><CompanySelect value={field.value || ""} onChange={field.onChange} /></FormControl>
-                </FormItem>
-              )} />
-
               <FormField control={form.control} name="brand" render={({ field }) => (
                 <FormItem>
                   <FormLabel>ยี่ห้อ</FormLabel>
@@ -278,19 +246,24 @@ export function ToolForm({ onSuccess }: ToolFormProps) {
                 </FormItem>
               )} />
 
-              <FormField control={form.control} name="unit" render={({ field }) => (
+              <FormField control={form.control} name="tool_category_id" render={({ field }) => (
                 <FormItem>
-                  <FormLabel>หน่วยนับ *</FormLabel>
-                  <FormControl><Input {...field} placeholder="เช่น ชิ้น, อัน, ตัว" /></FormControl>
-                  <FormMessage />
+                  <FormLabel>หมวดหมู่หลัก</FormLabel>
+                  <FormControl><ToolCategorySelect hideManage value={field.value || ""} onChange={(v) => { field.onChange(v); form.setValue("tool_subcategory_id", ""); }} /></FormControl>
                 </FormItem>
               )} />
 
-              <FormField control={form.control} name="initial_quantity" render={({ field }) => (
+              <FormField control={form.control} name="tool_subcategory_id" render={({ field }) => (
                 <FormItem>
-                  <FormLabel>จำนวนเริ่มต้น *</FormLabel>
-                  <FormControl><Input {...field} type="number" min={1} /></FormControl>
-                  <FormMessage />
+                  <FormLabel>หมวดหมู่ย่อย</FormLabel>
+                  <FormControl>
+                    <ToolSubcategorySelect
+                      hideManage
+                      toolCategoryId={form.watch("tool_category_id") || ""}
+                      value={field.value || ""}
+                      onChange={field.onChange}
+                    />
+                  </FormControl>
                 </FormItem>
               )} />
 
@@ -300,44 +273,94 @@ export function ToolForm({ onSuccess }: ToolFormProps) {
                   <FormControl><Input {...field} placeholder="กรอก Serial Number" /></FormControl>
                 </FormItem>
               )} />
+              </div>
+            </div>
 
-              <FormField control={form.control} name="unit_price" render={({ field }) => (
-                <FormItem>
-                  <FormLabel>ราคาต่อชิ้น (บาท)</FormLabel>
-                  <FormControl><Input {...field} type="number" min={0} step="0.01" /></FormControl>
-                </FormItem>
-              )} />
+            {/* Section: จำนวน & ราคา */}
+            <div className="space-y-3">
+              <h3 className="text-sm font-semibold text-primary border-b pb-1">📦 จำนวน & ราคา</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <FormField control={form.control} name="unit" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>หน่วยนับ *</FormLabel>
+                    <FormControl><Input {...field} placeholder="เช่น ชิ้น, อัน, ตัว" /></FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )} />
 
-              <FormField control={form.control} name="warehouse_entry_date" render={({ field }) => (
-                <FormItem>
-                  <FormLabel>วันที่นำเข้าคลัง *</FormLabel>
-                  <FormControl><Input {...field} type="date" /></FormControl>
-                  <FormMessage />
-                </FormItem>
-              )} />
+                <FormField control={form.control} name="initial_quantity" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>จำนวนเริ่มต้น *</FormLabel>
+                    <FormControl><Input {...field} type="number" min={1} /></FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )} />
 
-              <FormField control={form.control} name="supplier_id" render={({ field }) => (
+                <FormField control={form.control} name="unit_price" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>ราคาต่อชิ้น (บาท)</FormLabel>
+                    <FormControl><Input {...field} type="number" min={0} step="0.01" /></FormControl>
+                  </FormItem>
+                )} />
+              </div>
+            </div>
+
+            {/* Section: แหล่งที่มา & คลัง */}
+            <div className="space-y-3">
+              <h3 className="text-sm font-semibold text-primary border-b pb-1">🏢 แหล่งที่มา & คลังจัดเก็บ</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <FormField control={form.control} name="department" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>ฝ่าย</FormLabel>
+                    <FormControl>
+                      <SimpleDepartmentSelect value={field.value || ""} onChange={field.onChange} />
+                    </FormControl>
+                  </FormItem>
+                )} />
+
+                <FormField control={form.control} name="company_id" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>บริษัท</FormLabel>
+                    <FormControl><CompanySelect value={field.value || ""} onChange={field.onChange} /></FormControl>
+                  </FormItem>
+                )} />
+
+                <FormField control={form.control} name="supplier_id" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>ผู้จัดจำหน่าย</FormLabel>
+                    <FormControl><SupplierSelect value={field.value || ""} onChange={field.onChange} /></FormControl>
+                  </FormItem>
+                )} />
+
+                <FormField control={form.control} name="warehouse_entry_date" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>วันที่นำเข้าคลัง *</FormLabel>
+                    <FormControl><Input {...field} type="date" /></FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+              </div>
+
+              {/* Warehouse Location Select */}
+              <FormField control={form.control} name="location_id" render={({ field }) => (
                 <FormItem>
-                  <FormLabel>ผู้จัดจำหน่าย</FormLabel>
-                  <FormControl><SupplierSelect value={field.value || ""} onChange={field.onChange} /></FormControl>
+                  <FormControl>
+                    <WarehouseLocationSelect
+                      department={form.watch("department") || ""}
+                      warehouseId={warehouseId}
+                      onWarehouseChange={setWarehouseId}
+                      locationId={field.value || ""}
+                      onLocationChange={field.onChange}
+                    />
+                  </FormControl>
                 </FormItem>
               )} />
             </div>
 
-            {/* Warehouse Location Select */}
-            <FormField control={form.control} name="location_id" render={({ field }) => (
-              <FormItem>
-                <FormControl>
-                  <WarehouseLocationSelect
-                    department={form.watch("department") || ""}
-                    warehouseId={warehouseId}
-                    onWarehouseChange={setWarehouseId}
-                    locationId={field.value || ""}
-                    onLocationChange={field.onChange}
-                  />
-                </FormControl>
-              </FormItem>
-            )} />
+            {/* Section: การรับประกัน & ทรัพย์สิน */}
+            <div className="space-y-3">
+              <h3 className="text-sm font-semibold text-primary border-b pb-1">🛡️ การรับประกัน & ทรัพย์สิน</h3>
+
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
 
