@@ -895,15 +895,17 @@ function EquipmentViewTab() {
             </TableHeader>
             <TableBody>
               {paginatedData.length === 0 ? (
-                <TableRow><TableCell colSpan={12} className="text-center text-muted-foreground py-8">ไม่พบข้อมูล</TableCell></TableRow>
+                <TableRow><TableCell colSpan={13} className="text-center text-muted-foreground py-8">ไม่พบข้อมูล</TableCell></TableRow>
               ) : paginatedData.map(item => (
                 <TableRow key={`${item.itemType}-${item.id}-${item.serialDisplay}`}>
                   <TableCell className="font-mono text-xs whitespace-nowrap">{item.code}</TableCell>
                   <TableCell className="font-medium">{item.name}</TableCell>
                   <TableCell className="text-xs whitespace-pre-line">{item.serialDisplay}</TableCell>
                   <TableCell>{item.itemType === "media_player" ? <DeviceTypeBadge value={item.device_type} /> : <Badge variant="outline" className="text-xs">{item.category}</Badge>}</TableCell>
+                  <TableCell><CompatibilityBadgeCell equipmentId={item.itemType === "equipment" ? item.id : null} skip={item.itemType !== "equipment"} /></TableCell>
                   <TableCell className="text-xs">{item.brand || "-"}</TableCell>
                   <TableCell className="text-center">{item.quantity_in_stock}</TableCell>
+
                   <TableCell>
                     {item.isInstalled ? (
                       <Badge className="bg-emerald-500 text-white hover:bg-emerald-600 text-xs"><MapPin className="w-3 h-3 mr-1" />{item.installedBillboard || "ติดตั้งบนป้าย"}</Badge>
