@@ -97,8 +97,8 @@ export function CategoryAccordion({
   const load = async () => {
     setLoading(true);
     const [pRes, cRes] = await Promise.all([
-      supabase.from(parentTable as any).select("id, name, description, is_active").order("name"),
-      supabase.from(childTable as any).select(`id, name, description, is_active, ${childFk}`).order("name"),
+      supabase.from(parentTable as any).select("id, name, description, is_active, keywords, examples, usage_hint").order("name"),
+      supabase.from(childTable as any).select(`id, name, description, is_active, keywords, examples, usage_hint, ${childFk}`).order("name"),
     ]);
     if (pRes.error) toast.error(pRes.error.message);
     if (cRes.error) toast.error(cRes.error.message);
@@ -109,6 +109,9 @@ export function CategoryAccordion({
         name: r.name,
         description: r.description,
         is_active: r.is_active,
+        keywords: r.keywords,
+        examples: r.examples,
+        usage_hint: r.usage_hint,
         parentId: r[childFk] ?? null,
       })),
     );
