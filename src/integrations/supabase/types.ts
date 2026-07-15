@@ -5103,6 +5103,7 @@ export type Database = {
         Row: {
           address: string | null
           code: string
+          company_code: string | null
           contact_person: string | null
           created_at: string
           created_by: string | null
@@ -5112,12 +5113,14 @@ export type Database = {
           name: string
           notes: string | null
           phone: string | null
+          tax_id: string | null
           updated_at: string
           vendor_code: string | null
         }
         Insert: {
           address?: string | null
           code: string
+          company_code?: string | null
           contact_person?: string | null
           created_at?: string
           created_by?: string | null
@@ -5127,12 +5130,14 @@ export type Database = {
           name: string
           notes?: string | null
           phone?: string | null
+          tax_id?: string | null
           updated_at?: string
           vendor_code?: string | null
         }
         Update: {
           address?: string | null
           code?: string
+          company_code?: string | null
           contact_person?: string | null
           created_at?: string
           created_by?: string | null
@@ -5142,6 +5147,7 @@ export type Database = {
           name?: string
           notes?: string | null
           phone?: string | null
+          tax_id?: string | null
           updated_at?: string
           vendor_code?: string | null
         }
@@ -6152,6 +6158,7 @@ export type Database = {
         Returns: {
           address: string | null
           code: string
+          company_code: string | null
           contact_person: string | null
           created_at: string
           created_by: string | null
@@ -6161,6 +6168,7 @@ export type Database = {
           name: string
           notes: string | null
           phone: string | null
+          tax_id: string | null
           updated_at: string
           vendor_code: string | null
         }[]
