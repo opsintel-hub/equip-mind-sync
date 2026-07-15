@@ -463,10 +463,12 @@ const BillboardIssueReport = () => {
                   <TableHead>ชื่อสินค้า</TableHead>
                   <TableHead>หมวดหมู่</TableHead>
                   <TableHead>S/N</TableHead>
+                  <TableHead>ป้ายที่รองรับ</TableHead>
                   <TableHead className="text-right">จำนวน</TableHead>
                   <TableHead className="text-right">มูลค่า</TableHead>
                   <TableHead>วันที่ติดตั้ง</TableHead>
                 </TableRow>
+
               </TableHeader>
               <TableBody>
                 {isLoading ? (
