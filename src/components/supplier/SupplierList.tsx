@@ -149,7 +149,7 @@ export function SupplierList({ refresh }: SupplierListProps) {
         <div className="relative flex-1 min-w-[240px]">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="ค้นหา Vendor ID, Tax ID, ชื่อ, ผู้ติดต่อ, อีเมล..."
+            placeholder="ค้นหา Vendor ID, Tax ID, ชื่อ, Description, Media Site, ผู้ติดต่อ..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="pl-10"
