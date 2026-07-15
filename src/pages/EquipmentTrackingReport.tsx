@@ -20,6 +20,8 @@ import { useAllowedDepartments } from "@/hooks/useAllowedDepartments";
 import { buildReceivedSerialAliasMap, formatMergedSerials, matchesSerialSearch } from "@/lib/serialSearch";
 import { DeviceTypeBadge } from "@/components/media-player/DeviceTypeBadge";
 import { deviceLabel } from "@/lib/deviceTypes";
+import { CompatibilityBadgeCell } from "@/components/reports/CompatibilityBadgeCell";
+
 
 // ─── Helpers ─────────────────────────────────────────────
 
