@@ -436,12 +436,18 @@ export function ToolForm({ onSuccess }: ToolFormProps) {
                   <FormMessage />
                 </FormItem>
               )} />
+              </div>
             </div>
 
-            <div className="space-y-2">
-              <FormLabel>ประเภทการ PM (เลือกได้หลายรายการ)</FormLabel>
-              <PMTypeSelect value={selectedPMTypes} onChange={setSelectedPMTypes} />
+            {/* Section: การบำรุงรักษา (PM) */}
+            <div className="space-y-3">
+              <h3 className="text-sm font-semibold text-primary border-b pb-1">🔧 การบำรุงรักษา (PM)</h3>
+              <div className="space-y-2">
+                <FormLabel>ประเภทการ PM (เลือกได้หลายรายการ)</FormLabel>
+                <PMTypeSelect value={selectedPMTypes} onChange={setSelectedPMTypes} />
+              </div>
             </div>
+
 
             <FormField control={form.control} name="description" render={({ field }) => (
               <FormItem>
