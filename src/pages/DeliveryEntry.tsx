@@ -35,6 +35,7 @@ import {
 } from "lucide-react";
 import { EquipmentImageViewer } from "@/components/equipment/EquipmentImageViewer";
 import { EquipmentImageUpload } from "@/components/equipment/EquipmentImageUpload";
+import { CategorySuggestWizard } from "@/components/category/CategorySuggestWizard";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
