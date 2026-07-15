@@ -12,22 +12,37 @@ interface SupplierImportProps {
   onSuccess: () => void;
 }
 
-interface ImportRow {
-  code: string;
-  vendor_code?: string;
-  name: string;
-  contact_person?: string;
-  phone?: string;
-  email?: string;
-  address?: string;
-  notes?: string;
+const HEADERS = {
+  company: ["Company", "company", "company_code", "รหัสบริษัท"],
+  vendor_id: ["Vendor ID", "Vendor Id", "vendor_id", "vendor_code", "Vendor Code", "รหัส Vendor"],
+  tax_id: ["Tax ID", "Tax Id", "tax_id", "เลขผู้เสียภาษี"],
+  name: ["Vendor Name", "vendor_name", "name", "ชื่อผู้จัดจำหน่าย"],
+  contact_person: ["Contact Person", "contact_person", "ผู้ติดต่อ"],
+  phone: ["Phone", "phone", "เบอร์โทร"],
+  email: ["Email", "email", "อีเมล"],
+  address: ["Address", "address", "ที่อยู่"],
+  notes: ["Notes", "notes", "Description", "หมายเหตุ"],
+};
+
+function pick(row: Record<string, any>, keys: string[]): string {
+  for (const k of keys) {
+    const v = row[k];
+    if (v !== undefined && v !== null && String(v).trim() !== "") {
+      return String(v).replace(/\u00a0/g, " ").trim();
+    }
+  }
+  return "";
 }
 
 export function SupplierImport({ onSuccess }: SupplierImportProps) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [progress, setProgress] = useState<string>("");
   const [importResult, setImportResult] = useState<{
+    total: number;
     success: number;
+    updated: number;
+    inserted: number;
     failed: number;
     errors: string[];
   } | null>(null);
@@ -36,33 +51,21 @@ export function SupplierImport({ onSuccess }: SupplierImportProps) {
   const downloadTemplate = () => {
     const templateData = [
       {
-        "รหัสผู้จัดจำหน่าย (code)*": "SUP-001",
-        "รหัส Vendor (vendor_code)": "VD-001",
-        "ชื่อผู้จัดจำหน่าย (name)*": "บริษัท ตัวอย่าง จำกัด",
-        "ผู้ติดต่อ (contact_person)": "คุณสมชาย",
-        "เบอร์โทร (phone)": "02-xxx-xxxx",
-        "อีเมล (email)": "contact@example.com",
-        "ที่อยู่ (address)": "123 ถนนตัวอย่าง กรุงเทพฯ",
-        "หมายเหตุ (notes)": "หมายเหตุเพิ่มเติม",
+        Company: "ADS",
+        "Vendor ID": "000006",
+        "Tax ID": "0105549081490",
+        "Vendor Name": "บริษัท ตัวอย่าง จำกัด",
+        "Contact Person": "คุณสมชาย",
+        Phone: "02-xxx-xxxx",
+        Email: "contact@example.com",
+        Address: "123 ถนนตัวอย่าง กรุงเทพฯ",
+        Notes: "หมายเหตุ",
       },
     ];
-
     const ws = XLSX.utils.json_to_sheet(templateData);
+    ws["!cols"] = [{ wch: 10 }, { wch: 12 }, { wch: 18 }, { wch: 40 }, { wch: 20 }, { wch: 15 }, { wch: 25 }, { wch: 40 }, { wch: 30 }];
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Suppliers");
-
-    // Set column widths
-    ws["!cols"] = [
-      { wch: 25 },
-      { wch: 20 },
-      { wch: 30 },
-      { wch: 20 },
-      { wch: 15 },
-      { wch: 25 },
-      { wch: 40 },
-      { wch: 30 },
-    ];
-
+    XLSX.utils.book_append_sheet(wb, ws, "Vendor list-Store");
     XLSX.writeFile(wb, "supplier_import_template.xlsx");
     toast.success("ดาวน์โหลด Template สำเร็จ");
   };
@@ -73,112 +76,96 @@ export function SupplierImport({ onSuccess }: SupplierImportProps) {
 
     setLoading(true);
     setImportResult(null);
+    setProgress("กำลังอ่านไฟล์...");
 
     try {
       const data = await file.arrayBuffer();
       const workbook = XLSX.read(data);
       const sheetName = workbook.SheetNames[0];
       const worksheet = workbook.Sheets[sheetName];
-      const jsonData = XLSX.utils.sheet_to_json(worksheet);
+      const jsonData = XLSX.utils.sheet_to_json<Record<string, any>>(worksheet, { defval: "" });
 
       if (jsonData.length === 0) {
         toast.error("ไฟล์ไม่มีข้อมูล");
         return;
       }
 
-      const { data: userData } = await supabase.auth.getUser();
-      let successCount = 0;
-      let failedCount = 0;
+      setProgress(`พบ ${jsonData.length.toLocaleString()} แถว — กำลัง dedupe...`);
+      await new Promise((r) => setTimeout(r, 10));
+
+      // Dedupe by Vendor ID (keep latest non-empty fields)
+      const dedup = new Map<string, any>();
       const errors: string[] = [];
-
-      for (let i = 0; i < jsonData.length; i++) {
-        const row = jsonData[i] as Record<string, any>;
-        const rowNum = i + 2; // Excel row number (1-based + header)
-
-        // Map Thai/English column names to database fields
-        const code = row["รหัสผู้จัดจำหน่าย (code)*"] || row["code"];
-        const vendorCode = row["รหัส Vendor (vendor_code)"] || row["vendor_code"];
-        const name = row["ชื่อผู้จัดจำหน่าย (name)*"] || row["name"];
-        const contactPerson = row["ผู้ติดต่อ (contact_person)"] || row["contact_person"];
-        const phone = row["เบอร์โทร (phone)"] || row["phone"];
-        const email = row["อีเมล (email)"] || row["email"];
-        const address = row["ที่อยู่ (address)"] || row["address"];
-        const notes = row["หมายเหตุ (notes)"] || row["notes"];
-
-        // Validate required fields
-        if (!code || !name) {
-          errors.push(`แถวที่ ${rowNum}: ต้องระบุ รหัสผู้จัดจำหน่าย และ ชื่อ`);
-          failedCount++;
-          continue;
+      jsonData.forEach((row, idx) => {
+        const vendorId = pick(row, HEADERS.vendor_id);
+        const name = pick(row, HEADERS.name);
+        if (!vendorId || !name) {
+          if (idx < 20) errors.push(`แถวที่ ${idx + 2}: ไม่มี Vendor ID หรือ Vendor Name`);
+          return;
         }
+        const existing = dedup.get(vendorId) || {};
+        dedup.set(vendorId, {
+          code: vendorId,
+          vendor_code: vendorId,
+          company_code: pick(row, HEADERS.company) || existing.company_code || null,
+          tax_id: pick(row, HEADERS.tax_id) || existing.tax_id || null,
+          name: name || existing.name,
+          contact_person: pick(row, HEADERS.contact_person) || existing.contact_person || null,
+          phone: pick(row, HEADERS.phone) || existing.phone || null,
+          email: pick(row, HEADERS.email) || existing.email || null,
+          address: pick(row, HEADERS.address) || existing.address || null,
+          notes: pick(row, HEADERS.notes) || existing.notes || null,
+        });
+      });
 
-        const supplierData: ImportRow = {
-          code: String(code).trim(),
-          vendor_code: vendorCode ? String(vendorCode).trim() : undefined,
-          name: String(name).trim(),
-          contact_person: contactPerson ? String(contactPerson).trim() : undefined,
-          phone: phone ? String(phone).trim() : undefined,
-          email: email ? String(email).trim() : undefined,
-          address: address ? String(address).trim() : undefined,
-          notes: notes ? String(notes).trim() : undefined,
-        };
+      const rows = Array.from(dedup.values());
+      setProgress(`เตรียมอัปเสิร์ต ${rows.length.toLocaleString()} รายการ...`);
+      await new Promise((r) => setTimeout(r, 10));
 
-        // Check for duplicate code
-        const { data: existing } = await supabase
-          .from("suppliers")
-          .select("id")
-          .eq("code", supplierData.code)
-          .maybeSingle();
+      const { data: userData } = await supabase.auth.getUser();
+      const userId = userData?.user?.id;
 
-        if (existing) {
-          // Update existing
-          const { error } = await supabase
-            .from("suppliers")
-            .update({
-              ...supplierData,
-              updated_at: new Date().toISOString(),
-            })
-            .eq("id", existing.id);
+      // Fetch existing to determine insert vs update counts
+      const codes = rows.map((r) => r.code);
+      const { data: existingRows } = await supabase
+        .from("suppliers")
+        .select("id, code")
+        .in("code", codes);
+      const existingCodes = new Set((existingRows || []).map((r) => r.code));
 
-          if (error) {
-            errors.push(`แถวที่ ${rowNum}: ${error.message}`);
-            failedCount++;
-          } else {
-            successCount++;
-          }
+      const CHUNK = 200;
+      let success = 0;
+      let failed = 0;
+      let inserted = 0;
+      let updated = 0;
+
+      for (let i = 0; i < rows.length; i += CHUNK) {
+        const chunk = rows.slice(i, i + CHUNK).map((r) => ({ ...r, created_by: userId }));
+        setProgress(`กำลังบันทึก ${Math.min(i + CHUNK, rows.length).toLocaleString()} / ${rows.length.toLocaleString()}...`);
+        const { error } = await supabase.from("suppliers").upsert(chunk, { onConflict: "code" });
+        if (error) {
+          failed += chunk.length;
+          errors.push(`Chunk ${i}-${i + chunk.length}: ${error.message}`);
         } else {
-          // Insert new
-          const { error } = await supabase.from("suppliers").insert({
-            ...supplierData,
-            created_by: userData?.user?.id,
-          });
-
-          if (error) {
-            errors.push(`แถวที่ ${rowNum}: ${error.message}`);
-            failedCount++;
-          } else {
-            successCount++;
-          }
+          success += chunk.length;
+          chunk.forEach((c) => (existingCodes.has(c.code) ? updated++ : inserted++));
         }
+        await new Promise((r) => setTimeout(r, 5));
       }
 
-      setImportResult({ success: successCount, failed: failedCount, errors });
+      setImportResult({ total: rows.length, success, updated, inserted, failed, errors });
+      setProgress("");
 
-      if (successCount > 0) {
-        toast.success(`นำเข้าข้อมูลสำเร็จ ${successCount} รายการ`);
+      if (success > 0) {
+        toast.success(`นำเข้าสำเร็จ ${success.toLocaleString()} รายการ (ใหม่ ${inserted}, อัปเดต ${updated})`);
         onSuccess();
       }
-
-      if (failedCount > 0) {
-        toast.error(`นำเข้าไม่สำเร็จ ${failedCount} รายการ`);
-      }
+      if (failed > 0) toast.error(`ล้มเหลว ${failed.toLocaleString()} รายการ`);
     } catch (error: any) {
-      toast.error("เกิดข้อผิดพลาดในการอ่านไฟล์: " + error.message);
+      toast.error("เกิดข้อผิดพลาด: " + error.message);
     } finally {
       setLoading(false);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = "";
-      }
+      if (fileInputRef.current) fileInputRef.current.value = "";
     }
   };
 
@@ -199,13 +186,12 @@ export function SupplierImport({ onSuccess }: SupplierImportProps) {
           <div className="bg-muted/50 rounded-lg p-4 space-y-3">
             <h4 className="font-medium flex items-center gap-2">
               <FileSpreadsheet className="h-4 w-4" />
-              ขั้นตอนการนำเข้า
+              รองรับไฟล์ Vendor list-Store
             </h4>
             <ol className="text-sm text-muted-foreground space-y-1 list-decimal list-inside">
-              <li>ดาวน์โหลด Template Excel</li>
-              <li>กรอกข้อมูลตาม Template (ห้ามเปลี่ยนชื่อหัวคอลัมน์)</li>
-              <li>บันทึกไฟล์เป็น .xlsx หรือ .csv</li>
-              <li>อัปโหลดไฟล์เพื่อนำเข้าข้อมูล</li>
+              <li>คอลัมน์ที่รองรับ: <b>Company, Vendor ID, Tax ID, Vendor Name</b> (+ Description, Media Site Name)</li>
+              <li>ระบบจะ <b>ยุบซ้ำอัตโนมัติ</b> ตาม Vendor ID (จากไฟล์ 250k+ แถว → ~80 vendor)</li>
+              <li>ถ้า Vendor ID ตรงกับที่มีอยู่ ระบบจะ <b>อัปเดต</b>; ถ้าไม่ตรงจะ <b>เพิ่มใหม่</b> (Upsert)</li>
             </ol>
           </div>
 
@@ -229,8 +215,8 @@ export function SupplierImport({ onSuccess }: SupplierImportProps) {
           </div>
 
           {loading && (
-            <div className="text-center py-4 text-muted-foreground">
-              กำลังนำเข้าข้อมูล...
+            <div className="text-center py-4 text-sm text-muted-foreground">
+              {progress || "กำลังนำเข้า..."}
             </div>
           )}
 
@@ -240,7 +226,10 @@ export function SupplierImport({ onSuccess }: SupplierImportProps) {
                 <Alert className="bg-green-50 border-green-200">
                   <CheckCircle2 className="h-4 w-4 text-green-600" />
                   <AlertDescription className="text-green-800">
-                    นำเข้าสำเร็จ {importResult.success} รายการ
+                    นำเข้าสำเร็จ {importResult.success.toLocaleString()} รายการ
+                    <div className="text-xs mt-1">
+                      เพิ่มใหม่ {importResult.inserted.toLocaleString()} · อัปเดต {importResult.updated.toLocaleString()}
+                    </div>
                   </AlertDescription>
                 </Alert>
               )}
@@ -249,7 +238,7 @@ export function SupplierImport({ onSuccess }: SupplierImportProps) {
                 <Alert variant="destructive">
                   <AlertCircle className="h-4 w-4" />
                   <AlertDescription>
-                    นำเข้าไม่สำเร็จ {importResult.failed} รายการ
+                    ล้มเหลว {importResult.failed.toLocaleString()} รายการ
                     {importResult.errors.length > 0 && (
                       <ul className="mt-2 text-xs list-disc list-inside max-h-32 overflow-auto">
                         {importResult.errors.slice(0, 10).map((err, i) => (
