@@ -1050,28 +1050,37 @@ export type Database = {
           created_at: string
           created_by: string | null
           description: string | null
+          examples: string | null
           id: string
           is_active: boolean | null
+          keywords: string[] | null
           name: string
           updated_at: string
+          usage_hint: string | null
         }
         Insert: {
           created_at?: string
           created_by?: string | null
           description?: string | null
+          examples?: string | null
           id?: string
           is_active?: boolean | null
+          keywords?: string[] | null
           name: string
           updated_at?: string
+          usage_hint?: string | null
         }
         Update: {
           created_at?: string
           created_by?: string | null
           description?: string | null
+          examples?: string | null
           id?: string
           is_active?: boolean | null
+          keywords?: string[] | null
           name?: string
           updated_at?: string
+          usage_hint?: string | null
         }
         Relationships: []
       }
@@ -5094,30 +5103,39 @@ export type Database = {
           created_at: string
           created_by: string | null
           description: string | null
+          examples: string | null
           id: string
           is_active: boolean | null
+          keywords: string[] | null
           name: string
           updated_at: string
+          usage_hint: string | null
         }
         Insert: {
           category_id: string
           created_at?: string
           created_by?: string | null
           description?: string | null
+          examples?: string | null
           id?: string
           is_active?: boolean | null
+          keywords?: string[] | null
           name: string
           updated_at?: string
+          usage_hint?: string | null
         }
         Update: {
           category_id?: string
           created_at?: string
           created_by?: string | null
           description?: string | null
+          examples?: string | null
           id?: string
           is_active?: boolean | null
+          keywords?: string[] | null
           name?: string
           updated_at?: string
+          usage_hint?: string | null
         }
         Relationships: [
           {
@@ -5570,28 +5588,37 @@ export type Database = {
           created_at: string
           created_by: string | null
           description: string | null
+          examples: string | null
           id: string
           is_active: boolean | null
+          keywords: string[] | null
           name: string
           updated_at: string
+          usage_hint: string | null
         }
         Insert: {
           created_at?: string
           created_by?: string | null
           description?: string | null
+          examples?: string | null
           id?: string
           is_active?: boolean | null
+          keywords?: string[] | null
           name: string
           updated_at?: string
+          usage_hint?: string | null
         }
         Update: {
           created_at?: string
           created_by?: string | null
           description?: string | null
+          examples?: string | null
           id?: string
           is_active?: boolean | null
+          keywords?: string[] | null
           name?: string
           updated_at?: string
+          usage_hint?: string | null
         }
         Relationships: []
       }
@@ -5827,29 +5854,38 @@ export type Database = {
         Row: {
           created_at: string
           description: string | null
+          examples: string | null
           id: string
           is_active: boolean
+          keywords: string[] | null
           name: string
           tool_category_id: string
           updated_at: string
+          usage_hint: string | null
         }
         Insert: {
           created_at?: string
           description?: string | null
+          examples?: string | null
           id?: string
           is_active?: boolean
+          keywords?: string[] | null
           name: string
           tool_category_id: string
           updated_at?: string
+          usage_hint?: string | null
         }
         Update: {
           created_at?: string
           description?: string | null
+          examples?: string | null
           id?: string
           is_active?: boolean
+          keywords?: string[] | null
           name?: string
           tool_category_id?: string
           updated_at?: string
+          usage_hint?: string | null
         }
         Relationships: [
           {
