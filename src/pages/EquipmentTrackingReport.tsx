@@ -529,6 +529,7 @@ function BillboardViewTab() {
                                   <TableHead>Code</TableHead>
                                   <TableHead>S/N</TableHead>
                                   <TableHead>ประเภท</TableHead>
+                                  <TableHead>ป้ายที่รองรับ</TableHead>
                                   <TableHead>Brand</TableHead>
                                   <TableHead className="text-center">จำนวน</TableHead>
                                   <TableHead>วันที่ติดตั้ง</TableHead>
@@ -538,6 +539,7 @@ function BillboardViewTab() {
                                   <TableHead>วันหมดประกัน</TableHead>
                                   <TableHead>สถานะประกัน</TableHead>
                                 </TableRow>
+
                               </TableHeader>
                               <TableBody>
                                 {items.map(item => {
