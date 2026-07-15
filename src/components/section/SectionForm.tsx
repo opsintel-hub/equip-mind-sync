@@ -114,13 +114,13 @@ export function SectionForm({ onSuccess, editData, defaultDepartmentId, triggerL
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         {editData ? (
-          <Button variant="ghost" size="icon">
+          <Button variant="ghost" size="icon" className={triggerClassName}>
             <Pencil className="h-4 w-4" />
           </Button>
         ) : (
-          <Button>
+          <Button variant={triggerVariant} className={triggerClassName} size={triggerLabel ? "sm" : "default"}>
             <Plus className="h-4 w-4 mr-2" />
-            เพิ่มแผนก
+            {triggerLabel || "เพิ่มแผนก"}
           </Button>
         )}
       </DialogTrigger>
