@@ -47,7 +47,7 @@ export function CategorySuggestWizard({
   const childFk = entryType === "tool" ? "tool_category_id" : "category_id";
 
   const reset = () => {
-    setProductName("");
+    setProductName(defaultProductName || "");
     setUsage("");
     setResults(null);
     setNoMatch(null);
