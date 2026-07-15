@@ -39,6 +39,7 @@ import { SubcategoryList } from "@/components/category/SubcategoryList";
 import { SubcategoryForm } from "@/components/category/SubcategoryForm";
 import { ToolCategoryList } from "@/components/tools/ToolCategoryList";
 import { ToolSubcategoryList } from "@/components/tools/ToolSubcategoryList";
+import { CategoryAccordion } from "@/components/category/CategoryAccordion";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { TechnicianForm } from "@/components/tools/TechnicianForm";
 import { TechnicianList } from "@/components/tools/TechnicianList";
@@ -263,31 +264,27 @@ const MasterData = () => {
             <TabsContent value="equipment_cat" className="space-y-4">
               <Card>
                 <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <CardTitle>หมวดหมู่หลัก (อุปกรณ์/อะไหล่)</CardTitle>
-                      <CardDescription>จัดการหมวดหมู่หลักของอุปกรณ์/อะไหล่</CardDescription>
-                    </div>
-                    <CategoryForm onSuccess={handleSuccess} />
-                  </div>
+                  <CardTitle>หมวดหมู่อุปกรณ์/อะไหล่</CardTitle>
+                  <CardDescription>
+                    จัดการหมวดหมู่หลักและหมวดหมู่ย่อยของอุปกรณ์/อะไหล่ในหน้าเดียว — กด ▶ เพื่อขยายดูหมวดหมู่ย่อย
+                  </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <CategoryList refresh={refreshKey} />
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <CardTitle>หมวดหมู่ย่อย (อุปกรณ์/อะไหล่)</CardTitle>
-                      <CardDescription>จัดการหมวดหมู่ย่อยและเชื่อมโยงกับหมวดหมู่หลักของอุปกรณ์</CardDescription>
-                    </div>
-                    <SubcategoryForm onSuccess={handleSuccess} />
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <SubcategoryList refresh={refreshKey} />
+                  <CategoryAccordion
+                    key={`eq-${refreshKey}`}
+                    parentTable="categories"
+                    childTable="subcategories"
+                    childFk="category_id"
+                    storageKey="md:categories:eq:expanded"
+                    labels={{
+                      parentSingular: "หมวดหมู่หลัก",
+                      childSingular: "หมวดหมู่ย่อย",
+                      parentEmpty: "ยังไม่มีหมวดหมู่หลัก",
+                      childEmpty: "ยังไม่มีหมวดหมู่ย่อยในกลุ่มนี้",
+                      parentPlaceholder: "เช่น อุปกรณ์ไฟฟ้า",
+                      childPlaceholder: "เช่น สายไฟฟ้า",
+                    }}
+                  />
                 </CardContent>
               </Card>
             </TabsContent>
@@ -295,25 +292,28 @@ const MasterData = () => {
             <TabsContent value="tool_cat" className="space-y-4">
               <Card>
                 <CardHeader>
-                  <div>
-                    <CardTitle>หมวดหมู่หลัก (เครื่องมือ)</CardTitle>
-                    <CardDescription>จัดการหมวดหมู่หลักของเครื่องมือช่าง</CardDescription>
-                  </div>
+                  <CardTitle>หมวดหมู่เครื่องมือ</CardTitle>
+                  <CardDescription>
+                    จัดการหมวดหมู่หลักและหมวดหมู่ย่อยของเครื่องมือช่างในหน้าเดียว — กด ▶ เพื่อขยายดูหมวดหมู่ย่อย
+                  </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <ToolCategoryList refresh={refreshKey} />
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <div>
-                    <CardTitle>หมวดหมู่ย่อย (เครื่องมือ)</CardTitle>
-                    <CardDescription>จัดการหมวดหมู่ย่อยและเชื่อมโยงกับหมวดหมู่หลักของเครื่องมือ</CardDescription>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <ToolSubcategoryList refresh={refreshKey} />
+                  <CategoryAccordion
+                    key={`tool-${refreshKey}`}
+                    parentTable="tool_categories"
+                    childTable="tool_subcategories"
+                    childFk="tool_category_id"
+                    storageKey="md:categories:tool:expanded"
+                    labels={{
+                      parentSingular: "หมวดหมู่หลัก",
+                      childSingular: "หมวดหมู่ย่อย",
+                      parentEmpty: "ยังไม่มีหมวดหมู่หลัก",
+                      childEmpty: "ยังไม่มีหมวดหมู่ย่อยในกลุ่มนี้",
+                      parentPlaceholder: "เช่น เครื่องมือช่างไฟฟ้า",
+                      childPlaceholder: "เช่น สว่าน",
+                    }}
+                    softDeleteChild
+                  />
                 </CardContent>
               </Card>
             </TabsContent>
