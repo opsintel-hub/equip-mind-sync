@@ -22,6 +22,7 @@ interface Props {
   triggerVariant?: "default" | "outline" | "ghost" | "secondary";
   triggerSize?: "default" | "sm" | "icon";
   compact?: boolean;
+  defaultProductName?: string;
   onPick?: (main: string, sub?: string) => void;
 }
 
