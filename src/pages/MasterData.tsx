@@ -20,6 +20,7 @@ import { ContractorForm } from "@/components/contractor/ContractorForm";
 import { ContractorList } from "@/components/contractor/ContractorList";
 import { WarehouseForm } from "@/components/warehouse/WarehouseForm";
 import { WarehouseList } from "@/components/warehouse/WarehouseList";
+import { WarehouseLocationAccordion } from "@/components/warehouse/WarehouseLocationAccordion";
 import { DepartmentForm } from "@/components/department/DepartmentForm";
 import { DepartmentList } from "@/components/department/DepartmentList";
 import { SectionForm } from "@/components/section/SectionForm";
