@@ -26,8 +26,9 @@ import { toast } from "sonner";
 import { Plus } from "lucide-react";
 
 const formSchema = z.object({
-  code: z.string().min(1, "กรุณาระบุรหัสผู้จัดจำหน่าย"),
-  vendor_code: z.string().optional(),
+  company_code: z.string().optional(),
+  vendor_code: z.string().min(1, "กรุณาระบุ Vendor ID"),
+  tax_id: z.string().optional(),
   name: z.string().min(1, "กรุณาระบุชื่อผู้จัดจำหน่าย"),
   contact_person: z.string().optional(),
   phone: z.string().optional(),
@@ -42,6 +43,8 @@ interface SupplierFormProps {
     id: string;
     code: string;
     vendor_code: string | null;
+    tax_id?: string | null;
+    company_code?: string | null;
     name: string;
     contact_person: string | null;
     phone: string | null;
@@ -58,8 +61,9 @@ export function SupplierForm({ onSuccess, supplier }: SupplierFormProps) {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      code: supplier?.code || "",
+      company_code: supplier?.company_code || "",
       vendor_code: supplier?.vendor_code || "",
+      tax_id: supplier?.tax_id || "",
       name: supplier?.name || "",
       contact_person: supplier?.contact_person || "",
       phone: supplier?.phone || "",
@@ -73,44 +77,35 @@ export function SupplierForm({ onSuccess, supplier }: SupplierFormProps) {
     try {
       setLoading(true);
       const { data: { user } } = await supabase.auth.getUser();
-
       if (!user) {
-        toast.error("กรุณาเข้าสระบบก่อนทำรายการ");
+        toast.error("กรุณาเข้าสู่ระบบก่อนทำรายการ");
         return;
       }
+
+      const payload = {
+        code: values.vendor_code.trim(),
+        vendor_code: values.vendor_code.trim(),
+        company_code: values.company_code?.trim() || null,
+        tax_id: values.tax_id?.trim() || null,
+        name: values.name.trim(),
+        contact_person: values.contact_person || null,
+        phone: values.phone || null,
+        email: values.email || null,
+        address: values.address || null,
+        notes: values.notes || null,
+      };
 
       if (supplier) {
         const { error } = await supabase
           .from("suppliers")
-          .update({
-            code: values.code,
-            vendor_code: values.vendor_code || null,
-            name: values.name,
-            contact_person: values.contact_person || null,
-            phone: values.phone || null,
-            email: values.email || null,
-            address: values.address || null,
-            notes: values.notes || null,
-          })
+          .update(payload)
           .eq("id", supplier.id);
-
         if (error) throw error;
         toast.success("อัพเดทผู้จัดจำหน่ายสำเร็จ");
       } else {
         const { error } = await supabase
           .from("suppliers")
-          .insert({
-            code: values.code,
-            vendor_code: values.vendor_code || null,
-            name: values.name,
-            contact_person: values.contact_person || null,
-            phone: values.phone || null,
-            email: values.email || null,
-            address: values.address || null,
-            notes: values.notes || null,
-            created_by: user.id,
-          });
-
+          .insert({ ...payload, created_by: user.id });
         if (error) throw error;
         toast.success("เพิ่มผู้จัดจำหน่ายสำเร็จ");
       }
@@ -143,7 +138,7 @@ export function SupplierForm({ onSuccess, supplier }: SupplierFormProps) {
             {supplier ? "แก้ไขผู้จัดจำหน่าย" : "เพิ่มผู้จัดจำหน่าย"}
           </DialogTitle>
           <DialogDescription>
-            กรอกข้อมูลผู้จัดจำหน่ายและซัพพลายเออร์
+            กรอกข้อมูลผู้จัดจำหน่ายให้ตรงกับระบบต้นทาง (Company, Vendor ID, Tax ID)
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -151,12 +146,12 @@ export function SupplierForm({ onSuccess, supplier }: SupplierFormProps) {
             <div className="grid grid-cols-3 gap-4">
               <FormField
                 control={form.control}
-                name="code"
+                name="company_code"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>รหัสผู้จัดจำหน่าย *</FormLabel>
+                    <FormLabel>Company</FormLabel>
                     <FormControl>
-                      <Input placeholder="เช่น SUP-001" {...field} />
+                      <Input placeholder="เช่น ADS, BWM, PCS" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -167,9 +162,9 @@ export function SupplierForm({ onSuccess, supplier }: SupplierFormProps) {
                 name="vendor_code"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>รหัส Vendor</FormLabel>
+                    <FormLabel>Vendor ID *</FormLabel>
                     <FormControl>
-                      <Input placeholder="เช่น VD-001" {...field} />
+                      <Input placeholder="เช่น 000006" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -177,18 +172,31 @@ export function SupplierForm({ onSuccess, supplier }: SupplierFormProps) {
               />
               <FormField
                 control={form.control}
-                name="name"
+                name="tax_id"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>ชื่อผู้จัดจำหน่าย *</FormLabel>
+                    <FormLabel>Tax ID</FormLabel>
                     <FormControl>
-                      <Input placeholder="ชื่อบริษัท/ร้านค้า" {...field} />
+                      <Input placeholder="เลข 13 หลัก" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
             </div>
+            <FormField
+              control={form.control}
+              name="name"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>ชื่อผู้จัดจำหน่าย (Vendor Name) *</FormLabel>
+                  <FormControl>
+                    <Input placeholder="ชื่อบริษัท/ห้างหุ้นส่วน/ร้านค้า" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
             <div className="grid grid-cols-2 gap-4">
               <FormField
                 control={form.control}
@@ -237,10 +245,7 @@ export function SupplierForm({ onSuccess, supplier }: SupplierFormProps) {
                 <FormItem>
                   <FormLabel>ที่อยู่</FormLabel>
                   <FormControl>
-                    <Textarea 
-                      placeholder="ที่อยู่สำหรับติดต่อ..."
-                      {...field}
-                    />
+                    <Textarea placeholder="ที่อยู่สำหรับติดต่อ..." {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -253,21 +258,14 @@ export function SupplierForm({ onSuccess, supplier }: SupplierFormProps) {
                 <FormItem>
                   <FormLabel>หมายเหตุ</FormLabel>
                   <FormControl>
-                    <Textarea 
-                      placeholder="บันทึกเพิ่มเติม..."
-                      {...field}
-                    />
+                    <Textarea placeholder="บันทึกเพิ่มเติม..." {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
             <div className="flex justify-end gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setOpen(false)}
-              >
+              <Button type="button" variant="outline" onClick={() => setOpen(false)}>
                 ยกเลิก
               </Button>
               <Button type="submit" disabled={loading}>
