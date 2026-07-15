@@ -35,6 +35,8 @@ interface Supplier {
   company_code: string | null;
   tax_id: string | null;
   name: string;
+  description: string | null;
+  media_site_name: string | null;
   contact_person: string | null;
   phone: string | null;
   email: string | null;
