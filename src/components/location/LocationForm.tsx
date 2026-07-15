@@ -233,9 +233,9 @@ export function LocationForm({ onSuccess, location, defaultWarehouseId, triggerL
         {location ? (
           <Button variant="ghost" size="sm">แก้ไข</Button>
         ) : (
-          <Button className="gap-2">
+          <Button variant={triggerVariant ?? "default"} className={triggerClassName ?? "gap-2"}>
             <Plus className="h-4 w-4" />
-            เพิ่มตำแหน่งจัดเก็บ
+            {triggerLabel ?? "เพิ่มตำแหน่งจัดเก็บ"}
           </Button>
         )}
       </DialogTrigger>
