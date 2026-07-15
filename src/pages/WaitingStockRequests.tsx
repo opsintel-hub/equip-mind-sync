@@ -18,6 +18,8 @@ import { Search, Package, Clock, CheckCircle, Bell, AlertTriangle, ChevronDown, 
 import { format, differenceInDays } from "date-fns";
 import { th } from "date-fns/locale";
 import { useAuth } from "@/hooks/useAuth";
+import { CompatibilityBadgeCell } from "@/components/reports/CompatibilityBadgeCell";
+
 import { WarehouseLocationSelect } from "@/components/location/WarehouseLocationSelect";
 import { SimpleDepartmentSelect } from "@/components/equipment/SimpleDepartmentSelect";
 import BillboardSelect from "@/components/billboard/BillboardSelect";
