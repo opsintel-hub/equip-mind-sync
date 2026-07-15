@@ -32,10 +32,11 @@ export function CategorySuggestWizard({
   triggerVariant = "outline",
   triggerSize = "sm",
   compact = false,
+  defaultProductName,
   onPick,
 }: Props) {
   const [open, setOpen] = useState(false);
-  const [productName, setProductName] = useState("");
+  const [productName, setProductName] = useState(defaultProductName || "");
   const [usage, setUsage] = useState("");
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState<Suggestion[] | null>(null);
