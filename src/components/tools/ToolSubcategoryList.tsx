@@ -87,13 +87,16 @@ export function ToolSubcategoryList({ refresh }: Props) {
   return (
     <>
       <div className="flex items-center justify-between mb-3 gap-2 flex-wrap">
-        <Select value={filter} onValueChange={setFilter}>
-          <SelectTrigger className="w-[250px]"><SelectValue placeholder="กรองตามหมวดหมู่หลัก" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">ทั้งหมด</SelectItem>
-            {cats.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
-          </SelectContent>
-        </Select>
+        <div className="w-[250px]">
+          <SearchableSelect
+            options={[{ value: "all", label: "ทั้งหมด" }, ...cats.map(c => ({ value: c.id, label: c.name }))]}
+            value={filter}
+            onValueChange={setFilter}
+            placeholder="กรองตามหมวดหมู่หลัก"
+            searchPlaceholder="ค้นหา..."
+            emptyMessage="ไม่พบหมวดหมู่"
+          />
+        </div>
         <Button onClick={openNew}><Plus className="h-4 w-4 mr-2" />เพิ่มหมวดหมู่ย่อย</Button>
       </div>
       <Table>
