@@ -205,9 +205,9 @@ export function ToolForm({ onSuccess }: ToolFormProps) {
 
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             {/* Section: ข้อมูลพื้นฐาน */}
+
             <div className="space-y-3">
               <h3 className="text-sm font-semibold text-primary border-b pb-1">📋 ข้อมูลพื้นฐาน</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
