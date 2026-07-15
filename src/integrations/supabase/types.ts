@@ -5781,6 +5781,44 @@ export type Database = {
           },
         ]
       }
+      tool_subcategories: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          name: string
+          tool_category_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          tool_category_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          tool_category_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tool_subcategories_tool_category_id_fkey"
+            columns: ["tool_category_id"]
+            isOneToOne: false
+            referencedRelation: "tool_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tools: {
         Row: {
           asset_code: string | null
@@ -5807,6 +5845,7 @@ export type Database = {
           serial_number: string | null
           supplier_id: string | null
           tool_category_id: string | null
+          tool_subcategory_id: string | null
           unit: string
           unit_price: number | null
           updated_at: string
@@ -5838,6 +5877,7 @@ export type Database = {
           serial_number?: string | null
           supplier_id?: string | null
           tool_category_id?: string | null
+          tool_subcategory_id?: string | null
           unit?: string
           unit_price?: number | null
           updated_at?: string
@@ -5869,6 +5909,7 @@ export type Database = {
           serial_number?: string | null
           supplier_id?: string | null
           tool_category_id?: string | null
+          tool_subcategory_id?: string | null
           unit?: string
           unit_price?: number | null
           updated_at?: string
@@ -5902,6 +5943,13 @@ export type Database = {
             columns: ["tool_category_id"]
             isOneToOne: false
             referencedRelation: "tool_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tools_tool_subcategory_id_fkey"
+            columns: ["tool_subcategory_id"]
+            isOneToOne: false
+            referencedRelation: "tool_subcategories"
             referencedColumns: ["id"]
           },
         ]
