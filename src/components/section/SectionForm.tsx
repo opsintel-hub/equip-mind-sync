@@ -29,9 +29,13 @@ interface SectionFormProps {
     name: string;
     description: string | null;
   };
+  defaultDepartmentId?: string;
+  triggerLabel?: string;
+  triggerVariant?: "default" | "outline" | "ghost" | "secondary" | "destructive" | "link";
+  triggerClassName?: string;
 }
 
-export function SectionForm({ onSuccess, editData }: SectionFormProps) {
+export function SectionForm({ onSuccess, editData, defaultDepartmentId, triggerLabel, triggerVariant, triggerClassName }: SectionFormProps) {
   const [open, setOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -52,7 +56,7 @@ export function SectionForm({ onSuccess, editData }: SectionFormProps) {
   const form = useForm<SectionFormValues>({
     resolver: zodResolver(sectionSchema),
     defaultValues: {
-      department_id: editData?.department_id || "",
+      department_id: editData?.department_id || defaultDepartmentId || "",
       name: editData?.name || "",
       description: editData?.description || "",
     },
@@ -110,13 +114,13 @@ export function SectionForm({ onSuccess, editData }: SectionFormProps) {
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         {editData ? (
-          <Button variant="ghost" size="icon">
+          <Button variant="ghost" size="icon" className={triggerClassName}>
             <Pencil className="h-4 w-4" />
           </Button>
         ) : (
-          <Button>
+          <Button variant={triggerVariant} className={triggerClassName} size={triggerLabel ? "sm" : "default"}>
             <Plus className="h-4 w-4 mr-2" />
-            เพิ่มแผนก
+            {triggerLabel || "เพิ่มแผนก"}
           </Button>
         )}
       </DialogTrigger>

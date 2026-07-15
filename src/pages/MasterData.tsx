@@ -23,6 +23,7 @@ import { WarehouseList } from "@/components/warehouse/WarehouseList";
 import { WarehouseLocationAccordion } from "@/components/warehouse/WarehouseLocationAccordion";
 import { DepartmentForm } from "@/components/department/DepartmentForm";
 import { DepartmentList } from "@/components/department/DepartmentList";
+import { DepartmentSectionAccordion } from "@/components/department/DepartmentSectionAccordion";
 import { SectionForm } from "@/components/section/SectionForm";
 import { SectionList } from "@/components/section/SectionList";
 import { IssuePurposeForm } from "@/components/purpose/IssuePurposeForm";
@@ -73,8 +74,7 @@ const MasterData = () => {
     ["warehouses", can("md_warehouses") || can("md_locations")],
     ["suppliers", can("md_suppliers")],
     ["contractors", can("md_contractors")],
-    ["departments", can("md_departments")],
-    ["sections", can("md_sections")],
+    ["departments", can("md_departments") || can("md_sections")],
     ["companies", can("md_companies")],
     ["issue_purposes", can("md_issue_purposes")],
     ["receipt_purposes", can("md_receipt_purposes")],
@@ -133,16 +133,10 @@ const MasterData = () => {
                 ผู้รับเหมา
               </TabsTrigger>
             )}
-            {can("md_departments") && (
+            {(can("md_departments") || can("md_sections")) && (
               <TabsTrigger value="departments" className="gap-1.5 text-xs px-3">
                 <Building2 className="h-3.5 w-3.5" />
-                ฝ่าย
-              </TabsTrigger>
-            )}
-            {can("md_sections") && (
-              <TabsTrigger value="sections" className="gap-1.5 text-xs px-3">
-                <Layers className="h-3.5 w-3.5" />
-                แผนก
+                ฝ่าย & แผนก
               </TabsTrigger>
             )}
             {can("md_companies") && (
@@ -380,43 +374,20 @@ const MasterData = () => {
         </TabsContent>
         )}
 
-        {can("md_departments") && (
+        {(can("md_departments") || can("md_sections")) && (
         <TabsContent value="departments" className="space-y-4">
           <Card>
             <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle>ฝ่าย</CardTitle>
-                  <CardDescription>
-                    จัดการข้อมูลฝ่ายทั้งหมดในระบบ
-                  </CardDescription>
-                </div>
-                <DepartmentForm onSuccess={handleSuccess} />
-              </div>
+              <CardTitle>ฝ่าย &amp; แผนก</CardTitle>
+              <CardDescription>
+                จัดการโครงสร้างฝ่ายและแผนกในรูปแบบต้นไม้ ขยาย/ยุบเพื่อดูแผนกในแต่ละฝ่าย
+              </CardDescription>
             </CardHeader>
             <CardContent>
-              <DepartmentList refresh={refreshKey} />
-            </CardContent>
-          </Card>
-        </TabsContent>
-        )}
-
-        {can("md_sections") && (
-        <TabsContent value="sections" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle>แผนก</CardTitle>
-                  <CardDescription>
-                    จัดการข้อมูลแผนกทั้งหมดในระบบ (ผูกกับฝ่าย)
-                  </CardDescription>
-                </div>
-                <SectionForm onSuccess={handleSuccess} />
-              </div>
-            </CardHeader>
-            <CardContent>
-              <SectionList refresh={refreshKey} />
+              <DepartmentSectionAccordion
+                canManageDepartment={can("md_departments")}
+                canManageSection={can("md_sections")}
+              />
             </CardContent>
           </Card>
         </TabsContent>
