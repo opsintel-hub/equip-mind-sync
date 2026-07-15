@@ -1,0 +1,1 @@
+ALTER TABLE public.suppliers ADD COLUMN IF NOT EXISTS description TEXT, ADD COLUMN IF NOT EXISTS media_site_name TEXT;

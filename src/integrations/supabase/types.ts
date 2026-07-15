@@ -5107,9 +5107,11 @@ export type Database = {
           contact_person: string | null
           created_at: string
           created_by: string | null
+          description: string | null
           email: string | null
           id: string
           is_active: boolean | null
+          media_site_name: string | null
           name: string
           notes: string | null
           phone: string | null
@@ -5124,9 +5126,11 @@ export type Database = {
           contact_person?: string | null
           created_at?: string
           created_by?: string | null
+          description?: string | null
           email?: string | null
           id?: string
           is_active?: boolean | null
+          media_site_name?: string | null
           name: string
           notes?: string | null
           phone?: string | null
@@ -5141,9 +5145,11 @@ export type Database = {
           contact_person?: string | null
           created_at?: string
           created_by?: string | null
+          description?: string | null
           email?: string | null
           id?: string
           is_active?: boolean | null
+          media_site_name?: string | null
           name?: string
           notes?: string | null
           phone?: string | null
@@ -6162,9 +6168,11 @@ export type Database = {
           contact_person: string | null
           created_at: string
           created_by: string | null
+          description: string | null
           email: string | null
           id: string
           is_active: boolean | null
+          media_site_name: string | null
           name: string
           notes: string | null
           phone: string | null
