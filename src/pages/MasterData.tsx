@@ -16,6 +16,7 @@ import { LocationImport } from "@/components/location/LocationImport";
 import { SupplierForm } from "@/components/supplier/SupplierForm";
 import { SupplierList } from "@/components/supplier/SupplierList";
 import { SupplierImport } from "@/components/supplier/SupplierImport";
+import { SupplierExport } from "@/components/supplier/SupplierExport";
 import { ContractorForm } from "@/components/contractor/ContractorForm";
 import { ContractorList } from "@/components/contractor/ContractorList";
 import { WarehouseForm } from "@/components/warehouse/WarehouseForm";
@@ -340,7 +341,8 @@ const MasterData = () => {
                     จัดการข้อมูลผู้จัดจำหน่ายและซัพพลายเออร์
                   </CardDescription>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2">
+                  <SupplierExport />
                   <SupplierImport onSuccess={handleSuccess} />
                   <SupplierForm onSuccess={handleSuccess} />
                 </div>

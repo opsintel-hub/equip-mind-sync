@@ -150,62 +150,66 @@ export function SupplierForm({ onSuccess, supplier }: SupplierFormProps) {
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <div className="grid grid-cols-3 gap-4">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            {/* Section 1: Identity */}
+            <section className="space-y-3">
+              <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+                ข้อมูลระบุตัวตน
+              </h3>
+              <div className="grid grid-cols-3 gap-4">
+                <FormField
+                  control={form.control}
+                  name="company_code"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Company (ชื่อย่อ)</FormLabel>
+                      <FormControl>
+                        <Input placeholder="เช่น ADS, BWM, PCS" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="vendor_code"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Vendor ID *</FormLabel>
+                      <FormControl>
+                        <Input placeholder="เช่น 000006" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="tax_id"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Tax ID *</FormLabel>
+                      <FormControl>
+                        <Input placeholder="เลข 13 หลัก" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
               <FormField
                 control={form.control}
-                name="company_code"
+                name="name"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Company (ชื่อย่อ)</FormLabel>
+                    <FormLabel>ชื่อผู้จัดจำหน่าย (Vendor Name) *</FormLabel>
                     <FormControl>
-                      <Input placeholder="เช่น ADS, BWM, PCS" {...field} />
+                      <Input placeholder="ชื่อบริษัท/ห้างหุ้นส่วน/ร้านค้า" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-              <FormField
-                control={form.control}
-                name="vendor_code"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Vendor ID *</FormLabel>
-                    <FormControl>
-                      <Input placeholder="เช่น 000006" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="tax_id"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Tax ID *</FormLabel>
-                    <FormControl>
-                      <Input placeholder="เลข 13 หลัก" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-            <FormField
-              control={form.control}
-              name="name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>ชื่อผู้จัดจำหน่าย (Vendor Name) *</FormLabel>
-                  <FormControl>
-                    <Input placeholder="ชื่อบริษัท/ห้างหุ้นส่วน/ร้านค้า" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <div className="grid grid-cols-2 gap-4">
               <FormField
                 control={form.control}
                 name="description"
@@ -213,7 +217,11 @@ export function SupplierForm({ onSuccess, supplier }: SupplierFormProps) {
                   <FormItem>
                     <FormLabel>Description (คำอธิบายสินค้า/บริการ)</FormLabel>
                     <FormControl>
-                      <Input placeholder="เช่น AL LED Strip 1.6 M, 24V CCT" {...field} />
+                      <Textarea
+                        rows={3}
+                        placeholder="เช่น AL LED Strip 1.6 M, 24V CCT"
+                        {...field}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -232,16 +240,49 @@ export function SupplierForm({ onSuccess, supplier }: SupplierFormProps) {
                   </FormItem>
                 )}
               />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
+            </section>
+
+            {/* Section 2: Contact */}
+            <section className="space-y-3">
+              <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+                ข้อมูลติดต่อ
+              </h3>
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="contact_person"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>ชื่อผู้ติดต่อ</FormLabel>
+                      <FormControl>
+                        <Input placeholder="ชื่อผู้ติดต่อ" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="phone"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>เบอร์โทรศัพท์</FormLabel>
+                      <FormControl>
+                        <Input placeholder="0X-XXXX-XXXX" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
               <FormField
                 control={form.control}
-                name="contact_person"
+                name="email"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>ชื่อผู้ติดต่อ</FormLabel>
+                    <FormLabel>อีเมล</FormLabel>
                     <FormControl>
-                      <Input placeholder="ชื่อผู้ติดต่อ" {...field} />
+                      <Input type="email" placeholder="email@example.com" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -249,58 +290,39 @@ export function SupplierForm({ onSuccess, supplier }: SupplierFormProps) {
               />
               <FormField
                 control={form.control}
-                name="phone"
+                name="address"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>เบอร์โทรศัพท์</FormLabel>
+                    <FormLabel>ที่อยู่</FormLabel>
                     <FormControl>
-                      <Input placeholder="0X-XXXX-XXXX" {...field} />
+                      <Textarea rows={2} placeholder="ที่อยู่สำหรับติดต่อ..." {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-            </div>
-            <FormField
-              control={form.control}
-              name="email"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>อีเมล</FormLabel>
-                  <FormControl>
-                    <Input type="email" placeholder="email@example.com" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="address"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>ที่อยู่</FormLabel>
-                  <FormControl>
-                    <Textarea placeholder="ที่อยู่สำหรับติดต่อ..." {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="notes"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>หมายเหตุ</FormLabel>
-                  <FormControl>
-                    <Textarea placeholder="บันทึกเพิ่มเติม..." {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <div className="flex justify-end gap-2">
+            </section>
+
+            {/* Section 3: Notes */}
+            <section className="space-y-3">
+              <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+                หมายเหตุ
+              </h3>
+              <FormField
+                control={form.control}
+                name="notes"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormControl>
+                      <Textarea rows={2} placeholder="บันทึกเพิ่มเติม..." {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </section>
+
+            <div className="flex justify-end gap-2 pt-2 border-t">
               <Button type="button" variant="outline" onClick={() => setOpen(false)}>
                 ยกเลิก
               </Button>
