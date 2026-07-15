@@ -247,37 +247,42 @@ export function ToolForm({ onSuccess }: ToolFormProps) {
                 </FormItem>
               )} />
 
+              <div className="md:col-span-2 flex items-center justify-between gap-2 rounded-md border border-dashed border-primary/30 bg-primary/5 px-3 py-2">
+                <div className="text-xs text-muted-foreground">
+                  ไม่แน่ใจว่าเครื่องมือนี้อยู่หมวดไหน? ให้ AI ช่วยแนะนำจากชื่อ/การใช้งาน
+                </div>
+                <CategorySuggestWizard
+                  entryType="tool"
+                  triggerVariant="outline"
+                  triggerSize="sm"
+                  triggerLabel="แนะนำหมวดหมู่ด้วย AI"
+                  defaultProductName={form.watch("name")}
+                  onPick={async (mainName, subName) => {
+                    const { data: mainRow } = await supabase
+                      .from("tool_categories")
+                      .select("id")
+                      .eq("name", mainName)
+                      .maybeSingle();
+                    if (mainRow?.id) {
+                      form.setValue("tool_category_id", mainRow.id);
+                      form.setValue("tool_subcategory_id", "");
+                      if (subName) {
+                        const { data: subRow } = await supabase
+                          .from("tool_subcategories")
+                          .select("id")
+                          .eq("name", subName)
+                          .eq("tool_category_id", mainRow.id)
+                          .maybeSingle();
+                        if (subRow?.id) form.setValue("tool_subcategory_id", subRow.id);
+                      }
+                    }
+                  }}
+                />
+              </div>
+
               <FormField control={form.control} name="tool_category_id" render={({ field }) => (
                 <FormItem>
-                  <div className="flex items-center justify-between gap-2">
-                    <FormLabel>หมวดหมู่หลัก</FormLabel>
-                    <CategorySuggestWizard
-                      entryType="tool"
-                      compact
-                      triggerVariant="ghost"
-                      defaultProductName={form.watch("name")}
-                      onPick={async (mainName, subName) => {
-                        const { data: mainRow } = await supabase
-                          .from("tool_categories")
-                          .select("id")
-                          .eq("name", mainName)
-                          .maybeSingle();
-                        if (mainRow?.id) {
-                          form.setValue("tool_category_id", mainRow.id);
-                          form.setValue("tool_subcategory_id", "");
-                          if (subName) {
-                            const { data: subRow } = await supabase
-                              .from("tool_subcategories")
-                              .select("id")
-                              .eq("name", subName)
-                              .eq("tool_category_id", mainRow.id)
-                              .maybeSingle();
-                            if (subRow?.id) form.setValue("tool_subcategory_id", subRow.id);
-                          }
-                        }
-                      }}
-                    />
-                  </div>
+                  <FormLabel>หมวดหมู่หลัก</FormLabel>
                   <FormControl><ToolCategorySelect hideManage value={field.value || ""} onChange={(v) => { field.onChange(v); form.setValue("tool_subcategory_id", ""); }} /></FormControl>
                 </FormItem>
               )} />
