@@ -550,6 +550,7 @@ function BillboardViewTab() {
                                       <TableCell className="text-xs font-mono">{eq.code}</TableCell>
                                       <TableCell className="text-xs whitespace-pre-line">{eq.serial_number || "-"}</TableCell>
                                       <TableCell>{item.type === "media_player" ? <DeviceTypeBadge value={eq.device_type} /> : <Badge variant="outline" className="text-xs">{eq.category || "อุปกรณ์"}</Badge>}</TableCell>
+                                      <TableCell><CompatibilityBadgeCell equipmentId={item.type === "equipment" ? item.equipment_id : null} skip={item.type !== "equipment"} /></TableCell>
                                       <TableCell className="text-xs">{eq.brand || "-"}</TableCell>
                                       <TableCell className="text-center">{item.quantity}</TableCell>
                                       <TableCell className="text-xs whitespace-nowrap">{fmtDate(item.installation_date)}</TableCell>
@@ -559,6 +560,7 @@ function BillboardViewTab() {
                                       <TableCell className="text-xs whitespace-nowrap">{fmtDate(eq.warranty_expiry_date)}</TableCell>
                                       <TableCell>{expiryBadge(eq.warranty_expiry_date, "ประกัน")}</TableCell>
                                     </TableRow>
+
                                   );
                                 })}
                               </TableBody>
