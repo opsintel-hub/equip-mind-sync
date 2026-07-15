@@ -569,7 +569,7 @@ const DeadStockReport = () => {
                     })}
                 {!isLoading && paginatedEquipment.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={11} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={12} className="text-center py-8 text-muted-foreground">
                       ไม่พบข้อมูล
                     </TableCell>
                   </TableRow>
