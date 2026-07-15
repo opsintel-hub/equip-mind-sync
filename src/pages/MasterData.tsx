@@ -314,46 +314,21 @@ const MasterData = () => {
         </TabsContent>
         )}
 
-        {can("md_warehouses") && (
+        {(can("md_warehouses") || can("md_locations")) && (
         <TabsContent value="warehouses" className="space-y-4">
           <Card>
             <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle>คลังสินค้า</CardTitle>
-                  <CardDescription>
-                    จัดการข้อมูลคลังสินค้าทั้งหมดในระบบ
-                  </CardDescription>
-                </div>
-                <WarehouseForm onSuccess={handleSuccess} />
-              </div>
+              <CardTitle>คลัง & ตำแหน่งจัดเก็บ</CardTitle>
+              <CardDescription>
+                จัดการคลังสินค้าและตำแหน่งจัดเก็บในหน้าเดียว — กด ▶ เพื่อขยายดูตำแหน่งจัดเก็บของแต่ละคลัง
+              </CardDescription>
             </CardHeader>
             <CardContent>
-              <WarehouseList refresh={refreshKey} />
-            </CardContent>
-          </Card>
-        </TabsContent>
-        )}
-
-        {can("md_locations") && (
-        <TabsContent value="locations" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle>ตำแหน่งจัดเก็บ</CardTitle>
-                  <CardDescription>
-                    จัดการตำแหน่งจัดเก็บสินค้าในคลัง
-                  </CardDescription>
-                </div>
-                <div className="flex gap-2">
-                  <LocationImport onSuccess={handleSuccess} />
-                  <LocationForm onSuccess={handleSuccess} />
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <LocationList refresh={refreshKey} />
+              <WarehouseLocationAccordion
+                key={`wl-${refreshKey}`}
+                canManageWarehouse={can("md_warehouses")}
+                canManageLocation={can("md_locations")}
+              />
             </CardContent>
           </Card>
         </TabsContent>
