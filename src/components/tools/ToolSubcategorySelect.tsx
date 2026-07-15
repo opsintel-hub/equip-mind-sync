@@ -26,9 +26,11 @@ interface Props {
   value: string;
   onChange: (value: string) => void;
   disabled?: boolean;
+  hideManage?: boolean;
 }
 
-export function ToolSubcategorySelect({ toolCategoryId, value, onChange, disabled }: Props) {
+export function ToolSubcategorySelect({ toolCategoryId, value, onChange, disabled, hideManage }: Props) {
+
   const [subcategories, setSubcategories] = useState<ToolSubcategory[]>([]);
   const [categories, setCategories] = useState<ToolCategory[]>([]);
   const [manageOpen, setManageOpen] = useState(false);
