@@ -65,9 +65,13 @@ interface LocationFormProps {
     depth_cm?: number | null;
     volume_cm3?: number | null;
   };
+  defaultWarehouseId?: string;
+  triggerLabel?: string;
+  triggerVariant?: "default" | "ghost" | "outline" | "secondary";
+  triggerClassName?: string;
 }
 
-export function LocationForm({ onSuccess, location }: LocationFormProps) {
+export function LocationForm({ onSuccess, location, defaultWarehouseId, triggerLabel, triggerVariant, triggerClassName }: LocationFormProps) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [locationId, setLocationId] = useState<string | undefined>(location?.id);
