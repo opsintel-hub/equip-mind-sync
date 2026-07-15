@@ -24,6 +24,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Plus } from "lucide-react";
+import { MediaSiteSelect } from "@/components/media-site/MediaSiteSelect";
 
 const formSchema = z.object({
   company_code: z.string().optional(),
