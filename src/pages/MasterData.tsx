@@ -20,6 +20,7 @@ import { ContractorForm } from "@/components/contractor/ContractorForm";
 import { ContractorList } from "@/components/contractor/ContractorList";
 import { WarehouseForm } from "@/components/warehouse/WarehouseForm";
 import { WarehouseList } from "@/components/warehouse/WarehouseList";
+import { WarehouseLocationAccordion } from "@/components/warehouse/WarehouseLocationAccordion";
 import { DepartmentForm } from "@/components/department/DepartmentForm";
 import { DepartmentList } from "@/components/department/DepartmentList";
 import { SectionForm } from "@/components/section/SectionForm";
@@ -69,8 +70,7 @@ const MasterData = () => {
     ["equipment", can("md_equipment")],
     ["tools", can("md_tools")],
     ["categories", can("md_categories")],
-    ["warehouses", can("md_warehouses")],
-    ["locations", can("md_locations")],
+    ["warehouses", can("md_warehouses") || can("md_locations")],
     ["suppliers", can("md_suppliers")],
     ["contractors", can("md_contractors")],
     ["departments", can("md_departments")],
@@ -115,16 +115,10 @@ const MasterData = () => {
                 หมวดหมู่
               </TabsTrigger>
             )}
-            {can("md_warehouses") && (
+            {(can("md_warehouses") || can("md_locations")) && (
               <TabsTrigger value="warehouses" className="gap-1.5 text-xs px-3">
                 <Warehouse className="h-3.5 w-3.5" />
-                คลังสินค้า
-              </TabsTrigger>
-            )}
-            {can("md_locations") && (
-              <TabsTrigger value="locations" className="gap-1.5 text-xs px-3">
-                <MapPin className="h-3.5 w-3.5" />
-                ตำแหน่ง
+                คลัง & ตำแหน่งจัดเก็บ
               </TabsTrigger>
             )}
             {can("md_suppliers") && (
@@ -321,46 +315,21 @@ const MasterData = () => {
         </TabsContent>
         )}
 
-        {can("md_warehouses") && (
+        {(can("md_warehouses") || can("md_locations")) && (
         <TabsContent value="warehouses" className="space-y-4">
           <Card>
             <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle>คลังสินค้า</CardTitle>
-                  <CardDescription>
-                    จัดการข้อมูลคลังสินค้าทั้งหมดในระบบ
-                  </CardDescription>
-                </div>
-                <WarehouseForm onSuccess={handleSuccess} />
-              </div>
+              <CardTitle>คลัง & ตำแหน่งจัดเก็บ</CardTitle>
+              <CardDescription>
+                จัดการคลังสินค้าและตำแหน่งจัดเก็บในหน้าเดียว — กด ▶ เพื่อขยายดูตำแหน่งจัดเก็บของแต่ละคลัง
+              </CardDescription>
             </CardHeader>
             <CardContent>
-              <WarehouseList refresh={refreshKey} />
-            </CardContent>
-          </Card>
-        </TabsContent>
-        )}
-
-        {can("md_locations") && (
-        <TabsContent value="locations" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle>ตำแหน่งจัดเก็บ</CardTitle>
-                  <CardDescription>
-                    จัดการตำแหน่งจัดเก็บสินค้าในคลัง
-                  </CardDescription>
-                </div>
-                <div className="flex gap-2">
-                  <LocationImport onSuccess={handleSuccess} />
-                  <LocationForm onSuccess={handleSuccess} />
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <LocationList refresh={refreshKey} />
+              <WarehouseLocationAccordion
+                key={`wl-${refreshKey}`}
+                canManageWarehouse={can("md_warehouses")}
+                canManageLocation={can("md_locations")}
+              />
             </CardContent>
           </Card>
         </TabsContent>

@@ -1,61 +1,80 @@
 
-# ปรับ UI หมวดหมู่: รวมหลัก-ย่อยเป็น Accordion Tree
+# รวม Tab "คลังสินค้า" + "ตำแหน่ง" เป็น Tab เดียว (Accordion Tree)
 
 ## เป้าหมาย
-แทนที่การแยก 2 ตาราง (หลัก / ย่อย) ในแต่ละ tab ด้วย **Accordion tree เดียว** ที่แสดงหมวดหมู่ย่อยไหลลงมาใต้หมวดหลัก กด ▼/▶ เพื่อขยาย-ยุบได้ ทำให้เห็นความสัมพันธ์ทันทีในหน้าจอเดียว
+ยุบ 2 tab (คลังสินค้า, ตำแหน่ง) ให้เหลือ **tab เดียว** ชื่อ **"คลัง & ตำแหน่งจัดเก็บ"** โดยแสดงเป็น Accordion tree เหมือน tab หมวดหมู่ — เห็นคลัง (parent) และตำแหน่งจัดเก็บ (child) ที่อยู่ในคลังนั้นในหน้าจอเดียว
 
-## ขอบเขต
-ปรับทั้ง 2 tab ใน `MasterData → หมวดหมู่` ให้ใช้ pattern เดียวกัน:
-- 📦 หมวดหมู่อุปกรณ์/อะไหล่ (`categories` + `subcategories`)
-- 🔧 หมวดหมู่เครื่องมือ (`tool_categories` + `tool_subcategories`)
+## สิ่งที่ตรวจสอบแล้ว
+
+**ความสัมพันธ์ DB (ไม่ต้องแก้ schema):**
+- `warehouses` (parent) ← `locations.warehouse_id` (child) — มี FK อยู่แล้ว
+- ทั้งคู่มี soft-delete ผ่าน `is_active`
+- ไม่ต้องสร้าง migration ใดๆ
+
+**ความแตกต่างจากหมวดหมู่:**
+- คลัง/ตำแหน่ง มีฟิลด์เยอะกว่า (code, department, storage_area, dimensions, volume, storage_slot, sub_storage_slot) → ใช้ **dialog เดิม** (`WarehouseForm`, `LocationForm`) ไม่สร้าง form ใหม่
+- Location มีปุ่ม **Import Excel** เพิ่มเติม → ต้องคงไว้
+
+**Permissions:**
+- ปัจจุบันแยก `md_warehouses` และ `md_locations`
+- แผน: tab merged จะแสดงถ้ามีสิทธิ์ **อย่างใดอย่างหนึ่ง**; ปุ่มเพิ่ม/แก้/ลบระดับคลังจะ hide ถ้าไม่มี `md_warehouses`; ปุ่มเพิ่ม/แก้/ลบระดับตำแหน่งจะ hide ถ้าไม่มี `md_locations`
+- Function permission keys เดิมทั้ง 2 คงอยู่ (ไม่ทำลาย config เดิมของผู้ใช้)
 
 ## หน้าตาที่จะได้
 
 ```text
-[+ เพิ่มหมวดหมู่หลัก]        [ขยายทั้งหมด] [ยุบทั้งหมด]
+[+ เพิ่มคลังสินค้า]  [📥 Import ตำแหน่ง]     [ขยายทั้งหมด] [ยุบทั้งหมด]
+                                              [🔍 ค้นหา รหัส/ชื่อ/ฝ่าย]
 
-▼ 📁 เครื่องมือช่างไฟฟ้า          [3 ย่อย] [ใช้งาน]  [✏️] [🗑️]
-   ├─ 🔧 ไขควง                            [ใช้งาน]  [✏️] [🗑️]
-   ├─ 🔧 คีม                              [ใช้งาน]  [✏️] [🗑️]
-   ├─ 🔧 สว่าน                            [ใช้งาน]  [✏️] [🗑️]
-   └─ [+ เพิ่มหมวดหมู่ย่อยในกลุ่มนี้]
+▼ 🏭 WH-01 · คลังกลาง กทม.               [ฝ่ายคลัง] [Indoor]
+   [12 ตำแหน่ง] [ปริมาตร 850/1,000 m³] [เหลือ 150 m³]     [✏️] [🗑️]
+   ├─ 📍 LOC-A01 · ชั้น 1 โซน A · slot A · 200/300 m³   [✏️] [🗑️]
+   ├─ 📍 LOC-A02 · ชั้น 1 โซน B · slot A · 150/200 m³   [✏️] [🗑️]
+   ├─ 📍 LOC-B01 · ชั้น 2 โซน A · slot B · 500/500 m³   [✏️] [🗑️]
+   └─ [+ เพิ่มตำแหน่งจัดเก็บในคลังนี้]
 
-▶ 📁 เครื่องมือช่างประปา          [5 ย่อย] [ใช้งาน]  [✏️] [🗑️]
-▶ 📁 อุปกรณ์วัด                    [0 ย่อย] [ใช้งาน]  [✏️] [🗑️]
+▶ 🏭 WH-02 · คลังต่างจังหวัด          [ฝ่ายภูมิภาค] [Outdoor]
+   [5 ตำแหน่ง] [ปริมาตร 120/500 m³]                     [✏️] [🗑️]
 ```
 
 ## พฤติกรรมหลัก
 
-1. **Accordion** — คลิกหัวกลุ่ม (หรือลูกศร ▼/▶) เพื่อขยาย-ยุบ; ขยายได้หลายกลุ่มพร้อมกัน
-2. **ปุ่ม "+ เพิ่มหมวดหมู่ย่อย" inline** ท้ายรายการย่อยของแต่ละกลุ่มที่ขยายอยู่ → เปิด dialog พร้อม **pre-fill หมวดหลัก** ให้อัตโนมัติ (ไม่ต้องเลือก dropdown อีก)
-3. **ปุ่ม + เพิ่มหมวดหมู่หลัก** ด้านบนสุด
-4. **แก้ไข/ลบ** ทั้งระดับหลักและย่อย ใช้ dialog เดิม (ตรรกะไม่เปลี่ยน)
-5. **ป้องกันลบหลัก** ถ้ายังมีย่อยอยู่ (มีอยู่แล้ว)
-6. **ปุ่ม ขยายทั้งหมด / ยุบทั้งหมด** ด้านบน
-7. **จำสถานะ expand** ใน localStorage (key แยกต่อ tab) เพื่อไม่ต้องขยายใหม่ทุกครั้ง
-8. **Badge นับจำนวนย่อย** ที่หัวกลุ่ม
+1. **Accordion หลายกลุ่ม** — ขยายพร้อมกันได้หลายคลัง
+2. **หัวคลัง** แสดง: รหัส, ชื่อ, ฝ่าย, ประเภทพื้นที่ (badge สี), จำนวนตำแหน่ง, ปริมาตรใช้/รวม (m³), ปริมาตรคงเหลือ (สีแดงเมื่อติดลบ)
+3. **แถวตำแหน่ง** แสดง: รหัส, ชื่อ, slot/sub-slot, ปริมาตรใช้/รวม (m³)
+4. **ปุ่ม "+ เพิ่มตำแหน่งในคลังนี้" inline** — เปิด `LocationForm` แบบ **pre-fill warehouse_id** อัตโนมัติ
+5. **ปุ่มเพิ่มคลัง** ที่หัวหน้า → เปิด `WarehouseForm` ตัวเดิม
+6. **ปุ่ม Import** คงไว้ (ใช้ `LocationImport` เดิม)
+7. **ปุ่ม ขยายทั้งหมด / ยุบทั้งหมด** + จำสถานะใน localStorage
+8. **ช่องค้นหา** — filter ทั้งคลังและตำแหน่ง; ถ้า match ตำแหน่ง จะ auto-expand คลังนั้น
+9. **ป้องกันลบคลัง** ถ้ายังมีตำแหน่งที่ active อยู่ (แสดง toast แนะนำให้ย้าย/ลบตำแหน่งก่อน)
+10. **Edit dialog** ใช้ตัวเดิมทั้งหมด ไม่แตะ business logic
 
 ## รายละเอียดทางเทคนิค
 
 **Component ใหม่:**
-- `src/components/category/CategoryAccordion.tsx` — reusable accordion tree ใช้ทั้ง equipment และ tools ผ่าน props:
-  ```
-  parentTable, childTable, childFkColumn, storageKey, labels
-  ```
-- ใช้ shadcn `Accordion` (`type="multiple"`) เป็นฐาน
-- Query: โหลด parents + children พร้อมกัน แล้ว group ฝั่ง client (`children.filter(c => c.parent_id === parent.id)`)
+- `src/components/warehouse/WarehouseLocationAccordion.tsx` — hierarchical view รวม CRUD ทั้ง 2 ระดับ
+  - Query: fetch `warehouses` + `locations` (พร้อม storage_slot/sub_storage_slot join) พร้อมกัน แล้ว group client-side
+  - Reuse `WarehouseForm` (มี `editData` prop อยู่แล้ว) และ `LocationForm` (มี `location` prop และรับ `warehouse_id` ผ่าน form default values)
+  - เพิ่ม prop `defaultWarehouseId` ให้ `LocationForm` (ถ้ายังไม่มี) เพื่อ pre-fill warehouse dropdown
 
-**Dialog เพิ่ม/แก้ไข:**
-- ใช้ dialog เดิมของ list components (CategoryList / SubcategoryList / ToolCategoryList / ToolSubcategoryList)
-- Sub dialog รับ prop `defaultParentId` เพื่อ pre-fill เวลาเปิดจากปุ่ม inline
+**แก้ไข:**
+- `src/pages/MasterData.tsx`:
+  - รวม tab `warehouses` และ `locations` เป็น tab เดียวชื่อ `warehouses_locations` (หรือคง `warehouses` ไว้เพื่อ backward compat)
+  - เงื่อนไขแสดง: `can("md_warehouses") || can("md_locations")`
+  - เอา `TabsTrigger` และ `TabsContent` ของ locations ออก
+  - เนื้อหา tab เดียวใช้ `<WarehouseLocationAccordion />` พร้อมส่ง flag permissions
+- `src/components/location/LocationForm.tsx`:
+  - เพิ่ม optional prop `defaultWarehouseId` — set ใน `defaultValues` ของ `useForm`
 
-**ไฟล์ที่แก้:**
-- สร้าง: `src/components/category/CategoryAccordion.tsx`
-- แก้: `src/pages/MasterData.tsx` — เปลี่ยนเนื้อหาแต่ละ tab จาก 2 ตารางเป็น `<CategoryAccordion .../>` ตัวเดียว
-- ปรับ dialog form ของ Subcategory/ToolSubcategory ให้รองรับ `defaultParentId`
-- คงไฟล์เดิม `CategoryList`, `SubcategoryList`, `ToolCategoryList`, `ToolSubcategoryList` ไว้ (อาจ deprecate ทีหลัง) — เพื่อลดความเสี่ยง
+**ไฟล์เดิมที่คงไว้ (deprecate เงียบๆ):**
+- `WarehouseList.tsx` และ `LocationList.tsx` ยังอยู่ (อาจถูกอ้างจากที่อื่น) แต่ไม่ใช้ใน MasterData แล้ว
+
+**Route/Navigation:**
+- ถ้ามี URL/link ที่ชี้ไปยัง tab `locations` โดยตรง จะ redirect ไป tab ใหม่ (ถ้ามี — จะตรวจ `?tab=locations` ในการ implement)
 
 ## สิ่งที่ไม่ทำ (out of scope)
-- ไม่ทำ drag & drop ย้ายหมวดย่อยข้ามหลัก (แก้ผ่านปุ่ม ✏️ ได้อยู่แล้ว)
-- ไม่ทำ search box (เพิ่มภายหลังได้ถ้ารายการเยอะขึ้น)
-- ไม่แตะ schema ฐานข้อมูล
+- ไม่แตะ storage_slots / sub_storage_slots (ยังจัดการที่เดิม)
+- ไม่ทำ drag-drop ย้ายตำแหน่งข้ามคลัง (แก้ผ่าน edit dialog ได้)
+- ไม่รวม tab อื่น (ฝ่าย, แผนก, ผู้จัดจำหน่าย ฯลฯ)
+- ไม่แก้ schema DB

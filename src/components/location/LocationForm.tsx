@@ -65,9 +65,13 @@ interface LocationFormProps {
     depth_cm?: number | null;
     volume_cm3?: number | null;
   };
+  defaultWarehouseId?: string;
+  triggerLabel?: string;
+  triggerVariant?: "default" | "ghost" | "outline" | "secondary";
+  triggerClassName?: string;
 }
 
-export function LocationForm({ onSuccess, location }: LocationFormProps) {
+export function LocationForm({ onSuccess, location, defaultWarehouseId, triggerLabel, triggerVariant, triggerClassName }: LocationFormProps) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [locationId, setLocationId] = useState<string | undefined>(location?.id);
@@ -107,7 +111,7 @@ export function LocationForm({ onSuccess, location }: LocationFormProps) {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      warehouse_id: location?.warehouse_id || "",
+      warehouse_id: location?.warehouse_id || defaultWarehouseId || "",
       code: location?.code || "",
       name: location?.name || "",
       description: location?.description || "",
@@ -229,9 +233,9 @@ export function LocationForm({ onSuccess, location }: LocationFormProps) {
         {location ? (
           <Button variant="ghost" size="sm">แก้ไข</Button>
         ) : (
-          <Button className="gap-2">
+          <Button variant={triggerVariant ?? "default"} className={triggerClassName ?? "gap-2"}>
             <Plus className="h-4 w-4" />
-            เพิ่มตำแหน่งจัดเก็บ
+            {triggerLabel ?? "เพิ่มตำแหน่งจัดเก็บ"}
           </Button>
         )}
       </DialogTrigger>
