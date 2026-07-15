@@ -195,7 +195,7 @@ export function SupplierImport({ onSuccess }: SupplierImportProps) {
               รองรับไฟล์ Vendor list-Store
             </h4>
             <ol className="text-sm text-muted-foreground space-y-1 list-decimal list-inside">
-              <li>คอลัมน์ที่รองรับ: <b>Company, Vendor ID, Tax ID, Vendor Name</b> (+ Description, Media Site Name)</li>
+              <li>คอลัมน์ที่รองรับ: <b>Company, Vendor ID, Tax ID, Vendor Name, Description, Media Site Name</b></li>
               <li>ระบบจะ <b>ยุบซ้ำอัตโนมัติ</b> ตาม Vendor ID (จากไฟล์ 250k+ แถว → ~80 vendor)</li>
               <li>ถ้า Vendor ID ตรงกับที่มีอยู่ ระบบจะ <b>อัปเดต</b>; ถ้าไม่ตรงจะ <b>เพิ่มใหม่</b> (Upsert)</li>
             </ol>
