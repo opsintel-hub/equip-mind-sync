@@ -17,11 +17,13 @@ const HEADERS = {
   vendor_id: ["Vendor ID", "Vendor Id", "vendor_id", "vendor_code", "Vendor Code", "รหัส Vendor"],
   tax_id: ["Tax ID", "Tax Id", "tax_id", "เลขผู้เสียภาษี"],
   name: ["Vendor Name", "vendor_name", "name", "ชื่อผู้จัดจำหน่าย"],
+  description: ["Description", "description", "คำอธิบาย"],
+  media_site_name: ["Media Site Name", "media_site_name", "Media Site", "ชื่อสื่อ"],
   contact_person: ["Contact Person", "contact_person", "ผู้ติดต่อ"],
   phone: ["Phone", "phone", "เบอร์โทร"],
   email: ["Email", "email", "อีเมล"],
   address: ["Address", "address", "ที่อยู่"],
-  notes: ["Notes", "notes", "Description", "หมายเหตุ"],
+  notes: ["Notes", "notes", "หมายเหตุ"],
 };
 
 function pick(row: Record<string, any>, keys: string[]): string {
@@ -55,6 +57,8 @@ export function SupplierImport({ onSuccess }: SupplierImportProps) {
         "Vendor ID": "000006",
         "Tax ID": "0105549081490",
         "Vendor Name": "บริษัท ตัวอย่าง จำกัด",
+        Description: "AL LED Strip 1.6 M, 24V CCT",
+        "Media Site Name": "Metro Poster",
         "Contact Person": "คุณสมชาย",
         Phone: "02-xxx-xxxx",
         Email: "contact@example.com",
@@ -63,7 +67,7 @@ export function SupplierImport({ onSuccess }: SupplierImportProps) {
       },
     ];
     const ws = XLSX.utils.json_to_sheet(templateData);
-    ws["!cols"] = [{ wch: 10 }, { wch: 12 }, { wch: 18 }, { wch: 40 }, { wch: 20 }, { wch: 15 }, { wch: 25 }, { wch: 40 }, { wch: 30 }];
+    ws["!cols"] = [{ wch: 10 }, { wch: 12 }, { wch: 18 }, { wch: 40 }, { wch: 35 }, { wch: 20 }, { wch: 20 }, { wch: 15 }, { wch: 25 }, { wch: 40 }, { wch: 30 }];
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Vendor list-Store");
     XLSX.writeFile(wb, "supplier_import_template.xlsx");
@@ -110,6 +114,8 @@ export function SupplierImport({ onSuccess }: SupplierImportProps) {
           company_code: pick(row, HEADERS.company) || existing.company_code || null,
           tax_id: pick(row, HEADERS.tax_id) || existing.tax_id || null,
           name: name || existing.name,
+          description: pick(row, HEADERS.description) || existing.description || null,
+          media_site_name: pick(row, HEADERS.media_site_name) || existing.media_site_name || null,
           contact_person: pick(row, HEADERS.contact_person) || existing.contact_person || null,
           phone: pick(row, HEADERS.phone) || existing.phone || null,
           email: pick(row, HEADERS.email) || existing.email || null,
@@ -189,7 +195,7 @@ export function SupplierImport({ onSuccess }: SupplierImportProps) {
               รองรับไฟล์ Vendor list-Store
             </h4>
             <ol className="text-sm text-muted-foreground space-y-1 list-decimal list-inside">
-              <li>คอลัมน์ที่รองรับ: <b>Company, Vendor ID, Tax ID, Vendor Name</b> (+ Description, Media Site Name)</li>
+              <li>คอลัมน์ที่รองรับ: <b>Company, Vendor ID, Tax ID, Vendor Name, Description, Media Site Name</b></li>
               <li>ระบบจะ <b>ยุบซ้ำอัตโนมัติ</b> ตาม Vendor ID (จากไฟล์ 250k+ แถว → ~80 vendor)</li>
               <li>ถ้า Vendor ID ตรงกับที่มีอยู่ ระบบจะ <b>อัปเดต</b>; ถ้าไม่ตรงจะ <b>เพิ่มใหม่</b> (Upsert)</li>
             </ol>

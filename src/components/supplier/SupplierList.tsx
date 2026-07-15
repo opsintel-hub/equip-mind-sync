@@ -35,6 +35,8 @@ interface Supplier {
   company_code: string | null;
   tax_id: string | null;
   name: string;
+  description: string | null;
+  media_site_name: string | null;
   contact_person: string | null;
   phone: string | null;
   email: string | null;
@@ -99,6 +101,8 @@ export function SupplierList({ refresh }: SupplierListProps) {
           (s.code || "").toLowerCase().includes(q) ||
           (s.tax_id || "").toLowerCase().includes(q) ||
           (s.name || "").toLowerCase().includes(q) ||
+          (s.description || "").toLowerCase().includes(q) ||
+          (s.media_site_name || "").toLowerCase().includes(q) ||
           (s.contact_person || "").toLowerCase().includes(q) ||
           (s.email || "").toLowerCase().includes(q) ||
           (s.phone || "").toLowerCase().includes(q)
@@ -116,6 +120,8 @@ export function SupplierList({ refresh }: SupplierListProps) {
       "Vendor ID": s.vendor_code || s.code || "",
       "Tax ID": s.tax_id || "",
       "Vendor Name": s.name,
+      Description: s.description || "",
+      "Media Site Name": s.media_site_name || "",
       "Contact Person": s.contact_person || "",
       Phone: s.phone || "",
       Email: s.email || "",
@@ -124,7 +130,7 @@ export function SupplierList({ refresh }: SupplierListProps) {
       Notes: s.notes || "",
     }));
     const ws = XLSX.utils.json_to_sheet(exportData);
-    ws["!cols"] = [{ wch: 10 }, { wch: 12 }, { wch: 18 }, { wch: 40 }, { wch: 20 }, { wch: 15 }, { wch: 25 }, { wch: 40 }, { wch: 12 }, { wch: 30 }];
+    ws["!cols"] = [{ wch: 10 }, { wch: 12 }, { wch: 18 }, { wch: 40 }, { wch: 35 }, { wch: 20 }, { wch: 20 }, { wch: 15 }, { wch: 25 }, { wch: 40 }, { wch: 12 }, { wch: 30 }];
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Vendor list-Store");
     XLSX.writeFile(wb, `suppliers_${new Date().toISOString().split("T")[0]}.xlsx`);
@@ -143,7 +149,7 @@ export function SupplierList({ refresh }: SupplierListProps) {
         <div className="relative flex-1 min-w-[240px]">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="ค้นหา Vendor ID, Tax ID, ชื่อ, ผู้ติดต่อ, อีเมล..."
+            placeholder="ค้นหา Vendor ID, Tax ID, ชื่อ, Description, Media Site, ผู้ติดต่อ..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="pl-10"
@@ -172,6 +178,8 @@ export function SupplierList({ refresh }: SupplierListProps) {
               <TableHead>Vendor ID</TableHead>
               <TableHead>Tax ID</TableHead>
               <TableHead>ชื่อผู้จัดจำหน่าย</TableHead>
+              <TableHead>Description</TableHead>
+              <TableHead>Media Site Name</TableHead>
               <TableHead>ผู้ติดต่อ</TableHead>
               <TableHead>เบอร์โทร</TableHead>
               <TableHead>สถานะ</TableHead>
@@ -185,6 +193,8 @@ export function SupplierList({ refresh }: SupplierListProps) {
                 <TableCell className="font-mono">{s.vendor_code || s.code}</TableCell>
                 <TableCell className="font-mono text-xs">{s.tax_id || "-"}</TableCell>
                 <TableCell className="font-medium">{s.name}</TableCell>
+                <TableCell className="max-w-[240px] truncate" title={s.description || ""}>{s.description || "-"}</TableCell>
+                <TableCell>{s.media_site_name || "-"}</TableCell>
                 <TableCell>{s.contact_person || "-"}</TableCell>
                 <TableCell>{s.phone || "-"}</TableCell>
                 <TableCell>

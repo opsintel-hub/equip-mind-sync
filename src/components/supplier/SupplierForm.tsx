@@ -28,8 +28,10 @@ import { Plus } from "lucide-react";
 const formSchema = z.object({
   company_code: z.string().optional(),
   vendor_code: z.string().min(1, "กรุณาระบุ Vendor ID"),
-  tax_id: z.string().optional(),
+  tax_id: z.string().min(1, "กรุณาระบุ Tax ID"),
   name: z.string().min(1, "กรุณาระบุชื่อผู้จัดจำหน่าย"),
+  description: z.string().optional(),
+  media_site_name: z.string().optional(),
   contact_person: z.string().optional(),
   phone: z.string().optional(),
   email: z.string().email("รูปแบบอีเมลไม่ถูกต้อง").optional().or(z.literal("")),
@@ -46,6 +48,8 @@ interface SupplierFormProps {
     tax_id?: string | null;
     company_code?: string | null;
     name: string;
+    description?: string | null;
+    media_site_name?: string | null;
     contact_person: string | null;
     phone: string | null;
     email: string | null;
@@ -65,6 +69,8 @@ export function SupplierForm({ onSuccess, supplier }: SupplierFormProps) {
       vendor_code: supplier?.vendor_code || "",
       tax_id: supplier?.tax_id || "",
       name: supplier?.name || "",
+      description: supplier?.description || "",
+      media_site_name: supplier?.media_site_name || "",
       contact_person: supplier?.contact_person || "",
       phone: supplier?.phone || "",
       email: supplier?.email || "",
@@ -86,8 +92,10 @@ export function SupplierForm({ onSuccess, supplier }: SupplierFormProps) {
         code: values.vendor_code.trim(),
         vendor_code: values.vendor_code.trim(),
         company_code: values.company_code?.trim() || null,
-        tax_id: values.tax_id?.trim() || null,
+        tax_id: values.tax_id.trim(),
         name: values.name.trim(),
+        description: values.description?.trim() || null,
+        media_site_name: values.media_site_name?.trim() || null,
         contact_person: values.contact_person || null,
         phone: values.phone || null,
         email: values.email || null,
@@ -149,7 +157,7 @@ export function SupplierForm({ onSuccess, supplier }: SupplierFormProps) {
                 name="company_code"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Company</FormLabel>
+                    <FormLabel>Company (ชื่อย่อ)</FormLabel>
                     <FormControl>
                       <Input placeholder="เช่น ADS, BWM, PCS" {...field} />
                     </FormControl>
@@ -175,7 +183,7 @@ export function SupplierForm({ onSuccess, supplier }: SupplierFormProps) {
                 name="tax_id"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Tax ID</FormLabel>
+                    <FormLabel>Tax ID *</FormLabel>
                     <FormControl>
                       <Input placeholder="เลข 13 หลัก" {...field} />
                     </FormControl>
@@ -197,6 +205,34 @@ export function SupplierForm({ onSuccess, supplier }: SupplierFormProps) {
                 </FormItem>
               )}
             />
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="description"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Description (คำอธิบายสินค้า/บริการ)</FormLabel>
+                    <FormControl>
+                      <Input placeholder="เช่น AL LED Strip 1.6 M, 24V CCT" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="media_site_name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Media Site Name</FormLabel>
+                    <FormControl>
+                      <Input placeholder="เช่น Metro Poster" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
             <div className="grid grid-cols-2 gap-4">
               <FormField
                 control={form.control}
