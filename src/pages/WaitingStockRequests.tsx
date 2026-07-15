@@ -554,7 +554,9 @@ const WaitingStockRequests = () => {
                                     <TableRow key={item.id} className={hasStock ? "bg-green-50/50" : ""}>
                                       <TableCell className="font-mono text-sm">{item.equipment_code || "-"}</TableCell>
                                       <TableCell>{item.equipment_name || "-"}</TableCell>
+                                      <TableCell><CompatibilityBadgeCell equipmentId={item.equipment_id} /></TableCell>
                                       <TableCell className="text-muted-foreground">{item.serial_number || "-"}</TableCell>
+
                                       <TableCell className="text-right">{item.quantity}</TableCell>
                                       <TableCell className="text-right text-green-600">{item.issued_quantity || 0}</TableCell>
                                       <TableCell className="text-right text-orange-600 font-medium">{remainingQty}</TableCell>
