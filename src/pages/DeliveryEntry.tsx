@@ -2279,35 +2279,41 @@ const DeliveryEntry = () => {
                       </div>
                     )}
 
+                    {/* AI suggest banner */}
+                    {!selectedEquipmentId && (
+                      <div className="flex items-center justify-between gap-2 rounded-md border border-dashed border-primary/30 bg-primary/5 px-3 py-2">
+                        <div className="text-xs text-muted-foreground">
+                          ไม่แน่ใจว่าสินค้านี้อยู่หมวดไหน? ให้ AI ช่วยแนะนำจากชื่อ/การใช้งาน
+                        </div>
+                        <CategorySuggestWizard
+                          entryType="equipment"
+                          triggerVariant="outline"
+                          triggerSize="sm"
+                          triggerLabel="แนะนำหมวดหมู่ด้วย AI"
+                          defaultProductName={manualEquipmentName}
+                          onPick={(mainName, subName) => {
+                            const cat = categories.find((c: any) => c.name === mainName);
+                            if (cat) {
+                              setSelectedCategoryId(cat.id);
+                              setSelectedSubcategoryId("");
+                              if (subName) {
+                                const sub = subcategories.find(
+                                  (s: any) => s.name === subName && s.category_id === cat.id
+                                );
+                                if (sub) setSelectedSubcategoryId(sub.id);
+                              }
+                            }
+                          }}
+                        />
+                      </div>
+                    )}
+
                     {/* Category & Subcategory */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-2">
-                        <div className="flex items-center justify-between gap-2">
-                          <Label htmlFor="category">
-                            หมวดหมู่ {!selectedEquipmentId && <span className="text-destructive">*</span>}
-                          </Label>
-                          {!selectedEquipmentId && (
-                            <CategorySuggestWizard
-                              entryType="equipment"
-                              compact
-                              triggerVariant="ghost"
-                              defaultProductName={manualEquipmentName}
-                              onPick={(mainName, subName) => {
-                                const cat = categories.find((c: any) => c.name === mainName);
-                                if (cat) {
-                                  setSelectedCategoryId(cat.id);
-                                  setSelectedSubcategoryId("");
-                                  if (subName) {
-                                    const sub = subcategories.find(
-                                      (s: any) => s.name === subName && s.category_id === cat.id
-                                    );
-                                    if (sub) setSelectedSubcategoryId(sub.id);
-                                  }
-                                }
-                              }}
-                            />
-                          )}
-                        </div>
+                        <Label htmlFor="category">
+                          หมวดหมู่ {!selectedEquipmentId && <span className="text-destructive">*</span>}
+                        </Label>
                         {selectedEquipmentId && selectedEquipment?.category ? (
                           <div className="flex items-center gap-2 h-10 px-3 rounded-md border bg-muted">
                             <span className="text-foreground">{selectedEquipment.category}</span>
