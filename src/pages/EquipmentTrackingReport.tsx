@@ -881,6 +881,7 @@ function EquipmentViewTab() {
                 <TableHead className="whitespace-nowrap">ชื่อ / Model</TableHead>
                 <TableHead className="whitespace-nowrap">S/N</TableHead>
                 <TableHead className="whitespace-nowrap">ประเภท</TableHead>
+                <TableHead className="whitespace-nowrap">ป้ายที่รองรับ</TableHead>
                 <TableHead className="whitespace-nowrap">Brand</TableHead>
                 <TableHead className="text-center whitespace-nowrap">คงเหลือในคลัง</TableHead>
                 <TableHead className="whitespace-nowrap">ติดตั้งที่ป้าย</TableHead>
@@ -890,6 +891,7 @@ function EquipmentViewTab() {
                 <TableHead className="whitespace-nowrap">สถานะประกัน</TableHead>
                 <TableHead className="text-center whitespace-nowrap">รายละเอียด</TableHead>
               </TableRow>
+
             </TableHeader>
             <TableBody>
               {paginatedData.length === 0 ? (
