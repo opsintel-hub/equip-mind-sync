@@ -133,12 +133,14 @@ export function ToolSubcategoryList({ refresh }: Props) {
           <div className="space-y-4">
             <div className="space-y-2">
               <Label>หมวดหมู่หลัก *</Label>
-              <Select value={catId} onValueChange={setCatId}>
-                <SelectTrigger><SelectValue placeholder="เลือกหมวดหมู่หลัก" /></SelectTrigger>
-                <SelectContent>
-                  {cats.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
-                </SelectContent>
-              </Select>
+              <SearchableSelect
+                options={cats.map(c => ({ value: c.id, label: c.name }))}
+                value={catId}
+                onValueChange={setCatId}
+                placeholder="เลือกหมวดหมู่หลัก"
+                searchPlaceholder="ค้นหา..."
+                emptyMessage="ไม่พบหมวดหมู่"
+              />
             </div>
             <div className="space-y-2">
               <Label>ชื่อหมวดหมู่ย่อย *</Label>
