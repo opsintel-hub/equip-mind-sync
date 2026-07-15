@@ -78,6 +78,7 @@ const M3 = (cm3: number) => (cm3 / 1_000_000).toFixed(2);
 export function WarehouseLocationAccordion({ canManageWarehouse, canManageLocation }: Props) {
   const [warehouses, setWarehouses] = useState<WarehouseData[]>([]);
   const [locations, setLocations] = useState<LocationData[]>([]);
+  const [departments, setDepartments] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [expanded, setExpanded] = useState<Set<string>>(() => {
@@ -108,7 +109,7 @@ export function WarehouseLocationAccordion({ canManageWarehouse, canManageLocati
 
   const load = async () => {
     setLoading(true);
-    const [wRes, lRes] = await Promise.all([
+    const [wRes, lRes, dRes] = await Promise.all([
       supabase
         .from("warehouses")
         .select("*")
@@ -121,11 +122,18 @@ export function WarehouseLocationAccordion({ canManageWarehouse, canManageLocati
         )
         .eq("is_active", true)
         .order("code"),
+      supabase
+        .from("departments")
+        .select("name")
+        .eq("is_active", true)
+        .order("name"),
     ]);
     if (wRes.error) toast.error(wRes.error.message);
     if (lRes.error) toast.error(lRes.error.message);
+    if (dRes.error) toast.error(dRes.error.message);
     setWarehouses((wRes.data || []) as WarehouseData[]);
     setLocations((lRes.data || []) as LocationData[]);
+    setDepartments(((dRes.data || []) as { name: string }[]).map((d) => d.name));
     setLoading(false);
   };
 
