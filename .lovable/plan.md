@@ -1,75 +1,33 @@
-# ผู้ช่วยแนะนำหมวดหมู่ (Category Suggestion Assistant)
+# แผน: เพิ่มปุ่ม AI แนะนำหมวดหมู่ในฟอร์มที่ผู้ใช้ใช้จริง
 
-## เป้าหมาย
-เวลาผู้ใช้/เจ้าหน้าที่รับของเข้าคลังแล้วไม่แน่ใจว่าจะจัดเข้า **หมวดหมู่หลัก / หมวดหมู่ย่อย** ไหน ให้ระบบถาม 3 คำถามสั้น ๆ แล้วแนะนำคำตอบพร้อมเหตุผล และคลิกเลือกไปใช้งานต่อได้ทันที (ทั้งฝั่ง "หมวดหมู่อุปกรณ์/อะไหล่" และ "หมวดหมู่เครื่องมือ")
+## ปัญหา
+ตอนนี้ `CategorySuggestWizard` ถูกวางไว้แค่ที่ **ข้อมูลหลัก > หมวดหมู่** (CategoryAccordion) เท่านั้น จึงหาไม่เจอในหน้าที่ใช้งานจริง:
+- ภาพ 1: `ToolForm` (ข้อมูลเครื่องมือ → เพิ่มเครื่องมือ) — ไม่มีปุ่ม AI
+- ภาพ 2: `DeliveryEntry` (นำสินค้าใหม่เข้าระบบ) ตรงจุดกรอกสินค้าใหม่ที่ยังไม่มีในระบบ — ไม่มีปุ่ม AI
 
----
+## สิ่งที่จะทำ
 
-## 1) ข้อมูลที่ระบบต้องรู้ (คุณต้องเตรียมให้)
+### 1) `src/components/tools/ToolForm.tsx`
+- เพิ่มปุ่ม ✨ `CategorySuggestWizard` (entryType="tool", compact icon) วางไว้ท้ายแถวเดียวกับ "หมวดหมู่หลัก / หมวดหมู่ย่อย"
+- เมื่อผู้ใช้เลือกผลลัพธ์: lookup ชื่อ main/sub จาก `tool_categories` / `tool_subcategories` แล้ว `form.setValue('tool_category_id', ...)` และ `tool_subcategory_id`
+- จัดระเบียบ Popup ให้สวยขึ้น:
+  - บีบ spacing ให้สม่ำเสมอ, group header ไอคอนสี ให้ขนาด/สีเสมอกัน
+  - ช่อง "หมวดหมู่หลัก / หมวดหมู่ย่อย" เปลี่ยนเป็น 2 คอลัมน์ในบรรทัดเดียว โดยมีปุ่ม AI compact อยู่ท้ายบรรทัด (เหมือน pattern ปุ่มจัดการ Prefix/ยี่ห้อ)
+  - ตรวจให้ Dialog scroll ภายใน (max-h + overflow-y-auto) ไม่ให้ปุ่มบันทึกหลุดจอ
 
-เพื่อให้ AI แยกแยะได้แม่นยำ แต่ละหมวดหมู่ (หลัก/ย่อย) ควรมี metadata เพิ่ม 3 ช่อง:
+### 2) `src/pages/DeliveryEntry.tsx`
+- ในบล็อกสินค้าใหม่ (รอบๆ บรรทัด 2315 "หมวดหมู่ย่อย") เพิ่มปุ่ม ✨ `CategorySuggestWizard` (entryType="equipment", compact) วางข้าง label "หมวดหมู่หลัก/ย่อย"
+- Callback `onPick(main, sub)` → ค้นหา id จาก state ของ categories/subcategories ที่โหลดอยู่ แล้ว set `selectedCategoryId` + `selectedSubcategoryId`
+- ส่ง product name/usage เริ่มต้นจากช่อง "ชื่อสินค้าใหม่" ที่ผู้ใช้กรอก (ถ้ามี) — เพิ่ม prop `defaultProductName` ใน wizard
 
-| ช่อง | ตัวอย่าง | ใช้ทำอะไร |
-|---|---|---|
-| `keywords` (คำค้นหา) | "สว่าน, ไขควงไฟฟ้า, drill, impact" | จับคู่ชื่อ/คำอธิบายสินค้า |
-| `examples` (ตัวอย่างสินค้า) | "สว่านมือ Bosch, สว่านไร้สาย Makita" | บอก AI ว่าอะไรเข้าข่าย |
-| `usage_hint` (ลักษณะการใช้งาน) | "ใช้เจาะ/ขัน มีมอเตอร์ ใช้ไฟฟ้าหรือแบตเตอรี่" | ช่วยตัดสินใจกรณีก้ำกึ่ง |
+### 3) `src/components/category/CategorySuggestWizard.tsx` (ปรับเล็กน้อย)
+- รับ prop optional `defaultProductName?: string` เพื่อ prefill
 
-ปุ่ม **"ให้ AI ช่วยเติม metadata"** ในหน้าจัดการหมวดหมู่ — กดครั้งเดียวให้ AI generate keywords/examples/usage_hint จากชื่อหมวดที่มีอยู่ แล้วให้คน review/แก้ก่อนบันทึก (ลดภาระการกรอกครั้งแรก)
+## ไฟล์ที่จะแก้
+- `src/components/tools/ToolForm.tsx` — เพิ่มปุ่ม AI + จัด layout popup
+- `src/pages/DeliveryEntry.tsx` — เพิ่มปุ่ม AI ในส่วนสินค้าใหม่
+- `src/components/category/CategorySuggestWizard.tsx` — รับ `defaultProductName`
 
----
-
-## 2) UX — ปุ่ม "แนะนำหมวดหมู่ให้ฉัน" (Wizard 3 คำถาม)
-
-วางปุ่มไว้ 2 จุด:
-- หน้า **ข้อมูลหลัก > หมวดหมู่** (ทั้ง 2 แท็บ) — ใช้เพื่อทดลอง/หาหมวดที่เหมาะ
-- ในฟอร์มรับของเข้าคลัง / ฟอร์มสร้างอุปกรณ์-เครื่องมือ ตรงช่องเลือกหมวดหมู่ — ปุ่มเล็ก ✨ "ไม่รู้จะเลือกอะไร?"
-
-**3 คำถาม (ปรับได้):**
-1. **ชื่อ/รุ่นสินค้า** (พิมพ์อิสระ) — เช่น "สว่านไร้สาย Makita DF333D"
-2. **ใช้ทำอะไร / ลักษณะการใช้งาน** (พิมพ์สั้น หรือเลือก chip: เจาะ/ตัด/วัด/ทำความสะอาด/ป้องกัน/ไฟฟ้า/เครือข่าย/อื่นๆ)
-3. **ประเภทการเข้าคลัง** (choice) — เครื่องมือช่าง / อุปกรณ์-อะไหล่ / วัสดุสิ้นเปลือง → ใช้กำหนดว่าจะแนะนำจากตารางไหน
-
-**ผลลัพธ์:**
-- Top 3 แนะนำ เรียงตามความมั่นใจ (แสดง % + เหตุผลสั้น 1 บรรทัด)
-- แต่ละอันมี หมวดหลัก → หมวดย่อย + ปุ่ม **"เลือกอันนี้"**
-- ถ้าไม่มีอะไรเข้าเกณฑ์ → เสนอ "สร้างหมวดหมู่ใหม่" พร้อมชื่อที่ AI แนะนำ
-
----
-
-## 3) เบื้องหลัง (Technical)
-
-- Edge function `suggest-category` เรียก Lovable AI (`google/gemini-2.5-flash`)
-- ส่ง prompt = คำถาม 3 ข้อ + รายการหมวดหมู่ทั้งหมด (พร้อม keywords/examples/usage_hint) ที่ scope ตาม `entry_type`
-- บังคับ output เป็น JSON: `[{main_category, sub_category, confidence, reason}]`
-- Frontend เรียก edge function แล้ว render การ์ดผลลัพธ์
-- ถ้ายังไม่ได้กรอก metadata ระบบก็ยังทำงานได้ (ใช้แค่ชื่อหมวด) แต่ความแม่นยำจะต่ำลง
-
----
-
-## 4) ขอบเขตการเปลี่ยนแปลง
-
-**Database migration:**
-- เพิ่มคอลัมน์ `keywords text[]`, `examples text`, `usage_hint text` ในตาราง `categories`, `subcategories`, `tool_categories`, `tool_subcategories`
-
-**Edge function ใหม่:**
-- `supabase/functions/suggest-category/index.ts`
-
-**Component ใหม่:**
-- `src/components/category/CategorySuggestWizard.tsx` — dialog 3 คำถาม + แสดงผล Top 3
-- ปุ่ม "ให้ AI ช่วยเติม metadata" ในฟอร์มแก้ไขหมวดหมู่ (`CategoryForm`, `SubcategoryForm` + ฝั่ง tool)
-
-**จุดที่แทรกปุ่ม:**
-- `src/pages/MasterData.tsx` (แท็บหมวดหมู่ — ทั้ง 2 sub-tab)
-- `src/components/equipment/CategorySelect.tsx` (ปุ่ม ✨ ข้างช่องเลือก)
-- ฟอร์มเครื่องมือ (`ToolForm`) — ปุ่มเดียวกันข้างช่องเลือกหมวด
-
----
-
-## คำถามที่อยากคอนเฟิร์มก่อนลงมือ
-
-1. **3 คำถามด้านบน OK ไหม** หรืออยากปรับ (เช่น เพิ่ม "แหล่งพลังงาน", "ขนาด/น้ำหนัก")
-2. metadata 3 ช่อง (`keywords / examples / usage_hint`) OK ไหม หรือขอแค่ `keywords + examples` พอ
-3. ให้มีปุ่ม **"ให้ AI ช่วยเติม metadata"** ในหน้าหมวดหมู่ด้วยเลยไหม (แนะนำ: ใช่ — ลดภาระเริ่มต้น)
-
-ถ้า OK ตอบ "ตามแผน" หรือบอกจุดที่อยากปรับ แล้วเริ่ม implement ได้เลย
+## ไม่แตะ
+- Edge function `suggest-category` และ schema เดิม
+- Logic การรับเข้า/บันทึกสินค้า
