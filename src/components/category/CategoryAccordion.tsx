@@ -378,10 +378,39 @@ function EditDialog({
   const [parentId, setParentId] = useState<string>(
     isChild ? (row as ChildRow | null | undefined)?.parentId ?? target.defaultParentId ?? "" : "",
   );
+  const [keywords, setKeywords] = useState<string>((row?.keywords ?? []).join(", "));
+  const [examples, setExamples] = useState<string>(row?.examples ?? "");
+  const [usageHint, setUsageHint] = useState<string>(row?.usage_hint ?? "");
   const [saving, setSaving] = useState(false);
+  const [enriching, setEnriching] = useState(false);
 
   const parentName = isChild ? parents.find((p) => p.id === parentId)?.name : null;
   const isEdit = !!row;
+
+  const enrichWithAI = async () => {
+    if (!name.trim()) return toast.error("กรุณากรอกชื่อหมวดหมู่ก่อน");
+    setEnriching(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("suggest-category", {
+        body: {
+          mode: "enrich",
+          category_name: name.trim(),
+          parent_name: parentName || undefined,
+          kind: isChild ? "sub" : "main",
+        },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      if (Array.isArray(data?.keywords)) setKeywords(data.keywords.join(", "));
+      if (typeof data?.examples === "string") setExamples(data.examples);
+      if (typeof data?.usage_hint === "string") setUsageHint(data.usage_hint);
+      toast.success("AI เติม metadata ให้เรียบร้อย ตรวจสอบและกดบันทึก");
+    } catch (e: any) {
+      toast.error(e?.message || "ไม่สามารถเรียก AI ได้");
+    } finally {
+      setEnriching(false);
+    }
+  };
 
   const save = async () => {
     if (!name.trim()) return toast.error("กรุณากรอกชื่อ");
@@ -389,10 +418,17 @@ function EditDialog({
     setSaving(true);
     try {
       const table = isChild ? childTable : parentTable;
+      const kwArr = keywords
+        .split(/[,\n]/)
+        .map((s) => s.trim())
+        .filter(Boolean);
       const payload: any = {
         name: name.trim(),
         description: description.trim() || null,
         is_active: isActive,
+        keywords: kwArr.length ? kwArr : null,
+        examples: examples.trim() || null,
+        usage_hint: usageHint.trim() || null,
       };
       if (isChild) payload[childFk] = parentId;
       const q = isEdit
@@ -415,7 +451,7 @@ function EditDialog({
 
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
-      <DialogContent>
+      <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
         </DialogHeader>
@@ -447,10 +483,64 @@ function EditDialog({
             <Textarea
               value={description ?? ""}
               onChange={(e) => setDescription(e.target.value)}
-              rows={3}
+              rows={2}
               placeholder="ไม่บังคับ"
             />
           </div>
+
+          {/* ── AI metadata section ── */}
+          <div className="border-t pt-4 space-y-3">
+            <div className="flex items-center justify-between gap-2">
+              <div>
+                <div className="text-sm font-semibold flex items-center gap-1.5">
+                  <Sparkles className="h-4 w-4 text-primary" />
+                  ข้อมูลสำหรับ AI จำแนกหมวดหมู่
+                </div>
+                <p className="text-xs text-muted-foreground">ช่วยให้ AI แนะนำหมวดถูกต้องเมื่อรับของเข้าคลัง</p>
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={enrichWithAI}
+                disabled={enriching || !name.trim()}
+              >
+                {enriching ? (
+                  <><Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />กำลังสร้าง...</>
+                ) : (
+                  <><Sparkles className="h-3.5 w-3.5 mr-1.5" />ให้ AI ช่วยเติม</>
+                )}
+              </Button>
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-xs">คำค้นหา (คั่นด้วยจุลภาค)</Label>
+              <Textarea
+                value={keywords}
+                onChange={(e) => setKeywords(e.target.value)}
+                rows={2}
+                placeholder="เช่น สว่าน, ไขควงไฟฟ้า, drill, impact"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-xs">ตัวอย่างสินค้า</Label>
+              <Input
+                value={examples}
+                onChange={(e) => setExamples(e.target.value)}
+                placeholder="เช่น สว่านมือ Bosch, สว่านไร้สาย Makita"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-xs">ลักษณะการใช้งาน</Label>
+              <Textarea
+                value={usageHint}
+                onChange={(e) => setUsageHint(e.target.value)}
+                rows={2}
+                placeholder="เช่น ใช้เจาะ/ขัน มีมอเตอร์ ใช้ไฟฟ้าหรือแบตเตอรี่"
+              />
+            </div>
+          </div>
+
           <div className="flex items-center gap-2">
             <Switch checked={isActive} onCheckedChange={setIsActive} id="active" />
             <Label htmlFor="active">เปิดใช้งาน</Label>
