@@ -17,9 +17,10 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { ChevronRight, Plus, Pencil, Trash2, Folder, FolderOpen, ChevronsDownUp, ChevronsUpDown } from "lucide-react";
+import { ChevronRight, Plus, Pencil, Trash2, Folder, FolderOpen, ChevronsDownUp, ChevronsUpDown, Sparkles, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { CategorySuggestWizard } from "./CategorySuggestWizard";
 
 interface Row {
   id: string;
