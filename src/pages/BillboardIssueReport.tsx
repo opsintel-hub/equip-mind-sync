@@ -13,6 +13,8 @@ import { format } from "date-fns";
 import { th } from "date-fns/locale";
 import * as XLSX from "xlsx";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from "recharts";
+import { CompatibilityBadgeCell } from "@/components/reports/CompatibilityBadgeCell";
+
 
 interface BillboardEquipment {
   id: string;
