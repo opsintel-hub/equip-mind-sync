@@ -37,6 +37,8 @@ import { CategoryList } from "@/components/category/CategoryList";
 import { CategoryForm } from "@/components/category/CategoryForm";
 import { SubcategoryList } from "@/components/category/SubcategoryList";
 import { SubcategoryForm } from "@/components/category/SubcategoryForm";
+import { ToolCategoryList } from "@/components/tools/ToolCategoryList";
+import { ToolSubcategoryList } from "@/components/tools/ToolSubcategoryList";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { TechnicianForm } from "@/components/tools/TechnicianForm";
 import { TechnicianList } from "@/components/tools/TechnicianList";
@@ -246,39 +248,76 @@ const MasterData = () => {
 
         {can("md_categories") && (
         <TabsContent value="categories" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle>หมวดหมู่หลัก</CardTitle>
-                  <CardDescription>
-                    จัดการหมวดหมู่หลักของอุปกรณ์/อะไหล่
-                  </CardDescription>
-                </div>
-                <CategoryForm onSuccess={handleSuccess} />
-              </div>
-            </CardHeader>
-            <CardContent>
-              <CategoryList refresh={refreshKey} />
-            </CardContent>
-          </Card>
+          <Tabs defaultValue="equipment_cat" className="w-full">
+            <TabsList className="mb-4">
+              <TabsTrigger value="equipment_cat" className="gap-1.5">
+                <Package className="h-3.5 w-3.5" />
+                หมวดหมู่อุปกรณ์/อะไหล่
+              </TabsTrigger>
+              <TabsTrigger value="tool_cat" className="gap-1.5">
+                <Wrench className="h-3.5 w-3.5" />
+                หมวดหมู่เครื่องมือ
+              </TabsTrigger>
+            </TabsList>
 
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle>หมวดหมู่ย่อย</CardTitle>
-                  <CardDescription>
-                    จัดการหมวดหมู่ย่อยและเชื่อมโยงกับหมวดหมู่หลัก
-                  </CardDescription>
-                </div>
-                <SubcategoryForm onSuccess={handleSuccess} />
-              </div>
-            </CardHeader>
-            <CardContent>
-              <SubcategoryList refresh={refreshKey} />
-            </CardContent>
-          </Card>
+            <TabsContent value="equipment_cat" className="space-y-4">
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle>หมวดหมู่หลัก (อุปกรณ์/อะไหล่)</CardTitle>
+                      <CardDescription>จัดการหมวดหมู่หลักของอุปกรณ์/อะไหล่</CardDescription>
+                    </div>
+                    <CategoryForm onSuccess={handleSuccess} />
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <CategoryList refresh={refreshKey} />
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle>หมวดหมู่ย่อย (อุปกรณ์/อะไหล่)</CardTitle>
+                      <CardDescription>จัดการหมวดหมู่ย่อยและเชื่อมโยงกับหมวดหมู่หลักของอุปกรณ์</CardDescription>
+                    </div>
+                    <SubcategoryForm onSuccess={handleSuccess} />
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <SubcategoryList refresh={refreshKey} />
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="tool_cat" className="space-y-4">
+              <Card>
+                <CardHeader>
+                  <div>
+                    <CardTitle>หมวดหมู่หลัก (เครื่องมือ)</CardTitle>
+                    <CardDescription>จัดการหมวดหมู่หลักของเครื่องมือช่าง</CardDescription>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <ToolCategoryList refresh={refreshKey} />
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <div>
+                    <CardTitle>หมวดหมู่ย่อย (เครื่องมือ)</CardTitle>
+                    <CardDescription>จัดการหมวดหมู่ย่อยและเชื่อมโยงกับหมวดหมู่หลักของเครื่องมือ</CardDescription>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <ToolSubcategoryList refresh={refreshKey} />
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
         </TabsContent>
         )}
 

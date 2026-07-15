@@ -19,6 +19,7 @@ import {
 import { toast } from "sonner";
 import { Pencil } from "lucide-react";
 import { ToolCategorySelect } from "./ToolCategorySelect";
+import { ToolSubcategorySelect } from "./ToolSubcategorySelect";
 import { CompanySelect } from "@/components/company/CompanySelect";
 import { SupplierSelect } from "@/components/supplier/SupplierSelect";
 import { WarehouseLocationSelect } from "@/components/location/WarehouseLocationSelect";
@@ -29,6 +30,7 @@ const formSchema = z.object({
   name: z.string().min(1, "กรุณากรอกชื่อเครื่องมือ"),
   description: z.string().optional(),
   tool_category_id: z.string().optional(),
+  tool_subcategory_id: z.string().optional(),
   department: z.string().optional(),
   company_id: z.string().optional(),
   brand: z.string().optional(),
@@ -57,6 +59,7 @@ interface ToolEditFormProps {
     name: string;
     description: string | null;
     tool_category_id: string | null;
+    tool_subcategory_id: string | null;
     department: string | null;
     company_id: string | null;
     brand: string | null;
@@ -90,6 +93,7 @@ export function ToolEditForm({ tool, open, onOpenChange, onSuccess }: ToolEditFo
       name: tool.name,
       description: tool.description || "",
       tool_category_id: tool.tool_category_id || "",
+      tool_subcategory_id: tool.tool_subcategory_id || "",
       department: tool.department || "",
       company_id: tool.company_id || "",
       brand: tool.brand || "",
@@ -135,6 +139,7 @@ export function ToolEditForm({ tool, open, onOpenChange, onSuccess }: ToolEditFo
         name: tool.name,
         description: tool.description || "",
         tool_category_id: tool.tool_category_id || "",
+        tool_subcategory_id: tool.tool_subcategory_id || "",
         department: tool.department || "",
         company_id: tool.company_id || "",
         brand: tool.brand || "",
@@ -168,6 +173,7 @@ export function ToolEditForm({ tool, open, onOpenChange, onSuccess }: ToolEditFo
           name: data.name,
           description: data.description || null,
           tool_category_id: data.tool_category_id || null,
+          tool_subcategory_id: data.tool_subcategory_id || null,
           department: data.department || null,
           company_id: data.company_id || null,
           brand: data.brand || null,
@@ -230,7 +236,20 @@ export function ToolEditForm({ tool, open, onOpenChange, onSuccess }: ToolEditFo
               <FormField control={form.control} name="tool_category_id" render={({ field }) => (
                 <FormItem>
                   <FormLabel>หมวดหมู่</FormLabel>
-                  <FormControl><ToolCategorySelect value={field.value || ""} onChange={field.onChange} /></FormControl>
+                  <FormControl><ToolCategorySelect value={field.value || ""} onChange={(v) => { field.onChange(v); form.setValue("tool_subcategory_id", ""); }} /></FormControl>
+                </FormItem>
+              )} />
+
+              <FormField control={form.control} name="tool_subcategory_id" render={({ field }) => (
+                <FormItem>
+                  <FormLabel>หมวดหมู่ย่อย</FormLabel>
+                  <FormControl>
+                    <ToolSubcategorySelect
+                      toolCategoryId={form.watch("tool_category_id") || ""}
+                      value={field.value || ""}
+                      onChange={field.onChange}
+                    />
+                  </FormControl>
                 </FormItem>
               )} />
 

@@ -42,6 +42,7 @@ interface Tool {
   responsible_person: string | null;
   is_personal_tool: boolean;
   tool_category_id: string | null;
+  tool_subcategory_id: string | null;
   company_id: string | null;
   location_id: string | null;
   supplier_id: string | null;
