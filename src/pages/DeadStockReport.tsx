@@ -529,7 +529,7 @@ const DeadStockReport = () => {
               <TableBody>
                 {isLoading ? (
                   <TableRow>
-                    <TableCell colSpan={11} className="text-center py-8">
+                    <TableCell colSpan={12} className="text-center py-8">
                       กำลังโหลด...
                     </TableCell>
                   </TableRow>
@@ -542,9 +542,11 @@ const DeadStockReport = () => {
                           <TableCell className="font-medium">{item.code}</TableCell>
                           <TableCell>{item.name}</TableCell>
                           <TableCell>{item.category}</TableCell>
+                          <TableCell><CompatibilityBadgeCell equipmentId={item.id} /></TableCell>
                           <TableCell>{item.department || "-"}</TableCell>
                           <TableCell>{getLocationName(item.location_id)}</TableCell>
                           <TableCell>
+
                             <Badge variant="outline" className={`text-xs ${
                               (item.item_condition || 'normal') === 'defective' ? 'bg-destructive/10 text-destructive border-destructive/30' :
                               (item.item_condition || 'normal') === 'pending_inspection' ? 'bg-warning/10 text-warning border-warning/30' :
