@@ -235,7 +235,10 @@ export function SupplierForm({ onSuccess, supplier }: SupplierFormProps) {
                   <FormItem>
                     <FormLabel>Media Site Name</FormLabel>
                     <FormControl>
-                      <Input placeholder="เช่น Metro Poster" {...field} />
+                      <MediaSiteSelect
+                        value={field.value || ""}
+                        onChange={field.onChange}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
