@@ -27,6 +27,9 @@ interface Row {
   name: string;
   description: string | null;
   is_active: boolean | null;
+  keywords?: string[] | null;
+  examples?: string | null;
+  usage_hint?: string | null;
 }
 interface ChildRow extends Row {
   parentId: string | null;
