@@ -178,6 +178,8 @@ export function SupplierList({ refresh }: SupplierListProps) {
               <TableHead>Vendor ID</TableHead>
               <TableHead>Tax ID</TableHead>
               <TableHead>ชื่อผู้จัดจำหน่าย</TableHead>
+              <TableHead>Description</TableHead>
+              <TableHead>Media Site Name</TableHead>
               <TableHead>ผู้ติดต่อ</TableHead>
               <TableHead>เบอร์โทร</TableHead>
               <TableHead>สถานะ</TableHead>
@@ -191,6 +193,8 @@ export function SupplierList({ refresh }: SupplierListProps) {
                 <TableCell className="font-mono">{s.vendor_code || s.code}</TableCell>
                 <TableCell className="font-mono text-xs">{s.tax_id || "-"}</TableCell>
                 <TableCell className="font-medium">{s.name}</TableCell>
+                <TableCell className="max-w-[240px] truncate" title={s.description || ""}>{s.description || "-"}</TableCell>
+                <TableCell>{s.media_site_name || "-"}</TableCell>
                 <TableCell>{s.contact_person || "-"}</TableCell>
                 <TableCell>{s.phone || "-"}</TableCell>
                 <TableCell>
