@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Plus, Pencil, Trash2 } from "lucide-react";
@@ -87,13 +87,16 @@ export function ToolSubcategoryList({ refresh }: Props) {
   return (
     <>
       <div className="flex items-center justify-between mb-3 gap-2 flex-wrap">
-        <Select value={filter} onValueChange={setFilter}>
-          <SelectTrigger className="w-[250px]"><SelectValue placeholder="กรองตามหมวดหมู่หลัก" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">ทั้งหมด</SelectItem>
-            {cats.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
-          </SelectContent>
-        </Select>
+        <div className="w-[250px]">
+          <SearchableSelect
+            options={[{ value: "all", label: "ทั้งหมด" }, ...cats.map(c => ({ value: c.id, label: c.name }))]}
+            value={filter}
+            onValueChange={setFilter}
+            placeholder="กรองตามหมวดหมู่หลัก"
+            searchPlaceholder="ค้นหา..."
+            emptyMessage="ไม่พบหมวดหมู่"
+          />
+        </div>
         <Button onClick={openNew}><Plus className="h-4 w-4 mr-2" />เพิ่มหมวดหมู่ย่อย</Button>
       </div>
       <Table>
@@ -130,12 +133,14 @@ export function ToolSubcategoryList({ refresh }: Props) {
           <div className="space-y-4">
             <div className="space-y-2">
               <Label>หมวดหมู่หลัก *</Label>
-              <Select value={catId} onValueChange={setCatId}>
-                <SelectTrigger><SelectValue placeholder="เลือกหมวดหมู่หลัก" /></SelectTrigger>
-                <SelectContent>
-                  {cats.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
-                </SelectContent>
-              </Select>
+              <SearchableSelect
+                options={cats.map(c => ({ value: c.id, label: c.name }))}
+                value={catId}
+                onValueChange={setCatId}
+                placeholder="เลือกหมวดหมู่หลัก"
+                searchPlaceholder="ค้นหา..."
+                emptyMessage="ไม่พบหมวดหมู่"
+              />
             </div>
             <div className="space-y-2">
               <Label>ชื่อหมวดหมู่ย่อย *</Label>
