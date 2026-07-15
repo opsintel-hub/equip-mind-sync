@@ -236,7 +236,7 @@ export function ToolEditForm({ tool, open, onOpenChange, onSuccess }: ToolEditFo
               <FormField control={form.control} name="tool_category_id" render={({ field }) => (
                 <FormItem>
                   <FormLabel>หมวดหมู่</FormLabel>
-                  <FormControl><ToolCategorySelect value={field.value || ""} onChange={(v) => { field.onChange(v); form.setValue("tool_subcategory_id", ""); }} /></FormControl>
+                  <FormControl><ToolCategorySelect hideManage value={field.value || ""} onChange={(v) => { field.onChange(v); form.setValue("tool_subcategory_id", ""); }} /></FormControl>
                 </FormItem>
               )} />
 
@@ -245,10 +245,12 @@ export function ToolEditForm({ tool, open, onOpenChange, onSuccess }: ToolEditFo
                   <FormLabel>หมวดหมู่ย่อย</FormLabel>
                   <FormControl>
                     <ToolSubcategorySelect
+                      hideManage
                       toolCategoryId={form.watch("tool_category_id") || ""}
                       value={field.value || ""}
                       onChange={field.onChange}
                     />
+
                   </FormControl>
                 </FormItem>
               )} />

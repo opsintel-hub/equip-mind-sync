@@ -35,9 +35,11 @@ interface ToolCategorySelectProps {
   value: string;
   onChange: (value: string) => void;
   disabled?: boolean;
+  hideManage?: boolean;
 }
 
-export function ToolCategorySelect({ value, onChange, disabled }: ToolCategorySelectProps) {
+export function ToolCategorySelect({ value, onChange, disabled, hideManage }: ToolCategorySelectProps) {
+
   const [categories, setCategories] = useState<ToolCategory[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
@@ -149,6 +151,7 @@ export function ToolCategorySelect({ value, onChange, disabled }: ToolCategorySe
         />
       </div>
 
+      {!hideManage && (
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogTrigger asChild>
           <Button variant="outline" size="icon" type="button">
@@ -230,6 +233,8 @@ export function ToolCategorySelect({ value, onChange, disabled }: ToolCategorySe
           </div>
         </DialogContent>
       </Dialog>
+      )}
+
 
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <AlertDialogContent>

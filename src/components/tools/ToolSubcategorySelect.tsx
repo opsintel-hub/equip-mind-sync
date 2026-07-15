@@ -26,9 +26,11 @@ interface Props {
   value: string;
   onChange: (value: string) => void;
   disabled?: boolean;
+  hideManage?: boolean;
 }
 
-export function ToolSubcategorySelect({ toolCategoryId, value, onChange, disabled }: Props) {
+export function ToolSubcategorySelect({ toolCategoryId, value, onChange, disabled, hideManage }: Props) {
+
   const [subcategories, setSubcategories] = useState<ToolSubcategory[]>([]);
   const [categories, setCategories] = useState<ToolCategory[]>([]);
   const [manageOpen, setManageOpen] = useState(false);
@@ -148,6 +150,7 @@ export function ToolSubcategorySelect({ toolCategoryId, value, onChange, disable
         />
       </div>
 
+      {!hideManage && (
       <Dialog open={manageOpen} onOpenChange={handleManageOpen}>
         <DialogTrigger asChild>
           <Button type="button" variant="outline" size="icon" disabled={disabled}>
@@ -211,6 +214,8 @@ export function ToolSubcategorySelect({ toolCategoryId, value, onChange, disable
           </div>
         </DialogContent>
       </Dialog>
+      )}
+
 
       <AlertDialog open={!!deleteItem} onOpenChange={(o) => !o && setDeleteItem(null)}>
         <AlertDialogContent>
