@@ -35,7 +35,7 @@ interface SectionFormProps {
   triggerClassName?: string;
 }
 
-export function SectionForm({ onSuccess, editData }: SectionFormProps) {
+export function SectionForm({ onSuccess, editData, defaultDepartmentId, triggerLabel, triggerVariant, triggerClassName }: SectionFormProps) {
   const [open, setOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -56,7 +56,7 @@ export function SectionForm({ onSuccess, editData }: SectionFormProps) {
   const form = useForm<SectionFormValues>({
     resolver: zodResolver(sectionSchema),
     defaultValues: {
-      department_id: editData?.department_id || "",
+      department_id: editData?.department_id || defaultDepartmentId || "",
       name: editData?.name || "",
       description: editData?.description || "",
     },
