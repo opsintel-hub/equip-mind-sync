@@ -101,6 +101,8 @@ export function SupplierList({ refresh }: SupplierListProps) {
           (s.code || "").toLowerCase().includes(q) ||
           (s.tax_id || "").toLowerCase().includes(q) ||
           (s.name || "").toLowerCase().includes(q) ||
+          (s.description || "").toLowerCase().includes(q) ||
+          (s.media_site_name || "").toLowerCase().includes(q) ||
           (s.contact_person || "").toLowerCase().includes(q) ||
           (s.email || "").toLowerCase().includes(q) ||
           (s.phone || "").toLowerCase().includes(q)
