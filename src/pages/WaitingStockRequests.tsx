@@ -533,6 +533,7 @@ const WaitingStockRequests = () => {
                                 <TableRow>
                                   <TableHead>รหัสสินค้า</TableHead>
                                   <TableHead>ชื่อสินค้า</TableHead>
+                                  <TableHead>ป้ายที่รองรับ</TableHead>
                                   <TableHead>Serial Number</TableHead>
                                   <TableHead className="text-right">ขอ</TableHead>
                                   <TableHead className="text-right">จ่ายแล้ว</TableHead>
@@ -541,6 +542,7 @@ const WaitingStockRequests = () => {
                                   <TableHead>สถานะ</TableHead>
                                   <TableHead className="text-center">จัดการ</TableHead>
                                 </TableRow>
+
                               </TableHeader>
                               <TableBody>
                                 {items.map((item) => {
