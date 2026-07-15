@@ -52,6 +52,8 @@ const AdIssue = lazy(() => import("./pages/AdIssue"));
 const AdPublicView = lazy(() => import("./pages/AdPublicView"));
 const AdContractorView = lazy(() => import("./pages/AdContractorView"));
 const EquipmentTrackingReport = lazy(() => import("./pages/EquipmentTrackingReport"));
+const BillboardPartsAvailability = lazy(() => import("./pages/BillboardPartsAvailability"));
+
 const BillboardPMPage = lazy(() => import("./pages/BillboardPMPage"));
 const DefectiveReturnEntry = lazy(() => import("./pages/DefectiveReturnEntry"));
 const DisposalApproval = lazy(() => import("./pages/DisposalApproval"));
