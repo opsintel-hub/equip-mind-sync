@@ -120,6 +120,8 @@ export function SupplierList({ refresh }: SupplierListProps) {
       "Vendor ID": s.vendor_code || s.code || "",
       "Tax ID": s.tax_id || "",
       "Vendor Name": s.name,
+      Description: s.description || "",
+      "Media Site Name": s.media_site_name || "",
       "Contact Person": s.contact_person || "",
       Phone: s.phone || "",
       Email: s.email || "",
@@ -128,7 +130,7 @@ export function SupplierList({ refresh }: SupplierListProps) {
       Notes: s.notes || "",
     }));
     const ws = XLSX.utils.json_to_sheet(exportData);
-    ws["!cols"] = [{ wch: 10 }, { wch: 12 }, { wch: 18 }, { wch: 40 }, { wch: 20 }, { wch: 15 }, { wch: 25 }, { wch: 40 }, { wch: 12 }, { wch: 30 }];
+    ws["!cols"] = [{ wch: 10 }, { wch: 12 }, { wch: 18 }, { wch: 40 }, { wch: 35 }, { wch: 20 }, { wch: 20 }, { wch: 15 }, { wch: 25 }, { wch: 40 }, { wch: 12 }, { wch: 30 }];
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Vendor list-Store");
     XLSX.writeFile(wb, `suppliers_${new Date().toISOString().split("T")[0]}.xlsx`);
