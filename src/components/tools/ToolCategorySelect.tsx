@@ -151,6 +151,7 @@ export function ToolCategorySelect({ value, onChange, disabled, hideManage }: To
         />
       </div>
 
+      {!hideManage && (
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogTrigger asChild>
           <Button variant="outline" size="icon" type="button">
@@ -232,6 +233,8 @@ export function ToolCategorySelect({ value, onChange, disabled, hideManage }: To
           </div>
         </DialogContent>
       </Dialog>
+      )}
+
 
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <AlertDialogContent>
