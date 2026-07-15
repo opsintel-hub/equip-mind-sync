@@ -373,43 +373,20 @@ const MasterData = () => {
         </TabsContent>
         )}
 
-        {can("md_departments") && (
+        {(can("md_departments") || can("md_sections")) && (
         <TabsContent value="departments" className="space-y-4">
           <Card>
             <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle>ฝ่าย</CardTitle>
-                  <CardDescription>
-                    จัดการข้อมูลฝ่ายทั้งหมดในระบบ
-                  </CardDescription>
-                </div>
-                <DepartmentForm onSuccess={handleSuccess} />
-              </div>
+              <CardTitle>ฝ่าย &amp; แผนก</CardTitle>
+              <CardDescription>
+                จัดการโครงสร้างฝ่ายและแผนกในรูปแบบต้นไม้ ขยาย/ยุบเพื่อดูแผนกในแต่ละฝ่าย
+              </CardDescription>
             </CardHeader>
             <CardContent>
-              <DepartmentList refresh={refreshKey} />
-            </CardContent>
-          </Card>
-        </TabsContent>
-        )}
-
-        {can("md_sections") && (
-        <TabsContent value="sections" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle>แผนก</CardTitle>
-                  <CardDescription>
-                    จัดการข้อมูลแผนกทั้งหมดในระบบ (ผูกกับฝ่าย)
-                  </CardDescription>
-                </div>
-                <SectionForm onSuccess={handleSuccess} />
-              </div>
-            </CardHeader>
-            <CardContent>
-              <SectionList refresh={refreshKey} />
+              <DepartmentSectionAccordion
+                canManageDepartment={can("md_departments")}
+                canManageSection={can("md_sections")}
+              />
             </CardContent>
           </Card>
         </TabsContent>
