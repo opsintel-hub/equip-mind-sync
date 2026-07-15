@@ -32,6 +32,8 @@ interface Supplier {
   id: string;
   code: string;
   vendor_code: string | null;
+  company_code: string | null;
+  tax_id: string | null;
   name: string;
   contact_person: string | null;
   phone: string | null;
@@ -52,6 +54,7 @@ export function SupplierList({ refresh }: SupplierListProps) {
   const [loading, setLoading] = useState(true);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [companyFilter, setCompanyFilter] = useState<string>("");
   const pagination = useTablePagination(filteredSuppliers);
 
   useEffect(() => {
@@ -62,10 +65,9 @@ export function SupplierList({ refresh }: SupplierListProps) {
     try {
       setLoading(true);
       const { data, error } = await supabase.rpc("get_suppliers_admin");
-
       if (error) throw error;
-      setSuppliers(data || []);
-      setFilteredSuppliers(data || []);
+      setSuppliers((data || []) as Supplier[]);
+      setFilteredSuppliers((data || []) as Supplier[]);
     } catch (error: any) {
       toast.error("เกิดข้อผิดพลาดในการดึงข้อมูล: " + error.message);
     } finally {
@@ -75,11 +77,7 @@ export function SupplierList({ refresh }: SupplierListProps) {
 
   const handleDelete = async (id: string) => {
     try {
-      const { error } = await supabase
-        .from("suppliers")
-        .delete()
-        .eq("id", id);
-
+      const { error } = await supabase.from("suppliers").delete().eq("id", id);
       if (error) throw error;
       toast.success("ลบผู้จัดจำหน่ายสำเร็จ");
       fetchSuppliers();
@@ -91,108 +89,122 @@ export function SupplierList({ refresh }: SupplierListProps) {
   };
 
   useEffect(() => {
-    if (searchTerm) {
-      const filtered = suppliers.filter(
-        (supplier) =>
-          supplier.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          (supplier.vendor_code && supplier.vendor_code.toLowerCase().includes(searchTerm.toLowerCase())) ||
-          supplier.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          (supplier.contact_person && supplier.contact_person.toLowerCase().includes(searchTerm.toLowerCase())) ||
-          (supplier.email && supplier.email.toLowerCase().includes(searchTerm.toLowerCase()))
-      );
-      setFilteredSuppliers(filtered);
-    } else {
-      setFilteredSuppliers(suppliers);
+    const q = searchTerm.trim().toLowerCase();
+    let list = suppliers;
+    if (companyFilter) list = list.filter((s) => (s.company_code || "") === companyFilter);
+    if (q) {
+      list = list.filter((s) => {
+        return (
+          (s.vendor_code || "").toLowerCase().includes(q) ||
+          (s.code || "").toLowerCase().includes(q) ||
+          (s.tax_id || "").toLowerCase().includes(q) ||
+          (s.name || "").toLowerCase().includes(q) ||
+          (s.contact_person || "").toLowerCase().includes(q) ||
+          (s.email || "").toLowerCase().includes(q) ||
+          (s.phone || "").toLowerCase().includes(q)
+        );
+      });
     }
-  }, [searchTerm, suppliers]);
+    setFilteredSuppliers(list);
+  }, [searchTerm, companyFilter, suppliers]);
+
+  const companies = Array.from(new Set(suppliers.map((s) => s.company_code).filter(Boolean))) as string[];
 
   const handleExport = () => {
-    const exportData = filteredSuppliers.map((supplier) => ({
-      "รหัส": supplier.code,
-      "รหัส Vendor": supplier.vendor_code || "-",
-      "ชื่อผู้จัดจำหน่าย": supplier.name,
-      "ผู้ติดต่อ": supplier.contact_person || "-",
-      "เบอร์โทร": supplier.phone || "-",
-      "อีเมล": supplier.email || "-",
-      "ที่อยู่": supplier.address || "-",
-      "สถานะ": supplier.is_active ? "ใช้งาน" : "ไม่ใช้งาน",
-      "หมายเหตุ": supplier.notes || "-",
+    const exportData = filteredSuppliers.map((s) => ({
+      Company: s.company_code || "",
+      "Vendor ID": s.vendor_code || s.code || "",
+      "Tax ID": s.tax_id || "",
+      "Vendor Name": s.name,
+      "Contact Person": s.contact_person || "",
+      Phone: s.phone || "",
+      Email: s.email || "",
+      Address: s.address || "",
+      "Is Active": s.is_active ? "ใช้งาน" : "ไม่ใช้งาน",
+      Notes: s.notes || "",
     }));
-
     const ws = XLSX.utils.json_to_sheet(exportData);
+    ws["!cols"] = [{ wch: 10 }, { wch: 12 }, { wch: 18 }, { wch: 40 }, { wch: 20 }, { wch: 15 }, { wch: 25 }, { wch: 40 }, { wch: 12 }, { wch: 30 }];
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Suppliers");
+    XLSX.utils.book_append_sheet(wb, ws, "Vendor list-Store");
     XLSX.writeFile(wb, `suppliers_${new Date().toISOString().split("T")[0]}.xlsx`);
     toast.success("ส่งออกข้อมูลสำเร็จ");
   };
 
-  if (loading) {
-    return <div className="text-center py-8">กำลังโหลด...</div>;
-  }
+  if (loading) return <div className="text-center py-8">กำลังโหลด...</div>;
 
   if (suppliers.length === 0) {
-    return (
-      <div className="text-center py-12 text-muted-foreground">
-        ยังไม่มีข้อมูลผู้จัดจำหน่าย
-      </div>
-    );
+    return <div className="text-center py-12 text-muted-foreground">ยังไม่มีข้อมูลผู้จัดจำหน่าย</div>;
   }
 
   return (
     <>
-      <div className="flex items-center gap-2 mb-4">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+      <div className="flex flex-wrap items-center gap-2 mb-4">
+        <div className="relative flex-1 min-w-[240px]">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="ค้นหาด้วยรหัส, ชื่อ, ผู้ติดต่อ, หรืออีเมล..."
+            placeholder="ค้นหา Vendor ID, Tax ID, ชื่อ, ผู้ติดต่อ, อีเมล..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="pl-10"
           />
         </div>
+        <select
+          value={companyFilter}
+          onChange={(e) => setCompanyFilter(e.target.value)}
+          className="h-9 rounded-md border bg-background px-3 text-sm"
+        >
+          <option value="">ทุก Company</option>
+          {companies.map((c) => (
+            <option key={c} value={c}>{c}</option>
+          ))}
+        </select>
         <Button onClick={handleExport} variant="outline" size="sm">
           <Download className="h-4 w-4 mr-2" />
-          ส่งออก Excel
+          ส่งออก Excel ({filteredSuppliers.length.toLocaleString()})
         </Button>
       </div>
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>รหัส Vendor</TableHead>
-            <TableHead>ชื่อผู้จัดจำหน่าย</TableHead>
-            <TableHead>ผู้ติดต่อ</TableHead>
-            <TableHead>เบอร์โทร</TableHead>
-            <TableHead>อีเมล</TableHead>
-            <TableHead className="text-right">จัดการ</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {pagination.paginatedData.map((supplier) => (
-            <TableRow key={supplier.id}>
-              <TableCell>{supplier.vendor_code || "-"}</TableCell>
-              <TableCell className="font-medium">{supplier.name}</TableCell>
-              <TableCell>{supplier.contact_person || "-"}</TableCell>
-              <TableCell>{supplier.phone || "-"}</TableCell>
-              <TableCell>{supplier.email || "-"}</TableCell>
-              <TableCell className="text-right">
-                <div className="flex justify-end gap-2">
-                  <SupplierForm
-                    onSuccess={fetchSuppliers}
-                    supplier={supplier}
-                  />
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setDeleteId(supplier.id)}
-                  >
-                    <Trash2 className="h-4 w-4 text-destructive" />
-                  </Button>
-                </div>
-              </TableCell>
+      <div className="overflow-x-auto">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Company</TableHead>
+              <TableHead>Vendor ID</TableHead>
+              <TableHead>Tax ID</TableHead>
+              <TableHead>ชื่อผู้จัดจำหน่าย</TableHead>
+              <TableHead>ผู้ติดต่อ</TableHead>
+              <TableHead>เบอร์โทร</TableHead>
+              <TableHead>สถานะ</TableHead>
+              <TableHead className="text-right">จัดการ</TableHead>
             </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+          </TableHeader>
+          <TableBody>
+            {pagination.paginatedData.map((s) => (
+              <TableRow key={s.id}>
+                <TableCell>{s.company_code ? <Badge variant="outline">{s.company_code}</Badge> : "-"}</TableCell>
+                <TableCell className="font-mono">{s.vendor_code || s.code}</TableCell>
+                <TableCell className="font-mono text-xs">{s.tax_id || "-"}</TableCell>
+                <TableCell className="font-medium">{s.name}</TableCell>
+                <TableCell>{s.contact_person || "-"}</TableCell>
+                <TableCell>{s.phone || "-"}</TableCell>
+                <TableCell>
+                  <Badge variant={s.is_active ? "default" : "secondary"}>
+                    {s.is_active ? "ใช้งาน" : "ไม่ใช้งาน"}
+                  </Badge>
+                </TableCell>
+                <TableCell className="text-right">
+                  <div className="flex justify-end gap-2">
+                    <SupplierForm onSuccess={fetchSuppliers} supplier={s} />
+                    <Button variant="ghost" size="sm" onClick={() => setDeleteId(s.id)}>
+                      <Trash2 className="h-4 w-4 text-destructive" />
+                    </Button>
+                  </div>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
       <TablePagination
         currentPage={pagination.currentPage}
         totalPages={pagination.totalPages}
@@ -207,15 +219,12 @@ export function SupplierList({ refresh }: SupplierListProps) {
           <AlertDialogHeader>
             <AlertDialogTitle>ยืนยันการลบ</AlertDialogTitle>
             <AlertDialogDescription>
-              คุณแน่ใจหรือไม่ว่าต้องการลบผู้จัดจำหน่ายนี้?
-              การดำเนินการนี้ไม่สามารถย้อนกลับได้
+              คุณแน่ใจหรือไม่ว่าต้องการลบผู้จัดจำหน่ายนี้? การดำเนินการนี้ไม่สามารถย้อนกลับได้
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>ยกเลิก</AlertDialogCancel>
-            <AlertDialogAction onClick={() => deleteId && handleDelete(deleteId)}>
-              ลบ
-            </AlertDialogAction>
+            <AlertDialogAction onClick={() => deleteId && handleDelete(deleteId)}>ลบ</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
