@@ -115,16 +115,10 @@ const MasterData = () => {
                 หมวดหมู่
               </TabsTrigger>
             )}
-            {can("md_warehouses") && (
+            {(can("md_warehouses") || can("md_locations")) && (
               <TabsTrigger value="warehouses" className="gap-1.5 text-xs px-3">
                 <Warehouse className="h-3.5 w-3.5" />
-                คลังสินค้า
-              </TabsTrigger>
-            )}
-            {can("md_locations") && (
-              <TabsTrigger value="locations" className="gap-1.5 text-xs px-3">
-                <MapPin className="h-3.5 w-3.5" />
-                ตำแหน่ง
+                คลัง & ตำแหน่งจัดเก็บ
               </TabsTrigger>
             )}
             {can("md_suppliers") && (
