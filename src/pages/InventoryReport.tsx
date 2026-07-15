@@ -893,7 +893,17 @@ export default function InventoryReport() {
 
       const itemTypeLabel = item.item_type === 'media_player' ? (item.device_type === 'MONITOR' ? "จอภาพ" : "Media Player") : item.item_type === 'tools' ? "เครื่องมือ" : "อะไหล่";
       const issueStatusLabel = item.issue_status === 'issued' ? "ถูกเบิกออก" : item.issue_status === 'partial' ? "เบิกบางส่วน" : "อยู่ในคลัง";
-      
+
+      const compatMode = item.item_type === 'equipment' ? (item.billboard_compatibility_mode || 'unrestricted') : null;
+      const compatCount = item.item_type === 'equipment' ? (compatMap[item.id]?.size || 0) : 0;
+      const compatLabel = item.item_type !== 'equipment'
+        ? "-"
+        : compatMode === 'unrestricted'
+          ? "ใช้ได้ทุกป้าย"
+          : compatMode === 'multi_partial'
+            ? `บางป้าย (${compatCount})`
+            : `เฉพาะป้าย (${compatCount})`;
+
       return {
         ประเภท: itemTypeLabel,
         รหัส: item.code,
@@ -919,9 +929,13 @@ export default function InventoryReport() {
         จำนวนที่เบิก: item.issued_quantity || 0,
         วัตถุประสงค์: item.issue_purpose || "-",
         "ป้าย/Billboard": item.issue_billboard_code || "-",
+        "ป้ายที่รองรับ": compatLabel,
+        "จำนวนป้ายรองรับ": item.item_type === 'equipment' && compatMode !== 'unrestricted' ? compatCount : "-",
+        "หมายเหตุความเข้ากัน": item.compatibility_notes || "-",
         "Order For Project": item.order_for_project || "-",
       };
     });
+
 
     const ws = XLSX.utils.json_to_sheet(exportData);
     const wb = XLSX.utils.book_new();
