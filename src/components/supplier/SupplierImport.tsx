@@ -57,6 +57,8 @@ export function SupplierImport({ onSuccess }: SupplierImportProps) {
         "Vendor ID": "000006",
         "Tax ID": "0105549081490",
         "Vendor Name": "บริษัท ตัวอย่าง จำกัด",
+        Description: "AL LED Strip 1.6 M, 24V CCT",
+        "Media Site Name": "Metro Poster",
         "Contact Person": "คุณสมชาย",
         Phone: "02-xxx-xxxx",
         Email: "contact@example.com",
@@ -65,7 +67,7 @@ export function SupplierImport({ onSuccess }: SupplierImportProps) {
       },
     ];
     const ws = XLSX.utils.json_to_sheet(templateData);
-    ws["!cols"] = [{ wch: 10 }, { wch: 12 }, { wch: 18 }, { wch: 40 }, { wch: 20 }, { wch: 15 }, { wch: 25 }, { wch: 40 }, { wch: 30 }];
+    ws["!cols"] = [{ wch: 10 }, { wch: 12 }, { wch: 18 }, { wch: 40 }, { wch: 35 }, { wch: 20 }, { wch: 20 }, { wch: 15 }, { wch: 25 }, { wch: 40 }, { wch: 30 }];
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Vendor list-Store");
     XLSX.writeFile(wb, "supplier_import_template.xlsx");
