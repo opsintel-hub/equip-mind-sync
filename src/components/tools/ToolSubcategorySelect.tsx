@@ -150,6 +150,7 @@ export function ToolSubcategorySelect({ toolCategoryId, value, onChange, disable
         />
       </div>
 
+      {!hideManage && (
       <Dialog open={manageOpen} onOpenChange={handleManageOpen}>
         <DialogTrigger asChild>
           <Button type="button" variant="outline" size="icon" disabled={disabled}>
@@ -213,6 +214,8 @@ export function ToolSubcategorySelect({ toolCategoryId, value, onChange, disable
           </div>
         </DialogContent>
       </Dialog>
+      )}
+
 
       <AlertDialog open={!!deleteItem} onOpenChange={(o) => !o && setDeleteItem(null)}>
         <AlertDialogContent>
