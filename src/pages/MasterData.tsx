@@ -23,6 +23,7 @@ import { WarehouseList } from "@/components/warehouse/WarehouseList";
 import { WarehouseLocationAccordion } from "@/components/warehouse/WarehouseLocationAccordion";
 import { DepartmentForm } from "@/components/department/DepartmentForm";
 import { DepartmentList } from "@/components/department/DepartmentList";
+import { DepartmentSectionAccordion } from "@/components/department/DepartmentSectionAccordion";
 import { SectionForm } from "@/components/section/SectionForm";
 import { SectionList } from "@/components/section/SectionList";
 import { IssuePurposeForm } from "@/components/purpose/IssuePurposeForm";
