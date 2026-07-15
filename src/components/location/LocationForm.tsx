@@ -111,7 +111,7 @@ export function LocationForm({ onSuccess, location, defaultWarehouseId, triggerL
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      warehouse_id: location?.warehouse_id || "",
+      warehouse_id: location?.warehouse_id || defaultWarehouseId || "",
       code: location?.code || "",
       name: location?.name || "",
       description: location?.description || "",
