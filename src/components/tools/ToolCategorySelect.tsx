@@ -35,9 +35,11 @@ interface ToolCategorySelectProps {
   value: string;
   onChange: (value: string) => void;
   disabled?: boolean;
+  hideManage?: boolean;
 }
 
-export function ToolCategorySelect({ value, onChange, disabled }: ToolCategorySelectProps) {
+export function ToolCategorySelect({ value, onChange, disabled, hideManage }: ToolCategorySelectProps) {
+
   const [categories, setCategories] = useState<ToolCategory[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
