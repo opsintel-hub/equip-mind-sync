@@ -472,13 +472,14 @@ const BillboardIssueReport = () => {
               </TableHeader>
               <TableBody>
                 {isLoading ? (
-                  <TableRow><TableCell colSpan={9} className="text-center py-8">กำลังโหลด...</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={10} className="text-center py-8">กำลังโหลด...</TableCell></TableRow>
                 ) : filteredData.length === 0 ? (
-                  <TableRow><TableCell colSpan={9} className="text-center py-8 text-muted-foreground">ไม่มีข้อมูล</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={10} className="text-center py-8 text-muted-foreground">ไม่มีข้อมูล</TableCell></TableRow>
                 ) : (
                   filteredData.map((item) => {
                     const sn = (item.equipment as any)?.serial_number || "-";
                     const cost = item.quantity * (item.equipment?.unit_price || 0);
+                    const isMP = String(item.id).startsWith("mp-");
                     return (
                       <TableRow key={item.id}>
                         <TableCell className="font-mono font-medium">{item.billboard?.old_code || "-"}</TableCell>
@@ -487,6 +488,7 @@ const BillboardIssueReport = () => {
                         <TableCell>{item.equipment?.name || "-"}</TableCell>
                         <TableCell><Badge variant="outline" className="text-xs">{item.equipment?.category || "-"}</Badge></TableCell>
                         <TableCell className="font-mono text-xs whitespace-pre-line">{sn}</TableCell>
+                        <TableCell><CompatibilityBadgeCell equipmentId={isMP ? null : item.equipment_id} skip={isMP} /></TableCell>
                         <TableCell className="text-right">{item.quantity}</TableCell>
                         <TableCell className="text-right">{formatCurrency(cost)}</TableCell>
                         <TableCell className="text-xs text-muted-foreground">
@@ -496,6 +498,7 @@ const BillboardIssueReport = () => {
                     );
                   })
                 )}
+
               </TableBody>
             </Table>
           </div>
