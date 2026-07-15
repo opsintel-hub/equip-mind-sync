@@ -19,6 +19,7 @@ import {
 import { toast } from "sonner";
 import { Plus } from "lucide-react";
 import { ToolCategorySelect } from "./ToolCategorySelect";
+import { ToolSubcategorySelect } from "./ToolSubcategorySelect";
 import { ToolCodePrefixSelect } from "./ToolCodePrefixSelect";
 import { PMTypeSelect } from "./PMTypeSelect";
 import { CompanySelect } from "@/components/company/CompanySelect";
@@ -32,6 +33,7 @@ const formSchema = z.object({
   name: z.string().min(1, "กรุณากรอกชื่อเครื่องมือ"),
   description: z.string().optional(),
   tool_category_id: z.string().optional(),
+  tool_subcategory_id: z.string().optional(),
   department: z.string().optional(),
   company_id: z.string().optional(),
   brand: z.string().optional(),
@@ -73,6 +75,7 @@ export function ToolForm({ onSuccess }: ToolFormProps) {
       name: "",
       description: "",
       tool_category_id: "",
+      tool_subcategory_id: "",
       department: "",
       company_id: "",
       brand: "",
@@ -116,6 +119,7 @@ export function ToolForm({ onSuccess }: ToolFormProps) {
           name: data.name,
           description: data.description || null,
           tool_category_id: data.tool_category_id || null,
+          tool_subcategory_id: data.tool_subcategory_id || null,
           department: data.department || null,
           company_id: data.company_id || null,
           brand: data.brand || null,
@@ -230,7 +234,20 @@ export function ToolForm({ onSuccess }: ToolFormProps) {
               <FormField control={form.control} name="tool_category_id" render={({ field }) => (
                 <FormItem>
                   <FormLabel>หมวดหมู่เครื่องมือ</FormLabel>
-                  <FormControl><ToolCategorySelect value={field.value || ""} onChange={field.onChange} /></FormControl>
+                  <FormControl><ToolCategorySelect value={field.value || ""} onChange={(v) => { field.onChange(v); form.setValue("tool_subcategory_id", ""); }} /></FormControl>
+                </FormItem>
+              )} />
+
+              <FormField control={form.control} name="tool_subcategory_id" render={({ field }) => (
+                <FormItem>
+                  <FormLabel>หมวดหมู่ย่อยเครื่องมือ</FormLabel>
+                  <FormControl>
+                    <ToolSubcategorySelect
+                      toolCategoryId={form.watch("tool_category_id") || ""}
+                      value={field.value || ""}
+                      onChange={field.onChange}
+                    />
+                  </FormControl>
                 </FormItem>
               )} />
 
