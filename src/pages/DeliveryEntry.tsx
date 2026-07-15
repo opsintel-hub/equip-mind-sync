@@ -35,6 +35,7 @@ import {
 } from "lucide-react";
 import { EquipmentImageViewer } from "@/components/equipment/EquipmentImageViewer";
 import { EquipmentImageUpload } from "@/components/equipment/EquipmentImageUpload";
+import { CategorySuggestWizard } from "@/components/category/CategorySuggestWizard";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
@@ -2281,9 +2282,32 @@ const DeliveryEntry = () => {
                     {/* Category & Subcategory */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-2">
-                        <Label htmlFor="category">
-                          หมวดหมู่ {!selectedEquipmentId && <span className="text-destructive">*</span>}
-                        </Label>
+                        <div className="flex items-center justify-between gap-2">
+                          <Label htmlFor="category">
+                            หมวดหมู่ {!selectedEquipmentId && <span className="text-destructive">*</span>}
+                          </Label>
+                          {!selectedEquipmentId && (
+                            <CategorySuggestWizard
+                              entryType="equipment"
+                              compact
+                              triggerVariant="ghost"
+                              defaultProductName={manualEquipmentName}
+                              onPick={(mainName, subName) => {
+                                const cat = categories.find((c: any) => c.name === mainName);
+                                if (cat) {
+                                  setSelectedCategoryId(cat.id);
+                                  setSelectedSubcategoryId("");
+                                  if (subName) {
+                                    const sub = subcategories.find(
+                                      (s: any) => s.name === subName && s.category_id === cat.id
+                                    );
+                                    if (sub) setSelectedSubcategoryId(sub.id);
+                                  }
+                                }
+                              }}
+                            />
+                          )}
+                        </div>
                         {selectedEquipmentId && selectedEquipment?.category ? (
                           <div className="flex items-center gap-2 h-10 px-3 rounded-md border bg-muted">
                             <span className="text-foreground">{selectedEquipment.category}</span>

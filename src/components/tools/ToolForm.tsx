@@ -27,6 +27,7 @@ import { SupplierSelect } from "@/components/supplier/SupplierSelect";
 import { WarehouseLocationSelect } from "@/components/location/WarehouseLocationSelect";
 import { BrandSelect } from "@/components/equipment/BrandSelect";
 import { SimpleDepartmentSelect } from "@/components/equipment/SimpleDepartmentSelect";
+import { CategorySuggestWizard } from "@/components/category/CategorySuggestWizard";
 
 const formSchema = z.object({
   prefix: z.string().min(1, "กรุณาเลือก Prefix รหัสเครื่องมือ"),
@@ -248,7 +249,35 @@ export function ToolForm({ onSuccess }: ToolFormProps) {
 
               <FormField control={form.control} name="tool_category_id" render={({ field }) => (
                 <FormItem>
-                  <FormLabel>หมวดหมู่หลัก</FormLabel>
+                  <div className="flex items-center justify-between gap-2">
+                    <FormLabel>หมวดหมู่หลัก</FormLabel>
+                    <CategorySuggestWizard
+                      entryType="tool"
+                      compact
+                      triggerVariant="ghost"
+                      defaultProductName={form.watch("name")}
+                      onPick={async (mainName, subName) => {
+                        const { data: mainRow } = await supabase
+                          .from("tool_categories")
+                          .select("id")
+                          .eq("name", mainName)
+                          .maybeSingle();
+                        if (mainRow?.id) {
+                          form.setValue("tool_category_id", mainRow.id);
+                          form.setValue("tool_subcategory_id", "");
+                          if (subName) {
+                            const { data: subRow } = await supabase
+                              .from("tool_subcategories")
+                              .select("id")
+                              .eq("name", subName)
+                              .eq("tool_category_id", mainRow.id)
+                              .maybeSingle();
+                            if (subRow?.id) form.setValue("tool_subcategory_id", subRow.id);
+                          }
+                        }
+                      }}
+                    />
+                  </div>
                   <FormControl><ToolCategorySelect hideManage value={field.value || ""} onChange={(v) => { field.onChange(v); form.setValue("tool_subcategory_id", ""); }} /></FormControl>
                 </FormItem>
               )} />
@@ -266,6 +295,7 @@ export function ToolForm({ onSuccess }: ToolFormProps) {
                   </FormControl>
                 </FormItem>
               )} />
+
 
               <FormField control={form.control} name="serial_number" render={({ field }) => (
                 <FormItem>

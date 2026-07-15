@@ -22,6 +22,7 @@ interface Props {
   triggerVariant?: "default" | "outline" | "ghost" | "secondary";
   triggerSize?: "default" | "sm" | "icon";
   compact?: boolean;
+  defaultProductName?: string;
   onPick?: (main: string, sub?: string) => void;
 }
 
@@ -31,10 +32,11 @@ export function CategorySuggestWizard({
   triggerVariant = "outline",
   triggerSize = "sm",
   compact = false,
+  defaultProductName,
   onPick,
 }: Props) {
   const [open, setOpen] = useState(false);
-  const [productName, setProductName] = useState("");
+  const [productName, setProductName] = useState(defaultProductName || "");
   const [usage, setUsage] = useState("");
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState<Suggestion[] | null>(null);
@@ -45,7 +47,7 @@ export function CategorySuggestWizard({
   const childFk = entryType === "tool" ? "tool_category_id" : "category_id";
 
   const reset = () => {
-    setProductName("");
+    setProductName(defaultProductName || "");
     setUsage("");
     setResults(null);
     setNoMatch(null);
