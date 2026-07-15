@@ -17,11 +17,13 @@ const HEADERS = {
   vendor_id: ["Vendor ID", "Vendor Id", "vendor_id", "vendor_code", "Vendor Code", "รหัส Vendor"],
   tax_id: ["Tax ID", "Tax Id", "tax_id", "เลขผู้เสียภาษี"],
   name: ["Vendor Name", "vendor_name", "name", "ชื่อผู้จัดจำหน่าย"],
+  description: ["Description", "description", "คำอธิบาย"],
+  media_site_name: ["Media Site Name", "media_site_name", "Media Site", "ชื่อสื่อ"],
   contact_person: ["Contact Person", "contact_person", "ผู้ติดต่อ"],
   phone: ["Phone", "phone", "เบอร์โทร"],
   email: ["Email", "email", "อีเมล"],
   address: ["Address", "address", "ที่อยู่"],
-  notes: ["Notes", "notes", "Description", "หมายเหตุ"],
+  notes: ["Notes", "notes", "หมายเหตุ"],
 };
 
 function pick(row: Record<string, any>, keys: string[]): string {
