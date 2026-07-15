@@ -39,6 +39,7 @@ import { SubcategoryList } from "@/components/category/SubcategoryList";
 import { SubcategoryForm } from "@/components/category/SubcategoryForm";
 import { ToolCategoryList } from "@/components/tools/ToolCategoryList";
 import { ToolSubcategoryList } from "@/components/tools/ToolSubcategoryList";
+import { CategoryAccordion } from "@/components/category/CategoryAccordion";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { TechnicianForm } from "@/components/tools/TechnicianForm";
 import { TechnicianList } from "@/components/tools/TechnicianList";
