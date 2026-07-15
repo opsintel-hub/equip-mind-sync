@@ -163,7 +163,7 @@ export function CategoryAccordion({
   return (
     <>
       <div className="flex items-center justify-between mb-3 gap-2 flex-wrap">
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           <Button variant="outline" size="sm" onClick={expandAll}>
             <ChevronsUpDown className="h-4 w-4 mr-1.5" />
             ขยายทั้งหมด
@@ -172,6 +172,10 @@ export function CategoryAccordion({
             <ChevronsDownUp className="h-4 w-4 mr-1.5" />
             ยุบทั้งหมด
           </Button>
+          <CategorySuggestWizard
+            entryType={parentTable === "tool_categories" ? "tool" : "equipment"}
+            triggerLabel="แนะนำหมวดหมู่ด้วย AI"
+          />
         </div>
         <Button onClick={() => setEditTarget({ kind: "parent", row: null })}>
           <Plus className="h-4 w-4 mr-2" />
