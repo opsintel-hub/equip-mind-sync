@@ -342,7 +342,6 @@ const MasterData = () => {
                   </CardDescription>
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  <SupplierExport />
                   <SupplierImport onSuccess={handleSuccess} />
                   <SupplierForm onSuccess={handleSuccess} />
                 </div>

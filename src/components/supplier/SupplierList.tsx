@@ -170,20 +170,23 @@ export function SupplierList({ refresh }: SupplierListProps) {
           ส่งออก Excel ({filteredSuppliers.length.toLocaleString()})
         </Button>
       </div>
-      <div className="overflow-x-auto">
-        <Table>
+      <div className="overflow-x-auto border rounded-md">
+        <Table className="min-w-[1600px]">
           <TableHeader>
             <TableRow>
-              <TableHead>Company</TableHead>
-              <TableHead>Vendor ID</TableHead>
-              <TableHead>Tax ID</TableHead>
-              <TableHead>ชื่อผู้จัดจำหน่าย</TableHead>
-              <TableHead>Description</TableHead>
-              <TableHead>Media Site Name</TableHead>
-              <TableHead>ผู้ติดต่อ</TableHead>
-              <TableHead>เบอร์โทร</TableHead>
-              <TableHead>สถานะ</TableHead>
-              <TableHead className="text-right">จัดการ</TableHead>
+              <TableHead className="min-w-[90px]">Company</TableHead>
+              <TableHead className="min-w-[110px]">Vendor ID</TableHead>
+              <TableHead className="min-w-[140px]">Tax ID</TableHead>
+              <TableHead className="min-w-[260px]">ชื่อผู้จัดจำหน่าย</TableHead>
+              <TableHead className="min-w-[260px]">Description</TableHead>
+              <TableHead className="min-w-[160px]">Media Site Name</TableHead>
+              <TableHead className="min-w-[160px]">ผู้ติดต่อ</TableHead>
+              <TableHead className="min-w-[130px]">เบอร์โทร</TableHead>
+              <TableHead className="min-w-[200px]">อีเมล</TableHead>
+              <TableHead className="min-w-[280px]">ที่อยู่</TableHead>
+              <TableHead className="min-w-[200px]">หมายเหตุ</TableHead>
+              <TableHead className="min-w-[100px]">สถานะ</TableHead>
+              <TableHead className="min-w-[120px] text-right">จัดการ</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -193,10 +196,13 @@ export function SupplierList({ refresh }: SupplierListProps) {
                 <TableCell className="font-mono">{s.vendor_code || s.code}</TableCell>
                 <TableCell className="font-mono text-xs">{s.tax_id || "-"}</TableCell>
                 <TableCell className="font-medium">{s.name}</TableCell>
-                <TableCell className="max-w-[240px] truncate" title={s.description || ""}>{s.description || "-"}</TableCell>
+                <TableCell className="max-w-[320px] truncate" title={s.description || ""}>{s.description || "-"}</TableCell>
                 <TableCell>{s.media_site_name || "-"}</TableCell>
                 <TableCell>{s.contact_person || "-"}</TableCell>
                 <TableCell>{s.phone || "-"}</TableCell>
+                <TableCell className="max-w-[240px] truncate" title={s.email || ""}>{s.email || "-"}</TableCell>
+                <TableCell className="max-w-[340px] truncate" title={s.address || ""}>{s.address || "-"}</TableCell>
+                <TableCell className="max-w-[240px] truncate" title={s.notes || ""}>{s.notes || "-"}</TableCell>
                 <TableCell>
                   <Badge variant={s.is_active ? "default" : "secondary"}>
                     {s.is_active ? "ใช้งาน" : "ไม่ใช้งาน"}
