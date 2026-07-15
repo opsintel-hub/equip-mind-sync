@@ -282,9 +282,24 @@ export function WarehouseLocationAccordion({ canManageWarehouse, canManageLocati
                   <span className="font-medium shrink-0">{w.code}</span>
                   <span className="text-muted-foreground shrink-0">·</span>
                   <span className="truncate flex-1">{w.name}</span>
-                  {w.department && (
-                    <Badge variant="outline" className="shrink-0 hidden sm:inline-flex">
-                      {w.department}
+                  {w.department ? (
+                    departments.includes(w.department) ? (
+                      <Badge variant="outline" className="shrink-0 gap-1">
+                        <span className="text-muted-foreground">ฝ่าย:</span>
+                        {w.department}
+                      </Badge>
+                    ) : (
+                      <Badge
+                        variant="outline"
+                        className="shrink-0 gap-1 border-destructive text-destructive"
+                        title="ชื่อฝ่ายนี้ไม่ตรงกับข้อมูลฝ่ายในระบบ อาจสะกดผิดหรือฝ่ายถูกลบ"
+                      >
+                        ⚠ ฝ่าย: {w.department}
+                      </Badge>
+                    )
+                  ) : (
+                    <Badge variant="outline" className="shrink-0 text-muted-foreground italic">
+                      ไม่ระบุฝ่าย
                     </Badge>
                   )}
                   <span className="shrink-0 hidden md:inline-flex">{areaBadge(w.storage_area)}</span>
