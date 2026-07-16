@@ -194,8 +194,7 @@ function BillboardViewTab() {
   );
 
   const regions = useMemo(() => [...new Set(billboards?.map(b => b.region).filter(Boolean) || [])].sort(), [billboards]);
-  const { allowedDepartments, isAdmin: isAdminDept, isSingleDepartment } = useAllowedDepartments();
-  const allowedDeptNames = useMemo(() => allowedDepartments.map(d => d.name), [allowedDepartments]);
+
   const departments = useMemo(() => {
     const allDepts = [...new Set(billboards?.map(b => b.department).filter(Boolean) || [])].sort();
     return isAdminDept ? allDepts : allDepts.filter(d => allowedDeptNames.includes(d!));
