@@ -608,8 +608,6 @@ const ReceiveGoods = () => {
           received_by: user?.id,
           received_at: new Date().toISOString(),
           received_location_id: storageLocation.locationId,
-          received_storage_slot_id: storageLocation.storageSlotId || null,
-          received_sub_storage_slot_id: storageLocation.subStorageSlotId || null,
           notes: editNotes || null,
           storage_volume_cm3: storageVolumeValue,
           serial_number: trimmedSerial1 || null,
