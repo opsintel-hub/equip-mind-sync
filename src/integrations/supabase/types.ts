@@ -2963,6 +2963,8 @@ export type Database = {
           equipment_id: string | null
           equipment_name: string | null
           id: string
+          install_status: string
+          intended_billboard_id: string | null
           is_media_player: boolean | null
           issued_quantity: number | null
           media_player_id: string | null
@@ -2982,6 +2984,8 @@ export type Database = {
           equipment_id?: string | null
           equipment_name?: string | null
           id?: string
+          install_status?: string
+          intended_billboard_id?: string | null
           is_media_player?: boolean | null
           issued_quantity?: number | null
           media_player_id?: string | null
@@ -3001,6 +3005,8 @@ export type Database = {
           equipment_id?: string | null
           equipment_name?: string | null
           id?: string
+          install_status?: string
+          intended_billboard_id?: string | null
           is_media_player?: boolean | null
           issued_quantity?: number | null
           media_player_id?: string | null
@@ -3026,6 +3032,13 @@ export type Database = {
             columns: ["equipment_id"]
             isOneToOne: false
             referencedRelation: "equipment"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "goods_issue_pending_items_intended_billboard_id_fkey"
+            columns: ["intended_billboard_id"]
+            isOneToOne: false
+            referencedRelation: "billboards"
             referencedColumns: ["id"]
           },
           {
