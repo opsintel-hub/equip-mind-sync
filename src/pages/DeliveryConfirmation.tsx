@@ -19,6 +19,7 @@ import { DepartmentMultiFilter } from "@/components/DepartmentMultiFilter";
 import { format } from "date-fns";
 import { th } from "date-fns/locale";
 import { useAuth } from "@/hooks/useAuth";
+import { useDepartmentPermissions } from "@/hooks/useDepartmentPermissions";
 import { DatePickerWithRange } from "@/components/ui/date-range-picker";
 import { DateRange } from "react-day-picker";
 import { DocumentPreviewDialog } from "@/components/DocumentPreviewDialog";
