@@ -75,6 +75,8 @@ interface EquipmentWithStock {
 const WaitingStockRequests = () => {
   const queryClient = useQueryClient();
   const { user } = useAuth();
+  const { isSuperAdmin, viewableDepts, deptKey } = useDeptScope();
+  const scopeDepts = isSuperAdmin ? null : ((viewableDepts && viewableDepts.length > 0) ? viewableDepts : ["__no_dept_permission__"]);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedRequest, setSelectedRequest] = useState<WaitingRequest | null>(null);
   const [selectedItem, setSelectedItem] = useState<PendingItem | null>(null);
