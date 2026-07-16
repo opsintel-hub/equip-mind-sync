@@ -85,6 +85,8 @@ const IncompleteIssues = () => {
   const [returnDialogOpen, setReturnDialogOpen] = useState(false);
   const [expandedRequests, setExpandedRequests] = useState<Set<string>>(new Set());
   const [billboardId, setBillboardId] = useState("");
+  const [compatibleBbIds, setCompatibleBbIds] = useState<string[] | null>(null);
+  const [compatLoading, setCompatLoading] = useState(false);
   const [returnData, setReturnData] = useState({
     quantity: "",
     location_id: "",
@@ -92,6 +94,32 @@ const IncompleteIssues = () => {
     return_warehouse_id: "",
     notes: "",
   });
+
+  // Prefetch compatible billboard IDs whenever the assignment dialog opens for an equipment item.
+  // MP items keep allowedBillboardIds = null (show all billboards of the requester's department).
+  const openBillboardDialog = async (issue: IncompleteIssue, item: PendingItem | null) => {
+    setSelectedIssue(issue);
+    setSelectedItem(item);
+    setBillboardId("");
+    setCompatibleBbIds(null);
+    setBillboardDialogOpen(true);
+
+    const equipmentId = item?.equipment_id || issue.equipment_id;
+    const isMP = !!(item?.media_player_id || item?.is_media_player);
+    if (!equipmentId || isMP) return;
+
+    try {
+      setCompatLoading(true);
+      const set = await getCompatibleBillboardIdsForEquipment(equipmentId);
+      // null => unrestricted (show all); Set => filter list
+      setCompatibleBbIds(set ? Array.from(set) : null);
+    } catch (e) {
+      console.error("load compat failed", e);
+      setCompatibleBbIds(null);
+    } finally {
+      setCompatLoading(false);
+    }
+  };
 
   // Fetch incomplete issues (issued but missing billboard or waiting for return)
   const { data: incompleteIssues, isLoading } = useQuery({
