@@ -479,16 +479,12 @@ const IncompleteIssues = () => {
   });
 
   const handleAssignBillboardToItem = (issue: IncompleteIssue, item: PendingItem) => {
-    setSelectedIssue(issue);
-    setSelectedItem(item);
+    void openBillboardDialog(issue, item);
     setBillboardId(item.billboard_id || "");
-    setBillboardDialogOpen(true);
   };
 
   const handleAssignBillboard = (issue: IncompleteIssue) => {
-    setSelectedIssue(issue);
-    setSelectedItem(null);
-    setBillboardDialogOpen(true);
+    void openBillboardDialog(issue, null);
   };
 
   const handleRecordReturn = (issue: IncompleteIssue) => {
