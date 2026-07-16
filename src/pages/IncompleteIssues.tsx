@@ -909,7 +909,18 @@ const IncompleteIssues = () => {
 
             <div className="space-y-2">
               <Label>เลือกป้ายโฆษณา</Label>
-              <BillboardSelect value={billboardId} onChange={setBillboardId} />
+              <BillboardSelect
+                value={billboardId}
+                onChange={setBillboardId}
+                department={selectedIssue?.requester_department || undefined}
+                allowedBillboardIds={
+                  selectedItem?.media_player_id || selectedItem?.is_media_player
+                    ? null
+                    : compatibleBbIds
+                }
+                emptyLabel="อะไหล่นี้ยังไม่ระบุป้ายที่รองรับ กรุณาแจ้ง Admin"
+                disabled={compatLoading}
+              />
             </div>
           </div>
           <DialogFooter>
