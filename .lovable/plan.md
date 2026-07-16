@@ -1,122 +1,120 @@
-
-# Department Scoping ทั้งระบบ + Billboard Filter ตาม Compatibility
-
-เป้าหมาย 2 เรื่อง:
-
-1. **ทุก role ยกเว้น Super Admin** เห็นเฉพาะข้อมูลของ "ฝ่ายที่ตนมีสิทธิ์" (`getViewableDepartments()`) — บังคับทั้ง Transaction, Reports, Master Data, Dropdown
-2. **Dropdown ป้ายโฆษณาในรายการเบิก** ต้องแสดงเฉพาะป้ายที่ "อะไหล่/สินค้าที่เลือก" รองรับ (ตาม `billboard_compatibility_mode` + resolved list)
+# แผน: Section A + ปรับ Delivery Confirmation ให้เป็นขั้น "จ่าย → รอยืนยัน → ติดตั้งจริงที่ป้าย"
 
 ---
 
-## Section 1 — Department Scoping (Frontend Filter)
+## Section A — Incomplete Issues Billboard Picker (แก้ตามที่ตกลง)
 
-ใช้ hook เดิม `useDepartmentPermissions` (คืน `isSuperAdmin`, `getViewableDepartments()`) — เพิ่ม filter ที่ query ทุกจุดที่ดึงข้อมูล 4 ตารางหลัก:
+**ไฟล์:** `src/pages/IncompleteIssues.tsx`
 
-| ตาราง | คอลัมน์กรอง |
-|---|---|
-| `billboards` | `department` |
-| `equipment` | `department` |
-| `media_players` | `department` |
-| `tools` | `department` |
+1. เพิ่ม state `compatibleBbIds: string[] | null` + `compatMode: string | null`
+2. ตอน `setBillboardDialogOpen(true)` ให้ prefetch จาก `equipment` (โดยใช้ `selectedItem.equipment_id || selectedIssue.equipment_id`):
+   - `billboard_compatibility_mode`
+   - ถ้าไม่ใช่ `unrestricted` → query `equipment_billboard_compatibility` เอา `billboard_id[]`
+   - ใช้ helper `getCompatibleBillboardIdsForEquipment` จาก `src/lib/compatibility.ts` ที่มีอยู่แล้ว
+3. เปลี่ยนบรรทัด 887:
+   ```tsx
+   <BillboardSelect
+     value={billboardId}
+     onChange={setBillboardId}
+     department={selectedIssue?.department}
+     allowedBillboardIds={compatMode === "unrestricted" ? undefined : compatibleBbIds}
+     emptyLabel="อะไหล่นี้ยังไม่ระบุป้ายที่รองรับ"
+   />
+   ```
+4. Media Player items: ไม่ส่ง `allowedBillboardIds` (คงพฤติกรรมเดิม เพราะ MP ไม่มี compat mode)
 
-รูปแบบมาตรฐาน (ทำเป็น helper ใน `src/lib/deptScope.ts`):
-```ts
-if (!isSuperAdmin) query = query.in("department", viewableDepts);
+*ไม่กระทบ business logic อื่น — เฉพาะ dropdown*
+
+---
+
+## Section B — Delivery Confirmation: เลื่อนการ "ติดตั้งเข้าป้าย" มาที่ขั้นยืนยันรับ
+
+### ปัจจุบัน (ตรวจแล้วใน `src/pages/IssueGoods.tsx`)
+
+ตอนคลังกด "จ่าย":
+- **MP** → INSERT `media_player_billboard_history` + update `media_players.current_billboard_id` ทันที
+- **Equipment** → INSERT `billboard_equipment` ทันที
+- Log `install_to_billboard` เข้า `stock_movements`
+
+ปัญหา: ของยัง**ไม่ถึงมือผู้ขอ**แต่ระบบผูกเข้าป้ายแล้ว → หากส่งไม่ถึง / เสียหายระหว่างส่ง / รับผิดรุ่น จะเคลียร์ยาก
+
+### ที่จะทำ
+
+**หลักการ:** แยกเป็น 2 เฟส
+- **จ่าย (Issue):** ตัดสต็อกจากคลัง → ย้ายของไปยัง "pending location" ของคำขอ, บันทึกเจตนา (`intended_billboard_id`) ไว้ที่ item, **ยังไม่** insert `billboard_equipment` / `media_player_billboard_history`
+- **ยืนยันรับ (Confirm):** ผู้รับกด "ยืนยันรับ" → ระบบ commit การติดตั้งเข้าป้ายจริง
+
+### การเปลี่ยนแปลง Database (Migration)
+
+เพิ่มคอลัมน์เก็บ "เจตนาติดตั้ง" และสถานะ pending:
+
+```sql
+ALTER TABLE public.goods_issue_pending_items
+  ADD COLUMN intended_billboard_id uuid REFERENCES public.billboards(id),
+  ADD COLUMN install_status text DEFAULT 'not_required'
+    CHECK (install_status IN ('not_required','pending_confirmation','installed','cancelled'));
+
+-- ไม่ต้อง grant/RLS เพิ่ม เพราะเป็น ALTER
 ```
 
-### ไฟล์ที่ต้องแก้ (ตามการ scan)
+`install_status` ใช้ตัดสินขั้นตอน:
+- `not_required` — ไม่ผูกป้าย (เบิกเข้าคลังปลายทาง)
+- `pending_confirmation` — จ่ายแล้ว แต่รอผู้รับยืนยัน → จะติดตั้งเข้าป้าย
+- `installed` — ยืนยันแล้ว, สร้าง billboard_equipment / MP history เรียบร้อย
+- `cancelled` — ผู้รับแจ้งปัญหา / ปฏิเสธ → ไม่ติดตั้ง (ของยัง "ค้างระหว่างทาง" — Admin จัดการต่อ)
 
-**Billboards (department filter)**
-- `src/pages/Billboards.tsx`
-- `src/pages/BillboardDetail.tsx`
-- `src/pages/BillboardIssueReport.tsx`
-- `src/pages/BillboardPackages.tsx`
-- `src/pages/BillboardPartsAvailability.tsx`
-- `src/pages/BillboardPMPage.tsx`
-- `src/components/billboard/BillboardSelect.tsx` (default dept = user's viewable)
-- `src/components/billboard/BillboardSummaryCards.tsx`
-- `src/components/billboard/BillboardDisplay.tsx`
-- `src/components/billboard/BillboardEquipmentExport.tsx`
-- `src/components/billboard/BillboardExport.tsx`
-- `src/components/billboard/BillboardFilters.tsx` (options list)
-- `src/components/billboard/BillboardPackageSelect.tsx`
-- `src/components/pm/BillboardPMFilters.tsx`
-- `src/components/BillboardEquipmentChart.tsx`
+### `IssueGoods.tsx` — ตัดส่วน install ออกจากขั้นจ่าย
 
-**Equipment / spare parts**
-- `src/pages/IssueRequest.tsx` (dropdown FIFO — ภาพที่1)
-- `src/pages/IssueGoods.tsx`, `GoodsIssue.tsx`, `WaitingStockRequests.tsx`
-- `src/pages/InventoryReport.tsx`, `DeadStockReport.tsx`, `StockCard.tsx`, `StockReconciliation.tsx`, `DocumentSearch.tsx`
-- `src/pages/EquipmentTrackingReport.tsx`, `IncompleteIssues.tsx`, `DefectiveReturnEntry.tsx`, `DisposalApproval.tsx`
-- `src/components/equipment/EquipmentList.tsx`, `EquipmentTransferForm.tsx`, `SerialNumberSelect.tsx`
-- `src/components/loan/LoanRequestForm.tsx`
-- `src/components/reconciliation/ItemTracer.tsx`
-- `src/components/kpi/*` (InventoryValue, DeadStock, ExpiryWarranty, MinStock, StockTurnover)
-- `src/components/pm/PMScheduleImport.tsx`, `PMHistoryList.tsx`
+- แทนที่ block บรรทัด 494–528 (MP) และ 624–652 (Equipment):
+  - **ไม่** insert `media_player_billboard_history` / `billboard_equipment` ที่นี่แล้ว
+  - **ไม่** update `media_players.current_billboard_id` ตอนนี้
+  - เปลี่ยนเป็น: update item row → `intended_billboard_id = a.billboard_id`, `install_status = 'pending_confirmation'`
+- Stock movement ยังบันทึกอยู่ แต่ movement_type เป็น `"issue"` ธรรมดา (ไม่ใช่ `install_to_billboard`) พร้อม note `"รอผู้รับยืนยัน → ป้าย {label}"`
 
-**Media Players**
-- `src/pages/MediaPlayerReport.tsx`, `MediaPlayerProfile.tsx`, `MediaPlayerEntry.tsx`
-- `src/components/media-player/profile/ProfileSearch.tsx`, `MediaPlayerInfoEditDialog.tsx`
-- `src/components/kpi/MediaPlayerStatusKPI.tsx`
+### `DeliveryConfirmation.tsx` — ตอนกด "ยืนยันรับ"
 
-**Tools**
-- `src/pages/ToolManagement.tsx`, `ToolPMSchedule.tsx`, `ToolPMReport.tsx`, `ToolPMTasks.tsx`, `ToolPMHistory.tsx`
-- `src/components/tools/ToolList.tsx`, `ToolForm.tsx`, `ToolEditForm.tsx`, `TechnicianToolsDialog.tsx`, `ToolImport.tsx`
+หลัง INSERT `delivery_confirmations` (status=`confirmed`) ให้ทำเพิ่ม:
 
-**Cross-cutting**
-- `src/components/GlobalSearch.tsx` — filter billboards/equipment/mp/tools
-- `src/components/ExpiryAlerts.tsx`, `LowStockAlerts.tsx`, `BillboardEquipmentAlerts.tsx`, `PendingAssessmentAlerts.tsx`, `NotificationCenter.tsx` (ส่วนใหญ่ใช้ hook อยู่แล้ว — ตรวจให้ครบ)
-- `src/components/LocationInventoryChart.tsx`, `CategoryPieChart.tsx`, `dashboard/StockMovementChart.tsx`
+1. Query items ของคำขอที่ `install_status = 'pending_confirmation'`
+2. สำหรับแต่ละ item:
+   - MP → INSERT `media_player_billboard_history` + UPDATE `media_players.current_billboard_id = intended_billboard_id` + log `install_to_billboard`
+   - Equipment → INSERT `billboard_equipment` + log `install_to_billboard`
+   - UPDATE item → `install_status = 'installed'`
+3. ถ้ากด "แจ้งปัญหา" (`status = issue_reported`) → UPDATE items → `install_status = 'cancelled'` (ของค้างในระบบเป็น "รอ Admin จัดการ" — เข้าคิวใน Incomplete Issues)
 
-### ยกเว้น
-- Super Admin: ไม่กรอง
-- Admin: กรองตาม `getViewableDepartments()` (ปัจจุบัน hook คืน permissions ตามที่ตั้งใน user_departments)
-- หน้า Public (`/p/...`, `AdContractorView`, `AdPublicView`, `BillboardPublicView`, `MediaPlayerPublicView`, `DirectShippingPublicView`) — ไม่แตะ
-- Admin Master Data ทั่วไป (departments, suppliers, brands, etc.) — ไม่กรอง (ไม่มีคอลัมน์ department)
+### UI เพิ่มเติมที่แนะนำ
 
-### Waiting list ที่ต้องระวัง
-- ตอน Sync จาก MSSQL (`sync-billboards-mssql`) และ import — ไม่แตะ (เป็นฝั่ง backend)
-- หน้า Approval (Manager/Director) ที่ต้องอนุมัติของฝ่ายอื่นให้ยังทำงานได้ตาม role permission เดิม — Manager เห็นตามฝ่ายที่ตัวเองมีสิทธิ์อยู่แล้ว
+1. **หน้า DeliveryConfirmation**
+   - เพิ่ม badge "🏷️ ติดตั้ง: {billboard_label}" ในการ์ดแต่ละใบ ให้ผู้ยืนยันเห็นชัดว่ากดยืนยันแล้วของจะไปติดตั้งที่ป้ายไหน
+   - เพิ่มปุ่มย่อย "ยืนยัน (ติดตั้งเข้าป้าย)" กับ "ยืนยันแต่ยังไม่ติดตั้ง" (option) — สำหรับกรณีรับของถึงมือแล้ว แต่ยังไม่พร้อมติดตั้งที่ป้าย
+   - Filter เพิ่ม pickup_type (`ทั้งหมด / รับที่คลัง / นัดรับ / ส่งถึงที่`)
+
+2. **หน้า Incomplete Issues**
+   - เพิ่ม tab "รอยืนยันรับ (จะติดตั้งเข้าป้าย)" — แสดง item ที่ `install_status = 'pending_confirmation'` เพื่อให้ Admin/ผู้ขอเห็นภาพรวมว่ายังค้างที่ขั้นไหน
+
+3. **Stock Card / Movement**
+   - แสดง 2 บรรทัดชัดเจน: (1) `issue` "จ่าย — รอยืนยัน" (2) `install_to_billboard` "ติดตั้งเข้าป้าย {label}" — Trace ง่าย
+
+4. **wait_onsite (รับที่คลังทันที)**
+   - แนะนำ: กรณี `pickup_type = wait_onsite` ให้ auto-confirm ตอนกดจ่ายเลย (ข้ามขั้นยืนยัน) เพราะผู้ขออยู่หน้าคลังอยู่แล้ว → ทำ install ทันทีเหมือนเดิม
+   - เฉพาะ `scheduled` / `delivery` เท่านั้นที่เข้าคิวรอยืนยัน
+
+5. **Permission**
+   - ผู้ที่กดยืนยันได้ = requester ของคำขอ + Admin ของฝ่าย (กันคนอื่นกดแทน)
+
+### QA
+
+- เบิก MP ระบุป้าย → กดจ่าย → เช็คว่า `media_players.current_billboard_id` ยังเป็นค่าเดิม + `install_status = pending_confirmation`
+- ไปหน้า DeliveryConfirmation → กดยืนยันรับ → เช็ค `current_billboard_id` เปลี่ยนเป็น intended + มี row ใหม่ใน `media_player_billboard_history`
+- ทดสอบกด "แจ้งปัญหา" → ของไม่ถูกติดตั้ง + item เข้า Incomplete Issues
+- ทดสอบ `wait_onsite` → auto-install เหมือนเดิม
 
 ---
 
-## Section 2 — Billboard Picker ต้อง filter ตาม Equipment Compatibility (ภาพที่ 2)
+## ลำดับการทำ
 
-ปัจจุบัน `IssueRequest.tsx` มี `compatMap: equipment_id → Set<billboard_id>` อยู่แล้ว (ใช้เตือน cross-billboard) แต่ `BillboardSelect` ยังแสดง "ป้ายทุกใบของฝ่าย"
-
-### เปลี่ยน `BillboardSelect` ให้รับ prop เพิ่ม
-```ts
-interface Props {
-  ...
-  allowedBillboardIds?: string[]; // ถ้าส่งมา จะกรองรายการเหลือเฉพาะ id ในนี้
-  unrestricted?: boolean;         // ถ้า true = แสดงทุกใบ (ตาม dept)
-}
-```
-
-### ใน `IssueRequest.tsx` (Add-item form + Cart edit)
-- อ่าน `selectedEquipment.billboard_compatibility_mode`
-  - `unrestricted` → ส่ง `unrestricted={true}` (แสดงทุกใบของฝ่าย)
-  - `multi_partial` / `specific` → ส่ง `allowedBillboardIds = Array.from(compatMap[equipment_id] ?? [])`
-- ถ้า `allowedBillboardIds.length === 0` แสดงข้อความ "อะไหล่นี้ยังไม่ระบุป้ายที่รองรับ กรุณาแจ้ง Admin"
-- ส่ง `department = requester_department` ด้วย (Section 1)
-- Media Player: ไม่ใช้ compat mode → แสดงทุกใบของฝ่าย (คงพฤติกรรมเดิม)
-
-### จุดอื่นที่ใช้ BillboardSelect (ตรวจว่าควร filter ด้วยหรือไม่)
-- `EquipmentTransferForm`, `LoanRequestForm`, `AdRequest`, `AssessmentCompleteDialog`, `SwapWizardDialog`, `MediaPlayerInfoEditDialog` — ทบทวนทีละจุด: ถ้าเลือกป้ายเพื่อผูกกับอุปกรณ์ที่มี compat mode ก็ filter ด้วยเช่นกัน
-
----
-
-## Section 3 — QA / Validation
-
-- Login เป็น user ฝ่าย Digital Media → ตรวจว่าไม่เห็น billboard/equipment/tool/media_player ของฝ่ายอื่นในทุกหน้าที่แก้
-- Login เป็น Super Admin → เห็นครบ
-- ทดลองเลือกอะไหล่ mode `specific` ใน IssueRequest → ป้ายที่ dropdown เหลือเฉพาะรายการ compat
-- ทดลอง `unrestricted` → ยังแสดงป้ายทุกใบ (ของฝ่าย requester)
-- ทดสอบ Global Search ให้ไม่ leak ข้ามฝ่าย
-
----
-
-## หมายเหตุ (สำหรับผู้ใช้)
-
-- งานนี้เป็นการกรองฝั่ง Frontend ล้วน (ไม่แตะ RLS/DB) — ปลอดภัย เพราะ RLS ปัจจุบันเปิดกว้างระดับ role อยู่แล้ว แต่ถ้าต้องการ hard-lock ระดับ DB ในอนาคต สามารถทำเป็น Phase 2 โดยเพิ่ม RLS policy ที่เรียก `has_department_permission()`
-- ไม่แตะ import, edge function, sync job, และหน้า public link
+1. Section A (frontend เท่านั้น) — เสร็จเร็ว
+2. Migration เพิ่ม 2 คอลัมน์
+3. แก้ IssueGoods เลื่อน install
+4. แก้ DeliveryConfirmation commit install ตอนยืนยัน
+5. UI badges + Incomplete Issues tab ใหม่
