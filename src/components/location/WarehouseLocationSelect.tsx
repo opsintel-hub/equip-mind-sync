@@ -107,7 +107,7 @@ export function WarehouseLocationSelect({
       value: l.id,
       label: `${l.zones?.code ? `${l.zones.code}${l.code}` : l.code} - ${l.name}${l.zones?.name ? ` (โซน ${l.zones.code} · ${l.zones.name})` : ""}`,
     }));
-  }));
+
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
