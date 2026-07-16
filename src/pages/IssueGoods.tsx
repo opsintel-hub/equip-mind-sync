@@ -640,34 +640,37 @@ const IssueGoods = () => {
           .map(a => ({ billboard_id: a.billboard_id || selectedItem.billboard_id || "", serial_number: a.serial_number || null }))
           .filter(r => r.billboard_id);
 
-        for (const r of installRows) {
-          const bbLabel = await getBbLabel(r.billboard_id);
-          const { error: billboardError } = await supabase
-            .from("billboard_equipment")
-            .insert({
-              billboard_id: r.billboard_id,
-              equipment_id: selectedItem.equipment_id,
-              quantity: 1,
-              installation_date: new Date().toISOString().split('T')[0],
-              notes: issueData.notes || `เบิกจากเอกสาร ${parentRequest?.document_no}`,
-              created_by: user.id,
-              serial_number: r.serial_number,
-            });
-          if (billboardError) throw billboardError;
+        // For scheduled/delivery pickups, defer the install to the "ยืนยันรับสินค้า" step.
+        if (!deferInstall) {
+          for (const r of installRows) {
+            const bbLabel = await getBbLabel(r.billboard_id);
+            const { error: billboardError } = await supabase
+              .from("billboard_equipment")
+              .insert({
+                billboard_id: r.billboard_id,
+                equipment_id: selectedItem.equipment_id,
+                quantity: 1,
+                installation_date: new Date().toISOString().split('T')[0],
+                notes: issueData.notes || `เบิกจากเอกสาร ${parentRequest?.document_no}`,
+                created_by: user.id,
+                serial_number: r.serial_number,
+              });
+            if (billboardError) throw billboardError;
 
-          await logStockMovement({
-            equipment_id: selectedItem.equipment_id,
-            equipment_code: selectedItem.equipment_code || "",
-            equipment_name: selectedItem.equipment_name || "",
-            movement_type: "install_to_billboard",
-            quantity: 1,
-            stock_before: currentStock,
-            stock_after: newStock,
-            reference_type: "billboard_equipment",
-            reference_document: parentRequest?.document_no || "",
-            location_id: equipment?.find(e => e.id === selectedItem.equipment_id)?.location_id || undefined,
-            notes: `ติดตั้งที่ป้าย ${bbLabel}${r.serial_number ? ` S/N: ${r.serial_number}` : ""}`,
-          });
+            await logStockMovement({
+              equipment_id: selectedItem.equipment_id,
+              equipment_code: selectedItem.equipment_code || "",
+              equipment_name: selectedItem.equipment_name || "",
+              movement_type: "install_to_billboard",
+              quantity: 1,
+              stock_before: currentStock,
+              stock_after: newStock,
+              reference_type: "billboard_equipment",
+              reference_document: parentRequest?.document_no || "",
+              location_id: equipment?.find(e => e.id === selectedItem.equipment_id)?.location_id || undefined,
+              notes: `ติดตั้งที่ป้าย ${bbLabel}${r.serial_number ? ` S/N: ${r.serial_number}` : ""}`,
+            });
+          }
         }
       }
 
