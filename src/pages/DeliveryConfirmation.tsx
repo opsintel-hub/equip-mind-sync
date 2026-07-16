@@ -38,6 +38,14 @@ const ISSUE_TYPES = [
 const DeliveryConfirmation = () => {
   const queryClient = useQueryClient();
   const { user } = useAuth();
+  const { isSuperAdmin, isAdmin, hasPermission } = useDepartmentPermissions();
+  const canConfirmRequest = (req: any) => {
+    if (!user) return false;
+    if (isSuperAdmin) return true;
+    if (req?.created_by && req.created_by === user.id) return true;
+    if (isAdmin && req?.requester_department && hasPermission(req.requester_department, "edit")) return true;
+    return false;
+  };
   const [searchTerm, setSearchTerm] = useState("");
   const [snSearchTerm, setSnSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
