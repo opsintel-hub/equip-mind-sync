@@ -54,7 +54,7 @@ const ToolPMSchedule = () => {
     queryKey: ["tool-pm-summary", deptKey],
     queryFn: async () => {
       // Get all tools with their PM tasks
-      const { data: toolsData, error: toolsError } = await supabase
+      let toolsQ = supabase
         .from("tools")
         .select(`
           id,
@@ -68,6 +68,8 @@ const ToolPMSchedule = () => {
         `)
         .eq("is_active", true)
         .order("code");
+      if (scopeDepts) toolsQ = toolsQ.in("department", scopeDepts);
+      const { data: toolsData, error: toolsError } = await toolsQ;
 
       if (toolsError) throw toolsError;
 
