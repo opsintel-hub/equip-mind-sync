@@ -33,20 +33,21 @@ export function useAllowedDepartments(permission: "view" | "create" | "edit" | "
 
     const fetchData = async () => {
       try {
-        // Fetch all active departments + check admin role + fetch user department permissions in parallel
+        // Fetch all active departments + check super_admin role + fetch user department permissions in parallel
+        // NOTE: only super_admin bypasses department scoping. Admin still respects user_departments.
         const [deptRes, roleRes, permRes] = await Promise.all([
           supabase.from("departments").select("id, name, description").eq("is_active", true).order("name"),
-          supabase.from("user_roles").select("role").eq("user_id", user.id).in("role", ["admin", "super_admin"]).maybeSingle(),
+          supabase.from("user_roles").select("role").eq("user_id", user.id).eq("role", "super_admin").maybeSingle(),
           supabase.from("user_departments").select("department, can_view, can_create, can_edit, can_delete").eq("user_id", user.id),
         ]);
 
         const departments = deptRes.data || [];
-        const isAdminUser = !!roleRes.data;
+        const isSuperAdminUser = !!roleRes.data;
 
         setAllDepartments(departments);
-        setIsAdmin(isAdminUser);
+        setIsAdmin(isSuperAdminUser);
 
-        if (isAdminUser) {
+        if (isSuperAdminUser) {
           setAllowedNames(departments.map(d => d.name));
         } else {
           const permKey = `can_${permission}` as keyof typeof permRes.data[0];
