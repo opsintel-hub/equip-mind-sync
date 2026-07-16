@@ -1164,9 +1164,12 @@ function EquipmentDetailDialog({ item, onClose, bbLookup }: { item: any; onClose
                 </TableBody>
               </Table>
             ) : (item as any).isIssuedPending ? (
-              <div className="p-3 border rounded-lg bg-orange-50 dark:bg-orange-950/20 border-orange-200">
-                <Badge variant="outline" className="bg-orange-500/10 text-orange-700 border-orange-500/20">จ่ายแล้ว — รอระบุป้ายโฆษณา</Badge>
-                <p className="text-xs text-muted-foreground mt-1">เครื่องถูกเบิกออกจากคลังแล้ว แต่ยังไม่ได้ระบุป้ายปลายทาง (ไปที่เมนู "รายการเบิกที่ยังไม่สมบูรณ์" เพื่อระบุป้าย)</p>
+              <div className="p-3 border rounded-lg bg-orange-50 dark:bg-orange-950/20 border-orange-200 space-y-1">
+                <Badge variant="outline" className="bg-orange-500/10 text-orange-700 border-orange-500/20">จ่ายแล้ว — รอระบุป้ายโฆษณา · {(item as any).pendingCount || 0} ชิ้น</Badge>
+                {(item as any).pendingDocs?.length > 0 && (
+                  <div className="text-xs text-orange-700 font-mono">{(item as any).pendingDocs.join(", ")}</div>
+                )}
+                <p className="text-xs text-muted-foreground">เครื่องถูกเบิกออกจากคลังแล้ว แต่ยังไม่ได้ระบุป้ายปลายทาง/ยังไม่ยืนยันรับ (ไปที่เมนู "รายการเบิกที่ยังไม่สมบูรณ์" หรือ "ยืนยันรับสินค้า")</p>
               </div>
             ) : (
               <p className="text-sm text-muted-foreground p-3 border rounded-lg">ไม่มีการติดตั้งปัจจุบัน (อยู่ในคลัง)</p>
