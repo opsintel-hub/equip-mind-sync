@@ -606,15 +606,22 @@ function EquipmentViewTab() {
   const [selectedEquipment, setSelectedEquipment] = useState<any | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
 
+  const { allowedDepartments: eqAllowedDepts, isAdmin: eqIsAdminDept } = useAllowedDepartments();
+  const eqAllowedNames = useMemo(() => eqAllowedDepts.map(d => d.name), [eqAllowedDepts]);
+
   // Equipment
   const { data: equipment, isLoading: loadingEq } = useQuery({
-    queryKey: ["eq-tracking-equipment"],
+    queryKey: ["eq-tracking-equipment", eqIsAdminDept, eqAllowedNames.join("|")],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let q = supabase
         .from("equipment")
-        .select("id, name, code, serial_number, category, brand, quantity_in_stock, expiry_date, warranty_expiry_date")
+        .select("id, name, code, serial_number, category, brand, quantity_in_stock, expiry_date, warranty_expiry_date, department")
         .eq("is_active", true)
         .order("code");
+      if (!eqIsAdminDept) {
+        q = q.in("department", eqAllowedNames.length > 0 ? eqAllowedNames : ["__no_dept_permission__"]);
+      }
+      const { data, error } = await q;
       if (error) throw error;
       return data || [];
     },
