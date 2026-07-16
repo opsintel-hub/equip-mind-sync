@@ -41,12 +41,12 @@ export function ProfileSearch() {
 
       const selectStr = `
         id, code, name, serial_number_1, serial_number_2, status, device_type,
-        asset_code, created_at, location_id, billboard_id,
+        asset_code, created_at, location_id, billboard_id, department,
         locations(name),
         billboard:billboards(equipment_id, old_code, location_name)
       `;
 
-      const { data: directResults } = await supabase
+      let directQ = supabase
         .from("media_players")
         .select(selectStr)
         .eq("is_active", true)
@@ -54,6 +54,8 @@ export function ProfileSearch() {
         .order("code")
         .order("created_at")
         .limit(50);
+      if (scopeDepts) directQ = directQ.in("department", scopeDepts);
+      const { data: directResults } = await directQ;
 
       const { data: receiptMatches } = await supabase
         .from("goods_receipt_pending")
