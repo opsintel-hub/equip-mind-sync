@@ -843,13 +843,33 @@ function EquipmentViewTab() {
     });
   }, [allItems, search, snSearch, typeFilter, categoryFilter, brandFilter, installFilter]);
 
-  // Summary stats — based on FILTERED results so cards reflect what user is searching
+  // Summary stats — based on FILTERED results (count by quantity to match detail modal)
   const summaryStats = useMemo(() => {
-    const installed = filtered.filter(i => i.isInstalled).length;
-    const issuedPending = filtered.reduce((sum, i) => sum + (!i.isInstalled && (i as any).isIssuedPending ? ((i as any).pendingCount || 1) : 0), 0);
-    const inStock = filtered.filter(i => !i.isInstalled && !(i as any).isIssuedPending).length;
+    const seenEq = new Set<string>();
+    let installed = 0;
+    let inStock = 0;
+    let issuedPending = 0;
+    filtered.forEach((i: any) => {
+      // Pending counts across ALL rows regardless of installed state (an item can be both)
+      if (!seenEq.has(`pend-${i.itemType}-${i.id}`)) {
+        seenEq.add(`pend-${i.itemType}-${i.id}`);
+        issuedPending += Number(i.pendingCount || 0);
+      }
+      if (i.itemType === "media_player") {
+        if (i.isInstalled) installed += 1;
+        else if (!i.isIssuedPending) inStock += Number(i.quantity_in_stock || 0);
+      } else {
+        // equipment: dedup by equipment id (S/N expansion produces multiple rows)
+        if (!seenEq.has(`eq-${i.id}`)) {
+          seenEq.add(`eq-${i.id}`);
+          const list = installedAt[i.id] || [];
+          installed += list.reduce((a: number, ci: any) => a + Number(ci.quantity || 0), 0);
+          inStock += Number(i.quantity_in_stock || 0);
+        }
+      }
+    });
     return { total: filtered.length, installed, inStock, issuedPending };
-  }, [filtered]);
+  }, [filtered, installedAt]);
 
   // Pagination
   const totalPages = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE));
