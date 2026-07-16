@@ -41,8 +41,6 @@ export interface PendingReceipt {
   media_player_id?: string | null;
   received_at?: string | null;
   received_location_id?: string | null;
-  received_storage_slot_id?: string | null;
-  received_sub_storage_slot_id?: string | null;
   po_number?: string | null;
   pr_number?: string | null;
   document_url?: string | null;

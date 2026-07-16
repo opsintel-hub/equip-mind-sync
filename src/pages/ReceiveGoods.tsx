@@ -1138,7 +1138,7 @@ const ReceiveGoods = () => {
     return [wh.code, wh.name].filter(Boolean).join(" - ");
   };
   const formatStoragePath = (detail: any) => {
-    const parts = [formatWarehouseLabel(detail), formatLocationLabel(detail), detail?.received_slot?.name, detail?.received_sub_slot?.name]
+    const parts = [formatWarehouseLabel(detail), formatLocationLabel(detail)]
       .filter((part) => part && part !== "-");
     return parts.length ? parts.join(" / ") : "-";
   };
