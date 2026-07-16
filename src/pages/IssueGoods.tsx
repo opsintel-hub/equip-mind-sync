@@ -123,14 +123,16 @@ const IssueGoods = () => {
   const [selectedEquipmentImages, setSelectedEquipmentImages] = useState<string[]>([]);
   const [selectedEquipmentName, setSelectedEquipmentName] = useState("");
 
-  // Fetch pending requests with company info
+  // Fetch pending requests with company info — scoped to viewable departments
   const { data: pendingRequests, isLoading } = useQuery({
-    queryKey: ["goods-issue-pending-staff"],
+    queryKey: ["goods-issue-pending-staff", deptKey],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let q = supabase
         .from("goods_issue_pending")
         .select("*, companies(name)")
         .order("created_at", { ascending: false });
+      if (scopeDepts) q = q.in("requester_department", scopeDepts);
+      const { data, error } = await q;
       if (error) throw error;
       // Show all (including pending_approval) for visibility; the จ่าย button is gated by status === "pending"
       return (data as (PendingRequest & { companies: { name: string } | null })[]);
