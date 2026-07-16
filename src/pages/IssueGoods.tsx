@@ -360,6 +360,10 @@ const IssueGoods = () => {
       }
       
       const parentRequest = pendingRequests?.find(r => r.id === selectedItem.pending_id);
+      // Defer install-to-billboard to the "ยืนยันรับสินค้า" step for delivery/scheduled pickups.
+      // wait_onsite (รับที่คลัง) still installs immediately since the requester is on site.
+      const pickupType = (parentRequest as any)?.pickup_type;
+      const deferInstall = pickupType === "scheduled" || pickupType === "delivery";
 
       // Update item record (including serial_number selected by warehouse staff)
       // Media Player ต้องแยก 1 เครื่องต่อ 1 แถว เพื่อให้ตาม S/N แล้วเจอ media_player_id ถูกตัว
