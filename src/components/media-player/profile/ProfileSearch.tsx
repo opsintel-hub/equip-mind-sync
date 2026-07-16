@@ -109,7 +109,7 @@ export function ProfileSearch() {
       setIsSearching(false);
     }, 300);
     return () => clearTimeout(timer);
-  }, [searchTerm]);
+  }, [searchTerm, deptKey]);
 
   // Count duplicate codes for unit numbering
   const codeCounts: Record<string, number> = {};
