@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Search, Monitor, Loader2, MapPin, AlertCircle } from "lucide-react";
 import { formatBillboardLabel } from "@/lib/billboardUtils";
+import { useDeptScope } from "@/hooks/useDeptScope";
 
 interface SearchRow {
   id: string;
