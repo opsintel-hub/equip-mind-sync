@@ -12,17 +12,6 @@ interface LocationImportProps {
   onSuccess: () => void;
 }
 
-interface ImportRow {
-  code: string;
-  name: string;
-  description?: string;
-  storage_area?: string;
-  storage_area_size?: string;
-  warehouse_code?: string;
-  storage_slot_name?: string;
-  sub_storage_slot_name?: string;
-}
-
 export function LocationImport({ onSuccess }: LocationImportProps) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -36,36 +25,32 @@ export function LocationImport({ onSuccess }: LocationImportProps) {
   const downloadTemplate = () => {
     const templateData = [
       {
-        "รหัสตำแหน่ง (code)*": "LOC-001",
-        "ชื่อตำแหน่ง (name)*": "ชั้นวาง A1",
-        "รายละเอียด (description)": "ตำแหน่งจัดเก็บหลัก",
-        "พื้นที่จัดเก็บ (storage_area)": "โซน A",
-        "ขนาดพื้นที่ (storage_area_size)": "5x3 เมตร",
-        "รหัสคลังสินค้า (warehouse_code)": "WH-001",
-        "ช่องจัดเก็บ (storage_slot_name)": "ชั้น 1",
-        "ช่องย่อย (sub_storage_slot_name)": "ช่อง A",
+        "รหัสตำแหน่ง (code)*": "A01",
+        "ชื่อตำแหน่ง (name)*": "ช่อง 01",
+        "รายละเอียด (description)": "",
+        "พื้นที่จัดเก็บ (storage_area)": "Indoor",
+        "รหัสคลังสินค้า (warehouse_code)*": "PB-01",
+        "รหัสโซน (zone_code)": "A",
+        "ชื่อโซน (zone_name)": "โซนซ้าย",
       },
       {
-        "รหัสตำแหน่ง (code)*": "LOC-001",
-        "ชื่อตำแหน่ง (name)*": "ชั้นวาง A1",
-        "รายละเอียด (description)": "ตำแหน่งจัดเก็บหลัก",
-        "พื้นที่จัดเก็บ (storage_area)": "โซน A",
-        "ขนาดพื้นที่ (storage_area_size)": "5x3 เมตร",
-        "รหัสคลังสินค้า (warehouse_code)": "WH-001",
-        "ช่องจัดเก็บ (storage_slot_name)": "ชั้น 1",
-        "ช่องย่อย (sub_storage_slot_name)": "ช่อง B",
+        "รหัสตำแหน่ง (code)*": "A02",
+        "ชื่อตำแหน่ง (name)*": "ช่อง 02",
+        "รายละเอียด (description)": "",
+        "พื้นที่จัดเก็บ (storage_area)": "Indoor",
+        "รหัสคลังสินค้า (warehouse_code)*": "PB-01",
+        "รหัสโซน (zone_code)": "A",
+        "ชื่อโซน (zone_name)": "โซนซ้าย",
       },
     ];
 
     const ws = XLSX.utils.json_to_sheet(templateData);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Locations");
-
     ws["!cols"] = [
-      { wch: 20 }, { wch: 25 }, { wch: 30 }, { wch: 20 },
-      { wch: 18 }, { wch: 22 }, { wch: 22 }, { wch: 22 },
+      { wch: 20 }, { wch: 25 }, { wch: 30 }, { wch: 18 },
+      { wch: 22 }, { wch: 15 }, { wch: 22 },
     ];
-
     XLSX.writeFile(wb, "location_import_template.xlsx");
     toast.success("ดาวน์โหลด Template สำเร็จ");
   };
@@ -73,15 +58,13 @@ export function LocationImport({ onSuccess }: LocationImportProps) {
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
-
     setLoading(true);
     setImportResult(null);
 
     try {
       const data = await file.arrayBuffer();
       const workbook = XLSX.read(data);
-      const sheetName = workbook.SheetNames[0];
-      const worksheet = workbook.Sheets[sheetName];
+      const worksheet = workbook.Sheets[workbook.SheetNames[0]];
       const jsonData = XLSX.utils.sheet_to_json(worksheet);
 
       if (jsonData.length === 0) {
@@ -91,13 +74,13 @@ export function LocationImport({ onSuccess }: LocationImportProps) {
 
       const { data: userData } = await supabase.auth.getUser();
       const { data: warehouses } = await supabase.from("warehouses").select("id, code");
-      const warehouseMap = new Map(warehouses?.map(w => [w.code, w.id]) || []);
+      const warehouseMap = new Map(warehouses?.map((w) => [w.code, w.id]) || []);
+
+      const zoneCache = new Map<string, string>(); // key: `${warehouseId}|${zoneCode}` -> zoneId
 
       let successCount = 0;
       let failedCount = 0;
       const errors: string[] = [];
-      const locationCache = new Map<string, string>();
-      const slotCache = new Map<string, string>();
 
       for (let i = 0; i < jsonData.length; i++) {
         const row = jsonData[i] as Record<string, any>;
@@ -105,114 +88,87 @@ export function LocationImport({ onSuccess }: LocationImportProps) {
 
         const code = row["รหัสตำแหน่ง (code)*"] || row["code"];
         const name = row["ชื่อตำแหน่ง (name)*"] || row["name"];
+        const warehouseCode =
+          row["รหัสคลังสินค้า (warehouse_code)*"] || row["รหัสคลังสินค้า (warehouse_code)"] || row["warehouse_code"];
 
-        if (!code || !name) {
-          errors.push(`แถวที่ ${rowNum}: ต้องระบุ รหัสตำแหน่ง และ ชื่อตำแหน่ง`);
+        if (!code || !name || !warehouseCode) {
+          errors.push(`แถวที่ ${rowNum}: ต้องระบุ รหัสตำแหน่ง, ชื่อตำแหน่ง และ รหัสคลังสินค้า`);
+          failedCount++;
+          continue;
+        }
+
+        const warehouseId = warehouseMap.get(String(warehouseCode).trim());
+        if (!warehouseId) {
+          errors.push(`แถวที่ ${rowNum}: ไม่พบคลังสินค้า "${warehouseCode}"`);
           failedCount++;
           continue;
         }
 
         const locationCode = String(code).trim();
-        const warehouseCode = row["รหัสคลังสินค้า (warehouse_code)"] || row["warehouse_code"];
-        const warehouseId = warehouseCode ? warehouseMap.get(String(warehouseCode).trim()) : null;
 
         try {
-          let locationId = locationCache.get(locationCode);
+          // Zone handling
+          const zoneCode = row["รหัสโซน (zone_code)"] || row["zone_code"];
+          const zoneName = row["ชื่อโซน (zone_name)"] || row["zone_name"];
+          let zoneId: string | null = null;
 
-          if (!locationId) {
-            const { data: existingLocation } = await supabase
-              .from("locations")
-              .select("id")
-              .eq("code", locationCode)
-              .maybeSingle();
-
-            if (existingLocation) {
-              locationId = existingLocation.id;
-              await supabase
-                .from("locations")
-                .update({
-                  name: String(name).trim(),
-                  description: row["รายละเอียด (description)"] || row["description"] || null,
-                  storage_area: row["พื้นที่จัดเก็บ (storage_area)"] || row["storage_area"] || null,
-                  storage_area_size: row["ขนาดพื้นที่ (storage_area_size)"] || row["storage_area_size"] || null,
-                  warehouse_id: warehouseId || null,
-                  updated_at: new Date().toISOString(),
-                })
-                .eq("id", locationId);
-            } else {
-              const { data: newLocation, error: locError } = await supabase
-                .from("locations")
-                .insert({
-                  code: locationCode,
-                  name: String(name).trim(),
-                  description: row["รายละเอียด (description)"] || row["description"] || null,
-                  storage_area: row["พื้นที่จัดเก็บ (storage_area)"] || row["storage_area"] || null,
-                  storage_area_size: row["ขนาดพื้นที่ (storage_area_size)"] || row["storage_area_size"] || null,
-                  warehouse_id: warehouseId || null,
-                  created_by: userData?.user?.id,
-                })
+          if (zoneCode) {
+            const zoneKey = `${warehouseId}|${String(zoneCode).trim()}`;
+            zoneId = zoneCache.get(zoneKey) || null;
+            if (!zoneId) {
+              const { data: existingZone } = await supabase
+                .from("zones")
                 .select("id")
-                .single();
-
-              if (locError) throw locError;
-              locationId = newLocation.id;
-            }
-
-            locationCache.set(locationCode, locationId);
-          }
-
-          const slotName = row["ช่องจัดเก็บ (storage_slot_name)"] || row["storage_slot_name"];
-          if (slotName && locationId) {
-            const slotKey = `${locationId}-${String(slotName).trim()}`;
-            let slotId = slotCache.get(slotKey);
-
-            if (!slotId) {
-              const { data: existingSlot } = await supabase
-                .from("storage_slots")
-                .select("id")
-                .eq("location_id", locationId)
-                .eq("name", String(slotName).trim())
+                .eq("warehouse_id", warehouseId)
+                .eq("code", String(zoneCode).trim())
                 .maybeSingle();
-
-              if (existingSlot) {
-                slotId = existingSlot.id;
+              if (existingZone) {
+                zoneId = existingZone.id;
               } else {
-                const { data: newSlot, error: slotError } = await supabase
-                  .from("storage_slots")
+                const { data: newZone, error: zErr } = await supabase
+                  .from("zones")
                   .insert({
-                    location_id: locationId,
-                    name: String(slotName).trim(),
+                    warehouse_id: warehouseId,
+                    code: String(zoneCode).trim(),
+                    name: zoneName ? String(zoneName).trim() : String(zoneCode).trim(),
                     created_by: userData?.user?.id,
                   })
                   .select("id")
                   .single();
-
-                if (slotError) throw slotError;
-                slotId = newSlot.id;
+                if (zErr) throw zErr;
+                zoneId = newZone.id;
               }
-
-              slotCache.set(slotKey, slotId);
+              zoneCache.set(zoneKey, zoneId);
             }
+          }
 
-            const subSlotName = row["ช่องย่อย (sub_storage_slot_name)"] || row["sub_storage_slot_name"];
-            if (subSlotName && slotId) {
-              const { data: existingSubSlot } = await supabase
-                .from("sub_storage_slots")
-                .select("id")
-                .eq("storage_slot_id", slotId)
-                .eq("name", String(subSlotName).trim())
-                .maybeSingle();
+          const payload = {
+            code: locationCode,
+            name: String(name).trim(),
+            description: row["รายละเอียด (description)"] || row["description"] || null,
+            storage_area: row["พื้นที่จัดเก็บ (storage_area)"] || row["storage_area"] || null,
+            warehouse_id: warehouseId,
+            zone_id: zoneId,
+          };
 
-              if (!existingSubSlot) {
-                await supabase
-                  .from("sub_storage_slots")
-                  .insert({
-                    storage_slot_id: slotId,
-                    name: String(subSlotName).trim(),
-                    created_by: userData?.user?.id,
-                  });
-              }
-            }
+          const { data: existingLocation } = await supabase
+            .from("locations")
+            .select("id")
+            .eq("code", locationCode)
+            .maybeSingle();
+
+          if (existingLocation) {
+            const { error } = await supabase
+              .from("locations")
+              .update({ ...payload, updated_at: new Date().toISOString() })
+              .eq("id", existingLocation.id);
+            if (error) throw error;
+          } else {
+            const { error } = await supabase.from("locations").insert({
+              ...payload,
+              created_by: userData?.user?.id,
+            });
+            if (error) throw error;
           }
 
           successCount++;
@@ -223,12 +179,10 @@ export function LocationImport({ onSuccess }: LocationImportProps) {
       }
 
       setImportResult({ success: successCount, failed: failedCount, errors });
-
       if (successCount > 0) {
         toast.success(`นำเข้าข้อมูลสำเร็จ ${successCount} รายการ`);
         onSuccess();
       }
-
       if (failedCount > 0) {
         toast.error(`นำเข้าไม่สำเร็จ ${failedCount} รายการ`);
       }
@@ -236,9 +190,7 @@ export function LocationImport({ onSuccess }: LocationImportProps) {
       toast.error("เกิดข้อผิดพลาดในการอ่านไฟล์: " + error.message);
     } finally {
       setLoading(false);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = "";
-      }
+      if (fileInputRef.current) fileInputRef.current.value = "";
     }
   };
 
@@ -264,7 +216,7 @@ export function LocationImport({ onSuccess }: LocationImportProps) {
             <ol className="text-sm text-muted-foreground space-y-1 list-decimal list-inside">
               <li>ดาวน์โหลด Template Excel</li>
               <li>กรอกข้อมูลตาม Template (ห้ามเปลี่ยนชื่อหัวคอลัมน์)</li>
-              <li>สามารถใส่หลายแถวที่มีรหัสตำแหน่งเดียวกันเพื่อเพิ่มช่องจัดเก็บ/ช่องย่อย</li>
+              <li>ถ้ากรอก "รหัสโซน" ระบบจะสร้างโซนอัตโนมัติหากยังไม่มี</li>
               <li>บันทึกไฟล์เป็น .xlsx หรือ .csv</li>
               <li>อัปโหลดไฟล์เพื่อนำเข้าข้อมูล</li>
             </ol>
@@ -290,9 +242,7 @@ export function LocationImport({ onSuccess }: LocationImportProps) {
           </div>
 
           {loading && (
-            <div className="text-center py-4 text-muted-foreground">
-              กำลังนำเข้าข้อมูล...
-            </div>
+            <div className="text-center py-4 text-muted-foreground">กำลังนำเข้าข้อมูล...</div>
           )}
 
           {importResult && (
@@ -305,7 +255,6 @@ export function LocationImport({ onSuccess }: LocationImportProps) {
                   </AlertDescription>
                 </Alert>
               )}
-
               {importResult.failed > 0 && (
                 <Alert variant="destructive">
                   <AlertCircle className="h-4 w-4" />

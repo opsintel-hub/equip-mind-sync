@@ -3170,8 +3170,6 @@ export type Database = {
           received_at: string | null
           received_by: string | null
           received_location_id: string | null
-          received_storage_slot_id: string | null
-          received_sub_storage_slot_id: string | null
           remote_name: string | null
           serial_number: string | null
           serial_number_2: string | null
@@ -3242,8 +3240,6 @@ export type Database = {
           received_at?: string | null
           received_by?: string | null
           received_location_id?: string | null
-          received_storage_slot_id?: string | null
-          received_sub_storage_slot_id?: string | null
           remote_name?: string | null
           serial_number?: string | null
           serial_number_2?: string | null
@@ -3314,8 +3310,6 @@ export type Database = {
           received_at?: string | null
           received_by?: string | null
           received_location_id?: string | null
-          received_storage_slot_id?: string | null
-          received_sub_storage_slot_id?: string | null
           remote_name?: string | null
           serial_number?: string | null
           serial_number_2?: string | null
@@ -3383,20 +3377,6 @@ export type Database = {
             columns: ["received_location_id"]
             isOneToOne: false
             referencedRelation: "locations"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "goods_receipt_pending_received_storage_slot_id_fkey"
-            columns: ["received_storage_slot_id"]
-            isOneToOne: false
-            referencedRelation: "storage_slots"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "goods_receipt_pending_received_sub_storage_slot_id_fkey"
-            columns: ["received_sub_storage_slot_id"]
-            isOneToOne: false
-            referencedRelation: "sub_storage_slots"
             referencedColumns: ["id"]
           },
           {
@@ -3523,6 +3503,7 @@ export type Database = {
           volume_cm3: number | null
           warehouse_id: string | null
           width_cm: number | null
+          zone_id: string | null
         }
         Insert: {
           code: string
@@ -3542,6 +3523,7 @@ export type Database = {
           volume_cm3?: number | null
           warehouse_id?: string | null
           width_cm?: number | null
+          zone_id?: string | null
         }
         Update: {
           code?: string
@@ -3561,6 +3543,7 @@ export type Database = {
           volume_cm3?: number | null
           warehouse_id?: string | null
           width_cm?: number | null
+          zone_id?: string | null
         }
         Relationships: [
           {
@@ -3568,6 +3551,13 @@ export type Database = {
             columns: ["warehouse_id"]
             isOneToOne: false
             referencedRelation: "warehouses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "locations_zone_id_fkey"
+            columns: ["zone_id"]
+            isOneToOne: false
+            referencedRelation: "zones"
             referencedColumns: ["id"]
           },
         ]
@@ -5015,88 +5005,6 @@ export type Database = {
           },
         ]
       }
-      storage_slots: {
-        Row: {
-          created_at: string
-          created_by: string | null
-          description: string | null
-          id: string
-          is_active: boolean | null
-          location_id: string
-          name: string
-          updated_at: string
-        }
-        Insert: {
-          created_at?: string
-          created_by?: string | null
-          description?: string | null
-          id?: string
-          is_active?: boolean | null
-          location_id: string
-          name: string
-          updated_at?: string
-        }
-        Update: {
-          created_at?: string
-          created_by?: string | null
-          description?: string | null
-          id?: string
-          is_active?: boolean | null
-          location_id?: string
-          name?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "storage_slots_location_id_fkey"
-            columns: ["location_id"]
-            isOneToOne: false
-            referencedRelation: "locations"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      sub_storage_slots: {
-        Row: {
-          created_at: string
-          created_by: string | null
-          description: string | null
-          id: string
-          is_active: boolean | null
-          name: string
-          storage_slot_id: string
-          updated_at: string
-        }
-        Insert: {
-          created_at?: string
-          created_by?: string | null
-          description?: string | null
-          id?: string
-          is_active?: boolean | null
-          name: string
-          storage_slot_id: string
-          updated_at?: string
-        }
-        Update: {
-          created_at?: string
-          created_by?: string | null
-          description?: string | null
-          id?: string
-          is_active?: boolean | null
-          name?: string
-          storage_slot_id?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "sub_storage_slots_storage_slot_id_fkey"
-            columns: ["storage_slot_id"]
-            isOneToOne: false
-            referencedRelation: "storage_slots"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       subcategories: {
         Row: {
           category_id: string
@@ -6184,6 +6092,50 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      zones: {
+        Row: {
+          code: string
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          is_active: boolean
+          name: string
+          updated_at: string
+          warehouse_id: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          updated_at?: string
+          warehouse_id: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          updated_at?: string
+          warehouse_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "zones_warehouse_id_fkey"
+            columns: ["warehouse_id"]
+            isOneToOne: false
+            referencedRelation: "warehouses"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {

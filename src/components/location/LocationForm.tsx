@@ -31,9 +31,8 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Plus } from "lucide-react";
-import { StorageSlotSelect } from "./StorageSlotSelect";
-import { SubStorageSlotSelect } from "./SubStorageSlotSelect";
 import { LocationDimensionFields } from "./LocationDimensionFields";
+import { ZoneSelect } from "./ZoneSelect";
 
 interface Warehouse {
   id: string;
@@ -43,12 +42,11 @@ interface Warehouse {
 
 const formSchema = z.object({
   warehouse_id: z.string().min(1, "กรุณาเลือกคลังสินค้า"),
+  zone_id: z.string().optional(),
   code: z.string().min(1, "กรุณาระบุรหัสตำแหน่ง"),
   name: z.string().min(1, "กรุณาระบุชื่อตำแหน่ง"),
   description: z.string().optional(),
   storage_area: z.string().optional(),
-  storage_slot_id: z.string().optional(),
-  sub_storage_slot_id: z.string().optional(),
 });
 
 interface LocationFormProps {
@@ -60,26 +58,32 @@ interface LocationFormProps {
     description: string | null;
     storage_area: string | null;
     warehouse_id: string | null;
+    zone_id?: string | null;
     width_cm?: number | null;
     height_cm?: number | null;
     depth_cm?: number | null;
     volume_cm3?: number | null;
   };
   defaultWarehouseId?: string;
+  defaultZoneId?: string;
   triggerLabel?: string;
   triggerVariant?: "default" | "ghost" | "outline" | "secondary";
   triggerClassName?: string;
 }
 
-export function LocationForm({ onSuccess, location, defaultWarehouseId, triggerLabel, triggerVariant, triggerClassName }: LocationFormProps) {
+export function LocationForm({
+  onSuccess,
+  location,
+  defaultWarehouseId,
+  defaultZoneId,
+  triggerLabel,
+  triggerVariant,
+  triggerClassName,
+}: LocationFormProps) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [locationId, setLocationId] = useState<string | undefined>(location?.id);
-  const [storageSlotId, setStorageSlotId] = useState<string>("");
-  const [isNewLocationSaved, setIsNewLocationSaved] = useState(!!location);
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
-  
-  // Dimension fields state
+
   const [widthCm, setWidthCm] = useState<number | undefined>(location?.width_cm ?? undefined);
   const [heightCm, setHeightCm] = useState<number | undefined>(location?.height_cm ?? undefined);
   const [depthCm, setDepthCm] = useState<number | undefined>(location?.depth_cm ?? undefined);
@@ -89,7 +93,6 @@ export function LocationForm({ onSuccess, location, defaultWarehouseId, triggerL
     fetchWarehouses();
   }, []);
 
-  // Reset dimension fields when dialog opens/closes or location changes
   useEffect(() => {
     if (open) {
       setWidthCm(location?.width_cm ?? undefined);
@@ -112,119 +115,62 @@ export function LocationForm({ onSuccess, location, defaultWarehouseId, triggerL
     resolver: zodResolver(formSchema),
     defaultValues: {
       warehouse_id: location?.warehouse_id || defaultWarehouseId || "",
+      zone_id: location?.zone_id || defaultZoneId || "",
       code: location?.code || "",
       name: location?.name || "",
       description: location?.description || "",
       storage_area: location?.storage_area || "",
-      storage_slot_id: "",
-      sub_storage_slot_id: "",
     },
   });
+
+  const warehouseId = form.watch("warehouse_id");
 
   const handleVolumeChange = useCallback((value: number | undefined) => {
     setVolumeCm3(value);
   }, []);
 
-  const handleSaveBasicInfo = async () => {
-    const values = form.getValues();
-    
-    // Validate required fields
-    if (!values.warehouse_id || !values.code || !values.name) {
-      toast.error("กรุณากรอกข้อมูลให้ครบถ้วน");
-      return;
-    }
-
-    try {
-      setLoading(true);
-      const { data: { user } } = await supabase.auth.getUser();
-
-      if (!user) {
-        toast.error("กรุณาเข้าสู่ระบบก่อนทำรายการ");
-        return;
-      }
-
-      const { data, error } = await supabase
-        .from("locations")
-        .insert({
-          warehouse_id: values.warehouse_id,
-          code: values.code,
-          name: values.name,
-          description: values.description || null,
-          storage_area: values.storage_area || null,
-          width_cm: widthCm || null,
-          height_cm: heightCm || null,
-          depth_cm: depthCm || null,
-          volume_cm3: volumeCm3 || null,
-          used_volume_cm3: 0,
-          created_by: user.id,
-        })
-        .select()
-        .single();
-
-      if (error) throw error;
-
-      setLocationId(data.id);
-      setIsNewLocationSaved(true);
-      toast.success("บันทึกข้อมูลแล้ว ตอนนี้สามารถจัดการช่องจัดเก็บได้");
-    } catch (error: any) {
-      toast.error("เกิดข้อผิดพลาด: " + error.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     try {
       setLoading(true);
       const { data: { user } } = await supabase.auth.getUser();
-
       if (!user) {
         toast.error("กรุณาเข้าสู่ระบบก่อนทำรายการ");
         return;
       }
 
-      if (location || isNewLocationSaved) {
-        const targetId = location?.id || locationId;
-        const { error } = await supabase
-          .from("locations")
-          .update({
-            warehouse_id: values.warehouse_id,
-            code: values.code,
-            name: values.name,
-            description: values.description || null,
-            storage_area: values.storage_area || null,
-            width_cm: widthCm || null,
-            height_cm: heightCm || null,
-            depth_cm: depthCm || null,
-            volume_cm3: volumeCm3 || null,
-          })
-          .eq("id", targetId);
+      const payload = {
+        warehouse_id: values.warehouse_id,
+        zone_id: values.zone_id || null,
+        code: values.code,
+        name: values.name,
+        description: values.description || null,
+        storage_area: values.storage_area || null,
+        width_cm: widthCm || null,
+        height_cm: heightCm || null,
+        depth_cm: depthCm || null,
+        volume_cm3: volumeCm3 || null,
+      };
 
+      if (location) {
+        const { error } = await supabase.from("locations").update(payload).eq("id", location.id);
         if (error) throw error;
         toast.success("อัพเดทตำแหน่งจัดเก็บสำเร็จ");
-        
-        form.reset();
-        setOpen(false);
-        setIsNewLocationSaved(false);
-        setLocationId(undefined);
-        resetDimensionFields();
-        onSuccess();
       } else {
-        // Save basic info first
-        await handleSaveBasicInfo();
+        const { error } = await supabase
+          .from("locations")
+          .insert({ ...payload, used_volume_cm3: 0, created_by: user.id });
+        if (error) throw error;
+        toast.success("เพิ่มตำแหน่งจัดเก็บสำเร็จ");
       }
+
+      form.reset();
+      setOpen(false);
+      onSuccess();
     } catch (error: any) {
       toast.error("เกิดข้อผิดพลาด: " + error.message);
     } finally {
       setLoading(false);
     }
-  };
-
-  const resetDimensionFields = () => {
-    setWidthCm(undefined);
-    setHeightCm(undefined);
-    setDepthCm(undefined);
-    setVolumeCm3(undefined);
   };
 
   return (
@@ -241,11 +187,9 @@ export function LocationForm({ onSuccess, location, defaultWarehouseId, triggerL
       </DialogTrigger>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
-          <DialogTitle>
-            {location ? "แก้ไขตำแหน่งจัดเก็บ" : "เพิ่มตำแหน่งจัดเก็บ"}
-          </DialogTitle>
+          <DialogTitle>{location ? "แก้ไขตำแหน่งจัดเก็บ" : "เพิ่มตำแหน่งจัดเก็บ"}</DialogTitle>
           <DialogDescription>
-            กรอกข้อมูลตำแหน่งจัดเก็บสินค้าในคลัง
+            กรอกข้อมูลตำแหน่งจัดเก็บ (เช่น A01, A02) และเลือกโซน (เช่น A) เพื่อจัดกลุ่ม
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -256,13 +200,23 @@ export function LocationForm({ onSuccess, location, defaultWarehouseId, triggerL
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>คลังสินค้า *</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
+                  <Select
+                    onValueChange={(v) => {
+                      field.onChange(v);
+                      form.setValue("zone_id", "");
+                    }}
+                    value={field.value}
+                  >
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="เลือกคลังสินค้า" />
                       </SelectTrigger>
                     </FormControl>
-                    <SelectContent position="popper" sideOffset={4} className="bg-background z-[200] max-h-60 overflow-y-auto">
+                    <SelectContent
+                      position="popper"
+                      sideOffset={4}
+                      className="bg-background z-[200] max-h-60 overflow-y-auto"
+                    >
                       {warehouses.map((wh) => (
                         <SelectItem key={wh.id} value={wh.id}>
                           {wh.code} - {wh.name}
@@ -270,6 +224,24 @@ export function LocationForm({ onSuccess, location, defaultWarehouseId, triggerL
                       ))}
                     </SelectContent>
                   </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="zone_id"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>โซน (ไม่บังคับ)</FormLabel>
+                  <FormControl>
+                    <ZoneSelect
+                      value={field.value}
+                      onChange={field.onChange}
+                      warehouseId={warehouseId}
+                    />
+                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
@@ -283,7 +255,7 @@ export function LocationForm({ onSuccess, location, defaultWarehouseId, triggerL
                   <FormItem>
                     <FormLabel>รหัสตำแหน่ง *</FormLabel>
                     <FormControl>
-                      <Input placeholder="เช่น LOC-001" {...field} />
+                      <Input placeholder="เช่น A01" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -296,35 +268,31 @@ export function LocationForm({ onSuccess, location, defaultWarehouseId, triggerL
                   <FormItem>
                     <FormLabel>ชื่อตำแหน่ง *</FormLabel>
                     <FormControl>
-                      <Input placeholder="เช่น ชั้น 1 โซน A" {...field} />
+                      <Input placeholder="เช่น ช่อง 01" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
             </div>
-            
+
             <FormField
               control={form.control}
               name="storage_area"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>พื้นที่จัดเก็บ</FormLabel>
-                  <Select 
-                    onValueChange={(value) => {
-                      field.onChange(value);
-                      if (value) {
-                        setLocationId(location?.id);
-                      }
-                    }} 
-                    value={field.value}
-                  >
+                  <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="เลือกพื้นที่จัดเก็บ" />
                       </SelectTrigger>
                     </FormControl>
-                    <SelectContent position="popper" sideOffset={4} className="bg-background z-[200] max-h-60 overflow-y-auto">
+                    <SelectContent
+                      position="popper"
+                      sideOffset={4}
+                      className="bg-background z-[200] max-h-60 overflow-y-auto"
+                    >
                       <SelectItem value="Indoor">Indoor</SelectItem>
                       <SelectItem value="Outdoor">Outdoor</SelectItem>
                       <SelectItem value="Semi-outdoor">Semi-outdoor</SelectItem>
@@ -335,7 +303,6 @@ export function LocationForm({ onSuccess, location, defaultWarehouseId, triggerL
               )}
             />
 
-            {/* Location Dimension Fields */}
             <LocationDimensionFields
               widthCm={widthCm}
               heightCm={heightCm}
@@ -348,57 +315,6 @@ export function LocationForm({ onSuccess, location, defaultWarehouseId, triggerL
               disabled={loading}
             />
 
-            {!locationId && !location && (
-              <div className="p-4 bg-muted rounded-lg text-sm text-muted-foreground">
-                กรุณากดปุ่ม "บันทึก" ด้านล่างก่อนเพื่อสร้างตำแหน่ง จากนั้นจึงจะสามารถจัดการช่องจัดเก็บได้
-              </div>
-            )}
-
-            {locationId && (
-              <>
-                <FormField
-                  control={form.control}
-                  name="storage_slot_id"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Label / ชื่อ สำหรับจัดเก็บ</FormLabel>
-                      <FormControl>
-                        <StorageSlotSelect
-                          value={field.value}
-                          onChange={(value) => {
-                            field.onChange(value);
-                            setStorageSlotId(value);
-                          }}
-                          locationId={locationId}
-                          disabled={!locationId}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="sub_storage_slot_id"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>ช่องย่อยจัดเก็บ (ไม่บังคับ)</FormLabel>
-                      <FormControl>
-                        <SubStorageSlotSelect
-                          value={field.value}
-                          onChange={field.onChange}
-                          storageSlotId={storageSlotId}
-                          disabled={!storageSlotId}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </>
-            )}
-
             <FormField
               control={form.control}
               name="description"
@@ -406,42 +322,20 @@ export function LocationForm({ onSuccess, location, defaultWarehouseId, triggerL
                 <FormItem>
                   <FormLabel>รายละเอียด</FormLabel>
                   <FormControl>
-                    <Textarea 
-                      placeholder="รายละเอียดเพิ่มเติม..."
-                      {...field}
-                    />
+                    <Textarea placeholder="รายละเอียดเพิ่มเติม..." {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
+
             <div className="flex justify-end gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setOpen(false)}
-              >
+              <Button type="button" variant="outline" onClick={() => setOpen(false)}>
                 ยกเลิก
               </Button>
               <Button type="submit" disabled={loading}>
-                {loading ? "กำลังบันทึก..." : (location || isNewLocationSaved ? "บันทึก" : "บันทึกข้อมูลพื้นฐาน")}
+                {loading ? "กำลังบันทึก..." : "บันทึก"}
               </Button>
-              {isNewLocationSaved && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => {
-                    form.reset();
-                    setOpen(false);
-                    setIsNewLocationSaved(false);
-                    setLocationId(undefined);
-                    resetDimensionFields();
-                    onSuccess();
-                  }}
-                >
-                  เสร็จสิ้น
-                </Button>
-              )}
             </div>
           </form>
         </Form>

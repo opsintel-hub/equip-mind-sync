@@ -467,8 +467,6 @@ const ReceiveGoods = () => {
         companies:company_id(code, name),
         warehouses:warehouse_id(code, name),
         received_location:locations!goods_receipt_pending_received_location_id_fkey(code, name, warehouses:warehouse_id(code, name)),
-        received_slot:storage_slots!goods_receipt_pending_received_storage_slot_id_fkey(name),
-        received_sub_slot:sub_storage_slots!goods_receipt_pending_received_sub_storage_slot_id_fkey(name),
         receipt_purposes:receipt_purpose_id(name)
       `)
       .eq("id", receipt.id)
@@ -610,8 +608,6 @@ const ReceiveGoods = () => {
           received_by: user?.id,
           received_at: new Date().toISOString(),
           received_location_id: storageLocation.locationId,
-          received_storage_slot_id: storageLocation.storageSlotId || null,
-          received_sub_storage_slot_id: storageLocation.subStorageSlotId || null,
           notes: editNotes || null,
           storage_volume_cm3: storageVolumeValue,
           serial_number: trimmedSerial1 || null,
@@ -1142,7 +1138,7 @@ const ReceiveGoods = () => {
     return [wh.code, wh.name].filter(Boolean).join(" - ");
   };
   const formatStoragePath = (detail: any) => {
-    const parts = [formatWarehouseLabel(detail), formatLocationLabel(detail), detail?.received_slot?.name, detail?.received_sub_slot?.name]
+    const parts = [formatWarehouseLabel(detail), formatLocationLabel(detail)]
       .filter((part) => part && part !== "-");
     return parts.length ? parts.join(" / ") : "-";
   };
