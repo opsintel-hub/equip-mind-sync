@@ -70,7 +70,7 @@ export function WarehouseLocationSelect({
       setLoadingLocations(true);
       const { data, error } = await supabase
         .from("locations")
-        .select("id, code, name")
+        .select("id, code, name, zones:zone_id(code, name)")
         .eq("is_active", true)
         .eq("warehouse_id", warehouseId)
         .order("code");
