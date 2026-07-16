@@ -693,6 +693,41 @@ function EquipmentViewTab() {
     },
   });
 
+  // Pending issued items: จ่ายแล้วแต่ยังไม่ได้ติดตั้งเข้าป้าย
+  // (รอผู้รับกดยืนยัน / แจ้งปัญหาที่รับ / ไม่ได้ระบุป้ายปลายทาง)
+  const { data: pendingIssuedItems = [] } = useQuery({
+    queryKey: ["eq-tracking-pending-issued"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("goods_issue_pending_items")
+        .select("equipment_id, media_player_id, is_media_player, issued_quantity, quantity, billboard_id, install_status, status, pending_id, goods_issue_pending:pending_id(document_no)")
+        .eq("status", "issued")
+        .or("install_status.in.(pending_confirmation,cancelled),and(billboard_id.is.null,install_status.eq.not_required)");
+      if (error) { console.error(error); return []; }
+      return data || [];
+    },
+  });
+
+  const pendingIssuedMap = useMemo(() => {
+    const eq: Record<string, { count: number; docs: string[] }> = {};
+    const mp: Record<string, { count: number; docs: string[] }> = {};
+    (pendingIssuedItems || []).forEach((r: any) => {
+      const qty = Number(r.issued_quantity ?? r.quantity ?? 0);
+      if (qty <= 0) return;
+      const doc = r.goods_issue_pending?.document_no || "-";
+      if (r.is_media_player && r.media_player_id) {
+        if (!mp[r.media_player_id]) mp[r.media_player_id] = { count: 0, docs: [] };
+        mp[r.media_player_id].count += qty;
+        if (!mp[r.media_player_id].docs.includes(doc)) mp[r.media_player_id].docs.push(doc);
+      } else if (r.equipment_id) {
+        if (!eq[r.equipment_id]) eq[r.equipment_id] = { count: 0, docs: [] };
+        eq[r.equipment_id].count += qty;
+        if (!eq[r.equipment_id].docs.includes(doc)) eq[r.equipment_id].docs.push(doc);
+      }
+    });
+    return { eq, mp };
+  }, [pendingIssuedItems]);
+
   const bbLookup = useMemo(() => {
     const m: Record<string, any> = {};
     (billboards || []).forEach(b => { m[b.id] = b; });
