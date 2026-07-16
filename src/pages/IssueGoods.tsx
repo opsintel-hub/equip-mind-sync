@@ -371,6 +371,7 @@ const IssueGoods = () => {
         const [firstAssignment, ...extraAssignments] = activeMpAssignments;
         const remainingUnissuedQty = Math.max(0, remainingQty);
 
+        const firstBb = firstAssignment.billboard_id || selectedItem.billboard_id || null;
         const { error: updateError } = await supabase
           .from("goods_issue_pending_items")
           .update({
@@ -380,10 +381,12 @@ const IssueGoods = () => {
             remaining_quantity: 0,
             media_player_id: firstAssignment.media_player_id,
             is_media_player: true,
-            billboard_id: firstAssignment.billboard_id || selectedItem.billboard_id || null,
+            billboard_id: deferInstall ? null : firstBb,
+            intended_billboard_id: deferInstall ? firstBb : null,
+            install_status: firstBb ? (deferInstall ? "pending_confirmation" : "installed") : "not_required",
             notes: issueData.notes || selectedItem.notes,
             serial_number: firstAssignment.serial_number,
-          })
+          } as any)
           .eq("id", selectedItem.id);
 
         if (updateError) throw updateError;
