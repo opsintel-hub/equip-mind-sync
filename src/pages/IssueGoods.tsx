@@ -152,18 +152,20 @@ const IssueGoods = () => {
     },
   });
 
-  // Fetch equipment for validation with full details including location
+  // Fetch equipment for validation with full details including location — dept-scoped
   const { data: equipment } = useQuery({
-    queryKey: ["equipment-active-details"],
+    queryKey: ["equipment-active-details", deptKey],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let q = supabase
         .from("equipment")
         .select(`
-          id, code, name, quantity_in_stock, serial_number, expiry_date, warranty_expiry_date, warehouse_entry_date, location_id,
+          id, code, name, quantity_in_stock, serial_number, expiry_date, warranty_expiry_date, warehouse_entry_date, location_id, department,
           locations(id, name, code, warehouse_id, warehouses(id, name, code))
         `)
         .eq("is_active", true)
         .order("warehouse_entry_date", { ascending: true });
+      if (scopeDepts) q = q.in("department", scopeDepts);
+      const { data, error } = await q;
       if (error) throw error;
       return data as (EquipmentWithDetails & { 
         location_id: string | null; 
