@@ -24,6 +24,7 @@ import BillboardSelect from "@/components/billboard/BillboardSelect";
 import { WarehouseLocationSelect } from "@/components/location/WarehouseLocationSelect";
 import { SimpleDepartmentSelect } from "@/components/equipment/SimpleDepartmentSelect";
 import { logStockMovement } from "@/lib/stockMovement";
+import { getCompatibleBillboardIdsForEquipment } from "@/lib/compatibility";
 
 interface IncompleteIssue {
   id: string;
