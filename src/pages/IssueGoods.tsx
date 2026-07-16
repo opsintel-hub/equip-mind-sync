@@ -174,16 +174,18 @@ const IssueGoods = () => {
     },
   });
 
-  // Fetch available Media Player units (in stock) for multi-unit issuance
+  // Fetch available Media Player units (in stock) for multi-unit issuance — dept-scoped
   const { data: availableMpUnits, refetch: refetchMpUnits } = useQuery({
-    queryKey: ["available-media-player-units"],
+    queryKey: ["available-media-player-units", deptKey],
     queryFn: async () => {
       // Include all active units (even quantity=0) so we can show them as disabled
       // with a clear reason, instead of silently hiding newly-edited S/Ns.
-      const { data, error } = await supabase
+      let q = supabase
         .from("media_players")
         .select("id, code, name, serial_number_1, serial_number_2, quantity, billboard_id, location_id, department, sub_media_type, device_type, status, locations(id, name, code, warehouses(id, name, code))")
         .eq("is_active", true);
+      if (scopeDepts) q = q.in("department", scopeDepts);
+      const { data, error } = await q;
       if (error) throw error;
       return data as any[];
     },
