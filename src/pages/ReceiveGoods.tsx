@@ -467,8 +467,6 @@ const ReceiveGoods = () => {
         companies:company_id(code, name),
         warehouses:warehouse_id(code, name),
         received_location:locations!goods_receipt_pending_received_location_id_fkey(code, name, warehouses:warehouse_id(code, name)),
-        received_slot:storage_slots!goods_receipt_pending_received_storage_slot_id_fkey(name),
-        received_sub_slot:sub_storage_slots!goods_receipt_pending_received_sub_storage_slot_id_fkey(name),
         receipt_purposes:receipt_purpose_id(name)
       `)
       .eq("id", receipt.id)

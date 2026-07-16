@@ -11,7 +11,6 @@ import { EquipmentForm } from "@/components/equipment/EquipmentForm";
 import { EquipmentList } from "@/components/equipment/EquipmentList";
 import { EquipmentImport } from "@/components/equipment/EquipmentImport";
 import { LocationForm } from "@/components/location/LocationForm";
-import { LocationList } from "@/components/location/LocationList";
 import { LocationImport } from "@/components/location/LocationImport";
 import { SupplierForm } from "@/components/supplier/SupplierForm";
 import { SupplierList } from "@/components/supplier/SupplierList";

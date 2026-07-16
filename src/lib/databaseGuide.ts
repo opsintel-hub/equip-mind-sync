@@ -312,9 +312,8 @@ export const TABLE_GUIDE: Record<string, TableMeta> = {
   suppliers: { category: "Master Data", description: "ผู้จัดจำหน่าย/Supplier", relatedRoutes: [{ label: "ข้อมูลหลัก", path: "/master-data" }] },
   units: { category: "Master Data", description: "หน่วยนับสินค้า", relatedRoutes: [{ label: "ข้อมูลหลัก", path: "/master-data" }] },
   warehouses: { category: "Master Data", description: "คลังสินค้า", relatedRoutes: [{ label: "ข้อมูลหลัก", path: "/master-data" }] },
-  locations: { category: "Master Data", description: "ตำแหน่งจัดเก็บภายในคลัง", relatedRoutes: [{ label: "ข้อมูลหลัก", path: "/master-data" }] },
-  storage_slots: { category: "Master Data", description: "ช่องจัดเก็บในตำแหน่ง" },
-  sub_storage_slots: { category: "Master Data", description: "ช่องจัดเก็บย่อย" },
+  locations: { category: "Master Data", description: "ตำแหน่งจัดเก็บภายในคลัง (เช่น A01, A02)", relatedRoutes: [{ label: "ข้อมูลหลัก", path: "/master-data" }] },
+  zones: { category: "Master Data", description: "โซนภายในคลัง — จัดกลุ่มตำแหน่ง (เช่น A, B)", relatedRoutes: [{ label: "ข้อมูลหลัก", path: "/master-data" }] },
 
   // ==================== ผู้ใช้/สิทธิ์ ====================
   profiles: { category: "ผู้ใช้/สิทธิ์", description: "ข้อมูลโปรไฟล์ผู้ใช้ (ชื่อ, เบอร์โทร)" },

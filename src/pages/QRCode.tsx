@@ -35,26 +35,6 @@ export default function QRCodePage() {
         case "location":
           query = supabase.from("locations").select("*").eq("id", id).single();
           break;
-        case "slot":
-          query = supabase
-            .from("storage_slots")
-            .select("*, location:locations(code, name)")
-            .eq("id", id)
-            .single();
-          break;
-        case "subslot":
-          query = supabase
-            .from("sub_storage_slots")
-            .select(`
-              *,
-              storage_slot:storage_slots(
-                name,
-                location:locations(code, name)
-              )
-            `)
-            .eq("id", id)
-            .single();
-          break;
         default:
           throw new Error("ประเภทข้อมูลไม่ถูกต้อง");
       }
@@ -89,16 +69,6 @@ export default function QRCodePage() {
         return {
           title: `ตำแหน่ง: ${data.name}`,
           description: `รหัส: ${data.code}`,
-        };
-      case "slot":
-        return {
-          title: `ช่องจัดเก็บ: ${data.name}`,
-          description: `ตำแหน่ง: ${data.location?.name || "-"}`,
-        };
-      case "subslot":
-        return {
-          title: `ช่องย่อย: ${data.name}`,
-          description: `ช่องจัดเก็บ: ${data.storage_slot?.name || "-"}`,
         };
       default:
         return { title: "", description: "" };
