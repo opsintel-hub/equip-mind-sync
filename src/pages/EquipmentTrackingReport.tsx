@@ -753,7 +753,9 @@ function EquipmentViewTab() {
         ? installed.map(i => formatBillboardLabel((i.billboard as any)?.old_code, (i.billboard as any)?.location_name, (i.billboard as any)?.equipment_id)).join(", ")
         : null;
       const snData = eqSNMap[eq.id];
-      
+      const pendInfo = pendingIssuedMap.eq[eq.id];
+      const pendingCount = pendInfo?.count || 0;
+
       if (snData && snData.allSNs.length > 1) {
         // Expand: one row per S/N
         for (const sn of snData.allSNs) {
@@ -766,6 +768,9 @@ function EquipmentViewTab() {
             isInstalled: installed.length > 0,
             install_date: installed[0]?.installation_date || null,
             quantity_in_stock: isInStock ? 1 : 0,
+            isIssuedPending: pendingCount > 0,
+            pendingCount,
+            pendingDocs: pendInfo?.docs || [],
           });
         }
       } else {
@@ -776,12 +781,16 @@ function EquipmentViewTab() {
           installedBillboard: bbInfo,
           isInstalled: installed.length > 0,
           install_date: installed[0]?.installation_date || null,
+          isIssuedPending: pendingCount > 0,
+          pendingCount,
+          pendingDocs: pendInfo?.docs || [],
         });
       }
     });
     (mediaPlayers || []).forEach(mp => {
       const bb = (mp as any).billboard || (mp.billboard_id ? bbLookup[mp.billboard_id] : null);
-      const isIssuedPending = !mp.billboard_id && (mp.status === "issued" || mp.status === "in_transit");
+      const mpPend = pendingIssuedMap.mp[mp.id];
+      const isIssuedPending = (!mp.billboard_id && (mp.status === "issued" || mp.status === "in_transit")) || !!mpPend;
       const installedBillboard = mp.billboard_id
         ? (bb ? formatBillboardLabel(bb.old_code, bb.location_name, bb.equipment_id) : "ติดตั้งบนป้าย")
         : null;
@@ -800,6 +809,8 @@ function EquipmentViewTab() {
         installedBillboard,
         isInstalled: !!mp.billboard_id,
         isIssuedPending,
+        pendingCount: mpPend?.count || (isIssuedPending ? 1 : 0),
+        pendingDocs: mpPend?.docs || [],
         mp_status: mp.status,
         billboard_id: mp.billboard_id,
         install_date: mp.install_date,
@@ -807,7 +818,7 @@ function EquipmentViewTab() {
       });
     });
     return items;
-  }, [equipment, mediaPlayers, installedAt, bbLookup]);
+  }, [equipment, mediaPlayers, installedAt, bbLookup, eqSNMap, pendingIssuedMap]);
 
   const categories = useMemo(() => [...new Set(allItems.map(i => i.category).filter(Boolean))].sort(), [allItems]);
   const brands = useMemo(() => [...new Set(allItems.map(i => i.brand).filter(Boolean))].sort(), [allItems]);
