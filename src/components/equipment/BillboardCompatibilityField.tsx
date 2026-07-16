@@ -176,15 +176,15 @@ export function BillboardCompatibilityField({ value, onChange, disabled, departm
         <label className="flex items-start gap-2 rounded border p-3 cursor-pointer hover:bg-muted/50">
           <RadioGroupItem value="unrestricted" id="compat-unrestricted" className="mt-0.5" />
           <div>
-            <div className="font-medium">🟢 ใช้ได้ทุกป้าย</div>
-            <div className="text-xs text-muted-foreground">ไม่จำเป็นต้องระบุ</div>
+            <div className="font-medium">🟢 ใช้ได้ทุกป้าย{department ? ` (ของฝ่าย ${department})` : ""}</div>
+            <div className="text-xs text-muted-foreground">ไม่จำเป็นต้องระบุรายตัว</div>
           </div>
         </label>
         <label className="flex items-start gap-2 rounded border p-3 cursor-pointer hover:bg-muted/50">
           <RadioGroupItem value="multi_partial" id="compat-multi" className="mt-0.5" />
           <div>
             <div className="font-medium">🟡 ใช้ได้หลายป้ายแต่ไม่ใช่ทุกป้าย</div>
-            <div className="text-xs text-muted-foreground">เลือก Package หรือป้ายรายตัว</div>
+            <div className="text-xs text-muted-foreground">เลือก Package หรือป้ายรายตัว (เฉพาะฝ่ายเดียวกัน)</div>
           </div>
         </label>
         <label className="flex items-start gap-2 rounded border p-3 cursor-pointer hover:bg-muted/50">
