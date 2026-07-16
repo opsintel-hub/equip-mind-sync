@@ -693,6 +693,41 @@ function EquipmentViewTab() {
     },
   });
 
+  // Pending issued items: จ่ายแล้วแต่ยังไม่ได้ติดตั้งเข้าป้าย
+  // (รอผู้รับกดยืนยัน / แจ้งปัญหาที่รับ / ไม่ได้ระบุป้ายปลายทาง)
+  const { data: pendingIssuedItems = [] } = useQuery({
+    queryKey: ["eq-tracking-pending-issued"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("goods_issue_pending_items")
+        .select("equipment_id, media_player_id, is_media_player, issued_quantity, quantity, billboard_id, install_status, status, pending_id, goods_issue_pending:pending_id(document_no)")
+        .eq("status", "issued")
+        .or("install_status.in.(pending_confirmation,cancelled),and(billboard_id.is.null,install_status.eq.not_required)");
+      if (error) { console.error(error); return []; }
+      return data || [];
+    },
+  });
+
+  const pendingIssuedMap = useMemo(() => {
+    const eq: Record<string, { count: number; docs: string[] }> = {};
+    const mp: Record<string, { count: number; docs: string[] }> = {};
+    (pendingIssuedItems || []).forEach((r: any) => {
+      const qty = Number(r.issued_quantity ?? r.quantity ?? 0);
+      if (qty <= 0) return;
+      const doc = r.goods_issue_pending?.document_no || "-";
+      if (r.is_media_player && r.media_player_id) {
+        if (!mp[r.media_player_id]) mp[r.media_player_id] = { count: 0, docs: [] };
+        mp[r.media_player_id].count += qty;
+        if (!mp[r.media_player_id].docs.includes(doc)) mp[r.media_player_id].docs.push(doc);
+      } else if (r.equipment_id) {
+        if (!eq[r.equipment_id]) eq[r.equipment_id] = { count: 0, docs: [] };
+        eq[r.equipment_id].count += qty;
+        if (!eq[r.equipment_id].docs.includes(doc)) eq[r.equipment_id].docs.push(doc);
+      }
+    });
+    return { eq, mp };
+  }, [pendingIssuedItems]);
+
   const bbLookup = useMemo(() => {
     const m: Record<string, any> = {};
     (billboards || []).forEach(b => { m[b.id] = b; });
@@ -718,7 +753,9 @@ function EquipmentViewTab() {
         ? installed.map(i => formatBillboardLabel((i.billboard as any)?.old_code, (i.billboard as any)?.location_name, (i.billboard as any)?.equipment_id)).join(", ")
         : null;
       const snData = eqSNMap[eq.id];
-      
+      const pendInfo = pendingIssuedMap.eq[eq.id];
+      const pendingCount = pendInfo?.count || 0;
+
       if (snData && snData.allSNs.length > 1) {
         // Expand: one row per S/N
         for (const sn of snData.allSNs) {
@@ -731,6 +768,9 @@ function EquipmentViewTab() {
             isInstalled: installed.length > 0,
             install_date: installed[0]?.installation_date || null,
             quantity_in_stock: isInStock ? 1 : 0,
+            isIssuedPending: pendingCount > 0,
+            pendingCount,
+            pendingDocs: pendInfo?.docs || [],
           });
         }
       } else {
@@ -741,12 +781,16 @@ function EquipmentViewTab() {
           installedBillboard: bbInfo,
           isInstalled: installed.length > 0,
           install_date: installed[0]?.installation_date || null,
+          isIssuedPending: pendingCount > 0,
+          pendingCount,
+          pendingDocs: pendInfo?.docs || [],
         });
       }
     });
     (mediaPlayers || []).forEach(mp => {
       const bb = (mp as any).billboard || (mp.billboard_id ? bbLookup[mp.billboard_id] : null);
-      const isIssuedPending = !mp.billboard_id && (mp.status === "issued" || mp.status === "in_transit");
+      const mpPend = pendingIssuedMap.mp[mp.id];
+      const isIssuedPending = (!mp.billboard_id && (mp.status === "issued" || mp.status === "in_transit")) || !!mpPend;
       const installedBillboard = mp.billboard_id
         ? (bb ? formatBillboardLabel(bb.old_code, bb.location_name, bb.equipment_id) : "ติดตั้งบนป้าย")
         : null;
@@ -765,6 +809,8 @@ function EquipmentViewTab() {
         installedBillboard,
         isInstalled: !!mp.billboard_id,
         isIssuedPending,
+        pendingCount: mpPend?.count || (isIssuedPending ? 1 : 0),
+        pendingDocs: mpPend?.docs || [],
         mp_status: mp.status,
         billboard_id: mp.billboard_id,
         install_date: mp.install_date,
@@ -772,7 +818,7 @@ function EquipmentViewTab() {
       });
     });
     return items;
-  }, [equipment, mediaPlayers, installedAt, bbLookup]);
+  }, [equipment, mediaPlayers, installedAt, bbLookup, eqSNMap, pendingIssuedMap]);
 
   const categories = useMemo(() => [...new Set(allItems.map(i => i.category).filter(Boolean))].sort(), [allItems]);
   const brands = useMemo(() => [...new Set(allItems.map(i => i.brand).filter(Boolean))].sort(), [allItems]);
@@ -800,7 +846,7 @@ function EquipmentViewTab() {
   // Summary stats — based on FILTERED results so cards reflect what user is searching
   const summaryStats = useMemo(() => {
     const installed = filtered.filter(i => i.isInstalled).length;
-    const issuedPending = filtered.filter(i => !i.isInstalled && (i as any).isIssuedPending).length;
+    const issuedPending = filtered.reduce((sum, i) => sum + (!i.isInstalled && (i as any).isIssuedPending ? ((i as any).pendingCount || 1) : 0), 0);
     const inStock = filtered.filter(i => !i.isInstalled && !(i as any).isIssuedPending).length;
     return { total: filtered.length, installed, inStock, issuedPending };
   }, [filtered]);
@@ -1070,7 +1116,7 @@ function EquipmentDetailDialog({ item, onClose, bbLookup }: { item: any; onClose
             </Card>
             <Card>
               <CardContent className="p-3 text-center">
-                <div className="text-2xl font-bold text-orange-600">{(item as any).isIssuedPending ? 1 : 0}</div>
+                <div className="text-2xl font-bold text-orange-600">{(item as any).pendingCount || 0}</div>
                 <div className="text-xs text-muted-foreground">จ่ายแล้ว / รอระบุป้าย</div>
               </CardContent>
             </Card>
@@ -1118,9 +1164,12 @@ function EquipmentDetailDialog({ item, onClose, bbLookup }: { item: any; onClose
                 </TableBody>
               </Table>
             ) : (item as any).isIssuedPending ? (
-              <div className="p-3 border rounded-lg bg-orange-50 dark:bg-orange-950/20 border-orange-200">
-                <Badge variant="outline" className="bg-orange-500/10 text-orange-700 border-orange-500/20">จ่ายแล้ว — รอระบุป้ายโฆษณา</Badge>
-                <p className="text-xs text-muted-foreground mt-1">เครื่องถูกเบิกออกจากคลังแล้ว แต่ยังไม่ได้ระบุป้ายปลายทาง (ไปที่เมนู "รายการเบิกที่ยังไม่สมบูรณ์" เพื่อระบุป้าย)</p>
+              <div className="p-3 border rounded-lg bg-orange-50 dark:bg-orange-950/20 border-orange-200 space-y-1">
+                <Badge variant="outline" className="bg-orange-500/10 text-orange-700 border-orange-500/20">จ่ายแล้ว — รอระบุป้ายโฆษณา · {(item as any).pendingCount || 0} ชิ้น</Badge>
+                {(item as any).pendingDocs?.length > 0 && (
+                  <div className="text-xs text-orange-700 font-mono">{(item as any).pendingDocs.join(", ")}</div>
+                )}
+                <p className="text-xs text-muted-foreground">เครื่องถูกเบิกออกจากคลังแล้ว แต่ยังไม่ได้ระบุป้ายปลายทาง/ยังไม่ยืนยันรับ (ไปที่เมนู "รายการเบิกที่ยังไม่สมบูรณ์" หรือ "ยืนยันรับสินค้า")</p>
               </div>
             ) : (
               <p className="text-sm text-muted-foreground p-3 border rounded-lg">ไม่มีการติดตั้งปัจจุบัน (อยู่ในคลัง)</p>
