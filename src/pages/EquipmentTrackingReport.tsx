@@ -123,13 +123,17 @@ function BillboardViewTab() {
   const [currentPage, setCurrentPage] = useState(1);
 
   const { data: billboards, isLoading: loadingBillboards } = useQuery({
-    queryKey: ["billboard-tracking-billboards"],
+    queryKey: ["billboard-tracking-billboards", isAdminDept, allowedDeptNames.join("|")],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let q = supabase
         .from("billboards")
         .select("id, old_code, location_name, region, department, media_type, status, size")
         .eq("status", "active")
         .order("old_code");
+      if (!isAdminDept) {
+        q = q.in("department", allowedDeptNames.length > 0 ? allowedDeptNames : ["__no_dept_permission__"]);
+      }
+      const { data, error } = await q;
       if (error) throw error;
       return data || [];
     },
@@ -147,12 +151,16 @@ function BillboardViewTab() {
   });
 
   const { data: mediaPlayers, isLoading: loadingMedia } = useQuery({
-    queryKey: ["billboard-tracking-media-players"],
+    queryKey: ["billboard-tracking-media-players", isAdminDept, allowedDeptNames.join("|")],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let q = supabase
         .from("media_players")
-        .select("id, name, code, billboard_id, install_date, serial_number_1, serial_number_2, brand, warranty_expiry_date, device_type")
+        .select("id, name, code, billboard_id, install_date, serial_number_1, serial_number_2, brand, warranty_expiry_date, device_type, department")
         .not("billboard_id", "is", null);
+      if (!isAdminDept) {
+        q = q.in("department", allowedDeptNames.length > 0 ? allowedDeptNames : ["__no_dept_permission__"]);
+      }
+      const { data, error } = await q;
       if (error) throw error;
       return data || [];
     },
