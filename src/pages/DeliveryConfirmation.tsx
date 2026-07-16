@@ -14,7 +14,7 @@ import { DeviceTypeBadge } from "@/components/media-player/DeviceTypeBadge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Search, CheckCircle, AlertTriangle, Camera, Upload, Package, Truck, Eye, X, Store, CalendarClock } from "lucide-react";
+import { Search, CheckCircle, AlertTriangle, Camera, Upload, Package, Truck, Eye, X, Store, CalendarClock, MapPin } from "lucide-react";
 import { DepartmentMultiFilter } from "@/components/DepartmentMultiFilter";
 import { format } from "date-fns";
 import { th } from "date-fns/locale";
