@@ -30,6 +30,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useDeptScope } from "@/hooks/useDeptScope";
 
 interface Equipment {
   id: string;
@@ -76,14 +77,15 @@ export function EquipmentList({ refresh }: EquipmentListProps) {
   const [loading, setLoading] = useState(true);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const { isSuperAdmin, viewableDepts, deptKey } = useDeptScope();
 
   useEffect(() => {
     fetchEquipment();
-  }, [refresh]);
+  }, [refresh, deptKey]);
 
   const fetchEquipment = async () => {
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from("equipment")
         .select(`
           *,
@@ -97,6 +99,12 @@ export function EquipmentList({ refresh }: EquipmentListProps) {
         `)
         .order("created_at", { ascending: false });
 
+      if (!isSuperAdmin) {
+        const depts = viewableDepts || [];
+        query = query.in("department", depts.length > 0 ? depts : ["__no_dept_permission__"]);
+      }
+
+      const { data, error } = await query;
       if (error) throw error;
       setEquipment(data || []);
       setFilteredEquipment(data || []);

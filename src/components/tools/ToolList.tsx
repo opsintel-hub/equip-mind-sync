@@ -20,6 +20,7 @@ import { useTablePagination } from "@/hooks/useTablePagination";
 import { TablePagination } from "@/components/TablePagination";
 import { ToolEditForm } from "./ToolEditForm";
 import * as XLSX from "xlsx";
+import { useDeptScope } from "@/hooks/useDeptScope";
 
 interface Tool {
   id: string;
@@ -67,15 +68,16 @@ export function ToolList({ refreshKey }: ToolListProps) {
   const [typeFilter, setTypeFilter] = useState("all");
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [editTool, setEditTool] = useState<Tool | null>(null);
+  const { isSuperAdmin, viewableDepts, deptKey } = useDeptScope();
 
   useEffect(() => {
     fetchTools();
-  }, [refreshKey]);
+  }, [refreshKey, deptKey]);
 
   const fetchTools = async () => {
     setIsLoading(true);
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from("tools")
         .select(`
           *,
@@ -87,6 +89,12 @@ export function ToolList({ refreshKey }: ToolListProps) {
         .eq("is_active", true)
         .order("created_at", { ascending: false });
 
+      if (!isSuperAdmin) {
+        const depts = viewableDepts || [];
+        query = query.in("department", depts.length > 0 ? depts : ["__no_dept_permission__"]);
+      }
+
+      const { data, error } = await query;
       if (error) throw error;
       setTools(data || []);
     } catch (error) {

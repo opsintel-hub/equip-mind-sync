@@ -27,6 +27,7 @@ import { SUB_MEDIA_TYPES } from "@/lib/mediaPlayerSubTypes";
 import { toast } from "sonner";
 import * as XLSX from "xlsx";
 import { matchesSerialSearch } from "@/lib/serialSearch";
+import { useDeptScope } from "@/hooks/useDeptScope";
 
 import { MediaPlayerRow, BillboardJourney, StockMovement } from "@/components/media-player/profile/types";
 import { SummaryCards } from "@/components/media-player/profile/SummaryCards";
@@ -155,12 +156,13 @@ export default function MediaPlayerReport() {
   const [projectFilter, setProjectFilter] = useState("all");
   const [selectedPlayerId, setSelectedPlayerId] = useState<string | null>(null);
   const [lightboxImages, setLightboxImages] = useState<string[] | null>(null);
+  const { isSuperAdmin, viewableDepts, deptKey } = useDeptScope();
 
   // Fetch all media players with extra fields
   const { data: players = [], isLoading } = useQuery({
-    queryKey: ["media-player-report-v2"],
+    queryKey: ["media-player-report-v2", deptKey],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from("media_players")
         .select(`
           id, code, name, serial_number_1, serial_number_2, brand, department,
@@ -175,6 +177,11 @@ export default function MediaPlayerReport() {
         `)
         .eq("is_active", true)
         .order("code");
+      if (!isSuperAdmin) {
+        const depts = viewableDepts || [];
+        query = query.in("department", depts.length > 0 ? depts : ["__no_dept_permission__"]);
+      }
+      const { data, error } = await query;
       if (error) throw error;
       return (data || []) as unknown as MediaPlayerMaster[];
     },
