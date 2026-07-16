@@ -105,6 +105,9 @@ interface Location {
   warehouse_id: string | null;
   volume_cm3: number | null;
   used_volume_cm3: number | null;
+  zone_id?: string | null;
+  zone_code?: string | null;
+  zone_name?: string | null;
 }
 
 /**
@@ -408,12 +411,17 @@ const ReceiveGoods = () => {
   const fetchLocations = async () => {
     const { data, error } = await supabase
       .from("locations")
-      .select("id, code, name, warehouse_id, volume_cm3, used_volume_cm3")
+      .select("id, code, name, warehouse_id, volume_cm3, used_volume_cm3, zone_id, zones:zone_id(code, name)")
       .eq("is_active", true)
       .order("code");
 
     if (!error && data) {
-      setLocations(data);
+      const mapped = (data as any[]).map((l) => ({
+        ...l,
+        zone_code: l.zones?.code ?? null,
+        zone_name: l.zones?.name ?? null,
+      }));
+      setLocations(mapped);
     }
   };
 
@@ -513,9 +521,16 @@ const ReceiveGoods = () => {
     }
   };
 
-  // Get filtered locations by selected warehouse
+  // Get filtered locations by selected warehouse (sorted by zone then code)
   const filteredLocations = selectedWarehouseId 
-    ? locations.filter(loc => loc.warehouse_id === selectedWarehouseId)
+    ? locations
+        .filter(loc => loc.warehouse_id === selectedWarehouseId)
+        .sort((a, b) => {
+          const az = a.zone_code || "zzz";
+          const bz = b.zone_code || "zzz";
+          if (az !== bz) return az.localeCompare(bz);
+          return (a.code || "").localeCompare(b.code || "");
+        })
     : [];
 
   // Handle warehouse change
@@ -1776,7 +1791,7 @@ const ReceiveGoods = () => {
                       const remaining = (loc.volume_cm3 || 0) - (loc.used_volume_cm3 || 0);
                       return {
                         value: loc.id,
-                        label: `${loc.code} - ${loc.name}`,
+                        label: `${loc.zone_code ? `${loc.zone_code}${loc.code}` : loc.code} - ${loc.name}${loc.zone_name ? ` (โซน ${loc.zone_code} · ${loc.zone_name})` : ""}`,
                         description: `คงเหลือ: ${remaining.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })} m³`,
                       };
                     })}
@@ -1922,7 +1937,7 @@ const ReceiveGoods = () => {
                     const remaining = (loc.volume_cm3 || 0) - (loc.used_volume_cm3 || 0);
                     return {
                       value: loc.id,
-                      label: `${loc.code} - ${loc.name}`,
+                      label: `${loc.zone_code ? `${loc.zone_code}${loc.code}` : loc.code} - ${loc.name}${loc.zone_name ? ` (โซน ${loc.zone_code} · ${loc.zone_name})` : ""}`,
                       description: `คงเหลือ: ${remaining.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })} m³`,
                     };
                   })}

@@ -70,7 +70,7 @@ export function WarehouseLocationSelect({
       setLoadingLocations(true);
       const { data, error } = await supabase
         .from("locations")
-        .select("id, code, name")
+        .select("id, code, name, zones:zone_id(code, name)")
         .eq("is_active", true)
         .eq("warehouse_id", warehouseId)
         .order("code");
@@ -95,10 +95,19 @@ export function WarehouseLocationSelect({
     label: `${w.code} - ${w.name}`,
   }));
 
-  const locationOptions = locations.map((l) => ({
-    value: l.id,
-    label: `${l.code} - ${l.name}`,
-  }));
+  const locationOptions = locations
+    .slice()
+    .sort((a, b) => {
+      const az = a.zones?.code || "zzz";
+      const bz = b.zones?.code || "zzz";
+      if (az !== bz) return az.localeCompare(bz);
+      return (a.code || "").localeCompare(b.code || "");
+    })
+    .map((l) => ({
+      value: l.id,
+      label: `${l.zones?.code ? `${l.zones.code}${l.code}` : l.code} - ${l.name}${l.zones?.name ? ` (โซน ${l.zones.code} · ${l.zones.name})` : ""}`,
+    }));
+
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
