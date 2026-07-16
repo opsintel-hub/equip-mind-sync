@@ -43,6 +43,8 @@ export function LoanRequestForm({ onSuccess }: LoanRequestFormProps) {
   const [equipment, setEquipment] = useState<Equipment[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const { isSuperAdmin, viewableDepts } = useDeptScope();
+  const scopeDepts = isSuperAdmin ? null : ((viewableDepts && viewableDepts.length > 0) ? viewableDepts : ["__no_dept_permission__"]);
 
   const [fromCompanyId, setFromCompanyId] = useState("");
   const [toCompanyId, setToCompanyId] = useState("");
