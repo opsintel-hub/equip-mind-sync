@@ -201,7 +201,7 @@ export function StorageSlotSelect({ value, onChange, locationId, disabled }: Sto
             {isAdding && (
               <div className="p-4 border rounded-lg space-y-3">
                 <div className="space-y-2">
-                  <Label>ชื่อช่องจัดเก็บ *</Label>
+                  <Label>Label / ชื่อ สำหรับจัดเก็บ *</Label>
                   <Input
                     value={newSlot.name}
                     onChange={(e) =>

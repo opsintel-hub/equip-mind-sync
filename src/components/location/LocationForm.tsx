@@ -361,7 +361,7 @@ export function LocationForm({ onSuccess, location, defaultWarehouseId, triggerL
                   name="storage_slot_id"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>ช่องจัดเก็บ</FormLabel>
+                      <FormLabel>Label / ชื่อ สำหรับจัดเก็บ</FormLabel>
                       <FormControl>
                         <StorageSlotSelect
                           value={field.value}
