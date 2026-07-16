@@ -508,7 +508,26 @@ const DeliveryConfirmation = () => {
                           <TableCell>{req.destination || "-"}</TableCell>
                           <TableCell>
                             {items.length > 0 ? (
-                              <Badge variant="outline">{items.length} รายการ</Badge>
+                              <div className="space-y-1">
+                                <Badge variant="outline">{items.length} รายการ</Badge>
+                                {(() => {
+                                  const pending = items.filter((it: any) => it.install_status === "pending_confirmation" && it.intended_billboard_id);
+                                  if (pending.length === 0) return null;
+                                  const labels = Array.from(new Set(pending.map((it: any) => {
+                                    const bb = (it as any)._billboard;
+                                    return bb ? `${bb.old_code || bb.equipment_id || ""}${bb.location_name ? " - " + bb.location_name : ""}` : "ป้าย";
+                                  })));
+                                  return (
+                                    <div className="flex flex-wrap gap-1">
+                                      {labels.map((l, i) => (
+                                        <Badge key={i} className="bg-amber-100 text-amber-800 text-xs gap-1">
+                                          <MapPinIcon />รอติดตั้ง: {l}
+                                        </Badge>
+                                      ))}
+                                    </div>
+                                  );
+                                })()}
+                              </div>
                             ) : (
                               <div className="text-sm">{req.equipment_name || "-"}</div>
                             )}
