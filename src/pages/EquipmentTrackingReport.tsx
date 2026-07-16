@@ -837,19 +837,39 @@ function EquipmentViewTab() {
       if (categoryFilter !== "all" && item.category !== categoryFilter) return false;
       if (brandFilter !== "all" && item.brand !== brandFilter) return false;
       if (installFilter === "installed" && !item.isInstalled) return false;
-      if (installFilter === "in_stock" && (item.isInstalled || (item as any).isIssuedPending)) return false;
-      if (installFilter === "pending" && !(item as any).isIssuedPending) return false;
+      if (installFilter === "in_stock" && (item.isInstalled || (item as any).isIssuedPending || Number(item.quantity_in_stock || 0) <= 0)) return false;
+      if (installFilter === "pending" && !((item as any).pendingCount > 0)) return false;
       return true;
     });
   }, [allItems, search, snSearch, typeFilter, categoryFilter, brandFilter, installFilter]);
 
-  // Summary stats — based on FILTERED results so cards reflect what user is searching
+  // Summary stats — based on FILTERED results (count by quantity to match detail modal)
   const summaryStats = useMemo(() => {
-    const installed = filtered.filter(i => i.isInstalled).length;
-    const issuedPending = filtered.reduce((sum, i) => sum + (!i.isInstalled && (i as any).isIssuedPending ? ((i as any).pendingCount || 1) : 0), 0);
-    const inStock = filtered.filter(i => !i.isInstalled && !(i as any).isIssuedPending).length;
+    const seenEq = new Set<string>();
+    let installed = 0;
+    let inStock = 0;
+    let issuedPending = 0;
+    filtered.forEach((i: any) => {
+      // Pending counts across ALL rows regardless of installed state (an item can be both)
+      if (!seenEq.has(`pend-${i.itemType}-${i.id}`)) {
+        seenEq.add(`pend-${i.itemType}-${i.id}`);
+        issuedPending += Number(i.pendingCount || 0);
+      }
+      if (i.itemType === "media_player") {
+        if (i.isInstalled) installed += 1;
+        else if (!i.isIssuedPending) inStock += Number(i.quantity_in_stock || 0);
+      } else {
+        // equipment: dedup by equipment id (S/N expansion produces multiple rows)
+        if (!seenEq.has(`eq-${i.id}`)) {
+          seenEq.add(`eq-${i.id}`);
+          const list = installedAt[i.id] || [];
+          installed += list.reduce((a: number, ci: any) => a + Number(ci.quantity || 0), 0);
+          inStock += Number(i.quantity_in_stock || 0);
+        }
+      }
+    });
     return { total: filtered.length, installed, inStock, issuedPending };
-  }, [filtered]);
+  }, [filtered, installedAt]);
 
   // Pagination
   const totalPages = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE));
@@ -974,13 +994,17 @@ function EquipmentViewTab() {
                   <TableCell className="text-center">{item.quantity_in_stock}</TableCell>
 
                   <TableCell>
-                    {item.isInstalled ? (
-                      <Badge className="bg-emerald-500 text-white hover:bg-emerald-600 text-xs"><MapPin className="w-3 h-3 mr-1" />{item.installedBillboard || "ติดตั้งบนป้าย"}</Badge>
-                    ) : item.isIssuedPending ? (
-                      <Badge variant="outline" className="text-xs bg-orange-500/10 text-orange-600 border-orange-500/20">จ่ายแล้ว / รอระบุป้าย</Badge>
-                    ) : (
-                      <span className="text-muted-foreground text-xs">ในคลัง</span>
-                    )}
+                    <div className="flex flex-col gap-1">
+                      {item.isInstalled && (
+                        <Badge className="bg-emerald-500 text-white hover:bg-emerald-600 text-xs w-fit"><MapPin className="w-3 h-3 mr-1" />{item.installedBillboard || "ติดตั้งบนป้าย"}</Badge>
+                      )}
+                      {(item as any).pendingCount > 0 && (
+                        <Badge variant="outline" className="text-xs bg-orange-500/10 text-orange-600 border-orange-500/20 w-fit">จ่ายแล้ว / รอระบุป้าย · {(item as any).pendingCount}</Badge>
+                      )}
+                      {!item.isInstalled && !((item as any).pendingCount > 0) && (
+                        <span className="text-muted-foreground text-xs">ในคลัง</span>
+                      )}
+                    </div>
                   </TableCell>
                   <TableCell className="text-xs whitespace-nowrap">{item.isInstalled ? fmtDate(item.install_date) : <span className="text-muted-foreground">-</span>}</TableCell>
                   <TableCell className="whitespace-nowrap">
