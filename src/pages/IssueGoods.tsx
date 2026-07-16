@@ -19,6 +19,7 @@ import { Search, Package, Clock, CheckCircle, XCircle, MapPin, AlertTriangle, Ca
 import { format, differenceInDays } from "date-fns";
 import { th } from "date-fns/locale";
 import { useAuth } from "@/hooks/useAuth";
+import { useDeptScope } from "@/hooks/useDeptScope";
 import BillboardDisplay from "@/components/billboard/BillboardDisplay";
 import BillboardSelect from "@/components/billboard/BillboardSelect";
 import { SubMediaTypeSelect } from "@/components/media-player/SubMediaTypeSelect";
