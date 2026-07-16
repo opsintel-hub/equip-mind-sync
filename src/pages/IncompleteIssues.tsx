@@ -102,12 +102,17 @@ const IncompleteIssues = () => {
       const purposeMap = new Map<string, IssuePurpose>();
       (purposes || []).forEach(p => purposeMap.set(p.id, p));
 
-      // Get all issued items
-      const { data, error } = await supabase
+      // Get all issued items — scoped to viewable departments
+      let listQ = supabase
         .from("goods_issue_pending")
         .select("*, companies(name)")
         .in("status", ["issued", "partial_return", "partially_issued"])
         .order("issued_at", { ascending: false });
+      if (!isSuperAdmin) {
+        const depts = viewableDepts || [];
+        listQ = listQ.in("requester_department", depts.length > 0 ? depts : ["__no_dept_permission__"]);
+      }
+      const { data, error } = await listQ;
 
       if (error) throw error;
 
