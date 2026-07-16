@@ -84,10 +84,12 @@ export function ProfileSearch() {
       }));
 
       if (extraIds.length > 0) {
-        const { data: extraPlayers } = await supabase
+        let extraQ = supabase
           .from("media_players")
           .select(selectStr)
           .in("id", extraIds);
+        if (scopeDepts) extraQ = extraQ.in("department", scopeDepts);
+        const { data: extraPlayers } = await extraQ;
         if (extraPlayers) {
           combined = [
             ...combined,
@@ -98,6 +100,7 @@ export function ProfileSearch() {
           ];
         }
       }
+
 
       // Sort by code then created_at to keep groups together
       combined.sort((a, b) => (a.code || "").localeCompare(b.code || "") || (a.created_at || "").localeCompare(b.created_at || ""));
