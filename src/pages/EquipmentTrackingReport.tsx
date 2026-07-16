@@ -1116,7 +1116,7 @@ function EquipmentDetailDialog({ item, onClose, bbLookup }: { item: any; onClose
             </Card>
             <Card>
               <CardContent className="p-3 text-center">
-                <div className="text-2xl font-bold text-orange-600">{(item as any).isIssuedPending ? 1 : 0}</div>
+                <div className="text-2xl font-bold text-orange-600">{(item as any).pendingCount || 0}</div>
                 <div className="text-xs text-muted-foreground">จ่ายแล้ว / รอระบุป้าย</div>
               </CardContent>
             </Card>
