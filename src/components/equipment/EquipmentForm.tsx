@@ -864,7 +864,7 @@ export function EquipmentForm({ onSuccess, prefillData, triggerButton }: Equipme
               )}
             />
 
-            <BillboardCompatibilityField value={compat} onChange={setCompat} disabled={isLoading} />
+            <BillboardCompatibilityField value={compat} onChange={setCompat} disabled={isLoading} department={form.watch("department")} />
 
 
 

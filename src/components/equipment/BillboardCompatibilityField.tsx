@@ -27,55 +27,73 @@ interface Props {
   value: CompatibilityValue;
   onChange: (v: CompatibilityValue) => void;
   disabled?: boolean;
+  /** ฝ่ายเจ้าของอุปกรณ์ — ใช้กรองให้เลือกได้เฉพาะป้ายของฝ่ายเดียวกันเท่านั้น */
+  department?: string;
 }
 
-export function BillboardCompatibilityField({ value, onChange, disabled }: Props) {
+export function BillboardCompatibilityField({ value, onChange, disabled, department }: Props) {
   const [pkgDialog, setPkgDialog] = useState(false);
   const [bbDialog, setBbDialog] = useState(false);
   const [pkgSearch, setPkgSearch] = useState("");
   const [bbSearch, setBbSearch] = useState("");
   const [showPreview, setShowPreview] = useState(false);
 
-  const { data: packages = [] } = useQuery({
-    queryKey: ["billboard-packages-compat"],
+  const deptKey = department || "__none__";
+
+  const { data: allBillboards = [] } = useQuery({
+    queryKey: ["billboards-compat-all", deptKey],
+    queryFn: async () => {
+      let q = supabase
+        .from("billboards")
+        .select("id, old_code, location_name, equipment_id, department")
+        .eq("status", "active");
+      if (department) q = q.eq("department", department);
+      const { data, error } = await q.order("old_code").limit(5000);
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!department && value.mode !== "unrestricted",
+  });
+
+  // Packages: fetch all active packages + their billboard department to filter by dept
+  const { data: packagesRaw = [] } = useQuery({
+    queryKey: ["billboard-packages-compat-with-items", deptKey],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("billboard_packages")
-        .select("id, name, media_type")
+        .select("id, name, media_type, billboard_package_items(billboard_id, billboards(department))")
         .eq("is_active", true)
         .order("name");
       if (error) throw error;
       return data || [];
     },
+    enabled: !!department,
   });
+
+  // Only include packages that have ≥1 billboard belonging to the selected department
+  const packages = useMemo(() => {
+    if (!department) return [] as any[];
+    return (packagesRaw as any[]).filter((p) =>
+      (p.billboard_package_items || []).some(
+        (it: any) => it?.billboards?.department === department
+      )
+    );
+  }, [packagesRaw, department]);
 
   const { data: pkgItems = [] } = useQuery({
-    queryKey: ["billboard-package-items-compat", value.packageIds],
+    queryKey: ["billboard-package-items-compat", value.packageIds, deptKey],
     queryFn: async () => {
       if (value.packageIds.length === 0) return [];
-      const { data, error } = await supabase
+      let q = supabase
         .from("billboard_package_items")
-        .select("package_id, billboard_id, billboards(id, old_code, location_name, equipment_id, department)")
+        .select("package_id, billboard_id, billboards!inner(id, old_code, location_name, equipment_id, department)")
         .in("package_id", value.packageIds);
+      if (department) q = q.eq("billboards.department", department);
+      const { data, error } = await q;
       if (error) throw error;
       return data || [];
     },
-    enabled: value.packageIds.length > 0,
-  });
-
-  const { data: allBillboards = [] } = useQuery({
-    queryKey: ["billboards-compat-all"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("billboards")
-        .select("id, old_code, location_name, equipment_id, department")
-        .eq("status", "active")
-        .order("old_code")
-        .limit(5000);
-      if (error) throw error;
-      return data || [];
-    },
-    enabled: value.mode !== "unrestricted",
+    enabled: value.packageIds.length > 0 && !!department,
   });
 
   // Resolved billboard ids (from packages + manual)
@@ -136,10 +154,17 @@ export function BillboardCompatibilityField({ value, onChange, disabled }: Props
 
   return (
     <div className="space-y-3 rounded-lg border p-4 bg-muted/20">
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 flex-wrap">
         <Label className="text-base font-semibold">ป้ายที่รองรับ (Compatibility)</Label>
         <Info className="h-4 w-4 text-muted-foreground" />
-        <span className="text-xs text-muted-foreground">ระบุว่าอุปกรณ์/อะไหล่นี้ใช้ได้กับป้ายใดบ้าง (จอ/MP ไม่ต้องระบุ)</span>
+        <span className="text-xs text-muted-foreground">
+          ระบบจะเลือกได้เฉพาะป้ายที่เป็นของฝ่ายเดียวกับอุปกรณ์นี้เท่านั้น (จอ/MP ไม่ต้องระบุ)
+        </span>
+        {department ? (
+          <Badge variant="outline" className="ml-auto text-xs">ฝ่าย: {department}</Badge>
+        ) : (
+          <Badge variant="destructive" className="ml-auto text-xs">กรุณาเลือกฝ่ายก่อน</Badge>
+        )}
       </div>
 
       <RadioGroup
@@ -151,15 +176,15 @@ export function BillboardCompatibilityField({ value, onChange, disabled }: Props
         <label className="flex items-start gap-2 rounded border p-3 cursor-pointer hover:bg-muted/50">
           <RadioGroupItem value="unrestricted" id="compat-unrestricted" className="mt-0.5" />
           <div>
-            <div className="font-medium">🟢 ใช้ได้ทุกป้าย</div>
-            <div className="text-xs text-muted-foreground">ไม่จำเป็นต้องระบุ</div>
+            <div className="font-medium">🟢 ใช้ได้ทุกป้าย{department ? ` (ของฝ่าย ${department})` : ""}</div>
+            <div className="text-xs text-muted-foreground">ไม่จำเป็นต้องระบุรายตัว</div>
           </div>
         </label>
         <label className="flex items-start gap-2 rounded border p-3 cursor-pointer hover:bg-muted/50">
           <RadioGroupItem value="multi_partial" id="compat-multi" className="mt-0.5" />
           <div>
             <div className="font-medium">🟡 ใช้ได้หลายป้ายแต่ไม่ใช่ทุกป้าย</div>
-            <div className="text-xs text-muted-foreground">เลือก Package หรือป้ายรายตัว</div>
+            <div className="text-xs text-muted-foreground">เลือก Package หรือป้ายรายตัว (เฉพาะฝ่ายเดียวกัน)</div>
           </div>
         </label>
         <label className="flex items-start gap-2 rounded border p-3 cursor-pointer hover:bg-muted/50">
