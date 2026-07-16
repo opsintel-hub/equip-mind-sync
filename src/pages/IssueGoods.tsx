@@ -477,12 +477,13 @@ const IssueGoods = () => {
           const currentStock = currentMp?.quantity || 0;
           const newStock = Math.max(0, currentStock - 1);
 
+          const willInstallNow = !!a.billboard_id && !deferInstall;
           const stockUpdatePayload: any = {
             quantity: newStock,
-            status: a.billboard_id ? "installed" : "issued",
+            status: willInstallNow ? "installed" : "issued",
             location_id: null,
-            billboard_id: a.billboard_id || null,
-            install_date: a.billboard_id ? new Date().toISOString().split('T')[0] : null,
+            billboard_id: willInstallNow ? a.billboard_id : null,
+            install_date: willInstallNow ? new Date().toISOString().split('T')[0] : null,
           };
           if (a.sub_media_type) stockUpdatePayload.sub_media_type = a.sub_media_type;
           const { error: stockError } = await supabase
@@ -491,6 +492,7 @@ const IssueGoods = () => {
             .eq("id", a.media_player_id);
           if (stockError) throw stockError;
 
+          const issueNoteSuffix = deferInstall && a.billboard_id ? " (รอผู้รับยืนยัน → ติดตั้งเข้าป้าย)" : "";
           await logStockMovement({
             equipment_id: a.media_player_id,
             equipment_code: currentMp?.code || selectedItem.equipment_code || "",
@@ -502,11 +504,12 @@ const IssueGoods = () => {
             reference_type: "goods_issue",
             reference_document: parentRequest?.document_no || "",
             location_id: currentMp?.location_id || undefined,
-            notes: `Media Player S/N: ${a.serial_number} - ${issueData.notes || ""}`.trim(),
+            notes: `Media Player S/N: ${a.serial_number}${issueNoteSuffix} - ${issueData.notes || ""}`.trim(),
           });
 
-          // Install to billboard (optional). If left blank, it will surface in the "รอระบุป้าย/รอคืน" workflow.
-          if (a.billboard_id) {
+          // Install to billboard now only when pickup is on-site or no billboard chosen.
+          // For scheduled/delivery, the install happens in Delivery Confirmation.
+          if (willInstallNow) {
             const { data: bbInfo } = await supabase
               .from("billboards")
               .select("old_code, location_name")
