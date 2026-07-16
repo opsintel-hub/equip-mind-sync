@@ -76,18 +76,22 @@ const ToolPMReport = () => {
 
   useEffect(() => {
     fetchData();
-  }, [selectedYear]);
+  }, [selectedYear, isAdmin, allowedDeptNames.join("|")]);
 
   const fetchData = async () => {
     setIsLoading(true);
     try {
-      // Fetch tools with PM interval
-      const { data: toolsData, error: toolsError } = await supabase
+      // Fetch tools with PM interval (dept-scoped)
+      let toolsQ = supabase
         .from("tools")
         .select("*")
         .eq("is_active", true)
         .not("pm_interval_days", "is", null)
         .order("code");
+      if (!isAdmin) {
+        toolsQ = toolsQ.in("department", allowedDeptNames.length > 0 ? allowedDeptNames : ["__no_dept_permission__"]);
+      }
+      const { data: toolsData, error: toolsError } = await toolsQ;
 
       if (toolsError) throw toolsError;
 
