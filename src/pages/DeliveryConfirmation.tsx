@@ -14,11 +14,12 @@ import { DeviceTypeBadge } from "@/components/media-player/DeviceTypeBadge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Search, CheckCircle, AlertTriangle, Camera, Upload, Package, Truck, Eye, X, Store, CalendarClock } from "lucide-react";
+import { Search, CheckCircle, AlertTriangle, Camera, Upload, Package, Truck, Eye, X, Store, CalendarClock, MapPin } from "lucide-react";
 import { DepartmentMultiFilter } from "@/components/DepartmentMultiFilter";
 import { format } from "date-fns";
 import { th } from "date-fns/locale";
 import { useAuth } from "@/hooks/useAuth";
+import { useDepartmentPermissions } from "@/hooks/useDepartmentPermissions";
 import { DatePickerWithRange } from "@/components/ui/date-range-picker";
 import { DateRange } from "react-day-picker";
 import { DocumentPreviewDialog } from "@/components/DocumentPreviewDialog";
@@ -37,6 +38,14 @@ const ISSUE_TYPES = [
 const DeliveryConfirmation = () => {
   const queryClient = useQueryClient();
   const { user } = useAuth();
+  const { isSuperAdmin, isAdmin, hasPermission } = useDepartmentPermissions();
+  const canConfirmRequest = (req: any) => {
+    if (!user) return false;
+    if (isSuperAdmin) return true;
+    if (req?.created_by && req.created_by === user.id) return true;
+    if (isAdmin && req?.requester_department && hasPermission(req.requester_department, "edit")) return true;
+    return false;
+  };
   const [searchTerm, setSearchTerm] = useState("");
   const [snSearchTerm, setSnSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -314,6 +323,9 @@ const DeliveryConfirmation = () => {
     mutationFn: async () => {
       if (!selectedRequest || !user) throw new Error("Missing data");
       const isDS = !!selectedRequest._isDirectShipment;
+      if (!isDS && !canConfirmRequest(selectedRequest)) {
+        throw new Error("คุณไม่มีสิทธิ์ยืนยันรับใบเบิกนี้ (เฉพาะผู้ขอเบิกหรือแอดมินฝ่าย)");
+      }
       
       // Generate DC document number
       const now = new Date();
@@ -496,7 +508,26 @@ const DeliveryConfirmation = () => {
                           <TableCell>{req.destination || "-"}</TableCell>
                           <TableCell>
                             {items.length > 0 ? (
-                              <Badge variant="outline">{items.length} รายการ</Badge>
+                              <div className="space-y-1">
+                                <Badge variant="outline">{items.length} รายการ</Badge>
+                                {(() => {
+                                  const pending = items.filter((it: any) => it.install_status === "pending_confirmation" && it.intended_billboard_id);
+                                  if (pending.length === 0) return null;
+                                  const labels = Array.from(new Set(pending.map((it: any) => {
+                                    const bb = (it as any)._billboard;
+                                    return bb ? `${bb.old_code || bb.equipment_id || ""}${bb.location_name ? " - " + bb.location_name : ""}` : "ป้าย";
+                                  })));
+                                  return (
+                                    <div className="flex flex-wrap gap-1">
+                                      {labels.map((l, i) => (
+                                        <Badge key={i} className="bg-amber-100 text-amber-800 text-xs gap-1">
+                                          <MapPin className="h-3 w-3" />รอติดตั้ง: {l}
+                                        </Badge>
+                                      ))}
+                                    </div>
+                                  );
+                                })()}
+                              </div>
                             ) : (
                               <div className="text-sm">{req.equipment_name || "-"}</div>
                             )}
@@ -517,10 +548,12 @@ const DeliveryConfirmation = () => {
                               <Button size="sm" variant="outline" onClick={() => { setViewConfirmation(getConfirmation(req.id)); setViewDialogOpen(true); }}>
                                 <Eye className="h-4 w-4 mr-1" />ดูรายละเอียด
                               </Button>
-                            ) : (
+                            ) : canConfirmRequest(req) ? (
                               <Button size="sm" onClick={() => { setSelectedRequest(req); setConfirmDialogOpen(true); }}>
                                 <CheckCircle className="h-4 w-4 mr-1" />ยืนยันรับ
                               </Button>
+                            ) : (
+                              <Badge variant="outline" className="text-xs">เฉพาะผู้ขอ/แอดมินฝ่าย</Badge>
                             )}
                           </TableCell>
                         </TableRow>
