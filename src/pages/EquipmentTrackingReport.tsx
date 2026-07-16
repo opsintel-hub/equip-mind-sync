@@ -122,6 +122,9 @@ function BillboardViewTab() {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
 
+  const { allowedDepartments, isAdmin: isAdminDept, isSingleDepartment } = useAllowedDepartments();
+  const allowedDeptNames = useMemo(() => allowedDepartments.map(d => d.name), [allowedDepartments]);
+
   const { data: billboards, isLoading: loadingBillboards } = useQuery({
     queryKey: ["billboard-tracking-billboards", isAdminDept, allowedDeptNames.join("|")],
     queryFn: async () => {
