@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { addDays, format } from "date-fns";
 import { Check, ChevronsUpDown, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useDeptScope } from "@/hooks/useDeptScope";
 
 interface Company {
   id: string;
