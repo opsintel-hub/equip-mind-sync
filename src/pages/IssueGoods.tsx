@@ -392,22 +392,27 @@ const IssueGoods = () => {
         if (updateError) throw updateError;
 
         const splitRows = [
-          ...extraAssignments.map((a) => ({
-            pending_id: selectedItem.pending_id,
-            equipment_id: null,
-            media_player_id: a.media_player_id,
-            is_media_player: true,
-            equipment_code: selectedItem.equipment_code,
-            equipment_name: selectedItem.equipment_name,
-            quantity: 1,
-            unit: selectedItem.unit,
-            serial_number: a.serial_number,
-            billboard_id: a.billboard_id || selectedItem.billboard_id || null,
-            issued_quantity: 1,
-            remaining_quantity: 0,
-            status: "issued",
-            notes: issueData.notes || selectedItem.notes,
-          })),
+          ...extraAssignments.map((a) => {
+            const bb = a.billboard_id || selectedItem.billboard_id || null;
+            return {
+              pending_id: selectedItem.pending_id,
+              equipment_id: null,
+              media_player_id: a.media_player_id,
+              is_media_player: true,
+              equipment_code: selectedItem.equipment_code,
+              equipment_name: selectedItem.equipment_name,
+              quantity: 1,
+              unit: selectedItem.unit,
+              serial_number: a.serial_number,
+              billboard_id: deferInstall ? null : bb,
+              intended_billboard_id: deferInstall ? bb : null,
+              install_status: bb ? (deferInstall ? "pending_confirmation" : "installed") : "not_required",
+              issued_quantity: 1,
+              remaining_quantity: 0,
+              status: "issued",
+              notes: issueData.notes || selectedItem.notes,
+            };
+          }),
           ...(remainingUnissuedQty > 0 ? [{
             pending_id: selectedItem.pending_id,
             equipment_id: null,
@@ -429,20 +434,23 @@ const IssueGoods = () => {
         if (splitRows.length > 0) {
           const { error: splitError } = await supabase
             .from("goods_issue_pending_items")
-            .insert(splitRows);
+            .insert(splitRows as any);
           if (splitError) throw splitError;
         }
       } else {
+        const targetBb = combinedBillboardId ?? selectedItem.billboard_id;
         const { error: updateError } = await supabase
           .from("goods_issue_pending_items")
           .update({
             status: newStatus,
             issued_quantity: totalIssued,
             remaining_quantity: Math.max(0, remainingQty),
-            billboard_id: combinedBillboardId ?? selectedItem.billboard_id,
+            billboard_id: deferInstall ? null : targetBb,
+            intended_billboard_id: deferInstall ? targetBb : null,
+            install_status: targetBb ? (deferInstall ? "pending_confirmation" : "installed") : "not_required",
             notes: issueData.notes || selectedItem.notes,
             serial_number: combinedSerial ?? selectedItem.serial_number ?? null,
-          })
+          } as any)
           .eq("id", selectedItem.id);
 
         if (updateError) throw updateError;
