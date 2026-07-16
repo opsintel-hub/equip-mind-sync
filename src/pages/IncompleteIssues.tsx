@@ -76,6 +76,7 @@ interface IssuePurpose {
 const IncompleteIssues = () => {
   const queryClient = useQueryClient();
   const { user } = useAuth();
+  const { isSuperAdmin, viewableDepts, deptKey } = useDeptScope();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedIssue, setSelectedIssue] = useState<IncompleteIssue | null>(null);
   const [selectedItem, setSelectedItem] = useState<PendingItem | null>(null);
