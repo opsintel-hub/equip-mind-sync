@@ -27,9 +27,11 @@ interface Props {
   value: CompatibilityValue;
   onChange: (v: CompatibilityValue) => void;
   disabled?: boolean;
+  /** ฝ่ายเจ้าของอุปกรณ์ — ใช้กรองให้เลือกได้เฉพาะป้ายของฝ่ายเดียวกันเท่านั้น */
+  department?: string;
 }
 
-export function BillboardCompatibilityField({ value, onChange, disabled }: Props) {
+export function BillboardCompatibilityField({ value, onChange, disabled, department }: Props) {
   const [pkgDialog, setPkgDialog] = useState(false);
   const [bbDialog, setBbDialog] = useState(false);
   const [pkgSearch, setPkgSearch] = useState("");
