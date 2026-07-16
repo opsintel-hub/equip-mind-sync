@@ -411,12 +411,17 @@ const ReceiveGoods = () => {
   const fetchLocations = async () => {
     const { data, error } = await supabase
       .from("locations")
-      .select("id, code, name, warehouse_id, volume_cm3, used_volume_cm3")
+      .select("id, code, name, warehouse_id, volume_cm3, used_volume_cm3, zone_id, zones:zone_id(code, name)")
       .eq("is_active", true)
       .order("code");
 
     if (!error && data) {
-      setLocations(data);
+      const mapped = (data as any[]).map((l) => ({
+        ...l,
+        zone_code: l.zones?.code ?? null,
+        zone_name: l.zones?.name ?? null,
+      }));
+      setLocations(mapped);
     }
   };
 
