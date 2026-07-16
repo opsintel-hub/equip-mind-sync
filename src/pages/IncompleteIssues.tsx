@@ -94,7 +94,7 @@ const IncompleteIssues = () => {
 
   // Fetch incomplete issues (issued but missing billboard or waiting for return)
   const { data: incompleteIssues, isLoading } = useQuery({
-    queryKey: ["incomplete-issues"],
+    queryKey: ["incomplete-issues", deptKey],
     queryFn: async () => {
       // First get purposes that require billboard or return
       const { data: purposes } = await supabase
