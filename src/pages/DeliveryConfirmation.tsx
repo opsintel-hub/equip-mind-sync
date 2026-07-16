@@ -323,6 +323,9 @@ const DeliveryConfirmation = () => {
     mutationFn: async () => {
       if (!selectedRequest || !user) throw new Error("Missing data");
       const isDS = !!selectedRequest._isDirectShipment;
+      if (!isDS && !canConfirmRequest(selectedRequest)) {
+        throw new Error("คุณไม่มีสิทธิ์ยืนยันรับใบเบิกนี้ (เฉพาะผู้ขอเบิกหรือแอดมินฝ่าย)");
+      }
       
       // Generate DC document number
       const now = new Date();
