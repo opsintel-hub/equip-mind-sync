@@ -19,6 +19,7 @@ import { format, differenceInDays } from "date-fns";
 import { th } from "date-fns/locale";
 import { useAuth } from "@/hooks/useAuth";
 import { CompatibilityBadgeCell } from "@/components/reports/CompatibilityBadgeCell";
+import { useDeptScope } from "@/hooks/useDeptScope";
 
 import { WarehouseLocationSelect } from "@/components/location/WarehouseLocationSelect";
 import { SimpleDepartmentSelect } from "@/components/equipment/SimpleDepartmentSelect";
