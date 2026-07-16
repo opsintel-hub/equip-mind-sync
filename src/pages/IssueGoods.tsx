@@ -585,7 +585,8 @@ const IssueGoods = () => {
         for (const a of activeAssignments) {
           if (!a.serial_number) continue;
           const billboardIdForUnit = a.billboard_id || selectedItem.billboard_id || null;
-          const newSnStatus = billboardIdForUnit ? "installed" : "issued";
+          const willInstallNow = !!billboardIdForUnit && !deferInstall;
+          const newSnStatus = willInstallNow ? "installed" : "issued";
           const { data: snRecord } = await supabase
             .from("equipment_serial_numbers")
             .select("id")
@@ -598,7 +599,7 @@ const IssueGoods = () => {
             await supabase.from("equipment_serial_numbers").update({
               status: newSnStatus,
               issue_document_no: parentRequest?.document_no || null,
-              billboard_id: billboardIdForUnit,
+              billboard_id: willInstallNow ? billboardIdForUnit : null,
               issued_at: new Date().toISOString(),
             } as any).eq("id", snRecord.id);
           }
