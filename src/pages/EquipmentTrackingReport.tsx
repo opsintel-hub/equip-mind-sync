@@ -655,13 +655,17 @@ function EquipmentViewTab() {
 
   // Media Players
   const { data: mediaPlayers, isLoading: loadingMP } = useQuery({
-    queryKey: ["eq-tracking-media-players-all"],
+    queryKey: ["eq-tracking-media-players-all", eqIsAdminDept, eqAllowedNames.join("|")],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let q = supabase
         .from("media_players")
-        .select("id, name, code, serial_number_1, serial_number_2, brand, billboard_id, install_date, quantity, warranty_expiry_date, location_id, status, device_type, billboard:billboard_id(id, old_code, location_name, equipment_id)")
+        .select("id, name, code, serial_number_1, serial_number_2, brand, billboard_id, install_date, quantity, warranty_expiry_date, location_id, status, device_type, department, billboard:billboard_id(id, old_code, location_name, equipment_id)")
         .eq("is_active", true)
         .order("code");
+      if (!eqIsAdminDept) {
+        q = q.in("department", eqAllowedNames.length > 0 ? eqAllowedNames : ["__no_dept_permission__"]);
+      }
+      const { data, error } = await q;
       if (error) throw error;
       return data || [];
     },
