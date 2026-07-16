@@ -94,13 +94,15 @@ const WaitingStockRequests = () => {
 
   // Fetch waiting_stock requests only with company info
   const { data: waitingRequests, isLoading } = useQuery({
-    queryKey: ["waiting-stock-requests"],
+    queryKey: ["waiting-stock-requests", deptKey],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let q = supabase
         .from("goods_issue_pending")
         .select("*, companies(name)")
         .eq("status", "waiting_stock")
         .order("created_at", { ascending: false });
+      if (scopeDepts) q = q.in("requester_department", scopeDepts);
+      const { data, error } = await q;
       if (error) throw error;
       return data as (WaitingRequest & { companies: { name: string } | null })[];
     },
