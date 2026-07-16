@@ -1032,7 +1032,7 @@ export default function StockCard() {
               </div>
 
               {/* Summary cards */}
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:w-auto">
+              <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 lg:w-auto">
                 <div className="bg-muted/50 rounded-xl p-3 text-center">
                   <div className="text-2xl font-bold text-foreground">{selectedItem.quantity_in_stock}</div>
                   <div className="text-xs text-muted-foreground">สต็อกปัจจุบัน</div>
@@ -1040,6 +1040,10 @@ export default function StockCard() {
                 <div className="bg-muted/50 rounded-xl p-3 text-center">
                   <div className="text-2xl font-bold text-foreground">{currentInstallations.length}</div>
                   <div className="text-xs text-muted-foreground">ติดตั้งอยู่</div>
+                </div>
+                <div className={`rounded-xl p-3 text-center ${pendingIssuedSummary.count > 0 ? "bg-orange-500/10 border border-orange-500/30" : "bg-muted/50"}`}>
+                  <div className={`text-2xl font-bold ${pendingIssuedSummary.count > 0 ? "text-orange-600" : "text-foreground"}`}>{pendingIssuedSummary.count}</div>
+                  <div className="text-xs text-muted-foreground">จ่ายแล้ว / รอระบุป้าย</div>
                 </div>
                 <div className="bg-muted/50 rounded-xl p-3 text-center">
                   <div className="text-2xl font-bold text-foreground">{journeys.length}</div>
@@ -1052,12 +1056,15 @@ export default function StockCard() {
               </div>
             </div>
 
-            {isMediaPlayerIssuedPending && (
-              <div className="mt-4 p-3 bg-amber-50 dark:bg-amber-900/10 rounded-lg border border-amber-200 dark:border-amber-800/30">
-                <div className="flex items-center gap-2 text-amber-700 dark:text-amber-400 text-sm font-medium">
-                  <MapPin className="w-4 h-4" /> จ่ายแล้ว / รอระบุป้ายโฆษณา
+            {(isMediaPlayerIssuedPending || pendingIssuedSummary.count > 0) && (
+              <div className="mt-4 p-3 bg-orange-50 dark:bg-orange-900/10 rounded-lg border border-orange-200 dark:border-orange-800/30">
+                <div className="flex items-center gap-2 text-orange-700 dark:text-orange-400 text-sm font-medium">
+                  <MapPin className="w-4 h-4" /> จ่ายแล้ว / รอระบุป้าย · {pendingIssuedSummary.count || 1} ชิ้น
                 </div>
-                <p className="text-xs text-muted-foreground mt-1">เครื่องนี้ออกจากคลังแล้วและยังไม่มีป้ายปลายทาง จึงไม่นับเป็นสต็อกในคลังหรือรายการติดตั้งแล้ว</p>
+                {pendingIssuedSummary.docs.length > 0 && (
+                  <div className="text-xs font-mono text-orange-700 mt-1">{pendingIssuedSummary.docs.join(", ")}</div>
+                )}
+                <p className="text-xs text-muted-foreground mt-1">รายการนี้ออกจากคลังแล้วแต่ยังไม่ได้ระบุป้ายปลายทาง/ยังไม่กดยืนยันรับ — ไปที่เมนู "รายการเบิกที่ยังไม่สมบูรณ์" หรือ "ยืนยันรับสินค้า" เพื่อดำเนินการต่อ</p>
               </div>
             )}
 
