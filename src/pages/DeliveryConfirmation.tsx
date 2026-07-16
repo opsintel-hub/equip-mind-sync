@@ -22,6 +22,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { DatePickerWithRange } from "@/components/ui/date-range-picker";
 import { DateRange } from "react-day-picker";
 import { DocumentPreviewDialog } from "@/components/DocumentPreviewDialog";
+import { logStockMovement } from "@/lib/stockMovement";
 
 const ISSUE_TYPES = [
   { value: "damaged_in_transit", label: "สินค้าชำรุดระหว่างการจัดส่ง" },
