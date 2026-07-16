@@ -1791,7 +1791,7 @@ const ReceiveGoods = () => {
                       const remaining = (loc.volume_cm3 || 0) - (loc.used_volume_cm3 || 0);
                       return {
                         value: loc.id,
-                        label: `${loc.code} - ${loc.name}`,
+                        label: `${loc.zone_code ? `${loc.zone_code}${loc.code}` : loc.code} - ${loc.name}${loc.zone_name ? ` (โซน ${loc.zone_code} · ${loc.zone_name})` : ""}`,
                         description: `คงเหลือ: ${remaining.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })} m³`,
                       };
                     })}
