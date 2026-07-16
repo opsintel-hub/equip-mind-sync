@@ -217,6 +217,9 @@ const DeliveryConfirmation = () => {
           confirmed_at: new Date().toISOString(),
           confirmed_by: user.id,
         }).eq("id", selectedRequest.id);
+      } else {
+        // Commit or cancel the deferred billboard install(s) for this goods issue.
+        await commitDeferredInstalls(selectedRequest.id, !hasIssue, dcDocumentNo, user.id);
       }
     },
     onSuccess: () => {
