@@ -30,9 +30,9 @@ const ToolPMSchedule = () => {
 
   // Fetch all tools
   const { data: tools = [] } = useQuery({
-    queryKey: ["tools-for-pm"],
+    queryKey: ["tools-for-pm", deptKey],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let q = supabase
         .from("tools")
         .select(`
           *,
@@ -42,7 +42,8 @@ const ToolPMSchedule = () => {
         `)
         .eq("is_active", true)
         .order("code");
-      
+      if (scopeDepts) q = q.in("department", scopeDepts);
+      const { data, error } = await q;
       if (error) throw error;
       return data;
     }
@@ -50,7 +51,7 @@ const ToolPMSchedule = () => {
 
   // Fetch existing PM tasks grouped by tool
   const { data: pmSummary = [], isLoading, refetch } = useQuery({
-    queryKey: ["tool-pm-summary"],
+    queryKey: ["tool-pm-summary", deptKey],
     queryFn: async () => {
       // Get all tools with their PM tasks
       const { data: toolsData, error: toolsError } = await supabase
