@@ -317,6 +317,36 @@ export default function StockCard() {
   const hasSN = selectedItem && (selectedItem.serial_number || selectedItem.serial_number_2);
   const isMediaPlayerIssuedPending = selectedItem?.type === "media_player" && !selectedItem.billboard_id && ["issued", "in_transit"].includes(selectedItem.status || "");
 
+  // ── Pending issued (จ่ายแล้วแต่ยังไม่ติดตั้ง/ยืนยันรับ) ──
+  const { data: pendingIssuedRows = [] } = useQuery({
+    queryKey: ["stock-card-pending-issued", selectedItemId, selectedItemType],
+    staleTime: 2 * 60 * 1000,
+    enabled: !!selectedItemId && (selectedItemType === "equipment" || selectedItemType === "media_player"),
+    queryFn: async () => {
+      if (!selectedItemId) return [];
+      const col = selectedItemType === "media_player" ? "media_player_id" : "equipment_id";
+      const { data, error } = await supabase
+        .from("goods_issue_pending_items")
+        .select("issued_quantity, quantity, billboard_id, install_status, status, goods_issue_pending:pending_id(document_no)")
+        .eq(col, selectedItemId)
+        .eq("status", "issued")
+        .or("install_status.in.(pending_confirmation,cancelled),and(billboard_id.is.null,install_status.eq.not_required)");
+      if (error) { console.error(error); return []; }
+      return data || [];
+    },
+  });
+
+  const pendingIssuedSummary = useMemo(() => {
+    const docs = new Set<string>();
+    let count = 0;
+    (pendingIssuedRows || []).forEach((r: any) => {
+      const qty = Number(r.issued_quantity ?? r.quantity ?? 0);
+      count += qty;
+      if (r.goods_issue_pending?.document_no) docs.add(r.goods_issue_pending.document_no);
+    });
+    return { count, docs: Array.from(docs) };
+  }, [pendingIssuedRows]);
+
   // ── Fetch stock movements ──
   const { data: movements = [] } = useQuery({
     queryKey: ["stock-card-movements", selectedItemId, selectedItemType, dateRange],
