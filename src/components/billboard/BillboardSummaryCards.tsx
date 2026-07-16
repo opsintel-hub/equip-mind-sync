@@ -3,6 +3,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { MapPin, CheckCircle2, Wrench, XCircle, AlertTriangle, ShieldAlert, Building2 } from "lucide-react";
+import { useDeptScope } from "@/hooks/useDeptScope";
 
 interface BillboardSummaryCardsProps {
   filters: {
