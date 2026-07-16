@@ -154,10 +154,17 @@ export function BillboardCompatibilityField({ value, onChange, disabled, departm
 
   return (
     <div className="space-y-3 rounded-lg border p-4 bg-muted/20">
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 flex-wrap">
         <Label className="text-base font-semibold">ป้ายที่รองรับ (Compatibility)</Label>
         <Info className="h-4 w-4 text-muted-foreground" />
-        <span className="text-xs text-muted-foreground">ระบุว่าอุปกรณ์/อะไหล่นี้ใช้ได้กับป้ายใดบ้าง (จอ/MP ไม่ต้องระบุ)</span>
+        <span className="text-xs text-muted-foreground">
+          ระบบจะเลือกได้เฉพาะป้ายที่เป็นของฝ่ายเดียวกับอุปกรณ์นี้เท่านั้น (จอ/MP ไม่ต้องระบุ)
+        </span>
+        {department ? (
+          <Badge variant="outline" className="ml-auto text-xs">ฝ่าย: {department}</Badge>
+        ) : (
+          <Badge variant="destructive" className="ml-auto text-xs">กรุณาเลือกฝ่ายก่อน</Badge>
+        )}
       </div>
 
       <RadioGroup
