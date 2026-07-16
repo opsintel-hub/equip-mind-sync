@@ -357,6 +357,7 @@ const DeliveryConfirmation = () => {
       toast.success(hasIssue ? "บันทึกปัญหาการรับสินค้าสำเร็จ" : "ยืนยันรับสินค้าสำเร็จ");
       queryClient.invalidateQueries({ queryKey: ["delivery-confirmation-requests"] });
       queryClient.invalidateQueries({ queryKey: ["existing-delivery-confirmations"] });
+      queryClient.invalidateQueries({ queryKey: ["incomplete-issues"] });
       resetForm();
     },
     onError: (error) => toast.error("เกิดข้อผิดพลาด: " + error.message),
