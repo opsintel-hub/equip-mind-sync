@@ -360,6 +360,10 @@ const IssueGoods = () => {
       }
       
       const parentRequest = pendingRequests?.find(r => r.id === selectedItem.pending_id);
+      // Defer install-to-billboard to the "ยืนยันรับสินค้า" step for delivery/scheduled pickups.
+      // wait_onsite (รับที่คลัง) still installs immediately since the requester is on site.
+      const pickupType = (parentRequest as any)?.pickup_type;
+      const deferInstall = pickupType === "scheduled" || pickupType === "delivery";
 
       // Update item record (including serial_number selected by warehouse staff)
       // Media Player ต้องแยก 1 เครื่องต่อ 1 แถว เพื่อให้ตาม S/N แล้วเจอ media_player_id ถูกตัว
@@ -367,6 +371,7 @@ const IssueGoods = () => {
         const [firstAssignment, ...extraAssignments] = activeMpAssignments;
         const remainingUnissuedQty = Math.max(0, remainingQty);
 
+        const firstBb = firstAssignment.billboard_id || selectedItem.billboard_id || null;
         const { error: updateError } = await supabase
           .from("goods_issue_pending_items")
           .update({
@@ -376,31 +381,38 @@ const IssueGoods = () => {
             remaining_quantity: 0,
             media_player_id: firstAssignment.media_player_id,
             is_media_player: true,
-            billboard_id: firstAssignment.billboard_id || selectedItem.billboard_id || null,
+            billboard_id: deferInstall ? null : firstBb,
+            intended_billboard_id: deferInstall ? firstBb : null,
+            install_status: firstBb ? (deferInstall ? "pending_confirmation" : "installed") : "not_required",
             notes: issueData.notes || selectedItem.notes,
             serial_number: firstAssignment.serial_number,
-          })
+          } as any)
           .eq("id", selectedItem.id);
 
         if (updateError) throw updateError;
 
         const splitRows = [
-          ...extraAssignments.map((a) => ({
-            pending_id: selectedItem.pending_id,
-            equipment_id: null,
-            media_player_id: a.media_player_id,
-            is_media_player: true,
-            equipment_code: selectedItem.equipment_code,
-            equipment_name: selectedItem.equipment_name,
-            quantity: 1,
-            unit: selectedItem.unit,
-            serial_number: a.serial_number,
-            billboard_id: a.billboard_id || selectedItem.billboard_id || null,
-            issued_quantity: 1,
-            remaining_quantity: 0,
-            status: "issued",
-            notes: issueData.notes || selectedItem.notes,
-          })),
+          ...extraAssignments.map((a) => {
+            const bb = a.billboard_id || selectedItem.billboard_id || null;
+            return {
+              pending_id: selectedItem.pending_id,
+              equipment_id: null,
+              media_player_id: a.media_player_id,
+              is_media_player: true,
+              equipment_code: selectedItem.equipment_code,
+              equipment_name: selectedItem.equipment_name,
+              quantity: 1,
+              unit: selectedItem.unit,
+              serial_number: a.serial_number,
+              billboard_id: deferInstall ? null : bb,
+              intended_billboard_id: deferInstall ? bb : null,
+              install_status: bb ? (deferInstall ? "pending_confirmation" : "installed") : "not_required",
+              issued_quantity: 1,
+              remaining_quantity: 0,
+              status: "issued",
+              notes: issueData.notes || selectedItem.notes,
+            };
+          }),
           ...(remainingUnissuedQty > 0 ? [{
             pending_id: selectedItem.pending_id,
             equipment_id: null,
@@ -422,20 +434,23 @@ const IssueGoods = () => {
         if (splitRows.length > 0) {
           const { error: splitError } = await supabase
             .from("goods_issue_pending_items")
-            .insert(splitRows);
+            .insert(splitRows as any);
           if (splitError) throw splitError;
         }
       } else {
+        const targetBb = combinedBillboardId ?? selectedItem.billboard_id;
         const { error: updateError } = await supabase
           .from("goods_issue_pending_items")
           .update({
             status: newStatus,
             issued_quantity: totalIssued,
             remaining_quantity: Math.max(0, remainingQty),
-            billboard_id: combinedBillboardId ?? selectedItem.billboard_id,
+            billboard_id: deferInstall ? null : targetBb,
+            intended_billboard_id: deferInstall ? targetBb : null,
+            install_status: targetBb ? (deferInstall ? "pending_confirmation" : "installed") : "not_required",
             notes: issueData.notes || selectedItem.notes,
             serial_number: combinedSerial ?? selectedItem.serial_number ?? null,
-          })
+          } as any)
           .eq("id", selectedItem.id);
 
         if (updateError) throw updateError;
@@ -462,12 +477,13 @@ const IssueGoods = () => {
           const currentStock = currentMp?.quantity || 0;
           const newStock = Math.max(0, currentStock - 1);
 
+          const willInstallNow = !!a.billboard_id && !deferInstall;
           const stockUpdatePayload: any = {
             quantity: newStock,
-            status: a.billboard_id ? "installed" : "issued",
+            status: willInstallNow ? "installed" : "issued",
             location_id: null,
-            billboard_id: a.billboard_id || null,
-            install_date: a.billboard_id ? new Date().toISOString().split('T')[0] : null,
+            billboard_id: willInstallNow ? a.billboard_id : null,
+            install_date: willInstallNow ? new Date().toISOString().split('T')[0] : null,
           };
           if (a.sub_media_type) stockUpdatePayload.sub_media_type = a.sub_media_type;
           const { error: stockError } = await supabase
@@ -476,6 +492,7 @@ const IssueGoods = () => {
             .eq("id", a.media_player_id);
           if (stockError) throw stockError;
 
+          const issueNoteSuffix = deferInstall && a.billboard_id ? " (รอผู้รับยืนยัน → ติดตั้งเข้าป้าย)" : "";
           await logStockMovement({
             equipment_id: a.media_player_id,
             equipment_code: currentMp?.code || selectedItem.equipment_code || "",
@@ -487,11 +504,12 @@ const IssueGoods = () => {
             reference_type: "goods_issue",
             reference_document: parentRequest?.document_no || "",
             location_id: currentMp?.location_id || undefined,
-            notes: `Media Player S/N: ${a.serial_number} - ${issueData.notes || ""}`.trim(),
+            notes: `Media Player S/N: ${a.serial_number}${issueNoteSuffix} - ${issueData.notes || ""}`.trim(),
           });
 
-          // Install to billboard (optional). If left blank, it will surface in the "รอระบุป้าย/รอคืน" workflow.
-          if (a.billboard_id) {
+          // Install to billboard now only when pickup is on-site or no billboard chosen.
+          // For scheduled/delivery, the install happens in Delivery Confirmation.
+          if (willInstallNow) {
             const { data: bbInfo } = await supabase
               .from("billboards")
               .select("old_code, location_name")
@@ -567,7 +585,8 @@ const IssueGoods = () => {
         for (const a of activeAssignments) {
           if (!a.serial_number) continue;
           const billboardIdForUnit = a.billboard_id || selectedItem.billboard_id || null;
-          const newSnStatus = billboardIdForUnit ? "installed" : "issued";
+          const willInstallNow = !!billboardIdForUnit && !deferInstall;
+          const newSnStatus = willInstallNow ? "installed" : "issued";
           const { data: snRecord } = await supabase
             .from("equipment_serial_numbers")
             .select("id")
@@ -580,7 +599,7 @@ const IssueGoods = () => {
             await supabase.from("equipment_serial_numbers").update({
               status: newSnStatus,
               issue_document_no: parentRequest?.document_no || null,
-              billboard_id: billboardIdForUnit,
+              billboard_id: willInstallNow ? billboardIdForUnit : null,
               issued_at: new Date().toISOString(),
             } as any).eq("id", snRecord.id);
           }
@@ -621,34 +640,37 @@ const IssueGoods = () => {
           .map(a => ({ billboard_id: a.billboard_id || selectedItem.billboard_id || "", serial_number: a.serial_number || null }))
           .filter(r => r.billboard_id);
 
-        for (const r of installRows) {
-          const bbLabel = await getBbLabel(r.billboard_id);
-          const { error: billboardError } = await supabase
-            .from("billboard_equipment")
-            .insert({
-              billboard_id: r.billboard_id,
-              equipment_id: selectedItem.equipment_id,
-              quantity: 1,
-              installation_date: new Date().toISOString().split('T')[0],
-              notes: issueData.notes || `เบิกจากเอกสาร ${parentRequest?.document_no}`,
-              created_by: user.id,
-              serial_number: r.serial_number,
-            });
-          if (billboardError) throw billboardError;
+        // For scheduled/delivery pickups, defer the install to the "ยืนยันรับสินค้า" step.
+        if (!deferInstall) {
+          for (const r of installRows) {
+            const bbLabel = await getBbLabel(r.billboard_id);
+            const { error: billboardError } = await supabase
+              .from("billboard_equipment")
+              .insert({
+                billboard_id: r.billboard_id,
+                equipment_id: selectedItem.equipment_id,
+                quantity: 1,
+                installation_date: new Date().toISOString().split('T')[0],
+                notes: issueData.notes || `เบิกจากเอกสาร ${parentRequest?.document_no}`,
+                created_by: user.id,
+                serial_number: r.serial_number,
+              });
+            if (billboardError) throw billboardError;
 
-          await logStockMovement({
-            equipment_id: selectedItem.equipment_id,
-            equipment_code: selectedItem.equipment_code || "",
-            equipment_name: selectedItem.equipment_name || "",
-            movement_type: "install_to_billboard",
-            quantity: 1,
-            stock_before: currentStock,
-            stock_after: newStock,
-            reference_type: "billboard_equipment",
-            reference_document: parentRequest?.document_no || "",
-            location_id: equipment?.find(e => e.id === selectedItem.equipment_id)?.location_id || undefined,
-            notes: `ติดตั้งที่ป้าย ${bbLabel}${r.serial_number ? ` S/N: ${r.serial_number}` : ""}`,
-          });
+            await logStockMovement({
+              equipment_id: selectedItem.equipment_id,
+              equipment_code: selectedItem.equipment_code || "",
+              equipment_name: selectedItem.equipment_name || "",
+              movement_type: "install_to_billboard",
+              quantity: 1,
+              stock_before: currentStock,
+              stock_after: newStock,
+              reference_type: "billboard_equipment",
+              reference_document: parentRequest?.document_no || "",
+              location_id: equipment?.find(e => e.id === selectedItem.equipment_id)?.location_id || undefined,
+              notes: `ติดตั้งที่ป้าย ${bbLabel}${r.serial_number ? ` S/N: ${r.serial_number}` : ""}`,
+            });
+          }
         }
       }
 

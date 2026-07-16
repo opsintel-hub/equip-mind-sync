@@ -22,6 +22,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { DatePickerWithRange } from "@/components/ui/date-range-picker";
 import { DateRange } from "react-day-picker";
 import { DocumentPreviewDialog } from "@/components/DocumentPreviewDialog";
+import { logStockMovement } from "@/lib/stockMovement";
 
 const ISSUE_TYPES = [
   { value: "damaged_in_transit", label: "สินค้าชำรุดระหว่างการจัดส่ง" },
@@ -178,6 +179,137 @@ const DeliveryConfirmation = () => {
     setUploadedFiles(prev => prev.filter((_, i) => i !== index));
   };
 
+  // Commit deferred billboard installs for a goods_issue_pending on confirmation.
+  // confirmed=true → perform the install (billboard_equipment / media_player_billboard_history).
+  // confirmed=false (issue reported) → mark install rows as cancelled; Admin can follow up in Incomplete Issues.
+  const commitDeferredInstalls = async (pendingId: string, confirmed: boolean, dcDocNo: string, userId: string) => {
+    const { data: pendingItems, error: itemsErr } = await supabase
+      .from("goods_issue_pending_items")
+      .select("id, equipment_id, media_player_id, is_media_player, serial_number, equipment_code, equipment_name, intended_billboard_id" as any)
+      .eq("pending_id", pendingId)
+      .eq("install_status", "pending_confirmation");
+    if (itemsErr) {
+      console.error("Failed to load pending install items:", itemsErr);
+      return;
+    }
+    if (!pendingItems || pendingItems.length === 0) return;
+
+    if (!confirmed) {
+      const ids = pendingItems.map((i: any) => i.id);
+      await supabase
+        .from("goods_issue_pending_items")
+        .update({ install_status: "cancelled" } as any)
+        .in("id", ids);
+      return;
+    }
+
+    const today = new Date().toISOString().split("T")[0];
+    const bbCache = new Map<string, string>();
+    const bbLabel = async (bbId: string) => {
+      if (bbCache.has(bbId)) return bbCache.get(bbId)!;
+      const { data } = await supabase
+        .from("billboards")
+        .select("old_code, location_name")
+        .eq("id", bbId)
+        .maybeSingle();
+      const label = [data?.old_code, data?.location_name].filter(Boolean).join(" - ") || bbId;
+      bbCache.set(bbId, label);
+      return label;
+    };
+
+    for (const it of pendingItems as any[]) {
+      const bbId = it.intended_billboard_id as string | null;
+      if (!bbId) continue;
+      const label = await bbLabel(bbId);
+
+      if (it.is_media_player && it.media_player_id) {
+        const { data: mp } = await supabase
+          .from("media_players")
+          .select("code, name")
+          .eq("id", it.media_player_id)
+          .maybeSingle();
+
+        await supabase
+          .from("media_players")
+          .update({
+            status: "installed",
+            billboard_id: bbId,
+            install_date: today,
+          } as any)
+          .eq("id", it.media_player_id);
+
+        await supabase.from("media_player_billboard_history").insert({
+          media_player_id: it.media_player_id,
+          billboard_id: bbId,
+          installation_date: today,
+          uninstall_date: null,
+          installed_by: userId,
+          installation_notes: `ยืนยันรับสินค้า ${dcDocNo}`,
+        } as any);
+
+        await logStockMovement({
+          equipment_id: it.media_player_id,
+          equipment_code: mp?.code || it.equipment_code || "",
+          equipment_name: mp?.name || it.equipment_name || "",
+          movement_type: "install_to_billboard",
+          quantity: 1,
+          stock_before: 0,
+          stock_after: 0,
+          reference_type: "billboard_equipment",
+          reference_document: dcDocNo,
+          notes: `ผู้รับยืนยัน → ติดตั้งเข้าป้าย ${label}${it.serial_number ? ` S/N: ${it.serial_number}` : ""}`,
+        });
+      } else if (it.equipment_id) {
+        await supabase.from("billboard_equipment").insert({
+          billboard_id: bbId,
+          equipment_id: it.equipment_id,
+          quantity: 1,
+          installation_date: today,
+          notes: `ยืนยันรับสินค้า ${dcDocNo}`,
+          created_by: userId,
+          serial_number: it.serial_number || null,
+        });
+
+        if (it.serial_number) {
+          const { data: snRec } = await supabase
+            .from("equipment_serial_numbers")
+            .select("id")
+            .eq("equipment_id", it.equipment_id)
+            .eq("serial_number", it.serial_number)
+            .maybeSingle();
+          if (snRec) {
+            await supabase
+              .from("equipment_serial_numbers")
+              .update({ status: "installed", billboard_id: bbId } as any)
+              .eq("id", snRec.id);
+          }
+        }
+
+        await logStockMovement({
+          equipment_id: it.equipment_id,
+          equipment_code: it.equipment_code || "",
+          equipment_name: it.equipment_name || "",
+          movement_type: "install_to_billboard",
+          quantity: 1,
+          stock_before: 0,
+          stock_after: 0,
+          reference_type: "billboard_equipment",
+          reference_document: dcDocNo,
+          notes: `ผู้รับยืนยัน → ติดตั้งเข้าป้าย ${label}${it.serial_number ? ` S/N: ${it.serial_number}` : ""}`,
+        });
+      }
+
+      await supabase
+        .from("goods_issue_pending_items")
+        .update({
+          install_status: "installed",
+          billboard_id: bbId,
+          intended_billboard_id: null,
+        } as any)
+        .eq("id", it.id);
+    }
+  };
+
   const confirmDelivery = useMutation({
     mutationFn: async () => {
       if (!selectedRequest || !user) throw new Error("Missing data");
@@ -216,12 +348,16 @@ const DeliveryConfirmation = () => {
           confirmed_at: new Date().toISOString(),
           confirmed_by: user.id,
         }).eq("id", selectedRequest.id);
+      } else {
+        // Commit or cancel the deferred billboard install(s) for this goods issue.
+        await commitDeferredInstalls(selectedRequest.id, !hasIssue, dcDocumentNo, user.id);
       }
     },
     onSuccess: () => {
       toast.success(hasIssue ? "บันทึกปัญหาการรับสินค้าสำเร็จ" : "ยืนยันรับสินค้าสำเร็จ");
       queryClient.invalidateQueries({ queryKey: ["delivery-confirmation-requests"] });
       queryClient.invalidateQueries({ queryKey: ["existing-delivery-confirmations"] });
+      queryClient.invalidateQueries({ queryKey: ["incomplete-issues"] });
       resetForm();
     },
     onError: (error) => toast.error("เกิดข้อผิดพลาด: " + error.message),
