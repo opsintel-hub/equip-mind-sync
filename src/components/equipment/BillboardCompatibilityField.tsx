@@ -38,46 +38,62 @@ export function BillboardCompatibilityField({ value, onChange, disabled, departm
   const [bbSearch, setBbSearch] = useState("");
   const [showPreview, setShowPreview] = useState(false);
 
-  const { data: packages = [] } = useQuery({
-    queryKey: ["billboard-packages-compat"],
+  const deptKey = department || "__none__";
+
+  const { data: allBillboards = [] } = useQuery({
+    queryKey: ["billboards-compat-all", deptKey],
+    queryFn: async () => {
+      let q = supabase
+        .from("billboards")
+        .select("id, old_code, location_name, equipment_id, department")
+        .eq("status", "active");
+      if (department) q = q.eq("department", department);
+      const { data, error } = await q.order("old_code").limit(5000);
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!department && value.mode !== "unrestricted",
+  });
+
+  // Packages: fetch all active packages + their billboard department to filter by dept
+  const { data: packagesRaw = [] } = useQuery({
+    queryKey: ["billboard-packages-compat-with-items", deptKey],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("billboard_packages")
-        .select("id, name, media_type")
+        .select("id, name, media_type, billboard_package_items(billboard_id, billboards(department))")
         .eq("is_active", true)
         .order("name");
       if (error) throw error;
       return data || [];
     },
+    enabled: !!department,
   });
+
+  // Only include packages that have ≥1 billboard belonging to the selected department
+  const packages = useMemo(() => {
+    if (!department) return [] as any[];
+    return (packagesRaw as any[]).filter((p) =>
+      (p.billboard_package_items || []).some(
+        (it: any) => it?.billboards?.department === department
+      )
+    );
+  }, [packagesRaw, department]);
 
   const { data: pkgItems = [] } = useQuery({
-    queryKey: ["billboard-package-items-compat", value.packageIds],
+    queryKey: ["billboard-package-items-compat", value.packageIds, deptKey],
     queryFn: async () => {
       if (value.packageIds.length === 0) return [];
-      const { data, error } = await supabase
+      let q = supabase
         .from("billboard_package_items")
-        .select("package_id, billboard_id, billboards(id, old_code, location_name, equipment_id, department)")
+        .select("package_id, billboard_id, billboards!inner(id, old_code, location_name, equipment_id, department)")
         .in("package_id", value.packageIds);
+      if (department) q = q.eq("billboards.department", department);
+      const { data, error } = await q;
       if (error) throw error;
       return data || [];
     },
-    enabled: value.packageIds.length > 0,
-  });
-
-  const { data: allBillboards = [] } = useQuery({
-    queryKey: ["billboards-compat-all"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("billboards")
-        .select("id, old_code, location_name, equipment_id, department")
-        .eq("status", "active")
-        .order("old_code")
-        .limit(5000);
-      if (error) throw error;
-      return data || [];
-    },
-    enabled: value.mode !== "unrestricted",
+    enabled: value.packageIds.length > 0 && !!department,
   });
 
   // Resolved billboard ids (from packages + manual)
