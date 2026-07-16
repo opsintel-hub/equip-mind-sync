@@ -3,6 +3,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { MapPin, CheckCircle2, Wrench, XCircle, AlertTriangle, ShieldAlert, Building2 } from "lucide-react";
+import { useDeptScope } from "@/hooks/useDeptScope";
 
 interface BillboardSummaryCardsProps {
   filters: {
@@ -20,8 +21,11 @@ interface BillboardSummaryCardsProps {
 type BillboardRow = { id: string; status: string | null; department: string | null };
 
 export function BillboardSummaryCards({ filters, searchTerm }: BillboardSummaryCardsProps) {
+  const { isSuperAdmin, viewableDepts, deptKey } = useDeptScope();
+  const scopeDepts = isSuperAdmin ? null : ((viewableDepts && viewableDepts.length > 0) ? viewableDepts : ["__no_dept_permission__"]);
+
   const { data, isLoading } = useQuery({
-    queryKey: ["billboard-summary", filters, searchTerm],
+    queryKey: ["billboard-summary", filters, searchTerm, deptKey],
     queryFn: async () => {
       // For department breakdown we ignore the `department` filter
       // so users see how the *other* filters slice the data across all departments.
@@ -38,6 +42,7 @@ export function BillboardSummaryCards({ filters, searchTerm }: BillboardSummaryC
         if (filters.mediaType) query = query.eq("media_type", filters.mediaType);
         if (filters.status) query = query.eq("status", filters.status);
         if (filters.locationName) query = query.ilike("location_name", `%${filters.locationName}%`);
+        if (scopeDepts) query = query.in("department", scopeDepts);
         return query;
       };
 

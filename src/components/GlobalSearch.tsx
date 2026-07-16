@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { supabase } from "@/integrations/supabase/client";
 import { formatBillboardLabel } from "@/lib/billboardUtils";
+import { useDeptScope } from "@/hooks/useDeptScope";
 
 type ResultType = "equipment" | "media_player" | "billboard";
 
@@ -39,6 +40,8 @@ export function GlobalSearch() {
   const [results, setResults] = useState<SearchResult[]>([]);
   const navigate = useNavigate();
   const inputRef = useRef<HTMLInputElement>(null);
+  const { isSuperAdmin, viewableDepts } = useDeptScope();
+  const scopeDepts = isSuperAdmin ? null : ((viewableDepts && viewableDepts.length > 0) ? viewableDepts : ["__no_dept_permission__"]);
 
   // Keyboard shortcut: Cmd/Ctrl+K
   useEffect(() => {
@@ -73,30 +76,39 @@ export function GlobalSearch() {
       const q = debounced;
       const like = `%${q}%`;
 
+      let eqQ = supabase
+        .from("equipment")
+        .select("id, code, name, brand, serial_number, department")
+        .eq("is_active", true)
+        .or(`code.ilike.${like},name.ilike.${like},brand.ilike.${like},serial_number.ilike.${like}`)
+        .limit(15);
+      if (scopeDepts) eqQ = eqQ.in("department", scopeDepts);
+
+      let mpQ = supabase
+        .from("media_players")
+        .select("id, code, name, brand, specification, serial_number_1, serial_number_2, status, department")
+        .or(
+          `code.ilike.${like},name.ilike.${like},brand.ilike.${like},specification.ilike.${like},serial_number_1.ilike.${like},serial_number_2.ilike.${like}`
+        )
+        .limit(15);
+      if (scopeDepts) mpQ = mpQ.in("department", scopeDepts);
+
+      let bbQ = supabase
+        .from("billboards")
+        .select("id, equipment_id, old_code, location_name, department, size, status")
+        .or(`equipment_id.ilike.${like},old_code.ilike.${like},location_name.ilike.${like}`)
+        .limit(15);
+      if (scopeDepts) bbQ = bbQ.in("department", scopeDepts);
+
       const [eqRes, snRes, mpRes, bbRes] = await Promise.all([
-        supabase
-          .from("equipment")
-          .select("id, code, name, brand, serial_number")
-          .eq("is_active", true)
-          .or(`code.ilike.${like},name.ilike.${like},brand.ilike.${like},serial_number.ilike.${like}`)
-          .limit(15),
+        eqQ,
         supabase
           .from("equipment_serial_numbers")
-          .select("id, serial_number, status, equipment:equipment_id(id, code, name, brand)")
+          .select("id, serial_number, status, equipment:equipment_id(id, code, name, brand, department)")
           .ilike("serial_number", like)
           .limit(15),
-        supabase
-          .from("media_players")
-          .select("id, code, name, brand, specification, serial_number_1, serial_number_2, status")
-          .or(
-            `code.ilike.${like},name.ilike.${like},brand.ilike.${like},specification.ilike.${like},serial_number_1.ilike.${like},serial_number_2.ilike.${like}`
-          )
-          .limit(15),
-        supabase
-          .from("billboards")
-          .select("id, equipment_id, old_code, location_name, department, size, status")
-          .or(`equipment_id.ilike.${like},old_code.ilike.${like},location_name.ilike.${like}`)
-          .limit(15),
+        mpQ,
+        bbQ,
       ]);
 
       if (cancelled) return;
@@ -118,6 +130,7 @@ export function GlobalSearch() {
       (snRes.data || []).forEach((s: any) => {
         const eq = s.equipment;
         if (!eq) return;
+        if (scopeDepts && !scopeDepts.includes(eq.department)) return;
         const key = `${eq.id}::${s.serial_number}`;
         if (seenEqSn.has(key)) return;
         seenEqSn.add(key);

@@ -26,6 +26,7 @@ import { SearchableSelect } from "@/components/ui/searchable-select";
 import { TablePagination } from "@/components/TablePagination";
 import { useTablePagination } from "@/hooks/useTablePagination";
 import { SubMediaTypeBadge } from "@/components/media-player/SubMediaTypeBadge";
+import { useDeptScope } from "@/hooks/useDeptScope";
 interface EquipmentWithDetails {
   id: string;
   code: string;
@@ -81,6 +82,7 @@ interface CartItem {
 const IssueRequest = () => {
   const queryClient = useQueryClient();
   const { profile: currentProfile, actorName: currentActorName } = useCurrentUserProfile();
+  const { isSuperAdmin, viewableDepts, deptKey } = useDeptScope();
   const [searchTerm, setSearchTerm] = useState("");
   const [fifoSearchTerm, setFifoSearchTerm] = useState("");
   const [fifoShowExpiring, setFifoShowExpiring] = useState(true);
@@ -204,14 +206,19 @@ const IssueRequest = () => {
 
   // Fetch equipment with full details including expiry dates and category
   const { data: equipmentData } = useQuery({
-    queryKey: ["equipment-active-full"],
+    queryKey: ["equipment-active-full", deptKey],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let q = supabase
         .from("equipment")
-        .select("id, code, name, unit, quantity_in_stock, serial_number, expiry_date, warranty_expiry_date, warehouse_entry_date, category, location_id, billboard_compatibility_mode, compatibility_notes, locations(id, code, name, warehouse_id, warehouses(id, code, name))")
+        .select("id, code, name, unit, quantity_in_stock, serial_number, expiry_date, warranty_expiry_date, warehouse_entry_date, category, department, location_id, billboard_compatibility_mode, compatibility_notes, locations(id, code, name, warehouse_id, warehouses(id, code, name))")
         .eq("is_active", true)
         .gt("quantity_in_stock", 0)
         .order("warehouse_entry_date", { ascending: true });
+      if (!isSuperAdmin) {
+        const depts = viewableDepts || [];
+        q = q.in("department", depts.length > 0 ? depts : ["__no_dept_permission__"]);
+      }
+      const { data, error } = await q;
       if (error) throw error;
       return (data || []).map((eq: any) => ({
         ...eq,
@@ -219,20 +226,25 @@ const IssueRequest = () => {
         warehouse_code: eq.locations?.warehouses?.code || null,
         location_name: eq.locations?.name || null,
         location_code: eq.locations?.code || null,
-      })) as (EquipmentWithDetails & { category?: string })[];
+      })) as (EquipmentWithDetails & { category?: string; department?: string | null; billboard_compatibility_mode?: string | null })[];
     },
   });
 
   // Fetch media players for issuing
   const { data: mediaPlayersData } = useQuery({
-    queryKey: ["media-players-active-for-issue"],
+    queryKey: ["media-players-active-for-issue", deptKey],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let q = supabase
         .from("media_players")
         .select("id, code, name, unit, quantity, serial_number_1, serial_number_2, warranty_expiry_date, created_at, location_id, department, sub_media_type, device_type, locations:location_id(id, code, name, warehouse_id, warehouses(id, code, name))")
         .eq("is_active", true)
         .gt("quantity", 0)
         .order("created_at", { ascending: false });
+      if (!isSuperAdmin) {
+        const depts = viewableDepts || [];
+        q = q.in("department", depts.length > 0 ? depts : ["__no_dept_permission__"]);
+      }
+      const { data, error } = await q;
       if (error) throw error;
       // Map to EquipmentWithDetails format
       return data.map((mp: any) => ({
@@ -1574,10 +1586,25 @@ const IssueRequest = () => {
                 </div>
                 <div className="space-y-2 md:col-span-2">
                     <Label>ป้ายโฆษณา (สำหรับรายการนี้) {selectedPurpose?.requires_billboard ? "*" : ""}</Label>
-                    <BillboardSelect
-                      value={currentItem.billboard_id}
-                      onChange={(value) => setCurrentItem({ ...currentItem, billboard_id: value })}
-                    />
+                    {(() => {
+                      const selEq: any = equipment?.find((e) => e.id === currentItem.equipment_id);
+                      const isMP = !!selEq?.is_media_player;
+                      const mode = selEq?.billboard_compatibility_mode;
+                      const restricted = !isMP && selEq && mode && mode !== "unrestricted";
+                      const allowed = restricted
+                        ? Array.from(compatMap[currentItem.equipment_id] || new Set<string>())
+                        : null;
+                      const bbDept = headerData.requester_department || selEq?.department || undefined;
+                      return (
+                        <BillboardSelect
+                          value={currentItem.billboard_id}
+                          onChange={(value) => setCurrentItem({ ...currentItem, billboard_id: value })}
+                          department={bbDept}
+                          allowedBillboardIds={allowed}
+                          emptyLabel={restricted ? "อะไหล่นี้ยังไม่ระบุป้ายที่รองรับ กรุณาแจ้ง Admin" : undefined}
+                        />
+                      );
+                    })()}
                   </div>
                 <div className="space-y-2 md:col-span-4">
                   <Label>หมายเหตุรายการ</Label>

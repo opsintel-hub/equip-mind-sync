@@ -18,6 +18,7 @@ import { toast } from "sonner";
 import { Search, AlertTriangle, MapPin, Package, RefreshCw, Clock, ChevronDown, ChevronRight, ShoppingCart, Edit, Warehouse } from "lucide-react";
 import { format } from "date-fns";
 import { th } from "date-fns/locale";
+import { useDeptScope } from "@/hooks/useDeptScope";
 import { useAuth } from "@/hooks/useAuth";
 import BillboardSelect from "@/components/billboard/BillboardSelect";
 import { WarehouseLocationSelect } from "@/components/location/WarehouseLocationSelect";
@@ -75,6 +76,7 @@ interface IssuePurpose {
 const IncompleteIssues = () => {
   const queryClient = useQueryClient();
   const { user } = useAuth();
+  const { isSuperAdmin, viewableDepts, deptKey } = useDeptScope();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedIssue, setSelectedIssue] = useState<IncompleteIssue | null>(null);
   const [selectedItem, setSelectedItem] = useState<PendingItem | null>(null);
@@ -92,7 +94,7 @@ const IncompleteIssues = () => {
 
   // Fetch incomplete issues (issued but missing billboard or waiting for return)
   const { data: incompleteIssues, isLoading } = useQuery({
-    queryKey: ["incomplete-issues"],
+    queryKey: ["incomplete-issues", deptKey],
     queryFn: async () => {
       // First get purposes that require billboard or return
       const { data: purposes } = await supabase
@@ -102,12 +104,17 @@ const IncompleteIssues = () => {
       const purposeMap = new Map<string, IssuePurpose>();
       (purposes || []).forEach(p => purposeMap.set(p.id, p));
 
-      // Get all issued items
-      const { data, error } = await supabase
+      // Get all issued items — scoped to viewable departments
+      let listQ = supabase
         .from("goods_issue_pending")
         .select("*, companies(name)")
         .in("status", ["issued", "partial_return", "partially_issued"])
         .order("issued_at", { ascending: false });
+      if (!isSuperAdmin) {
+        const depts = viewableDepts || [];
+        listQ = listQ.in("requester_department", depts.length > 0 ? depts : ["__no_dept_permission__"]);
+      }
+      const { data, error } = await listQ;
 
       if (error) throw error;
 

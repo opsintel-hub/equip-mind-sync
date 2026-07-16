@@ -19,6 +19,7 @@ import { Search, Package, Clock, CheckCircle, XCircle, MapPin, AlertTriangle, Ca
 import { format, differenceInDays } from "date-fns";
 import { th } from "date-fns/locale";
 import { useAuth } from "@/hooks/useAuth";
+import { useDeptScope } from "@/hooks/useDeptScope";
 import BillboardDisplay from "@/components/billboard/BillboardDisplay";
 import BillboardSelect from "@/components/billboard/BillboardSelect";
 import { SubMediaTypeSelect } from "@/components/media-player/SubMediaTypeSelect";
@@ -87,6 +88,8 @@ interface PendingItem {
 const IssueGoods = () => {
   const queryClient = useQueryClient();
   const { user } = useAuth();
+  const { isSuperAdmin, viewableDepts, deptKey } = useDeptScope();
+  const scopeDepts = isSuperAdmin ? null : ((viewableDepts && viewableDepts.length > 0) ? viewableDepts : ["__no_dept_permission__"]);
   const [searchTerm, setSearchTerm] = useState("");
   const [snSearchTerm, setSnSearchTerm] = useState("");
   const [selectedRequest, setSelectedRequest] = useState<PendingRequest | null>(null);
@@ -120,14 +123,16 @@ const IssueGoods = () => {
   const [selectedEquipmentImages, setSelectedEquipmentImages] = useState<string[]>([]);
   const [selectedEquipmentName, setSelectedEquipmentName] = useState("");
 
-  // Fetch pending requests with company info
+  // Fetch pending requests with company info — scoped to viewable departments
   const { data: pendingRequests, isLoading } = useQuery({
-    queryKey: ["goods-issue-pending-staff"],
+    queryKey: ["goods-issue-pending-staff", deptKey],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let q = supabase
         .from("goods_issue_pending")
         .select("*, companies(name)")
         .order("created_at", { ascending: false });
+      if (scopeDepts) q = q.in("requester_department", scopeDepts);
+      const { data, error } = await q;
       if (error) throw error;
       // Show all (including pending_approval) for visibility; the จ่าย button is gated by status === "pending"
       return (data as (PendingRequest & { companies: { name: string } | null })[]);
@@ -147,18 +152,20 @@ const IssueGoods = () => {
     },
   });
 
-  // Fetch equipment for validation with full details including location
+  // Fetch equipment for validation with full details including location — dept-scoped
   const { data: equipment } = useQuery({
-    queryKey: ["equipment-active-details"],
+    queryKey: ["equipment-active-details", deptKey],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let q = supabase
         .from("equipment")
         .select(`
-          id, code, name, quantity_in_stock, serial_number, expiry_date, warranty_expiry_date, warehouse_entry_date, location_id,
+          id, code, name, quantity_in_stock, serial_number, expiry_date, warranty_expiry_date, warehouse_entry_date, location_id, department,
           locations(id, name, code, warehouse_id, warehouses(id, name, code))
         `)
         .eq("is_active", true)
         .order("warehouse_entry_date", { ascending: true });
+      if (scopeDepts) q = q.in("department", scopeDepts);
+      const { data, error } = await q;
       if (error) throw error;
       return data as (EquipmentWithDetails & { 
         location_id: string | null; 
@@ -167,16 +174,18 @@ const IssueGoods = () => {
     },
   });
 
-  // Fetch available Media Player units (in stock) for multi-unit issuance
+  // Fetch available Media Player units (in stock) for multi-unit issuance — dept-scoped
   const { data: availableMpUnits, refetch: refetchMpUnits } = useQuery({
-    queryKey: ["available-media-player-units"],
+    queryKey: ["available-media-player-units", deptKey],
     queryFn: async () => {
       // Include all active units (even quantity=0) so we can show them as disabled
       // with a clear reason, instead of silently hiding newly-edited S/Ns.
-      const { data, error } = await supabase
+      let q = supabase
         .from("media_players")
         .select("id, code, name, serial_number_1, serial_number_2, quantity, billboard_id, location_id, department, sub_media_type, device_type, status, locations(id, name, code, warehouses(id, name, code))")
         .eq("is_active", true);
+      if (scopeDepts) q = q.in("department", scopeDepts);
+      const { data, error } = await q;
       if (error) throw error;
       return data as any[];
     },

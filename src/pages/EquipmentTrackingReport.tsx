@@ -122,14 +122,21 @@ function BillboardViewTab() {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
 
+  const { allowedDepartments, isAdmin: isAdminDept, isSingleDepartment } = useAllowedDepartments();
+  const allowedDeptNames = useMemo(() => allowedDepartments.map(d => d.name), [allowedDepartments]);
+
   const { data: billboards, isLoading: loadingBillboards } = useQuery({
-    queryKey: ["billboard-tracking-billboards"],
+    queryKey: ["billboard-tracking-billboards", isAdminDept, allowedDeptNames.join("|")],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let q = supabase
         .from("billboards")
         .select("id, old_code, location_name, region, department, media_type, status, size")
         .eq("status", "active")
         .order("old_code");
+      if (!isAdminDept) {
+        q = q.in("department", allowedDeptNames.length > 0 ? allowedDeptNames : ["__no_dept_permission__"]);
+      }
+      const { data, error } = await q;
       if (error) throw error;
       return data || [];
     },
@@ -147,12 +154,16 @@ function BillboardViewTab() {
   });
 
   const { data: mediaPlayers, isLoading: loadingMedia } = useQuery({
-    queryKey: ["billboard-tracking-media-players"],
+    queryKey: ["billboard-tracking-media-players", isAdminDept, allowedDeptNames.join("|")],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let q = supabase
         .from("media_players")
-        .select("id, name, code, billboard_id, install_date, serial_number_1, serial_number_2, brand, warranty_expiry_date, device_type")
+        .select("id, name, code, billboard_id, install_date, serial_number_1, serial_number_2, brand, warranty_expiry_date, device_type, department")
         .not("billboard_id", "is", null);
+      if (!isAdminDept) {
+        q = q.in("department", allowedDeptNames.length > 0 ? allowedDeptNames : ["__no_dept_permission__"]);
+      }
+      const { data, error } = await q;
       if (error) throw error;
       return data || [];
     },
@@ -183,8 +194,7 @@ function BillboardViewTab() {
   );
 
   const regions = useMemo(() => [...new Set(billboards?.map(b => b.region).filter(Boolean) || [])].sort(), [billboards]);
-  const { allowedDepartments, isAdmin: isAdminDept, isSingleDepartment } = useAllowedDepartments();
-  const allowedDeptNames = useMemo(() => allowedDepartments.map(d => d.name), [allowedDepartments]);
+
   const departments = useMemo(() => {
     const allDepts = [...new Set(billboards?.map(b => b.department).filter(Boolean) || [])].sort();
     return isAdminDept ? allDepts : allDepts.filter(d => allowedDeptNames.includes(d!));
@@ -596,15 +606,22 @@ function EquipmentViewTab() {
   const [selectedEquipment, setSelectedEquipment] = useState<any | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
 
+  const { allowedDepartments: eqAllowedDepts, isAdmin: eqIsAdminDept } = useAllowedDepartments();
+  const eqAllowedNames = useMemo(() => eqAllowedDepts.map(d => d.name), [eqAllowedDepts]);
+
   // Equipment
   const { data: equipment, isLoading: loadingEq } = useQuery({
-    queryKey: ["eq-tracking-equipment"],
+    queryKey: ["eq-tracking-equipment", eqIsAdminDept, eqAllowedNames.join("|")],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let q = supabase
         .from("equipment")
-        .select("id, name, code, serial_number, category, brand, quantity_in_stock, expiry_date, warranty_expiry_date")
+        .select("id, name, code, serial_number, category, brand, quantity_in_stock, expiry_date, warranty_expiry_date, department")
         .eq("is_active", true)
         .order("code");
+      if (!eqIsAdminDept) {
+        q = q.in("department", eqAllowedNames.length > 0 ? eqAllowedNames : ["__no_dept_permission__"]);
+      }
+      const { data, error } = await q;
       if (error) throw error;
       return data || [];
     },
@@ -638,13 +655,17 @@ function EquipmentViewTab() {
 
   // Media Players
   const { data: mediaPlayers, isLoading: loadingMP } = useQuery({
-    queryKey: ["eq-tracking-media-players-all"],
+    queryKey: ["eq-tracking-media-players-all", eqIsAdminDept, eqAllowedNames.join("|")],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let q = supabase
         .from("media_players")
-        .select("id, name, code, serial_number_1, serial_number_2, brand, billboard_id, install_date, quantity, warranty_expiry_date, location_id, status, device_type, billboard:billboard_id(id, old_code, location_name, equipment_id)")
+        .select("id, name, code, serial_number_1, serial_number_2, brand, billboard_id, install_date, quantity, warranty_expiry_date, location_id, status, device_type, department, billboard:billboard_id(id, old_code, location_name, equipment_id)")
         .eq("is_active", true)
         .order("code");
+      if (!eqIsAdminDept) {
+        q = q.in("department", eqAllowedNames.length > 0 ? eqAllowedNames : ["__no_dept_permission__"]);
+      }
+      const { data, error } = await q;
       if (error) throw error;
       return data || [];
     },

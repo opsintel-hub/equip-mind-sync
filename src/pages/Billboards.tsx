@@ -44,6 +44,7 @@ import BillboardExport from "@/components/billboard/BillboardExport";
 import { BillboardSummaryCards } from "@/components/billboard/BillboardSummaryCards";
 import { DraggableScrollTable } from "@/components/ui/draggable-scroll-table";
 import { useIsSuperAdmin } from "@/hooks/useIsSuperAdmin";
+import { useDeptScope } from "@/hooks/useDeptScope";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { BillboardDbConnection } from "@/components/master-data/BillboardDbConnection";
 import { Database as DatabaseIcon } from "lucide-react";
@@ -136,6 +137,7 @@ const Billboards = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { isSuperAdmin } = useIsSuperAdmin();
+  const { viewableDepts, deptKey, isSuperAdmin: isSA } = useDeptScope();
   const activeTab = searchParams.get("tab") === "sync" ? "sync" : "list";
   const [searchTerm, setSearchTerm] = useState("");
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -232,7 +234,7 @@ const Billboards = () => {
   };
 
   const { data: paginatedData, isLoading, refetch } = useQuery({
-    queryKey: ["billboards", searchTerm, currentPage, pageSize, filters, sortKey, sortDir],
+    queryKey: ["billboards", searchTerm, currentPage, pageSize, filters, sortKey, sortDir, deptKey],
     queryFn: async () => {
       const from = (currentPage - 1) * pageSize;
       const to = from + pageSize - 1;
@@ -291,6 +293,10 @@ const Billboards = () => {
       if (filters.mediaSegment) query = query.eq("media_segment", filters.mediaSegment);
       if (filters.locationName) query = query.ilike("location_name", `%${filters.locationName}%`);
       if (billboardIdsWithEquipmentIssues) query = query.in("id", billboardIdsWithEquipmentIssues);
+      if (!isSA) {
+        const depts = viewableDepts || [];
+        query = query.in("department", depts.length > 0 ? depts : ["__no_dept_permission__"]);
+      }
 
       const { data, error, count } = await query;
       if (error) throw error;

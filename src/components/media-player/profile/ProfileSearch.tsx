@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Search, Monitor, Loader2, MapPin, AlertCircle } from "lucide-react";
 import { formatBillboardLabel } from "@/lib/billboardUtils";
+import { useDeptScope } from "@/hooks/useDeptScope";
 
 interface SearchRow {
   id: string;
@@ -29,6 +30,8 @@ export function ProfileSearch() {
   const [searchTerm, setSearchTerm] = useState("");
   const [searchResults, setSearchResults] = useState<SearchRow[]>([]);
   const [isSearching, setIsSearching] = useState(false);
+  const { isSuperAdmin, viewableDepts, deptKey } = useDeptScope();
+  const scopeDepts = isSuperAdmin ? null : ((viewableDepts && viewableDepts.length > 0) ? viewableDepts : ["__no_dept_permission__"]);
 
   useEffect(() => {
     if (!searchTerm || searchTerm.length < 2) { setSearchResults([]); return; }
@@ -38,12 +41,12 @@ export function ProfileSearch() {
 
       const selectStr = `
         id, code, name, serial_number_1, serial_number_2, status, device_type,
-        asset_code, created_at, location_id, billboard_id,
+        asset_code, created_at, location_id, billboard_id, department,
         locations(name),
         billboard:billboards(equipment_id, old_code, location_name)
       `;
 
-      const { data: directResults } = await supabase
+      let directQ = supabase
         .from("media_players")
         .select(selectStr)
         .eq("is_active", true)
@@ -51,6 +54,8 @@ export function ProfileSearch() {
         .order("code")
         .order("created_at")
         .limit(50);
+      if (scopeDepts) directQ = directQ.in("department", scopeDepts);
+      const { data: directResults } = await directQ;
 
       const { data: receiptMatches } = await supabase
         .from("goods_receipt_pending")
@@ -79,10 +84,12 @@ export function ProfileSearch() {
       }));
 
       if (extraIds.length > 0) {
-        const { data: extraPlayers } = await supabase
+        let extraQ = supabase
           .from("media_players")
           .select(selectStr)
           .in("id", extraIds);
+        if (scopeDepts) extraQ = extraQ.in("department", scopeDepts);
+        const { data: extraPlayers } = await extraQ;
         if (extraPlayers) {
           combined = [
             ...combined,
@@ -94,6 +101,7 @@ export function ProfileSearch() {
         }
       }
 
+
       // Sort by code then created_at to keep groups together
       combined.sort((a, b) => (a.code || "").localeCompare(b.code || "") || (a.created_at || "").localeCompare(b.created_at || ""));
 
@@ -101,7 +109,7 @@ export function ProfileSearch() {
       setIsSearching(false);
     }, 300);
     return () => clearTimeout(timer);
-  }, [searchTerm]);
+  }, [searchTerm, deptKey]);
 
   // Count duplicate codes for unit numbering
   const codeCounts: Record<string, number> = {};

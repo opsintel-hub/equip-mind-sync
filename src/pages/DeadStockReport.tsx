@@ -101,17 +101,22 @@ const DeadStockReport = () => {
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [permLoading, isAdmin, allowedDeptNames.join("|")]);
 
   const fetchData = async () => {
     setIsLoading(true);
-    
+
+    let equipmentQuery = supabase
+      .from("equipment")
+      .select("id, code, name, category, department, quantity_in_stock, unit, unit_price, warehouse_entry_date, location_id, item_condition")
+      .eq("is_active", true)
+      .gt("quantity_in_stock", 0);
+    if (!isAdmin) {
+      equipmentQuery = equipmentQuery.in("department", allowedDeptNames.length > 0 ? allowedDeptNames : ["__no_dept_permission__"]);
+    }
+
     const [equipmentRes, locationsRes, deptRes, catRes] = await Promise.all([
-      supabase
-        .from("equipment")
-        .select("id, code, name, category, department, quantity_in_stock, unit, unit_price, warehouse_entry_date, location_id, item_condition")
-        .eq("is_active", true)
-        .gt("quantity_in_stock", 0),
+      equipmentQuery,
       supabase
         .from("locations")
         .select("id, name")

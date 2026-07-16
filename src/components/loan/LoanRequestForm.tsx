@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { addDays, format } from "date-fns";
 import { Check, ChevronsUpDown, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useDeptScope } from "@/hooks/useDeptScope";
 
 interface Company {
   id: string;
@@ -42,6 +43,8 @@ export function LoanRequestForm({ onSuccess }: LoanRequestFormProps) {
   const [equipment, setEquipment] = useState<Equipment[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const { isSuperAdmin, viewableDepts } = useDeptScope();
+  const scopeDepts = isSuperAdmin ? null : ((viewableDepts && viewableDepts.length > 0) ? viewableDepts : ["__no_dept_permission__"]);
 
   const [fromCompanyId, setFromCompanyId] = useState("");
   const [toCompanyId, setToCompanyId] = useState("");
@@ -95,14 +98,16 @@ export function LoanRequestForm({ onSuccess }: LoanRequestFormProps) {
   };
 
   const fetchEquipment = async () => {
-    const { data, error } = await supabase
+    let q = supabase
       .from("equipment")
       .select("id, code, name, quantity_in_stock, unit, category")
       .eq("company_id", fromCompanyId)
       .eq("is_active", true)
       .gt("quantity_in_stock", 0)
       .order("code");
-    
+    if (scopeDepts) q = q.in("department", scopeDepts);
+    const { data, error } = await q;
+
     if (error) {
       console.error("Error fetching equipment:", error);
     }

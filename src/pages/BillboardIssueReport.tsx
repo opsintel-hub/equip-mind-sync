@@ -14,6 +14,7 @@ import { th } from "date-fns/locale";
 import * as XLSX from "xlsx";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import { CompatibilityBadgeCell } from "@/components/reports/CompatibilityBadgeCell";
+import { useDeptScope } from "@/hooks/useDeptScope";
 
 
 interface BillboardEquipment {
@@ -61,10 +62,12 @@ const BillboardIssueReport = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [regions, setRegions] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const { isSuperAdmin, viewableDepts, deptKey } = useDeptScope();
+  const scopeDepts = isSuperAdmin ? null : ((viewableDepts && viewableDepts.length > 0) ? viewableDepts : ["__no_dept_permission__"]);
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [deptKey]);
 
   const fetchData = async () => {
     setIsLoading(true);
@@ -78,26 +81,30 @@ const BillboardIssueReport = () => {
         equipment_id,
         quantity,
         installation_date,
-        equipment:equipment_id (code, name, unit, unit_price, category, serial_number),
-        billboard:billboard_id (equipment_id, old_code, location_name, region)
+        equipment:equipment_id (code, name, unit, unit_price, category, serial_number, department),
+        billboard:billboard_id (equipment_id, old_code, location_name, region, department)
       `)
       .order("installation_date", { ascending: false });
 
     // Fetch all billboards
-    const { data: billboardsData } = await supabase
+    let bbQuery = supabase
       .from("billboards")
-      .select("id, equipment_id, old_code, location_name, region")
+      .select("id, equipment_id, old_code, location_name, region, department")
       .eq("status", "active")
       .order("old_code");
+    if (scopeDepts) bbQuery = bbQuery.in("department", scopeDepts);
+    const { data: billboardsData } = await bbQuery;
 
     // Fetch installed media players (they live in media_players, not billboard_equipment)
-    const { data: mpData } = await supabase
+    let mpQuery = supabase
       .from("media_players")
       .select(`
-        id, code, name, billboard_id, install_date, unit_price, serial_number_1,
-        billboard:billboard_id (equipment_id, old_code, location_name, region)
+        id, code, name, billboard_id, install_date, unit_price, serial_number_1, department,
+        billboard:billboard_id (equipment_id, old_code, location_name, region, department)
       `)
       .not("billboard_id", "is", null);
+    if (scopeDepts) mpQuery = mpQuery.in("department", scopeDepts);
+    const { data: mpData } = await mpQuery;
 
     const bbMap = new Map((billboardsData || []).map((b: any) => [b.id, b]));
     const mpRows: BillboardEquipment[] = (mpData || []).map((mp: any) => {
@@ -127,7 +134,15 @@ const BillboardIssueReport = () => {
       };
     });
 
-    const typedData = [...((beData || []) as unknown as BillboardEquipment[]), ...mpRows];
+    let beRows = ((beData || []) as unknown as BillboardEquipment[]);
+    if (scopeDepts) {
+      const setDepts = new Set(scopeDepts);
+      beRows = beRows.filter((r: any) => {
+        const d = r.billboard?.department || r.equipment?.department;
+        return d && setDepts.has(d);
+      });
+    }
+    const typedData = [...beRows, ...mpRows];
     setBillboardEquipment(typedData);
     setBillboards(billboardsData || []);
 

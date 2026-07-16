@@ -19,6 +19,7 @@ import { format, differenceInDays } from "date-fns";
 import { th } from "date-fns/locale";
 import { useAuth } from "@/hooks/useAuth";
 import { CompatibilityBadgeCell } from "@/components/reports/CompatibilityBadgeCell";
+import { useDeptScope } from "@/hooks/useDeptScope";
 
 import { WarehouseLocationSelect } from "@/components/location/WarehouseLocationSelect";
 import { SimpleDepartmentSelect } from "@/components/equipment/SimpleDepartmentSelect";
@@ -74,6 +75,8 @@ interface EquipmentWithStock {
 const WaitingStockRequests = () => {
   const queryClient = useQueryClient();
   const { user } = useAuth();
+  const { isSuperAdmin, viewableDepts, deptKey } = useDeptScope();
+  const scopeDepts = isSuperAdmin ? null : ((viewableDepts && viewableDepts.length > 0) ? viewableDepts : ["__no_dept_permission__"]);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedRequest, setSelectedRequest] = useState<WaitingRequest | null>(null);
   const [selectedItem, setSelectedItem] = useState<PendingItem | null>(null);
@@ -91,13 +94,15 @@ const WaitingStockRequests = () => {
 
   // Fetch waiting_stock requests only with company info
   const { data: waitingRequests, isLoading } = useQuery({
-    queryKey: ["waiting-stock-requests"],
+    queryKey: ["waiting-stock-requests", deptKey],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let q = supabase
         .from("goods_issue_pending")
         .select("*, companies(name)")
         .eq("status", "waiting_stock")
         .order("created_at", { ascending: false });
+      if (scopeDepts) q = q.in("requester_department", scopeDepts);
+      const { data, error } = await q;
       if (error) throw error;
       return data as (WaitingRequest & { companies: { name: string } | null })[];
     },

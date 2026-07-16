@@ -16,6 +16,7 @@ import { th } from "date-fns/locale";
 import { Plus, Search, RefreshCw, Calendar, Wrench, PlayCircle, Pause, Edit, Trash2, BookOpen, ChevronDown, ChevronRight } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useAllowedDepartments } from "@/hooks/useAllowedDepartments";
+import { useDeptScope } from "@/hooks/useDeptScope";
 
 const ToolPMSchedule = () => {
   const queryClient = useQueryClient();
@@ -24,12 +25,14 @@ const ToolPMSchedule = () => {
   const [departmentFilter, setDepartmentFilter] = useState<string>("all");
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [selectedTool, setSelectedTool] = useState<string>("");
+  const { isSuperAdmin, viewableDepts, deptKey } = useDeptScope();
+  const scopeDepts = isSuperAdmin ? null : ((viewableDepts && viewableDepts.length > 0) ? viewableDepts : ["__no_dept_permission__"]);
 
   // Fetch all tools
   const { data: tools = [] } = useQuery({
-    queryKey: ["tools-for-pm"],
+    queryKey: ["tools-for-pm", deptKey],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let q = supabase
         .from("tools")
         .select(`
           *,
@@ -39,7 +42,8 @@ const ToolPMSchedule = () => {
         `)
         .eq("is_active", true)
         .order("code");
-      
+      if (scopeDepts) q = q.in("department", scopeDepts);
+      const { data, error } = await q;
       if (error) throw error;
       return data;
     }
@@ -47,10 +51,10 @@ const ToolPMSchedule = () => {
 
   // Fetch existing PM tasks grouped by tool
   const { data: pmSummary = [], isLoading, refetch } = useQuery({
-    queryKey: ["tool-pm-summary"],
+    queryKey: ["tool-pm-summary", deptKey],
     queryFn: async () => {
       // Get all tools with their PM tasks
-      const { data: toolsData, error: toolsError } = await supabase
+      let toolsQ = supabase
         .from("tools")
         .select(`
           id,
@@ -64,6 +68,8 @@ const ToolPMSchedule = () => {
         `)
         .eq("is_active", true)
         .order("code");
+      if (scopeDepts) toolsQ = toolsQ.in("department", scopeDepts);
+      const { data: toolsData, error: toolsError } = await toolsQ;
 
       if (toolsError) throw toolsError;
 

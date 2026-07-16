@@ -229,18 +229,27 @@ export default function StockCard() {
     [receivedSerialAliases],
   );
 
+  const deptScopeKey = isSuperAdmin ? "*" : [...(viewableDepts || [])].sort().join("|") || "__none__";
+  const scopeDepts = isSuperAdmin
+    ? null
+    : ((viewableDepts && viewableDepts.length > 0) ? viewableDepts : ["__no_dept_permission__"]);
+
   // ── Fetch all items for search ──
   const { data: allItems = [] } = useQuery({
-    queryKey: ["stock-card-items"],
+    queryKey: ["stock-card-items", deptScopeKey],
     staleTime: 5 * 60 * 1000,
     queryFn: async () => {
       const items: EquipmentItem[] = [];
 
-      const [eqRes, mpRes, toolRes] = await Promise.all([
-        supabase.from("equipment").select("id, code, name, serial_number, category, brand, unit, department, quantity_in_stock, item_condition, location_id, po_item_no, warranty_years, warranty_expiry_date, locations:location_id(id, code, name, warehouses:warehouse_id(code, name))").eq("is_active", true),
-        supabase.from("media_players").select("id, code, name, serial_number_1, serial_number_2, brand, unit, department, quantity, item_condition, status, billboard_id, location_id, po_item_no, warranty_years, warranty_expiry_date, device_type, locations:location_id(id, code, name, warehouses:warehouse_id(code, name)), billboard:billboard_id(equipment_id, old_code, location_name)").eq("is_active", true),
-        supabase.from("tools").select("id, code, name, serial_number, brand, unit, department, current_quantity, location_id, locations:location_id(id, code, name, warehouses:warehouse_id(code, name))").eq("is_active", true),
-      ]);
+      let eqQ = supabase.from("equipment").select("id, code, name, serial_number, category, brand, unit, department, quantity_in_stock, item_condition, location_id, po_item_no, warranty_years, warranty_expiry_date, locations:location_id(id, code, name, warehouses:warehouse_id(code, name))").eq("is_active", true);
+      let mpQ = supabase.from("media_players").select("id, code, name, serial_number_1, serial_number_2, brand, unit, department, quantity, item_condition, status, billboard_id, location_id, po_item_no, warranty_years, warranty_expiry_date, device_type, locations:location_id(id, code, name, warehouses:warehouse_id(code, name)), billboard:billboard_id(equipment_id, old_code, location_name)").eq("is_active", true);
+      let toolQ = supabase.from("tools").select("id, code, name, serial_number, brand, unit, department, current_quantity, location_id, locations:location_id(id, code, name, warehouses:warehouse_id(code, name))").eq("is_active", true);
+      if (scopeDepts) {
+        eqQ = eqQ.in("department", scopeDepts);
+        mpQ = mpQ.in("department", scopeDepts);
+        toolQ = toolQ.in("department", scopeDepts);
+      }
+      const [eqRes, mpRes, toolRes] = await Promise.all([eqQ, mpQ, toolQ]);
 
       eqRes.data?.forEach(e => items.push({
         id: e.id, code: e.code, name: e.name, serial_number: formatMergedSerials(e.serial_number, equipmentAliasMap[e.id]) || null,

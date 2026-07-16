@@ -17,6 +17,7 @@ import {
   fetchEquipmentCompatModes,
   getCompatibilityBadge,
 } from "@/lib/compatibility";
+import { useDeptScope } from "@/hooks/useDeptScope";
 
 /**
  * "อะไหล่พร้อมเบิกตามป้าย"
@@ -31,31 +32,37 @@ const BillboardPartsAvailability = () => {
   const [equipmentSearch, setEquipmentSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [onlyInStock, setOnlyInStock] = useState<boolean>(true);
+  const { isSuperAdmin, viewableDepts, deptKey } = useDeptScope();
+  const scopeDepts = isSuperAdmin ? null : ((viewableDepts && viewableDepts.length > 0) ? viewableDepts : ["__no_dept_permission__"]);
 
   // ── Data ──
   const { data: billboards = [] } = useQuery({
-    queryKey: ["bpa-billboards"],
+    queryKey: ["bpa-billboards", deptKey],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let q = supabase
         .from("billboards")
         .select("id, equipment_id, old_code, location_name, region, department")
         .eq("status", "active")
         .order("old_code");
+      if (scopeDepts) q = q.in("department", scopeDepts);
+      const { data, error } = await q;
       if (error) throw error;
       return data || [];
     },
   });
 
   const { data: equipment = [] } = useQuery({
-    queryKey: ["bpa-equipment"],
+    queryKey: ["bpa-equipment", deptKey],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let q = supabase
         .from("equipment")
         .select(
           "id, code, name, category, brand, unit, quantity_in_stock, department, billboard_compatibility_mode, compatibility_notes, locations:location_id(code, name, warehouses:warehouse_id(code, name))"
         )
         .eq("is_active", true)
         .order("code");
+      if (scopeDepts) q = q.in("department", scopeDepts);
+      const { data, error } = await q;
       if (error) throw error;
       return data || [];
     },

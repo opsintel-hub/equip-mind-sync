@@ -5,6 +5,7 @@ import { ToolForm } from "@/components/tools/ToolForm";
 import { ToolImport } from "@/components/tools/ToolImport";
 import { ToolList } from "@/components/tools/ToolList";
 import { supabase } from "@/integrations/supabase/client";
+import { useDeptScope } from "@/hooks/useDeptScope";
 
 const ToolManagement = () => {
   const [refreshKey, setRefreshKey] = useState(0);
@@ -15,6 +16,7 @@ const ToolManagement = () => {
     personalTools: 0,
     assets: 0,
   });
+  const { isSuperAdmin, viewableDepts, deptKey } = useDeptScope();
 
   const handleSuccess = () => {
     setRefreshKey((prev) => prev + 1);
@@ -22,17 +24,26 @@ const ToolManagement = () => {
 
   useEffect(() => {
     fetchStats();
-  }, [refreshKey]);
+  }, [refreshKey, deptKey]);
+
+  const scopeDepts = isSuperAdmin
+    ? null
+    : ((viewableDepts && viewableDepts.length > 0) ? viewableDepts : ["__no_dept_permission__"]);
 
   const fetchStats = async () => {
+    const base = () => {
+      let q = supabase.from("tools").select("id", { count: "exact" }).eq("is_active", true);
+      if (scopeDepts) q = q.in("department", scopeDepts);
+      return q;
+    };
     const [totalRes, warrantyRes, personalRes, assetRes] = await Promise.all([
-      supabase.from("tools").select("id", { count: "exact" }).eq("is_active", true),
-      supabase.from("tools").select("id", { count: "exact" }).eq("is_active", true).eq("has_warranty", true),
-      supabase.from("tools").select("id", { count: "exact" }).eq("is_active", true).eq("is_personal_tool", true),
-      supabase.from("tools").select("id", { count: "exact" }).eq("is_active", true).eq("is_asset", true),
+      base(),
+      base().eq("has_warranty", true),
+      base().eq("is_personal_tool", true),
+      base().eq("is_asset", true),
     ]);
 
-    // Count categories
+    // Count categories (not dept-scoped)
     const { data: catData } = await supabase.from("tool_categories").select("id", { count: "exact" }).eq("is_active", true);
 
     setStats({
