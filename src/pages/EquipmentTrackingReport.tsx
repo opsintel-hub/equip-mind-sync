@@ -837,8 +837,8 @@ function EquipmentViewTab() {
       if (categoryFilter !== "all" && item.category !== categoryFilter) return false;
       if (brandFilter !== "all" && item.brand !== brandFilter) return false;
       if (installFilter === "installed" && !item.isInstalled) return false;
-      if (installFilter === "in_stock" && (item.isInstalled || (item as any).isIssuedPending)) return false;
-      if (installFilter === "pending" && !(item as any).isIssuedPending) return false;
+      if (installFilter === "in_stock" && (item.isInstalled || (item as any).isIssuedPending || Number(item.quantity_in_stock || 0) <= 0)) return false;
+      if (installFilter === "pending" && !((item as any).pendingCount > 0)) return false;
       return true;
     });
   }, [allItems, search, snSearch, typeFilter, categoryFilter, brandFilter, installFilter]);
