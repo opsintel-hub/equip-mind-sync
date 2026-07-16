@@ -18,6 +18,7 @@ import { toast } from "sonner";
 import { Search, AlertTriangle, MapPin, Package, RefreshCw, Clock, ChevronDown, ChevronRight, ShoppingCart, Edit, Warehouse } from "lucide-react";
 import { format } from "date-fns";
 import { th } from "date-fns/locale";
+import { useDeptScope } from "@/hooks/useDeptScope";
 import { useAuth } from "@/hooks/useAuth";
 import BillboardSelect from "@/components/billboard/BillboardSelect";
 import { WarehouseLocationSelect } from "@/components/location/WarehouseLocationSelect";
