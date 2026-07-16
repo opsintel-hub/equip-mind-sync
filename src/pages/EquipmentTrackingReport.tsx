@@ -994,13 +994,17 @@ function EquipmentViewTab() {
                   <TableCell className="text-center">{item.quantity_in_stock}</TableCell>
 
                   <TableCell>
-                    {item.isInstalled ? (
-                      <Badge className="bg-emerald-500 text-white hover:bg-emerald-600 text-xs"><MapPin className="w-3 h-3 mr-1" />{item.installedBillboard || "ติดตั้งบนป้าย"}</Badge>
-                    ) : item.isIssuedPending ? (
-                      <Badge variant="outline" className="text-xs bg-orange-500/10 text-orange-600 border-orange-500/20">จ่ายแล้ว / รอระบุป้าย</Badge>
-                    ) : (
-                      <span className="text-muted-foreground text-xs">ในคลัง</span>
-                    )}
+                    <div className="flex flex-col gap-1">
+                      {item.isInstalled && (
+                        <Badge className="bg-emerald-500 text-white hover:bg-emerald-600 text-xs w-fit"><MapPin className="w-3 h-3 mr-1" />{item.installedBillboard || "ติดตั้งบนป้าย"}</Badge>
+                      )}
+                      {(item as any).pendingCount > 0 && (
+                        <Badge variant="outline" className="text-xs bg-orange-500/10 text-orange-600 border-orange-500/20 w-fit">จ่ายแล้ว / รอระบุป้าย · {(item as any).pendingCount}</Badge>
+                      )}
+                      {!item.isInstalled && !((item as any).pendingCount > 0) && (
+                        <span className="text-muted-foreground text-xs">ในคลัง</span>
+                      )}
+                    </div>
                   </TableCell>
                   <TableCell className="text-xs whitespace-nowrap">{item.isInstalled ? fmtDate(item.install_date) : <span className="text-muted-foreground">-</span>}</TableCell>
                   <TableCell className="whitespace-nowrap">
