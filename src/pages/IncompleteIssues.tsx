@@ -257,8 +257,10 @@ const IncompleteIssues = () => {
         .from("goods_issue_pending_items")
         .update({
           billboard_id: billboardId,
+          install_status: "installed",
+          intended_billboard_id: null,
           notes: (selectedItem.notes || "") + ` | ติดตั้งที่ป้าย`,
-        })
+        } as any)
         .eq("id", selectedItem.id);
 
       if (itemError) throw itemError;
