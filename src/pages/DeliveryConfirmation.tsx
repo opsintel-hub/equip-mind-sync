@@ -526,10 +526,12 @@ const DeliveryConfirmation = () => {
                               <Button size="sm" variant="outline" onClick={() => { setViewConfirmation(getConfirmation(req.id)); setViewDialogOpen(true); }}>
                                 <Eye className="h-4 w-4 mr-1" />ดูรายละเอียด
                               </Button>
-                            ) : (
+                            ) : canConfirmRequest(req) ? (
                               <Button size="sm" onClick={() => { setSelectedRequest(req); setConfirmDialogOpen(true); }}>
                                 <CheckCircle className="h-4 w-4 mr-1" />ยืนยันรับ
                               </Button>
+                            ) : (
+                              <Badge variant="outline" className="text-xs">เฉพาะผู้ขอ/แอดมินฝ่าย</Badge>
                             )}
                           </TableCell>
                         </TableRow>
