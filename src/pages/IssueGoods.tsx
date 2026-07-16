@@ -88,6 +88,8 @@ interface PendingItem {
 const IssueGoods = () => {
   const queryClient = useQueryClient();
   const { user } = useAuth();
+  const { isSuperAdmin, viewableDepts, deptKey } = useDeptScope();
+  const scopeDepts = isSuperAdmin ? null : ((viewableDepts && viewableDepts.length > 0) ? viewableDepts : ["__no_dept_permission__"]);
   const [searchTerm, setSearchTerm] = useState("");
   const [snSearchTerm, setSnSearchTerm] = useState("");
   const [selectedRequest, setSelectedRequest] = useState<PendingRequest | null>(null);
