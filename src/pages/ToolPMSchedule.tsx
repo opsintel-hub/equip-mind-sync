@@ -16,6 +16,7 @@ import { th } from "date-fns/locale";
 import { Plus, Search, RefreshCw, Calendar, Wrench, PlayCircle, Pause, Edit, Trash2, BookOpen, ChevronDown, ChevronRight } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useAllowedDepartments } from "@/hooks/useAllowedDepartments";
+import { useDeptScope } from "@/hooks/useDeptScope";
 
 const ToolPMSchedule = () => {
   const queryClient = useQueryClient();
@@ -24,6 +25,8 @@ const ToolPMSchedule = () => {
   const [departmentFilter, setDepartmentFilter] = useState<string>("all");
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [selectedTool, setSelectedTool] = useState<string>("");
+  const { isSuperAdmin, viewableDepts, deptKey } = useDeptScope();
+  const scopeDepts = isSuperAdmin ? null : ((viewableDepts && viewableDepts.length > 0) ? viewableDepts : ["__no_dept_permission__"]);
 
   // Fetch all tools
   const { data: tools = [] } = useQuery({
