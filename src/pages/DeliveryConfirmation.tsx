@@ -521,7 +521,7 @@ const DeliveryConfirmation = () => {
                                     <div className="flex flex-wrap gap-1">
                                       {labels.map((l, i) => (
                                         <Badge key={i} className="bg-amber-100 text-amber-800 text-xs gap-1">
-                                          <MapPinIcon />รอติดตั้ง: {l}
+                                          <MapPin className="h-3 w-3" />รอติดตั้ง: {l}
                                         </Badge>
                                       ))}
                                     </div>
