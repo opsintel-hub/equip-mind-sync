@@ -521,9 +521,16 @@ const ReceiveGoods = () => {
     }
   };
 
-  // Get filtered locations by selected warehouse
+  // Get filtered locations by selected warehouse (sorted by zone then code)
   const filteredLocations = selectedWarehouseId 
-    ? locations.filter(loc => loc.warehouse_id === selectedWarehouseId)
+    ? locations
+        .filter(loc => loc.warehouse_id === selectedWarehouseId)
+        .sort((a, b) => {
+          const az = a.zone_code || "zzz";
+          const bz = b.zone_code || "zzz";
+          if (az !== bz) return az.localeCompare(bz);
+          return (a.code || "").localeCompare(b.code || "");
+        })
     : [];
 
   // Handle warehouse change
