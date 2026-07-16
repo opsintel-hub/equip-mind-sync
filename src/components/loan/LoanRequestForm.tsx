@@ -98,14 +98,16 @@ export function LoanRequestForm({ onSuccess }: LoanRequestFormProps) {
   };
 
   const fetchEquipment = async () => {
-    const { data, error } = await supabase
+    let q = supabase
       .from("equipment")
       .select("id, code, name, quantity_in_stock, unit, category")
       .eq("company_id", fromCompanyId)
       .eq("is_active", true)
       .gt("quantity_in_stock", 0)
       .order("code");
-    
+    if (scopeDepts) q = q.in("department", scopeDepts);
+    const { data, error } = await q;
+
     if (error) {
       console.error("Error fetching equipment:", error);
     }
