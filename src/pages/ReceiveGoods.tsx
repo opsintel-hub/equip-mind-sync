@@ -105,6 +105,9 @@ interface Location {
   warehouse_id: string | null;
   volume_cm3: number | null;
   used_volume_cm3: number | null;
+  zone_id?: string | null;
+  zone_code?: string | null;
+  zone_name?: string | null;
 }
 
 /**
