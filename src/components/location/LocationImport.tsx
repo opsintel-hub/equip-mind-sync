@@ -257,12 +257,20 @@ export function LocationImport({ onSuccess }: LocationImportProps) {
             if (!zoneId) {
               const { data: existingZone } = await supabase
                 .from("zones")
-                .select("id")
+                .select("id, is_active")
                 .eq("warehouse_id", wh.id)
                 .eq("code", String(zoneCode).trim())
                 .maybeSingle();
               if (existingZone) {
                 zoneId = existingZone.id;
+                // Reactivate soft-deleted zone + refresh name
+                await supabase
+                  .from("zones")
+                  .update({
+                    is_active: true,
+                    name: zoneName ? String(zoneName).trim() : String(zoneCode).trim(),
+                  })
+                  .eq("id", existingZone.id);
               } else {
                 const { data: newZone, error: zErr } = await supabase
                   .from("zones")
@@ -270,6 +278,7 @@ export function LocationImport({ onSuccess }: LocationImportProps) {
                     warehouse_id: wh.id,
                     code: String(zoneCode).trim(),
                     name: zoneName ? String(zoneName).trim() : String(zoneCode).trim(),
+                    is_active: true,
                     created_by: userData?.user?.id,
                   })
                   .select("id")
