@@ -117,6 +117,7 @@ export function UserPermissionManager() {
   const [editDepartment, setEditDepartment] = useState<string>("");
   const [editSaving, setEditSaving] = useState(false);
   const [editSelectedPresets, setEditSelectedPresets] = useState<string[]>([]);
+  const [editDeptAccess, setEditDeptAccess] = useState<string[]>([]);
   const [allPresets, setAllPresets] = useState<PermissionPreset[]>([]);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleteBusy, setDeleteBusy] = useState(false);
