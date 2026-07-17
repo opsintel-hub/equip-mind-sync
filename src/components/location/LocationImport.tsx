@@ -151,7 +151,8 @@ export function LocationImport({ onSuccess }: LocationImportProps) {
       const findSheet = (names: string[]) =>
         wb.SheetNames.find((n) => names.some((name) => n.trim().toLowerCase() === name.toLowerCase()));
       const whSheetName = findSheet(["Warehouses", "Warehouse", "คลัง", "คลังสินค้า"]);
-      const locSheetName = findSheet(["Locations", "Location", "ตำแหน่ง", "ตำแหน่งจัดเก็บ"]) || wb.SheetNames[0];
+      const explicitLocSheetName = findSheet(["Locations", "Location", "ตำแหน่ง", "ตำแหน่งจัดเก็บ"]);
+      const locSheetName = explicitLocSheetName || (!whSheetName ? wb.SheetNames[0] : undefined);
 
       const whRows: Record<string, any>[] = whSheetName
         ? (XLSX.utils.sheet_to_json(wb.Sheets[whSheetName]) as any[])
@@ -278,7 +279,7 @@ export function LocationImport({ onSuccess }: LocationImportProps) {
           continue;
         }
 
-        const locationCode = String(code).trim();
+        const locationCode = normalizeCode(code);
 
         try {
           if (wh.is_active !== true) {
