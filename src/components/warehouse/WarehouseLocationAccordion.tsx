@@ -316,6 +316,7 @@ export function WarehouseLocationAccordion({ canManageWarehouse, canManageLocati
           <Button variant="outline" size="sm" onClick={collapseAll}>
             <ChevronsDownUp className="h-4 w-4 mr-1.5" />ยุบทั้งหมด
           </Button>
+          {canManageWarehouse && <WarehouseImport onSuccess={load} />}
           {canManageLocation && <LocationImport onSuccess={load} />}
           {canManageWarehouse && <WarehouseForm onSuccess={load} />}
         </div>
