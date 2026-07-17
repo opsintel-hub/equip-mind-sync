@@ -95,7 +95,8 @@ function areaBadge(area: string | null) {
   }
 }
 
-const M3 = (cm3: number) => (cm3 / 1_000_000).toFixed(2);
+// Values are stored directly in cubic meters (m³) even though the column is legacy-named `volume_cm3`.
+const M3 = (m3: number) => (m3 || 0).toFixed(2);
 
 export function WarehouseLocationAccordion({ canManageWarehouse, canManageLocation }: Props) {
   const [warehouses, setWarehouses] = useState<WarehouseData[]>([]);
