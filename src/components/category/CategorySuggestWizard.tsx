@@ -44,6 +44,9 @@ export function CategorySuggestWizard({
   const [results, setResults] = useState<Suggestion[] | null>(null);
   const [noMatch, setNoMatch] = useState<{ suggested_new?: string } | null>(null);
 
+  const [catsCache, setCatsCache] = useState<CatLite[]>([]);
+  const [subsCache, setSubsCache] = useState<CatLite[]>([]);
+
   const parentTable = entryType === "tool" ? "tool_categories" : "categories";
   const childTable = entryType === "tool" ? "tool_subcategories" : "subcategories";
   const childFk = entryType === "tool" ? "tool_category_id" : "category_id";
