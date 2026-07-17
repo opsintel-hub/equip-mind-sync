@@ -691,6 +691,35 @@ export function UserPermissionManager() {
                         <span className="text-muted-foreground">-</span>
                       )}
                     </TableCell>
+                    <TableCell>
+                      {(() => {
+                        const depts = userDeptsByUser[user.id] || [];
+                        if (isAdmin(user.id)) {
+                          return (
+                            <Badge variant="secondary" className="text-xs bg-green-100 text-green-800 dark:bg-green-950 dark:text-green-300">
+                              ทุกฝ่าย (Admin)
+                            </Badge>
+                          );
+                        }
+                        if (depts.length === 0) {
+                          return <span className="text-xs text-muted-foreground">-</span>;
+                        }
+                        const shown = depts.slice(0, 2);
+                        const rest = depts.length - shown.length;
+                        return (
+                          <div className="flex flex-wrap gap-1 max-w-[220px]">
+                            {shown.map((d) => (
+                              <Badge key={d} variant="outline" className="text-[10px]">{d}</Badge>
+                            ))}
+                            {rest > 0 && (
+                              <Badge variant="secondary" className="text-[10px]" title={depts.join(", ")}>
+                                +{rest}
+                              </Badge>
+                            )}
+                          </div>
+                        );
+                      })()}
+                    </TableCell>
                     <TableCell className="text-muted-foreground">{user.email || "-"}</TableCell>
                     <TableCell>{user.phone || "-"}</TableCell>
                       <TableCell>
