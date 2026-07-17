@@ -191,10 +191,11 @@ export function LocationImport({ onSuccess }: LocationImportProps) {
             storage_area: areaStr,
             department: deptStr,
             description: description ? String(description).trim() : null,
+            is_active: true,
           };
           const { data: existing } = await supabase
             .from("warehouses")
-            .select("id")
+            .select("id, is_active")
             .eq("code", codeStr)
             .maybeSingle();
           if (existing) {
@@ -310,7 +311,8 @@ export function LocationImport({ onSuccess }: LocationImportProps) {
 
           const { data: existingLocation } = await supabase
             .from("locations")
-            .select("id")
+            .select("id, is_active")
+            .eq("warehouse_id", wh.id)
             .eq("code", locationCode)
             .maybeSingle();
 
@@ -319,7 +321,7 @@ export function LocationImport({ onSuccess }: LocationImportProps) {
           if (existingLocation) {
             const { error } = await supabase
               .from("locations")
-              .update({ ...payload, updated_at: new Date().toISOString() })
+              .update({ ...payload, is_active: true, updated_at: new Date().toISOString() })
               .eq("id", existingLocation.id);
             if (error) throw error;
             summary.updated++;

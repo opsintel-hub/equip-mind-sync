@@ -269,14 +269,28 @@ export function WarehouseLocationAccordion({ canManageWarehouse, canManageLocati
       toast.error("กรุณาระบุรหัสและชื่อโซน");
       return;
     }
+    const code = zoneDraft.code.trim();
+    const name = zoneDraft.name.trim();
+    const description = zoneDraft.description.trim() || null;
     const { data: { user } } = await supabase.auth.getUser();
     if (zoneDialog.zone) {
+      const { data: duplicate } = await supabase
+        .from("zones")
+        .select("id")
+        .eq("warehouse_id", zoneDialog.warehouseId)
+        .eq("code", code)
+        .neq("id", zoneDialog.zone.id)
+        .maybeSingle();
+      if (duplicate) {
+        toast.error("รหัสโซนนี้มีอยู่แล้วในคลังที่เลือก");
+        return;
+      }
       const { error } = await supabase
         .from("zones")
         .update({
-          code: zoneDraft.code.trim(),
-          name: zoneDraft.name.trim(),
-          description: zoneDraft.description.trim() || null,
+          code,
+          name,
+          description,
         })
         .eq("id", zoneDialog.zone.id);
       if (error) return toast.error(error.message);
@@ -287,14 +301,14 @@ export function WarehouseLocationAccordion({ canManageWarehouse, canManageLocati
         .from("zones")
         .select("id, is_active")
         .eq("warehouse_id", zoneDialog.warehouseId)
-        .eq("code", zoneDraft.code.trim())
+        .eq("code", code)
         .maybeSingle();
       if (existing) {
         const { error } = await supabase
           .from("zones")
           .update({
-            name: zoneDraft.name.trim(),
-            description: zoneDraft.description.trim() || null,
+            name,
+            description,
             is_active: true,
           })
           .eq("id", existing.id);
@@ -303,9 +317,9 @@ export function WarehouseLocationAccordion({ canManageWarehouse, canManageLocati
       } else {
         const { error } = await supabase.from("zones").insert({
           warehouse_id: zoneDialog.warehouseId,
-          code: zoneDraft.code.trim(),
-          name: zoneDraft.name.trim(),
-          description: zoneDraft.description.trim() || null,
+          code,
+          name,
+          description,
           is_active: true,
           created_by: user?.id,
         });

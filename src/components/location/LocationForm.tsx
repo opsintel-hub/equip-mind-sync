@@ -138,12 +138,13 @@ export function LocationForm({
         return;
       }
 
+      const locationCode = values.code.trim();
       const payload = {
         warehouse_id: values.warehouse_id,
         zone_id: values.zone_id || null,
-        code: values.code,
-        name: values.name,
-        description: values.description || null,
+        code: locationCode,
+        name: values.name.trim(),
+        description: values.description?.trim() || null,
         storage_area: values.storage_area || null,
         width_cm: widthCm || null,
         height_cm: heightCm || null,
@@ -152,10 +153,43 @@ export function LocationForm({
       };
 
       if (location) {
+        const { data: duplicate } = await supabase
+          .from("locations")
+          .select("id")
+          .eq("warehouse_id", values.warehouse_id)
+          .eq("code", locationCode)
+          .neq("id", location.id)
+          .maybeSingle();
+        if (duplicate) {
+          toast.error("รหัสตำแหน่งนี้มีอยู่แล้วในคลังที่เลือก");
+          return;
+        }
         const { error } = await supabase.from("locations").update(payload).eq("id", location.id);
         if (error) throw error;
         toast.success("อัพเดทตำแหน่งจัดเก็บสำเร็จ");
       } else {
+        const { data: existing } = await supabase
+          .from("locations")
+          .select("id, is_active")
+          .eq("warehouse_id", values.warehouse_id)
+          .eq("code", locationCode)
+          .maybeSingle();
+        if (existing?.is_active) {
+          toast.error("รหัสตำแหน่งนี้มีอยู่แล้วในคลังที่เลือก");
+          return;
+        }
+        if (existing) {
+          const { error } = await supabase
+            .from("locations")
+            .update({ ...payload, used_volume_cm3: 0, is_active: true, created_by: user.id })
+            .eq("id", existing.id);
+          if (error) throw error;
+          toast.success("กู้คืนและอัพเดทตำแหน่งจัดเก็บสำเร็จ");
+          form.reset();
+          setOpen(false);
+          onSuccess();
+          return;
+        }
         const { error } = await supabase
           .from("locations")
           .insert({ ...payload, used_volume_cm3: 0, created_by: user.id });

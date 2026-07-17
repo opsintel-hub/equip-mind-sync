@@ -77,28 +77,54 @@ export function WarehouseForm({ onSuccess, editData }: WarehouseFormProps) {
   const onSubmit = async (data: WarehouseFormValues) => {
     setIsLoading(true);
     try {
+      const code = data.code.trim();
+      const payload = {
+        code,
+        name: data.name.trim(),
+        description: data.description?.trim() || null,
+        storage_area: data.storage_area,
+        department: data.department || null,
+        is_active: true,
+      };
+
       if (editData) {
+        const { data: duplicate } = await supabase
+          .from("warehouses")
+          .select("id")
+          .eq("code", code)
+          .neq("id", editData.id)
+          .maybeSingle();
+        if (duplicate) {
+          toast.error("รหัสคลังนี้มีอยู่แล้ว");
+          return;
+        }
         const { error } = await supabase
           .from("warehouses")
-          .update({
-            code: data.code,
-            name: data.name,
-            description: data.description || null,
-            storage_area: data.storage_area,
-            department: data.department || null,
-          })
+          .update(payload)
           .eq("id", editData.id);
 
         if (error) throw error;
         toast.success("แก้ไขคลังสินค้าสำเร็จ");
       } else {
-        const { error } = await supabase.from("warehouses").insert({
-          code: data.code,
-          name: data.name,
-          description: data.description || null,
-          storage_area: data.storage_area,
-          department: data.department || null,
-        });
+        const { data: existing } = await supabase
+          .from("warehouses")
+          .select("id, is_active")
+          .eq("code", code)
+          .maybeSingle();
+        if (existing?.is_active) {
+          toast.error("รหัสคลังนี้มีอยู่แล้ว");
+          return;
+        }
+        if (existing) {
+          const { error } = await supabase.from("warehouses").update(payload).eq("id", existing.id);
+          if (error) throw error;
+          toast.success("กู้คืนและอัพเดทคลังสินค้าสำเร็จ");
+          form.reset();
+          setOpen(false);
+          onSuccess?.();
+          return;
+        }
+        const { error } = await supabase.from("warehouses").insert(payload);
 
         if (error) throw error;
         toast.success("เพิ่มคลังสินค้าสำเร็จ");
