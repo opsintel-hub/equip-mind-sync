@@ -39,6 +39,7 @@ import { cn } from "@/lib/utils";
 import { WarehouseForm } from "./WarehouseForm";
 import { LocationForm } from "@/components/location/LocationForm";
 import { LocationImport } from "@/components/location/LocationImport";
+import { WarehouseImport } from "@/components/warehouse/WarehouseImport";
 
 interface LocationData {
   id: string;
