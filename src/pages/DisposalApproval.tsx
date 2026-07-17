@@ -329,7 +329,12 @@ export default function DisposalApproval() {
         if (eq) { itemCode = eq.code; itemName = eq.name; }
       }
 
-      const { data: loc } = await supabase.from("locations").select("id").eq("code", "LOC-DEFECT").maybeSingle();
+      const { data: loc } = await supabase
+        .from("locations")
+        .select("id, warehouses:warehouse_id!inner(code)")
+        .eq("code", "LOC-DEFECT")
+        .eq("warehouses.code", "WH-DEFECT")
+        .maybeSingle();
       const nowIso = new Date().toISOString();
 
       if (isFinalDisposal) {

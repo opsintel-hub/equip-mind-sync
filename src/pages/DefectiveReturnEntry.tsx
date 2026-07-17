@@ -590,7 +590,12 @@ const DefectiveReturnEntry = () => {
 
   // Get quarantine location for defective items
   const getQuarantineLocationId = async (): Promise<string | null> => {
-    const { data } = await supabase.from("locations").select("id").eq("code", "LOC-DEFECT").maybeSingle();
+    const { data } = await supabase
+      .from("locations")
+      .select("id, warehouses:warehouse_id!inner(code)")
+      .eq("code", "LOC-DEFECT")
+      .eq("warehouses.code", "WH-DEFECT")
+      .maybeSingle();
     return data?.id || null;
   };
 
