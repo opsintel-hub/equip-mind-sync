@@ -39,7 +39,6 @@ import { cn } from "@/lib/utils";
 import { WarehouseForm } from "./WarehouseForm";
 import { LocationForm } from "@/components/location/LocationForm";
 import { LocationImport } from "@/components/location/LocationImport";
-import { WarehouseImport } from "@/components/warehouse/WarehouseImport";
 
 interface LocationData {
   id: string;
@@ -317,7 +316,6 @@ export function WarehouseLocationAccordion({ canManageWarehouse, canManageLocati
           <Button variant="outline" size="sm" onClick={collapseAll}>
             <ChevronsDownUp className="h-4 w-4 mr-1.5" />ยุบทั้งหมด
           </Button>
-          {canManageWarehouse && <WarehouseImport onSuccess={load} />}
           {canManageLocation && <LocationImport onSuccess={load} />}
           {canManageWarehouse && <WarehouseForm onSuccess={load} />}
         </div>
