@@ -16,6 +16,8 @@ interface Suggestion {
   reason: string;
 }
 
+interface CatLite { id: string; name: string; parent_id?: string }
+
 interface Props {
   entryType: "equipment" | "tool";
   triggerLabel?: string;
@@ -23,7 +25,7 @@ interface Props {
   triggerSize?: "default" | "sm" | "icon";
   compact?: boolean;
   defaultProductName?: string;
-  onPick?: (main: string, sub?: string) => void;
+  onPick?: (main: string, sub?: string, mainId?: string, subId?: string) => void;
 }
 
 export function CategorySuggestWizard({
