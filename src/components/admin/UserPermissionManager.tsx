@@ -117,6 +117,7 @@ export function UserPermissionManager() {
   const [editDepartment, setEditDepartment] = useState<string>("");
   const [editSaving, setEditSaving] = useState(false);
   const [editSelectedPresets, setEditSelectedPresets] = useState<string[]>([]);
+  const [editDeptAccess, setEditDeptAccess] = useState<string[]>([]);
   const [allPresets, setAllPresets] = useState<PermissionPreset[]>([]);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleteBusy, setDeleteBusy] = useState(false);
@@ -448,6 +449,8 @@ export function UserPermissionManager() {
     } else {
       setEditSelectedPresets([]);
     }
+    // Prefill data-access departments from user_departments (multi-select)
+    setEditDeptAccess(userDeptsByUser[user.id] || []);
     setEditDialogOpen(true);
   };
 
@@ -519,6 +522,49 @@ export function UserPermissionManager() {
             can_delete: canDelete,
           });
         }
+      }
+
+      // Sync "สิทธิ์เห็นฝ่าย" (data-access departments) — preserve existing create/edit/delete flags
+      const { data: existingDeptRows } = await supabase
+        .from("user_departments")
+        .select("*")
+        .eq("user_id", selectedUser.id);
+      const existingByDept = new Map(
+        (existingDeptRows || []).map((r: any) => [r.department as string, r])
+      );
+      const toRemove = (existingDeptRows || [])
+        .filter((r: any) => !editDeptAccess.includes(r.department))
+        .map((r: any) => r.department as string);
+      if (toRemove.length > 0) {
+        await supabase
+          .from("user_departments")
+          .delete()
+          .eq("user_id", selectedUser.id)
+          .in("department", toRemove);
+      }
+      const toAdd = editDeptAccess.filter((d) => !existingByDept.has(d));
+      if (toAdd.length > 0) {
+        await supabase.from("user_departments").insert(
+          toAdd.map((d) => ({
+            user_id: selectedUser.id,
+            department: d,
+            can_view: true,
+            can_create: false,
+            can_edit: false,
+            can_delete: false,
+          }))
+        );
+      }
+      // Ensure rows kept have can_view = true (so they actually see data)
+      const toEnable = (existingDeptRows || [])
+        .filter((r: any) => editDeptAccess.includes(r.department) && !r.can_view)
+        .map((r: any) => r.department as string);
+      if (toEnable.length > 0) {
+        await supabase
+          .from("user_departments")
+          .update({ can_view: true })
+          .eq("user_id", selectedUser.id)
+          .in("department", toEnable);
       }
 
       toast.success("บันทึกข้อมูลผู้ใช้สำเร็จ");
@@ -613,7 +659,8 @@ export function UserPermissionManager() {
                   <TableRow className="bg-muted/50">
                   <TableHead>ชื่อ-นามสกุล</TableHead>
                   <TableHead>ชื่อที่แสดงในระบบ</TableHead>
-                  <TableHead>ฝ่าย</TableHead>
+                  <TableHead>ฝ่ายสังกัด</TableHead>
+                  <TableHead>สิทธิ์เห็นฝ่าย</TableHead>
                   <TableHead>อีเมล</TableHead>
                   <TableHead>เบอร์โทร</TableHead>
                     <TableHead>คำขอสมัคร</TableHead>
@@ -643,6 +690,35 @@ export function UserPermissionManager() {
                       ) : (
                         <span className="text-muted-foreground">-</span>
                       )}
+                    </TableCell>
+                    <TableCell>
+                      {(() => {
+                        const depts = userDeptsByUser[user.id] || [];
+                        if (isAdmin(user.id)) {
+                          return (
+                            <Badge variant="secondary" className="text-xs bg-green-100 text-green-800 dark:bg-green-950 dark:text-green-300">
+                              ทุกฝ่าย (Admin)
+                            </Badge>
+                          );
+                        }
+                        if (depts.length === 0) {
+                          return <span className="text-xs text-muted-foreground">-</span>;
+                        }
+                        const shown = depts.slice(0, 2);
+                        const rest = depts.length - shown.length;
+                        return (
+                          <div className="flex flex-wrap gap-1 max-w-[220px]">
+                            {shown.map((d) => (
+                              <Badge key={d} variant="outline" className="text-[10px]">{d}</Badge>
+                            ))}
+                            {rest > 0 && (
+                              <Badge variant="secondary" className="text-[10px]" title={depts.join(", ")}>
+                                +{rest}
+                              </Badge>
+                            )}
+                          </div>
+                        );
+                      })()}
                     </TableCell>
                     <TableCell className="text-muted-foreground">{user.email || "-"}</TableCell>
                     <TableCell>{user.phone || "-"}</TableCell>
@@ -730,7 +806,7 @@ export function UserPermissionManager() {
                 ))}
                 {filteredUsers.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
                       ไม่พบผู้ใช้งาน
                     </TableCell>
                   </TableRow>
@@ -1069,7 +1145,10 @@ export function UserPermissionManager() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="edit-department">ฝ่าย</Label>
+              <Label htmlFor="edit-department" className="flex items-center gap-2">
+                ฝ่ายสังกัดหลัก
+                <span className="text-xs text-muted-foreground font-normal">(แสดงในโปรไฟล์เท่านั้น)</span>
+              </Label>
               <Select
                 value={editDepartment || "__none__"}
                 onValueChange={(v) => setEditDepartment(v === "__none__" ? "" : v)}
@@ -1085,11 +1164,84 @@ export function UserPermissionManager() {
                   ))}
                 </SelectContent>
               </Select>
+              <p className="text-[11px] text-muted-foreground">
+                ⚠️ ค่านี้ไม่ใช่สิทธิ์เข้าถึงข้อมูล — สิทธิ์เห็นข้อมูลของแต่ละฝ่ายกำหนดในหัวข้อ <strong>สิทธิ์เห็นฝ่าย</strong> ด้านล่าง
+              </p>
               {selectedUser?.requested_department && selectedUser.requested_department !== editDepartment && (
                 <p className="text-xs text-muted-foreground">
                   ผู้ใช้ขอสมัครฝ่าย: <strong>{selectedUser.requested_department}</strong>
                 </p>
               )}
+            </div>
+
+            {/* Multi-department data access */}
+            <div className="space-y-2">
+              <Label className="flex items-center gap-2">
+                <Building2 className="h-4 w-4 text-primary" />
+                สิทธิ์เห็นฝ่าย (Data access)
+                <span className="text-xs text-muted-foreground font-normal">(เลือกได้หลายฝ่าย)</span>
+              </Label>
+              <div className="flex flex-wrap gap-2 text-xs">
+                <button
+                  type="button"
+                  className="px-2 py-1 rounded border hover:bg-muted"
+                  onClick={() => setEditDeptAccess([...allDepartments])}
+                  disabled={editSaving}
+                >
+                  เลือกทุกฝ่าย
+                </button>
+                <button
+                  type="button"
+                  className="px-2 py-1 rounded border hover:bg-muted"
+                  onClick={() => setEditDeptAccess([])}
+                  disabled={editSaving}
+                >
+                  ล้าง
+                </button>
+                {editDepartment && (
+                  <button
+                    type="button"
+                    className="px-2 py-1 rounded border hover:bg-muted"
+                    onClick={() =>
+                      setEditDeptAccess((prev) =>
+                        prev.includes(editDepartment) ? prev : [...prev, editDepartment]
+                      )
+                    }
+                    disabled={editSaving}
+                  >
+                    + ตามฝ่ายสังกัด ({editDepartment})
+                  </button>
+                )}
+              </div>
+              <div className="rounded-md border max-h-48 overflow-y-auto divide-y">
+                {allDepartments.length === 0 && (
+                  <div className="p-3 text-xs text-muted-foreground">ไม่พบข้อมูลฝ่าย</div>
+                )}
+                {allDepartments.map((d) => {
+                  const checked = editDeptAccess.includes(d);
+                  return (
+                    <label
+                      key={d}
+                      className="flex items-center gap-2 p-2 hover:bg-muted/50 cursor-pointer text-sm"
+                    >
+                      <Checkbox
+                        checked={checked}
+                        onCheckedChange={(v) =>
+                          setEditDeptAccess((prev) =>
+                            v ? Array.from(new Set([...prev, d])) : prev.filter((x) => x !== d)
+                          )
+                        }
+                        disabled={editSaving}
+                      />
+                      <Building2 className="h-3 w-3 text-muted-foreground" />
+                      <span className="flex-1">{d}</span>
+                    </label>
+                  );
+                })}
+              </div>
+              <p className="text-[11px] text-muted-foreground">
+                ผู้ใช้จะเห็นข้อมูล (สินค้า, รายงาน, ประวัติ) ของฝ่ายที่เลือกเท่านั้น · ต้องการปรับสิทธิ์สร้าง/แก้ไข/ลบรายฝ่าย ให้ใช้ <strong>ตั้งค่าขั้นสูง (Wizard)</strong> หรือมุมมอง <strong>Matrix สิทธิ์</strong>
+              </p>
             </div>
 
             <div className="space-y-2">
