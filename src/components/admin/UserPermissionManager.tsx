@@ -449,6 +449,8 @@ export function UserPermissionManager() {
     } else {
       setEditSelectedPresets([]);
     }
+    // Prefill data-access departments from user_departments (multi-select)
+    setEditDeptAccess(userDeptsByUser[user.id] || []);
     setEditDialogOpen(true);
   };
 
