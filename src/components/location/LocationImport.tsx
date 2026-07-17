@@ -27,6 +27,26 @@ const toNum = (v: any): number | null => {
   return isFinite(n) && n > 0 ? n : null;
 };
 
+const pick = (row: Record<string, any>, keys: string[]) => {
+  for (const key of keys) {
+    const value = row[key];
+    if (value !== null && value !== undefined && String(value).trim() !== "") return value;
+  }
+  return null;
+};
+
+const normalizeCode = (value: any) => String(value ?? "").trim().split(/\s[-–—]\s/)[0].trim();
+
+const normalizeArea = (value: any) => {
+  const text = String(value ?? "").trim();
+  const lower = text.toLowerCase();
+  if (!text) return "";
+  if (lower === "indoor" || text.includes("ภายใน")) return "Indoor";
+  if (lower === "outdoor" || text.includes("ภายนอก")) return "Outdoor";
+  if (["semi-outdoor", "semi outdoor", "semioutdoor"].includes(lower) || text.includes("กึ่ง")) return "Semi-outdoor";
+  return text;
+};
+
 export function LocationImport({ onSuccess }: LocationImportProps) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -128,10 +148,10 @@ export function LocationImport({ onSuccess }: LocationImportProps) {
       const wb = XLSX.read(buf);
 
       // Find sheets (case-insensitive)
-      const findSheet = (name: string) =>
-        wb.SheetNames.find((n) => n.toLowerCase() === name.toLowerCase());
-      const whSheetName = findSheet("Warehouses");
-      const locSheetName = findSheet("Locations") || wb.SheetNames[0];
+      const findSheet = (names: string[]) =>
+        wb.SheetNames.find((n) => names.some((name) => n.trim().toLowerCase() === name.toLowerCase()));
+      const whSheetName = findSheet(["Warehouses", "Warehouse", "คลัง", "คลังสินค้า"]);
+      const locSheetName = findSheet(["Locations", "Location", "ตำแหน่ง", "ตำแหน่งจัดเก็บ"]) || wb.SheetNames[0];
 
       const whRows: Record<string, any>[] = whSheetName
         ? (XLSX.utils.sheet_to_json(wb.Sheets[whSheetName]) as any[])
@@ -158,19 +178,24 @@ export function LocationImport({ onSuccess }: LocationImportProps) {
       for (let i = 0; i < whRows.length; i++) {
         const r = whRows[i];
         const rowNum = i + 2;
-        const code = r["รหัสคลัง (code)*"] || r["code"];
-        const name = r["ชื่อคลัง (name)*"] || r["name"];
-        const storageArea =
-          r["ประเภทพื้นที่ (storage_area) Indoor|Outdoor|Semi-outdoor*"] || r["storage_area"];
-        const department = r["ฝ่าย (department)"] || r["department"] || null;
-        const description = r["รายละเอียด (description)"] || r["description"] || null;
+        const code = pick(r, ["รหัสคลัง (code)*", "รหัสคลัง", "warehouse_code", "code", "Code", "Warehouse Code"]);
+        const name = pick(r, ["ชื่อคลัง (name)*", "ชื่อคลัง", "ชื่อคลังสินค้า", "warehouse_name", "name", "Name", "Warehouse Name"]);
+        const storageArea = pick(r, [
+          "ประเภทพื้นที่ (storage_area) Indoor|Outdoor|Semi-outdoor*",
+          "ประเภทพื้นที่",
+          "พื้นที่จัดเก็บ",
+          "storage_area",
+          "Storage Area",
+        ]);
+        const department = pick(r, ["ฝ่าย (department)", "ฝ่าย", "department", "Department"]);
+        const description = pick(r, ["รายละเอียด (description)", "รายละเอียด", "description", "Description"]);
 
         if (!code || !name || !storageArea) {
           errors.push(`[Warehouses แถวที่ ${rowNum}] ต้องระบุ รหัสคลัง, ชื่อคลัง, ประเภทพื้นที่`);
           whFailed++;
           continue;
         }
-        const areaStr = String(storageArea).trim();
+        const areaStr = normalizeArea(storageArea);
         if (!ALLOWED_AREAS.includes(areaStr)) {
           errors.push(`[Warehouses แถวที่ ${rowNum}] ประเภทพื้นที่ "${areaStr}" ไม่ถูกต้อง (${ALLOWED_AREAS.join("/")})`);
           whFailed++;
@@ -184,7 +209,7 @@ export function LocationImport({ onSuccess }: LocationImportProps) {
         }
 
         try {
-          const codeStr = String(code).trim();
+          const codeStr = normalizeCode(code);
           const payload = {
             code: codeStr,
             name: String(name).trim(),
@@ -214,8 +239,8 @@ export function LocationImport({ onSuccess }: LocationImportProps) {
       }
 
       // ===== STAGE 2: Locations =====
-      const { data: warehouses } = await supabase.from("warehouses").select("id, code, name");
-      const warehouseMap = new Map(warehouses?.map((w) => [w.code, { id: w.id, name: w.name }]) || []);
+      const { data: warehouses } = await supabase.from("warehouses").select("id, code, name, is_active");
+      const warehouseMap = new Map(warehouses?.map((w) => [w.code, { id: w.id, name: w.name, is_active: w.is_active }]) || []);
       const zoneCache = new Map<string, string>();
       const perWh = new Map<string, WarehouseSummary>();
 
@@ -226,10 +251,18 @@ export function LocationImport({ onSuccess }: LocationImportProps) {
         const row = locRows[i];
         const rowNum = i + 2;
 
-        const code = row["รหัสตำแหน่ง (code)*"] || row["code"];
-        const name = row["ชื่อตำแหน่ง (name)*"] || row["name"];
-        const warehouseCode =
-          row["รหัสคลังสินค้า (warehouse_code)*"] || row["รหัสคลังสินค้า (warehouse_code)"] || row["warehouse_code"];
+        const code = pick(row, ["รหัสตำแหน่ง (code)*", "รหัสตำแหน่ง", "location_code", "code", "Code", "Location Code"]);
+        const name = pick(row, ["ชื่อตำแหน่ง (name)*", "ชื่อตำแหน่ง", "ชื่อตำแหน่งจัดเก็บ", "location_name", "name", "Name", "Location Name"]);
+        const warehouseCode = pick(row, [
+          "รหัสคลังสินค้า (warehouse_code)*",
+          "รหัสคลังสินค้า (warehouse_code)",
+          "รหัสคลังสินค้า",
+          "รหัสคลัง",
+          "คลังสินค้า",
+          "warehouse_code",
+          "Warehouse Code",
+          "Warehouse",
+        ]);
 
         if (!code || !name || !warehouseCode) {
           errors.push(`[Locations แถวที่ ${rowNum}] ต้องระบุ รหัสตำแหน่ง, ชื่อตำแหน่ง และ รหัสคลังสินค้า`);
@@ -237,7 +270,7 @@ export function LocationImport({ onSuccess }: LocationImportProps) {
           continue;
         }
 
-        const whCodeStr = String(warehouseCode).trim();
+        const whCodeStr = normalizeCode(warehouseCode);
         const wh = warehouseMap.get(whCodeStr);
         if (!wh) {
           errors.push(`[Locations แถวที่ ${rowNum}] ไม่พบคลังสินค้า "${warehouseCode}" — กรุณาเพิ่มในชีท Warehouses`);
@@ -248,8 +281,12 @@ export function LocationImport({ onSuccess }: LocationImportProps) {
         const locationCode = String(code).trim();
 
         try {
-          const zoneCode = row["รหัสโซน (zone_code)"] || row["zone_code"];
-          const zoneName = row["ชื่อโซน (zone_name)"] || row["zone_name"];
+          if (wh.is_active !== true) {
+            await supabase.from("warehouses").update({ is_active: true }).eq("id", wh.id);
+            wh.is_active = true;
+          }
+          const zoneCode = pick(row, ["รหัสโซน (zone_code)", "รหัสโซน", "zone_code", "Zone Code"]);
+          const zoneName = pick(row, ["ชื่อโซน (zone_name)", "ชื่อโซน", "zone_name", "Zone Name"]);
           let zoneId: string | null = null;
 
           if (zoneCode) {
@@ -291,16 +328,16 @@ export function LocationImport({ onSuccess }: LocationImportProps) {
             }
           }
 
-          const w = toNum(row["กว้าง cm (width_cm)"] ?? row["width_cm"]);
-          const h = toNum(row["สูง cm (height_cm)"] ?? row["height_cm"]);
-          const d = toNum(row["ลึก cm (depth_cm)"] ?? row["depth_cm"]);
+          const w = toNum(pick(row, ["กว้าง cm (width_cm)", "กว้าง (cm)", "กว้าง", "width_cm", "Width cm", "Width"]));
+          const h = toNum(pick(row, ["สูง cm (height_cm)", "สูง (cm)", "สูง", "height_cm", "Height cm", "Height"]));
+          const d = toNum(pick(row, ["ลึก cm (depth_cm)", "ลึก (cm)", "ลึก", "depth_cm", "Depth cm", "Depth"]));
           const volume = w && h && d ? w * h * d : null;
 
           const payload = {
             code: locationCode,
             name: String(name).trim(),
-            description: row["รายละเอียด (description)"] || row["description"] || null,
-            storage_area: row["พื้นที่จัดเก็บ (storage_area)"] || row["storage_area"] || null,
+            description: pick(row, ["รายละเอียด (description)", "รายละเอียด", "description", "Description"]) || null,
+            storage_area: normalizeArea(pick(row, ["พื้นที่จัดเก็บ (storage_area)", "พื้นที่จัดเก็บ", "storage_area", "Storage Area"])) || null,
             warehouse_id: wh.id,
             zone_id: zoneId,
             width_cm: w,
