@@ -105,7 +105,8 @@ export function WarehouseLocationSelect({
     })
     .map((l) => ({
       value: l.id,
-      label: `${l.zones?.code ? `${l.zones.code}${l.code}` : l.code} - ${l.name}${l.zones?.name ? ` (โซน ${l.zones.code} · ${l.zones.name})` : ""}`,
+      label: `${l.code} - ${l.name}`,
+      description: l.zones?.name ? `โซน ${l.zones.code} · ${l.zones.name}` : "ไม่มีโซน",
     }));
 
 

@@ -20,7 +20,7 @@ export function LocationSelect({ value, onChange, disabled }: LocationSelectProp
     try {
       const { data, error } = await supabase
         .from("locations")
-        .select("id, code, name, zones:zone_id(code, name)")
+        .select("id, code, name, warehouse_id, zones:zone_id(code, name), warehouses:warehouse_id(code, name)")
         .eq("is_active", true)
         .order("code");
 
@@ -36,6 +36,9 @@ export function LocationSelect({ value, onChange, disabled }: LocationSelectProp
   const options = locations
     .slice()
     .sort((a: any, b: any) => {
+      const aw = a.warehouses?.code || "zzz";
+      const bw = b.warehouses?.code || "zzz";
+      if (aw !== bw) return aw.localeCompare(bw);
       const az = a.zones?.code || "zzz";
       const bz = b.zones?.code || "zzz";
       if (az !== bz) return az.localeCompare(bz);
@@ -43,7 +46,8 @@ export function LocationSelect({ value, onChange, disabled }: LocationSelectProp
     })
     .map((location: any) => ({
       value: location.id,
-      label: `${location.zones?.code ? `${location.zones.code}${location.code}` : location.code} - ${location.name}${location.zones?.name ? ` (โซน ${location.zones.code} · ${location.zones.name})` : ""}`,
+      label: `${location.warehouses?.code || "ไม่ระบุคลัง"} / ${location.code} - ${location.name}`,
+      description: `${location.warehouses?.name || "ไม่ระบุชื่อคลัง"}${location.zones?.name ? ` · โซน ${location.zones.code} ${location.zones.name}` : " · ไม่มีโซน"}`,
     }));
 
   return (
