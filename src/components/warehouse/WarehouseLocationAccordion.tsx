@@ -238,7 +238,7 @@ export function WarehouseLocationAccordion({ canManageWarehouse, canManageLocati
 
   const confirmDeleteLoc = async () => {
     if (!deleteLoc) return;
-    const { error } = await supabase.from("locations").delete().eq("id", deleteLoc.id);
+    const { error } = await supabase.from("locations").update({ is_active: false }).eq("id", deleteLoc.id);
     if (error) return toast.error(error.message);
     toast.success("ลบตำแหน่งจัดเก็บสำเร็จ");
     setDeleteLoc(null);
