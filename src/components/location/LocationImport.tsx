@@ -12,6 +12,19 @@ interface LocationImportProps {
   onSuccess: () => void;
 }
 
+interface WarehouseSummary {
+  code: string;
+  name: string;
+  inserted: number;
+  updated: number;
+}
+
+const toNum = (v: any): number | null => {
+  if (v === null || v === undefined || v === "") return null;
+  const n = Number(String(v).replace(/,/g, "").trim());
+  return isFinite(n) && n > 0 ? n : null;
+};
+
 export function LocationImport({ onSuccess }: LocationImportProps) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -19,6 +32,7 @@ export function LocationImport({ onSuccess }: LocationImportProps) {
     success: number;
     failed: number;
     errors: string[];
+    perWarehouse: WarehouseSummary[];
   } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -32,6 +46,9 @@ export function LocationImport({ onSuccess }: LocationImportProps) {
         "รหัสคลังสินค้า (warehouse_code)*": "PB-01",
         "รหัสโซน (zone_code)": "A",
         "ชื่อโซน (zone_name)": "โซนซ้าย",
+        "กว้าง cm (width_cm)": 60,
+        "สูง cm (height_cm)": 40,
+        "ลึก cm (depth_cm)": 40,
       },
       {
         "รหัสตำแหน่ง (code)*": "A02",
@@ -41,6 +58,9 @@ export function LocationImport({ onSuccess }: LocationImportProps) {
         "รหัสคลังสินค้า (warehouse_code)*": "PB-01",
         "รหัสโซน (zone_code)": "A",
         "ชื่อโซน (zone_name)": "โซนซ้าย",
+        "กว้าง cm (width_cm)": 60,
+        "สูง cm (height_cm)": 40,
+        "ลึก cm (depth_cm)": 40,
       },
     ];
 
@@ -48,8 +68,9 @@ export function LocationImport({ onSuccess }: LocationImportProps) {
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Locations");
     ws["!cols"] = [
-      { wch: 20 }, { wch: 25 }, { wch: 30 }, { wch: 18 },
-      { wch: 22 }, { wch: 15 }, { wch: 22 },
+      { wch: 20 }, { wch: 25 }, { wch: 30 }, { wch: 22 },
+      { wch: 24 }, { wch: 15 }, { wch: 22 },
+      { wch: 18 }, { wch: 18 }, { wch: 18 },
     ];
     XLSX.writeFile(wb, "location_import_template.xlsx");
     toast.success("ดาวน์โหลด Template สำเร็จ");
@@ -73,10 +94,11 @@ export function LocationImport({ onSuccess }: LocationImportProps) {
       }
 
       const { data: userData } = await supabase.auth.getUser();
-      const { data: warehouses } = await supabase.from("warehouses").select("id, code");
-      const warehouseMap = new Map(warehouses?.map((w) => [w.code, w.id]) || []);
+      const { data: warehouses } = await supabase.from("warehouses").select("id, code, name");
+      const warehouseMap = new Map(warehouses?.map((w) => [w.code, { id: w.id, name: w.name }]) || []);
 
-      const zoneCache = new Map<string, string>(); // key: `${warehouseId}|${zoneCode}` -> zoneId
+      const zoneCache = new Map<string, string>();
+      const perWh = new Map<string, WarehouseSummary>();
 
       let successCount = 0;
       let failedCount = 0;
@@ -97,9 +119,10 @@ export function LocationImport({ onSuccess }: LocationImportProps) {
           continue;
         }
 
-        const warehouseId = warehouseMap.get(String(warehouseCode).trim());
-        if (!warehouseId) {
-          errors.push(`แถวที่ ${rowNum}: ไม่พบคลังสินค้า "${warehouseCode}"`);
+        const whCodeStr = String(warehouseCode).trim();
+        const wh = warehouseMap.get(whCodeStr);
+        if (!wh) {
+          errors.push(`แถวที่ ${rowNum}: ไม่พบคลังสินค้า "${warehouseCode}" — กรุณาสร้างคลังก่อน (ใช้ปุ่ม Import คลัง หรือ + เพิ่มคลังสินค้า)`);
           failedCount++;
           continue;
         }
@@ -107,19 +130,18 @@ export function LocationImport({ onSuccess }: LocationImportProps) {
         const locationCode = String(code).trim();
 
         try {
-          // Zone handling
           const zoneCode = row["รหัสโซน (zone_code)"] || row["zone_code"];
           const zoneName = row["ชื่อโซน (zone_name)"] || row["zone_name"];
           let zoneId: string | null = null;
 
           if (zoneCode) {
-            const zoneKey = `${warehouseId}|${String(zoneCode).trim()}`;
+            const zoneKey = `${wh.id}|${String(zoneCode).trim()}`;
             zoneId = zoneCache.get(zoneKey) || null;
             if (!zoneId) {
               const { data: existingZone } = await supabase
                 .from("zones")
                 .select("id")
-                .eq("warehouse_id", warehouseId)
+                .eq("warehouse_id", wh.id)
                 .eq("code", String(zoneCode).trim())
                 .maybeSingle();
               if (existingZone) {
@@ -128,7 +150,7 @@ export function LocationImport({ onSuccess }: LocationImportProps) {
                 const { data: newZone, error: zErr } = await supabase
                   .from("zones")
                   .insert({
-                    warehouse_id: warehouseId,
+                    warehouse_id: wh.id,
                     code: String(zoneCode).trim(),
                     name: zoneName ? String(zoneName).trim() : String(zoneCode).trim(),
                     created_by: userData?.user?.id,
@@ -142,13 +164,22 @@ export function LocationImport({ onSuccess }: LocationImportProps) {
             }
           }
 
+          const w = toNum(row["กว้าง cm (width_cm)"] ?? row["width_cm"]);
+          const h = toNum(row["สูง cm (height_cm)"] ?? row["height_cm"]);
+          const d = toNum(row["ลึก cm (depth_cm)"] ?? row["depth_cm"]);
+          const volume = w && h && d ? w * h * d : null;
+
           const payload = {
             code: locationCode,
             name: String(name).trim(),
             description: row["รายละเอียด (description)"] || row["description"] || null,
             storage_area: row["พื้นที่จัดเก็บ (storage_area)"] || row["storage_area"] || null,
-            warehouse_id: warehouseId,
+            warehouse_id: wh.id,
             zone_id: zoneId,
+            width_cm: w,
+            height_cm: h,
+            depth_cm: d,
+            volume_cm3: volume,
           };
 
           const { data: existingLocation } = await supabase
@@ -157,19 +188,25 @@ export function LocationImport({ onSuccess }: LocationImportProps) {
             .eq("code", locationCode)
             .maybeSingle();
 
+          const summary = perWh.get(whCodeStr) || { code: whCodeStr, name: wh.name, inserted: 0, updated: 0 };
+
           if (existingLocation) {
             const { error } = await supabase
               .from("locations")
               .update({ ...payload, updated_at: new Date().toISOString() })
               .eq("id", existingLocation.id);
             if (error) throw error;
+            summary.updated++;
           } else {
             const { error } = await supabase.from("locations").insert({
               ...payload,
+              used_volume_cm3: 0,
               created_by: userData?.user?.id,
             });
             if (error) throw error;
+            summary.inserted++;
           }
+          perWh.set(whCodeStr, summary);
 
           successCount++;
         } catch (error: any) {
@@ -178,7 +215,12 @@ export function LocationImport({ onSuccess }: LocationImportProps) {
         }
       }
 
-      setImportResult({ success: successCount, failed: failedCount, errors });
+      setImportResult({
+        success: successCount,
+        failed: failedCount,
+        errors,
+        perWarehouse: Array.from(perWh.values()).sort((a, b) => a.code.localeCompare(b.code)),
+      });
       if (successCount > 0) {
         toast.success(`นำเข้าข้อมูลสำเร็จ ${successCount} รายการ`);
         onSuccess();
@@ -199,7 +241,7 @@ export function LocationImport({ onSuccess }: LocationImportProps) {
       <DialogTrigger asChild>
         <Button variant="outline">
           <Upload className="h-4 w-4 mr-2" />
-          Import Excel
+          Import ตำแหน่ง
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-lg">
@@ -214,10 +256,11 @@ export function LocationImport({ onSuccess }: LocationImportProps) {
               ขั้นตอนการนำเข้า
             </h4>
             <ol className="text-sm text-muted-foreground space-y-1 list-decimal list-inside">
+              <li>ต้องมีคลังสินค้าอยู่ก่อน (ใช้ปุ่ม Import คลัง หากยังไม่มี)</li>
               <li>ดาวน์โหลด Template Excel</li>
               <li>กรอกข้อมูลตาม Template (ห้ามเปลี่ยนชื่อหัวคอลัมน์)</li>
+              <li>ระบุ กว้าง/สูง/ลึก (cm) → ระบบจะคำนวณปริมาตร m³ อัตโนมัติ</li>
               <li>ถ้ากรอก "รหัสโซน" ระบบจะสร้างโซนอัตโนมัติหากยังไม่มี</li>
-              <li>บันทึกไฟล์เป็น .xlsx หรือ .csv</li>
               <li>อัปโหลดไฟล์เพื่อนำเข้าข้อมูล</li>
             </ol>
           </div>
@@ -251,7 +294,16 @@ export function LocationImport({ onSuccess }: LocationImportProps) {
                 <Alert className="bg-green-50 border-green-200">
                   <CheckCircle2 className="h-4 w-4 text-green-600" />
                   <AlertDescription className="text-green-800">
-                    นำเข้าสำเร็จ {importResult.success} รายการ
+                    <div className="font-medium mb-1">นำเข้าสำเร็จ {importResult.success} รายการ</div>
+                    {importResult.perWarehouse.length > 0 && (
+                      <ul className="text-xs space-y-0.5 mt-1">
+                        {importResult.perWarehouse.map((w) => (
+                          <li key={w.code}>
+                            • <b>{w.code}</b> — {w.name}: เพิ่มใหม่ {w.inserted}, อัปเดต {w.updated}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
                   </AlertDescription>
                 </Alert>
               )}
