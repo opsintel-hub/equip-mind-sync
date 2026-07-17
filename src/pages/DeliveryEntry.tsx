@@ -2291,16 +2291,21 @@ const DeliveryEntry = () => {
                           triggerSize="sm"
                           triggerLabel="แนะนำหมวดหมู่ด้วย AI"
                           defaultProductName={manualEquipmentName}
-                          onPick={(mainName, subName) => {
-                            const cat = categories.find((c: any) => c.name === mainName);
-                            if (cat) {
-                              setSelectedCategoryId(cat.id);
+                          onPick={(mainName, subName, mainId, subId) => {
+                            const catId =
+                              mainId || categories.find((c: any) => c.name?.trim().toLowerCase() === mainName?.trim().toLowerCase())?.id;
+                            if (catId) {
+                              setSelectedCategoryId(catId);
                               setSelectedSubcategoryId("");
                               if (subName) {
-                                const sub = subcategories.find(
-                                  (s: any) => s.name === subName && s.category_id === cat.id
-                                );
-                                if (sub) setSelectedSubcategoryId(sub.id);
+                                const sId =
+                                  subId ||
+                                  subcategories.find(
+                                    (s: any) =>
+                                      s.category_id === catId &&
+                                      s.name?.trim().toLowerCase() === subName.trim().toLowerCase(),
+                                  )?.id;
+                                if (sId) setSelectedSubcategoryId(sId);
                               }
                             }
                           }}

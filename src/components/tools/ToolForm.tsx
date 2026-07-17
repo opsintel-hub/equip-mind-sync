@@ -257,24 +257,30 @@ export function ToolForm({ onSuccess }: ToolFormProps) {
                   triggerSize="sm"
                   triggerLabel="แนะนำหมวดหมู่ด้วย AI"
                   defaultProductName={form.watch("name")}
-                  onPick={async (mainName, subName) => {
-                    const { data: mainRow } = await supabase
-                      .from("tool_categories")
-                      .select("id")
-                      .eq("name", mainName)
-                      .maybeSingle();
-                    if (mainRow?.id) {
-                      form.setValue("tool_category_id", mainRow.id);
+                  onPick={async (mainName, subName, mainId, subId) => {
+                    let resolvedMainId = mainId;
+                    if (!resolvedMainId) {
+                      const { data: mainRow } = await supabase
+                        .from("tool_categories")
+                        .select("id")
+                        .ilike("name", mainName)
+                        .maybeSingle();
+                      resolvedMainId = mainRow?.id;
+                    }
+                    if (resolvedMainId) {
+                      form.setValue("tool_category_id", resolvedMainId);
                       form.setValue("tool_subcategory_id", "");
-                      if (subName) {
+                      let resolvedSubId = subId;
+                      if (!resolvedSubId && subName) {
                         const { data: subRow } = await supabase
                           .from("tool_subcategories")
                           .select("id")
-                          .eq("name", subName)
-                          .eq("tool_category_id", mainRow.id)
+                          .ilike("name", subName)
+                          .eq("tool_category_id", resolvedMainId)
                           .maybeSingle();
-                        if (subRow?.id) form.setValue("tool_subcategory_id", subRow.id);
+                        resolvedSubId = subRow?.id;
                       }
+                      if (resolvedSubId) form.setValue("tool_subcategory_id", resolvedSubId);
                     }
                   }}
                 />
