@@ -77,22 +77,46 @@ export function ZoneSelect({ value, onChange, warehouseId, disabled, allowNone =
       return;
     }
     const { data: { user } } = await supabase.auth.getUser();
-    const { data, error } = await supabase
+    const code = draft.code.trim();
+    const { data: existing } = await supabase
       .from("zones")
-      .insert({
-        warehouse_id: warehouseId,
-        code: draft.code.trim(),
-        name: draft.name.trim(),
-        description: draft.description.trim() || null,
-        created_by: user?.id,
-      })
-      .select()
-      .single();
+      .select("id, is_active")
+      .eq("warehouse_id", warehouseId)
+      .eq("code", code)
+      .maybeSingle();
+    if (existing?.is_active) {
+      toast.error("รหัสโซนนี้มีอยู่แล้วในคลังที่เลือก");
+      return;
+    }
+    const query = existing
+      ? supabase
+          .from("zones")
+          .update({
+            name: draft.name.trim(),
+            description: draft.description.trim() || null,
+            is_active: true,
+          })
+          .eq("id", existing.id)
+          .select()
+          .single()
+      : supabase
+          .from("zones")
+          .insert({
+            warehouse_id: warehouseId,
+            code,
+            name: draft.name.trim(),
+            description: draft.description.trim() || null,
+            is_active: true,
+            created_by: user?.id,
+          })
+          .select()
+          .single();
+    const { data, error } = await query;
     if (error) {
       toast.error("เกิดข้อผิดพลาด: " + error.message);
       return;
     }
-    toast.success("เพิ่มโซนสำเร็จ");
+    toast.success(existing ? "กู้คืนโซนที่เคยลบสำเร็จ" : "เพิ่มโซนสำเร็จ");
     setDraft({ code: "", name: "", description: "" });
     setIsAdding(false);
     if (data) onChange(data.id);
@@ -104,10 +128,22 @@ export function ZoneSelect({ value, onChange, warehouseId, disabled, allowNone =
       toast.error("กรุณาระบุรหัสและชื่อโซน");
       return;
     }
+    const code = editingZone.code.trim();
+    const { data: duplicate } = await supabase
+      .from("zones")
+      .select("id")
+      .eq("warehouse_id", editingZone.warehouse_id)
+      .eq("code", code)
+      .neq("id", editingZone.id)
+      .maybeSingle();
+    if (duplicate) {
+      toast.error("รหัสโซนนี้มีอยู่แล้วในคลังที่เลือก");
+      return;
+    }
     const { error } = await supabase
       .from("zones")
       .update({
-        code: editingZone.code.trim(),
+        code,
         name: editingZone.name.trim(),
         description: editingZone.description || null,
       })
