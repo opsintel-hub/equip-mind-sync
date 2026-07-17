@@ -84,6 +84,9 @@ export function CategorySuggestWizard({
         parent_id: s[childFk],
       }));
 
+      setCatsCache(cats.map((c: any) => ({ id: c.id, name: c.name })));
+      setSubsCache(subs.map((s: any) => ({ id: s.id, name: s.name, parent_id: s.parent_id })));
+
       const { data, error } = await supabase.functions.invoke("suggest-category", {
         body: {
           mode: "suggest",
@@ -105,9 +108,27 @@ export function CategorySuggestWizard({
     }
   };
 
+  const norm = (v?: string) => (v || "").trim().toLowerCase();
+
   const handlePick = (s: Suggestion) => {
-    onPick?.(s.main_category, s.sub_category);
-    toast.success(`เลือก: ${s.main_category}${s.sub_category ? ` › ${s.sub_category}` : ""}`);
+    const mainName = (s.main_category || "").trim();
+    const subName = (s.sub_category || "").trim();
+    const mainRow = catsCache.find((c) => norm(c.name) === norm(mainName));
+    if (!mainRow) {
+      toast.error(`ไม่พบหมวดหมู่ "${mainName}" ในระบบ กรุณาเลือกด้วยตนเอง หรือเพิ่มหมวดหมู่ใหม่ก่อน`);
+      return;
+    }
+    let subRow: CatLite | undefined;
+    if (subName) {
+      subRow = subsCache.find(
+        (x) => x.parent_id === mainRow.id && norm(x.name) === norm(subName),
+      );
+      if (!subRow) {
+        toast.warning(`ไม่พบหมวดหมู่ย่อย "${subName}" ตั้งค่าเฉพาะหมวดหมู่หลัก`);
+      }
+    }
+    onPick?.(mainRow.name, subRow?.name, mainRow.id, subRow?.id);
+    toast.success(`เลือก: ${mainRow.name}${subRow ? ` › ${subRow.name}` : ""}`);
     setOpen(false);
     reset();
   };
