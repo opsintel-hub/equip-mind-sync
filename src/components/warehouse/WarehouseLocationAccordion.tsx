@@ -282,15 +282,36 @@ export function WarehouseLocationAccordion({ canManageWarehouse, canManageLocati
       if (error) return toast.error(error.message);
       toast.success("อัพเดทโซนสำเร็จ");
     } else {
-      const { error } = await supabase.from("zones").insert({
-        warehouse_id: zoneDialog.warehouseId,
-        code: zoneDraft.code.trim(),
-        name: zoneDraft.name.trim(),
-        description: zoneDraft.description.trim() || null,
-        created_by: user?.id,
-      });
-      if (error) return toast.error(error.message);
-      toast.success("เพิ่มโซนสำเร็จ");
+      // Check for existing zone (including soft-deleted) to avoid unique-key violation
+      const { data: existing } = await supabase
+        .from("zones")
+        .select("id, is_active")
+        .eq("warehouse_id", zoneDialog.warehouseId)
+        .eq("code", zoneDraft.code.trim())
+        .maybeSingle();
+      if (existing) {
+        const { error } = await supabase
+          .from("zones")
+          .update({
+            name: zoneDraft.name.trim(),
+            description: zoneDraft.description.trim() || null,
+            is_active: true,
+          })
+          .eq("id", existing.id);
+        if (error) return toast.error(error.message);
+        toast.success(existing.is_active ? "อัพเดทโซนสำเร็จ" : "กู้คืนโซนที่เคยลบสำเร็จ");
+      } else {
+        const { error } = await supabase.from("zones").insert({
+          warehouse_id: zoneDialog.warehouseId,
+          code: zoneDraft.code.trim(),
+          name: zoneDraft.name.trim(),
+          description: zoneDraft.description.trim() || null,
+          is_active: true,
+          created_by: user?.id,
+        });
+        if (error) return toast.error(error.message);
+        toast.success("เพิ่มโซนสำเร็จ");
+      }
     }
     setZoneDialog(null);
     load();
