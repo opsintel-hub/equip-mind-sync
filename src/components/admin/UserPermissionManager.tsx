@@ -524,6 +524,49 @@ export function UserPermissionManager() {
         }
       }
 
+      // Sync "สิทธิ์เห็นฝ่าย" (data-access departments) — preserve existing create/edit/delete flags
+      const { data: existingDeptRows } = await supabase
+        .from("user_departments")
+        .select("*")
+        .eq("user_id", selectedUser.id);
+      const existingByDept = new Map(
+        (existingDeptRows || []).map((r: any) => [r.department as string, r])
+      );
+      const toRemove = (existingDeptRows || [])
+        .filter((r: any) => !editDeptAccess.includes(r.department))
+        .map((r: any) => r.department as string);
+      if (toRemove.length > 0) {
+        await supabase
+          .from("user_departments")
+          .delete()
+          .eq("user_id", selectedUser.id)
+          .in("department", toRemove);
+      }
+      const toAdd = editDeptAccess.filter((d) => !existingByDept.has(d));
+      if (toAdd.length > 0) {
+        await supabase.from("user_departments").insert(
+          toAdd.map((d) => ({
+            user_id: selectedUser.id,
+            department: d,
+            can_view: true,
+            can_create: false,
+            can_edit: false,
+            can_delete: false,
+          }))
+        );
+      }
+      // Ensure rows kept have can_view = true (so they actually see data)
+      const toEnable = (existingDeptRows || [])
+        .filter((r: any) => editDeptAccess.includes(r.department) && !r.can_view)
+        .map((r: any) => r.department as string);
+      if (toEnable.length > 0) {
+        await supabase
+          .from("user_departments")
+          .update({ can_view: true })
+          .eq("user_id", selectedUser.id)
+          .in("department", toEnable);
+      }
+
       toast.success("บันทึกข้อมูลผู้ใช้สำเร็จ");
       setEditDialogOpen(false);
       await fetchUsers();
