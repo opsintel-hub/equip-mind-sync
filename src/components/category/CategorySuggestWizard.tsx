@@ -108,20 +108,44 @@ export function CategorySuggestWizard({
     }
   };
 
-  const norm = (v?: string) => (v || "").trim().toLowerCase();
+  const norm = (v?: string) => (v || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[()（）\[\]{}]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  const nameParts = (v?: string) => {
+    const raw = v || "";
+    const parts = [raw];
+    raw.match(/\(([^)]+)\)|（([^）]+)）/g)?.forEach((m) => parts.push(m.replace(/[()（）]/g, "")));
+    parts.push(raw.replace(/\s*\([^)]*\)\s*/g, " ").replace(/\s*（[^）]*）\s*/g, " "));
+    return Array.from(new Set(parts.map(norm).filter(Boolean)));
+  };
+
+  const findCategoryBySuggestedName = (items: CatLite[], suggestedName: string) => {
+    const suggestedParts = nameParts(suggestedName);
+    return items.find((item) => {
+      const itemParts = nameParts(item.name);
+      return suggestedParts.some((suggested) =>
+        itemParts.some((actual) => actual === suggested || actual.startsWith(`${suggested} `) || suggested.startsWith(`${actual} `)),
+      );
+    });
+  };
 
   const handlePick = (s: Suggestion) => {
     const mainName = (s.main_category || "").trim();
     const subName = (s.sub_category || "").trim();
-    const mainRow = catsCache.find((c) => norm(c.name) === norm(mainName));
+    const mainRow = findCategoryBySuggestedName(catsCache, mainName);
     if (!mainRow) {
       toast.error(`ไม่พบหมวดหมู่ "${mainName}" ในระบบ กรุณาเลือกด้วยตนเอง หรือเพิ่มหมวดหมู่ใหม่ก่อน`);
       return;
     }
     let subRow: CatLite | undefined;
     if (subName) {
-      subRow = subsCache.find(
-        (x) => x.parent_id === mainRow.id && norm(x.name) === norm(subName),
+      subRow = findCategoryBySuggestedName(
+        subsCache.filter((x) => x.parent_id === mainRow.id),
+        subName,
       );
       if (!subRow) {
         toast.warning(`ไม่พบหมวดหมู่ย่อย "${subName}" ตั้งค่าเฉพาะหมวดหมู่หลัก`);
