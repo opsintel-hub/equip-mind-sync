@@ -1115,47 +1115,6 @@ export function UserPermissionManager() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="edit-department">ฝ่าย</Label>
-              <Select
-                value={editDepartment || "__none__"}
-                onValueChange={(v) => setEditDepartment(v === "__none__" ? "" : v)}
-                disabled={editSaving}
-              >
-                <SelectTrigger id="edit-department">
-                  <SelectValue placeholder="เลือกฝ่าย..." />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__none__">— ไม่ระบุ —</SelectItem>
-                  {allDepartments.map((d) => (
-                    <SelectItem key={d} value={d}>{d}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {selectedUser?.requested_department && selectedUser.requested_department !== editDepartment && (
-                <p className="text-xs text-muted-foreground">
-                  ผู้ใช้ขอสมัครฝ่าย: <strong>{selectedUser.requested_department}</strong>
-                </p>
-              )}
-            </div>
-
-            <div className="space-y-2">
-              <Label className="flex items-center gap-2">
-                <Sparkles className="h-4 w-4 text-primary" />
-                บทบาทงาน / Preset สิทธิ์
-                <span className="text-xs text-muted-foreground font-normal">(เลือกได้หลายอัน)</span>
-              </Label>
-              <div className="rounded-md border max-h-48 overflow-y-auto divide-y">
-                {allPresets.length === 0 && (
-                  <div className="p-3 text-xs text-muted-foreground">กำลังโหลด Preset...</div>
-                )}
-                {allPresets.map((p) => {
-                  const checked = editSelectedPresets.includes(p.template_key);
-                  return (
-                    <label
-                      key={p.template_key}
-                      className="flex items-start gap-2 p-2 hover:bg-muted/50 cursor-pointer text-sm"
-                    >
-            <div className="space-y-2">
               <Label htmlFor="edit-department" className="flex items-center gap-2">
                 ฝ่ายสังกัดหลัก
                 <span className="text-xs text-muted-foreground font-normal">(แสดงในโปรไฟล์เท่านั้น)</span>
