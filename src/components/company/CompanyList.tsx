@@ -77,6 +77,10 @@ export function CompanyList({ refresh }: CompanyListProps) {
 
   const handleToggleHidden = async (company: CompanyData) => {
     const next = !company.is_hidden;
+    // Optimistic in-place update — keep row position stable so users don't lose their place
+    setCompanies((prev) =>
+      prev.map((c) => (c.id === company.id ? { ...c, is_hidden: next } : c))
+    );
     const { error } = await supabase
       .from("companies")
       .update({ is_hidden: next })
@@ -85,9 +89,12 @@ export function CompanyList({ refresh }: CompanyListProps) {
     if (error) {
       console.error("Error toggling hidden:", error);
       toast.error("ไม่สามารถเปลี่ยนสถานะการซ่อนได้");
+      // Revert on failure
+      setCompanies((prev) =>
+        prev.map((c) => (c.id === company.id ? { ...c, is_hidden: !next } : c))
+      );
     } else {
       toast.success(next ? "ซ่อนบริษัทแล้ว" : "แสดงบริษัทแล้ว");
-      fetchCompanies();
     }
   };
 
