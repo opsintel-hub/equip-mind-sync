@@ -222,6 +222,11 @@ export function WarehouseLocationAccordion({ canManageWarehouse, canManageLocati
   const expandAll = () => persistExpanded(new Set(filtered.warehouses.map((w) => w.id)));
   const collapseAll = () => persistExpanded(new Set());
 
+  const handleDelErr = (error: any, label: string) => {
+    if (error?.code === "23503") toast.error(`ไม่สามารถลบถาวรได้ — มีข้อมูลอื่นอ้างอิงถึง${label}นี้ (เช่น สต๊อก, การเคลื่อนไหว, หรือ S/N)`);
+    else toast.error(error?.message || "ลบไม่สำเร็จ");
+  };
+
   const confirmDeleteWH = async () => {
     if (!deleteWH) return;
     const kidCount = (locsByWh[deleteWH.id] || []).length;
@@ -230,8 +235,8 @@ export function WarehouseLocationAccordion({ canManageWarehouse, canManageLocati
       setDeleteWH(null);
       return;
     }
-    const { error } = await supabase.from("warehouses").update({ is_active: false }).eq("id", deleteWH.id);
-    if (error) return toast.error(error.message);
+    const { error } = await supabase.from("warehouses").delete().eq("id", deleteWH.id);
+    if (error) { handleDelErr(error, "คลังสินค้า"); setDeleteWH(null); return; }
     toast.success("ลบคลังสินค้าสำเร็จ");
     setDeleteWH(null);
     load();
@@ -239,8 +244,8 @@ export function WarehouseLocationAccordion({ canManageWarehouse, canManageLocati
 
   const confirmDeleteLoc = async () => {
     if (!deleteLoc) return;
-    const { error } = await supabase.from("locations").update({ is_active: false }).eq("id", deleteLoc.id);
-    if (error) return toast.error(error.message);
+    const { error } = await supabase.from("locations").delete().eq("id", deleteLoc.id);
+    if (error) { handleDelErr(error, "ตำแหน่งจัดเก็บ"); setDeleteLoc(null); return; }
     toast.success("ลบตำแหน่งจัดเก็บสำเร็จ");
     setDeleteLoc(null);
     load();
@@ -248,8 +253,8 @@ export function WarehouseLocationAccordion({ canManageWarehouse, canManageLocati
 
   const confirmDeleteZone = async () => {
     if (!deleteZone) return;
-    const { error } = await supabase.from("zones").update({ is_active: false }).eq("id", deleteZone.id);
-    if (error) return toast.error(error.message);
+    const { error } = await supabase.from("zones").delete().eq("id", deleteZone.id);
+    if (error) { handleDelErr(error, "โซน"); setDeleteZone(null); return; }
     toast.success("ลบโซนสำเร็จ");
     setDeleteZone(null);
     load();
