@@ -146,14 +146,23 @@ export function CategoryAccordion({
         return;
       }
       const { error } = await supabase.from(parentTable as any).delete().eq("id", row.id);
-      if (error) return toast.error(error.message);
+      if (error) {
+        if ((error as any).code === "23503") {
+          toast.error(`ไม่สามารถลบถาวรได้ — มีข้อมูลอื่นอ้างอิงถึง${labels.parentSingular}นี้`);
+        } else return toast.error(error.message);
+        setDeleteTarget(null);
+        return;
+      }
       toast.success("ลบสำเร็จ");
     } else {
-      const q = softDeleteChild
-        ? supabase.from(childTable as any).update({ is_active: false }).eq("id", row.id)
-        : supabase.from(childTable as any).delete().eq("id", row.id);
-      const { error } = await q;
-      if (error) return toast.error(error.message);
+      const { error } = await supabase.from(childTable as any).delete().eq("id", row.id);
+      if (error) {
+        if ((error as any).code === "23503") {
+          toast.error(`ไม่สามารถลบถาวรได้ — มีข้อมูลอื่นอ้างอิงถึง${labels.childSingular}นี้`);
+        } else return toast.error(error.message);
+        setDeleteTarget(null);
+        return;
+      }
       toast.success("ลบสำเร็จ");
     }
     setDeleteTarget(null);

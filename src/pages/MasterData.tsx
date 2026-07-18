@@ -300,7 +300,7 @@ const MasterData = () => {
                       parentPlaceholder: "เช่น เครื่องมือช่างไฟฟ้า",
                       childPlaceholder: "เช่น สว่าน",
                     }}
-                    softDeleteChild
+                    
                   />
                 </CardContent>
               </Card>
