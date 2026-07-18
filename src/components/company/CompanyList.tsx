@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Loader2, Trash2, Building } from "lucide-react";
+import { Loader2, Trash2, Building, Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import {
@@ -12,6 +12,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { CompanyForm } from "./CompanyForm";
@@ -29,6 +31,7 @@ interface CompanyData {
   department_id: string | null;
   description: string | null;
   is_active: boolean;
+  is_hidden: boolean;
   departments: Department | null;
 }
 
@@ -40,6 +43,7 @@ export function CompanyList({ refresh }: CompanyListProps) {
   const [companies, setCompanies] = useState<CompanyData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [deleteCompany, setDeleteCompany] = useState<CompanyData | null>(null);
+  const [showHidden, setShowHidden] = useState(true);
 
   useEffect(() => {
     fetchCompanies();
@@ -56,6 +60,7 @@ export function CompanyList({ refresh }: CompanyListProps) {
         department_id,
         description,
         is_active,
+        is_hidden,
         departments (id, name)
       `)
       .eq("is_active", true)
@@ -68,6 +73,22 @@ export function CompanyList({ refresh }: CompanyListProps) {
       setCompanies(data as CompanyData[]);
     }
     setIsLoading(false);
+  };
+
+  const handleToggleHidden = async (company: CompanyData) => {
+    const next = !company.is_hidden;
+    const { error } = await supabase
+      .from("companies")
+      .update({ is_hidden: next })
+      .eq("id", company.id);
+
+    if (error) {
+      console.error("Error toggling hidden:", error);
+      toast.error("ไม่สามารถเปลี่ยนสถานะการซ่อนได้");
+    } else {
+      toast.success(next ? "ซ่อนบริษัทแล้ว" : "แสดงบริษัทแล้ว");
+      fetchCompanies();
+    }
   };
 
   const handleDelete = async () => {
@@ -105,8 +126,17 @@ export function CompanyList({ refresh }: CompanyListProps) {
     );
   }
 
+  const hiddenCount = companies.filter((c) => c.is_hidden).length;
+  const visibleCompanies = showHidden ? companies : companies.filter((c) => !c.is_hidden);
+
   return (
     <>
+      <div className="flex items-center justify-end gap-2 mb-3">
+        <Label htmlFor="show-hidden" className="text-sm text-muted-foreground">
+          แสดงบริษัทที่ซ่อน ({hiddenCount})
+        </Label>
+        <Switch id="show-hidden" checked={showHidden} onCheckedChange={setShowHidden} />
+      </div>
       <Table>
         <TableHeader>
           <TableRow>
@@ -114,14 +144,24 @@ export function CompanyList({ refresh }: CompanyListProps) {
             <TableHead>ชื่อบริษัท</TableHead>
             <TableHead>ฝ่าย</TableHead>
             <TableHead>รายละเอียด</TableHead>
-            <TableHead className="w-[100px]">จัดการ</TableHead>
+            <TableHead className="w-[140px]">จัดการ</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
-          {companies.map((company) => (
-            <TableRow key={company.id}>
+          {visibleCompanies.map((company) => (
+            <TableRow key={company.id} className={company.is_hidden ? "opacity-60 bg-muted/30" : ""}>
               <TableCell className="font-medium">{company.code}</TableCell>
-              <TableCell>{company.name}</TableCell>
+              <TableCell>
+                <div className="flex items-center gap-2">
+                  <span>{company.name}</span>
+                  {company.is_hidden && (
+                    <Badge variant="outline" className="bg-muted text-muted-foreground border-muted-foreground/30">
+                      <EyeOff className="h-3 w-3 mr-1" />
+                      ซ่อน
+                    </Badge>
+                  )}
+                </div>
+              </TableCell>
               <TableCell>
                 {company.departments ? (
                   <Badge variant="outline">{company.departments.name}</Badge>
@@ -136,6 +176,18 @@ export function CompanyList({ refresh }: CompanyListProps) {
               </TableCell>
               <TableCell>
                 <div className="flex items-center gap-1">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => handleToggleHidden(company)}
+                    title={company.is_hidden ? "แสดงบริษัทนี้" : "ซ่อนจากการมองเห็น"}
+                  >
+                    {company.is_hidden ? (
+                      <EyeOff className="h-4 w-4 text-muted-foreground" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
+                  </Button>
                   <CompanyForm editData={company} onSuccess={fetchCompanies} />
                   <Button
                     variant="ghost"

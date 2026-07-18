@@ -49,7 +49,9 @@ export function CompanySelect({
         departments (id, name)
       `)
       .eq("is_active", true)
+      .eq("is_hidden", false)
       .order("code");
+
 
     if (departmentId) {
       query = query.eq("department_id", departmentId);
