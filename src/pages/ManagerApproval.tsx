@@ -714,6 +714,9 @@ const ManagerApproval = () => {
                   <TableHead>รูปแบบการรับ</TableHead>
                   <TableHead>วันนัดรับ</TableHead>
                   <TableHead>รายการ</TableHead>
+                  <TableHead>ประเภท</TableHead>
+                  <TableHead>ป้ายปลายทาง</TableHead>
+                  <TableHead className="text-right">รวม</TableHead>
                   <TableHead>สถานะ</TableHead>
                   <TableHead>ผู้อนุมัติ</TableHead>
                   <TableHead></TableHead>
@@ -721,13 +724,23 @@ const ManagerApproval = () => {
               </TableHeader>
               <TableBody>
                 {filteredHistory.length === 0 ? (
-                  <TableRow><TableCell colSpan={11} className="text-center py-8 text-muted-foreground">ไม่มีประวัติ</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={14} className="text-center py-8 text-muted-foreground">ไม่มีประวัติ</TableCell></TableRow>
                 ) : (
-                  filteredHistory.map((req: any) => renderRequestRow(req, false))
+                  historyPagination.paginatedData.map((req: any) => renderRequestRow(req, false))
                 )}
               </TableBody>
             </Table>
           </div>
+          {filteredHistory.length > 0 && (
+            <TablePagination
+              currentPage={historyPagination.currentPage}
+              totalPages={historyPagination.totalPages}
+              pageSize={historyPagination.pageSize}
+              totalItems={historyPagination.totalItems}
+              onPageChange={historyPagination.handlePageChange}
+              onPageSizeChange={historyPagination.handlePageSizeChange}
+            />
+          )}
         </CardContent>
       </Card>
 
