@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
-import { ImageIcon, ChevronLeft, ChevronRight, X } from "lucide-react";
+import { ImageIcon, ChevronLeft, ChevronRight, X, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 interface EquipmentImageViewerProps {
   equipmentId: string;
