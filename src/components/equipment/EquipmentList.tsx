@@ -233,6 +233,7 @@ export function EquipmentList({ refresh }: EquipmentListProps) {
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead className="w-12">รูป</TableHead>
               <TableHead>รหัส</TableHead>
               <TableHead>ชื่ออุปกรณ์</TableHead>
               <TableHead>หมวดหมู่</TableHead>
@@ -251,6 +252,7 @@ export function EquipmentList({ refresh }: EquipmentListProps) {
         <TableBody>
           {paginatedEquipment.map((item) => (
               <TableRow key={item.id}>
+                <TableCell className="p-1"><EquipmentImageViewer equipmentId={item.id} equipmentName={item.name} /></TableCell>
                 <TableCell className="font-medium">{item.code}</TableCell>
                 <TableCell>
                   <div className="flex items-center gap-2">
