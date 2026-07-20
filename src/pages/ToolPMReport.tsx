@@ -439,7 +439,18 @@ const ToolPMReport = () => {
                         <TableCell className="text-sm">{r.tool.department || "-"}</TableCell>
                         <TableCell className="text-center text-sm">ทุก {r.tool.pm_interval_days} วัน</TableCell>
                         <TableCell className="text-center font-medium">{r.planned}</TableCell>
-                        <TableCell className="text-center">{r.completed}</TableCell>
+                        <TableCell className="text-center">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 gap-1 px-2"
+                            onClick={() => openDetail(r.tool)}
+                            title="ดูประวัติ PM ในช่วงนี้"
+                          >
+                            <History className="h-3.5 w-3.5" />
+                            <span className="font-medium">{r.completed}</span>
+                          </Button>
+                        </TableCell>
                         <TableCell className="text-center text-green-600 font-medium">{r.onTime}</TableCell>
                         <TableCell className="text-center">
                           {r.late > 0
