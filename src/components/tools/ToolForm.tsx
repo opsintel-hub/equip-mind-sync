@@ -69,6 +69,7 @@ export function ToolForm({ onSuccess }: ToolFormProps) {
   const [selectedPMTypes, setSelectedPMTypes] = useState<string[]>([]);
   const [previewCode, setPreviewCode] = useState("");
   const [warehouseId, setWarehouseId] = useState("");
+  const [images, setImages] = useState<ToolImageItem[]>([]);
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
