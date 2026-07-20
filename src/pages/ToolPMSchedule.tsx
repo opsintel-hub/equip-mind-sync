@@ -81,6 +81,17 @@ const ToolPMSchedule = () => {
 
       if (tasksError) throw tasksError;
 
+      // Get latest inspection history per tool (with result)
+      const { data: historyData } = await supabase
+        .from("tool_pm_history")
+        .select("tool_id, completed_date, pm_result:pm_results(name, color)")
+        .order("completed_date", { ascending: false });
+
+      const latestResultByTool: Record<string, any> = {};
+      (historyData || []).forEach((h: any) => {
+        if (!latestResultByTool[h.tool_id]) latestResultByTool[h.tool_id] = h;
+      });
+
       // Group tasks by tool
       const tasksByTool: Record<string, any[]> = {};
       tasksData?.forEach((task: any) => {
@@ -105,6 +116,7 @@ const ToolPMSchedule = () => {
           inProgressCount: inProgressTasks.length,
           completedCount: completedTasks.length,
           latestTask,
+          latestResult: latestResultByTool[tool.id] || null,
           nextDueDate: latestTask?.due_date
         };
       }) || [];
