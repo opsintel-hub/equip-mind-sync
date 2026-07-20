@@ -72,6 +72,10 @@ const ManagerApproval = () => {
   const [companyFilter, setCompanyFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
+  const [pendingVisible, setPendingVisible] = useVisibleCols<ApprovalColKey>("ma-pending-cols-v1", PENDING_COLS);
+  const [historyVisible, setHistoryVisible] = useVisibleCols<ApprovalColKey>("ma-history-cols-v1", HISTORY_COLS);
+  const pendingCol = (k: ApprovalColKey) => pendingVisible.includes(k);
+  const historyCol = (k: ApprovalColKey) => historyVisible.includes(k);
 
   const { data: companies } = useQuery({
     queryKey: ["ma-companies"],
