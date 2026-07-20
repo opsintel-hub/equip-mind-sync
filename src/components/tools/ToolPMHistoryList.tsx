@@ -15,11 +15,22 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { RefreshCw, Search, History, FileDown, X, Filter } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { RefreshCw, Search, History, FileDown, X, Filter, Calendar as CalendarIcon, ImageIcon, Download } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { th } from "date-fns/locale";
+import { cn } from "@/lib/utils";
 import * as XLSX from "xlsx";
+
+interface PMImage {
+  id: string;
+  image_url: string;
+  description: string | null;
+}
 
 interface ToolPMHistory {
   id: string;
@@ -27,6 +38,7 @@ interface ToolPMHistory {
   inspector_name: string | null;
   completed_by: string | null;
   notes: string | null;
+  tool_pm_task_id: string | null;
   tool_pm_task: {
     task_number: string;
     quantity_checked: number | null;
@@ -40,7 +52,9 @@ interface ToolPMHistory {
     department: string | null;
   };
   pm_result: { name: string; color: string } | null;
+  images?: PMImage[];
 }
+
 
 export function ToolPMHistoryList() {
   const [history, setHistory] = useState<ToolPMHistory[]>([]);
@@ -51,6 +65,10 @@ export function ToolPMHistoryList() {
   const [filterInspector, setFilterInspector] = useState("all");
   const [filterYear, setFilterYear] = useState("all");
   const [filterMonth, setFilterMonth] = useState("all");
+  const [dateFrom, setDateFrom] = useState<Date | undefined>();
+  const [dateTo, setDateTo] = useState<Date | undefined>();
+  const [viewerImages, setViewerImages] = useState<PMImage[] | null>(null);
+  const [viewerTitle, setViewerTitle] = useState("");
 
   useEffect(() => {
     fetchHistory();
@@ -70,7 +88,23 @@ export function ToolPMHistoryList() {
         .order("completed_date", { ascending: false });
 
       if (error) throw error;
-      setHistory(data || []);
+
+      const rows = (data || []) as any[];
+      const taskIds = rows.map(r => r.tool_pm_task_id).filter(Boolean);
+      let imagesByTask: Record<string, PMImage[]> = {};
+      if (taskIds.length > 0) {
+        const { data: imgs } = await supabase
+          .from("tool_pm_task_images")
+          .select("id, tool_pm_task_id, image_url, description")
+          .in("tool_pm_task_id", taskIds);
+        (imgs || []).forEach((img: any) => {
+          if (!imagesByTask[img.tool_pm_task_id]) imagesByTask[img.tool_pm_task_id] = [];
+          imagesByTask[img.tool_pm_task_id].push({
+            id: img.id, image_url: img.image_url, description: img.description,
+          });
+        });
+      }
+      setHistory(rows.map(r => ({ ...r, images: imagesByTask[r.tool_pm_task_id] || [] })));
     } catch (error) {
       console.error("Error fetching history:", error);
       toast.error("ไม่สามารถโหลดประวัติ PM ได้");
@@ -78,6 +112,7 @@ export function ToolPMHistoryList() {
       setIsLoading(false);
     }
   };
+
 
   // Distinct values for filters
   const distinctDepts = useMemo(() =>
@@ -139,11 +174,15 @@ export function ToolPMHistoryList() {
       if (filterYear !== "all" && new Date(item.completed_date).getFullYear().toString() !== filterYear) return false;
       // Month filter
       if (filterMonth !== "all" && new Date(item.completed_date).getMonth().toString() !== filterMonth) return false;
+      // Date range
+      const d = new Date(item.completed_date);
+      if (dateFrom && d < new Date(dateFrom.setHours(0,0,0,0))) return false;
+      if (dateTo && d > new Date(new Date(dateTo).setHours(23,59,59,999))) return false;
       return true;
     });
-  }, [history, searchTerm, filterDept, filterResult, filterInspector, filterYear, filterMonth]);
+  }, [history, searchTerm, filterDept, filterResult, filterInspector, filterYear, filterMonth, dateFrom, dateTo]);
 
-  const hasActiveFilters = filterDept !== "all" || filterResult !== "all" || filterInspector !== "all" || filterYear !== "all" || filterMonth !== "all" || searchTerm !== "";
+  const hasActiveFilters = filterDept !== "all" || filterResult !== "all" || filterInspector !== "all" || filterYear !== "all" || filterMonth !== "all" || searchTerm !== "" || !!dateFrom || !!dateTo;
 
   const clearFilters = () => {
     setSearchTerm("");
@@ -152,7 +191,10 @@ export function ToolPMHistoryList() {
     setFilterInspector("all");
     setFilterYear("all");
     setFilterMonth("all");
+    setDateFrom(undefined);
+    setDateTo(undefined);
   };
+
 
   const getResultBadge = (result: { name: string; color: string } | null) => {
     if (!result) return <Badge variant="outline">-</Badge>;
@@ -186,7 +228,10 @@ export function ToolPMHistoryList() {
       }),
       ผู้ตรวจ: item.inspector_name || "-",
       หมายเหตุ: item.notes || "-",
+      จำนวนรูป: item.images?.length || 0,
+      ลิงก์รูป: (item.images || []).map(i => i.image_url).join(" | "),
     }));
+
 
     const ws = XLSX.utils.json_to_sheet(exportData);
     const wb = XLSX.utils.book_new();
@@ -265,6 +310,28 @@ export function ToolPMHistoryList() {
                 {months.map(m => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}
               </SelectContent>
             </Select>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" className={cn("w-[160px] justify-start text-left font-normal", !dateFrom && "text-muted-foreground")}>
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {dateFrom ? format(dateFrom, "dd/MM/yyyy") : "จากวันที่"}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar mode="single" selected={dateFrom} onSelect={setDateFrom} initialFocus className={cn("p-3 pointer-events-auto")} />
+              </PopoverContent>
+            </Popover>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" className={cn("w-[160px] justify-start text-left font-normal", !dateTo && "text-muted-foreground")}>
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {dateTo ? format(dateTo, "dd/MM/yyyy") : "ถึงวันที่"}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar mode="single" selected={dateTo} onSelect={setDateTo} initialFocus className={cn("p-3 pointer-events-auto")} />
+              </PopoverContent>
+            </Popover>
           </div>
         </CardContent>
       </Card>
@@ -296,6 +363,7 @@ export function ToolPMHistoryList() {
               {hasActiveFilters ? "ไม่พบประวัติตามเงื่อนไขที่เลือก" : "ยังไม่มีประวัติ PM"}
             </div>
           ) : (
+            <TooltipProvider>
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
@@ -307,9 +375,10 @@ export function ToolPMHistoryList() {
                     <TableHead>Serial No.</TableHead>
                     <TableHead className="text-center">จำนวนที่ตรวจ</TableHead>
                     <TableHead>ผลการตรวจ</TableHead>
+                    <TableHead className="text-center">รูป</TableHead>
                     <TableHead>วันที่ตรวจ</TableHead>
                     <TableHead>ผู้ตรวจ</TableHead>
-                    <TableHead>หมายเหตุ</TableHead>
+                    <TableHead>หมายเหตุ / ข้อสังเกต</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -321,6 +390,7 @@ export function ToolPMHistoryList() {
                       <TableCell>
                         <div>
                           <span className="font-medium">{item.tool.code}</span>
+                          {item.tool.brand && <span className="text-xs text-muted-foreground"> · {item.tool.brand}</span>}
                           <br />
                           <span className="text-xs text-muted-foreground">{item.tool.name}</span>
                         </div>
@@ -334,12 +404,39 @@ export function ToolPMHistoryList() {
                           : "-"}
                       </TableCell>
                       <TableCell>{getResultBadge(item.pm_result)}</TableCell>
+                      <TableCell className="text-center">
+                        {item.images && item.images.length > 0 ? (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 px-2 gap-1"
+                            onClick={() => {
+                              setViewerImages(item.images!);
+                              setViewerTitle(`${item.tool.code} · ${item.tool_pm_task?.task_number || ""}`);
+                            }}
+                          >
+                            <ImageIcon className="h-4 w-4 text-primary" />
+                            <span className="text-xs font-medium">{item.images.length}</span>
+                          </Button>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">-</span>
+                        )}
+                      </TableCell>
                       <TableCell className="text-sm whitespace-nowrap">
                         {format(new Date(item.completed_date), "dd/MM/yyyy HH:mm", { locale: th })}
                       </TableCell>
                       <TableCell className="text-sm">{item.inspector_name || "-"}</TableCell>
-                      <TableCell className="text-sm max-w-[200px] truncate">
-                        {item.notes || "-"}
+                      <TableCell className="text-sm max-w-[240px]">
+                        {item.notes ? (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className="line-clamp-2 cursor-help">{item.notes}</span>
+                            </TooltipTrigger>
+                            <TooltipContent className="max-w-sm whitespace-pre-line">
+                              {item.notes}
+                            </TooltipContent>
+                          </Tooltip>
+                        ) : "-"}
                       </TableCell>
                     </TableRow>
                   ))}
@@ -354,9 +451,33 @@ export function ToolPMHistoryList() {
                 onPageSizeChange={handlePageSizeChange}
               />
             </div>
+            </TooltipProvider>
           )}
         </CardContent>
       </Card>
+
+      {/* Image Viewer Dialog */}
+      <Dialog open={!!viewerImages} onOpenChange={(o) => !o && setViewerImages(null)}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>รูปการตรวจ PM · {viewerTitle}</DialogTitle>
+          </DialogHeader>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3 max-h-[70vh] overflow-y-auto">
+            {(viewerImages || []).map((img) => (
+              <div key={img.id} className="space-y-2">
+                <a href={img.image_url} target="_blank" rel="noreferrer" className="block">
+                  <img src={img.image_url} alt={img.description || "PM image"} className="w-full h-40 object-cover rounded border hover:opacity-90 transition" />
+                </a>
+                {img.description && <p className="text-xs text-muted-foreground line-clamp-2">{img.description}</p>}
+                <a href={img.image_url} download target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-xs text-primary hover:underline">
+                  <Download className="h-3 w-3" />ดาวน์โหลด
+                </a>
+              </div>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
+
 }

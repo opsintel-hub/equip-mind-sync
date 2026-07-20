@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useTablePagination } from "@/hooks/useTablePagination";
@@ -31,10 +31,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { RefreshCw, Search, ClipboardCheck, Camera, User, ImageIcon, X, Upload } from "lucide-react";
+import { RefreshCw, Search, ClipboardCheck, Camera, User, ImageIcon, X, Upload, FileDown, Filter, UserCog } from "lucide-react";
 import { toast } from "sonner";
-import { format } from "date-fns";
+import { format, differenceInDays } from "date-fns";
 import { th } from "date-fns/locale";
+import * as XLSX from "xlsx";
+
 
 interface PMResult {
   id: string;
@@ -67,7 +69,9 @@ interface ToolPMTask {
     current_quantity: number;
     unit: string;
     is_personal_tool: boolean;
+    department: string | null;
   };
+
   pm_result: { id: string; name: string; color: string } | null;
 }
 
@@ -77,9 +81,13 @@ export function ToolPMTaskList() {
   const [pmResults, setPmResults] = useState<PMResult[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+  const [filterDept, setFilterDept] = useState("all");
+  const [filterUrgency, setFilterUrgency] = useState("all");
+  const [filterType, setFilterType] = useState("all");
   const [selectedTask, setSelectedTask] = useState<ToolPMTask | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [toolPMTypes, setToolPMTypes] = useState<string[]>([]);
+
 
   // Form state
   const [inspectorName, setInspectorName] = useState("");
@@ -105,7 +113,7 @@ export function ToolPMTaskList() {
         .from("tool_pm_tasks")
         .select(`
           *,
-          tool:tools(id, code, name, brand, serial_number, current_quantity, unit, is_personal_tool),
+          tool:tools(id, code, name, brand, serial_number, current_quantity, unit, is_personal_tool, department),
           pm_result:pm_results(id, name, color)
         `)
         .in("status", ["pending", "in_progress"])
@@ -252,7 +260,7 @@ export function ToolPMTaskList() {
         }
       }
 
-      toast.success("บันทึกผลการตรวจสอบสำเร็จ");
+      toast.success(`บันทึกผล PM สำเร็จ — ตั๋ว ${selectedTask.task_number} ถูกย้ายไปประวัติ PM แล้ว`);
       setIsDialogOpen(false);
       
       // Cleanup previews
@@ -288,18 +296,123 @@ export function ToolPMTaskList() {
     return <Badge variant="outline">อีก {diffDays} วัน</Badge>;
   };
 
-  const filteredTasks = tasks.filter(
-    (task) =>
-      task.task_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      task.tool.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      task.tool.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      task.tool.serial_number?.toLowerCase().includes(searchTerm.toLowerCase())
+  const distinctDepts = useMemo(
+    () => [...new Set(tasks.map(t => t.tool?.department).filter(Boolean))].sort() as string[],
+    [tasks]
   );
+
+  const getUrgencyBucket = (dueDate: string) => {
+    const diff = differenceInDays(new Date(dueDate), new Date());
+    if (diff < 0) return "overdue";
+    if (diff === 0) return "today";
+    if (diff <= 7) return "week";
+    return "later";
+  };
+
+  const filteredTasks = useMemo(() => {
+    return tasks.filter((task) => {
+      const term = searchTerm.toLowerCase();
+      if (term) {
+        const match =
+          task.task_number.toLowerCase().includes(term) ||
+          task.tool.code.toLowerCase().includes(term) ||
+          task.tool.name.toLowerCase().includes(term) ||
+          task.tool.serial_number?.toLowerCase().includes(term) ||
+          task.tool.brand?.toLowerCase().includes(term);
+        if (!match) return false;
+      }
+      if (filterDept !== "all" && task.tool.department !== filterDept) return false;
+      if (filterUrgency !== "all" && getUrgencyBucket(task.due_date) !== filterUrgency) return false;
+      if (filterType === "personal" && !task.tool.is_personal_tool) return false;
+      if (filterType === "company" && task.tool.is_personal_tool) return false;
+      return true;
+    });
+  }, [tasks, searchTerm, filterDept, filterUrgency, filterType]);
+
+  const hasActiveFilters = !!searchTerm || filterDept !== "all" || filterUrgency !== "all" || filterType !== "all";
+
+  const clearFilters = () => {
+    setSearchTerm("");
+    setFilterDept("all");
+    setFilterUrgency("all");
+    setFilterType("all");
+  };
+
+  const handleExport = () => {
+    const rows = filteredTasks.map((t) => ({
+      หมายเลขงาน: t.task_number,
+      รหัสเครื่องมือ: t.tool.code,
+      ชื่อเครื่องมือ: t.tool.name,
+      ฝ่าย: t.tool.department || "-",
+      ประเภท: t.tool.is_personal_tool ? "เครื่องมือประจำตัวช่าง" : "ทรัพย์สินบริษัท",
+      ยี่ห้อ: t.tool.brand || "-",
+      "Serial No.": t.tool.serial_number || "-",
+      จำนวน: `${t.tool.current_quantity} ${t.tool.unit}`,
+      กำหนด_PM: format(new Date(t.due_date), "dd/MM/yyyy"),
+      สถานะ: t.status,
+    }));
+    const ws = XLSX.utils.json_to_sheet(rows);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "งาน PM เครื่องมือ");
+    XLSX.writeFile(wb, `tool-pm-tasks-${format(new Date(), "yyyy-MM-dd")}.xlsx`);
+    toast.success("ส่งออกข้อมูลสำเร็จ");
+  };
 
   const { paginatedData, currentPage, pageSize, totalPages, totalItems, handlePageChange, handlePageSizeChange } = useTablePagination(filteredTasks);
 
   return (
     <>
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base flex items-center justify-between">
+            <span className="flex items-center gap-2"><Filter className="h-4 w-4" />ตัวกรอง</span>
+            {hasActiveFilters && (
+              <Button variant="ghost" size="sm" onClick={clearFilters} className="gap-1">
+                <X className="w-3 h-3" />ล้างตัวกรอง
+              </Button>
+            )}
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-wrap gap-3">
+            <div className="relative w-full sm:w-[260px]">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="ค้นหาหมายเลขงาน, รหัส, ชื่อ, S/N..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-9"
+              />
+            </div>
+            <Select value={filterDept} onValueChange={setFilterDept}>
+              <SelectTrigger className="w-[170px]"><SelectValue placeholder="ฝ่าย" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">ทุกฝ่าย</SelectItem>
+                {distinctDepts.map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            <Select value={filterUrgency} onValueChange={setFilterUrgency}>
+              <SelectTrigger className="w-[170px]"><SelectValue placeholder="สถานะกำหนด" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">ทุกสถานะกำหนด</SelectItem>
+                <SelectItem value="overdue">เกินกำหนด</SelectItem>
+                <SelectItem value="today">ถึงกำหนดวันนี้</SelectItem>
+                <SelectItem value="week">ภายใน 7 วัน</SelectItem>
+                <SelectItem value="later">มากกว่า 7 วัน</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={filterType} onValueChange={setFilterType}>
+              <SelectTrigger className="w-[190px]"><SelectValue placeholder="ประเภทเครื่องมือ" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">ทุกประเภท</SelectItem>
+                <SelectItem value="company">ทรัพย์สินบริษัท</SelectItem>
+                <SelectItem value="personal">เครื่องมือประจำตัวช่าง</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </CardContent>
+      </Card>
+
       <Card>
         <CardHeader>
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -307,18 +420,12 @@ export function ToolPMTaskList() {
               <ClipboardCheck className="h-5 w-5" />
               งาน PM เครื่องมือ ({filteredTasks.length} รายการ)
             </CardTitle>
-            <div className="flex gap-2 w-full sm:w-auto">
-              <div className="relative flex-1 sm:w-64">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="ค้นหาหมายเลขงาน, รหัส, ชื่อ, S/N..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-9"
-                />
-              </div>
+            <div className="flex gap-2">
               <Button variant="outline" size="icon" onClick={fetchTasks}>
                 <RefreshCw className="h-4 w-4" />
+              </Button>
+              <Button variant="outline" onClick={handleExport} disabled={filteredTasks.length === 0}>
+                <FileDown className="h-4 w-4 mr-2" />Export
               </Button>
             </div>
           </div>
@@ -328,7 +435,7 @@ export function ToolPMTaskList() {
             <div className="text-center py-8 text-muted-foreground">กำลังโหลด...</div>
           ) : filteredTasks.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
-              {searchTerm ? "ไม่พบงาน PM ที่ค้นหา" : "ไม่มีงาน PM ที่รอดำเนินการ"}
+              {hasActiveFilters ? "ไม่พบงาน PM ตามเงื่อนไข" : "ไม่มีงาน PM ที่รอดำเนินการ"}
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -337,6 +444,8 @@ export function ToolPMTaskList() {
                   <TableRow>
                     <TableHead>หมายเลขงาน</TableHead>
                     <TableHead>เครื่องมือ</TableHead>
+                    <TableHead>ฝ่าย</TableHead>
+                    <TableHead>ประเภท</TableHead>
                     <TableHead>ยี่ห้อ</TableHead>
                     <TableHead>Serial No.</TableHead>
                     <TableHead className="text-center">จำนวน</TableHead>
@@ -348,7 +457,7 @@ export function ToolPMTaskList() {
                 <TableBody>
                   {paginatedData.map((task) => (
                     <TableRow key={task.id}>
-                      <TableCell className="font-medium">{task.task_number}</TableCell>
+                      <TableCell className="font-mono text-xs">{task.task_number}</TableCell>
                       <TableCell>
                         <div>
                           <span className="font-medium">{task.tool.code}</span>
@@ -356,10 +465,18 @@ export function ToolPMTaskList() {
                           <span className="text-sm text-muted-foreground">{task.tool.name}</span>
                         </div>
                       </TableCell>
+                      <TableCell className="text-sm">{task.tool.department || "-"}</TableCell>
+                      <TableCell>
+                        {task.tool.is_personal_tool ? (
+                          <Badge variant="secondary" className="gap-1"><UserCog className="h-3 w-3" />ประจำตัวช่าง</Badge>
+                        ) : (
+                          <Badge variant="outline">บริษัท</Badge>
+                        )}
+                      </TableCell>
                       <TableCell>{task.tool.brand || "-"}</TableCell>
                       <TableCell>{task.tool.serial_number || "-"}</TableCell>
                       <TableCell className="text-center">{task.tool.current_quantity} {task.tool.unit}</TableCell>
-                      <TableCell>
+                      <TableCell className="whitespace-nowrap">
                         {format(new Date(task.due_date), "dd MMM yyyy", { locale: th })}
                       </TableCell>
                       <TableCell>{getStatusBadge(task.due_date, task.status)}</TableCell>
@@ -385,6 +502,7 @@ export function ToolPMTaskList() {
           )}
         </CardContent>
       </Card>
+
 
       {/* Inspection Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
