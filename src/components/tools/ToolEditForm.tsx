@@ -401,25 +401,12 @@ export function ToolEditForm({ tool, open, onOpenChange, onSuccess }: ToolEditFo
                 </FormItem>
               )} />
 
-              <FormField control={form.control} name="pm_interval_days" render={({ field }) => (
-                <FormItem>
-                  <FormLabel>ระยะเวลาที่ต้อง PM *</FormLabel>
-                  <Select value={String(field.value)} onValueChange={(val) => field.onChange(parseInt(val))}>
-                    <FormControl>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="15">ทุก 15 วัน</SelectItem>
-                      <SelectItem value="30">ทุก 30 วัน</SelectItem>
-                      <SelectItem value="60">ทุก 60 วัน</SelectItem>
-                      <SelectItem value="90">ทุก 90 วัน</SelectItem>
-                      <SelectItem value="180">ทุก 180 วัน</SelectItem>
-                      <SelectItem value="365">ทุก 1 ปี</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )} />
+            </div>
+
+            {/* PM Matrix */}
+            <div className="space-y-3">
+              <h3 className="text-sm font-semibold text-primary border-b pb-1">🔧 การบำรุงรักษา (PM) - Matrix</h3>
+              <ToolPMMatrix value={pmMatrix} onChange={setPmMatrix} />
             </div>
 
             <FormField control={form.control} name="description" render={({ field }) => (
@@ -440,6 +427,17 @@ export function ToolEditForm({ tool, open, onOpenChange, onSuccess }: ToolEditFo
               <h3 className="text-sm font-semibold text-primary border-b pb-1">📷 รูปภาพเครื่องมือ (สูงสุด 4 รูป)</h3>
               <ToolImageUpload images={images} onChange={setImages} maxImages={4} />
             </div>
+
+            <div className="space-y-3">
+              <h3 className="text-sm font-semibold text-primary border-b pb-1">📎 เอกสารประกอบ (Warranty / PO / Invoice / คู่มือ)</h3>
+              <ToolDocumentUpload
+                toolCode={tool.code}
+                toolId={tool.id}
+                value={documents}
+                onChange={setDocuments}
+              />
+            </div>
+
 
 
             <Button type="submit" disabled={isSubmitting} className="w-full">
