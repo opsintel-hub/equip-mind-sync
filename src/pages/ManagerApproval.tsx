@@ -478,7 +478,7 @@ const ManagerApproval = () => {
         </TableRow>
         {isExpanded && items.length > 0 && (
           <TableRow key={`${req.id}-items`}>
-            <TableCell colSpan={showActions ? 10 : 11} className="bg-muted/20 p-4">
+            <TableCell colSpan={showActions ? 13 : 14} className="bg-muted/20 p-4">
               {/* Header detail */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 mb-4 text-sm bg-background rounded-lg p-3 border">
                 <div><span className="text-muted-foreground">ฝ่าย/แผนกผู้ขอ:</span> <span className="font-medium">{req.requester_department || "-"}</span></div>
