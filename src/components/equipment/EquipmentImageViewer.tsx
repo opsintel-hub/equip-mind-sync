@@ -175,6 +175,29 @@ function ImageViewerContent({
         <div className="absolute bottom-2 right-2 bg-black/50 text-white px-2 py-1 rounded text-sm">
           {currentIndex + 1} / {images.length}
         </div>
+        <Button
+          variant="secondary"
+          size="sm"
+          className="absolute bottom-2 left-2"
+          onClick={async () => {
+            try {
+              const res = await fetch(images[currentIndex]);
+              const blob = await res.blob();
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement("a");
+              a.href = url;
+              a.download = images[currentIndex].split("/").pop()?.split("?")[0] || "image";
+              document.body.appendChild(a);
+              a.click();
+              document.body.removeChild(a);
+              URL.revokeObjectURL(url);
+            } catch {
+              toast.error("ดาวน์โหลดไม่สำเร็จ");
+            }
+          }}
+        >
+          <Download className="h-4 w-4 mr-1" /> ดาวน์โหลด
+        </Button>
       </div>
 
       {/* Thumbnail Strip */}
