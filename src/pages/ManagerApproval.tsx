@@ -665,21 +665,36 @@ const ManagerApproval = () => {
                   <TableHead>รูปแบบการรับ</TableHead>
                   <TableHead>วันนัดรับ</TableHead>
                   <TableHead>รายการ</TableHead>
+                  <TableHead>ประเภท</TableHead>
+                  <TableHead>ป้ายปลายทาง</TableHead>
+                  <TableHead className="text-right">รวม</TableHead>
                   <TableHead>สถานะ</TableHead>
                   <TableHead className="text-center">จัดการ</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {isLoading ? (
-                  <TableRow><TableCell colSpan={10} className="text-center py-8 text-muted-foreground">กำลังโหลด...</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={13} className="text-center py-8 text-muted-foreground">กำลังโหลด...</TableCell></TableRow>
                 ) : filteredPending.length === 0 ? (
-                  <TableRow><TableCell colSpan={10} className="text-center py-8 text-muted-foreground">ไม่มีรายการรออนุมัติ</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={13} className="text-center py-8 text-muted-foreground">ไม่มีรายการรออนุมัติ</TableCell></TableRow>
                 ) : (
-                  filteredPending.map((req: any) => renderRequestRow(req, true))
+                  pendingPagination.paginatedData.map((req: any) => renderRequestRow(req, true))
                 )}
               </TableBody>
             </Table>
           </div>
+          {filteredPending.length > 0 && (
+            <TablePagination
+              currentPage={pendingPagination.currentPage}
+              totalPages={pendingPagination.totalPages}
+              pageSize={pendingPagination.pageSize}
+              totalItems={pendingPagination.totalItems}
+              startIndex={pendingPagination.startIndex}
+              endIndex={pendingPagination.endIndex}
+              onPageChange={pendingPagination.setCurrentPage}
+              onPageSizeChange={pendingPagination.setPageSize}
+            />
+          )}
         </CardContent>
       </Card>
 
