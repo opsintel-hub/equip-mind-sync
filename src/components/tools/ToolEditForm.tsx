@@ -90,6 +90,8 @@ export function ToolEditForm({ tool, open, onOpenChange, onSuccess }: ToolEditFo
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [warehouseId, setWarehouseId] = useState("");
   const [images, setImages] = useState<ToolImageItem[]>([]);
+  const [pmMatrix, setPmMatrix] = useState<PMMatrixRow[]>([]);
+  const [documents, setDocuments] = useState<ToolDocumentItem[]>([]);
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
