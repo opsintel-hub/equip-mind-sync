@@ -45,7 +45,7 @@ const formSchema = z.object({
   expiry_date: z.string().optional(),
   warranty_expiry_date: z.string().optional(),
   has_warranty: z.boolean().default(true),
-  pm_interval_days: z.coerce.number().min(1),
+  pm_interval_days: z.coerce.number().min(1).optional(),
   notes: z.string().optional(),
   is_asset: z.boolean().default(false),
   asset_code: z.string().optional(),
