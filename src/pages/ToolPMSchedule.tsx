@@ -443,18 +443,44 @@ const ToolPMSchedule = () => {
                     <TableCell>{getStatusBadge(tool)}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex gap-1 justify-end">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          title="สร้างงาน PM ใหม่สำหรับเครื่องมือนี้"
-                          onClick={() => {
-                            setSelectedTool(tool.id);
-                            createPMTask.mutate(tool.id);
-                          }}
-                          disabled={createPMTask.isPending}
-                        >
-                          <Plus className="h-4 w-4" />
-                        </Button>
+                        {(tool.pendingCount > 0 || tool.inProgressCount > 0) ? (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            disabled
+                            title={`มีตั๋ว PM ค้างอยู่แล้ว${tool.latestTask?.task_number ? ` (${tool.latestTask.task_number})` : ""} — กรุณาตรวจให้เสร็จก่อน`}
+                          >
+                            <Plus className="h-4 w-4 opacity-40" />
+                          </Button>
+                        ) : (
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                title="สร้างตั๋ว PM ใหม่สำหรับเครื่องมือนี้"
+                                disabled={createPMTask.isPending}
+                              >
+                                <Plus className="h-4 w-4" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>สร้างตั๋ว PM ใหม่?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  สร้างตั๋ว PM ใหม่สำหรับ <strong>{tool.code} — {tool.name}</strong> (กำหนดในอีก {tool.pm_interval_days || 30} วัน)?
+                                  <br />ตั๋วจะถูกส่งไปที่หน้า "งาน PM เครื่องมือ" เพื่อรอตรวจสอบ
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>ยกเลิก</AlertDialogCancel>
+                                <AlertDialogAction onClick={() => createPMTask.mutate(tool.id)}>
+                                  สร้างตั๋ว PM
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        )}
                         {tool.latestTask && tool.latestTask.status === "pending" && (
                           <AlertDialog>
                             <AlertDialogTrigger asChild>
@@ -466,7 +492,7 @@ const ToolPMSchedule = () => {
                               <AlertDialogHeader>
                                 <AlertDialogTitle>ยืนยันการลบ</AlertDialogTitle>
                                 <AlertDialogDescription>
-                                  ต้องการลบงาน PM ล่าสุดของ {tool.name} หรือไม่?
+                                  ต้องการลบตั๋ว PM ล่าสุด ({tool.latestTask.task_number}) ของ {tool.name} หรือไม่?
                                 </AlertDialogDescription>
                               </AlertDialogHeader>
                               <AlertDialogFooter>
@@ -482,6 +508,7 @@ const ToolPMSchedule = () => {
                         )}
                       </div>
                     </TableCell>
+
                   </TableRow>
                 ))}
               </TableBody>
