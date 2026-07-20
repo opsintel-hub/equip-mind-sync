@@ -228,7 +228,10 @@ export function ToolPMHistoryList() {
       }),
       ผู้ตรวจ: item.inspector_name || "-",
       หมายเหตุ: item.notes || "-",
+      จำนวนรูป: item.images?.length || 0,
+      ลิงก์รูป: (item.images || []).map(i => i.image_url).join(" | "),
     }));
+
 
     const ws = XLSX.utils.json_to_sheet(exportData);
     const wb = XLSX.utils.book_new();
