@@ -759,39 +759,40 @@ const ManagerApproval = () => {
 
       {/* History */}
       <Card>
-        <CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between gap-2">
           <CardTitle className="flex items-center gap-2"><Package className="h-5 w-5" />ประวัติการอนุมัติ</CardTitle>
+          <ColumnChooser columns={HISTORY_COLS} visible={historyVisible} onChange={setHistoryVisible} />
         </CardHeader>
         <CardContent>
-          <div className="rounded-md border">
-            <Table>
+          <div className="rounded-md border overflow-x-auto">
+            <Table className="min-w-[1400px]">
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-10"></TableHead>
-                  <TableHead>เลขที่เอกสาร</TableHead>
-                  <TableHead>วันที่ขอ</TableHead>
-                  <TableHead>บริษัท</TableHead>
-                  <TableHead>ผู้ขอเบิก</TableHead>
-                  <TableHead>รูปแบบการรับ</TableHead>
-                  <TableHead>วันนัดรับ</TableHead>
-                  <TableHead>รายการ</TableHead>
-                  <TableHead>ประเภท</TableHead>
-                  <TableHead>ป้ายปลายทาง</TableHead>
-                  <TableHead className="text-right">รวม</TableHead>
-                  <TableHead>สถานะ</TableHead>
-                  <TableHead>ผู้อนุมัติ</TableHead>
-                  <TableHead></TableHead>
+                  {historyCol("expand") && <TableHead className="w-10"></TableHead>}
+                  {historyCol("doc") && <TableHead>เลขที่เอกสาร</TableHead>}
+                  {historyCol("date") && <TableHead>วันที่ขอ</TableHead>}
+                  {historyCol("company") && <TableHead>บริษัท</TableHead>}
+                  {historyCol("requester") && <TableHead>ผู้ขอเบิก</TableHead>}
+                  {historyCol("pickup") && <TableHead>รูปแบบการรับ</TableHead>}
+                  {historyCol("pickupDate") && <TableHead>วันนัดรับ</TableHead>}
+                  {historyCol("items") && <TableHead>รายการ</TableHead>}
+                  {historyCol("type") && <TableHead>ประเภท</TableHead>}
+                  {historyCol("billboard") && <TableHead>ป้ายปลายทาง</TableHead>}
+                  {historyCol("total") && <TableHead className="text-right">รวม</TableHead>}
+                  {historyCol("status") && <TableHead>สถานะ</TableHead>}
+                  {historyCol("approver") && <TableHead>ผู้อนุมัติ</TableHead>}
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filteredHistory.length === 0 ? (
-                  <TableRow><TableCell colSpan={14} className="text-center py-8 text-muted-foreground">ไม่มีประวัติ</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={historyVisible.length} className="text-center py-8 text-muted-foreground">ไม่มีประวัติ</TableCell></TableRow>
                 ) : (
                   historyPagination.paginatedData.map((req: any) => renderRequestRow(req, false))
                 )}
               </TableBody>
             </Table>
           </div>
+
           {filteredHistory.length > 0 && (
             <TablePagination
               currentPage={historyPagination.currentPage}
