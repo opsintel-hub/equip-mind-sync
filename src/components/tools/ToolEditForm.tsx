@@ -135,6 +135,15 @@ export function ToolEditForm({ tool, open, onOpenChange, onSuccess }: ToolEditFo
     }
   }, [open, tool.location_id]);
 
+  // Load existing images when dialog opens
+  useEffect(() => {
+    if (open && tool.id) {
+      loadToolImages(tool.id).then(setImages);
+    } else if (!open) {
+      setImages([]);
+    }
+  }, [open, tool.id]);
+
   useEffect(() => {
     if (open) {
       form.reset({
