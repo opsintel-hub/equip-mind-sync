@@ -229,7 +229,7 @@ export function EquipmentList({ refresh }: EquipmentListProps) {
           ส่งออก Excel
         </Button>
       </div>
-      <div className="rounded-lg border">
+      <div className="rounded-lg border overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow>
