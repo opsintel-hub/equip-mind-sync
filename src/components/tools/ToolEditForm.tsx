@@ -139,12 +139,16 @@ export function ToolEditForm({ tool, open, onOpenChange, onSuccess }: ToolEditFo
     }
   }, [open, tool.location_id]);
 
-  // Load existing images when dialog opens
+  // Load existing images, PM matrix, documents when dialog opens
   useEffect(() => {
     if (open && tool.id) {
       loadToolImages(tool.id).then(setImages);
+      loadToolPMMatrix(tool.id).then(setPmMatrix);
+      loadToolDocuments(tool.id).then(setDocuments);
     } else if (!open) {
       setImages([]);
+      setPmMatrix([]);
+      setDocuments([]);
     }
   }, [open, tool.id]);
 
