@@ -174,11 +174,15 @@ export function ToolPMHistoryList() {
       if (filterYear !== "all" && new Date(item.completed_date).getFullYear().toString() !== filterYear) return false;
       // Month filter
       if (filterMonth !== "all" && new Date(item.completed_date).getMonth().toString() !== filterMonth) return false;
+      // Date range
+      const d = new Date(item.completed_date);
+      if (dateFrom && d < new Date(dateFrom.setHours(0,0,0,0))) return false;
+      if (dateTo && d > new Date(new Date(dateTo).setHours(23,59,59,999))) return false;
       return true;
     });
-  }, [history, searchTerm, filterDept, filterResult, filterInspector, filterYear, filterMonth]);
+  }, [history, searchTerm, filterDept, filterResult, filterInspector, filterYear, filterMonth, dateFrom, dateTo]);
 
-  const hasActiveFilters = filterDept !== "all" || filterResult !== "all" || filterInspector !== "all" || filterYear !== "all" || filterMonth !== "all" || searchTerm !== "";
+  const hasActiveFilters = filterDept !== "all" || filterResult !== "all" || filterInspector !== "all" || filterYear !== "all" || filterMonth !== "all" || searchTerm !== "" || !!dateFrom || !!dateTo;
 
   const clearFilters = () => {
     setSearchTerm("");
@@ -187,7 +191,10 @@ export function ToolPMHistoryList() {
     setFilterInspector("all");
     setFilterYear("all");
     setFilterMonth("all");
+    setDateFrom(undefined);
+    setDateTo(undefined);
   };
+
 
   const getResultBadge = (result: { name: string; color: string } | null) => {
     if (!result) return <Badge variant="outline">-</Badge>;
