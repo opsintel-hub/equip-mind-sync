@@ -446,6 +446,7 @@ const ToolPMSchedule = () => {
                         <Button
                           size="sm"
                           variant="outline"
+                          title="สร้างงาน PM ใหม่สำหรับเครื่องมือนี้"
                           onClick={() => {
                             setSelectedTool(tool.id);
                             createPMTask.mutate(tool.id);
