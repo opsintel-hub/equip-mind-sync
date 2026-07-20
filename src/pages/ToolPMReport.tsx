@@ -14,7 +14,8 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { RefreshCw, Search, AlertTriangle, CheckCircle, Target, Download, Info, Clock } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { RefreshCw, Search, AlertTriangle, CheckCircle, Target, Download, Info, Clock, History, Image as ImageIcon } from "lucide-react";
 import { toast } from "sonner";
 import { format, startOfYear, endOfYear, startOfMonth, endOfMonth, differenceInDays, parseISO } from "date-fns";
 import { th } from "date-fns/locale";
