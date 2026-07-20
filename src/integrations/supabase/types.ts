@@ -5579,6 +5579,56 @@ export type Database = {
         }
         Relationships: []
       }
+      tool_documents: {
+        Row: {
+          created_at: string
+          document_type: string
+          file_name: string
+          file_path: string
+          file_size: number | null
+          id: string
+          mime_type: string | null
+          notes: string | null
+          tool_id: string
+          updated_at: string
+          uploaded_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          document_type: string
+          file_name: string
+          file_path: string
+          file_size?: number | null
+          id?: string
+          mime_type?: string | null
+          notes?: string | null
+          tool_id: string
+          updated_at?: string
+          uploaded_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          document_type?: string
+          file_name?: string
+          file_path?: string
+          file_size?: number | null
+          id?: string
+          mime_type?: string | null
+          notes?: string | null
+          tool_id?: string
+          updated_at?: string
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tool_documents_tool_id_fkey"
+            columns: ["tool_id"]
+            isOneToOne: false
+            referencedRelation: "tools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tool_images: {
         Row: {
           created_at: string
@@ -5774,18 +5824,21 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          interval_days: number
           pm_type_id: string
           tool_id: string
         }
         Insert: {
           created_at?: string
           id?: string
+          interval_days?: number
           pm_type_id: string
           tool_id: string
         }
         Update: {
           created_at?: string
           id?: string
+          interval_days?: number
           pm_type_id?: string
           tool_id?: string
         }
