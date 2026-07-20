@@ -28,6 +28,7 @@ import { WarehouseLocationSelect } from "@/components/location/WarehouseLocation
 import { BrandSelect } from "@/components/equipment/BrandSelect";
 import { SimpleDepartmentSelect } from "@/components/equipment/SimpleDepartmentSelect";
 import { CategorySuggestWizard } from "@/components/category/CategorySuggestWizard";
+import { ToolImageUpload, persistToolImages, type ToolImageItem } from "./ToolImageUpload";
 
 const formSchema = z.object({
   prefix: z.string().min(1, "กรุณาเลือก Prefix รหัสเครื่องมือ"),
