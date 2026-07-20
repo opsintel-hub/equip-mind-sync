@@ -67,7 +67,10 @@ export function ToolList({ refreshKey }: ToolListProps) {
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [departmentFilter, setDepartmentFilter] = useState("all");
   const [typeFilter, setTypeFilter] = useState("all");
+  const [warrantyFilter, setWarrantyFilter] = useState("all");
+  const [pmFilter, setPmFilter] = useState<string>("all");
   const [deleteId, setDeleteId] = useState<string | null>(null);
+
   const [editTool, setEditTool] = useState<Tool | null>(null);
   const { isSuperAdmin, viewableDepts, deptKey } = useDeptScope();
 
@@ -134,7 +137,15 @@ export function ToolList({ refreshKey }: ToolListProps) {
 
   // Unique filter options
   const categories = [...new Set(tools.map(t => t.tool_category?.name).filter(Boolean))] as string[];
+
   const departments = [...new Set(tools.map(t => t.department).filter(Boolean))] as string[];
+  const pmIntervals = [...new Set(tools.map(t => t.pm_interval_days).filter(v => v != null))].sort((a, b) => a - b);
+
+  const daysUntil = (dateStr: string | null) => {
+    if (!dateStr) return null;
+    const diff = new Date(dateStr).getTime() - Date.now();
+    return Math.ceil(diff / (1000 * 60 * 60 * 24));
+  };
 
   const filteredTools = tools.filter((tool) => {
     const matchSearch =
@@ -148,11 +159,24 @@ export function ToolList({ refreshKey }: ToolListProps) {
     const matchDepartment = departmentFilter === "all" || tool.department === departmentFilter;
     const matchType = typeFilter === "all" ||
       (typeFilter === "asset" && tool.is_asset) ||
-      (typeFilter === "personal" && tool.is_personal_tool) ||
-      (typeFilter === "warranty" && tool.has_warranty);
+      (typeFilter === "personal" && tool.is_personal_tool);
 
-    return matchSearch && matchCategory && matchDepartment && matchType;
+    let matchWarranty = true;
+    if (warrantyFilter !== "all") {
+      const d = daysUntil(tool.warranty_expiry_date);
+      if (d === null) matchWarranty = false;
+      else if (warrantyFilter === "expired") matchWarranty = d < 0;
+      else if (warrantyFilter === "lt30") matchWarranty = d >= 0 && d <= 30;
+      else if (warrantyFilter === "30-60") matchWarranty = d > 30 && d <= 60;
+      else if (warrantyFilter === "60-90") matchWarranty = d > 60 && d <= 90;
+      else if (warrantyFilter === "gt90") matchWarranty = d > 90;
+    }
+
+    const matchPm = pmFilter === "all" || String(tool.pm_interval_days) === pmFilter;
+
+    return matchSearch && matchCategory && matchDepartment && matchType && matchWarranty && matchPm;
   });
+
 
   const {
     paginatedData: paginatedTools, currentPage, pageSize, totalPages, totalItems, handlePageChange, handlePageSizeChange,
@@ -229,18 +253,42 @@ export function ToolList({ refreshKey }: ToolListProps) {
             </SelectContent>
           </Select>
           <Select value={typeFilter} onValueChange={setTypeFilter}>
-            <SelectTrigger className="w-full sm:w-[160px]">
+            <SelectTrigger className="w-full sm:w-[180px]">
               <SelectValue placeholder="ทุกประเภท" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">ทุกประเภท</SelectItem>
-              <SelectItem value="asset">ทรัพย์สิน</SelectItem>
-              <SelectItem value="personal">ประจำตัวช่าง</SelectItem>
-              <SelectItem value="warranty">มีประกัน</SelectItem>
+              <SelectItem value="asset">เป็นทรัพย์สินของบริษัท</SelectItem>
+              <SelectItem value="personal">เครื่องมือประจำตัวช่าง</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={warrantyFilter} onValueChange={setWarrantyFilter}>
+            <SelectTrigger className="w-full sm:w-[190px]">
+              <SelectValue placeholder="วันหมดประกัน" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">ประกัน: ทั้งหมด</SelectItem>
+              <SelectItem value="expired">หมดประกันแล้ว</SelectItem>
+              <SelectItem value="lt30">กำลังหมดใน 30 วัน</SelectItem>
+              <SelectItem value="30-60">30-60 วัน</SelectItem>
+              <SelectItem value="60-90">60-90 วัน</SelectItem>
+              <SelectItem value="gt90">มากกว่า 90 วัน</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={pmFilter} onValueChange={setPmFilter}>
+            <SelectTrigger className="w-full sm:w-[170px]">
+              <SelectValue placeholder="ระยะเวลา PM" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">ระยะ PM: ทั้งหมด</SelectItem>
+              {pmIntervals.map(d => (
+                <SelectItem key={d} value={String(d)}>{getPMIntervalLabel(d)}</SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>
       </div>
+
 
       <p className="text-sm text-muted-foreground">พบ {filteredTools.length} รายการ</p>
 
