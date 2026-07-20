@@ -218,6 +218,9 @@ export function ToolEditForm({ tool, open, onOpenChange, onSuccess }: ToolEditFo
       // Sync images
       await persistToolImages(tool.id, images);
 
+      // Sync PM matrix
+      await saveToolPMMatrix(tool.id, pmMatrix);
+
       toast.success("แก้ไขเครื่องมือสำเร็จ");
       onOpenChange(false);
       onSuccess();
