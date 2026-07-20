@@ -208,6 +208,44 @@ const ToolPMReport = () => {
     return <Badge variant="destructive">วิกฤต ({pct.toFixed(0)}%)</Badge>;
   };
 
+  const openDetail = async (tool: Tool) => {
+    setDetailTool(tool);
+    setDetailLoading(true);
+    setDetailRows([]);
+    try {
+      const { data, error } = await supabase
+        .from("tool_pm_history")
+        .select(`
+          id, completed_date, notes, inspector_name, tool_pm_task_id,
+          pm_result:pm_results(name, color),
+          tool_pm_task:tool_pm_tasks(task_number, due_date, quantity_checked, observation_details)
+        `)
+        .eq("tool_id", tool.id)
+        .gte("completed_date", periodRange.start.toISOString())
+        .lte("completed_date", periodRange.end.toISOString())
+        .order("completed_date", { ascending: false });
+      if (error) throw error;
+      const rows = (data || []) as any[];
+      const taskIds = rows.map(r => r.tool_pm_task_id).filter(Boolean);
+      let imgByTask: Record<string, any[]> = {};
+      if (taskIds.length > 0) {
+        const { data: imgs } = await supabase
+          .from("tool_pm_task_images")
+          .select("id, tool_pm_task_id, image_url, description")
+          .in("tool_pm_task_id", taskIds);
+        (imgs || []).forEach((i: any) => {
+          (imgByTask[i.tool_pm_task_id] ||= []).push({ url: i.image_url, description: i.description });
+        });
+      }
+      setDetailRows(rows.map(r => ({ ...r, images: imgByTask[r.tool_pm_task_id] || [] })));
+    } catch (e) {
+      console.error(e);
+      toast.error("โหลดประวัติไม่สำเร็จ");
+    } finally {
+      setDetailLoading(false);
+    }
+  };
+
   const handleExport = () => {
     const data = filtered.map((r) => ({
       "รหัสเครื่องมือ": r.tool.code,
