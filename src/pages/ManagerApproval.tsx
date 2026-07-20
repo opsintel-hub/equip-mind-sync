@@ -21,6 +21,42 @@ import { useAuth } from "@/hooks/useAuth";
 import { DatePickerWithRange } from "@/components/ui/date-range-picker";
 import { DateRange } from "react-day-picker";
 import { DepartmentMultiFilter } from "@/components/DepartmentMultiFilter";
+import { ColumnChooser, useVisibleCols, type ColumnDef } from "@/components/ColumnChooser";
+
+type ApprovalColKey =
+  | "expand" | "doc" | "date" | "company" | "requester" | "pickup" | "pickupDate"
+  | "items" | "type" | "billboard" | "total" | "status" | "approver" | "actions";
+
+const PENDING_COLS: ColumnDef<ApprovalColKey>[] = [
+  { key: "expand", label: "ขยาย", locked: true },
+  { key: "doc", label: "เลขที่เอกสาร", locked: true },
+  { key: "date", label: "วันที่ขอ" },
+  { key: "company", label: "บริษัท" },
+  { key: "requester", label: "ผู้ขอเบิก" },
+  { key: "pickup", label: "รูปแบบการรับ" },
+  { key: "pickupDate", label: "วันนัดรับ" },
+  { key: "items", label: "รายการ" },
+  { key: "type", label: "ประเภท" },
+  { key: "billboard", label: "ป้ายปลายทาง" },
+  { key: "total", label: "รวม" },
+  { key: "status", label: "สถานะ" },
+  { key: "actions", label: "จัดการ", locked: true },
+];
+const HISTORY_COLS: ColumnDef<ApprovalColKey>[] = [
+  { key: "expand", label: "ขยาย", locked: true },
+  { key: "doc", label: "เลขที่เอกสาร", locked: true },
+  { key: "date", label: "วันที่ขอ" },
+  { key: "company", label: "บริษัท" },
+  { key: "requester", label: "ผู้ขอเบิก" },
+  { key: "pickup", label: "รูปแบบการรับ" },
+  { key: "pickupDate", label: "วันนัดรับ" },
+  { key: "items", label: "รายการ" },
+  { key: "type", label: "ประเภท" },
+  { key: "billboard", label: "ป้ายปลายทาง" },
+  { key: "total", label: "รวม" },
+  { key: "status", label: "สถานะ" },
+  { key: "approver", label: "ผู้อนุมัติ" },
+];
 
 const ManagerApproval = () => {
   const queryClient = useQueryClient();
