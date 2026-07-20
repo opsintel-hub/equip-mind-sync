@@ -67,10 +67,11 @@ interface ToolFormProps {
 export function ToolForm({ onSuccess }: ToolFormProps) {
   const [open, setOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [selectedPMTypes, setSelectedPMTypes] = useState<string[]>([]);
+  const [pmMatrix, setPmMatrix] = useState<PMMatrixRow[]>([]);
   const [previewCode, setPreviewCode] = useState("");
   const [warehouseId, setWarehouseId] = useState("");
   const [images, setImages] = useState<ToolImageItem[]>([]);
+  const [documents, setDocuments] = useState<ToolDocumentItem[]>([]);
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
