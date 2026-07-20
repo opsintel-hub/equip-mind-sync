@@ -212,6 +212,20 @@ export function ToolPMTaskList() {
 
       if (error) throw error;
 
+      // Insert into history so it shows in the "ประวัติ PM เครื่องมือ" report
+      const { error: historyError } = await supabase
+        .from("tool_pm_history")
+        .insert({
+          tool_pm_task_id: selectedTask.id,
+          tool_id: selectedTask.tool.id,
+          completed_date: new Date().toISOString(),
+          completed_by: user?.id || null,
+          inspector_name: inspectorName || user?.email || "ไม่ระบุ",
+          pm_result_id: pmResultId,
+          notes: notes || null,
+        });
+      if (historyError) console.error("History insert error:", historyError);
+
       // Upload images if any
       if (selectedFiles.length > 0) {
         for (const file of selectedFiles) {
