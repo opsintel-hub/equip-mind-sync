@@ -94,6 +94,8 @@ const IssueRequest = () => {
   const [selectedEquipmentImages, setSelectedEquipmentImages] = useState<string[]>([]);
   const [selectedEquipmentName, setSelectedEquipmentName] = useState("");
   const [expandedRequests, setExpandedRequests] = useState<Set<string>>(new Set());
+  const [itemTypeFilter, setItemTypeFilter] = useState<"all" | "media_player" | "monitor" | "spare">("all");
+  const [billboardFirstMode, setBillboardFirstMode] = useState(false);
   
   // Cart items - multiple items per request
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
