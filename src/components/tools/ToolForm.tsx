@@ -139,7 +139,7 @@ export function ToolForm({ onSuccess }: ToolFormProps) {
           expiry_date: data.expiry_date || null,
           warranty_expiry_date: data.has_warranty ? data.warranty_expiry_date || null : null,
           has_warranty: data.has_warranty,
-          pm_interval_days: data.pm_interval_days,
+          pm_interval_days: data.pm_interval_days || (pmMatrix[0]?.interval_days ?? 30),
           notes: data.notes || null,
           is_asset: data.is_asset,
           asset_code: data.is_asset ? data.asset_code || null : null,
@@ -151,19 +151,18 @@ export function ToolForm({ onSuccess }: ToolFormProps) {
 
       if (toolError) throw toolError;
 
-      // Insert PM types relationship
-      if (selectedPMTypes.length > 0 && newTool) {
-        const pmTypeRecords = selectedPMTypes.map((pmTypeId) => ({
-          tool_id: newTool.id,
-          pm_type_id: pmTypeId,
-        }));
-        await supabase.from("tool_pm_types").insert(pmTypeRecords);
+      // Save PM matrix (per-type intervals)
+      if (newTool && pmMatrix.length > 0) {
+        await saveToolPMMatrix(newTool.id, pmMatrix);
       }
 
-      // Create first PM task
+      // Create first PM task using the smallest interval in matrix (or default)
       if (newTool) {
+        const minInterval = pmMatrix.length > 0
+          ? Math.min(...pmMatrix.map((m) => m.interval_days))
+          : (data.pm_interval_days || 30);
         const dueDate = new Date();
-        dueDate.setDate(dueDate.getDate() + data.pm_interval_days);
+        dueDate.setDate(dueDate.getDate() + minInterval);
         await supabase.from("tool_pm_tasks").insert({
           tool_id: newTool.id,
           due_date: dueDate.toISOString(),
@@ -176,11 +175,17 @@ export function ToolForm({ onSuccess }: ToolFormProps) {
         await persistToolImages(newTool.id, images);
       }
 
+      // Save uploaded documents
+      if (newTool && documents.length > 0) {
+        await persistPendingToolDocuments(newTool.id, documents);
+      }
+
       toast.success(`เพิ่มเครื่องมือ ${generatedCode} สำเร็จ`);
       form.reset();
-      setSelectedPMTypes([]);
+      setPmMatrix([]);
       setPreviewCode("");
       setImages([]);
+      setDocuments([]);
       setOpen(false);
       onSuccess?.();
     } catch (error: any) {
