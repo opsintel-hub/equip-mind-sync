@@ -59,6 +59,10 @@ const ToolPMReport = () => {
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
   const [selectedMonth, setSelectedMonth] = useState<string>("all");
   const [allDepartments, setAllDepartments] = useState<string[]>([]);
+  const [detailTool, setDetailTool] = useState<Tool | null>(null);
+  const [detailRows, setDetailRows] = useState<any[]>([]);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [viewerImages, setViewerImages] = useState<{ url: string; description: string | null }[] | null>(null);
 
   const { allowedDepartments, isAdmin, isSingleDepartment, loading: permLoading } = useAllowedDepartments();
   const allowedDeptNames = useMemo(() => allowedDepartments.map(d => d.name), [allowedDepartments]);
