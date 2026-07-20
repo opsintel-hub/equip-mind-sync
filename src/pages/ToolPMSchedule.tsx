@@ -199,25 +199,33 @@ const ToolPMSchedule = () => {
   });
 
   const getStatusBadge = (tool: any) => {
-    if (tool.pendingCount === 0 && tool.inProgressCount === 0) {
-      return <Badge variant="outline">ไม่มีงาน PM</Badge>;
+    const colorMap: Record<string, string> = {
+      green: "bg-green-500", red: "bg-red-500", yellow: "bg-yellow-500",
+      orange: "bg-orange-500", gray: "bg-gray-500", blue: "bg-blue-500",
+    };
+
+    // Overdue takes priority visually
+    let overdueBadge: JSX.Element | null = null;
+    if (tool.latestTask?.due_date && (tool.pendingCount > 0 || tool.inProgressCount > 0)) {
+      const daysUntilDue = differenceInDays(parseISO(tool.latestTask.due_date), new Date());
+      if (daysUntilDue < 0) overdueBadge = <Badge variant="destructive" className="text-xs">เลยกำหนด {Math.abs(daysUntilDue)} วัน</Badge>;
+      else if (daysUntilDue <= 7) overdueBadge = <Badge className="bg-yellow-500 text-xs">ใกล้ถึงกำหนด</Badge>;
     }
     if (tool.inProgressCount > 0) {
-      return <Badge className="bg-blue-500">กำลังดำเนินการ</Badge>;
+      overdueBadge = <Badge className="bg-blue-500 text-xs">กำลังดำเนินการ</Badge>;
     }
-    
-    // Check if overdue
-    if (tool.latestTask?.due_date) {
-      const daysUntilDue = differenceInDays(parseISO(tool.latestTask.due_date), new Date());
-      if (daysUntilDue < 0) {
-        return <Badge variant="destructive">เลยกำหนด {Math.abs(daysUntilDue)} วัน</Badge>;
-      }
-      if (daysUntilDue <= 7) {
-        return <Badge className="bg-yellow-500">ใกล้ถึงกำหนด</Badge>;
-      }
-    }
-    
-    return <Badge className="bg-green-500">ปกติ</Badge>;
+
+    // Latest inspection result (condition)
+    const resultBadge = tool.latestResult?.pm_result
+      ? <Badge className={colorMap[tool.latestResult.pm_result.color] || "bg-gray-500"}>{tool.latestResult.pm_result.name}</Badge>
+      : <Badge variant="outline">ยังไม่เคยตรวจ</Badge>;
+
+    return (
+      <div className="flex flex-col gap-1 items-start">
+        {resultBadge}
+        {overdueBadge}
+      </div>
+    );
   };
 
   const toolsWithoutPM = tools.filter((t: any) => {
