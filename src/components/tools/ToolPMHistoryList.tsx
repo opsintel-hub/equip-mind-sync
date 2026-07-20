@@ -65,6 +65,10 @@ export function ToolPMHistoryList() {
   const [filterInspector, setFilterInspector] = useState("all");
   const [filterYear, setFilterYear] = useState("all");
   const [filterMonth, setFilterMonth] = useState("all");
+  const [dateFrom, setDateFrom] = useState<Date | undefined>();
+  const [dateTo, setDateTo] = useState<Date | undefined>();
+  const [viewerImages, setViewerImages] = useState<PMImage[] | null>(null);
+  const [viewerTitle, setViewerTitle] = useState("");
 
   useEffect(() => {
     fetchHistory();
@@ -84,7 +88,23 @@ export function ToolPMHistoryList() {
         .order("completed_date", { ascending: false });
 
       if (error) throw error;
-      setHistory(data || []);
+
+      const rows = (data || []) as any[];
+      const taskIds = rows.map(r => r.tool_pm_task_id).filter(Boolean);
+      let imagesByTask: Record<string, PMImage[]> = {};
+      if (taskIds.length > 0) {
+        const { data: imgs } = await supabase
+          .from("tool_pm_task_images")
+          .select("id, tool_pm_task_id, image_url, description")
+          .in("tool_pm_task_id", taskIds);
+        (imgs || []).forEach((img: any) => {
+          if (!imagesByTask[img.tool_pm_task_id]) imagesByTask[img.tool_pm_task_id] = [];
+          imagesByTask[img.tool_pm_task_id].push({
+            id: img.id, image_url: img.image_url, description: img.description,
+          });
+        });
+      }
+      setHistory(rows.map(r => ({ ...r, images: imagesByTask[r.tool_pm_task_id] || [] })));
     } catch (error) {
       console.error("Error fetching history:", error);
       toast.error("ไม่สามารถโหลดประวัติ PM ได้");
@@ -92,6 +112,7 @@ export function ToolPMHistoryList() {
       setIsLoading(false);
     }
   };
+
 
   // Distinct values for filters
   const distinctDepts = useMemo(() =>
