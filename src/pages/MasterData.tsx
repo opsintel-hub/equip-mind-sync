@@ -36,6 +36,7 @@ import { ToolForm } from "@/components/tools/ToolForm";
 import { ToolList } from "@/components/tools/ToolList";
 import { ToolImport } from "@/components/tools/ToolImport";
 import { PMTypeManager } from "@/components/tools/PMTypeManager";
+import { PMResultManager } from "@/components/tools/PMResultManager";
 import { CategoryList } from "@/components/category/CategoryList";
 import { CategoryForm } from "@/components/category/CategoryForm";
 import { SubcategoryList } from "@/components/category/SubcategoryList";
