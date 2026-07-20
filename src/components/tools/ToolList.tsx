@@ -20,6 +20,7 @@ import { useTablePagination } from "@/hooks/useTablePagination";
 import { TablePagination } from "@/components/TablePagination";
 import { ToolEditForm } from "./ToolEditForm";
 import { ToolImageViewer } from "./ToolImageViewer";
+import { ToolDocumentViewer } from "./ToolDocumentViewer";
 import * as XLSX from "xlsx";
 import { useDeptScope } from "@/hooks/useDeptScope";
 
@@ -392,6 +393,7 @@ export function ToolList({ refreshKey }: ToolListProps) {
                     </TableCell>
                     <TableCell className="text-center">
                       <div className="flex justify-center gap-1">
+                        <ToolDocumentViewer toolId={tool.id} toolCode={tool.code} toolName={tool.name} />
                         <Button variant="ghost" size="icon" title="แก้ไข" onClick={() => setEditTool(tool)}>
                           <Pencil className="h-4 w-4" />
                         </Button>

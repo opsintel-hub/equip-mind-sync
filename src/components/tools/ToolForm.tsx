@@ -21,7 +21,6 @@ import { Plus } from "lucide-react";
 import { ToolCategorySelect } from "./ToolCategorySelect";
 import { ToolSubcategorySelect } from "./ToolSubcategorySelect";
 import { ToolCodePrefixSelect } from "./ToolCodePrefixSelect";
-import { PMTypeSelect } from "./PMTypeSelect";
 import { CompanySelect } from "@/components/company/CompanySelect";
 import { SupplierSelect } from "@/components/supplier/SupplierSelect";
 import { WarehouseLocationSelect } from "@/components/location/WarehouseLocationSelect";
@@ -29,6 +28,8 @@ import { BrandSelect } from "@/components/equipment/BrandSelect";
 import { SimpleDepartmentSelect } from "@/components/equipment/SimpleDepartmentSelect";
 import { CategorySuggestWizard } from "@/components/category/CategorySuggestWizard";
 import { ToolImageUpload, persistToolImages, type ToolImageItem } from "./ToolImageUpload";
+import { ToolPMMatrix, saveToolPMMatrix, type PMMatrixRow } from "./ToolPMMatrix";
+import { ToolDocumentUpload, persistPendingToolDocuments, type ToolDocumentItem } from "./ToolDocumentUpload";
 
 const formSchema = z.object({
   prefix: z.string().min(1, "กรุณาเลือก Prefix รหัสเครื่องมือ"),
@@ -49,7 +50,7 @@ const formSchema = z.object({
   expiry_date: z.string().optional(),
   warranty_expiry_date: z.string().optional(),
   has_warranty: z.boolean().default(true),
-  pm_interval_days: z.coerce.number().min(1, "กรุณาเลือกระยะเวลา PM"),
+  pm_interval_days: z.coerce.number().min(1).optional(),
   notes: z.string().optional(),
   is_asset: z.boolean().default(false),
   asset_code: z.string().optional(),
@@ -66,10 +67,11 @@ interface ToolFormProps {
 export function ToolForm({ onSuccess }: ToolFormProps) {
   const [open, setOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [selectedPMTypes, setSelectedPMTypes] = useState<string[]>([]);
+  const [pmMatrix, setPmMatrix] = useState<PMMatrixRow[]>([]);
   const [previewCode, setPreviewCode] = useState("");
   const [warehouseId, setWarehouseId] = useState("");
   const [images, setImages] = useState<ToolImageItem[]>([]);
+  const [documents, setDocuments] = useState<ToolDocumentItem[]>([]);
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -137,7 +139,7 @@ export function ToolForm({ onSuccess }: ToolFormProps) {
           expiry_date: data.expiry_date || null,
           warranty_expiry_date: data.has_warranty ? data.warranty_expiry_date || null : null,
           has_warranty: data.has_warranty,
-          pm_interval_days: data.pm_interval_days,
+          pm_interval_days: data.pm_interval_days || (pmMatrix[0]?.interval_days ?? 30),
           notes: data.notes || null,
           is_asset: data.is_asset,
           asset_code: data.is_asset ? data.asset_code || null : null,
@@ -149,19 +151,18 @@ export function ToolForm({ onSuccess }: ToolFormProps) {
 
       if (toolError) throw toolError;
 
-      // Insert PM types relationship
-      if (selectedPMTypes.length > 0 && newTool) {
-        const pmTypeRecords = selectedPMTypes.map((pmTypeId) => ({
-          tool_id: newTool.id,
-          pm_type_id: pmTypeId,
-        }));
-        await supabase.from("tool_pm_types").insert(pmTypeRecords);
+      // Save PM matrix (per-type intervals)
+      if (newTool && pmMatrix.length > 0) {
+        await saveToolPMMatrix(newTool.id, pmMatrix);
       }
 
-      // Create first PM task
+      // Create first PM task using the smallest interval in matrix (or default)
       if (newTool) {
+        const minInterval = pmMatrix.length > 0
+          ? Math.min(...pmMatrix.map((m) => m.interval_days))
+          : (data.pm_interval_days || 30);
         const dueDate = new Date();
-        dueDate.setDate(dueDate.getDate() + data.pm_interval_days);
+        dueDate.setDate(dueDate.getDate() + minInterval);
         await supabase.from("tool_pm_tasks").insert({
           tool_id: newTool.id,
           due_date: dueDate.toISOString(),
@@ -174,11 +175,17 @@ export function ToolForm({ onSuccess }: ToolFormProps) {
         await persistToolImages(newTool.id, images);
       }
 
+      // Save uploaded documents
+      if (newTool && documents.length > 0) {
+        await persistPendingToolDocuments(newTool.id, documents);
+      }
+
       toast.success(`เพิ่มเครื่องมือ ${generatedCode} สำเร็จ`);
       form.reset();
-      setSelectedPMTypes([]);
+      setPmMatrix([]);
       setPreviewCode("");
       setImages([]);
+      setDocuments([]);
       setOpen(false);
       onSuccess?.();
     } catch (error: any) {
@@ -464,35 +471,14 @@ export function ToolForm({ onSuccess }: ToolFormProps) {
                 </FormItem>
               )} />
 
-              <FormField control={form.control} name="pm_interval_days" render={({ field }) => (
-                <FormItem>
-                  <FormLabel>ระยะเวลาที่ต้อง PM *</FormLabel>
-                  <Select value={String(field.value)} onValueChange={(val) => field.onChange(parseInt(val))}>
-                    <FormControl><SelectTrigger><SelectValue placeholder="เลือกระยะเวลา" /></SelectTrigger></FormControl>
-                    <SelectContent>
-                      <SelectItem value="15">ทุก 15 วัน</SelectItem>
-                      <SelectItem value="30">ทุก 30 วัน</SelectItem>
-                      <SelectItem value="60">ทุก 60 วัน</SelectItem>
-                      <SelectItem value="90">ทุก 90 วัน</SelectItem>
-                      <SelectItem value="180">ทุก 180 วัน</SelectItem>
-                      <SelectItem value="365">ทุก 1 ปี</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )} />
               </div>
             </div>
 
-            {/* Section: การบำรุงรักษา (PM) */}
+            {/* Section: การบำรุงรักษา (PM) - Matrix */}
             <div className="space-y-3">
-              <h3 className="text-sm font-semibold text-primary border-b pb-1">🔧 การบำรุงรักษา (PM)</h3>
-              <div className="space-y-2">
-                <FormLabel>ประเภทการ PM (เลือกได้หลายรายการ)</FormLabel>
-                <PMTypeSelect value={selectedPMTypes} onChange={setSelectedPMTypes} />
-              </div>
+              <h3 className="text-sm font-semibold text-primary border-b pb-1">🔧 การบำรุงรักษา (PM) - กำหนดรอบแยกตามประเภท</h3>
+              <ToolPMMatrix value={pmMatrix} onChange={setPmMatrix} />
             </div>
-
 
             <FormField control={form.control} name="description" render={({ field }) => (
               <FormItem>
@@ -512,6 +498,16 @@ export function ToolForm({ onSuccess }: ToolFormProps) {
               <h3 className="text-sm font-semibold text-primary border-b pb-1">📷 รูปภาพเครื่องมือ (สูงสุด 4 รูป)</h3>
               <ToolImageUpload images={images} onChange={setImages} maxImages={4} />
             </div>
+
+            <div className="space-y-3">
+              <h3 className="text-sm font-semibold text-primary border-b pb-1">📎 เอกสารประกอบ (Warranty / PO / Invoice / คู่มือ)</h3>
+              <ToolDocumentUpload
+                toolCode={previewCode || "TOOL"}
+                value={documents}
+                onChange={setDocuments}
+              />
+            </div>
+
 
 
             <Button type="submit" disabled={isSubmitting} className="w-full">
