@@ -137,7 +137,16 @@ export function ToolList({ refreshKey }: ToolListProps) {
 
   // Unique filter options
   const categories = [...new Set(tools.map(t => t.tool_category?.name).filter(Boolean))] as string[];
+  // Unique filter options
+  const categories = [...new Set(tools.map(t => t.tool_category?.name).filter(Boolean))] as string[];
   const departments = [...new Set(tools.map(t => t.department).filter(Boolean))] as string[];
+  const pmIntervals = [...new Set(tools.map(t => t.pm_interval_days).filter(v => v != null))].sort((a, b) => a - b);
+
+  const daysUntil = (dateStr: string | null) => {
+    if (!dateStr) return null;
+    const diff = new Date(dateStr).getTime() - Date.now();
+    return Math.ceil(diff / (1000 * 60 * 60 * 24));
+  };
 
   const filteredTools = tools.filter((tool) => {
     const matchSearch =
@@ -151,11 +160,24 @@ export function ToolList({ refreshKey }: ToolListProps) {
     const matchDepartment = departmentFilter === "all" || tool.department === departmentFilter;
     const matchType = typeFilter === "all" ||
       (typeFilter === "asset" && tool.is_asset) ||
-      (typeFilter === "personal" && tool.is_personal_tool) ||
-      (typeFilter === "warranty" && tool.has_warranty);
+      (typeFilter === "personal" && tool.is_personal_tool);
 
-    return matchSearch && matchCategory && matchDepartment && matchType;
+    let matchWarranty = true;
+    if (warrantyFilter !== "all") {
+      const d = daysUntil(tool.warranty_expiry_date);
+      if (d === null) matchWarranty = false;
+      else if (warrantyFilter === "expired") matchWarranty = d < 0;
+      else if (warrantyFilter === "lt30") matchWarranty = d >= 0 && d <= 30;
+      else if (warrantyFilter === "30-60") matchWarranty = d > 30 && d <= 60;
+      else if (warrantyFilter === "60-90") matchWarranty = d > 60 && d <= 90;
+      else if (warrantyFilter === "gt90") matchWarranty = d > 90;
+    }
+
+    const matchPm = pmFilter === "all" || String(tool.pm_interval_days) === pmFilter;
+
+    return matchSearch && matchCategory && matchDepartment && matchType && matchWarranty && matchPm;
   });
+
 
   const {
     paginatedData: paginatedTools, currentPage, pageSize, totalPages, totalItems, handlePageChange, handlePageSizeChange,
