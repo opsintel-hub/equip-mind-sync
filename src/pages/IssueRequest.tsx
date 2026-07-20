@@ -94,6 +94,8 @@ const IssueRequest = () => {
   const [selectedEquipmentImages, setSelectedEquipmentImages] = useState<string[]>([]);
   const [selectedEquipmentName, setSelectedEquipmentName] = useState("");
   const [expandedRequests, setExpandedRequests] = useState<Set<string>>(new Set());
+  const [itemTypeFilter, setItemTypeFilter] = useState<"all" | "media_player" | "monitor" | "spare">("all");
+  const [billboardFirstMode, setBillboardFirstMode] = useState(false);
   
   // Cart items - multiple items per request
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
@@ -1483,14 +1485,60 @@ const IssueRequest = () => {
               
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div className="space-y-2 md:col-span-2">
-                  <Label>เลือกสินค้า (FIFO)</Label>
+                  <div className="flex items-center justify-between flex-wrap gap-2">
+                    <Label>เลือกสินค้า (FIFO)</Label>
+                    <div className="flex items-center gap-1 flex-wrap">
+                      {(["all","media_player","monitor","spare"] as const).map(t => (
+                        <Button
+                          key={t}
+                          type="button"
+                          size="sm"
+                          variant={itemTypeFilter === t ? "default" : "outline"}
+                          className="h-6 text-[11px] px-2"
+                          onClick={() => setItemTypeFilter(t)}
+                        >
+                          {t === "all" ? "ทั้งหมด" : t === "media_player" ? "🎬 MP" : t === "monitor" ? "🖥️ จอภาพ" : "🔧 อะไหล่"}
+                        </Button>
+                      ))}
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant={billboardFirstMode ? "default" : "outline"}
+                        className="h-6 text-[11px] px-2"
+                        onClick={() => setBillboardFirstMode(v => !v)}
+                        title="เลือกป้ายก่อน แล้วระบบจะกรองเฉพาะอะไหล่ที่รองรับป้ายนั้น"
+                      >
+                        🎯 กรองตามป้ายก่อน
+                      </Button>
+                    </div>
+                  </div>
                   <div className="flex gap-2">
                     <div className="flex-1">
                       <SearchableSelect
                         options={(() => {
-                          const list = filteredEquipmentByCategory || [];
-                          // Dedupe Media Player rows by code+name (1 รหัส 1 บรรทัด รวมจำนวนคงเหลือ)
-                          // Equipment ปกติยังคงแสดงตามเดิม (1 row ต่อ 1 record)
+                          let list = filteredEquipmentByCategory || [];
+                          // Type filter
+                          if (itemTypeFilter !== "all") {
+                            list = list.filter((eq: any) => {
+                              const isMP = !!eq.is_media_player;
+                              const isMonitor = isMP && String(eq.device_type || "").toUpperCase() === "MONITOR";
+                              if (itemTypeFilter === "media_player") return isMP && !isMonitor;
+                              if (itemTypeFilter === "monitor") return isMonitor;
+                              if (itemTypeFilter === "spare") return !isMP;
+                              return true;
+                            });
+                          }
+                          // Billboard-first mode: only compatible spares + all MP
+                          if (billboardFirstMode && currentItem.billboard_id) {
+                            list = list.filter((eq: any) => {
+                              if (eq.is_media_player) return true;
+                              const mode = eq.billboard_compatibility_mode;
+                              if (!mode || mode === "unrestricted") return true;
+                              const set = compatMap[eq.id];
+                              return set && set.has(currentItem.billboard_id);
+                            });
+                          }
+                          // Dedupe Media Player rows by code+name
                           const mpGroups = new Map<string, { rep: typeof list[number]; total: number; count: number }>();
                           const nonMp: typeof list = [];
                           for (const eq of list) {
@@ -1507,15 +1555,20 @@ const IssueRequest = () => {
                               nonMp.push(eq);
                             }
                           }
-                          const mpOptions = Array.from(mpGroups.values()).map(({ rep, total, count }) => ({
-                            value: rep.id,
-                            label: `${rep.code} - ${rep.name}`,
-                            description: `[Media Player] คงเหลือ: ${total} ${rep.unit}${count > 1 ? ` (${count} เครื่อง)` : ''}`,
-                            searchableText: `${rep.code} ${rep.name} ${rep.category || ''}`,
-                          }));
+                          const mpOptions = Array.from(mpGroups.values()).map(({ rep, total, count }) => {
+                            const isMonitor = String((rep as any).device_type || "").toUpperCase() === "MONITOR";
+                            const icon = isMonitor ? "🖥️" : "🎬";
+                            const label = isMonitor ? "จอภาพ" : "Media Player";
+                            return {
+                              value: rep.id,
+                              label: `${icon} ${rep.code} - ${rep.name}`,
+                              description: `[${label}] คงเหลือ: ${total} ${rep.unit}${count > 1 ? ` (${count} เครื่อง)` : ''}`,
+                              searchableText: `${rep.code} ${rep.name} ${(rep as any).category || ''}`,
+                            };
+                          });
                           const otherOptions = nonMp.map((eq) => ({
                             value: eq.id,
-                            label: `${eq.code} - ${eq.name}`,
+                            label: `🔧 ${eq.code} - ${eq.name}`,
                             description: `${eq.category ? `[${eq.category}] ` : ''}คงเหลือ: ${eq.quantity_in_stock} ${eq.unit}`,
                             searchableText: `${eq.code} ${eq.name} ${eq.serial_number || ''} ${eq.category || ''}`,
                           }));
@@ -1539,6 +1592,17 @@ const IssueRequest = () => {
                       </Button>
                     )}
                   </div>
+                  {billboardFirstMode && !currentItem.billboard_id && (
+                    <p className="text-[11px] text-amber-600 dark:text-amber-400">⚠️ เลือก "ป้ายโฆษณา" ก่อน ระบบจะกรองเฉพาะอะไหล่ที่รองรับป้ายนั้น</p>
+                  )}
+                  {billboardFirstMode && currentItem.billboard_id && (
+                    <p className="text-[11px] text-emerald-600 dark:text-emerald-400">✓ แสดงเฉพาะสินค้าที่เข้ากับป้ายที่เลือก</p>
+                  )}
+                  {!isSuperAdmin && (viewableDepts?.length ?? 0) > 0 && (
+                    <p className="text-[11px] text-muted-foreground">
+                      🔒 แสดงเฉพาะฝ่ายที่คุณมีสิทธิ์: <span className="font-medium">{viewableDepts.join(", ")}</span>
+                    </p>
+                  )}
                 </div>
                 <div className="space-y-2">
                   <Label className="flex items-center gap-1">

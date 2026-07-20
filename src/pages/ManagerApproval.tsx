@@ -187,6 +187,61 @@ const ManagerApproval = () => {
 
   const getItemsForRequest = (requestId: string) => allItems?.filter((item: any) => item.pending_id === requestId) || [];
 
+  // Fetch billboard labels for items
+  const billboardIds = Array.from(new Set((allItems || [])
+    .flatMap((i: any) => [i.billboard_id, i.intended_billboard_id])
+    .filter(Boolean))) as string[];
+  const { data: billboardMap } = useQuery({
+    queryKey: ["ma-billboards", billboardIds],
+    enabled: billboardIds.length > 0,
+    queryFn: async () => {
+      const { data } = await supabase.from("billboards")
+        .select("id, equipment_id, old_code, location_name")
+        .in("id", billboardIds);
+      const m: Record<string, string> = {};
+      (data || []).forEach((b: any) => {
+        m[b.id] = `${b.equipment_id || b.old_code || b.id}${b.location_name ? " - " + b.location_name : ""}`;
+      });
+      return m;
+    },
+  });
+
+  const getRequestType = (req: any): { icon: string; label: string; color: string } => {
+    const items = getItemsForRequest(req.id);
+    if (items.length === 0) return { icon: "📦", label: "-", color: "bg-gray-100 text-gray-700" };
+    const kinds = new Set<string>();
+    for (const it of items) {
+      const isMP = !!(it.is_media_player || it.media_player_id);
+      if (isMP) {
+        const mp = it.media_player_id ? mpMap?.[it.media_player_id] : null;
+        const isMonitor = String(mp?.device_type || "").toUpperCase() === "MONITOR";
+        kinds.add(isMonitor ? "monitor" : "mp");
+      } else {
+        kinds.add("spare");
+      }
+    }
+    if (kinds.size > 1) return { icon: "📦", label: "ผสม", color: "bg-purple-100 text-purple-700" };
+    const only = Array.from(kinds)[0];
+    if (only === "mp") return { icon: "🎬", label: "Media Player", color: "bg-blue-100 text-blue-700" };
+    if (only === "monitor") return { icon: "🖥️", label: "จอภาพ", color: "bg-indigo-100 text-indigo-700" };
+    return { icon: "🔧", label: "อะไหล่", color: "bg-emerald-100 text-emerald-700" };
+  };
+
+  const getRequestBillboards = (req: any): string[] => {
+    const items = getItemsForRequest(req.id);
+    const ids = new Set<string>();
+    for (const it of items) {
+      const bid = it.billboard_id || it.intended_billboard_id;
+      if (bid) ids.add(bid);
+    }
+    return Array.from(ids).map(id => billboardMap?.[id] || id);
+  };
+
+  const getRequestTotalQty = (req: any): number => {
+    return getItemsForRequest(req.id).reduce((sum: number, it: any) => sum + Number(it.quantity || 0), 0);
+  };
+
+
   const toggleExpand = (id: string) => {
     setExpandedRequests(prev => { const next = new Set(prev); if (next.has(id)) next.delete(id); else next.add(id); return next; });
   };
@@ -285,6 +340,10 @@ const ManagerApproval = () => {
     approvalHistory
   );
 
+  const pendingPagination = useTablePagination(filteredPending, 10);
+  const historyPagination = useTablePagination(filteredHistory, 10);
+
+
   if (!isManager) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -367,6 +426,21 @@ const ManagerApproval = () => {
             )}
           </TableCell>
           <TableCell>
+            {(() => {
+              const t = getRequestType(req);
+              return <Badge variant="outline" className={`${t.color} border-0 gap-1`}>{t.icon} {t.label}</Badge>;
+            })()}
+          </TableCell>
+          <TableCell>
+            {(() => {
+              const bbs = getRequestBillboards(req);
+              if (bbs.length === 0) return <span className="text-xs text-muted-foreground">ยังไม่ระบุ</span>;
+              if (bbs.length === 1) return <span className="text-xs truncate max-w-[180px] inline-block" title={bbs[0]}>{bbs[0]}</span>;
+              return <Badge variant="secondary" title={bbs.join("\n")} className="text-xs">{bbs.length} ป้าย</Badge>;
+            })()}
+          </TableCell>
+          <TableCell className="text-right text-sm font-medium">{getRequestTotalQty(req).toLocaleString()}</TableCell>
+          <TableCell>
             {showActions ? (
               <Badge variant="secondary" className="bg-amber-100 text-amber-800 gap-1"><Clock className="h-3 w-3" />รออนุมัติ</Badge>
             ) : req.approval_status === "approved" ? (
@@ -408,7 +482,7 @@ const ManagerApproval = () => {
         </TableRow>
         {isExpanded && items.length > 0 && (
           <TableRow key={`${req.id}-items`}>
-            <TableCell colSpan={showActions ? 10 : 11} className="bg-muted/20 p-4">
+            <TableCell colSpan={showActions ? 13 : 14} className="bg-muted/20 p-4">
               {/* Header detail */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 mb-4 text-sm bg-background rounded-lg p-3 border">
                 <div><span className="text-muted-foreground">ฝ่าย/แผนกผู้ขอ:</span> <span className="font-medium">{req.requester_department || "-"}</span></div>
@@ -591,21 +665,34 @@ const ManagerApproval = () => {
                   <TableHead>รูปแบบการรับ</TableHead>
                   <TableHead>วันนัดรับ</TableHead>
                   <TableHead>รายการ</TableHead>
+                  <TableHead>ประเภท</TableHead>
+                  <TableHead>ป้ายปลายทาง</TableHead>
+                  <TableHead className="text-right">รวม</TableHead>
                   <TableHead>สถานะ</TableHead>
                   <TableHead className="text-center">จัดการ</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {isLoading ? (
-                  <TableRow><TableCell colSpan={10} className="text-center py-8 text-muted-foreground">กำลังโหลด...</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={13} className="text-center py-8 text-muted-foreground">กำลังโหลด...</TableCell></TableRow>
                 ) : filteredPending.length === 0 ? (
-                  <TableRow><TableCell colSpan={10} className="text-center py-8 text-muted-foreground">ไม่มีรายการรออนุมัติ</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={13} className="text-center py-8 text-muted-foreground">ไม่มีรายการรออนุมัติ</TableCell></TableRow>
                 ) : (
-                  filteredPending.map((req: any) => renderRequestRow(req, true))
+                  pendingPagination.paginatedData.map((req: any) => renderRequestRow(req, true))
                 )}
               </TableBody>
             </Table>
           </div>
+          {filteredPending.length > 0 && (
+            <TablePagination
+              currentPage={pendingPagination.currentPage}
+              totalPages={pendingPagination.totalPages}
+              pageSize={pendingPagination.pageSize}
+              totalItems={pendingPagination.totalItems}
+              onPageChange={pendingPagination.handlePageChange}
+              onPageSizeChange={pendingPagination.handlePageSizeChange}
+            />
+          )}
         </CardContent>
       </Card>
 
@@ -627,6 +714,9 @@ const ManagerApproval = () => {
                   <TableHead>รูปแบบการรับ</TableHead>
                   <TableHead>วันนัดรับ</TableHead>
                   <TableHead>รายการ</TableHead>
+                  <TableHead>ประเภท</TableHead>
+                  <TableHead>ป้ายปลายทาง</TableHead>
+                  <TableHead className="text-right">รวม</TableHead>
                   <TableHead>สถานะ</TableHead>
                   <TableHead>ผู้อนุมัติ</TableHead>
                   <TableHead></TableHead>
@@ -634,13 +724,23 @@ const ManagerApproval = () => {
               </TableHeader>
               <TableBody>
                 {filteredHistory.length === 0 ? (
-                  <TableRow><TableCell colSpan={11} className="text-center py-8 text-muted-foreground">ไม่มีประวัติ</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={14} className="text-center py-8 text-muted-foreground">ไม่มีประวัติ</TableCell></TableRow>
                 ) : (
-                  filteredHistory.map((req: any) => renderRequestRow(req, false))
+                  historyPagination.paginatedData.map((req: any) => renderRequestRow(req, false))
                 )}
               </TableBody>
             </Table>
           </div>
+          {filteredHistory.length > 0 && (
+            <TablePagination
+              currentPage={historyPagination.currentPage}
+              totalPages={historyPagination.totalPages}
+              pageSize={historyPagination.pageSize}
+              totalItems={historyPagination.totalItems}
+              onPageChange={historyPagination.handlePageChange}
+              onPageSizeChange={historyPagination.handlePageSizeChange}
+            />
+          )}
         </CardContent>
       </Card>
 
