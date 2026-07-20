@@ -253,18 +253,42 @@ export function ToolList({ refreshKey }: ToolListProps) {
             </SelectContent>
           </Select>
           <Select value={typeFilter} onValueChange={setTypeFilter}>
-            <SelectTrigger className="w-full sm:w-[160px]">
+            <SelectTrigger className="w-full sm:w-[180px]">
               <SelectValue placeholder="ทุกประเภท" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">ทุกประเภท</SelectItem>
-              <SelectItem value="asset">ทรัพย์สิน</SelectItem>
-              <SelectItem value="personal">ประจำตัวช่าง</SelectItem>
-              <SelectItem value="warranty">มีประกัน</SelectItem>
+              <SelectItem value="asset">เป็นทรัพย์สินของบริษัท</SelectItem>
+              <SelectItem value="personal">เครื่องมือประจำตัวช่าง</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={warrantyFilter} onValueChange={setWarrantyFilter}>
+            <SelectTrigger className="w-full sm:w-[190px]">
+              <SelectValue placeholder="วันหมดประกัน" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">ประกัน: ทั้งหมด</SelectItem>
+              <SelectItem value="expired">หมดประกันแล้ว</SelectItem>
+              <SelectItem value="lt30">กำลังหมดใน 30 วัน</SelectItem>
+              <SelectItem value="30-60">30-60 วัน</SelectItem>
+              <SelectItem value="60-90">60-90 วัน</SelectItem>
+              <SelectItem value="gt90">มากกว่า 90 วัน</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={pmFilter} onValueChange={setPmFilter}>
+            <SelectTrigger className="w-full sm:w-[170px]">
+              <SelectValue placeholder="ระยะเวลา PM" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">ระยะ PM: ทั้งหมด</SelectItem>
+              {pmIntervals.map(d => (
+                <SelectItem key={d} value={String(d)}>{getPMIntervalLabel(d)}</SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>
       </div>
+
 
       <p className="text-sm text-muted-foreground">พบ {filteredTools.length} รายการ</p>
 
