@@ -429,6 +429,12 @@ export function ToolEditForm({ tool, open, onOpenChange, onSuccess }: ToolEditFo
               </FormItem>
             )} />
 
+            <div className="space-y-3">
+              <h3 className="text-sm font-semibold text-primary border-b pb-1">📷 รูปภาพเครื่องมือ (สูงสุด 4 รูป)</h3>
+              <ToolImageUpload images={images} onChange={setImages} maxImages={4} />
+            </div>
+
+
             <Button type="submit" disabled={isSubmitting} className="w-full">
               {isSubmitting ? "กำลังบันทึก..." : "บันทึกการแก้ไข"}
             </Button>
