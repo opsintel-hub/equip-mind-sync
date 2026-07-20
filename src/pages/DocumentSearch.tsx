@@ -1066,7 +1066,13 @@ export default function DocumentSearch() {
       <div>
         <h1 className="text-2xl font-bold tracking-tight">ค้นหาเอกสาร</h1>
         <p className="text-sm text-muted-foreground mt-1">ค้นหาจากผู้จำหน่าย รหัสอุปกรณ์ เลขที่เอกสาร เลขที่ PO/PR หรือ Serial Number</p>
+        <div className="mt-2 text-xs bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900 text-amber-900 dark:text-amber-200 rounded-md px-3 py-2">
+          🔧 <strong>เอกสารเครื่องมือ (Warranty / PO / Invoice / คู่มือ):</strong> ไม่ได้อยู่หน้านี้ — ไปที่
+          <span className="mx-1 font-semibold">ข้อมูลเครื่องมือ → จัดการเครื่องมือ</span>
+          แล้วกดไอคอน 📎 ในคอลัมน์จัดการเพื่อค้นหา/ดาวน์โหลด
+        </div>
       </div>
+
 
       {/* Search filters */}
       <Card className="border-border/60">

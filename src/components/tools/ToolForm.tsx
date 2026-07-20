@@ -224,7 +224,7 @@ export function ToolForm({ onSuccess }: ToolFormProps) {
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             {/* Section: ข้อมูลพื้นฐาน */}
 
-            <div className="space-y-3">
+            <div className="space-y-3 rounded-lg border bg-muted/30 p-4">
               <h3 className="text-sm font-semibold text-primary border-b pb-1">📋 ข้อมูลพื้นฐาน</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {/* Prefix code select */}
@@ -333,7 +333,7 @@ export function ToolForm({ onSuccess }: ToolFormProps) {
             </div>
 
             {/* Section: จำนวน & ราคา */}
-            <div className="space-y-3">
+            <div className="space-y-3 rounded-lg border bg-muted/30 p-4">
               <h3 className="text-sm font-semibold text-primary border-b pb-1">📦 จำนวน & ราคา</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 <FormField control={form.control} name="unit" render={({ field }) => (
@@ -362,7 +362,7 @@ export function ToolForm({ onSuccess }: ToolFormProps) {
             </div>
 
             {/* Section: แหล่งที่มา & คลัง */}
-            <div className="space-y-3">
+            <div className="space-y-3 rounded-lg border bg-muted/30 p-4">
               <h3 className="text-sm font-semibold text-primary border-b pb-1">🏢 แหล่งที่มา & คลังจัดเก็บ</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 <FormField control={form.control} name="department" render={({ field }) => (
@@ -414,7 +414,7 @@ export function ToolForm({ onSuccess }: ToolFormProps) {
             </div>
 
             {/* Section: การรับประกัน & ทรัพย์สิน */}
-            <div className="space-y-3">
+            <div className="space-y-3 rounded-lg border bg-muted/30 p-4">
               <h3 className="text-sm font-semibold text-primary border-b pb-1">🛡️ การรับประกัน & ทรัพย์สิน</h3>
 
 
@@ -475,7 +475,7 @@ export function ToolForm({ onSuccess }: ToolFormProps) {
             </div>
 
             {/* Section: การบำรุงรักษา (PM) - Matrix */}
-            <div className="space-y-3">
+            <div className="space-y-3 rounded-lg border bg-muted/30 p-4">
               <h3 className="text-sm font-semibold text-primary border-b pb-1">🔧 การบำรุงรักษา (PM) - กำหนดรอบแยกตามประเภท</h3>
               <ToolPMMatrix value={pmMatrix} onChange={setPmMatrix} />
             </div>
@@ -494,12 +494,12 @@ export function ToolForm({ onSuccess }: ToolFormProps) {
               </FormItem>
             )} />
 
-            <div className="space-y-3">
+            <div className="space-y-3 rounded-lg border bg-muted/30 p-4">
               <h3 className="text-sm font-semibold text-primary border-b pb-1">📷 รูปภาพเครื่องมือ (สูงสุด 4 รูป)</h3>
               <ToolImageUpload images={images} onChange={setImages} maxImages={4} />
             </div>
 
-            <div className="space-y-3">
+            <div className="space-y-3 rounded-lg border bg-muted/30 p-4">
               <h3 className="text-sm font-semibold text-primary border-b pb-1">📎 เอกสารประกอบ (Warranty / PO / Invoice / คู่มือ)</h3>
               <ToolDocumentUpload
                 toolCode={previewCode || "TOOL"}
