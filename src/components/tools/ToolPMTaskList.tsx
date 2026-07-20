@@ -242,11 +242,11 @@ export function ToolPMTaskList() {
 
           // Try to upload to storage
           await supabase.storage
-            .from('pm-images')
+            .from('pm-task-images')
             .upload(fileName, file);
 
           const { data: urlData } = supabase.storage
-            .from('pm-images')
+            .from('pm-task-images')
             .getPublicUrl(fileName);
 
           // Save to database
