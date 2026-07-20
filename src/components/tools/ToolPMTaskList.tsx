@@ -109,7 +109,7 @@ export function ToolPMTaskList() {
         .from("tool_pm_tasks")
         .select(`
           *,
-          tool:tools(id, code, name, brand, serial_number, current_quantity, unit, is_personal_tool),
+          tool:tools(id, code, name, brand, serial_number, current_quantity, unit, is_personal_tool, department),
           pm_result:pm_results(id, name, color)
         `)
         .in("status", ["pending", "in_progress"])
