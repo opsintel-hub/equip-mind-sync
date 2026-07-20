@@ -339,12 +339,8 @@ export function ToolEditForm({ tool, open, onOpenChange, onSuccess }: ToolEditFo
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
 
-              <FormField control={form.control} name="expiry_date" render={({ field }) => (
-                <FormItem>
-                  <FormLabel>วันหมดอายุ</FormLabel>
-                  <FormControl><Input {...field} type="date" /></FormControl>
-                </FormItem>
-              )} />
+
+
 
               <FormField control={form.control} name="responsible_person" render={({ field }) => (
                 <FormItem>
