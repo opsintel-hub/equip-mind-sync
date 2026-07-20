@@ -340,6 +340,10 @@ const ManagerApproval = () => {
     approvalHistory
   );
 
+  const pendingPagination = useTablePagination(filteredPending, 10);
+  const historyPagination = useTablePagination(filteredHistory, 10);
+
+
   if (!isManager) {
     return (
       <div className="flex items-center justify-center h-64">
