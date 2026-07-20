@@ -15,11 +15,22 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { RefreshCw, Search, History, FileDown, X, Filter } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { RefreshCw, Search, History, FileDown, X, Filter, Calendar as CalendarIcon, ImageIcon, Download } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { th } from "date-fns/locale";
+import { cn } from "@/lib/utils";
 import * as XLSX from "xlsx";
+
+interface PMImage {
+  id: string;
+  image_url: string;
+  description: string | null;
+}
 
 interface ToolPMHistory {
   id: string;
@@ -27,6 +38,7 @@ interface ToolPMHistory {
   inspector_name: string | null;
   completed_by: string | null;
   notes: string | null;
+  tool_pm_task_id: string | null;
   tool_pm_task: {
     task_number: string;
     quantity_checked: number | null;
@@ -40,7 +52,9 @@ interface ToolPMHistory {
     department: string | null;
   };
   pm_result: { name: string; color: string } | null;
+  images?: PMImage[];
 }
+
 
 export function ToolPMHistoryList() {
   const [history, setHistory] = useState<ToolPMHistory[]>([]);
