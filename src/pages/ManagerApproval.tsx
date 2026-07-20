@@ -689,10 +689,8 @@ const ManagerApproval = () => {
               totalPages={pendingPagination.totalPages}
               pageSize={pendingPagination.pageSize}
               totalItems={pendingPagination.totalItems}
-              startIndex={pendingPagination.startIndex}
-              endIndex={pendingPagination.endIndex}
-              onPageChange={pendingPagination.setCurrentPage}
-              onPageSizeChange={pendingPagination.setPageSize}
+              onPageChange={pendingPagination.handlePageChange}
+              onPageSizeChange={pendingPagination.handlePageSizeChange}
             />
           )}
         </CardContent>
