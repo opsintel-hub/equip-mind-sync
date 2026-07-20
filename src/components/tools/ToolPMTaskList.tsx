@@ -69,7 +69,9 @@ interface ToolPMTask {
     current_quantity: number;
     unit: string;
     is_personal_tool: boolean;
+    department: string | null;
   };
+
   pm_result: { id: string; name: string; color: string } | null;
 }
 
