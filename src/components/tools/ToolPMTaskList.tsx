@@ -81,9 +81,13 @@ export function ToolPMTaskList() {
   const [pmResults, setPmResults] = useState<PMResult[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+  const [filterDept, setFilterDept] = useState("all");
+  const [filterUrgency, setFilterUrgency] = useState("all");
+  const [filterType, setFilterType] = useState("all");
   const [selectedTask, setSelectedTask] = useState<ToolPMTask | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [toolPMTypes, setToolPMTypes] = useState<string[]>([]);
+
 
   // Form state
   const [inspectorName, setInspectorName] = useState("");
