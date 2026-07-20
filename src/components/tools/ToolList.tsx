@@ -296,6 +296,7 @@ export function ToolList({ refreshKey }: ToolListProps) {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead className="w-12">รูป</TableHead>
                   <TableHead>รหัส</TableHead>
                   <TableHead>ชื่อเครื่องมือ</TableHead>
                   <TableHead>หมวดหมู่</TableHead>
@@ -313,6 +314,7 @@ export function ToolList({ refreshKey }: ToolListProps) {
               <TableBody>
                 {paginatedTools.map((tool) => (
                   <TableRow key={tool.id}>
+                    <TableCell className="p-1"><ToolImageViewer toolId={tool.id} toolName={tool.name} /></TableCell>
                     <TableCell className="font-mono text-sm">{tool.code}</TableCell>
                     <TableCell>
                       <div>
