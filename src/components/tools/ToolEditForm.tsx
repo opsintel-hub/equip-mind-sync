@@ -404,7 +404,7 @@ export function ToolEditForm({ tool, open, onOpenChange, onSuccess }: ToolEditFo
             </div>
 
             {/* PM Matrix */}
-            <div className="space-y-3">
+            <div className="space-y-3 rounded-lg border bg-muted/30 p-4">
               <h3 className="text-sm font-semibold text-primary border-b pb-1">🔧 การบำรุงรักษา (PM) - Matrix</h3>
               <ToolPMMatrix value={pmMatrix} onChange={setPmMatrix} />
             </div>
@@ -423,12 +423,12 @@ export function ToolEditForm({ tool, open, onOpenChange, onSuccess }: ToolEditFo
               </FormItem>
             )} />
 
-            <div className="space-y-3">
+            <div className="space-y-3 rounded-lg border bg-muted/30 p-4">
               <h3 className="text-sm font-semibold text-primary border-b pb-1">📷 รูปภาพเครื่องมือ (สูงสุด 4 รูป)</h3>
               <ToolImageUpload images={images} onChange={setImages} maxImages={4} />
             </div>
 
-            <div className="space-y-3">
+            <div className="space-y-3 rounded-lg border bg-muted/30 p-4">
               <h3 className="text-sm font-semibold text-primary border-b pb-1">📎 เอกสารประกอบ (Warranty / PO / Invoice / คู่มือ)</h3>
               <ToolDocumentUpload
                 toolCode={tool.code}
