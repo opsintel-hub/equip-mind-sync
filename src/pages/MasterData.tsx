@@ -210,31 +210,50 @@ const MasterData = () => {
 
         {can("md_tools") && (
         <TabsContent value="tools" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle>รายการเครื่องมือ</CardTitle>
-                  <CardDescription>
-                    จัดการเครื่องมือทั้งหมด พร้อมตั้งค่าการ PM ประจำ
-                  </CardDescription>
-                  <p className="text-xs text-muted-foreground mt-1 bg-muted/50 p-2 rounded">
-                    💡 <strong>หมายเหตุ:</strong> เครื่องมือที่มีการตั้งค่า "ระยะเวลาที่ต้อง PM" 
-                    ระบบจะสร้างงาน PM ให้อัตโนมัติตามรอบที่กำหนด
-                  </p>
-                </div>
-                <div className="flex gap-2">
-                  <ToolImport onSuccess={handleSuccess} />
-                  <ToolForm onSuccess={handleSuccess} />
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <ToolList refreshKey={refreshKey} />
-            </CardContent>
-          </Card>
+          <Tabs defaultValue="tool_list" className="w-full">
+            <TabsList className="mb-4">
+              <TabsTrigger value="tool_list" className="gap-1.5">
+                <Wrench className="h-3.5 w-3.5" />
+                รายการเครื่องมือ
+              </TabsTrigger>
+              <TabsTrigger value="tool_pm_types" className="gap-1.5">
+                🔧 ประเภทการ PM (เครื่องมือ)
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="tool_list" className="space-y-4">
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle>รายการเครื่องมือ</CardTitle>
+                      <CardDescription>
+                        จัดการเครื่องมือทั้งหมด พร้อมตั้งค่าการ PM ประจำ
+                      </CardDescription>
+                      <p className="text-xs text-muted-foreground mt-1 bg-muted/50 p-2 rounded">
+                        💡 <strong>หมายเหตุ:</strong> เครื่องมือที่กำหนด "PM Matrix" จะสร้างงาน PM อัตโนมัติตามรอบวันของแต่ละประเภท —
+                        แก้ไขประเภทการ PM ได้ที่แท็บ "ประเภทการ PM (เครื่องมือ)" ด้านข้าง
+                      </p>
+                    </div>
+                    <div className="flex gap-2">
+                      <ToolImport onSuccess={handleSuccess} />
+                      <ToolForm onSuccess={handleSuccess} />
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <ToolList refreshKey={refreshKey} />
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="tool_pm_types" className="space-y-4">
+              <PMTypeManager />
+            </TabsContent>
+          </Tabs>
         </TabsContent>
         )}
+
 
         {can("md_categories") && (
         <TabsContent value="categories" className="space-y-4">
