@@ -26,6 +26,8 @@ import { WarehouseLocationSelect } from "@/components/location/WarehouseLocation
 import { BrandSelect } from "@/components/equipment/BrandSelect";
 import { SimpleDepartmentSelect } from "@/components/equipment/SimpleDepartmentSelect";
 import { ToolImageUpload, loadToolImages, persistToolImages, type ToolImageItem } from "./ToolImageUpload";
+import { ToolPMMatrix, loadToolPMMatrix, saveToolPMMatrix, type PMMatrixRow } from "./ToolPMMatrix";
+import { ToolDocumentUpload, loadToolDocuments, type ToolDocumentItem } from "./ToolDocumentUpload";
 
 const formSchema = z.object({
   name: z.string().min(1, "กรุณากรอกชื่อเครื่องมือ"),
