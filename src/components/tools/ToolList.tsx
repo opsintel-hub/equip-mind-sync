@@ -393,6 +393,7 @@ export function ToolList({ refreshKey }: ToolListProps) {
                     </TableCell>
                     <TableCell className="text-center">
                       <div className="flex justify-center gap-1">
+                        <ToolDocumentViewer toolId={tool.id} toolCode={tool.code} toolName={tool.name} />
                         <Button variant="ghost" size="icon" title="แก้ไข" onClick={() => setEditTool(tool)}>
                           <Pencil className="h-4 w-4" />
                         </Button>
