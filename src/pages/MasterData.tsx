@@ -220,6 +220,9 @@ const MasterData = () => {
               <TabsTrigger value="tool_pm_types" className="gap-1.5">
                 🔧 ประเภทการ PM (เครื่องมือ)
               </TabsTrigger>
+              <TabsTrigger value="tool_pm_results" className="gap-1.5">
+                ✅ ผลการตรวจ PM (เครื่องมือ)
+              </TabsTrigger>
             </TabsList>
 
             <TabsContent value="tool_list" className="space-y-4">
@@ -250,6 +253,10 @@ const MasterData = () => {
 
             <TabsContent value="tool_pm_types" className="space-y-4">
               <PMTypeManager />
+            </TabsContent>
+
+            <TabsContent value="tool_pm_results" className="space-y-4">
+              <PMResultManager />
             </TabsContent>
           </Tabs>
         </TabsContent>
