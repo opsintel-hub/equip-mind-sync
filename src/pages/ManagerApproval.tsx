@@ -21,6 +21,42 @@ import { useAuth } from "@/hooks/useAuth";
 import { DatePickerWithRange } from "@/components/ui/date-range-picker";
 import { DateRange } from "react-day-picker";
 import { DepartmentMultiFilter } from "@/components/DepartmentMultiFilter";
+import { ColumnChooser, useVisibleCols, type ColumnDef } from "@/components/ColumnChooser";
+
+type ApprovalColKey =
+  | "expand" | "doc" | "date" | "company" | "requester" | "pickup" | "pickupDate"
+  | "items" | "type" | "billboard" | "total" | "status" | "approver" | "actions";
+
+const PENDING_COLS: ColumnDef<ApprovalColKey>[] = [
+  { key: "expand", label: "ขยาย", locked: true },
+  { key: "doc", label: "เลขที่เอกสาร", locked: true },
+  { key: "date", label: "วันที่ขอ" },
+  { key: "company", label: "บริษัท" },
+  { key: "requester", label: "ผู้ขอเบิก" },
+  { key: "pickup", label: "รูปแบบการรับ" },
+  { key: "pickupDate", label: "วันนัดรับ" },
+  { key: "items", label: "รายการ" },
+  { key: "type", label: "ประเภท" },
+  { key: "billboard", label: "ป้ายปลายทาง" },
+  { key: "total", label: "รวม" },
+  { key: "status", label: "สถานะ" },
+  { key: "actions", label: "จัดการ", locked: true },
+];
+const HISTORY_COLS: ColumnDef<ApprovalColKey>[] = [
+  { key: "expand", label: "ขยาย", locked: true },
+  { key: "doc", label: "เลขที่เอกสาร", locked: true },
+  { key: "date", label: "วันที่ขอ" },
+  { key: "company", label: "บริษัท" },
+  { key: "requester", label: "ผู้ขอเบิก" },
+  { key: "pickup", label: "รูปแบบการรับ" },
+  { key: "pickupDate", label: "วันนัดรับ" },
+  { key: "items", label: "รายการ" },
+  { key: "type", label: "ประเภท" },
+  { key: "billboard", label: "ป้ายปลายทาง" },
+  { key: "total", label: "รวม" },
+  { key: "status", label: "สถานะ" },
+  { key: "approver", label: "ผู้อนุมัติ" },
+];
 
 const ManagerApproval = () => {
   const queryClient = useQueryClient();
@@ -36,6 +72,10 @@ const ManagerApproval = () => {
   const [companyFilter, setCompanyFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
+  const [pendingVisible, setPendingVisible] = useVisibleCols<ApprovalColKey>("ma-pending-cols-v1", PENDING_COLS);
+  const [historyVisible, setHistoryVisible] = useVisibleCols<ApprovalColKey>("ma-history-cols-v1", HISTORY_COLS);
+  const pendingCol = (k: ApprovalColKey) => pendingVisible.includes(k);
+  const historyCol = (k: ApprovalColKey) => historyVisible.includes(k);
 
   const { data: companies } = useQuery({
     queryKey: ["ma-companies"],
@@ -396,60 +436,76 @@ const ManagerApproval = () => {
   const renderRequestRow = (req: any, showActions: boolean) => {
     const items = getItemsForRequest(req.id);
     const isExpanded = expandedRequests.has(req.id);
+    const col = showActions ? pendingCol : historyCol;
+    const visibleCount = (showActions ? pendingVisible : historyVisible).length;
     return (
       <>
         <TableRow key={req.id} className="cursor-pointer hover:bg-muted/50" onClick={() => items.length > 0 && toggleExpand(req.id)}>
-          <TableCell>
-            {items.length > 0 && (
-              <Button variant="ghost" size="sm" className="p-0 h-6 w-6">
-                {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-              </Button>
-            )}
-          </TableCell>
-          <TableCell className="font-medium">{req.document_no}</TableCell>
-          <TableCell>{format(new Date(req.created_at), "dd/MM/yyyy HH:mm", { locale: th })}</TableCell>
-          <TableCell>{req.companies?.name || "-"}</TableCell>
-          <TableCell>
-            <div>{req.requester_name}</div>
-            {req.requester_department && <div className="text-xs text-muted-foreground">{req.requester_department}</div>}
-          </TableCell>
-          <TableCell>{getPickupBadge(req.pickup_type)}</TableCell>
-          <TableCell>
-            {req.pickup_date ? format(new Date(req.pickup_date), "dd/MM/yyyy", { locale: th }) : "-"}
-            {req.pickup_time && <div className="text-xs text-muted-foreground">{req.pickup_time}</div>}
-          </TableCell>
-          <TableCell>
-            {items.length > 0 ? (
-              <Badge variant="outline" className="gap-1"><ShoppingCart className="h-3 w-3" />{items.length} รายการ</Badge>
-            ) : (
-              <div className="text-sm">{req.equipment_name || "-"}</div>
-            )}
-          </TableCell>
-          <TableCell>
-            {(() => {
-              const t = getRequestType(req);
-              return <Badge variant="outline" className={`${t.color} border-0 gap-1`}>{t.icon} {t.label}</Badge>;
-            })()}
-          </TableCell>
-          <TableCell>
-            {(() => {
-              const bbs = getRequestBillboards(req);
-              if (bbs.length === 0) return <span className="text-xs text-muted-foreground">ยังไม่ระบุ</span>;
-              if (bbs.length === 1) return <span className="text-xs truncate max-w-[180px] inline-block" title={bbs[0]}>{bbs[0]}</span>;
-              return <Badge variant="secondary" title={bbs.join("\n")} className="text-xs">{bbs.length} ป้าย</Badge>;
-            })()}
-          </TableCell>
-          <TableCell className="text-right text-sm font-medium">{getRequestTotalQty(req).toLocaleString()}</TableCell>
-          <TableCell>
-            {showActions ? (
-              <Badge variant="secondary" className="bg-amber-100 text-amber-800 gap-1"><Clock className="h-3 w-3" />รออนุมัติ</Badge>
-            ) : req.approval_status === "approved" ? (
-              <Badge className="bg-green-100 text-green-800 gap-1"><CheckCircle className="h-3 w-3" />อนุมัติแล้ว</Badge>
-            ) : (
-              <Badge variant="destructive" className="gap-1"><XCircle className="h-3 w-3" />ไม่อนุมัติ</Badge>
-            )}
-          </TableCell>
-          {!showActions && (
+          {col("expand") && (
+            <TableCell>
+              {items.length > 0 && (
+                <Button variant="ghost" size="sm" className="p-0 h-6 w-6">
+                  {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                </Button>
+              )}
+            </TableCell>
+          )}
+          {col("doc") && <TableCell className="font-medium">{req.document_no}</TableCell>}
+          {col("date") && <TableCell>{format(new Date(req.created_at), "dd/MM/yyyy HH:mm", { locale: th })}</TableCell>}
+          {col("company") && <TableCell>{req.companies?.name || "-"}</TableCell>}
+          {col("requester") && (
+            <TableCell>
+              <div>{req.requester_name}</div>
+              {req.requester_department && <div className="text-xs text-muted-foreground">{req.requester_department}</div>}
+            </TableCell>
+          )}
+          {col("pickup") && <TableCell>{getPickupBadge(req.pickup_type)}</TableCell>}
+          {col("pickupDate") && (
+            <TableCell>
+              {req.pickup_date ? format(new Date(req.pickup_date), "dd/MM/yyyy", { locale: th }) : "-"}
+              {req.pickup_time && <div className="text-xs text-muted-foreground">{req.pickup_time}</div>}
+            </TableCell>
+          )}
+          {col("items") && (
+            <TableCell>
+              {items.length > 0 ? (
+                <Badge variant="outline" className="gap-1"><ShoppingCart className="h-3 w-3" />{items.length} รายการ</Badge>
+              ) : (
+                <div className="text-sm">{req.equipment_name || "-"}</div>
+              )}
+            </TableCell>
+          )}
+          {col("type") && (
+            <TableCell>
+              {(() => {
+                const t = getRequestType(req);
+                return <Badge variant="outline" className={`${t.color} border-0 gap-1`}>{t.icon} {t.label}</Badge>;
+              })()}
+            </TableCell>
+          )}
+          {col("billboard") && (
+            <TableCell>
+              {(() => {
+                const bbs = getRequestBillboards(req);
+                if (bbs.length === 0) return <span className="text-xs text-muted-foreground">ยังไม่ระบุ</span>;
+                if (bbs.length === 1) return <span className="text-xs truncate max-w-[180px] inline-block" title={bbs[0]}>{bbs[0]}</span>;
+                return <Badge variant="secondary" title={bbs.join("\n")} className="text-xs">{bbs.length} ป้าย</Badge>;
+              })()}
+            </TableCell>
+          )}
+          {col("total") && <TableCell className="text-right text-sm font-medium">{getRequestTotalQty(req).toLocaleString()}</TableCell>}
+          {col("status") && (
+            <TableCell>
+              {showActions ? (
+                <Badge variant="secondary" className="bg-amber-100 text-amber-800 gap-1"><Clock className="h-3 w-3" />รออนุมัติ</Badge>
+              ) : req.approval_status === "approved" ? (
+                <Badge className="bg-green-100 text-green-800 gap-1"><CheckCircle className="h-3 w-3" />อนุมัติแล้ว</Badge>
+              ) : (
+                <Badge variant="destructive" className="gap-1"><XCircle className="h-3 w-3" />ไม่อนุมัติ</Badge>
+              )}
+            </TableCell>
+          )}
+          {!showActions && col("approver") && (
             <TableCell>
               {req.approved_by && profiles ? (
                 <div>
@@ -459,30 +515,33 @@ const ManagerApproval = () => {
               ) : "-"}
             </TableCell>
           )}
-          <TableCell className="text-center">
-            {showActions && (() => {
-              const shortage = hasShortage(req);
-              return (
-                <div className="flex gap-1 justify-center">
-                  <Button
-                    size="sm"
-                    disabled={shortage}
-                    title={shortage ? "สต็อกไม่พอ — กด 'แจ้งขอซื้อ' ด้านล่างก่อน" : ""}
-                    onClick={(e) => { e.stopPropagation(); setSelectedRequest(req); setApproveDialogOpen(true); }}
-                  >
-                    <CheckCircle className="h-4 w-4 mr-1" />อนุมัติ
-                  </Button>
-                  <Button size="sm" variant="destructive" onClick={(e) => { e.stopPropagation(); setSelectedRequest(req); setRejectDialogOpen(true); }}>
-                    <XCircle className="h-4 w-4 mr-1" />ไม่อนุมัติ
-                  </Button>
-                </div>
-              );
-            })()}
-          </TableCell>
+          {showActions && col("actions") && (
+            <TableCell className="text-center">
+              {(() => {
+                const shortage = hasShortage(req);
+                return (
+                  <div className="flex gap-1 justify-center">
+                    <Button
+                      size="sm"
+                      disabled={shortage}
+                      title={shortage ? "สต็อกไม่พอ — กด 'แจ้งขอซื้อ' ด้านล่างก่อน" : ""}
+                      onClick={(e) => { e.stopPropagation(); setSelectedRequest(req); setApproveDialogOpen(true); }}
+                    >
+                      <CheckCircle className="h-4 w-4 mr-1" />อนุมัติ
+                    </Button>
+                    <Button size="sm" variant="destructive" onClick={(e) => { e.stopPropagation(); setSelectedRequest(req); setRejectDialogOpen(true); }}>
+                      <XCircle className="h-4 w-4 mr-1" />ไม่อนุมัติ
+                    </Button>
+                  </div>
+                );
+              })()}
+            </TableCell>
+          )}
         </TableRow>
         {isExpanded && items.length > 0 && (
           <TableRow key={`${req.id}-items`}>
-            <TableCell colSpan={showActions ? 13 : 14} className="bg-muted/20 p-4">
+            <TableCell colSpan={visibleCount} className="bg-muted/20 p-4">
+
               {/* Header detail */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 mb-4 text-sm bg-background rounded-lg p-3 border">
                 <div><span className="text-muted-foreground">ฝ่าย/แผนกผู้ขอ:</span> <span className="font-medium">{req.requester_department || "-"}</span></div>
@@ -649,40 +708,42 @@ const ManagerApproval = () => {
 
       {/* Pending */}
       <Card>
-        <CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between gap-2">
           <CardTitle className="flex items-center gap-2"><Clock className="h-5 w-5" />รายการรออนุมัติ</CardTitle>
+          <ColumnChooser columns={PENDING_COLS} visible={pendingVisible} onChange={setPendingVisible} />
         </CardHeader>
         <CardContent>
-          <div className="rounded-md border">
-            <Table>
+          <div className="rounded-md border overflow-x-auto">
+            <Table className="min-w-[1400px]">
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-10"></TableHead>
-                  <TableHead>เลขที่เอกสาร</TableHead>
-                  <TableHead>วันที่ขอ</TableHead>
-                  <TableHead>บริษัท</TableHead>
-                  <TableHead>ผู้ขอเบิก</TableHead>
-                  <TableHead>รูปแบบการรับ</TableHead>
-                  <TableHead>วันนัดรับ</TableHead>
-                  <TableHead>รายการ</TableHead>
-                  <TableHead>ประเภท</TableHead>
-                  <TableHead>ป้ายปลายทาง</TableHead>
-                  <TableHead className="text-right">รวม</TableHead>
-                  <TableHead>สถานะ</TableHead>
-                  <TableHead className="text-center">จัดการ</TableHead>
+                  {pendingCol("expand") && <TableHead className="w-10"></TableHead>}
+                  {pendingCol("doc") && <TableHead>เลขที่เอกสาร</TableHead>}
+                  {pendingCol("date") && <TableHead>วันที่ขอ</TableHead>}
+                  {pendingCol("company") && <TableHead>บริษัท</TableHead>}
+                  {pendingCol("requester") && <TableHead>ผู้ขอเบิก</TableHead>}
+                  {pendingCol("pickup") && <TableHead>รูปแบบการรับ</TableHead>}
+                  {pendingCol("pickupDate") && <TableHead>วันนัดรับ</TableHead>}
+                  {pendingCol("items") && <TableHead>รายการ</TableHead>}
+                  {pendingCol("type") && <TableHead>ประเภท</TableHead>}
+                  {pendingCol("billboard") && <TableHead>ป้ายปลายทาง</TableHead>}
+                  {pendingCol("total") && <TableHead className="text-right">รวม</TableHead>}
+                  {pendingCol("status") && <TableHead>สถานะ</TableHead>}
+                  {pendingCol("actions") && <TableHead className="text-center">จัดการ</TableHead>}
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {isLoading ? (
-                  <TableRow><TableCell colSpan={13} className="text-center py-8 text-muted-foreground">กำลังโหลด...</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={pendingVisible.length} className="text-center py-8 text-muted-foreground">กำลังโหลด...</TableCell></TableRow>
                 ) : filteredPending.length === 0 ? (
-                  <TableRow><TableCell colSpan={13} className="text-center py-8 text-muted-foreground">ไม่มีรายการรออนุมัติ</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={pendingVisible.length} className="text-center py-8 text-muted-foreground">ไม่มีรายการรออนุมัติ</TableCell></TableRow>
                 ) : (
                   pendingPagination.paginatedData.map((req: any) => renderRequestRow(req, true))
                 )}
               </TableBody>
             </Table>
           </div>
+
           {filteredPending.length > 0 && (
             <TablePagination
               currentPage={pendingPagination.currentPage}
@@ -698,39 +759,40 @@ const ManagerApproval = () => {
 
       {/* History */}
       <Card>
-        <CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between gap-2">
           <CardTitle className="flex items-center gap-2"><Package className="h-5 w-5" />ประวัติการอนุมัติ</CardTitle>
+          <ColumnChooser columns={HISTORY_COLS} visible={historyVisible} onChange={setHistoryVisible} />
         </CardHeader>
         <CardContent>
-          <div className="rounded-md border">
-            <Table>
+          <div className="rounded-md border overflow-x-auto">
+            <Table className="min-w-[1400px]">
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-10"></TableHead>
-                  <TableHead>เลขที่เอกสาร</TableHead>
-                  <TableHead>วันที่ขอ</TableHead>
-                  <TableHead>บริษัท</TableHead>
-                  <TableHead>ผู้ขอเบิก</TableHead>
-                  <TableHead>รูปแบบการรับ</TableHead>
-                  <TableHead>วันนัดรับ</TableHead>
-                  <TableHead>รายการ</TableHead>
-                  <TableHead>ประเภท</TableHead>
-                  <TableHead>ป้ายปลายทาง</TableHead>
-                  <TableHead className="text-right">รวม</TableHead>
-                  <TableHead>สถานะ</TableHead>
-                  <TableHead>ผู้อนุมัติ</TableHead>
-                  <TableHead></TableHead>
+                  {historyCol("expand") && <TableHead className="w-10"></TableHead>}
+                  {historyCol("doc") && <TableHead>เลขที่เอกสาร</TableHead>}
+                  {historyCol("date") && <TableHead>วันที่ขอ</TableHead>}
+                  {historyCol("company") && <TableHead>บริษัท</TableHead>}
+                  {historyCol("requester") && <TableHead>ผู้ขอเบิก</TableHead>}
+                  {historyCol("pickup") && <TableHead>รูปแบบการรับ</TableHead>}
+                  {historyCol("pickupDate") && <TableHead>วันนัดรับ</TableHead>}
+                  {historyCol("items") && <TableHead>รายการ</TableHead>}
+                  {historyCol("type") && <TableHead>ประเภท</TableHead>}
+                  {historyCol("billboard") && <TableHead>ป้ายปลายทาง</TableHead>}
+                  {historyCol("total") && <TableHead className="text-right">รวม</TableHead>}
+                  {historyCol("status") && <TableHead>สถานะ</TableHead>}
+                  {historyCol("approver") && <TableHead>ผู้อนุมัติ</TableHead>}
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filteredHistory.length === 0 ? (
-                  <TableRow><TableCell colSpan={14} className="text-center py-8 text-muted-foreground">ไม่มีประวัติ</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={historyVisible.length} className="text-center py-8 text-muted-foreground">ไม่มีประวัติ</TableCell></TableRow>
                 ) : (
                   historyPagination.paginatedData.map((req: any) => renderRequestRow(req, false))
                 )}
               </TableBody>
             </Table>
           </div>
+
           {filteredHistory.length > 0 && (
             <TablePagination
               currentPage={historyPagination.currentPage}
