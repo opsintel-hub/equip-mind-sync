@@ -310,6 +310,28 @@ export function ToolPMHistoryList() {
                 {months.map(m => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}
               </SelectContent>
             </Select>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" className={cn("w-[160px] justify-start text-left font-normal", !dateFrom && "text-muted-foreground")}>
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {dateFrom ? format(dateFrom, "dd/MM/yyyy") : "จากวันที่"}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar mode="single" selected={dateFrom} onSelect={setDateFrom} initialFocus className={cn("p-3 pointer-events-auto")} />
+              </PopoverContent>
+            </Popover>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" className={cn("w-[160px] justify-start text-left font-normal", !dateTo && "text-muted-foreground")}>
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {dateTo ? format(dateTo, "dd/MM/yyyy") : "ถึงวันที่"}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar mode="single" selected={dateTo} onSelect={setDateTo} initialFocus className={cn("p-3 pointer-events-auto")} />
+              </PopoverContent>
+            </Popover>
           </div>
         </CardContent>
       </Card>
@@ -341,6 +363,7 @@ export function ToolPMHistoryList() {
               {hasActiveFilters ? "ไม่พบประวัติตามเงื่อนไขที่เลือก" : "ยังไม่มีประวัติ PM"}
             </div>
           ) : (
+            <TooltipProvider>
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
@@ -352,9 +375,10 @@ export function ToolPMHistoryList() {
                     <TableHead>Serial No.</TableHead>
                     <TableHead className="text-center">จำนวนที่ตรวจ</TableHead>
                     <TableHead>ผลการตรวจ</TableHead>
+                    <TableHead className="text-center">รูป</TableHead>
                     <TableHead>วันที่ตรวจ</TableHead>
                     <TableHead>ผู้ตรวจ</TableHead>
-                    <TableHead>หมายเหตุ</TableHead>
+                    <TableHead>หมายเหตุ / ข้อสังเกต</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -366,6 +390,7 @@ export function ToolPMHistoryList() {
                       <TableCell>
                         <div>
                           <span className="font-medium">{item.tool.code}</span>
+                          {item.tool.brand && <span className="text-xs text-muted-foreground"> · {item.tool.brand}</span>}
                           <br />
                           <span className="text-xs text-muted-foreground">{item.tool.name}</span>
                         </div>
@@ -379,12 +404,39 @@ export function ToolPMHistoryList() {
                           : "-"}
                       </TableCell>
                       <TableCell>{getResultBadge(item.pm_result)}</TableCell>
+                      <TableCell className="text-center">
+                        {item.images && item.images.length > 0 ? (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 px-2 gap-1"
+                            onClick={() => {
+                              setViewerImages(item.images!);
+                              setViewerTitle(`${item.tool.code} · ${item.tool_pm_task?.task_number || ""}`);
+                            }}
+                          >
+                            <ImageIcon className="h-4 w-4 text-primary" />
+                            <span className="text-xs font-medium">{item.images.length}</span>
+                          </Button>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">-</span>
+                        )}
+                      </TableCell>
                       <TableCell className="text-sm whitespace-nowrap">
                         {format(new Date(item.completed_date), "dd/MM/yyyy HH:mm", { locale: th })}
                       </TableCell>
                       <TableCell className="text-sm">{item.inspector_name || "-"}</TableCell>
-                      <TableCell className="text-sm max-w-[200px] truncate">
-                        {item.notes || "-"}
+                      <TableCell className="text-sm max-w-[240px]">
+                        {item.notes ? (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className="line-clamp-2 cursor-help">{item.notes}</span>
+                            </TooltipTrigger>
+                            <TooltipContent className="max-w-sm whitespace-pre-line">
+                              {item.notes}
+                            </TooltipContent>
+                          </Tooltip>
+                        ) : "-"}
                       </TableCell>
                     </TableRow>
                   ))}
@@ -399,9 +451,33 @@ export function ToolPMHistoryList() {
                 onPageSizeChange={handlePageSizeChange}
               />
             </div>
+            </TooltipProvider>
           )}
         </CardContent>
       </Card>
+
+      {/* Image Viewer Dialog */}
+      <Dialog open={!!viewerImages} onOpenChange={(o) => !o && setViewerImages(null)}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>รูปการตรวจ PM · {viewerTitle}</DialogTitle>
+          </DialogHeader>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3 max-h-[70vh] overflow-y-auto">
+            {(viewerImages || []).map((img) => (
+              <div key={img.id} className="space-y-2">
+                <a href={img.image_url} target="_blank" rel="noreferrer" className="block">
+                  <img src={img.image_url} alt={img.description || "PM image"} className="w-full h-40 object-cover rounded border hover:opacity-90 transition" />
+                </a>
+                {img.description && <p className="text-xs text-muted-foreground line-clamp-2">{img.description}</p>}
+                <a href={img.image_url} download target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-xs text-primary hover:underline">
+                  <Download className="h-3 w-3" />ดาวน์โหลด
+                </a>
+              </div>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
+
 }
