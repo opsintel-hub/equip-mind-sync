@@ -87,6 +87,7 @@ interface ToolEditFormProps {
 export function ToolEditForm({ tool, open, onOpenChange, onSuccess }: ToolEditFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [warehouseId, setWarehouseId] = useState("");
+  const [images, setImages] = useState<ToolImageItem[]>([]);
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
