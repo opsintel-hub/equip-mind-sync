@@ -358,9 +358,11 @@ const ToolPMSchedule = () => {
           <div className="flex flex-col md:flex-row gap-4 justify-between">
             <div className="flex-1">
               <p className="text-sm text-muted-foreground bg-muted/50 p-2 rounded">
-                💡 <strong>วิธีสร้างงาน PM:</strong> กดปุ่ม <Plus className="h-3 w-3 inline mx-0.5" /> ที่คอลัมน์ "จัดการ" ในแถวของเครื่องมือ เพื่อสร้างงาน PM ใหม่สำหรับเครื่องมือนั้น
+                💡 <strong>Flow:</strong> กดปุ่ม <Plus className="h-3 w-3 inline mx-0.5" /> ที่แถวเครื่องมือ → สร้างตั๋ว PM → ไปตรวจที่หน้า "งาน PM เครื่องมือ" → เมื่อบันทึกผลแล้ว ตั๋วจะย้ายไปที่ "ประวัติ PM"
+                <br />⚠️ <strong>1 เครื่องมือ = 1 ตั๋วค้างเท่านั้น</strong> — ปุ่ม ➕ จะถูกปิดไว้จนกว่าจะปิดตั๋วเดิม
               </p>
             </div>
+
             <div className="flex gap-2">
               <Button variant="outline" onClick={() => refetch()}>
                 <RefreshCw className="h-4 w-4 mr-2" />
