@@ -5579,6 +5579,38 @@ export type Database = {
         }
         Relationships: []
       }
+      tool_images: {
+        Row: {
+          created_at: string
+          display_order: number
+          id: string
+          image_url: string
+          tool_id: string
+        }
+        Insert: {
+          created_at?: string
+          display_order?: number
+          id?: string
+          image_url: string
+          tool_id: string
+        }
+        Update: {
+          created_at?: string
+          display_order?: number
+          id?: string
+          image_url?: string
+          tool_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tool_images_tool_id_fkey"
+            columns: ["tool_id"]
+            isOneToOne: false
+            referencedRelation: "tools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tool_pm_history: {
         Row: {
           completed_by: string | null

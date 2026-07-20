@@ -19,6 +19,7 @@ import { format } from "date-fns";
 import { useTablePagination } from "@/hooks/useTablePagination";
 import { TablePagination } from "@/components/TablePagination";
 import { ToolEditForm } from "./ToolEditForm";
+import { ToolImageViewer } from "./ToolImageViewer";
 import * as XLSX from "xlsx";
 import { useDeptScope } from "@/hooks/useDeptScope";
 
@@ -279,6 +280,7 @@ export function ToolList({ refreshKey }: ToolListProps) {
                   {tool.warranty_expiry_date && <div className="col-span-2">ประกันถึง: {tool.warranty_expiry_date}</div>}
                 </div>
                 <div className="flex gap-2 pt-1">
+                  <ToolImageViewer toolId={tool.id} toolName={tool.name} variant="button" />
                   <Button variant="outline" size="sm" className="flex-1 gap-1" onClick={() => setEditTool(tool)}>
                     <Pencil className="h-3.5 w-3.5" /> แก้ไข
                   </Button>
@@ -295,6 +297,7 @@ export function ToolList({ refreshKey }: ToolListProps) {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead className="w-12">รูป</TableHead>
                   <TableHead>รหัส</TableHead>
                   <TableHead>ชื่อเครื่องมือ</TableHead>
                   <TableHead>หมวดหมู่</TableHead>
@@ -312,6 +315,7 @@ export function ToolList({ refreshKey }: ToolListProps) {
               <TableBody>
                 {paginatedTools.map((tool) => (
                   <TableRow key={tool.id}>
+                    <TableCell className="p-1"><ToolImageViewer toolId={tool.id} toolName={tool.name} /></TableCell>
                     <TableCell className="font-mono text-sm">{tool.code}</TableCell>
                     <TableCell>
                       <div>

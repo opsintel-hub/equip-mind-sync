@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { EquipmentTransferForm } from "./EquipmentTransferForm";
 import { EquipmentEditForm } from "./EquipmentEditForm";
 import { EquipmentSNViewer } from "./EquipmentSNViewer";
+import { EquipmentImageViewer } from "./EquipmentImageViewer";
 import { useTablePagination } from "@/hooks/useTablePagination";
 import { TablePagination } from "@/components/TablePagination";
 import * as XLSX from "xlsx";
@@ -228,10 +229,11 @@ export function EquipmentList({ refresh }: EquipmentListProps) {
           ส่งออก Excel
         </Button>
       </div>
-      <div className="rounded-lg border">
+      <div className="rounded-lg border overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead className="w-12">รูป</TableHead>
               <TableHead>รหัส</TableHead>
               <TableHead>ชื่ออุปกรณ์</TableHead>
               <TableHead>หมวดหมู่</TableHead>
@@ -250,6 +252,7 @@ export function EquipmentList({ refresh }: EquipmentListProps) {
         <TableBody>
           {paginatedEquipment.map((item) => (
               <TableRow key={item.id}>
+                <TableCell className="p-1"><EquipmentImageViewer equipmentId={item.id} equipmentName={item.name} /></TableCell>
                 <TableCell className="font-medium">{item.code}</TableCell>
                 <TableCell>
                   <div className="flex items-center gap-2">

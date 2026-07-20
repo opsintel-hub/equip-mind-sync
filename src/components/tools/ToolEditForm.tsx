@@ -25,6 +25,7 @@ import { SupplierSelect } from "@/components/supplier/SupplierSelect";
 import { WarehouseLocationSelect } from "@/components/location/WarehouseLocationSelect";
 import { BrandSelect } from "@/components/equipment/BrandSelect";
 import { SimpleDepartmentSelect } from "@/components/equipment/SimpleDepartmentSelect";
+import { ToolImageUpload, loadToolImages, persistToolImages, type ToolImageItem } from "./ToolImageUpload";
 
 const formSchema = z.object({
   name: z.string().min(1, "กรุณากรอกชื่อเครื่องมือ"),
@@ -86,6 +87,7 @@ interface ToolEditFormProps {
 export function ToolEditForm({ tool, open, onOpenChange, onSuccess }: ToolEditFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [warehouseId, setWarehouseId] = useState("");
+  const [images, setImages] = useState<ToolImageItem[]>([]);
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -132,6 +134,15 @@ export function ToolEditForm({ tool, open, onOpenChange, onSuccess }: ToolEditFo
       setWarehouseId("");
     }
   }, [open, tool.location_id]);
+
+  // Load existing images when dialog opens
+  useEffect(() => {
+    if (open && tool.id) {
+      loadToolImages(tool.id).then(setImages);
+    } else if (!open) {
+      setImages([]);
+    }
+  }, [open, tool.id]);
 
   useEffect(() => {
     if (open) {
@@ -195,6 +206,9 @@ export function ToolEditForm({ tool, open, onOpenChange, onSuccess }: ToolEditFo
         .eq("id", tool.id);
 
       if (error) throw error;
+
+      // Sync images
+      await persistToolImages(tool.id, images);
 
       toast.success("แก้ไขเครื่องมือสำเร็จ");
       onOpenChange(false);
@@ -414,6 +428,12 @@ export function ToolEditForm({ tool, open, onOpenChange, onSuccess }: ToolEditFo
                 <FormControl><Textarea {...field} /></FormControl>
               </FormItem>
             )} />
+
+            <div className="space-y-3">
+              <h3 className="text-sm font-semibold text-primary border-b pb-1">📷 รูปภาพเครื่องมือ (สูงสุด 4 รูป)</h3>
+              <ToolImageUpload images={images} onChange={setImages} maxImages={4} />
+            </div>
+
 
             <Button type="submit" disabled={isSubmitting} className="w-full">
               {isSubmitting ? "กำลังบันทึก..." : "บันทึกการแก้ไข"}

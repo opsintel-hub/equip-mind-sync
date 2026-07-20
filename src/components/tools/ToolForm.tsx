@@ -28,6 +28,7 @@ import { WarehouseLocationSelect } from "@/components/location/WarehouseLocation
 import { BrandSelect } from "@/components/equipment/BrandSelect";
 import { SimpleDepartmentSelect } from "@/components/equipment/SimpleDepartmentSelect";
 import { CategorySuggestWizard } from "@/components/category/CategorySuggestWizard";
+import { ToolImageUpload, persistToolImages, type ToolImageItem } from "./ToolImageUpload";
 
 const formSchema = z.object({
   prefix: z.string().min(1, "กรุณาเลือก Prefix รหัสเครื่องมือ"),
@@ -68,6 +69,7 @@ export function ToolForm({ onSuccess }: ToolFormProps) {
   const [selectedPMTypes, setSelectedPMTypes] = useState<string[]>([]);
   const [previewCode, setPreviewCode] = useState("");
   const [warehouseId, setWarehouseId] = useState("");
+  const [images, setImages] = useState<ToolImageItem[]>([]);
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -167,10 +169,16 @@ export function ToolForm({ onSuccess }: ToolFormProps) {
         });
       }
 
+      // Save uploaded images
+      if (newTool && images.length > 0) {
+        await persistToolImages(newTool.id, images);
+      }
+
       toast.success(`เพิ่มเครื่องมือ ${generatedCode} สำเร็จ`);
       form.reset();
       setSelectedPMTypes([]);
       setPreviewCode("");
+      setImages([]);
       setOpen(false);
       onSuccess?.();
     } catch (error: any) {
@@ -503,6 +511,12 @@ export function ToolForm({ onSuccess }: ToolFormProps) {
                 <FormControl><Textarea {...field} placeholder="หมายเหตุเพิ่มเติม" /></FormControl>
               </FormItem>
             )} />
+
+            <div className="space-y-3">
+              <h3 className="text-sm font-semibold text-primary border-b pb-1">📷 รูปภาพเครื่องมือ (สูงสุด 4 รูป)</h3>
+              <ToolImageUpload images={images} onChange={setImages} maxImages={4} />
+            </div>
+
 
             <Button type="submit" disabled={isSubmitting} className="w-full">
               {isSubmitting ? "กำลังบันทึก..." : "เพิ่มเครื่องมือ"}
