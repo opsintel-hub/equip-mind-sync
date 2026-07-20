@@ -708,40 +708,42 @@ const ManagerApproval = () => {
 
       {/* Pending */}
       <Card>
-        <CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between gap-2">
           <CardTitle className="flex items-center gap-2"><Clock className="h-5 w-5" />รายการรออนุมัติ</CardTitle>
+          <ColumnChooser columns={PENDING_COLS} visible={pendingVisible} onChange={setPendingVisible} />
         </CardHeader>
         <CardContent>
-          <div className="rounded-md border">
-            <Table>
+          <div className="rounded-md border overflow-x-auto">
+            <Table className="min-w-[1400px]">
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-10"></TableHead>
-                  <TableHead>เลขที่เอกสาร</TableHead>
-                  <TableHead>วันที่ขอ</TableHead>
-                  <TableHead>บริษัท</TableHead>
-                  <TableHead>ผู้ขอเบิก</TableHead>
-                  <TableHead>รูปแบบการรับ</TableHead>
-                  <TableHead>วันนัดรับ</TableHead>
-                  <TableHead>รายการ</TableHead>
-                  <TableHead>ประเภท</TableHead>
-                  <TableHead>ป้ายปลายทาง</TableHead>
-                  <TableHead className="text-right">รวม</TableHead>
-                  <TableHead>สถานะ</TableHead>
-                  <TableHead className="text-center">จัดการ</TableHead>
+                  {pendingCol("expand") && <TableHead className="w-10"></TableHead>}
+                  {pendingCol("doc") && <TableHead>เลขที่เอกสาร</TableHead>}
+                  {pendingCol("date") && <TableHead>วันที่ขอ</TableHead>}
+                  {pendingCol("company") && <TableHead>บริษัท</TableHead>}
+                  {pendingCol("requester") && <TableHead>ผู้ขอเบิก</TableHead>}
+                  {pendingCol("pickup") && <TableHead>รูปแบบการรับ</TableHead>}
+                  {pendingCol("pickupDate") && <TableHead>วันนัดรับ</TableHead>}
+                  {pendingCol("items") && <TableHead>รายการ</TableHead>}
+                  {pendingCol("type") && <TableHead>ประเภท</TableHead>}
+                  {pendingCol("billboard") && <TableHead>ป้ายปลายทาง</TableHead>}
+                  {pendingCol("total") && <TableHead className="text-right">รวม</TableHead>}
+                  {pendingCol("status") && <TableHead>สถานะ</TableHead>}
+                  {pendingCol("actions") && <TableHead className="text-center">จัดการ</TableHead>}
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {isLoading ? (
-                  <TableRow><TableCell colSpan={13} className="text-center py-8 text-muted-foreground">กำลังโหลด...</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={pendingVisible.length} className="text-center py-8 text-muted-foreground">กำลังโหลด...</TableCell></TableRow>
                 ) : filteredPending.length === 0 ? (
-                  <TableRow><TableCell colSpan={13} className="text-center py-8 text-muted-foreground">ไม่มีรายการรออนุมัติ</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={pendingVisible.length} className="text-center py-8 text-muted-foreground">ไม่มีรายการรออนุมัติ</TableCell></TableRow>
                 ) : (
                   pendingPagination.paginatedData.map((req: any) => renderRequestRow(req, true))
                 )}
               </TableBody>
             </Table>
           </div>
+
           {filteredPending.length > 0 && (
             <TablePagination
               currentPage={pendingPagination.currentPage}
