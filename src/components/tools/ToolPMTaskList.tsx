@@ -260,7 +260,7 @@ export function ToolPMTaskList() {
         }
       }
 
-      toast.success("บันทึกผลการตรวจสอบสำเร็จ");
+      toast.success(`บันทึกผล PM สำเร็จ — ตั๋ว ${selectedTask.task_number} ถูกย้ายไปประวัติ PM แล้ว`);
       setIsDialogOpen(false);
       
       // Cleanup previews
