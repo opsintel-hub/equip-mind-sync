@@ -137,8 +137,7 @@ export function ToolList({ refreshKey }: ToolListProps) {
 
   // Unique filter options
   const categories = [...new Set(tools.map(t => t.tool_category?.name).filter(Boolean))] as string[];
-  // Unique filter options
-  const categories = [...new Set(tools.map(t => t.tool_category?.name).filter(Boolean))] as string[];
+
   const departments = [...new Set(tools.map(t => t.department).filter(Boolean))] as string[];
   const pmIntervals = [...new Set(tools.map(t => t.pm_interval_days).filter(v => v != null))].sort((a, b) => a - b);
 
