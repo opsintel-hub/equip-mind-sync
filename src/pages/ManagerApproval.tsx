@@ -422,6 +422,21 @@ const ManagerApproval = () => {
             )}
           </TableCell>
           <TableCell>
+            {(() => {
+              const t = getRequestType(req);
+              return <Badge variant="outline" className={`${t.color} border-0 gap-1`}>{t.icon} {t.label}</Badge>;
+            })()}
+          </TableCell>
+          <TableCell>
+            {(() => {
+              const bbs = getRequestBillboards(req);
+              if (bbs.length === 0) return <span className="text-xs text-muted-foreground">ยังไม่ระบุ</span>;
+              if (bbs.length === 1) return <span className="text-xs truncate max-w-[180px] inline-block" title={bbs[0]}>{bbs[0]}</span>;
+              return <Badge variant="secondary" title={bbs.join("\n")} className="text-xs">{bbs.length} ป้าย</Badge>;
+            })()}
+          </TableCell>
+          <TableCell className="text-right text-sm font-medium">{getRequestTotalQty(req).toLocaleString()}</TableCell>
+          <TableCell>
             {showActions ? (
               <Badge variant="secondary" className="bg-amber-100 text-amber-800 gap-1"><Clock className="h-3 w-3" />รออนุมัติ</Badge>
             ) : req.approval_status === "approved" ? (
