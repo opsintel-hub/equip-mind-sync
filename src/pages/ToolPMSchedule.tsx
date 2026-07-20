@@ -423,15 +423,23 @@ const ToolPMSchedule = () => {
                     <TableCell>{tool.department || "-"}</TableCell>
                     <TableCell>{tool.pm_interval_days || 30} วัน</TableCell>
                     <TableCell>
-                      <div className="flex gap-1">
-                        <Badge variant="outline" className="text-xs">
-                          รอ: {tool.pendingCount}
-                        </Badge>
-                        <Badge variant="outline" className="text-xs">
-                          เสร็จ: {tool.completedCount}
-                        </Badge>
+                      <div className="flex flex-col gap-1">
+                        <div className="flex gap-1">
+                          <Badge variant="outline" className="text-xs">
+                            รอ: {tool.pendingCount}
+                          </Badge>
+                          <Badge variant="outline" className="text-xs">
+                            เสร็จ: {tool.completedCount}
+                          </Badge>
+                        </div>
+                        {tool.latestTask?.task_number && tool.latestTask?.status !== "completed" && (
+                          <span className="text-xs text-muted-foreground font-mono">
+                            ค้าง: {tool.latestTask.task_number}
+                          </span>
+                        )}
                       </div>
                     </TableCell>
+
                     <TableCell>
                       {tool.latestTask?.due_date ? (
                         <div className="flex items-center gap-1">
