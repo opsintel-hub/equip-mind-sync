@@ -356,50 +356,12 @@ const ToolPMSchedule = () => {
       <Card>
         <CardHeader>
           <div className="flex flex-col md:flex-row gap-4 justify-between">
+            <div className="flex-1">
+              <p className="text-sm text-muted-foreground bg-muted/50 p-2 rounded">
+                💡 <strong>วิธีสร้างงาน PM:</strong> กดปุ่ม <Plus className="h-3 w-3 inline mx-0.5" /> ที่คอลัมน์ "จัดการ" ในแถวของเครื่องมือ เพื่อสร้างงาน PM ใหม่สำหรับเครื่องมือนั้น
+              </p>
+            </div>
             <div className="flex gap-2">
-              <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-                <DialogTrigger asChild>
-                  <Button>
-                    <Plus className="h-4 w-4 mr-2" />
-                    สร้างงาน PM ใหม่
-                  </Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>สร้างงาน PM ใหม่</DialogTitle>
-                    <DialogDescription>
-                      เลือกเครื่องมือที่ต้องการสร้างงาน PM
-                    </DialogDescription>
-                  </DialogHeader>
-                  <div className="space-y-4 py-4">
-                    <div className="space-y-2">
-                      <Label>เลือกเครื่องมือ</Label>
-                      <Select value={selectedTool} onValueChange={setSelectedTool}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="เลือกเครื่องมือ..." />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {toolsWithoutPM.map((tool: any) => (
-                            <SelectItem key={tool.id} value={tool.id}>
-                              {tool.code} - {tool.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <p className="text-sm text-muted-foreground">
-                        แสดงเฉพาะเครื่องมือที่ยังไม่มีงาน PM รอดำเนินการ
-                      </p>
-                    </div>
-                    <Button 
-                      onClick={() => selectedTool && createPMTask.mutate(selectedTool)}
-                      disabled={!selectedTool || createPMTask.isPending}
-                      className="w-full"
-                    >
-                      {createPMTask.isPending ? "กำลังสร้าง..." : "สร้างงาน PM"}
-                    </Button>
-                  </div>
-                </DialogContent>
-              </Dialog>
               <Button variant="outline" onClick={() => refetch()}>
                 <RefreshCw className="h-4 w-4 mr-2" />
                 รีเฟรช
