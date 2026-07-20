@@ -169,10 +169,16 @@ export function ToolForm({ onSuccess }: ToolFormProps) {
         });
       }
 
+      // Save uploaded images
+      if (newTool && images.length > 0) {
+        await persistToolImages(newTool.id, images);
+      }
+
       toast.success(`เพิ่มเครื่องมือ ${generatedCode} สำเร็จ`);
       form.reset();
       setSelectedPMTypes([]);
       setPreviewCode("");
+      setImages([]);
       setOpen(false);
       onSuccess?.();
     } catch (error: any) {
