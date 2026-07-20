@@ -19,6 +19,7 @@ import { format } from "date-fns";
 import { useTablePagination } from "@/hooks/useTablePagination";
 import { TablePagination } from "@/components/TablePagination";
 import { ToolEditForm } from "./ToolEditForm";
+import { ToolImageViewer } from "./ToolImageViewer";
 import * as XLSX from "xlsx";
 import { useDeptScope } from "@/hooks/useDeptScope";
 
