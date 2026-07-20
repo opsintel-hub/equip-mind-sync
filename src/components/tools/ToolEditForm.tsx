@@ -207,6 +207,9 @@ export function ToolEditForm({ tool, open, onOpenChange, onSuccess }: ToolEditFo
 
       if (error) throw error;
 
+      // Sync images
+      await persistToolImages(tool.id, images);
+
       toast.success("แก้ไขเครื่องมือสำเร็จ");
       onOpenChange(false);
       onSuccess();
