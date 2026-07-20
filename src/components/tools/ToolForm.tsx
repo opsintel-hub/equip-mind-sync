@@ -21,7 +21,6 @@ import { Plus } from "lucide-react";
 import { ToolCategorySelect } from "./ToolCategorySelect";
 import { ToolSubcategorySelect } from "./ToolSubcategorySelect";
 import { ToolCodePrefixSelect } from "./ToolCodePrefixSelect";
-import { PMTypeSelect } from "./PMTypeSelect";
 import { CompanySelect } from "@/components/company/CompanySelect";
 import { SupplierSelect } from "@/components/supplier/SupplierSelect";
 import { WarehouseLocationSelect } from "@/components/location/WarehouseLocationSelect";
@@ -29,6 +28,8 @@ import { BrandSelect } from "@/components/equipment/BrandSelect";
 import { SimpleDepartmentSelect } from "@/components/equipment/SimpleDepartmentSelect";
 import { CategorySuggestWizard } from "@/components/category/CategorySuggestWizard";
 import { ToolImageUpload, persistToolImages, type ToolImageItem } from "./ToolImageUpload";
+import { ToolPMMatrix, saveToolPMMatrix, type PMMatrixRow } from "./ToolPMMatrix";
+import { ToolDocumentUpload, persistPendingToolDocuments, type ToolDocumentItem } from "./ToolDocumentUpload";
 
 const formSchema = z.object({
   prefix: z.string().min(1, "กรุณาเลือก Prefix รหัสเครื่องมือ"),
