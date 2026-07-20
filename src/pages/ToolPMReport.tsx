@@ -492,6 +492,99 @@ const ToolPMReport = () => {
           )}
         </CardContent>
       </Card>
+
+      {/* PM History Detail Dialog */}
+      <Dialog open={!!detailTool} onOpenChange={(o) => !o && setDetailTool(null)}>
+        <DialogContent className="max-w-5xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>
+              ประวัติ PM · {detailTool?.code} — {detailTool?.name}
+              <div className="text-sm font-normal text-muted-foreground mt-1">
+                ช่วง: {format(periodRange.start, "dd/MM/yyyy")} – {format(periodRange.end, "dd/MM/yyyy")}
+                {" · "}รอบ PM: ทุก {detailTool?.pm_interval_days} วัน
+                {" · "}พบ {detailRows.length} ครั้ง
+              </div>
+            </DialogTitle>
+          </DialogHeader>
+          {detailLoading ? (
+            <div className="text-center py-8 text-muted-foreground">กำลังโหลด...</div>
+          ) : detailRows.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">ไม่มีประวัติ PM ในช่วงนี้</div>
+          ) : (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>เลขที่ตั๋ว</TableHead>
+                    <TableHead>วันที่ตรวจ</TableHead>
+                    <TableHead>กำหนด (Due)</TableHead>
+                    <TableHead className="text-center">ตรง/ล่าช้า</TableHead>
+                    <TableHead>ผลตรวจ</TableHead>
+                    <TableHead className="text-center">จำนวน</TableHead>
+                    <TableHead>ผู้ตรวจ</TableHead>
+                    <TableHead>รายละเอียด / หมายเหตุ</TableHead>
+                    <TableHead className="text-center">รูป</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {detailRows.map((h: any) => {
+                    const due = h.tool_pm_task?.due_date;
+                    const diff = due ? differenceInDays(parseISO(h.completed_date), parseISO(due)) : null;
+                    return (
+                      <TableRow key={h.id}>
+                        <TableCell className="text-xs font-mono">{h.tool_pm_task?.task_number || "-"}</TableCell>
+                        <TableCell className="text-sm">{format(parseISO(h.completed_date), "dd/MM/yyyy", { locale: th })}</TableCell>
+                        <TableCell className="text-sm">{due ? format(parseISO(due), "dd/MM/yyyy", { locale: th }) : "-"}</TableCell>
+                        <TableCell className="text-center">
+                          {diff === null ? <span className="text-muted-foreground">-</span> :
+                            diff <= 0
+                              ? <Badge className="bg-green-500">ตรงเวลา{diff < 0 ? ` (ก่อน ${-diff}d)` : ""}</Badge>
+                              : <Badge className="bg-orange-500">ล่าช้า {diff}d</Badge>}
+                        </TableCell>
+                        <TableCell>
+                          {h.pm_result
+                            ? <Badge className={colorMap[h.pm_result.color] || "bg-gray-500"}>{h.pm_result.name}</Badge>
+                            : <Badge variant="outline">-</Badge>}
+                        </TableCell>
+                        <TableCell className="text-center">{h.tool_pm_task?.quantity_checked ?? "-"}</TableCell>
+                        <TableCell className="text-sm">{h.inspector_name || "-"}</TableCell>
+                        <TableCell className="text-sm max-w-[280px]">
+                          {h.tool_pm_task?.observation_details && (
+                            <div className="text-xs text-muted-foreground mb-1">{h.tool_pm_task.observation_details}</div>
+                          )}
+                          <div className="whitespace-pre-line">{h.notes || <span className="text-muted-foreground">-</span>}</div>
+                        </TableCell>
+                        <TableCell className="text-center">
+                          {h.images.length > 0 ? (
+                            <Button size="sm" variant="ghost" className="h-7 gap-1" onClick={() => setViewerImages(h.images)}>
+                              <ImageIcon className="h-3.5 w-3.5" />{h.images.length}
+                            </Button>
+                          ) : <span className="text-xs text-muted-foreground">-</span>}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Image Viewer */}
+      <Dialog open={!!viewerImages} onOpenChange={(o) => !o && setViewerImages(null)}>
+        <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader><DialogTitle>รูปการตรวจ PM</DialogTitle></DialogHeader>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {viewerImages?.map((img, i) => (
+              <a key={i} href={img.url} target="_blank" rel="noreferrer" className="block border rounded overflow-hidden">
+                <img src={img.url} alt={img.description || ""} className="w-full h-auto" />
+                {img.description && <div className="text-xs p-2 text-muted-foreground">{img.description}</div>}
+              </a>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
