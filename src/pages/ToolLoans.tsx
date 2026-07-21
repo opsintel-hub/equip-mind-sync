@@ -330,12 +330,17 @@ export default function ToolLoans({ mode = "all" }: ToolLoansProps) {
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2">
             <ArrowLeftRight className="w-6 h-6 text-primary" />
-            เบิก-คืนเครื่องมือ
+            {headerMeta.title}
           </h1>
-          <p className="text-sm text-muted-foreground">ขอเบิก / จ่าย / คืน เครื่องมือ พร้อมติดตามผู้ถือครองและการรับประกัน</p>
+          <p className="text-sm text-muted-foreground">{headerMeta.desc}</p>
         </div>
-        <Button onClick={() => setCreateOpen(true)}><Plus className="w-4 h-4 mr-1" />ขอเบิกเครื่องมือ</Button>
+        {(mode === "request" || mode === "all") && (
+          <Button onClick={() => { setForm(f => ({ ...f, requester_name: actorName })); setCreateOpen(true); }}>
+            <Plus className="w-4 h-4 mr-1" />ขอเบิกเครื่องมือ
+          </Button>
+        )}
       </div>
+
 
       <Card>
         <CardHeader className="pb-3">
