@@ -229,6 +229,7 @@ const menuGroups: MenuGroup[] = [
     label: "เครื่องมือ",
     items: [
       { title: "ข้อมูลเครื่องมือ", url: "/tool-management", icon: Wrench, functionName: "equipment_pm" },
+      { title: "เบิก-คืนเครื่องมือ", url: "/tool-loans", icon: ArrowLeftRight, functionName: "equipment_pm" },
       { 
         title: "PM เครื่องมือ", 
         icon: Calendar,
@@ -293,6 +294,7 @@ const menuGroups: MenuGroup[] = [
         subItems: [
           { title: "Import อุปกรณ์", url: "/setup/import-equipment", icon: Package, functionName: "admin" },
           { title: "Import MP / จอภาพ", url: "/setup/import-media-player", icon: Monitor, functionName: "admin" },
+          { title: "Import เครื่องมือ", url: "/setup/import-tools", icon: Wrench, functionName: "admin" },
         ],
       },
     ],

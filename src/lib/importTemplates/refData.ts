@@ -12,6 +12,8 @@ export interface RefLookups {
   billboards: Array<{ id: string; old_code: string | null; location_name: string | null; equipment_id: string }>;
   mp_models: Array<{ id: string; name: string }>;
   cms_types: Array<{ id: string; name: string }>;
+  tool_categories: Array<{ id: string; name: string }>;
+  tool_subcategories: Array<{ id: string; name: string; tool_category_id: string | null }>;
 }
 
 export async function fetchAllRefs(): Promise<RefLookups> {
@@ -33,6 +35,7 @@ export async function fetchAllRefs(): Promise<RefLookups> {
   const [
     categories, subcategories, units, brands, suppliers,
     companies, departments, locations, billboards, mp_models, cms_types,
+    tool_categories, tool_subcategories,
   ] = await Promise.all([
     fetchPaged<any>("categories", "name"),
     fetchPaged<any>("subcategories", "id,name,category_id"),
@@ -45,10 +48,13 @@ export async function fetchAllRefs(): Promise<RefLookups> {
     fetchPaged<any>("billboards", "id,old_code,location_name,equipment_id"),
     fetchPaged<any>("media_player_models", "id,name"),
     fetchPaged<any>("cms_types", "id,name"),
+    fetchPaged<any>("tool_categories", "id,name"),
+    fetchPaged<any>("tool_subcategories", "id,name,tool_category_id"),
   ]);
 
   return {
     categories, subcategories, units, brands, suppliers,
     companies, departments, locations, billboards, mp_models, cms_types,
+    tool_categories, tool_subcategories,
   };
 }

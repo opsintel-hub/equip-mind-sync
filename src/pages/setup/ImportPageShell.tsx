@@ -18,7 +18,7 @@ interface ImportPageShellProps {
   sheetName: string;
   templateDownloader: (refs: RefLookups) => void;
   validator: (rows: any[], refs: RefLookups) => Promise<ValidatedRow[]>;
-  rpcName: "import_equipment_row" | "import_media_player_row";
+  rpcName: "import_equipment_row" | "import_media_player_row" | "import_tool_row";
   columnHints: string[]; // columns to display in preview table
 }
 

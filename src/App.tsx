@@ -78,6 +78,8 @@ const DatabaseGuide = lazy(() => import("./pages/DatabaseGuide"));
 const StockReconciliation = lazy(() => import("./pages/StockReconciliation"));
 const ImportEquipmentPage = lazy(() => import("./pages/setup/ImportEquipmentPage"));
 const ImportMediaPlayerPage = lazy(() => import("./pages/setup/ImportMediaPlayerPage"));
+const ImportToolPage = lazy(() => import("./pages/setup/ImportToolPage"));
+const ToolLoans = lazy(() => import("./pages/ToolLoans"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -186,6 +188,8 @@ const App = () => (
             <Route path="/database-guide" element={<Protected><DatabaseGuide /></Protected>} />
             <Route path="/setup/import-equipment" element={<Protected><ImportEquipmentPage /></Protected>} />
             <Route path="/setup/import-media-player" element={<Protected><ImportMediaPlayerPage /></Protected>} />
+            <Route path="/setup/import-tools" element={<Protected><ImportToolPage /></Protected>} />
+            <Route path="/tool-loans" element={<Protected><ToolLoans /></Protected>} />
             {/* Public billboard view - no auth required */}
             <Route path="/billboard-view/:id" element={<Public><BillboardPublicView /></Public>} />
             <Route path="/p/media-player/:id" element={<Public><MediaPlayerPublicView /></Public>} />

@@ -1,66 +1,127 @@
-## Section A — หน้า "ขอเบิกสินค้า" > กล่อง "เพิ่มรายการสินค้า"
 
-ปัญหาที่เจอ:
-1. Dropdown "เลือกสินค้า (FIFO)" รวมทุกชนิด (MP / จอภาพ / อะไหล่) เยอะเกินไป
-2. อะไหล่บางชิ้นผูกกับป้ายเฉพาะ — ปัจจุบันจะกรองเฉพาะ *หลังจากเลือกสินค้าไปแล้ว* (ผ่าน `compatMap`) ทำให้ผู้ใช้ยังเลือกอะไหล่ผิดป้ายได้อยู่
-3. ต้องยืนยันว่ารายการที่ขึ้นมาถูก scope ตามฝ่ายที่ผู้ใช้มีสิทธิ์เห็นจริง
+# แผนออกแบบ: นำเข้าเครื่องมือ + เบิก/คืนเครื่องมือ (Tool Loan)
 
-### สิ่งที่มีอยู่แล้ว (ไม่ต้องทำซ้ำ)
-- Equipment & Media Player query กรองด้วย `.in("department", depts)` ตาม `useAllowedDepartments` แล้ว (IssueRequest.tsx บรรทัด 219, 245) → **การ scope ตามฝ่ายทำงานถูกต้องอยู่แล้ว** จะเพิ่มแค่ badge เตือนใต้ช่องเลือกว่า "แสดงเฉพาะฝ่ายที่คุณมีสิทธิ์: X, Y"
-- `equipment_billboard_compatibility` + `compatMap` มีข้อมูลอยู่แล้ว → นำมาใช้กรอง Dropdown ตั้งแต่ต้นได้เลย
-
-### แนวทาง (ประหยัด credit สุด — ปรับไฟล์เดียว)
-
-แก้ไข `src/pages/IssueRequest.tsx` เฉพาะกล่อง "เพิ่มรายการสินค้า":
-
-1. **เพิ่มปุ่ม Filter ประเภท** เหนือ Dropdown "เลือกสินค้า (FIFO)"
-   - 4 ปุ่ม toggle: `ทั้งหมด | Media Player | จอภาพ | อะไหล่/วัสดุ`
-   - state ใหม่ `itemTypeFilter: "all" | "media_player" | "monitor" | "spare"`
-   - กรอง `filteredEquipmentByCategory` ต่ออีกชั้น:
-     - `media_player`: `is_media_player && device_type !== "MONITOR"`
-     - `monitor`: `is_media_player && device_type === "MONITOR"`
-     - `spare`: `!is_media_player`
-
-2. **สลับลำดับ: เลือกป้ายก่อน → กรองอะไหล่อัตโนมัติ (Billboard-first mode)**
-   - เพิ่ม toggle เล็ก ๆ "🎯 กรองตามป้ายก่อน" (default: off เพื่อไม่กระทบ flow เดิม)
-   - เมื่อเปิด + เลือกป้ายที่ช่อง "ป้ายโฆษณา (สำหรับรายการนี้)" ก่อน:
-     - Dropdown สินค้าจะเหลือเฉพาะ MP ทั้งหมด + อะไหล่ที่ `unrestricted` + อะไหล่ที่ `compatMap` มีป้ายนั้น
-     - แสดง hint สีเขียว "แสดงเฉพาะสินค้าที่เข้ากับป้าย XXX"
-   - ใช้ `compatMap` ที่ query อยู่แล้ว → **ไม่ต้อง query เพิ่ม**
-
-3. **Badge แสดง scope ฝ่าย** ใต้ Dropdown
-   - `"แสดงเฉพาะฝ่ายที่คุณมีสิทธิ์: [Digital Media, IT, ...]"` อ่านจาก `useAllowedDepartments` (มีอยู่แล้ว)
-
-4. **แสดง Badge ประเภทในแต่ละ option** (เดิมมีแค่ `[Media Player]` ใน description)
-   - เพิ่ม prefix สี: 🎬 MP / 🖥️ จอภาพ / 🔧 อะไหล่ ให้เห็นชัดขึ้น
+ใช้ **โครงสร้างเดิมของ "ยืมอุปกรณ์" (equipment_loans)** ให้มากที่สุด แล้วเพิ่มฟีเจอร์เฉพาะเครื่องมือ เพื่อประหยัดเครดิตและผู้ใช้ไม่ต้องเรียนรู้ UI ใหม่
 
 ---
 
-## Section B — หน้า "อนุมัติเบิกทรัพย์สิน" (ManagerApproval)
+## ภาพรวม Flow
 
-แก้ไข `src/pages/ManagerApproval.tsx` ทั้ง 2 ตาราง (รออนุมัติ + ประวัติ):
+```text
+[นำเข้า Excel] → tools (คลัง)
+      │
+      ▼
+[ขอเบิกเครื่องมือ] ── approval_required? ──► [รอ Manager อนุมัติ] ──► [รอคลังจ่าย]
+      │                       │
+      │ (ไม่ต้องอนุมัติ)       ▼
+      ▼                    [รอคลังจ่าย]
+[คลังกดจ่าย] → สถานะ issued, holder = ผู้เบิก, ที่อยู่ = "อยู่กับ <ชื่อ>"
+      │
+      ├─► return_required=true  → [รอคืน] → [คืนคลัง] → in_stock
+      └─► return_required=false → [ถือครองถาวร] (ยังรู้ว่าอยู่กับใคร)
+```
 
-1. **เพิ่ม Column "ประเภท"** (ระหว่าง "รายการ" กับ "สถานะ")
-   - Badge สี: 🎬 MP / 🖥️ จอภาพ / 🔧 อะไหล่ / 📦 ผสม (กรณีมีหลายประเภทในใบเดียว)
-   - คำนวณจาก `getItemsForRequest(req.id)` → ตรวจ `is_media_player` + `device_type`
-
-2. **เพิ่ม Column "ป้ายปลายทาง"**
-   - แสดงชื่อป้ายจาก item (ถ้ามีหลายป้าย → "3 ป้าย" + tooltip list)
-   - ช่วย approver ตัดสินใจได้เร็ว
-
-3. **เพิ่ม Column "จำนวนรวม"** (text-right)
-   - รวม `quantity` ของทุก item ในใบ
-
-4. **Pagination**
-   - ใช้ `useTablePagination` (มี hook อยู่แล้ว) ทั้ง 2 ตาราง — 10 แถว/หน้า
-   - เพิ่ม `<TablePagination>` ท้ายตาราง
-
-5. **Row expand (คงเดิม)** — แสดง detail item เต็มเมื่อกดไอคอน ▶ (มีอยู่แล้ว)
+Warranty: อ่านจาก `tools.warranty_expiry_date` เดิม — โชว์ badge หมด/ใกล้หมดในทุกหน้า (list, cart, holder view)
 
 ---
 
-## สรุปไฟล์ที่แก้
-- `src/pages/IssueRequest.tsx` — เพิ่ม filter ประเภท + billboard-first mode + badge scope
-- `src/pages/ManagerApproval.tsx` — เพิ่ม 3 columns + pagination 2 ตาราง
+## Section A — นำเข้าเครื่องมือ (Tool Import)
 
-ไม่มี migration, ไม่มี component ใหม่, ไม่มี query เพิ่ม → ประหยัด credit สุด
+ใช้ pattern `ImportPageShell` เดียวกับ Equipment/Media Player
+
+### 1. Template Excel (`toolTemplate.ts`)
+คอลัมน์:
+- **บังคับ:** `code*`, `name*`, `category*`, `unit*`, `quantity*`, `department*`
+- **ทั่วไป:** `subcategory`, `brand`, `serial_number`, `location_id`, `company_id`, `supplier_id`, `unit_price`
+- **ประกัน/ทรัพย์สิน:** `has_warranty` (ใช่/ไม่), `warranty_expiry_date`, `is_asset` (ใช่/ไม่), `asset_code`
+- **PM:** `pm_interval_months`, `pm_types` (คั่นด้วย `,` เช่น `visual,calibration`)
+- **Flag:** `is_personal_tool` (ใช่/ไม่), `requires_approval` (ใช่/ไม่ — default ไม่), `return_required` (ใช่/ไม่ — default ใช่)
+- **หมายเหตุ:** `notes`
+
+Sheet อ้างอิงในไฟล์เดียว: หมวดหมู่/ฝ่าย/บริษัท/Supplier/Location (id + name) เหมือน template อื่น
+
+### 2. RPC `import_tool_row(p jsonb)`
+- ตรวจสิทธิ์ admin/super_admin
+- กันซ้ำด้วย `code`
+- Insert `tools` + stock_movement `receive` เริ่มต้น
+- คืน `{success, tool_id, error}`
+
+### 3. Page `src/pages/setup/ImportToolPage.tsx`
+เพิ่ม route `/setup/import-tools` และปุ่ม "นำเข้าเครื่องมือ" ที่ **จัดการเครื่องมือ** (คู่กับปุ่ม + เพิ่ม)
+
+---
+
+## Section B — เบิก/คืนเครื่องมือ (Tool Loan)
+
+ตัดสินใจ: **ขยาย `equipment_loans` ให้รองรับ tool** ดีที่สุด (โครง approve/return/tracker พร้อมใช้)
+
+### 1. Schema เพิ่ม (migration)
+เพิ่มคอลัมน์ใน `equipment_loans`:
+- `tool_id uuid REFERENCES tools(id)` — nullable (คู่กับ `equipment_id` เดิม)
+- `item_kind text CHECK (item_kind IN ('equipment','tool')) DEFAULT 'equipment'`
+- `purpose text` — วัตถุประสงค์ (Calibrate / PM ตั๋ว TPM-xxxx / งานทั่วไป / อื่นๆ)
+- `pm_task_id uuid` — ผูกกับตั๋ว PM (ถ้ามี, nullable)
+- `return_required boolean DEFAULT true` — copy จาก `tools.return_required` ตอนสร้าง
+- `holder_user_id uuid`, `holder_name text` — คนถือครองจริง (หลังจ่าย)
+
+Constraint: ต้องมี `equipment_id` หรือ `tool_id` อย่างใดอย่างหนึ่ง
+
+### 2. หน้า `EquipmentLoans.tsx` → เพิ่ม Tab
+เปลี่ยน title เป็น "ยืม-คืนอุปกรณ์และเครื่องมือ" แล้ว:
+- Tab "อุปกรณ์" (เดิม)
+- Tab "เครื่องมือ" (ใหม่) — reuse `LoanRequestForm` + `LoanReturnDialog` พร้อม flag `kind="tool"`
+- Filter/Pagination/ProcessTracker ใช้ของเดิม
+
+### 3. LoanRequestForm (เพิ่มโหมด tool)
+- เลือก tool จาก dropdown (กรองตามฝ่ายผู้ใช้, กรองตามคลังที่มีสิทธิ์)
+- ช่อง **วัตถุประสงค์**: dropdown [Calibrate, PM (เลือกตั๋ว), งานทั่วไป, อื่นๆ]
+  - ถ้าเลือก PM → SearchableSelect ตั๋ว `tool_pm_tasks` สถานะ pending ของ tool นั้น → auto-fill purpose
+- ถ้า `tools.requires_approval = false` → ข้าม Manager approval, ไปสถานะ `pending_issue` เลย
+- ถ้า `return_required = false` → แสดง warning "เครื่องมือนี้ไม่ต้องคืน" และไม่บังคับ due_date
+
+### 4. คลังกดจ่าย (Issue)
+- ตัด stock, log stock_movement `issue`
+- Set `holder_user_id`, `holder_name` = ผู้เบิก
+- ถ้า `return_required=false` → สถานะ `holding_permanent` (แทน `issued`)
+- ถ้า `return_required=true` → `issued` รอคืน
+
+### 5. คืน (Return)
+- ใช้ `LoanReturnDialog` เดิม
+- เพิ่มช่อง **สภาพหลังคืน** [ปกติ / ต้อง PM / ต้องซ่อม / ชำรุด]
+  - "ต้อง PM" → auto สร้างตั๋ว PM
+  - "ชำรุด" → ตัดเข้า WH-DEFECT (ใช้ workflow defective เดิม)
+
+### 6. Tracking รายเครื่อง
+- ที่ **จัดการเครื่องมือ** → คอลัมน์ใหม่ **"อยู่ที่ / ผู้ถือ"** — ถ้ามี loan active แสดง badge "อยู่กับ {holder_name}" คลิกไปหน้า loan detail
+- ที่ **KPI PM Report** ตัว drill-down: เพิ่ม tab "ประวัติการเบิก" ของ tool นั้น
+
+### 7. Warranty Alert
+- Dashboard alert เดิม (`ExpiryWarrantyKPI`) ครอบคลุม `tools.warranty_expiry_date` อยู่แล้ว → ตรวจซ้ำและเพิ่ม toggle "รวมเครื่องมือ" ถ้ายังไม่มี
+
+---
+
+## Section C — เมนู/สิทธิ์
+
+- Sidebar: ใต้ "เครื่องมือ" เพิ่ม
+  - "ยืม-คืนเครื่องมือ" (link เข้า EquipmentLoans → tab เครื่องมือ) — ถ้าไม่อยากซ้ำ ใช้ query `?tab=tool`
+- Function permission ใหม่:
+  - `tool_loan_request` (ผู้เบิก)
+  - `tool_loan_issue` (คลังจ่าย)
+- Manager approval ใช้สิทธิ์ `manager_approval` เดิม (เฉพาะ tool ที่ `requires_approval=true`)
+
+---
+
+## รายละเอียดเทคนิค
+
+- ไฟล์ใหม่: `src/lib/importTemplates/toolTemplate.ts`, `src/lib/importTemplates/validators.ts` (เพิ่ม `validateToolRows`), `src/pages/setup/ImportToolPage.tsx`, RPC `import_tool_row`
+- ไฟล์แก้: `EquipmentLoans.tsx` (เพิ่ม tab kind), `LoanRequestForm.tsx` (โหมด tool + purpose), `LoanReturnDialog.tsx` (สภาพหลังคืน), `ToolList.tsx` (คอลัมน์ holder), `ToolManagement.tsx` (ปุ่ม Import), `AppSidebar.tsx`
+- Migration: alter `equipment_loans`, add ENUM/columns บน `tools` (`requires_approval`, `return_required` ถ้ายังไม่มี), grants + policies เดิมครอบคลุมอยู่แล้ว
+- ProcessTracker: เพิ่ม preset `getToolLoanSteps`
+
+---
+
+## จุดที่ต้องยืนยัน
+
+1. **แชร์ตาราง `equipment_loans` กับเครื่องมือ** โอเคมั้ย (แนะนำ; ประหยัด/UI คุ้นเคย) หรือให้แยกเป็นตาราง `tool_loans` ใหม่?
+2. Default ของเครื่องมือใหม่: `requires_approval=false`, `return_required=true` — ตกลงตามนี้?
+3. "เครื่องมือประจำตัวช่าง (is_personal_tool)" → เบิกครั้งเดียวถือยาว = ตั้ง `return_required=false` อัตโนมัติ ใช่มั้ย?
