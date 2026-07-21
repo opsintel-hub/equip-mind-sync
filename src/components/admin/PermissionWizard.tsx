@@ -50,6 +50,9 @@ interface UserLite {
   id: string;
   full_name: string;
   email?: string;
+  display_name?: string | null;
+  phone?: string | null;
+  department?: string | null;
   requested_job_role?: string | null;
   requested_department?: string | null;
 }
