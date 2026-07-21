@@ -82,6 +82,7 @@ export function PermissionWizard({ open, onOpenChange, user, onSaved }: Permissi
   const [departments, setDepartments] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [helpOpen, setHelpOpen] = useState(false);
 
   // Profile fields (unified edit — no more separate profile dialog)
   const [pfFullName, setPfFullName] = useState("");
