@@ -416,7 +416,7 @@ export function PermissionWizard({ open, onOpenChange, user, onSaved }: Permissi
 
         <Separator />
 
-        <ScrollArea className="flex-1 -mx-6 px-6">
+        <div className="py-2">
           {loading && <div className="text-center py-8 text-muted-foreground">กำลังโหลด...</div>}
 
           {/* Step 1: Templates */}
