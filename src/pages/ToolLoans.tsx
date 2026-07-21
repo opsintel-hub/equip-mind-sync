@@ -61,11 +61,12 @@ const STATUS_META: Record<string, { label: string; variant: "default" | "seconda
   pending_issue:    { label: "รอจ่าย", variant: "secondary", icon: Send },
   issued:           { label: "อยู่กับผู้เบิก", variant: "default", icon: ArrowLeftRight },
   holding_permanent:{ label: "ถือครองถาวร", variant: "default", icon: ArrowLeftRight },
+  pending_return:   { label: "รอคลังรับคืน", variant: "secondary", icon: RotateCcw },
   returned:         { label: "คืนแล้ว", variant: "outline", icon: CheckCircle2 },
   cancelled:        { label: "ยกเลิก", variant: "destructive", icon: XCircle },
 };
 
-export type ToolLoansMode = "request" | "issue" | "return" | "all";
+export type ToolLoansMode = "request" | "issue" | "return" | "receive-return" | "all";
 
 interface ToolLoansProps {
   mode?: ToolLoansMode;
@@ -135,6 +136,7 @@ export default function ToolLoans({ mode = "all" }: ToolLoansProps) {
       return toast.error(`จำนวนต้องอยู่ระหว่าง 1 ถึง ${selectedTool.current_quantity}`);
     }
     const returnReq = selectedTool.return_required;
+    if (returnReq && !form.due_date) return toast.error("กรุณาระบุกำหนดคืน");
     const status = selectedTool.requires_approval ? "pending" : "pending_issue";
     const purposeFinal = form.purpose === "อื่นๆ" ? (form.purpose_detail || "อื่นๆ")
                         : form.purpose === "PM" ? `PM: ${form.purpose_detail || "-"}`
@@ -144,7 +146,7 @@ export default function ToolLoans({ mode = "all" }: ToolLoansProps) {
       tool_id: form.tool_id,
       quantity: form.quantity,
       loan_date: new Date().toISOString().slice(0, 10),
-      due_date: form.due_date || (returnReq ? new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10)),
+      due_date: returnReq ? form.due_date : new Date().toISOString().slice(0, 10),
       status,
       requester_name: requester,
       purpose: purposeFinal,
@@ -196,7 +198,24 @@ export default function ToolLoans({ mode = "all" }: ToolLoansProps) {
     fetchAll();
   };
 
-  const handleReturn = async () => {
+  // Step 1: ผู้เบิกแจ้งคืน — ไม่คืนสต็อก ยังไม่ set return_date
+  const handleRequestReturn = async () => {
+    if (!returnOpen) return;
+    const rQty = Math.max(0, Math.min(returnOpen.quantity, returnForm.returned_quantity));
+    const { error } = await supabase.from("equipment_loans").update({
+      status: "pending_return",
+      returned_quantity: rQty,
+      return_notes: `[${returnForm.condition}] ${returnForm.notes}`.trim(),
+    }).eq("id", returnOpen.id);
+    if (error) return toast.error(error.message);
+    toast.success("แจ้งคืนแล้ว — รอคลังรับคืน");
+    setReturnOpen(null);
+    setReturnForm({ returned_quantity: 1, condition: "normal", notes: "" });
+    fetchAll();
+  };
+
+  // Step 2: คลังรับคืน — คืนสต็อก + returned
+  const handleReceiveReturn = async () => {
     if (!returnOpen || !returnOpen.tool) return;
     const rQty = Math.max(0, Math.min(returnOpen.quantity, returnForm.returned_quantity));
     const newStock = (returnOpen.tool.current_quantity ?? 0) + rQty;
@@ -207,12 +226,22 @@ export default function ToolLoans({ mode = "all" }: ToolLoansProps) {
       return_date: new Date().toISOString().slice(0, 10),
       returned_quantity: rQty,
       returned_by: user?.id,
-      return_notes: `[${returnForm.condition}] ${returnForm.notes}`.trim(),
+      return_notes: returnForm.notes
+        ? `${returnOpen.return_notes || ""} | คลังรับ: [${returnForm.condition}] ${returnForm.notes}`.trim()
+        : returnOpen.return_notes,
     }).eq("id", returnOpen.id);
     if (e2) return toast.error(e2.message);
     toast.success("รับคืนเรียบร้อย");
     setReturnOpen(null);
     setReturnForm({ returned_quantity: 1, condition: "normal", notes: "" });
+    fetchAll();
+  };
+
+  // ปฏิเสธการคืน (คลัง) — กลับไปสถานะ issued
+  const handleRejectReturn = async (loan: Loan) => {
+    const { error } = await supabase.from("equipment_loans").update({ status: "issued" }).eq("id", loan.id);
+    if (error) return toast.error(error.message);
+    toast.success("ปฏิเสธการคืน — กลับสถานะอยู่กับผู้เบิก");
     fetchAll();
   };
 
@@ -225,21 +254,32 @@ export default function ToolLoans({ mode = "all" }: ToolLoansProps) {
 
   // Mode-based filter: request page shows my own requests; issue page shows warehouse queue; return page shows items currently issued
   const modeFilter = (l: Loan) => {
-    if (mode === "request") return l.created_by === user?.id || l.requester_name === actorName;
-    if (mode === "issue")   return ["pending", "pending_issue"].includes(l.status);
-    if (mode === "return")  return l.status === "issued" && l.return_required;
+    if (mode === "request")        return l.created_by === user?.id || l.requester_name === actorName;
+    if (mode === "issue")          return ["pending", "pending_issue"].includes(l.status);
+    if (mode === "return")         return (l.created_by === user?.id || l.requester_name === actorName)
+                                          && ["issued", "pending_return"].includes(l.status) && l.return_required;
+    if (mode === "receive-return") return l.status === "pending_return";
     return true;
   };
 
-  const activeStates = ["pending", "pending_issue", "issued", "holding_permanent"];
-  const activeLoans  = loans.filter(l => activeStates.includes(l.status)).filter(modeFilter).filter(filter);
+  const isOverdue = (l: Loan) =>
+    ["issued", "pending_return"].includes(l.status) && !!l.due_date && new Date(l.due_date) < new Date();
+
+  const activeStates = ["pending", "pending_issue", "issued", "holding_permanent", "pending_return"];
+  const sortOverdueFirst = (a: Loan, b: Loan) => {
+    const ao = isOverdue(a) ? 1 : 0, bo = isOverdue(b) ? 1 : 0;
+    if (ao !== bo) return bo - ao;
+    return 0;
+  };
+  const activeLoans  = loans.filter(l => activeStates.includes(l.status)).filter(modeFilter).filter(filter).sort(sortOverdueFirst);
   const historyLoans = loans.filter(l => !activeStates.includes(l.status)).filter(modeFilter).filter(filter);
 
   const headerMeta = {
-    request: { title: "ขอเบิกเครื่องมือ",   desc: "สร้างคำขอเบิกเครื่องมือของฉัน" },
-    issue:   { title: "คลังจ่ายเครื่องมือ",  desc: "คิวรออนุมัติ / รอจ่าย ให้เจ้าหน้าที่คลังดำเนินการ" },
-    return:  { title: "ขอคืนเครื่องมือ",     desc: "รายการเครื่องมือที่ต้องคืน" },
-    all:     { title: "เบิก-คืนเครื่องมือ",  desc: "ขอเบิก / จ่าย / คืน เครื่องมือ พร้อมติดตามผู้ถือครองและการรับประกัน" },
+    request:          { title: "ขอเบิกเครื่องมือ",     desc: "สร้างคำขอเบิกเครื่องมือของฉัน" },
+    issue:            { title: "คลังจ่ายเครื่องมือ",    desc: "คิวรออนุมัติ / รอจ่าย ให้เจ้าหน้าที่คลังดำเนินการ" },
+    return:           { title: "ขอคืนเครื่องมือ",       desc: "แจ้งคืนเครื่องมือที่ฉันถืออยู่ — คลังจะเป็นผู้รับคืนเข้าระบบ" },
+    "receive-return": { title: "คลังรับคืนเครื่องมือ",   desc: "คิวเครื่องมือที่ผู้เบิกแจ้งคืน — เจ้าหน้าที่คลังตรวจสอบและรับคืนเข้าสต็อก" },
+    all:              { title: "เบิก-คืนเครื่องมือ",     desc: "ขอเบิก / จ่าย / คืน เครื่องมือ พร้อมติดตามผู้ถือครองและการรับประกัน" },
   }[mode];
 
 
@@ -272,9 +312,10 @@ export default function ToolLoans({ mode = "all" }: ToolLoansProps) {
             <TableRow><TableCell colSpan={9} className="text-center text-muted-foreground py-8">ไม่มีข้อมูล</TableCell></TableRow>
           ) : rows.map(l => {
             const meta = STATUS_META[l.status] || { label: l.status, variant: "outline" as const };
-            const overdue = l.status === "issued" && l.due_date && new Date(l.due_date) < new Date();
+            const overdue = isOverdue(l);
+            const overdueDays = overdue && l.due_date ? Math.abs(differenceInDays(new Date(l.due_date), new Date())) : 0;
             return (
-              <TableRow key={l.id}>
+              <TableRow key={l.id} className={overdue ? "bg-destructive/5" : ""}>
                 <TableCell className="text-xs">{format(new Date(l.created_at), "dd/MM/yy", { locale: th })}</TableCell>
                 <TableCell>
                   <div className="font-medium text-sm">{l.tool?.code}</div>
@@ -289,7 +330,7 @@ export default function ToolLoans({ mode = "all" }: ToolLoansProps) {
                 <TableCell className="text-sm">{l.holder_name || "-"}</TableCell>
                 <TableCell className="text-xs">
                   {l.return_required ? (l.due_date ? format(new Date(l.due_date), "dd/MM/yy") : "-") : <span className="text-muted-foreground">ไม่ต้องคืน</span>}
-                  {overdue && <Badge variant="destructive" className="ml-1 text-[10px]"><AlertTriangle className="w-2 h-2 mr-0.5" />เกิน</Badge>}
+                  {overdue && <Badge variant="destructive" className="ml-1 text-[10px]"><AlertTriangle className="w-2 h-2 mr-0.5" />เกิน {overdueDays}ว</Badge>}
                 </TableCell>
                 <TableCell>
                   <Badge variant={meta.variant} className="gap-1">
@@ -300,19 +341,42 @@ export default function ToolLoans({ mode = "all" }: ToolLoansProps) {
                 <TableCell className="text-right">
                   {!isHistory && (
                     <div className="flex justify-end gap-1">
-                      {l.status === "pending" && canManageWarehouse && (
+                      {/* คลังจ่าย: อนุมัติ + จ่าย + ยกเลิก */}
+                      {(mode === "issue" || mode === "all") && l.status === "pending" && canManageWarehouse && (
                         <Button size="sm" variant="secondary" onClick={() => handleApprove(l)}>อนุมัติ</Button>
                       )}
-                      {l.status === "pending_issue" && canManageWarehouse && (
+                      {(mode === "issue" || mode === "all") && l.status === "pending_issue" && canManageWarehouse && (
                         <Button size="sm" onClick={() => handleIssue(l)}><Send className="w-3 h-3 mr-1" />จ่าย</Button>
                       )}
-                      {l.status === "issued" && (
+                      {(mode === "issue" || mode === "all") && (l.status === "pending" || l.status === "pending_issue") && canManageWarehouse && (
+                        <Button size="sm" variant="ghost" onClick={() => handleCancel(l)}><XCircle className="w-3 h-3" /></Button>
+                      )}
+
+                      {/* ขอเบิก (ช่าง): ยกเลิกคำขอของตัวเองได้เท่านั้น */}
+                      {mode === "request" && (l.status === "pending" || l.status === "pending_issue") && (
+                        <Button size="sm" variant="ghost" onClick={() => handleCancel(l)}><XCircle className="w-3 h-3 mr-1" />ยกเลิก</Button>
+                      )}
+
+                      {/* ขอคืน (ช่าง): แจ้งคืน — ยังไม่คืนสต็อก */}
+                      {mode === "return" && l.status === "issued" && (
                         <Button size="sm" variant="outline" onClick={() => { setReturnOpen(l); setReturnForm({ returned_quantity: l.quantity - (l.returned_quantity || 0), condition: "normal", notes: "" }); }}>
-                          <RotateCcw className="w-3 h-3 mr-1" />คืน
+                          <RotateCcw className="w-3 h-3 mr-1" />แจ้งคืน
                         </Button>
                       )}
-                      {(l.status === "pending" || l.status === "pending_issue") && (
-                        <Button size="sm" variant="ghost" onClick={() => handleCancel(l)}><XCircle className="w-3 h-3" /></Button>
+                      {mode === "return" && l.status === "pending_return" && (
+                        <Badge variant="secondary" className="text-[10px]">แจ้งคืนแล้ว — รอคลัง</Badge>
+                      )}
+
+                      {/* คลังรับคืน: รับคืน + ปฏิเสธ */}
+                      {mode === "receive-return" && l.status === "pending_return" && canManageWarehouse && (
+                        <>
+                          <Button size="sm" onClick={() => { setReturnOpen(l); setReturnForm({ returned_quantity: l.returned_quantity || l.quantity, condition: "normal", notes: "" }); }}>
+                            <CheckCircle2 className="w-3 h-3 mr-1" />รับคืน
+                          </Button>
+                          <Button size="sm" variant="ghost" onClick={() => handleRejectReturn(l)}>
+                            <XCircle className="w-3 h-3 mr-1" />ปฏิเสธ
+                          </Button>
+                        </>
                       )}
                     </div>
                   )}
@@ -402,8 +466,10 @@ export default function ToolLoans({ mode = "all" }: ToolLoansProps) {
                   value={form.quantity} onChange={e => setForm(f => ({ ...f, quantity: Number(e.target.value) || 1 }))} />
               </div>
               <div>
-                <Label>กำหนดคืน</Label>
-                <Input type="date" value={form.due_date} disabled={!selectedTool?.return_required}
+                <Label>กำหนดคืน {selectedTool?.return_required && <span className="text-destructive">*</span>}</Label>
+                <Input type="date" value={form.due_date} disabled={selectedTool ? !selectedTool.return_required : false}
+                  required={selectedTool?.return_required}
+                  min={new Date().toISOString().slice(0, 10)}
                   onChange={e => setForm(f => ({ ...f, due_date: e.target.value }))} />
               </div>
             </div>
@@ -441,12 +507,18 @@ export default function ToolLoans({ mode = "all" }: ToolLoansProps) {
         </DialogContent>
       </Dialog>
 
-      {/* Return Dialog */}
+      {/* Return Dialog — dual role */}
       <Dialog open={!!returnOpen} onOpenChange={o => !o && setReturnOpen(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>รับคืนเครื่องมือ</DialogTitle>
-            <DialogDescription>{returnOpen?.tool?.code} — {returnOpen?.tool?.name}</DialogDescription>
+            <DialogTitle>{mode === "receive-return" ? "คลังรับคืนเครื่องมือ" : "แจ้งคืนเครื่องมือ"}</DialogTitle>
+            <DialogDescription>
+              {returnOpen?.tool?.code} — {returnOpen?.tool?.name}
+              {mode === "return" && <div className="text-xs mt-1">ระบบจะส่งเข้าคิว "รอคลังรับคืน" — คลังจะตรวจสอบและรับเข้าสต็อกอีกครั้ง</div>}
+              {mode === "receive-return" && returnOpen?.return_notes && (
+                <div className="text-xs mt-1 p-2 bg-muted rounded">หมายเหตุจากผู้เบิก: {returnOpen.return_notes}</div>
+              )}
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
             <div>
@@ -456,7 +528,7 @@ export default function ToolLoans({ mode = "all" }: ToolLoansProps) {
                 onChange={e => setReturnForm(f => ({ ...f, returned_quantity: Number(e.target.value) || 0 }))} />
             </div>
             <div>
-              <Label>สภาพหลังคืน</Label>
+              <Label>สภาพ{mode === "receive-return" ? "ที่คลังตรวจ" : "หลังใช้งาน"}</Label>
               <Select value={returnForm.condition} onValueChange={v => setReturnForm(f => ({ ...f, condition: v }))}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
@@ -468,13 +540,15 @@ export default function ToolLoans({ mode = "all" }: ToolLoansProps) {
               </Select>
             </div>
             <div>
-              <Label>หมายเหตุการคืน</Label>
+              <Label>หมายเหตุ</Label>
               <Textarea rows={2} value={returnForm.notes} onChange={e => setReturnForm(f => ({ ...f, notes: e.target.value }))} />
             </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setReturnOpen(null)}>ยกเลิก</Button>
-            <Button onClick={handleReturn}>ยืนยันรับคืน</Button>
+            <Button onClick={mode === "receive-return" ? handleReceiveReturn : handleRequestReturn}>
+              {mode === "receive-return" ? "ยืนยันรับคืน" : "ส่งแจ้งคืน"}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

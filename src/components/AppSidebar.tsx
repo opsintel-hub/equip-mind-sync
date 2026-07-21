@@ -237,7 +237,8 @@ const menuGroups: MenuGroup[] = [
           { title: "ขอเบิกเครื่องมือ", url: "/tool-loans/request", icon: Plus },
           { title: "คลังจ่ายเครื่องมือ", url: "/tool-loans/issue", icon: Send },
           { title: "ขอคืนเครื่องมือ", url: "/tool-loans/return", icon: RotateCcw },
-          { title: "รายงานผู้ถือครอง", url: "/tool-loans/report", icon: FileSearch },
+          { title: "คลังรับคืนเครื่องมือ", url: "/tool-loans/receive-return", icon: CheckCircle2 },
+          { title: "รายงานเครื่องมือ", url: "/tool-loans/report", icon: FileSearch },
         ]
       },
       { 
