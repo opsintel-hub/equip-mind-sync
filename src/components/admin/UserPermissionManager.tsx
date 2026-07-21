@@ -1313,14 +1313,15 @@ export function UserPermissionManager() {
               ลบผู้ใช้ออกจากรายการ
             </DialogTitle>
             <DialogDescription>
-              ต้องการลบ <strong>{selectedUser?.full_name}</strong> ({selectedUser?.email}) ออกจากหน้าจอจัดการผู้ใช้ใช่หรือไม่?
+              ต้องการลบ <strong>{selectedUser?.full_name}</strong> ({selectedUser?.email}) ออกจากระบบใช่หรือไม่?
             </DialogDescription>
           </DialogHeader>
-          <div className="flex gap-2 p-3 rounded-md bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-xs text-amber-800 dark:text-amber-200">
-            <Info className="h-4 w-4 flex-shrink-0 mt-0.5" />
-            <span>
-              ผู้ใช้จะถูกซ่อนออกจากหน้า UI เท่านั้น <strong>ประวัติการทำรายการทั้งหมดยังคงบันทึกอยู่ในระบบ</strong> สามารถกู้คืนได้ในภายหลัง
-            </span>
+          <div className="flex gap-2 p-3 rounded-md bg-destructive/10 border border-destructive/30 text-xs text-destructive-foreground/90">
+            <Info className="h-4 w-4 flex-shrink-0 mt-0.5 text-destructive" />
+            <div className="space-y-1">
+              <div><strong className="text-destructive">ผู้ใช้จะเข้าระบบไม่ได้อีก</strong> (ถูกบล็อกการเข้าสู่ระบบ + รีเซ็ตรหัสผ่าน + ยกเลิกสิทธิ์ทั้งหมด)</div>
+              <div className="text-muted-foreground"><strong>ประวัติการทำรายการทั้งหมดยังคงอยู่ในระบบ</strong> — ยังตรวจสอบย้อนหลังได้ว่าผู้ใช้เคยรับเข้า/เบิก/PM อะไรบ้าง</div>
+            </div>
           </div>
           <div className="flex justify-end gap-2 pt-2">
             <Button variant="outline" onClick={() => setDeleteDialogOpen(false)} disabled={deleteBusy}>
