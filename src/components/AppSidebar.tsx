@@ -229,7 +229,17 @@ const menuGroups: MenuGroup[] = [
     label: "เครื่องมือ",
     items: [
       { title: "ข้อมูลเครื่องมือ", url: "/tool-management", icon: Wrench, functionName: "equipment_pm" },
-      { title: "เบิก-คืนเครื่องมือ", url: "/tool-loans", icon: ArrowLeftRight, functionName: "equipment_pm" },
+      {
+        title: "เบิก-คืนเครื่องมือ",
+        icon: ArrowLeftRight,
+        functionName: "equipment_pm",
+        subItems: [
+          { title: "ขอเบิกเครื่องมือ", url: "/tool-loans/request", icon: Plus },
+          { title: "คลังจ่ายเครื่องมือ", url: "/tool-loans/issue", icon: Send },
+          { title: "ขอคืนเครื่องมือ", url: "/tool-loans/return", icon: RotateCcw },
+          { title: "รายงานผู้ถือครอง", url: "/tool-loans/report", icon: FileSearch },
+        ]
+      },
       { 
         title: "PM เครื่องมือ", 
         icon: Calendar,
