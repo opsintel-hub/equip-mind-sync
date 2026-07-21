@@ -507,12 +507,18 @@ export default function ToolLoans({ mode = "all" }: ToolLoansProps) {
         </DialogContent>
       </Dialog>
 
-      {/* Return Dialog */}
+      {/* Return Dialog — dual role */}
       <Dialog open={!!returnOpen} onOpenChange={o => !o && setReturnOpen(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>รับคืนเครื่องมือ</DialogTitle>
-            <DialogDescription>{returnOpen?.tool?.code} — {returnOpen?.tool?.name}</DialogDescription>
+            <DialogTitle>{mode === "receive-return" ? "คลังรับคืนเครื่องมือ" : "แจ้งคืนเครื่องมือ"}</DialogTitle>
+            <DialogDescription>
+              {returnOpen?.tool?.code} — {returnOpen?.tool?.name}
+              {mode === "return" && <div className="text-xs mt-1">ระบบจะส่งเข้าคิว "รอคลังรับคืน" — คลังจะตรวจสอบและรับเข้าสต็อกอีกครั้ง</div>}
+              {mode === "receive-return" && returnOpen?.return_notes && (
+                <div className="text-xs mt-1 p-2 bg-muted rounded">หมายเหตุจากผู้เบิก: {returnOpen.return_notes}</div>
+              )}
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
             <div>
@@ -522,7 +528,7 @@ export default function ToolLoans({ mode = "all" }: ToolLoansProps) {
                 onChange={e => setReturnForm(f => ({ ...f, returned_quantity: Number(e.target.value) || 0 }))} />
             </div>
             <div>
-              <Label>สภาพหลังคืน</Label>
+              <Label>สภาพ{mode === "receive-return" ? "ที่คลังตรวจ" : "หลังใช้งาน"}</Label>
               <Select value={returnForm.condition} onValueChange={v => setReturnForm(f => ({ ...f, condition: v }))}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
@@ -534,13 +540,15 @@ export default function ToolLoans({ mode = "all" }: ToolLoansProps) {
               </Select>
             </div>
             <div>
-              <Label>หมายเหตุการคืน</Label>
+              <Label>หมายเหตุ</Label>
               <Textarea rows={2} value={returnForm.notes} onChange={e => setReturnForm(f => ({ ...f, notes: e.target.value }))} />
             </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setReturnOpen(null)}>ยกเลิก</Button>
-            <Button onClick={handleReturn}>ยืนยันรับคืน</Button>
+            <Button onClick={mode === "receive-return" ? handleReceiveReturn : handleRequestReturn}>
+              {mode === "receive-return" ? "ยืนยันรับคืน" : "ส่งแจ้งคืน"}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
