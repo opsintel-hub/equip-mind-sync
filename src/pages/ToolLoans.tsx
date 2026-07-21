@@ -146,7 +146,7 @@ export default function ToolLoans({ mode = "all" }: ToolLoansProps) {
       loan_date: new Date().toISOString().slice(0, 10),
       due_date: form.due_date || (returnReq ? new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10)),
       status,
-      requester_name: form.requester_name.trim(),
+      requester_name: requester,
       purpose: purposeFinal,
       notes: form.notes || null,
       return_required: returnReq,
