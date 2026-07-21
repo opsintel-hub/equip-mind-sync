@@ -24,7 +24,10 @@ import {
   Pencil,
   Trash2,
   AlertCircle,
+  HelpCircle,
 } from "lucide-react";
+import { RoleDescriptions } from "@/components/admin/RoleDescriptions";
+import { FunctionDescriptions } from "@/components/admin/FunctionDescriptions";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { SYSTEM_FUNCTIONS } from "@/hooks/useFunctionPermissions";
