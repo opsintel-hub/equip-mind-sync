@@ -186,9 +186,29 @@ export function PermissionWizard({ open, onOpenChange, user, onSaved }: Permissi
   };
 
   const togglePreviewRole = (r: UserRole) => {
-    setPreviewRoles((prev) =>
-      prev.includes(r) ? prev.filter((x) => x !== r) : [...prev, r]
-    );
+    const isRemoving = previewRoles.includes(r);
+    const newRoles = isRemoving ? previewRoles.filter((x) => x !== r) : [...previewRoles, r];
+
+    // All functions declared by any template (auto-managed set)
+    const allTemplateFns = new Set<string>();
+    templates.forEach((t) => t.suggested_functions.forEach((f) => allTemplateFns.add(f)));
+
+    // Functions that should be granted based on new roles set
+    const grantedByRoles = new Set<string>();
+    templates.forEach((t) => {
+      if (t.suggested_roles.some((sr) => newRoles.includes(sr))) {
+        t.suggested_functions.forEach((f) => grantedByRoles.add(f));
+      }
+    });
+
+    // Preserve any manually-added function that is NOT in the auto-managed set
+    const nextFns = new Set<string>(grantedByRoles);
+    previewFunctions.forEach((f) => {
+      if (!allTemplateFns.has(f)) nextFns.add(f);
+    });
+
+    setPreviewRoles(newRoles);
+    setPreviewFunctions(Array.from(nextFns));
   };
 
   const goNext = () => {
