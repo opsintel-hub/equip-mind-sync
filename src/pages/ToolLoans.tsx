@@ -16,6 +16,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useIsSuperAdmin } from "@/hooks/useIsSuperAdmin";
 import { useFunctionPermissions } from "@/hooks/useFunctionPermissions";
 import { useDeptScope } from "@/hooks/useDeptScope";
+import { useCurrentUserProfile } from "@/hooks/useCurrentUserProfile";
 import { format, differenceInDays } from "date-fns";
 import { th } from "date-fns/locale";
 
@@ -49,6 +50,7 @@ interface Loan {
   notes: string | null;
   return_notes: string | null;
   created_at: string;
+  created_by: string | null;
   approved_at: string | null;
   issued_at: string | null;
   tool?: ToolOption | null;
@@ -63,11 +65,18 @@ const STATUS_META: Record<string, { label: string; variant: "default" | "seconda
   cancelled:        { label: "ยกเลิก", variant: "destructive", icon: XCircle },
 };
 
-export default function ToolLoans() {
+export type ToolLoansMode = "request" | "issue" | "return" | "all";
+
+interface ToolLoansProps {
+  mode?: ToolLoansMode;
+}
+
+export default function ToolLoans({ mode = "all" }: ToolLoansProps) {
   const { user } = useAuth();
   const { isSuperAdmin } = useIsSuperAdmin();
   const { isAdmin } = useFunctionPermissions();
   const { viewableDepts } = useDeptScope();
+  const { actorName } = useCurrentUserProfile();
 
   const [loans, setLoans] = useState<Loan[]>([]);
   const [tools, setTools] = useState<ToolOption[]>([]);
@@ -118,8 +127,9 @@ export default function ToolLoans() {
   const selectedTool = tools.find(t => t.id === form.tool_id);
 
   const handleCreate = async () => {
+    const requester = (form.requester_name || actorName).trim();
     if (!form.tool_id) return toast.error("กรุณาเลือกเครื่องมือ");
-    if (!form.requester_name.trim()) return toast.error("กรุณากรอกชื่อผู้เบิก");
+    if (!requester) return toast.error("ไม่พบชื่อผู้เข้าสู่ระบบ");
     if (!selectedTool) return;
     if (form.quantity < 1 || form.quantity > selectedTool.current_quantity) {
       return toast.error(`จำนวนต้องอยู่ระหว่าง 1 ถึง ${selectedTool.current_quantity}`);
@@ -136,7 +146,7 @@ export default function ToolLoans() {
       loan_date: new Date().toISOString().slice(0, 10),
       due_date: form.due_date || (returnReq ? new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10)),
       status,
-      requester_name: form.requester_name.trim(),
+      requester_name: requester,
       purpose: purposeFinal,
       notes: form.notes || null,
       return_required: returnReq,
@@ -213,9 +223,25 @@ export default function ToolLoans() {
       .some(v => v && v.toLowerCase().includes(q));
   };
 
+  // Mode-based filter: request page shows my own requests; issue page shows warehouse queue; return page shows items currently issued
+  const modeFilter = (l: Loan) => {
+    if (mode === "request") return l.created_by === user?.id || l.requester_name === actorName;
+    if (mode === "issue")   return ["pending", "pending_issue"].includes(l.status);
+    if (mode === "return")  return l.status === "issued" && l.return_required;
+    return true;
+  };
+
   const activeStates = ["pending", "pending_issue", "issued", "holding_permanent"];
-  const activeLoans = loans.filter(l => activeStates.includes(l.status)).filter(filter);
-  const historyLoans = loans.filter(l => !activeStates.includes(l.status)).filter(filter);
+  const activeLoans  = loans.filter(l => activeStates.includes(l.status)).filter(modeFilter).filter(filter);
+  const historyLoans = loans.filter(l => !activeStates.includes(l.status)).filter(modeFilter).filter(filter);
+
+  const headerMeta = {
+    request: { title: "ขอเบิกเครื่องมือ",   desc: "สร้างคำขอเบิกเครื่องมือของฉัน" },
+    issue:   { title: "คลังจ่ายเครื่องมือ",  desc: "คิวรออนุมัติ / รอจ่าย ให้เจ้าหน้าที่คลังดำเนินการ" },
+    return:  { title: "ขอคืนเครื่องมือ",     desc: "รายการเครื่องมือที่ต้องคืน" },
+    all:     { title: "เบิก-คืนเครื่องมือ",  desc: "ขอเบิก / จ่าย / คืน เครื่องมือ พร้อมติดตามผู้ถือครองและการรับประกัน" },
+  }[mode];
+
 
   const warrantyBadge = (t?: ToolOption | null) => {
     if (!t || !t.has_warranty || !t.warranty_expiry_date) return null;
@@ -305,12 +331,17 @@ export default function ToolLoans() {
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2">
             <ArrowLeftRight className="w-6 h-6 text-primary" />
-            เบิก-คืนเครื่องมือ
+            {headerMeta.title}
           </h1>
-          <p className="text-sm text-muted-foreground">ขอเบิก / จ่าย / คืน เครื่องมือ พร้อมติดตามผู้ถือครองและการรับประกัน</p>
+          <p className="text-sm text-muted-foreground">{headerMeta.desc}</p>
         </div>
-        <Button onClick={() => setCreateOpen(true)}><Plus className="w-4 h-4 mr-1" />ขอเบิกเครื่องมือ</Button>
+        {(mode === "request" || mode === "all") && (
+          <Button onClick={() => { setForm(f => ({ ...f, requester_name: actorName })); setCreateOpen(true); }}>
+            <Plus className="w-4 h-4 mr-1" />ขอเบิกเครื่องมือ
+          </Button>
+        )}
       </div>
+
 
       <Card>
         <CardHeader className="pb-3">
@@ -378,7 +409,8 @@ export default function ToolLoans() {
             </div>
             <div>
               <Label>ผู้เบิก *</Label>
-              <Input value={form.requester_name} onChange={e => setForm(f => ({ ...f, requester_name: e.target.value }))} placeholder="ชื่อผู้ที่จะรับเครื่องมือไปใช้" />
+              <Input value={form.requester_name || actorName} readOnly disabled className="bg-muted" />
+              <p className="text-[11px] text-muted-foreground mt-1">ระบบใช้ชื่อผู้เข้าสู่ระบบเพื่อป้องกันการเบิกแทนผู้อื่น</p>
             </div>
             <div>
               <Label>วัตถุประสงค์</Label>
