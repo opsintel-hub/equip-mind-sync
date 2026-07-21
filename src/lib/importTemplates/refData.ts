@@ -12,6 +12,8 @@ export interface RefLookups {
   billboards: Array<{ id: string; old_code: string | null; location_name: string | null; equipment_id: string }>;
   mp_models: Array<{ id: string; name: string }>;
   cms_types: Array<{ id: string; name: string }>;
+  tool_categories: Array<{ id: string; name: string }>;
+  tool_subcategories: Array<{ id: string; name: string; tool_category_id: string | null }>;
 }
 
 export async function fetchAllRefs(): Promise<RefLookups> {
