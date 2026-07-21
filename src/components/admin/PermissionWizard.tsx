@@ -285,7 +285,7 @@ export function PermissionWizard({ open, onOpenChange, user, onSaved }: Permissi
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Sparkles className="h-5 w-5 text-primary" />
-            ตั้งสิทธิ์อัตโนมัติด้วย Wizard
+            แก้ไขผู้ใช้ + ตั้งสิทธิ์ (Wizard)
           </DialogTitle>
           <DialogDescription>
             {user ? <>สำหรับ <strong>{user.full_name}</strong> {user.email && <span className="text-muted-foreground">({user.email})</span>}</> : null}
