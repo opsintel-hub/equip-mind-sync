@@ -312,9 +312,10 @@ export default function ToolLoans({ mode = "all" }: ToolLoansProps) {
             <TableRow><TableCell colSpan={9} className="text-center text-muted-foreground py-8">ไม่มีข้อมูล</TableCell></TableRow>
           ) : rows.map(l => {
             const meta = STATUS_META[l.status] || { label: l.status, variant: "outline" as const };
-            const overdue = l.status === "issued" && l.due_date && new Date(l.due_date) < new Date();
+            const overdue = isOverdue(l);
+            const overdueDays = overdue && l.due_date ? Math.abs(differenceInDays(new Date(l.due_date), new Date())) : 0;
             return (
-              <TableRow key={l.id}>
+              <TableRow key={l.id} className={overdue ? "bg-destructive/5" : ""}>
                 <TableCell className="text-xs">{format(new Date(l.created_at), "dd/MM/yy", { locale: th })}</TableCell>
                 <TableCell>
                   <div className="font-medium text-sm">{l.tool?.code}</div>
@@ -329,7 +330,7 @@ export default function ToolLoans({ mode = "all" }: ToolLoansProps) {
                 <TableCell className="text-sm">{l.holder_name || "-"}</TableCell>
                 <TableCell className="text-xs">
                   {l.return_required ? (l.due_date ? format(new Date(l.due_date), "dd/MM/yy") : "-") : <span className="text-muted-foreground">ไม่ต้องคืน</span>}
-                  {overdue && <Badge variant="destructive" className="ml-1 text-[10px]"><AlertTriangle className="w-2 h-2 mr-0.5" />เกิน</Badge>}
+                  {overdue && <Badge variant="destructive" className="ml-1 text-[10px]"><AlertTriangle className="w-2 h-2 mr-0.5" />เกิน {overdueDays}ว</Badge>}
                 </TableCell>
                 <TableCell>
                   <Badge variant={meta.variant} className="gap-1">
@@ -340,19 +341,42 @@ export default function ToolLoans({ mode = "all" }: ToolLoansProps) {
                 <TableCell className="text-right">
                   {!isHistory && (
                     <div className="flex justify-end gap-1">
-                      {l.status === "pending" && canManageWarehouse && (
+                      {/* คลังจ่าย: อนุมัติ + จ่าย + ยกเลิก */}
+                      {(mode === "issue" || mode === "all") && l.status === "pending" && canManageWarehouse && (
                         <Button size="sm" variant="secondary" onClick={() => handleApprove(l)}>อนุมัติ</Button>
                       )}
-                      {l.status === "pending_issue" && canManageWarehouse && (
+                      {(mode === "issue" || mode === "all") && l.status === "pending_issue" && canManageWarehouse && (
                         <Button size="sm" onClick={() => handleIssue(l)}><Send className="w-3 h-3 mr-1" />จ่าย</Button>
                       )}
-                      {l.status === "issued" && (
+                      {(mode === "issue" || mode === "all") && (l.status === "pending" || l.status === "pending_issue") && canManageWarehouse && (
+                        <Button size="sm" variant="ghost" onClick={() => handleCancel(l)}><XCircle className="w-3 h-3" /></Button>
+                      )}
+
+                      {/* ขอเบิก (ช่าง): ยกเลิกคำขอของตัวเองได้เท่านั้น */}
+                      {mode === "request" && (l.status === "pending" || l.status === "pending_issue") && (
+                        <Button size="sm" variant="ghost" onClick={() => handleCancel(l)}><XCircle className="w-3 h-3 mr-1" />ยกเลิก</Button>
+                      )}
+
+                      {/* ขอคืน (ช่าง): แจ้งคืน — ยังไม่คืนสต็อก */}
+                      {mode === "return" && l.status === "issued" && (
                         <Button size="sm" variant="outline" onClick={() => { setReturnOpen(l); setReturnForm({ returned_quantity: l.quantity - (l.returned_quantity || 0), condition: "normal", notes: "" }); }}>
-                          <RotateCcw className="w-3 h-3 mr-1" />คืน
+                          <RotateCcw className="w-3 h-3 mr-1" />แจ้งคืน
                         </Button>
                       )}
-                      {(l.status === "pending" || l.status === "pending_issue") && (
-                        <Button size="sm" variant="ghost" onClick={() => handleCancel(l)}><XCircle className="w-3 h-3" /></Button>
+                      {mode === "return" && l.status === "pending_return" && (
+                        <Badge variant="secondary" className="text-[10px]">แจ้งคืนแล้ว — รอคลัง</Badge>
+                      )}
+
+                      {/* คลังรับคืน: รับคืน + ปฏิเสธ */}
+                      {mode === "receive-return" && l.status === "pending_return" && canManageWarehouse && (
+                        <>
+                          <Button size="sm" onClick={() => { setReturnOpen(l); setReturnForm({ returned_quantity: l.returned_quantity || l.quantity, condition: "normal", notes: "" }); }}>
+                            <CheckCircle2 className="w-3 h-3 mr-1" />รับคืน
+                          </Button>
+                          <Button size="sm" variant="ghost" onClick={() => handleRejectReturn(l)}>
+                            <XCircle className="w-3 h-3 mr-1" />ปฏิเสธ
+                          </Button>
+                        </>
                       )}
                     </div>
                   )}
