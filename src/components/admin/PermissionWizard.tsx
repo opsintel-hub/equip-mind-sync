@@ -24,7 +24,10 @@ import {
   Pencil,
   Trash2,
   AlertCircle,
+  HelpCircle,
 } from "lucide-react";
+import { RoleDescriptions } from "@/components/admin/RoleDescriptions";
+import { FunctionDescriptions } from "@/components/admin/FunctionDescriptions";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { SYSTEM_FUNCTIONS } from "@/hooks/useFunctionPermissions";
@@ -79,6 +82,7 @@ export function PermissionWizard({ open, onOpenChange, user, onSaved }: Permissi
   const [departments, setDepartments] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [helpOpen, setHelpOpen] = useState(false);
 
   // Profile fields (unified edit — no more separate profile dialog)
   const [pfFullName, setPfFullName] = useState("");
@@ -182,9 +186,29 @@ export function PermissionWizard({ open, onOpenChange, user, onSaved }: Permissi
   };
 
   const togglePreviewRole = (r: UserRole) => {
-    setPreviewRoles((prev) =>
-      prev.includes(r) ? prev.filter((x) => x !== r) : [...prev, r]
-    );
+    const isRemoving = previewRoles.includes(r);
+    const newRoles = isRemoving ? previewRoles.filter((x) => x !== r) : [...previewRoles, r];
+
+    // All functions declared by any template (auto-managed set)
+    const allTemplateFns = new Set<string>();
+    templates.forEach((t) => t.suggested_functions.forEach((f) => allTemplateFns.add(f)));
+
+    // Functions that should be granted based on new roles set
+    const grantedByRoles = new Set<string>();
+    templates.forEach((t) => {
+      if (t.suggested_roles.some((sr) => newRoles.includes(sr))) {
+        t.suggested_functions.forEach((f) => grantedByRoles.add(f));
+      }
+    });
+
+    // Preserve any manually-added function that is NOT in the auto-managed set
+    const nextFns = new Set<string>(grantedByRoles);
+    previewFunctions.forEach((f) => {
+      if (!allTemplateFns.has(f)) nextFns.add(f);
+    });
+
+    setPreviewRoles(newRoles);
+    setPreviewFunctions(Array.from(nextFns));
   };
 
   const goNext = () => {
@@ -281,16 +305,34 @@ export function PermissionWizard({ open, onOpenChange, user, onSaved }: Permissi
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-hidden flex flex-col">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Sparkles className="h-5 w-5 text-primary" />
-            แก้ไขผู้ใช้ + ตั้งสิทธิ์ (Wizard)
-          </DialogTitle>
-          <DialogDescription>
-            {user ? <>สำหรับ <strong>{user.full_name}</strong> {user.email && <span className="text-muted-foreground">({user.email})</span>}</> : null}
-          </DialogDescription>
-        </DialogHeader>
+      <DialogContent className="max-w-3xl max-h-[90vh] overflow-hidden flex flex-col p-0">
+        <div className="px-6 pt-6 pb-2 flex-shrink-0">
+          <DialogHeader>
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <DialogTitle className="flex items-center gap-2">
+                  <Sparkles className="h-5 w-5 text-primary" />
+                  แก้ไขผู้ใช้ + ตั้งสิทธิ์ (Wizard)
+                </DialogTitle>
+                <DialogDescription>
+                  {user ? <>สำหรับ <strong>{user.full_name}</strong> {user.email && <span className="text-muted-foreground">({user.email})</span>}</> : null}
+                </DialogDescription>
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setHelpOpen(true)}
+                className="flex-shrink-0 gap-1"
+              >
+                <HelpCircle className="h-4 w-4" />
+                ดูคำอธิบาย
+              </Button>
+            </div>
+          </DialogHeader>
+        </div>
+
+        <div className="px-6 flex-1 min-h-0 overflow-y-auto space-y-3">
 
         {/* Profile section — unified with Wizard, no separate profile dialog */}
         <div className="rounded-lg border bg-muted/30 p-3 space-y-3">
@@ -374,7 +416,7 @@ export function PermissionWizard({ open, onOpenChange, user, onSaved }: Permissi
 
         <Separator />
 
-        <ScrollArea className="flex-1 -mx-6 px-6">
+        <div className="py-2">
           {loading && <div className="text-center py-8 text-muted-foreground">กำลังโหลด...</div>}
 
           {/* Step 1: Templates */}
@@ -580,11 +622,10 @@ export function PermissionWizard({ open, onOpenChange, user, onSaved }: Permissi
               </div>
             </div>
           )}
-        </ScrollArea>
+        </div>
+        </div>
 
-        <Separator />
-
-        <div className="flex items-center justify-between gap-2 pt-2">
+        <div className="px-6 pb-6 pt-3 border-t flex-shrink-0 flex items-center justify-between gap-2 bg-background">
           <Button variant="outline" onClick={goBack} disabled={step === 1 || saving}>
             <ArrowLeft className="h-4 w-4 mr-1" />
             ย้อนกลับ
@@ -601,6 +642,25 @@ export function PermissionWizard({ open, onOpenChange, user, onSaved }: Permissi
             </Button>
           )}
         </div>
+
+        {/* Nested Help dialog — Role & Function descriptions */}
+        <Dialog open={helpOpen} onOpenChange={setHelpOpen}>
+          <DialogContent className="max-w-5xl max-h-[85vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <HelpCircle className="h-5 w-5 text-primary" />
+                คู่มือและแนวทางสิทธิ์
+              </DialogTitle>
+              <DialogDescription>
+                อ้างอิงบทบาท (Roles) และฟังก์ชันของระบบ — ปิดหน้านี้เพื่อกลับไปตั้งค่า Wizard
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-6 lg:grid-cols-2">
+              <RoleDescriptions />
+              <FunctionDescriptions />
+            </div>
+          </DialogContent>
+        </Dialog>
       </DialogContent>
     </Dialog>
   );

@@ -2,10 +2,8 @@ import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { Shield, Users, Info, HelpCircle, Settings2, Grid3x3, LayoutList } from "lucide-react";
+import { Shield, Users, Settings2, Grid3x3, LayoutList } from "lucide-react";
 import { useDepartmentPermissions } from "@/hooks/useDepartmentPermissions";
-import { RoleDescriptions } from "@/components/admin/RoleDescriptions";
-import { FunctionDescriptions } from "@/components/admin/FunctionDescriptions";
 import { UserPermissionManager } from "@/components/admin/UserPermissionManager";
 import { PermissionMatrix } from "@/components/admin/PermissionMatrix";
 import { OCRConfigManager } from "@/components/admin/OCRConfigManager";
@@ -48,14 +46,10 @@ const Admin = () => {
       </div>
 
       <Tabs defaultValue="users" className="space-y-4">
-        <TabsList className={`grid w-full lg:w-auto lg:inline-grid ${isSuperAdmin ? 'grid-cols-3 lg:grid-cols-3' : 'grid-cols-2 lg:grid-cols-2'}`}>
+        <TabsList className={`grid w-full lg:w-auto lg:inline-grid ${isSuperAdmin ? 'grid-cols-2 lg:grid-cols-2' : 'grid-cols-1 lg:grid-cols-1'}`}>
           <TabsTrigger value="users" className="flex items-center gap-2">
             <Users className="h-4 w-4" />
             จัดการผู้ใช้
-          </TabsTrigger>
-          <TabsTrigger value="help" className="flex items-center gap-2">
-            <HelpCircle className="h-4 w-4" />
-            คู่มือและแนวทางสิทธิ์
           </TabsTrigger>
           {isSuperAdmin && (
             <TabsTrigger value="ocr-config" className="flex items-center gap-2">
@@ -69,7 +63,7 @@ const Admin = () => {
           <div className="flex items-center justify-between flex-wrap gap-3">
             <div className="text-sm text-muted-foreground">
               {viewMode === "card"
-                ? "มุมมองรายผู้ใช้ — แก้ Role/ฝ่าย/Preset ที่ปุ่มดินสอ, ตั้งค่าละเอียดที่ Wizard, รีเซ็ตรหัสผ่าน"
+                ? "มุมมองรายผู้ใช้ — แก้โปรไฟล์/บทบาท/สิทธิ์ที่ปุ่ม ✨ Wizard (มีปุ่ม 'ดูคำอธิบาย' บทบาท/ฟังก์ชันในหน้าต่างเดียวกัน)"
                 : "มุมมอง Matrix — ปรับสิทธิ์ Function หลายคนพร้อมกันแบบ Bulk พร้อม Apply Preset"}
             </div>
             <ToggleGroup
@@ -89,91 +83,6 @@ const Admin = () => {
             </ToggleGroup>
           </div>
           {viewMode === "card" ? <UserPermissionManager /> : <PermissionMatrix />}
-        </TabsContent>
-
-
-
-
-        <TabsContent value="help" className="space-y-6">
-          {/* 3-Step workflow */}
-          <Card className="border-primary/30">
-            <CardContent className="pt-6">
-              <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                <Shield className="h-5 w-5 text-primary" />
-                ขั้นตอนกำหนดสิทธิ์ (3 ขั้น)
-              </h3>
-              <div className="grid gap-3 md:grid-cols-3">
-                <div className="p-4 rounded-lg bg-muted/40 border">
-                  <div className="text-xs text-muted-foreground mb-1">ขั้นที่ 1 — ตั้งครั้งเดียว</div>
-                  <div className="font-semibold mb-1">ตั้งมาตรฐานสิทธิ์</div>
-                  <p className="text-xs text-muted-foreground">
-                    ทบทวน Role และแนวทางฟังก์ชันด้านล่าง ปรับ Preset ให้ตรงกับกระบวนการทำงานของบริษัท
-                  </p>
-                </div>
-                <div className="p-4 rounded-lg bg-muted/40 border">
-                  <div className="text-xs text-muted-foreground mb-1">ขั้นที่ 2 — ทุกครั้งที่มีสมัครใหม่</div>
-                  <div className="font-semibold mb-1">ปรับ Role/ฝ่ายราย Person</div>
-                  <p className="text-xs text-muted-foreground">
-                    Tab "จัดการผู้ใช้" → มุมมอง <strong>รายการผู้ใช้</strong> → กด ✏️ เพื่อแก้ชื่อ ฝ่าย และเลือก Preset (หลายอันได้)
-                  </p>
-                </div>
-                <div className="p-4 rounded-lg bg-muted/40 border">
-                  <div className="text-xs text-muted-foreground mb-1">ขั้นที่ 3 — เมื่อต้องการปรับละเอียด</div>
-                  <div className="font-semibold mb-1">ปรับ Matrix / Bulk</div>
-                  <p className="text-xs text-muted-foreground">
-                    สลับไปมุมมอง <strong>Matrix สิทธิ์</strong> เพื่อติ๊กสิทธิ์รายเมนู หรือ Apply Preset หลายคนพร้อมกัน
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* System Overview */}
-          <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950 dark:to-indigo-950 border-blue-200 dark:border-blue-800">
-            <CardContent className="pt-6">
-              <div className="flex items-start gap-4">
-                <div className="p-3 bg-blue-100 dark:bg-blue-900 rounded-lg">
-                  <Info className="h-6 w-6 text-blue-600" />
-                </div>
-                <div className="space-y-3">
-                  <h3 className="text-lg font-semibold text-blue-900 dark:text-blue-100">
-                    ระบบสิทธิ์ 3 ชั้น
-                  </h3>
-                  <div className="text-sm text-blue-800 dark:text-blue-200 space-y-2">
-                    <div className="flex items-start gap-3">
-                      <span className="font-bold text-blue-600 min-w-[24px]">1.</span>
-                      <div>
-                        <strong>บทบาท (Role)</strong> - กำหนดความสามารถพื้นฐาน เช่น Admin มีสิทธิ์ทุกอย่าง, เจ้าหน้าที่คลังรับเข้า-จ่ายสินค้าได้
-                      </div>
-                    </div>
-                    <div className="flex items-start gap-3">
-                      <span className="font-bold text-blue-600 min-w-[24px]">2.</span>
-                      <div>
-                        <strong>สิทธิ์ตามฟังก์ชัน</strong> - กำหนดว่าเข้าถึงเมนูหลักไหนได้บ้าง เช่น รับเข้าสินค้า, จ่ายสินค้า, รายงาน
-                      </div>
-                    </div>
-                    <div className="flex items-start gap-3">
-                      <span className="font-bold text-blue-600 min-w-[24px]">3.</span>
-                      <div>
-                        <strong>สิทธิ์ตามฝ่าย</strong> - กำหนดว่าเห็นข้อมูลของฝ่ายใดได้บ้าง และทำอะไรกับข้อมูลได้ (ดู/สร้าง/แก้ไข/ลบ)
-                      </div>
-                    </div>
-                  </div>
-                  <div className="p-3 bg-white/50 dark:bg-black/20 rounded-lg mt-4">
-                    <p className="text-sm text-blue-700 dark:text-blue-300">
-                      <strong>💡 หมายเหตุ:</strong> ผู้ใช้ที่มีบทบาท <strong>Admin</strong> จะได้สิทธิ์เต็มทุกอย่างโดยอัตโนมัติ 
-                      ไม่ต้องกำหนดสิทธิ์ฟังก์ชันหรือฝ่ายเพิ่มเติม สามารถปรับ Dropdown ด้านล่างเพื่อดูตัวอย่างแนวทางการกำหนดสิทธิ์ที่เหมาะสมกับแต่ละบทบาทและฟังก์ชัน
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <div className="grid gap-6 lg:grid-cols-2">
-            <RoleDescriptions />
-            <FunctionDescriptions />
-          </div>
         </TabsContent>
 
         {isSuperAdmin && (
