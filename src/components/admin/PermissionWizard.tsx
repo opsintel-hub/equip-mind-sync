@@ -622,11 +622,10 @@ export function PermissionWizard({ open, onOpenChange, user, onSaved }: Permissi
               </div>
             </div>
           )}
-        </ScrollArea>
+        </div>
+        </div>
 
-        <Separator />
-
-        <div className="flex items-center justify-between gap-2 pt-2">
+        <div className="px-6 pb-6 pt-2 border-t flex-shrink-0">
           <Button variant="outline" onClick={goBack} disabled={step === 1 || saving}>
             <ArrowLeft className="h-4 w-4 mr-1" />
             ย้อนกลับ
