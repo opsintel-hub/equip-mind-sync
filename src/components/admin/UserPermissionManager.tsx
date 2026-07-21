@@ -587,17 +587,17 @@ export function UserPermissionManager() {
     if (!selectedUser) return;
     setDeleteBusy(true);
     try {
-      const { error } = await supabase
-        .from("profiles")
-        .update({ is_hidden: true } as any)
-        .eq("id", selectedUser.id);
+      const { data, error } = await supabase.functions.invoke("delete-user", {
+        body: { userId: selectedUser.id },
+      });
       if (error) throw error;
-      toast.success("ซ่อนผู้ใช้ออกจากรายการแล้ว (ประวัติเดิมยังอยู่ในระบบ)");
+      if (data?.error) throw new Error(data.error);
+      toast.success("ลบผู้ใช้แล้ว — เข้าระบบไม่ได้อีก (ประวัติการทำรายการยังอยู่)");
       setDeleteDialogOpen(false);
       await fetchUsers();
     } catch (error: any) {
-      console.error("Error hiding user:", error);
-      toast.error("เกิดข้อผิดพลาด: " + error.message);
+      console.error("Error deleting user:", error);
+      toast.error("เกิดข้อผิดพลาด: " + (error.message || "ไม่สามารถลบผู้ใช้ได้"));
     } finally {
       setDeleteBusy(false);
     }
