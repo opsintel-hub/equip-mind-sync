@@ -748,10 +748,10 @@ export function UserPermissionManager() {
 
                         <button
                           type="button"
-                          onClick={() => handleOpenWizard(user)}
+                          onClick={() => handleOpenEditDialog(user)}
                           className="text-[11px] text-muted-foreground hover:text-primary underline underline-offset-2 text-left w-fit"
                         >
-                          ตั้งค่าขั้นสูง (Wizard)
+                          แก้ไขข้อมูลโปรไฟล์
                         </button>
                       </div>
                     </TableCell>
