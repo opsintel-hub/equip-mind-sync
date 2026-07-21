@@ -744,15 +744,7 @@ export function UserPermissionManager() {
                             </Badge>
                           )}
                         </div>
-                        {/* Preset ถูกย้ายไปที่มุมมอง Matrix สิทธิ์ — ที่นี่เก็บเฉพาะ Wizard ตั้งค่ารายคน */}
-
-                        <button
-                          type="button"
-                          onClick={() => handleOpenEditDialog(user)}
-                          className="text-[11px] text-muted-foreground hover:text-primary underline underline-offset-2 text-left w-fit"
-                        >
-                          แก้ไขข้อมูลโปรไฟล์
-                        </button>
+                        {/* ปุ่ม ✨ Wizard ด้านขวารวมการแก้ไขโปรไฟล์ + ตั้งสิทธิ์ในหน้าเดียว */}
                       </div>
                     </TableCell>
                     <TableCell className="text-right">
