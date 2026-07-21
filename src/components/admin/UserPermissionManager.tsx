@@ -638,7 +638,7 @@ export function UserPermissionManager() {
                 )}
               </CardTitle>
               <CardDescription>
-                กดไอคอน <Sparkles className="inline h-3.5 w-3.5 text-primary" /> <strong>Wizard</strong> เพื่อกำหนด Role, เมนู และสิทธิ์ในฝ่ายรายคน — หากต้องการตั้งสิทธิ์หลายคนพร้อมกันหรือใช้ <strong>Preset</strong> ให้สลับไปที่มุมมอง <strong>Matrix สิทธิ์</strong> ด้านบน
+                กดไอคอน <Sparkles className="inline h-3.5 w-3.5 text-primary" /> <strong>Wizard</strong> เพื่อแก้ไขโปรไฟล์ + ตั้งสิทธิ์ (Role, เมนู, ฝ่าย) ในหน้าเดียว — หากต้องการตั้งสิทธิ์หลายคนพร้อมกันหรือใช้ <strong>Preset</strong> ให้สลับไปที่มุมมอง <strong>Matrix สิทธิ์</strong> ด้านบน
               </CardDescription>
             </div>
             <div className="relative w-64">
@@ -744,15 +744,7 @@ export function UserPermissionManager() {
                             </Badge>
                           )}
                         </div>
-                        {/* Preset ถูกย้ายไปที่มุมมอง Matrix สิทธิ์ — ที่นี่เก็บเฉพาะ Wizard ตั้งค่ารายคน */}
-
-                        <button
-                          type="button"
-                          onClick={() => handleOpenEditDialog(user)}
-                          className="text-[11px] text-muted-foreground hover:text-primary underline underline-offset-2 text-left w-fit"
-                        >
-                          แก้ไขข้อมูลโปรไฟล์
-                        </button>
+                        {/* ปุ่ม ✨ Wizard ด้านขวารวมการแก้ไขโปรไฟล์ + ตั้งสิทธิ์ในหน้าเดียว */}
                       </div>
                     </TableCell>
                     <TableCell className="text-right">
@@ -782,7 +774,7 @@ export function UserPermissionManager() {
                                 <Sparkles className="h-4 w-4" />
                               </Button>
                             </TooltipTrigger>
-                            <TooltipContent>ตั้งค่าสิทธิ์ (Wizard) — บทบาท เมนู และฝ่าย</TooltipContent>
+                            <TooltipContent>แก้ไขผู้ใช้ + ตั้งสิทธิ์ (Wizard) — โปรไฟล์ บทบาท เมนู และฝ่าย ในหน้าเดียว</TooltipContent>
                           </Tooltip>
                         </TooltipProvider>
                         <TooltipProvider>
@@ -1105,204 +1097,6 @@ export function UserPermissionManager() {
       </Dialog>
 
       {/* Edit user dialog */}
-      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Pencil className="h-5 w-5 text-primary" />
-              แก้ไขข้อมูลผู้ใช้
-            </DialogTitle>
-            <DialogDescription>{selectedUser?.email}</DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-2">
-            <div className="space-y-2">
-              <Label htmlFor="edit-full-name">ชื่อ-นามสกุล</Label>
-              <Input
-                id="edit-full-name"
-                value={editFullName}
-                onChange={(e) => setEditFullName(e.target.value)}
-                disabled={editSaving}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-display-name">ชื่อที่ต้องการให้แสดงในระบบ</Label>
-              <Input
-                id="edit-display-name"
-                value={editDisplayName}
-                onChange={(e) => setEditDisplayName(e.target.value)}
-                placeholder="เช่น Boy, Aey"
-                disabled={editSaving}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-phone">เบอร์โทรศัพท์</Label>
-              <Input
-                id="edit-phone"
-                value={editPhone}
-                onChange={(e) => setEditPhone(e.target.value)}
-                placeholder="08-XXXX-XXXX"
-                disabled={editSaving}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-department" className="flex items-center gap-2">
-                ฝ่ายสังกัดหลัก
-                <span className="text-xs text-muted-foreground font-normal">(แสดงในโปรไฟล์เท่านั้น)</span>
-              </Label>
-              <Select
-                value={editDepartment || "__none__"}
-                onValueChange={(v) => setEditDepartment(v === "__none__" ? "" : v)}
-                disabled={editSaving}
-              >
-                <SelectTrigger id="edit-department">
-                  <SelectValue placeholder="เลือกฝ่าย..." />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__none__">— ไม่ระบุ —</SelectItem>
-                  {allDepartments.map((d) => (
-                    <SelectItem key={d} value={d}>{d}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <p className="text-[11px] text-muted-foreground">
-                ⚠️ ค่านี้ไม่ใช่สิทธิ์เข้าถึงข้อมูล — สิทธิ์เห็นข้อมูลของแต่ละฝ่ายกำหนดในหัวข้อ <strong>สิทธิ์เห็นฝ่าย</strong> ด้านล่าง
-              </p>
-              {selectedUser?.requested_department && selectedUser.requested_department !== editDepartment && (
-                <p className="text-xs text-muted-foreground">
-                  ผู้ใช้ขอสมัครฝ่าย: <strong>{selectedUser.requested_department}</strong>
-                </p>
-              )}
-            </div>
-
-            {/* Multi-department data access */}
-            <div className="space-y-2">
-              <Label className="flex items-center gap-2">
-                <Building2 className="h-4 w-4 text-primary" />
-                สิทธิ์เห็นฝ่าย (Data access)
-                <span className="text-xs text-muted-foreground font-normal">(เลือกได้หลายฝ่าย)</span>
-              </Label>
-              <div className="flex flex-wrap gap-2 text-xs">
-                <button
-                  type="button"
-                  className="px-2 py-1 rounded border hover:bg-muted"
-                  onClick={() => setEditDeptAccess([...allDepartments])}
-                  disabled={editSaving}
-                >
-                  เลือกทุกฝ่าย
-                </button>
-                <button
-                  type="button"
-                  className="px-2 py-1 rounded border hover:bg-muted"
-                  onClick={() => setEditDeptAccess([])}
-                  disabled={editSaving}
-                >
-                  ล้าง
-                </button>
-                {editDepartment && (
-                  <button
-                    type="button"
-                    className="px-2 py-1 rounded border hover:bg-muted"
-                    onClick={() =>
-                      setEditDeptAccess((prev) =>
-                        prev.includes(editDepartment) ? prev : [...prev, editDepartment]
-                      )
-                    }
-                    disabled={editSaving}
-                  >
-                    + ตามฝ่ายสังกัด ({editDepartment})
-                  </button>
-                )}
-              </div>
-              <div className="rounded-md border max-h-48 overflow-y-auto divide-y">
-                {allDepartments.length === 0 && (
-                  <div className="p-3 text-xs text-muted-foreground">ไม่พบข้อมูลฝ่าย</div>
-                )}
-                {allDepartments.map((d) => {
-                  const checked = editDeptAccess.includes(d);
-                  return (
-                    <label
-                      key={d}
-                      className="flex items-center gap-2 p-2 hover:bg-muted/50 cursor-pointer text-sm"
-                    >
-                      <Checkbox
-                        checked={checked}
-                        onCheckedChange={(v) =>
-                          setEditDeptAccess((prev) =>
-                            v ? Array.from(new Set([...prev, d])) : prev.filter((x) => x !== d)
-                          )
-                        }
-                        disabled={editSaving}
-                      />
-                      <Building2 className="h-3 w-3 text-muted-foreground" />
-                      <span className="flex-1">{d}</span>
-                    </label>
-                  );
-                })}
-              </div>
-              <p className="text-[11px] text-muted-foreground">
-                ผู้ใช้จะเห็นข้อมูล (สินค้า, รายงาน, ประวัติ) ของฝ่ายที่เลือกเท่านั้น · ต้องการปรับสิทธิ์สร้าง/แก้ไข/ลบรายฝ่าย ให้ใช้ <strong>ตั้งค่าขั้นสูง (Wizard)</strong> หรือมุมมอง <strong>Matrix สิทธิ์</strong>
-              </p>
-            </div>
-
-            <div className="space-y-2">
-              <Label className="flex items-center gap-2">
-                <Sparkles className="h-4 w-4 text-primary" />
-                บทบาทงาน / Preset สิทธิ์
-                <span className="text-xs text-muted-foreground font-normal">(เลือกได้หลายอัน)</span>
-              </Label>
-              <div className="rounded-md border max-h-48 overflow-y-auto divide-y">
-                {allPresets.length === 0 && (
-                  <div className="p-3 text-xs text-muted-foreground">กำลังโหลด Preset...</div>
-                )}
-                {allPresets.map((p) => {
-                  const checked = editSelectedPresets.includes(p.template_key);
-                  return (
-                    <label
-                      key={p.template_key}
-                      className="flex items-start gap-2 p-2 hover:bg-muted/50 cursor-pointer text-sm"
-                    >
-                      <Checkbox
-                        checked={checked}
-                        onCheckedChange={(v) => {
-                          setEditSelectedPresets((prev) =>
-                            v
-                              ? Array.from(new Set([...prev, p.template_key]))
-                              : prev.filter((k) => k !== p.template_key)
-                          );
-                        }}
-                        disabled={editSaving}
-                        className="mt-0.5"
-                      />
-                      <div className="flex-1 min-w-0">
-                        <div className="font-medium truncate">{p.label}</div>
-                        {p.description && (
-                          <div className="text-xs text-muted-foreground truncate">{p.description}</div>
-                        )}
-                      </div>
-                    </label>
-                  );
-                })}
-              </div>
-              {selectedUser?.requested_job_role && (
-                <p className="text-xs text-muted-foreground">
-                  ผู้ใช้ขอสมัครเป็น: <strong>{templateLabels[selectedUser.requested_job_role] || selectedUser.requested_job_role}</strong>
-                </p>
-              )}
-              <p className="text-xs text-muted-foreground">
-                บันทึก = เขียนทับ Role + สิทธิ์ฟังก์ชันด้วย Preset ที่เลือก · ต้องการปรับรายเมนู? สลับไปมุมมอง <strong>Matrix สิทธิ์</strong>
-              </p>
-            </div>
-            <div className="flex justify-end gap-2 pt-2">
-              <Button variant="outline" onClick={() => setEditDialogOpen(false)} disabled={editSaving}>
-                ยกเลิก
-              </Button>
-              <Button onClick={handleSaveEdit} disabled={editSaving}>
-                {editSaving ? "กำลังบันทึก..." : "บันทึก"}
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
 
       {/* Delete (hide) user dialog */}
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
