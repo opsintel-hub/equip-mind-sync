@@ -61,11 +61,12 @@ const STATUS_META: Record<string, { label: string; variant: "default" | "seconda
   pending_issue:    { label: "รอจ่าย", variant: "secondary", icon: Send },
   issued:           { label: "อยู่กับผู้เบิก", variant: "default", icon: ArrowLeftRight },
   holding_permanent:{ label: "ถือครองถาวร", variant: "default", icon: ArrowLeftRight },
+  pending_return:   { label: "รอคลังรับคืน", variant: "secondary", icon: RotateCcw },
   returned:         { label: "คืนแล้ว", variant: "outline", icon: CheckCircle2 },
   cancelled:        { label: "ยกเลิก", variant: "destructive", icon: XCircle },
 };
 
-export type ToolLoansMode = "request" | "issue" | "return" | "all";
+export type ToolLoansMode = "request" | "issue" | "return" | "receive-return" | "all";
 
 interface ToolLoansProps {
   mode?: ToolLoansMode;
