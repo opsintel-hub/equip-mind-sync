@@ -466,8 +466,10 @@ export default function ToolLoans({ mode = "all" }: ToolLoansProps) {
                   value={form.quantity} onChange={e => setForm(f => ({ ...f, quantity: Number(e.target.value) || 1 }))} />
               </div>
               <div>
-                <Label>กำหนดคืน</Label>
-                <Input type="date" value={form.due_date} disabled={!selectedTool?.return_required}
+                <Label>กำหนดคืน {selectedTool?.return_required && <span className="text-destructive">*</span>}</Label>
+                <Input type="date" value={form.due_date} disabled={selectedTool ? !selectedTool.return_required : false}
+                  required={selectedTool?.return_required}
+                  min={new Date().toISOString().slice(0, 10)}
                   onChange={e => setForm(f => ({ ...f, due_date: e.target.value }))} />
               </div>
             </div>
