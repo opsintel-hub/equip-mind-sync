@@ -221,9 +221,25 @@ export default function ToolLoans({ mode = "all" }: ToolLoansProps) {
       .some(v => v && v.toLowerCase().includes(q));
   };
 
+  // Mode-based filter: request page shows my own requests; issue page shows warehouse queue; return page shows items currently issued
+  const modeFilter = (l: Loan) => {
+    if (mode === "request") return l.created_by === user?.id || l.requester_name === actorName;
+    if (mode === "issue")   return ["pending", "pending_issue"].includes(l.status);
+    if (mode === "return")  return l.status === "issued" && l.return_required;
+    return true;
+  };
+
   const activeStates = ["pending", "pending_issue", "issued", "holding_permanent"];
-  const activeLoans = loans.filter(l => activeStates.includes(l.status)).filter(filter);
-  const historyLoans = loans.filter(l => !activeStates.includes(l.status)).filter(filter);
+  const activeLoans  = loans.filter(l => activeStates.includes(l.status)).filter(modeFilter).filter(filter);
+  const historyLoans = loans.filter(l => !activeStates.includes(l.status)).filter(modeFilter).filter(filter);
+
+  const headerMeta = {
+    request: { title: "ขอเบิกเครื่องมือ",   desc: "สร้างคำขอเบิกเครื่องมือของฉัน" },
+    issue:   { title: "คลังจ่ายเครื่องมือ",  desc: "คิวรออนุมัติ / รอจ่าย ให้เจ้าหน้าที่คลังดำเนินการ" },
+    return:  { title: "ขอคืนเครื่องมือ",     desc: "รายการเครื่องมือที่ต้องคืน" },
+    all:     { title: "เบิก-คืนเครื่องมือ",  desc: "ขอเบิก / จ่าย / คืน เครื่องมือ พร้อมติดตามผู้ถือครองและการรับประกัน" },
+  }[mode];
+
 
   const warrantyBadge = (t?: ToolOption | null) => {
     if (!t || !t.has_warranty || !t.warranty_expiry_date) return null;
