@@ -78,6 +78,8 @@ const DatabaseGuide = lazy(() => import("./pages/DatabaseGuide"));
 const StockReconciliation = lazy(() => import("./pages/StockReconciliation"));
 const ImportEquipmentPage = lazy(() => import("./pages/setup/ImportEquipmentPage"));
 const ImportMediaPlayerPage = lazy(() => import("./pages/setup/ImportMediaPlayerPage"));
+const ImportToolPage = lazy(() => import("./pages/setup/ImportToolPage"));
+const ToolLoans = lazy(() => import("./pages/ToolLoans"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
