@@ -229,6 +229,7 @@ const menuGroups: MenuGroup[] = [
     label: "เครื่องมือ",
     items: [
       { title: "ข้อมูลเครื่องมือ", url: "/tool-management", icon: Wrench, functionName: "equipment_pm" },
+      { title: "เบิก-คืนเครื่องมือ", url: "/tool-loans", icon: ArrowLeftRight, functionName: "equipment_pm" },
       { 
         title: "PM เครื่องมือ", 
         icon: Calendar,
