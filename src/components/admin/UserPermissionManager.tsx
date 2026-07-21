@@ -638,7 +638,7 @@ export function UserPermissionManager() {
                 )}
               </CardTitle>
               <CardDescription>
-                กดไอคอน <Sparkles className="inline h-3.5 w-3.5 text-primary" /> <strong>Wizard</strong> เพื่อกำหนด Role, เมนู และสิทธิ์ในฝ่ายรายคน — หากต้องการตั้งสิทธิ์หลายคนพร้อมกันหรือใช้ <strong>Preset</strong> ให้สลับไปที่มุมมอง <strong>Matrix สิทธิ์</strong> ด้านบน
+                กดไอคอน <Sparkles className="inline h-3.5 w-3.5 text-primary" /> <strong>Wizard</strong> เพื่อแก้ไขโปรไฟล์ + ตั้งสิทธิ์ (Role, เมนู, ฝ่าย) ในหน้าเดียว — หากต้องการตั้งสิทธิ์หลายคนพร้อมกันหรือใช้ <strong>Preset</strong> ให้สลับไปที่มุมมอง <strong>Matrix สิทธิ์</strong> ด้านบน
               </CardDescription>
             </div>
             <div className="relative w-64">
