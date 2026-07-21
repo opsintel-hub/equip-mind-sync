@@ -50,6 +50,7 @@ interface Loan {
   notes: string | null;
   return_notes: string | null;
   created_at: string;
+  created_by: string | null;
   approved_at: string | null;
   issued_at: string | null;
   tool?: ToolOption | null;
