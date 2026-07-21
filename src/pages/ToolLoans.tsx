@@ -136,6 +136,7 @@ export default function ToolLoans({ mode = "all" }: ToolLoansProps) {
       return toast.error(`จำนวนต้องอยู่ระหว่าง 1 ถึง ${selectedTool.current_quantity}`);
     }
     const returnReq = selectedTool.return_required;
+    if (returnReq && !form.due_date) return toast.error("กรุณาระบุกำหนดคืน");
     const status = selectedTool.requires_approval ? "pending" : "pending_issue";
     const purposeFinal = form.purpose === "อื่นๆ" ? (form.purpose_detail || "อื่นๆ")
                         : form.purpose === "PM" ? `PM: ${form.purpose_detail || "-"}`
@@ -145,7 +146,7 @@ export default function ToolLoans({ mode = "all" }: ToolLoansProps) {
       tool_id: form.tool_id,
       quantity: form.quantity,
       loan_date: new Date().toISOString().slice(0, 10),
-      due_date: form.due_date || (returnReq ? new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10)),
+      due_date: returnReq ? form.due_date : new Date().toISOString().slice(0, 10),
       status,
       requester_name: requester,
       purpose: purposeFinal,
@@ -197,7 +198,24 @@ export default function ToolLoans({ mode = "all" }: ToolLoansProps) {
     fetchAll();
   };
 
-  const handleReturn = async () => {
+  // Step 1: ผู้เบิกแจ้งคืน — ไม่คืนสต็อก ยังไม่ set return_date
+  const handleRequestReturn = async () => {
+    if (!returnOpen) return;
+    const rQty = Math.max(0, Math.min(returnOpen.quantity, returnForm.returned_quantity));
+    const { error } = await supabase.from("equipment_loans").update({
+      status: "pending_return",
+      returned_quantity: rQty,
+      return_notes: `[${returnForm.condition}] ${returnForm.notes}`.trim(),
+    }).eq("id", returnOpen.id);
+    if (error) return toast.error(error.message);
+    toast.success("แจ้งคืนแล้ว — รอคลังรับคืน");
+    setReturnOpen(null);
+    setReturnForm({ returned_quantity: 1, condition: "normal", notes: "" });
+    fetchAll();
+  };
+
+  // Step 2: คลังรับคืน — คืนสต็อก + returned
+  const handleReceiveReturn = async () => {
     if (!returnOpen || !returnOpen.tool) return;
     const rQty = Math.max(0, Math.min(returnOpen.quantity, returnForm.returned_quantity));
     const newStock = (returnOpen.tool.current_quantity ?? 0) + rQty;
@@ -208,12 +226,22 @@ export default function ToolLoans({ mode = "all" }: ToolLoansProps) {
       return_date: new Date().toISOString().slice(0, 10),
       returned_quantity: rQty,
       returned_by: user?.id,
-      return_notes: `[${returnForm.condition}] ${returnForm.notes}`.trim(),
+      return_notes: returnForm.notes
+        ? `${returnOpen.return_notes || ""} | คลังรับ: [${returnForm.condition}] ${returnForm.notes}`.trim()
+        : returnOpen.return_notes,
     }).eq("id", returnOpen.id);
     if (e2) return toast.error(e2.message);
     toast.success("รับคืนเรียบร้อย");
     setReturnOpen(null);
     setReturnForm({ returned_quantity: 1, condition: "normal", notes: "" });
+    fetchAll();
+  };
+
+  // ปฏิเสธการคืน (คลัง) — กลับไปสถานะ issued
+  const handleRejectReturn = async (loan: Loan) => {
+    const { error } = await supabase.from("equipment_loans").update({ status: "issued" }).eq("id", loan.id);
+    if (error) return toast.error(error.message);
+    toast.success("ปฏิเสธการคืน — กลับสถานะอยู่กับผู้เบิก");
     fetchAll();
   };
 
@@ -226,21 +254,32 @@ export default function ToolLoans({ mode = "all" }: ToolLoansProps) {
 
   // Mode-based filter: request page shows my own requests; issue page shows warehouse queue; return page shows items currently issued
   const modeFilter = (l: Loan) => {
-    if (mode === "request") return l.created_by === user?.id || l.requester_name === actorName;
-    if (mode === "issue")   return ["pending", "pending_issue"].includes(l.status);
-    if (mode === "return")  return l.status === "issued" && l.return_required;
+    if (mode === "request")        return l.created_by === user?.id || l.requester_name === actorName;
+    if (mode === "issue")          return ["pending", "pending_issue"].includes(l.status);
+    if (mode === "return")         return (l.created_by === user?.id || l.requester_name === actorName)
+                                          && ["issued", "pending_return"].includes(l.status) && l.return_required;
+    if (mode === "receive-return") return l.status === "pending_return";
     return true;
   };
 
-  const activeStates = ["pending", "pending_issue", "issued", "holding_permanent"];
-  const activeLoans  = loans.filter(l => activeStates.includes(l.status)).filter(modeFilter).filter(filter);
+  const isOverdue = (l: Loan) =>
+    ["issued", "pending_return"].includes(l.status) && !!l.due_date && new Date(l.due_date) < new Date();
+
+  const activeStates = ["pending", "pending_issue", "issued", "holding_permanent", "pending_return"];
+  const sortOverdueFirst = (a: Loan, b: Loan) => {
+    const ao = isOverdue(a) ? 1 : 0, bo = isOverdue(b) ? 1 : 0;
+    if (ao !== bo) return bo - ao;
+    return 0;
+  };
+  const activeLoans  = loans.filter(l => activeStates.includes(l.status)).filter(modeFilter).filter(filter).sort(sortOverdueFirst);
   const historyLoans = loans.filter(l => !activeStates.includes(l.status)).filter(modeFilter).filter(filter);
 
   const headerMeta = {
-    request: { title: "ขอเบิกเครื่องมือ",   desc: "สร้างคำขอเบิกเครื่องมือของฉัน" },
-    issue:   { title: "คลังจ่ายเครื่องมือ",  desc: "คิวรออนุมัติ / รอจ่าย ให้เจ้าหน้าที่คลังดำเนินการ" },
-    return:  { title: "ขอคืนเครื่องมือ",     desc: "รายการเครื่องมือที่ต้องคืน" },
-    all:     { title: "เบิก-คืนเครื่องมือ",  desc: "ขอเบิก / จ่าย / คืน เครื่องมือ พร้อมติดตามผู้ถือครองและการรับประกัน" },
+    request:          { title: "ขอเบิกเครื่องมือ",     desc: "สร้างคำขอเบิกเครื่องมือของฉัน" },
+    issue:            { title: "คลังจ่ายเครื่องมือ",    desc: "คิวรออนุมัติ / รอจ่าย ให้เจ้าหน้าที่คลังดำเนินการ" },
+    return:           { title: "ขอคืนเครื่องมือ",       desc: "แจ้งคืนเครื่องมือที่ฉันถืออยู่ — คลังจะเป็นผู้รับคืนเข้าระบบ" },
+    "receive-return": { title: "คลังรับคืนเครื่องมือ",   desc: "คิวเครื่องมือที่ผู้เบิกแจ้งคืน — เจ้าหน้าที่คลังตรวจสอบและรับคืนเข้าสต็อก" },
+    all:              { title: "เบิก-คืนเครื่องมือ",     desc: "ขอเบิก / จ่าย / คืน เครื่องมือ พร้อมติดตามผู้ถือครองและการรับประกัน" },
   }[mode];
 
 
