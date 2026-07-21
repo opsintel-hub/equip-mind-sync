@@ -774,7 +774,7 @@ export function UserPermissionManager() {
                                 <Sparkles className="h-4 w-4" />
                               </Button>
                             </TooltipTrigger>
-                            <TooltipContent>ตั้งค่าสิทธิ์ (Wizard) — บทบาท เมนู และฝ่าย</TooltipContent>
+                            <TooltipContent>แก้ไขผู้ใช้ + ตั้งสิทธิ์ (Wizard) — โปรไฟล์ บทบาท เมนู และฝ่าย ในหน้าเดียว</TooltipContent>
                           </Tooltip>
                         </TooltipProvider>
                         <TooltipProvider>
