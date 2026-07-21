@@ -78,6 +78,12 @@ export function PermissionWizard({ open, onOpenChange, user, onSaved }: Permissi
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
 
+  // Profile fields (unified edit — no more separate profile dialog)
+  const [pfFullName, setPfFullName] = useState("");
+  const [pfDisplayName, setPfDisplayName] = useState("");
+  const [pfPhone, setPfPhone] = useState("");
+  const [pfDepartment, setPfDepartment] = useState<string>("");
+
   // Selections
   const [selectedTemplateKeys, setSelectedTemplateKeys] = useState<string[]>([]);
   const [selectedDepartments, setSelectedDepartments] = useState<string[]>([]);
@@ -96,6 +102,11 @@ export function PermissionWizard({ open, onOpenChange, user, onSaved }: Permissi
   useEffect(() => {
     if (open) {
       setStep(1);
+      // Profile prefill
+      setPfFullName(user?.full_name || "");
+      setPfDisplayName(user?.display_name || "");
+      setPfPhone(user?.phone || "");
+      setPfDepartment(user?.department || user?.requested_department || "");
       // Pre-select user's requested job role and department (if any)
       setSelectedTemplateKeys(user?.requested_job_role ? [user.requested_job_role] : []);
       setSelectedDepartments(user?.requested_department ? [user.requested_department] : []);
