@@ -777,12 +777,12 @@ export function UserPermissionManager() {
                               <Button
                                 variant="outline"
                                 size="sm"
-                                onClick={() => handleOpenEditDialog(user)}
+                                onClick={() => handleOpenWizard(user)}
                               >
-                                <Pencil className="h-4 w-4" />
+                                <Sparkles className="h-4 w-4" />
                               </Button>
                             </TooltipTrigger>
-                            <TooltipContent>แก้ไขข้อมูลผู้ใช้</TooltipContent>
+                            <TooltipContent>ตั้งค่าสิทธิ์ (Wizard) — บทบาท เมนู และฝ่าย</TooltipContent>
                           </Tooltip>
                         </TooltipProvider>
                         <TooltipProvider>
