@@ -294,6 +294,7 @@ const menuGroups: MenuGroup[] = [
         subItems: [
           { title: "Import อุปกรณ์", url: "/setup/import-equipment", icon: Package, functionName: "admin" },
           { title: "Import MP / จอภาพ", url: "/setup/import-media-player", icon: Monitor, functionName: "admin" },
+          { title: "Import เครื่องมือ", url: "/setup/import-tools", icon: Wrench, functionName: "admin" },
         ],
       },
     ],
