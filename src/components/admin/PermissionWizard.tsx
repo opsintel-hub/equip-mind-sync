@@ -625,7 +625,7 @@ export function PermissionWizard({ open, onOpenChange, user, onSaved }: Permissi
         </div>
         </div>
 
-        <div className="px-6 pb-6 pt-2 border-t flex-shrink-0">
+        <div className="px-6 pb-6 pt-3 border-t flex-shrink-0 flex items-center justify-between gap-2 bg-background">
           <Button variant="outline" onClick={goBack} disabled={step === 1 || saving}>
             <ArrowLeft className="h-4 w-4 mr-1" />
             ย้อนกลับ
@@ -642,6 +642,25 @@ export function PermissionWizard({ open, onOpenChange, user, onSaved }: Permissi
             </Button>
           )}
         </div>
+
+        {/* Nested Help dialog — Role & Function descriptions */}
+        <Dialog open={helpOpen} onOpenChange={setHelpOpen}>
+          <DialogContent className="max-w-5xl max-h-[85vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <HelpCircle className="h-5 w-5 text-primary" />
+                คู่มือและแนวทางสิทธิ์
+              </DialogTitle>
+              <DialogDescription>
+                อ้างอิงบทบาท (Roles) และฟังก์ชันของระบบ — ปิดหน้านี้เพื่อกลับไปตั้งค่า Wizard
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-6 lg:grid-cols-2">
+              <RoleDescriptions />
+              <FunctionDescriptions />
+            </div>
+          </DialogContent>
+        </Dialog>
       </DialogContent>
     </Dialog>
   );
