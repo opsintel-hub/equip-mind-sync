@@ -194,6 +194,7 @@ const App = () => (
             <Route path="/tool-loans/request" element={<Protected><ToolLoans mode="request" /></Protected>} />
             <Route path="/tool-loans/issue" element={<Protected><ToolLoans mode="issue" /></Protected>} />
             <Route path="/tool-loans/return" element={<Protected><ToolLoans mode="return" /></Protected>} />
+            <Route path="/tool-loans/receive-return" element={<Protected><ToolLoans mode="receive-return" /></Protected>} />
             <Route path="/tool-loans/report" element={<Protected><ToolLoansReport /></Protected>} />
             {/* Public billboard view - no auth required */}
             <Route path="/billboard-view/:id" element={<Public><BillboardPublicView /></Public>} />
