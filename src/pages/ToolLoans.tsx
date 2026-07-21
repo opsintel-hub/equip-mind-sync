@@ -127,8 +127,9 @@ export default function ToolLoans({ mode = "all" }: ToolLoansProps) {
   const selectedTool = tools.find(t => t.id === form.tool_id);
 
   const handleCreate = async () => {
+    const requester = (form.requester_name || actorName).trim();
     if (!form.tool_id) return toast.error("กรุณาเลือกเครื่องมือ");
-    if (!form.requester_name.trim()) return toast.error("กรุณากรอกชื่อผู้เบิก");
+    if (!requester) return toast.error("ไม่พบชื่อผู้เข้าสู่ระบบ");
     if (!selectedTool) return;
     if (form.quantity < 1 || form.quantity > selectedTool.current_quantity) {
       return toast.error(`จำนวนต้องอยู่ระหว่าง 1 ถึง ${selectedTool.current_quantity}`);
