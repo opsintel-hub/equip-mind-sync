@@ -64,11 +64,18 @@ const STATUS_META: Record<string, { label: string; variant: "default" | "seconda
   cancelled:        { label: "ยกเลิก", variant: "destructive", icon: XCircle },
 };
 
-export default function ToolLoans() {
+export type ToolLoansMode = "request" | "issue" | "return" | "all";
+
+interface ToolLoansProps {
+  mode?: ToolLoansMode;
+}
+
+export default function ToolLoans({ mode = "all" }: ToolLoansProps) {
   const { user } = useAuth();
   const { isSuperAdmin } = useIsSuperAdmin();
   const { isAdmin } = useFunctionPermissions();
   const { viewableDepts } = useDeptScope();
+  const { actorName } = useCurrentUserProfile();
 
   const [loans, setLoans] = useState<Loan[]>([]);
   const [tools, setTools] = useState<ToolOption[]>([]);
