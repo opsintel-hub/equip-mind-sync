@@ -408,7 +408,8 @@ export default function ToolLoans({ mode = "all" }: ToolLoansProps) {
             </div>
             <div>
               <Label>ผู้เบิก *</Label>
-              <Input value={form.requester_name} onChange={e => setForm(f => ({ ...f, requester_name: e.target.value }))} placeholder="ชื่อผู้ที่จะรับเครื่องมือไปใช้" />
+              <Input value={form.requester_name || actorName} readOnly disabled className="bg-muted" />
+              <p className="text-[11px] text-muted-foreground mt-1">ระบบใช้ชื่อผู้เข้าสู่ระบบเพื่อป้องกันการเบิกแทนผู้อื่น</p>
             </div>
             <div>
               <Label>วัตถุประสงค์</Label>
