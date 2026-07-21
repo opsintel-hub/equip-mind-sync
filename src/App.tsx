@@ -80,6 +80,7 @@ const ImportEquipmentPage = lazy(() => import("./pages/setup/ImportEquipmentPage
 const ImportMediaPlayerPage = lazy(() => import("./pages/setup/ImportMediaPlayerPage"));
 const ImportToolPage = lazy(() => import("./pages/setup/ImportToolPage"));
 const ToolLoans = lazy(() => import("./pages/ToolLoans"));
+const ToolLoansReport = lazy(() => import("./pages/ToolLoansReport"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
