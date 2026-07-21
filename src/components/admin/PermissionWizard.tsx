@@ -292,6 +292,57 @@ export function PermissionWizard({ open, onOpenChange, user, onSaved }: Permissi
           </DialogDescription>
         </DialogHeader>
 
+        {/* Profile section — unified with Wizard, no separate profile dialog */}
+        <div className="rounded-lg border bg-muted/30 p-3 space-y-3">
+          <div className="flex items-center gap-2 text-sm font-semibold">
+            <Pencil className="h-4 w-4 text-primary" />
+            ข้อมูลโปรไฟล์
+            <span className="text-xs text-muted-foreground font-normal">(แก้ไขได้ในหน้าเดียวกัน)</span>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <Label htmlFor="pf-full-name" className="text-xs">ชื่อ-นามสกุล *</Label>
+              <Input id="pf-full-name" value={pfFullName} onChange={(e) => setPfFullName(e.target.value)} disabled={saving} className="h-9" />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="pf-display" className="text-xs">ชื่อที่แสดงในระบบ</Label>
+              <Input id="pf-display" value={pfDisplayName} onChange={(e) => setPfDisplayName(e.target.value)} placeholder="เช่น Boy, Aey" disabled={saving} className="h-9" />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="pf-phone" className="text-xs">เบอร์โทรศัพท์</Label>
+              <Input id="pf-phone" value={pfPhone} onChange={(e) => setPfPhone(e.target.value)} placeholder="08-XXXX-XXXX" disabled={saving} className="h-9" />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="pf-dept" className="text-xs flex items-center gap-1">
+                ฝ่ายสังกัดหลัก
+                <span className="text-[10px] text-muted-foreground font-normal">(แสดงในโปรไฟล์)</span>
+              </Label>
+              <Select
+                value={pfDepartment || "__none__"}
+                onValueChange={(v) => setPfDepartment(v === "__none__" ? "" : v)}
+                disabled={saving}
+              >
+                <SelectTrigger id="pf-dept" className="h-9">
+                  <SelectValue placeholder="เลือกฝ่าย..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__">— ไม่ระบุ —</SelectItem>
+                  {(pfDepartment && !departments.includes(pfDepartment)) && (
+                    <SelectItem value={pfDepartment}>{pfDepartment} (ปัจจุบัน)</SelectItem>
+                  )}
+                  {departments.map((d) => (
+                    <SelectItem key={d} value={d}>{d}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <p className="text-[11px] text-muted-foreground">
+            ⚠️ <strong>ฝ่ายสังกัดหลัก</strong> คือฝ่ายที่ผู้ใช้อยู่ (แสดงในโปรไฟล์เท่านั้น) — ไม่ใช่สิทธิ์เห็นข้อมูล · สิทธิ์เห็นข้อมูลฝ่ายจะกำหนดในขั้นที่ 2 ด้านล่าง
+          </p>
+        </div>
+
+
         {/* Stepper */}
         <div className="flex items-center justify-between px-1 py-2">
           {[1, 2, 3].map((s) => (
