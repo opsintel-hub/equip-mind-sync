@@ -305,16 +305,34 @@ export function PermissionWizard({ open, onOpenChange, user, onSaved }: Permissi
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-hidden flex flex-col">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Sparkles className="h-5 w-5 text-primary" />
-            แก้ไขผู้ใช้ + ตั้งสิทธิ์ (Wizard)
-          </DialogTitle>
-          <DialogDescription>
-            {user ? <>สำหรับ <strong>{user.full_name}</strong> {user.email && <span className="text-muted-foreground">({user.email})</span>}</> : null}
-          </DialogDescription>
-        </DialogHeader>
+      <DialogContent className="max-w-3xl max-h-[90vh] overflow-hidden flex flex-col p-0">
+        <div className="px-6 pt-6 pb-2 flex-shrink-0">
+          <DialogHeader>
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <DialogTitle className="flex items-center gap-2">
+                  <Sparkles className="h-5 w-5 text-primary" />
+                  แก้ไขผู้ใช้ + ตั้งสิทธิ์ (Wizard)
+                </DialogTitle>
+                <DialogDescription>
+                  {user ? <>สำหรับ <strong>{user.full_name}</strong> {user.email && <span className="text-muted-foreground">({user.email})</span>}</> : null}
+                </DialogDescription>
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setHelpOpen(true)}
+                className="flex-shrink-0 gap-1"
+              >
+                <HelpCircle className="h-4 w-4" />
+                ดูคำอธิบาย
+              </Button>
+            </div>
+          </DialogHeader>
+        </div>
+
+        <div className="px-6 flex-1 min-h-0 overflow-y-auto space-y-3">
 
         {/* Profile section — unified with Wizard, no separate profile dialog */}
         <div className="rounded-lg border bg-muted/30 p-3 space-y-3">
