@@ -16,6 +16,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useIsSuperAdmin } from "@/hooks/useIsSuperAdmin";
 import { useFunctionPermissions } from "@/hooks/useFunctionPermissions";
 import { useDeptScope } from "@/hooks/useDeptScope";
+import { useCurrentUserProfile } from "@/hooks/useCurrentUserProfile";
 import { format, differenceInDays } from "date-fns";
 import { th } from "date-fns/locale";
 
