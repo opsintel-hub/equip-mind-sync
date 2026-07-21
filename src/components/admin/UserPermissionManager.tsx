@@ -587,17 +587,17 @@ export function UserPermissionManager() {
     if (!selectedUser) return;
     setDeleteBusy(true);
     try {
-      const { error } = await supabase
-        .from("profiles")
-        .update({ is_hidden: true } as any)
-        .eq("id", selectedUser.id);
+      const { data, error } = await supabase.functions.invoke("delete-user", {
+        body: { userId: selectedUser.id },
+      });
       if (error) throw error;
-      toast.success("ซ่อนผู้ใช้ออกจากรายการแล้ว (ประวัติเดิมยังอยู่ในระบบ)");
+      if (data?.error) throw new Error(data.error);
+      toast.success("ลบผู้ใช้แล้ว — เข้าระบบไม่ได้อีก (ประวัติการทำรายการยังอยู่)");
       setDeleteDialogOpen(false);
       await fetchUsers();
     } catch (error: any) {
-      console.error("Error hiding user:", error);
-      toast.error("เกิดข้อผิดพลาด: " + error.message);
+      console.error("Error deleting user:", error);
+      toast.error("เกิดข้อผิดพลาด: " + (error.message || "ไม่สามารถลบผู้ใช้ได้"));
     } finally {
       setDeleteBusy(false);
     }
@@ -638,7 +638,7 @@ export function UserPermissionManager() {
                 )}
               </CardTitle>
               <CardDescription>
-                กด <strong>ตั้งค่าขั้นสูง (Wizard)</strong> เพื่อกำหนด Role, เมนู และสิทธิ์ในฝ่ายรายคน — หากต้องการตั้งสิทธิ์หลายคนพร้อมกันหรือใช้ <strong>Preset</strong> ให้สลับไปที่มุมมอง <strong>Matrix สิทธิ์</strong> ด้านบน
+                กดไอคอน <Sparkles className="inline h-3.5 w-3.5 text-primary" /> <strong>Wizard</strong> เพื่อกำหนด Role, เมนู และสิทธิ์ในฝ่ายรายคน — หากต้องการตั้งสิทธิ์หลายคนพร้อมกันหรือใช้ <strong>Preset</strong> ให้สลับไปที่มุมมอง <strong>Matrix สิทธิ์</strong> ด้านบน
               </CardDescription>
             </div>
             <div className="relative w-64">
@@ -748,10 +748,10 @@ export function UserPermissionManager() {
 
                         <button
                           type="button"
-                          onClick={() => handleOpenWizard(user)}
+                          onClick={() => handleOpenEditDialog(user)}
                           className="text-[11px] text-muted-foreground hover:text-primary underline underline-offset-2 text-left w-fit"
                         >
-                          ตั้งค่าขั้นสูง (Wizard)
+                          แก้ไขข้อมูลโปรไฟล์
                         </button>
                       </div>
                     </TableCell>
@@ -777,12 +777,12 @@ export function UserPermissionManager() {
                               <Button
                                 variant="outline"
                                 size="sm"
-                                onClick={() => handleOpenEditDialog(user)}
+                                onClick={() => handleOpenWizard(user)}
                               >
-                                <Pencil className="h-4 w-4" />
+                                <Sparkles className="h-4 w-4" />
                               </Button>
                             </TooltipTrigger>
-                            <TooltipContent>แก้ไขข้อมูลผู้ใช้</TooltipContent>
+                            <TooltipContent>ตั้งค่าสิทธิ์ (Wizard) — บทบาท เมนู และฝ่าย</TooltipContent>
                           </Tooltip>
                         </TooltipProvider>
                         <TooltipProvider>
@@ -1313,14 +1313,15 @@ export function UserPermissionManager() {
               ลบผู้ใช้ออกจากรายการ
             </DialogTitle>
             <DialogDescription>
-              ต้องการลบ <strong>{selectedUser?.full_name}</strong> ({selectedUser?.email}) ออกจากหน้าจอจัดการผู้ใช้ใช่หรือไม่?
+              ต้องการลบ <strong>{selectedUser?.full_name}</strong> ({selectedUser?.email}) ออกจากระบบใช่หรือไม่?
             </DialogDescription>
           </DialogHeader>
-          <div className="flex gap-2 p-3 rounded-md bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-xs text-amber-800 dark:text-amber-200">
-            <Info className="h-4 w-4 flex-shrink-0 mt-0.5" />
-            <span>
-              ผู้ใช้จะถูกซ่อนออกจากหน้า UI เท่านั้น <strong>ประวัติการทำรายการทั้งหมดยังคงบันทึกอยู่ในระบบ</strong> สามารถกู้คืนได้ในภายหลัง
-            </span>
+          <div className="flex gap-2 p-3 rounded-md bg-destructive/10 border border-destructive/30 text-xs text-destructive-foreground/90">
+            <Info className="h-4 w-4 flex-shrink-0 mt-0.5 text-destructive" />
+            <div className="space-y-1">
+              <div><strong className="text-destructive">ผู้ใช้จะเข้าระบบไม่ได้อีก</strong> (ถูกบล็อกการเข้าสู่ระบบ + รีเซ็ตรหัสผ่าน + ยกเลิกสิทธิ์ทั้งหมด)</div>
+              <div className="text-muted-foreground"><strong>ประวัติการทำรายการทั้งหมดยังคงอยู่ในระบบ</strong> — ยังตรวจสอบย้อนหลังได้ว่าผู้ใช้เคยรับเข้า/เบิก/PM อะไรบ้าง</div>
+            </div>
           </div>
           <div className="flex justify-end gap-2 pt-2">
             <Button variant="outline" onClick={() => setDeleteDialogOpen(false)} disabled={deleteBusy}>
