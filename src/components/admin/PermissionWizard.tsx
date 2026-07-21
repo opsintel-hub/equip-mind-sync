@@ -206,8 +206,24 @@ export function PermissionWizard({ open, onOpenChange, user, onSaved }: Permissi
 
   const handleSave = async () => {
     if (!user) return;
+    if (!pfFullName.trim()) {
+      toast.error("กรุณากรอกชื่อ-นามสกุล");
+      return;
+    }
     setSaving(true);
     try {
+      // 0. Profile
+      const { error: pfErr } = await supabase
+        .from("profiles")
+        .update({
+          full_name: pfFullName.trim(),
+          display_name: pfDisplayName.trim() || null,
+          phone: pfPhone.trim() || null,
+          department: pfDepartment || null,
+        } as any)
+        .eq("id", user.id);
+      if (pfErr) throw pfErr;
+
       // 1. Roles via RPC
       const { error: roleErr } = await supabase.rpc("save_user_roles" as any, {
         _target_user_id: user.id,
