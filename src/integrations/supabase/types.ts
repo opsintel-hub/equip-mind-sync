@@ -2224,20 +2224,29 @@ export type Database = {
           created_by: string | null
           due_date: string
           equipment_id: string | null
-          from_company_id: string
+          from_company_id: string | null
+          holder_name: string | null
+          holder_user_id: string | null
           id: string
           is_cross_department: boolean
+          issued_at: string | null
+          issued_by: string | null
+          item_kind: string
           loan_date: string
           notes: string | null
+          pm_task_id: string | null
+          purpose: string | null
           quantity: number
           requester_name: string
           requester_phone: string | null
           return_date: string | null
           return_notes: string | null
+          return_required: boolean
           returned_by: string | null
           returned_quantity: number | null
           status: string
-          to_company_id: string
+          to_company_id: string | null
+          tool_id: string | null
           updated_at: string
         }
         Insert: {
@@ -2247,20 +2256,29 @@ export type Database = {
           created_by?: string | null
           due_date: string
           equipment_id?: string | null
-          from_company_id: string
+          from_company_id?: string | null
+          holder_name?: string | null
+          holder_user_id?: string | null
           id?: string
           is_cross_department?: boolean
+          issued_at?: string | null
+          issued_by?: string | null
+          item_kind?: string
           loan_date?: string
           notes?: string | null
+          pm_task_id?: string | null
+          purpose?: string | null
           quantity: number
           requester_name: string
           requester_phone?: string | null
           return_date?: string | null
           return_notes?: string | null
+          return_required?: boolean
           returned_by?: string | null
           returned_quantity?: number | null
           status?: string
-          to_company_id: string
+          to_company_id?: string | null
+          tool_id?: string | null
           updated_at?: string
         }
         Update: {
@@ -2270,20 +2288,29 @@ export type Database = {
           created_by?: string | null
           due_date?: string
           equipment_id?: string | null
-          from_company_id?: string
+          from_company_id?: string | null
+          holder_name?: string | null
+          holder_user_id?: string | null
           id?: string
           is_cross_department?: boolean
+          issued_at?: string | null
+          issued_by?: string | null
+          item_kind?: string
           loan_date?: string
           notes?: string | null
+          pm_task_id?: string | null
+          purpose?: string | null
           quantity?: number
           requester_name?: string
           requester_phone?: string | null
           return_date?: string | null
           return_notes?: string | null
+          return_required?: boolean
           returned_by?: string | null
           returned_quantity?: number | null
           status?: string
-          to_company_id?: string
+          to_company_id?: string | null
+          tool_id?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -2306,6 +2333,13 @@ export type Database = {
             columns: ["to_company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "equipment_loans_tool_id_fkey"
+            columns: ["tool_id"]
+            isOneToOne: false
+            referencedRelation: "tools"
             referencedColumns: ["id"]
           },
         ]
@@ -5928,7 +5962,9 @@ export type Database = {
           name: string
           notes: string | null
           pm_interval_days: number | null
+          requires_approval: boolean
           responsible_person: string | null
+          return_required: boolean
           serial_number: string | null
           supplier_id: string | null
           tool_category_id: string | null
@@ -5960,7 +5996,9 @@ export type Database = {
           name: string
           notes?: string | null
           pm_interval_days?: number | null
+          requires_approval?: boolean
           responsible_person?: string | null
+          return_required?: boolean
           serial_number?: string | null
           supplier_id?: string | null
           tool_category_id?: string | null
@@ -5992,7 +6030,9 @@ export type Database = {
           name?: string
           notes?: string | null
           pm_interval_days?: number | null
+          requires_approval?: boolean
           responsible_person?: string | null
+          return_required?: boolean
           serial_number?: string | null
           supplier_id?: string | null
           tool_category_id?: string | null
@@ -6330,6 +6370,7 @@ export type Database = {
       }
       import_equipment_row: { Args: { p: Json }; Returns: Json }
       import_media_player_row: { Args: { p: Json }; Returns: Json }
+      import_tool_row: { Args: { p: Json }; Returns: Json }
       public_confirm_ad_issue_request: {
         Args: { _receiver_name: string; _token: string }
         Returns: boolean
