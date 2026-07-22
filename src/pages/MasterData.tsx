@@ -55,8 +55,9 @@ const MediaPlayerEntry = lazy(() => import("@/pages/MediaPlayerEntry"));
 
 const MasterData = () => {
   const [refreshKey, setRefreshKey] = useState(0);
-  const { loading: permLoading } = useDepartmentPermissions();
+  const { isAdmin, isSuperAdmin, loading: permLoading } = useDepartmentPermissions();
   const { hasFunctionAccess, loading: fnLoading } = useFunctionPermissions();
+  const canManageTools = isAdmin || isSuperAdmin;
 
   const handleSuccess = () => {
     setRefreshKey((prev) => prev + 1);
@@ -84,6 +85,7 @@ const MasterData = () => {
     ["technicians", can("md_technicians")],
     ["pm_action_types", can("md_pm_action_types")],
     ["media_player", can("md_media_player")],
+    ["ocr_config", isSuperAdmin],
   ];
   const defaultTab = tabOrder.find(([, v]) => v)?.[0] ?? "categories";
 
@@ -178,6 +180,12 @@ const MasterData = () => {
                 จัดการ Media Player
               </TabsTrigger>
             )}
+            {isSuperAdmin && (
+              <TabsTrigger value="ocr_config" className="gap-1.5 text-xs px-3">
+                <Settings2 className="h-3.5 w-3.5" />
+                ตั้งค่า OCR
+              </TabsTrigger>
+            )}
           </TabsList>
 
         </div>
@@ -240,10 +248,12 @@ const MasterData = () => {
                         แก้ไขประเภทการ PM ได้ที่แท็บ "ประเภทการ PM (เครื่องมือ)" ด้านข้าง
                       </p>
                     </div>
-                    <div className="flex gap-2">
-                      <ToolImport onSuccess={handleSuccess} />
-                      <ToolForm onSuccess={handleSuccess} />
-                    </div>
+                    {canManageTools && (
+                      <div className="flex gap-2">
+                        <ToolImport onSuccess={handleSuccess} />
+                        <ToolForm onSuccess={handleSuccess} />
+                      </div>
+                    )}
                   </div>
                 </CardHeader>
                 <CardContent>
