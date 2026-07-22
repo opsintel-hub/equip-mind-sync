@@ -749,20 +749,24 @@ export function POUploadOCR({
                   {buyerMatchStatus === "not_found" && ocrData.buyer_company_name && companies.length > 0 && (
                     <div className="flex flex-wrap items-center gap-2 mt-1 p-2 rounded border border-yellow-200 bg-yellow-50/60">
                       <span className="text-xs text-yellow-800 shrink-0">จำชื่อนี้ ({ocrData.buyer_company_name}) เป็นชื่อแฝงของ:</span>
-                      <Select
-                        onValueChange={(id) => rememberBuyerAlias(id, ocrData.buyer_company_name || "")}
-                      >
-                        <SelectTrigger className="h-8 flex-1 min-w-[200px] text-xs bg-background">
-                          <SelectValue placeholder="— เลือกบริษัทในระบบ —" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {companies.map((c) => (
-                            <SelectItem key={c.id} value={c.id} className="text-xs">
-                              {c.code} — {c.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <div className="flex-1 min-w-[240px]">
+                        <SearchableSelect
+                          value=""
+                          onValueChange={(id) => rememberBuyerAlias(id, ocrData.buyer_company_name || "")}
+                          options={companies.map((c) => ({
+                            value: c.id,
+                            label: `${c.code} — ${c.name}`,
+                            description: (c.aliases && c.aliases.length > 0)
+                              ? `ชื่อแฝง: ${(c.aliases as string[]).join(", ")}`
+                              : undefined,
+                            searchableText: `${c.code} ${c.name} ${(c.aliases || []).join(" ")}`,
+                          }))}
+                          placeholder="— เลือกบริษัทในระบบ —"
+                          searchPlaceholder="ค้นหารหัส / ชื่อ / ชื่อแฝง..."
+                          emptyMessage="ไม่พบบริษัท"
+                          className="h-8 text-xs bg-background"
+                        />
+                      </div>
                       <span className="text-[10px] text-muted-foreground">ครั้งหน้า OCR จะกรอกอัตโนมัติ</span>
                     </div>
                   )}
