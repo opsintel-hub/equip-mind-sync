@@ -753,17 +753,20 @@ export function POUploadOCR({
                         <SearchableSelect
                           value=""
                           onValueChange={(id) => rememberBuyerAlias(id, ocrData.buyer_company_name || "")}
-                          options={companies.map((c) => ({
-                            value: c.id,
-                            label: `${c.code} — ${c.name}`,
-                            description: (c.aliases && c.aliases.length > 0)
-                              ? `ชื่อแฝง: ${(c.aliases as string[]).join(", ")}`
-                              : undefined,
-                            searchableText: `${c.code} ${c.name} ${(c.aliases || []).join(" ")}`,
-                          }))}
+                          initialSearch={ocrData.buyer_company_name || ""}
+                          options={companies.map((c) => {
+                            const aliasList = (c.aliases || []) as string[];
+                            const aliasText = aliasList.length > 0 ? `ชื่อแฝง: ${aliasList.join(", ")}` : "ยังไม่มีชื่อแฝง";
+                            return {
+                              value: c.id,
+                              label: `${c.code} — ${c.name}`,
+                              description: aliasText,
+                              searchableText: `${c.code} ${c.name} ${aliasList.join(" ")}`,
+                            };
+                          })}
                           placeholder="— เลือกบริษัทในระบบ —"
                           searchPlaceholder="ค้นหารหัส / ชื่อ / ชื่อแฝง..."
-                          emptyMessage="ไม่พบบริษัท"
+                          emptyMessage="ไม่พบบริษัท — ลองพิมพ์คำอื่น"
                           className="h-8 text-xs bg-background"
                         />
                       </div>
