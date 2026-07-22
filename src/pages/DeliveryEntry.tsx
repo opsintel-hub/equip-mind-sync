@@ -82,6 +82,7 @@ interface Company {
   code: string;
   name: string;
   department_id: string | null;
+  aliases?: string[] | null;
 }
 interface Supplier {
   id: string;
