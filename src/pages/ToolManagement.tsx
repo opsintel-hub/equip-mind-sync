@@ -66,20 +66,15 @@ const ToolManagement = () => {
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-3">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-bold flex items-center gap-3">
-              <Wrench className="h-7 w-7 sm:h-8 sm:w-8" />
-              จัดการเครื่องมือ
-            </h1>
-            <p className="text-muted-foreground mt-1 text-sm">
-              ฐานข้อมูลเครื่องมือทั้งหมดในระบบ เพิ่ม แก้ไข นำเข้า และส่งออก
-            </p>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <ToolImport onSuccess={handleSuccess} />
-            <ToolForm onSuccess={handleSuccess} />
-          </div>
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-bold flex items-center gap-3">
+            <Wrench className="h-7 w-7 sm:h-8 sm:w-8" />
+            จัดการเครื่องมือ
+          </h1>
+          <p className="text-muted-foreground mt-1 text-sm">
+            ฐานข้อมูลเครื่องมือทั้งหมดในระบบ — สำหรับ <strong>เพิ่ม/นำเข้าเครื่องมือ</strong> ต้องเป็น Admin เท่านั้น ไปที่{" "}
+            <strong>ข้อมูลหลัก → เครื่องมือ → รายการเครื่องมือ</strong>
+          </p>
         </div>
       </div>
 
