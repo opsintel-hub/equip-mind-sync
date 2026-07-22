@@ -364,9 +364,9 @@ export function ToolForm({ onSuccess }: ToolFormProps) {
             {/* Section: แหล่งที่มา & คลัง */}
             <div className="space-y-3 rounded-lg border bg-muted/30 p-4">
               <h3 className="text-sm font-semibold text-primary border-b pb-1">🏢 แหล่งที่มา & คลังจัดเก็บ</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <FormField control={form.control} name="department" render={({ field }) => (
-                  <FormItem>
+                  <FormItem className="min-w-0">
                     <FormLabel>ฝ่าย</FormLabel>
                     <FormControl>
                       <SimpleDepartmentSelect value={field.value || ""} onChange={field.onChange} />
@@ -375,21 +375,21 @@ export function ToolForm({ onSuccess }: ToolFormProps) {
                 )} />
 
                 <FormField control={form.control} name="company_id" render={({ field }) => (
-                  <FormItem>
+                  <FormItem className="min-w-0">
                     <FormLabel>บริษัท</FormLabel>
                     <FormControl><CompanySelect value={field.value || ""} onChange={field.onChange} /></FormControl>
                   </FormItem>
                 )} />
 
                 <FormField control={form.control} name="supplier_id" render={({ field }) => (
-                  <FormItem>
+                  <FormItem className="min-w-0">
                     <FormLabel>ผู้จัดจำหน่าย</FormLabel>
                     <FormControl><SupplierSelect value={field.value || ""} onChange={field.onChange} /></FormControl>
                   </FormItem>
                 )} />
 
                 <FormField control={form.control} name="warehouse_entry_date" render={({ field }) => (
-                  <FormItem>
+                  <FormItem className="min-w-0">
                     <FormLabel>วันที่นำเข้าคลัง *</FormLabel>
                     <FormControl><Input {...field} type="date" /></FormControl>
                     <FormMessage />
