@@ -22,23 +22,53 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Set up auth state listener
+    let isMounted = true;
+
+    // If profile.is_hidden is true, force sign-out (deleted/disabled user)
+    const enforceHiddenGuard = async (uid: string | undefined) => {
+      if (!uid) return;
+      try {
+        const { data } = await supabase
+          .from("profiles")
+          .select("is_hidden")
+          .eq("id", uid)
+          .maybeSingle();
+        if (isMounted && data?.is_hidden) {
+          toast.error("บัญชีนี้ถูกระงับการใช้งาน กรุณาติดต่อผู้ดูแลระบบ");
+          await supabase.auth.signOut();
+          setSession(null);
+          setUser(null);
+        }
+      } catch {
+        /* ignore */
+      }
+    };
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
         setLoading(false);
+        if (session?.user?.id) {
+          // Defer to avoid deadlock inside the auth listener
+          setTimeout(() => enforceHiddenGuard(session.user!.id), 0);
+        }
       }
     );
 
-    // Check for existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
+      if (session?.user?.id) {
+        enforceHiddenGuard(session.user.id);
+      }
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      isMounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   const signIn = async (email: string, password: string) => {
