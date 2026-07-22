@@ -99,6 +99,7 @@ interface Company {
   code: string;
   name: string;
   department_id: string | null;
+  aliases?: string[] | null;
 }
 
 interface MediaPlayer {
@@ -272,11 +273,11 @@ export function POUploadOCR({
       setBuyerMatchStatus("not_found");
       return;
     }
-    const norm = (s: string) => s.toLowerCase().replace(/\s+/g, " ").trim();
+    const norm = (s: string) => s.toLowerCase().replace(/[.,()]/g, " ").replace(/\s+/g, " ").trim();
     const target = norm(companyName);
     const found = companies.find((c) => {
-      const n = norm(c.name);
-      return n.includes(target) || target.includes(n);
+      const names = [c.name, ...((c.aliases || []) as string[])].filter(Boolean).map(norm);
+      return names.some((n) => n === target || n.includes(target) || target.includes(n));
     });
     if (found) {
       setMatchedBuyerCompanyId(found.id);
@@ -287,6 +288,26 @@ export function POUploadOCR({
       setMatchedBuyerCompanyName(companyName);
       setBuyerMatchStatus("not_found");
     }
+  };
+
+  const rememberBuyerAlias = async (companyId: string, alias: string) => {
+    const target = companies.find((c) => c.id === companyId);
+    if (!target || !alias.trim()) return;
+    const existing = (target.aliases || []) as string[];
+    if (existing.some((a) => a.toLowerCase() === alias.trim().toLowerCase())) {
+      toast.info("มี alias นี้อยู่แล้วในระบบ");
+      return;
+    }
+    const next = [...existing, alias.trim()];
+    const { error } = await supabase.from("companies").update({ aliases: next }).eq("id", companyId);
+    if (error) {
+      toast.error("บันทึก alias ไม่สำเร็จ: " + error.message);
+      return;
+    }
+    toast.success(`จำ "${alias.trim()}" → ${target.name} แล้ว ครั้งหน้าจะกรอกอัตโนมัติ`);
+    setMatchedBuyerCompanyId(target.id);
+    setMatchedBuyerCompanyName(target.name);
+    setBuyerMatchStatus("matched");
   };
 
   // Fallback regex parsing from description for fields AI may have missed
