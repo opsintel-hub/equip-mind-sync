@@ -36,6 +36,8 @@ interface SearchableSelectProps {
   className?: string;
   triggerClassName?: string;
   isLoading?: boolean;
+  /** Prefill search input when the popover opens (useful for showing preview matches) */
+  initialSearch?: string;
 }
 
 export function SearchableSelect({
