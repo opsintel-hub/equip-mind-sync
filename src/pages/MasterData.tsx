@@ -244,8 +244,8 @@ const MasterData = () => {
                         จัดการเครื่องมือทั้งหมด พร้อมตั้งค่าการ PM ประจำ
                       </CardDescription>
                       <p className="text-xs text-muted-foreground mt-1 bg-muted/50 p-2 rounded">
-                        💡 <strong>หมายเหตุ:</strong> เครื่องมือที่กำหนด "PM Matrix" จะสร้างงาน PM อัตโนมัติตามรอบวันของแต่ละประเภท —
-                        แก้ไขประเภทการ PM ได้ที่แท็บ "ประเภทการ PM (เครื่องมือ)" ด้านข้าง
+                        💡 <strong>หมายเหตุ:</strong> การ <strong>เพิ่ม/นำเข้าเครื่องมือ</strong> ทำได้เฉพาะ Admin/Super Admin — 
+                        การตั้งค่า PM Matrix แก้ไขประเภทได้ที่แท็บ "ประเภทการ PM (เครื่องมือ)" ด้านข้าง
                       </p>
                     </div>
                     {canManageTools && (
