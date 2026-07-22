@@ -281,7 +281,7 @@ export function ToolEditForm({ tool, open, onOpenChange, onSuccess }: ToolEditFo
               )} />
 
               <FormField control={form.control} name="department" render={({ field }) => (
-                <FormItem>
+                <FormItem className="min-w-0">
                   <FormLabel>ฝ่าย</FormLabel>
                   <FormControl>
                     <SimpleDepartmentSelect value={field.value || ""} onChange={field.onChange} />
@@ -290,21 +290,21 @@ export function ToolEditForm({ tool, open, onOpenChange, onSuccess }: ToolEditFo
               )} />
 
               <FormField control={form.control} name="company_id" render={({ field }) => (
-                <FormItem>
+                <FormItem className="min-w-0">
                   <FormLabel>บริษัท</FormLabel>
                   <FormControl><CompanySelect value={field.value || ""} onChange={field.onChange} /></FormControl>
                 </FormItem>
               )} />
 
               <FormField control={form.control} name="brand" render={({ field }) => (
-                <FormItem>
+                <FormItem className="min-w-0">
                   <FormLabel>ยี่ห้อ</FormLabel>
                   <FormControl><BrandSelect value={field.value || ""} onChange={field.onChange} brandType="tool" /></FormControl>
                 </FormItem>
               )} />
 
               <FormField control={form.control} name="unit" render={({ field }) => (
-                <FormItem>
+                <FormItem className="min-w-0">
                   <FormLabel>หน่วยนับ *</FormLabel>
                   <FormControl><Input {...field} /></FormControl>
                   <FormMessage />
@@ -312,21 +312,21 @@ export function ToolEditForm({ tool, open, onOpenChange, onSuccess }: ToolEditFo
               )} />
 
               <FormField control={form.control} name="serial_number" render={({ field }) => (
-                <FormItem>
+                <FormItem className="min-w-0">
                   <FormLabel>Serial Number</FormLabel>
                   <FormControl><Input {...field} /></FormControl>
                 </FormItem>
               )} />
 
               <FormField control={form.control} name="unit_price" render={({ field }) => (
-                <FormItem>
+                <FormItem className="min-w-0">
                   <FormLabel>ราคาต่อชิ้น (บาท)</FormLabel>
                   <FormControl><Input {...field} type="number" min={0} step="0.01" /></FormControl>
                 </FormItem>
               )} />
 
               <FormField control={form.control} name="supplier_id" render={({ field }) => (
-                <FormItem>
+                <FormItem className="min-w-0">
                   <FormLabel>ผู้จัดจำหน่าย</FormLabel>
                   <FormControl><SupplierSelect value={field.value || ""} onChange={field.onChange} /></FormControl>
                 </FormItem>

@@ -45,8 +45,15 @@ interface Props {
   disabled?: boolean;
 }
 
+/** Sanitize for display/file names — keeps Thai chars for readability. */
 function sanitize(s: string) {
   return s.replace(/[^\w.\-ก-๙]+/g, "_").slice(0, 80);
+}
+
+/** Sanitize for Supabase Storage keys — ASCII-safe only (no spaces, no Thai). */
+function sanitizeKey(s: string) {
+  const cleaned = (s || "").replace(/[^A-Za-z0-9._-]+/g, "_").replace(/^_+|_+$/g, "").slice(0, 80);
+  return cleaned || "unassigned";
 }
 
 function buildFileName(toolCode: string, docType: string, original: string) {
@@ -54,7 +61,8 @@ function buildFileName(toolCode: string, docType: string, original: string) {
   const dotIdx = original.lastIndexOf(".");
   const ext = dotIdx >= 0 ? original.slice(dotIdx) : "";
   const base = dotIdx >= 0 ? original.slice(0, dotIdx) : original;
-  return `${sanitize(toolCode)}_${docType}_${ymd}_${sanitize(base)}${ext.toLowerCase()}`;
+  // File name kept human-readable (Thai allowed) but folder key stays ASCII-safe
+  return `${sanitizeKey(toolCode)}_${docType}_${ymd}_${sanitize(base)}${ext.toLowerCase()}`;
 }
 
 export function ToolDocumentUpload({ toolCode, toolId, value, onChange, disabled }: Props) {
@@ -87,7 +95,8 @@ export function ToolDocumentUpload({ toolCode, toolId, value, onChange, disabled
           continue;
         }
         const finalName = buildFileName(toolCode || "TOOL", pendingType, f.name);
-        const path = `${toolCode || "unassigned"}/${finalName}`;
+        const folder = sanitizeKey(toolCode || "unassigned");
+        const path = `${folder}/${finalName}`;
         const { error: upErr } = await supabase.storage
           .from(BUCKET)
           .upload(path, f, { upsert: false, contentType: f.type });
