@@ -95,7 +95,8 @@ export function ToolDocumentUpload({ toolCode, toolId, value, onChange, disabled
           continue;
         }
         const finalName = buildFileName(toolCode || "TOOL", pendingType, f.name);
-        const path = `${toolCode || "unassigned"}/${finalName}`;
+        const folder = sanitizeKey(toolCode || "unassigned");
+        const path = `${folder}/${finalName}`;
         const { error: upErr } = await supabase.storage
           .from(BUCKET)
           .upload(path, f, { upsert: false, contentType: f.type });
