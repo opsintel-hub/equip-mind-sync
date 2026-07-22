@@ -51,8 +51,14 @@ export function SearchableSelect({
   className,
   triggerClassName,
   isLoading = false,
+  initialSearch,
 }: SearchableSelectProps) {
   const [open, setOpen] = React.useState(false);
+  const [search, setSearch] = React.useState(initialSearch ?? "");
+
+  React.useEffect(() => {
+    if (open) setSearch(initialSearch ?? "");
+  }, [open, initialSearch]);
 
   const selectedOption = options.find((option) => option.value === value);
 
