@@ -93,10 +93,12 @@ export function SearchableSelect({
         onWheel={(e) => e.stopPropagation()}
         onTouchMove={(e) => e.stopPropagation()}
       >
-        <Command>
+        <Command shouldFilter={true}>
           <CommandInput 
             placeholder={searchPlaceholder} 
             className="h-9"
+            value={search}
+            onValueChange={setSearch}
           />
           <CommandList className="max-h-60">
             <CommandEmpty>{emptyMessage}</CommandEmpty>
