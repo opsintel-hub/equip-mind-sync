@@ -82,6 +82,7 @@ interface Company {
   code: string;
   name: string;
   department_id: string | null;
+  aliases?: string[] | null;
 }
 interface Supplier {
   id: string;
@@ -399,7 +400,7 @@ const DeliveryEntry = () => {
   const fetchCompanies = async () => {
     const { data, error } = await supabase
       .from("companies")
-      .select("id, code, name, department_id")
+      .select("id, code, name, department_id, aliases")
       .eq("is_active", true)
       .order("code");
     if (!error && data) {

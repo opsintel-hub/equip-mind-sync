@@ -44,6 +44,7 @@ export function CompanyList({ refresh }: CompanyListProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [deleteCompany, setDeleteCompany] = useState<CompanyData | null>(null);
   const [showHidden, setShowHidden] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
 
   useEffect(() => {
     fetchCompanies();
@@ -134,15 +135,36 @@ export function CompanyList({ refresh }: CompanyListProps) {
   }
 
   const hiddenCount = companies.filter((c) => c.is_hidden).length;
-  const visibleCompanies = showHidden ? companies : companies.filter((c) => !c.is_hidden);
+  const term = searchTerm.trim().toLowerCase();
+  const visibleCompanies = (showHidden ? companies : companies.filter((c) => !c.is_hidden)).filter((c) => {
+    if (!term) return true;
+    return (
+      (c.code || "").toLowerCase().includes(term) ||
+      (c.name || "").toLowerCase().includes(term) ||
+      (c.description || "").toLowerCase().includes(term) ||
+      (c.departments?.name || "").toLowerCase().includes(term)
+    );
+  });
 
   return (
     <>
-      <div className="flex items-center justify-end gap-2 mb-3">
-        <Label htmlFor="show-hidden" className="text-sm text-muted-foreground">
-          แสดงบริษัทที่ซ่อน ({hiddenCount})
-        </Label>
-        <Switch id="show-hidden" checked={showHidden} onCheckedChange={setShowHidden} />
+      <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-3">
+        <input
+          type="search"
+          placeholder="ค้นหา รหัส / ชื่อบริษัท / ฝ่าย / รายละเอียด..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="flex-1 h-9 px-3 rounded-md border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+        />
+        <div className="text-xs text-muted-foreground whitespace-nowrap">
+          พบ {visibleCompanies.length} / {companies.length} รายการ
+        </div>
+        <div className="flex items-center gap-2">
+          <Label htmlFor="show-hidden" className="text-sm text-muted-foreground">
+            แสดงบริษัทที่ซ่อน ({hiddenCount})
+          </Label>
+          <Switch id="show-hidden" checked={showHidden} onCheckedChange={setShowHidden} />
+        </div>
       </div>
       <Table>
         <TableHeader>

@@ -3,7 +3,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useDepartmentPermissions } from "@/hooks/useDepartmentPermissions";
 import { useFunctionPermissions } from "@/hooks/useFunctionPermissions";
-import { Package, MapPin, Truck, Warehouse, Building2, Target, Building, Wrench, PackageOpen, HardHat, Layers, FolderTree, Zap, Users, Monitor, Database } from "lucide-react";
+import { Package, MapPin, Truck, Warehouse, Building2, Target, Building, Wrench, PackageOpen, HardHat, Layers, FolderTree, Zap, Users, Monitor, Database, Settings2 } from "lucide-react";
+import { OCRConfigManager } from "@/components/admin/OCRConfigManager";
 
 import { PMActionTypeList } from "@/components/pm/PMActionTypeList";
 import { PMActionTypeForm } from "@/components/pm/PMActionTypeForm";
@@ -54,8 +55,9 @@ const MediaPlayerEntry = lazy(() => import("@/pages/MediaPlayerEntry"));
 
 const MasterData = () => {
   const [refreshKey, setRefreshKey] = useState(0);
-  const { loading: permLoading } = useDepartmentPermissions();
+  const { isAdmin, isSuperAdmin, loading: permLoading } = useDepartmentPermissions();
   const { hasFunctionAccess, loading: fnLoading } = useFunctionPermissions();
+  const canManageTools = isAdmin || isSuperAdmin;
 
   const handleSuccess = () => {
     setRefreshKey((prev) => prev + 1);
@@ -83,6 +85,7 @@ const MasterData = () => {
     ["technicians", can("md_technicians")],
     ["pm_action_types", can("md_pm_action_types")],
     ["media_player", can("md_media_player")],
+    ["ocr_config", isSuperAdmin],
   ];
   const defaultTab = tabOrder.find(([, v]) => v)?.[0] ?? "categories";
 
@@ -177,6 +180,12 @@ const MasterData = () => {
                 จัดการ Media Player
               </TabsTrigger>
             )}
+            {isSuperAdmin && (
+              <TabsTrigger value="ocr_config" className="gap-1.5 text-xs px-3">
+                <Settings2 className="h-3.5 w-3.5" />
+                ตั้งค่า OCR
+              </TabsTrigger>
+            )}
           </TabsList>
 
         </div>
@@ -235,14 +244,16 @@ const MasterData = () => {
                         จัดการเครื่องมือทั้งหมด พร้อมตั้งค่าการ PM ประจำ
                       </CardDescription>
                       <p className="text-xs text-muted-foreground mt-1 bg-muted/50 p-2 rounded">
-                        💡 <strong>หมายเหตุ:</strong> เครื่องมือที่กำหนด "PM Matrix" จะสร้างงาน PM อัตโนมัติตามรอบวันของแต่ละประเภท —
-                        แก้ไขประเภทการ PM ได้ที่แท็บ "ประเภทการ PM (เครื่องมือ)" ด้านข้าง
+                        💡 <strong>หมายเหตุ:</strong> การ <strong>เพิ่ม/นำเข้าเครื่องมือ</strong> ทำได้เฉพาะ Admin/Super Admin — 
+                        การตั้งค่า PM Matrix แก้ไขประเภทได้ที่แท็บ "ประเภทการ PM (เครื่องมือ)" ด้านข้าง
                       </p>
                     </div>
-                    <div className="flex gap-2">
-                      <ToolImport onSuccess={handleSuccess} />
-                      <ToolForm onSuccess={handleSuccess} />
-                    </div>
+                    {canManageTools && (
+                      <div className="flex gap-2">
+                        <ToolImport onSuccess={handleSuccess} />
+                        <ToolForm onSuccess={handleSuccess} />
+                      </div>
+                    )}
                   </div>
                 </CardHeader>
                 <CardContent>
@@ -580,6 +591,13 @@ const MasterData = () => {
 
         </TabsContent>
         )}
+
+        {isSuperAdmin && (
+        <TabsContent value="ocr_config" className="space-y-4">
+          <OCRConfigManager />
+        </TabsContent>
+        )}
+
 
       </Tabs>
     </div>
