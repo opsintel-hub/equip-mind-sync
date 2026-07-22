@@ -592,6 +592,13 @@ const MasterData = () => {
         </TabsContent>
         )}
 
+        {isSuperAdmin && (
+        <TabsContent value="ocr_config" className="space-y-4">
+          <OCRConfigManager />
+        </TabsContent>
+        )}
+
+
       </Tabs>
     </div>
   );
