@@ -1323,6 +1323,7 @@ export type Database = {
       }
       companies: {
         Row: {
+          aliases: string[]
           code: string
           created_at: string
           created_by: string | null
@@ -1335,6 +1336,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          aliases?: string[]
           code: string
           created_at?: string
           created_by?: string | null
@@ -1347,6 +1349,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          aliases?: string[]
           code?: string
           created_at?: string
           created_by?: string | null
