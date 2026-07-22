@@ -1,55 +1,63 @@
+# แผนปรับปรุง 5 ประเด็น
 
-## 1. แสดงฝ่ายที่ผู้ใช้มีสิทธิ์ + Auto-fill (ใช้ทั่วทั้งระบบ)
+## 1) ยุบปุ่ม Import Excel / เพิ่มเครื่องมือ ให้เหลือที่เดียว (เฉพาะ Admin)
 
-**ปรับ `src/components/equipment/SimpleDepartmentSelect.tsx`:**
-- ถ้าผู้ใช้มีสิทธิ์ **1 ฝ่าย** → Auto-fill + disable (มีอยู่แล้ว) แต่เพิ่ม badge เขียว "✓ ฝ่ายของคุณ" ใต้ช่องให้ผู้ใช้เห็น
-- ถ้าผู้ใช้มีสิทธิ์ **หลายฝ่าย** → dropdown แสดงเฉพาะฝ่ายที่มีสิทธิ์ (มีอยู่แล้ว) + เพิ่มแถวเล็ก ๆ ใต้ช่องเป็น badge แสดง "สิทธิ์ของคุณ: [ฝ่าย A] [ฝ่าย B] ..." คลิกที่ badge ได้เพื่อเลือกเร็ว
-- ถ้าเป็น Super Admin → แสดงทุกฝ่ายตามปกติ พร้อม badge "Super Admin — เห็นทุกฝ่าย"
+**เป้าหมาย:** ปุ่มอยู่แค่ที่ `ข้อมูลหลัก > เครื่องมือ > รายการเครื่องมือ` และ**เห็นเฉพาะ Admin/Super Admin**
 
-เนื่องจากเมนูอื่น ๆ (Equipment, Media Player, Delivery, Loan, ฯลฯ) ใช้ `SimpleDepartmentSelect` ตัวเดียวกันอยู่แล้ว → แก้ที่เดียวจบทุกเมนู ไม่ต้องไล่แก้รายไฟล์
+- `src/pages/ToolManagement.tsx` — ลบ/ซ่อนปุ่ม `Import Excel` และ `+ เพิ่มเครื่องมือ` ที่ header หน้าจัดการเครื่องมือ (ภาพที่ 1)
+- `src/pages/MasterData.tsx` sub-tab "รายการเครื่องมือ" — ห่อ 2 ปุ่มด้วยการเช็คสิทธิ์: แสดงเมื่อ `isSuperAdmin || hasRole('admin')` เท่านั้น (ใช้ `useIsSuperAdmin` + query `user_roles`)
+- Route `/setup/import-tools` — คงไว้แต่ป้องกันด้วย role check ที่ตัว page (redirect ถ้าไม่ใช่ admin)
+- ปรับข้อความ empty state ใน `ToolList.tsx` ให้ชี้ว่า "ติดต่อ Admin เพื่อเพิ่มเครื่องมือ" สำหรับ user ทั่วไป
 
-## 2. Cascade คลังสินค้า & ตำแหน่งจัดเก็บตามฝ่ายที่เลือก
+## 2) ผู้ใช้ที่ถูกลบยังเข้าระบบได้ — ตรวจสอบทั้งลูป
 
-**ปรับ `src/components/location/WarehouseLocationSelect.tsx`:**
-- รับ prop `department` (มีอยู่แล้วในบางเมนู) — ในหน้า "เพิ่มเครื่องมือ" ยังไม่ส่ง prop นี้ ต้องเพิ่มเข้าไป
-- Filter `warehouses` ให้แสดงเฉพาะที่อยู่ในฝ่ายนั้น ๆ (ผ่าน `warehouses.department` หรือ join ผ่าน department)
-- เมื่อยังไม่เลือกฝ่าย → disabled + hint "กรุณาเลือกฝ่ายก่อน"
-- เมื่อเปลี่ยนฝ่าย → reset warehouse/location เพื่อกันข้อมูลไขว้
+**การตรวจสอบก่อนแก้:**
+- อ่าน edge function `delete-user` เพื่อยืนยันว่าเรียก `auth.admin.deleteUser()` หรือแค่ตั้ง flag ใน profiles
+- ตรวจ `profiles` schema หา column เช่น `is_deleted` / `is_active` / `banned_until`
+- ตรวจ session guard ที่ `ProtectedRoute.tsx` และ `useAuth.tsx`
 
-**ปรับ `ToolForm.tsx`:** ส่ง `department={form.watch("department")}` เข้า `WarehouseLocationSelect` และ reset location เมื่อฝ่ายเปลี่ยน (ใช้ pattern เดียวกันในหน้าอื่นถ้ายังไม่ได้ทำ)
+**แนวทางแก้ (จะยืนยันหลังตรวจ):**
+- ถ้า edge function ยังไม่ได้ `deleteUser` จริง → เพิ่มการ ban ผู้ใช้ (`banned_until = 'infinity'`) + revoke sessions (`auth.admin.signOut(userId, 'global')`)
+- เพิ่ม guard ที่ `ProtectedRoute`: หลัง `getUser()` เช็ค `profiles.is_deleted` ถ้า true → `supabase.auth.signOut()` + redirect `/login`
+- เพิ่ม RLS/trigger บน `profiles` เพื่อกัน re-activate
 
-## 3. แก้ Layout ล้น (ผู้จัดจำหน่าย)
+## 3) ย้าย Tab "ตั้งค่า OCR" ออกจากหน้าจัดการผู้ใช้ → ไปเป็น sub-tab ท้าย tabs ในหน้า `ข้อมูลหลัก`
 
-**ปรับใน `ToolForm.tsx` section "แหล่งที่มา & คลังจัดเก็บ":**
-- เพิ่ม `min-w-0` ให้ทุก `FormItem` ใน grid เพื่อให้ text ยาว ๆ (เช่น "004222 - บริษัท 320 เอสพี จำกัด") ตัดเป็น `truncate` แทนที่จะดันขอบขวาออก
-- ปรับ `SupplierSelect` / `CompanySelect` trigger ให้ใส่ `w-full min-w-0` + `<span className="truncate">` รอบค่าที่แสดง
-- เปลี่ยน grid จาก `md:grid-cols-2 lg:grid-cols-3` เป็น `md:grid-cols-2` เพื่อให้แต่ละช่องกว้างพอ (หน้า tool form ใช้ dialog `max-w-4xl`)
-- ลบช่อง "วันหมดอายุ" (`expiry_date`) ที่ผู้ใช้บอกไม่ได้ใช้ ออกจาก form ทั้ง Add + Edit
+- `src/pages/Admin.tsx` — ลบ tab "ตั้งค่า OCR" และปุ่มลัด (ภาพที่ 4)
+- `src/pages/MasterData.tsx` — เพิ่ม tab ใหม่ต่อจาก "จัดการ Media Player" ชื่อ `ตั้งค่า OCR` ที่ render `<OCRConfigManager />` (ภาพที่ 5)
+- สิทธิ์: จำกัด tab นี้ให้เห็นเฉพาะ Admin/Super Admin
 
-## 4. แก้ Upload เอกสารล้มเหลว — "Invalid key"
+## 4) เพิ่มช่องค้นหาบริษัท (ภาพที่ 6)
 
-**สาเหตุ (ยืนยันจากภาพ error):** ข้อความ error คือ `Invalid key: TL 0002/TL_0002_...` — path มี **ช่องว่างในโฟลเดอร์** (`TL 0002`) เพราะรหัสเครื่องมือบางตัวมีช่องว่าง เช่น `TL 0002`, `PB_PO25010229` ก็อาจมีอักขระอื่นที่ Supabase Storage ไม่ยอมรับใน bucket key
+- `src/components/company/CompanyList.tsx` — เพิ่ม `<Input>` ค้นหาด้านบนตาราง filter ตาม: ชื่อบริษัท, รหัส, ฝ่าย (client-side substring, case-insensitive)
+- คงปุ่ม `แสดงบริษัทที่ซ่อน` + `+ เพิ่มบริษัท` ไว้ที่เดิม
 
-**ใน `src/components/tools/ToolDocumentUpload.tsx`:**
-- Sanitize `toolCode` ก่อนใช้เป็น folder: `sanitize(toolCode)` ทั้งใน `path = ${sanitize(toolCode)}/${finalName}` และใน `buildFileName`
-- ขยาย `sanitize()` ให้ครอบคลุมทุกอักขระที่ Supabase Storage รับ (แทนช่องว่าง + Unicode พิเศษด้วย `_`) — ใช้ regex `[^A-Za-z0-9._\-]+` (เอา `ก-๙` ออกจาก path เพราะ Thai ในโฟลเดอร์ก็เสี่ยง) แต่ยังคงชื่อไฟล์อ่านออก
-- เพิ่ม fallback: ถ้า `toolCode` ว่างหรือ sanitize แล้วว่าง → ใช้ `unassigned`
-- ทำ retry-safe: ถ้า upload error → toast error พร้อมชื่อไฟล์และเหตุผลเดิม (มีอยู่แล้ว) และไม่ insert DB row
+## 5) OCR: ชื่อบริษัทในไฟล์เป็นภาษาอังกฤษ แต่ใน DB เป็นไทย
 
-**ทำไมบางคน upload ได้ บางคนไม่ได้:** เพราะขึ้นกับรหัสเครื่องมือของ tool ที่เขาแนบ — ถ้ารหัสไม่มีช่องว่าง/อักขระพิเศษก็ผ่าน ถ้ามีจะพัง หลังแก้ sanitize จะรองรับได้ทุกกรณี
+**สภาพจริง:** PO ที่แนบ (`PO26070022_เอ็มบีเอ.pdf`) มี supplier เป็นชื่อภาษาอังกฤษ ขณะที่ `companies.name` ใน DB เป็นภาษาไทย → fuzzy match ปัจจุบันหาไม่เจอ
 
-**Migration เล็ก:** สแกน `tool_documents` เก่าที่ `file_path` มีช่องว่าง — แค่รายงาน ไม่ย้ายไฟล์ (ไฟล์เก่าที่ upload สำเร็จแล้วยังเข้าถึงได้ผ่าน signed URL) ถ้าพบมีเยอะ ค่อยเสนอ script ย้าย
+**ทางเลือก (3 วิธี):**
 
-## 5. การค้นหาเอกสาร
+| # | วิธี | ข้อดี | ข้อเสีย |
+|---|---|---|---|
+| A | เพิ่มคอลัมน์ `name_en` / `aliases` (jsonb) ใน `companies` และให้ OCR match ทั้งไทย+อังกฤษ+alias | ยืดหยุ่นที่สุด รองรับหลายชื่อ/ตัวย่อ/พิมพ์ผิด | ต้องกรอกข้อมูล alias เอง (แต่ทำครั้งเดียว) |
+| B | ใช้ AI (Lovable AI) เรียกใน edge function `ocr-purchase-order` ให้แปล/แม็พชื่อ EN→รายการบริษัทไทยใน DB ด้วย embedding หรือ prompt matching | ไม่ต้องกรอก alias มือ | ใช้เครดิต AI ทุกครั้ง, ความแม่นยำขึ้นกับ prompt |
+| C | Manual dropdown fallback ใน UI OCR — ถ้า match ไม่ได้ ให้ user เลือกเอง + ปุ่ม "จำ mapping นี้" (บันทึกลง alias) | ง่ายที่สุด, เรียนรู้เพิ่มขึ้นเรื่อยๆ | ครั้งแรก user ต้องเลือกเองทุกบริษัทใหม่ |
 
-หลังแก้ข้อ 4 การค้นหาในหน้า `ToolList` (ที่ค้นด้วยชื่อไฟล์/รหัสเครื่องมือ/ประเภทเอกสาร) จะ match ได้ถูกต้อง เพราะ `file_name` ที่เก็บใน DB จะสอดคล้องกับ pattern `{รหัสสะอาด}_{ประเภท}_{YYYYMMDD}_{ชื่อเดิม}` ทุกไฟล์ — ไม่ต้องแก้ logic ค้นหาเพิ่ม
+**แนะนำ: A + C ผสมกัน**
+- เพิ่ม `companies.aliases text[]` (หรือ `name_en text`) — migration เดียว
+- Import ครั้งแรก: seed alias อังกฤษให้บริษัทหลักด้วยตาราง mapping ที่มีอยู่ (หรือให้ user กรอกใน company edit dialog)
+- OCR: match ตาม `name` OR `aliases` (case-insensitive, substring/token overlap)
+- ถ้ายัง match ไม่ได้ → dropdown fallback + ปุ่ม "จำชื่อนี้เป็น alias ของบริษัท X" (auto-append เข้า `aliases`) → ครั้งต่อไป match อัตโนมัติ
+- **ประหยัดเครดิตกว่า B** และแม่นยำขึ้นเรื่อยๆ
 
-## ไฟล์ที่จะแก้
+## ขั้นตอนดำเนินการ
 
-- `src/components/equipment/SimpleDepartmentSelect.tsx` — badges + hint
-- `src/components/location/WarehouseLocationSelect.tsx` — filter by department + disabled state
-- `src/components/tools/ToolForm.tsx` — ส่ง department prop, ลบ expiry_date, min-w-0, grid ปรับ
-- `src/components/tools/ToolEditForm.tsx` — เช่นเดียวกัน (ลบ expiry_date + cascade)
-- `src/components/tools/ToolDocumentUpload.tsx` — sanitize path + folder
+1. อ่านโค้ดยืนยัน: `Admin.tsx`, `MasterData.tsx`, `ToolManagement.tsx`, `CompanyList.tsx`, `ProtectedRoute.tsx`, `useAuth.tsx`, `delete-user/index.ts`, schema `profiles` + `companies`
+2. Migration: `companies.aliases text[]` + (ถ้าจำเป็น) `profiles.is_deleted boolean`
+3. แก้โค้ดตามข้อ 1–5
+4. Verify: build, ทดสอบ flow ลบ user แล้ว login ไม่ได้, OCR match ผ่าน alias
 
-ไม่แตะ schema, ไม่ migration.
+## คำถามยืนยัน
+
+- ข้อ 5: ยืนยันเลือกแนวทาง **A + C** (alias + manual learn) ใช่ไหม? หรืออยากลอง B (AI matching) ด้วย?
