@@ -1,19 +1,14 @@
 import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { Shield, Users, Settings2, Grid3x3, LayoutList } from "lucide-react";
+import { Shield, Grid3x3, LayoutList } from "lucide-react";
 import { useDepartmentPermissions } from "@/hooks/useDepartmentPermissions";
 import { UserPermissionManager } from "@/components/admin/UserPermissionManager";
 import { PermissionMatrix } from "@/components/admin/PermissionMatrix";
-import { OCRConfigManager } from "@/components/admin/OCRConfigManager";
-
-
 
 const Admin = () => {
-  const { isAdmin, isSuperAdmin, loading: permLoading } = useDepartmentPermissions();
+  const { isAdmin, loading: permLoading } = useDepartmentPermissions();
   const [viewMode, setViewMode] = useState<"card" | "matrix">("card");
-
 
   if (permLoading) {
     return <div className="flex items-center justify-center h-screen">กำลังโหลด...</div>;
@@ -45,52 +40,34 @@ const Admin = () => {
         </p>
       </div>
 
-      <Tabs defaultValue="users" className="space-y-4">
-        <TabsList className={`grid w-full lg:w-auto lg:inline-grid ${isSuperAdmin ? 'grid-cols-2 lg:grid-cols-2' : 'grid-cols-1 lg:grid-cols-1'}`}>
-          <TabsTrigger value="users" className="flex items-center gap-2">
-            <Users className="h-4 w-4" />
-            จัดการผู้ใช้
-          </TabsTrigger>
-          {isSuperAdmin && (
-            <TabsTrigger value="ocr-config" className="flex items-center gap-2">
-              <Settings2 className="h-4 w-4" />
-              ตั้งค่า OCR
-            </TabsTrigger>
-          )}
-        </TabsList>
-
-        <TabsContent value="users" className="space-y-4">
-          <div className="flex items-center justify-between flex-wrap gap-3">
-            <div className="text-sm text-muted-foreground">
-              {viewMode === "card"
-                ? "มุมมองรายผู้ใช้ — แก้โปรไฟล์/บทบาท/สิทธิ์ที่ปุ่ม ✨ Wizard (มีปุ่ม 'ดูคำอธิบาย' บทบาท/ฟังก์ชันในหน้าต่างเดียวกัน)"
-                : "มุมมอง Matrix — ปรับสิทธิ์ Function หลายคนพร้อมกันแบบ Bulk พร้อม Apply Preset"}
-            </div>
-            <ToggleGroup
-              type="single"
-              value={viewMode}
-              onValueChange={(v) => v && setViewMode(v as "card" | "matrix")}
-              className="border rounded-md"
-            >
-              <ToggleGroupItem value="card" aria-label="Card view" className="gap-2">
-                <LayoutList className="h-4 w-4" />
-                รายการผู้ใช้
-              </ToggleGroupItem>
-              <ToggleGroupItem value="matrix" aria-label="Matrix view" className="gap-2">
-                <Grid3x3 className="h-4 w-4" />
-                Matrix สิทธิ์
-              </ToggleGroupItem>
-            </ToggleGroup>
+      <div className="space-y-4">
+        <div className="flex items-center justify-between flex-wrap gap-3">
+          <div className="text-sm text-muted-foreground">
+            {viewMode === "card"
+              ? "มุมมองรายผู้ใช้ — แก้โปรไฟล์/บทบาท/สิทธิ์ที่ปุ่ม ✨ Wizard (มีปุ่ม 'ดูคำอธิบาย' บทบาท/ฟังก์ชันในหน้าต่างเดียวกัน)"
+              : "มุมมอง Matrix — ปรับสิทธิ์ Function หลายคนพร้อมกันแบบ Bulk พร้อม Apply Preset"}
           </div>
-          {viewMode === "card" ? <UserPermissionManager /> : <PermissionMatrix />}
-        </TabsContent>
-
-        {isSuperAdmin && (
-          <TabsContent value="ocr-config" className="space-y-4">
-            <OCRConfigManager />
-          </TabsContent>
-        )}
-      </Tabs>
+          <ToggleGroup
+            type="single"
+            value={viewMode}
+            onValueChange={(v) => v && setViewMode(v as "card" | "matrix")}
+            className="border rounded-md"
+          >
+            <ToggleGroupItem value="card" aria-label="Card view" className="gap-2">
+              <LayoutList className="h-4 w-4" />
+              รายการผู้ใช้
+            </ToggleGroupItem>
+            <ToggleGroupItem value="matrix" aria-label="Matrix view" className="gap-2">
+              <Grid3x3 className="h-4 w-4" />
+              Matrix สิทธิ์
+            </ToggleGroupItem>
+          </ToggleGroup>
+        </div>
+        {viewMode === "card" ? <UserPermissionManager /> : <PermissionMatrix />}
+        <p className="text-xs text-muted-foreground bg-muted/50 p-2 rounded">
+          💡 <strong>ตั้งค่า OCR:</strong> ย้ายไปที่ <strong>ข้อมูลหลัก → แท็บ "ตั้งค่า OCR"</strong> (ท้ายสุด)
+        </p>
+      </div>
     </div>
   );
 };
