@@ -36,6 +36,8 @@ interface SearchableSelectProps {
   className?: string;
   triggerClassName?: string;
   isLoading?: boolean;
+  /** Prefill search input when the popover opens (useful for showing preview matches) */
+  initialSearch?: string;
 }
 
 export function SearchableSelect({
@@ -49,8 +51,14 @@ export function SearchableSelect({
   className,
   triggerClassName,
   isLoading = false,
+  initialSearch,
 }: SearchableSelectProps) {
   const [open, setOpen] = React.useState(false);
+  const [search, setSearch] = React.useState(initialSearch ?? "");
+
+  React.useEffect(() => {
+    if (open) setSearch(initialSearch ?? "");
+  }, [open, initialSearch]);
 
   const selectedOption = options.find((option) => option.value === value);
 
@@ -85,10 +93,12 @@ export function SearchableSelect({
         onWheel={(e) => e.stopPropagation()}
         onTouchMove={(e) => e.stopPropagation()}
       >
-        <Command>
+        <Command shouldFilter={true}>
           <CommandInput 
             placeholder={searchPlaceholder} 
             className="h-9"
+            value={search}
+            onValueChange={setSearch}
           />
           <CommandList className="max-h-60">
             <CommandEmpty>{emptyMessage}</CommandEmpty>
