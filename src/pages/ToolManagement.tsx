@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Wrench, Package, AlertTriangle, Shield, Users } from "lucide-react";
 import { ToolList } from "@/components/tools/ToolList";
-import { ToolList } from "@/components/tools/ToolList";
 import { supabase } from "@/integrations/supabase/client";
 import { useDeptScope } from "@/hooks/useDeptScope";
 
