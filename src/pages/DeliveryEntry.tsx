@@ -399,7 +399,7 @@ const DeliveryEntry = () => {
   const fetchCompanies = async () => {
     const { data, error } = await supabase
       .from("companies")
-      .select("id, code, name, department_id")
+      .select("id, code, name, department_id, aliases")
       .eq("is_active", true)
       .order("code");
     if (!error && data) {
