@@ -307,6 +307,19 @@ export function ToolList({ refreshKey }: ToolListProps) {
             ? "ไม่พบเครื่องมือที่ตรงกับเงื่อนไข"
             : "ยังไม่มีเครื่องมือในระบบ — กด 'เพิ่มเครื่องมือ' หรือ 'Import Excel' เพื่อเริ่มต้น"}
         </div>
+      ) : viewMode === "calendar" ? (
+        <ToolCalendarBlock tools={filteredTools} onOpenTool={(id) => {
+          const t = filteredTools.find(x => x.id === id);
+          if (t) setEditTool(t);
+        }} />
+      ) : viewMode === "card" ? (
+        <>
+          <ToolCardBlock tools={paginatedTools} onOpenTool={(id) => {
+            const t = paginatedTools.find(x => x.id === id);
+            if (t) setEditTool(t);
+          }} />
+          <TablePagination currentPage={currentPage} totalPages={totalPages} totalItems={totalItems} pageSize={pageSize} onPageChange={handlePageChange} onPageSizeChange={handlePageSizeChange} />
+        </>
       ) : (
         <>
           {/* Mobile card view */}
