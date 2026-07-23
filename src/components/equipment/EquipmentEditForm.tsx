@@ -54,6 +54,8 @@ const equipmentSchema = z.object({
   watt: z.number().optional().nullable(),
   lumen: z.number().optional().nullable(),
   lux: z.number().optional().nullable(),
+  is_consumable: z.boolean().optional(),
+  return_policy_note: z.string().max(300, "หมายเหตุต้องไม่เกิน 300 ตัวอักษร").optional().nullable(),
 });
 
 type EquipmentFormValues = z.infer<typeof equipmentSchema>;
