@@ -108,6 +108,7 @@ export default function InventoryReport() {
   const [compatBillboardId, setCompatBillboardId] = useState<string>("");
   const { isSuperAdmin, viewableDepts, deptKey } = useDeptScope();
   const scopeDepts = isSuperAdmin ? null : ((viewableDepts && viewableDepts.length > 0) ? viewableDepts : ["__no_dept_permission__"]);
+  const [viewMode, setViewMode] = useViewMode("inventory-report", "table");
 
   // Pagination is handled by useTablePagination below
 
