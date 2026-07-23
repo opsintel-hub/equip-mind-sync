@@ -1,14 +1,18 @@
 import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { Shield, Grid3x3, LayoutList } from "lucide-react";
+import { Shield, Grid3x3, LayoutList, BookOpen } from "lucide-react";
 import { useDepartmentPermissions } from "@/hooks/useDepartmentPermissions";
 import { UserPermissionManager } from "@/components/admin/UserPermissionManager";
 import { PermissionMatrix } from "@/components/admin/PermissionMatrix";
+import { RoleDescriptions } from "@/components/admin/RoleDescriptions";
+import { FunctionDescriptions } from "@/components/admin/FunctionDescriptions";
+import { useIsSuperAdmin } from "@/hooks/useIsSuperAdmin";
 
 const Admin = () => {
   const { isAdmin, loading: permLoading } = useDepartmentPermissions();
-  const [viewMode, setViewMode] = useState<"card" | "matrix">("card");
+  const { isSuperAdmin } = useIsSuperAdmin();
+  const [viewMode, setViewMode] = useState<"card" | "matrix" | "guide">("card");
 
   if (permLoading) {
     return <div className="flex items-center justify-center h-screen">กำลังโหลด...</div>;
@@ -43,14 +47,16 @@ const Admin = () => {
       <div className="space-y-4">
         <div className="flex items-center justify-between flex-wrap gap-3">
           <div className="text-sm text-muted-foreground">
-            {viewMode === "card"
-              ? "มุมมองรายผู้ใช้ — แก้โปรไฟล์/บทบาท/สิทธิ์ที่ปุ่ม ✨ Wizard (มีปุ่ม 'ดูคำอธิบาย' บทบาท/ฟังก์ชันในหน้าต่างเดียวกัน)"
-              : "มุมมอง Matrix — ปรับสิทธิ์ Function หลายคนพร้อมกันแบบ Bulk พร้อม Apply Preset"}
+            {viewMode === "card" && "มุมมองรายผู้ใช้ — แก้โปรไฟล์/บทบาท/สิทธิ์ที่ปุ่ม ✨ Wizard"}
+            {viewMode === "matrix" && "มุมมอง Matrix — ปรับสิทธิ์ Function หลายคนพร้อมกันแบบ Bulk พร้อม Apply Preset"}
+            {viewMode === "guide" && (isSuperAdmin
+              ? "แนวทางสิทธิ์ (Roles & Functions) — Super Admin แก้ไข/เพิ่ม/ลบรายการในคู่มือได้ที่ปุ่มดินสอ/ถังขยะ"
+              : "แนวทางสิทธิ์ (Roles & Functions) — เฉพาะ Super Admin เท่านั้นที่แก้ไขได้")}
           </div>
           <ToggleGroup
             type="single"
             value={viewMode}
-            onValueChange={(v) => v && setViewMode(v as "card" | "matrix")}
+            onValueChange={(v) => v && setViewMode(v as "card" | "matrix" | "guide")}
             className="border rounded-md"
           >
             <ToggleGroupItem value="card" aria-label="Card view" className="gap-2">
@@ -61,9 +67,20 @@ const Admin = () => {
               <Grid3x3 className="h-4 w-4" />
               Matrix สิทธิ์
             </ToggleGroupItem>
+            <ToggleGroupItem value="guide" aria-label="Guide view" className="gap-2">
+              <BookOpen className="h-4 w-4" />
+              แนวทางสิทธิ์
+            </ToggleGroupItem>
           </ToggleGroup>
         </div>
-        {viewMode === "card" ? <UserPermissionManager /> : <PermissionMatrix />}
+        {viewMode === "card" && <UserPermissionManager />}
+        {viewMode === "matrix" && <PermissionMatrix />}
+        {viewMode === "guide" && (
+          <div className="grid gap-6 lg:grid-cols-2">
+            <RoleDescriptions />
+            <FunctionDescriptions />
+          </div>
+        )}
         <p className="text-xs text-muted-foreground bg-muted/50 p-2 rounded">
           💡 <strong>ตั้งค่า OCR:</strong> ย้ายไปที่ <strong>ข้อมูลหลัก → แท็บ "ตั้งค่า OCR"</strong> (ท้ายสุด)
         </p>
@@ -73,3 +90,4 @@ const Admin = () => {
 };
 
 export default Admin;
+
