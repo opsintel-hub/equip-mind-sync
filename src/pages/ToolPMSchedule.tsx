@@ -28,6 +28,9 @@ const ToolPMSchedule = () => {
   const [departmentFilter, setDepartmentFilter] = useState<string>("all");
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [selectedTool, setSelectedTool] = useState<string>("");
+  const [dueFilter, setDueFilter] = useState<string>("all");
+  const [pmTypeFilter, setPmTypeFilter] = useState<string>("all");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
   const { isSuperAdmin, viewableDepts, deptKey } = useDeptScope();
   const scopeDepts = isSuperAdmin ? null : ((viewableDepts && viewableDepts.length > 0) ? viewableDepts : ["__no_dept_permission__"]);
 
