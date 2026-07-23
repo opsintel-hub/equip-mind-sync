@@ -62,6 +62,8 @@ const equipmentSchema = z.object({
   height_cm: z.number().optional(),
   depth_cm: z.number().optional(),
   volume_cm3: z.number().optional(),
+  is_consumable: z.boolean().optional(),
+  return_policy_note: z.string().max(300, "หมายเหตุต้องไม่เกิน 300 ตัวอักษร").optional(),
 });
 
 type EquipmentFormValues = z.infer<typeof equipmentSchema>;
@@ -131,6 +133,8 @@ export function EquipmentForm({ onSuccess, prefillData, triggerButton }: Equipme
       height_cm: undefined,
       depth_cm: undefined,
       volume_cm3: undefined,
+      is_consumable: false,
+      return_policy_note: "",
     },
   });
 
@@ -270,6 +274,8 @@ export function EquipmentForm({ onSuccess, prefillData, triggerButton }: Equipme
         height_cm: data.height_cm || null,
         depth_cm: data.depth_cm || null,
         volume_cm3: data.volume_cm3 || null,
+        is_consumable: !!data.is_consumable,
+        return_policy_note: data.return_policy_note || null,
       }).select('id').single();
 
       if (error) throw error;
@@ -702,6 +708,48 @@ export function EquipmentForm({ onSuccess, prefillData, triggerButton }: Equipme
                         }}
                         disabled={isLoading}
                       />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            {/* Consumable flag — controls whether items must be returned when withdrawn */}
+            <div className="rounded-md border p-3 bg-muted/30 space-y-2">
+              <FormField
+                control={form.control}
+                name="is_consumable"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-start gap-3 space-y-0">
+                    <FormControl>
+                      <input
+                        type="checkbox"
+                        className="mt-1 h-4 w-4 accent-primary"
+                        checked={!!field.value}
+                        onChange={(e) => field.onChange(e.target.checked)}
+                        disabled={isLoading}
+                      />
+                    </FormControl>
+                    <div className="space-y-1 leading-none">
+                      <FormLabel className="cursor-pointer">
+                        ♻️ สินค้าสิ้นเปลือง (ไม่ต้องคืนของเก่า)
+                      </FormLabel>
+                      <p className="text-xs text-muted-foreground">
+                        เช่น ทินเนอร์ กาว น้ำยา เทป — เมื่อเบิกใน "ใบเบิกที่บังคับคืนของเก่า" รายการนี้จะไม่ถูกค้างในเมนู "รายการเบิกยังไม่สมบูรณ์"
+                      </p>
+                    </div>
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="return_policy_note"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-xs">หมายเหตุนโยบายการคืน (ทางเลือก)</FormLabel>
+                    <FormControl>
+                      <Input placeholder="เช่น ใช้แล้วหมด, ไม่คุ้มค่าเก็บคืน" {...field} disabled={isLoading} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

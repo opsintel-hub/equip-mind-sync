@@ -33,6 +33,8 @@ interface EquipmentWithDetails {
   name: string;
   unit: string;
   quantity_in_stock: number;
+  is_consumable?: boolean;
+  return_policy_note?: string | null;
   serial_number: string | null;
   serial_number_2?: string | null;
   expiry_date: string | null;
@@ -77,6 +79,11 @@ interface CartItem {
   location_name?: string;
   department?: string | null;
   sub_media_type?: string | null;
+  // ต้องคืนของเก่าหรือไม่ (คำนวณจาก purpose.requires_return AND NOT equipment.is_consumable)
+  needs_return?: boolean;
+  needs_return_overridden?: boolean;
+  is_consumable?: boolean;
+  return_policy_note?: string | null;
 }
 
 const IssueRequest = () => {
@@ -212,7 +219,7 @@ const IssueRequest = () => {
     queryFn: async () => {
       let q = supabase
         .from("equipment")
-        .select("id, code, name, unit, quantity_in_stock, serial_number, expiry_date, warranty_expiry_date, warehouse_entry_date, category, department, location_id, billboard_compatibility_mode, compatibility_notes, locations(id, code, name, warehouse_id, warehouses(id, code, name))")
+        .select("id, code, name, unit, quantity_in_stock, serial_number, expiry_date, warranty_expiry_date, warehouse_entry_date, category, department, location_id, billboard_compatibility_mode, compatibility_notes, is_consumable, return_policy_note, locations(id, code, name, warehouse_id, warehouses(id, code, name))")
         .eq("is_active", true)
         .gt("quantity_in_stock", 0)
         .order("warehouse_entry_date", { ascending: true });
@@ -547,6 +554,8 @@ const IssueRequest = () => {
       setEditingCartItemId(null);
       toast.success("อัปเดตรายการเรียบร้อยแล้ว");
     } else {
+      const isConsumable = !isMediaPlayer && !!(selectedEquipment as any)?.is_consumable;
+      const needsReturn = !!(selectedPurpose?.requires_return) && !isConsumable;
       const newItem: CartItem = {
         id: crypto.randomUUID(),
         equipment_id: currentItem.equipment_id,
@@ -564,6 +573,10 @@ const IssueRequest = () => {
         location_name: selectedEquipment?.location_name || undefined,
         department: (selectedEquipment as any)?.department || null,
         sub_media_type: (selectedEquipment as any)?.sub_media_type || null,
+        is_consumable: isConsumable,
+        return_policy_note: (selectedEquipment as any)?.return_policy_note || null,
+        needs_return: needsReturn,
+        needs_return_overridden: false,
       };
 
       setCartItems([...cartItems, newItem]);
@@ -765,6 +778,8 @@ const IssueRequest = () => {
         status: "pending",
         notes: item.notes || null,
         sub_media_type: item.sub_media_type || null,
+        needs_return: item.needs_return ?? !!selectedPurpose?.requires_return,
+        needs_return_overridden: !!item.needs_return_overridden,
       })) as any;
 
       const { error: itemsError } = await supabase
@@ -1776,7 +1791,7 @@ const IssueRequest = () => {
                           <TableCell>
                             {item.equipment_code && <div className="font-medium">{item.equipment_code}</div>}
                             <div className="text-sm text-muted-foreground">{item.equipment_name}</div>
-                            <div className="mt-1">
+                            <div className="mt-1 flex flex-wrap items-center gap-1">
                               <SubMediaTypeBadge
                                 department={item.department}
                                 subMediaType={item.sub_media_type}
@@ -1785,6 +1800,27 @@ const IssueRequest = () => {
                                   setCartItems(prev => prev.map(ci => ci.id === item.id ? { ...ci, sub_media_type: next } : ci));
                                 }}
                               />
+                              {selectedPurpose?.requires_return && (
+                                item.needs_return ? (
+                                  <Badge
+                                    variant="outline"
+                                    className="text-[10px] bg-amber-500/10 text-amber-700 border-amber-500/40 cursor-pointer"
+                                    title={item.is_consumable ? "สินค้านี้ตั้งเป็นสิ้นเปลือง แต่ผู้เบิกกำหนดว่าต้องคืน — คลิกเพื่อยกเลิก" : "คลิกเพื่อยกเลิกการคืน (Override)"}
+                                    onClick={() => setCartItems(prev => prev.map(ci => ci.id === item.id ? { ...ci, needs_return: false, needs_return_overridden: true } : ci))}
+                                  >
+                                    🔄 ต้องคืนของเก่า
+                                  </Badge>
+                                ) : (
+                                  <Badge
+                                    variant="outline"
+                                    className="text-[10px] bg-emerald-500/10 text-emerald-700 border-emerald-500/40 cursor-pointer"
+                                    title={item.is_consumable ? "สินค้าสิ้นเปลือง — คลิกเพื่อบังคับให้ต้องคืน" : "ผู้เบิกกำหนดว่าไม่ต้องคืน — คลิกเพื่อกลับเป็นต้องคืน"}
+                                    onClick={() => setCartItems(prev => prev.map(ci => ci.id === item.id ? { ...ci, needs_return: true, needs_return_overridden: !ci.is_consumable ? false : true } : ci))}
+                                  >
+                                    ♻️ ไม่ต้องคืน{item.is_consumable ? " (สิ้นเปลือง)" : ""}
+                                  </Badge>
+                                )
+                              )}
                             </div>
                           </TableCell>
                           <TableCell>{item.serial_number || "-"}</TableCell>

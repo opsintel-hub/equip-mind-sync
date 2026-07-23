@@ -1930,6 +1930,7 @@ export type Database = {
           id: string
           is_active: boolean | null
           is_asset: boolean | null
+          is_consumable: boolean
           item_condition: string
           location_id: string | null
           lumen: number | null
@@ -1939,6 +1940,7 @@ export type Database = {
           notes: string | null
           po_item_no: string | null
           quantity_in_stock: number
+          return_policy_note: string | null
           serial_number: string | null
           subcategory_id: string | null
           supplier_id: string | null
@@ -1974,6 +1976,7 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           is_asset?: boolean | null
+          is_consumable?: boolean
           item_condition?: string
           location_id?: string | null
           lumen?: number | null
@@ -1983,6 +1986,7 @@ export type Database = {
           notes?: string | null
           po_item_no?: string | null
           quantity_in_stock?: number
+          return_policy_note?: string | null
           serial_number?: string | null
           subcategory_id?: string | null
           supplier_id?: string | null
@@ -2018,6 +2022,7 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           is_asset?: boolean | null
+          is_consumable?: boolean
           item_condition?: string
           location_id?: string | null
           lumen?: number | null
@@ -2027,6 +2032,7 @@ export type Database = {
           notes?: string | null
           po_item_no?: string | null
           quantity_in_stock?: number
+          return_policy_note?: string | null
           serial_number?: string | null
           subcategory_id?: string | null
           supplier_id?: string | null
@@ -3011,6 +3017,8 @@ export type Database = {
           is_media_player: boolean | null
           issued_quantity: number | null
           media_player_id: string | null
+          needs_return: boolean | null
+          needs_return_overridden: boolean
           notes: string | null
           pending_id: string
           quantity: number
@@ -3032,6 +3040,8 @@ export type Database = {
           is_media_player?: boolean | null
           issued_quantity?: number | null
           media_player_id?: string | null
+          needs_return?: boolean | null
+          needs_return_overridden?: boolean
           notes?: string | null
           pending_id: string
           quantity?: number
@@ -3053,6 +3063,8 @@ export type Database = {
           is_media_player?: boolean | null
           issued_quantity?: number | null
           media_player_id?: string | null
+          needs_return?: boolean | null
+          needs_return_overridden?: boolean
           notes?: string | null
           pending_id?: string
           quantity?: number

@@ -54,6 +54,8 @@ const equipmentSchema = z.object({
   watt: z.number().optional().nullable(),
   lumen: z.number().optional().nullable(),
   lux: z.number().optional().nullable(),
+  is_consumable: z.boolean().optional(),
+  return_policy_note: z.string().max(300, "หมายเหตุต้องไม่เกิน 300 ตัวอักษร").optional().nullable(),
 });
 
 type EquipmentFormValues = z.infer<typeof equipmentSchema>;
@@ -84,6 +86,8 @@ interface EquipmentData {
   watt?: number | null;
   lumen?: number | null;
   lux?: number | null;
+  is_consumable?: boolean | null;
+  return_policy_note?: string | null;
 }
 
 interface EquipmentEditFormProps {
@@ -124,6 +128,8 @@ export function EquipmentEditForm({ equipment, onSuccess }: EquipmentEditFormPro
       watt: equipment.watt || undefined,
       lumen: equipment.lumen || undefined,
       lux: equipment.lux || undefined,
+      is_consumable: !!equipment.is_consumable,
+      return_policy_note: equipment.return_policy_note || "",
     },
   });
 
@@ -154,6 +160,8 @@ export function EquipmentEditForm({ equipment, onSuccess }: EquipmentEditFormPro
         watt: equipment.watt || undefined,
         lumen: equipment.lumen || undefined,
         lux: equipment.lux || undefined,
+        is_consumable: !!equipment.is_consumable,
+        return_policy_note: equipment.return_policy_note || "",
       });
 
       // Preload warehouseId from location_id (for editing)
@@ -207,6 +215,8 @@ export function EquipmentEditForm({ equipment, onSuccess }: EquipmentEditFormPro
             watt: data.watt || null,
             lumen: data.lumen || null,
             lux: data.lux || null,
+            is_consumable: !!data.is_consumable,
+            return_policy_note: data.return_policy_note || null,
           } as any)
         .eq("id", equipment.id);
 
@@ -564,6 +574,46 @@ export function EquipmentEditForm({ equipment, onSuccess }: EquipmentEditFormPro
                         }}
                         disabled={isLoading}
                       />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            {/* Consumable flag */}
+            <div className="rounded-md border p-3 bg-muted/30 space-y-2">
+              <FormField
+                control={form.control}
+                name="is_consumable"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-start gap-3 space-y-0">
+                    <FormControl>
+                      <input
+                        type="checkbox"
+                        className="mt-1 h-4 w-4 accent-primary"
+                        checked={!!field.value}
+                        onChange={(e) => field.onChange(e.target.checked)}
+                        disabled={isLoading}
+                      />
+                    </FormControl>
+                    <div className="space-y-1 leading-none">
+                      <FormLabel className="cursor-pointer">♻️ สินค้าสิ้นเปลือง (ไม่ต้องคืนของเก่า)</FormLabel>
+                      <p className="text-xs text-muted-foreground">
+                        เช่น ทินเนอร์ กาว น้ำยา — เมื่อเบิกใน "ใบเบิกที่บังคับคืนของเก่า" รายการนี้จะไม่ถูกค้างในเมนู "รายการเบิกยังไม่สมบูรณ์"
+                      </p>
+                    </div>
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="return_policy_note"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-xs">หมายเหตุนโยบายการคืน (ทางเลือก)</FormLabel>
+                    <FormControl>
+                      <Input placeholder="เช่น ใช้แล้วหมด" {...field} value={field.value || ""} disabled={isLoading} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

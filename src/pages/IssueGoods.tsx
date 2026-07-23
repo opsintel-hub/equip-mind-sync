@@ -1178,6 +1178,16 @@ const IssueGoods = () => {
                                             <TableCell>
                                               {item.equipment_code && <div className="font-medium">{item.equipment_code}</div>}
                                               <div className="text-sm text-muted-foreground">{item.equipment_name || "-"}</div>
+                                              {(item as any).needs_return === true && (
+                                                <Badge variant="outline" className="mt-1 text-[10px] bg-amber-500/10 text-amber-700 border-amber-500/40">
+                                                  🔄 ต้องคืนของเก่า
+                                                </Badge>
+                                              )}
+                                              {(item as any).needs_return === false && (
+                                                <Badge variant="outline" className="mt-1 text-[10px] bg-emerald-500/10 text-emerald-700 border-emerald-500/40">
+                                                  ♻️ ไม่ต้องคืน
+                                                </Badge>
+                                              )}
                                             </TableCell>
                                             <TableCell>
                                               {item.serial_number ? (
