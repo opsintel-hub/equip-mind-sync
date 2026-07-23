@@ -537,10 +537,13 @@ export default function MediaPlayerReport() {
           </h1>
           <p className="text-muted-foreground">แสดงรายการ Media Player แบบ 1 เครื่องต่อ 1 แถว โดยรวม S/N 1 และ S/N 2 ไว้ในแถวเดียว</p>
         </div>
-        <Button variant="outline" onClick={handleExport}>
-          <Download className="w-4 h-4 mr-2" />
-          Export Excel
-        </Button>
+        <div className="flex items-center gap-2">
+          <ViewModeToggle value={viewMode} onChange={setViewMode} />
+          <Button variant="outline" onClick={handleExport}>
+            <Download className="w-4 h-4 mr-2" />
+            Export Excel
+          </Button>
+        </div>
       </div>
 
       {/* Summary Cards */}
