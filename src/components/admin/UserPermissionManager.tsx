@@ -179,6 +179,17 @@ export function UserPermissionManager() {
     setFilteredUsers(list);
   }, [searchQuery, users, userRoles, sortMode, inactivityFilter]);
 
+  const {
+    paginatedData: paginatedUsers,
+    currentPage,
+    pageSize,
+    totalPages,
+    totalItems,
+    handlePageChange,
+    handlePageSizeChange,
+  } = useTablePagination(filteredUsers, 20);
+
+
   const fetchUsers = async () => {
     try {
       const [profilesRes, deptRes, templateRes] = await Promise.all([
