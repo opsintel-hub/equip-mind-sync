@@ -37,6 +37,26 @@ interface ManualSection {
 
 const UserManual = () => {
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set(["overview"]));
+  const { user } = useAuth();
+  const [accountStatus, setAccountStatus] = useState<"loading" | "pending" | "active">("loading");
+
+  useEffect(() => {
+    if (!user) return;
+    let cancelled = false;
+    const check = async () => {
+      const [rolesRes, fnRes] = await Promise.all([
+        supabase.from("user_roles").select("role").eq("user_id", user.id),
+        supabase.from("user_function_permissions").select("function_name").eq("user_id", user.id).eq("can_access", true).limit(1),
+      ]);
+      if (cancelled) return;
+      const hasRoles = (rolesRes.data || []).length > 0;
+      const hasFns = (fnRes.data || []).length > 0;
+      setAccountStatus(hasRoles || hasFns ? "active" : "pending");
+    };
+    check();
+    const iv = setInterval(check, 30000);
+    return () => { cancelled = true; clearInterval(iv); };
+  }, [user?.id]);
 
   const toggleSection = (id: string) => {
     setExpandedSections(prev => {
