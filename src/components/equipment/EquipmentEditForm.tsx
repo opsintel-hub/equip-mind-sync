@@ -812,7 +812,9 @@ export function EquipmentEditForm({ equipment, onSuccess }: EquipmentEditFormPro
               )}
             />
 
-            <BillboardCompatibilityField value={compat} onChange={setCompat} disabled={isLoading} department={form.watch("department") || ""} />
+            {!form.watch("is_consumable") && (
+              <BillboardCompatibilityField value={compat} onChange={setCompat} disabled={isLoading} department={form.watch("department") || ""} />
+            )}
 
 
 
