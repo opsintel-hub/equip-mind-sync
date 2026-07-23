@@ -145,14 +145,97 @@ const ToolPMSchedule = () => {
     }
   }, [isSingleDepartment, allowedDepartments, departmentFilter]);
 
+  // Compute bucket + daysUntilDue for each tool
+  type Bucket =
+    | "overdue_60plus"
+    | "overdue_30_60"
+    | "overdue_14_30"
+    | "overdue_0_14"
+    | "upcoming_14"
+    | "upcoming_30"
+    | "upcoming_60"
+    | "future"
+    | "no_schedule";
+
+  const enrichedSummary = useMemo(() => {
+    return pmSummary.map((tool: any) => {
+      const activeTask = tool.latestTask && tool.latestTask.status !== "completed" ? tool.latestTask : null;
+      const dueDateStr = activeTask?.due_date || null;
+      const daysUntilDue = dueDateStr ? differenceInDays(parseISO(dueDateStr), new Date()) : null;
+
+      let bucket: Bucket = "no_schedule";
+      if (daysUntilDue !== null) {
+        if (daysUntilDue < -60) bucket = "overdue_60plus";
+        else if (daysUntilDue < -30) bucket = "overdue_30_60";
+        else if (daysUntilDue < -14) bucket = "overdue_14_30";
+        else if (daysUntilDue < 0) bucket = "overdue_0_14";
+        else if (daysUntilDue <= 14) bucket = "upcoming_14";
+        else if (daysUntilDue <= 30) bucket = "upcoming_30";
+        else if (daysUntilDue <= 60) bucket = "upcoming_60";
+        else bucket = "future";
+      }
+      return { ...tool, daysUntilDue, bucket };
+    });
+  }, [pmSummary]);
+
+  const bucketOrder: Record<Bucket, number> = {
+    overdue_60plus: 0, overdue_30_60: 1, overdue_14_30: 2, overdue_0_14: 3,
+    upcoming_14: 4, upcoming_30: 5, upcoming_60: 6, future: 7, no_schedule: 8,
+  };
+
   // Filter tools
-  const filteredSummary = pmSummary.filter((tool: any) => {
-    const matchesSearch = 
-      tool.code?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      tool.name?.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesDepartment = departmentFilter === "all" || tool.department === departmentFilter;
-    return matchesSearch && matchesDepartment;
-  });
+  const filteredSummary = useMemo(() => {
+    const s = searchTerm.toLowerCase();
+    return enrichedSummary
+      .filter((tool: any) => {
+        const matchesSearch = !s ||
+          tool.code?.toLowerCase().includes(s) ||
+          tool.name?.toLowerCase().includes(s) ||
+          tool.serial_number?.toLowerCase().includes(s) ||
+          tool.brand?.toLowerCase().includes(s) ||
+          tool.tool_categories?.name?.toLowerCase().includes(s);
+        const matchesDepartment = departmentFilter === "all" || tool.department === departmentFilter;
+
+        const hasPM = (tool.pm_interval_days || 0) > 0;
+        const matchesPMType =
+          pmTypeFilter === "all" ||
+          (pmTypeFilter === "has_pm" && hasPM) ||
+          (pmTypeFilter === "no_pm" && !hasPM);
+
+        const d = tool.daysUntilDue;
+        let matchesDue = true;
+        if (dueFilter !== "all") {
+          if (dueFilter === "overdue_all") matchesDue = d !== null && d < 0;
+          else if (dueFilter === "overdue_14") matchesDue = d !== null && d < 0 && d >= -14;
+          else if (dueFilter === "overdue_30") matchesDue = d !== null && d < 0 && d >= -30;
+          else if (dueFilter === "overdue_60") matchesDue = d !== null && d < 0 && d >= -60;
+          else if (dueFilter === "overdue_60plus") matchesDue = d !== null && d < -60;
+          else if (dueFilter === "upcoming_14") matchesDue = d !== null && d >= 0 && d <= 14;
+          else if (dueFilter === "upcoming_30") matchesDue = d !== null && d >= 0 && d <= 30;
+          else if (dueFilter === "upcoming_60") matchesDue = d !== null && d >= 0 && d <= 60;
+          else if (dueFilter === "no_schedule") matchesDue = d === null;
+        }
+
+        let matchesStatus = true;
+        if (statusFilter !== "all") {
+          if (statusFilter === "pending") matchesStatus = tool.pendingCount > 0;
+          else if (statusFilter === "in_progress") matchesStatus = tool.inProgressCount > 0;
+          else if (statusFilter === "no_ticket") matchesStatus = tool.pendingCount === 0 && tool.inProgressCount === 0;
+          else if (statusFilter === "never_inspected") matchesStatus = !tool.latestResult;
+        }
+
+        return matchesSearch && matchesDepartment && matchesPMType && matchesDue && matchesStatus;
+      })
+      .sort((a: any, b: any) => {
+        const bo = bucketOrder[a.bucket as Bucket] - bucketOrder[b.bucket as Bucket];
+        if (bo !== 0) return bo;
+        const ad = a.daysUntilDue ?? Number.MAX_SAFE_INTEGER;
+        const bd = b.daysUntilDue ?? Number.MAX_SAFE_INTEGER;
+        return ad - bd;
+      });
+  }, [enrichedSummary, searchTerm, departmentFilter, pmTypeFilter, dueFilter, statusFilter]);
+
+  const pagination = useTablePagination(filteredSummary, 20);
 
   // Create PM task mutation
   const createPMTask = useMutation({
