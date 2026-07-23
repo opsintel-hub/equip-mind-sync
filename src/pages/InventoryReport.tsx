@@ -967,10 +967,13 @@ export default function InventoryReport() {
               ⚠️ รายงานนี้แสดงเฉพาะ <b>อุปกรณ์/อะไหล่</b> เท่านั้น — สำหรับ Media Player กรุณาดูที่หน้า <b>"รายงาน Media Player"</b>
             </p>
           </div>
-          <Button onClick={handleExport} disabled={filteredData.length === 0}>
-            <Download className="mr-2 h-4 w-4" />
-            Export Excel
-          </Button>
+          <div className="flex items-center gap-2">
+            <ViewModeToggle value={viewMode} onChange={setViewMode} />
+            <Button onClick={handleExport} disabled={filteredData.length === 0}>
+              <Download className="mr-2 h-4 w-4" />
+              Export Excel
+            </Button>
+          </div>
         </div>
 
         {/* Summary Cards */}
