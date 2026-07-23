@@ -25,6 +25,7 @@ import { WarehouseLocationSelect } from "@/components/location/WarehouseLocation
 import { SimpleDepartmentSelect } from "@/components/equipment/SimpleDepartmentSelect";
 import { logStockMovement } from "@/lib/stockMovement";
 import { getCompatibleBillboardIdsForEquipment } from "@/lib/compatibility";
+import { useRealtimeInvalidate } from "@/hooks/useRealtimeInvalidate";
 
 interface IncompleteIssue {
   id: string;

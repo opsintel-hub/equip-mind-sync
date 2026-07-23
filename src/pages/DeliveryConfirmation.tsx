@@ -24,6 +24,7 @@ import { DatePickerWithRange } from "@/components/ui/date-range-picker";
 import { DateRange } from "react-day-picker";
 import { DocumentPreviewDialog } from "@/components/DocumentPreviewDialog";
 import { logStockMovement } from "@/lib/stockMovement";
+import { useRealtimeInvalidate } from "@/hooks/useRealtimeInvalidate";
 
 const ISSUE_TYPES = [
   { value: "damaged_in_transit", label: "สินค้าชำรุดระหว่างการจัดส่ง" },
@@ -93,6 +94,23 @@ const DeliveryConfirmation = () => {
       }
       return data;
     },
+    placeholderData: (prev) => prev,
+    refetchOnWindowFocus: false,
+  });
+
+  // Realtime: อัปเดตรายการรอยืนยันรับสินค้าทันทีเมื่อคลังกดจ่าย
+  useRealtimeInvalidate({
+    table: "goods_issue_pending",
+    queryKeys: [
+      ["delivery-confirmation-requests"],
+      ["delivery-confirmation-items"],
+      ["existing-delivery-confirmations"],
+    ],
+    onInsert: () => toast.info("มีรายการรอยืนยันรับสินค้าใหม่", { duration: 4000 }),
+  });
+  useRealtimeInvalidate({
+    table: "delivery_confirmations",
+    queryKeys: [["existing-delivery-confirmations"], ["delivery-confirmation-requests"]],
   });
 
   // Fetch direct shipments pending confirmation
