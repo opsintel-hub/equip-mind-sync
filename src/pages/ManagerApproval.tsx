@@ -22,6 +22,7 @@ import { DatePickerWithRange } from "@/components/ui/date-range-picker";
 import { DateRange } from "react-day-picker";
 import { DepartmentMultiFilter } from "@/components/DepartmentMultiFilter";
 import { ColumnChooser, useVisibleCols, type ColumnDef } from "@/components/ColumnChooser";
+import { useRealtimeInvalidate } from "@/hooks/useRealtimeInvalidate";
 
 type ApprovalColKey =
   | "expand" | "doc" | "date" | "company" | "requester" | "pickup" | "pickupDate"
@@ -154,6 +155,16 @@ const ManagerApproval = () => {
       return needsApproval;
     },
     enabled: isManager,
+    placeholderData: (prev) => prev,
+    refetchOnWindowFocus: false,
+  });
+
+  // Realtime: อัปเดตรายการรออนุมัติทันทีเมื่อมีคำขอใหม่ / เปลี่ยนสถานะ
+  useRealtimeInvalidate({
+    table: "goods_issue_pending",
+    queryKeys: [["pending-approvals"], ["approval-history"]],
+    onInsert: () => toast.info("มีคำขอเบิกใหม่รออนุมัติ", { duration: 4000 }),
+    enabled: !!isManager,
   });
 
   const { data: approvalHistory } = useQuery({

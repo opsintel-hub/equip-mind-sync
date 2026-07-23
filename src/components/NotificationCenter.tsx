@@ -15,6 +15,7 @@ import { formatDistanceToNow } from "date-fns";
 import { th } from "date-fns/locale";
 import { useDepartmentPermissions } from "@/hooks/useDepartmentPermissions";
 import { useAuth } from "@/hooks/useAuth";
+import { useRealtimeInvalidate } from "@/hooks/useRealtimeInvalidate";
 
 interface Notification {
   id: string;
@@ -216,6 +217,16 @@ export function NotificationCenter() {
   useEffect(() => {
     fetchNotifications();
   }, [fetchNotifications]);
+
+  // Realtime: ดึงการแจ้งเตือนใหม่ทันทีเมื่อมีการ INSERT เข้า notifications
+  useRealtimeInvalidate({
+    table: "notifications",
+    event: "INSERT",
+    queryKeys: [],
+    onInsert: () => {
+      fetchNotifications();
+    },
+  });
 
   const getTypeIcon = (type: string) => {
     switch (type) {

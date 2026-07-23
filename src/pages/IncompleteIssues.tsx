@@ -25,6 +25,7 @@ import { WarehouseLocationSelect } from "@/components/location/WarehouseLocation
 import { SimpleDepartmentSelect } from "@/components/equipment/SimpleDepartmentSelect";
 import { logStockMovement } from "@/lib/stockMovement";
 import { getCompatibleBillboardIdsForEquipment } from "@/lib/compatibility";
+import { useRealtimeInvalidate } from "@/hooks/useRealtimeInvalidate";
 
 interface IncompleteIssue {
   id: string;
@@ -186,6 +187,18 @@ const IncompleteIssues = () => {
 
       return { issues: incomplete as (IncompleteIssue & { companies: { name: string } | null })[], purposes };
     },
+    placeholderData: (prev) => prev,
+    refetchOnWindowFocus: false,
+  });
+
+  // Realtime: อัปเดตรายการยังไม่สมบูรณ์ทันที (คลังจ่ายของ / ผู้ขอยืนยัน) โดยไม่กระพริบ
+  useRealtimeInvalidate({
+    table: "goods_issue_pending",
+    queryKeys: [["incomplete-issues", deptKey], ["incomplete-issues-items"]],
+  });
+  useRealtimeInvalidate({
+    table: "goods_issue_pending_items",
+    queryKeys: [["incomplete-issues", deptKey], ["incomplete-issues-items"]],
   });
 
 

@@ -190,6 +190,9 @@ const Login = () => {
                 <Button type="submit" className="w-full" disabled={isLoading}>
                   {isLoading ? "กำลังเข้าสู่ระบบ..." : "เข้าสู่ระบบ"}
                 </Button>
+                <p className="text-xs text-muted-foreground text-center">
+                  🔒 ระบบจะออกจากระบบอัตโนมัติเมื่อปิดโปรแกรม/ปิดแท็บ เพื่อความปลอดภัย
+                </p>
               </form>
             </TabsContent>
 
