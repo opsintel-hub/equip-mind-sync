@@ -162,6 +162,7 @@ export default function MediaPlayerReport() {
   const [lightboxImages, setLightboxImages] = useState<string[] | null>(null);
   const { isSuperAdmin, viewableDepts, deptKey } = useDeptScope();
   const [viewMode, setViewMode] = useViewMode("media-player-report", "table");
+  const primaryImgMap = usePrimaryImages("media_player_images", "media_player_id", players.map((p) => p.id));
 
   // Fetch all media players with extra fields
   const { data: players = [], isLoading } = useQuery({
