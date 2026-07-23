@@ -23,6 +23,10 @@ import { ToolImageViewer } from "./ToolImageViewer";
 import { ToolDocumentViewer } from "./ToolDocumentViewer";
 import * as XLSX from "xlsx";
 import { useDeptScope } from "@/hooks/useDeptScope";
+import { ViewModeToggle, useViewMode } from "@/components/common/ViewModeToggle";
+import { EntityCardGrid } from "@/components/common/EntityCardGrid";
+import { EntityCalendarView } from "@/components/common/EntityCalendarView";
+import { usePrimaryImages } from "@/hooks/usePrimaryImages";
 
 interface Tool {
   id: string;
@@ -71,6 +75,7 @@ export function ToolList({ refreshKey }: ToolListProps) {
   const [warrantyFilter, setWarrantyFilter] = useState("all");
   const [pmFilter, setPmFilter] = useState<string>("all");
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useViewMode("tools", "table");
 
   const [editTool, setEditTool] = useState<Tool | null>(null);
   const { isSuperAdmin, viewableDepts, deptKey } = useDeptScope();
@@ -226,6 +231,7 @@ export function ToolList({ refreshKey }: ToolListProps) {
             <Input placeholder="ค้นหารหัส, ชื่อ, S/N, ยี่ห้อ, ผู้รับผิดชอบ..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-9" />
           </div>
           <div className="flex gap-2">
+            <ViewModeToggle value={viewMode} onChange={setViewMode} />
             <Button variant="outline" size="icon" onClick={handleExport} title="Export Excel">
               <Download className="h-4 w-4" />
             </Button>
@@ -301,6 +307,19 @@ export function ToolList({ refreshKey }: ToolListProps) {
             ? "ไม่พบเครื่องมือที่ตรงกับเงื่อนไข"
             : "ยังไม่มีเครื่องมือในระบบ — กด 'เพิ่มเครื่องมือ' หรือ 'Import Excel' เพื่อเริ่มต้น"}
         </div>
+      ) : viewMode === "calendar" ? (
+        <ToolCalendarBlock tools={filteredTools} onOpenTool={(id) => {
+          const t = filteredTools.find(x => x.id === id);
+          if (t) setEditTool(t);
+        }} />
+      ) : viewMode === "card" ? (
+        <>
+          <ToolCardBlock tools={paginatedTools} onOpenTool={(id) => {
+            const t = paginatedTools.find(x => x.id === id);
+            if (t) setEditTool(t);
+          }} />
+          <TablePagination currentPage={currentPage} totalPages={totalPages} totalItems={totalItems} pageSize={pageSize} onPageChange={handlePageChange} onPageSizeChange={handlePageSizeChange} />
+        </>
       ) : (
         <>
           {/* Mobile card view */}
@@ -434,4 +453,34 @@ export function ToolList({ refreshKey }: ToolListProps) {
       )}
     </div>
   );
+}
+
+function ToolCardBlock({ tools, onOpenTool }: { tools: Tool[]; onOpenTool: (id: string) => void }) {
+  const ids = tools.map((t) => t.id);
+  const imgMap = usePrimaryImages("tool_images", "tool_id", ids, { bucket: "tool-images" });
+  const items = tools.map((t) => ({
+    id: t.id,
+    imageUrl: imgMap[t.id],
+    code: t.code,
+    title: t.name,
+    subtitle: [t.tool_category?.name, t.department].filter(Boolean).join(" • ") || undefined,
+    stat: `${t.current_quantity ?? 0} ${t.unit || ""}`.trim(),
+    badges: [
+      t.is_asset ? { label: "ทรัพย์สิน", variant: "secondary" as const } : null,
+      t.is_personal_tool ? { label: "ช่าง", className: "bg-primary/80 text-primary-foreground" } : null,
+    ].filter(Boolean) as any,
+  }));
+  return <EntityCardGrid items={items} onClick={onOpenTool} />;
+}
+
+function ToolCalendarBlock({ tools, onOpenTool }: { tools: Tool[]; onOpenTool: (id: string) => void }) {
+  const items = tools
+    .filter((t) => !!t.warranty_expiry_date)
+    .map((t) => ({
+      id: t.id,
+      date: String(t.warranty_expiry_date),
+      title: `${t.code} - ${t.name}`,
+      subtitle: t.department || undefined,
+    }));
+  return <EntityCalendarView items={items} onItemClick={onOpenTool} title="หมดประกันเครื่องมือ" />;
 }

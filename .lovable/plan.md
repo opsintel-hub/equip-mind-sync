@@ -1,63 +1,95 @@
-# แผนปรับปรุง 5 ประเด็น
 
-## 1) ยุบปุ่ม Import Excel / เพิ่มเครื่องมือ ให้เหลือที่เดียว (เฉพาะ Admin)
+## เป้าหมาย
+เพิ่ม "มุมมองการ์ด (Gallery)" แบบภาพตัวอย่าง และ "มุมมองปฏิทิน (Calendar)" ใน 3 หน้าหลัก โดย **ตารางยังเป็นค่าเริ่มต้น** — ผู้ใช้กดสลับได้ (จำค่าไว้ใน localStorage) ไม่กระทบข้อมูล ไม่ต้องแก้ backend หนัก
 
-**เป้าหมาย:** ปุ่มอยู่แค่ที่ `ข้อมูลหลัก > เครื่องมือ > รายการเครื่องมือ` และ**เห็นเฉพาะ Admin/Super Admin**
+## ขอบเขต (ตามที่ตกลง)
 
-- `src/pages/ToolManagement.tsx` — ลบ/ซ่อนปุ่ม `Import Excel` และ `+ เพิ่มเครื่องมือ` ที่ header หน้าจัดการเครื่องมือ (ภาพที่ 1)
-- `src/pages/MasterData.tsx` sub-tab "รายการเครื่องมือ" — ห่อ 2 ปุ่มด้วยการเช็คสิทธิ์: แสดงเมื่อ `isSuperAdmin || hasRole('admin')` เท่านั้น (ใช้ `useIsSuperAdmin` + query `user_roles`)
-- Route `/setup/import-tools` — คงไว้แต่ป้องกันด้วย role check ที่ตัว page (redirect ถ้าไม่ใช่ admin)
-- ปรับข้อความ empty state ใน `ToolList.tsx` ให้ชี้ว่า "ติดต่อ Admin เพื่อเพิ่มเครื่องมือ" สำหรับ user ทั่วไป
+### A. มุมมองการ์ด (Gallery View)
+เพิ่มให้ 3 หน้า:
+1. **จัดการเครื่องมือ** (`/tools` — `ToolList.tsx`)
+2. **Media Player / จอภาพ** (`/media-player-report` — `MediaPlayerReport.tsx`)
+3. **รายงานคลัง / อะไหล่** (`/inventory-report` — `InventoryReport.tsx`)
 
-## 2) ผู้ใช้ที่ถูกลบยังเข้าระบบได้ — ตรวจสอบทั้งลูป
+รูปแบบการ์ด (อิงภาพที่ส่งมา):
+- Grid responsive: 2 คอลัมน์ (mobile) → 3 (tablet) → 4-5 (desktop)
+- แต่ละการ์ดแสดง: **รูปหลัก** (16:9 / square), **ชื่อ**, **รหัส**, **แถบเล็ก**บอก ประเภท/ยี่ห้อ/สถานะ, **badge จำนวนคงเหลือ** หรือ S/N
+- คลิกการ์ด → เปิด Detail Dialog เดิมของหน้านั้น (reuse ไม่สร้างใหม่)
+- ใช้ตัวกรอง/ค้นหา/pagination **ตัวเดียวกับตาราง** (แค่เปลี่ยน renderer) → ประหยัดเครดิต ไม่ duplicate logic
 
-**การตรวจสอบก่อนแก้:**
-- อ่าน edge function `delete-user` เพื่อยืนยันว่าเรียก `auth.admin.deleteUser()` หรือแค่ตั้ง flag ใน profiles
-- ตรวจ `profiles` schema หา column เช่น `is_deleted` / `is_active` / `banned_until`
-- ตรวจ session guard ที่ `ProtectedRoute.tsx` และ `useAuth.tsx`
+### B. มุมมองปฏิทิน (Calendar View)
+เพิ่มให้ 2 จุด:
+1. **ตาราง PM เครื่องมือ** (`/tool-pm-schedule`) — แสดงวันที่ครบกำหนด PM ราย tool
+2. **หมดประกัน/หมดอายุการใช้งาน** — เพิ่มใน `MediaPlayerReport` และ `InventoryReport` (จุดสีบนวัน `warranty_expiry_date` + วันหมดอายุใช้งาน)
 
-**แนวทางแก้ (จะยืนยันหลังตรวจ):**
-- ถ้า edge function ยังไม่ได้ `deleteUser` จริง → เพิ่มการ ban ผู้ใช้ (`banned_until = 'infinity'`) + revoke sessions (`auth.admin.signOut(userId, 'global')`)
-- เพิ่ม guard ที่ `ProtectedRoute`: หลัง `getUser()` เช็ค `profiles.is_deleted` ถ้า true → `supabase.auth.signOut()` + redirect `/login`
-- เพิ่ม RLS/trigger บน `profiles` เพื่อกัน re-activate
+รูปแบบปฏิทิน:
+- **Reuse `PlanningCalendarView` เป็นต้นแบบ** — copy โครง grid เดือน/legend มาปรับ props (มีอยู่แล้วในโปรเจกต์)
+- แต่ละวันแสดงจุดสี + จำนวน แยกกลุ่ม: เลยกำหนด (แดง) / ภายใน 14 วัน (ส้ม) / 30 วัน (เหลือง) / ปกติ (เทา)
+- คลิกวัน → dialog list รายการวันนั้น พร้อมลิงก์ไปหน้า detail
+- Toggle เดือน ‹ › ปกติ
 
-## 3) ย้าย Tab "ตั้งค่า OCR" ออกจากหน้าจัดการผู้ใช้ → ไปเป็น sub-tab ท้าย tabs ในหน้า `ข้อมูลหลัก`
+### C. รูปหลัก (Primary Image)
+ในการ์ดจะแสดง **รูปแรก** เป็นหลัก + ปุ่ม "ตั้งเป็นรูปหลัก" ในหน้าจัดการรูปเดิม:
+- เพิ่มคอลัมน์ `is_primary boolean default false` ใน 3 ตาราง: `tool_images`, `media_player_images`, `equipment_images`
+- ปุ่มดาว ⭐ บนแต่ละรูป — กดแล้ว unset ตัวอื่น + set ตัวนี้เป็น primary
+- Query การ์ด: `ORDER BY is_primary DESC, created_at ASC LIMIT 1` — ถ้าไม่มี primary ใช้รูปแรก, ถ้าไม่มีรูปเลยใช้ placeholder icon
 
-- `src/pages/Admin.tsx` — ลบ tab "ตั้งค่า OCR" และปุ่มลัด (ภาพที่ 4)
-- `src/pages/MasterData.tsx` — เพิ่ม tab ใหม่ต่อจาก "จัดการ Media Player" ชื่อ `ตั้งค่า OCR` ที่ render `<OCRConfigManager />` (ภาพที่ 5)
-- สิทธิ์: จำกัด tab นี้ให้เห็นเฉพาะ Admin/Super Admin
+### D. Toggle สลับมุมมอง
+- Component ใหม่ตัวเดียวใช้ร่วม: `<ViewModeToggle value onChange />` (icon: Table / LayoutGrid / Calendar)
+- เก็บค่าเลือกใน `localStorage` key `viewMode:{pageId}` — จำแยกต่อหน้า
+- Default = `"table"` ทุกหน้า (ตามที่ผู้ใช้ระบุ)
 
-## 4) เพิ่มช่องค้นหาบริษัท (ภาพที่ 6)
+## รายละเอียดเทคนิค (สำหรับผู้พัฒนา)
 
-- `src/components/company/CompanyList.tsx` — เพิ่ม `<Input>` ค้นหาด้านบนตาราง filter ตาม: ชื่อบริษัท, รหัส, ฝ่าย (client-side substring, case-insensitive)
-- คงปุ่ม `แสดงบริษัทที่ซ่อน` + `+ เพิ่มบริษัท` ไว้ที่เดิม
+### ไฟล์ที่จะสร้างใหม่ (น้อยที่สุด เพื่อประหยัดเครดิต)
+```
+src/components/common/ViewModeToggle.tsx         // Toggle 3 ปุ่ม + hook localStorage
+src/components/common/EntityCardGrid.tsx         // Grid การ์ด reusable รับ items + fields
+src/components/common/EntityCalendarView.tsx     // Calendar reusable (fork PlanningCalendarView)
+```
 
-## 5) OCR: ชื่อบริษัทในไฟล์เป็นภาษาอังกฤษ แต่ใน DB เป็นไทย
+### ไฟล์ที่จะแก้
+- `src/components/tools/ToolList.tsx` — เพิ่ม toggle + card/calendar render
+- `src/pages/MediaPlayerReport.tsx` — เพิ่ม toggle + card/calendar (calendar = warranty)
+- `src/pages/InventoryReport.tsx` — เพิ่ม toggle + card/calendar (calendar = warranty)
+- `src/pages/ToolPMSchedule.tsx` — เพิ่มปุ่มปฏิทิน (นอกจากตารางเดิม)
+- `src/components/tools/ToolImageManager.tsx` (หรือชื่อคล้าย) — ปุ่ม ⭐ ตั้งรูปหลัก
+- `src/pages/MediaPlayerProfile.tsx` — ปุ่ม ⭐ ตั้งรูปหลัก
+- `src/components/equipment/…ImageManager` — ปุ่ม ⭐ ตั้งรูปหลัก
 
-**สภาพจริง:** PO ที่แนบ (`PO26070022_เอ็มบีเอ.pdf`) มี supplier เป็นชื่อภาษาอังกฤษ ขณะที่ `companies.name` ใน DB เป็นภาษาไทย → fuzzy match ปัจจุบันหาไม่เจอ
+### Migration (1 ครั้งเดียว)
+```sql
+ALTER TABLE public.tool_images        ADD COLUMN is_primary boolean NOT NULL DEFAULT false;
+ALTER TABLE public.media_player_images ADD COLUMN is_primary boolean NOT NULL DEFAULT false;
+ALTER TABLE public.equipment_images   ADD COLUMN is_primary boolean NOT NULL DEFAULT false;
+-- partial unique index: มี primary ได้แค่ 1 รูปต่อ entity
+CREATE UNIQUE INDEX ... WHERE is_primary;
+```
 
-**ทางเลือก (3 วิธี):**
+### แนวทางประหยัดเครดิต
+1. **ใช้ query เดิม** ของแต่ละหน้า ไม่ยิง fetch เพิ่ม (การ์ด/ตาราง/ปฏิทินใช้ data ชุดเดียวกัน)
+2. **Component reusable ตัวเดียว** สำหรับ 3 หน้า — ไม่เขียนซ้ำ
+3. **ไม่ทำ virtual scroll / lazy image** ในรอบแรก — pagination เดิมเพียงพอ
+4. **Calendar fork จาก `PlanningCalendarView`** ที่มีอยู่แล้ว — ปรับ props ให้ generic
+5. **ไม่แก้ backend logic** ยกเว้น 1 migration เพิ่ม `is_primary`
 
-| # | วิธี | ข้อดี | ข้อเสีย |
-|---|---|---|---|
-| A | เพิ่มคอลัมน์ `name_en` / `aliases` (jsonb) ใน `companies` และให้ OCR match ทั้งไทย+อังกฤษ+alias | ยืดหยุ่นที่สุด รองรับหลายชื่อ/ตัวย่อ/พิมพ์ผิด | ต้องกรอกข้อมูล alias เอง (แต่ทำครั้งเดียว) |
-| B | ใช้ AI (Lovable AI) เรียกใน edge function `ocr-purchase-order` ให้แปล/แม็พชื่อ EN→รายการบริษัทไทยใน DB ด้วย embedding หรือ prompt matching | ไม่ต้องกรอก alias มือ | ใช้เครดิต AI ทุกครั้ง, ความแม่นยำขึ้นกับ prompt |
-| C | Manual dropdown fallback ใน UI OCR — ถ้า match ไม่ได้ ให้ user เลือกเอง + ปุ่ม "จำ mapping นี้" (บันทึกลง alias) | ง่ายที่สุด, เรียนรู้เพิ่มขึ้นเรื่อยๆ | ครั้งแรก user ต้องเลือกเองทุกบริษัทใหม่ |
+## Layout ตัวอย่าง (การ์ด)
+```text
+┌─────────────────┐
+│                 │
+│   [ รูปหลัก ]   │  ← 16:9
+│                 │
+├─────────────────┤
+│ ชื่อรายการ         │
+│ CODE-001         │
+│ [Type] [Brand]  │
+│           คงเหลือ:5 │
+└─────────────────┘
+```
 
-**แนะนำ: A + C ผสมกัน**
-- เพิ่ม `companies.aliases text[]` (หรือ `name_en text`) — migration เดียว
-- Import ครั้งแรก: seed alias อังกฤษให้บริษัทหลักด้วยตาราง mapping ที่มีอยู่ (หรือให้ user กรอกใน company edit dialog)
-- OCR: match ตาม `name` OR `aliases` (case-insensitive, substring/token overlap)
-- ถ้ายัง match ไม่ได้ → dropdown fallback + ปุ่ม "จำชื่อนี้เป็น alias ของบริษัท X" (auto-append เข้า `aliases`) → ครั้งต่อไป match อัตโนมัติ
-- **ประหยัดเครดิตกว่า B** และแม่นยำขึ้นเรื่อยๆ
+## สิ่งที่ **ไม่** ทำในรอบนี้
+- ไม่ทำ drag-reorder รูป
+- ไม่ทำ bulk edit จากการ์ด
+- ไม่ทำ export จากมุมมองปฏิทิน (ใช้ export เดิมของตาราง)
+- ไม่แตะสิทธิ์/RLS (การ์ด/ปฏิทินเห็นข้อมูลเท่าตารางเดิมทุกประการ)
 
-## ขั้นตอนดำเนินการ
-
-1. อ่านโค้ดยืนยัน: `Admin.tsx`, `MasterData.tsx`, `ToolManagement.tsx`, `CompanyList.tsx`, `ProtectedRoute.tsx`, `useAuth.tsx`, `delete-user/index.ts`, schema `profiles` + `companies`
-2. Migration: `companies.aliases text[]` + (ถ้าจำเป็น) `profiles.is_deleted boolean`
-3. แก้โค้ดตามข้อ 1–5
-4. Verify: build, ทดสอบ flow ลบ user แล้ว login ไม่ได้, OCR match ผ่าน alias
-
-## คำถามยืนยัน
-
-- ข้อ 5: ยืนยันเลือกแนวทาง **A + C** (alias + manual learn) ใช่ไหม? หรืออยากลอง B (AI matching) ด้วย?
+กดยืนยันเพื่อเริ่มทำได้เลยครับ
