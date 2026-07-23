@@ -23,6 +23,10 @@ import { ToolImageViewer } from "./ToolImageViewer";
 import { ToolDocumentViewer } from "./ToolDocumentViewer";
 import * as XLSX from "xlsx";
 import { useDeptScope } from "@/hooks/useDeptScope";
+import { ViewModeToggle, useViewMode } from "@/components/common/ViewModeToggle";
+import { EntityCardGrid } from "@/components/common/EntityCardGrid";
+import { EntityCalendarView } from "@/components/common/EntityCalendarView";
+import { usePrimaryImages } from "@/hooks/usePrimaryImages";
 
 interface Tool {
   id: string;
