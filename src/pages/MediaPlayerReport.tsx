@@ -920,6 +920,9 @@ export default function MediaPlayerReport() {
           )}
         </CardContent>
       </Card>
+      )}
+
+
 
       {/* Profile Dialog */}
       {selectedPlayerId && (
