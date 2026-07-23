@@ -1077,7 +1077,58 @@ export default function InventoryReport() {
 
         </Card>
 
+        {/* Card / Calendar view */}
+        {viewMode !== "table" && (
+          <Card>
+            <CardContent className="p-4">
+              {viewMode === "card" ? (
+                <EntityCardGrid
+                  items={paginatedData.map<CardItem>((item) => {
+                    const itemTypeLabel = item.item_type === "media_player" ? (item.device_type === "MONITOR" ? "จอภาพ" : "MP") : item.item_type === "tools" ? "เครื่องมือ" : "อะไหล่";
+                    const st = getStockStatus(item.quantity_in_stock, item.min_stock_level);
+                    return {
+                      id: item.id,
+                      code: item.code,
+                      title: item.name,
+                      subtitle: item.locations ? `${item.locations.warehouses?.name || ""} / ${item.locations.name}` : (item.department || ""),
+                      badges: [
+                        { label: itemTypeLabel },
+                        { label: st.label, className: st.variant === "destructive" ? "border-destructive text-destructive" : st.variant === "warning" ? "border-yellow-500 text-yellow-700" : "border-emerald-500 text-emerald-700" },
+                      ],
+                      stat: `คงเหลือ ${item.quantity_in_stock}`,
+                    };
+                  })}
+                />
+              ) : (
+                <EntityCalendarView
+                  title="วันหมดประกัน / วันหมดอายุ"
+                  items={filteredData
+                    .flatMap<CalendarItem>((item) => {
+                      const arr: CalendarItem[] = [];
+                      if (item.warranty_expiry_date) arr.push({ id: `w-${item.id}`, date: item.warranty_expiry_date, title: `[ประกัน] ${item.code} — ${item.name}`, subtitle: item.locations?.name });
+                      if (item.expiry_date) arr.push({ id: `e-${item.id}`, date: item.expiry_date, title: `[หมดอายุ] ${item.code} — ${item.name}`, subtitle: item.locations?.name });
+                      return arr;
+                    })}
+                />
+              )}
+              {totalItems > 0 && viewMode === "card" && (
+                <div className="pt-4 border-t mt-4">
+                  <TablePagination
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    pageSize={pageSize}
+                    totalItems={totalItems}
+                    onPageChange={handlePageChange}
+                    onPageSizeChange={handlePageSizeChange}
+                  />
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
         {/* Data Table */}
+        {viewMode === "table" && (
         <Card>
           <CardContent className="p-0">
             <div className="overflow-x-auto">
