@@ -682,14 +682,35 @@ export function UserPermissionManager() {
                 กดไอคอน <Sparkles className="inline h-3.5 w-3.5 text-primary" /> <strong>Wizard</strong> เพื่อแก้ไขโปรไฟล์ + ตั้งสิทธิ์ (Role, เมนู, ฝ่าย) ในหน้าเดียว — หากต้องการตั้งสิทธิ์หลายคนพร้อมกันหรือใช้ <strong>Preset</strong> ให้สลับไปที่มุมมอง <strong>Matrix สิทธิ์</strong> ด้านบน
               </CardDescription>
             </div>
-            <div className="relative w-64">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="ค้นหาชื่อ, อีเมล, เบอร์โทร..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9"
-              />
+            <div className="flex flex-wrap items-center gap-2">
+              <Select value={sortMode} onValueChange={(v) => setSortMode(v as any)}>
+                <SelectTrigger className="w-[180px] h-9"><SelectValue placeholder="เรียงลำดับ" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="pending_first">รออนุมัติก่อน</SelectItem>
+                  <SelectItem value="department">ตามฝ่ายสังกัด</SelectItem>
+                  <SelectItem value="recent_login">เข้าใช้งานล่าสุด</SelectItem>
+                  <SelectItem value="inactive_first">ไม่ได้ใช้งานนานสุด</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={inactivityFilter} onValueChange={(v) => setInactivityFilter(v as any)}>
+                <SelectTrigger className="w-[170px] h-9"><SelectValue placeholder="กรองไม่ใช้งาน" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">ทั้งหมด</SelectItem>
+                  <SelectItem value="gt30">ไม่ Login &gt; 30 วัน</SelectItem>
+                  <SelectItem value="gt60">ไม่ Login &gt; 60 วัน</SelectItem>
+                  <SelectItem value="gt90">ไม่ Login &gt; 90 วัน</SelectItem>
+                  <SelectItem value="never">ไม่เคย Login</SelectItem>
+                </SelectContent>
+              </Select>
+              <div className="relative w-64">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="ค้นหาชื่อ, อีเมล, เบอร์โทร..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-9"
+                />
+              </div>
             </div>
           </div>
         </CardHeader>
