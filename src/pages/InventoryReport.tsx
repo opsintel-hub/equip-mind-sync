@@ -32,6 +32,10 @@ import { buildReceivedSerialAliasMap, formatMergedSerials, matchesSerialSearch }
 import BillboardSelect from "@/components/billboard/BillboardSelect";
 import { getCompatibilityBadge } from "@/components/equipment/BillboardCompatibilityField";
 import { useDeptScope } from "@/hooks/useDeptScope";
+import { ViewModeToggle, useViewMode } from "@/components/common/ViewModeToggle";
+import { EntityCardGrid, CardItem } from "@/components/common/EntityCardGrid";
+import { EntityCalendarView, CalendarItem } from "@/components/common/EntityCalendarView";
+import { usePrimaryImages } from "@/hooks/usePrimaryImages";
 
 
 // Removed hardcoded ITEMS_PER_PAGE - now using useTablePagination hook
