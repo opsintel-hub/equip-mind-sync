@@ -215,6 +215,8 @@ export function EquipmentEditForm({ equipment, onSuccess }: EquipmentEditFormPro
             watt: data.watt || null,
             lumen: data.lumen || null,
             lux: data.lux || null,
+            is_consumable: !!data.is_consumable,
+            return_policy_note: data.return_policy_note || null,
           } as any)
         .eq("id", equipment.id);
 
