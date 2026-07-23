@@ -20,6 +20,8 @@ import { Plus, Search, RefreshCw, Calendar, Wrench, PlayCircle, Pause, Edit, Tra
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useAllowedDepartments } from "@/hooks/useAllowedDepartments";
 import { useDeptScope } from "@/hooks/useDeptScope";
+import { ViewModeToggle, useViewMode } from "@/components/common/ViewModeToggle";
+import { EntityCalendarView, CalendarItem } from "@/components/common/EntityCalendarView";
 
 const ToolPMSchedule = () => {
   const queryClient = useQueryClient();
