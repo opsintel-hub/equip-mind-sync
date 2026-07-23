@@ -717,7 +717,6 @@ export function UserPermissionManager() {
           </div>
         </CardHeader>
         <CardContent>
-          {(() => { return null; })()}
 
           <div className="rounded-lg border">
             <Table>
