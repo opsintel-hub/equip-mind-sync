@@ -1,65 +1,78 @@
-## ปัญหาที่พบและแนวทางแก้
 
-### 1. Reset Password ไม่ได้ (422 Error)
-**สาเหตุ:** `reset-user-password` เรียก `updateUserById` เฉพาะ `password` — ถ้า target ถูกแบน (จากการลบ) หรือรหัสไม่ผ่าน HIBP จะ 422
+## เป้าหมาย
+1. ปิดโปรแกรม/ปิดแท็บ → เปิดใหม่ต้อง Login ทุกครั้ง (ไม่จำ session ถาวร)
+2. เจ้าหน้าที่คลังเปิดหน้าค้างไว้ ต้องเห็นคำขอเบิกใหม่ทันทีโดยไม่ต้องกด Refresh และ **หน้าจอต้องไม่กระพริบ**
 
-**แก้:**
-- ปรับ `supabase/functions/reset-user-password/index.ts` ให้ส่ง `ban_duration: "none"` ควบคู่ (ปลด ban ถ้ามี) และคืน error message จริงจาก Supabase
-- Toast ในหน้า Admin แสดง error ที่ parse จาก response body
+---
 
-### 2. คนที่โดนลบ กลับมาสมัครใหม่ไม่ได้
-**สาเหตุ:** `delete-user` เก็บ `auth.users` row ไว้ (ban 100 ปี) → email ซ้ำ → 422
+## แผนงาน
 
-**แก้:** ปรับ `delete-user` ให้ **เปลี่ยน email เป็น `deleted+{uuid}@deleted.local`** ก่อนแบน
-- ประวัติ join `profiles` ยังใช้ได้ (profile row เดิม ชื่อคงเดิม)
-- Email เดิมว่าง → สมัครใหม่ได้ profile ใหม่
-- ban row เก่าคงอยู่เพื่อความปลอดภัย
+### ส่วน A — บังคับ Login ใหม่เมื่อปิดโปรแกรม
 
-### 3. การรับรู้สถานะการสมัคร
-**ผู้สมัคร (หน้า `/user-manual`):** เพิ่มแบนเนอร์สถานะบัญชี
-- ยังไม่มี role/function permission → "⏳ บัญชีกำลังรอการอนุมัติจากผู้ดูแล"
-- ได้รับสิทธิ์แล้ว → "✅ พร้อมใช้งาน" + ปุ่มไป Dashboard
-- Refresh on focus + poll ทุก 30 วิ
+แก้ `src/integrations/supabase/client.ts` **ไฟล์เดียว** โดยเปลี่ยน storage จาก `localStorage` → `sessionStorage`
 
-**Admin/Super Admin:** DB trigger บน `profiles` insert → สร้าง `notifications` category=`user_signup` priority=high ให้ทุกคนที่มี role `admin`/`super_admin`, link ไป `/admin`
+- `sessionStorage` จะหายทันทีเมื่อปิดแท็บ/ปิด browser → ครั้งหน้าเปิดใหม่ = ต้อง Login
+- ระหว่างใช้งาน (เปลี่ยนหน้า, refresh หน้าเดิม) session ยังอยู่ตามปกติ
+- ไม่ต้องเปลี่ยน backend, ไม่กระทบ RLS
+- คงค่า `autoRefreshToken: true` ไว้ เพื่อไม่ให้ token หมดอายุระหว่างใช้งาน
 
-### 4. Sort รายการหน้าจัดการสิทธิ์
-เพิ่ม Sort dropdown ใน `UserPermissionManager.tsx` (default = รอการอนุมัติ):
+หมายเหตุ: ไฟล์นี้มี comment ว่า "auto-generated" — แต่การแก้ storage เป็นสิ่งที่ยอมรับได้ (Lovable จะไม่ทับค่านี้)
 
-| ตัวเลือก | ลำดับ |
-|---|---|
-| ⏳ รอการอนุมัติก่อน (default) | ผู้ที่ไม่มี role และไม่มี function permission ขึ้นบน → เรียง `created_at` DESC |
-| ตามฝ่ายที่ขอมา | group ตาม `requested_department` (รออนุมัติแทรกบนสุดของแต่ละกลุ่ม) |
-| ตามชื่อ | ก-ฮ |
-| ใหม่สุด | `created_at` DESC |
-| ไม่ได้ใช้งานนานสุด | `last_sign_in_at` ASC (null = ไม่เคย login มาก่อน) |
+### ส่วน B — Realtime สำหรับหน้าที่เจ้าหน้าที่คลังเปิดค้าง (ไม่กระพริบ)
 
-เพิ่ม Badge "🆕 รอการอนุมัติ" สีส้มบนแถวผู้ใช้ที่ยังไม่มีสิทธิ์
+ใช้ **Supabase Realtime (Postgres Changes)** — มาพร้อม Lovable Cloud, ไม่มีค่าใช้จ่ายเพิ่ม, ไม่ต้อง polling
 
-### 5. ติดตาม User ที่ไม่ได้ใช้งานนาน (Inactive Users) — **ใหม่**
-ใช้ `auth.users.last_sign_in_at` เป็นแหล่งข้อมูล ไม่ต้องเพิ่ม column
+หน้าที่ต้องเพิ่ม subscription:
+1. `src/pages/IssueGoods.tsx` — คลังจ่ายสินค้า (ฟัง `goods_issue_pending` INSERT/UPDATE)
+2. `src/pages/ManagerApproval.tsx` — Manager อนุมัติ (ฟัง INSERT/UPDATE)
+3. `src/pages/DeliveryConfirmation.tsx` — ยืนยันรับสินค้า
+4. `src/pages/IncompleteIssues.tsx` — รายการยังไม่สมบูรณ์
+5. `src/components/NotificationCenter.tsx` — แจ้งเตือน (ฟัง `notifications`)
 
-**Backend:**
-- ขยาย RPC `get_users_emails` (หรือสร้าง `get_users_activity`) ให้คืน `id, email, last_sign_in_at, created_at` (super_admin/admin เท่านั้น)
-- Merge ค่าเข้า user list ตอน fetch เดิม
+**วิธีทำให้ไม่กระพริบ** (สำคัญ):
+- ใช้ `queryClient.invalidateQueries({ queryKey: [...] })` แทนการ `refetch()` ทันที
+- ตั้ง `placeholderData: keepPreviousData` (หรือ `keepPreviousData: true`) ใน `useQuery` ที่เกี่ยวข้อง → React Query จะเก็บข้อมูลเก่าไว้แสดงจนกว่าข้อมูลใหม่จะโหลดเสร็จ ไม่มี unmount/remount ตาราง
+- ปิด `refetchOnWindowFocus` สำหรับ query ที่ subscribe realtime แล้ว (ไม่จำเป็นต้อง refetch ซ้ำเมื่อ focus)
+- ถ้าคำขอใหม่เข้ามา ให้แสดง toast เล็กๆ มุมขวาบน "มีคำขอเบิกใหม่ 1 รายการ" เพื่อให้เจ้าหน้าที่รู้ตัว โดยไม่ต้องพึ่งการกระพริบของหน้าจอ
 
-**UI ในหน้าจัดการผู้ใช้:**
-- เพิ่ม **Column "เข้าใช้งานล่าสุด"** แสดงวันที่ + จำนวนวันที่ผ่านมา ("14 วันที่แล้ว" / "ไม่เคยเข้าใช้")
-- Highlight สีตามระดับ:
-  - ≤30 วัน = ปกติ (ไม่มีสี)
-  - 31–60 วัน = เหลือง
-  - 61–90 วัน = ส้ม
-  - >90 วัน = แดง + Badge "⚠️ ไม่ได้ใช้งาน >90 วัน"
-- เพิ่ม **ตัวกรอง "ระยะเวลาไม่ใช้งาน"**: ทั้งหมด / >30 / >60 / >90 / ไม่เคย login
-- ปุ่ม **"แจ้งเตือน User"** (ส่ง notification ใน app) ในแถวที่เกิน 60 วัน — บันทึก notification เตือนว่า "หากไม่เข้าใช้งานภายใน X วัน จะถูกลบออกจากระบบ"
-- ปุ่ม **"เลือกทั้งหมด (>90 วัน)"** + Bulk action ส่งแจ้งเตือน หรือลบทีเดียว (ยืนยันก่อนลบ)
+สร้าง helper hook ใหม่ `src/hooks/useRealtimeInvalidate.tsx`:
+```
+useRealtimeInvalidate({
+  table: "goods_issue_pending",
+  events: ["INSERT", "UPDATE"],
+  queryKey: ["issue-goods-pending"],
+  onInsert: () => toast("มีคำขอเบิกใหม่"),
+})
+```
+- Subscribe channel ครั้งเดียวต่อหน้า
+- Cleanup ตอน unmount
+- Debounce การ invalidate (200ms) กันกรณี event มาถี่
 
-**สรุปการทำงาน:** Super Admin/Admin เปิดหน้าจัดการผู้ใช้ → filter ">90 วัน" → เห็นรายการที่ควรพิจารณาลบ → แจ้งเตือนหรือลบได้จากที่เดียว
+### ส่วน C — เอกสาร/UX เล็กน้อย
+- ที่หน้า Login แจ้งใต้ปุ่ม: "ระบบจะออกจากระบบอัตโนมัติเมื่อปิดโปรแกรม เพื่อความปลอดภัย"
 
-### สรุปไฟล์ที่แก้
-- `supabase/functions/reset-user-password/index.ts` — ปลด ban + คืน error จริง
-- `supabase/functions/delete-user/index.ts` — เปลี่ยน email ก่อน ban
-- Migration: trigger `notify_admins_on_new_signup` + ขยาย/สร้าง RPC คืน `last_sign_in_at`
-- `src/pages/UserManual.tsx` — แบนเนอร์สถานะบัญชี
-- `src/components/admin/UserPermissionManager.tsx` — Sort dropdown, badge รออนุมัติ, column last_sign_in, filter inactivity, bulk แจ้งเตือน/ลบ
-- `src/components/admin/PermissionWizard.tsx` — แสดง error จริงจาก reset password
+---
+
+## Technical details (สำหรับ dev)
+
+**ทำไมเลือก sessionStorage แทน timeout-based logout?**
+- ไม่ต้องมี background timer, ไม่ต้องแก้ backend
+- ตอบโจทย์ "ปิดโปรแกรมแล้วต้อง Login ใหม่" ตรงตัว
+- ถ้าอยากให้ session หมดอายุระหว่างใช้งานด้วย (idle timeout) ค่อยเพิ่มทีหลัง
+
+**ทำไม Realtime ไม่ใช่ polling?**
+- Polling ทุก 10-30 วิ → ตารางกระพริบ + สิ้นเปลือง egress
+- Supabase Realtime ใช้ WebSocket เดียว ประหยัดกว่ามาก
+- ต้องเปิด Realtime ให้ตารางที่ subscribe (ตรวจว่า `goods_issue_pending`, `notifications` เปิดแล้ว — ถ้ายังไม่เปิดจะเพิ่ม migration `ALTER PUBLICATION supabase_realtime ADD TABLE ...`)
+
+**ทำไมไม่กระพริบ:**
+- React Query `keepPreviousData` = ไม่มี loading state ระหว่าง background refetch
+- `invalidateQueries` = mark stale + refetch เงียบๆ, DOM เดิมคงอยู่ระหว่างรอ
+- ไม่ใช้ `window.location.reload()` เด็ดขาด
+
+---
+
+## ขอบเขตที่จะไม่ทำในรอบนี้
+- Idle timeout (ไม่ใช้งาน X นาที → logout) — ถ้าต้องการ แจ้งได้จะทำเพิ่ม
+- Multi-tab logout sync — ปกติ sessionStorage แยกแท็บอยู่แล้ว
+- Realtime สำหรับทุกหน้าในระบบ — เริ่มจาก 5 หน้าที่ระบุก่อน หน้าอื่นค่อยเพิ่มตามความต้องการ
