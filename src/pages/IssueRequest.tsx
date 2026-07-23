@@ -79,6 +79,11 @@ interface CartItem {
   location_name?: string;
   department?: string | null;
   sub_media_type?: string | null;
+  // ต้องคืนของเก่าหรือไม่ (คำนวณจาก purpose.requires_return AND NOT equipment.is_consumable)
+  needs_return?: boolean;
+  needs_return_overridden?: boolean;
+  is_consumable?: boolean;
+  return_policy_note?: string | null;
 }
 
 const IssueRequest = () => {
