@@ -33,6 +33,8 @@ interface EquipmentWithDetails {
   name: string;
   unit: string;
   quantity_in_stock: number;
+  is_consumable?: boolean;
+  return_policy_note?: string | null;
   serial_number: string | null;
   serial_number_2?: string | null;
   expiry_date: string | null;
