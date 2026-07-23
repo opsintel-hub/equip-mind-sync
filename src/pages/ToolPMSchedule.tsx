@@ -64,8 +64,11 @@ const ToolPMSchedule = () => {
           code,
           name,
           department,
+          serial_number,
+          brand,
           pm_interval_days,
           current_quantity,
+          is_personal_tool,
           tool_categories (name),
           companies (name)
         `)
