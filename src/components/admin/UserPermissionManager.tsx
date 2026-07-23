@@ -31,6 +31,8 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { SYSTEM_FUNCTIONS } from "@/hooks/useFunctionPermissions";
+import { useTablePagination } from "@/hooks/useTablePagination";
+import { TablePagination } from "@/components/TablePagination";
 import { PermissionWizard } from "./PermissionWizard";
 import { QuickPresetSelector } from "./QuickPresetSelector";
 import {
@@ -176,6 +178,17 @@ export function UserPermissionManager() {
     });
     setFilteredUsers(list);
   }, [searchQuery, users, userRoles, sortMode, inactivityFilter]);
+
+  const {
+    paginatedData: paginatedUsers,
+    currentPage,
+    pageSize,
+    totalPages,
+    totalItems,
+    handlePageChange,
+    handlePageSizeChange,
+  } = useTablePagination(filteredUsers, 20);
+
 
   const fetchUsers = async () => {
     try {
@@ -665,7 +678,7 @@ export function UserPermissionManager() {
 
   return (
     <>
-      <Card>
+      <Card className="shadow-sm">
         <CardHeader className="pb-4">
           <div className="flex items-center justify-between">
             <div>
@@ -715,6 +728,7 @@ export function UserPermissionManager() {
           </div>
         </CardHeader>
         <CardContent>
+
           <div className="rounded-lg border">
             <Table>
               <TableHeader>
@@ -732,7 +746,7 @@ export function UserPermissionManager() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredUsers.map((user) => (
+                {paginatedUsers.map((user) => (
                   <TableRow 
                     key={user.id} 
                     className="hover:bg-muted/30 cursor-pointer"
@@ -889,6 +903,14 @@ export function UserPermissionManager() {
               </TableBody>
             </Table>
           </div>
+          <TablePagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            totalItems={totalItems}
+            pageSize={pageSize}
+            onPageChange={handlePageChange}
+            onPageSizeChange={handlePageSizeChange}
+          />
         </CardContent>
       </Card>
 
