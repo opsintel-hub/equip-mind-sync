@@ -123,6 +123,8 @@ export function UserPermissionManager() {
   const [allPresets, setAllPresets] = useState<PermissionPreset[]>([]);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleteBusy, setDeleteBusy] = useState(false);
+  const [sortMode, setSortMode] = useState<"pending_first" | "department" | "recent_login" | "inactive_first">("pending_first");
+  const [inactivityFilter, setInactivityFilter] = useState<"all" | "gt30" | "gt60" | "gt90" | "never">("all");
 
   useEffect(() => {
     fetchUsers();
