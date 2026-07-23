@@ -8,9 +8,11 @@ const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
 
+// ใช้ sessionStorage เพื่อบังคับ Login ใหม่เมื่อปิด browser/แท็บ (เพื่อความปลอดภัย)
+// ระหว่างใช้งาน session ยังอยู่ตามปกติ และ token จะ refresh อัตโนมัติ
 export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
   auth: {
-    storage: localStorage,
+    storage: typeof window !== 'undefined' ? window.sessionStorage : undefined,
     persistSession: true,
     autoRefreshToken: true,
   }
