@@ -696,7 +696,58 @@ export default function MediaPlayerReport() {
         </CardContent>
       </Card>
 
+      {/* Card / Calendar view */}
+      {viewMode !== "table" && (
+        <Card>
+          <CardContent className="p-4">
+            {viewMode === "card" ? (
+              <EntityCardGrid
+                items={paginatedData.map<CardItem>((r) => ({
+                  id: r.playerId,
+                  imageUrl: primaryImgMap[r.playerId] || r.imageUrl,
+                  code: r.code,
+                  title: r.name || r.remoteName || r.code,
+                  subtitle: r.billboardLabel !== "-" ? r.billboardLabel : (r.locationName || r.department),
+                  badges: [
+                    { label: r.deviceType === "MONITOR" ? "จอภาพ" : "Media Player", className: r.deviceType === "MONITOR" ? "border-purple-400 text-purple-700" : "border-blue-400 text-blue-700" },
+                    { label: getStatusMeta(r).label, className: getStatusMeta(r).className },
+                  ],
+                  stat: r.serialNumber && r.serialNumber !== "-" ? r.serialNumber.split("\n")[0] : undefined,
+                }))}
+                onClick={(id) => setSelectedPlayerId(id)}
+              />
+            ) : (
+              <EntityCalendarView
+                title="วันหมดประกัน"
+                items={filtered
+                  .filter((r) => r.warrantyExpiry)
+                  .map<CalendarItem>((r) => ({
+                    id: r.playerId,
+                    date: r.warrantyExpiry!,
+                    title: `${r.code} — ${r.name || ""}`,
+                    subtitle: r.billboardLabel !== "-" ? r.billboardLabel : r.locationName,
+                  }))}
+                onItemClick={(id) => setSelectedPlayerId(id)}
+              />
+            )}
+            {totalItems > 0 && viewMode === "card" && (
+              <div className="pt-4 border-t mt-4">
+                <TablePagination
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  pageSize={pageSize}
+                  totalItems={totalItems}
+                  onPageChange={handlePageChange}
+                  onPageSizeChange={handlePageSizeChange}
+                />
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
       {/* Table */}
+      {viewMode === "table" && (
       <Card>
         <CardContent className="p-0">
           {isLoading ? (
