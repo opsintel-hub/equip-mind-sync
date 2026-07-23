@@ -150,11 +150,11 @@ const IncompleteIssues = () => {
 
       // Load per-item billboard assignment to detect partially-assigned headers
       const ids = (data || []).map((d: any) => d.id);
-      let itemsByPending = new Map<string, { billboard_id: string | null; status: string | null }[]>();
+      let itemsByPending = new Map<string, { billboard_id: string | null; status: string | null; needs_return: boolean | null }[]>();
       if (ids.length > 0) {
         const { data: itemRows } = await supabase
           .from("goods_issue_pending_items")
-          .select("pending_id, billboard_id, status")
+          .select("pending_id, billboard_id, status, needs_return")
           .in("pending_id", ids);
         (itemRows || []).forEach((r: any) => {
           if (!itemsByPending.has(r.pending_id)) itemsByPending.set(r.pending_id, []);
@@ -175,11 +175,17 @@ const IncompleteIssues = () => {
           if (!item.billboard_id || anyItemMissing) return true;
         }
 
-        // Need return (claim vendor)
+        // Need return (claim vendor) — only if at least 1 line item is flagged needs_return=true
         if (purpose?.requires_return) {
-          const returnedQty = item.return_quantity || 0;
-          const issuedQty = item.issued_quantity || 0;
-          if (returnedQty < issuedQty) return true;
+          const lineItems = itemsByPending.get(item.id) || [];
+          const anyNeedsReturn = lineItems.some((li) => li.needs_return === true);
+          // Backward-compat: if line items have no needs_return column data yet (all null), fall back to header purpose
+          const hasReturnFlags = lineItems.some((li) => li.needs_return !== null);
+          if (!hasReturnFlags || anyNeedsReturn) {
+            const returnedQty = item.return_quantity || 0;
+            const issuedQty = item.issued_quantity || 0;
+            if (returnedQty < issuedQty) return true;
+          }
         }
 
         return false;
