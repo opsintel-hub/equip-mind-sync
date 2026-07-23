@@ -550,6 +550,20 @@ const ToolPMSchedule = () => {
             </div>
           ) : (
             <>
+            {viewMode === "calendar" ? (
+              <EntityCalendarView
+                title="ปฏิทิน PM เครื่องมือ"
+                items={filteredSummary
+                  .filter((t: any) => t.latestTask?.due_date)
+                  .map<CalendarItem>((t: any) => ({
+                    id: t.id,
+                    date: t.latestTask.due_date,
+                    title: `${t.code} — ${t.name}`,
+                    subtitle: t.department || t.brand,
+                  }))}
+              />
+            ) : (
+            <>
             <div className="w-full overflow-x-auto">
             <Table className="min-w-[1200px]">
               <TableHeader>
