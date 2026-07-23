@@ -274,6 +274,8 @@ export function EquipmentForm({ onSuccess, prefillData, triggerButton }: Equipme
         height_cm: data.height_cm || null,
         depth_cm: data.depth_cm || null,
         volume_cm3: data.volume_cm3 || null,
+        is_consumable: !!data.is_consumable,
+        return_policy_note: data.return_policy_note || null,
       }).select('id').single();
 
       if (error) throw error;
