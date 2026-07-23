@@ -778,6 +778,8 @@ const IssueRequest = () => {
         status: "pending",
         notes: item.notes || null,
         sub_media_type: item.sub_media_type || null,
+        needs_return: item.needs_return ?? !!selectedPurpose?.requires_return,
+        needs_return_overridden: !!item.needs_return_overridden,
       })) as any;
 
       const { error: itemsError } = await supabase
