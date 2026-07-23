@@ -133,6 +133,8 @@ export function EquipmentForm({ onSuccess, prefillData, triggerButton }: Equipme
       height_cm: undefined,
       depth_cm: undefined,
       volume_cm3: undefined,
+      is_consumable: false,
+      return_policy_note: "",
     },
   });
 
