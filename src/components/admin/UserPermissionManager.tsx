@@ -667,7 +667,7 @@ export function UserPermissionManager() {
 
   return (
     <>
-      <Card>
+      <Card className="shadow-sm">
         <CardHeader className="pb-4">
           <div className="flex items-center justify-between">
             <div>
