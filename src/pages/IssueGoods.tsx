@@ -27,6 +27,7 @@ import { requiresSubMediaType } from "@/lib/mediaPlayerSubTypes";
 import { logStockMovement } from "@/lib/stockMovement";
 import { SerialNumberSelect, SerialNumberItem } from "@/components/equipment/SerialNumberSelect";
 import { SearchableSelect } from "@/components/ui/searchable-select";
+import { useRealtimeInvalidate } from "@/hooks/useRealtimeInvalidate";
 
 interface EquipmentWithDetails {
   id: string;
@@ -137,10 +138,27 @@ const IssueGoods = () => {
       // Show all (including pending_approval) for visibility; the จ่าย button is gated by status === "pending"
       return (data as (PendingRequest & { companies: { name: string } | null })[]);
     },
+    placeholderData: (prev) => prev,
+    refetchOnWindowFocus: false,
+  });
+
+  // Realtime: อัปเดตทันทีเมื่อมีคำขอเบิกใหม่/เปลี่ยนสถานะ โดยไม่กระพริบ
+  useRealtimeInvalidate({
+    table: "goods_issue_pending",
+    queryKeys: [["goods-issue-pending-staff", deptKey]],
+    onInsert: () => toast.info("มีคำขอเบิกใหม่เข้ามา", { duration: 4000 }),
+  });
+  useRealtimeInvalidate({
+    table: "goods_issue_pending_items",
+    queryKeys: [["goods-issue-pending-items-staff"]],
   });
 
   // Fetch pending items
   const { data: pendingItems } = useQuery({
+    // realtime-friendly options applied below
+    // @ts-ignore
+    placeholderData: (prev: any) => prev,
+    refetchOnWindowFocus: false,
     queryKey: ["goods-issue-pending-items-staff"],
     queryFn: async () => {
       const { data, error } = await supabase
