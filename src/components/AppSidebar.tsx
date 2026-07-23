@@ -390,6 +390,19 @@ export function AppSidebar() {
 
   const filteredMenuGroups = useMemo(() => {
     if (permLoading || superLoading) return [];
+
+    // Newly signed-up users with no permissions yet see only the User Manual
+    if (!hasAnyAccess) {
+      return [
+        {
+          label: "ช่วยเหลือ",
+          items: [
+            { title: "คู่มือการใช้งาน", url: "/user-manual", icon: BookOpen },
+          ],
+        },
+      ];
+    }
+
     
     return menuGroups.map(group => ({
       ...group,
