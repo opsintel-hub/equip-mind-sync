@@ -475,31 +475,60 @@ const ToolPMSchedule = () => {
               </p>
             </div>
 
-            <div className="flex gap-2">
+            <div className="flex gap-2 flex-wrap items-center">
               <Button variant="outline" onClick={() => refetch()}>
                 <RefreshCw className="h-4 w-4 mr-2" />
                 รีเฟรช
               </Button>
-            </div>
-            <div className="flex gap-2">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder="ค้นหา..."
+                  placeholder="ค้นหา รหัส / ชื่อ / S/N / ยี่ห้อ / หมวดหมู่"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 w-[200px]"
+                  className="pl-10 w-[280px]"
                 />
               </div>
               <Select value={departmentFilter} onValueChange={setDepartmentFilter} disabled={isSingleDepartment}>
-                <SelectTrigger className="w-[180px]">
-                  <SelectValue placeholder="เลือกฝ่าย" />
-                </SelectTrigger>
+                <SelectTrigger className="w-[160px]"><SelectValue placeholder="ทุกฝ่าย" /></SelectTrigger>
                 <SelectContent>
                   {!isSingleDepartment && <SelectItem value="all">ทุกฝ่าย</SelectItem>}
                   {departments.map((dept: any) => (
                     <SelectItem key={dept} value={dept}>{dept}</SelectItem>
                   ))}
+                </SelectContent>
+              </Select>
+              <Select value={dueFilter} onValueChange={setDueFilter}>
+                <SelectTrigger className="w-[220px]"><SelectValue placeholder="เวลาที่ต้อง PM" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">เวลา PM: ทั้งหมด</SelectItem>
+                  <SelectItem value="overdue_all">🔴 เลยกำหนดทั้งหมด</SelectItem>
+                  <SelectItem value="overdue_14">🔴 เลยไม่เกิน 14 วัน</SelectItem>
+                  <SelectItem value="overdue_30">🔴 เลยไม่เกิน 30 วัน</SelectItem>
+                  <SelectItem value="overdue_60">🔴 เลยไม่เกิน 60 วัน</SelectItem>
+                  <SelectItem value="overdue_60plus">🔴 เลยเกิน 60 วัน</SelectItem>
+                  <SelectItem value="upcoming_14">🟡 ใกล้ถึงกำหนด 14 วัน</SelectItem>
+                  <SelectItem value="upcoming_30">🟡 ใกล้ถึงกำหนด 30 วัน</SelectItem>
+                  <SelectItem value="upcoming_60">🟢 ใกล้ถึงกำหนด 60 วัน</SelectItem>
+                  <SelectItem value="no_schedule">⚪ ยังไม่มีตั๋ว PM</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={pmTypeFilter} onValueChange={setPmTypeFilter}>
+                <SelectTrigger className="w-[170px]"><SelectValue placeholder="ประเภท PM" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">PM: ทุกประเภท</SelectItem>
+                  <SelectItem value="has_pm">มีรอบ PM</SelectItem>
+                  <SelectItem value="no_pm">ไม่มีรอบ PM</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-[190px]"><SelectValue placeholder="สถานะเครื่องมือ" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">สถานะ: ทั้งหมด</SelectItem>
+                  <SelectItem value="pending">มีตั๋วรอตรวจ</SelectItem>
+                  <SelectItem value="in_progress">กำลังตรวจ</SelectItem>
+                  <SelectItem value="no_ticket">ยังไม่มีตั๋วค้าง</SelectItem>
+                  <SelectItem value="never_inspected">ยังไม่เคยตรวจ</SelectItem>
                 </SelectContent>
               </Select>
             </div>
