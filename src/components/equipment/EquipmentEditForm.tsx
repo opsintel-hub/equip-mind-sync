@@ -86,6 +86,8 @@ interface EquipmentData {
   watt?: number | null;
   lumen?: number | null;
   lux?: number | null;
+  is_consumable?: boolean | null;
+  return_policy_note?: string | null;
 }
 
 interface EquipmentEditFormProps {
