@@ -20,6 +20,8 @@ import { Plus, Search, RefreshCw, Calendar, Wrench, PlayCircle, Pause, Edit, Tra
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useAllowedDepartments } from "@/hooks/useAllowedDepartments";
 import { useDeptScope } from "@/hooks/useDeptScope";
+import { ViewModeToggle, useViewMode } from "@/components/common/ViewModeToggle";
+import { EntityCalendarView, CalendarItem } from "@/components/common/EntityCalendarView";
 
 const ToolPMSchedule = () => {
   const queryClient = useQueryClient();
@@ -236,6 +238,7 @@ const ToolPMSchedule = () => {
   }, [enrichedSummary, searchTerm, departmentFilter, pmTypeFilter, dueFilter, statusFilter]);
 
   const pagination = useTablePagination(filteredSummary, 20);
+  const [viewMode, setViewMode] = useViewMode("tool-pm-schedule", "table");
 
   // Create PM task mutation
   const createPMTask = useMutation({
@@ -476,6 +479,7 @@ const ToolPMSchedule = () => {
             </div>
 
             <div className="flex gap-2 flex-wrap items-center">
+              <ViewModeToggle value={viewMode} onChange={setViewMode} />
               <Button variant="outline" onClick={() => refetch()}>
                 <RefreshCw className="h-4 w-4 mr-2" />
                 รีเฟรช
@@ -545,6 +549,20 @@ const ToolPMSchedule = () => {
               <p>ไม่พบข้อมูลเครื่องมือ</p>
             </div>
           ) : (
+            <>
+            {viewMode === "calendar" ? (
+              <EntityCalendarView
+                title="ปฏิทิน PM เครื่องมือ"
+                items={filteredSummary
+                  .filter((t: any) => t.latestTask?.due_date)
+                  .map<CalendarItem>((t: any) => ({
+                    id: t.id,
+                    date: t.latestTask.due_date,
+                    title: `${t.code} — ${t.name}`,
+                    subtitle: t.department || t.brand,
+                  }))}
+              />
+            ) : (
             <>
             <div className="w-full overflow-x-auto">
             <Table className="min-w-[1200px]">
@@ -681,6 +699,8 @@ const ToolPMSchedule = () => {
               onPageChange={pagination.handlePageChange}
               onPageSizeChange={pagination.handlePageSizeChange}
             />
+            </>
+            )}
             </>
           )}
         </CardContent>

@@ -32,6 +32,10 @@ import { buildReceivedSerialAliasMap, formatMergedSerials, matchesSerialSearch }
 import BillboardSelect from "@/components/billboard/BillboardSelect";
 import { getCompatibilityBadge } from "@/components/equipment/BillboardCompatibilityField";
 import { useDeptScope } from "@/hooks/useDeptScope";
+import { ViewModeToggle, useViewMode } from "@/components/common/ViewModeToggle";
+import { EntityCardGrid, CardItem } from "@/components/common/EntityCardGrid";
+import { EntityCalendarView, CalendarItem } from "@/components/common/EntityCalendarView";
+import { usePrimaryImages } from "@/hooks/usePrimaryImages";
 
 
 // Removed hardcoded ITEMS_PER_PAGE - now using useTablePagination hook
@@ -104,6 +108,7 @@ export default function InventoryReport() {
   const [compatBillboardId, setCompatBillboardId] = useState<string>("");
   const { isSuperAdmin, viewableDepts, deptKey } = useDeptScope();
   const scopeDepts = isSuperAdmin ? null : ((viewableDepts && viewableDepts.length > 0) ? viewableDepts : ["__no_dept_permission__"]);
+  const [viewMode, setViewMode] = useViewMode("inventory-report", "table");
 
   // Pagination is handled by useTablePagination below
 
@@ -962,10 +967,13 @@ export default function InventoryReport() {
               ⚠️ รายงานนี้แสดงเฉพาะ <b>อุปกรณ์/อะไหล่</b> เท่านั้น — สำหรับ Media Player กรุณาดูที่หน้า <b>"รายงาน Media Player"</b>
             </p>
           </div>
-          <Button onClick={handleExport} disabled={filteredData.length === 0}>
-            <Download className="mr-2 h-4 w-4" />
-            Export Excel
-          </Button>
+          <div className="flex items-center gap-2">
+            <ViewModeToggle value={viewMode} onChange={setViewMode} />
+            <Button onClick={handleExport} disabled={filteredData.length === 0}>
+              <Download className="mr-2 h-4 w-4" />
+              Export Excel
+            </Button>
+          </div>
         </div>
 
         {/* Summary Cards */}
@@ -1069,7 +1077,58 @@ export default function InventoryReport() {
 
         </Card>
 
+        {/* Card / Calendar view */}
+        {viewMode !== "table" && (
+          <Card>
+            <CardContent className="p-4">
+              {viewMode === "card" ? (
+                <EntityCardGrid
+                  items={paginatedData.map<CardItem>((item) => {
+                    const itemTypeLabel = item.item_type === "media_player" ? (item.device_type === "MONITOR" ? "จอภาพ" : "MP") : item.item_type === "tools" ? "เครื่องมือ" : "อะไหล่";
+                    const st = getStockStatus(item.quantity_in_stock, item.min_stock_level);
+                    return {
+                      id: item.id,
+                      code: item.code,
+                      title: item.name,
+                      subtitle: item.locations ? `${item.locations.warehouses?.name || ""} / ${item.locations.name}` : (item.department || ""),
+                      badges: [
+                        { label: itemTypeLabel },
+                        { label: st.label, className: st.variant === "destructive" ? "border-destructive text-destructive" : st.variant === "warning" ? "border-yellow-500 text-yellow-700" : "border-emerald-500 text-emerald-700" },
+                      ],
+                      stat: `คงเหลือ ${item.quantity_in_stock}`,
+                    };
+                  })}
+                />
+              ) : (
+                <EntityCalendarView
+                  title="วันหมดประกัน / วันหมดอายุ"
+                  items={filteredData
+                    .flatMap<CalendarItem>((item) => {
+                      const arr: CalendarItem[] = [];
+                      if (item.warranty_expiry_date) arr.push({ id: `w-${item.id}`, date: item.warranty_expiry_date, title: `[ประกัน] ${item.code} — ${item.name}`, subtitle: item.locations?.name });
+                      if (item.expiry_date) arr.push({ id: `e-${item.id}`, date: item.expiry_date, title: `[หมดอายุ] ${item.code} — ${item.name}`, subtitle: item.locations?.name });
+                      return arr;
+                    })}
+                />
+              )}
+              {totalItems > 0 && viewMode === "card" && (
+                <div className="pt-4 border-t mt-4">
+                  <TablePagination
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    pageSize={pageSize}
+                    totalItems={totalItems}
+                    onPageChange={handlePageChange}
+                    onPageSizeChange={handlePageSizeChange}
+                  />
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
         {/* Data Table */}
+        {viewMode === "table" && (
         <Card>
           <CardContent className="p-0">
             <div className="overflow-x-auto">
@@ -1387,6 +1446,7 @@ export default function InventoryReport() {
             </div>
           </CardContent>
         </Card>
+        )}
     </div>
   );
 }

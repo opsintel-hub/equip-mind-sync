@@ -28,6 +28,10 @@ import { toast } from "sonner";
 import * as XLSX from "xlsx";
 import { matchesSerialSearch } from "@/lib/serialSearch";
 import { useDeptScope } from "@/hooks/useDeptScope";
+import { ViewModeToggle, useViewMode } from "@/components/common/ViewModeToggle";
+import { EntityCardGrid, CardItem } from "@/components/common/EntityCardGrid";
+import { EntityCalendarView, CalendarItem } from "@/components/common/EntityCalendarView";
+import { usePrimaryImages } from "@/hooks/usePrimaryImages";
 
 import { MediaPlayerRow, BillboardJourney, StockMovement } from "@/components/media-player/profile/types";
 import { SummaryCards } from "@/components/media-player/profile/SummaryCards";
@@ -157,6 +161,7 @@ export default function MediaPlayerReport() {
   const [selectedPlayerId, setSelectedPlayerId] = useState<string | null>(null);
   const [lightboxImages, setLightboxImages] = useState<string[] | null>(null);
   const { isSuperAdmin, viewableDepts, deptKey } = useDeptScope();
+  const [viewMode, setViewMode] = useViewMode("media-player-report", "table");
 
   // Fetch all media players with extra fields
   const { data: players = [], isLoading } = useQuery({
@@ -186,6 +191,8 @@ export default function MediaPlayerReport() {
       return (data || []) as unknown as MediaPlayerMaster[];
     },
   });
+
+  const primaryImgMap = usePrimaryImages("media_player_images", "media_player_id", players.map((p) => p.id));
 
   // Fetch receipt-level data (S/N, price, PO, lot) for expansion
   const { data: receiptRows = [] } = useQuery({
@@ -532,10 +539,13 @@ export default function MediaPlayerReport() {
           </h1>
           <p className="text-muted-foreground">แสดงรายการ Media Player แบบ 1 เครื่องต่อ 1 แถว โดยรวม S/N 1 และ S/N 2 ไว้ในแถวเดียว</p>
         </div>
-        <Button variant="outline" onClick={handleExport}>
-          <Download className="w-4 h-4 mr-2" />
-          Export Excel
-        </Button>
+        <div className="flex items-center gap-2">
+          <ViewModeToggle value={viewMode} onChange={setViewMode} />
+          <Button variant="outline" onClick={handleExport}>
+            <Download className="w-4 h-4 mr-2" />
+            Export Excel
+          </Button>
+        </div>
       </div>
 
       {/* Summary Cards */}
@@ -688,7 +698,58 @@ export default function MediaPlayerReport() {
         </CardContent>
       </Card>
 
+      {/* Card / Calendar view */}
+      {viewMode !== "table" && (
+        <Card>
+          <CardContent className="p-4">
+            {viewMode === "card" ? (
+              <EntityCardGrid
+                items={paginatedData.map<CardItem>((r) => ({
+                  id: r.playerId,
+                  imageUrl: primaryImgMap[r.playerId] || r.imageUrl,
+                  code: r.code,
+                  title: r.name || r.remoteName || r.code,
+                  subtitle: r.billboardLabel !== "-" ? r.billboardLabel : (r.locationName || r.department),
+                  badges: [
+                    { label: r.deviceType === "MONITOR" ? "จอภาพ" : "Media Player", className: r.deviceType === "MONITOR" ? "border-purple-400 text-purple-700" : "border-blue-400 text-blue-700" },
+                    { label: getStatusMeta(r).label, className: getStatusMeta(r).className },
+                  ],
+                  stat: r.serialNumber && r.serialNumber !== "-" ? r.serialNumber.split("\n")[0] : undefined,
+                }))}
+                onClick={(id) => setSelectedPlayerId(id)}
+              />
+            ) : (
+              <EntityCalendarView
+                title="วันหมดประกัน"
+                items={filtered
+                  .filter((r) => r.warrantyExpiry)
+                  .map<CalendarItem>((r) => ({
+                    id: r.playerId,
+                    date: r.warrantyExpiry!,
+                    title: `${r.code} — ${r.name || ""}`,
+                    subtitle: r.billboardLabel !== "-" ? r.billboardLabel : r.locationName,
+                  }))}
+                onItemClick={(id) => setSelectedPlayerId(id)}
+              />
+            )}
+            {totalItems > 0 && viewMode === "card" && (
+              <div className="pt-4 border-t mt-4">
+                <TablePagination
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  pageSize={pageSize}
+                  totalItems={totalItems}
+                  onPageChange={handlePageChange}
+                  onPageSizeChange={handlePageSizeChange}
+                />
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
       {/* Table */}
+      {viewMode === "table" && (
       <Card>
         <CardContent className="p-0">
           {isLoading ? (
@@ -861,6 +922,9 @@ export default function MediaPlayerReport() {
           )}
         </CardContent>
       </Card>
+      )}
+
+
 
       {/* Profile Dialog */}
       {selectedPlayerId && (
