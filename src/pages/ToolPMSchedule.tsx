@@ -479,6 +479,7 @@ const ToolPMSchedule = () => {
             </div>
 
             <div className="flex gap-2 flex-wrap items-center">
+              <ViewModeToggle value={viewMode} onChange={setViewMode} />
               <Button variant="outline" onClick={() => refetch()}>
                 <RefreshCw className="h-4 w-4 mr-2" />
                 รีเฟรช
