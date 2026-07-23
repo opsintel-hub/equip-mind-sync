@@ -151,6 +151,10 @@ const Dashboard = () => {
     },
   ];
 
+  if (!permLoading && !hasAnyAccess) {
+    return <Navigate to="/user-manual" replace />;
+  }
+
   return (
     <div className="space-y-8">
       {/* Header */}
