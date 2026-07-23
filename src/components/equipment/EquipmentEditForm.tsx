@@ -160,6 +160,8 @@ export function EquipmentEditForm({ equipment, onSuccess }: EquipmentEditFormPro
         watt: equipment.watt || undefined,
         lumen: equipment.lumen || undefined,
         lux: equipment.lux || undefined,
+        is_consumable: !!equipment.is_consumable,
+        return_policy_note: equipment.return_policy_note || "",
       });
 
       // Preload warehouseId from location_id (for editing)
