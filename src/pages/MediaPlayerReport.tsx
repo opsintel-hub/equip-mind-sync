@@ -192,6 +192,8 @@ export default function MediaPlayerReport() {
     },
   });
 
+  const primaryImgMap = usePrimaryImages("media_player_images", "media_player_id", players.map((p) => p.id));
+
   // Fetch receipt-level data (S/N, price, PO, lot) for expansion
   const { data: receiptRows = [] } = useQuery({
     queryKey: ["media-player-report-receipts"],
