@@ -545,73 +545,87 @@ const ToolPMSchedule = () => {
               <p>ไม่พบข้อมูลเครื่องมือ</p>
             </div>
           ) : (
-            <Table>
+            <>
+            <div className="w-full overflow-x-auto">
+            <Table className="min-w-[1200px]">
               <TableHeader>
                 <TableRow>
                   <TableHead>รหัส</TableHead>
                   <TableHead>ชื่อเครื่องมือ</TableHead>
+                  <TableHead>S/N</TableHead>
+                  <TableHead>ยี่ห้อ</TableHead>
+                  <TableHead>หมวดหมู่</TableHead>
                   <TableHead>ฝ่าย</TableHead>
-                  <TableHead>รอบ PM (วัน)</TableHead>
-                  <TableHead>งาน PM ทั้งหมด</TableHead>
+                  <TableHead>รอบ PM</TableHead>
+                  <TableHead>งาน PM</TableHead>
                   <TableHead>กำหนดถัดไป</TableHead>
                   <TableHead>สถานะ</TableHead>
                   <TableHead className="text-right">จัดการ</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredSummary.map((tool: any) => (
-                  <TableRow key={tool.id}>
+                {pagination.paginatedData.map((tool: any) => {
+                  const d = tool.daysUntilDue;
+                  const rowClass =
+                    d === null ? "" :
+                    d < 0 ? "bg-destructive/10 hover:bg-destructive/15" :
+                    d <= 14 ? "bg-orange-500/10 hover:bg-orange-500/15" :
+                    d <= 30 ? "bg-yellow-500/10 hover:bg-yellow-500/15" :
+                    "";
+                  const dueText =
+                    d === null ? null :
+                    d < 0 ? `เลย ${Math.abs(d)} วัน` :
+                    d === 0 ? "ครบกำหนดวันนี้" :
+                    `อีก ${d} วัน`;
+                  const dueBadgeClass =
+                    d === null ? "" :
+                    d < 0 ? "bg-destructive text-destructive-foreground" :
+                    d <= 14 ? "bg-orange-500 text-white" :
+                    d <= 30 ? "bg-yellow-500 text-white" :
+                    "bg-muted text-foreground";
+                  return (
+                  <TableRow key={tool.id} className={cn(rowClass)}>
                     <TableCell className="font-medium">{tool.code}</TableCell>
                     <TableCell>{tool.name}</TableCell>
+                    <TableCell className="font-mono text-sm whitespace-pre-line">{tool.serial_number || <span className="text-muted-foreground">-</span>}</TableCell>
+                    <TableCell>{tool.brand || <span className="text-muted-foreground">-</span>}</TableCell>
+                    <TableCell>{tool.tool_categories?.name || <span className="text-muted-foreground">-</span>}</TableCell>
                     <TableCell>{tool.department || "-"}</TableCell>
-                    <TableCell>{tool.pm_interval_days || 30} วัน</TableCell>
+                    <TableCell>{tool.pm_interval_days ? `${tool.pm_interval_days} วัน` : <span className="text-muted-foreground">ไม่มี</span>}</TableCell>
                     <TableCell>
                       <div className="flex flex-col gap-1">
                         <div className="flex gap-1">
-                          <Badge variant="outline" className="text-xs">
-                            รอ: {tool.pendingCount}
-                          </Badge>
-                          <Badge variant="outline" className="text-xs">
-                            เสร็จ: {tool.completedCount}
-                          </Badge>
+                          <Badge variant="outline" className="text-xs">รอ: {tool.pendingCount}</Badge>
+                          <Badge variant="outline" className="text-xs">เสร็จ: {tool.completedCount}</Badge>
                         </div>
                         {tool.latestTask?.task_number && tool.latestTask?.status !== "completed" && (
-                          <span className="text-xs text-muted-foreground font-mono">
-                            ค้าง: {tool.latestTask.task_number}
-                          </span>
+                          <span className="text-xs text-muted-foreground font-mono">ค้าง: {tool.latestTask.task_number}</span>
                         )}
                       </div>
                     </TableCell>
-
                     <TableCell>
-                      {tool.latestTask?.due_date ? (
-                        <div className="flex items-center gap-1">
-                          <Calendar className="h-4 w-4 text-muted-foreground" />
-                          {format(parseISO(tool.latestTask.due_date), "dd MMM yyyy", { locale: th })}
+                      {tool.latestTask?.due_date && tool.latestTask?.status !== "completed" ? (
+                        <div className="flex flex-col gap-1">
+                          <div className="flex items-center gap-1">
+                            <Calendar className="h-4 w-4 text-muted-foreground" />
+                            <span className="text-sm">{format(parseISO(tool.latestTask.due_date), "dd MMM yyyy", { locale: th })}</span>
+                          </div>
+                          {dueText && <Badge className={cn("text-xs w-fit", dueBadgeClass)}>{dueText}</Badge>}
                         </div>
-                      ) : "-"}
+                      ) : <span className="text-muted-foreground text-sm">ยังไม่มีตั๋ว</span>}
                     </TableCell>
                     <TableCell>{getStatusBadge(tool)}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex gap-1 justify-end">
                         {(tool.pendingCount > 0 || tool.inProgressCount > 0) ? (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            disabled
-                            title={`มีตั๋ว PM ค้างอยู่แล้ว${tool.latestTask?.task_number ? ` (${tool.latestTask.task_number})` : ""} — กรุณาตรวจให้เสร็จก่อน`}
-                          >
+                          <Button size="sm" variant="outline" disabled
+                            title={`มีตั๋ว PM ค้างอยู่แล้ว${tool.latestTask?.task_number ? ` (${tool.latestTask.task_number})` : ""} — กรุณาตรวจให้เสร็จก่อน`}>
                             <Plus className="h-4 w-4 opacity-40" />
                           </Button>
                         ) : (
                           <AlertDialog>
                             <AlertDialogTrigger asChild>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                title="สร้างตั๋ว PM ใหม่สำหรับเครื่องมือนี้"
-                                disabled={createPMTask.isPending}
-                              >
+                              <Button size="sm" variant="outline" title="สร้างตั๋ว PM ใหม่สำหรับเครื่องมือนี้" disabled={createPMTask.isPending}>
                                 <Plus className="h-4 w-4" />
                               </Button>
                             </AlertDialogTrigger>
@@ -625,9 +639,7 @@ const ToolPMSchedule = () => {
                               </AlertDialogHeader>
                               <AlertDialogFooter>
                                 <AlertDialogCancel>ยกเลิก</AlertDialogCancel>
-                                <AlertDialogAction onClick={() => createPMTask.mutate(tool.id)}>
-                                  สร้างตั๋ว PM
-                                </AlertDialogAction>
+                                <AlertDialogAction onClick={() => createPMTask.mutate(tool.id)}>สร้างตั๋ว PM</AlertDialogAction>
                               </AlertDialogFooter>
                             </AlertDialogContent>
                           </AlertDialog>
@@ -648,22 +660,28 @@ const ToolPMSchedule = () => {
                               </AlertDialogHeader>
                               <AlertDialogFooter>
                                 <AlertDialogCancel>ยกเลิก</AlertDialogCancel>
-                                <AlertDialogAction
-                                  onClick={() => deletePMTask.mutate(tool.latestTask.id)}
-                                >
-                                  ลบ
-                                </AlertDialogAction>
+                                <AlertDialogAction onClick={() => deletePMTask.mutate(tool.latestTask.id)}>ลบ</AlertDialogAction>
                               </AlertDialogFooter>
                             </AlertDialogContent>
                           </AlertDialog>
                         )}
                       </div>
                     </TableCell>
-
                   </TableRow>
-                ))}
+                  );
+                })}
               </TableBody>
             </Table>
+            </div>
+            <TablePagination
+              currentPage={pagination.currentPage}
+              totalPages={pagination.totalPages}
+              totalItems={pagination.totalItems}
+              pageSize={pagination.pageSize}
+              onPageChange={pagination.handlePageChange}
+              onPageSizeChange={pagination.handlePageSizeChange}
+            />
+            </>
           )}
         </CardContent>
       </Card>
