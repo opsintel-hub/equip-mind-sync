@@ -734,7 +734,7 @@ export function UserPermissionManager() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredUsers.map((user) => (
+                {paginatedUsers.map((user) => (
                   <TableRow 
                     key={user.id} 
                     className="hover:bg-muted/30 cursor-pointer"
