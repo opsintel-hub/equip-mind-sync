@@ -119,7 +119,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (error) throw error;
       
       toast.success('สมัครสมาชิกสำเร็จ! กรุณารอผู้ดูแลระบบอนุมัติสิทธิ์การใช้งาน');
-      navigate('/dashboard');
+      navigate('/user-manual');
       return { error: null };
     } catch (error: any) {
       toast.error(error.message || 'สมัครสมาชิกไม่สำเร็จ');

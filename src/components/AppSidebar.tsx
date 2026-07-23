@@ -322,8 +322,9 @@ const menuGroups: MenuGroup[] = [
 export function AppSidebar() {
   const { state } = useSidebar();
   const { signOut } = useAuth();
-  const { hasFunctionAccess, isAdmin, loading: permLoading } = useFunctionPermissions();
+  const { hasFunctionAccess, isAdmin, permissions, loading: permLoading } = useFunctionPermissions();
   const { isSuperAdmin, loading: superLoading } = useIsSuperAdmin();
+  const hasAnyAccess = isAdmin || isSuperAdmin || permissions.some(p => p.can_access);
   const location = useLocation();
   
   // Find which menu should be open based on current route
@@ -389,6 +390,19 @@ export function AppSidebar() {
 
   const filteredMenuGroups = useMemo(() => {
     if (permLoading || superLoading) return [];
+
+    // Newly signed-up users with no permissions yet see only the User Manual
+    if (!hasAnyAccess) {
+      return [
+        {
+          label: "ช่วยเหลือ",
+          items: [
+            { title: "คู่มือการใช้งาน", url: "/user-manual", icon: BookOpen },
+          ],
+        },
+      ];
+    }
+
     
     return menuGroups.map(group => ({
       ...group,
@@ -420,7 +434,7 @@ export function AppSidebar() {
         return hasFunctionAccess(item.functionName);
       })
     })).filter(group => group.items.length > 0);
-  }, [hasFunctionAccess, isAdmin, permLoading, isSuperAdmin, superLoading]);
+  }, [hasFunctionAccess, isAdmin, permLoading, isSuperAdmin, superLoading, hasAnyAccess]);
 
 
   const handleLogout = () => {
