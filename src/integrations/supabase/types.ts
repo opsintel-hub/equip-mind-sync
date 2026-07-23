@@ -6358,6 +6358,16 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      get_users_admin_meta: {
+        Args: never
+        Returns: {
+          banned_until: string
+          created_at: string
+          email: string
+          id: string
+          last_sign_in_at: string
+        }[]
+      }
       get_users_emails: {
         Args: never
         Returns: {
