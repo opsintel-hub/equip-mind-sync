@@ -28,6 +28,10 @@ import { toast } from "sonner";
 import * as XLSX from "xlsx";
 import { matchesSerialSearch } from "@/lib/serialSearch";
 import { useDeptScope } from "@/hooks/useDeptScope";
+import { ViewModeToggle, useViewMode } from "@/components/common/ViewModeToggle";
+import { EntityCardGrid, CardItem } from "@/components/common/EntityCardGrid";
+import { EntityCalendarView, CalendarItem } from "@/components/common/EntityCalendarView";
+import { usePrimaryImages } from "@/hooks/usePrimaryImages";
 
 import { MediaPlayerRow, BillboardJourney, StockMovement } from "@/components/media-player/profile/types";
 import { SummaryCards } from "@/components/media-player/profile/SummaryCards";
