@@ -62,6 +62,8 @@ const equipmentSchema = z.object({
   height_cm: z.number().optional(),
   depth_cm: z.number().optional(),
   volume_cm3: z.number().optional(),
+  is_consumable: z.boolean().optional(),
+  return_policy_note: z.string().max(300, "หมายเหตุต้องไม่เกิน 300 ตัวอักษร").optional(),
 });
 
 type EquipmentFormValues = z.infer<typeof equipmentSchema>;
