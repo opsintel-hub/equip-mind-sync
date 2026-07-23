@@ -238,6 +238,7 @@ const ToolPMSchedule = () => {
   }, [enrichedSummary, searchTerm, departmentFilter, pmTypeFilter, dueFilter, statusFilter]);
 
   const pagination = useTablePagination(filteredSummary, 20);
+  const [viewMode, setViewMode] = useViewMode("tool-pm-schedule", "table");
 
   // Create PM task mutation
   const createPMTask = useMutation({
