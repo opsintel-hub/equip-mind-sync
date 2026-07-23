@@ -219,7 +219,7 @@ const IssueRequest = () => {
     queryFn: async () => {
       let q = supabase
         .from("equipment")
-        .select("id, code, name, unit, quantity_in_stock, serial_number, expiry_date, warranty_expiry_date, warehouse_entry_date, category, department, location_id, billboard_compatibility_mode, compatibility_notes, locations(id, code, name, warehouse_id, warehouses(id, code, name))")
+        .select("id, code, name, unit, quantity_in_stock, serial_number, expiry_date, warranty_expiry_date, warehouse_entry_date, category, department, location_id, billboard_compatibility_mode, compatibility_notes, is_consumable, return_policy_note, locations(id, code, name, warehouse_id, warehouses(id, code, name))")
         .eq("is_active", true)
         .gt("quantity_in_stock", 0)
         .order("warehouse_entry_date", { ascending: true });
