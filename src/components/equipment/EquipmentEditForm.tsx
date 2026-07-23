@@ -581,6 +581,46 @@ export function EquipmentEditForm({ equipment, onSuccess }: EquipmentEditFormPro
               />
             </div>
 
+            {/* Consumable flag */}
+            <div className="rounded-md border p-3 bg-muted/30 space-y-2">
+              <FormField
+                control={form.control}
+                name="is_consumable"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-start gap-3 space-y-0">
+                    <FormControl>
+                      <input
+                        type="checkbox"
+                        className="mt-1 h-4 w-4 accent-primary"
+                        checked={!!field.value}
+                        onChange={(e) => field.onChange(e.target.checked)}
+                        disabled={isLoading}
+                      />
+                    </FormControl>
+                    <div className="space-y-1 leading-none">
+                      <FormLabel className="cursor-pointer">♻️ สินค้าสิ้นเปลือง (ไม่ต้องคืนของเก่า)</FormLabel>
+                      <p className="text-xs text-muted-foreground">
+                        เช่น ทินเนอร์ กาว น้ำยา — เมื่อเบิกใน "ใบเบิกที่บังคับคืนของเก่า" รายการนี้จะไม่ถูกค้างในเมนู "รายการเบิกยังไม่สมบูรณ์"
+                      </p>
+                    </div>
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="return_policy_note"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-xs">หมายเหตุนโยบายการคืน (ทางเลือก)</FormLabel>
+                    <FormControl>
+                      <Input placeholder="เช่น ใช้แล้วหมด" {...field} value={field.value || ""} disabled={isLoading} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
             <FormField
               control={form.control}
               name="serial_number"
