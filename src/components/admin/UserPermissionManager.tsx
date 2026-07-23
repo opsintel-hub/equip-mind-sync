@@ -725,6 +725,7 @@ export function UserPermissionManager() {
                   <TableHead>สิทธิ์เห็นฝ่าย</TableHead>
                   <TableHead>อีเมล</TableHead>
                   <TableHead>เบอร์โทร</TableHead>
+                  <TableHead>Login ล่าสุด</TableHead>
                     <TableHead>คำขอสมัคร</TableHead>
                   <TableHead>บทบาท / ตั้งสิทธิ์เร็ว</TableHead>
                   <TableHead className="text-right">จัดการ</TableHead>
