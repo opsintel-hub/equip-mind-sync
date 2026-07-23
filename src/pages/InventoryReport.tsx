@@ -1446,6 +1446,7 @@ export default function InventoryReport() {
             </div>
           </CardContent>
         </Card>
+        )}
     </div>
   );
 }
