@@ -75,6 +75,7 @@ export function ToolList({ refreshKey }: ToolListProps) {
   const [warrantyFilter, setWarrantyFilter] = useState("all");
   const [pmFilter, setPmFilter] = useState<string>("all");
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useViewMode("tools", "table");
 
   const [editTool, setEditTool] = useState<Tool | null>(null);
   const { isSuperAdmin, viewableDepts, deptKey } = useDeptScope();
