@@ -434,7 +434,7 @@ export function AppSidebar() {
         return hasFunctionAccess(item.functionName);
       })
     })).filter(group => group.items.length > 0);
-  }, [hasFunctionAccess, isAdmin, permLoading, isSuperAdmin, superLoading]);
+  }, [hasFunctionAccess, isAdmin, permLoading, isSuperAdmin, superLoading, hasAnyAccess]);
 
 
   const handleLogout = () => {
