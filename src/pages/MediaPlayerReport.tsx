@@ -161,6 +161,7 @@ export default function MediaPlayerReport() {
   const [selectedPlayerId, setSelectedPlayerId] = useState<string | null>(null);
   const [lightboxImages, setLightboxImages] = useState<string[] | null>(null);
   const { isSuperAdmin, viewableDepts, deptKey } = useDeptScope();
+  const [viewMode, setViewMode] = useViewMode("media-player-report", "table");
 
   // Fetch all media players with extra fields
   const { data: players = [], isLoading } = useQuery({
