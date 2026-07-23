@@ -785,6 +785,26 @@ export function UserPermissionManager() {
                     </TableCell>
                     <TableCell className="text-muted-foreground">{user.email || "-"}</TableCell>
                     <TableCell>{user.phone || "-"}</TableCell>
+                    <TableCell>
+                      {(() => {
+                        const ts = user.last_sign_in_at;
+                        if (!ts) {
+                          return <Badge variant="outline" className="text-[10px] border-slate-300 text-slate-600">ไม่เคย</Badge>;
+                        }
+                        const d = Math.floor((Date.now() - new Date(ts).getTime()) / 86400000);
+                        const cls =
+                          d > 90 ? "bg-red-100 text-red-700 border-red-300 dark:bg-red-950 dark:text-red-300" :
+                          d > 60 ? "bg-orange-100 text-orange-700 border-orange-300 dark:bg-orange-950 dark:text-orange-300" :
+                          d > 30 ? "bg-amber-100 text-amber-700 border-amber-300 dark:bg-amber-950 dark:text-amber-300" :
+                          "bg-emerald-100 text-emerald-700 border-emerald-300 dark:bg-emerald-950 dark:text-emerald-300";
+                        return (
+                          <div className="flex flex-col gap-0.5">
+                            <Badge variant="outline" className={`text-[10px] w-fit ${cls}`}>{d} วัน</Badge>
+                            <span className="text-[10px] text-muted-foreground">{new Date(ts).toLocaleDateString('th-TH')}</span>
+                          </div>
+                        );
+                      })()}
+                    </TableCell>
                       <TableCell>
                         {user.requested_job_role || user.requested_department ? (
                           <div className="space-y-1 text-sm">
