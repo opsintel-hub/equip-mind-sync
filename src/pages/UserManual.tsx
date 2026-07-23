@@ -1658,6 +1658,24 @@ const UserManual = () => {
         </div>
       </div>
 
+      {accountStatus === "pending" && (
+        <Alert className="border-amber-300 bg-amber-50 dark:bg-amber-950/40">
+          <AlertCircle className="h-4 w-4 text-amber-600" />
+          <AlertTitle className="text-amber-800 dark:text-amber-200">บัญชีของคุณกำลังรอ Admin อนุมัติสิทธิ์</AlertTitle>
+          <AlertDescription className="text-amber-700 dark:text-amber-300">
+            ระหว่างนี้คุณจะเห็นเฉพาะคู่มือการใช้งาน — หน้านี้จะรีเฟรชอัตโนมัติทุก 30 วินาที เมื่อ Admin ตั้งสิทธิ์ให้แล้ว เมนูอื่นจะปรากฏขึ้นทันที (โปรดล็อกอินใหม่หากไม่เห็นเมนูภายใน 1 นาที)
+          </AlertDescription>
+        </Alert>
+      )}
+      {accountStatus === "active" && (
+        <Alert className="border-emerald-300 bg-emerald-50 dark:bg-emerald-950/40">
+          <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+          <AlertDescription className="text-emerald-700 dark:text-emerald-300">
+            บัญชีของคุณได้รับสิทธิ์แล้ว สามารถใช้เมนูตามที่ Admin กำหนดได้เลย
+          </AlertDescription>
+        </Alert>
+      )}
+
       <Tabs defaultValue="uat" className="w-full">
         <TabsList className="grid w-full grid-cols-2 max-w-md">
           <TabsTrigger value="uat" className="gap-2">
