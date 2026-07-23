@@ -231,6 +231,7 @@ export function ToolList({ refreshKey }: ToolListProps) {
             <Input placeholder="ค้นหารหัส, ชื่อ, S/N, ยี่ห้อ, ผู้รับผิดชอบ..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-9" />
           </div>
           <div className="flex gap-2">
+            <ViewModeToggle value={viewMode} onChange={setViewMode} />
             <Button variant="outline" size="icon" onClick={handleExport} title="Export Excel">
               <Download className="h-4 w-4" />
             </Button>
