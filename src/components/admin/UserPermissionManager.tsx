@@ -196,21 +196,27 @@ export function UserPermissionManager() {
         }, {} as Record<string, string>)
       );
       
-      let emailMap: Record<string, string> = {};
+      let metaMap: Record<string, { email: string; last_sign_in_at: string | null; banned_until: string | null }> = {};
       try {
-        const { data: usersData } = await supabase.rpc('get_users_emails' as any);
+        const { data: usersData } = await supabase.rpc('get_users_admin_meta' as any);
         if (usersData && Array.isArray(usersData)) {
-          (usersData as { id: string; email: string }[]).forEach((u) => {
-            emailMap[u.id] = u.email;
+          (usersData as any[]).forEach((u) => {
+            metaMap[u.id] = {
+              email: u.email,
+              last_sign_in_at: u.last_sign_in_at,
+              banned_until: u.banned_until,
+            };
           });
         }
       } catch (e) {
-        console.log("Could not fetch emails via RPC");
+        console.log("Could not fetch admin user meta via RPC");
       }
-      
+
       const usersWithEmail = (profilesRes.data || []).map(p => ({
         ...p,
-        email: emailMap[p.id] || ''
+        email: metaMap[p.id]?.email || '',
+        last_sign_in_at: metaMap[p.id]?.last_sign_in_at || null,
+        banned_until: metaMap[p.id]?.banned_until || null,
       }));
       
       setUsers(usersWithEmail);
