@@ -1,78 +1,70 @@
+## ปัญหา
+`requires_return` อยู่ที่ระดับ**ใบเบิก (purpose)** — เลือกวัตถุประสงค์ที่ต้องคืนของเก่าแล้วบังคับคืน**ทุกรายการ** รวมของสิ้นเปลือง (ทินเนอร์ กาว) ที่ไม่ควรต้องคืน
 
-## เป้าหมาย
-1. ปิดโปรแกรม/ปิดแท็บ → เปิดใหม่ต้อง Login ทุกครั้ง (ไม่จำ session ถาวร)
-2. เจ้าหน้าที่คลังเปิดหน้าค้างไว้ ต้องเห็นคำขอเบิกใหม่ทันทีโดยไม่ต้องกด Refresh และ **หน้าจอต้องไม่กระพริบ**
+## 4 แนวทาง
 
----
+### แนวทาง A — Flag ที่ระดับ Category + Override รายบรรทัด
+- `categories.is_consumable` + `goods_issue_pending_items.needs_return`
+- ตั้งครั้งเดียวต่อหมวด → ครอบคลุมทุกสินค้าในหมวดนั้นทันที
+- **ข้อดี:** ตั้งน้อยจุด (~สิบกว่าหมวด), เพิ่มสินค้าใหม่ในหมวดไม่ต้องมาตั้งซ้ำ
+- **ข้อเสีย:** ถ้าหมวดเดียวมีทั้งของคืน/ไม่คืน ต้องมา override รายบรรทัด
 
-## แผนงาน
+### แนวทาง B — Override รายบรรทัดอย่างเดียว
+- เพิ่มแค่ `needs_return` ที่ item, default = purpose.requires_return, ให้ผู้เบิกติ๊กเอง
+- **ข้อดี:** เบาสุด **ข้อเสีย:** พึ่งผู้เบิกจำเอง เสี่ยงลืม
 
-### ส่วน A — บังคับ Login ใหม่เมื่อปิดโปรแกรม
+### แนวทาง C — บังคับแยกใบเบิก
+- ถ้า purpose ต้องคืน + มี consumable → error ให้แยกใบ
+- **ข้อเสีย:** ขัด UX เดิม ผู้เบิกทำงานเพิ่ม
 
-แก้ `src/integrations/supabase/client.ts` **ไฟล์เดียว** โดยเปลี่ยน storage จาก `localStorage` → `sessionStorage`
+### แนวทาง D — Flag ที่ระดับ**รหัสสินค้า (equipment)** + Override รายบรรทัด ⭐ แนะนำใหม่
+เหมือน A แต่ลงลึกถึงรหัสสินค้าแต่ละตัว แม่นยำสุด ทำเยอะแต่ครั้งเดียวจบ
 
-- `sessionStorage` จะหายทันทีเมื่อปิดแท็บ/ปิด browser → ครั้งหน้าเปิดใหม่ = ต้อง Login
-- ระหว่างใช้งาน (เปลี่ยนหน้า, refresh หน้าเดิม) session ยังอยู่ตามปกติ
-- ไม่ต้องเปลี่ยน backend, ไม่กระทบ RLS
-- คงค่า `autoRefreshToken: true` ไว้ เพื่อไม่ให้ token หมดอายุระหว่างใช้งาน
+**Schema (migration):**
+- `equipment.is_consumable BOOLEAN DEFAULT false` — flag รายรหัสสินค้า
+- `equipment.return_policy TEXT` (optional) — เก็บเหตุผล/หมายเหตุ เช่น "ใช้แล้วหมด"
+- `goods_issue_pending_items.needs_return BOOLEAN` — snapshot ตอนสร้างใบ (คำนวณจาก purpose + equipment)
+- `goods_issue_pending_items.needs_return_overridden BOOLEAN DEFAULT false` — audit ว่าผู้เบิกแก้เอง
 
-หมายเหตุ: ไฟล์นี้มี comment ว่า "auto-generated" — แต่การแก้ storage เป็นสิ่งที่ยอมรับได้ (Lovable จะไม่ทับค่านี้)
-
-### ส่วน B — Realtime สำหรับหน้าที่เจ้าหน้าที่คลังเปิดค้าง (ไม่กระพริบ)
-
-ใช้ **Supabase Realtime (Postgres Changes)** — มาพร้อม Lovable Cloud, ไม่มีค่าใช้จ่ายเพิ่ม, ไม่ต้อง polling
-
-หน้าที่ต้องเพิ่ม subscription:
-1. `src/pages/IssueGoods.tsx` — คลังจ่ายสินค้า (ฟัง `goods_issue_pending` INSERT/UPDATE)
-2. `src/pages/ManagerApproval.tsx` — Manager อนุมัติ (ฟัง INSERT/UPDATE)
-3. `src/pages/DeliveryConfirmation.tsx` — ยืนยันรับสินค้า
-4. `src/pages/IncompleteIssues.tsx` — รายการยังไม่สมบูรณ์
-5. `src/components/NotificationCenter.tsx` — แจ้งเตือน (ฟัง `notifications`)
-
-**วิธีทำให้ไม่กระพริบ** (สำคัญ):
-- ใช้ `queryClient.invalidateQueries({ queryKey: [...] })` แทนการ `refetch()` ทันที
-- ตั้ง `placeholderData: keepPreviousData` (หรือ `keepPreviousData: true`) ใน `useQuery` ที่เกี่ยวข้อง → React Query จะเก็บข้อมูลเก่าไว้แสดงจนกว่าข้อมูลใหม่จะโหลดเสร็จ ไม่มี unmount/remount ตาราง
-- ปิด `refetchOnWindowFocus` สำหรับ query ที่ subscribe realtime แล้ว (ไม่จำเป็นต้อง refetch ซ้ำเมื่อ focus)
-- ถ้าคำขอใหม่เข้ามา ให้แสดง toast เล็กๆ มุมขวาบน "มีคำขอเบิกใหม่ 1 รายการ" เพื่อให้เจ้าหน้าที่รู้ตัว โดยไม่ต้องพึ่งการกระพริบของหน้าจอ
-
-สร้าง helper hook ใหม่ `src/hooks/useRealtimeInvalidate.tsx`:
+**Logic คำนวณ default ตอนเพิ่มลงตะกร้า:**
 ```
-useRealtimeInvalidate({
-  table: "goods_issue_pending",
-  events: ["INSERT", "UPDATE"],
-  queryKey: ["issue-goods-pending"],
-  onInsert: () => toast("มีคำขอเบิกใหม่"),
-})
+needs_return = purpose.requires_return AND NOT equipment.is_consumable
 ```
-- Subscribe channel ครั้งเดียวต่อหน้า
-- Cleanup ตอน unmount
-- Debounce การ invalidate (200ms) กันกรณี event มาถี่
 
-### ส่วน C — เอกสาร/UX เล็กน้อย
-- ที่หน้า Login แจ้งใต้ปุ่ม: "ระบบจะออกจากระบบอัตโนมัติเมื่อปิดโปรแกรม เพื่อความปลอดภัย"
+**Master Data — ต้องทำเยอะ (ตามคำขอผู้ใช้):**
+1. **Equipment Form:** เพิ่ม checkbox "สินค้าสิ้นเปลือง (ไม่ต้องคืนของเก่า)" + textarea หมายเหตุ
+2. **Equipment List:** เพิ่มคอลัมน์ "ประเภทการคืน" (Badge: 🔄 ต้องคืน / ♻️ สิ้นเปลือง) + filter + bulk-edit
+3. **Import Template (equipmentTemplate.ts):** เพิ่มคอลัมน์ `is_consumable` (Y/N) พร้อม validator + คู่มือ
+4. **Media Player / Tool:** ประเมินว่าต้องเพิ่มคอลัมน์นี้ด้วยหรือไม่ (MP ปกติต้องคืนอยู่แล้ว, Tool เป็น loan อยู่แล้ว → **น่าจะไม่ต้อง**)
+5. **Bulk-set wizard:** หน้า Master Data มีปุ่ม "ตั้งค่าสิ้นเปลืองแบบกลุ่ม" — เลือกหมวด/ค้นหารหัส → tick หลายรายการพร้อมกัน (ประหยัดเวลาตั้งค่าเริ่มต้น ~ร้อยรหัส)
 
----
+**หน้าเบิก/จ่าย/ยืนยัน (แก้ทั่วระบบ):**
+6. **IssueRequest:** ตอน add-to-cart set `needs_return` อัตโนมัติ + แสดง Badge บนบรรทัด + Switch override + tooltip อธิบาย
+7. **IssueGoods (จ่ายสินค้า):** แสดง Badge "ต้องคืนของเก่า" ที่คอลัมน์รายการ (ตามภาพ) + สรุปหัวใบว่า "รายการที่ต้องคืน: X / Y"
+8. **ManagerApproval:** แสดง Badge + filter "เฉพาะใบที่มีของต้องคืน"
+9. **IncompleteIssues:** เปลี่ยนเงื่อนไขจาก `purpose.requires_return` → `item.needs_return` (เฉพาะบรรทัดที่ต้องคืนเท่านั้นค้างในใบไม่สมบูรณ์)
+10. **DeliveryConfirmation:** แสดงเฉพาะรายการที่ `needs_return = true` ในส่วน "รอคืนของเก่า"
+11. **StockCard / EquipmentTrackingReport:** เพิ่มคอลัมน์ประเภทการคืน (optional filter)
 
-## Technical details (สำหรับ dev)
+**Backfill (insert tool ทีหลัง):**
+- `UPDATE equipment SET is_consumable = true` สำหรับหมวดที่ผู้ใช้ระบุ (ทินเนอร์, กาว, น้ำยา, สี, เทป, ฯลฯ) — จะขอ list จากผู้ใช้ก่อนหรือให้ผู้ใช้ทำเองผ่าน bulk-set wizard
+- `UPDATE goods_issue_pending_items SET needs_return = <calc>` ตามใบเบิกเก่า เพื่อให้รายงานย้อนหลังตรงกัน
 
-**ทำไมเลือก sessionStorage แทน timeout-based logout?**
-- ไม่ต้องมี background timer, ไม่ต้องแก้ backend
-- ตอบโจทย์ "ปิดโปรแกรมแล้วต้อง Login ใหม่" ตรงตัว
-- ถ้าอยากให้ session หมดอายุระหว่างใช้งานด้วย (idle timeout) ค่อยเพิ่มทีหลัง
+## เปรียบเทียบ A vs D
 
-**ทำไม Realtime ไม่ใช่ polling?**
-- Polling ทุก 10-30 วิ → ตารางกระพริบ + สิ้นเปลือง egress
-- Supabase Realtime ใช้ WebSocket เดียว ประหยัดกว่ามาก
-- ต้องเปิด Realtime ให้ตารางที่ subscribe (ตรวจว่า `goods_issue_pending`, `notifications` เปิดแล้ว — ถ้ายังไม่เปิดจะเพิ่ม migration `ALTER PUBLICATION supabase_realtime ADD TABLE ...`)
+| ประเด็น | A (Category) | D (Equipment) ⭐ |
+|---|---|---|
+| ความแม่นยำ | หยาบ | แม่นยำระดับรหัส |
+| จำนวนจุดที่ตั้งค่า | สิบกว่าจุด | ~ร้อยจุด (มี bulk-set ช่วย) |
+| กรณีหมวดเดียวมีทั้ง 2 แบบ | ต้อง override บ่อย | จบที่รหัส ไม่ต้อง override |
+| สินค้าใหม่ | inherit จากหมวดอัตโนมัติ | ต้องระบุตอนสร้าง (มี default) |
+| แก้โค้ด | ~5 ไฟล์ | ~10 ไฟล์ + import template + bulk wizard |
+| เครดิต | ปานกลาง | สูง (แต่ครั้งเดียวจบ) |
 
-**ทำไมไม่กระพริบ:**
-- React Query `keepPreviousData` = ไม่มี loading state ระหว่าง background refetch
-- `invalidateQueries` = mark stale + refetch เงียบๆ, DOM เดิมคงอยู่ระหว่างรอ
-- ไม่ใช้ `window.location.reload()` เด็ดขาด
+## คำแนะนำ
+**เลือก D** — ตรงตามที่ผู้ใช้ขอ (ทำเยอะหน่อย, ที่ระดับรหัส) และแม่นยำที่สุดในระยะยาว เพราะ:
+- ทินเนอร์กับอะไหล่ป้ายอาจอยู่คนละหมวด/หมวดเดียวกันก็ได้ — ตัดสินที่รหัสชัดเจนกว่า
+- มี bulk-set wizard ช่วยลดภาระตั้งค่าเริ่มต้น
+- ตั้งครั้งเดียวจบ ไม่ต้องคอย override ในใบเบิกทุกครั้ง
 
----
-
-## ขอบเขตที่จะไม่ทำในรอบนี้
-- Idle timeout (ไม่ใช้งาน X นาที → logout) — ถ้าต้องการ แจ้งได้จะทำเพิ่ม
-- Multi-tab logout sync — ปกติ sessionStorage แยกแท็บอยู่แล้ว
-- Realtime สำหรับทุกหน้าในระบบ — เริ่มจาก 5 หน้าที่ระบุก่อน หน้าอื่นค่อยเพิ่มตามความต้องการ
+ยืนยันเลือก D ให้ลุยได้เลยครับ หรือถ้าอยากผสม A+D (fallback: ถ้า equipment ไม่ได้ตั้ง ใช้ค่าจาก category) ก็บอกได้
