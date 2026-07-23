@@ -86,9 +86,14 @@ serve(async (req) => {
 
     if (updateError) {
       console.error("Error updating password:", updateError);
-      // Return 200 with error body so supabase-js exposes the real message
-      // to the client instead of a generic "non-2xx status code".
-      return new Response(JSON.stringify({ error: updateError.message }), {
+      const code = (updateError as any).code;
+      let friendly = updateError.message;
+      if (code === "weak_password") {
+        friendly = "รหัสผ่านนี้ไม่ปลอดภัย (พบในฐานข้อมูลรหัสผ่านที่รั่วไหล) กรุณาใช้รหัสผ่านอื่นที่คาดเดายากกว่า เช่น ผสมตัวอักษร ตัวเลข และสัญลักษณ์";
+      } else if (code === "same_password") {
+        friendly = "รหัสผ่านใหม่ต้องไม่ซ้ำกับรหัสผ่านเดิม";
+      }
+      return new Response(JSON.stringify({ error: friendly, code }), {
         status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
