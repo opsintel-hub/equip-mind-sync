@@ -1,4 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
+import { TablePagination } from "@/components/TablePagination";
+import { useTablePagination } from "@/hooks/useTablePagination";
+import { cn } from "@/lib/utils";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -25,6 +28,9 @@ const ToolPMSchedule = () => {
   const [departmentFilter, setDepartmentFilter] = useState<string>("all");
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [selectedTool, setSelectedTool] = useState<string>("");
+  const [dueFilter, setDueFilter] = useState<string>("all");
+  const [pmTypeFilter, setPmTypeFilter] = useState<string>("all");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
   const { isSuperAdmin, viewableDepts, deptKey } = useDeptScope();
   const scopeDepts = isSuperAdmin ? null : ((viewableDepts && viewableDepts.length > 0) ? viewableDepts : ["__no_dept_permission__"]);
 
@@ -61,8 +67,11 @@ const ToolPMSchedule = () => {
           code,
           name,
           department,
+          serial_number,
+          brand,
           pm_interval_days,
           current_quantity,
+          is_personal_tool,
           tool_categories (name),
           companies (name)
         `)
@@ -136,14 +145,97 @@ const ToolPMSchedule = () => {
     }
   }, [isSingleDepartment, allowedDepartments, departmentFilter]);
 
+  // Compute bucket + daysUntilDue for each tool
+  type Bucket =
+    | "overdue_60plus"
+    | "overdue_30_60"
+    | "overdue_14_30"
+    | "overdue_0_14"
+    | "upcoming_14"
+    | "upcoming_30"
+    | "upcoming_60"
+    | "future"
+    | "no_schedule";
+
+  const enrichedSummary = useMemo(() => {
+    return pmSummary.map((tool: any) => {
+      const activeTask = tool.latestTask && tool.latestTask.status !== "completed" ? tool.latestTask : null;
+      const dueDateStr = activeTask?.due_date || null;
+      const daysUntilDue = dueDateStr ? differenceInDays(parseISO(dueDateStr), new Date()) : null;
+
+      let bucket: Bucket = "no_schedule";
+      if (daysUntilDue !== null) {
+        if (daysUntilDue < -60) bucket = "overdue_60plus";
+        else if (daysUntilDue < -30) bucket = "overdue_30_60";
+        else if (daysUntilDue < -14) bucket = "overdue_14_30";
+        else if (daysUntilDue < 0) bucket = "overdue_0_14";
+        else if (daysUntilDue <= 14) bucket = "upcoming_14";
+        else if (daysUntilDue <= 30) bucket = "upcoming_30";
+        else if (daysUntilDue <= 60) bucket = "upcoming_60";
+        else bucket = "future";
+      }
+      return { ...tool, daysUntilDue, bucket };
+    });
+  }, [pmSummary]);
+
+  const bucketOrder: Record<Bucket, number> = {
+    overdue_60plus: 0, overdue_30_60: 1, overdue_14_30: 2, overdue_0_14: 3,
+    upcoming_14: 4, upcoming_30: 5, upcoming_60: 6, future: 7, no_schedule: 8,
+  };
+
   // Filter tools
-  const filteredSummary = pmSummary.filter((tool: any) => {
-    const matchesSearch = 
-      tool.code?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      tool.name?.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesDepartment = departmentFilter === "all" || tool.department === departmentFilter;
-    return matchesSearch && matchesDepartment;
-  });
+  const filteredSummary = useMemo(() => {
+    const s = searchTerm.toLowerCase();
+    return enrichedSummary
+      .filter((tool: any) => {
+        const matchesSearch = !s ||
+          tool.code?.toLowerCase().includes(s) ||
+          tool.name?.toLowerCase().includes(s) ||
+          tool.serial_number?.toLowerCase().includes(s) ||
+          tool.brand?.toLowerCase().includes(s) ||
+          tool.tool_categories?.name?.toLowerCase().includes(s);
+        const matchesDepartment = departmentFilter === "all" || tool.department === departmentFilter;
+
+        const hasPM = (tool.pm_interval_days || 0) > 0;
+        const matchesPMType =
+          pmTypeFilter === "all" ||
+          (pmTypeFilter === "has_pm" && hasPM) ||
+          (pmTypeFilter === "no_pm" && !hasPM);
+
+        const d = tool.daysUntilDue;
+        let matchesDue = true;
+        if (dueFilter !== "all") {
+          if (dueFilter === "overdue_all") matchesDue = d !== null && d < 0;
+          else if (dueFilter === "overdue_14") matchesDue = d !== null && d < 0 && d >= -14;
+          else if (dueFilter === "overdue_30") matchesDue = d !== null && d < 0 && d >= -30;
+          else if (dueFilter === "overdue_60") matchesDue = d !== null && d < 0 && d >= -60;
+          else if (dueFilter === "overdue_60plus") matchesDue = d !== null && d < -60;
+          else if (dueFilter === "upcoming_14") matchesDue = d !== null && d >= 0 && d <= 14;
+          else if (dueFilter === "upcoming_30") matchesDue = d !== null && d >= 0 && d <= 30;
+          else if (dueFilter === "upcoming_60") matchesDue = d !== null && d >= 0 && d <= 60;
+          else if (dueFilter === "no_schedule") matchesDue = d === null;
+        }
+
+        let matchesStatus = true;
+        if (statusFilter !== "all") {
+          if (statusFilter === "pending") matchesStatus = tool.pendingCount > 0;
+          else if (statusFilter === "in_progress") matchesStatus = tool.inProgressCount > 0;
+          else if (statusFilter === "no_ticket") matchesStatus = tool.pendingCount === 0 && tool.inProgressCount === 0;
+          else if (statusFilter === "never_inspected") matchesStatus = !tool.latestResult;
+        }
+
+        return matchesSearch && matchesDepartment && matchesPMType && matchesDue && matchesStatus;
+      })
+      .sort((a: any, b: any) => {
+        const bo = bucketOrder[a.bucket as Bucket] - bucketOrder[b.bucket as Bucket];
+        if (bo !== 0) return bo;
+        const ad = a.daysUntilDue ?? Number.MAX_SAFE_INTEGER;
+        const bd = b.daysUntilDue ?? Number.MAX_SAFE_INTEGER;
+        return ad - bd;
+      });
+  }, [enrichedSummary, searchTerm, departmentFilter, pmTypeFilter, dueFilter, statusFilter]);
+
+  const pagination = useTablePagination(filteredSummary, 20);
 
   // Create PM task mutation
   const createPMTask = useMutation({
@@ -383,31 +475,60 @@ const ToolPMSchedule = () => {
               </p>
             </div>
 
-            <div className="flex gap-2">
+            <div className="flex gap-2 flex-wrap items-center">
               <Button variant="outline" onClick={() => refetch()}>
                 <RefreshCw className="h-4 w-4 mr-2" />
                 รีเฟรช
               </Button>
-            </div>
-            <div className="flex gap-2">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder="ค้นหา..."
+                  placeholder="ค้นหา รหัส / ชื่อ / S/N / ยี่ห้อ / หมวดหมู่"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 w-[200px]"
+                  className="pl-10 w-[280px]"
                 />
               </div>
               <Select value={departmentFilter} onValueChange={setDepartmentFilter} disabled={isSingleDepartment}>
-                <SelectTrigger className="w-[180px]">
-                  <SelectValue placeholder="เลือกฝ่าย" />
-                </SelectTrigger>
+                <SelectTrigger className="w-[160px]"><SelectValue placeholder="ทุกฝ่าย" /></SelectTrigger>
                 <SelectContent>
                   {!isSingleDepartment && <SelectItem value="all">ทุกฝ่าย</SelectItem>}
                   {departments.map((dept: any) => (
                     <SelectItem key={dept} value={dept}>{dept}</SelectItem>
                   ))}
+                </SelectContent>
+              </Select>
+              <Select value={dueFilter} onValueChange={setDueFilter}>
+                <SelectTrigger className="w-[220px]"><SelectValue placeholder="เวลาที่ต้อง PM" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">เวลา PM: ทั้งหมด</SelectItem>
+                  <SelectItem value="overdue_all">🔴 เลยกำหนดทั้งหมด</SelectItem>
+                  <SelectItem value="overdue_14">🔴 เลยไม่เกิน 14 วัน</SelectItem>
+                  <SelectItem value="overdue_30">🔴 เลยไม่เกิน 30 วัน</SelectItem>
+                  <SelectItem value="overdue_60">🔴 เลยไม่เกิน 60 วัน</SelectItem>
+                  <SelectItem value="overdue_60plus">🔴 เลยเกิน 60 วัน</SelectItem>
+                  <SelectItem value="upcoming_14">🟡 ใกล้ถึงกำหนด 14 วัน</SelectItem>
+                  <SelectItem value="upcoming_30">🟡 ใกล้ถึงกำหนด 30 วัน</SelectItem>
+                  <SelectItem value="upcoming_60">🟢 ใกล้ถึงกำหนด 60 วัน</SelectItem>
+                  <SelectItem value="no_schedule">⚪ ยังไม่มีตั๋ว PM</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={pmTypeFilter} onValueChange={setPmTypeFilter}>
+                <SelectTrigger className="w-[170px]"><SelectValue placeholder="ประเภท PM" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">PM: ทุกประเภท</SelectItem>
+                  <SelectItem value="has_pm">มีรอบ PM</SelectItem>
+                  <SelectItem value="no_pm">ไม่มีรอบ PM</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-[190px]"><SelectValue placeholder="สถานะเครื่องมือ" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">สถานะ: ทั้งหมด</SelectItem>
+                  <SelectItem value="pending">มีตั๋วรอตรวจ</SelectItem>
+                  <SelectItem value="in_progress">กำลังตรวจ</SelectItem>
+                  <SelectItem value="no_ticket">ยังไม่มีตั๋วค้าง</SelectItem>
+                  <SelectItem value="never_inspected">ยังไม่เคยตรวจ</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -424,73 +545,87 @@ const ToolPMSchedule = () => {
               <p>ไม่พบข้อมูลเครื่องมือ</p>
             </div>
           ) : (
-            <Table>
+            <>
+            <div className="w-full overflow-x-auto">
+            <Table className="min-w-[1200px]">
               <TableHeader>
                 <TableRow>
                   <TableHead>รหัส</TableHead>
                   <TableHead>ชื่อเครื่องมือ</TableHead>
+                  <TableHead>S/N</TableHead>
+                  <TableHead>ยี่ห้อ</TableHead>
+                  <TableHead>หมวดหมู่</TableHead>
                   <TableHead>ฝ่าย</TableHead>
-                  <TableHead>รอบ PM (วัน)</TableHead>
-                  <TableHead>งาน PM ทั้งหมด</TableHead>
+                  <TableHead>รอบ PM</TableHead>
+                  <TableHead>งาน PM</TableHead>
                   <TableHead>กำหนดถัดไป</TableHead>
                   <TableHead>สถานะ</TableHead>
                   <TableHead className="text-right">จัดการ</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredSummary.map((tool: any) => (
-                  <TableRow key={tool.id}>
+                {pagination.paginatedData.map((tool: any) => {
+                  const d = tool.daysUntilDue;
+                  const rowClass =
+                    d === null ? "" :
+                    d < 0 ? "bg-destructive/10 hover:bg-destructive/15" :
+                    d <= 14 ? "bg-orange-500/10 hover:bg-orange-500/15" :
+                    d <= 30 ? "bg-yellow-500/10 hover:bg-yellow-500/15" :
+                    "";
+                  const dueText =
+                    d === null ? null :
+                    d < 0 ? `เลย ${Math.abs(d)} วัน` :
+                    d === 0 ? "ครบกำหนดวันนี้" :
+                    `อีก ${d} วัน`;
+                  const dueBadgeClass =
+                    d === null ? "" :
+                    d < 0 ? "bg-destructive text-destructive-foreground" :
+                    d <= 14 ? "bg-orange-500 text-white" :
+                    d <= 30 ? "bg-yellow-500 text-white" :
+                    "bg-muted text-foreground";
+                  return (
+                  <TableRow key={tool.id} className={cn(rowClass)}>
                     <TableCell className="font-medium">{tool.code}</TableCell>
                     <TableCell>{tool.name}</TableCell>
+                    <TableCell className="font-mono text-sm whitespace-pre-line">{tool.serial_number || <span className="text-muted-foreground">-</span>}</TableCell>
+                    <TableCell>{tool.brand || <span className="text-muted-foreground">-</span>}</TableCell>
+                    <TableCell>{tool.tool_categories?.name || <span className="text-muted-foreground">-</span>}</TableCell>
                     <TableCell>{tool.department || "-"}</TableCell>
-                    <TableCell>{tool.pm_interval_days || 30} วัน</TableCell>
+                    <TableCell>{tool.pm_interval_days ? `${tool.pm_interval_days} วัน` : <span className="text-muted-foreground">ไม่มี</span>}</TableCell>
                     <TableCell>
                       <div className="flex flex-col gap-1">
                         <div className="flex gap-1">
-                          <Badge variant="outline" className="text-xs">
-                            รอ: {tool.pendingCount}
-                          </Badge>
-                          <Badge variant="outline" className="text-xs">
-                            เสร็จ: {tool.completedCount}
-                          </Badge>
+                          <Badge variant="outline" className="text-xs">รอ: {tool.pendingCount}</Badge>
+                          <Badge variant="outline" className="text-xs">เสร็จ: {tool.completedCount}</Badge>
                         </div>
                         {tool.latestTask?.task_number && tool.latestTask?.status !== "completed" && (
-                          <span className="text-xs text-muted-foreground font-mono">
-                            ค้าง: {tool.latestTask.task_number}
-                          </span>
+                          <span className="text-xs text-muted-foreground font-mono">ค้าง: {tool.latestTask.task_number}</span>
                         )}
                       </div>
                     </TableCell>
-
                     <TableCell>
-                      {tool.latestTask?.due_date ? (
-                        <div className="flex items-center gap-1">
-                          <Calendar className="h-4 w-4 text-muted-foreground" />
-                          {format(parseISO(tool.latestTask.due_date), "dd MMM yyyy", { locale: th })}
+                      {tool.latestTask?.due_date && tool.latestTask?.status !== "completed" ? (
+                        <div className="flex flex-col gap-1">
+                          <div className="flex items-center gap-1">
+                            <Calendar className="h-4 w-4 text-muted-foreground" />
+                            <span className="text-sm">{format(parseISO(tool.latestTask.due_date), "dd MMM yyyy", { locale: th })}</span>
+                          </div>
+                          {dueText && <Badge className={cn("text-xs w-fit", dueBadgeClass)}>{dueText}</Badge>}
                         </div>
-                      ) : "-"}
+                      ) : <span className="text-muted-foreground text-sm">ยังไม่มีตั๋ว</span>}
                     </TableCell>
                     <TableCell>{getStatusBadge(tool)}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex gap-1 justify-end">
                         {(tool.pendingCount > 0 || tool.inProgressCount > 0) ? (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            disabled
-                            title={`มีตั๋ว PM ค้างอยู่แล้ว${tool.latestTask?.task_number ? ` (${tool.latestTask.task_number})` : ""} — กรุณาตรวจให้เสร็จก่อน`}
-                          >
+                          <Button size="sm" variant="outline" disabled
+                            title={`มีตั๋ว PM ค้างอยู่แล้ว${tool.latestTask?.task_number ? ` (${tool.latestTask.task_number})` : ""} — กรุณาตรวจให้เสร็จก่อน`}>
                             <Plus className="h-4 w-4 opacity-40" />
                           </Button>
                         ) : (
                           <AlertDialog>
                             <AlertDialogTrigger asChild>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                title="สร้างตั๋ว PM ใหม่สำหรับเครื่องมือนี้"
-                                disabled={createPMTask.isPending}
-                              >
+                              <Button size="sm" variant="outline" title="สร้างตั๋ว PM ใหม่สำหรับเครื่องมือนี้" disabled={createPMTask.isPending}>
                                 <Plus className="h-4 w-4" />
                               </Button>
                             </AlertDialogTrigger>
@@ -504,9 +639,7 @@ const ToolPMSchedule = () => {
                               </AlertDialogHeader>
                               <AlertDialogFooter>
                                 <AlertDialogCancel>ยกเลิก</AlertDialogCancel>
-                                <AlertDialogAction onClick={() => createPMTask.mutate(tool.id)}>
-                                  สร้างตั๋ว PM
-                                </AlertDialogAction>
+                                <AlertDialogAction onClick={() => createPMTask.mutate(tool.id)}>สร้างตั๋ว PM</AlertDialogAction>
                               </AlertDialogFooter>
                             </AlertDialogContent>
                           </AlertDialog>
@@ -527,22 +660,28 @@ const ToolPMSchedule = () => {
                               </AlertDialogHeader>
                               <AlertDialogFooter>
                                 <AlertDialogCancel>ยกเลิก</AlertDialogCancel>
-                                <AlertDialogAction
-                                  onClick={() => deletePMTask.mutate(tool.latestTask.id)}
-                                >
-                                  ลบ
-                                </AlertDialogAction>
+                                <AlertDialogAction onClick={() => deletePMTask.mutate(tool.latestTask.id)}>ลบ</AlertDialogAction>
                               </AlertDialogFooter>
                             </AlertDialogContent>
                           </AlertDialog>
                         )}
                       </div>
                     </TableCell>
-
                   </TableRow>
-                ))}
+                  );
+                })}
               </TableBody>
             </Table>
+            </div>
+            <TablePagination
+              currentPage={pagination.currentPage}
+              totalPages={pagination.totalPages}
+              totalItems={pagination.totalItems}
+              pageSize={pagination.pageSize}
+              onPageChange={pagination.handlePageChange}
+              onPageSizeChange={pagination.handlePageSizeChange}
+            />
+            </>
           )}
         </CardContent>
       </Card>
