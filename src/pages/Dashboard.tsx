@@ -12,9 +12,12 @@ import TransactionSummaryReport from "@/components/TransactionSummaryReport";
 import { CompanyFilter } from "@/components/dashboard/CompanyFilter";
 import { StockMovementChart } from "@/components/dashboard/StockMovementChart";
 import { supabase } from "@/integrations/supabase/client";
-import { Link } from "react-router-dom";
+import { Link, Navigate } from "react-router-dom";
+import { useFunctionPermissions } from "@/hooks/useFunctionPermissions";
 
 const Dashboard = () => {
+  const { permissions, isAdmin, isSuperAdmin, loading: permLoading } = useFunctionPermissions();
+  const hasAnyAccess = isAdmin || isSuperAdmin || permissions.some(p => p.can_access);
   const [selectedCompanyId, setSelectedCompanyId] = useState("all");
   const [stats, setStats] = useState({
     totalEquipment: 0,
