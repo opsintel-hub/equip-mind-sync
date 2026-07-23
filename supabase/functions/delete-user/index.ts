@@ -99,10 +99,15 @@ serve(async (req) => {
       .update({ is_hidden: true } as any)
       .eq("id", userId);
 
-    // 3) Block login: ban for 100 years + invalidate password
+    // 3) Block login:
+    //    - rename email so the original address is freed and the person can re-register
+    //    - ban for ~100 years and invalidate password as defense in depth
     //    (we intentionally do NOT delete auth.users so history joins to profiles remain intact)
     const randomPass = crypto.randomUUID() + crypto.randomUUID();
+    const deletedEmail = `deleted+${userId}@deleted.local`;
     const { error: banErr } = await supabaseAdmin.auth.admin.updateUserById(userId, {
+      email: deletedEmail,
+      email_confirm: true,
       ban_duration: "876000h", // ~100 years
       password: randomPass,
     } as any);
@@ -110,7 +115,7 @@ serve(async (req) => {
     if (banErr) {
       console.error("Ban error:", banErr);
       return new Response(JSON.stringify({ error: banErr.message }), {
-        status: 500,
+        status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }

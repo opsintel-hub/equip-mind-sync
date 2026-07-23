@@ -69,6 +69,8 @@ interface User {
   requested_job_role?: string | null;
   requested_department?: string | null;
   is_hidden?: boolean | null;
+  last_sign_in_at?: string | null;
+  banned_until?: string | null;
 }
 
 interface UserPermission {
@@ -121,6 +123,8 @@ export function UserPermissionManager() {
   const [allPresets, setAllPresets] = useState<PermissionPreset[]>([]);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleteBusy, setDeleteBusy] = useState(false);
+  const [sortMode, setSortMode] = useState<"pending_first" | "department" | "recent_login" | "inactive_first">("pending_first");
+  const [inactivityFilter, setInactivityFilter] = useState<"all" | "gt30" | "gt60" | "gt90" | "never">("all");
 
   useEffect(() => {
     fetchUsers();
@@ -129,18 +133,49 @@ export function UserPermissionManager() {
   }, []);
 
   useEffect(() => {
-    if (searchQuery.trim() === "") {
-      setFilteredUsers(users);
-    } else {
-      const query = searchQuery.toLowerCase();
-      setFilteredUsers(users.filter(user =>
-        user.full_name?.toLowerCase().includes(query) ||
-        user.display_name?.toLowerCase().includes(query) ||
-        user.email?.toLowerCase().includes(query) ||
-        user.phone?.includes(query)
-      ));
-    }
-  }, [searchQuery, users]);
+    const query = searchQuery.trim().toLowerCase();
+    const daysSince = (iso?: string | null) => {
+      if (!iso) return Infinity;
+      return (Date.now() - new Date(iso).getTime()) / 86400000;
+    };
+    let list = users.filter((user) => {
+      if (query) {
+        const hit =
+          user.full_name?.toLowerCase().includes(query) ||
+          user.display_name?.toLowerCase().includes(query) ||
+          user.email?.toLowerCase().includes(query) ||
+          user.phone?.includes(query);
+        if (!hit) return false;
+      }
+      if (inactivityFilter !== "all") {
+        const d = daysSince(user.last_sign_in_at);
+        if (inactivityFilter === "never" && user.last_sign_in_at) return false;
+        if (inactivityFilter === "gt30" && d <= 30) return false;
+        if (inactivityFilter === "gt60" && d <= 60) return false;
+        if (inactivityFilter === "gt90" && d <= 90) return false;
+      }
+      return true;
+    });
+    const isPending = (u: User) => !userRoles[u.id] || userRoles[u.id].length === 0;
+    list = [...list].sort((a, b) => {
+      if (sortMode === "pending_first") {
+        const pa = isPending(a) ? 0 : 1;
+        const pb = isPending(b) ? 0 : 1;
+        if (pa !== pb) return pa - pb;
+        return (a.full_name || "").localeCompare(b.full_name || "", "th");
+      }
+      if (sortMode === "department") {
+        return (a.department || "zzz").localeCompare(b.department || "zzz", "th") ||
+          (a.full_name || "").localeCompare(b.full_name || "", "th");
+      }
+      if (sortMode === "recent_login") {
+        return daysSince(a.last_sign_in_at) - daysSince(b.last_sign_in_at);
+      }
+      // inactive_first
+      return daysSince(b.last_sign_in_at) - daysSince(a.last_sign_in_at);
+    });
+    setFilteredUsers(list);
+  }, [searchQuery, users, userRoles, sortMode, inactivityFilter]);
 
   const fetchUsers = async () => {
     try {
@@ -161,21 +196,27 @@ export function UserPermissionManager() {
         }, {} as Record<string, string>)
       );
       
-      let emailMap: Record<string, string> = {};
+      let metaMap: Record<string, { email: string; last_sign_in_at: string | null; banned_until: string | null }> = {};
       try {
-        const { data: usersData } = await supabase.rpc('get_users_emails' as any);
+        const { data: usersData } = await supabase.rpc('get_users_admin_meta' as any);
         if (usersData && Array.isArray(usersData)) {
-          (usersData as { id: string; email: string }[]).forEach((u) => {
-            emailMap[u.id] = u.email;
+          (usersData as any[]).forEach((u) => {
+            metaMap[u.id] = {
+              email: u.email,
+              last_sign_in_at: u.last_sign_in_at,
+              banned_until: u.banned_until,
+            };
           });
         }
       } catch (e) {
-        console.log("Could not fetch emails via RPC");
+        console.log("Could not fetch admin user meta via RPC");
       }
-      
+
       const usersWithEmail = (profilesRes.data || []).map(p => ({
         ...p,
-        email: emailMap[p.id] || ''
+        email: metaMap[p.id]?.email || '',
+        last_sign_in_at: metaMap[p.id]?.last_sign_in_at || null,
+        banned_until: metaMap[p.id]?.banned_until || null,
       }));
       
       setUsers(usersWithEmail);
@@ -641,14 +682,35 @@ export function UserPermissionManager() {
                 กดไอคอน <Sparkles className="inline h-3.5 w-3.5 text-primary" /> <strong>Wizard</strong> เพื่อแก้ไขโปรไฟล์ + ตั้งสิทธิ์ (Role, เมนู, ฝ่าย) ในหน้าเดียว — หากต้องการตั้งสิทธิ์หลายคนพร้อมกันหรือใช้ <strong>Preset</strong> ให้สลับไปที่มุมมอง <strong>Matrix สิทธิ์</strong> ด้านบน
               </CardDescription>
             </div>
-            <div className="relative w-64">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="ค้นหาชื่อ, อีเมล, เบอร์โทร..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9"
-              />
+            <div className="flex flex-wrap items-center gap-2">
+              <Select value={sortMode} onValueChange={(v) => setSortMode(v as any)}>
+                <SelectTrigger className="w-[180px] h-9"><SelectValue placeholder="เรียงลำดับ" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="pending_first">รออนุมัติก่อน</SelectItem>
+                  <SelectItem value="department">ตามฝ่ายสังกัด</SelectItem>
+                  <SelectItem value="recent_login">เข้าใช้งานล่าสุด</SelectItem>
+                  <SelectItem value="inactive_first">ไม่ได้ใช้งานนานสุด</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={inactivityFilter} onValueChange={(v) => setInactivityFilter(v as any)}>
+                <SelectTrigger className="w-[170px] h-9"><SelectValue placeholder="กรองไม่ใช้งาน" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">ทั้งหมด</SelectItem>
+                  <SelectItem value="gt30">ไม่ Login &gt; 30 วัน</SelectItem>
+                  <SelectItem value="gt60">ไม่ Login &gt; 60 วัน</SelectItem>
+                  <SelectItem value="gt90">ไม่ Login &gt; 90 วัน</SelectItem>
+                  <SelectItem value="never">ไม่เคย Login</SelectItem>
+                </SelectContent>
+              </Select>
+              <div className="relative w-64">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="ค้นหาชื่อ, อีเมล, เบอร์โทร..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-9"
+                />
+              </div>
             </div>
           </div>
         </CardHeader>
@@ -663,6 +725,7 @@ export function UserPermissionManager() {
                   <TableHead>สิทธิ์เห็นฝ่าย</TableHead>
                   <TableHead>อีเมล</TableHead>
                   <TableHead>เบอร์โทร</TableHead>
+                  <TableHead>Login ล่าสุด</TableHead>
                     <TableHead>คำขอสมัคร</TableHead>
                   <TableHead>บทบาท / ตั้งสิทธิ์เร็ว</TableHead>
                   <TableHead className="text-right">จัดการ</TableHead>
@@ -722,6 +785,26 @@ export function UserPermissionManager() {
                     </TableCell>
                     <TableCell className="text-muted-foreground">{user.email || "-"}</TableCell>
                     <TableCell>{user.phone || "-"}</TableCell>
+                    <TableCell>
+                      {(() => {
+                        const ts = user.last_sign_in_at;
+                        if (!ts) {
+                          return <Badge variant="outline" className="text-[10px] border-slate-300 text-slate-600">ไม่เคย</Badge>;
+                        }
+                        const d = Math.floor((Date.now() - new Date(ts).getTime()) / 86400000);
+                        const cls =
+                          d > 90 ? "bg-red-100 text-red-700 border-red-300 dark:bg-red-950 dark:text-red-300" :
+                          d > 60 ? "bg-orange-100 text-orange-700 border-orange-300 dark:bg-orange-950 dark:text-orange-300" :
+                          d > 30 ? "bg-amber-100 text-amber-700 border-amber-300 dark:bg-amber-950 dark:text-amber-300" :
+                          "bg-emerald-100 text-emerald-700 border-emerald-300 dark:bg-emerald-950 dark:text-emerald-300";
+                        return (
+                          <div className="flex flex-col gap-0.5">
+                            <Badge variant="outline" className={`text-[10px] w-fit ${cls}`}>{d} วัน</Badge>
+                            <span className="text-[10px] text-muted-foreground">{new Date(ts).toLocaleDateString('th-TH')}</span>
+                          </div>
+                        );
+                      })()}
+                    </TableCell>
                       <TableCell>
                         {user.requested_job_role || user.requested_department ? (
                           <div className="space-y-1 text-sm">

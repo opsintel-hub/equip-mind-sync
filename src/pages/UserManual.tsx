@@ -1,4 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
+import { AlertCircle, CheckCircle2 } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -33,6 +37,26 @@ interface ManualSection {
 
 const UserManual = () => {
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set(["overview"]));
+  const { user } = useAuth();
+  const [accountStatus, setAccountStatus] = useState<"loading" | "pending" | "active">("loading");
+
+  useEffect(() => {
+    if (!user) return;
+    let cancelled = false;
+    const check = async () => {
+      const [rolesRes, fnRes] = await Promise.all([
+        supabase.from("user_roles").select("role").eq("user_id", user.id),
+        supabase.from("user_function_permissions").select("function_name").eq("user_id", user.id).eq("can_access", true).limit(1),
+      ]);
+      if (cancelled) return;
+      const hasRoles = (rolesRes.data || []).length > 0;
+      const hasFns = (fnRes.data || []).length > 0;
+      setAccountStatus(hasRoles || hasFns ? "active" : "pending");
+    };
+    check();
+    const iv = setInterval(check, 30000);
+    return () => { cancelled = true; clearInterval(iv); };
+  }, [user?.id]);
 
   const toggleSection = (id: string) => {
     setExpandedSections(prev => {
@@ -1633,6 +1657,24 @@ const UserManual = () => {
           </div>
         </div>
       </div>
+
+      {accountStatus === "pending" && (
+        <Alert className="border-amber-300 bg-amber-50 dark:bg-amber-950/40">
+          <AlertCircle className="h-4 w-4 text-amber-600" />
+          <AlertTitle className="text-amber-800 dark:text-amber-200">บัญชีของคุณกำลังรอ Admin อนุมัติสิทธิ์</AlertTitle>
+          <AlertDescription className="text-amber-700 dark:text-amber-300">
+            ระหว่างนี้คุณจะเห็นเฉพาะคู่มือการใช้งาน — หน้านี้จะรีเฟรชอัตโนมัติทุก 30 วินาที เมื่อ Admin ตั้งสิทธิ์ให้แล้ว เมนูอื่นจะปรากฏขึ้นทันที (โปรดล็อกอินใหม่หากไม่เห็นเมนูภายใน 1 นาที)
+          </AlertDescription>
+        </Alert>
+      )}
+      {accountStatus === "active" && (
+        <Alert className="border-emerald-300 bg-emerald-50 dark:bg-emerald-950/40">
+          <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+          <AlertDescription className="text-emerald-700 dark:text-emerald-300">
+            บัญชีของคุณได้รับสิทธิ์แล้ว สามารถใช้เมนูตามที่ Admin กำหนดได้เลย
+          </AlertDescription>
+        </Alert>
+      )}
 
       <Tabs defaultValue="uat" className="w-full">
         <TabsList className="grid w-full grid-cols-2 max-w-md">

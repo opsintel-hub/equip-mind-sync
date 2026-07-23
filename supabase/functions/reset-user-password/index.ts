@@ -76,15 +76,20 @@ serve(async (req) => {
       });
     }
 
-    // Reset the user's password using admin API
+    // Reset the user's password using admin API.
+    // Also clear any ban (ban_duration: "none") so previously deactivated users can
+    // sign in again after an admin resets their password.
     const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(userId, {
       password: newPassword,
-    });
+      ban_duration: "none",
+    } as any);
 
     if (updateError) {
       console.error("Error updating password:", updateError);
+      // Return 200 with error body so supabase-js exposes the real message
+      // to the client instead of a generic "non-2xx status code".
       return new Response(JSON.stringify({ error: updateError.message }), {
-        status: 500,
+        status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
