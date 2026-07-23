@@ -554,6 +554,8 @@ const IssueRequest = () => {
       setEditingCartItemId(null);
       toast.success("อัปเดตรายการเรียบร้อยแล้ว");
     } else {
+      const isConsumable = !isMediaPlayer && !!(selectedEquipment as any)?.is_consumable;
+      const needsReturn = !!(selectedPurpose?.requires_return) && !isConsumable;
       const newItem: CartItem = {
         id: crypto.randomUUID(),
         equipment_id: currentItem.equipment_id,
@@ -571,6 +573,10 @@ const IssueRequest = () => {
         location_name: selectedEquipment?.location_name || undefined,
         department: (selectedEquipment as any)?.department || null,
         sub_media_type: (selectedEquipment as any)?.sub_media_type || null,
+        is_consumable: isConsumable,
+        return_policy_note: (selectedEquipment as any)?.return_policy_note || null,
+        needs_return: needsReturn,
+        needs_return_overridden: false,
       };
 
       setCartItems([...cartItems, newItem]);
