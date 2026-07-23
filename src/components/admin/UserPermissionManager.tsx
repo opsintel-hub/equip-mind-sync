@@ -69,6 +69,8 @@ interface User {
   requested_job_role?: string | null;
   requested_department?: string | null;
   is_hidden?: boolean | null;
+  last_sign_in_at?: string | null;
+  banned_until?: string | null;
 }
 
 interface UserPermission {
