@@ -133,18 +133,49 @@ export function UserPermissionManager() {
   }, []);
 
   useEffect(() => {
-    if (searchQuery.trim() === "") {
-      setFilteredUsers(users);
-    } else {
-      const query = searchQuery.toLowerCase();
-      setFilteredUsers(users.filter(user =>
-        user.full_name?.toLowerCase().includes(query) ||
-        user.display_name?.toLowerCase().includes(query) ||
-        user.email?.toLowerCase().includes(query) ||
-        user.phone?.includes(query)
-      ));
-    }
-  }, [searchQuery, users]);
+    const query = searchQuery.trim().toLowerCase();
+    const daysSince = (iso?: string | null) => {
+      if (!iso) return Infinity;
+      return (Date.now() - new Date(iso).getTime()) / 86400000;
+    };
+    let list = users.filter((user) => {
+      if (query) {
+        const hit =
+          user.full_name?.toLowerCase().includes(query) ||
+          user.display_name?.toLowerCase().includes(query) ||
+          user.email?.toLowerCase().includes(query) ||
+          user.phone?.includes(query);
+        if (!hit) return false;
+      }
+      if (inactivityFilter !== "all") {
+        const d = daysSince(user.last_sign_in_at);
+        if (inactivityFilter === "never" && user.last_sign_in_at) return false;
+        if (inactivityFilter === "gt30" && d <= 30) return false;
+        if (inactivityFilter === "gt60" && d <= 60) return false;
+        if (inactivityFilter === "gt90" && d <= 90) return false;
+      }
+      return true;
+    });
+    const isPending = (u: User) => !userRoles[u.id] || userRoles[u.id].length === 0;
+    list = [...list].sort((a, b) => {
+      if (sortMode === "pending_first") {
+        const pa = isPending(a) ? 0 : 1;
+        const pb = isPending(b) ? 0 : 1;
+        if (pa !== pb) return pa - pb;
+        return (a.full_name || "").localeCompare(b.full_name || "", "th");
+      }
+      if (sortMode === "department") {
+        return (a.department || "zzz").localeCompare(b.department || "zzz", "th") ||
+          (a.full_name || "").localeCompare(b.full_name || "", "th");
+      }
+      if (sortMode === "recent_login") {
+        return daysSince(a.last_sign_in_at) - daysSince(b.last_sign_in_at);
+      }
+      // inactive_first
+      return daysSince(b.last_sign_in_at) - daysSince(a.last_sign_in_at);
+    });
+    setFilteredUsers(list);
+  }, [searchQuery, users, userRoles, sortMode, inactivityFilter]);
 
   const fetchUsers = async () => {
     try {
