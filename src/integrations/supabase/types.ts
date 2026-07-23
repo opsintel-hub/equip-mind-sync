@@ -2192,6 +2192,7 @@ export type Database = {
           equipment_id: string
           id: string
           image_url: string
+          is_primary: boolean
         }
         Insert: {
           created_at?: string
@@ -2200,6 +2201,7 @@ export type Database = {
           equipment_id: string
           id?: string
           image_url: string
+          is_primary?: boolean
         }
         Update: {
           created_at?: string
@@ -2208,6 +2210,7 @@ export type Database = {
           equipment_id?: string
           id?: string
           image_url?: string
+          is_primary?: boolean
         }
         Relationships: [
           {
@@ -3773,6 +3776,7 @@ export type Database = {
           display_order: number | null
           id: string
           image_url: string
+          is_primary: boolean
           media_player_id: string
         }
         Insert: {
@@ -3782,6 +3786,7 @@ export type Database = {
           display_order?: number | null
           id?: string
           image_url: string
+          is_primary?: boolean
           media_player_id: string
         }
         Update: {
@@ -3791,6 +3796,7 @@ export type Database = {
           display_order?: number | null
           id?: string
           image_url?: string
+          is_primary?: boolean
           media_player_id?: string
         }
         Relationships: [
@@ -5672,6 +5678,7 @@ export type Database = {
           display_order: number
           id: string
           image_url: string
+          is_primary: boolean
           tool_id: string
         }
         Insert: {
@@ -5679,6 +5686,7 @@ export type Database = {
           display_order?: number
           id?: string
           image_url: string
+          is_primary?: boolean
           tool_id: string
         }
         Update: {
@@ -5686,6 +5694,7 @@ export type Database = {
           display_order?: number
           id?: string
           image_url?: string
+          is_primary?: boolean
           tool_id?: string
         }
         Relationships: [
