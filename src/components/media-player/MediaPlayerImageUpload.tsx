@@ -84,11 +84,6 @@ export function MediaPlayerImageUpload({ mediaPlayerId, mediaPlayerCode, onClose
   };
 
 
-    if (!error && data) {
-      setExistingImages(data as any);
-    }
-    setIsLoading(false);
-  };
 
   const visibleExistingImages = existingImages.slice(0, MAX_IMAGES);
   const remainingSlots = Math.max(0, MAX_IMAGES - existingImages.length);
