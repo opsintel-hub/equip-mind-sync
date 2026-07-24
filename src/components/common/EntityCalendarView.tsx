@@ -18,6 +18,8 @@ export interface CalendarItem {
   date: string; // ISO date (yyyy-MM-dd)
   title: string;
   subtitle?: string;
+  /** kind key used to color the pill (e.g. "warranty", "pm"). If provided, overrides urgency colors for the pill. */
+  kind?: string;
 }
 
 interface Props {
@@ -25,6 +27,11 @@ interface Props {
   onItemClick?: (id: string) => void;
   /** label shown above calendar (e.g. "หมดประกัน") */
   title?: string;
+  /**
+   * Optional map for coloring pills by `item.kind`. Provide Tailwind classes for the pill.
+   * When supplied, `kindLegend` should also be provided so users know what each color means.
+   */
+  kindStyles?: Record<string, { pill: string; dot: string; label: string }>;
 }
 
 type Bucket = "overdue" | "d14" | "d30" | "future";
@@ -50,6 +57,7 @@ const bucketPill: Record<Bucket, string> = {
   d30: "bg-yellow-50 text-yellow-700 dark:bg-yellow-950/30 dark:text-yellow-300 border-yellow-200",
   future: "bg-slate-50 text-slate-700 dark:bg-slate-800/50 dark:text-slate-300 border-slate-200",
 };
+
 
 export function EntityCalendarView({ items, onItemClick, title }: Props) {
   const [currentMonth, setCurrentMonth] = useState(new Date());
