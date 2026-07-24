@@ -209,24 +209,47 @@ export function MediaPlayerImageUpload({ mediaPlayerId, mediaPlayerCode, onClose
         ) : existingImages.length > 0 ? (
           <div className="space-y-2">
             <Label>รูปภาพปัจจุบัน ({Math.min(existingImages.length, MAX_IMAGES)} / {MAX_IMAGES} รูป)</Label>
+            <p className="text-xs text-muted-foreground">ลากรูปเพื่อเรียงลำดับใหม่ • กด ⭐ เพื่อตั้งเป็นรูปหลักที่แสดงในตาราง</p>
             <div className="grid grid-cols-5 gap-2">
-              {visibleExistingImages.map((img) => (
-                <div key={img.id} className="relative group">
-                  <img
-                    src={img.image_url}
-                    alt="Media Player"
-                    className="w-full h-24 object-cover rounded-lg border"
-                  />
-                  <button
-                    onClick={() => handleDeleteExisting(img)}
-                    className="absolute top-1 right-1 p-1 bg-destructive rounded-full text-white opacity-0 group-hover:opacity-100 transition-opacity"
+              {visibleExistingImages.map((img, idx) => {
+                const isPrimary = !!img.is_primary || (!existingImages.some(i => i.is_primary) && idx === 0);
+                return (
+                  <div
+                    key={img.id}
+                    draggable
+                    onDragStart={() => setDragIndex(idx)}
+                    onDragOver={(e) => e.preventDefault()}
+                    onDrop={() => { if (dragIndex !== null) { handleReorder(dragIndex, idx); setDragIndex(null); } }}
+                    onDragEnd={() => setDragIndex(null)}
+                    className={`relative group cursor-move rounded-lg border-2 ${isPrimary ? "border-yellow-500" : "border-transparent"} ${dragIndex === idx ? "opacity-40" : ""}`}
+                    title="ลากเพื่อเรียงลำดับ"
                   >
-                    <X className="h-3 w-3" />
-                  </button>
-                </div>
-              ))}
+                    <img src={img.image_url} alt="Media Player" className="w-full h-24 object-cover rounded-md" />
+                    <div className="absolute top-1 left-1 p-0.5 bg-black/40 rounded text-white opacity-0 group-hover:opacity-100 transition-opacity">
+                      <GripVertical className="h-3 w-3" />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleSetPrimary(img)}
+                      className={`absolute bottom-1 left-1 p-1 rounded-full transition-opacity ${isPrimary ? "bg-yellow-500 text-white opacity-100" : "bg-black/50 text-white opacity-0 group-hover:opacity-100"}`}
+                      title={isPrimary ? "รูปหลัก" : "ตั้งเป็นรูปหลัก"}
+                    >
+                      <Star className={`h-3 w-3 ${isPrimary ? "fill-current" : ""}`} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteExisting(img)}
+                      className="absolute top-1 right-1 p-1 bg-destructive rounded-full text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                      title="ลบรูป"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                );
+              })}
             </div>
           </div>
+
         ) : (
           <p className="text-sm text-muted-foreground text-center py-2">ยังไม่มีรูปภาพ</p>
         )}
