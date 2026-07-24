@@ -3,9 +3,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Upload, X, Image as ImageIcon, Loader2, Camera } from "lucide-react";
+import { Upload, X, Image as ImageIcon, Loader2, Camera, Star, GripVertical } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
+import { setPrimaryImage } from "@/hooks/usePrimaryImages";
+
 
 interface MediaPlayerImageUploadProps {
   mediaPlayerId: string;
