@@ -18,6 +18,8 @@ export interface CalendarItem {
   date: string; // ISO date (yyyy-MM-dd)
   title: string;
   subtitle?: string;
+  /** kind key used to color the pill (e.g. "warranty", "pm"). If provided, overrides urgency colors for the pill. */
+  kind?: string;
 }
 
 interface Props {
@@ -25,6 +27,11 @@ interface Props {
   onItemClick?: (id: string) => void;
   /** label shown above calendar (e.g. "หมดประกัน") */
   title?: string;
+  /**
+   * Optional map for coloring pills by `item.kind`. Provide Tailwind classes for the pill.
+   * When supplied, `kindLegend` should also be provided so users know what each color means.
+   */
+  kindStyles?: Record<string, { pill: string; dot: string; label: string }>;
 }
 
 type Bucket = "overdue" | "d14" | "d30" | "future";
@@ -51,7 +58,8 @@ const bucketPill: Record<Bucket, string> = {
   future: "bg-slate-50 text-slate-700 dark:bg-slate-800/50 dark:text-slate-300 border-slate-200",
 };
 
-export function EntityCalendarView({ items, onItemClick, title }: Props) {
+
+export function EntityCalendarView({ items, onItemClick, title, kindStyles }: Props) {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [dayDialogDate, setDayDialogDate] = useState<string | null>(null);
 
@@ -123,18 +131,21 @@ export function EntityCalendarView({ items, onItemClick, title }: Props) {
               {dayItems.length > 0 && (
                 <>
                   <div className="space-y-0.5">
-                    {dayItems.slice(0, 2).map((it) => (
-                      <div
-                        key={it.id}
-                        className={cn(
-                          "px-1 py-0.5 rounded text-[10px] leading-tight truncate border",
-                          bucketPill[bucketOf(it.date)],
-                        )}
-                        title={it.title}
-                      >
-                        {it.title}
-                      </div>
-                    ))}
+                    {dayItems.slice(0, 2).map((it) => {
+                      const kStyle = it.kind && kindStyles?.[it.kind];
+                      return (
+                        <div
+                          key={it.id}
+                          className={cn(
+                            "px-1 py-0.5 rounded text-[10px] leading-tight truncate border",
+                            kStyle ? kStyle.pill : bucketPill[bucketOf(it.date)],
+                          )}
+                          title={it.title}
+                        >
+                          {it.title}
+                        </div>
+                      );
+                    })}
                     {dayItems.length > 2 && (
                       <div className="text-[10px] text-muted-foreground pl-1">
                         +{dayItems.length - 2} รายการ
@@ -153,17 +164,32 @@ export function EntityCalendarView({ items, onItemClick, title }: Props) {
                   </div>
                 </>
               )}
+
             </div>
           );
         })}
       </div>
 
+      {kindStyles && Object.keys(kindStyles).length > 0 && (
+        <div className="flex flex-wrap gap-3 text-xs">
+          <span className="text-muted-foreground font-medium">ประเภท:</span>
+          {Object.entries(kindStyles).map(([k, s]) => (
+            <div key={k} className={cn("flex items-center gap-1.5 px-2 py-0.5 rounded border", s.pill)}>
+              <div className={cn("w-2.5 h-2.5 rounded-full", s.dot)} />
+              <span>{s.label}</span>
+            </div>
+          ))}
+        </div>
+      )}
+
       <div className="flex flex-wrap gap-4 text-xs text-muted-foreground">
+        <span className="font-medium">ความเร่งด่วน (จุดในช่อง):</span>
         <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-red-500" />เลยกำหนด</div>
         <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-orange-500" />ภายใน 14 วัน</div>
         <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-yellow-500" />ภายใน 30 วัน</div>
         <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-slate-400" />อนาคต</div>
       </div>
+
 
       <Dialog open={!!dayDialogDate} onOpenChange={(o) => !o && setDayDialogDate(null)}>
         <DialogContent className="max-w-lg">
@@ -176,6 +202,7 @@ export function EntityCalendarView({ items, onItemClick, title }: Props) {
           <div className="space-y-2 max-h-[60vh] overflow-y-auto">
             {openItems.map((it) => {
               const b = bucketOf(it.date);
+              const kStyle = it.kind && kindStyles?.[it.kind];
               return (
                 <button
                   key={it.id}
@@ -183,15 +210,19 @@ export function EntityCalendarView({ items, onItemClick, title }: Props) {
                   className={cn(
                     "w-full text-left border rounded-lg px-3 py-2 transition-colors",
                     onItemClick && "hover:bg-accent cursor-pointer",
-                    bucketPill[b],
+                    kStyle ? kStyle.pill : bucketPill[b],
                   )}
                 >
-                  <div className="font-medium text-sm">{it.title}</div>
+                  <div className="flex items-center gap-2">
+                    {kStyle && <div className={cn("w-2 h-2 rounded-full", kStyle.dot)} />}
+                    <div className="font-medium text-sm">{it.title}</div>
+                  </div>
                   {it.subtitle && <div className="text-xs opacity-80">{it.subtitle}</div>}
                 </button>
               );
             })}
           </div>
+
         </DialogContent>
       </Dialog>
     </div>

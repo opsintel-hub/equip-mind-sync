@@ -36,6 +36,8 @@ import { toast } from "sonner";
 import { format, differenceInDays } from "date-fns";
 import { th } from "date-fns/locale";
 import * as XLSX from "xlsx";
+import { ToolImageViewer } from "@/components/tools/ToolImageViewer";
+
 
 
 interface PMResult {
@@ -442,6 +444,7 @@ export function ToolPMTaskList() {
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead className="w-12 text-center">รูป</TableHead>
                     <TableHead>หมายเลขงาน</TableHead>
                     <TableHead>เครื่องมือ</TableHead>
                     <TableHead>ฝ่าย</TableHead>
@@ -457,6 +460,9 @@ export function ToolPMTaskList() {
                 <TableBody>
                   {paginatedData.map((task) => (
                     <TableRow key={task.id}>
+                      <TableCell className="text-center">
+                        <ToolImageViewer toolId={task.tool.id} toolName={task.tool.name} variant="icon" />
+                      </TableCell>
                       <TableCell className="font-mono text-xs">{task.task_number}</TableCell>
                       <TableCell>
                         <div>
@@ -489,6 +495,7 @@ export function ToolPMTaskList() {
                     </TableRow>
                   ))}
                 </TableBody>
+
               </Table>
               <TablePagination
                 currentPage={currentPage}

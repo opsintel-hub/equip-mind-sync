@@ -535,6 +535,7 @@ function ToolCalendarBlock({ tools, onOpenTool }: { tools: Tool[]; onOpenTool: (
         date: String(t.warranty_expiry_date),
         title: `🛡️ ${t.code} - ${t.name}`,
         subtitle: `หมดประกัน${t.department ? " • " + t.department : ""}`,
+        kind: "warranty",
       });
     });
   }
@@ -547,6 +548,7 @@ function ToolCalendarBlock({ tools, onOpenTool }: { tools: Tool[]; onOpenTool: (
         date: String(task.due_date),
         title: `🔧 ${t.code} - ${t.name}`,
         subtitle: `งาน PM${t.department ? " • " + t.department : ""}`,
+        kind: "pm",
       });
     });
   }
@@ -554,6 +556,19 @@ function ToolCalendarBlock({ tools, onOpenTool }: { tools: Tool[]; onOpenTool: (
   const counts = {
     warranty: tools.filter((t) => !!t.warranty_expiry_date).length,
     pm: pmTasks.length,
+  };
+
+  const kindStyles = {
+    warranty: {
+      pill: "bg-sky-50 text-sky-800 dark:bg-sky-950/40 dark:text-sky-200 border-sky-300",
+      dot: "bg-sky-500",
+      label: "🛡️ วันหมดประกัน",
+    },
+    pm: {
+      pill: "bg-amber-50 text-amber-900 dark:bg-amber-950/40 dark:text-amber-200 border-amber-400",
+      dot: "bg-amber-500",
+      label: "🔧 กำหนดงาน PM",
+    },
   };
 
   const handleClick = (id: string) => {
@@ -587,10 +602,16 @@ function ToolCalendarBlock({ tools, onOpenTool }: { tools: Tool[]; onOpenTool: (
           </Button>
         ))}
       </div>
-      <EntityCalendarView items={items} onItemClick={handleClick} title="ปฏิทินเครื่องมือ" />
+      <EntityCalendarView
+        items={items}
+        onItemClick={handleClick}
+        title="ปฏิทินเครื่องมือ"
+        kindStyles={kindStyles}
+      />
     </div>
   );
 }
+
 
 
 function ToolSummaryCards({ tools }: { tools: Tool[] }) {
