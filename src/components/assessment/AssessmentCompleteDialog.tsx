@@ -16,6 +16,7 @@ import { differenceInDays, parseISO, differenceInMonths } from "date-fns";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { PhotoGalleryDialog } from "@/components/ui/PhotoGalleryDialog";
 import { DocumentPreviewDialog } from "@/components/DocumentPreviewDialog";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 
 interface AssessmentLogLite {
   id: string;
@@ -127,6 +128,21 @@ export function AssessmentCompleteDialog({ open, onOpenChange, log, onCompleted 
   const [defectiveAckReason, setDefectiveAckReason] = useState("");
   const [assessmentResultName, setAssessmentResultName] = useState<string>("");
   const [docPreview, setDocPreview] = useState<{ url: string; title: string } | null>(null);
+  const [suppliers, setSuppliers] = useState<Array<{ id: string; code: string; name: string; contact_person: string | null; phone: string | null }>>([]);
+  const [selectedSupplierId, setSelectedSupplierId] = useState<string>("");
+
+  // Load suppliers list for claim vendor dropdown
+  useEffect(() => {
+    if (!open) return;
+    (async () => {
+      const { data } = await supabase
+        .from("suppliers")
+        .select("id, code, name, contact_person, phone")
+        .eq("is_active", true)
+        .order("name");
+      setSuppliers((data as any) || []);
+    })();
+  }, [open]);
 
   // Fetch the name of the selected assessment result + derive outcome automatically
   useEffect(() => {
@@ -170,6 +186,7 @@ export function AssessmentCompleteDialog({ open, onOpenChange, log, onCompleted 
     setExternalRepairContact("");
     setExternalRepairPhone("");
     setSupplierAutofill(null);
+    setSelectedSupplierId("");
     setPurchaseInfo(null);
     setSourceCtx(null);
     setHistory(null);
@@ -1093,16 +1110,37 @@ export function AssessmentCompleteDialog({ open, onOpenChange, log, onCompleted 
                 </Alert>
                 <p className="text-xs text-muted-foreground">
                   {supplierAutofill?.name
-                    ? `จะส่งเคลมที่ ${supplierAutofill.name} (จากประวัติการซื้อ S/N นี้)`
-                    : "ไม่พบประวัติการซื้อ — กรุณาระบุผู้รับเคลม"}
+                    ? `ค่าเริ่มต้น: ${supplierAutofill.name} (จากประวัติการซื้อ S/N นี้) — เปลี่ยนได้จาก dropdown ด้านล่าง`
+                    : "ไม่พบประวัติการซื้อ — กรุณาเลือก/ระบุผู้รับเคลม"}
                 </p>
-                {!supplierAutofill?.name && (
+                <div className="space-y-2">
+                  <Label className="text-xs">ผู้รับเคลม / ร้านซ่อม *</Label>
+                  <SearchableSelect
+                    options={suppliers.map((s) => ({
+                      value: s.id,
+                      label: `${s.code} - ${s.name}`,
+                      description: [s.contact_person && `ติดต่อ: ${s.contact_person}`, s.phone].filter(Boolean).join(" | ") || undefined,
+                    }))}
+                    value={selectedSupplierId}
+                    onValueChange={(id) => {
+                      setSelectedSupplierId(id);
+                      const s = suppliers.find((x) => x.id === id);
+                      if (s) {
+                        setExternalRepairVendor(s.name);
+                        setExternalRepairContact(s.contact_person || "");
+                        setExternalRepairPhone(s.phone || "");
+                      }
+                    }}
+                    placeholder={supplierAutofill?.name || "ค้นหา/เลือกจากผู้จัดจำหน่าย..."}
+                    searchPlaceholder="ค้นหาชื่อ/รหัสผู้จัดจำหน่าย..."
+                    emptyMessage="ไม่พบผู้จัดจำหน่าย — กรอกด้านล่างได้เลย"
+                  />
                   <div className="grid md:grid-cols-3 gap-2">
-                    <Input value={externalRepairVendor} onChange={(e) => setExternalRepairVendor(e.target.value)} placeholder="ชื่อร้าน/ผู้รับเคลม *" />
+                    <Input value={externalRepairVendor} onChange={(e) => { setExternalRepairVendor(e.target.value); setSelectedSupplierId(""); }} placeholder={supplierAutofill?.name ? `ค่าเริ่มต้น: ${supplierAutofill.name}` : "ชื่อร้าน/ผู้รับเคลม *"} />
                     <Input value={externalRepairContact} onChange={(e) => setExternalRepairContact(e.target.value)} placeholder="ชื่อผู้ติดต่อ" />
                     <Input value={externalRepairPhone} onChange={(e) => setExternalRepairPhone(e.target.value)} placeholder="เบอร์ติดต่อ" />
                   </div>
-                )}
+                </div>
 
                 {/* Purchase history */}
                 {purchaseInfo && (
