@@ -363,12 +363,15 @@ export function ToolList({ refreshKey, readOnly = false, showSummary = false }: 
                 <div className="flex gap-2 pt-1">
                   <ToolImageViewer toolId={tool.id} toolName={tool.name} variant="button" />
                   <Button variant="outline" size="sm" className="flex-1 gap-1" onClick={() => openTool(tool)}>
-                    <Pencil className="h-3.5 w-3.5" /> แก้ไข
+                    {readOnly ? <>ดูข้อมูล</> : <><Pencil className="h-3.5 w-3.5" /> แก้ไข</>}
                   </Button>
-                  <Button variant="outline" size="sm" className="gap-1 text-destructive border-destructive/50" onClick={() => setDeleteId(tool.id)}>
-                    <Trash2 className="h-3.5 w-3.5" /> ลบ
-                  </Button>
+                  {!readOnly && (
+                    <Button variant="outline" size="sm" className="gap-1 text-destructive border-destructive/50" onClick={() => setDeleteId(tool.id)}>
+                      <Trash2 className="h-3.5 w-3.5" /> ลบ
+                    </Button>
+                  )}
                 </div>
+
               </div>
             ))}
           </div>
