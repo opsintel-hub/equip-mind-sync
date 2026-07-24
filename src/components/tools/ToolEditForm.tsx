@@ -224,6 +224,9 @@ export function ToolEditForm({ tool, open, onOpenChange, onSuccess }: ToolEditFo
       await saveToolPMMatrix(tool.id, pmMatrix);
 
       toast.success("แก้ไขเครื่องมือสำเร็จ");
+      queryClient.invalidateQueries({ queryKey: ["tool-pm-tasks-calendar"] });
+      queryClient.invalidateQueries({ queryKey: ["tool-pm-summary"] });
+      queryClient.invalidateQueries({ queryKey: ["tool-pm-tasks"] });
       onOpenChange(false);
       onSuccess();
     } catch (error: any) {
