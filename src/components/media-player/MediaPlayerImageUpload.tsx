@@ -3,9 +3,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Upload, X, Image as ImageIcon, Loader2, Camera } from "lucide-react";
+import { Upload, X, Image as ImageIcon, Loader2, Camera, Star, GripVertical } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
+import { setPrimaryImage } from "@/hooks/usePrimaryImages";
+
 
 interface MediaPlayerImageUploadProps {
   mediaPlayerId: string;
@@ -19,6 +21,7 @@ interface MPImage {
   image_url: string;
   description: string | null;
   display_order: number | null;
+  is_primary?: boolean | null;
 }
 
 const MAX_IMAGES = 5;
@@ -29,6 +32,7 @@ export function MediaPlayerImageUpload({ mediaPlayerId, mediaPlayerCode, onClose
   const [previews, setPreviews] = useState<string[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [dragIndex, setDragIndex] = useState<number | null>(null);
 
   useEffect(() => {
     fetchImages();
@@ -40,6 +44,7 @@ export function MediaPlayerImageUpload({ mediaPlayerId, mediaPlayerCode, onClose
       .from("media_player_images" as any)
       .select("*")
       .eq("media_player_id", mediaPlayerId)
+      .order("is_primary", { ascending: false })
       .order("display_order", { ascending: true });
 
     if (!error && data) {
@@ -47,6 +52,38 @@ export function MediaPlayerImageUpload({ mediaPlayerId, mediaPlayerCode, onClose
     }
     setIsLoading(false);
   };
+
+  const handleSetPrimary = async (img: MPImage) => {
+    try {
+      await setPrimaryImage("media_player_images", "media_player_id", mediaPlayerId, img.id);
+      toast.success("ตั้งเป็นรูปหลักแล้ว");
+      await fetchImages();
+      onImagesChange?.();
+    } catch {
+      toast.error("ตั้งรูปหลักไม่สำเร็จ");
+    }
+  };
+
+  const handleReorder = async (from: number, to: number) => {
+    if (from === to || from < 0 || to < 0) return;
+    const next = [...existingImages];
+    const [moved] = next.splice(from, 1);
+    next.splice(to, 0, moved);
+    setExistingImages(next);
+    try {
+      await Promise.all(
+        next.map((img, idx) =>
+          supabase.from("media_player_images" as any).update({ display_order: idx }).eq("id", img.id)
+        )
+      );
+      onImagesChange?.();
+    } catch {
+      toast.error("จัดลำดับรูปไม่สำเร็จ");
+      fetchImages();
+    }
+  };
+
+
 
   const visibleExistingImages = existingImages.slice(0, MAX_IMAGES);
   const remainingSlots = Math.max(0, MAX_IMAGES - existingImages.length);
@@ -172,24 +209,47 @@ export function MediaPlayerImageUpload({ mediaPlayerId, mediaPlayerCode, onClose
         ) : existingImages.length > 0 ? (
           <div className="space-y-2">
             <Label>รูปภาพปัจจุบัน ({Math.min(existingImages.length, MAX_IMAGES)} / {MAX_IMAGES} รูป)</Label>
+            <p className="text-xs text-muted-foreground">ลากรูปเพื่อเรียงลำดับใหม่ • กด ⭐ เพื่อตั้งเป็นรูปหลักที่แสดงในตาราง</p>
             <div className="grid grid-cols-5 gap-2">
-              {visibleExistingImages.map((img) => (
-                <div key={img.id} className="relative group">
-                  <img
-                    src={img.image_url}
-                    alt="Media Player"
-                    className="w-full h-24 object-cover rounded-lg border"
-                  />
-                  <button
-                    onClick={() => handleDeleteExisting(img)}
-                    className="absolute top-1 right-1 p-1 bg-destructive rounded-full text-white opacity-0 group-hover:opacity-100 transition-opacity"
+              {visibleExistingImages.map((img, idx) => {
+                const isPrimary = !!img.is_primary || (!existingImages.some(i => i.is_primary) && idx === 0);
+                return (
+                  <div
+                    key={img.id}
+                    draggable
+                    onDragStart={() => setDragIndex(idx)}
+                    onDragOver={(e) => e.preventDefault()}
+                    onDrop={() => { if (dragIndex !== null) { handleReorder(dragIndex, idx); setDragIndex(null); } }}
+                    onDragEnd={() => setDragIndex(null)}
+                    className={`relative group cursor-move rounded-lg border-2 ${isPrimary ? "border-yellow-500" : "border-transparent"} ${dragIndex === idx ? "opacity-40" : ""}`}
+                    title="ลากเพื่อเรียงลำดับ"
                   >
-                    <X className="h-3 w-3" />
-                  </button>
-                </div>
-              ))}
+                    <img src={img.image_url} alt="Media Player" className="w-full h-24 object-cover rounded-md" />
+                    <div className="absolute top-1 left-1 p-0.5 bg-black/40 rounded text-white opacity-0 group-hover:opacity-100 transition-opacity">
+                      <GripVertical className="h-3 w-3" />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleSetPrimary(img)}
+                      className={`absolute bottom-1 left-1 p-1 rounded-full transition-opacity ${isPrimary ? "bg-yellow-500 text-white opacity-100" : "bg-black/50 text-white opacity-0 group-hover:opacity-100"}`}
+                      title={isPrimary ? "รูปหลัก" : "ตั้งเป็นรูปหลัก"}
+                    >
+                      <Star className={`h-3 w-3 ${isPrimary ? "fill-current" : ""}`} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteExisting(img)}
+                      className="absolute top-1 right-1 p-1 bg-destructive rounded-full text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                      title="ลบรูป"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                );
+              })}
             </div>
           </div>
+
         ) : (
           <p className="text-sm text-muted-foreground text-center py-2">ยังไม่มีรูปภาพ</p>
         )}

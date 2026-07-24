@@ -57,9 +57,15 @@ const Login = () => {
 
   useEffect(() => {
     if (user) {
-      navigate("/dashboard");
+      let target = "/dashboard";
+      try {
+        const last = localStorage.getItem("lastRoute");
+        if (last && last !== "/") target = last;
+      } catch { /* ignore */ }
+      navigate(target, { replace: true });
     }
   }, [user, navigate]);
+
 
   // Load templates + departments for signup form
   useEffect(() => {

@@ -81,8 +81,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (error) throw error;
       
       toast.success('เข้าสู่ระบบสำเร็จ');
-      navigate('/dashboard');
+      let target = '/dashboard';
+      try {
+        const last = localStorage.getItem('lastRoute');
+        if (last && last !== '/') target = last;
+      } catch { /* ignore */ }
+      navigate(target, { replace: true });
       return { error: null };
+
     } catch (error: any) {
       toast.error(error.message || 'เข้าสู่ระบบไม่สำเร็จ');
       return { error };
@@ -129,6 +135,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const signOut = async () => {
     try {
+      try { localStorage.removeItem('lastRoute'); } catch { /* ignore */ }
       await supabase.auth.signOut();
       toast.success('ออกจากระบบสำเร็จ');
       navigate('/');
@@ -136,6 +143,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       toast.error('ออกจากระบบไม่สำเร็จ');
     }
   };
+
 
   return (
     <AuthContext.Provider value={{ user, session, loading, signIn, signUp, signOut }}>
