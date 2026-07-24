@@ -21,6 +21,7 @@ interface MPImage {
   image_url: string;
   description: string | null;
   display_order: number | null;
+  is_primary?: boolean | null;
 }
 
 const MAX_IMAGES = 5;
@@ -31,6 +32,7 @@ export function MediaPlayerImageUpload({ mediaPlayerId, mediaPlayerCode, onClose
   const [previews, setPreviews] = useState<string[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [dragIndex, setDragIndex] = useState<number | null>(null);
 
   useEffect(() => {
     fetchImages();
@@ -42,7 +44,45 @@ export function MediaPlayerImageUpload({ mediaPlayerId, mediaPlayerCode, onClose
       .from("media_player_images" as any)
       .select("*")
       .eq("media_player_id", mediaPlayerId)
+      .order("is_primary", { ascending: false })
       .order("display_order", { ascending: true });
+
+    if (!error && data) {
+      setExistingImages(data as any);
+    }
+    setIsLoading(false);
+  };
+
+  const handleSetPrimary = async (img: MPImage) => {
+    try {
+      await setPrimaryImage("media_player_images", "media_player_id", mediaPlayerId, img.id);
+      toast.success("ตั้งเป็นรูปหลักแล้ว");
+      await fetchImages();
+      onImagesChange?.();
+    } catch {
+      toast.error("ตั้งรูปหลักไม่สำเร็จ");
+    }
+  };
+
+  const handleReorder = async (from: number, to: number) => {
+    if (from === to || from < 0 || to < 0) return;
+    const next = [...existingImages];
+    const [moved] = next.splice(from, 1);
+    next.splice(to, 0, moved);
+    setExistingImages(next);
+    try {
+      await Promise.all(
+        next.map((img, idx) =>
+          supabase.from("media_player_images" as any).update({ display_order: idx }).eq("id", img.id)
+        )
+      );
+      onImagesChange?.();
+    } catch {
+      toast.error("จัดลำดับรูปไม่สำเร็จ");
+      fetchImages();
+    }
+  };
+
 
     if (!error && data) {
       setExistingImages(data as any);
