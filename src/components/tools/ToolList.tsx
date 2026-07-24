@@ -66,9 +66,11 @@ interface Tool {
 
 interface ToolListProps {
   refreshKey?: number;
+  readOnly?: boolean;
+  showSummary?: boolean;
 }
 
-export function ToolList({ refreshKey }: ToolListProps) {
+export function ToolList({ refreshKey, readOnly = false, showSummary = false }: ToolListProps) {
   const [tools, setTools] = useState<Tool[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -81,7 +83,9 @@ export function ToolList({ refreshKey }: ToolListProps) {
   const [viewMode, setViewMode] = useViewMode("tools", "table");
 
   const [editTool, setEditTool] = useState<Tool | null>(null);
+  const [viewTool, setViewTool] = useState<Tool | null>(null);
   const { isSuperAdmin, viewableDepts, deptKey } = useDeptScope();
+
 
   useEffect(() => {
     fetchTools();
