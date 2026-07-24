@@ -462,7 +462,7 @@ export function ToolList({ refreshKey, readOnly = false, showSummary = false }: 
         </AlertDialogContent>
       </AlertDialog>
 
-      {editTool && (
+      {editTool && !readOnly && (
         <ToolEditForm
           tool={editTool}
           open={!!editTool}
@@ -470,6 +470,15 @@ export function ToolList({ refreshKey, readOnly = false, showSummary = false }: 
           onSuccess={() => { setEditTool(null); fetchTools(); }}
         />
       )}
+
+      {viewTool && (
+        <ToolDetailDialog
+          tool={viewTool}
+          open={!!viewTool}
+          onOpenChange={(open) => { if (!open) setViewTool(null); }}
+        />
+      )}
+
     </div>
   );
 }
