@@ -135,6 +135,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const signOut = async () => {
     try {
+      try { localStorage.removeItem('lastRoute'); } catch { /* ignore */ }
       await supabase.auth.signOut();
       toast.success('ออกจากระบบสำเร็จ');
       navigate('/');
@@ -142,6 +143,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       toast.error('ออกจากระบบไม่สำเร็จ');
     }
   };
+
 
   return (
     <AuthContext.Provider value={{ user, session, loading, signIn, signUp, signOut }}>
