@@ -170,12 +170,26 @@ export function EntityCalendarView({ items, onItemClick, title, kindStyles }: Pr
         })}
       </div>
 
+      {kindStyles && Object.keys(kindStyles).length > 0 && (
+        <div className="flex flex-wrap gap-3 text-xs">
+          <span className="text-muted-foreground font-medium">ประเภท:</span>
+          {Object.entries(kindStyles).map(([k, s]) => (
+            <div key={k} className={cn("flex items-center gap-1.5 px-2 py-0.5 rounded border", s.pill)}>
+              <div className={cn("w-2.5 h-2.5 rounded-full", s.dot)} />
+              <span>{s.label}</span>
+            </div>
+          ))}
+        </div>
+      )}
+
       <div className="flex flex-wrap gap-4 text-xs text-muted-foreground">
+        <span className="font-medium">ความเร่งด่วน (จุดในช่อง):</span>
         <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-red-500" />เลยกำหนด</div>
         <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-orange-500" />ภายใน 14 วัน</div>
         <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-yellow-500" />ภายใน 30 วัน</div>
         <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-slate-400" />อนาคต</div>
       </div>
+
 
       <Dialog open={!!dayDialogDate} onOpenChange={(o) => !o && setDayDialogDate(null)}>
         <DialogContent className="max-w-lg">
