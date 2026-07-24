@@ -1,3 +1,5 @@
+import { useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "./AppSidebar";
 import { NotificationCenter } from "./NotificationCenter";
@@ -12,6 +14,16 @@ interface DashboardLayoutProps {
 
 const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   const initialWidth = `${getStoredSidebarWidthRem()}rem`;
+  const location = useLocation();
+
+  // จำหน้าล่าสุดที่เปิดอยู่ เพื่อให้กลับมาที่หน้าเดิมหลังกด Refresh หรือ Login ใหม่
+  useEffect(() => {
+    const path = `${location.pathname}${location.search}`;
+    if (location.pathname && location.pathname !== "/") {
+      try { localStorage.setItem("lastRoute", path); } catch { /* ignore */ }
+    }
+  }, [location.pathname, location.search]);
+
   return (
     <SidebarProvider style={{ "--sidebar-width": initialWidth } as React.CSSProperties}>
       <div className="flex min-h-screen w-full bg-background">
