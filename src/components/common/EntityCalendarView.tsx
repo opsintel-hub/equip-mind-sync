@@ -59,7 +59,7 @@ const bucketPill: Record<Bucket, string> = {
 };
 
 
-export function EntityCalendarView({ items, onItemClick, title }: Props) {
+export function EntityCalendarView({ items, onItemClick, title, kindStyles }: Props) {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [dayDialogDate, setDayDialogDate] = useState<string | null>(null);
 
