@@ -323,13 +323,13 @@ export function ToolList({ refreshKey, readOnly = false, showSummary = false }: 
       ) : viewMode === "calendar" ? (
         <ToolCalendarBlock tools={filteredTools} onOpenTool={(id) => {
           const t = filteredTools.find(x => x.id === id);
-          if (t) setEditTool(t);
+          if (t) openTool(t);
         }} />
       ) : viewMode === "card" ? (
         <>
           <ToolCardBlock tools={paginatedTools} onOpenTool={(id) => {
             const t = paginatedTools.find(x => x.id === id);
-            if (t) setEditTool(t);
+            if (t) openTool(t);
           }} />
           <TablePagination currentPage={currentPage} totalPages={totalPages} totalItems={totalItems} pageSize={pageSize} onPageChange={handlePageChange} onPageSizeChange={handlePageSizeChange} />
         </>
@@ -362,7 +362,7 @@ export function ToolList({ refreshKey, readOnly = false, showSummary = false }: 
                 </div>
                 <div className="flex gap-2 pt-1">
                   <ToolImageViewer toolId={tool.id} toolName={tool.name} variant="button" />
-                  <Button variant="outline" size="sm" className="flex-1 gap-1" onClick={() => setEditTool(tool)}>
+                  <Button variant="outline" size="sm" className="flex-1 gap-1" onClick={() => openTool(tool)}>
                     <Pencil className="h-3.5 w-3.5" /> แก้ไข
                   </Button>
                   <Button variant="outline" size="sm" className="gap-1 text-destructive border-destructive/50" onClick={() => setDeleteId(tool.id)}>
@@ -426,7 +426,7 @@ export function ToolList({ refreshKey, readOnly = false, showSummary = false }: 
                     <TableCell className="text-center">
                       <div className="flex justify-center gap-1">
                         <ToolDocumentViewer toolId={tool.id} toolCode={tool.code} toolName={tool.name} />
-                        <Button variant="ghost" size="icon" title="แก้ไข" onClick={() => setEditTool(tool)}>
+                        <Button variant="ghost" size="icon" title="แก้ไข" onClick={() => openTool(tool)}>
                           <Pencil className="h-4 w-4" />
                         </Button>
                         <Button variant="ghost" size="icon" title="ลบ" onClick={() => setDeleteId(tool.id)}>
