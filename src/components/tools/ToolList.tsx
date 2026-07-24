@@ -304,8 +304,13 @@ export function ToolList({ refreshKey, readOnly = false, showSummary = false }: 
         </div>
       </div>
 
+      {showSummary && (
+        <ToolSummaryCards tools={filteredTools} />
+      )}
 
       <p className="text-sm text-muted-foreground">พบ {filteredTools.length} รายการ</p>
+
+
 
       {isLoading ? (
         <div className="text-center py-8 text-muted-foreground">กำลังโหลด...</div>
