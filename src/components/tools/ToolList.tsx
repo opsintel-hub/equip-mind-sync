@@ -13,12 +13,13 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { RefreshCw, Search, Trash2, Pencil, Download } from "lucide-react";
+import { RefreshCw, Search, Trash2, Pencil, Download, Wrench, Package, Shield, AlertTriangle, Users } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { useTablePagination } from "@/hooks/useTablePagination";
 import { TablePagination } from "@/components/TablePagination";
 import { ToolEditForm } from "./ToolEditForm";
+import { ToolDetailDialog } from "./ToolDetailDialog";
 import { ToolImageViewer } from "./ToolImageViewer";
 import { ToolDocumentViewer } from "./ToolDocumentViewer";
 import * as XLSX from "xlsx";
@@ -27,6 +28,8 @@ import { ViewModeToggle, useViewMode } from "@/components/common/ViewModeToggle"
 import { EntityCardGrid } from "@/components/common/EntityCardGrid";
 import { EntityCalendarView } from "@/components/common/EntityCalendarView";
 import { usePrimaryImages } from "@/hooks/usePrimaryImages";
+import { Card, CardContent } from "@/components/ui/card";
+
 
 interface Tool {
   id: string;
@@ -63,9 +66,11 @@ interface Tool {
 
 interface ToolListProps {
   refreshKey?: number;
+  readOnly?: boolean;
+  showSummary?: boolean;
 }
 
-export function ToolList({ refreshKey }: ToolListProps) {
+export function ToolList({ refreshKey, readOnly = false, showSummary = false }: ToolListProps) {
   const [tools, setTools] = useState<Tool[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -78,7 +83,10 @@ export function ToolList({ refreshKey }: ToolListProps) {
   const [viewMode, setViewMode] = useViewMode("tools", "table");
 
   const [editTool, setEditTool] = useState<Tool | null>(null);
+  const [viewTool, setViewTool] = useState<Tool | null>(null);
+  const openTool = (t: Tool) => (readOnly ? setViewTool(t) : setEditTool(t));
   const { isSuperAdmin, viewableDepts, deptKey } = useDeptScope();
+
 
   useEffect(() => {
     fetchTools();
@@ -296,8 +304,13 @@ export function ToolList({ refreshKey }: ToolListProps) {
         </div>
       </div>
 
+      {showSummary && (
+        <ToolSummaryCards tools={filteredTools} />
+      )}
 
       <p className="text-sm text-muted-foreground">พบ {filteredTools.length} รายการ</p>
+
+
 
       {isLoading ? (
         <div className="text-center py-8 text-muted-foreground">กำลังโหลด...</div>
@@ -310,13 +323,13 @@ export function ToolList({ refreshKey }: ToolListProps) {
       ) : viewMode === "calendar" ? (
         <ToolCalendarBlock tools={filteredTools} onOpenTool={(id) => {
           const t = filteredTools.find(x => x.id === id);
-          if (t) setEditTool(t);
+          if (t) openTool(t);
         }} />
       ) : viewMode === "card" ? (
         <>
           <ToolCardBlock tools={paginatedTools} onOpenTool={(id) => {
             const t = paginatedTools.find(x => x.id === id);
-            if (t) setEditTool(t);
+            if (t) openTool(t);
           }} />
           <TablePagination currentPage={currentPage} totalPages={totalPages} totalItems={totalItems} pageSize={pageSize} onPageChange={handlePageChange} onPageSizeChange={handlePageSizeChange} />
         </>
@@ -349,13 +362,16 @@ export function ToolList({ refreshKey }: ToolListProps) {
                 </div>
                 <div className="flex gap-2 pt-1">
                   <ToolImageViewer toolId={tool.id} toolName={tool.name} variant="button" />
-                  <Button variant="outline" size="sm" className="flex-1 gap-1" onClick={() => setEditTool(tool)}>
-                    <Pencil className="h-3.5 w-3.5" /> แก้ไข
+                  <Button variant="outline" size="sm" className="flex-1 gap-1" onClick={() => openTool(tool)}>
+                    {readOnly ? <>ดูข้อมูล</> : <><Pencil className="h-3.5 w-3.5" /> แก้ไข</>}
                   </Button>
-                  <Button variant="outline" size="sm" className="gap-1 text-destructive border-destructive/50" onClick={() => setDeleteId(tool.id)}>
-                    <Trash2 className="h-3.5 w-3.5" /> ลบ
-                  </Button>
+                  {!readOnly && (
+                    <Button variant="outline" size="sm" className="gap-1 text-destructive border-destructive/50" onClick={() => setDeleteId(tool.id)}>
+                      <Trash2 className="h-3.5 w-3.5" /> ลบ
+                    </Button>
+                  )}
                 </div>
+
               </div>
             ))}
           </div>
@@ -413,14 +429,17 @@ export function ToolList({ refreshKey }: ToolListProps) {
                     <TableCell className="text-center">
                       <div className="flex justify-center gap-1">
                         <ToolDocumentViewer toolId={tool.id} toolCode={tool.code} toolName={tool.name} />
-                        <Button variant="ghost" size="icon" title="แก้ไข" onClick={() => setEditTool(tool)}>
-                          <Pencil className="h-4 w-4" />
+                        <Button variant="ghost" size="icon" title={readOnly ? "ดูข้อมูล" : "แก้ไข"} onClick={() => openTool(tool)}>
+                          {readOnly ? <Search className="h-4 w-4" /> : <Pencil className="h-4 w-4" />}
                         </Button>
-                        <Button variant="ghost" size="icon" title="ลบ" onClick={() => setDeleteId(tool.id)}>
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
+                        {!readOnly && (
+                          <Button variant="ghost" size="icon" title="ลบ" onClick={() => setDeleteId(tool.id)}>
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        )}
                       </div>
                     </TableCell>
+
                   </TableRow>
                 ))}
               </TableBody>
@@ -443,7 +462,7 @@ export function ToolList({ refreshKey }: ToolListProps) {
         </AlertDialogContent>
       </AlertDialog>
 
-      {editTool && (
+      {editTool && !readOnly && (
         <ToolEditForm
           tool={editTool}
           open={!!editTool}
@@ -451,6 +470,15 @@ export function ToolList({ refreshKey }: ToolListProps) {
           onSuccess={() => { setEditTool(null); fetchTools(); }}
         />
       )}
+
+      {viewTool && (
+        <ToolDetailDialog
+          tool={viewTool}
+          open={!!viewTool}
+          onOpenChange={(open) => { if (!open) setViewTool(null); }}
+        />
+      )}
+
     </div>
   );
 }
@@ -483,4 +511,44 @@ function ToolCalendarBlock({ tools, onOpenTool }: { tools: Tool[]; onOpenTool: (
       subtitle: t.department || undefined,
     }));
   return <EntityCalendarView items={items} onItemClick={onOpenTool} title="หมดประกันเครื่องมือ" />;
+}
+
+function ToolSummaryCards({ tools }: { tools: Tool[] }) {
+  const total = tools.length;
+  const totalUnits = tools.reduce((a, t) => a + (t.current_quantity || 0), 0);
+  const withWarranty = tools.filter((t) => t.has_warranty).length;
+  const assets = tools.filter((t) => t.is_asset).length;
+  const personal = tools.filter((t) => t.is_personal_tool).length;
+  const totalValue = tools.reduce((a, t) => a + (t.unit_price || 0) * (t.current_quantity || 0), 0);
+
+  const cards = [
+    { label: "รายการเครื่องมือ", value: total.toLocaleString(), unit: "รายการ", icon: Wrench, color: "text-primary", bg: "bg-primary/10" },
+    { label: "จำนวนรวม (ทุกหน่วย)", value: totalUnits.toLocaleString(), unit: "ชิ้น/ตัว/เครื่อง", icon: Package, color: "text-chart-4", bg: "bg-chart-4/10" },
+    { label: "มีประกัน", value: withWarranty.toLocaleString(), unit: "รายการ", icon: Shield, color: "text-success", bg: "bg-success/10" },
+    { label: "ทรัพย์สินบริษัท", value: assets.toLocaleString(), unit: "รายการ", icon: AlertTriangle, color: "text-warning", bg: "bg-warning/10" },
+    { label: "ประจำตัวช่าง", value: personal.toLocaleString(), unit: "รายการ", icon: Users, color: "text-chart-5", bg: "bg-chart-5/10" },
+    { label: "มูลค่ารวม", value: totalValue.toLocaleString(undefined, { maximumFractionDigits: 0 }), unit: "บาท", icon: Package, color: "text-chart-2", bg: "bg-chart-2/10" },
+  ];
+
+  return (
+    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+      {cards.map((s) => (
+        <Card key={s.label} className="border-0 shadow-sm">
+          <CardContent className="p-3">
+            <div className="flex items-center gap-2">
+              <div className={`w-9 h-9 rounded-lg ${s.bg} flex items-center justify-center flex-shrink-0`}>
+                <s.icon className={`w-4 h-4 ${s.color}`} />
+              </div>
+              <div className="min-w-0">
+                <p className="text-lg sm:text-xl font-bold text-foreground leading-tight truncate">{s.value}</p>
+                <p className="text-[11px] text-muted-foreground truncate">
+                  {s.label} <span className="opacity-70">({s.unit})</span>
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      ))}
+    </div>
+  );
 }
