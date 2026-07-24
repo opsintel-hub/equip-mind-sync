@@ -1,65 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Wrench, Package, AlertTriangle, Shield, Users } from "lucide-react";
+import { Wrench } from "lucide-react";
 import { ToolList } from "@/components/tools/ToolList";
-import { supabase } from "@/integrations/supabase/client";
-import { useDeptScope } from "@/hooks/useDeptScope";
 
 const ToolManagement = () => {
-  const [refreshKey, setRefreshKey] = useState(0);
-  const [stats, setStats] = useState({
-    total: 0,
-    categories: 0,
-    withWarranty: 0,
-    personalTools: 0,
-    assets: 0,
-  });
-  const { isSuperAdmin, viewableDepts, deptKey } = useDeptScope();
-
-  const handleSuccess = () => {
-    setRefreshKey((prev) => prev + 1);
-  };
-
-  useEffect(() => {
-    fetchStats();
-  }, [refreshKey, deptKey]);
-
-  const scopeDepts = isSuperAdmin
-    ? null
-    : ((viewableDepts && viewableDepts.length > 0) ? viewableDepts : ["__no_dept_permission__"]);
-
-  const fetchStats = async () => {
-    const base = () => {
-      let q = supabase.from("tools").select("id", { count: "exact" }).eq("is_active", true);
-      if (scopeDepts) q = q.in("department", scopeDepts);
-      return q;
-    };
-    const [totalRes, warrantyRes, personalRes, assetRes] = await Promise.all([
-      base(),
-      base().eq("has_warranty", true),
-      base().eq("is_personal_tool", true),
-      base().eq("is_asset", true),
-    ]);
-
-    // Count categories (not dept-scoped)
-    const { data: catData } = await supabase.from("tool_categories").select("id", { count: "exact" }).eq("is_active", true);
-
-    setStats({
-      total: totalRes.count || 0,
-      categories: catData?.length || 0,
-      withWarranty: warrantyRes.count || 0,
-      personalTools: personalRes.count || 0,
-      assets: assetRes.count || 0,
-    });
-  };
-
-  const summaryCards = [
-    { label: "เครื่องมือทั้งหมด", value: stats.total, icon: Wrench, color: "text-primary", bg: "bg-primary/10" },
-    { label: "หมวดหมู่", value: stats.categories, icon: Package, color: "text-chart-4", bg: "bg-chart-4/10" },
-    { label: "มีประกัน", value: stats.withWarranty, icon: Shield, color: "text-success", bg: "bg-success/10" },
-    { label: "ทรัพย์สิน", value: stats.assets, icon: AlertTriangle, color: "text-warning", bg: "bg-warning/10" },
-    { label: "ประจำตัวช่าง", value: stats.personalTools, icon: Users, color: "text-chart-5", bg: "bg-chart-5/10" },
-  ];
+  const [refreshKey] = useState(0);
 
   return (
     <div className="space-y-6">
@@ -67,32 +12,14 @@ const ToolManagement = () => {
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold flex items-center gap-3">
             <Wrench className="h-7 w-7 sm:h-8 sm:w-8" />
-            จัดการเครื่องมือ
+            ข้อมูลเครื่องมือ
           </h1>
           <p className="text-muted-foreground mt-1 text-sm">
-            ฐานข้อมูลเครื่องมือทั้งหมดในระบบ — สำหรับ <strong>เพิ่ม/นำเข้าเครื่องมือ</strong> ต้องเป็น Admin เท่านั้น ไปที่{" "}
+            มุมมองอ่านอย่างเดียว — กดที่รายการเพื่อดูข้อมูล/ดาวน์โหลดรูปภาพและเอกสาร ·{" "}
+            <strong>สำหรับเพิ่ม/แก้ไข/ลบ</strong> ต้องไปที่{" "}
             <strong>ข้อมูลหลัก → เครื่องมือ → รายการเครื่องมือ</strong>
           </p>
         </div>
-      </div>
-
-      {/* Summary Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
-        {summaryCards.map((s) => (
-          <Card key={s.label} className="border-0 shadow-sm">
-            <CardContent className="p-3 sm:p-5">
-              <div className="flex items-center gap-2 sm:gap-3">
-                <div className={`w-9 h-9 sm:w-10 sm:h-10 rounded-lg ${s.bg} flex items-center justify-center flex-shrink-0`}>
-                  <s.icon className={`w-4 h-4 sm:w-5 sm:h-5 ${s.color}`} />
-                </div>
-                <div className="min-w-0">
-                  <p className="text-xl sm:text-2xl font-bold text-foreground">{s.value}</p>
-                  <p className="text-xs text-muted-foreground truncate">{s.label}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
       </div>
 
       <Card>
@@ -100,16 +27,16 @@ const ToolManagement = () => {
           <div>
             <CardTitle className="text-base sm:text-lg">รายการเครื่องมือ</CardTitle>
             <CardDescription className="text-xs sm:text-sm">
-              จัดการเครื่องมือทั้งหมด พร้อมตั้งค่าการ PM ประจำ
+              สรุปยอดจะปรับตามตัวกรองด้านล่าง
             </CardDescription>
             <p className="text-xs text-muted-foreground mt-1 bg-muted/50 p-2 rounded">
-              💡 <strong>หมายเหตุ:</strong> เครื่องมือที่มีการตั้งค่า "ระยะเวลาที่ต้อง PM" 
+              💡 <strong>หมายเหตุ:</strong> เครื่องมือที่มีการตั้งค่า "ระยะเวลาที่ต้อง PM"
               ระบบจะสร้างงาน PM ให้อัตโนมัติตามรอบที่กำหนด
             </p>
           </div>
         </CardHeader>
         <CardContent className="px-4 sm:px-6">
-          <ToolList refreshKey={refreshKey} />
+          <ToolList refreshKey={refreshKey} readOnly showSummary />
         </CardContent>
       </Card>
     </div>
