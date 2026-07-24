@@ -429,14 +429,17 @@ export function ToolList({ refreshKey, readOnly = false, showSummary = false }: 
                     <TableCell className="text-center">
                       <div className="flex justify-center gap-1">
                         <ToolDocumentViewer toolId={tool.id} toolCode={tool.code} toolName={tool.name} />
-                        <Button variant="ghost" size="icon" title="แก้ไข" onClick={() => openTool(tool)}>
-                          <Pencil className="h-4 w-4" />
+                        <Button variant="ghost" size="icon" title={readOnly ? "ดูข้อมูล" : "แก้ไข"} onClick={() => openTool(tool)}>
+                          {readOnly ? <Search className="h-4 w-4" /> : <Pencil className="h-4 w-4" />}
                         </Button>
-                        <Button variant="ghost" size="icon" title="ลบ" onClick={() => setDeleteId(tool.id)}>
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
+                        {!readOnly && (
+                          <Button variant="ghost" size="icon" title="ลบ" onClick={() => setDeleteId(tool.id)}>
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        )}
                       </div>
                     </TableCell>
+
                   </TableRow>
                 ))}
               </TableBody>
