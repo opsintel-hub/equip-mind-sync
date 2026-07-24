@@ -512,3 +512,43 @@ function ToolCalendarBlock({ tools, onOpenTool }: { tools: Tool[]; onOpenTool: (
     }));
   return <EntityCalendarView items={items} onItemClick={onOpenTool} title="หมดประกันเครื่องมือ" />;
 }
+
+function ToolSummaryCards({ tools }: { tools: Tool[] }) {
+  const total = tools.length;
+  const totalUnits = tools.reduce((a, t) => a + (t.current_quantity || 0), 0);
+  const withWarranty = tools.filter((t) => t.has_warranty).length;
+  const assets = tools.filter((t) => t.is_asset).length;
+  const personal = tools.filter((t) => t.is_personal_tool).length;
+  const totalValue = tools.reduce((a, t) => a + (t.unit_price || 0) * (t.current_quantity || 0), 0);
+
+  const cards = [
+    { label: "รายการเครื่องมือ", value: total.toLocaleString(), unit: "รายการ", icon: Wrench, color: "text-primary", bg: "bg-primary/10" },
+    { label: "จำนวนรวม (ทุกหน่วย)", value: totalUnits.toLocaleString(), unit: "ชิ้น/ตัว/เครื่อง", icon: Package, color: "text-chart-4", bg: "bg-chart-4/10" },
+    { label: "มีประกัน", value: withWarranty.toLocaleString(), unit: "รายการ", icon: Shield, color: "text-success", bg: "bg-success/10" },
+    { label: "ทรัพย์สินบริษัท", value: assets.toLocaleString(), unit: "รายการ", icon: AlertTriangle, color: "text-warning", bg: "bg-warning/10" },
+    { label: "ประจำตัวช่าง", value: personal.toLocaleString(), unit: "รายการ", icon: Users, color: "text-chart-5", bg: "bg-chart-5/10" },
+    { label: "มูลค่ารวม", value: totalValue.toLocaleString(undefined, { maximumFractionDigits: 0 }), unit: "บาท", icon: Package, color: "text-chart-2", bg: "bg-chart-2/10" },
+  ];
+
+  return (
+    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+      {cards.map((s) => (
+        <Card key={s.label} className="border-0 shadow-sm">
+          <CardContent className="p-3">
+            <div className="flex items-center gap-2">
+              <div className={`w-9 h-9 rounded-lg ${s.bg} flex items-center justify-center flex-shrink-0`}>
+                <s.icon className={`w-4 h-4 ${s.color}`} />
+              </div>
+              <div className="min-w-0">
+                <p className="text-lg sm:text-xl font-bold text-foreground leading-tight truncate">{s.value}</p>
+                <p className="text-[11px] text-muted-foreground truncate">
+                  {s.label} <span className="opacity-70">({s.unit})</span>
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      ))}
+    </div>
+  );
+}
