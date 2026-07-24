@@ -13,12 +13,13 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { RefreshCw, Search, Trash2, Pencil, Download } from "lucide-react";
+import { RefreshCw, Search, Trash2, Pencil, Download, Wrench, Package, Shield, AlertTriangle, Users } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { useTablePagination } from "@/hooks/useTablePagination";
 import { TablePagination } from "@/components/TablePagination";
 import { ToolEditForm } from "./ToolEditForm";
+import { ToolDetailDialog } from "./ToolDetailDialog";
 import { ToolImageViewer } from "./ToolImageViewer";
 import { ToolDocumentViewer } from "./ToolDocumentViewer";
 import * as XLSX from "xlsx";
@@ -27,6 +28,8 @@ import { ViewModeToggle, useViewMode } from "@/components/common/ViewModeToggle"
 import { EntityCardGrid } from "@/components/common/EntityCardGrid";
 import { EntityCalendarView } from "@/components/common/EntityCalendarView";
 import { usePrimaryImages } from "@/hooks/usePrimaryImages";
+import { Card, CardContent } from "@/components/ui/card";
+
 
 interface Tool {
   id: string;
