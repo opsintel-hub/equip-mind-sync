@@ -202,6 +202,7 @@ export function EntityCalendarView({ items, onItemClick, title, kindStyles }: Pr
           <div className="space-y-2 max-h-[60vh] overflow-y-auto">
             {openItems.map((it) => {
               const b = bucketOf(it.date);
+              const kStyle = it.kind && kindStyles?.[it.kind];
               return (
                 <button
                   key={it.id}
@@ -209,15 +210,19 @@ export function EntityCalendarView({ items, onItemClick, title, kindStyles }: Pr
                   className={cn(
                     "w-full text-left border rounded-lg px-3 py-2 transition-colors",
                     onItemClick && "hover:bg-accent cursor-pointer",
-                    bucketPill[b],
+                    kStyle ? kStyle.pill : bucketPill[b],
                   )}
                 >
-                  <div className="font-medium text-sm">{it.title}</div>
+                  <div className="flex items-center gap-2">
+                    {kStyle && <div className={cn("w-2 h-2 rounded-full", kStyle.dot)} />}
+                    <div className="font-medium text-sm">{it.title}</div>
+                  </div>
                   {it.subtitle && <div className="text-xs opacity-80">{it.subtitle}</div>}
                 </button>
               );
             })}
           </div>
+
         </DialogContent>
       </Dialog>
     </div>
