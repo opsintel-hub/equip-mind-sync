@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -88,6 +89,7 @@ interface ToolEditFormProps {
 
 export function ToolEditForm({ tool, open, onOpenChange, onSuccess }: ToolEditFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const queryClient = useQueryClient();
   const [warehouseId, setWarehouseId] = useState("");
   const [images, setImages] = useState<ToolImageItem[]>([]);
   const [pmMatrix, setPmMatrix] = useState<PMMatrixRow[]>([]);
@@ -222,6 +224,9 @@ export function ToolEditForm({ tool, open, onOpenChange, onSuccess }: ToolEditFo
       await saveToolPMMatrix(tool.id, pmMatrix);
 
       toast.success("แก้ไขเครื่องมือสำเร็จ");
+      queryClient.invalidateQueries({ queryKey: ["tool-pm-tasks-calendar"] });
+      queryClient.invalidateQueries({ queryKey: ["tool-pm-summary"] });
+      queryClient.invalidateQueries({ queryKey: ["tool-pm-tasks"] });
       onOpenChange(false);
       onSuccess();
     } catch (error: any) {

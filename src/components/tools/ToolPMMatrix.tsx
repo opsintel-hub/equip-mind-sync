@@ -142,5 +142,44 @@ export async function saveToolPMMatrix(toolId: string, rows: PMMatrixRow[]) {
         interval_days: r.interval_days,
       }))
     );
+
+    // Sync legacy tools.pm_interval_days = smallest interval so lists/tasks reflect matrix
+    const minInterval = Math.max(
+      1,
+      Math.min(...rows.map((r) => r.interval_days || 30))
+    );
+    await supabase
+      .from("tools")
+      .update({ pm_interval_days: minInterval })
+      .eq("id", toolId);
+
+    // Ensure at least one pending/in_progress task exists so the calendar shows PM
+    const { data: activeTasks } = await supabase
+      .from("tool_pm_tasks")
+      .select("id, due_date, status")
+      .eq("tool_id", toolId)
+      .in("status", ["pending", "in_progress"]);
+
+    const today = new Date();
+    const due = new Date(today);
+    due.setDate(due.getDate() + minInterval);
+    const dueStr = due.toISOString().split("T")[0];
+
+    if (!activeTasks || activeTasks.length === 0) {
+      await supabase.from("tool_pm_tasks").insert({
+        tool_id: toolId,
+        due_date: dueStr,
+        status: "pending",
+      });
+    } else {
+      // Re-align the earliest active task's due date to the new interval
+      const earliest = [...activeTasks].sort(
+        (a: any, b: any) => new Date(a.due_date).getTime() - new Date(b.due_date).getTime()
+      )[0];
+      await supabase
+        .from("tool_pm_tasks")
+        .update({ due_date: dueStr })
+        .eq("id", earliest.id);
+    }
   }
 }
