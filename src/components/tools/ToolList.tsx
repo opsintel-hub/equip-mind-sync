@@ -26,9 +26,12 @@ import * as XLSX from "xlsx";
 import { useDeptScope } from "@/hooks/useDeptScope";
 import { ViewModeToggle, useViewMode } from "@/components/common/ViewModeToggle";
 import { EntityCardGrid } from "@/components/common/EntityCardGrid";
-import { EntityCalendarView } from "@/components/common/EntityCalendarView";
+import { EntityCalendarView, type CalendarItem } from "@/components/common/EntityCalendarView";
 import { usePrimaryImages } from "@/hooks/usePrimaryImages";
 import { Card, CardContent } from "@/components/ui/card";
+import { useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+
 
 
 interface Tool {
