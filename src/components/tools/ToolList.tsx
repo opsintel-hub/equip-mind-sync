@@ -84,6 +84,7 @@ export function ToolList({ refreshKey, readOnly = false, showSummary = false }: 
 
   const [editTool, setEditTool] = useState<Tool | null>(null);
   const [viewTool, setViewTool] = useState<Tool | null>(null);
+  const openTool = (t: Tool) => (readOnly ? setViewTool(t) : setEditTool(t));
   const { isSuperAdmin, viewableDepts, deptKey } = useDeptScope();
 
 
