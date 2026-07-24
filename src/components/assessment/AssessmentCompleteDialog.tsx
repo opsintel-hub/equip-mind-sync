@@ -128,6 +128,21 @@ export function AssessmentCompleteDialog({ open, onOpenChange, log, onCompleted 
   const [defectiveAckReason, setDefectiveAckReason] = useState("");
   const [assessmentResultName, setAssessmentResultName] = useState<string>("");
   const [docPreview, setDocPreview] = useState<{ url: string; title: string } | null>(null);
+  const [suppliers, setSuppliers] = useState<Array<{ id: string; code: string; name: string; contact_person: string | null; phone: string | null }>>([]);
+  const [selectedSupplierId, setSelectedSupplierId] = useState<string>("");
+
+  // Load suppliers list for claim vendor dropdown
+  useEffect(() => {
+    if (!open) return;
+    (async () => {
+      const { data } = await supabase
+        .from("suppliers")
+        .select("id, code, name, contact_person, phone")
+        .eq("is_active", true)
+        .order("name");
+      setSuppliers((data as any) || []);
+    })();
+  }, [open]);
 
   // Fetch the name of the selected assessment result + derive outcome automatically
   useEffect(() => {
