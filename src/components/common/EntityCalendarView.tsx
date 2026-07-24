@@ -131,18 +131,21 @@ export function EntityCalendarView({ items, onItemClick, title, kindStyles }: Pr
               {dayItems.length > 0 && (
                 <>
                   <div className="space-y-0.5">
-                    {dayItems.slice(0, 2).map((it) => (
-                      <div
-                        key={it.id}
-                        className={cn(
-                          "px-1 py-0.5 rounded text-[10px] leading-tight truncate border",
-                          bucketPill[bucketOf(it.date)],
-                        )}
-                        title={it.title}
-                      >
-                        {it.title}
-                      </div>
-                    ))}
+                    {dayItems.slice(0, 2).map((it) => {
+                      const kStyle = it.kind && kindStyles?.[it.kind];
+                      return (
+                        <div
+                          key={it.id}
+                          className={cn(
+                            "px-1 py-0.5 rounded text-[10px] leading-tight truncate border",
+                            kStyle ? kStyle.pill : bucketPill[bucketOf(it.date)],
+                          )}
+                          title={it.title}
+                        >
+                          {it.title}
+                        </div>
+                      );
+                    })}
                     {dayItems.length > 2 && (
                       <div className="text-[10px] text-muted-foreground pl-1">
                         +{dayItems.length - 2} รายการ
@@ -161,6 +164,7 @@ export function EntityCalendarView({ items, onItemClick, title, kindStyles }: Pr
                   </div>
                 </>
               )}
+
             </div>
           );
         })}
