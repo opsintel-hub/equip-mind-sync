@@ -26,9 +26,12 @@ import * as XLSX from "xlsx";
 import { useDeptScope } from "@/hooks/useDeptScope";
 import { ViewModeToggle, useViewMode } from "@/components/common/ViewModeToggle";
 import { EntityCardGrid } from "@/components/common/EntityCardGrid";
-import { EntityCalendarView } from "@/components/common/EntityCalendarView";
+import { EntityCalendarView, type CalendarItem } from "@/components/common/EntityCalendarView";
 import { usePrimaryImages } from "@/hooks/usePrimaryImages";
 import { Card, CardContent } from "@/components/ui/card";
+import { useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+
 
 
 interface Tool {
@@ -502,16 +505,93 @@ function ToolCardBlock({ tools, onOpenTool }: { tools: Tool[]; onOpenTool: (id: 
 }
 
 function ToolCalendarBlock({ tools, onOpenTool }: { tools: Tool[]; onOpenTool: (id: string) => void }) {
-  const items = tools
-    .filter((t) => !!t.warranty_expiry_date)
-    .map((t) => ({
-      id: t.id,
-      date: String(t.warranty_expiry_date),
-      title: `${t.code} - ${t.name}`,
-      subtitle: t.department || undefined,
-    }));
-  return <EntityCalendarView items={items} onItemClick={onOpenTool} title="หมดประกันเครื่องมือ" />;
+  const navigate = useNavigate();
+  const [kind, setKind] = useState<"all" | "warranty" | "pm">("all");
+  const toolIds = tools.map((t) => t.id);
+  const toolMap = new Map(tools.map((t) => [t.id, t]));
+
+  const { data: pmTasks = [] } = useQuery({
+    queryKey: ["tool-pm-tasks-calendar", toolIds.sort().join(",")],
+    enabled: toolIds.length > 0,
+    staleTime: 60_000,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("tool_pm_tasks")
+        .select("id, tool_id, due_date, status")
+        .in("tool_id", toolIds)
+        .in("status", ["pending", "in_progress"])
+        .order("due_date");
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
+  const items: CalendarItem[] = [];
+  if (kind === "all" || kind === "warranty") {
+    tools.forEach((t) => {
+      if (!t.warranty_expiry_date) return;
+      items.push({
+        id: `warranty:${t.id}`,
+        date: String(t.warranty_expiry_date),
+        title: `🛡️ ${t.code} - ${t.name}`,
+        subtitle: `หมดประกัน${t.department ? " • " + t.department : ""}`,
+      });
+    });
+  }
+  if (kind === "all" || kind === "pm") {
+    pmTasks.forEach((task: any) => {
+      const t = toolMap.get(task.tool_id);
+      if (!t) return;
+      items.push({
+        id: `pm:${task.id}`,
+        date: String(task.due_date),
+        title: `🔧 ${t.code} - ${t.name}`,
+        subtitle: `งาน PM${t.department ? " • " + t.department : ""}`,
+      });
+    });
+  }
+
+  const counts = {
+    warranty: tools.filter((t) => !!t.warranty_expiry_date).length,
+    pm: pmTasks.length,
+  };
+
+  const handleClick = (id: string) => {
+    if (id.startsWith("pm:")) {
+      const taskId = id.slice(3);
+      const task: any = pmTasks.find((x: any) => x.id === taskId);
+      navigate(`/tool-pm-tasks${task ? `?task=${task.id}` : ""}`);
+      return;
+    }
+    if (id.startsWith("warranty:")) onOpenTool(id.slice("warranty:".length));
+  };
+
+  return (
+    <div className="space-y-3">
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="text-xs text-muted-foreground mr-1">แสดง:</span>
+        {([
+          { k: "all", label: `ทั้งหมด (${counts.warranty + counts.pm})` },
+          { k: "warranty", label: `🛡️ ประกัน (${counts.warranty})` },
+          { k: "pm", label: `🔧 งาน PM (${counts.pm})` },
+        ] as const).map((opt) => (
+          <Button
+            key={opt.k}
+            type="button"
+            size="sm"
+            variant={kind === opt.k ? "default" : "outline"}
+            onClick={() => setKind(opt.k)}
+            className="h-7 text-xs"
+          >
+            {opt.label}
+          </Button>
+        ))}
+      </div>
+      <EntityCalendarView items={items} onItemClick={handleClick} title="ปฏิทินเครื่องมือ" />
+    </div>
+  );
 }
+
 
 function ToolSummaryCards({ tools }: { tools: Tool[] }) {
   const total = tools.length;
