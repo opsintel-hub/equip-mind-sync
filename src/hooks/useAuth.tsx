@@ -81,8 +81,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (error) throw error;
       
       toast.success('เข้าสู่ระบบสำเร็จ');
-      navigate('/dashboard');
+      let target = '/dashboard';
+      try {
+        const last = localStorage.getItem('lastRoute');
+        if (last && last !== '/') target = last;
+      } catch { /* ignore */ }
+      navigate(target, { replace: true });
       return { error: null };
+
     } catch (error: any) {
       toast.error(error.message || 'เข้าสู่ระบบไม่สำเร็จ');
       return { error };
