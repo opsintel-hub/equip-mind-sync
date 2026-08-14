@@ -682,14 +682,19 @@ export function EquipmentForm({ onSuccess, prefillData, triggerButton }: Equipme
                           const value = e.target.value.replace(/[^0-9]/g, "");
                           field.onChange(value ? parseInt(value, 10) : 0);
                         }}
-                        disabled={isLoading}
+                        disabled={isLoading || !!prefillData}
                       />
                     </FormControl>
-                    <p className="text-xs text-muted-foreground">ใช้สำหรับตั้งค่าเริ่มต้น หลังจากนั้นให้รับเข้าผ่านหน้า "นำเข้าสินค้า"</p>
+                    <p className="text-xs text-muted-foreground">
+                      {prefillData
+                        ? "ล็อกเป็น 0 เมื่อสร้างจากการนำเข้า/รับเข้าสินค้า — สต๊อกจะเพิ่มตอนกดรับเข้าคลังเท่านั้น"
+                        : 'ใช้สำหรับตั้งค่าเริ่มต้น หลังจากนั้นให้รับเข้าผ่านหน้า "นำเข้าสินค้า"'}
+                    </p>
                     <FormMessage />
                   </FormItem>
                 )}
               />
+
 
               <FormField
                 control={form.control}
