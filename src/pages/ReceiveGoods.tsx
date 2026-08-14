@@ -308,7 +308,7 @@ const ReceiveGoods = () => {
   const fetchEquipment = async () => {
     const { data, error } = await supabase
       .from("equipment")
-      .select("id, code, name, unit")
+      .select("id, code, name, unit, location_id, supplier_id")
       .eq("is_active", true)
       .order("code");
     
