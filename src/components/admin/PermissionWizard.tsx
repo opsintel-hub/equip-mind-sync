@@ -376,7 +376,14 @@ export function PermissionWizard({ open, onOpenChange, user, onSaved }: Permissi
               </Label>
               <Select
                 value={pfDepartment || "__none__"}
-                onValueChange={(v) => setPfDepartment(v === "__none__" ? "" : v)}
+                onValueChange={(v) => {
+                  const next = v === "__none__" ? "" : v;
+                  setPfDepartment(next);
+                  // ผู้ใช้ที่สังกัดหลายฝ่าย: ฝ่ายหลักต้องอยู่ในสิทธิ์เข้าถึงข้อมูลเสมอ
+                  if (next) {
+                    setSelectedDepartments((prev) => (prev.includes(next) ? prev : [...prev, next]));
+                  }
+                }}
                 disabled={saving}
               >
                 <SelectTrigger id="pf-dept" className="h-9">
