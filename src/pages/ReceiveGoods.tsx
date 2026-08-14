@@ -563,6 +563,18 @@ const ReceiveGoods = () => {
         })
     : [];
 
+  // ฝ่ายของรายการที่กำลังรับเข้า (ใช้กรองคลังให้ตรงฝ่าย ป้องกันเก็บผิดคลัง)
+  const activeReceiptDept = getDepartmentName(
+    (selectedReceipt as any)?.department_id ?? (batchReceipts[0] as any)?.department_id
+  );
+  const deptWarehouses = activeReceiptDept
+    ? warehouses.filter((w) => w.department === activeReceiptDept)
+    : [];
+  const availableWarehouses = deptWarehouses.length > 0 ? deptWarehouses : warehouses;
+  const selectedWarehouse = warehouses.find((w) => w.id === selectedWarehouseId);
+  const warehouseDeptMismatch =
+    !!selectedWarehouse && !!activeReceiptDept && selectedWarehouse.department !== activeReceiptDept;
+
   // Handle warehouse change
   const handleWarehouseChange = (warehouseId: string) => {
     setSelectedWarehouseId(warehouseId);
