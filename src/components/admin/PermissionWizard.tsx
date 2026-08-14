@@ -127,17 +127,32 @@ export function PermissionWizard({ open, onOpenChange, user, onSaved }: Permissi
   const loadData = async () => {
     setLoading(true);
     try {
-      const [tplRes, deptRes] = await Promise.all([
+      const [tplRes, deptRes, userDeptRes] = await Promise.all([
         (supabase as any)
           .from("permission_templates")
           .select("*")
           .eq("is_active", true)
           .order("display_order"),
         supabase.from("departments").select("name").eq("is_active", true).order("name"),
+        user?.id
+          ? supabase.from("user_departments").select("*").eq("user_id", user.id)
+          : Promise.resolve({ data: [], error: null } as any),
       ]);
       if (tplRes.error) throw tplRes.error;
       setTemplates((tplRes.data || []) as PermissionTemplate[]);
       setDepartments((deptRes.data || []).map((d: any) => d.name));
+
+      // Prefill existing department access (supports users assigned to multiple departments)
+      const existing = (userDeptRes as any)?.data || [];
+      if (existing.length > 0) {
+        setSelectedDepartments(existing.map((r: any) => r.department));
+        setDeptPerm({
+          view: existing.some((r: any) => r.can_view),
+          create: existing.some((r: any) => r.can_create),
+          edit: existing.some((r: any) => r.can_edit),
+          delete: existing.some((r: any) => r.can_delete),
+        });
+      }
     } catch (e: any) {
       console.error(e);
       toast.error("โหลดข้อมูลเทมเพลตไม่สำเร็จ");
