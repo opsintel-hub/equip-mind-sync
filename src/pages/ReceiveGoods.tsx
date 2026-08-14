@@ -59,6 +59,8 @@ interface Equipment {
   code: string;
   name: string;
   unit: string;
+  location_id?: string | null;
+  supplier_id?: string | null;
 }
 
 interface Supplier {
@@ -83,6 +85,7 @@ interface Warehouse {
   id: string;
   code: string;
   name: string;
+  department?: string | null;
   total_volume_cm3: number;
   remaining_volume_cm3: number;
 }
@@ -305,7 +308,7 @@ const ReceiveGoods = () => {
   const fetchEquipment = async () => {
     const { data, error } = await supabase
       .from("equipment")
-      .select("id, code, name, unit")
+      .select("id, code, name, unit, location_id, supplier_id")
       .eq("is_active", true)
       .order("code");
     
@@ -379,7 +382,7 @@ const ReceiveGoods = () => {
   const fetchWarehouses = async () => {
     const { data: warehouseData, error: warehouseError } = await supabase
       .from("warehouses")
-      .select("id, code, name")
+      .select("id, code, name, department")
       .eq("is_active", true)
       .order("code");
 
@@ -425,13 +428,38 @@ const ReceiveGoods = () => {
     }
   };
 
+  // ผู้จัดจำหน่าย: ใช้ชื่อจากใบนำเข้า ถ้าไม่มีให้ค้นจากรหัสผู้จัดจำหน่าย
+  const getSupplierLabel = (r: any): string => {
+    if (r?.supplier_name) return r.supplier_name;
+    const sup = suppliers.find((s) => s.id === r?.supplier_id);
+    return sup ? `${sup.code} - ${sup.name}` : "-";
+  };
+
+  // หา คลัง/ตำแหน่ง เริ่มต้นจากข้อมูลที่เคยคีย์ไว้ (ใบนำเข้า → ข้อมูลสินค้า → ฝ่าย)
+  const resolveDefaultStorage = (receipt: any) => {
+    const deptName = getDepartmentName(receipt?.department_id);
+    const eq = equipment.find((e) => e.id === receipt?.equipment_id);
+    const presetLocationId = receipt?.received_location_id || eq?.location_id || null;
+    const presetLoc = presetLocationId ? locations.find((l) => l.id === presetLocationId) : null;
+
+    let warehouseId = receipt?.warehouse_id || presetLoc?.warehouse_id || "";
+    if (!warehouseId && deptName) {
+      const deptWarehouses = warehouses.filter((w) => w.department === deptName);
+      if (deptWarehouses.length === 1) warehouseId = deptWarehouses[0].id;
+    }
+    const locationId = presetLoc && presetLoc.warehouse_id === warehouseId ? presetLoc.id : "";
+    return { warehouseId, locationId };
+  };
+
   const openReceiveDialog = (receipt: PendingReceipt) => {
     setSelectedReceipt(receipt);
     setEditNotes(receipt.notes || "");
     setStorageVolumeCm3(receipt.storage_volume_cm3?.toString() || "");
     setLocationCapacity(null);
-    setSelectedWarehouseId("");
-    setStorageLocation({ locationId: "" });
+    const { warehouseId, locationId } = resolveDefaultStorage(receipt);
+    setSelectedWarehouseId(warehouseId);
+    setStorageLocation({ locationId });
+    if (locationId) fetchLocationCapacity(locationId);
     setItemCondition("normal");
     setEditAssetCode(receipt.asset_code || "");
     setEditEquipmentIdCode(receipt.equipment_id_code || "");
@@ -450,8 +478,10 @@ const ReceiveGoods = () => {
     setEditNotes("");
     setStorageVolumeCm3("");
     setLocationCapacity(null);
-    setSelectedWarehouseId("");
-    setStorageLocation({ locationId: "" });
+    const { warehouseId, locationId } = resolveDefaultStorage(receipts[0]);
+    setSelectedWarehouseId(warehouseId);
+    setStorageLocation({ locationId });
+    if (locationId) fetchLocationCapacity(locationId);
     setItemCondition("normal");
     setIsBatchDialogOpen(true);
   };
@@ -532,6 +562,18 @@ const ReceiveGoods = () => {
           return (a.code || "").localeCompare(b.code || "");
         })
     : [];
+
+  // ฝ่ายของรายการที่กำลังรับเข้า (ใช้กรองคลังให้ตรงฝ่าย ป้องกันเก็บผิดคลัง)
+  const activeReceiptDept = getDepartmentName(
+    (selectedReceipt as any)?.department_id ?? (batchReceipts[0] as any)?.department_id
+  );
+  const deptWarehouses = activeReceiptDept
+    ? warehouses.filter((w) => w.department === activeReceiptDept)
+    : [];
+  const availableWarehouses = deptWarehouses.length > 0 ? deptWarehouses : warehouses;
+  const selectedWarehouse = warehouses.find((w) => w.id === selectedWarehouseId);
+  const warehouseDeptMismatch =
+    !!selectedWarehouse && !!activeReceiptDept && selectedWarehouse.department !== activeReceiptDept;
 
   // Handle warehouse change
   const handleWarehouseChange = (warehouseId: string) => {
@@ -1304,7 +1346,7 @@ const ReceiveGoods = () => {
                   </div>
                   <div className="space-y-2">
                     <Label>ผู้จัดจำหน่าย</Label>
-                    <Input value={receiptDetail.supplier_name || "-"} disabled className="bg-muted" />
+                    <Input value={getSupplierLabel(receiptDetail)} disabled className="bg-muted" />
                   </div>
                 </div>
               </div>
@@ -1598,9 +1640,9 @@ const ReceiveGoods = () => {
                 <div className="space-y-2">
                   <Label>ผู้จัดจำหน่าย</Label>
                   <Input 
-                    value={selectedReceipt.supplier_name || "-"}
+                    value={getSupplierLabel(selectedReceipt)}
                     disabled
-                    className={`bg-muted ${!selectedReceipt.supplier_name ? 'text-muted-foreground' : ''}`}
+                    className={`bg-muted ${getSupplierLabel(selectedReceipt) === "-" ? 'text-muted-foreground' : ''}`}
                   />
                 </div>
                 <div className="space-y-2">
@@ -1754,7 +1796,7 @@ const ReceiveGoods = () => {
               <div className="space-y-2">
                 <Label>คลังสินค้า *</Label>
                 <SearchableSelect
-                  options={warehouses.map((wh) => ({
+                  options={availableWarehouses.map((wh) => ({
                     value: wh.id,
                     label: `${wh.code} - ${wh.name}`,
                     description: `คงเหลือ: ${wh.remaining_volume_cm3.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} m³`,
@@ -1778,6 +1820,16 @@ const ReceiveGoods = () => {
                       }
                       return null;
                     })()}
+                  </div>
+                )}
+                {warehouseDeptMismatch && (
+                  <div className="text-xs text-destructive">
+                    ⚠️ คลังนี้ไม่ได้อยู่ในฝ่าย {activeReceiptDept} — ตรวจสอบก่อนรับเข้า
+                  </div>
+                )}
+                {selectedWarehouseId && filteredLocations.length === 0 && (
+                  <div className="text-xs text-warning">
+                    คลังนี้ยังไม่มีตำแหน่งจัดเก็บ กรุณาสร้างตำแหน่งที่ ข้อมูลหลัก › คลัง/ตำแหน่งจัดเก็บ ก่อน
                   </div>
                 )}
               </div>
@@ -1915,7 +1967,7 @@ const ReceiveGoods = () => {
             <div className="space-y-2">
               <Label>คลังสินค้า *</Label>
               <SearchableSelect
-                options={warehouses.map((wh) => ({
+                options={availableWarehouses.map((wh) => ({
                   value: wh.id,
                   label: `${wh.code} - ${wh.name}`,
                   description: `คงเหลือ: ${wh.remaining_volume_cm3.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} m³`,
