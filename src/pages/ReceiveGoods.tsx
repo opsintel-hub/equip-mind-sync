@@ -59,6 +59,8 @@ interface Equipment {
   code: string;
   name: string;
   unit: string;
+  location_id?: string | null;
+  supplier_id?: string | null;
 }
 
 interface Supplier {
