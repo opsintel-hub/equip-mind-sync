@@ -83,6 +83,7 @@ interface Warehouse {
   id: string;
   code: string;
   name: string;
+  department?: string | null;
   total_volume_cm3: number;
   remaining_volume_cm3: number;
 }
