@@ -382,7 +382,7 @@ const ReceiveGoods = () => {
   const fetchWarehouses = async () => {
     const { data: warehouseData, error: warehouseError } = await supabase
       .from("warehouses")
-      .select("id, code, name")
+      .select("id, code, name, department")
       .eq("is_active", true)
       .order("code");
 
