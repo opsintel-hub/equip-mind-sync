@@ -402,8 +402,18 @@ export function PermissionWizard({ open, onOpenChange, user, onSaved }: Permissi
             </div>
           </div>
           <p className="text-[11px] text-muted-foreground">
-            ⚠️ <strong>ฝ่ายสังกัดหลัก</strong> คือฝ่ายที่ผู้ใช้อยู่ (แสดงในโปรไฟล์เท่านั้น) — ไม่ใช่สิทธิ์เห็นข้อมูล · สิทธิ์เห็นข้อมูลฝ่ายจะกำหนดในขั้นที่ 2 ด้านล่าง
+            ⚠️ <strong>ฝ่ายสังกัดหลัก</strong> คือฝ่ายที่ผู้ใช้อยู่ (แสดงในโปรไฟล์เท่านั้น) — ไม่ใช่สิทธิ์เห็นข้อมูล · ถ้าผู้ใช้ทำงาน <strong>มากกว่า 1 ฝ่าย/คลัง</strong> ให้ติ๊กเลือกหลายฝ่ายในขั้นที่ 2 ด้านล่าง
           </p>
+          {selectedDepartments.length > 0 && (
+            <div className="flex flex-wrap items-center gap-1 text-[11px]">
+              <span className="text-muted-foreground">ฝ่ายที่เข้าถึงข้อมูลได้ ({selectedDepartments.length}):</span>
+              {selectedDepartments.map((d) => (
+                <span key={d} className="inline-flex items-center rounded border border-primary/40 bg-primary/5 text-primary px-1.5 h-5">
+                  {d}
+                </span>
+              ))}
+            </div>
+          )}
         </div>
 
 
