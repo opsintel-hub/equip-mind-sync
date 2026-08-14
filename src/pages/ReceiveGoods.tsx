@@ -1796,7 +1796,7 @@ const ReceiveGoods = () => {
               <div className="space-y-2">
                 <Label>คลังสินค้า *</Label>
                 <SearchableSelect
-                  options={warehouses.map((wh) => ({
+                  options={availableWarehouses.map((wh) => ({
                     value: wh.id,
                     label: `${wh.code} - ${wh.name}`,
                     description: `คงเหลือ: ${wh.remaining_volume_cm3.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} m³`,
