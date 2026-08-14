@@ -50,7 +50,10 @@ const BillboardSelect = ({
 
   const allowedKey = allowedBillboardIds ? [...allowedBillboardIds].sort().join(",") : "any";
 
-  const applyScope = (q: any) => {
+  const applyScope = (q: any, searching: boolean) => {
+    // When the user actively searches, look across all billboards.
+    // Billboard departments do not always match the requester's department.
+    if (searching) return q;
     if (department) return q.eq("department", department);
     if (!isSuperAdmin) {
       const depts = viewableDepts || [];
@@ -69,7 +72,7 @@ const BillboardSelect = ({
         .order("old_code", { ascending: true })
         .limit(debounced.length >= 2 ? 100 : 300);
 
-      query = applyScope(query);
+      query = applyScope(query, debounced.length >= 2);
 
       if (allowedBillboardIds) {
         if (allowedBillboardIds.length === 0) return [] as BillboardRow[];
