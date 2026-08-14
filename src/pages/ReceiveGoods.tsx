@@ -1346,7 +1346,7 @@ const ReceiveGoods = () => {
                   </div>
                   <div className="space-y-2">
                     <Label>ผู้จัดจำหน่าย</Label>
-                    <Input value={receiptDetail.supplier_name || "-"} disabled className="bg-muted" />
+                    <Input value={getSupplierLabel(receiptDetail)} disabled className="bg-muted" />
                   </div>
                 </div>
               </div>
