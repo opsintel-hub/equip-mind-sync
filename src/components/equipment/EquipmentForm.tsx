@@ -159,9 +159,10 @@ export function EquipmentForm({ onSuccess, prefillData, triggerButton }: Equipme
       if (prefillData.notes) {
         form.setValue("notes", prefillData.notes);
       }
-      if (prefillData.quantity !== undefined) {
-        form.setValue("quantity_in_stock", prefillData.quantity);
-      }
+      // IMPORTANT: เมื่อสร้างจากหน้ารับเข้า/นำเข้าสินค้า ต้องตั้งจำนวนเริ่มต้น = 0 เสมอ
+      // สต๊อกจะถูกบวกตอน "รับเข้าคลัง" เท่านั้น (ป้องกันจำนวนซ้ำซ้อน 2 เท่า)
+      form.setValue("quantity_in_stock", 0);
+
       if (prefillData.department) {
         form.setValue("department", prefillData.department);
       }
