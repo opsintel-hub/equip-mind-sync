@@ -127,17 +127,32 @@ export function PermissionWizard({ open, onOpenChange, user, onSaved }: Permissi
   const loadData = async () => {
     setLoading(true);
     try {
-      const [tplRes, deptRes] = await Promise.all([
+      const [tplRes, deptRes, userDeptRes] = await Promise.all([
         (supabase as any)
           .from("permission_templates")
           .select("*")
           .eq("is_active", true)
           .order("display_order"),
         supabase.from("departments").select("name").eq("is_active", true).order("name"),
+        user?.id
+          ? supabase.from("user_departments").select("*").eq("user_id", user.id)
+          : Promise.resolve({ data: [], error: null } as any),
       ]);
       if (tplRes.error) throw tplRes.error;
       setTemplates((tplRes.data || []) as PermissionTemplate[]);
       setDepartments((deptRes.data || []).map((d: any) => d.name));
+
+      // Prefill existing department access (supports users assigned to multiple departments)
+      const existing = (userDeptRes as any)?.data || [];
+      if (existing.length > 0) {
+        setSelectedDepartments(existing.map((r: any) => r.department));
+        setDeptPerm({
+          view: existing.some((r: any) => r.can_view),
+          create: existing.some((r: any) => r.can_create),
+          edit: existing.some((r: any) => r.can_edit),
+          delete: existing.some((r: any) => r.can_delete),
+        });
+      }
     } catch (e: any) {
       console.error(e);
       toast.error("โหลดข้อมูลเทมเพลตไม่สำเร็จ");
@@ -361,7 +376,14 @@ export function PermissionWizard({ open, onOpenChange, user, onSaved }: Permissi
               </Label>
               <Select
                 value={pfDepartment || "__none__"}
-                onValueChange={(v) => setPfDepartment(v === "__none__" ? "" : v)}
+                onValueChange={(v) => {
+                  const next = v === "__none__" ? "" : v;
+                  setPfDepartment(next);
+                  // ผู้ใช้ที่สังกัดหลายฝ่าย: ฝ่ายหลักต้องอยู่ในสิทธิ์เข้าถึงข้อมูลเสมอ
+                  if (next) {
+                    setSelectedDepartments((prev) => (prev.includes(next) ? prev : [...prev, next]));
+                  }
+                }}
                 disabled={saving}
               >
                 <SelectTrigger id="pf-dept" className="h-9">
@@ -380,8 +402,18 @@ export function PermissionWizard({ open, onOpenChange, user, onSaved }: Permissi
             </div>
           </div>
           <p className="text-[11px] text-muted-foreground">
-            ⚠️ <strong>ฝ่ายสังกัดหลัก</strong> คือฝ่ายที่ผู้ใช้อยู่ (แสดงในโปรไฟล์เท่านั้น) — ไม่ใช่สิทธิ์เห็นข้อมูล · สิทธิ์เห็นข้อมูลฝ่ายจะกำหนดในขั้นที่ 2 ด้านล่าง
+            ⚠️ <strong>ฝ่ายสังกัดหลัก</strong> คือฝ่ายที่ผู้ใช้อยู่ (แสดงในโปรไฟล์เท่านั้น) — ไม่ใช่สิทธิ์เห็นข้อมูล · ถ้าผู้ใช้ทำงาน <strong>มากกว่า 1 ฝ่าย/คลัง</strong> ให้ติ๊กเลือกหลายฝ่ายในขั้นที่ 2 ด้านล่าง
           </p>
+          {selectedDepartments.length > 0 && (
+            <div className="flex flex-wrap items-center gap-1 text-[11px]">
+              <span className="text-muted-foreground">ฝ่ายที่เข้าถึงข้อมูลได้ ({selectedDepartments.length}):</span>
+              {selectedDepartments.map((d) => (
+                <span key={d} className="inline-flex items-center rounded border border-primary/40 bg-primary/5 text-primary px-1.5 h-5">
+                  {d}
+                </span>
+              ))}
+            </div>
+          )}
         </div>
 
 
