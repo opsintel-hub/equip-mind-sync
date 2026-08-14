@@ -38,6 +38,10 @@ interface SearchableSelectProps {
   isLoading?: boolean;
   /** Prefill search input when the popover opens (useful for showing preview matches) */
   initialSearch?: string;
+  /** Notify parent of search term changes (for server-side search) */
+  onSearchChange?: (value: string) => void;
+  /** Disable client-side fuzzy filtering (use when parent filters server-side) */
+  shouldFilter?: boolean;
 }
 
 export function SearchableSelect({
@@ -52,6 +56,8 @@ export function SearchableSelect({
   triggerClassName,
   isLoading = false,
   initialSearch,
+  onSearchChange,
+  shouldFilter = true,
 }: SearchableSelectProps) {
   const [open, setOpen] = React.useState(false);
   const [search, setSearch] = React.useState(initialSearch ?? "");
@@ -59,6 +65,7 @@ export function SearchableSelect({
   React.useEffect(() => {
     if (open) setSearch(initialSearch ?? "");
   }, [open, initialSearch]);
+
 
   const selectedOption = options.find((option) => option.value === value);
 
@@ -93,13 +100,14 @@ export function SearchableSelect({
         onWheel={(e) => e.stopPropagation()}
         onTouchMove={(e) => e.stopPropagation()}
       >
-        <Command shouldFilter={true}>
+        <Command shouldFilter={shouldFilter}>
           <CommandInput 
             placeholder={searchPlaceholder} 
             className="h-9"
             value={search}
-            onValueChange={setSearch}
+            onValueChange={(v) => { setSearch(v); onSearchChange?.(v); }}
           />
+
           <CommandList className="max-h-60">
             <CommandEmpty>{emptyMessage}</CommandEmpty>
             <CommandGroup>
