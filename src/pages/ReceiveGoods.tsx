@@ -1822,6 +1822,16 @@ const ReceiveGoods = () => {
                     })()}
                   </div>
                 )}
+                {warehouseDeptMismatch && (
+                  <div className="text-xs text-destructive">
+                    ⚠️ คลังนี้ไม่ได้อยู่ในฝ่าย {activeReceiptDept} — ตรวจสอบก่อนรับเข้า
+                  </div>
+                )}
+                {selectedWarehouseId && filteredLocations.length === 0 && (
+                  <div className="text-xs text-warning">
+                    คลังนี้ยังไม่มีตำแหน่งจัดเก็บ กรุณาสร้างตำแหน่งที่ ข้อมูลหลัก › คลัง/ตำแหน่งจัดเก็บ ก่อน
+                  </div>
+                )}
               </div>
 
               {/* Location Selection (filtered by warehouse) */}
