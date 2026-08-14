@@ -330,7 +330,7 @@ export default function StockCard() {
         .select("issued_quantity, quantity, billboard_id, install_status, status, goods_issue_pending:pending_id(document_no)")
         .eq(col, selectedItemId)
         .eq("status", "issued")
-        .or("install_status.in.(pending_confirmation,cancelled),and(billboard_id.is.null,install_status.eq.not_required)");
+        .in("install_status", ["pending_confirmation", "cancelled"]);
       if (error) { console.error(error); return []; }
       return data || [];
     },
