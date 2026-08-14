@@ -1640,9 +1640,9 @@ const ReceiveGoods = () => {
                 <div className="space-y-2">
                   <Label>ผู้จัดจำหน่าย</Label>
                   <Input 
-                    value={selectedReceipt.supplier_name || "-"}
+                    value={getSupplierLabel(selectedReceipt)}
                     disabled
-                    className={`bg-muted ${!selectedReceipt.supplier_name ? 'text-muted-foreground' : ''}`}
+                    className={`bg-muted ${getSupplierLabel(selectedReceipt) === "-" ? 'text-muted-foreground' : ''}`}
                   />
                 </div>
                 <div className="space-y-2">
