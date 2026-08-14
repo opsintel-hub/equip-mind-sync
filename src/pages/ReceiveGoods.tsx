@@ -428,13 +428,38 @@ const ReceiveGoods = () => {
     }
   };
 
+  // ผู้จัดจำหน่าย: ใช้ชื่อจากใบนำเข้า ถ้าไม่มีให้ค้นจากรหัสผู้จัดจำหน่าย
+  const getSupplierLabel = (r: any): string => {
+    if (r?.supplier_name) return r.supplier_name;
+    const sup = suppliers.find((s) => s.id === r?.supplier_id);
+    return sup ? `${sup.code} - ${sup.name}` : "-";
+  };
+
+  // หา คลัง/ตำแหน่ง เริ่มต้นจากข้อมูลที่เคยคีย์ไว้ (ใบนำเข้า → ข้อมูลสินค้า → ฝ่าย)
+  const resolveDefaultStorage = (receipt: any) => {
+    const deptName = getDepartmentName(receipt?.department_id);
+    const eq = equipment.find((e) => e.id === receipt?.equipment_id);
+    const presetLocationId = receipt?.received_location_id || eq?.location_id || null;
+    const presetLoc = presetLocationId ? locations.find((l) => l.id === presetLocationId) : null;
+
+    let warehouseId = receipt?.warehouse_id || presetLoc?.warehouse_id || "";
+    if (!warehouseId && deptName) {
+      const deptWarehouses = warehouses.filter((w) => w.department === deptName);
+      if (deptWarehouses.length === 1) warehouseId = deptWarehouses[0].id;
+    }
+    const locationId = presetLoc && presetLoc.warehouse_id === warehouseId ? presetLoc.id : "";
+    return { warehouseId, locationId };
+  };
+
   const openReceiveDialog = (receipt: PendingReceipt) => {
     setSelectedReceipt(receipt);
     setEditNotes(receipt.notes || "");
     setStorageVolumeCm3(receipt.storage_volume_cm3?.toString() || "");
     setLocationCapacity(null);
-    setSelectedWarehouseId("");
-    setStorageLocation({ locationId: "" });
+    const { warehouseId, locationId } = resolveDefaultStorage(receipt);
+    setSelectedWarehouseId(warehouseId);
+    setStorageLocation({ locationId });
+    if (locationId) fetchLocationCapacity(locationId);
     setItemCondition("normal");
     setEditAssetCode(receipt.asset_code || "");
     setEditEquipmentIdCode(receipt.equipment_id_code || "");
@@ -453,8 +478,10 @@ const ReceiveGoods = () => {
     setEditNotes("");
     setStorageVolumeCm3("");
     setLocationCapacity(null);
-    setSelectedWarehouseId("");
-    setStorageLocation({ locationId: "" });
+    const { warehouseId, locationId } = resolveDefaultStorage(receipts[0]);
+    setSelectedWarehouseId(warehouseId);
+    setStorageLocation({ locationId });
+    if (locationId) fetchLocationCapacity(locationId);
     setItemCondition("normal");
     setIsBatchDialogOpen(true);
   };
