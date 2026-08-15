@@ -252,6 +252,10 @@ const Dashboard = () => {
       {/* Stock Movement Trend */}
       <StockMovementChart companyId={selectedCompanyId} />
 
+      {/* Weekday / hourly workload pattern */}
+      <WeeklyPatternChart companyId={selectedCompanyId} />
+
+
       {/* Billboard Equipment Chart */}
       <BillboardEquipmentChart />
 
