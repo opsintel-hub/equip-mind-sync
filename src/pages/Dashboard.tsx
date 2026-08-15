@@ -11,6 +11,7 @@ import { CategoryPieChart } from "@/components/CategoryPieChart";
 import TransactionSummaryReport from "@/components/TransactionSummaryReport";
 import { CompanyFilter } from "@/components/dashboard/CompanyFilter";
 import { StockMovementChart } from "@/components/dashboard/StockMovementChart";
+import { WeeklyPatternChart } from "@/components/dashboard/WeeklyPatternChart";
 import { supabase } from "@/integrations/supabase/client";
 import { Link, Navigate } from "react-router-dom";
 import { useFunctionPermissions } from "@/hooks/useFunctionPermissions";

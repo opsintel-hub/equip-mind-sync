@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
@@ -268,8 +268,8 @@ export const WeeklyPatternChart = ({ companyId }: WeeklyPatternChartProps) => {
                       </div>
                     ))}
                     {heat.map((rowHours, di) => (
-                      <>
-                        <div key={`l-${di}`} className="text-xs text-muted-foreground pr-1 flex items-center">
+                      <Fragment key={`row-${di}`}>
+                        <div className="text-xs text-muted-foreground pr-1 flex items-center">
                           {DAY_LABELS[di]}
                         </div>
                         {rowHours.map((v, h) => (
@@ -285,7 +285,7 @@ export const WeeklyPatternChart = ({ companyId }: WeeklyPatternChartProps) => {
                             }}
                           />
                         ))}
-                      </>
+                      </Fragment>
                     ))}
                   </div>
                 </div>
