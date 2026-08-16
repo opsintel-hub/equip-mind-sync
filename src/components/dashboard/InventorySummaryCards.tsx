@@ -70,7 +70,7 @@ function useToggle(key: string, initial = true) {
   return [open, toggle] as const;
 }
 
-export function InventorySummaryCards({ companyId }: Props) {
+export function InventorySummaryCards({ companyId, departments = [] }: Props) {
   const { getViewableDepartments, isAdmin, loading: permLoading } = useDepartmentPermissions();
   const [deptOpen, toggleDept] = useToggle("dash-summary-dept");
   const [companyOpen, toggleCompany] = useToggle("dash-summary-company");
@@ -93,9 +93,10 @@ export function InventorySummaryCards({ companyId }: Props) {
   const viewable = permLoading ? [] : getViewableDepartments();
 
   const { byDept, byCompany, totalQty, totalValue } = useMemo(() => {
-    const rows = (data?.rows || []).filter(
-      (r) => isAdmin || viewable.length === 0 || (r.department && viewable.includes(r.department))
-    );
+    const rows = (data?.rows || [])
+      .filter((r) => isAdmin || viewable.length === 0 || (r.department && viewable.includes(r.department)))
+      .filter((r) => departments.length === 0 || (r.department && departments.includes(r.department)));
+
     const deptMap = new Map<string, { qty: number; value: number; items: number }>();
     const compMap = new Map<string, { qty: number; value: number; items: number }>();
     let tq = 0;
