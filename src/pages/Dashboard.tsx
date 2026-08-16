@@ -12,6 +12,8 @@ import TransactionSummaryReport from "@/components/TransactionSummaryReport";
 import { CompanyFilter } from "@/components/dashboard/CompanyFilter";
 import { StockMovementChart } from "@/components/dashboard/StockMovementChart";
 import { WeeklyPatternChart } from "@/components/dashboard/WeeklyPatternChart";
+import { InventorySummaryCards } from "@/components/dashboard/InventorySummaryCards";
+
 import { supabase } from "@/integrations/supabase/client";
 import { Link, Navigate } from "react-router-dom";
 import { useFunctionPermissions } from "@/hooks/useFunctionPermissions";
@@ -240,8 +242,12 @@ const Dashboard = () => {
         </Link>
       )}
 
+      {/* Inventory value/qty summary by department & company */}
+      <InventorySummaryCards companyId={selectedCompanyId} />
+
       {/* Transaction Summary (GR/GI) */}
       <TransactionSummaryReport companyId={selectedCompanyId} />
+
 
       {/* Charts: Inventory by Location & Category */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
