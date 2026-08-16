@@ -22,6 +22,8 @@ const Dashboard = () => {
   const { permissions, isAdmin, isSuperAdmin, loading: permLoading } = useFunctionPermissions();
   const hasAnyAccess = isAdmin || isSuperAdmin || permissions.some(p => p.can_access);
   const [selectedCompanyId, setSelectedCompanyId] = useState("all");
+  const [selectedDepartments, setSelectedDepartments] = useState<string[]>([]);
+
   const [stats, setStats] = useState({
     totalEquipment: 0,
     todayReceipts: 0,
@@ -35,14 +37,16 @@ const Dashboard = () => {
     // Run both stat aggregations in parallel
     fetchStats();
     fetchPMStats();
-  }, [selectedCompanyId]);
+  }, [selectedCompanyId, selectedDepartments.join("|")]);
 
   const fetchStats = async () => {
     const today = new Date().toISOString().split('T')[0];
     const companyFilter = selectedCompanyId !== "all" ? selectedCompanyId : null;
+    const deptFilter = selectedDepartments.length > 0 ? selectedDepartments : null;
 
     let equipmentQuery = supabase.from("equipment").select("id", { count: "exact", head: true }).eq("is_active", true);
     if (companyFilter) equipmentQuery = equipmentQuery.eq("company_id", companyFilter);
+    if (deptFilter) equipmentQuery = equipmentQuery.in("department", deptFilter);
 
     let receiptsQuery = supabase.from("goods_receipt").select("id", { count: "exact", head: true }).gte("receipt_date", today);
     if (companyFilter) receiptsQuery = receiptsQuery.eq("company_id", companyFilter);
@@ -50,12 +54,14 @@ const Dashboard = () => {
     let issuesQuery = supabase.from("goods_issue").select("id", { count: "exact", head: true }).gte("issue_date", today);
     if (companyFilter) issuesQuery = issuesQuery.eq("company_id", companyFilter);
 
-    const billboardsQuery = supabase.from("billboards").select("id", { count: "exact", head: true }).eq("status", "active");
+    let billboardsQuery = supabase.from("billboards").select("id", { count: "exact", head: true }).eq("status", "active");
+    if (deptFilter) billboardsQuery = billboardsQuery.in("department", deptFilter);
 
     let loansQuery = supabase.from("equipment_loans").select("id", { count: "exact", head: true }).eq("status", "approved");
     if (companyFilter) {
       loansQuery = loansQuery.or(`from_company_id.eq.${companyFilter},to_company_id.eq.${companyFilter}`);
     }
+
 
     // Fire all 5 count queries in parallel instead of awaiting sequentially
     const [eq, rec, iss, bb, ln] = await Promise.all([
