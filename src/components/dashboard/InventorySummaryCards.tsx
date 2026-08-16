@@ -10,7 +10,10 @@ import { Building2, Layers, ChevronDown, ChevronUp, Package, Wallet } from "luci
 
 interface Props {
   companyId: string;
+  /** Selected department names; empty = all viewable departments */
+  departments?: string[];
 }
+
 
 interface Row {
   department: string | null;
