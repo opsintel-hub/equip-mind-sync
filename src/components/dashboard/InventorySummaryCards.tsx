@@ -129,7 +129,7 @@ export function InventorySummaryCards({ companyId, departments = [] }: Props) {
       totalQty: tq,
       totalValue: tv,
     };
-  }, [data, isAdmin, viewable]);
+  }, [data, isAdmin, viewable.join("|"), departments.join("|")]);
 
   if (isLoading) return <Skeleton className="h-40 w-full" />;
 
