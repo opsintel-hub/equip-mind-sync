@@ -13,6 +13,8 @@ import { CompanyFilter } from "@/components/dashboard/CompanyFilter";
 import { StockMovementChart } from "@/components/dashboard/StockMovementChart";
 import { WeeklyPatternChart } from "@/components/dashboard/WeeklyPatternChart";
 import { InventorySummaryCards } from "@/components/dashboard/InventorySummaryCards";
+import { DepartmentMultiFilter } from "@/components/DepartmentMultiFilter";
+
 
 import { supabase } from "@/integrations/supabase/client";
 import { Link, Navigate } from "react-router-dom";
@@ -172,10 +174,21 @@ const Dashboard = () => {
           <h1 className="text-3xl font-bold text-foreground tracking-tight">แดชบอร์ด</h1>
           <p className="text-muted-foreground">ภาพรวมระบบจัดการคลังสินค้าและอุปกรณ์</p>
         </div>
-        <div className="flex items-center gap-2">
-          <span className="text-sm text-muted-foreground">กรองตามบริษัท:</span>
-          <CompanyFilter value={selectedCompanyId} onChange={setSelectedCompanyId} />
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-muted-foreground">ฝ่าย:</span>
+            <DepartmentMultiFilter value={selectedDepartments} onChange={setSelectedDepartments} />
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-muted-foreground">บริษัท:</span>
+            <CompanyFilter
+              value={selectedCompanyId}
+              onChange={setSelectedCompanyId}
+              departments={selectedDepartments}
+            />
+          </div>
         </div>
+
       </div>
 
       {/* Stats Grid */}
@@ -249,7 +262,7 @@ const Dashboard = () => {
       )}
 
       {/* Inventory value/qty summary by department & company */}
-      <InventorySummaryCards companyId={selectedCompanyId} />
+      <InventorySummaryCards companyId={selectedCompanyId} departments={selectedDepartments} />
 
       {/* Transaction Summary (GR/GI) */}
       <TransactionSummaryReport companyId={selectedCompanyId} />
