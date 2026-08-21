@@ -466,22 +466,26 @@ const DefectiveReturnEntry = () => {
       const isMP = !!t.is_media_player;
       const itemId = isMP ? t.media_player_id : t.equipment_id;
       const qty = t.quantity || 1;
+      // Items coming back from a goods issue were already deducted at issue time —
+      // only relocate them to the defect warehouse, never deduct twice.
+      const fromIssue = (t as any).source_type === "from_issue";
       if (itemId) {
         if (isMP) {
           const { data: mp } = await supabase.from("media_players").select("code, name, quantity").eq("id", itemId).maybeSingle();
           if (mp) {
             const before = mp.quantity || 0;
-            const after = Math.max(0, before - qty);
+            const after = fromIssue ? before : Math.max(0, before - qty);
             await supabase.from("media_players").update({
               quantity: after, location_id: reviewQuarantineId, status: "defective",
-            }).eq("id", itemId);
+              ...(fromIssue ? { billboard_id: null } : {}),
+            } as any).eq("id", itemId);
             await supabase.from("stock_movements").insert({
               equipment_id: itemId, equipment_code: mp.code, equipment_name: mp.name,
-              movement_type: "defective_quarantine", quantity: -qty,
+              movement_type: "defective_quarantine", quantity: fromIssue ? qty : -qty,
               stock_before: before, stock_after: after,
               reference_type: "defective_return", reference_id: t.id, reference_document: t.document_no,
               location_id: reviewQuarantineId,
-              notes: `[ของเสีย → คลังของเสีย] ยืนยันโดย ${reviewerName} — ${t.reason || ""}`,
+              notes: `[${fromIssue ? "ของเสียคืนจากหน้างาน" : "ของเสีย"} → คลังของเสีย] ยืนยันโดย ${reviewerName} — ${t.reason || ""}`,
               item_condition: t.item_condition || "defective",
               created_by: user?.id,
             });
@@ -490,15 +494,17 @@ const DefectiveReturnEntry = () => {
           const { data: eq } = await supabase.from("equipment").select("code, name, quantity_in_stock").eq("id", itemId).maybeSingle();
           if (eq) {
             const before = eq.quantity_in_stock || 0;
-            const after = Math.max(0, before - qty);
-            await supabase.from("equipment").update({ quantity_in_stock: after }).eq("id", itemId);
+            const after = fromIssue ? before : Math.max(0, before - qty);
+            if (!fromIssue) {
+              await supabase.from("equipment").update({ quantity_in_stock: after }).eq("id", itemId);
+            }
             await supabase.from("stock_movements").insert({
               equipment_id: itemId, equipment_code: eq.code, equipment_name: eq.name,
-              movement_type: "defective_quarantine", quantity: -qty,
+              movement_type: "defective_quarantine", quantity: fromIssue ? qty : -qty,
               stock_before: before, stock_after: after,
               reference_type: "defective_return", reference_id: t.id, reference_document: t.document_no,
               location_id: reviewQuarantineId,
-              notes: `[ของเสีย → คลังของเสีย] ยืนยันโดย ${reviewerName} — ${t.reason || ""}`,
+              notes: `[${fromIssue ? "ของเสียคืนจากหน้างาน" : "ของเสีย"} → คลังของเสีย] ยืนยันโดย ${reviewerName} — ${t.reason || ""}`,
               item_condition: t.item_condition || "defective",
               created_by: user?.id,
             });
@@ -506,7 +512,52 @@ const DefectiveReturnEntry = () => {
         }
       }
 
-      toast.success(`ยืนยันตั๋ว ${t.document_no} — รับเข้าคลังของเสียแล้ว`);
+      // Media Player / monitor removed from a billboard => auto-raise a swap request
+      let swapCreated = false;
+      if (isMP && t.media_player_id && t.billboard_id) {
+        const { data: existing } = await supabase
+          .from("swap_requests")
+          .select("id")
+          .eq("defective_return_id", t.id)
+          .maybeSingle();
+        if (!existing) {
+          const { data: mpInfo } = await supabase
+            .from("media_players")
+            .select("code, name, serial_number")
+            .eq("id", t.media_player_id)
+            .maybeSingle();
+          const { error: swapErr } = await supabase.from("swap_requests").insert({
+            document_no: "",
+            asset_type: "media_player",
+            status: "pending",
+            priority: "normal",
+            billboard_id: t.billboard_id,
+            defective_return_id: t.id,
+            old_media_player_id: t.media_player_id,
+            old_serial_number: (mpInfo as any)?.serial_number || null,
+            reported_asset_type: "media_player",
+            reported_media_player_id: t.media_player_id,
+            reported_item_code: mpInfo?.code || null,
+            reported_item_name: mpInfo?.name || null,
+            reported_serial_number: (mpInfo as any)?.serial_number || null,
+            symptom_id: (t as any).symptom_id || null,
+            symptom_other: (t as any).symptom_other || null,
+            description: t.reason || null,
+            technician_name: (t as any).reporter_name || null,
+            notes: `สร้างอัตโนมัติจากการรับเข้าของเสีย ${t.document_no}${(t as any).source_document ? ` (เอกสารเบิก ${(t as any).source_document})` : ""}`,
+            created_by: user?.id,
+          } as any);
+          if (swapErr) {
+            console.error("auto swap request failed", swapErr);
+          } else {
+            swapCreated = true;
+          }
+        }
+      }
+
+      toast.success(
+        `ยืนยันตั๋ว ${t.document_no} — รับเข้าคลังของเสียแล้ว${swapCreated ? " · สร้างคำขอ Swap อัตโนมัติแล้ว" : ""}`,
+      );
       closeReviewDialog();
       fetchPendingTickets();
     } catch (e: any) {
