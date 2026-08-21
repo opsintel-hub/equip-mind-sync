@@ -523,7 +523,7 @@ const DefectiveReturnEntry = () => {
         if (!existing) {
           const { data: mpInfo } = await supabase
             .from("media_players")
-            .select("code, name, serial_number")
+            .select("code, name, serial_number_1, serial_number_2")
             .eq("id", t.media_player_id)
             .maybeSingle();
           const { error: swapErr } = await supabase.from("swap_requests").insert({
@@ -534,12 +534,12 @@ const DefectiveReturnEntry = () => {
             billboard_id: t.billboard_id,
             defective_return_id: t.id,
             old_media_player_id: t.media_player_id,
-            old_serial_number: (mpInfo as any)?.serial_number || null,
+            old_serial_number: [(mpInfo as any)?.serial_number_1, (mpInfo as any)?.serial_number_2].filter(Boolean).join("\n") || null,
             reported_asset_type: "media_player",
             reported_media_player_id: t.media_player_id,
             reported_item_code: mpInfo?.code || null,
             reported_item_name: mpInfo?.name || null,
-            reported_serial_number: (mpInfo as any)?.serial_number || null,
+            reported_serial_number: [(mpInfo as any)?.serial_number_1, (mpInfo as any)?.serial_number_2].filter(Boolean).join("\n") || null,
             symptom_id: (t as any).symptom_id || null,
             symptom_other: (t as any).symptom_other || null,
             description: t.reason || null,
