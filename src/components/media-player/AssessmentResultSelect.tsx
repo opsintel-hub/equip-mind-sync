@@ -33,26 +33,15 @@ export function AssessmentResultSelect({ value, onChange, disabled, placeholder 
   }, []);
 
   return (
-    <div className="flex gap-2">
-      <div className="flex-1">
-        <SearchableSelect
-          options={items.map((i) => ({ value: i.id, label: i.name, description: i.description || undefined }))}
-          value={value}
-          onValueChange={onChange}
-          placeholder={placeholder}
-          searchPlaceholder="ค้นหา..."
-          emptyMessage="ไม่พบผลการประเมิน — เพิ่มได้ที่ Master Data"
-          disabled={disabled}
-          isLoading={loading}
-        />
-      </div>
-      {isSuperAdmin && (
-        <Button asChild variant="outline" size="icon" type="button" title="จัดการรายการ">
-          <Link to="/master-data" target="_blank">
-            <Settings className="h-4 w-4" />
-          </Link>
-        </Button>
-      )}
-    </div>
+    <SearchableSelect
+      options={items.map((i) => ({ value: i.id, label: i.name, description: i.description || undefined }))}
+      value={value}
+      onValueChange={onChange}
+      placeholder={placeholder}
+      searchPlaceholder="ค้นหา..."
+      emptyMessage="ไม่พบผลการประเมิน — เพิ่มได้ที่ Master Data"
+      disabled={disabled}
+      isLoading={loading}
+    />
   );
 }
