@@ -87,6 +87,8 @@ const IncompleteIssues = () => {
   const [selectedItem, setSelectedItem] = useState<PendingItem | null>(null);
   const [billboardDialogOpen, setBillboardDialogOpen] = useState(false);
   const [returnDialogOpen, setReturnDialogOpen] = useState(false);
+  const [itemReturnOpen, setItemReturnOpen] = useState(false);
+  const [returnTarget, setReturnTarget] = useState<{ issue: IncompleteIssue; item: ReturnItemLine } | null>(null);
   const [expandedRequests, setExpandedRequests] = useState<Set<string>>(new Set());
   const [billboardId, setBillboardId] = useState("");
   const [compatibleBbIds, setCompatibleBbIds] = useState<string[] | null>(null);
