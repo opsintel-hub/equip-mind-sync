@@ -1,10 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { SearchableSelect } from "@/components/ui/searchable-select";
-import { Button } from "@/components/ui/button";
-import { Settings } from "lucide-react";
-import { Link } from "react-router-dom";
-import { useDepartmentPermissions } from "@/hooks/useDepartmentPermissions";
 
 interface Props {
   value?: string;
@@ -18,7 +14,6 @@ interface Item { id: string; name: string; description: string | null; }
 export function AssessmentResultSelect({ value, onChange, disabled, placeholder = "เลือกผลการประเมิน" }: Props) {
   const [items, setItems] = useState<Item[]>([]);
   const [loading, setLoading] = useState(true);
-  const { isSuperAdmin } = useDepartmentPermissions();
 
   useEffect(() => {
     (async () => {
