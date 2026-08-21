@@ -1456,11 +1456,15 @@ export type Database = {
           rejection_reason: string | null
           reporter_department: string | null
           reporter_name: string | null
+          source_document: string | null
+          source_issue_item_id: string | null
           source_type: string
           status: string
           stock_deducted_at: string | null
           stock_disposed_at: string | null
           swap_request_id: string | null
+          symptom_id: string | null
+          symptom_other: string | null
           updated_at: string
         }
         Insert: {
@@ -1496,11 +1500,15 @@ export type Database = {
           rejection_reason?: string | null
           reporter_department?: string | null
           reporter_name?: string | null
+          source_document?: string | null
+          source_issue_item_id?: string | null
           source_type?: string
           status?: string
           stock_deducted_at?: string | null
           stock_disposed_at?: string | null
           swap_request_id?: string | null
+          symptom_id?: string | null
+          symptom_other?: string | null
           updated_at?: string
         }
         Update: {
@@ -1536,11 +1544,15 @@ export type Database = {
           rejection_reason?: string | null
           reporter_department?: string | null
           reporter_name?: string | null
+          source_document?: string | null
+          source_issue_item_id?: string | null
           source_type?: string
           status?: string
           stock_deducted_at?: string | null
           stock_disposed_at?: string | null
           swap_request_id?: string | null
+          symptom_id?: string | null
+          symptom_other?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -1584,6 +1596,20 @@ export type Database = {
             columns: ["receive_location_id"]
             isOneToOne: false
             referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "defective_returns_source_issue_item_id_fkey"
+            columns: ["source_issue_item_id"]
+            isOneToOne: false
+            referencedRelation: "goods_issue_pending_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "defective_returns_symptom_id_fkey"
+            columns: ["symptom_id"]
+            isOneToOne: false
+            referencedRelation: "mp_symptoms"
             referencedColumns: ["id"]
           },
         ]
@@ -3023,6 +3049,11 @@ export type Database = {
           pending_id: string
           quantity: number
           remaining_quantity: number | null
+          return_location_id: string | null
+          returned_at: string | null
+          returned_by: string | null
+          returned_defective_qty: number
+          returned_good_qty: number
           serial_number: string | null
           status: string | null
           sub_media_type: string | null
@@ -3046,6 +3077,11 @@ export type Database = {
           pending_id: string
           quantity?: number
           remaining_quantity?: number | null
+          return_location_id?: string | null
+          returned_at?: string | null
+          returned_by?: string | null
+          returned_defective_qty?: number
+          returned_good_qty?: number
           serial_number?: string | null
           status?: string | null
           sub_media_type?: string | null
@@ -3069,6 +3105,11 @@ export type Database = {
           pending_id?: string
           quantity?: number
           remaining_quantity?: number | null
+          return_location_id?: string | null
+          returned_at?: string | null
+          returned_by?: string | null
+          returned_defective_qty?: number
+          returned_good_qty?: number
           serial_number?: string | null
           status?: string | null
           sub_media_type?: string | null
@@ -3101,6 +3142,13 @@ export type Database = {
             columns: ["media_player_id"]
             isOneToOne: false
             referencedRelation: "media_players"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "goods_issue_pending_items_return_location_id_fkey"
+            columns: ["return_location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
             referencedColumns: ["id"]
           },
         ]
