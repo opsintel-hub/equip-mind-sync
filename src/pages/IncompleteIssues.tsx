@@ -1096,7 +1096,24 @@ const IncompleteIssues = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <ReturnItemDialog
+        open={itemReturnOpen}
+        onOpenChange={setItemReturnOpen}
+        documentNo={returnTarget?.issue.document_no || ""}
+        pendingId={returnTarget?.issue.id || ""}
+        requesterName={returnTarget?.issue.requester_name}
+        requesterDepartment={returnTarget?.issue.requester_department}
+        item={returnTarget?.item || null}
+        onSaved={() => {
+          queryClient.invalidateQueries({ queryKey: ["incomplete-issues"] });
+          queryClient.invalidateQueries({ queryKey: ["incomplete-issue-items"] });
+          queryClient.invalidateQueries({ queryKey: ["defective-returns-pending"] });
+          queryClient.invalidateQueries({ queryKey: ["stock-card-items"] });
+        }}
+      />
     </>
+
   );
 };
 
