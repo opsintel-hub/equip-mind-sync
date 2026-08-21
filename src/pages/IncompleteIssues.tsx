@@ -65,6 +65,8 @@ interface PendingItem {
   unit: string;
   status: string | null;
   billboard_id: string | null;
+  returned_good_qty?: number | null;
+  returned_defective_qty?: number | null;
   notes: string | null;
 }
 
