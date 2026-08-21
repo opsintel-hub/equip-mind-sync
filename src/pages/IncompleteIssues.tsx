@@ -26,6 +26,7 @@ import { SimpleDepartmentSelect } from "@/components/equipment/SimpleDepartmentS
 import { logStockMovement } from "@/lib/stockMovement";
 import { getCompatibleBillboardIdsForEquipment } from "@/lib/compatibility";
 import { useRealtimeInvalidate } from "@/hooks/useRealtimeInvalidate";
+import { ReturnItemDialog, type ReturnItemLine } from "@/components/issue/ReturnItemDialog";
 
 interface IncompleteIssue {
   id: string;
