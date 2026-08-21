@@ -253,7 +253,7 @@ export function RepairCompleteDialog({ open, onOpenChange, assessmentLog, onComp
             </div>
             {assessmentLog?.media_player_id && (
               <Button asChild variant="outline" size="sm" type="button">
-                <Link to={`/media-player/${assessmentLog.media_player_id}`} target="_blank">
+                <Link to={`/media-player/${assessmentLog.media_player_id}`}>
                   <ExternalLink className="h-3 w-3 mr-1" />
                   Profile
                 </Link>
