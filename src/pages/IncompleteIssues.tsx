@@ -779,73 +779,123 @@ const IncompleteIssues = () => {
               </TabsContent>
 
               <TabsContent value="return">
-                <div className="rounded-md border overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>เลขที่เอกสาร</TableHead>
-                        <TableHead>วันที่เบิก</TableHead>
-                        <TableHead>บริษัท</TableHead>
-                        <TableHead>สินค้า</TableHead>
-                        <TableHead>เบิก</TableHead>
-                        <TableHead>คืนแล้ว</TableHead>
-                        <TableHead>ค้าง</TableHead>
-                        <TableHead>ผู้ขอเบิก</TableHead>
-                        <TableHead className="text-center">จัดการ</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {isLoading ? (
-                        <TableRow>
-                          <TableCell colSpan={9} className="text-center py-8">กำลังโหลด...</TableCell>
-                        </TableRow>
-                      ) : returnIssues.length === 0 ? (
-                        <TableRow>
-                          <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
-                            ไม่มีรายการที่รอรับคืน
-                          </TableCell>
-                        </TableRow>
-                      ) : (
-                        returnIssues.map((issue) => {
-                          const issuedQty = issue.issued_quantity || issue.quantity;
-                          const returnedQty = issue.return_quantity || 0;
-                          const remainingQty = issuedQty - returnedQty;
-                          return (
-                            <TableRow key={issue.id}>
-                              <TableCell className="font-mono font-medium">{issue.document_no}</TableCell>
-                              <TableCell>
-                                {issue.issued_at ? format(new Date(issue.issued_at), "d MMM yy", { locale: th }) : "-"}
-                              </TableCell>
-                              <TableCell>{issue.companies?.name || "-"}</TableCell>
-                              <TableCell>
-                                <div>
-                                  <div className="font-medium">{issue.equipment_name}</div>
-                                  <div className="text-xs text-muted-foreground">{issue.equipment_code}</div>
+                <div className="space-y-3">
+                  {isLoading ? (
+                    <div className="text-center py-8">กำลังโหลด...</div>
+                  ) : returnIssues.length === 0 ? (
+                    <div className="text-center py-8 text-muted-foreground">ไม่มีรายการที่รอรับคืน</div>
+                  ) : (
+                    returnIssues.map((issue) => {
+                      const items = itemsByIssue.get(issue.id) || [];
+                      const isExpanded = expandedRequests.has(issue.id);
+                      const issuedQty = issue.issued_quantity || issue.quantity;
+                      const returnedQty = issue.return_quantity || 0;
+                      const remainingQty = Math.max(0, issuedQty - returnedQty);
+                      return (
+                        <Collapsible key={issue.id} open={isExpanded} onOpenChange={() => toggleExpand(issue.id)}>
+                          <div className="border rounded-lg bg-amber-50/40 border-amber-200">
+                            <CollapsibleTrigger asChild>
+                              <div className="flex flex-wrap items-center gap-4 p-4 hover:bg-muted/50 cursor-pointer">
+                                <div className="flex items-center gap-2">
+                                  {items.length > 0 ? (
+                                    isExpanded ? <ChevronDown className="w-4 h-4 text-muted-foreground" /> : <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                                  ) : <div className="w-4" />}
+                                  <span className="font-mono font-medium">{issue.document_no}</span>
                                 </div>
-                              </TableCell>
-                              <TableCell>{issuedQty}</TableCell>
-                              <TableCell className="text-success">{returnedQty}</TableCell>
-                              <TableCell className="text-warning font-medium">{remainingQty}</TableCell>
-                              <TableCell>{issue.requester_name}</TableCell>
-                              <TableCell className="text-center">
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => handleRecordReturn(issue)}
-                                  className="gap-1"
-                                >
-                                  <RefreshCw className="w-4 h-4" />
-                                  รับคืน
-                                </Button>
-                              </TableCell>
-                            </TableRow>
-                          );
-                        })
-                      )}
-                    </TableBody>
-                  </Table>
+                                <span className="text-sm text-muted-foreground">
+                                  {issue.issued_at ? format(new Date(issue.issued_at), "d MMM yy", { locale: th }) : "-"}
+                                </span>
+                                <span className="text-sm">{issue.companies?.name || "-"}</span>
+                                <span className="text-sm text-muted-foreground">{issue.requester_name}</span>
+                                <span className="text-sm">
+                                  เบิก {issuedQty} · <span className="text-success">คืนแล้ว {returnedQty}</span> ·{" "}
+                                  <span className="text-warning font-medium">ค้าง {remainingQty}</span>
+                                </span>
+                                <div className="ml-auto flex items-center gap-2">
+                                  <Badge variant="outline" className="bg-amber-100 text-amber-800">
+                                    <RefreshCw className="w-3 h-3 mr-1" />
+                                    รอรับคืน
+                                  </Badge>
+                                  {items.length === 0 && (
+                                    <Button size="sm" variant="outline" className="gap-1"
+                                      onClick={(e) => { e.stopPropagation(); handleRecordReturn(issue); }}>
+                                      <RefreshCw className="w-4 h-4" /> รับคืน
+                                    </Button>
+                                  )}
+                                </div>
+                              </div>
+                            </CollapsibleTrigger>
+
+                            <CollapsibleContent>
+                              <div className="border-t bg-white/60 p-4 overflow-x-auto">
+                                <Table>
+                                  <TableHeader>
+                                    <TableRow>
+                                      <TableHead>รหัสสินค้า</TableHead>
+                                      <TableHead>ชื่อสินค้า</TableHead>
+                                      <TableHead>Serial Number</TableHead>
+                                      <TableHead className="text-right">เบิก</TableHead>
+                                      <TableHead className="text-right">ติดตั้ง</TableHead>
+                                      <TableHead className="text-right">คืนดี</TableHead>
+                                      <TableHead className="text-right">คืนเสีย</TableHead>
+                                      <TableHead className="text-right">ค้าง</TableHead>
+                                      <TableHead className="text-center">จัดการ</TableHead>
+                                    </TableRow>
+                                  </TableHeader>
+                                  <TableBody>
+                                    {items.map((item) => {
+                                      const iq = item.issued_quantity ?? item.quantity;
+                                      const inst = item.billboard_id ? iq : 0;
+                                      const g = item.returned_good_qty || 0;
+                                      const d = item.returned_defective_qty || 0;
+                                      const left = Math.max(0, iq - inst - g - d);
+                                      return (
+                                        <TableRow key={item.id} className={left > 0 ? "bg-orange-50/40" : ""}>
+                                          <TableCell className="font-mono text-sm">{item.equipment_code || "-"}</TableCell>
+                                          <TableCell>{item.equipment_name || "-"}</TableCell>
+                                          <TableCell className="text-muted-foreground whitespace-pre-line">{item.serial_number || "-"}</TableCell>
+                                          <TableCell className="text-right">{iq}</TableCell>
+                                          <TableCell className="text-right text-blue-600">{inst}</TableCell>
+                                          <TableCell className="text-right text-green-600">{g}</TableCell>
+                                          <TableCell className="text-right text-destructive">{d}</TableCell>
+                                          <TableCell className="text-right font-medium text-warning">{left}</TableCell>
+                                          <TableCell className="text-center">
+                                            <Button
+                                              size="sm"
+                                              variant="outline"
+                                              className="gap-1"
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                setReturnTarget({ issue, item: item as unknown as ReturnItemLine });
+                                                setItemReturnOpen(true);
+                                              }}
+                                            >
+                                              <RefreshCw className="w-3 h-3" />
+                                              {left > 0 ? "รับคืน" : "รับคืนเพิ่ม"}
+                                            </Button>
+                                          </TableCell>
+                                        </TableRow>
+                                      );
+                                    })}
+                                    {items.length === 0 && (
+                                      <TableRow>
+                                        <TableCell colSpan={9} className="text-center text-muted-foreground py-4">
+                                          เอกสารเก่า (ไม่มีรายการย่อย) — ใช้ปุ่ม “รับคืน” ด้านบน
+                                        </TableCell>
+                                      </TableRow>
+                                    )}
+                                  </TableBody>
+                                </Table>
+                              </div>
+                            </CollapsibleContent>
+                          </div>
+                        </Collapsible>
+                      );
+                    })
+                  )}
                 </div>
               </TabsContent>
+
 
               <TabsContent value="warehouse">
                 <div className="rounded-md border overflow-x-auto">
