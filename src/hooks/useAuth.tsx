@@ -3,6 +3,7 @@ import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
+import { syncAuthSessionToBridge } from '@/lib/sessionBridge';
 
 interface AuthContextType {
   user: User | null;
@@ -49,9 +50,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setSession(session);
         setUser(session?.user ?? null);
         setLoading(false);
-        if (session?.user?.id) {
+        // Mirror immediately after auth writes the session. This closes the
+        // interval race where a newly opened tab could miss a fresh login.
+        syncAuthSessionToBridge();
+        const userId = session?.user?.id;
+        if (userId) {
           // Defer to avoid deadlock inside the auth listener
-          setTimeout(() => enforceHiddenGuard(session.user!.id), 0);
+          setTimeout(() => enforceHiddenGuard(userId), 0);
         }
       }
     );
