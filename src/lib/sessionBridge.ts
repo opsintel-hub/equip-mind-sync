@@ -47,7 +47,7 @@ const heartbeatFresh = () => {
   }
 };
 
-const syncOut = () => {
+export const syncAuthSessionToBridge = () => {
   try {
     const key = findAuthKey(sessionStorage);
     if (key) {
@@ -78,10 +78,10 @@ export const initSessionBridge = () => {
   } catch { /* ignore */ }
 
   // 2) เขียน mirror + heartbeat ต่อเนื่อง
-  syncOut();
-  window.setInterval(syncOut, HEARTBEAT_INTERVAL);
-  window.addEventListener("focus", syncOut);
-  window.addEventListener("pagehide", syncOut);
+  syncAuthSessionToBridge();
+  window.setInterval(syncAuthSessionToBridge, HEARTBEAT_INTERVAL);
+  window.addEventListener("focus", syncAuthSessionToBridge);
+  window.addEventListener("pagehide", syncAuthSessionToBridge);
 
   // 3) แท็บอื่น logout -> ล้าง session ของแท็บนี้ด้วย
   window.addEventListener("storage", (e) => {
