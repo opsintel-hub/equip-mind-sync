@@ -453,7 +453,7 @@ export default function AssessmentLog() {
     const [mpRes, eqRes] = await Promise.all([
       supabase
         .from("media_players")
-        .select("id, code, name, serial_number, device_type")
+        .select("id, code, name, serial_number_1, serial_number_2, device_type")
         .order("code")
         .limit(500),
       supabase
@@ -470,7 +470,7 @@ export default function AssessmentLog() {
         type: "media_player",
         code: mp.code,
         name: mp.name || "Media Player",
-        serial: mp.serial_number,
+        serial: formatMergedSerials(mp.serial_number_1, mp.serial_number_2) || null,
         device_type: mp.device_type || "MEDIA_PLAYER",
       });
     });
