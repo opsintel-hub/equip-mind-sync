@@ -65,6 +65,7 @@ interface PendingRequest {
   total_items: number | null;
   requires_approval?: boolean | null;
   approval_status?: string | null;
+  serial_number?: string | null;
 }
 
 interface PendingItem {
