@@ -1062,18 +1062,36 @@ const IssueGoods = () => {
                     paginatedData?.map((req) => {
                       const items = getItemsForRequest(req.id);
                       const isExpanded = expandedRequests.has(req.id);
-                      const hasMultipleItems = items.length > 0;
-                      
+                      const hasExpandableData = items.length > 0 || !!(req.equipment_id || req.equipment_code || req.equipment_name);
+                      const displayItems = items.length > 0 ? items : [{
+                        id: req.id,
+                        pending_id: req.id,
+                        equipment_id: req.equipment_id,
+                        equipment_code: req.equipment_code,
+                        equipment_name: req.equipment_name,
+                        quantity: req.quantity,
+                        unit: req.unit,
+                        serial_number: req.serial_number,
+                        billboard_id: req.billboard_id,
+                        issued_quantity: req.issued_quantity,
+                        remaining_quantity: req.remaining_quantity,
+                        status: req.status,
+                        notes: req.notes,
+                        created_at: req.created_at,
+                        is_media_player: null,
+                        media_player_id: null,
+                      } as PendingItem];
+
                       return (
                         <>
-                          <TableRow 
-                            key={req.id} 
+                          <TableRow
+                            key={req.id}
                             className={`${req.status === "pending" ? "bg-yellow-50" : req.status === "waiting_stock" ? "bg-orange-50" : ""} cursor-pointer hover:bg-muted/50`}
-                            onClick={() => hasMultipleItems && toggleRequestExpand(req.id)}
+                            onClick={() => hasExpandableData && toggleRequestExpand(req.id)}
                           >
                             <TableCell>
-                              {hasMultipleItems && (
-                                <Button variant="ghost" size="sm" className="p-0 h-6 w-6">
+                              {hasExpandableData && (
+                                <Button variant="ghost" size="sm" className="p-0 h-6 w-6" onClick={(e) => { e.stopPropagation(); toggleRequestExpand(req.id); }}>
                                   {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
                                 </Button>
                               )}
@@ -1084,10 +1102,10 @@ const IssueGoods = () => {
                             </TableCell>
                             <TableCell>{req.companies?.name || "-"}</TableCell>
                             <TableCell>
-                              {hasMultipleItems ? (
+                              {displayItems.length > 1 ? (
                                 <Badge variant="outline" className="gap-1">
                                   <ShoppingCart className="h-3 w-3" />
-                                  {items.length} รายการ
+                                  {displayItems.length} รายการ
                                 </Badge>
                               ) : (
                                 <div>
