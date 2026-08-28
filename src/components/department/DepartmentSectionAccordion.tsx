@@ -26,6 +26,8 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { DepartmentForm } from "./DepartmentForm";
 import { SectionForm } from "@/components/section/SectionForm";
+import { SectionScopeDialog } from "@/components/section/SectionScopeDialog";
+
 
 interface DepartmentData {
   id: string;
