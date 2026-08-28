@@ -475,22 +475,38 @@ const DeliveryEntry = () => {
     }
   };
   const fetchPendingReceipts = async () => {
-    const { data, error } = await supabase.from("goods_receipt_pending").select("*").order("created_at", {
+    let query = supabase.from("goods_receipt_pending").select("*").order("created_at", {
       ascending: false,
     });
+    if (!isSuperAdmin) {
+      const depts = viewableDepts || [];
+      let deptIds: string[] = [];
+      if (depts.length > 0) {
+        const { data: deptRows } = await supabase.from("departments").select("id").in("name", depts);
+        deptIds = (deptRows || []).map((d: any) => d.id);
+      }
+      query = query.in("department_id", deptIds.length > 0 ? deptIds : ["00000000-0000-0000-0000-000000000000"]);
+    }
+    const { data, error } = await query;
     if (!error && data) {
       setPendingReceipts(data as PendingReceipt[]);
     }
   };
-  // fetchCmsTypes removed - CMS type field no longer used
   const fetchMediaPlayers = async () => {
-    const { data, error } = await supabase
-      .from("media_players")
-      .select("id, code, name, unit_price, specification, usage_lifespan_months, device_type")
-      .eq("is_active", true)
-      .order("code");
-    if (!error && data) {
-      setMediaPlayers(data);
+    try {
+      const rows = await fetchAllRows((from, to) =>
+        applyDept(
+          supabase
+            .from("media_players")
+            .select("id, code, name, unit_price, specification, usage_lifespan_months, device_type")
+            .eq("is_active", true),
+        )
+          .order("code")
+          .range(from, to),
+      );
+      setMediaPlayers(rows as any);
+    } catch (e) {
+      console.error("fetchMediaPlayers", e);
     }
   };
   const selectedEquipment = equipment.find((e) => e.id === selectedEquipmentId);
