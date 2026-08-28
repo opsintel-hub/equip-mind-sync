@@ -326,11 +326,13 @@ const DeliveryEntry = () => {
     return 0;
   })();
 
-  // Total volume = per unit volume × quantity
+  // Total volume = per unit volume × quantity (quantity may be blank => treat as 1)
   const calculatedVolume = (() => {
     if (volumePerUnit > 0) {
-      const qty = parseInt(quantity) || 1;
-      return (volumePerUnit * qty).toFixed(2).replace(/^0+/, "");
+      const parsedQty = parseFloat(quantity);
+      const qty = Number.isFinite(parsedQty) && parsedQty > 0 ? parsedQty : 1;
+      // Keep full numeric value (do NOT strip leading zeros — that broke values < 1)
+      return (volumePerUnit * qty).toFixed(2);
     }
     return "";
   })();
