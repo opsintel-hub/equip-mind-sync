@@ -335,6 +335,25 @@ export function PermissionWizard({ open, onOpenChange, user, onSaved }: Permissi
         if (dErr) throw dErr;
       }
 
+      // 4. Section (แผนก) access: replace — only sections inside selected departments
+      await (supabase as any).from("user_sections").delete().eq("user_id", user.id);
+      const sectionRows = selectedSectionIds
+        .filter((id) => availableSections.some((s) => s.id === id))
+        .map((id) => ({
+          user_id: user.id,
+          section_id: id,
+          can_view: deptPerm.view,
+          can_create: deptPerm.create,
+          can_edit: deptPerm.edit,
+          can_delete: isAdminLike ? deptPerm.delete : false,
+        }));
+      if (sectionRows.length > 0) {
+        const { error: sErr } = await (supabase as any).from("user_sections").insert(sectionRows);
+        if (sErr) throw sErr;
+      }
+
+
+
       toast.success("ตั้งค่าสิทธิ์อัตโนมัติสำเร็จ");
       onOpenChange(false);
       onSaved();
