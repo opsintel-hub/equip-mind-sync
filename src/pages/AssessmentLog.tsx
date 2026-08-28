@@ -144,6 +144,7 @@ function warrantyStateFromDate(warrantyDate: string | null): "active" | "ending"
 
 export default function AssessmentLog() {
   const { user } = useAuth();
+  const { applyDeptFilter, deptKey } = useDeptScope();
   const location = useLocation();
   const [logs, setLogs] = useState<AssessmentLog[]>([]);
   const [rejectionMap, setRejectionMap] = useState<Record<string, { document_no: string; rejection_reason: string | null; rejected_at: string | null; rejected_by_name: string | null }>>({});

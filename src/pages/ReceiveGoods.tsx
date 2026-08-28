@@ -186,6 +186,7 @@ async function resolveMediaPlayerRowForReceipt(
 
 const ReceiveGoods = () => {
   const { user } = useAuth();
+  const { applyDeptFilter, deptKey } = useDeptScope();
   const [searchTerm, setSearchTerm] = useState("");
   const [snSearchTerm, setSnSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("pending");

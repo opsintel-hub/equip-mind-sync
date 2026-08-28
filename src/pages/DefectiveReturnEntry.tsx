@@ -44,6 +44,7 @@ interface DefectiveUnitEntry {
 
 const DefectiveReturnEntry = () => {
   const { user } = useAuth();
+  const { applyDeptFilter, deptKey } = useDeptScope();
   const navigate = useNavigate();
   const routerLocation = useLocation();
   const [isMediaPlayer, setIsMediaPlayer] = useState(false);
