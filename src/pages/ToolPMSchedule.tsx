@@ -83,6 +83,7 @@ const ToolPMSchedule = () => {
         .eq("is_active", true)
         .order("code");
       if (scopeDepts) toolsQ = toolsQ.in("department", scopeDepts);
+      toolsQ = applyToolScope(toolsQ as any) as any;
       const { data: toolsData, error: toolsError } = await toolsQ;
 
       if (toolsError) throw toolsError;
