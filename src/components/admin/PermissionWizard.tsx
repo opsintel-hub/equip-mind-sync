@@ -132,7 +132,7 @@ export function PermissionWizard({ open, onOpenChange, user, onSaved }: Permissi
   const loadData = async () => {
     setLoading(true);
     try {
-      const [tplRes, deptRes, userDeptRes] = await Promise.all([
+      const [tplRes, deptRes, userDeptRes, sectionRes, userSecRes] = await Promise.all([
         (supabase as any)
           .from("permission_templates")
           .select("*")
@@ -142,10 +142,26 @@ export function PermissionWizard({ open, onOpenChange, user, onSaved }: Permissi
         user?.id
           ? supabase.from("user_departments").select("*").eq("user_id", user.id)
           : Promise.resolve({ data: [], error: null } as any),
+        supabase
+          .from("sections")
+          .select("id, name, departments:department_id (name)")
+          .eq("is_active", true)
+          .order("name"),
+        user?.id
+          ? (supabase as any).from("user_sections").select("section_id").eq("user_id", user.id)
+          : Promise.resolve({ data: [], error: null } as any),
       ]);
       if (tplRes.error) throw tplRes.error;
       setTemplates((tplRes.data || []) as PermissionTemplate[]);
       setDepartments((deptRes.data || []).map((d: any) => d.name));
+      setSections(
+        ((sectionRes as any).data || []).map((s: any) => ({
+          id: s.id,
+          name: s.name,
+          department: s.departments?.name || "",
+        })),
+      );
+      setSelectedSectionIds((((userSecRes as any).data || []) as any[]).map((r) => r.section_id));
 
       // Prefill existing department access (supports users assigned to multiple departments)
       const existing = (userDeptRes as any)?.data || [];
@@ -158,6 +174,7 @@ export function PermissionWizard({ open, onOpenChange, user, onSaved }: Permissi
           delete: existing.some((r: any) => r.can_delete),
         });
       }
+
     } catch (e: any) {
       console.error(e);
       toast.error("โหลดข้อมูลเทมเพลตไม่สำเร็จ");
