@@ -345,6 +345,7 @@ export default function InventoryReport() {
         query = query.eq("location_id", filters.locationId);
       }
       if (scopeDepts) query = query.in("department", scopeDepts);
+      query = applyMediaPlayerScope(query as any) as any;
 
       const { data, error } = await query;
       if (error) throw error;
