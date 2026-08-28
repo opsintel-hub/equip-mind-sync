@@ -52,6 +52,7 @@ import { DeliveryDetailDialog } from "@/components/delivery/DeliveryDetailDialog
 import { DocumentUploadField } from "@/components/media-player/DocumentUploadField";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { useAllowedDepartments } from "@/hooks/useAllowedDepartments";
+import { useDeptScope } from "@/hooks/useDeptScope";
 import { useCurrentUserProfile } from "@/hooks/useCurrentUserProfile";
 import { dedupeMediaPlayersByCode } from "@/lib/mediaPlayerOptions";
 interface Equipment {
