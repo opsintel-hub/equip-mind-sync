@@ -19,6 +19,7 @@ import { SearchableSelect } from "@/components/ui/searchable-select";
 import { SymptomSelect } from "@/components/media-player/SymptomSelect";
 import { ClaimResultSelect, type ClaimResultKind } from "@/components/media-player/ClaimResultSelect";
 import { formatBillboardLabel } from "@/lib/billboardUtils";
+import { formatMergedSerials } from "@/lib/serialSearch";
 import { SupplierSelect } from "@/components/supplier/SupplierSelect";
 import { LocationSelect } from "@/components/location/LocationSelect";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
