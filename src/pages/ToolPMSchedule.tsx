@@ -20,6 +20,7 @@ import { Plus, Search, RefreshCw, Calendar, Wrench, PlayCircle, Pause, Edit, Tra
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useAllowedDepartments } from "@/hooks/useAllowedDepartments";
 import { useDeptScope } from "@/hooks/useDeptScope";
+import { useSectionScope } from "@/hooks/useSectionScope";
 import { ViewModeToggle, useViewMode } from "@/components/common/ViewModeToggle";
 import { EntityCalendarView, CalendarItem } from "@/components/common/EntityCalendarView";
 
@@ -34,11 +35,12 @@ const ToolPMSchedule = () => {
   const [pmTypeFilter, setPmTypeFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const { isSuperAdmin, viewableDepts, deptKey } = useDeptScope();
+  const { applyToolScope, scopeKey } = useSectionScope();
   const scopeDepts = isSuperAdmin ? null : ((viewableDepts && viewableDepts.length > 0) ? viewableDepts : ["__no_dept_permission__"]);
 
   // Fetch all tools
   const { data: tools = [] } = useQuery({
-    queryKey: ["tools-for-pm", deptKey],
+    queryKey: ["tools-for-pm", deptKey, scopeKey],
     queryFn: async () => {
       let q = supabase
         .from("tools")
@@ -51,6 +53,7 @@ const ToolPMSchedule = () => {
         .eq("is_active", true)
         .order("code");
       if (scopeDepts) q = q.in("department", scopeDepts);
+      q = applyToolScope(q as any) as any;
       const { data, error } = await q;
       if (error) throw error;
       return data;
@@ -59,7 +62,7 @@ const ToolPMSchedule = () => {
 
   // Fetch existing PM tasks grouped by tool
   const { data: pmSummary = [], isLoading, refetch } = useQuery({
-    queryKey: ["tool-pm-summary", deptKey],
+    queryKey: ["tool-pm-summary", deptKey, scopeKey],
     queryFn: async () => {
       // Get all tools with their PM tasks
       let toolsQ = supabase

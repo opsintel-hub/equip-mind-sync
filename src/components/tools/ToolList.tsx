@@ -24,6 +24,7 @@ import { ToolImageViewer } from "./ToolImageViewer";
 import { ToolDocumentViewer } from "./ToolDocumentViewer";
 import * as XLSX from "xlsx";
 import { useDeptScope } from "@/hooks/useDeptScope";
+import { useSectionScope } from "@/hooks/useSectionScope";
 import { ViewModeToggle, useViewMode } from "@/components/common/ViewModeToggle";
 import { EntityCardGrid } from "@/components/common/EntityCardGrid";
 import { EntityCalendarView, type CalendarItem } from "@/components/common/EntityCalendarView";
@@ -89,11 +90,12 @@ export function ToolList({ refreshKey, readOnly = false, showSummary = false }: 
   const [viewTool, setViewTool] = useState<Tool | null>(null);
   const openTool = (t: Tool) => (readOnly ? setViewTool(t) : setEditTool(t));
   const { isSuperAdmin, viewableDepts, deptKey } = useDeptScope();
+  const { applyToolScope, scopeKey } = useSectionScope();
 
 
   useEffect(() => {
     fetchTools();
-  }, [refreshKey, deptKey]);
+  }, [refreshKey, deptKey, scopeKey]);
 
   const fetchTools = async () => {
     setIsLoading(true);
@@ -114,6 +116,7 @@ export function ToolList({ refreshKey, readOnly = false, showSummary = false }: 
         const depts = viewableDepts || [];
         query = query.in("department", depts.length > 0 ? depts : ["__no_dept_permission__"]);
       }
+      query = applyToolScope(query as any) as any;
 
       const { data, error } = await query;
       if (error) throw error;

@@ -28,6 +28,7 @@ import { toast } from "sonner";
 import * as XLSX from "xlsx";
 import { matchesSerialSearch } from "@/lib/serialSearch";
 import { useDeptScope } from "@/hooks/useDeptScope";
+import { useSectionScope } from "@/hooks/useSectionScope";
 import { ViewModeToggle, useViewMode } from "@/components/common/ViewModeToggle";
 import { EntityCardGrid, CardItem } from "@/components/common/EntityCardGrid";
 import { EntityCalendarView, CalendarItem } from "@/components/common/EntityCalendarView";
@@ -161,11 +162,12 @@ export default function MediaPlayerReport() {
   const [selectedPlayerId, setSelectedPlayerId] = useState<string | null>(null);
   const [lightboxImages, setLightboxImages] = useState<string[] | null>(null);
   const { isSuperAdmin, viewableDepts, deptKey } = useDeptScope();
+  const { applyMediaPlayerScope, scopeKey } = useSectionScope();
   const [viewMode, setViewMode] = useViewMode("media-player-report", "table");
 
   // Fetch all media players with extra fields
   const { data: players = [], isLoading } = useQuery({
-    queryKey: ["media-player-report-v2", deptKey],
+    queryKey: ["media-player-report-v2", deptKey, scopeKey],
     queryFn: async () => {
       let query = supabase
         .from("media_players")
@@ -186,6 +188,7 @@ export default function MediaPlayerReport() {
         const depts = viewableDepts || [];
         query = query.in("department", depts.length > 0 ? depts : ["__no_dept_permission__"]);
       }
+      query = applyMediaPlayerScope(query as any) as any;
       const { data, error } = await query;
       if (error) throw error;
       return (data || []) as unknown as MediaPlayerMaster[];
