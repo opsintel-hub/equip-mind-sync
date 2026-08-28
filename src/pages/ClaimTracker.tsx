@@ -4,6 +4,7 @@ import { DeviceTypeBadge } from "@/components/media-player/DeviceTypeBadge";
 import { useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useDeptScope } from "@/hooks/useDeptScope";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -265,11 +266,13 @@ export default function ClaimTracker() {
   const fetchSubjects = async () => {
     setSubjectsLoading(true);
     const [mpRes, eqRes] = await Promise.all([
-      supabase
-        .from("media_players")
-        .select("id, code, name, serial_number_1, serial_number_2, warranty_expiry_date, supplier_id, device_type")
+      applyDeptFilter(
+        supabase
+          .from("media_players")
+          .select("id, code, name, serial_number_1, serial_number_2, warranty_expiry_date, supplier_id, device_type") as any,
+      )
         .order("code")
-        .limit(500),
+        .limit(1000),
       supabase
         .from("equipment_serial_numbers")
         .select("id, serial_number, warranty_expiry_date, equipment:equipment_id(id, code, name, supplier_id)")
@@ -308,7 +311,7 @@ export default function ClaimTracker() {
   useEffect(() => {
     fetchRecords();
     fetchSubjects();
-  }, []);
+  }, [deptKey]);
 
   // Apply prefill from navigation state
   useEffect(() => {
