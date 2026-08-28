@@ -27,6 +27,7 @@ import { TablePagination } from "@/components/TablePagination";
 import { useTablePagination } from "@/hooks/useTablePagination";
 import { SubMediaTypeBadge } from "@/components/media-player/SubMediaTypeBadge";
 import { useDeptScope } from "@/hooks/useDeptScope";
+import { useSectionScope } from "@/hooks/useSectionScope";
 interface EquipmentWithDetails {
   id: string;
   code: string;
@@ -90,6 +91,7 @@ const IssueRequest = () => {
   const queryClient = useQueryClient();
   const { profile: currentProfile, actorName: currentActorName } = useCurrentUserProfile();
   const { isSuperAdmin, viewableDepts, deptKey } = useDeptScope();
+  const { applyEquipmentScope, applyMediaPlayerScope, scopeKey } = useSectionScope();
   const [searchTerm, setSearchTerm] = useState("");
   const [fifoSearchTerm, setFifoSearchTerm] = useState("");
   const [fifoShowExpiring, setFifoShowExpiring] = useState(true);
@@ -215,7 +217,7 @@ const IssueRequest = () => {
 
   // Fetch equipment with full details including expiry dates and category
   const { data: equipmentData } = useQuery({
-    queryKey: ["equipment-active-full", deptKey],
+    queryKey: ["equipment-active-full", deptKey, scopeKey],
     queryFn: async () => {
       let q = supabase
         .from("equipment")
@@ -227,6 +229,7 @@ const IssueRequest = () => {
         const depts = viewableDepts || [];
         q = q.in("department", depts.length > 0 ? depts : ["__no_dept_permission__"]);
       }
+      q = applyEquipmentScope(q as any) as any;
       const { data, error } = await q;
       if (error) throw error;
       return (data || []).map((eq: any) => ({
@@ -241,7 +244,7 @@ const IssueRequest = () => {
 
   // Fetch media players for issuing
   const { data: mediaPlayersData } = useQuery({
-    queryKey: ["media-players-active-for-issue", deptKey],
+    queryKey: ["media-players-active-for-issue", deptKey, scopeKey],
     queryFn: async () => {
       let q = supabase
         .from("media_players")
@@ -253,6 +256,7 @@ const IssueRequest = () => {
         const depts = viewableDepts || [];
         q = q.in("department", depts.length > 0 ? depts : ["__no_dept_permission__"]);
       }
+      q = applyMediaPlayerScope(q as any) as any;
       const { data, error } = await q;
       if (error) throw error;
       // Map to EquipmentWithDetails format
