@@ -93,6 +93,9 @@ export function PermissionWizard({ open, onOpenChange, user, onSaved }: Permissi
   // Selections
   const [selectedTemplateKeys, setSelectedTemplateKeys] = useState<string[]>([]);
   const [selectedDepartments, setSelectedDepartments] = useState<string[]>([]);
+  const [sections, setSections] = useState<{ id: string; name: string; department: string }[]>([]);
+  const [selectedSectionIds, setSelectedSectionIds] = useState<string[]>([]);
+
 
   // Computed (editable) preview
   const [previewRoles, setPreviewRoles] = useState<UserRole[]>([]);
