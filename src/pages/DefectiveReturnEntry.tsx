@@ -18,6 +18,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { LocationSelect } from "@/components/location/LocationSelect";
 import { useAuth } from "@/hooks/useAuth";
+import { useDeptScope } from "@/hooks/useDeptScope";
 import { format } from "date-fns";
 
 interface EquipmentItem {
@@ -43,6 +44,7 @@ interface DefectiveUnitEntry {
 
 const DefectiveReturnEntry = () => {
   const { user } = useAuth();
+  const { applyDeptFilter, deptKey } = useDeptScope();
   const navigate = useNavigate();
   const routerLocation = useLocation();
   const [isMediaPlayer, setIsMediaPlayer] = useState(false);
@@ -217,7 +219,7 @@ const DefectiveReturnEntry = () => {
   const selectedMediaPlayer = useMemo(() => mediaPlayerList.find(m => m.id === selectedItemId), [mediaPlayerList, selectedItemId]);
   const selectedBillboardRecord = useMemo(() => detectedBillboards.find(b => b.id === selectedBillboardEquipmentId), [detectedBillboards, selectedBillboardEquipmentId]);
 
-  useEffect(() => { fetchEquipment(); fetchMediaPlayers(); fetchPendingTickets(); }, []);
+  useEffect(() => { fetchEquipment(); fetchMediaPlayers(); fetchPendingTickets(); }, [deptKey]);
   useEffect(() => {
     if (selectedItemId && !isMediaPlayer) detectBillboardForEquipment(selectedItemId);
     else if (selectedItemId && isMediaPlayer) detectBillboardForMediaPlayer(selectedItemId);
@@ -288,11 +290,11 @@ const DefectiveReturnEntry = () => {
   }, [routerLocation.state, equipmentList.length, mediaPlayerList.length]);
 
   const fetchEquipment = async () => {
-    const { data } = await supabase.from("equipment").select("id, code, name, unit, category, brand, serial_number, department, quantity_in_stock, location_id").eq("is_active", true).order("code");
+    const { data } = await applyDeptFilter(supabase.from("equipment").select("id, code, name, unit, category, brand, serial_number, department, quantity_in_stock, location_id").eq("is_active", true) as any).order("code");
     if (data) setEquipmentList(data);
   };
   const fetchMediaPlayers = async () => {
-    const { data } = await supabase.from("media_players").select("id, code, name, unit, brand, remote_name, serial_number_1, serial_number_2, department, quantity, location_id, billboard_id").eq("is_active", true).order("code");
+    const { data } = await applyDeptFilter(supabase.from("media_players").select("id, code, name, unit, brand, remote_name, serial_number_1, serial_number_2, department, quantity, location_id, billboard_id").eq("is_active", true) as any).order("code");
     if (data) setMediaPlayerList(data as MediaPlayerItem[]);
   };
   const detectBillboardForEquipment = async (equipmentId: string) => {

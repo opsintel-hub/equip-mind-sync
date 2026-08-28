@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useDeptScope } from "@/hooks/useDeptScope";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -143,6 +144,7 @@ function warrantyStateFromDate(warrantyDate: string | null): "active" | "ending"
 
 export default function AssessmentLog() {
   const { user } = useAuth();
+  const { applyDeptFilter, deptKey } = useDeptScope();
   const location = useLocation();
   const [logs, setLogs] = useState<AssessmentLog[]>([]);
   const [rejectionMap, setRejectionMap] = useState<Record<string, { document_no: string; rejection_reason: string | null; rejected_at: string | null; rejected_by_name: string | null }>>({});
@@ -451,11 +453,13 @@ export default function AssessmentLog() {
   const fetchSubjects = async () => {
     setSubjectsLoading(true);
     const [mpRes, eqRes] = await Promise.all([
-      supabase
-        .from("media_players")
-        .select("id, code, name, serial_number_1, serial_number_2, device_type")
+      applyDeptFilter(
+        supabase
+          .from("media_players")
+          .select("id, code, name, serial_number_1, serial_number_2, device_type") as any,
+      )
         .order("code")
-        .limit(500),
+        .limit(1000),
       supabase
         .from("equipment_serial_numbers")
         .select("id, serial_number, equipment:equipment_id(code, name)")
@@ -490,7 +494,7 @@ export default function AssessmentLog() {
   useEffect(() => {
     fetchLogs();
     fetchSubjects();
-  }, []);
+  }, [deptKey]);
 
   // Apply prefill from navigation state (e.g., from Defective Returns)
   useEffect(() => {

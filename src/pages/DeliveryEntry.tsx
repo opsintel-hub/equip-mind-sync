@@ -52,6 +52,7 @@ import { DeliveryDetailDialog } from "@/components/delivery/DeliveryDetailDialog
 import { DocumentUploadField } from "@/components/media-player/DocumentUploadField";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { useAllowedDepartments } from "@/hooks/useAllowedDepartments";
+import { useDeptScope } from "@/hooks/useDeptScope";
 import { useCurrentUserProfile } from "@/hooks/useCurrentUserProfile";
 import { dedupeMediaPlayersByCode } from "@/lib/mediaPlayerOptions";
 interface Equipment {
@@ -127,6 +128,7 @@ const DeliveryEntry = () => {
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   // cmsTypes removed - no longer used
   const { allowedDepartments, isSingleDepartment, loading: deptLoading } = useAllowedDepartments("create");
+  const { isSuperAdmin, viewableDepts, deptKey, loading: deptScopeLoading } = useDeptScope();
   const { profile: currentProfile, actorName: currentActorName } = useCurrentUserProfile();
   const [mediaPlayers, setMediaPlayers] = useState<
     {
@@ -324,11 +326,13 @@ const DeliveryEntry = () => {
     return 0;
   })();
 
-  // Total volume = per unit volume × quantity
+  // Total volume = per unit volume × quantity (quantity may be blank => treat as 1)
   const calculatedVolume = (() => {
     if (volumePerUnit > 0) {
-      const qty = parseInt(quantity) || 1;
-      return (volumePerUnit * qty).toFixed(2).replace(/^0+/, "");
+      const parsedQty = parseFloat(quantity);
+      const qty = Number.isFinite(parsedQty) && parsedQty > 0 ? parsedQty : 1;
+      // Keep full numeric value (do NOT strip leading zeros — that broke values < 1)
+      return (volumePerUnit * qty).toFixed(2);
     }
     return "";
   })();
@@ -359,26 +363,62 @@ const DeliveryEntry = () => {
   }, [deptLoading, allowedDepartments, currentProfile?.department, selectedDepartmentId]);
 
   useEffect(() => {
-    fetchEquipment();
     fetchCompanies();
     fetchSuppliers();
     fetchReceiptPurposes();
-    fetchPendingReceipts();
-    // fetchCmsTypes removed
-    fetchMediaPlayers();
     fetchCategories();
     fetchSubcategories();
   }, []);
+
+  // Department-scoped lists: refetch whenever the user's viewable departments resolve/change
+  useEffect(() => {
+    if (deptScopeLoading) return;
+    fetchEquipment();
+    fetchMediaPlayers();
+    fetchPendingReceipts();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [deptScopeLoading, deptKey]);
+
+  /** Fetch every row (PostgREST caps a single request at 1000 rows). */
+  const fetchAllRows = async (build: (from: number, to: number) => any) => {
+    const size = 1000;
+    let from = 0;
+    const all: any[] = [];
+    // eslint-disable-next-line no-constant-condition
+    while (true) {
+      const { data, error } = await build(from, from + size - 1);
+      if (error) throw error;
+      const rows = data || [];
+      all.push(...rows);
+      if (rows.length < size) break;
+      from += size;
+    }
+    return all;
+  };
+
+  const applyDept = (q: any, column = "department") => {
+    if (isSuperAdmin) return q;
+    const depts = viewableDepts || [];
+    return q.in(column, depts.length > 0 ? depts : ["__no_dept_permission__"]);
+  };
+
   const fetchEquipment = async () => {
-    const { data, error } = await supabase
-      .from("equipment")
-      .select(
-        "id, code, name, unit, category, subcategory_id, quantity_in_stock, unit_price, width_cm, height_cm, depth_cm, volume_cm3",
-      )
-      .eq("is_active", true)
-      .order("code");
-    if (!error && data) {
-      setEquipment(data as Equipment[]);
+    try {
+      const rows = await fetchAllRows((from, to) =>
+        applyDept(
+          supabase
+            .from("equipment")
+            .select(
+              "id, code, name, unit, category, subcategory_id, quantity_in_stock, unit_price, width_cm, height_cm, depth_cm, volume_cm3",
+            )
+            .eq("is_active", true),
+        )
+          .order("code")
+          .range(from, to),
+      );
+      setEquipment(rows as Equipment[]);
+    } catch (e) {
+      console.error("fetchEquipment", e);
     }
   };
   const fetchCategories = async () => {
@@ -435,22 +475,38 @@ const DeliveryEntry = () => {
     }
   };
   const fetchPendingReceipts = async () => {
-    const { data, error } = await supabase.from("goods_receipt_pending").select("*").order("created_at", {
+    let query = supabase.from("goods_receipt_pending").select("*").order("created_at", {
       ascending: false,
     });
+    if (!isSuperAdmin) {
+      const depts = viewableDepts || [];
+      let deptIds: string[] = [];
+      if (depts.length > 0) {
+        const { data: deptRows } = await supabase.from("departments").select("id").in("name", depts);
+        deptIds = (deptRows || []).map((d: any) => d.id);
+      }
+      query = query.in("department_id", deptIds.length > 0 ? deptIds : ["00000000-0000-0000-0000-000000000000"]);
+    }
+    const { data, error } = await query;
     if (!error && data) {
       setPendingReceipts(data as PendingReceipt[]);
     }
   };
-  // fetchCmsTypes removed - CMS type field no longer used
   const fetchMediaPlayers = async () => {
-    const { data, error } = await supabase
-      .from("media_players")
-      .select("id, code, name, unit_price, specification, usage_lifespan_months, device_type")
-      .eq("is_active", true)
-      .order("code");
-    if (!error && data) {
-      setMediaPlayers(data);
+    try {
+      const rows = await fetchAllRows((from, to) =>
+        applyDept(
+          supabase
+            .from("media_players")
+            .select("id, code, name, unit_price, specification, usage_lifespan_months, device_type")
+            .eq("is_active", true),
+        )
+          .order("code")
+          .range(from, to),
+      );
+      setMediaPlayers(rows as any);
+    } catch (e) {
+      console.error("fetchMediaPlayers", e);
     }
   };
   const selectedEquipment = equipment.find((e) => e.id === selectedEquipmentId);
@@ -479,16 +535,23 @@ const DeliveryEntry = () => {
       if (selectedEquipment.subcategory_id) {
         setSelectedSubcategoryId(selectedEquipment.subcategory_id);
       }
-      // Auto-fill dimensions from existing equipment
-      if (selectedEquipment.width_cm !== null) {
-        setStorageWidthCm(String(selectedEquipment.width_cm));
-      }
-      if (selectedEquipment.height_cm !== null) {
-        setStorageHeightCm(String(selectedEquipment.height_cm));
-      }
-      if (selectedEquipment.depth_cm !== null) {
-        setStorageDepthCm(String(selectedEquipment.depth_cm));
-      }
+      // Auto-fill dimensions from existing equipment (clear when master data has none,
+      // otherwise the previous item's dimensions stay and the volume is wrong)
+      setStorageWidthCm(
+        selectedEquipment.width_cm !== null && selectedEquipment.width_cm !== undefined
+          ? String(selectedEquipment.width_cm)
+          : "",
+      );
+      setStorageHeightCm(
+        selectedEquipment.height_cm !== null && selectedEquipment.height_cm !== undefined
+          ? String(selectedEquipment.height_cm)
+          : "",
+      );
+      setStorageDepthCm(
+        selectedEquipment.depth_cm !== null && selectedEquipment.depth_cm !== undefined
+          ? String(selectedEquipment.depth_cm)
+          : "",
+      );
     } else {
       // Clear category/subcategory and dimensions when no equipment selected
       setSelectedCategoryId("");
