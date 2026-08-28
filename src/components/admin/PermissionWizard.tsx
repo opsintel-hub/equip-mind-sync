@@ -597,6 +597,48 @@ export function PermissionWizard({ open, onOpenChange, user, onSaved }: Permissi
               {departments.length === 0 && (
                 <p className="text-sm text-muted-foreground text-center py-4">ยังไม่มีข้อมูลฝ่าย</p>
               )}
+
+              <Separator />
+
+              <div className="space-y-2">
+                <Label className="text-sm font-semibold">แผนก (Section) — เลือกได้หลายแผนก</Label>
+                <p className="text-xs text-muted-foreground">
+                  ถ้าเลือกแผนก ผู้ใช้จะเห็นเฉพาะสินค้าในหมวดหมู่ที่แผนกนั้นดูแล (ตั้งค่าขอบเขตหมวดหมู่ได้ที่ ข้อมูลหลัก → ฝ่าย/แผนก)
+                  · ถ้าไม่เลือกแผนกใดเลย ผู้ใช้จะเห็นทุกหมวดหมู่ในฝ่ายที่มีสิทธิ์
+                </p>
+                {availableSections.length === 0 ? (
+                  <p className="text-sm text-muted-foreground py-2">
+                    ยังไม่มีแผนกในฝ่ายที่เลือก
+                  </p>
+                ) : (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                    {availableSections.map((s) => {
+                      const checked = selectedSectionIds.includes(s.id);
+                      return (
+                        <button
+                          key={s.id}
+                          type="button"
+                          onClick={() => toggleSection(s.id)}
+                          className={cn(
+                            "flex items-center gap-2 p-3 rounded-lg border-2 text-left text-sm transition-all",
+                            checked
+                              ? "border-primary bg-primary/5 text-foreground"
+                              : "border-border hover:border-primary/50"
+                          )}
+                        >
+                          <Wrench className={cn("h-4 w-4", checked ? "text-primary" : "text-muted-foreground")} />
+                          <span className="truncate flex-1">
+                            {s.name}
+                            <span className="block text-[10px] text-muted-foreground truncate">{s.department}</span>
+                          </span>
+                          {checked && <Check className="h-4 w-4 text-primary" />}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
             </div>
           )}
 
