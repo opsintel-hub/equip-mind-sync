@@ -26,6 +26,8 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { DepartmentForm } from "./DepartmentForm";
 import { SectionForm } from "@/components/section/SectionForm";
+import { SectionScopeDialog } from "@/components/section/SectionScopeDialog";
+
 
 interface DepartmentData {
   id: string;
@@ -304,6 +306,8 @@ export function DepartmentSectionAccordion({ canManageDepartment, canManageSecti
                           {!s.description && <span className="flex-1" />}
                           {canManageSection && (
                             <div className="flex gap-0.5 shrink-0">
+                              <SectionScopeDialog sectionId={s.id} sectionName={s.name} />
+
                               <SectionForm
                                 editData={{
                                   id: s.id,

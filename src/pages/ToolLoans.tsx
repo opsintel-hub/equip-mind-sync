@@ -16,6 +16,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useIsSuperAdmin } from "@/hooks/useIsSuperAdmin";
 import { useFunctionPermissions } from "@/hooks/useFunctionPermissions";
 import { useDeptScope } from "@/hooks/useDeptScope";
+import { useSectionScope } from "@/hooks/useSectionScope";
 import { useCurrentUserProfile } from "@/hooks/useCurrentUserProfile";
 import { format, differenceInDays } from "date-fns";
 import { th } from "date-fns/locale";
@@ -77,6 +78,7 @@ export default function ToolLoans({ mode = "all" }: ToolLoansProps) {
   const { isSuperAdmin } = useIsSuperAdmin();
   const { isAdmin } = useFunctionPermissions();
   const { viewableDepts } = useDeptScope();
+  const { applyToolScope, scopeKey } = useSectionScope();
   const { actorName } = useCurrentUserProfile();
 
   const [loans, setLoans] = useState<Loan[]>([]);
@@ -113,6 +115,7 @@ export default function ToolLoans({ mode = "all" }: ToolLoansProps) {
         let q = supabase.from("tools").select("id,code,name,unit,current_quantity,department,requires_approval,return_required,is_personal_tool,warranty_expiry_date,has_warranty")
           .eq("is_active", true);
         if (!isSuperAdmin && viewableDepts && viewableDepts.length > 0) q = q.in("department", viewableDepts);
+        q = applyToolScope(q as any) as any;
         return q.order("code");
       })(),
     ]);
@@ -121,7 +124,7 @@ export default function ToolLoans({ mode = "all" }: ToolLoansProps) {
     if (toolRes.error) toast.error("โหลดเครื่องมือไม่สำเร็จ: " + toolRes.error.message);
     else setTools((toolRes.data || []) as any);
     setLoading(false);
-  }, [isSuperAdmin, viewableDepts]);
+  }, [isSuperAdmin, viewableDepts, scopeKey]);
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
 

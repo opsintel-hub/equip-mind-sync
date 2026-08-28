@@ -10,6 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useIsSuperAdmin } from "@/hooks/useIsSuperAdmin";
 import { useDeptScope } from "@/hooks/useDeptScope";
+import { useSectionScope } from "@/hooks/useSectionScope";
 import { format, differenceInDays } from "date-fns";
 
 interface Loan {
@@ -62,6 +63,7 @@ const warrantyBucket = (t: Pick<Tool, "has_warranty" | "warranty_expiry_date">) 
 export default function ToolLoansReport() {
   const { isSuperAdmin } = useIsSuperAdmin();
   const { viewableDepts } = useDeptScope();
+  const { matchTool } = useSectionScope();
   const [loans, setLoans] = useState<Loan[]>([]);
   const [tools, setTools] = useState<Tool[]>([]);
   const [loading, setLoading] = useState(true);
@@ -93,8 +95,8 @@ export default function ToolLoansReport() {
       if (loanRes.error) toast.error(loanRes.error.message);
       if (toolRes.error) toast.error(toolRes.error.message);
 
-      let list = (loanRes.data || []) as any as Loan[];
-      let tls = (toolRes.data || []) as any as Tool[];
+      let list = ((loanRes.data || []) as any[]).filter((r: any) => !r.tool || matchTool(r.tool)) as any as Loan[];
+      let tls = ((toolRes.data || []) as any[]).filter((t: any) => matchTool(t)) as any as Tool[];
       if (!isSuperAdmin && viewableDepts?.length) {
         list = list.filter(r => !r.tool?.department || viewableDepts.includes(r.tool.department));
         tls = tls.filter(t => !t.department || viewableDepts.includes(t.department));

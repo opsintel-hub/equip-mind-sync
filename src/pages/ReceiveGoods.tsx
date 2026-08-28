@@ -53,6 +53,7 @@ const getReceiptPoDocumentUrl = (r: any): string | null => {
 import { format } from "date-fns";
 import { useAuth } from "@/hooks/useAuth";
 import { useDeptScope } from "@/hooks/useDeptScope";
+import { useSectionScope } from "@/hooks/useSectionScope";
 import { logStockMovement } from "@/lib/stockMovement";
 
 interface Equipment {
@@ -187,6 +188,7 @@ async function resolveMediaPlayerRowForReceipt(
 const ReceiveGoods = () => {
   const { user } = useAuth();
   const { applyDeptFilter, deptKey } = useDeptScope();
+  const { applyEquipmentScope, scopeKey } = useSectionScope();
   const [searchTerm, setSearchTerm] = useState("");
   const [snSearchTerm, setSnSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("pending");
@@ -251,7 +253,7 @@ const ReceiveGoods = () => {
     fetchReceiptPurposes();
     fetchDepartments();
     fetchCompanies();
-  }, [filterStatus, deptKey]);
+  }, [filterStatus, deptKey, scopeKey]);
 
   const fetchReceiptPurposes = async () => {
     const { data, error } = await supabase
@@ -308,11 +310,13 @@ const ReceiveGoods = () => {
   };
 
   const fetchEquipment = async () => {
-    const { data, error } = await applyDeptFilter(
-      supabase
-        .from("equipment")
-        .select("id, code, name, unit, location_id, supplier_id, department")
-        .eq("is_active", true) as any,
+    const { data, error } = await applyEquipmentScope(
+      applyDeptFilter(
+        supabase
+          .from("equipment")
+          .select("id, code, name, unit, location_id, supplier_id, department")
+          .eq("is_active", true) as any,
+      ),
     ).order("code");
     
     if (!error && data) {

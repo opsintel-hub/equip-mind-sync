@@ -5008,6 +5008,44 @@ export type Database = {
         }
         Relationships: []
       }
+      section_scopes: {
+        Row: {
+          created_at: string
+          id: string
+          ref_id: string | null
+          ref_text: string | null
+          scope_type: string
+          section_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          ref_id?: string | null
+          ref_text?: string | null
+          scope_type: string
+          section_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          ref_id?: string | null
+          ref_text?: string | null
+          scope_type?: string
+          section_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "section_scopes_section_id_fkey"
+            columns: ["section_id"]
+            isOneToOne: false
+            referencedRelation: "sections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sections: {
         Row: {
           created_at: string
@@ -6267,6 +6305,50 @@ export type Database = {
         }
         Relationships: []
       }
+      user_sections: {
+        Row: {
+          can_create: boolean
+          can_delete: boolean
+          can_edit: boolean
+          can_view: boolean
+          created_at: string
+          id: string
+          section_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          can_create?: boolean
+          can_delete?: boolean
+          can_edit?: boolean
+          can_view?: boolean
+          created_at?: string
+          id?: string
+          section_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          can_create?: boolean
+          can_delete?: boolean
+          can_edit?: boolean
+          can_view?: boolean
+          created_at?: string
+          id?: string
+          section_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_sections_section_id_fkey"
+            columns: ["section_id"]
+            isOneToOne: false
+            referencedRelation: "sections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       warehouses: {
         Row: {
           code: string
@@ -6418,6 +6500,15 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      get_user_section_scopes: {
+        Args: { _user_id: string }
+        Returns: {
+          ref_id: string
+          ref_text: string
+          scope_type: string
+          section_id: string
+        }[]
+      }
       get_users_admin_meta: {
         Args: never
         Returns: {
@@ -6548,6 +6639,10 @@ export type Database = {
           _target_user_id: string
         }
         Returns: undefined
+      }
+      user_has_section: {
+        Args: { _section_id: string; _user_id: string }
+        Returns: boolean
       }
     }
     Enums: {

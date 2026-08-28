@@ -93,6 +93,9 @@ export function PermissionWizard({ open, onOpenChange, user, onSaved }: Permissi
   // Selections
   const [selectedTemplateKeys, setSelectedTemplateKeys] = useState<string[]>([]);
   const [selectedDepartments, setSelectedDepartments] = useState<string[]>([]);
+  const [sections, setSections] = useState<{ id: string; name: string; department: string }[]>([]);
+  const [selectedSectionIds, setSelectedSectionIds] = useState<string[]>([]);
+
 
   // Computed (editable) preview
   const [previewRoles, setPreviewRoles] = useState<UserRole[]>([]);
@@ -116,18 +119,20 @@ export function PermissionWizard({ open, onOpenChange, user, onSaved }: Permissi
       // Pre-select user's requested job role and department (if any)
       setSelectedTemplateKeys(user?.requested_job_role ? [user.requested_job_role] : []);
       setSelectedDepartments(user?.requested_department ? [user.requested_department] : []);
+      setSelectedSectionIds([]);
       setPreviewRoles([]);
       setPreviewFunctions([]);
       setDeptPerm({ view: true, create: false, edit: false, delete: false });
       loadData();
     }
+
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, user?.id]);
 
   const loadData = async () => {
     setLoading(true);
     try {
-      const [tplRes, deptRes, userDeptRes] = await Promise.all([
+      const [tplRes, deptRes, userDeptRes, sectionRes, userSecRes] = await Promise.all([
         (supabase as any)
           .from("permission_templates")
           .select("*")
@@ -137,10 +142,26 @@ export function PermissionWizard({ open, onOpenChange, user, onSaved }: Permissi
         user?.id
           ? supabase.from("user_departments").select("*").eq("user_id", user.id)
           : Promise.resolve({ data: [], error: null } as any),
+        supabase
+          .from("sections")
+          .select("id, name, departments:department_id (name)")
+          .eq("is_active", true)
+          .order("name"),
+        user?.id
+          ? (supabase as any).from("user_sections").select("section_id").eq("user_id", user.id)
+          : Promise.resolve({ data: [], error: null } as any),
       ]);
       if (tplRes.error) throw tplRes.error;
       setTemplates((tplRes.data || []) as PermissionTemplate[]);
       setDepartments((deptRes.data || []).map((d: any) => d.name));
+      setSections(
+        ((sectionRes as any).data || []).map((s: any) => ({
+          id: s.id,
+          name: s.name,
+          department: s.departments?.name || "",
+        })),
+      );
+      setSelectedSectionIds((((userSecRes as any).data || []) as any[]).map((r) => r.section_id));
 
       // Prefill existing department access (supports users assigned to multiple departments)
       const existing = (userDeptRes as any)?.data || [];
@@ -153,6 +174,7 @@ export function PermissionWizard({ open, onOpenChange, user, onSaved }: Permissi
           delete: existing.some((r: any) => r.can_delete),
         });
       }
+
     } catch (e: any) {
       console.error(e);
       toast.error("โหลดข้อมูลเทมเพลตไม่สำเร็จ");
@@ -187,6 +209,18 @@ export function PermissionWizard({ open, onOpenChange, user, onSaved }: Permissi
       prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]
     );
   };
+
+  const toggleSection = (id: string) => {
+    setSelectedSectionIds((prev) =>
+      prev.includes(id) ? prev.filter((s) => s !== id) : [...prev, id]
+    );
+  };
+
+  const availableSections = useMemo(
+    () => sections.filter((s) => selectedDepartments.includes(s.department)),
+    [sections, selectedDepartments],
+  );
+
 
   const toggleDept = (name: string) => {
     setSelectedDepartments((prev) =>
@@ -300,6 +334,25 @@ export function PermissionWizard({ open, onOpenChange, user, onSaved }: Permissi
         const { error: dErr } = await supabase.from("user_departments").insert(deptRows);
         if (dErr) throw dErr;
       }
+
+      // 4. Section (แผนก) access: replace — only sections inside selected departments
+      await (supabase as any).from("user_sections").delete().eq("user_id", user.id);
+      const sectionRows = selectedSectionIds
+        .filter((id) => availableSections.some((s) => s.id === id))
+        .map((id) => ({
+          user_id: user.id,
+          section_id: id,
+          can_view: deptPerm.view,
+          can_create: deptPerm.create,
+          can_edit: deptPerm.edit,
+          can_delete: isAdminLike ? deptPerm.delete : false,
+        }));
+      if (sectionRows.length > 0) {
+        const { error: sErr } = await (supabase as any).from("user_sections").insert(sectionRows);
+        if (sErr) throw sErr;
+      }
+
+
 
       toast.success("ตั้งค่าสิทธิ์อัตโนมัติสำเร็จ");
       onOpenChange(false);
@@ -544,6 +597,48 @@ export function PermissionWizard({ open, onOpenChange, user, onSaved }: Permissi
               {departments.length === 0 && (
                 <p className="text-sm text-muted-foreground text-center py-4">ยังไม่มีข้อมูลฝ่าย</p>
               )}
+
+              <Separator />
+
+              <div className="space-y-2">
+                <Label className="text-sm font-semibold">แผนก (Section) — เลือกได้หลายแผนก</Label>
+                <p className="text-xs text-muted-foreground">
+                  ถ้าเลือกแผนก ผู้ใช้จะเห็นเฉพาะสินค้าในหมวดหมู่ที่แผนกนั้นดูแล (ตั้งค่าขอบเขตหมวดหมู่ได้ที่ ข้อมูลหลัก → ฝ่าย/แผนก)
+                  · ถ้าไม่เลือกแผนกใดเลย ผู้ใช้จะเห็นทุกหมวดหมู่ในฝ่ายที่มีสิทธิ์
+                </p>
+                {availableSections.length === 0 ? (
+                  <p className="text-sm text-muted-foreground py-2">
+                    ยังไม่มีแผนกในฝ่ายที่เลือก
+                  </p>
+                ) : (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                    {availableSections.map((s) => {
+                      const checked = selectedSectionIds.includes(s.id);
+                      return (
+                        <button
+                          key={s.id}
+                          type="button"
+                          onClick={() => toggleSection(s.id)}
+                          className={cn(
+                            "flex items-center gap-2 p-3 rounded-lg border-2 text-left text-sm transition-all",
+                            checked
+                              ? "border-primary bg-primary/5 text-foreground"
+                              : "border-border hover:border-primary/50"
+                          )}
+                        >
+                          <Wrench className={cn("h-4 w-4", checked ? "text-primary" : "text-muted-foreground")} />
+                          <span className="truncate flex-1">
+                            {s.name}
+                            <span className="block text-[10px] text-muted-foreground truncate">{s.department}</span>
+                          </span>
+                          {checked && <Check className="h-4 w-4 text-primary" />}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
             </div>
           )}
 

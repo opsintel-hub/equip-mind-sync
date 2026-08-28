@@ -3,6 +3,7 @@ import { useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useDeptScope } from "@/hooks/useDeptScope";
+import { useSectionScope } from "@/hooks/useSectionScope";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -145,6 +146,7 @@ function warrantyStateFromDate(warrantyDate: string | null): "active" | "ending"
 export default function AssessmentLog() {
   const { user } = useAuth();
   const { applyDeptFilter, deptKey } = useDeptScope();
+  const { applyMediaPlayerScope, matchEquipment, scopeKey } = useSectionScope();
   const location = useLocation();
   const [logs, setLogs] = useState<AssessmentLog[]>([]);
   const [rejectionMap, setRejectionMap] = useState<Record<string, { document_no: string; rejection_reason: string | null; rejected_at: string | null; rejected_by_name: string | null }>>({});
@@ -453,16 +455,18 @@ export default function AssessmentLog() {
   const fetchSubjects = async () => {
     setSubjectsLoading(true);
     const [mpRes, eqRes] = await Promise.all([
-      applyDeptFilter(
-        supabase
-          .from("media_players")
-          .select("id, code, name, serial_number_1, serial_number_2, device_type") as any,
+      applyMediaPlayerScope(
+        applyDeptFilter(
+          supabase
+            .from("media_players")
+            .select("id, code, name, serial_number_1, serial_number_2, device_type") as any,
+        ),
       )
         .order("code")
         .limit(1000),
       supabase
         .from("equipment_serial_numbers")
-        .select("id, serial_number, equipment:equipment_id(code, name)")
+        .select("id, serial_number, equipment:equipment_id(code, name, category, subcategory_id)")
         .order("serial_number")
         .limit(500),
     ]);
@@ -478,15 +482,17 @@ export default function AssessmentLog() {
         device_type: mp.device_type || "MEDIA_PLAYER",
       });
     });
-    (eqRes.data || []).forEach((sn: any) => {
-      items.push({
-        id: sn.id,
-        type: "equipment",
-        code: sn.equipment?.code || "—",
-        name: sn.equipment?.name || "Equipment",
-        serial: sn.serial_number,
+    (eqRes.data || [])
+      .filter((sn: any) => matchEquipment(sn.equipment || {}))
+      .forEach((sn: any) => {
+        items.push({
+          id: sn.id,
+          type: "equipment",
+          code: sn.equipment?.code || "—",
+          name: sn.equipment?.name || "Equipment",
+          serial: sn.serial_number,
+        });
       });
-    });
     setSubjects(items);
     setSubjectsLoading(false);
   };
@@ -494,7 +500,7 @@ export default function AssessmentLog() {
   useEffect(() => {
     fetchLogs();
     fetchSubjects();
-  }, [deptKey]);
+  }, [deptKey, scopeKey]);
 
   // Apply prefill from navigation state (e.g., from Defective Returns)
   useEffect(() => {

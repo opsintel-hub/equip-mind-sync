@@ -20,6 +20,7 @@ import { format, differenceInDays } from "date-fns";
 import { th } from "date-fns/locale";
 import { useAuth } from "@/hooks/useAuth";
 import { useDeptScope } from "@/hooks/useDeptScope";
+import { useSectionScope } from "@/hooks/useSectionScope";
 import BillboardDisplay from "@/components/billboard/BillboardDisplay";
 import BillboardSelect from "@/components/billboard/BillboardSelect";
 import { SubMediaTypeSelect } from "@/components/media-player/SubMediaTypeSelect";
@@ -91,6 +92,7 @@ const IssueGoods = () => {
   const queryClient = useQueryClient();
   const { user } = useAuth();
   const { isSuperAdmin, viewableDepts, deptKey } = useDeptScope();
+  const { applyEquipmentScope, applyMediaPlayerScope, scopeKey } = useSectionScope();
   const scopeDepts = isSuperAdmin ? null : ((viewableDepts && viewableDepts.length > 0) ? viewableDepts : ["__no_dept_permission__"]);
   const [searchTerm, setSearchTerm] = useState("");
   const [snSearchTerm, setSnSearchTerm] = useState("");
@@ -173,7 +175,7 @@ const IssueGoods = () => {
 
   // Fetch equipment for validation with full details including location — dept-scoped
   const { data: equipment } = useQuery({
-    queryKey: ["equipment-active-details", deptKey],
+    queryKey: ["equipment-active-details", deptKey, scopeKey],
     queryFn: async () => {
       let q = supabase
         .from("equipment")
@@ -184,6 +186,7 @@ const IssueGoods = () => {
         .eq("is_active", true)
         .order("warehouse_entry_date", { ascending: true });
       if (scopeDepts) q = q.in("department", scopeDepts);
+      q = applyEquipmentScope(q as any) as any;
       const { data, error } = await q;
       if (error) throw error;
       return data as (EquipmentWithDetails & { 
@@ -195,7 +198,7 @@ const IssueGoods = () => {
 
   // Fetch available Media Player units (in stock) for multi-unit issuance — dept-scoped
   const { data: availableMpUnits, refetch: refetchMpUnits } = useQuery({
-    queryKey: ["available-media-player-units", deptKey],
+    queryKey: ["available-media-player-units", deptKey, scopeKey],
     queryFn: async () => {
       // Include all active units (even quantity=0) so we can show them as disabled
       // with a clear reason, instead of silently hiding newly-edited S/Ns.
@@ -204,6 +207,7 @@ const IssueGoods = () => {
         .select("id, code, name, serial_number_1, serial_number_2, quantity, billboard_id, location_id, department, sub_media_type, device_type, status, locations(id, name, code, warehouses(id, name, code))")
         .eq("is_active", true);
       if (scopeDepts) q = q.in("department", scopeDepts);
+      q = applyMediaPlayerScope(q as any) as any;
       const { data, error } = await q;
       if (error) throw error;
       return data as any[];

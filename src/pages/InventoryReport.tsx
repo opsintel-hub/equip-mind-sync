@@ -32,6 +32,7 @@ import { buildReceivedSerialAliasMap, formatMergedSerials, matchesSerialSearch }
 import BillboardSelect from "@/components/billboard/BillboardSelect";
 import { getCompatibilityBadge } from "@/components/equipment/BillboardCompatibilityField";
 import { useDeptScope } from "@/hooks/useDeptScope";
+import { useSectionScope } from "@/hooks/useSectionScope";
 import { ViewModeToggle, useViewMode } from "@/components/common/ViewModeToggle";
 import { EntityCardGrid, CardItem } from "@/components/common/EntityCardGrid";
 import { EntityCalendarView, CalendarItem } from "@/components/common/EntityCalendarView";
@@ -107,6 +108,7 @@ export default function InventoryReport() {
   // Compatibility filter: filter equipment by billboard support
   const [compatBillboardId, setCompatBillboardId] = useState<string>("");
   const { isSuperAdmin, viewableDepts, deptKey } = useDeptScope();
+  const { applyEquipmentScope, applyToolScope, applyMediaPlayerScope, scopeKey } = useSectionScope();
   const scopeDepts = isSuperAdmin ? null : ((viewableDepts && viewableDepts.length > 0) ? viewableDepts : ["__no_dept_permission__"]);
   const [viewMode, setViewMode] = useViewMode("inventory-report", "table");
 
@@ -153,7 +155,7 @@ export default function InventoryReport() {
 
   // Fetch equipment with related data
   const { data: equipmentData = [], isLoading: isLoadingEquipment } = useQuery({
-    queryKey: ["inventory-report-equipment", filters, deptKey],
+    queryKey: ["inventory-report-equipment", filters, deptKey, scopeKey],
     queryFn: async () => {
       // Skip if filtering for media players or tools only
       if (filters.itemType === "media_player" || filters.itemType === "tools") {
@@ -204,6 +206,7 @@ export default function InventoryReport() {
         query = query.eq("location_id", filters.locationId);
       }
       if (scopeDepts) query = query.in("department", scopeDepts);
+      query = applyEquipmentScope(query as any) as any;
 
       const { data, error } = await query;
       if (error) throw error;
@@ -224,7 +227,7 @@ export default function InventoryReport() {
 
   // Fetch tools with related data
   const { data: toolsData = [], isLoading: isLoadingTools } = useQuery({
-    queryKey: ["inventory-report-tools", filters, deptKey],
+    queryKey: ["inventory-report-tools", filters, deptKey, scopeKey],
     queryFn: async () => {
       // Skip if filtering for equipment or media players only
       if (filters.itemType === "equipment" || filters.itemType === "media_player") {
@@ -265,6 +268,7 @@ export default function InventoryReport() {
         query = query.eq("location_id", filters.locationId);
       }
       if (scopeDepts) query = query.in("department", scopeDepts);
+      query = applyToolScope(query as any) as any;
 
       const { data, error } = await query;
       if (error) throw error;
@@ -299,7 +303,7 @@ export default function InventoryReport() {
 
   // Fetch media players with related data
   const { data: mediaPlayerData = [], isLoading: isLoadingMediaPlayers } = useQuery({
-    queryKey: ["inventory-report-media-players", filters, deptKey],
+    queryKey: ["inventory-report-media-players", filters, deptKey, scopeKey],
     queryFn: async () => {
       // Skip if filtering for equipment or tools only
       if (filters.itemType === "equipment" || filters.itemType === "tools") {
@@ -341,6 +345,7 @@ export default function InventoryReport() {
         query = query.eq("location_id", filters.locationId);
       }
       if (scopeDepts) query = query.in("department", scopeDepts);
+      query = applyMediaPlayerScope(query as any) as any;
 
       const { data, error } = await query;
       if (error) throw error;

@@ -32,6 +32,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useDeptScope } from "@/hooks/useDeptScope";
+import { useSectionScope } from "@/hooks/useSectionScope";
 
 interface Equipment {
   id: string;
@@ -79,10 +80,11 @@ export function EquipmentList({ refresh }: EquipmentListProps) {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const { isSuperAdmin, viewableDepts, deptKey } = useDeptScope();
+  const { applyEquipmentScope, scopeKey } = useSectionScope();
 
   useEffect(() => {
     fetchEquipment();
-  }, [refresh, deptKey]);
+  }, [refresh, deptKey, scopeKey]);
 
   const fetchEquipment = async () => {
     try {
@@ -104,6 +106,7 @@ export function EquipmentList({ refresh }: EquipmentListProps) {
         const depts = viewableDepts || [];
         query = query.in("department", depts.length > 0 ? depts : ["__no_dept_permission__"]);
       }
+      query = applyEquipmentScope(query as any) as any;
 
       const { data, error } = await query;
       if (error) throw error;
