@@ -483,16 +483,23 @@ const DeliveryEntry = () => {
       if (selectedEquipment.subcategory_id) {
         setSelectedSubcategoryId(selectedEquipment.subcategory_id);
       }
-      // Auto-fill dimensions from existing equipment
-      if (selectedEquipment.width_cm !== null) {
-        setStorageWidthCm(String(selectedEquipment.width_cm));
-      }
-      if (selectedEquipment.height_cm !== null) {
-        setStorageHeightCm(String(selectedEquipment.height_cm));
-      }
-      if (selectedEquipment.depth_cm !== null) {
-        setStorageDepthCm(String(selectedEquipment.depth_cm));
-      }
+      // Auto-fill dimensions from existing equipment (clear when master data has none,
+      // otherwise the previous item's dimensions stay and the volume is wrong)
+      setStorageWidthCm(
+        selectedEquipment.width_cm !== null && selectedEquipment.width_cm !== undefined
+          ? String(selectedEquipment.width_cm)
+          : "",
+      );
+      setStorageHeightCm(
+        selectedEquipment.height_cm !== null && selectedEquipment.height_cm !== undefined
+          ? String(selectedEquipment.height_cm)
+          : "",
+      );
+      setStorageDepthCm(
+        selectedEquipment.depth_cm !== null && selectedEquipment.depth_cm !== undefined
+          ? String(selectedEquipment.depth_cm)
+          : "",
+      );
     } else {
       // Clear category/subcategory and dimensions when no equipment selected
       setSelectedCategoryId("");
