@@ -304,6 +304,8 @@ export function DepartmentSectionAccordion({ canManageDepartment, canManageSecti
                           {!s.description && <span className="flex-1" />}
                           {canManageSection && (
                             <div className="flex gap-0.5 shrink-0">
+                              <SectionScopeDialog sectionId={s.id} sectionName={s.name} />
+
                               <SectionForm
                                 editData={{
                                   id: s.id,
