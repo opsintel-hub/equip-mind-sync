@@ -12,6 +12,7 @@ import { addDays, format } from "date-fns";
 import { Check, ChevronsUpDown, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useDeptScope } from "@/hooks/useDeptScope";
+import { useSectionScope } from "@/hooks/useSectionScope";
 
 interface Company {
   id: string;
@@ -44,6 +45,7 @@ export function LoanRequestForm({ onSuccess }: LoanRequestFormProps) {
   const [categories, setCategories] = useState<Category[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const { isSuperAdmin, viewableDepts } = useDeptScope();
+  const { applyEquipmentScope, scopeKey } = useSectionScope();
   const scopeDepts = isSuperAdmin ? null : ((viewableDepts && viewableDepts.length > 0) ? viewableDepts : ["__no_dept_permission__"]);
 
   const [fromCompanyId, setFromCompanyId] = useState("");
@@ -100,12 +102,13 @@ export function LoanRequestForm({ onSuccess }: LoanRequestFormProps) {
   const fetchEquipment = async () => {
     let q = supabase
       .from("equipment")
-      .select("id, code, name, quantity_in_stock, unit, category")
+      .select("id, code, name, quantity_in_stock, unit, category, subcategory_id")
       .eq("company_id", fromCompanyId)
       .eq("is_active", true)
       .gt("quantity_in_stock", 0)
       .order("code");
     if (scopeDepts) q = q.in("department", scopeDepts);
+    q = applyEquipmentScope(q as any) as any;
     const { data, error } = await q;
 
     if (error) {

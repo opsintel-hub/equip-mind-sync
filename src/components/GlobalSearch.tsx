@@ -14,6 +14,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { supabase } from "@/integrations/supabase/client";
 import { formatBillboardLabel } from "@/lib/billboardUtils";
 import { useDeptScope } from "@/hooks/useDeptScope";
+import { useSectionScope } from "@/hooks/useSectionScope";
 
 type ResultType = "equipment" | "media_player" | "billboard";
 
@@ -41,6 +42,7 @@ export function GlobalSearch() {
   const navigate = useNavigate();
   const inputRef = useRef<HTMLInputElement>(null);
   const { isSuperAdmin, viewableDepts } = useDeptScope();
+  const { applyEquipmentScope, applyMediaPlayerScope, matchEquipment } = useSectionScope();
   const scopeDepts = isSuperAdmin ? null : ((viewableDepts && viewableDepts.length > 0) ? viewableDepts : ["__no_dept_permission__"]);
 
   // Keyboard shortcut: Cmd/Ctrl+K
@@ -83,6 +85,7 @@ export function GlobalSearch() {
         .or(`code.ilike.${like},name.ilike.${like},brand.ilike.${like},serial_number.ilike.${like}`)
         .limit(15);
       if (scopeDepts) eqQ = eqQ.in("department", scopeDepts);
+      eqQ = applyEquipmentScope(eqQ as any) as any;
 
       let mpQ = supabase
         .from("media_players")
@@ -92,6 +95,7 @@ export function GlobalSearch() {
         )
         .limit(15);
       if (scopeDepts) mpQ = mpQ.in("department", scopeDepts);
+      mpQ = applyMediaPlayerScope(mpQ as any) as any;
 
       let bbQ = supabase
         .from("billboards")
@@ -104,7 +108,7 @@ export function GlobalSearch() {
         eqQ,
         supabase
           .from("equipment_serial_numbers")
-          .select("id, serial_number, status, equipment:equipment_id(id, code, name, brand, department)")
+          .select("id, serial_number, status, equipment:equipment_id(id, code, name, brand, department, category, subcategory_id)")
           .ilike("serial_number", like)
           .limit(15),
         mpQ,
@@ -131,6 +135,7 @@ export function GlobalSearch() {
         const eq = s.equipment;
         if (!eq) return;
         if (scopeDepts && !scopeDepts.includes(eq.department)) return;
+        if (!matchEquipment(eq)) return;
         const key = `${eq.id}::${s.serial_number}`;
         if (seenEqSn.has(key)) return;
         seenEqSn.add(key);

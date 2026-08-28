@@ -53,6 +53,7 @@ import { DocumentUploadField } from "@/components/media-player/DocumentUploadFie
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { useAllowedDepartments } from "@/hooks/useAllowedDepartments";
 import { useDeptScope } from "@/hooks/useDeptScope";
+import { useSectionScope } from "@/hooks/useSectionScope";
 import { useCurrentUserProfile } from "@/hooks/useCurrentUserProfile";
 import { dedupeMediaPlayersByCode } from "@/lib/mediaPlayerOptions";
 interface Equipment {
@@ -129,6 +130,7 @@ const DeliveryEntry = () => {
   // cmsTypes removed - no longer used
   const { allowedDepartments, isSingleDepartment, loading: deptLoading } = useAllowedDepartments("create");
   const { isSuperAdmin, viewableDepts, deptKey, loading: deptScopeLoading } = useDeptScope();
+  const { applyEquipmentScope, applyMediaPlayerScope, scopeKey } = useSectionScope();
   const { profile: currentProfile, actorName: currentActorName } = useCurrentUserProfile();
   const [mediaPlayers, setMediaPlayers] = useState<
     {
@@ -405,14 +407,14 @@ const DeliveryEntry = () => {
   const fetchEquipment = async () => {
     try {
       const rows = await fetchAllRows((from, to) =>
-        applyDept(
+        applyEquipmentScope(applyDept(
           supabase
             .from("equipment")
             .select(
               "id, code, name, unit, category, subcategory_id, quantity_in_stock, unit_price, width_cm, height_cm, depth_cm, volume_cm3",
             )
             .eq("is_active", true),
-        )
+        ) as any)
           .order("code")
           .range(from, to),
       );
@@ -495,12 +497,12 @@ const DeliveryEntry = () => {
   const fetchMediaPlayers = async () => {
     try {
       const rows = await fetchAllRows((from, to) =>
-        applyDept(
+        applyMediaPlayerScope(applyDept(
           supabase
             .from("media_players")
             .select("id, code, name, unit_price, specification, usage_lifespan_months, device_type")
             .eq("is_active", true),
-        )
+        ) as any)
           .order("code")
           .range(from, to),
       );
