@@ -1149,13 +1149,13 @@ const IssueGoods = () => {
                           </TableRow>
                           
                           {/* Expanded Items */}
-                          {isExpanded && hasMultipleItems && (
+                          {isExpanded && hasExpandableData && (
                             <TableRow key={`${req.id}-items`}>
                               <TableCell colSpan={9} className="bg-muted/30 p-0">
                                 <div className="p-4">
                                   <h4 className="font-medium mb-3 flex items-center gap-2">
                                     <ShoppingCart className="h-4 w-4" />
-                                    รายการสินค้า ({items.length} รายการ)
+                                    รายการสินค้า ({displayItems.length} รายการ)
                                   </h4>
                                   <Table>
                                     <TableHeader>
