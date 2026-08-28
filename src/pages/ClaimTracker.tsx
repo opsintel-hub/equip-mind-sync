@@ -19,6 +19,7 @@ import { SearchableSelect } from "@/components/ui/searchable-select";
 import { SymptomSelect } from "@/components/media-player/SymptomSelect";
 import { ClaimResultSelect, type ClaimResultKind } from "@/components/media-player/ClaimResultSelect";
 import { formatBillboardLabel } from "@/lib/billboardUtils";
+import { formatMergedSerials } from "@/lib/serialSearch";
 import { SupplierSelect } from "@/components/supplier/SupplierSelect";
 import { LocationSelect } from "@/components/location/LocationSelect";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -266,7 +267,7 @@ export default function ClaimTracker() {
     const [mpRes, eqRes] = await Promise.all([
       supabase
         .from("media_players")
-        .select("id, code, name, serial_number, warranty_expiry_date, supplier_id, device_type")
+        .select("id, code, name, serial_number_1, serial_number_2, warranty_expiry_date, supplier_id, device_type")
         .order("code")
         .limit(500),
       supabase
@@ -283,7 +284,7 @@ export default function ClaimTracker() {
         type: "media_player",
         code: mp.code,
         name: mp.name || "Media Player",
-        serial: mp.serial_number,
+        serial: formatMergedSerials(mp.serial_number_1, mp.serial_number_2) || null,
         warranty: mp.warranty_expiry_date,
         supplier_id: mp.supplier_id,
         device_type: mp.device_type || "MEDIA_PLAYER",
