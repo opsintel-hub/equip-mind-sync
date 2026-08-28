@@ -379,7 +379,7 @@ const DeliveryEntry = () => {
     fetchMediaPlayers();
     fetchPendingReceipts();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [deptScopeLoading, deptKey]);
+  }, [deptScopeLoading, deptKey, scopeKey]);
 
   /** Fetch every row (PostgREST caps a single request at 1000 rows). */
   const fetchAllRows = async (build: (from: number, to: number) => any) => {
