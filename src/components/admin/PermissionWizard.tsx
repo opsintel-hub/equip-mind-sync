@@ -210,6 +210,18 @@ export function PermissionWizard({ open, onOpenChange, user, onSaved }: Permissi
     );
   };
 
+  const toggleSection = (id: string) => {
+    setSelectedSectionIds((prev) =>
+      prev.includes(id) ? prev.filter((s) => s !== id) : [...prev, id]
+    );
+  };
+
+  const availableSections = useMemo(
+    () => sections.filter((s) => selectedDepartments.includes(s.department)),
+    [sections, selectedDepartments],
+  );
+
+
   const toggleDept = (name: string) => {
     setSelectedDepartments((prev) =>
       prev.includes(name) ? prev.filter((d) => d !== name) : [...prev, name]
