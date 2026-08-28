@@ -363,26 +363,62 @@ const DeliveryEntry = () => {
   }, [deptLoading, allowedDepartments, currentProfile?.department, selectedDepartmentId]);
 
   useEffect(() => {
-    fetchEquipment();
     fetchCompanies();
     fetchSuppliers();
     fetchReceiptPurposes();
-    fetchPendingReceipts();
-    // fetchCmsTypes removed
-    fetchMediaPlayers();
     fetchCategories();
     fetchSubcategories();
   }, []);
+
+  // Department-scoped lists: refetch whenever the user's viewable departments resolve/change
+  useEffect(() => {
+    if (deptScopeLoading) return;
+    fetchEquipment();
+    fetchMediaPlayers();
+    fetchPendingReceipts();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [deptScopeLoading, deptKey]);
+
+  /** Fetch every row (PostgREST caps a single request at 1000 rows). */
+  const fetchAllRows = async (build: (from: number, to: number) => any) => {
+    const size = 1000;
+    let from = 0;
+    const all: any[] = [];
+    // eslint-disable-next-line no-constant-condition
+    while (true) {
+      const { data, error } = await build(from, from + size - 1);
+      if (error) throw error;
+      const rows = data || [];
+      all.push(...rows);
+      if (rows.length < size) break;
+      from += size;
+    }
+    return all;
+  };
+
+  const applyDept = (q: any, column = "department") => {
+    if (isSuperAdmin) return q;
+    const depts = viewableDepts || [];
+    return q.in(column, depts.length > 0 ? depts : ["__no_dept_permission__"]);
+  };
+
   const fetchEquipment = async () => {
-    const { data, error } = await supabase
-      .from("equipment")
-      .select(
-        "id, code, name, unit, category, subcategory_id, quantity_in_stock, unit_price, width_cm, height_cm, depth_cm, volume_cm3",
-      )
-      .eq("is_active", true)
-      .order("code");
-    if (!error && data) {
-      setEquipment(data as Equipment[]);
+    try {
+      const rows = await fetchAllRows((from, to) =>
+        applyDept(
+          supabase
+            .from("equipment")
+            .select(
+              "id, code, name, unit, category, subcategory_id, quantity_in_stock, unit_price, width_cm, height_cm, depth_cm, volume_cm3",
+            )
+            .eq("is_active", true),
+        )
+          .order("code")
+          .range(from, to),
+      );
+      setEquipment(rows as Equipment[]);
+    } catch (e) {
+      console.error("fetchEquipment", e);
     }
   };
   const fetchCategories = async () => {
