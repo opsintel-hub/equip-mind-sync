@@ -62,6 +62,31 @@ const Login = () => {
   const [optionsLoading, setOptionsLoading] = useState(true);
   const [optionsError, setOptionsError] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [forgotOpen, setForgotOpen] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState("");
+  const [forgotSending, setForgotSending] = useState(false);
+
+  const handleForgotPassword = async () => {
+    const email = forgotEmail.trim();
+    if (!z.string().email().safeParse(email).success) {
+      toast.error("รูปแบบอีเมลไม่ถูกต้อง");
+      return;
+    }
+    setForgotSending(true);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+      if (error) throw error;
+      toast.success("ส่งลิงก์รีเซ็ตรหัสผ่านไปที่อีเมลแล้ว กรุณาตรวจสอบกล่องจดหมาย (รวมถึง Junk/Spam)");
+      setForgotOpen(false);
+      setForgotEmail("");
+    } catch (e: any) {
+      toast.error(e?.message || "ส่งลิงก์รีเซ็ตรหัสผ่านไม่สำเร็จ");
+    } finally {
+      setForgotSending(false);
+    }
+  };
 
   useEffect(() => {
     if (user) {
