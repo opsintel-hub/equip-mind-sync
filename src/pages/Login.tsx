@@ -388,6 +388,36 @@ const Login = () => {
           </Tabs>
         </CardContent>
       </Card>
+
+      <Dialog open={forgotOpen} onOpenChange={setForgotOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>ลืมรหัสผ่าน</DialogTitle>
+            <DialogDescription>
+              กรอกอีเมลที่ใช้สมัคร ระบบจะส่งลิงก์สำหรับตั้งรหัสผ่านใหม่ไปให้
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Label htmlFor="forgot-email">อีเมล</Label>
+            <Input
+              id="forgot-email"
+              type="email"
+              placeholder="your.email@example.com"
+              value={forgotEmail}
+              onChange={(e) => setForgotEmail(e.target.value)}
+              disabled={forgotSending}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setForgotOpen(false)} disabled={forgotSending}>
+              ยกเลิก
+            </Button>
+            <Button onClick={handleForgotPassword} disabled={forgotSending}>
+              {forgotSending ? "กำลังส่ง..." : "ส่งลิงก์รีเซ็ตรหัสผ่าน"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
