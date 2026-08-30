@@ -229,6 +229,16 @@ const Login = () => {
                 <Button type="submit" className="w-full" disabled={isLoading}>
                   {isLoading ? "กำลังเข้าสู่ระบบ..." : "เข้าสู่ระบบ"}
                 </Button>
+                <button
+                  type="button"
+                  className="w-full text-sm text-primary hover:underline"
+                  onClick={() => {
+                    setForgotEmail(loginEmail);
+                    setForgotOpen(true);
+                  }}
+                >
+                  ลืมรหัสผ่าน?
+                </button>
                 <p className="text-xs text-muted-foreground text-center">
                   🔒 เปิดแท็บงานเพิ่มได้โดยไม่ต้องเข้าสู่ระบบซ้ำ และระบบจะออกจากระบบเมื่อปิดโปรแกรมทั้งหมด
                 </p>
