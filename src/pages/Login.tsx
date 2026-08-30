@@ -13,6 +13,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Package, Info } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -54,6 +62,31 @@ const Login = () => {
   const [optionsLoading, setOptionsLoading] = useState(true);
   const [optionsError, setOptionsError] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [forgotOpen, setForgotOpen] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState("");
+  const [forgotSending, setForgotSending] = useState(false);
+
+  const handleForgotPassword = async () => {
+    const email = forgotEmail.trim();
+    if (!z.string().email().safeParse(email).success) {
+      toast.error("รูปแบบอีเมลไม่ถูกต้อง");
+      return;
+    }
+    setForgotSending(true);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+      if (error) throw error;
+      toast.success("ส่งลิงก์รีเซ็ตรหัสผ่านไปที่อีเมลแล้ว กรุณาตรวจสอบกล่องจดหมาย (รวมถึง Junk/Spam)");
+      setForgotOpen(false);
+      setForgotEmail("");
+    } catch (e: any) {
+      toast.error(e?.message || "ส่งลิงก์รีเซ็ตรหัสผ่านไม่สำเร็จ");
+    } finally {
+      setForgotSending(false);
+    }
+  };
 
   useEffect(() => {
     if (user) {
@@ -196,6 +229,16 @@ const Login = () => {
                 <Button type="submit" className="w-full" disabled={isLoading}>
                   {isLoading ? "กำลังเข้าสู่ระบบ..." : "เข้าสู่ระบบ"}
                 </Button>
+                <button
+                  type="button"
+                  className="w-full text-sm text-primary hover:underline"
+                  onClick={() => {
+                    setForgotEmail(loginEmail);
+                    setForgotOpen(true);
+                  }}
+                >
+                  ลืมรหัสผ่าน?
+                </button>
                 <p className="text-xs text-muted-foreground text-center">
                   🔒 เปิดแท็บงานเพิ่มได้โดยไม่ต้องเข้าสู่ระบบซ้ำ และระบบจะออกจากระบบเมื่อปิดโปรแกรมทั้งหมด
                 </p>
@@ -345,6 +388,36 @@ const Login = () => {
           </Tabs>
         </CardContent>
       </Card>
+
+      <Dialog open={forgotOpen} onOpenChange={setForgotOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>ลืมรหัสผ่าน</DialogTitle>
+            <DialogDescription>
+              กรอกอีเมลที่ใช้สมัคร ระบบจะส่งลิงก์สำหรับตั้งรหัสผ่านใหม่ไปให้
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Label htmlFor="forgot-email">อีเมล</Label>
+            <Input
+              id="forgot-email"
+              type="email"
+              placeholder="your.email@example.com"
+              value={forgotEmail}
+              onChange={(e) => setForgotEmail(e.target.value)}
+              disabled={forgotSending}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setForgotOpen(false)} disabled={forgotSending}>
+              ยกเลิก
+            </Button>
+            <Button onClick={handleForgotPassword} disabled={forgotSending}>
+              {forgotSending ? "กำลังส่ง..." : "ส่งลิงก์รีเซ็ตรหัสผ่าน"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

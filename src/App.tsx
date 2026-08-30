@@ -11,6 +11,7 @@ import ProtectedRoute from "./components/ProtectedRoute";
 // Eager: หน้าแรกที่เปิดบ่อย
 import Login from "./pages/Login";
 import NotFound from "./pages/NotFound";
+import ResetPassword from "./pages/ResetPassword";
 
 // Lazy: ทุกหน้าใน app เพื่อลดขนาด initial bundle
 const Dashboard = lazy(() => import("./pages/Dashboard"));
@@ -125,6 +126,7 @@ const App = () => (
         <AuthProvider>
           <Routes>
             <Route path="/" element={<Login />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/dashboard" element={<Protected><Dashboard /></Protected>} />
             <Route path="/delivery-entry" element={<Protected><DeliveryEntry /></Protected>} />
             <Route path="/receive-goods" element={<Protected><ReceiveGoods /></Protected>} />
