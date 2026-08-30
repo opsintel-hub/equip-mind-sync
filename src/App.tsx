@@ -126,6 +126,7 @@ const App = () => (
         <AuthProvider>
           <Routes>
             <Route path="/" element={<Login />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/dashboard" element={<Protected><Dashboard /></Protected>} />
             <Route path="/delivery-entry" element={<Protected><DeliveryEntry /></Protected>} />
             <Route path="/receive-goods" element={<Protected><ReceiveGoods /></Protected>} />
