@@ -805,6 +805,7 @@ const DefectiveReturnEntry = () => {
             await deductStockToQuarantine({
               isMP: isMediaPlayer, itemId: selectedItemId, qty: 1,
               docNo, drId: drRow.id, reasonText, quarantineLocId,
+              sourceType: fromAssessmentInfo ? "from_assessment" : (isFromBillboard ? "billboard" : "warehouse"),
             });
             // Update equipment_serial_numbers status to defective
             if (!isMediaPlayer && unitEntry.serial_number.trim()) {
