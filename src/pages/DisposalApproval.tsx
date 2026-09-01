@@ -946,6 +946,8 @@ export default function DisposalApproval() {
                   <p className="text-xs text-muted-foreground italic">ยังไม่มีรูปหลักฐาน</p>
                 )}
               </div>
+
+              <DisposalAuditTimeline defectiveReturnId={previewing.id} />
             </div>
           )}
 
