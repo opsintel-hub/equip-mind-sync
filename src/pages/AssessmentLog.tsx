@@ -938,6 +938,7 @@ export default function AssessmentLog() {
               </div>
             )}
           </div>
+          <AuditTimeline entityTable="assessment_logs" entityId={log.id} />
           {/* Source chain — collapsible Source Timeline (Swap → Defective → Assessment) */}
           {(detail?.swap_doc_no || detail?.defective_doc_no) && (() => {
             const isOpen = sourceOpenIds.has(log.id);
