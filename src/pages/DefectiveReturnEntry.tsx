@@ -655,6 +655,9 @@ const DefectiveReturnEntry = () => {
   };
 
   // Deduct stock from main inventory + log movement to "คลังของเสีย"
+  // หลัก: ตัด quantity_in_stock เฉพาะของที่ "ยังอยู่ในคลัง" (warehouse/expired) เท่านั้น
+  // ของที่ถอดจากป้าย/เบิกออกไปแล้ว (billboard/from_issue/from_assessment) สต็อกหลักเป็น 0 อยู่แล้ว
+  // จึงไม่ตัดซ้ำ ให้แค่ "รับเข้าคลังของเสีย" และลง movement แบบรับเข้า (+qty)
   const deductStockToQuarantine = async (params: {
     isMP: boolean;
     itemId: string;
@@ -663,32 +666,39 @@ const DefectiveReturnEntry = () => {
     drId: string;
     reasonText: string;
     quarantineLocId: string | null;
+    sourceType?: string | null;
   }) => {
-    const { isMP, itemId, qty, docNo, drId, reasonText, quarantineLocId } = params;
+    const { isMP, itemId, qty, docNo, drId, reasonText, quarantineLocId, sourceType } = params;
+    const fromField = sourceType && ["billboard", "from_issue", "from_assessment"].includes(sourceType);
+    const movementType = fromField ? "defective_receive" : "defective_quarantine";
+    const movementQty = fromField ? Math.abs(qty) : -Math.abs(qty);
 
     if (isMP) {
       const mp = mediaPlayerList.find(m => m.id === itemId);
       if (!mp) return;
       const stockBefore = mp.quantity || 0;
-      const stockAfter = Math.max(0, stockBefore - qty);
-      await supabase.from("media_players").update({
-        quantity: stockAfter,
+      const stockAfter = fromField ? stockBefore : Math.max(0, stockBefore - qty);
+      const updatePayload: any = {
         location_id: quarantineLocId,
         status: "defective",
-      }).eq("id", itemId);
+      };
+      if (!fromField) updatePayload.quantity = stockAfter;
+      await supabase.from("media_players").update(updatePayload).eq("id", itemId);
       await supabase.from("stock_movements").insert({
         equipment_id: itemId,
         equipment_code: mp.code,
         equipment_name: mp.name,
-        movement_type: "defective_quarantine",
-        quantity: -qty,
+        movement_type: movementType,
+        quantity: movementQty,
         stock_before: stockBefore,
         stock_after: stockAfter,
         reference_type: "defective_return",
         reference_id: drId,
         reference_document: docNo,
         location_id: quarantineLocId,
-        notes: `[ของเสีย → คลังของเสีย] ${reasonText}`,
+        notes: fromField
+          ? `[รับของเสียเข้าคลัง (ถอดจากป้าย/เบิก)] ${reasonText}`
+          : `[ของเสีย → คลังของเสีย] ${reasonText}`,
         item_condition: "defective",
         created_by: user?.id,
       });
@@ -696,21 +706,25 @@ const DefectiveReturnEntry = () => {
       const eq = equipmentList.find(e => e.id === itemId);
       if (!eq) return;
       const stockBefore = eq.quantity_in_stock || 0;
-      const stockAfter = Math.max(0, stockBefore - qty);
-      await supabase.from("equipment").update({ quantity_in_stock: stockAfter }).eq("id", itemId);
+      const stockAfter = fromField ? stockBefore : Math.max(0, stockBefore - qty);
+      if (!fromField) {
+        await supabase.from("equipment").update({ quantity_in_stock: stockAfter }).eq("id", itemId);
+      }
       await supabase.from("stock_movements").insert({
         equipment_id: itemId,
         equipment_code: eq.code,
         equipment_name: eq.name,
-        movement_type: "defective_quarantine",
-        quantity: -qty,
+        movement_type: movementType,
+        quantity: movementQty,
         stock_before: stockBefore,
         stock_after: stockAfter,
         reference_type: "defective_return",
         reference_id: drId,
         reference_document: docNo,
         location_id: quarantineLocId,
-        notes: `[ของเสีย → คลังของเสีย] ${reasonText}`,
+        notes: fromField
+          ? `[รับของเสียเข้าคลัง (ถอดจากป้าย/เบิก)] ${reasonText}`
+          : `[ของเสีย → คลังของเสีย] ${reasonText}`,
         item_condition: "defective",
         created_by: user?.id,
       });
