@@ -1289,14 +1289,11 @@ const DefectiveReturnEntry = () => {
                       : stockOnHand !== null && <p className="text-xs text-muted-foreground">คงเหลือในคลังหลัก: {stockOnHand} (เพื่อข้อมูลอ้างอิงเท่านั้น)</p>}
                   </div>
                   <div className="space-y-2">
-                    <Label>สถานะการใช้งาน *</Label>
-                    <Select value={itemCondition} onValueChange={setItemCondition}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="defective">เสีย/ชำรุด</SelectItem>
-                        <SelectItem value="pending_inspection">รอตรวจสอบ</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <Label>สถานะการใช้งาน</Label>
+                    <div className="h-10 flex items-center rounded-md border bg-muted/40 px-3">
+                      <Badge variant="destructive">เสีย/ชำรุด</Badge>
+                      <span className="ml-2 text-xs text-muted-foreground">ของที่นำเข้าเมนูนี้เป็นของเสียทั้งหมด</span>
+                    </div>
                   </div>
                 </div>
                 <div className="space-y-2">
