@@ -59,6 +59,7 @@ const BillboardPMPage = lazy(() => import("./pages/BillboardPMPage"));
 const DefectiveReturnEntry = lazy(() => import("./pages/DefectiveReturnEntry"));
 const DisposalApproval = lazy(() => import("./pages/DisposalApproval"));
 const DisposalReport = lazy(() => import("./pages/DisposalReport"));
+const AuditTrail = lazy(() => import("./pages/AuditTrail"));
 const StockCard = lazy(() => import("./pages/StockCard"));
 const DeliveryConfirmation = lazy(() => import("./pages/DeliveryConfirmation"));
 const ManagerApproval = lazy(() => import("./pages/ManagerApproval"));
