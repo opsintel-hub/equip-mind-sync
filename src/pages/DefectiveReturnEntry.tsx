@@ -949,10 +949,17 @@ const DefectiveReturnEntry = () => {
       <div>
         <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
           <AlertTriangle className="w-6 h-6 text-destructive" />
-          นำของเสีย/ชำรุดเข้าระบบ
+          {expiredMode ? "นำของหมดอายุเข้าระบบ" : "นำของเสีย/ชำรุดเข้าระบบ"}
         </h1>
-        <p className="text-muted-foreground">บันทึกสินค้าหรืออุปกรณ์ที่เสียหรือชำรุดเพื่อรอนำเข้าคลัง</p>
+        <p className="text-muted-foreground">{expiredMode ? "บันทึกสินค้าหรืออุปกรณ์ที่หมดอายุในคลังเพื่อขออนุมัติจำหน่าย/ทิ้ง" : "บันทึกสินค้าหรืออุปกรณ์ที่เสียหรือชำรุดเพื่อรอนำเข้าคลัง"}</p>
+        {expiredMode && (
+          <div className="mt-3 flex items-start gap-2 rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-sm text-amber-700 dark:text-amber-300">
+            <Info className="w-4 h-4 mt-0.5 flex-shrink-0" />
+            <span>โหมดรายการหมดอายุ: ระบบจะบันทึก <strong>is_expired=true</strong> และ <strong>still_usable=false</strong> อัตโนมัติ พร้อมส่งเข้ากระบวนการอนุมัติจำหน่าย</span>
+          </div>
+        )}
       </div>
+
 
       <Tabs value={activeTab} onValueChange={(v) => { setActiveTab(v as any); if (v === "pending") fetchPendingTickets(); }}>
         <TabsList>
