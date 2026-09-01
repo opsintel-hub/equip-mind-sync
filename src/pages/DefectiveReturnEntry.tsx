@@ -899,6 +899,7 @@ const DefectiveReturnEntry = () => {
         await deductStockToQuarantine({
           isMP: isMediaPlayer, itemId: selectedItemId, qty,
           docNo, drId, reasonText: reason.trim(), quarantineLocId,
+          sourceType: fromAssessmentInfo ? "from_assessment" : (isFromBillboard ? "billboard" : "warehouse"),
         });
         if (isFromBillboard && billboardId && !isMediaPlayer) {
           const be = detectedBillboards.find(b => b.id === selectedBillboardEquipmentId);
