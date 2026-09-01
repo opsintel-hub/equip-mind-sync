@@ -39,6 +39,7 @@ export const SYSTEM_FUNCTIONS = [
   { name: "disposal_approve_l2", label: "อนุมัติของเสีย ชั้น 2", description: "อนุมัติขั้นสุดท้าย (ผู้จัดการทรัพย์สิน/ผู้บริหารคลัง)" },
   { name: "disposal_finance", label: "บัญชีรับทราบของเสีย", description: "ฝ่ายบัญชี เห็นทุกใบ + มูลค่า + ยืนยันรับทราบ (ข้ามฝ่าย)" },
   { name: "disposal_report", label: "รายงานของเสีย/จำหน่าย", description: "ดูรายงานสรุปการจำหน่าย/ทำลายของเสีย (ผู้บริหาร/ตรวจสอบ)" },
+  { name: "disposal_audit_view", label: "ดู Audit Log ของเสีย", description: "ดูประวัติการดำเนินการทุกขั้นของใบของเสีย (บัญชี/ผู้ตรวจสอบ)" },
   // ─── Master Data Tabs (per-tab control) ───
   { name: "md_equipment", label: "MD: อุปกรณ์/อะไหล่", description: "Tab อุปกรณ์ในหน้าข้อมูลหลัก" },
   { name: "md_tools", label: "MD: เครื่องมือ", description: "Tab เครื่องมือในหน้าข้อมูลหลัก" },

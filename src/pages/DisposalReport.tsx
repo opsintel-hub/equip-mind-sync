@@ -14,6 +14,8 @@ import { TablePagination } from "@/components/TablePagination";
 import type { PageSize } from "@/hooks/useTablePagination";
 import { useTablePagination } from "@/hooks/useTablePagination";
 import { ColumnChooser } from "@/components/ColumnChooser";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { DisposalAuditTable } from "@/components/disposal/DisposalAuditTable";
 import { FileBarChart2, Download, RefreshCw, Search } from "lucide-react";
 import { format } from "date-fns";
 import { th } from "date-fns/locale";
@@ -85,6 +87,10 @@ const fmtMoney = (n: number | null | undefined) =>
 export default function DisposalReport() {
   const { hasFunctionAccess } = useFunctionPermissions();
   const { user } = useAuth();
+  const canAudit =
+    hasFunctionAccess("disposal_audit_view") ||
+    hasFunctionAccess("disposal_report") ||
+    hasFunctionAccess("disposal_finance");
   const [rows, setRows] = useState<DisposalRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -225,6 +231,13 @@ export default function DisposalReport() {
         <Card><CardHeader className="pb-2"><CardDescription>ดำเนินการเสร็จ</CardDescription><CardTitle className="text-xl text-emerald-600">{summary.completed}</CardTitle></CardHeader></Card>
       </div>
 
+      <Tabs defaultValue="detail" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="detail">รายละเอียด</TabsTrigger>
+          {canAudit && <TabsTrigger value="audit">ประวัติการดำเนินการ (Audit)</TabsTrigger>}
+        </TabsList>
+
+        <TabsContent value="detail" className="space-y-4">
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between gap-2 flex-wrap">
@@ -308,6 +321,14 @@ export default function DisposalReport() {
           />
         </CardContent>
       </Card>
+        </TabsContent>
+
+        {canAudit && (
+          <TabsContent value="audit">
+            <DisposalAuditTable />
+          </TabsContent>
+        )}
+      </Tabs>
     </div>
   );
 }

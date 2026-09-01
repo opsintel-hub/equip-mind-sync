@@ -1,0 +1,1 @@
+REVOKE ALL ON FUNCTION public.log_defective_disposal_change() FROM PUBLIC, anon, authenticated;
