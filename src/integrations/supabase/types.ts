@@ -1422,6 +1422,56 @@ export type Database = {
         }
         Relationships: []
       }
+      defective_disposal_audit: {
+        Row: {
+          action: string
+          actor_id: string | null
+          created_at: string
+          defective_return_id: string
+          disposal_method: string | null
+          from_status: string | null
+          id: string
+          is_self_approval: boolean
+          is_super_admin_action: boolean
+          notes: string | null
+          to_status: string | null
+        }
+        Insert: {
+          action: string
+          actor_id?: string | null
+          created_at?: string
+          defective_return_id: string
+          disposal_method?: string | null
+          from_status?: string | null
+          id?: string
+          is_self_approval?: boolean
+          is_super_admin_action?: boolean
+          notes?: string | null
+          to_status?: string | null
+        }
+        Update: {
+          action?: string
+          actor_id?: string | null
+          created_at?: string
+          defective_return_id?: string
+          disposal_method?: string | null
+          from_status?: string | null
+          id?: string
+          is_self_approval?: boolean
+          is_super_admin_action?: boolean
+          notes?: string | null
+          to_status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "defective_disposal_audit_defective_return_id_fkey"
+            columns: ["defective_return_id"]
+            isOneToOne: false
+            referencedRelation: "defective_returns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       defective_returns: {
         Row: {
           assessment_log_id: string | null
