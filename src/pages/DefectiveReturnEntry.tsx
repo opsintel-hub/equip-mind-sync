@@ -60,6 +60,8 @@ const DefectiveReturnEntry = () => {
   const [selectedItemId, setSelectedItemId] = useState("");
   const [detectedBillboards, setDetectedBillboards] = useState<BillboardEquipmentRecord[]>([]);
   const [selectedBillboardEquipmentId, setSelectedBillboardEquipmentId] = useState("");
+  // ผู้ใช้ยืนยันเองว่าของถอดมาจากป้าย/หน้างาน (ไม่มี link ป้ายในระบบ) → ไม่ตัดสต็อกคลังหลัก
+  const [manualFieldSource, setManualFieldSource] = useState(false);
   const [isLoadingBillboard, setIsLoadingBillboard] = useState(false);
   const [perUnitMode, setPerUnitMode] = useState(false);
   const [defectiveUnits, setDefectiveUnits] = useState<DefectiveUnitEntry[]>([
@@ -648,6 +650,12 @@ const DefectiveReturnEntry = () => {
   }, [isMediaPlayer, selectedMediaPlayer, selectedEquipment]);
 
   const isFromBillboard = selectedBillboardEquipmentId !== "" && detectedBillboards.length > 0;
+  // ที่มาที่ใช้จริงตอนบันทึก — ตัดสต็อกเฉพาะ warehouse/expired เท่านั้น
+  const effectiveSourceType = fromAssessmentInfo
+    ? "from_assessment"
+    : isFromBillboard || manualFieldSource
+      ? "billboard"
+      : "warehouse";
   const generateDocNo = () => `DR-${format(new Date(), "yyyyMMdd")}-${Math.floor(Math.random() * 9999 + 1).toString().padStart(4, "0")}`;
 
   // Get quarantine location for defective items
@@ -739,7 +747,7 @@ const DefectiveReturnEntry = () => {
   };
 
   const handleReset = () => {
-    setSelectedItemId(""); setSelectedBillboardEquipmentId(""); setDetectedBillboards([]);
+    setSelectedItemId(""); setSelectedBillboardEquipmentId(""); setDetectedBillboards([]); setManualFieldSource(false);
     setQuantity("1"); setItemCondition("defective"); setReason(""); setNotes("");
     setPerUnitMode(false);
     setExistingTicket(null);
@@ -797,7 +805,7 @@ const DefectiveReturnEntry = () => {
             quantity: 1, billboard_id: selectedBillboardRecord?.billboard_id || null,
             item_condition: unitEntry.item_condition, reason: reasonText,
             status: "pending_warehouse_entry",
-            source_type: fromAssessmentInfo ? "from_assessment" : (isFromBillboard ? "billboard" : "warehouse"),
+            source_type: effectiveSourceType,
             is_expired: expiredMode,
             still_usable: expiredMode ? false : null,
             quarantine_location_id: quarantineLocId,
@@ -814,7 +822,7 @@ const DefectiveReturnEntry = () => {
             await deductStockToQuarantine({
               isMP: isMediaPlayer, itemId: selectedItemId, qty: 1,
               docNo, drId: drRow.id, reasonText, quarantineLocId,
-              sourceType: fromAssessmentInfo ? "from_assessment" : (isFromBillboard ? "billboard" : "warehouse"),
+              sourceType: effectiveSourceType,
             });
             // Update equipment_serial_numbers status to defective
             if (!isMediaPlayer && unitEntry.serial_number.trim()) {
@@ -890,7 +898,7 @@ const DefectiveReturnEntry = () => {
             media_player_id: isMediaPlayer ? selectedItemId : null, is_media_player: isMediaPlayer,
             quantity: qty, billboard_id: billboardId, item_condition: itemCondition,
             reason: reason.trim(), status: "pending_warehouse_entry",
-            source_type: fromAssessmentInfo ? "from_assessment" : (isFromBillboard ? "billboard" : "warehouse"),
+            source_type: effectiveSourceType,
             is_expired: expiredMode,
             still_usable: expiredMode ? false : null,
             quarantine_location_id: quarantineLocId,
@@ -910,7 +918,7 @@ const DefectiveReturnEntry = () => {
         await deductStockToQuarantine({
           isMP: isMediaPlayer, itemId: selectedItemId, qty,
           docNo, drId, reasonText: reason.trim(), quarantineLocId,
-          sourceType: fromAssessmentInfo ? "from_assessment" : (isFromBillboard ? "billboard" : "warehouse"),
+          sourceType: effectiveSourceType,
         });
         if (isFromBillboard && billboardId && !isMediaPlayer) {
           const be = detectedBillboards.find(b => b.id === selectedBillboardEquipmentId);
@@ -1166,11 +1174,26 @@ const DefectiveReturnEntry = () => {
               </div>
             )}
 
-            {!isLoadingBillboard && selectedItemId && detectedBillboards.length === 0 && (
-              <div className="flex items-center gap-2 p-3 rounded-lg bg-muted/30 text-sm text-muted-foreground">
-                <Info className="w-4 h-4" /> สินค้านี้ไม่ได้ติดตั้งบนป้ายโฆษณา (จากคลัง/ภาคสนาม)
+            {!isLoadingBillboard && selectedItemId && detectedBillboards.length === 0 && !fromAssessmentInfo && (
+              <div className="p-3 rounded-lg bg-muted/30 border space-y-3">
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Info className="w-4 h-4" /> ระบบไม่พบว่าสินค้านี้ผูกอยู่กับป้ายโฆษณา — กรุณายืนยันที่มาของของเสีย
+                </div>
+                <div className="flex items-start gap-3">
+                  <Switch id="manualFieldSource" checked={manualFieldSource} onCheckedChange={setManualFieldSource} />
+                  <Label htmlFor="manualFieldSource" className="text-sm font-normal leading-relaxed cursor-pointer">
+                    ของชิ้นนี้<span className="font-medium"> ถอดมาจากป้าย/หน้างาน </span>(ไม่ได้อยู่ในคลังแล้ว)
+                    <span className="block text-xs text-muted-foreground">เปิด = ไม่ตัดยอดคงเหลือคลังหลัก แค่รับเข้าคลังของเสีย</span>
+                  </Label>
+                </div>
+                <div className={`text-xs rounded-md p-2 ${manualFieldSource ? "bg-blue-500/10 text-blue-700 dark:text-blue-300" : "bg-destructive/10 text-destructive"}`}>
+                  {manualFieldSource
+                    ? "ผลต่อสต็อก: ไม่ตัดยอดคงเหลือ — บันทึกเป็นรับของเสียเข้าคลัง WH-DEFECT"
+                    : `ผลต่อสต็อก: จะตัดยอดคงเหลือคลังหลักออก${stockOnHand !== null ? ` (ปัจจุบัน ${stockOnHand})` : ""} แล้วย้ายเข้าคลังของเสีย`}
+                </div>
               </div>
             )}
+
 
             {/* Per-unit mode */}
             <div className="p-3 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800 rounded-lg space-y-4">
