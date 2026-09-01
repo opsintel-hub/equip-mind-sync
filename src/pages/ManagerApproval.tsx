@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { AuditTimeline } from "@/components/audit/AuditTimeline";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { SubMediaTypeBadge } from "@/components/media-player/SubMediaTypeBadge";
@@ -831,6 +832,9 @@ const ManagerApproval = () => {
               <Label>หมายเหตุ (ไม่บังคับ)</Label>
               <Textarea value={approvalNotes} onChange={(e) => setApprovalNotes(e.target.value)} placeholder="หมายเหตุ..." rows={2} />
             </div>
+            {selectedRequest?.id && (
+              <AuditTimeline entityTable="goods_issue_pending" entityId={selectedRequest.id} />
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setApproveDialogOpen(false)}>ยกเลิก</Button>

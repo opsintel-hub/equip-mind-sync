@@ -27,6 +27,7 @@ import { LocationSelect } from "@/components/location/LocationSelect";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useFunctionPermissions } from "@/hooks/useFunctionPermissions";
 import { useNavigate } from "react-router-dom";
+import { AuditTimeline } from "@/components/audit/AuditTimeline";
 
 interface ClaimRecord {
   id: string;
@@ -978,6 +979,7 @@ export default function ClaimTracker() {
 
                         {expandedId === record.id && (
                           <div className="border-t bg-muted/30 p-4 space-y-4">
+                            <AuditTimeline entityTable="claim_records" entityId={record.id} />
                             {/* Source chain — Swap → Defective → Assessment → Claim */}
                             {(() => {
                               const chain = sourceChain[record.id];

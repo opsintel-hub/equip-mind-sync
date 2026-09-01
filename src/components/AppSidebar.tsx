@@ -283,6 +283,7 @@ const menuGroups: MenuGroup[] = [
 
       { title: "ร่างใบขอซื้อ (PR)", url: "/purchase-requests", icon: ClipboardList, functionName: "reports" },
       { title: "รายงาน KPI", url: "/kpi-report", icon: LayoutDashboard, functionName: "reports" },
+      { title: "ประวัติการใช้งานระบบ", url: "/audit-trail", icon: ClipboardList, functionName: "activity_audit_view" },
     ]
   },
   {

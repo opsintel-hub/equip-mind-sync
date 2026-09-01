@@ -28,6 +28,7 @@ import { DeviceTypeBadge } from "@/components/media-player/DeviceTypeBadge";
 import { formatBillboardLabel } from "@/lib/billboardUtils";
 import { formatMergedSerials } from "@/lib/serialSearch";
 import { PhotoGalleryDialog } from "@/components/ui/PhotoGalleryDialog";
+import { AuditTimeline } from "@/components/audit/AuditTimeline";
 
 interface AssessmentLog {
   id: string;
@@ -938,6 +939,7 @@ export default function AssessmentLog() {
               </div>
             )}
           </div>
+          <AuditTimeline entityTable="assessment_logs" entityId={log.id} />
           {/* Source chain — collapsible Source Timeline (Swap → Defective → Assessment) */}
           {(detail?.swap_doc_no || detail?.defective_doc_no) && (() => {
             const isOpen = sourceOpenIds.has(log.id);
