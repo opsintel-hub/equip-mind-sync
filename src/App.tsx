@@ -182,6 +182,7 @@ const App = () => (
             <Route path="/defective-return" element={<Protected><DefectiveReturnEntry /></Protected>} />
             <Route path="/disposal-approval" element={<Protected><DisposalApproval /></Protected>} />
             <Route path="/disposal-report" element={<Protected><DisposalReport /></Protected>} />
+            <Route path="/audit-trail" element={<Protected><AuditTrail /></Protected>} />
             <Route path="/stock-card" element={<Protected><StockCard /></Protected>} />
             <Route path="/kpi-report" element={<Protected><KPIReport /></Protected>} />
             <Route path="/stock-reconciliation" element={<Protected><StockReconciliation /></Protected>} />
