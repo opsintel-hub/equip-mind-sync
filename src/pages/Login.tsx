@@ -201,7 +201,28 @@ const Login = () => {
             </TabsList>
 
             <TabsContent value="login">
-              <form onSubmit={handleLogin} className="space-y-4">
+              <div className="space-y-4">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full gap-2"
+                  disabled={isLoading || googleLoading}
+                  onClick={handleGoogleSignIn}
+                >
+                  <GoogleIcon />
+                  {googleLoading ? "กำลังเปิด Google..." : "เข้าสู่ระบบด้วย Google (อีเมลบริษัท)"}
+                </Button>
+                <div className="relative">
+                  <div className="absolute inset-0 flex items-center">
+                    <span className="w-full border-t" />
+                  </div>
+                  <div className="relative flex justify-center text-xs uppercase">
+                    <span className="bg-card px-2 text-muted-foreground">หรือ</span>
+                  </div>
+                </div>
+              </div>
+              <form onSubmit={handleLogin} className="space-y-4 mt-4">
+
                 <div className="space-y-2">
                   <Label htmlFor="login-email">อีเมล</Label>
                   <Input
