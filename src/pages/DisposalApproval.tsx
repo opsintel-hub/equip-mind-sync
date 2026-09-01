@@ -664,6 +664,16 @@ export default function DisposalApproval() {
           </DialogHeader>
 
           <div className="space-y-4">
+            {editing && editingTier === "l2" && editing.l1_approved_by === user?.id && (
+              <div className="rounded-md border border-warning/50 bg-warning/10 p-3 text-xs flex items-start gap-2">
+                <ShieldAlert className="w-4 h-4 text-warning shrink-0 mt-0.5" />
+                <span>
+                  คุณเป็นผู้อนุมัติชั้นที่ 1 ของใบนี้เอง — การอนุมัติขั้นสุดท้ายจะถูกบันทึกใน Audit Log ว่า
+                  <strong> “อนุมัติข้ามชั้นโดยผู้ใช้คนเดียวกัน” </strong>
+                  (ระบบอนุญาตให้ทำได้ แต่จะแสดงในรายงานตรวจสอบ)
+                </span>
+              </div>
+            )}
             {editing && (() => {
               const mp = editing.media_player;
               const eq = editing.equipment;
