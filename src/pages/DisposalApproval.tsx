@@ -74,8 +74,12 @@ const DISPOSAL_METHODS: Record<string, { label: string; icon: any; color: string
   destroy: { label: "ทำลายทิ้ง", icon: Trash2, color: "bg-destructive/10 text-destructive border-destructive/30" },
   sell_scrap: { label: "จำหน่ายเป็นซาก", icon: Recycle, color: "bg-amber-500/10 text-amber-600 border-amber-500/30" },
   csr: { label: "นำไปทำ CSR", icon: HeartHandshake, color: "bg-emerald-500/10 text-emerald-600 border-emerald-500/30" },
-  repair_return: { label: "ซ่อมและคืนคลัง", icon: Wrench, color: "bg-blue-500/10 text-blue-600 border-blue-500/30" },
+  // legacy only — kept for displaying old records, not selectable anymore
+  repair_return: { label: "ซ่อมและคืนคลัง (ยกเลิกใช้งาน)", icon: Wrench, color: "bg-blue-500/10 text-blue-600 border-blue-500/30" },
 };
+
+// ของที่เข้าเมนูนี้คือของเสียทั้งหมด — ไม่มีการซ่อมคืนคลังแล้ว
+const SELECTABLE_DISPOSAL_METHODS = ["destroy", "sell_scrap", "csr"];
 
 const STATUS_LABEL: Record<string, { label: string; variant: "secondary" | "default" | "outline" | "destructive" }> = {
   pending_disposal_review: { label: "รออนุมัติขั้นที่ 1", variant: "secondary" },
