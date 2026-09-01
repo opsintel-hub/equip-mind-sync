@@ -27,6 +27,7 @@ import { LocationSelect } from "@/components/location/LocationSelect";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useFunctionPermissions } from "@/hooks/useFunctionPermissions";
 import { useNavigate } from "react-router-dom";
+import { AuditTimeline } from "@/components/audit/AuditTimeline";
 
 interface ClaimRecord {
   id: string;
