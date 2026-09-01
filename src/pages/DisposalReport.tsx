@@ -225,6 +225,13 @@ export default function DisposalReport() {
         <Card><CardHeader className="pb-2"><CardDescription>ดำเนินการเสร็จ</CardDescription><CardTitle className="text-xl text-emerald-600">{summary.completed}</CardTitle></CardHeader></Card>
       </div>
 
+      <Tabs defaultValue="detail" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="detail">รายละเอียด</TabsTrigger>
+          {canAudit && <TabsTrigger value="audit">ประวัติการดำเนินการ (Audit)</TabsTrigger>}
+        </TabsList>
+
+        <TabsContent value="detail" className="space-y-4">
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between gap-2 flex-wrap">
