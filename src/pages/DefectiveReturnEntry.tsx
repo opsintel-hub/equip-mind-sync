@@ -1233,14 +1233,10 @@ const DefectiveReturnEntry = () => {
                             <Input placeholder="กรอก S/N..." value={unitEntry.serial_number} onChange={e => setDefectiveUnits(prev => prev.map(u => u.id === unitEntry.id ? { ...u, serial_number: e.target.value } : u))} />
                           </div>
                           <div className="space-y-1">
-                            <Label className="text-xs">สภาพ *</Label>
-                            <Select value={unitEntry.item_condition} onValueChange={(v) => setDefectiveUnits(prev => prev.map(u => u.id === unitEntry.id ? { ...u, item_condition: v } : u))}>
-                              <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="defective">เสีย/ชำรุด</SelectItem>
-                                <SelectItem value="pending_inspection">รอตรวจสอบ</SelectItem>
-                              </SelectContent>
-                            </Select>
+                            <Label className="text-xs">สภาพ</Label>
+                            <div className="h-9 flex items-center rounded-md border bg-muted/40 px-3">
+                              <Badge variant="destructive" className="text-[10px]">เสีย/ชำรุด</Badge>
+                            </div>
                           </div>
                           <div className="space-y-1">
                             <Label className="text-xs">เหตุผล *</Label>
@@ -1289,14 +1285,11 @@ const DefectiveReturnEntry = () => {
                       : stockOnHand !== null && <p className="text-xs text-muted-foreground">คงเหลือในคลังหลัก: {stockOnHand} (เพื่อข้อมูลอ้างอิงเท่านั้น)</p>}
                   </div>
                   <div className="space-y-2">
-                    <Label>สถานะการใช้งาน *</Label>
-                    <Select value={itemCondition} onValueChange={setItemCondition}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="defective">เสีย/ชำรุด</SelectItem>
-                        <SelectItem value="pending_inspection">รอตรวจสอบ</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <Label>สถานะการใช้งาน</Label>
+                    <div className="h-10 flex items-center rounded-md border bg-muted/40 px-3">
+                      <Badge variant="destructive">เสีย/ชำรุด</Badge>
+                      <span className="ml-2 text-xs text-muted-foreground">ของที่นำเข้าเมนูนี้เป็นของเสียทั้งหมด</span>
+                    </div>
                   </div>
                 </div>
                 <div className="space-y-2">
