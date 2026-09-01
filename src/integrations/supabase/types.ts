@@ -14,6 +14,63 @@ export type Database = {
   }
   public: {
     Tables: {
+      activity_audit: {
+        Row: {
+          action: string
+          actor_id: string | null
+          actor_name: string | null
+          actor_roles: string[]
+          changed_fields: Json | null
+          created_at: string
+          department: string | null
+          doc_number: string | null
+          entity_id: string | null
+          entity_table: string
+          id: string
+          is_super_admin_action: boolean
+          module: string
+          notes: string | null
+          status_after: string | null
+          status_before: string | null
+        }
+        Insert: {
+          action: string
+          actor_id?: string | null
+          actor_name?: string | null
+          actor_roles?: string[]
+          changed_fields?: Json | null
+          created_at?: string
+          department?: string | null
+          doc_number?: string | null
+          entity_id?: string | null
+          entity_table: string
+          id?: string
+          is_super_admin_action?: boolean
+          module: string
+          notes?: string | null
+          status_after?: string | null
+          status_before?: string | null
+        }
+        Update: {
+          action?: string
+          actor_id?: string | null
+          actor_name?: string | null
+          actor_roles?: string[]
+          changed_fields?: Json | null
+          created_at?: string
+          department?: string | null
+          doc_number?: string | null
+          entity_id?: string | null
+          entity_table?: string
+          id?: string
+          is_super_admin_action?: boolean
+          module?: string
+          notes?: string | null
+          status_after?: string | null
+          status_before?: string | null
+        }
+        Relationships: []
+      }
       ad_issue_requests: {
         Row: {
           advertisement_id: string
