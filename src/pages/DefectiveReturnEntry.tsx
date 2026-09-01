@@ -795,6 +795,8 @@ const DefectiveReturnEntry = () => {
             item_condition: unitEntry.item_condition, reason: reasonText,
             status: "pending_warehouse_entry",
             source_type: fromAssessmentInfo ? "from_assessment" : (isFromBillboard ? "billboard" : "warehouse"),
+            is_expired: expiredMode,
+            still_usable: expiredMode ? false : null,
             quarantine_location_id: quarantineLocId,
             stock_deducted_at: nowIso,
             dispose_status: "pending_disposal_review",
