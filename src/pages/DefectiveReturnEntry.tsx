@@ -891,6 +891,7 @@ const DefectiveReturnEntry = () => {
             is_expired: expiredMode,
             still_usable: expiredMode ? false : null,
             quarantine_location_id: quarantineLocId,
+            stock_deducted_at: nowIso,
             dispose_status: "pending_disposal_review",
             reporter_name: reporterName.trim() || null,
             reporter_department: reporterDepartment.trim() || null,
