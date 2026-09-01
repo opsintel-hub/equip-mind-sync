@@ -315,6 +315,14 @@ export default function DisposalReport() {
           />
         </CardContent>
       </Card>
+        </TabsContent>
+
+        {canAudit && (
+          <TabsContent value="audit">
+            <DisposalAuditTable />
+          </TabsContent>
+        )}
+      </Tabs>
     </div>
   );
 }
