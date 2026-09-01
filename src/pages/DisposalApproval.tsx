@@ -457,7 +457,7 @@ export default function DisposalApproval() {
 
       toast.success(isFinalDisposal
         ? `บันทึก "${DISPOSAL_METHODS[row.disposal_method!]?.label}" สำเร็จ — แนบหลักฐาน ${completionUrls.length} รูป`
-        : "บันทึกเสร็จสิ้นแล้ว — สำหรับ 'ซ่อมและคืนคลัง' กรุณารับเข้าใหม่ผ่านเมนู Receive Goods");
+        : "บันทึกเสร็จสิ้นแล้ว");
       closeCompleteDialog();
       fetchData();
     } catch (e: any) {
