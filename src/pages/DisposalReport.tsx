@@ -100,7 +100,7 @@ export default function DisposalReport() {
       .from("defective_returns")
       .select(`
         id, document_no, is_media_player, quantity, reason, source_type, dispose_status,
-        disposal_method, created_at, is_expired, total_value, unit_price_snapshot,
+        swap_request_id, disposal_method, created_at, is_expired, total_value, unit_price_snapshot,
         reporter_department, l1_approved_at, l2_approved_at, finance_ack_at,
         equipment:equipment_id(code, name, brand, department),
         media_player:media_player_id(code, name, department)
