@@ -43,12 +43,17 @@ const loginSchema = z.object({
 });
 
 const signupSchema = loginSchema.extend({
+  email: z
+    .string()
+    .email("รูปแบบอีเมลไม่ถูกต้อง")
+    .refine(isAllowedEmail, `อนุญาตเฉพาะอีเมลบริษัท @${ALLOWED_EMAIL_DOMAIN} เท่านั้น`),
   fullName: z.string().min(2, "กรุณากรอกชื่อ-นามสกุล"),
   displayName: z.string().min(1, "กรุณากรอกชื่อที่ต้องการให้แสดงในระบบ").max(50, "ชื่อที่แสดงต้องไม่เกิน 50 ตัวอักษร"),
   phone: z.string().trim().min(9, "กรุณากรอกเบอร์โทรศัพท์").max(20, "เบอร์โทรศัพท์ยาวเกินไป"),
   requestedJobRole: z.string().min(1, "กรุณาเลือกตำแหน่งงาน"),
   requestedDepartment: z.string().min(1, "กรุณาเลือกฝ่ายที่สังกัด"),
 });
+
 
 interface JobRoleTemplate {
   template_key: string;
