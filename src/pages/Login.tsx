@@ -26,7 +26,7 @@ import { toast } from "sonner";
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable/index";
-import { ALLOWED_EMAIL_DOMAIN } from "@/lib/authDomain";
+import { ALLOWED_EMAIL_DOMAIN, isAllowedEmail } from "@/lib/authDomain";
 
 const GoogleIcon = () => (
   <svg viewBox="0 0 24 24" className="h-4 w-4" aria-hidden="true">
