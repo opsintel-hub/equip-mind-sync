@@ -33,6 +33,12 @@ export const SYSTEM_FUNCTIONS = [
   { name: "assessment_view", label: "ดูรายการประเมิน (ช่าง)", description: "ดูรายการประเมินทรัพย์สิน (สำหรับช่าง/ผู้เกี่ยวข้อง)" },
   { name: "claim_create", label: "สร้างเคลม (คลัง)", description: "สร้างคำขอเคลมไปยังผู้จำหน่าย (สำหรับเจ้าหน้าที่คลัง)" },
   { name: "claim_view", label: "ดูรายการเคลม (ช่าง)", description: "ติดตามสถานะการเคลม (สำหรับช่าง/ผู้เกี่ยวข้อง)" },
+  // ─── Disposal / Defective (2-tier approval) ───
+  { name: "disposal_request", label: "เปิดใบของเสีย", description: "เปิดใบของเสีย/ตัดจำหน่าย และเสนอวิธีจัดการ (คลัง/ช่าง/เจ้าของของ)" },
+  { name: "disposal_approve_l1", label: "อนุมัติของเสีย ชั้น 1", description: "ยืนยันว่าเสียจริง/เห็นชอบวิธีจัดการ (หัวหน้าฝ่ายเจ้าของของ)" },
+  { name: "disposal_approve_l2", label: "อนุมัติของเสีย ชั้น 2", description: "อนุมัติขั้นสุดท้าย (ผู้จัดการทรัพย์สิน/ผู้บริหารคลัง)" },
+  { name: "disposal_finance", label: "บัญชีรับทราบของเสีย", description: "ฝ่ายบัญชี เห็นทุกใบ + มูลค่า + ยืนยันรับทราบ (ข้ามฝ่าย)" },
+  { name: "disposal_report", label: "รายงานของเสีย/จำหน่าย", description: "ดูรายงานสรุปการจำหน่าย/ทำลายของเสีย (ผู้บริหาร/ตรวจสอบ)" },
   // ─── Master Data Tabs (per-tab control) ───
   { name: "md_equipment", label: "MD: อุปกรณ์/อะไหล่", description: "Tab อุปกรณ์ในหน้าข้อมูลหลัก" },
   { name: "md_tools", label: "MD: เครื่องมือ", description: "Tab เครื่องมือในหน้าข้อมูลหลัก" },

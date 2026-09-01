@@ -34,6 +34,9 @@ import {
   FileCheck2,
   ShieldCheck,
   Upload,
+  Recycle,
+  FileBarChart2,
+  Calculator,
 } from "lucide-react";
 import {
   Sidebar,
@@ -113,17 +116,21 @@ const menuGroups: MenuGroup[] = [
           { title: "รายการรอรหัส", url: "/pending-asset-codes", icon: FileKey },
         ]
       },
-      { 
-        title: "นำของเสียเข้าระบบ", 
-        url: "/defective-return",
-        icon: AlertTriangleIcon,
-        functionName: "goods_receipt",
-      },
+    ]
+  },
+  {
+    label: "ส่งคืนของเสีย",
+    items: [
       {
-        title: "อนุมัติจัดการของเสีย",
-        url: "/disposal-approval",
-        icon: ShieldCheck,
-        functionName: "manager_approval",
+        title: "ส่งคืนของเสีย",
+        icon: Recycle,
+        functionName: "disposal_request",
+        subItems: [
+          { title: "นำของเสียเข้าระบบ", url: "/defective-return", icon: AlertTriangleIcon, functionName: "disposal_request" },
+          { title: "ตัดจำหน่ายของหมดอายุ", url: "/defective-return?mode=expired", icon: Clock, functionName: "disposal_request" },
+          { title: "อนุมัติจัดการของเสีย", url: "/disposal-approval", icon: ShieldCheck, functionNames: ["disposal_approve_l1", "disposal_approve_l2", "disposal_finance"] },
+          { title: "รายงานของเสีย/จำหน่าย", url: "/disposal-report", icon: FileBarChart2, functionName: "disposal_report" },
+        ]
       },
     ]
   },
