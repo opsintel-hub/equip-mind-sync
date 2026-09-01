@@ -60,6 +60,8 @@ const DefectiveReturnEntry = () => {
   const [selectedItemId, setSelectedItemId] = useState("");
   const [detectedBillboards, setDetectedBillboards] = useState<BillboardEquipmentRecord[]>([]);
   const [selectedBillboardEquipmentId, setSelectedBillboardEquipmentId] = useState("");
+  // ผู้ใช้ยืนยันเองว่าของถอดมาจากป้าย/หน้างาน (ไม่มี link ป้ายในระบบ) → ไม่ตัดสต็อกคลังหลัก
+  const [manualFieldSource, setManualFieldSource] = useState(false);
   const [isLoadingBillboard, setIsLoadingBillboard] = useState(false);
   const [perUnitMode, setPerUnitMode] = useState(false);
   const [defectiveUnits, setDefectiveUnits] = useState<DefectiveUnitEntry[]>([
@@ -648,6 +650,12 @@ const DefectiveReturnEntry = () => {
   }, [isMediaPlayer, selectedMediaPlayer, selectedEquipment]);
 
   const isFromBillboard = selectedBillboardEquipmentId !== "" && detectedBillboards.length > 0;
+  // ที่มาที่ใช้จริงตอนบันทึก — ตัดสต็อกเฉพาะ warehouse/expired เท่านั้น
+  const effectiveSourceType = fromAssessmentInfo
+    ? "from_assessment"
+    : isFromBillboard || manualFieldSource
+      ? "billboard"
+      : "warehouse";
   const generateDocNo = () => `DR-${format(new Date(), "yyyyMMdd")}-${Math.floor(Math.random() * 9999 + 1).toString().padStart(4, "0")}`;
 
   // Get quarantine location for defective items
@@ -739,7 +747,7 @@ const DefectiveReturnEntry = () => {
   };
 
   const handleReset = () => {
-    setSelectedItemId(""); setSelectedBillboardEquipmentId(""); setDetectedBillboards([]);
+    setSelectedItemId(""); setSelectedBillboardEquipmentId(""); setDetectedBillboards([]); setManualFieldSource(false);
     setQuantity("1"); setItemCondition("defective"); setReason(""); setNotes("");
     setPerUnitMode(false);
     setExistingTicket(null);
@@ -797,7 +805,7 @@ const DefectiveReturnEntry = () => {
             quantity: 1, billboard_id: selectedBillboardRecord?.billboard_id || null,
             item_condition: unitEntry.item_condition, reason: reasonText,
             status: "pending_warehouse_entry",
-            source_type: fromAssessmentInfo ? "from_assessment" : (isFromBillboard ? "billboard" : "warehouse"),
+            source_type: effectiveSourceType,
             is_expired: expiredMode,
             still_usable: expiredMode ? false : null,
             quarantine_location_id: quarantineLocId,
@@ -814,7 +822,7 @@ const DefectiveReturnEntry = () => {
             await deductStockToQuarantine({
               isMP: isMediaPlayer, itemId: selectedItemId, qty: 1,
               docNo, drId: drRow.id, reasonText, quarantineLocId,
-              sourceType: fromAssessmentInfo ? "from_assessment" : (isFromBillboard ? "billboard" : "warehouse"),
+              sourceType: effectiveSourceType,
             });
             // Update equipment_serial_numbers status to defective
             if (!isMediaPlayer && unitEntry.serial_number.trim()) {
@@ -890,7 +898,7 @@ const DefectiveReturnEntry = () => {
             media_player_id: isMediaPlayer ? selectedItemId : null, is_media_player: isMediaPlayer,
             quantity: qty, billboard_id: billboardId, item_condition: itemCondition,
             reason: reason.trim(), status: "pending_warehouse_entry",
-            source_type: fromAssessmentInfo ? "from_assessment" : (isFromBillboard ? "billboard" : "warehouse"),
+            source_type: effectiveSourceType,
             is_expired: expiredMode,
             still_usable: expiredMode ? false : null,
             quarantine_location_id: quarantineLocId,
@@ -910,7 +918,7 @@ const DefectiveReturnEntry = () => {
         await deductStockToQuarantine({
           isMP: isMediaPlayer, itemId: selectedItemId, qty,
           docNo, drId, reasonText: reason.trim(), quarantineLocId,
-          sourceType: fromAssessmentInfo ? "from_assessment" : (isFromBillboard ? "billboard" : "warehouse"),
+          sourceType: effectiveSourceType,
         });
         if (isFromBillboard && billboardId && !isMediaPlayer) {
           const be = detectedBillboards.find(b => b.id === selectedBillboardEquipmentId);
