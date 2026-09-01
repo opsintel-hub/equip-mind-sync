@@ -58,6 +58,7 @@ const BillboardPartsAvailability = lazy(() => import("./pages/BillboardPartsAvai
 const BillboardPMPage = lazy(() => import("./pages/BillboardPMPage"));
 const DefectiveReturnEntry = lazy(() => import("./pages/DefectiveReturnEntry"));
 const DisposalApproval = lazy(() => import("./pages/DisposalApproval"));
+const DisposalReport = lazy(() => import("./pages/DisposalReport"));
 const StockCard = lazy(() => import("./pages/StockCard"));
 const DeliveryConfirmation = lazy(() => import("./pages/DeliveryConfirmation"));
 const ManagerApproval = lazy(() => import("./pages/ManagerApproval"));
@@ -179,6 +180,7 @@ const App = () => (
             <Route path="/billboard-packages" element={<Protected><BillboardPackages /></Protected>} />
             <Route path="/defective-return" element={<Protected><DefectiveReturnEntry /></Protected>} />
             <Route path="/disposal-approval" element={<Protected><DisposalApproval /></Protected>} />
+            <Route path="/disposal-report" element={<Protected><DisposalReport /></Protected>} />
             <Route path="/stock-card" element={<Protected><StockCard /></Protected>} />
             <Route path="/kpi-report" element={<Protected><KPIReport /></Protected>} />
             <Route path="/stock-reconciliation" element={<Protected><StockReconciliation /></Protected>} />
