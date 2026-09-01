@@ -14,6 +14,8 @@ import { TablePagination } from "@/components/TablePagination";
 import type { PageSize } from "@/hooks/useTablePagination";
 import { useTablePagination } from "@/hooks/useTablePagination";
 import { ColumnChooser } from "@/components/ColumnChooser";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { DisposalAuditTable } from "@/components/disposal/DisposalAuditTable";
 import { FileBarChart2, Download, RefreshCw, Search } from "lucide-react";
 import { format } from "date-fns";
 import { th } from "date-fns/locale";
