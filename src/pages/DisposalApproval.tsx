@@ -720,11 +720,13 @@ export default function DisposalApproval() {
               <Select value={method} onValueChange={setMethod}>
                 <SelectTrigger><SelectValue placeholder="เลือกวิธี..." /></SelectTrigger>
                 <SelectContent>
-                  {Object.entries(DISPOSAL_METHODS).map(([k, v]) => (
-                    <SelectItem key={k} value={k}>
-                      <span className="flex items-center gap-2"><v.icon className="w-4 h-4" /> {v.label}</span>
-                    </SelectItem>
-                  ))}
+                  {Object.entries(DISPOSAL_METHODS)
+                    .filter(([k]) => SELECTABLE_DISPOSAL_METHODS.includes(k))
+                    .map(([k, v]) => (
+                      <SelectItem key={k} value={k}>
+                        <span className="flex items-center gap-2"><v.icon className="w-4 h-4" /> {v.label}</span>
+                      </SelectItem>
+                    ))}
                 </SelectContent>
               </Select>
             </div>
