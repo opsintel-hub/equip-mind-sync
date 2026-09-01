@@ -34,6 +34,9 @@ import {
   FileCheck2,
   ShieldCheck,
   Upload,
+  Recycle,
+  FileBarChart2,
+  Calculator,
 } from "lucide-react";
 import {
   Sidebar,
