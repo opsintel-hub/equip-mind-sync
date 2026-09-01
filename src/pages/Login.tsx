@@ -26,7 +26,7 @@ import { toast } from "sonner";
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable/index";
-import { ALLOWED_EMAIL_DOMAIN } from "@/lib/authDomain";
+import { ALLOWED_EMAIL_DOMAIN, isAllowedEmail } from "@/lib/authDomain";
 
 const GoogleIcon = () => (
   <svg viewBox="0 0 24 24" className="h-4 w-4" aria-hidden="true">
@@ -43,12 +43,17 @@ const loginSchema = z.object({
 });
 
 const signupSchema = loginSchema.extend({
+  email: z
+    .string()
+    .email("รูปแบบอีเมลไม่ถูกต้อง")
+    .refine(isAllowedEmail, `อนุญาตเฉพาะอีเมลบริษัท @${ALLOWED_EMAIL_DOMAIN} เท่านั้น`),
   fullName: z.string().min(2, "กรุณากรอกชื่อ-นามสกุล"),
   displayName: z.string().min(1, "กรุณากรอกชื่อที่ต้องการให้แสดงในระบบ").max(50, "ชื่อที่แสดงต้องไม่เกิน 50 ตัวอักษร"),
   phone: z.string().trim().min(9, "กรุณากรอกเบอร์โทรศัพท์").max(20, "เบอร์โทรศัพท์ยาวเกินไป"),
   requestedJobRole: z.string().min(1, "กรุณาเลือกตำแหน่งงาน"),
   requestedDepartment: z.string().min(1, "กรุณาเลือกฝ่ายที่สังกัด"),
 });
+
 
 interface JobRoleTemplate {
   template_key: string;
@@ -339,11 +344,11 @@ const Login = () => {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="signup-email">อีเมล</Label>
+                  <Label htmlFor="signup-email">อีเมล (เฉพาะ @{ALLOWED_EMAIL_DOMAIN})</Label>
                   <Input
                     id="signup-email"
                     type="email"
-                    placeholder="your.email@example.com"
+                    placeholder={`your.name@${ALLOWED_EMAIL_DOMAIN}`}
                     value={signupEmail}
                     onChange={(e) => setSignupEmail(e.target.value)}
                     disabled={isLoading}
