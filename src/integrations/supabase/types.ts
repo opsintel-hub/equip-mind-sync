@@ -1436,14 +1436,31 @@ export type Database = {
           disposal_evidence_urls: string[] | null
           disposal_method: string | null
           disposal_notes: string | null
+          disposal_rejected_at: string | null
+          disposal_rejected_by: string | null
+          disposal_rejected_reason: string | null
           dispose_status: string
           document_no: string
           equipment_id: string | null
+          expiry_date: string | null
+          finance_ack_at: string | null
+          finance_ack_by: string | null
+          finance_ack_notes: string | null
           id: string
+          is_expired: boolean
           is_media_player: boolean
           item_condition: string
+          l1_approved_at: string | null
+          l1_approved_by: string | null
+          l1_notes: string | null
+          l2_approved_at: string | null
+          l2_approved_by: string | null
+          l2_notes: string | null
           media_player_id: string | null
           notes: string | null
+          proposed_at: string | null
+          proposed_by: string | null
+          proposed_method: string | null
           quantity: number
           quarantine_location_id: string | null
           reason: string | null
@@ -1460,11 +1477,14 @@ export type Database = {
           source_issue_item_id: string | null
           source_type: string
           status: string
+          still_usable: boolean | null
           stock_deducted_at: string | null
           stock_disposed_at: string | null
           swap_request_id: string | null
           symptom_id: string | null
           symptom_other: string | null
+          total_value: number | null
+          unit_price_snapshot: number | null
           updated_at: string
         }
         Insert: {
@@ -1480,14 +1500,31 @@ export type Database = {
           disposal_evidence_urls?: string[] | null
           disposal_method?: string | null
           disposal_notes?: string | null
+          disposal_rejected_at?: string | null
+          disposal_rejected_by?: string | null
+          disposal_rejected_reason?: string | null
           dispose_status?: string
           document_no?: string
           equipment_id?: string | null
+          expiry_date?: string | null
+          finance_ack_at?: string | null
+          finance_ack_by?: string | null
+          finance_ack_notes?: string | null
           id?: string
+          is_expired?: boolean
           is_media_player?: boolean
           item_condition?: string
+          l1_approved_at?: string | null
+          l1_approved_by?: string | null
+          l1_notes?: string | null
+          l2_approved_at?: string | null
+          l2_approved_by?: string | null
+          l2_notes?: string | null
           media_player_id?: string | null
           notes?: string | null
+          proposed_at?: string | null
+          proposed_by?: string | null
+          proposed_method?: string | null
           quantity?: number
           quarantine_location_id?: string | null
           reason?: string | null
@@ -1504,11 +1541,14 @@ export type Database = {
           source_issue_item_id?: string | null
           source_type?: string
           status?: string
+          still_usable?: boolean | null
           stock_deducted_at?: string | null
           stock_disposed_at?: string | null
           swap_request_id?: string | null
           symptom_id?: string | null
           symptom_other?: string | null
+          total_value?: number | null
+          unit_price_snapshot?: number | null
           updated_at?: string
         }
         Update: {
@@ -1524,14 +1564,31 @@ export type Database = {
           disposal_evidence_urls?: string[] | null
           disposal_method?: string | null
           disposal_notes?: string | null
+          disposal_rejected_at?: string | null
+          disposal_rejected_by?: string | null
+          disposal_rejected_reason?: string | null
           dispose_status?: string
           document_no?: string
           equipment_id?: string | null
+          expiry_date?: string | null
+          finance_ack_at?: string | null
+          finance_ack_by?: string | null
+          finance_ack_notes?: string | null
           id?: string
+          is_expired?: boolean
           is_media_player?: boolean
           item_condition?: string
+          l1_approved_at?: string | null
+          l1_approved_by?: string | null
+          l1_notes?: string | null
+          l2_approved_at?: string | null
+          l2_approved_by?: string | null
+          l2_notes?: string | null
           media_player_id?: string | null
           notes?: string | null
+          proposed_at?: string | null
+          proposed_by?: string | null
+          proposed_method?: string | null
           quantity?: number
           quarantine_location_id?: string | null
           reason?: string | null
@@ -1548,11 +1605,14 @@ export type Database = {
           source_issue_item_id?: string | null
           source_type?: string
           status?: string
+          still_usable?: boolean | null
           stock_deducted_at?: string | null
           stock_disposed_at?: string | null
           swap_request_id?: string | null
           symptom_id?: string | null
           symptom_other?: string | null
+          total_value?: number | null
+          unit_price_snapshot?: number | null
           updated_at?: string
         }
         Relationships: [
