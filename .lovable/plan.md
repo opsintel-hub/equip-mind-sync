@@ -22,26 +22,35 @@
 
 ## 2. Flow ที่แนะนำ (2 กรณี)
 
-### กรณี A — ของถอดจากป้าย / ชำรุดจากหน้างาน (ใช้ของเดิม ต่อยอด)
-```text
-ช่างถอดจากป้าย → ใบของเสีย → คลังยืนยันรับเข้า (ตัดเข้า WH-DEFECT)
-   → เสนอวิธีจัดการ → อนุมัติชั้น 1 (หัวหน้าฝ่ายเจ้าของของ)
-   → อนุมัติชั้น 2 (ผู้จัดการทรัพย์สิน/ผู้บริหารคลัง)
-   → บัญชีรับทราบ/ยืนยันมูลค่าตัดจำหน่าย
-   → ดำเนินการจริง + แนบรูป → เสร็จสิ้น + ลง stock_movements
-```
+หลักการสำคัญเรื่อง "ตัดสต็อก": ตัดสต็อกหลัก (`quantity_in_stock`) เฉพาะกรณีที่ของ **ยังอยู่ในคลัง** เท่านั้น
+ของที่ถอดจากป้าย/เบิกออกไปแล้ว สต็อกหลักเป็น 0 อยู่แล้ว → ไม่ตัดซ้ำ ให้ "รับเข้าคลังของเสีย" เท่านั้น
 
-### กรณี B — ของในคลังหมดอายุ / เสื่อมสภาพ (สายใหม่ ไม่ต้องเบิกออก)
-แนะนำ **ไม่ต้องให้เจ้าของเบิกออก** เพราะจะทำให้ยอดเบิกเพี้ยนและหาที่มาย้อนหลังยาก
-ให้ใช้ "ใบขอตัดจำหน่ายของหมดอายุ" แทน โดยคลัง/เจ้าของของเป็นคนเปิดใบ:
+### กรณี A — ของถอดจากป้าย / ชำรุดจากหน้างาน (ของไม่ได้อยู่ในคลัง)
 ```text
-คลังตรวจพบหมดอายุ (หรือระบบเตือนจาก expiry_date)
-   → เปิดใบตัดจำหน่าย ระบุจำนวน + เหตุผล + รูปสภาพจริง (source_type = 'expired')
-   → คลังยืนยัน "ตรวจนับแล้ว" → ตัด stock เข้า WH-DEFECT (เหมือนกรณี A)
+ช่างถอดจากป้าย → ใบของเสีย → คลังยืนยันรับเข้า
+   ⮞  ไม่ตัด quantity_in_stock (เพราะตอนเบิกติดตั้งตัดไปแล้ว)
+   ⮞  รับเข้าคลังของเสีย (WH-DEFECT) + ลง stock_movement แบบ "รับเข้าของเสีย" (movement +qty เข้า WH-DEFECT)
+   → เสนอวิธีจัดการ → อนุมัติชั้น 1 → อนุมัติชั้น 2 → บัญชีรับทราบมูลค่า
+   → ดำเนินการจริง + แนบรูป → เสร็จสิ้น + ลง stock_movements (จำหน่ายออก)
+```
+⚠️ ปัจจุบัน `deductStockToQuarantine()` ลบ `quantity_in_stock` ทุกกรณี (floor 0) ทำให้ Case A ถูกตัดซ้ำจากฐาน 0 และลง movement ยอดติดลบจาก 0 → ต้องแก้ให้ตรวจ `source_type` ก่อนตัด:
+- `billboard / from_issue / from_assessment` → ไม่ตัดสต็อกหลัก, ลง movement "receive เข้า WH-DEFECT"
+- `warehouse` → ตัดสต็อกหลักตามเดิม
+
+### กรณี B — ของในคลังหมดอายุ / เสื่อมสภาพ (ของยังอยู่ในคลัง)
+**หมดอายุ ≠ ใช้ไม่ได้เสมอไป** ดังนั้น:
+- ของหมดอายุแต่ **ยังใช้งานได้** → เบิกได้ปกติ ระบบแค่ "แจ้งเตือนให้ตรวจสอบ" (ไม่บังคับตัดจำหน่าย)
+- ของหมดอายุและ **ยืนยันว่าใช้ไม่ได้แล้ว** → เข้าสายตัดจำหน่าย (เจ้าหน้าที่คลัง/เจ้าของของเปิดใบ)
+
+```text
+คลังตรวจพบหมดอายุ (ระบบเตือนจาก expiry_date) → ตรวจสอบสภาพจริง
+   หากยังใช้ได้ → ทำเครื่องหมาย "ยังใช้ได้" ให้เบิกปกติได้ต่อ
+   หากใช้ไม่ได้ → เปิดใบตัดจำหน่าย ระบุจำนวน + เหตุผล + รูปสภาพจริง (source_type = 'expired', is_expired=true)
+   → คลังยืนยัน "ตรวจนับแล้ว" → ตัด quantity_in_stock ออก + ย้ายเข้า WH-DEFECT
    → อนุมัติชั้น 1 → อนุมัติชั้น 2 → บัญชีรับทราบ
    → ทำลาย/ขายซาก + แนบรูป → เสร็จสิ้น
 ```
-ทั้งสองกรณีมาบรรจบที่ **หน้าอนุมัติเดียวกัน** ต่างกันแค่ป้าย "ที่มา" — ไม่ต้องสร้าง 2 ระบบ
+ทั้งสองกรณีมาบรรจบที่ **หน้าอนุมัติเดียวกัน** ต่างกันแค่ป้าย "ที่มา" และทิศทางการตัดสต็อก — ไม่ต้องสร้าง 2 ระบบ
 
 ## 3. การอนุมัติ 2 ชั้น + สิทธิ์
 
@@ -87,11 +96,16 @@
 - Migration `defective_returns` เพิ่มคอลัมน์ (nullable ทั้งหมด ข้อมูลเก่าไม่พัง):
   `l1_approved_by/at/notes`, `l2_approved_by/at/notes`, `finance_ack_by/at/notes`,
   `proposed_method`, `proposed_by/at`, `disposal_rejected_by/at/reason`,
-  `unit_price_snapshot numeric`, `total_value numeric`, `expiry_date date`
+  `unit_price_snapshot numeric`, `total_value numeric`, `expiry_date date`,
+  `is_expired boolean default false`, `still_usable boolean` (กรณี B: หมดอายุแต่ยังใช้ได้)
 - `dispose_status` ค่าใหม่: `pending_l1` → `pending_l2` → `approved` → `completed`; `rejected_l1` / `rejected_l2`
-  (backfill: `pending_disposal_review` → `pending_l1`)
+  (backfill: `pending_disposal_review` → `pending_l1`, `approved/completed` เดิม → คงไว้ ถือว่าผ่านครบทุกชั้น)
 - Trigger/DB function ตรวจว่า `l2_approved_by <> l1_approved_by` และห้ามข้ามชั้น
+- **แก้ `deductStockToQuarantine()` ให้แยกสายตาม `source_type`:**
+  - `billboard / from_issue / from_assessment` → ไม่ลบ `quantity_in_stock`, ลง stock_movement แบบ `receive` เข้า WH-DEFECT (qty บวก) เพื่อสะท้อน "รับของเสียเข้าคลัง" ไม่ใช่ตัดออกจากคลังหลัก
+  - `warehouse / expired` → ลบ `quantity_in_stock` ตามเดิม + ลง movement `defective_quarantine`
+- กรณี B "หมดอายุ": ดึงรายการ `equipment.expiry_date` ที่เลย/ใกล้หมดอายุมาแสดง ให้เจ้าหน้าที่เลือก "ยังใช้ได้" (เบิกปกติต่อ) หรือ "ใช้ไม่ได้" (เปิดใบตัดจำหน่าย); ระบบเตือนไม่บังคับ
 - RLS: อ่านตาม scope ฝ่าย/แผนกเดิม + เพิ่มเงื่อนไข `has_function_permission(auth.uid(),'disposal_finance')` ให้บัญชีอ่านข้ามฝ่ายได้; เขียนได้เฉพาะผู้มีสิทธิ์ชั้นนั้นๆ
-- ไฟล์ที่แก้: `AppSidebar.tsx` (กลุ่มเมนูใหม่), `App.tsx` (route `/disposal-report`), `DisposalApproval.tsx` (แท็บ + 2 ชั้น + การ์ดมูลค่า), `DefectiveReturnEntry.tsx` (โหมด `expired` + ดึงของใกล้/เลยหมดอายุมาเลือก), `useFunctionPermissions.tsx`, `FunctionDescriptions.tsx`, `PermissionWizard.tsx`
+- ไฟล์ที่แก้: `AppSidebar.tsx` (กลุ่มเมนูใหม่), `App.tsx` (route `/disposal-report`), `DisposalApproval.tsx` (แท็บ + 2 ชั้น + การ์ดมูลค่า), `DefectiveReturnEntry.tsx` (แก้ `deductStockToQuarantine` แยกสาย + โหมด `expired` + ดึงของหมดอายุมาเลือก), `useFunctionPermissions.tsx`, `FunctionDescriptions.tsx`, `PermissionWizard.tsx`
 - ไฟล์ใหม่: `src/pages/DisposalReport.tsx`
-- ไม่แตะ flow Swap / Assessment / Claim และไม่เปลี่ยนกลไกตัด stock เข้า WH-DEFECT เดิม
+- ไม่แตะ flow Swap / Assessment / Claim และไม่เปลี่ยนกลไกตัด stock เข้า WH-DEFECT เดิม (เฉพาะทิศทางตัดสต็อกหลักที่ปรับ)
