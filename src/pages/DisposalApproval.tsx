@@ -14,6 +14,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { ShieldCheck, ShieldAlert, Search, RefreshCw, Trash2, Recycle, HeartHandshake, Wrench, ImagePlus, X, Eye, CheckCircle2, FileText, Calculator } from "lucide-react";
 import { toast } from "sonner";
+import { DisposalAuditTimeline } from "@/components/disposal/DisposalAuditTimeline";
 import { format } from "date-fns";
 import { th } from "date-fns/locale";
 
