@@ -92,7 +92,7 @@ const AuditTrail = () => {
   }, [rows, search, moduleFilter, actionFilter, actorFilter, superOnly, from, to]);
 
   const { paginatedData, currentPage, pageSize, totalPages, totalItems, handlePageChange, handlePageSizeChange } =
-    useTablePagination<ActivityAuditRow>(filtered, 25);
+    useTablePagination<ActivityAuditRow>(filtered, 20);
 
   const exportExcel = () => {
     const out = filtered.map((r) => ({
