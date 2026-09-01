@@ -87,6 +87,10 @@ const fmtMoney = (n: number | null | undefined) =>
 export default function DisposalReport() {
   const { hasFunctionAccess } = useFunctionPermissions();
   const { user } = useAuth();
+  const canAudit =
+    hasFunctionAccess("disposal_audit_view") ||
+    hasFunctionAccess("disposal_report") ||
+    hasFunctionAccess("disposal_finance");
   const [rows, setRows] = useState<DisposalRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
