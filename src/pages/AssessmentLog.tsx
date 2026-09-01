@@ -28,6 +28,7 @@ import { DeviceTypeBadge } from "@/components/media-player/DeviceTypeBadge";
 import { formatBillboardLabel } from "@/lib/billboardUtils";
 import { formatMergedSerials } from "@/lib/serialSearch";
 import { PhotoGalleryDialog } from "@/components/ui/PhotoGalleryDialog";
+import { AuditTimeline } from "@/components/audit/AuditTimeline";
 
 interface AssessmentLog {
   id: string;
