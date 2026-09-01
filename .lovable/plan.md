@@ -96,11 +96,16 @@
 - Migration `defective_returns` เพิ่มคอลัมน์ (nullable ทั้งหมด ข้อมูลเก่าไม่พัง):
   `l1_approved_by/at/notes`, `l2_approved_by/at/notes`, `finance_ack_by/at/notes`,
   `proposed_method`, `proposed_by/at`, `disposal_rejected_by/at/reason`,
-  `unit_price_snapshot numeric`, `total_value numeric`, `expiry_date date`
+  `unit_price_snapshot numeric`, `total_value numeric`, `expiry_date date`,
+  `is_expired boolean default false`, `still_usable boolean` (กรณี B: หมดอายุแต่ยังใช้ได้)
 - `dispose_status` ค่าใหม่: `pending_l1` → `pending_l2` → `approved` → `completed`; `rejected_l1` / `rejected_l2`
-  (backfill: `pending_disposal_review` → `pending_l1`)
+  (backfill: `pending_disposal_review` → `pending_l1`, `approved/completed` เดิม → คงไว้ ถือว่าผ่านครบทุกชั้น)
 - Trigger/DB function ตรวจว่า `l2_approved_by <> l1_approved_by` และห้ามข้ามชั้น
+- **แก้ `deductStockToQuarantine()` ให้แยกสายตาม `source_type`:**
+  - `billboard / from_issue / from_assessment` → ไม่ลบ `quantity_in_stock`, ลง stock_movement แบบ `receive` เข้า WH-DEFECT (qty บวก) เพื่อสะท้อน "รับของเสียเข้าคลัง" ไม่ใช่ตัดออกจากคลังหลัก
+  - `warehouse / expired` → ลบ `quantity_in_stock` ตามเดิม + ลง movement `defective_quarantine`
+- กรณี B "หมดอายุ": ดึงรายการ `equipment.expiry_date` ที่เลย/ใกล้หมดอายุมาแสดง ให้เจ้าหน้าที่เลือก "ยังใช้ได้" (เบิกปกติต่อ) หรือ "ใช้ไม่ได้" (เปิดใบตัดจำหน่าย); ระบบเตือนไม่บังคับ
 - RLS: อ่านตาม scope ฝ่าย/แผนกเดิม + เพิ่มเงื่อนไข `has_function_permission(auth.uid(),'disposal_finance')` ให้บัญชีอ่านข้ามฝ่ายได้; เขียนได้เฉพาะผู้มีสิทธิ์ชั้นนั้นๆ
-- ไฟล์ที่แก้: `AppSidebar.tsx` (กลุ่มเมนูใหม่), `App.tsx` (route `/disposal-report`), `DisposalApproval.tsx` (แท็บ + 2 ชั้น + การ์ดมูลค่า), `DefectiveReturnEntry.tsx` (โหมด `expired` + ดึงของใกล้/เลยหมดอายุมาเลือก), `useFunctionPermissions.tsx`, `FunctionDescriptions.tsx`, `PermissionWizard.tsx`
+- ไฟล์ที่แก้: `AppSidebar.tsx` (กลุ่มเมนูใหม่), `App.tsx` (route `/disposal-report`), `DisposalApproval.tsx` (แท็บ + 2 ชั้น + การ์ดมูลค่า), `DefectiveReturnEntry.tsx` (แก้ `deductStockToQuarantine` แยกสาย + โหมด `expired` + ดึงของหมดอายุมาเลือก), `useFunctionPermissions.tsx`, `FunctionDescriptions.tsx`, `PermissionWizard.tsx`
 - ไฟล์ใหม่: `src/pages/DisposalReport.tsx`
-- ไม่แตะ flow Swap / Assessment / Claim และไม่เปลี่ยนกลไกตัด stock เข้า WH-DEFECT เดิม
+- ไม่แตะ flow Swap / Assessment / Claim และไม่เปลี่ยนกลไกตัด stock เข้า WH-DEFECT เดิม (เฉพาะทิศทางตัดสต็อกหลักที่ปรับ)
