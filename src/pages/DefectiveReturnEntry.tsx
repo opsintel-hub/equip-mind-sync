@@ -49,6 +49,10 @@ const DefectiveReturnEntry = () => {
   const { applyEquipmentScope, applyMediaPlayerScope, scopeKey } = useSectionScope();
   const navigate = useNavigate();
   const routerLocation = useLocation();
+  const expiredMode = useMemo(
+    () => new URLSearchParams(routerLocation.search).get("mode") === "expired",
+    [routerLocation.search]
+  );
   const [isMediaPlayer, setIsMediaPlayer] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [equipmentList, setEquipmentList] = useState<EquipmentItem[]>([]);
