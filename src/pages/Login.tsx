@@ -344,11 +344,11 @@ const Login = () => {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="signup-email">อีเมล</Label>
+                  <Label htmlFor="signup-email">อีเมล (เฉพาะ @{ALLOWED_EMAIL_DOMAIN})</Label>
                   <Input
                     id="signup-email"
                     type="email"
-                    placeholder="your.email@example.com"
+                    placeholder={`your.name@${ALLOWED_EMAIL_DOMAIN}`}
                     value={signupEmail}
                     onChange={(e) => setSignupEmail(e.target.value)}
                     disabled={isLoading}
