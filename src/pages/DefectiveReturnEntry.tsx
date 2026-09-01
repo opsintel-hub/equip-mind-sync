@@ -474,26 +474,28 @@ const DefectiveReturnEntry = () => {
       const isMP = !!t.is_media_player;
       const itemId = isMP ? t.media_player_id : t.equipment_id;
       const qty = t.quantity || 1;
-      // Items coming back from a goods issue were already deducted at issue time —
-      // only relocate them to the defect warehouse, never deduct twice.
-      const fromIssue = (t as any).source_type === "from_issue";
+      // ของที่ "ไม่ได้อยู่ในคลัง" (เบิกไปแล้ว / ถอดจากป้าย / มาจากการประเมิน)
+      // ถูกตัดสต็อกไปแล้วตั้งแต่ตอนเบิก/ติดตั้ง — ห้ามตัดซ้ำ ให้แค่ย้ายเข้าคลังของเสีย
+      const fromField = ["from_issue", "billboard", "from_assessment"].includes(
+        String((t as any).source_type || "")
+      );
       if (itemId) {
         if (isMP) {
           const { data: mp } = await supabase.from("media_players").select("code, name, quantity").eq("id", itemId).maybeSingle();
           if (mp) {
             const before = mp.quantity || 0;
-            const after = fromIssue ? before : Math.max(0, before - qty);
+            const after = fromField ? before : Math.max(0, before - qty);
             await supabase.from("media_players").update({
               quantity: after, location_id: reviewQuarantineId, status: "defective",
-              ...(fromIssue ? { billboard_id: null } : {}),
+              ...(fromField ? { billboard_id: null } : {}),
             } as any).eq("id", itemId);
             await supabase.from("stock_movements").insert({
               equipment_id: itemId, equipment_code: mp.code, equipment_name: mp.name,
-              movement_type: "defective_quarantine", quantity: fromIssue ? qty : -qty,
+              movement_type: "defective_quarantine", quantity: fromField ? qty : -qty,
               stock_before: before, stock_after: after,
               reference_type: "defective_return", reference_id: t.id, reference_document: t.document_no,
               location_id: reviewQuarantineId,
-              notes: `[${fromIssue ? "ของเสียคืนจากหน้างาน" : "ของเสีย"} → คลังของเสีย] ยืนยันโดย ${reviewerName} — ${t.reason || ""}`,
+              notes: `[${fromField ? "ของเสียคืนจากหน้างาน/ป้าย" : "ของเสียจากคลัง"} → คลังของเสีย] ยืนยันโดย ${reviewerName} — ${t.reason || ""}`,
               item_condition: t.item_condition || "defective",
               created_by: user?.id,
             });
@@ -502,23 +504,24 @@ const DefectiveReturnEntry = () => {
           const { data: eq } = await supabase.from("equipment").select("code, name, quantity_in_stock").eq("id", itemId).maybeSingle();
           if (eq) {
             const before = eq.quantity_in_stock || 0;
-            const after = fromIssue ? before : Math.max(0, before - qty);
-            if (!fromIssue) {
+            const after = fromField ? before : Math.max(0, before - qty);
+            if (!fromField) {
               await supabase.from("equipment").update({ quantity_in_stock: after }).eq("id", itemId);
             }
             await supabase.from("stock_movements").insert({
               equipment_id: itemId, equipment_code: eq.code, equipment_name: eq.name,
-              movement_type: "defective_quarantine", quantity: fromIssue ? qty : -qty,
+              movement_type: "defective_quarantine", quantity: fromField ? qty : -qty,
               stock_before: before, stock_after: after,
               reference_type: "defective_return", reference_id: t.id, reference_document: t.document_no,
               location_id: reviewQuarantineId,
-              notes: `[${fromIssue ? "ของเสียคืนจากหน้างาน" : "ของเสีย"} → คลังของเสีย] ยืนยันโดย ${reviewerName} — ${t.reason || ""}`,
+              notes: `[${fromField ? "ของเสียคืนจากหน้างาน/ป้าย" : "ของเสียจากคลัง"} → คลังของเสีย] ยืนยันโดย ${reviewerName} — ${t.reason || ""}`,
               item_condition: t.item_condition || "defective",
               created_by: user?.id,
             });
           }
         }
       }
+
 
       // Media Player / monitor removed from a billboard => auto-raise a swap request
       let swapCreated = false;
