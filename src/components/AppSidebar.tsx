@@ -116,6 +116,11 @@ const menuGroups: MenuGroup[] = [
           { title: "รายการรอรหัส", url: "/pending-asset-codes", icon: FileKey },
         ]
       },
+    ]
+  },
+  {
+    label: "ส่งคืนของเสีย",
+    items: [
       {
         title: "ส่งคืนของเสีย",
         icon: Recycle,
