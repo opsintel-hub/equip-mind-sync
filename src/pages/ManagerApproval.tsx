@@ -831,6 +831,9 @@ const ManagerApproval = () => {
               <Label>หมายเหตุ (ไม่บังคับ)</Label>
               <Textarea value={approvalNotes} onChange={(e) => setApprovalNotes(e.target.value)} placeholder="หมายเหตุ..." rows={2} />
             </div>
+            {selectedRequest?.id && (
+              <AuditTimeline entityTable="goods_issue_pending" entityId={selectedRequest.id} />
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setApproveDialogOpen(false)}>ยกเลิก</Button>
