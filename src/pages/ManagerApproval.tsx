@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { AuditTimeline } from "@/components/audit/AuditTimeline";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { SubMediaTypeBadge } from "@/components/media-player/SubMediaTypeBadge";
