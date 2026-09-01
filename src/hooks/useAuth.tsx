@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { syncAuthSessionToBridge } from '@/lib/sessionBridge';
+import { ALLOWED_EMAIL_DOMAIN, isAllowedEmail } from '@/lib/authDomain';
 
 interface AuthContextType {
   user: User | null;
@@ -24,6 +25,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     let isMounted = true;
+
+    // อนุญาตเฉพาะอีเมลบริษัทเท่านั้น
+    const enforceDomainGuard = async (email: string | undefined | null) => {
+      if (!email || isAllowedEmail(email)) return false;
+      toast.error(`อนุญาตเฉพาะอีเมลบริษัทเท่านั้น (@${ALLOWED_EMAIL_DOMAIN})`);
+      await supabase.auth.signOut();
+      if (isMounted) {
+        setSession(null);
+        setUser(null);
+      }
+      return true;
+    };
 
     // If profile.is_hidden is true, force sign-out (deleted/disabled user)
     const enforceHiddenGuard = async (uid: string | undefined) => {
@@ -56,7 +69,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         const userId = session?.user?.id;
         if (userId) {
           // Defer to avoid deadlock inside the auth listener
-          setTimeout(() => enforceHiddenGuard(userId), 0);
+          setTimeout(async () => {
+            const blocked = await enforceDomainGuard(session?.user?.email);
+            if (!blocked) enforceHiddenGuard(userId);
+          }, 0);
         }
       }
     );
@@ -66,7 +82,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setUser(session?.user ?? null);
       setLoading(false);
       if (session?.user?.id) {
-        enforceHiddenGuard(session.user.id);
+        enforceDomainGuard(session.user.email).then((blocked) => {
+          if (!blocked) enforceHiddenGuard(session.user.id);
+        });
       }
     });
 
