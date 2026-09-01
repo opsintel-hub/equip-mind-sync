@@ -27,6 +27,7 @@ interface DisposalRow {
   reason: string | null;
   source_type: string;
   dispose_status: string;
+  swap_request_id: string | null;
   disposal_method: string | null;
   created_at: string;
   is_expired: boolean;
