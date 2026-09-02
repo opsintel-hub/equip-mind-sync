@@ -38,12 +38,12 @@ interface SNRow {
 }
 interface BillboardLink {
   billboard_id: string;
-  billboards?: { code: string | null; old_code: string | null; location_name: string | null } | null;
+  billboards?: { equipment_id: string | null; old_code: string | null; location_name: string | null } | null;
 }
 
 const formatBillboardLink = (link?: BillboardLink | null) => {
   const bb = link?.billboards;
-  return [bb?.old_code || bb?.code, bb?.location_name].filter(Boolean).join(" - ") || link?.billboard_id || "-";
+  return [bb?.old_code || bb?.equipment_id, bb?.location_name].filter(Boolean).join(" - ") || link?.billboard_id || "-";
 };
 
 const statusTone = (s: string | null | undefined): string => {
