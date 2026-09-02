@@ -171,11 +171,11 @@ export default function ItemTracer() {
         const [{ data: be }, { data: mpHist }] = await Promise.all([
           (supabase as any)
             .from("billboard_equipment")
-            .select("equipment_id, billboard_id, billboards:billboards(code, old_code, location_name)")
+            .select("equipment_id, billboard_id, billboards:billboards(equipment_id, old_code, location_name)")
             .in("equipment_id", mpIds),
           (supabase as any)
             .from("media_player_billboard_history")
-            .select("media_player_id, billboard_id, billboards:billboards(code, old_code, location_name)")
+            .select("media_player_id, billboard_id, billboards:billboards(equipment_id, old_code, location_name)")
             .in("media_player_id", mpIds)
             .is("uninstall_date", null),
         ]);
