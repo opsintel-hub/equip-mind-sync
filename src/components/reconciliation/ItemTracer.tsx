@@ -38,12 +38,12 @@ interface SNRow {
 }
 interface BillboardLink {
   billboard_id: string;
-  billboards?: { code: string | null; old_code: string | null; location_name: string | null } | null;
+  billboards?: { equipment_id: string | null; old_code: string | null; location_name: string | null } | null;
 }
 
 const formatBillboardLink = (link?: BillboardLink | null) => {
   const bb = link?.billboards;
-  return [bb?.old_code || bb?.code, bb?.location_name].filter(Boolean).join(" - ") || link?.billboard_id || "-";
+  return [bb?.old_code || bb?.equipment_id, bb?.location_name].filter(Boolean).join(" - ") || link?.billboard_id || "-";
 };
 
 const statusTone = (s: string | null | undefined): string => {
@@ -171,11 +171,11 @@ export default function ItemTracer() {
         const [{ data: be }, { data: mpHist }] = await Promise.all([
           (supabase as any)
             .from("billboard_equipment")
-            .select("equipment_id, billboard_id, billboards:billboards(code, old_code, location_name)")
+            .select("equipment_id, billboard_id, billboards:billboards(equipment_id, old_code, location_name)")
             .in("equipment_id", mpIds),
           (supabase as any)
             .from("media_player_billboard_history")
-            .select("media_player_id, billboard_id, billboards:billboards(code, old_code, location_name)")
+            .select("media_player_id, billboard_id, billboards:billboards(equipment_id, old_code, location_name)")
             .in("media_player_id", mpIds)
             .is("uninstall_date", null),
         ]);

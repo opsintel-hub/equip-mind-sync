@@ -114,7 +114,7 @@ export default function DisposalReport() {
       .order("created_at", { ascending: false })
       .limit(1000);
     if (error) { toast.error("โหลดข้อมูลไม่สำเร็จ: " + error.message); setLoading(false); return; }
-    setRows((data as any[]) || []);
+    setRows((((data as any[]) || []).map((r) => (r.dispose_status === "pending_l1" ? { ...r, dispose_status: "pending_disposal_review" } : r))) as any);
     setLoading(false);
   };
 

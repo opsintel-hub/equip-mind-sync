@@ -927,9 +927,9 @@ export default function DocumentSearch() {
       // Build S/N -> current location map (equipment serials + media players)
       const [esnRes, mpRes] = await Promise.all([
         supabase.from("equipment_serial_numbers")
-          .select("serial_number, status, billboard_id, location_id, billboards(code, name, location_name), locations(code, name, warehouses(name))"),
+          .select("serial_number, status, billboard_id, location_id, billboards(equipment_id, old_code, location_name), locations(code, name, warehouses(name))"),
         supabase.from("media_players")
-          .select("code, sub_media_type, serial_number_1, serial_number_2, status, billboard_id, location_id, billboards(code, name, location_name), locations(code, name, warehouses(name))"),
+          .select("code, sub_media_type, serial_number_1, serial_number_2, status, billboard_id, location_id, billboards(equipment_id, old_code, location_name), locations(code, name, warehouses(name))"),
       ]);
       const map = new Map<string, LocationInfo>();
       const smtMap = new Map<string, string>();
@@ -940,7 +940,7 @@ export default function DocumentSearch() {
           return {
             kind: "billboard",
             label: `ป้าย ${bb.equipment_id || bb.old_code || ""}`.trim(),
-            sublabel: bb.location_name || bb.name || undefined,
+            sublabel: bb.location_name || undefined,
           };
         }
         if (row.location_id && row.locations) {
