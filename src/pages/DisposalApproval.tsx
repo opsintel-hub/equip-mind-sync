@@ -199,7 +199,7 @@ export default function DisposalApproval() {
         } : null,
       };
     });
-    setRows(enriched);
+    setRows(enriched.map((r: any) => (r.dispose_status === "pending_l1" ? { ...r, dispose_status: "pending_disposal_review" } : r)));
     setLoading(false);
   };
 
