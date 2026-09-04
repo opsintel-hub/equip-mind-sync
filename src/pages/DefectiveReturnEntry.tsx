@@ -1162,10 +1162,13 @@ const DefectiveReturnEntry = () => {
                 ) : (
                   <div className="space-y-2">
                     <Label className="text-sm">เลือกป้ายที่ต้องการถอดออก:</Label>
-                    <Select value={selectedBillboardEquipmentId} onValueChange={setSelectedBillboardEquipmentId}>
+                    <Select
+                      value={selectedBillboardEquipmentId || "__none__"}
+                      onValueChange={(v) => setSelectedBillboardEquipmentId(v === "__none__" ? "" : v)}
+                    >
                       <SelectTrigger><SelectValue placeholder="เลือกป้ายโฆษณา..." /></SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">ไม่ระบุป้าย (จากคลัง)</SelectItem>
+                        <SelectItem value="__none__">ไม่ระบุป้าย (จากคลัง)</SelectItem>
                         {detectedBillboards.map(be => (<SelectItem key={be.id} value={be.id}>{be.billboard_old_code} - {be.billboard_location} (จำนวน {be.quantity})</SelectItem>))}
                       </SelectContent>
                     </Select>
