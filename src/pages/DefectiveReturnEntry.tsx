@@ -1175,24 +1175,12 @@ const DefectiveReturnEntry = () => {
             )}
 
             {!isLoadingBillboard && selectedItemId && detectedBillboards.length === 0 && !fromAssessmentInfo && (
-              <div className="p-3 rounded-lg bg-muted/30 border space-y-3">
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Info className="w-4 h-4" /> ระบบไม่พบว่าสินค้านี้ผูกอยู่กับป้ายโฆษณา — กรุณายืนยันที่มาของของเสีย
-                </div>
-                <div className="flex items-start gap-3">
-                  <Switch id="manualFieldSource" checked={manualFieldSource} onCheckedChange={setManualFieldSource} />
-                  <Label htmlFor="manualFieldSource" className="text-sm font-normal leading-relaxed cursor-pointer">
-                    ของชิ้นนี้<span className="font-medium"> ถอดมาจากป้าย/หน้างาน </span>(ไม่ได้อยู่ในคลังแล้ว)
-                    <span className="block text-xs text-muted-foreground">เปิด = ไม่ตัดยอดคงเหลือคลังหลัก แค่รับเข้าคลังของเสีย</span>
-                  </Label>
-                </div>
-                <div className={`text-xs rounded-md p-2 ${manualFieldSource ? "bg-blue-500/10 text-blue-700 dark:text-blue-300" : "bg-destructive/10 text-destructive"}`}>
-                  {manualFieldSource
-                    ? "ผลต่อสต็อก: ไม่ตัดยอดคงเหลือ — บันทึกเป็นรับของเสียเข้าคลัง WH-DEFECT"
-                    : `ผลต่อสต็อก: จะตัดยอดคงเหลือคลังหลักออก${stockOnHand !== null ? ` (ปัจจุบัน ${stockOnHand})` : ""} แล้วย้ายเข้าคลังของเสีย`}
-                </div>
+              <div className="p-3 rounded-lg bg-blue-500/10 border text-xs text-blue-700 dark:text-blue-300 flex items-center gap-2">
+                <Info className="w-4 h-4 shrink-0" />
+                ผลต่อสต็อก: ไม่ตัดยอดคงเหลือคลังหลัก — บันทึกเป็นรับของเสียเข้าคลัง WH-DEFECT ทั้งหมด
               </div>
             )}
+
 
 
             {/* Per-unit mode */}
