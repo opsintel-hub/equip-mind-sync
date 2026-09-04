@@ -61,7 +61,6 @@ const DefectiveReturnEntry = () => {
   const [detectedBillboards, setDetectedBillboards] = useState<BillboardEquipmentRecord[]>([]);
   const [selectedBillboardEquipmentId, setSelectedBillboardEquipmentId] = useState("");
   // ผู้ใช้ยืนยันเองว่าของถอดมาจากป้าย/หน้างาน (ไม่มี link ป้ายในระบบ) → ไม่ตัดสต็อกคลังหลัก
-  const [manualFieldSource, setManualFieldSource] = useState(false);
   const [isLoadingBillboard, setIsLoadingBillboard] = useState(false);
   const [perUnitMode, setPerUnitMode] = useState(false);
   const [defectiveUnits, setDefectiveUnits] = useState<DefectiveUnitEntry[]>([
@@ -653,7 +652,7 @@ const DefectiveReturnEntry = () => {
   // ที่มาที่ใช้จริงตอนบันทึก — ตัดสต็อกเฉพาะ warehouse/expired เท่านั้น
   const effectiveSourceType = fromAssessmentInfo
     ? "from_assessment"
-    : isFromBillboard || manualFieldSource
+    : isFromBillboard
       ? "billboard"
       : "warehouse";
   const generateDocNo = () => `DR-${format(new Date(), "yyyyMMdd")}-${Math.floor(Math.random() * 9999 + 1).toString().padStart(4, "0")}`;
