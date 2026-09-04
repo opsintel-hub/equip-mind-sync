@@ -747,7 +747,7 @@ const DefectiveReturnEntry = () => {
   };
 
   const handleReset = () => {
-    setSelectedItemId(""); setSelectedBillboardEquipmentId(""); setDetectedBillboards([]); setManualFieldSource(false);
+    setSelectedItemId(""); setSelectedBillboardEquipmentId(""); setDetectedBillboards([]);
     setQuantity("1"); setItemCondition("defective"); setReason(""); setNotes("");
     setPerUnitMode(false);
     setExistingTicket(null);
