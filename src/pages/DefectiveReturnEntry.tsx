@@ -60,8 +60,6 @@ const DefectiveReturnEntry = () => {
   const [selectedItemId, setSelectedItemId] = useState("");
   const [detectedBillboards, setDetectedBillboards] = useState<BillboardEquipmentRecord[]>([]);
   const [selectedBillboardEquipmentId, setSelectedBillboardEquipmentId] = useState("");
-  // ผู้ใช้ยืนยันเองว่าของถอดมาจากป้าย/หน้างาน (ไม่มี link ป้ายในระบบ) → ไม่ตัดสต็อกคลังหลัก
-  const [manualFieldSource, setManualFieldSource] = useState(false);
   const [isLoadingBillboard, setIsLoadingBillboard] = useState(false);
   const [perUnitMode, setPerUnitMode] = useState(false);
   const [defectiveUnits, setDefectiveUnits] = useState<DefectiveUnitEntry[]>([
@@ -650,10 +648,10 @@ const DefectiveReturnEntry = () => {
   }, [isMediaPlayer, selectedMediaPlayer, selectedEquipment]);
 
   const isFromBillboard = selectedBillboardEquipmentId !== "" && detectedBillboards.length > 0;
-  // ที่มาที่ใช้จริงตอนบันทึก — ตัดสต็อกเฉพาะ warehouse/expired เท่านั้น
+  // ที่มาที่ใช้จริงตอนบันทึก (ไม่มีการตัดสต็อกคลังหลักในทุกกรณี)
   const effectiveSourceType = fromAssessmentInfo
     ? "from_assessment"
-    : isFromBillboard || manualFieldSource
+    : isFromBillboard
       ? "billboard"
       : "warehouse";
   const generateDocNo = () => `DR-${format(new Date(), "yyyyMMdd")}-${Math.floor(Math.random() * 9999 + 1).toString().padStart(4, "0")}`;
@@ -684,9 +682,11 @@ const DefectiveReturnEntry = () => {
     sourceType?: string | null;
   }) => {
     const { isMP, itemId, qty, docNo, drId, reasonText, quarantineLocId, sourceType } = params;
-    const fromField = sourceType && ["billboard", "from_issue", "from_assessment"].includes(sourceType);
-    const movementType = fromField ? "defective_receive" : "defective_quarantine";
-    const movementQty = fromField ? Math.abs(qty) : -Math.abs(qty);
+    // ทุกกรณีถือเป็น "รับของเสียเข้าคลัง WH-DEFECT" — ไม่ตัดยอดคงเหลือคลังหลัก
+    const fromField = true;
+    const movementType = "defective_receive";
+    const movementQty = Math.abs(qty);
+
 
     if (isMP) {
       const mp = mediaPlayerList.find(m => m.id === itemId);
@@ -747,7 +747,7 @@ const DefectiveReturnEntry = () => {
   };
 
   const handleReset = () => {
-    setSelectedItemId(""); setSelectedBillboardEquipmentId(""); setDetectedBillboards([]); setManualFieldSource(false);
+    setSelectedItemId(""); setSelectedBillboardEquipmentId(""); setDetectedBillboards([]);
     setQuantity("1"); setItemCondition("defective"); setReason(""); setNotes("");
     setPerUnitMode(false);
     setExistingTicket(null);
@@ -1175,24 +1175,12 @@ const DefectiveReturnEntry = () => {
             )}
 
             {!isLoadingBillboard && selectedItemId && detectedBillboards.length === 0 && !fromAssessmentInfo && (
-              <div className="p-3 rounded-lg bg-muted/30 border space-y-3">
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Info className="w-4 h-4" /> ระบบไม่พบว่าสินค้านี้ผูกอยู่กับป้ายโฆษณา — กรุณายืนยันที่มาของของเสีย
-                </div>
-                <div className="flex items-start gap-3">
-                  <Switch id="manualFieldSource" checked={manualFieldSource} onCheckedChange={setManualFieldSource} />
-                  <Label htmlFor="manualFieldSource" className="text-sm font-normal leading-relaxed cursor-pointer">
-                    ของชิ้นนี้<span className="font-medium"> ถอดมาจากป้าย/หน้างาน </span>(ไม่ได้อยู่ในคลังแล้ว)
-                    <span className="block text-xs text-muted-foreground">เปิด = ไม่ตัดยอดคงเหลือคลังหลัก แค่รับเข้าคลังของเสีย</span>
-                  </Label>
-                </div>
-                <div className={`text-xs rounded-md p-2 ${manualFieldSource ? "bg-blue-500/10 text-blue-700 dark:text-blue-300" : "bg-destructive/10 text-destructive"}`}>
-                  {manualFieldSource
-                    ? "ผลต่อสต็อก: ไม่ตัดยอดคงเหลือ — บันทึกเป็นรับของเสียเข้าคลัง WH-DEFECT"
-                    : `ผลต่อสต็อก: จะตัดยอดคงเหลือคลังหลักออก${stockOnHand !== null ? ` (ปัจจุบัน ${stockOnHand})` : ""} แล้วย้ายเข้าคลังของเสีย`}
-                </div>
+              <div className="p-3 rounded-lg bg-blue-500/10 border text-xs text-blue-700 dark:text-blue-300 flex items-center gap-2">
+                <Info className="w-4 h-4 shrink-0" />
+                ผลต่อสต็อก: ไม่ตัดยอดคงเหลือคลังหลัก — บันทึกเป็นรับของเสียเข้าคลัง WH-DEFECT ทั้งหมด
               </div>
             )}
+
 
 
             {/* Per-unit mode */}
