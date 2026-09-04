@@ -684,9 +684,11 @@ const DefectiveReturnEntry = () => {
     sourceType?: string | null;
   }) => {
     const { isMP, itemId, qty, docNo, drId, reasonText, quarantineLocId, sourceType } = params;
-    const fromField = sourceType && ["billboard", "from_issue", "from_assessment"].includes(sourceType);
-    const movementType = fromField ? "defective_receive" : "defective_quarantine";
-    const movementQty = fromField ? Math.abs(qty) : -Math.abs(qty);
+    // ทุกกรณีถือเป็น "รับของเสียเข้าคลัง WH-DEFECT" — ไม่ตัดยอดคงเหลือคลังหลัก
+    const fromField = true;
+    const movementType = "defective_receive";
+    const movementQty = Math.abs(qty);
+
 
     if (isMP) {
       const mp = mediaPlayerList.find(m => m.id === itemId);
