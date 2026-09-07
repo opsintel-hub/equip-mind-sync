@@ -476,9 +476,8 @@ const DefectiveReturnEntry = () => {
       const qty = t.quantity || 1;
       // ของที่ "ไม่ได้อยู่ในคลัง" (เบิกไปแล้ว / ถอดจากป้าย / มาจากการประเมิน)
       // ถูกตัดสต็อกไปแล้วตั้งแต่ตอนเบิก/ติดตั้ง — ห้ามตัดซ้ำ ให้แค่ย้ายเข้าคลังของเสีย
-      const fromField = ["from_issue", "billboard", "from_assessment"].includes(
-        String((t as any).source_type || "")
-      );
+      // ทุกกรณีถือเป็น "รับของเสียเข้าคลัง WH-DEFECT" — ไม่ตัดยอดคงเหลือคลังหลัก
+      const fromField = true;
       if (itemId) {
         if (isMP) {
           const { data: mp } = await supabase.from("media_players").select("code, name, quantity").eq("id", itemId).maybeSingle();

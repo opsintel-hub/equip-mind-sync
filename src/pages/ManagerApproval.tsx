@@ -215,7 +215,8 @@ const ManagerApproval = () => {
     queryKey: ["ma-equip-stock", equipmentIds],
     enabled: equipmentIds.length > 0,
     queryFn: async () => {
-      const { data } = await supabase.from("equipment").select("id, quantity, unit_price, unit").in("id", equipmentIds as string[]);
+      const { data, error } = await supabase.from("equipment").select("id, quantity:quantity_in_stock, unit_price, unit").in("id", equipmentIds as string[]);
+      if (error) throw error;
       const m: Record<string, any> = {};
       data?.forEach((e: any) => { m[e.id] = e; });
       return m;
