@@ -153,6 +153,7 @@ export function PermissionWizard({ open, onOpenChange, user, onSaved }: Permissi
       setSelectedSectionIds([]);
       setPreviewRoles([]);
       setPreviewFunctions([]);
+      setAccessLevel("user");
       setDeptPerm({ view: true, create: false, edit: false, delete: false });
       loadData();
     }
