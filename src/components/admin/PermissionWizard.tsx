@@ -40,7 +40,7 @@ import { RoleDescriptions } from "@/components/admin/RoleDescriptions";
 import { FunctionDescriptions } from "@/components/admin/FunctionDescriptions";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { SYSTEM_FUNCTIONS } from "@/hooks/useFunctionPermissions";
+import { SYSTEM_FUNCTIONS, GROUPED_FUNCTIONS } from "@/hooks/useFunctionPermissions";
 import {
   DUTY_PACKS,
   APPROVAL_PERMISSIONS,
@@ -805,36 +805,64 @@ export function PermissionWizard({ open, onOpenChange, user, onSaved }: Permissi
 
               <Separator />
 
-              {/* Functions */}
+              {/* Functions — เรียงตามลำดับเมนูจริงในแถบข้าง */}
               <div>
                 <Label className="text-sm font-semibold">
-                  สิทธิ์ฟังก์ชัน ({previewFunctions.length}/{SYSTEM_FUNCTIONS.length})
+                  สิทธิ์ฟังก์ชัน ({previewFunctions.length}/{SYSTEM_FUNCTIONS.length}) — เรียงตามลำดับเมนูจริง
                 </Label>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
-                  {SYSTEM_FUNCTIONS.map((fn) => {
-                    const active = previewFunctions.includes(fn.name);
+                <div className="space-y-4 mt-2">
+                  {GROUPED_FUNCTIONS.map((grp) => {
+                    const onCount = grp.functions.filter((f) => previewFunctions.includes(f.name)).length;
+                    const allOn = onCount === grp.functions.length;
                     return (
-                      <label
-                        key={fn.name}
-                        className={cn(
-                          "flex items-start gap-2 p-2 rounded-md border cursor-pointer text-sm transition-colors",
-                          active ? "bg-primary/5 border-primary/40" : "hover:bg-muted/50"
-                        )}
-                      >
-                        <Checkbox
-                          checked={active}
-                          onCheckedChange={() => togglePreviewFunction(fn.name)}
-                          className="mt-0.5"
-                        />
-                        <div className="flex-1 min-w-0">
-                          <div className="font-medium">{fn.label}</div>
-                          <div className="text-xs text-muted-foreground line-clamp-1">{fn.description}</div>
+                      <div key={grp.group}>
+                        <div className="flex items-center justify-between mb-1.5">
+                          <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                            {grp.group} <span className="normal-case">({onCount}/{grp.functions.length})</span>
+                          </div>
+                          <button
+                            type="button"
+                            className="text-xs text-primary hover:underline"
+                            onClick={() =>
+                              grp.functions.forEach((f) => {
+                                const on = previewFunctions.includes(f.name);
+                                if (allOn ? on : !on) togglePreviewFunction(f.name);
+                              })
+                            }
+                          >
+                            {allOn ? "ปิดทั้งกลุ่ม" : "เปิดทั้งกลุ่ม"}
+                          </button>
                         </div>
-                      </label>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                          {grp.functions.map((fn) => {
+                            const active = previewFunctions.includes(fn.name);
+                            return (
+                              <label
+                                key={fn.name}
+                                className={cn(
+                                  "flex items-start gap-2 p-2 rounded-md border cursor-pointer text-sm transition-colors",
+                                  active ? "bg-primary/5 border-primary/40" : "hover:bg-muted/50"
+                                )}
+                              >
+                                <Checkbox
+                                  checked={active}
+                                  onCheckedChange={() => togglePreviewFunction(fn.name)}
+                                  className="mt-0.5"
+                                />
+                                <div className="flex-1 min-w-0">
+                                  <div className="font-medium">{fn.label}</div>
+                                  <div className="text-xs text-muted-foreground line-clamp-1">เมนู: {fn.menu}</div>
+                                </div>
+                              </label>
+                            );
+                          })}
+                        </div>
+                      </div>
                     );
                   })}
                 </div>
               </div>
+
 
               <Separator />
 
