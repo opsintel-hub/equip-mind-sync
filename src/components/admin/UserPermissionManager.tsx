@@ -840,15 +840,12 @@ export function UserPermissionManager() {
                         )}
                       </TableCell>
                     <TableCell onClick={(e) => e.stopPropagation()}>
-                      <div className="flex flex-col gap-2 min-w-[240px]">
-                        <div className="flex gap-1 flex-wrap items-center">
-                          {getRoleSummary(user.id) || (
-                            <Badge variant="outline" className="text-amber-700 border-amber-300 bg-amber-50 dark:bg-amber-950 dark:text-amber-300 w-fit">
-                              ยังไม่ตั้งสิทธิ์
-                            </Badge>
-                          )}
-                        </div>
-                        {/* ปุ่ม ✨ Wizard ด้านขวารวมการแก้ไขโปรไฟล์ + ตั้งสิทธิ์ในหน้าเดียว */}
+                      <div className="flex gap-1 flex-wrap items-center min-w-[150px]">
+                        {getLevelBadge(user.id) || (
+                          <Badge variant="outline" className="text-amber-700 border-amber-300 bg-amber-50 dark:bg-amber-950 dark:text-amber-300 w-fit">
+                            ยังไม่ตั้งสิทธิ์
+                          </Badge>
+                        )}
                       </div>
                     </TableCell>
                     <TableCell className="text-right">
