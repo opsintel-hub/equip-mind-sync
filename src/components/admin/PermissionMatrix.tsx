@@ -562,10 +562,16 @@ export function PermissionMatrix() {
                       </td>
                       {visibleGroups.map((g) => {
                         if (g.collapsed) return <td key={g.key} className="border-r bg-muted/10"></td>;
+                        const superOnly = ["admin", "setup_import", "system_testing", "guide_edit"];
+                        const isSuper = u.roles.includes("super_admin");
                         return g.fns.map((fn) => (
                           <MatrixCell
                             key={fn}
-                            checked={locked || userGrants.has(fn)}
+                            checked={
+                              locked
+                                ? isSuper || !superOnly.includes(fn)
+                                : userGrants.has(fn)
+                            }
                             locked={locked}
                             onToggle={(v) => toggleCell(u.id, fn, v)}
                           />
