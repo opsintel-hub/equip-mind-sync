@@ -118,6 +118,18 @@ export const GROUPED_FUNCTIONS = FUNCTION_GROUP_ORDER.map((group) => ({
   functions: SYSTEM_FUNCTIONS.filter((f) => f.group === group),
 })).filter((g) => g.functions.length > 0);
 
+/** 4 เรื่องที่สงวนไว้ให้ Super Admin เท่านั้น — Admin เข้าไม่ได้ */
+export const SUPER_ADMIN_ONLY_FNS: string[] = [
+  "admin",
+  "setup_import",
+  "system_testing",
+  "guide_edit",
+];
+
+/** สิทธิ์ที่ Admin ได้อัตโนมัติทั้งหมด (ทุกเมนูงาน ยกเว้นที่สงวนไว้) */
+export const ADMIN_FNS: string[] = SYSTEM_FUNCTIONS
+  .map((f) => f.name)
+  .filter((n) => !SUPER_ADMIN_ONLY_FNS.includes(n));
 
 
 export function useFunctionPermissions() {
