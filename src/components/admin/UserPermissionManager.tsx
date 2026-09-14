@@ -706,10 +706,21 @@ export function UserPermissionManager() {
                 )}
               </CardTitle>
               <CardDescription>
-                กดไอคอน <Sparkles className="inline h-3.5 w-3.5 text-primary" /> <strong>Wizard</strong> เพื่อแก้ไขโปรไฟล์ + ตั้งสิทธิ์ (Role, เมนู, ฝ่าย) ในหน้าเดียว — หากต้องการตั้งสิทธิ์หลายคนพร้อมกันหรือใช้ <strong>Preset</strong> ให้สลับไปที่มุมมอง <strong>Matrix สิทธิ์</strong> ด้านบน
+                คลิกที่แถว หรือกดไอคอน <Sparkles className="inline h-3.5 w-3.5 text-primary" /> เพื่อ <strong>แก้ไขโปรไฟล์ + เลือกระดับผู้ใช้ + ฝ่าย</strong> — เป็นที่ตั้งค่าสิทธิ์เพียงที่เดียว
               </CardDescription>
             </div>
             <div className="flex flex-wrap items-center gap-2">
+              <Select value={levelFilter} onValueChange={setLevelFilter}>
+                <SelectTrigger className="w-[170px] h-9"><SelectValue placeholder="ระดับผู้ใช้" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">ทุกระดับ</SelectItem>
+                  {ACCESS_LEVELS.map((l) => (
+                    <SelectItem key={l.key} value={l.key}>{l.order}. {l.label}</SelectItem>
+                  ))}
+                  <SelectItem value="custom">ปรับแต่งเอง</SelectItem>
+                  <SelectItem value="none">ยังไม่ตั้งสิทธิ์</SelectItem>
+                </SelectContent>
+              </Select>
               <Select value={sortMode} onValueChange={(v) => setSortMode(v as any)}>
                 <SelectTrigger className="w-[180px] h-9"><SelectValue placeholder="เรียงลำดับ" /></SelectTrigger>
                 <SelectContent>
@@ -755,7 +766,7 @@ export function UserPermissionManager() {
                   <TableHead>เบอร์โทร</TableHead>
                   <TableHead>Login ล่าสุด</TableHead>
                     <TableHead>คำขอสมัคร</TableHead>
-                  <TableHead>บทบาท / ตั้งสิทธิ์เร็ว</TableHead>
+                  <TableHead>ระดับผู้ใช้</TableHead>
                   <TableHead className="text-right">จัดการ</TableHead>
                 </TableRow>
               </TableHeader>
