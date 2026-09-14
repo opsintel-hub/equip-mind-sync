@@ -338,15 +338,17 @@ export function PermissionWizard({ open, onOpenChange, user, onSaved }: Permissi
     setPreviewFunctions(Array.from(nextFns));
   };
 
+  const levelDef = useMemo(() => getAccessLevel(accessLevel as any), [accessLevel]);
+  const isAllDept = levelDef?.deptMode === "all";
+
   const goNext = () => {
     if (step === 1) {
-      if (accessLevel === "user" && previewFunctions.length === 0) {
-        toast.error("กรุณาเลือกหน้าที่งานอย่างน้อย 1 อย่าง");
+      if (previewFunctions.length === 0) {
+        toast.error("กรุณาเลือกระดับผู้ใช้");
         return;
       }
-      if (accessLevel === "super_admin") {
-        // Super Admin เห็นทุกฝ่ายอยู่แล้ว — ข้ามขั้นเลือกฝ่าย
-        computePreview();
+      if (isAllDept) {
+        // Super Admin / Admin เห็นทุกฝ่ายอยู่แล้ว — ข้ามขั้นเลือกฝ่าย
         setStep(3);
         return;
       }
@@ -362,12 +364,13 @@ export function PermissionWizard({ open, onOpenChange, user, onSaved }: Permissi
   };
 
   const goBack = () => {
-    if (step === 3 && accessLevel === "super_admin") {
+    if (step === 3 && isAllDept) {
       setStep(1);
       return;
     }
     setStep((s) => Math.max(1, s - 1));
   };
+
 
   const handleSave = async () => {
     if (!user) return;
