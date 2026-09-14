@@ -71,11 +71,16 @@ export function RoleDescriptions() {
         </CardHeader>
         <CardContent className="space-y-3">
           <div className="rounded-lg border bg-muted/40 p-3 text-sm space-y-1.5">
-            <div className="font-semibold">ความต่างของ 3 ระดับผู้ใช้</div>
-            <div><strong>Super Admin</strong> — ทุกเมนู ทุกฝ่าย รวม 4 เรื่องที่สงวน: จัดการผู้ใช้และสิทธิ์, นำเข้าข้อมูลเริ่มต้น, ทดสอบระบบ/คู่มือฐานข้อมูล, แก้ไขข้อความคู่มือสิทธิ์</div>
-            <div><strong>Admin</strong> — ได้ทุกเมนูงานอัตโนมัติ (ยกเว้น 4 เรื่องข้างต้น) แต่เห็นข้อมูลเฉพาะฝ่าย/แผนกที่กำหนดไว้เท่านั้น</div>
-            <div><strong>ผู้ใช้ทั่วไป</strong> — ได้เฉพาะเมนูตามหน้าที่งานที่ติ๊กไว้ และเฉพาะฝ่าย/แผนกที่กำหนด</div>
+            <div className="font-semibold">7 ระดับผู้ใช้ (เลือก 1 ระดับต่อคน ที่หน้ารายการผู้ใช้)</div>
+            <div><strong>1. Super Admin</strong> — ทุกเมนู ทุกฝ่าย รวม 4 เรื่องที่สงวน: จัดการผู้ใช้และสิทธิ์, นำเข้าข้อมูลเริ่มต้น, ทดสอบระบบ/คู่มือฐานข้อมูล, แก้ไขข้อความคู่มือสิทธิ์</div>
+            <div><strong>2. Admin</strong> — ทุกเมนูงาน (ยกเว้น 4 เรื่องข้างต้น) และเห็นทุกคลัง/ทุกฝ่ายเสมอ</div>
+            <div><strong>3. เจ้าหน้าที่คลัง</strong> — รับเข้า, จ่าย, โอนย้าย, ของเสีย, Swap/ประเมิน/เคลม, ข้อมูลหลักคลัง, รายงาน — เลือกได้หลายฝ่าย</div>
+            <div><strong>4. ผู้อนุมัติ</strong> — อนุมัติเบิกทรัพย์สิน, ส่งตรง, ของเสียชั้น 1-2, Swap + ดูรายงาน — เฉพาะฝ่ายที่รับผิดชอบ</div>
+            <div><strong>5. ผู้ใช้งานทั่วไป</strong> — ขอนำเข้า, ขอเบิก, ขอส่งตรง, ยืนยันรับสินค้า</div>
+            <div><strong>6. ผู้ใช้ภาพโฆษณา</strong> — นำเข้า/เบิกภาพโฆษณา, คลังภาพ, ป้ายโฆษณาและ Package</div>
+            <div><strong>7. บัญชี &amp; จัดซื้อ</strong> — ดูรายงาน, Stock Card, KPI, ค้นหาเอกสาร, บัญชีรับทราบของเสีย (ดูอย่างเดียว)</div>
           </div>
+
 
           {entries.map((role) => (
             <Collapsible key={role.id} open={openKeys.includes(role.entry_key)} onOpenChange={() => toggle(role.entry_key)}>
