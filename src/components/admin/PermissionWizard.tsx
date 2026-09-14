@@ -606,6 +606,64 @@ export function PermissionWizard({ open, onOpenChange, user, onSaved }: Permissi
           {/* Step 1: Duty packs + Approvals + (optional) templates */}
           {!loading && step === 1 && (
             <div className="space-y-4 py-2">
+              {/* ระดับผู้ใช้ */}
+              <div className="space-y-2">
+                <Label className="text-sm font-semibold">ระดับผู้ใช้</Label>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                  {([
+                    { lv: "user", title: "ผู้ใช้ทั่วไป", desc: "เลือกเมนูตามหน้าที่งาน + เฉพาะฝ่ายที่กำหนด", icon: ShoppingCart },
+                    { lv: "admin", title: "Admin", desc: "ได้ทุกเมนูงานอัตโนมัติ แต่เฉพาะฝ่ายที่กำหนด", icon: Shield },
+                    { lv: "super_admin", title: "Super Admin", desc: "ได้ทุกเมนู ทุกฝ่าย รวมงานที่สงวนไว้", icon: ShieldCheck },
+                  ] as { lv: AccessLevel; title: string; desc: string; icon: any }[]).map((o) => {
+                    const Icon = o.icon;
+                    const active = accessLevel === o.lv;
+                    return (
+                      <button
+                        key={o.lv}
+                        type="button"
+                        onClick={() => chooseLevel(o.lv)}
+                        className={cn(
+                          "text-left p-3 rounded-lg border-2 transition-all",
+                          active ? "border-primary bg-primary/5" : "border-border hover:border-primary/50",
+                        )}
+                      >
+                        <div className="flex items-center gap-2 font-semibold text-sm">
+                          <Icon className={cn("h-4 w-4", active ? "text-primary" : "text-muted-foreground")} />
+                          {o.title}
+                          {active && <Check className="h-4 w-4 text-primary ml-auto" />}
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-1">{o.desc}</p>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {accessLevel !== "user" && (
+                <div className="rounded-lg border-2 border-primary/40 bg-primary/5 p-3 space-y-2 text-sm">
+                  <div className="font-semibold flex items-center gap-2">
+                    <ShieldCheck className="h-4 w-4 text-primary" />
+                    {accessLevel === "admin" ? "Admin — ได้ทุกเมนูงานอัตโนมัติ" : "Super Admin — ได้ทุกอย่างทั้งระบบ"}
+                  </div>
+                  <p className="text-muted-foreground text-xs">
+                    {accessLevel === "admin"
+                      ? "ไม่ต้องติ๊กหน้าที่งานรายเมนู — ไปขั้นที่ 2 เพื่อเลือกฝ่าย/แผนกที่อนุญาตให้เห็นข้อมูล (บังคับอย่างน้อย 1 ฝ่าย)"
+                      : "เห็นทุกฝ่ายและทุกเมนูโดยอัตโนมัติ ไม่ต้องเลือกฝ่าย"}
+                  </p>
+                  <div className="text-xs">
+                    <span className="font-medium">4 เรื่องที่สงวนให้ Super Admin เท่านั้น:</span>
+                    <ul className="list-disc ml-5 mt-1 space-y-0.5 text-muted-foreground">
+                      <li>จัดการผู้ใช้และสิทธิ์</li>
+                      <li>นำเข้าข้อมูลเริ่มต้น (Import ตั้งต้น)</li>
+                      <li>ทดสอบระบบ + คู่มือ Database</li>
+                      <li>แก้ไขข้อความคู่มือแนวทางสิทธิ์</li>
+                    </ul>
+                  </div>
+                </div>
+              )}
+
+              {accessLevel === "user" && (
+              <>
               {user?.requested_job_role && (
                 <div className="bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg p-3 flex gap-2 text-sm">
                   <Sparkles className="h-4 w-4 text-blue-600 flex-shrink-0 mt-0.5" />
@@ -617,6 +675,7 @@ export function PermissionWizard({ open, onOpenChange, user, onSaved }: Permissi
               <p className="text-sm text-muted-foreground">
                 ติ๊ก <strong>หน้าที่งาน</strong> ที่คนนี้ต้องทำ (เลือกได้หลายหน้าที่) เช่น รับเข้า + เบิก-จ่าย + อนุมัติ Swap — ระบบรวมเมนูและบทบาทให้อัตโนมัติ
               </p>
+
 
               {/* Duty packs */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
