@@ -46,12 +46,12 @@ const Admin = () => {
 
       <div className="space-y-4">
         <div className="flex items-center justify-between flex-wrap gap-3">
-          <div className="text-sm text-muted-foreground">
-            {viewMode === "card" && "มุมมองรายผู้ใช้ — แก้โปรไฟล์/บทบาท/สิทธิ์ที่ปุ่ม ✨ Wizard"}
-            {viewMode === "matrix" && "มุมมอง Matrix — ปรับสิทธิ์ Function หลายคนพร้อมกันแบบ Bulk พร้อม Apply Preset"}
+          <div className="text-sm text-muted-foreground max-w-2xl">
+            {viewMode === "card" && "① ตั้งค่ารายคนที่นี่ที่เดียว — กดปุ่ม ✨ Wizard เพื่อแก้โปรไฟล์ + เลือกหน้าที่งาน + สิทธิ์ผู้อนุมัติ + ฝ่าย/แผนก"}
+            {viewMode === "matrix" && "② ดูภาพรวมและปรับหลายคนพร้อมกัน — ไม่ใช่ที่ตั้งค่าหลัก ใช้เมื่อต้องให้/ถอนเมนูเดียวกันหลายคน"}
             {viewMode === "guide" && (isSuperAdmin
-              ? "แนวทางสิทธิ์ (Roles & Functions) — Super Admin แก้ไข/เพิ่ม/ลบรายการในคู่มือได้ที่ปุ่มดินสอ/ถังขยะ"
-              : "แนวทางสิทธิ์ (Roles & Functions) — เฉพาะ Super Admin เท่านั้นที่แก้ไขได้")}
+              ? "③ คู่มืออ่านอย่างเดียว (Roles & Functions) — Super Admin แก้ข้อความคู่มือได้ที่ปุ่มดินสอ/ถังขยะ"
+              : "③ คู่มืออ่านอย่างเดียว (Roles & Functions) — เฉพาะ Super Admin เท่านั้นที่แก้ไขได้")}
           </div>
           <ToggleGroup
             type="single"
