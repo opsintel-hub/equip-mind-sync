@@ -126,6 +126,7 @@ export function PermissionWizard({ open, onOpenChange, user, onSaved }: Permissi
   // Computed (editable) preview
   const [previewRoles, setPreviewRoles] = useState<UserRole[]>([]);
   const [previewFunctions, setPreviewFunctions] = useState<string[]>([]);
+  const [showAdvanced, setShowAdvanced] = useState(false);
   const [deptPerm, setDeptPerm] = useState<{ view: boolean; create: boolean; edit: boolean; delete: boolean }>({
     view: true,
     create: false,
