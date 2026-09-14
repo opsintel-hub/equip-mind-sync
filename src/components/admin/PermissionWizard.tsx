@@ -396,13 +396,10 @@ export function PermissionWizard({ open, onOpenChange, user, onSaved }: Permissi
         .eq("id", user.id);
       if (pfErr) throw pfErr;
 
-      // 1. Roles via RPC — ระดับผู้ใช้เป็นตัวกำหนด admin/super_admin
-      const rolesToSave: UserRole[] =
-        accessLevel === "super_admin"
-          ? ["super_admin"]
-          : accessLevel === "admin"
-          ? ["admin"]
-          : (previewRoles.filter((r) => r !== "admin" && r !== "super_admin") as UserRole[]);
+      // 1. Roles via RPC — ระดับผู้ใช้เป็นตัวกำหนดบทบาท
+      const rolesToSave: UserRole[] = levelDef
+        ? levelDef.roles
+        : (previewRoles.filter((r) => r !== "admin" && r !== "super_admin") as UserRole[]);
       const { error: roleErr } = await supabase.rpc("save_user_roles" as any, {
         _target_user_id: user.id,
         _roles: rolesToSave,
@@ -470,8 +467,12 @@ export function PermissionWizard({ open, onOpenChange, user, onSaved }: Permissi
 
   const chooseLevel = (lv: AccessLevel) => {
     setAccessLevel(lv);
-    if (lv !== "user") {
-      setDeptPerm({ view: true, create: true, edit: true, delete: true });
+    const def = getAccessLevel(lv as any);
+    if (def) {
+      setPreviewFunctions([...def.fns]);
+      setPreviewRoles([...def.roles]);
+      setDeptPerm({ ...def.deptPerm });
+      if (def.deptMode === "all") setSelectedDepartments([]);
     }
   };
 
