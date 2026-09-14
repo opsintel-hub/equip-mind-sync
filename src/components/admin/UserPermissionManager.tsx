@@ -657,20 +657,25 @@ export function UserPermissionManager() {
     }
   };
 
-  const getRoleSummary = (userId: string) => {
+  /** ระดับผู้ใช้ของแต่ละคน (1 ป้ายต่อคน) */
+  const getUserLevel = (userId: string): AccessLevelKey | null => {
     const roles = userRoles[userId] || [];
-    if (roles.length === 0) return null;
-    if (roles.includes('super_admin')) return <Badge className="bg-amber-600 hover:bg-amber-700">Super Admin</Badge>;
-    if (roles.includes('admin')) return <Badge className="bg-red-500 hover:bg-red-600">Admin</Badge>;
-    return roles.map(role => {
-      const roleInfo = ROLES.find(r => r.value === role);
-      return (
-        <Badge key={role} variant="secondary" className="text-xs">
-          {roleInfo?.label || role}
-        </Badge>
-      );
-    });
+    const fns = userFunctionsByUser[userId] || [];
+    if (roles.length === 0 && fns.length === 0) return null;
+    return detectAccessLevel(roles, fns);
   };
+
+  const getLevelBadge = (userId: string) => {
+    const key = getUserLevel(userId);
+    if (!key) return null;
+    const def = ACCESS_LEVELS.find((l) => l.key === key);
+    return (
+      <Badge className={cn("text-white hover:opacity-90", def ? def.color : "bg-slate-400")}>
+        {def ? def.label : "ปรับแต่งเอง"}
+      </Badge>
+    );
+  };
+
 
   if (loading) {
     return <div className="flex items-center justify-center h-64">กำลังโหลด...</div>;
