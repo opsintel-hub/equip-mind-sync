@@ -70,6 +70,13 @@ export function RoleDescriptions() {
           </div>
         </CardHeader>
         <CardContent className="space-y-3">
+          <div className="rounded-lg border bg-muted/40 p-3 text-sm space-y-1.5">
+            <div className="font-semibold">ความต่างของ 3 ระดับผู้ใช้</div>
+            <div><strong>Super Admin</strong> — ทุกเมนู ทุกฝ่าย รวม 4 เรื่องที่สงวน: จัดการผู้ใช้และสิทธิ์, นำเข้าข้อมูลเริ่มต้น, ทดสอบระบบ/คู่มือฐานข้อมูล, แก้ไขข้อความคู่มือสิทธิ์</div>
+            <div><strong>Admin</strong> — ได้ทุกเมนูงานอัตโนมัติ (ยกเว้น 4 เรื่องข้างต้น) แต่เห็นข้อมูลเฉพาะฝ่าย/แผนกที่กำหนดไว้เท่านั้น</div>
+            <div><strong>ผู้ใช้ทั่วไป</strong> — ได้เฉพาะเมนูตามหน้าที่งานที่ติ๊กไว้ และเฉพาะฝ่าย/แผนกที่กำหนด</div>
+          </div>
+
           {entries.map((role) => (
             <Collapsible key={role.id} open={openKeys.includes(role.entry_key)} onOpenChange={() => toggle(role.entry_key)}>
               <div className={`flex items-center gap-2 rounded-lg border ${role.color || ""}`}>
