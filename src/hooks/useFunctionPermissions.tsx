@@ -173,17 +173,18 @@ export function useFunctionPermissions() {
   }, [user]);
 
   const hasFunctionAccess = (functionName: string): boolean => {
-    // Only Super Admin bypasses function permission checks
+    // Super Admin ผ่านทุกอย่าง
     if (isSuperAdmin) return true;
-    // Admin still needs explicit function permissions (except admin function itself)
-    if (isAdmin && functionName === "admin") return true;
-    
+    // Admin ได้ทุกเมนูงาน ยกเว้น 4 เรื่องที่สงวนไว้ให้ Super Admin
+    if (isAdmin) return !SUPER_ADMIN_ONLY_FNS.includes(functionName);
+
     const perm = permissions.find(p => p.function_name === functionName);
     return perm?.can_access || false;
   };
 
   const getAccessibleFunctions = (): string[] => {
     if (isSuperAdmin) return SYSTEM_FUNCTIONS.map(f => f.name);
+    if (isAdmin) return SYSTEM_FUNCTIONS.map(f => f.name).filter(n => !SUPER_ADMIN_ONLY_FNS.includes(n));
     return permissions.filter(p => p.can_access).map(p => p.function_name);
   };
 
