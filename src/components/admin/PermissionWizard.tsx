@@ -906,6 +906,7 @@ export function PermissionWizard({ open, onOpenChange, user, onSaved }: Permissi
 
               {/* Roles */}
               {accessLevel === "user" && (
+              <>
               <div>
 
                 <Label className="text-sm font-semibold">บทบาท (Roles)</Label>
