@@ -25,14 +25,31 @@ import {
   Trash2,
   AlertCircle,
   HelpCircle,
+  Truck,
+  Recycle,
+  ArrowLeftRight,
+  MapPin,
+  ImageIcon,
+  Send,
+  Database as DatabaseIcon,
+  BarChart3,
+  Shield,
+  ChevronDown,
 } from "lucide-react";
 import { RoleDescriptions } from "@/components/admin/RoleDescriptions";
 import { FunctionDescriptions } from "@/components/admin/FunctionDescriptions";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { SYSTEM_FUNCTIONS } from "@/hooks/useFunctionPermissions";
+import {
+  DUTY_PACKS,
+  APPROVAL_PERMISSIONS,
+  rolesFromSelection,
+  dutiesFromFunctions,
+} from "@/lib/dutyPacks";
 import type { Database } from "@/integrations/supabase/types";
 import { cn } from "@/lib/utils";
+
 
 type UserRole = Database["public"]["Enums"]["app_role"];
 
