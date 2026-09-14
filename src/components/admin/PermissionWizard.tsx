@@ -46,13 +46,18 @@ import {
   APPROVAL_PERMISSIONS,
   rolesFromSelection,
   dutiesFromFunctions,
+  ACCESS_LEVELS,
+  getAccessLevel,
+  detectAccessLevel,
+  type AccessLevelKey,
 } from "@/lib/dutyPacks";
 import type { Database } from "@/integrations/supabase/types";
 import { cn } from "@/lib/utils";
 
 
 type UserRole = Database["public"]["Enums"]["app_role"];
-type AccessLevel = "user" | "admin" | "super_admin";
+type AccessLevel = AccessLevelKey;
+
 
 interface PermissionTemplate {
   id: string;
