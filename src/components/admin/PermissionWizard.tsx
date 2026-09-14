@@ -223,32 +223,53 @@ export function PermissionWizard({ open, onOpenChange, user, onSaved }: Permissi
     }
   };
 
-  // Recompute preview when templates selected
-  const computePreview = () => {
-    const chosen = templates.filter((t) => selectedTemplateKeys.includes(t.template_key));
-    if (chosen.length === 0) return;
+  // ─── Duty packs (ขั้นที่ 1) — ทำงานบน previewFunctions โดยตรง ───
+  const selectedDuties = useMemo(() => dutiesFromFunctions(previewFunctions), [previewFunctions]);
 
-    const roleSet = new Set<UserRole>();
-    const funcSet = new Set<string>();
-    let view = false, create = false, edit = false, del = false;
-    chosen.forEach((t) => {
-      t.suggested_roles.forEach((r) => roleSet.add(r));
-      t.suggested_functions.forEach((f) => funcSet.add(f));
-      view = view || t.default_dept_can_view;
-      create = create || t.default_dept_can_create;
-      edit = edit || t.default_dept_can_edit;
-      del = del || t.default_dept_can_delete;
+  const toggleDuty = (key: string) => {
+    const duty = DUTY_PACKS.find((d) => d.key === key);
+    if (!duty) return;
+    const on = selectedDuties.includes(key);
+    setPreviewFunctions((prev) => {
+      const s = new Set(prev);
+      duty.fns.forEach((f) => (on ? s.delete(f) : s.add(f)));
+      return Array.from(s);
     });
-    setPreviewRoles(Array.from(roleSet));
-    setPreviewFunctions(Array.from(funcSet));
-    setDeptPerm({ view, create, edit, delete: del });
   };
 
-  const toggleTemplate = (key: string) => {
-    setSelectedTemplateKeys((prev) =>
-      prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]
-    );
+  const toggleApproval = (fn: string) => togglePreviewFunction(fn);
+
+  /** รวมบทบาทที่ควรได้จากหน้าที่ + สิทธิ์อนุมัติ + เทมเพลตที่เลือก (ไม่ลบบทบาทเดิม) */
+  const computePreview = () => {
+    const roleSet = new Set<UserRole>(previewRoles);
+    rolesFromSelection(selectedDuties, previewFunctions).forEach((r) => roleSet.add(r));
+    templates
+      .filter((t) => selectedTemplateKeys.includes(t.template_key))
+      .forEach((t) => t.suggested_roles.forEach((r) => roleSet.add(r)));
+    setPreviewRoles(Array.from(roleSet));
   };
+
+  /** เทมเพลตสำเร็จรูป = ปุ่มลัด เติมสิทธิ์ให้ครบทีเดียว (ยังปรับต่อได้) */
+  const toggleTemplate = (key: string) => {
+    const tpl = templates.find((t) => t.template_key === key);
+    const on = selectedTemplateKeys.includes(key);
+    setSelectedTemplateKeys((prev) => (on ? prev.filter((k) => k !== key) : [...prev, key]));
+    if (!tpl) return;
+    setPreviewFunctions((prev) => {
+      const s = new Set(prev);
+      tpl.suggested_functions.forEach((f) => (on ? s.delete(f) : s.add(f)));
+      return Array.from(s);
+    });
+    if (!on) {
+      setDeptPerm((p) => ({
+        view: p.view || tpl.default_dept_can_view,
+        create: p.create || tpl.default_dept_can_create,
+        edit: p.edit || tpl.default_dept_can_edit,
+        delete: p.delete || tpl.default_dept_can_delete,
+      }));
+    }
+  };
+
 
   const toggleSection = (id: string) => {
     setSelectedSectionIds((prev) =>
