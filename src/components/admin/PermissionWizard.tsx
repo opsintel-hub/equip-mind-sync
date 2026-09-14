@@ -122,8 +122,8 @@ export function PermissionWizard({ open, onOpenChange, user, onSaved }: Permissi
   const [pfPhone, setPfPhone] = useState("");
   const [pfDepartment, setPfDepartment] = useState<string>("");
 
-  // ระดับผู้ใช้ (ใหม่): ผู้ใช้ทั่วไป / Admin / Super Admin
-  const [accessLevel, setAccessLevel] = useState<AccessLevel>("user");
+  // ระดับผู้ใช้ — ที่เดียวที่ใช้กำหนดสิทธิ์
+  const [accessLevel, setAccessLevel] = useState<AccessLevel>("general");
 
   // Selections
   const [selectedTemplateKeys, setSelectedTemplateKeys] = useState<string[]>([]);
@@ -158,7 +158,8 @@ export function PermissionWizard({ open, onOpenChange, user, onSaved }: Permissi
       setSelectedSectionIds([]);
       setPreviewRoles([]);
       setPreviewFunctions([]);
-      setAccessLevel("user");
+      setAccessLevel("general");
+      setShowAdvanced(false);
       setDeptPerm({ view: true, create: false, edit: false, delete: false });
       loadData();
     }
@@ -212,9 +213,11 @@ export function PermissionWizard({ open, onOpenChange, user, onSaved }: Permissi
       );
       const loadedRoles = (((userRoleRes as any).data || []) as any[]).map((r) => r.role as UserRole);
       setPreviewRoles(loadedRoles);
-      setAccessLevel(
-        loadedRoles.includes("super_admin") ? "super_admin" : loadedRoles.includes("admin") ? "admin" : "user",
-      );
+      const loadedFns = (((userFnRes as any).data || []) as any[])
+        .filter((r) => r.can_access)
+        .map((r) => r.function_name as string);
+      setAccessLevel(detectAccessLevel(loadedRoles, loadedFns));
+
 
       // Prefill existing department access (supports users assigned to multiple departments)
       const existing = (userDeptRes as any)?.data || [];
