@@ -1030,6 +1030,8 @@ export function PermissionWizard({ open, onOpenChange, user, onSaved }: Permissi
                   * สิทธิ์ "ลบ" จะถูกบันทึกเฉพาะกรณีผู้ใช้มีบทบาท Admin/Super Admin
                 </p>
               </div>
+              </>
+              )}
             </div>
           )}
         </div>
