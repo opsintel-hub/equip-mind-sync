@@ -129,6 +129,7 @@ export function UserPermissionManager() {
   const [deleteBusy, setDeleteBusy] = useState(false);
   const [sortMode, setSortMode] = useState<"pending_first" | "department" | "recent_login" | "inactive_first">("pending_first");
   const [inactivityFilter, setInactivityFilter] = useState<"all" | "gt30" | "gt60" | "gt90" | "never">("all");
+  const [levelFilter, setLevelFilter] = useState<string>("all");
 
   useEffect(() => {
     fetchUsers();
@@ -158,6 +159,12 @@ export function UserPermissionManager() {
         if (inactivityFilter === "gt60" && d <= 60) return false;
         if (inactivityFilter === "gt90" && d <= 90) return false;
       }
+      if (levelFilter !== "all") {
+        const roles = userRoles[user.id] || [];
+        const fns = userFunctionsByUser[user.id] || [];
+        const key = roles.length === 0 && fns.length === 0 ? "none" : detectAccessLevel(roles, fns);
+        if (key !== levelFilter) return false;
+      }
       return true;
     });
     const isPending = (u: User) => !userRoles[u.id] || userRoles[u.id].length === 0;
@@ -179,7 +186,7 @@ export function UserPermissionManager() {
       return daysSince(b.last_sign_in_at) - daysSince(a.last_sign_in_at);
     });
     setFilteredUsers(list);
-  }, [searchQuery, users, userRoles, sortMode, inactivityFilter]);
+  }, [searchQuery, users, userRoles, userFunctionsByUser, sortMode, inactivityFilter, levelFilter]);
 
   const {
     paginatedData: paginatedUsers,
