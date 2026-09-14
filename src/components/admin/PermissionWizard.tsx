@@ -52,6 +52,7 @@ import { cn } from "@/lib/utils";
 
 
 type UserRole = Database["public"]["Enums"]["app_role"];
+type AccessLevel = "user" | "admin" | "super_admin";
 
 interface PermissionTemplate {
   id: string;
@@ -116,6 +117,9 @@ export function PermissionWizard({ open, onOpenChange, user, onSaved }: Permissi
   const [pfPhone, setPfPhone] = useState("");
   const [pfDepartment, setPfDepartment] = useState<string>("");
 
+  // ระดับผู้ใช้ (ใหม่): ผู้ใช้ทั่วไป / Admin / Super Admin
+  const [accessLevel, setAccessLevel] = useState<AccessLevel>("user");
+
   // Selections
   const [selectedTemplateKeys, setSelectedTemplateKeys] = useState<string[]>([]);
   const [selectedDepartments, setSelectedDepartments] = useState<string[]>([]);
@@ -149,6 +153,7 @@ export function PermissionWizard({ open, onOpenChange, user, onSaved }: Permissi
       setSelectedSectionIds([]);
       setPreviewRoles([]);
       setPreviewFunctions([]);
+      setAccessLevel("user");
       setDeptPerm({ view: true, create: false, edit: false, delete: false });
       loadData();
     }
@@ -200,7 +205,11 @@ export function PermissionWizard({ open, onOpenChange, user, onSaved }: Permissi
       setPreviewFunctions(
         (((userFnRes as any).data || []) as any[]).filter((r) => r.can_access).map((r) => r.function_name),
       );
-      setPreviewRoles((((userRoleRes as any).data || []) as any[]).map((r) => r.role as UserRole));
+      const loadedRoles = (((userRoleRes as any).data || []) as any[]).map((r) => r.role as UserRole);
+      setPreviewRoles(loadedRoles);
+      setAccessLevel(
+        loadedRoles.includes("super_admin") ? "super_admin" : loadedRoles.includes("admin") ? "admin" : "user",
+      );
 
       // Prefill existing department access (supports users assigned to multiple departments)
       const existing = (userDeptRes as any)?.data || [];
@@ -323,8 +332,14 @@ export function PermissionWizard({ open, onOpenChange, user, onSaved }: Permissi
 
   const goNext = () => {
     if (step === 1) {
-      if (previewFunctions.length === 0) {
+      if (accessLevel === "user" && previewFunctions.length === 0) {
         toast.error("กรุณาเลือกหน้าที่งานอย่างน้อย 1 อย่าง");
+        return;
+      }
+      if (accessLevel === "super_admin") {
+        // Super Admin เห็นทุกฝ่ายอยู่แล้ว — ข้ามขั้นเลือกฝ่าย
+        computePreview();
+        setStep(3);
         return;
       }
     }
@@ -338,12 +353,22 @@ export function PermissionWizard({ open, onOpenChange, user, onSaved }: Permissi
     setStep((s) => Math.min(3, s + 1));
   };
 
-  const goBack = () => setStep((s) => Math.max(1, s - 1));
+  const goBack = () => {
+    if (step === 3 && accessLevel === "super_admin") {
+      setStep(1);
+      return;
+    }
+    setStep((s) => Math.max(1, s - 1));
+  };
 
   const handleSave = async () => {
     if (!user) return;
     if (!pfFullName.trim()) {
       toast.error("กรุณากรอกชื่อ-นามสกุล");
+      return;
+    }
+    if (accessLevel !== "super_admin" && selectedDepartments.length === 0) {
+      toast.error("กรุณาเลือกฝ่ายอย่างน้อย 1 ฝ่าย (ขั้นที่ 2)");
       return;
     }
     setSaving(true);
@@ -360,16 +385,22 @@ export function PermissionWizard({ open, onOpenChange, user, onSaved }: Permissi
         .eq("id", user.id);
       if (pfErr) throw pfErr;
 
-      // 1. Roles via RPC
+      // 1. Roles via RPC — ระดับผู้ใช้เป็นตัวกำหนด admin/super_admin
+      const rolesToSave: UserRole[] =
+        accessLevel === "super_admin"
+          ? ["super_admin"]
+          : accessLevel === "admin"
+          ? ["admin"]
+          : (previewRoles.filter((r) => r !== "admin" && r !== "super_admin") as UserRole[]);
       const { error: roleErr } = await supabase.rpc("save_user_roles" as any, {
         _target_user_id: user.id,
-        _roles: previewRoles,
+        _roles: rolesToSave,
       });
       if (roleErr) throw roleErr;
 
-      // 2. Function permissions: replace
+      // 2. Function permissions: Admin/Super Admin ได้อัตโนมัติ ไม่ต้องเก็บรายเมนู
       await supabase.from("user_function_permissions").delete().eq("user_id", user.id);
-      if (previewFunctions.length > 0) {
+      if (accessLevel === "user" && previewFunctions.length > 0) {
         const { error: fErr } = await supabase.from("user_function_permissions").insert(
           previewFunctions.map((fn) => ({
             user_id: user.id,
@@ -382,7 +413,7 @@ export function PermissionWizard({ open, onOpenChange, user, onSaved }: Permissi
 
       // 3. Department permissions: replace
       await supabase.from("user_departments").delete().eq("user_id", user.id);
-      const isAdminLike = previewRoles.includes("admin") || previewRoles.includes("super_admin");
+      const isAdminLike = accessLevel !== "user";
       const deptRows = selectedDepartments.map((d) => ({
         user_id: user.id,
         department: d,
@@ -426,8 +457,15 @@ export function PermissionWizard({ open, onOpenChange, user, onSaved }: Permissi
     }
   };
 
+  const chooseLevel = (lv: AccessLevel) => {
+    setAccessLevel(lv);
+    if (lv !== "user") {
+      setDeptPerm({ view: true, create: true, edit: true, delete: true });
+    }
+  };
+
   const stepTitle = useMemo(() => {
-    if (step === 1) return "ขั้นที่ 1: เลือกตำแหน่งงาน/หน้าที่";
+    if (step === 1) return "ขั้นที่ 1: เลือกระดับผู้ใช้ และหน้าที่งาน";
     if (step === 2) return "ขั้นที่ 2: เลือกฝ่ายที่รับผิดชอบ";
     return "ขั้นที่ 3: ตรวจสอบและบันทึก";
   }, [step]);
@@ -568,6 +606,64 @@ export function PermissionWizard({ open, onOpenChange, user, onSaved }: Permissi
           {/* Step 1: Duty packs + Approvals + (optional) templates */}
           {!loading && step === 1 && (
             <div className="space-y-4 py-2">
+              {/* ระดับผู้ใช้ */}
+              <div className="space-y-2">
+                <Label className="text-sm font-semibold">ระดับผู้ใช้</Label>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                  {([
+                    { lv: "user", title: "ผู้ใช้ทั่วไป", desc: "เลือกเมนูตามหน้าที่งาน + เฉพาะฝ่ายที่กำหนด", icon: ShoppingCart },
+                    { lv: "admin", title: "Admin", desc: "ได้ทุกเมนูงานอัตโนมัติ แต่เฉพาะฝ่ายที่กำหนด", icon: Shield },
+                    { lv: "super_admin", title: "Super Admin", desc: "ได้ทุกเมนู ทุกฝ่าย รวมงานที่สงวนไว้", icon: ShieldCheck },
+                  ] as { lv: AccessLevel; title: string; desc: string; icon: any }[]).map((o) => {
+                    const Icon = o.icon;
+                    const active = accessLevel === o.lv;
+                    return (
+                      <button
+                        key={o.lv}
+                        type="button"
+                        onClick={() => chooseLevel(o.lv)}
+                        className={cn(
+                          "text-left p-3 rounded-lg border-2 transition-all",
+                          active ? "border-primary bg-primary/5" : "border-border hover:border-primary/50",
+                        )}
+                      >
+                        <div className="flex items-center gap-2 font-semibold text-sm">
+                          <Icon className={cn("h-4 w-4", active ? "text-primary" : "text-muted-foreground")} />
+                          {o.title}
+                          {active && <Check className="h-4 w-4 text-primary ml-auto" />}
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-1">{o.desc}</p>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {accessLevel !== "user" && (
+                <div className="rounded-lg border-2 border-primary/40 bg-primary/5 p-3 space-y-2 text-sm">
+                  <div className="font-semibold flex items-center gap-2">
+                    <ShieldCheck className="h-4 w-4 text-primary" />
+                    {accessLevel === "admin" ? "Admin — ได้ทุกเมนูงานอัตโนมัติ" : "Super Admin — ได้ทุกอย่างทั้งระบบ"}
+                  </div>
+                  <p className="text-muted-foreground text-xs">
+                    {accessLevel === "admin"
+                      ? "ไม่ต้องติ๊กหน้าที่งานรายเมนู — ไปขั้นที่ 2 เพื่อเลือกฝ่าย/แผนกที่อนุญาตให้เห็นข้อมูล (บังคับอย่างน้อย 1 ฝ่าย)"
+                      : "เห็นทุกฝ่ายและทุกเมนูโดยอัตโนมัติ ไม่ต้องเลือกฝ่าย"}
+                  </p>
+                  <div className="text-xs">
+                    <span className="font-medium">4 เรื่องที่สงวนให้ Super Admin เท่านั้น:</span>
+                    <ul className="list-disc ml-5 mt-1 space-y-0.5 text-muted-foreground">
+                      <li>จัดการผู้ใช้และสิทธิ์</li>
+                      <li>นำเข้าข้อมูลเริ่มต้น (Import ตั้งต้น)</li>
+                      <li>ทดสอบระบบ + คู่มือ Database</li>
+                      <li>แก้ไขข้อความคู่มือแนวทางสิทธิ์</li>
+                    </ul>
+                  </div>
+                </div>
+              )}
+
+              {accessLevel === "user" && (
+              <>
               {user?.requested_job_role && (
                 <div className="bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg p-3 flex gap-2 text-sm">
                   <Sparkles className="h-4 w-4 text-blue-600 flex-shrink-0 mt-0.5" />
@@ -579,6 +675,7 @@ export function PermissionWizard({ open, onOpenChange, user, onSaved }: Permissi
               <p className="text-sm text-muted-foreground">
                 ติ๊ก <strong>หน้าที่งาน</strong> ที่คนนี้ต้องทำ (เลือกได้หลายหน้าที่) เช่น รับเข้า + เบิก-จ่าย + อนุมัติ Swap — ระบบรวมเมนูและบทบาทให้อัตโนมัติ
               </p>
+
 
               {/* Duty packs */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -684,6 +781,8 @@ export function PermissionWizard({ open, onOpenChange, user, onSaved }: Permissi
               <div className="text-xs text-muted-foreground">
                 รวมสิทธิ์ที่จะได้ตอนนี้: <Badge variant="secondary" className="text-[10px]">{previewFunctions.length} เมนู</Badge> — ปรับรายเมนูได้ในขั้นที่ 3
               </div>
+              </>
+              )}
             </div>
           )}
 
@@ -778,12 +877,38 @@ export function PermissionWizard({ open, onOpenChange, user, onSaved }: Permissi
               <div className="bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg p-3 flex gap-2 text-sm">
                 <AlertCircle className="h-4 w-4 text-blue-600 flex-shrink-0 mt-0.5" />
                 <div className="text-blue-800 dark:text-blue-200">
-                  ระบบคำนวณสิทธิ์ตามตำแหน่งที่เลือกแล้ว Super Admin สามารถแก้ไขข้อมูลก่อนกดบันทึกได้
+                  {accessLevel === "super_admin"
+                    ? "Super Admin — ได้ทุกเมนูและทุกฝ่ายโดยอัตโนมัติ"
+                    : accessLevel === "admin"
+                    ? `Admin — ได้ทุกเมนูงานโดยอัตโนมัติ (ยกเว้น 4 เรื่องที่สงวน) เฉพาะ ${selectedDepartments.length} ฝ่ายที่เลือก`
+                    : "ระบบคำนวณสิทธิ์ตามหน้าที่งานที่เลือกแล้ว — แก้ไขรายเมนูก่อนบันทึกได้"}
                 </div>
               </div>
 
+              {accessLevel !== "user" && (
+                <div className="rounded-lg border p-3 space-y-2 text-sm">
+                  <div className="font-semibold">สรุปสิทธิ์</div>
+                  <div className="text-muted-foreground text-xs">
+                    เมนู: {accessLevel === "super_admin" ? "ทุกเมนูในระบบ" : "ทุกเมนูงาน ยกเว้นจัดการผู้ใช้, นำเข้าข้อมูลเริ่มต้น, ทดสอบระบบ/คู่มือ Database และแก้คู่มือสิทธิ์"}
+                  </div>
+                  <div className="flex flex-wrap gap-1">
+                    <span className="text-xs text-muted-foreground mr-1">ฝ่าย:</span>
+                    {accessLevel === "super_admin" ? (
+                      <Badge variant="secondary" className="text-xs">ทุกฝ่าย</Badge>
+                    ) : selectedDepartments.length > 0 ? (
+                      selectedDepartments.map((d) => <Badge key={d} variant="secondary" className="text-xs">{d}</Badge>)
+                    ) : (
+                      <span className="text-xs text-destructive">ยังไม่ได้เลือกฝ่าย — ย้อนกลับไปขั้นที่ 2</span>
+                    )}
+                  </div>
+                </div>
+              )}
+
               {/* Roles */}
+              {accessLevel === "user" && (
+              <>
               <div>
+
                 <Label className="text-sm font-semibold">บทบาท (Roles)</Label>
                 <div className="flex flex-wrap gap-2 mt-2">
                   {(["super_admin", "admin", "manager", "warehouse_staff", "receiver", "requester"] as UserRole[]).map((r) => {
@@ -905,6 +1030,8 @@ export function PermissionWizard({ open, onOpenChange, user, onSaved }: Permissi
                   * สิทธิ์ "ลบ" จะถูกบันทึกเฉพาะกรณีผู้ใช้มีบทบาท Admin/Super Admin
                 </p>
               </div>
+              </>
+              )}
             </div>
           )}
         </div>

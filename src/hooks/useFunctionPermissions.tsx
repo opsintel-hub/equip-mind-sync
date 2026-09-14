@@ -72,7 +72,11 @@ export const SYSTEM_FUNCTIONS: SystemFunction[] = [
 
   // ─── ตั้งค่าระบบ ───
   { name: "master_data", label: "ข้อมูลหลัก", description: "เข้าหน้าข้อมูลหลัก + MP/จอภาพ Profile (คุมราย Tab ด้านล่าง)", group: "ตั้งค่าระบบ", menu: "ข้อมูลหลัก, MP / จอภาพ Profile" },
-  { name: "admin", label: "จัดการระบบ", description: "จัดการผู้ใช้และสิทธิ์, ตรวจสอบยอด Stock, นำเข้าข้อมูลเริ่มต้น, ทดสอบระบบ", group: "ตั้งค่าระบบ", menu: "จัดการผู้ใช้, ตรวจสอบยอด Stock, Import ข้อมูลเริ่มต้น, ทดสอบระบบ" },
+  { name: "stock_reconcile", label: "ตรวจสอบยอด & สถานะ Stock", description: "ตรวจสอบยอดคงเหลือและสถานะสินค้า", group: "ตั้งค่าระบบ", menu: "ตรวจสอบยอด & สถานะ Stock" },
+  { name: "admin", label: "จัดการผู้ใช้และสิทธิ์ (สงวน Super Admin)", description: "จัดการผู้ใช้และสิทธิ์ — เฉพาะ Super Admin เท่านั้น", group: "ตั้งค่าระบบ", menu: "จัดการผู้ใช้" },
+  { name: "setup_import", label: "นำเข้าข้อมูลเริ่มต้น (สงวน Super Admin)", description: "Import อุปกรณ์ / MP / เครื่องมือ ตั้งต้น — เฉพาะ Super Admin", group: "ตั้งค่าระบบ", menu: "นำเข้าข้อมูลเริ่มต้น" },
+  { name: "system_testing", label: "ทดสอบระบบ & คู่มือ Database (สงวน Super Admin)", description: "หน้าทดสอบระบบและคู่มือฐานข้อมูล — เฉพาะ Super Admin", group: "ตั้งค่าระบบ", menu: "ทดสอบระบบ, คู่มือ Database" },
+  { name: "guide_edit", label: "แก้ไขคู่มือแนวทางสิทธิ์ (สงวน Super Admin)", description: "แก้ข้อความคู่มือ Roles/Functions — เฉพาะ Super Admin", group: "ตั้งค่าระบบ", menu: "แนวทางสิทธิ์" },
 
   // ─── ข้อมูลหลัก: ราย Tab ───
   { name: "md_equipment", label: "MD: อุปกรณ์/อะไหล่", description: "Tab อุปกรณ์ในหน้าข้อมูลหลัก", group: "ข้อมูลหลัก (ราย Tab)", menu: "ข้อมูลหลัก > อุปกรณ์" },
@@ -114,6 +118,18 @@ export const GROUPED_FUNCTIONS = FUNCTION_GROUP_ORDER.map((group) => ({
   functions: SYSTEM_FUNCTIONS.filter((f) => f.group === group),
 })).filter((g) => g.functions.length > 0);
 
+/** 4 เรื่องที่สงวนไว้ให้ Super Admin เท่านั้น — Admin เข้าไม่ได้ */
+export const SUPER_ADMIN_ONLY_FNS: string[] = [
+  "admin",
+  "setup_import",
+  "system_testing",
+  "guide_edit",
+];
+
+/** สิทธิ์ที่ Admin ได้อัตโนมัติทั้งหมด (ทุกเมนูงาน ยกเว้นที่สงวนไว้) */
+export const ADMIN_FNS: string[] = SYSTEM_FUNCTIONS
+  .map((f) => f.name)
+  .filter((n) => !SUPER_ADMIN_ONLY_FNS.includes(n));
 
 
 export function useFunctionPermissions() {
@@ -169,17 +185,18 @@ export function useFunctionPermissions() {
   }, [user]);
 
   const hasFunctionAccess = (functionName: string): boolean => {
-    // Only Super Admin bypasses function permission checks
+    // Super Admin ผ่านทุกอย่าง
     if (isSuperAdmin) return true;
-    // Admin still needs explicit function permissions (except admin function itself)
-    if (isAdmin && functionName === "admin") return true;
-    
+    // Admin ได้ทุกเมนูงาน ยกเว้น 4 เรื่องที่สงวนไว้ให้ Super Admin
+    if (isAdmin) return !SUPER_ADMIN_ONLY_FNS.includes(functionName);
+
     const perm = permissions.find(p => p.function_name === functionName);
     return perm?.can_access || false;
   };
 
   const getAccessibleFunctions = (): string[] => {
     if (isSuperAdmin) return SYSTEM_FUNCTIONS.map(f => f.name);
+    if (isAdmin) return SYSTEM_FUNCTIONS.map(f => f.name).filter(n => !SUPER_ADMIN_ONLY_FNS.includes(n));
     return permissions.filter(p => p.can_access).map(p => p.function_name);
   };
 
