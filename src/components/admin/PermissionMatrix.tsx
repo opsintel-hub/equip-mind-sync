@@ -11,10 +11,12 @@ import {
   Search, Lock, Sparkles, ChevronDown, X, Loader2,
   Package, Truck, ShoppingCart, Send, MapPin, ImageIcon,
   ArrowLeftRight, Database, BarChart3, Shield,
+  Recycle, Wrench, ShieldCheck,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { SYSTEM_FUNCTIONS } from "@/hooks/useFunctionPermissions";
+import { MATRIX_GROUPS } from "@/lib/dutyPacks";
 import { fetchPermissionPresets, applyPresetToUser, type PermissionPreset } from "@/lib/permissions";
 import { cn } from "@/lib/utils";
 import type { Database as DB } from "@/integrations/supabase/types";
