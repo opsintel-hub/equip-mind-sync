@@ -378,7 +378,7 @@ export function PermissionWizard({ open, onOpenChange, user, onSaved }: Permissi
       toast.error("กรุณากรอกชื่อ-นามสกุล");
       return;
     }
-    if (accessLevel !== "super_admin" && selectedDepartments.length === 0) {
+    if (!isAllDept && selectedDepartments.length === 0) {
       toast.error("กรุณาเลือกฝ่ายอย่างน้อย 1 ฝ่าย (ขั้นที่ 2)");
       return;
     }
@@ -408,7 +408,7 @@ export function PermissionWizard({ open, onOpenChange, user, onSaved }: Permissi
 
       // 2. Function permissions: Admin/Super Admin ได้อัตโนมัติ ไม่ต้องเก็บรายเมนู
       await supabase.from("user_function_permissions").delete().eq("user_id", user.id);
-      if (accessLevel === "user" && previewFunctions.length > 0) {
+      if (!isAllDept && previewFunctions.length > 0) {
         const { error: fErr } = await supabase.from("user_function_permissions").insert(
           previewFunctions.map((fn) => ({
             user_id: user.id,
@@ -421,7 +421,7 @@ export function PermissionWizard({ open, onOpenChange, user, onSaved }: Permissi
 
       // 3. Department permissions: replace
       await supabase.from("user_departments").delete().eq("user_id", user.id);
-      const isAdminLike = accessLevel !== "user";
+      const isAdminLike = isAllDept;
       const deptRows = selectedDepartments.map((d) => ({
         user_id: user.id,
         department: d,
