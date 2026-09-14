@@ -138,7 +138,8 @@ export function PermissionMatrix() {
     [collapsedGroups]
   );
 
-  const isSuperAdmin = (u: UserRow) => u.roles.includes("super_admin");
+  // Admin และ Super Admin ได้สิทธิ์เมนูอัตโนมัติ — ล็อกแถวไว้ ไม่ต้องติ๊กรายเมนู
+  const isSuperAdmin = (u: UserRow) => u.roles.includes("super_admin") || u.roles.includes("admin");
 
   // ─── Cell toggle (optimistic) ───
   const toggleCell = useCallback(async (userId: string, fn: string, next: boolean) => {
