@@ -1,6 +1,8 @@
 import type { Database } from "@/integrations/supabase/types";
+import { SYSTEM_FUNCTIONS, SUPER_ADMIN_ONLY_FNS } from "@/hooks/useFunctionPermissions";
 
 export type UserRole = Database["public"]["Enums"]["app_role"];
+
 
 /**
  * DUTY PACKS — "หน้าที่งาน"
