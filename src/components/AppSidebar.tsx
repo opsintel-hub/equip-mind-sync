@@ -292,8 +292,8 @@ const menuGroups: MenuGroup[] = [
       { title: "ข้อมูลหลัก", url: "/master-data", icon: Database, functionName: "master_data" },
       { title: "เชื่อมต่อฐานข้อมูลป้ายโฆษณา", url: "/billboards?tab=sync", icon: Database, superAdminOnly: true },
       { title: "ตั้งค่าแจ้งเตือน", url: "/notification-settings", icon: Bell },
-      { title: "ตรวจสอบยอด & สถานะ Stock", url: "/stock-reconciliation", icon: CheckCircle2, functionName: "admin" },
-      { title: "จัดการผู้ใช้", url: "/admin", icon: Shield, functionName: "admin" },
+      { title: "ตรวจสอบยอด & สถานะ Stock", url: "/stock-reconciliation", icon: CheckCircle2, functionName: "stock_reconcile" },
+      { title: "จัดการผู้ใช้", url: "/admin", icon: Shield, functionName: "admin", superAdminOnly: true },
       { title: "คู่มือ Database", url: "/database-guide", icon: FileSearch, superAdminOnly: true },
     ]
   },
@@ -303,11 +303,12 @@ const menuGroups: MenuGroup[] = [
       {
         title: "นำเข้าข้อมูลเริ่มต้น",
         icon: Upload,
-        functionName: "admin",
+        functionName: "setup_import",
+        superAdminOnly: true,
         subItems: [
-          { title: "Import อุปกรณ์", url: "/setup/import-equipment", icon: Package, functionName: "admin" },
-          { title: "Import MP / จอภาพ", url: "/setup/import-media-player", icon: Monitor, functionName: "admin" },
-          { title: "Import เครื่องมือ", url: "/setup/import-tools", icon: Wrench, functionName: "admin" },
+          { title: "Import อุปกรณ์", url: "/setup/import-equipment", icon: Package, functionName: "setup_import", superAdminOnly: true },
+          { title: "Import MP / จอภาพ", url: "/setup/import-media-player", icon: Monitor, functionName: "setup_import", superAdminOnly: true },
+          { title: "Import เครื่องมือ", url: "/setup/import-tools", icon: Wrench, functionName: "setup_import", superAdminOnly: true },
         ],
       },
     ],
@@ -316,7 +317,7 @@ const menuGroups: MenuGroup[] = [
     label: "ช่วยเหลือ",
     items: [
       { title: "คู่มือการใช้งาน", url: "/user-manual", icon: BookOpen },
-      { title: "ทดสอบระบบ", url: "/testing", icon: FlaskConical, functionName: "admin" },
+      { title: "ทดสอบระบบ", url: "/testing", icon: FlaskConical, functionName: "system_testing", superAdminOnly: true },
     ]
   },
 ];
