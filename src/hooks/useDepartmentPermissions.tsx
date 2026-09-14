@@ -58,9 +58,9 @@ export function useDepartmentPermissions() {
   }, [user]);
 
   const hasPermission = (department: string, permission: "view" | "create" | "edit" | "delete"): boolean => {
-    // Only Super Admin bypasses all department checks
-    if (isSuperAdmin) return true;
-    
+    // Admin และ Super Admin เห็นทุกฝ่าย/ทุกคลังเสมอ
+    if (isAdmin) return true;
+
     const deptPerm = permissions.find(p => p.department === department);
     if (!deptPerm) return false;
 
@@ -74,10 +74,11 @@ export function useDepartmentPermissions() {
   };
 
   const getViewableDepartments = (): string[] => {
-    // Only Super Admin sees all departments automatically
-    if (isSuperAdmin) return allDepartmentNames;
+    // Admin และ Super Admin เห็นทุกฝ่าย
+    if (isAdmin) return allDepartmentNames;
     return permissions.filter(p => p.can_view).map(p => p.department);
   };
+
 
   return {
     permissions,

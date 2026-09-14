@@ -46,13 +46,18 @@ import {
   APPROVAL_PERMISSIONS,
   rolesFromSelection,
   dutiesFromFunctions,
+  ACCESS_LEVELS,
+  getAccessLevel,
+  detectAccessLevel,
+  type AccessLevelKey,
 } from "@/lib/dutyPacks";
 import type { Database } from "@/integrations/supabase/types";
 import { cn } from "@/lib/utils";
 
 
 type UserRole = Database["public"]["Enums"]["app_role"];
-type AccessLevel = "user" | "admin" | "super_admin";
+type AccessLevel = AccessLevelKey;
+
 
 interface PermissionTemplate {
   id: string;
@@ -117,8 +122,8 @@ export function PermissionWizard({ open, onOpenChange, user, onSaved }: Permissi
   const [pfPhone, setPfPhone] = useState("");
   const [pfDepartment, setPfDepartment] = useState<string>("");
 
-  // ระดับผู้ใช้ (ใหม่): ผู้ใช้ทั่วไป / Admin / Super Admin
-  const [accessLevel, setAccessLevel] = useState<AccessLevel>("user");
+  // ระดับผู้ใช้ — ที่เดียวที่ใช้กำหนดสิทธิ์
+  const [accessLevel, setAccessLevel] = useState<AccessLevel>("general");
 
   // Selections
   const [selectedTemplateKeys, setSelectedTemplateKeys] = useState<string[]>([]);
@@ -153,7 +158,8 @@ export function PermissionWizard({ open, onOpenChange, user, onSaved }: Permissi
       setSelectedSectionIds([]);
       setPreviewRoles([]);
       setPreviewFunctions([]);
-      setAccessLevel("user");
+      setAccessLevel("general");
+      setShowAdvanced(false);
       setDeptPerm({ view: true, create: false, edit: false, delete: false });
       loadData();
     }
@@ -207,9 +213,11 @@ export function PermissionWizard({ open, onOpenChange, user, onSaved }: Permissi
       );
       const loadedRoles = (((userRoleRes as any).data || []) as any[]).map((r) => r.role as UserRole);
       setPreviewRoles(loadedRoles);
-      setAccessLevel(
-        loadedRoles.includes("super_admin") ? "super_admin" : loadedRoles.includes("admin") ? "admin" : "user",
-      );
+      const loadedFns = (((userFnRes as any).data || []) as any[])
+        .filter((r) => r.can_access)
+        .map((r) => r.function_name as string);
+      setAccessLevel(detectAccessLevel(loadedRoles, loadedFns));
+
 
       // Prefill existing department access (supports users assigned to multiple departments)
       const existing = (userDeptRes as any)?.data || [];
@@ -330,15 +338,17 @@ export function PermissionWizard({ open, onOpenChange, user, onSaved }: Permissi
     setPreviewFunctions(Array.from(nextFns));
   };
 
+  const levelDef = useMemo(() => getAccessLevel(accessLevel as any), [accessLevel]);
+  const isAllDept = levelDef?.deptMode === "all";
+
   const goNext = () => {
     if (step === 1) {
-      if (accessLevel === "user" && previewFunctions.length === 0) {
-        toast.error("กรุณาเลือกหน้าที่งานอย่างน้อย 1 อย่าง");
+      if (previewFunctions.length === 0) {
+        toast.error("กรุณาเลือกระดับผู้ใช้");
         return;
       }
-      if (accessLevel === "super_admin") {
-        // Super Admin เห็นทุกฝ่ายอยู่แล้ว — ข้ามขั้นเลือกฝ่าย
-        computePreview();
+      if (isAllDept) {
+        // Super Admin / Admin เห็นทุกฝ่ายอยู่แล้ว — ข้ามขั้นเลือกฝ่าย
         setStep(3);
         return;
       }
@@ -354,12 +364,13 @@ export function PermissionWizard({ open, onOpenChange, user, onSaved }: Permissi
   };
 
   const goBack = () => {
-    if (step === 3 && accessLevel === "super_admin") {
+    if (step === 3 && isAllDept) {
       setStep(1);
       return;
     }
     setStep((s) => Math.max(1, s - 1));
   };
+
 
   const handleSave = async () => {
     if (!user) return;
@@ -367,7 +378,7 @@ export function PermissionWizard({ open, onOpenChange, user, onSaved }: Permissi
       toast.error("กรุณากรอกชื่อ-นามสกุล");
       return;
     }
-    if (accessLevel !== "super_admin" && selectedDepartments.length === 0) {
+    if (!isAllDept && selectedDepartments.length === 0) {
       toast.error("กรุณาเลือกฝ่ายอย่างน้อย 1 ฝ่าย (ขั้นที่ 2)");
       return;
     }
@@ -385,13 +396,10 @@ export function PermissionWizard({ open, onOpenChange, user, onSaved }: Permissi
         .eq("id", user.id);
       if (pfErr) throw pfErr;
 
-      // 1. Roles via RPC — ระดับผู้ใช้เป็นตัวกำหนด admin/super_admin
-      const rolesToSave: UserRole[] =
-        accessLevel === "super_admin"
-          ? ["super_admin"]
-          : accessLevel === "admin"
-          ? ["admin"]
-          : (previewRoles.filter((r) => r !== "admin" && r !== "super_admin") as UserRole[]);
+      // 1. Roles via RPC — ระดับผู้ใช้เป็นตัวกำหนดบทบาท
+      const rolesToSave: UserRole[] = levelDef
+        ? levelDef.roles
+        : (previewRoles.filter((r) => r !== "admin" && r !== "super_admin") as UserRole[]);
       const { error: roleErr } = await supabase.rpc("save_user_roles" as any, {
         _target_user_id: user.id,
         _roles: rolesToSave,
@@ -400,7 +408,7 @@ export function PermissionWizard({ open, onOpenChange, user, onSaved }: Permissi
 
       // 2. Function permissions: Admin/Super Admin ได้อัตโนมัติ ไม่ต้องเก็บรายเมนู
       await supabase.from("user_function_permissions").delete().eq("user_id", user.id);
-      if (accessLevel === "user" && previewFunctions.length > 0) {
+      if (!isAllDept && previewFunctions.length > 0) {
         const { error: fErr } = await supabase.from("user_function_permissions").insert(
           previewFunctions.map((fn) => ({
             user_id: user.id,
@@ -413,7 +421,7 @@ export function PermissionWizard({ open, onOpenChange, user, onSaved }: Permissi
 
       // 3. Department permissions: replace
       await supabase.from("user_departments").delete().eq("user_id", user.id);
-      const isAdminLike = accessLevel !== "user";
+      const isAdminLike = isAllDept;
       const deptRows = selectedDepartments.map((d) => ({
         user_id: user.id,
         department: d,
@@ -459,13 +467,17 @@ export function PermissionWizard({ open, onOpenChange, user, onSaved }: Permissi
 
   const chooseLevel = (lv: AccessLevel) => {
     setAccessLevel(lv);
-    if (lv !== "user") {
-      setDeptPerm({ view: true, create: true, edit: true, delete: true });
+    const def = getAccessLevel(lv as any);
+    if (def) {
+      setPreviewFunctions([...def.fns]);
+      setPreviewRoles([...def.roles]);
+      setDeptPerm({ ...def.deptPerm });
+      if (def.deptMode === "all") setSelectedDepartments([]);
     }
   };
 
   const stepTitle = useMemo(() => {
-    if (step === 1) return "ขั้นที่ 1: เลือกระดับผู้ใช้ และหน้าที่งาน";
+    if (step === 1) return "ขั้นที่ 1: เลือกระดับผู้ใช้";
     if (step === 2) return "ขั้นที่ 2: เลือกฝ่ายที่รับผิดชอบ";
     return "ขั้นที่ 3: ตรวจสอบและบันทึก";
   }, [step]);
@@ -603,188 +615,149 @@ export function PermissionWizard({ open, onOpenChange, user, onSaved }: Permissi
         <div className="py-2">
           {loading && <div className="text-center py-8 text-muted-foreground">กำลังโหลด...</div>}
 
-          {/* Step 1: Duty packs + Approvals + (optional) templates */}
+          {/* Step 1: เลือกระดับผู้ใช้ (ที่เดียว) */}
           {!loading && step === 1 && (
             <div className="space-y-4 py-2">
-              {/* ระดับผู้ใช้ */}
-              <div className="space-y-2">
-                <Label className="text-sm font-semibold">ระดับผู้ใช้</Label>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                  {([
-                    { lv: "user", title: "ผู้ใช้ทั่วไป", desc: "เลือกเมนูตามหน้าที่งาน + เฉพาะฝ่ายที่กำหนด", icon: ShoppingCart },
-                    { lv: "admin", title: "Admin", desc: "ได้ทุกเมนูงานอัตโนมัติ แต่เฉพาะฝ่ายที่กำหนด", icon: Shield },
-                    { lv: "super_admin", title: "Super Admin", desc: "ได้ทุกเมนู ทุกฝ่าย รวมงานที่สงวนไว้", icon: ShieldCheck },
-                  ] as { lv: AccessLevel; title: string; desc: string; icon: any }[]).map((o) => {
-                    const Icon = o.icon;
-                    const active = accessLevel === o.lv;
-                    return (
-                      <button
-                        key={o.lv}
-                        type="button"
-                        onClick={() => chooseLevel(o.lv)}
-                        className={cn(
-                          "text-left p-3 rounded-lg border-2 transition-all",
-                          active ? "border-primary bg-primary/5" : "border-border hover:border-primary/50",
-                        )}
-                      >
-                        <div className="flex items-center gap-2 font-semibold text-sm">
-                          <Icon className={cn("h-4 w-4", active ? "text-primary" : "text-muted-foreground")} />
-                          {o.title}
-                          {active && <Check className="h-4 w-4 text-primary ml-auto" />}
-                        </div>
-                        <p className="text-xs text-muted-foreground mt-1">{o.desc}</p>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {accessLevel !== "user" && (
-                <div className="rounded-lg border-2 border-primary/40 bg-primary/5 p-3 space-y-2 text-sm">
-                  <div className="font-semibold flex items-center gap-2">
-                    <ShieldCheck className="h-4 w-4 text-primary" />
-                    {accessLevel === "admin" ? "Admin — ได้ทุกเมนูงานอัตโนมัติ" : "Super Admin — ได้ทุกอย่างทั้งระบบ"}
-                  </div>
-                  <p className="text-muted-foreground text-xs">
-                    {accessLevel === "admin"
-                      ? "ไม่ต้องติ๊กหน้าที่งานรายเมนู — ไปขั้นที่ 2 เพื่อเลือกฝ่าย/แผนกที่อนุญาตให้เห็นข้อมูล (บังคับอย่างน้อย 1 ฝ่าย)"
-                      : "เห็นทุกฝ่ายและทุกเมนูโดยอัตโนมัติ ไม่ต้องเลือกฝ่าย"}
-                  </p>
-                  <div className="text-xs">
-                    <span className="font-medium">4 เรื่องที่สงวนให้ Super Admin เท่านั้น:</span>
-                    <ul className="list-disc ml-5 mt-1 space-y-0.5 text-muted-foreground">
-                      <li>จัดการผู้ใช้และสิทธิ์</li>
-                      <li>นำเข้าข้อมูลเริ่มต้น (Import ตั้งต้น)</li>
-                      <li>ทดสอบระบบ + คู่มือ Database</li>
-                      <li>แก้ไขข้อความคู่มือแนวทางสิทธิ์</li>
-                    </ul>
-                  </div>
-                </div>
-              )}
-
-              {accessLevel === "user" && (
-              <>
               {user?.requested_job_role && (
                 <div className="bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg p-3 flex gap-2 text-sm">
                   <Sparkles className="h-4 w-4 text-blue-600 flex-shrink-0 mt-0.5" />
                   <div className="text-blue-800 dark:text-blue-200">
-                    ผู้ใช้ขอตำแหน่ง <strong>{templates.find(t => t.template_key === user.requested_job_role)?.label || user.requested_job_role}</strong> ตอนสมัคร — ใช้ปุ่มลัด "ตำแหน่งสำเร็จรูป" ด้านล่างเพื่อเติมสิทธิ์ได้ทันที
+                    ผู้ใช้ขอตำแหน่ง <strong>{templates.find((t) => t.template_key === user.requested_job_role)?.label || user.requested_job_role}</strong> ตอนสมัคร
                   </div>
                 </div>
               )}
+
               <p className="text-sm text-muted-foreground">
-                ติ๊ก <strong>หน้าที่งาน</strong> ที่คนนี้ต้องทำ (เลือกได้หลายหน้าที่) เช่น รับเข้า + เบิก-จ่าย + อนุมัติ Swap — ระบบรวมเมนูและบทบาทให้อัตโนมัติ
+                เลือก <strong>ระดับผู้ใช้</strong> 1 อย่าง — ระบบตั้งเมนูและบทบาทให้ครบอัตโนมัติ (ถ้าต้องการกรณีพิเศษ ค่อยกด "ปรับละเอียด" ด้านล่าง)
               </p>
 
-
-              {/* Duty packs */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                {DUTY_PACKS.map((d) => {
-                  const Icon = ICON_MAP[d.icon] || Package;
-                  const checked = selectedDuties.includes(d.key);
+                {ACCESS_LEVELS.map((lv) => {
+                  const Icon = ICON_MAP[lv.icon] || Package;
+                  const active = accessLevel === lv.key;
                   return (
                     <button
-                      key={d.key}
+                      key={lv.key}
                       type="button"
-                      onClick={() => toggleDuty(d.key)}
+                      onClick={() => chooseLevel(lv.key)}
                       className={cn(
                         "flex gap-3 items-start text-left p-3 rounded-lg border-2 transition-all",
-                        checked ? "border-primary bg-primary/5" : "border-border hover:border-primary/50"
+                        active ? "border-primary bg-primary/5" : "border-border hover:border-primary/50",
                       )}
                     >
-                      <div className={cn("p-2 rounded-lg", checked ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground")}>
+                      <div className={cn("p-2 rounded-lg", active ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground")}>
                         <Icon className="h-4 w-4" />
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between gap-2">
-                          <span className="font-semibold text-sm">{d.label}</span>
-                          <Checkbox checked={checked} className="pointer-events-none" />
+                          <span className="font-semibold text-sm">
+                            {lv.order}. {lv.label}
+                          </span>
+                          {active && <Check className="h-4 w-4 text-primary" />}
                         </div>
-                        <p className="text-xs text-muted-foreground mt-0.5">{d.description}</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">{lv.description}</p>
+                        <ul className="mt-1.5 space-y-0.5">
+                          {lv.highlights.map((h) => (
+                            <li key={h} className="text-[11px] text-muted-foreground flex gap-1">
+                              <span className="text-primary">•</span>
+                              {h}
+                            </li>
+                          ))}
+                        </ul>
+                        <div className="mt-1.5 text-[11px]">
+                          <Badge variant="secondary" className="text-[10px]">
+                            {lv.deptMode === "all" ? "เห็นทุกฝ่าย/ทุกคลัง" : "เลือกฝ่ายได้หลายฝ่าย"}
+                          </Badge>
+                        </div>
                       </div>
                     </button>
                   );
                 })}
               </div>
 
-              <Separator />
-
-              {/* Approvals */}
-              <div className="rounded-lg border-2 border-amber-300 dark:border-amber-800 bg-amber-50/60 dark:bg-amber-950/30 p-3 space-y-2">
-                <div className="flex items-center gap-2 text-sm font-semibold">
-                  <ShieldCheck className="h-4 w-4 text-amber-600" />
-                  สิทธิ์ผู้อนุมัติ
-                  <span className="text-xs font-normal text-muted-foreground">(ติ๊กเฉพาะคนที่เป็นผู้อนุมัติจริง)</span>
+              {accessLevel === "custom" && (
+                <div className="rounded-lg border-2 border-amber-300 bg-amber-50/60 dark:bg-amber-950/30 p-3 text-sm">
+                  <span className="font-medium">ปรับแต่งเอง</span> — สิทธิ์ของผู้ใช้คนนี้ไม่ตรงกับระดับใด (ตั้งไว้เป็นกรณีพิเศษ) เลือกระดับด้านบนเพื่อเปลี่ยนได้
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  {APPROVAL_PERMISSIONS.map((a) => {
-                    const checked = previewFunctions.includes(a.fn);
-                    return (
-                      <label
-                        key={a.fn}
-                        className={cn(
-                          "flex items-start gap-2 p-2 rounded-md border cursor-pointer text-sm bg-background",
-                          checked ? "border-amber-500" : "border-border hover:bg-muted/50"
-                        )}
-                      >
-                        <Checkbox checked={checked} onCheckedChange={() => toggleApproval(a.fn)} className="mt-0.5" />
-                        <div className="min-w-0">
-                          <div className="font-medium">{a.label}</div>
-                          <div className="text-xs text-muted-foreground">{a.description}</div>
-                        </div>
-                      </label>
-                    );
-                  })}
-                </div>
-                <p className="text-[11px] text-muted-foreground">
-                  ผู้อนุมัติจะเห็นเฉพาะงานของ <strong>ฝ่าย/แผนกที่เลือกในขั้นที่ 2</strong> (ยกเว้นบัญชีรับทราบของเสีย ที่เห็นข้ามฝ่าย)
-                </p>
-              </div>
+              )}
 
-              {/* Optional: ready-made job templates */}
+              {/* ปรับละเอียด (กรณีพิเศษ) */}
               <div className="rounded-lg border">
                 <button
                   type="button"
                   onClick={() => setShowAdvanced((v) => !v)}
                   className="w-full flex items-center justify-between p-3 text-sm font-medium"
                 >
-                  <span>ตำแหน่งสำเร็จรูป (ไม่บังคับ) — ปุ่มลัดเติมสิทธิ์ทีเดียวครบ</span>
+                  <span>
+                    ปรับละเอียด (ไม่บังคับ) — เปิด/ปิดรายเมนูเป็นกรณีพิเศษ
+                    <Badge variant="secondary" className="ml-2 text-[10px]">{previewFunctions.length} เมนู</Badge>
+                  </span>
                   <ChevronDown className={cn("h-4 w-4 transition-transform", showAdvanced && "rotate-180")} />
                 </button>
                 {showAdvanced && (
-                  <div className="p-3 pt-0 grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    {templates.map((t) => {
-                      const Icon = ICON_MAP[t.icon || "Package"] || Package;
-                      const checked = selectedTemplateKeys.includes(t.template_key);
+                  <div className="p-3 pt-0 space-y-4">
+                    <p className="text-xs text-muted-foreground">
+                      แก้แล้วป้ายระดับจะเปลี่ยนเป็น "ปรับแต่งเอง" — ใช้เมื่อคนนี้ทำงานข้ามระดับจริง ๆ
+                    </p>
+                    {GROUPED_FUNCTIONS.map((grp) => {
+                      const onCount = grp.functions.filter((f) => previewFunctions.includes(f.name)).length;
+                      const allOn = onCount === grp.functions.length;
                       return (
-                        <button
-                          key={t.id}
-                          type="button"
-                          onClick={() => toggleTemplate(t.template_key)}
-                          className={cn(
-                            "flex gap-2 items-start text-left p-2 rounded-md border text-sm",
-                            checked ? "border-primary bg-primary/5" : "border-border hover:bg-muted/50"
-                          )}
-                        >
-                          <Icon className="h-4 w-4 mt-0.5 text-muted-foreground" />
-                          <div className="min-w-0">
-                            <div className="font-medium">{t.label}</div>
-                            <div className="text-xs text-muted-foreground line-clamp-2">{t.description}</div>
+                        <div key={grp.group}>
+                          <div className="flex items-center justify-between mb-1.5">
+                            <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                              {grp.group} <span className="normal-case">({onCount}/{grp.functions.length})</span>
+                            </div>
+                            <button
+                              type="button"
+                              className="text-xs text-primary hover:underline"
+                              onClick={() =>
+                                grp.functions.forEach((f) => {
+                                  const on = previewFunctions.includes(f.name);
+                                  if (allOn ? on : !on) togglePreviewFunction(f.name);
+                                })
+                              }
+                            >
+                              {allOn ? "ปิดทั้งกลุ่ม" : "เปิดทั้งกลุ่ม"}
+                            </button>
                           </div>
-                        </button>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            {grp.functions.map((fn) => {
+                              const active = previewFunctions.includes(fn.name);
+                              return (
+                                <label
+                                  key={fn.name}
+                                  className={cn(
+                                    "flex items-start gap-2 p-2 rounded-md border cursor-pointer text-sm transition-colors",
+                                    active ? "bg-primary/5 border-primary/40" : "hover:bg-muted/50",
+                                  )}
+                                >
+                                  <Checkbox
+                                    checked={active}
+                                    onCheckedChange={() => {
+                                      togglePreviewFunction(fn.name);
+                                      setAccessLevel("custom");
+                                    }}
+                                    className="mt-0.5"
+                                  />
+                                  <div className="flex-1 min-w-0">
+                                    <div className="font-medium">{fn.label}</div>
+                                    <div className="text-xs text-muted-foreground line-clamp-1">เมนู: {fn.menu}</div>
+                                  </div>
+                                </label>
+                              );
+                            })}
+                          </div>
+                        </div>
                       );
                     })}
                   </div>
                 )}
               </div>
-
-              <div className="text-xs text-muted-foreground">
-                รวมสิทธิ์ที่จะได้ตอนนี้: <Badge variant="secondary" className="text-[10px]">{previewFunctions.length} เมนู</Badge> — ปรับรายเมนูได้ในขั้นที่ 3
-              </div>
-              </>
-              )}
             </div>
           )}
+
+
 
 
           {/* Step 2: Departments */}
@@ -877,163 +850,70 @@ export function PermissionWizard({ open, onOpenChange, user, onSaved }: Permissi
               <div className="bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg p-3 flex gap-2 text-sm">
                 <AlertCircle className="h-4 w-4 text-blue-600 flex-shrink-0 mt-0.5" />
                 <div className="text-blue-800 dark:text-blue-200">
-                  {accessLevel === "super_admin"
-                    ? "Super Admin — ได้ทุกเมนูและทุกฝ่ายโดยอัตโนมัติ"
-                    : accessLevel === "admin"
-                    ? `Admin — ได้ทุกเมนูงานโดยอัตโนมัติ (ยกเว้น 4 เรื่องที่สงวน) เฉพาะ ${selectedDepartments.length} ฝ่ายที่เลือก`
-                    : "ระบบคำนวณสิทธิ์ตามหน้าที่งานที่เลือกแล้ว — แก้ไขรายเมนูก่อนบันทึกได้"}
+                  ตรวจสอบก่อนบันทึก — ระดับผู้ใช้: <strong>{levelDef ? levelDef.label : "ปรับแต่งเอง"}</strong>
                 </div>
               </div>
 
-              {accessLevel !== "user" && (
-                <div className="rounded-lg border p-3 space-y-2 text-sm">
-                  <div className="font-semibold">สรุปสิทธิ์</div>
-                  <div className="text-muted-foreground text-xs">
-                    เมนู: {accessLevel === "super_admin" ? "ทุกเมนูในระบบ" : "ทุกเมนูงาน ยกเว้นจัดการผู้ใช้, นำเข้าข้อมูลเริ่มต้น, ทดสอบระบบ/คู่มือ Database และแก้คู่มือสิทธิ์"}
-                  </div>
-                  <div className="flex flex-wrap gap-1">
-                    <span className="text-xs text-muted-foreground mr-1">ฝ่าย:</span>
-                    {accessLevel === "super_admin" ? (
-                      <Badge variant="secondary" className="text-xs">ทุกฝ่าย</Badge>
-                    ) : selectedDepartments.length > 0 ? (
-                      selectedDepartments.map((d) => <Badge key={d} variant="secondary" className="text-xs">{d}</Badge>)
-                    ) : (
-                      <span className="text-xs text-destructive">ยังไม่ได้เลือกฝ่าย — ย้อนกลับไปขั้นที่ 2</span>
-                    )}
-                  </div>
+              <div className="rounded-lg border p-3 space-y-3 text-sm">
+                <div className="font-semibold">สรุปสิทธิ์</div>
+
+                <div className="flex flex-wrap gap-1 items-center">
+                  <span className="text-xs text-muted-foreground mr-1">ฝ่าย/คลังที่เห็น:</span>
+                  {isAllDept ? (
+                    <Badge variant="secondary" className="text-xs">ทุกฝ่าย / ทุกคลัง</Badge>
+                  ) : selectedDepartments.length > 0 ? (
+                    selectedDepartments.map((d) => <Badge key={d} variant="secondary" className="text-xs">{d}</Badge>)
+                  ) : (
+                    <span className="text-xs text-destructive">ยังไม่ได้เลือกฝ่าย — ย้อนกลับไปขั้นที่ 2</span>
+                  )}
                 </div>
-              )}
 
-              {/* Roles */}
-              {accessLevel === "user" && (
-              <>
-              <div>
+                {selectedSectionIds.length > 0 && (
+                  <div className="flex flex-wrap gap-1 items-center">
+                    <span className="text-xs text-muted-foreground mr-1">แผนก:</span>
+                    {sections
+                      .filter((s) => selectedSectionIds.includes(s.id))
+                      .map((s) => <Badge key={s.id} variant="outline" className="text-xs">{s.name}</Badge>)}
+                  </div>
+                )}
 
-                <Label className="text-sm font-semibold">บทบาท (Roles)</Label>
-                <div className="flex flex-wrap gap-2 mt-2">
-                  {(["super_admin", "admin", "manager", "warehouse_staff", "receiver", "requester"] as UserRole[]).map((r) => {
-                    const active = previewRoles.includes(r);
-                    return (
-                      <Badge
-                        key={r}
-                        variant={active ? "default" : "outline"}
-                        className="cursor-pointer"
-                        onClick={() => togglePreviewRole(r)}
-                      >
-                        {active && <Check className="h-3 w-3 mr-1" />}
-                        {r}
-                      </Badge>
-                    );
-                  })}
+                <div className="text-xs text-muted-foreground">
+                  สิทธิ์ในข้อมูล: {[
+                    deptPerm.view && "ดู",
+                    deptPerm.create && "สร้าง",
+                    deptPerm.edit && "แก้ไข",
+                    deptPerm.delete && "ลบ",
+                  ].filter(Boolean).join(" · ") || "ไม่มี"}
                 </div>
               </div>
 
-              <Separator />
-
-              {/* Functions — เรียงตามลำดับเมนูจริงในแถบข้าง */}
-              <div>
+              <div className="rounded-lg border p-3 space-y-3">
                 <Label className="text-sm font-semibold">
-                  สิทธิ์ฟังก์ชัน ({previewFunctions.length}/{SYSTEM_FUNCTIONS.length}) — เรียงตามลำดับเมนูจริง
+                  เมนูที่จะเข้าได้ ({isAllDept ? previewFunctions.length : previewFunctions.length}/{SYSTEM_FUNCTIONS.length})
                 </Label>
-                <div className="space-y-4 mt-2">
-                  {GROUPED_FUNCTIONS.map((grp) => {
-                    const onCount = grp.functions.filter((f) => previewFunctions.includes(f.name)).length;
-                    const allOn = onCount === grp.functions.length;
-                    return (
-                      <div key={grp.group}>
-                        <div className="flex items-center justify-between mb-1.5">
-                          <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                            {grp.group} <span className="normal-case">({onCount}/{grp.functions.length})</span>
-                          </div>
-                          <button
-                            type="button"
-                            className="text-xs text-primary hover:underline"
-                            onClick={() =>
-                              grp.functions.forEach((f) => {
-                                const on = previewFunctions.includes(f.name);
-                                if (allOn ? on : !on) togglePreviewFunction(f.name);
-                              })
-                            }
-                          >
-                            {allOn ? "ปิดทั้งกลุ่ม" : "เปิดทั้งกลุ่ม"}
-                          </button>
-                        </div>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                          {grp.functions.map((fn) => {
-                            const active = previewFunctions.includes(fn.name);
-                            return (
-                              <label
-                                key={fn.name}
-                                className={cn(
-                                  "flex items-start gap-2 p-2 rounded-md border cursor-pointer text-sm transition-colors",
-                                  active ? "bg-primary/5 border-primary/40" : "hover:bg-muted/50"
-                                )}
-                              >
-                                <Checkbox
-                                  checked={active}
-                                  onCheckedChange={() => togglePreviewFunction(fn.name)}
-                                  className="mt-0.5"
-                                />
-                                <div className="flex-1 min-w-0">
-                                  <div className="font-medium">{fn.label}</div>
-                                  <div className="text-xs text-muted-foreground line-clamp-1">เมนู: {fn.menu}</div>
-                                </div>
-                              </label>
-                            );
-                          })}
-                        </div>
+                {GROUPED_FUNCTIONS.map((grp) => {
+                  const on = grp.functions.filter((f) => previewFunctions.includes(f.name));
+                  if (on.length === 0) return null;
+                  return (
+                    <div key={grp.group}>
+                      <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">
+                        {grp.group} ({on.length}/{grp.functions.length})
                       </div>
-                    );
-                  })}
-                </div>
-              </div>
-
-
-              <Separator />
-
-              {/* Department perms */}
-              <div>
-                <Label className="text-sm font-semibold">
-                  สิทธิ์ในฝ่ายที่เลือก ({selectedDepartments.length} ฝ่าย)
-                </Label>
-                <div className="flex flex-wrap gap-1 my-2">
-                  {selectedDepartments.map((d) => (
-                    <Badge key={d} variant="secondary" className="text-xs">{d}</Badge>
-                  ))}
-                </div>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-2">
-                  {[
-                    { key: "view", label: "ดู", icon: Eye },
-                    { key: "create", label: "สร้าง", icon: Plus },
-                    { key: "edit", label: "แก้ไข", icon: Pencil },
-                    { key: "delete", label: "ลบ", icon: Trash2 },
-                  ].map((p) => {
-                    const Icon = p.icon;
-                    const active = (deptPerm as any)[p.key];
-                    return (
-                      <button
-                        key={p.key}
-                        type="button"
-                        onClick={() => setDeptPerm((prev) => ({ ...prev, [p.key]: !(prev as any)[p.key] }))}
-                        className={cn(
-                          "flex items-center gap-2 p-2 rounded-md border-2 text-sm",
-                          active ? "border-primary bg-primary/5" : "border-border"
-                        )}
-                      >
-                        <Icon className={cn("h-4 w-4", active ? "text-primary" : "text-muted-foreground")} />
-                        <span>{p.label}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-                <p className="text-xs text-muted-foreground mt-2">
-                  * สิทธิ์ "ลบ" จะถูกบันทึกเฉพาะกรณีผู้ใช้มีบทบาท Admin/Super Admin
+                      <div className="flex flex-wrap gap-1">
+                        {on.map((f) => (
+                          <Badge key={f.name} variant="outline" className="text-[11px]">{f.label}</Badge>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
+                <p className="text-[11px] text-muted-foreground">
+                  ต้องการเปลี่ยน? ย้อนกลับไปขั้นที่ 1 เลือกระดับใหม่ หรือกด "ปรับละเอียด"
                 </p>
               </div>
-              </>
-              )}
             </div>
           )}
+
         </div>
         </div>
 

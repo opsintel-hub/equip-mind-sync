@@ -34,13 +34,15 @@ import { SYSTEM_FUNCTIONS } from "@/hooks/useFunctionPermissions";
 import { useTablePagination } from "@/hooks/useTablePagination";
 import { TablePagination } from "@/components/TablePagination";
 import { PermissionWizard } from "./PermissionWizard";
-import { QuickPresetSelector } from "./QuickPresetSelector";
+
 import {
   fetchPermissionPresets,
   detectCurrentPresetKey,
   type PermissionPreset,
 } from "@/lib/permissions";
 import type { Database } from "@/integrations/supabase/types";
+import { cn } from "@/lib/utils";
+import { ACCESS_LEVELS, detectAccessLevel, type AccessLevelKey } from "@/lib/dutyPacks";
 import {
   Tooltip,
   TooltipContent,
@@ -127,6 +129,7 @@ export function UserPermissionManager() {
   const [deleteBusy, setDeleteBusy] = useState(false);
   const [sortMode, setSortMode] = useState<"pending_first" | "department" | "recent_login" | "inactive_first">("pending_first");
   const [inactivityFilter, setInactivityFilter] = useState<"all" | "gt30" | "gt60" | "gt90" | "never">("all");
+  const [levelFilter, setLevelFilter] = useState<string>("all");
 
   useEffect(() => {
     fetchUsers();
@@ -156,6 +159,12 @@ export function UserPermissionManager() {
         if (inactivityFilter === "gt60" && d <= 60) return false;
         if (inactivityFilter === "gt90" && d <= 90) return false;
       }
+      if (levelFilter !== "all") {
+        const roles = userRoles[user.id] || [];
+        const fns = userFunctionsByUser[user.id] || [];
+        const key = roles.length === 0 && fns.length === 0 ? "none" : detectAccessLevel(roles, fns);
+        if (key !== levelFilter) return false;
+      }
       return true;
     });
     const isPending = (u: User) => !userRoles[u.id] || userRoles[u.id].length === 0;
@@ -177,7 +186,7 @@ export function UserPermissionManager() {
       return daysSince(b.last_sign_in_at) - daysSince(a.last_sign_in_at);
     });
     setFilteredUsers(list);
-  }, [searchQuery, users, userRoles, sortMode, inactivityFilter]);
+  }, [searchQuery, users, userRoles, userFunctionsByUser, sortMode, inactivityFilter, levelFilter]);
 
   const {
     paginatedData: paginatedUsers,
@@ -657,20 +666,25 @@ export function UserPermissionManager() {
     }
   };
 
-  const getRoleSummary = (userId: string) => {
+  /** ระดับผู้ใช้ของแต่ละคน (1 ป้ายต่อคน) */
+  const getUserLevel = (userId: string): AccessLevelKey | null => {
     const roles = userRoles[userId] || [];
-    if (roles.length === 0) return null;
-    if (roles.includes('super_admin')) return <Badge className="bg-amber-600 hover:bg-amber-700">Super Admin</Badge>;
-    if (roles.includes('admin')) return <Badge className="bg-red-500 hover:bg-red-600">Admin</Badge>;
-    return roles.map(role => {
-      const roleInfo = ROLES.find(r => r.value === role);
-      return (
-        <Badge key={role} variant="secondary" className="text-xs">
-          {roleInfo?.label || role}
-        </Badge>
-      );
-    });
+    const fns = userFunctionsByUser[userId] || [];
+    if (roles.length === 0 && fns.length === 0) return null;
+    return detectAccessLevel(roles, fns);
   };
+
+  const getLevelBadge = (userId: string) => {
+    const key = getUserLevel(userId);
+    if (!key) return null;
+    const def = ACCESS_LEVELS.find((l) => l.key === key);
+    return (
+      <Badge className={cn("text-white hover:opacity-90", def ? def.color : "bg-slate-400")}>
+        {def ? def.label : "ปรับแต่งเอง"}
+      </Badge>
+    );
+  };
+
 
   if (loading) {
     return <div className="flex items-center justify-center h-64">กำลังโหลด...</div>;
@@ -692,10 +706,21 @@ export function UserPermissionManager() {
                 )}
               </CardTitle>
               <CardDescription>
-                กดไอคอน <Sparkles className="inline h-3.5 w-3.5 text-primary" /> <strong>Wizard</strong> เพื่อแก้ไขโปรไฟล์ + ตั้งสิทธิ์ (Role, เมนู, ฝ่าย) ในหน้าเดียว — หากต้องการตั้งสิทธิ์หลายคนพร้อมกันหรือใช้ <strong>Preset</strong> ให้สลับไปที่มุมมอง <strong>Matrix สิทธิ์</strong> ด้านบน
+                คลิกที่แถว หรือกดไอคอน <Sparkles className="inline h-3.5 w-3.5 text-primary" /> เพื่อ <strong>แก้ไขโปรไฟล์ + เลือกระดับผู้ใช้ + ฝ่าย</strong> — เป็นที่ตั้งค่าสิทธิ์เพียงที่เดียว
               </CardDescription>
             </div>
             <div className="flex flex-wrap items-center gap-2">
+              <Select value={levelFilter} onValueChange={setLevelFilter}>
+                <SelectTrigger className="w-[170px] h-9"><SelectValue placeholder="ระดับผู้ใช้" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">ทุกระดับ</SelectItem>
+                  {ACCESS_LEVELS.map((l) => (
+                    <SelectItem key={l.key} value={l.key}>{l.order}. {l.label}</SelectItem>
+                  ))}
+                  <SelectItem value="custom">ปรับแต่งเอง</SelectItem>
+                  <SelectItem value="none">ยังไม่ตั้งสิทธิ์</SelectItem>
+                </SelectContent>
+              </Select>
               <Select value={sortMode} onValueChange={(v) => setSortMode(v as any)}>
                 <SelectTrigger className="w-[180px] h-9"><SelectValue placeholder="เรียงลำดับ" /></SelectTrigger>
                 <SelectContent>
@@ -741,7 +766,7 @@ export function UserPermissionManager() {
                   <TableHead>เบอร์โทร</TableHead>
                   <TableHead>Login ล่าสุด</TableHead>
                     <TableHead>คำขอสมัคร</TableHead>
-                  <TableHead>บทบาท / ตั้งสิทธิ์เร็ว</TableHead>
+                  <TableHead>ระดับผู้ใช้</TableHead>
                   <TableHead className="text-right">จัดการ</TableHead>
                 </TableRow>
               </TableHeader>
@@ -750,7 +775,7 @@ export function UserPermissionManager() {
                   <TableRow 
                     key={user.id} 
                     className="hover:bg-muted/30 cursor-pointer"
-                    onClick={() => handleOpenDialog(user)}
+                    onClick={() => handleOpenWizard(user)}
                   >
                     <TableCell className="font-medium">{user.full_name || "-"}</TableCell>
                     <TableCell>
@@ -833,15 +858,12 @@ export function UserPermissionManager() {
                         )}
                       </TableCell>
                     <TableCell onClick={(e) => e.stopPropagation()}>
-                      <div className="flex flex-col gap-2 min-w-[240px]">
-                        <div className="flex gap-1 flex-wrap items-center">
-                          {getRoleSummary(user.id) || (
-                            <Badge variant="outline" className="text-amber-700 border-amber-300 bg-amber-50 dark:bg-amber-950 dark:text-amber-300 w-fit">
-                              ยังไม่ตั้งสิทธิ์
-                            </Badge>
-                          )}
-                        </div>
-                        {/* ปุ่ม ✨ Wizard ด้านขวารวมการแก้ไขโปรไฟล์ + ตั้งสิทธิ์ในหน้าเดียว */}
+                      <div className="flex gap-1 flex-wrap items-center min-w-[150px]">
+                        {getLevelBadge(user.id) || (
+                          <Badge variant="outline" className="text-amber-700 border-amber-300 bg-amber-50 dark:bg-amber-950 dark:text-amber-300 w-fit">
+                            ยังไม่ตั้งสิทธิ์
+                          </Badge>
+                        )}
                       </div>
                     </TableCell>
                     <TableCell className="text-right">
@@ -914,257 +936,8 @@ export function UserPermissionManager() {
         </CardContent>
       </Card>
 
-      {/* Main Permission Dialog */}
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Shield className="h-5 w-5 text-primary" />
-              จัดการสิทธิ์ - {selectedUser?.full_name}
-            </DialogTitle>
-            <DialogDescription>
-              {selectedUser?.email}
-            </DialogDescription>
-          </DialogHeader>
+      {/* หน้าต่างตั้งสิทธิ์เก่าถูกยกเลิก — ใช้ Wizard เป็นที่ตั้งค่าสิทธิ์เพียงที่เดียว */}
 
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden">
-            <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="roles" className="flex items-center gap-2">
-                <UserCog className="h-4 w-4" />
-                บทบาท
-              </TabsTrigger>
-              <TabsTrigger value="functions" className="flex items-center gap-2">
-                <Settings2 className="h-4 w-4" />
-                ฟังก์ชัน
-              </TabsTrigger>
-              <TabsTrigger value="departments" className="flex items-center gap-2">
-                <Building2 className="h-4 w-4" />
-                ฝ่าย
-              </TabsTrigger>
-            </TabsList>
-
-            <div className="flex-1 mt-4 min-h-0 overflow-y-auto pr-1">
-              {/* Roles Tab */}
-              <TabsContent value="roles" className="m-0 space-y-3 pb-4">
-                <div className="p-3 bg-blue-50 dark:bg-blue-950 rounded-lg border border-blue-200 dark:border-blue-800">
-                  <div className="flex items-start gap-2">
-                    <Info className="h-4 w-4 text-blue-600 mt-0.5" />
-                    <div className="text-sm text-blue-800 dark:text-blue-200">
-                      <strong>บทบาท (Role)</strong> กำหนดความสามารถพื้นฐานของผู้ใช้<br/>
-                      • Admin = สิทธิ์เต็มทุกอย่าง ไม่ต้องกำหนดสิทธิ์ฟังก์ชัน/ฝ่ายเพิ่ม<br/>
-                      • บทบาทอื่น = ต้องกำหนดสิทธิ์ฟังก์ชันและฝ่ายเพิ่มเติม
-                    </div>
-                  </div>
-                </div>
-                {ROLES.map((role) => {
-                  const isSelected = selectedUserRoles.includes(role.value);
-                  return (
-                    <label 
-                      key={role.value}
-                      className={`flex items-center gap-4 p-4 rounded-lg border cursor-pointer transition-all ${
-                        isSelected 
-                          ? 'border-primary bg-primary/5 ring-1 ring-primary' 
-                          : 'hover:bg-muted/50'
-                      }`}
-                    >
-                      <Checkbox
-                        checked={isSelected}
-                        onCheckedChange={() => toggleRole(role.value)}
-                      />
-                      <div className={`w-2 h-10 rounded ${role.color}`} />
-                      <div className="flex-1">
-                        <span className="font-medium">{role.label}</span>
-                        <p className="text-sm text-muted-foreground">{role.description}</p>
-                      </div>
-                      {isSelected && <Check className="h-5 w-5 text-primary" />}
-                    </label>
-                  );
-                })}
-              </TabsContent>
-
-              {/* Functions Tab */}
-              <TabsContent value="functions" className="m-0 space-y-3 pb-4">
-                {selectedUserRoles.includes('admin') ? (
-                  <div className="p-4 bg-green-50 dark:bg-green-950 rounded-lg border border-green-200 dark:border-green-800">
-                    <div className="flex items-center gap-2 text-green-800 dark:text-green-200">
-                      <Check className="h-5 w-5" />
-                      <span className="font-medium">ผู้ใช้มีบทบาท Admin - เข้าถึงได้ทุกฟังก์ชัน</span>
-                    </div>
-                  </div>
-                ) : (
-                  <>
-                    <div className="p-3 bg-amber-50 dark:bg-amber-950 rounded-lg border border-amber-200 dark:border-amber-800">
-                      <div className="flex items-start gap-2">
-                        <Info className="h-4 w-4 text-amber-600 mt-0.5" />
-                        <div className="text-sm text-amber-800 dark:text-amber-200">
-                          <strong>สิทธิ์ตามฟังก์ชัน</strong> ควบคุมการเข้าถึงเมนูและความสามารถหลักของระบบ
-                        </div>
-                      </div>
-                    </div>
-                    {SYSTEM_FUNCTIONS.map((func) => {
-                      const perm = userFunctionPermissions.find(p => p.function_name === func.name);
-                      return (
-                        <div 
-                          key={func.name}
-                          className={`flex items-center justify-between p-4 rounded-lg border transition-colors ${
-                            perm?.can_access ? 'bg-primary/5 border-primary/30' : 'hover:bg-muted/30'
-                          }`}
-                        >
-                          <div className="flex-1">
-                            <Label className="font-medium cursor-pointer">{func.label}</Label>
-                            <p className="text-sm text-muted-foreground">{func.description}</p>
-                          </div>
-                          <Switch
-                            checked={perm?.can_access || false}
-                            onCheckedChange={(checked) => handleFunctionPermissionChange(func.name, checked)}
-                          />
-                        </div>
-                      );
-                    })}
-                  </>
-                )}
-              </TabsContent>
-
-              {/* Departments Tab */}
-              <TabsContent value="departments" className="m-0 pb-4">
-                {selectedUserRoles.includes('admin') ? (
-                  <div className="p-4 bg-green-50 dark:bg-green-950 rounded-lg border border-green-200 dark:border-green-800">
-                    <div className="flex items-center gap-2 text-green-800 dark:text-green-200">
-                      <Check className="h-5 w-5" />
-                      <span className="font-medium">ผู้ใช้มีบทบาท Admin - เข้าถึงได้ทุกฝ่าย</span>
-                    </div>
-                  </div>
-                ) : (
-                  <>
-                    <div className="p-3 mb-3 bg-purple-50 dark:bg-purple-950 rounded-lg border border-purple-200 dark:border-purple-800">
-                      <div className="flex items-start gap-2">
-                        <Info className="h-4 w-4 text-purple-600 mt-0.5" />
-                        <div className="text-sm text-purple-800 dark:text-purple-200 space-y-1">
-                          <strong>สิทธิ์ตามฝ่าย</strong> กำหนดว่าผู้ใช้ทำอะไรกับข้อมูลของแต่ละฝ่ายได้บ้าง
-                          <ul className="list-disc list-inside ml-2 space-y-0.5">
-                            <li><strong>ดูข้อมูล</strong> — เห็นรายการสินค้า, รายงาน, ประวัติของฝ่ายนั้น</li>
-                            <li><strong>สร้างรายการ</strong> — รับเข้า/ขอเบิก/สร้างคำขอสินค้าของฝ่ายนั้น</li>
-                            <li><strong>แก้ไขข้อมูล</strong> — อัปเดตข้อมูลสินค้า, สถานะรายการของฝ่ายนั้น</li>
-                            <li><strong>ลบรายการ</strong> — ลบข้อมูลออกจากระบบ (สงวนสำหรับ Admin เท่านั้น)</li>
-                          </ul>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="rounded-lg border overflow-hidden">
-                      <TooltipProvider>
-                        <Table>
-                          <TableHeader>
-                            <TableRow className="bg-muted/50">
-                              <TableHead className="w-40">ฝ่าย</TableHead>
-                              <TableHead className="text-center w-24">
-                                <Tooltip>
-                                  <TooltipTrigger className="cursor-help border-b border-dashed border-muted-foreground">
-                                    ดูข้อมูล
-                                  </TooltipTrigger>
-                                  <TooltipContent>เห็นรายการสินค้า, รายงาน, ประวัติของฝ่ายนั้น</TooltipContent>
-                                </Tooltip>
-                              </TableHead>
-                              <TableHead className="text-center w-24">
-                                <Tooltip>
-                                  <TooltipTrigger className="cursor-help border-b border-dashed border-muted-foreground">
-                                    สร้างรายการ
-                                  </TooltipTrigger>
-                                  <TooltipContent>รับเข้า/ขอเบิก/สร้างคำขอสินค้าของฝ่ายนั้น</TooltipContent>
-                                </Tooltip>
-                              </TableHead>
-                              <TableHead className="text-center w-24">
-                                <Tooltip>
-                                  <TooltipTrigger className="cursor-help border-b border-dashed border-muted-foreground">
-                                    แก้ไขข้อมูล
-                                  </TooltipTrigger>
-                                  <TooltipContent>อัปเดตข้อมูลสินค้า, สถานะรายการของฝ่ายนั้น</TooltipContent>
-                                </Tooltip>
-                              </TableHead>
-                              <TableHead className="text-center w-24">
-                                <Tooltip>
-                                  <TooltipTrigger className="cursor-help border-b border-dashed border-muted-foreground">
-                                    <span className="flex items-center justify-center gap-1">
-                                      ลบรายการ
-                                      <Lock className="h-3 w-3 text-destructive" />
-                                    </span>
-                                  </TooltipTrigger>
-                                  <TooltipContent>สงวนสำหรับ Admin เท่านั้น — ลบข้อมูลออกจากระบบ</TooltipContent>
-                                </Tooltip>
-                              </TableHead>
-                            </TableRow>
-                          </TableHeader>
-                          <TableBody>
-                            {userPermissions.map((perm) => (
-                              <TableRow key={perm.department} className="hover:bg-muted/30">
-                                <TableCell className="font-medium">{perm.department}</TableCell>
-                                <TableCell className="text-center">
-                                  <Checkbox
-                                    checked={perm.can_view}
-                                    onCheckedChange={(checked) => 
-                                      handlePermissionChange(perm.department, 'can_view', checked as boolean)
-                                    }
-                                  />
-                                </TableCell>
-                                <TableCell className="text-center">
-                                  <Checkbox
-                                    checked={perm.can_create}
-                                    onCheckedChange={(checked) => 
-                                      handlePermissionChange(perm.department, 'can_create', checked as boolean)
-                                    }
-                                  />
-                                </TableCell>
-                                <TableCell className="text-center">
-                                  <Checkbox
-                                    checked={perm.can_edit}
-                                    onCheckedChange={(checked) => 
-                                      handlePermissionChange(perm.department, 'can_edit', checked as boolean)
-                                    }
-                                  />
-                                </TableCell>
-                                <TableCell className="text-center">
-                                  <Tooltip>
-                                    <TooltipTrigger asChild>
-                                      <span className="inline-flex items-center justify-center">
-                                        <Checkbox
-                                          checked={perm.can_delete}
-                                          disabled
-                                          className="opacity-40"
-                                        />
-                                        <Lock className="h-3 w-3 ml-1 text-muted-foreground" />
-                                      </span>
-                                    </TooltipTrigger>
-                                    <TooltipContent>สิทธิ์ลบรายการสงวนสำหรับ Admin เท่านั้น</TooltipContent>
-                                  </Tooltip>
-                                </TableCell>
-                              </TableRow>
-                            ))}
-                          </TableBody>
-                        </Table>
-                      </TooltipProvider>
-                    </div>
-                    <p className="text-xs text-destructive mt-2 flex items-center gap-1">
-                      <Lock className="h-3 w-3" />
-                      สิทธิ์ลบรายการสงวนสำหรับ Admin เท่านั้น
-                    </p>
-                  </>
-                )}
-              </TabsContent>
-            </div>
-
-            <Separator className="my-4" />
-            
-            <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={() => setDialogOpen(false)}>
-                ยกเลิก
-              </Button>
-              <Button onClick={handleSaveAll}>
-                <Check className="h-4 w-4 mr-2" />
-                บันทึกทั้งหมด
-              </Button>
-            </div>
-          </Tabs>
-        </DialogContent>
-      </Dialog>
 
       {/* Reset Password Dialog */}
       <Dialog open={resetPasswordDialogOpen} onOpenChange={setResetPasswordDialogOpen}>

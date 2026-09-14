@@ -1,6 +1,8 @@
 import type { Database } from "@/integrations/supabase/types";
+import { SYSTEM_FUNCTIONS, SUPER_ADMIN_ONLY_FNS } from "@/hooks/useFunctionPermissions";
 
 export type UserRole = Database["public"]["Enums"]["app_role"];
+
 
 /**
  * DUTY PACKS — "หน้าที่งาน"
@@ -179,3 +181,162 @@ export function dutiesFromFunctions(fns: string[]): string[] {
   const set = new Set(fns);
   return DUTY_PACKS.filter((d) => d.fns.every((f) => set.has(f))).map((d) => d.key);
 }
+
+/* ============================================================
+ * ACCESS LEVELS — "ระดับผู้ใช้" ที่เดียวที่ใช้กำหนดสิทธิ์
+ * ============================================================ */
+
+export type AccessLevelKey =
+  | "super_admin"
+  | "admin"
+  | "warehouse"
+  | "approver"
+  | "general"
+  | "ad_user"
+  | "finance"
+  | "custom";
+
+export interface AccessLevelDef {
+  key: AccessLevelKey;
+  order: number;
+  label: string;
+  description: string;
+  icon: string;
+  color: string; // tailwind bg class for badge dot
+  roles: UserRole[];
+  fns: string[];
+  /** "all" = เห็นทุกฝ่ายอัตโนมัติ (ไม่ต้องเลือก), "select" = ต้องเลือกฝ่าย */
+  deptMode: "all" | "select";
+  /** สิทธิ์ในข้อมูลของฝ่าย */
+  deptPerm: { view: boolean; create: boolean; edit: boolean; delete: boolean };
+  highlights: string[];
+}
+
+const ALL_FNS = SYSTEM_FUNCTIONS.map((f) => f.name);
+const ADMIN_LEVEL_FNS = ALL_FNS.filter((n) => !SUPER_ADMIN_ONLY_FNS.includes(n));
+
+export const ACCESS_LEVELS: AccessLevelDef[] = [
+  {
+    key: "super_admin",
+    order: 1,
+    label: "Super Admin",
+    description: "ดูแลระบบทั้งหมด รวมงานที่สงวนไว้",
+    icon: "ShieldCheck",
+    color: "bg-red-500",
+    roles: ["super_admin"],
+    fns: ALL_FNS,
+    deptMode: "all",
+    deptPerm: { view: true, create: true, edit: true, delete: true },
+    highlights: ["ทุกเมนูในระบบ", "จัดการผู้ใช้และสิทธิ์", "นำเข้าข้อมูลเริ่มต้น", "ทดสอบระบบ & คู่มือ Database", "เห็นทุกฝ่าย/ทุกคลัง"],
+  },
+  {
+    key: "admin",
+    order: 2,
+    label: "Admin",
+    description: "ทุกเมนูงาน เห็นทุกคลัง/ทุกฝ่ายเสมอ (ยกเว้น 4 เรื่องที่สงวนให้ Super Admin)",
+    icon: "Shield",
+    color: "bg-orange-500",
+    roles: ["admin"],
+    fns: ADMIN_LEVEL_FNS,
+    deptMode: "all",
+    deptPerm: { view: true, create: true, edit: true, delete: true },
+    highlights: ["ทุกเมนูงาน", "เห็นทุกคลัง/ทุกฝ่าย", "ยกเว้น: จัดการผู้ใช้, นำเข้าข้อมูลเริ่มต้น, ทดสอบระบบ/คู่มือ DB, แก้คู่มือสิทธิ์"],
+  },
+  {
+    key: "warehouse",
+    order: 3,
+    label: "เจ้าหน้าที่คลัง",
+    description: "งานคลังครบวงจร — เลือกได้หลายฝ่าย",
+    icon: "Package",
+    color: "bg-blue-500",
+    roles: ["warehouse_staff", "receiver"],
+    fns: [
+      "delivery_entry", "goods_receipt", "delivery_confirm",
+      "issue_request", "goods_issue", "transfer",
+      "disposal_request", "disposal_report",
+      "swap_request_manage", "assessment_create", "claim_create",
+      "swap_request_create", "assessment_view", "claim_view",
+      "equipment_pm", "reports",
+      "master_data", "md_equipment", "md_media_player", "md_tools", "md_locations", "md_warehouses",
+    ],
+    deptMode: "select",
+    deptPerm: { view: true, create: true, edit: true, delete: false },
+    highlights: ["รับเข้า-จ่ายสินค้า", "โอนย้าย, ของเสีย", "Swap/ประเมิน/เคลม", "ข้อมูลหลักคลัง + รายงาน"],
+  },
+  {
+    key: "approver",
+    order: 4,
+    label: "ผู้อนุมัติ",
+    description: "อนุมัติงานของฝ่ายที่รับผิดชอบ",
+    icon: "ShieldCheck",
+    color: "bg-purple-500",
+    roles: ["manager"],
+    fns: [...APPROVAL_FNS, "reports", "disposal_report"],
+    deptMode: "select",
+    deptPerm: { view: true, create: false, edit: true, delete: false },
+    highlights: ["อนุมัติเบิกทรัพย์สิน", "อนุมัติส่งตรง", "อนุมัติของเสีย ชั้น 1-2", "อนุมัติ/ดำเนินการ Swap", "ดูรายงาน"],
+  },
+  {
+    key: "general",
+    order: 5,
+    label: "ผู้ใช้งานทั่วไป",
+    description: "ขอนำเข้า ขอเบิก ขอส่งตรง และติดตามคำขอของตัวเอง",
+    icon: "ShoppingCart",
+    color: "bg-emerald-500",
+    roles: ["requester"],
+    fns: ["delivery_entry", "issue_request", "direct_shipping_request", "delivery_confirm"],
+    deptMode: "select",
+    deptPerm: { view: true, create: true, edit: false, delete: false },
+    highlights: ["ขอนำสินค้าเข้า", "ขอเบิกสินค้า", "ขอส่งตรง", "ยืนยันรับสินค้า"],
+  },
+  {
+    key: "ad_user",
+    order: 6,
+    label: "ผู้ใช้ภาพโฆษณา",
+    description: "นำเข้า/เบิกภาพโฆษณา และจัดแพ็กป้ายโฆษณา",
+    icon: "ImageIcon",
+    color: "bg-pink-500",
+    roles: ["requester"],
+    fns: ["ad_entry", "ad_issue_request", "ad_warehouse", "billboards"],
+    deptMode: "select",
+    deptPerm: { view: true, create: true, edit: true, delete: false },
+    highlights: ["นำเข้าภาพโฆษณา", "เบิกภาพโฆษณา", "คลังภาพโฆษณา", "ป้ายโฆษณา & Package"],
+  },
+  {
+    key: "finance",
+    order: 7,
+    label: "บัญชี & จัดซื้อ",
+    description: "ตรวจสอบยอดและดูรายงานเท่านั้น (ไม่แก้ไขข้อมูล)",
+    icon: "BarChart3",
+    color: "bg-slate-500",
+    roles: [],
+    fns: ["reports", "activity_audit_view", "disposal_report", "disposal_audit_view", "disposal_finance"],
+    deptMode: "select",
+    deptPerm: { view: true, create: false, edit: false, delete: false },
+    highlights: ["รายงานทุกหน้า + Stock Card + KPI", "ค้นหาเอกสาร", "ประวัติการใช้งานระบบ", "บัญชีรับทราบของเสีย"],
+  },
+];
+
+export function getAccessLevel(key: AccessLevelKey): AccessLevelDef | undefined {
+  return ACCESS_LEVELS.find((l) => l.key === key);
+}
+
+const sameSet = (a: string[], b: string[]) => {
+  if (a.length !== b.length) return false;
+  const s = new Set(a);
+  return b.every((x) => s.has(x));
+};
+
+/** เดาระดับผู้ใช้จากสิทธิ์ปัจจุบัน — คืน "custom" ถ้าไม่ตรงระดับใดเลย */
+export function detectAccessLevel(roles: UserRole[], fns: string[]): AccessLevelKey {
+  if (roles.includes("super_admin")) return "super_admin";
+  if (roles.includes("admin")) return "admin";
+  const match = ACCESS_LEVELS.filter((l) => l.deptMode === "select").find((l) => sameSet(l.fns, fns));
+  return match ? match.key : "custom";
+}
+
+export const ACCESS_LEVEL_LABELS: Record<AccessLevelKey, string> = {
+  ...(Object.fromEntries(ACCESS_LEVELS.map((l) => [l.key, l.label])) as Record<AccessLevelKey, string>),
+  custom: "ปรับแต่งเอง",
+};
+
