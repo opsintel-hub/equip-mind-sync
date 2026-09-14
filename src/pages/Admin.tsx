@@ -1,10 +1,9 @@
 import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { Shield, Grid3x3, LayoutList, BookOpen } from "lucide-react";
+import { Shield, LayoutList, BookOpen } from "lucide-react";
 import { useDepartmentPermissions } from "@/hooks/useDepartmentPermissions";
 import { UserPermissionManager } from "@/components/admin/UserPermissionManager";
-import { PermissionMatrix } from "@/components/admin/PermissionMatrix";
 import { RoleDescriptions } from "@/components/admin/RoleDescriptions";
 import { FunctionDescriptions } from "@/components/admin/FunctionDescriptions";
 import { useIsSuperAdmin } from "@/hooks/useIsSuperAdmin";
@@ -12,7 +11,7 @@ import { useIsSuperAdmin } from "@/hooks/useIsSuperAdmin";
 const Admin = () => {
   const { isAdmin, loading: permLoading } = useDepartmentPermissions();
   const { isSuperAdmin } = useIsSuperAdmin();
-  const [viewMode, setViewMode] = useState<"card" | "matrix" | "guide">("card");
+  const [viewMode, setViewMode] = useState<"card" | "guide">("card");
 
   if (permLoading) {
     return <div className="flex items-center justify-center h-screen">กำลังโหลด...</div>;
@@ -40,32 +39,27 @@ const Admin = () => {
           จัดการผู้ใช้งาน
         </h1>
         <p className="text-muted-foreground">
-          กำหนดบทบาท, สิทธิ์ตามฟังก์ชัน และสิทธิ์ตามฝ่ายให้กับผู้ใช้แต่ละคน
+          กำหนด "ระดับผู้ใช้" และฝ่ายที่เข้าถึงได้ — ตั้งค่าที่เดียวจบ
         </p>
       </div>
 
       <div className="space-y-4">
         <div className="flex items-center justify-between flex-wrap gap-3">
           <div className="text-sm text-muted-foreground max-w-2xl">
-            {viewMode === "card" && "① ตั้งค่ารายคนที่นี่ที่เดียว — กดปุ่ม ✨ Wizard เพื่อแก้โปรไฟล์ + เลือกหน้าที่งาน + สิทธิ์ผู้อนุมัติ + ฝ่าย/แผนก"}
-            {viewMode === "matrix" && "② ดูภาพรวมและปรับหลายคนพร้อมกัน — ไม่ใช่ที่ตั้งค่าหลัก ใช้เมื่อต้องให้/ถอนเมนูเดียวกันหลายคน"}
+            {viewMode === "card" && "① ตั้งค่ารายคนที่นี่ที่เดียว — คลิกที่แถวผู้ใช้เพื่อเลือกระดับผู้ใช้ + ฝ่าย/แผนก"}
             {viewMode === "guide" && (isSuperAdmin
-              ? "③ คู่มืออ่านอย่างเดียว (Roles & Functions) — Super Admin แก้ข้อความคู่มือได้ที่ปุ่มดินสอ/ถังขยะ"
-              : "③ คู่มืออ่านอย่างเดียว (Roles & Functions) — เฉพาะ Super Admin เท่านั้นที่แก้ไขได้")}
+              ? "② คู่มืออ่านอย่างเดียว (ระดับผู้ใช้ & เมนู) — Super Admin แก้ข้อความคู่มือได้ที่ปุ่มดินสอ/ถังขยะ"
+              : "② คู่มืออ่านอย่างเดียว (ระดับผู้ใช้ & เมนู) — เฉพาะ Super Admin เท่านั้นที่แก้ไขได้")}
           </div>
           <ToggleGroup
             type="single"
             value={viewMode}
-            onValueChange={(v) => v && setViewMode(v as "card" | "matrix" | "guide")}
+            onValueChange={(v) => v && setViewMode(v as "card" | "guide")}
             className="border rounded-md"
           >
             <ToggleGroupItem value="card" aria-label="Card view" className="gap-2">
               <LayoutList className="h-4 w-4" />
               รายการผู้ใช้
-            </ToggleGroupItem>
-            <ToggleGroupItem value="matrix" aria-label="Matrix view" className="gap-2">
-              <Grid3x3 className="h-4 w-4" />
-              Matrix สิทธิ์
             </ToggleGroupItem>
             <ToggleGroupItem value="guide" aria-label="Guide view" className="gap-2">
               <BookOpen className="h-4 w-4" />
@@ -74,7 +68,6 @@ const Admin = () => {
           </ToggleGroup>
         </div>
         {viewMode === "card" && <UserPermissionManager />}
-        {viewMode === "matrix" && <PermissionMatrix />}
         {viewMode === "guide" && (
           <div className="grid gap-6 lg:grid-cols-2">
             <RoleDescriptions />
@@ -90,4 +83,5 @@ const Admin = () => {
 };
 
 export default Admin;
+
 
