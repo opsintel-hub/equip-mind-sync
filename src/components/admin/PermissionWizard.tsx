@@ -877,12 +877,37 @@ export function PermissionWizard({ open, onOpenChange, user, onSaved }: Permissi
               <div className="bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg p-3 flex gap-2 text-sm">
                 <AlertCircle className="h-4 w-4 text-blue-600 flex-shrink-0 mt-0.5" />
                 <div className="text-blue-800 dark:text-blue-200">
-                  ระบบคำนวณสิทธิ์ตามตำแหน่งที่เลือกแล้ว Super Admin สามารถแก้ไขข้อมูลก่อนกดบันทึกได้
+                  {accessLevel === "super_admin"
+                    ? "Super Admin — ได้ทุกเมนูและทุกฝ่ายโดยอัตโนมัติ"
+                    : accessLevel === "admin"
+                    ? `Admin — ได้ทุกเมนูงานโดยอัตโนมัติ (ยกเว้น 4 เรื่องที่สงวน) เฉพาะ ${selectedDepartments.length} ฝ่ายที่เลือก`
+                    : "ระบบคำนวณสิทธิ์ตามหน้าที่งานที่เลือกแล้ว — แก้ไขรายเมนูก่อนบันทึกได้"}
                 </div>
               </div>
 
+              {accessLevel !== "user" && (
+                <div className="rounded-lg border p-3 space-y-2 text-sm">
+                  <div className="font-semibold">สรุปสิทธิ์</div>
+                  <div className="text-muted-foreground text-xs">
+                    เมนู: {accessLevel === "super_admin" ? "ทุกเมนูในระบบ" : "ทุกเมนูงาน ยกเว้นจัดการผู้ใช้, นำเข้าข้อมูลเริ่มต้น, ทดสอบระบบ/คู่มือ Database และแก้คู่มือสิทธิ์"}
+                  </div>
+                  <div className="flex flex-wrap gap-1">
+                    <span className="text-xs text-muted-foreground mr-1">ฝ่าย:</span>
+                    {accessLevel === "super_admin" ? (
+                      <Badge variant="secondary" className="text-xs">ทุกฝ่าย</Badge>
+                    ) : selectedDepartments.length > 0 ? (
+                      selectedDepartments.map((d) => <Badge key={d} variant="secondary" className="text-xs">{d}</Badge>)
+                    ) : (
+                      <span className="text-xs text-destructive">ยังไม่ได้เลือกฝ่าย — ย้อนกลับไปขั้นที่ 2</span>
+                    )}
+                  </div>
+                </div>
+              )}
+
               {/* Roles */}
+              {accessLevel === "user" && (
               <div>
+
                 <Label className="text-sm font-semibold">บทบาท (Roles)</Label>
                 <div className="flex flex-wrap gap-2 mt-2">
                   {(["super_admin", "admin", "manager", "warehouse_staff", "receiver", "requester"] as UserRole[]).map((r) => {
