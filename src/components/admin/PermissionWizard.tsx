@@ -781,6 +781,8 @@ export function PermissionWizard({ open, onOpenChange, user, onSaved }: Permissi
               <div className="text-xs text-muted-foreground">
                 รวมสิทธิ์ที่จะได้ตอนนี้: <Badge variant="secondary" className="text-[10px]">{previewFunctions.length} เมนู</Badge> — ปรับรายเมนูได้ในขั้นที่ 3
               </div>
+              </>
+              )}
             </div>
           )}
 
