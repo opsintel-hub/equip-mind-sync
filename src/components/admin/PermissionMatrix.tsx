@@ -11,27 +11,30 @@ import {
   Search, Lock, Sparkles, ChevronDown, X, Loader2,
   Package, Truck, ShoppingCart, Send, MapPin, ImageIcon,
   ArrowLeftRight, Database, BarChart3, Shield,
+  Recycle, Wrench, ShieldCheck,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { SYSTEM_FUNCTIONS } from "@/hooks/useFunctionPermissions";
+import { MATRIX_GROUPS } from "@/lib/dutyPacks";
 import { fetchPermissionPresets, applyPresetToUser, type PermissionPreset } from "@/lib/permissions";
 import { cn } from "@/lib/utils";
 import type { Database as DB } from "@/integrations/supabase/types";
 
 type UserRole = DB["public"]["Enums"]["app_role"];
 
-// ─── Function grouping ────────────────────────────────────────────────
-const FUNCTION_GROUPS: { key: string; label: string; icon: any; fns: string[] }[] = [
-  { key: "receive", label: "นำเข้า/รับ", icon: Truck, fns: ["delivery_entry", "goods_receipt", "delivery_confirm"] },
-  { key: "issue", label: "เบิก-จ่าย", icon: ShoppingCart, fns: ["issue_request", "goods_issue", "manager_approval"] },
-  { key: "direct", label: "ส่งตรง", icon: Send, fns: ["direct_shipping_request", "direct_shipping_approval", "direct_shipping_procurement"] },
-  { key: "billboard", label: "ป้าย & PM", icon: MapPin, fns: ["billboards", "pm_schedule", "equipment_pm", "transfer"] },
-  { key: "ad", label: "โฆษณา", icon: ImageIcon, fns: ["ad_entry", "ad_issue_request", "ad_warehouse"] },
-  { key: "swap", label: "Swap/ประเมิน/เคลม", icon: ArrowLeftRight, fns: ["swap_request_create", "swap_request_manage", "assessment_create", "assessment_view", "claim_create", "claim_view"] },
-  { key: "master", label: "Master Data", icon: Database, fns: ["master_data", "md_equipment", "md_tools", "md_categories", "md_warehouses", "md_locations", "md_suppliers", "md_contractors", "md_departments", "md_sections", "md_companies", "md_issue_purposes", "md_receipt_purposes", "md_technicians", "md_pm_action_types", "md_media_player"] },
-  { key: "system", label: "รายงาน & ระบบ", icon: Shield, fns: ["reports", "admin"] },
-];
+// ─── Function grouping — นิยามกลางที่ src/lib/dutyPacks.ts (ใช้ร่วมกับ Wizard) ───
+const MATRIX_ICONS: Record<string, any> = {
+  Truck, ShoppingCart, Send, MapPin, ImageIcon, ArrowLeftRight, Database, Shield,
+  Package, Recycle, Wrench, BarChart3, ShieldCheck,
+};
+
+const FUNCTION_GROUPS: { key: string; label: string; icon: any; fns: string[] }[] = MATRIX_GROUPS.map((g) => ({
+  key: g.key,
+  label: g.label,
+  icon: MATRIX_ICONS[g.icon] || Package,
+  fns: g.fns,
+}));
 
 interface UserRow {
   id: string;
@@ -337,7 +340,8 @@ export function PermissionMatrix() {
                 Matrix สิทธิ์ผู้ใช้
               </CardTitle>
               <CardDescription>
-                ตารางรวม — ติ๊กช่องเพื่อเปิด/ปิดเมนู, คลิกหัวคอลัมน์ให้/ถอนสิทธิ์ทั้งคอลัมน์, เลือกหลายแถวเพื่อ Bulk edit
+                ใช้สำหรับ <strong>ดูภาพรวม + ปรับหลายคนพร้อมกัน</strong> เท่านั้น — ถ้าจะตั้งสิทธิ์รายคน ให้ใช้ปุ่ม ✨ Wizard ในมุมมอง "รายการผู้ใช้"
+                <br />ติ๊กช่องเพื่อเปิด/ปิดเมนู, คลิกหัวคอลัมน์ให้/ถอนทั้งคอลัมน์, เลือกหลายแถวเพื่อ Bulk edit (กลุ่มคอลัมน์ = หน้าที่งานเดียวกับ Wizard)
               </CardDescription>
             </div>
           </div>
