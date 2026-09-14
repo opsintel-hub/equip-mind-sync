@@ -457,8 +457,15 @@ export function PermissionWizard({ open, onOpenChange, user, onSaved }: Permissi
     }
   };
 
+  const chooseLevel = (lv: AccessLevel) => {
+    setAccessLevel(lv);
+    if (lv !== "user") {
+      setDeptPerm({ view: true, create: true, edit: true, delete: true });
+    }
+  };
+
   const stepTitle = useMemo(() => {
-    if (step === 1) return "ขั้นที่ 1: เลือกตำแหน่งงาน/หน้าที่";
+    if (step === 1) return "ขั้นที่ 1: เลือกระดับผู้ใช้ และหน้าที่งาน";
     if (step === 2) return "ขั้นที่ 2: เลือกฝ่ายที่รับผิดชอบ";
     return "ขั้นที่ 3: ตรวจสอบและบันทึก";
   }, [step]);
