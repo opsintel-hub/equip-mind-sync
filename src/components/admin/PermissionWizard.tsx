@@ -323,8 +323,8 @@ export function PermissionWizard({ open, onOpenChange, user, onSaved }: Permissi
 
   const goNext = () => {
     if (step === 1) {
-      if (selectedTemplateKeys.length === 0) {
-        toast.error("กรุณาเลือกตำแหน่งงานอย่างน้อย 1 ตำแหน่ง");
+      if (previewFunctions.length === 0) {
+        toast.error("กรุณาเลือกหน้าที่งานอย่างน้อย 1 อย่าง");
         return;
       }
     }
