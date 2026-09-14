@@ -116,6 +116,9 @@ export function PermissionWizard({ open, onOpenChange, user, onSaved }: Permissi
   const [pfPhone, setPfPhone] = useState("");
   const [pfDepartment, setPfDepartment] = useState<string>("");
 
+  // ระดับผู้ใช้ (ใหม่): ผู้ใช้ทั่วไป / Admin / Super Admin
+  const [accessLevel, setAccessLevel] = useState<AccessLevel>("user");
+
   // Selections
   const [selectedTemplateKeys, setSelectedTemplateKeys] = useState<string[]>([]);
   const [selectedDepartments, setSelectedDepartments] = useState<string[]>([]);
