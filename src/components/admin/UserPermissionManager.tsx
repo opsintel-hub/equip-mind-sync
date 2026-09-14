@@ -750,7 +750,7 @@ export function UserPermissionManager() {
                   <TableRow 
                     key={user.id} 
                     className="hover:bg-muted/30 cursor-pointer"
-                    onClick={() => handleOpenDialog(user)}
+                    onClick={() => handleOpenWizard(user)}
                   >
                     <TableCell className="font-medium">{user.full_name || "-"}</TableCell>
                     <TableCell>
