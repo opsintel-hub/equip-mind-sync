@@ -332,8 +332,14 @@ export function PermissionWizard({ open, onOpenChange, user, onSaved }: Permissi
 
   const goNext = () => {
     if (step === 1) {
-      if (previewFunctions.length === 0) {
+      if (accessLevel === "user" && previewFunctions.length === 0) {
         toast.error("กรุณาเลือกหน้าที่งานอย่างน้อย 1 อย่าง");
+        return;
+      }
+      if (accessLevel === "super_admin") {
+        // Super Admin เห็นทุกฝ่ายอยู่แล้ว — ข้ามขั้นเลือกฝ่าย
+        computePreview();
+        setStep(3);
         return;
       }
     }
@@ -347,12 +353,22 @@ export function PermissionWizard({ open, onOpenChange, user, onSaved }: Permissi
     setStep((s) => Math.min(3, s + 1));
   };
 
-  const goBack = () => setStep((s) => Math.max(1, s - 1));
+  const goBack = () => {
+    if (step === 3 && accessLevel === "super_admin") {
+      setStep(1);
+      return;
+    }
+    setStep((s) => Math.max(1, s - 1));
+  };
 
   const handleSave = async () => {
     if (!user) return;
     if (!pfFullName.trim()) {
       toast.error("กรุณากรอกชื่อ-นามสกุล");
+      return;
+    }
+    if (accessLevel !== "super_admin" && selectedDepartments.length === 0) {
+      toast.error("กรุณาเลือกฝ่ายอย่างน้อย 1 ฝ่าย (ขั้นที่ 2)");
       return;
     }
     setSaving(true);
@@ -369,16 +385,22 @@ export function PermissionWizard({ open, onOpenChange, user, onSaved }: Permissi
         .eq("id", user.id);
       if (pfErr) throw pfErr;
 
-      // 1. Roles via RPC
+      // 1. Roles via RPC — ระดับผู้ใช้เป็นตัวกำหนด admin/super_admin
+      const rolesToSave: UserRole[] =
+        accessLevel === "super_admin"
+          ? ["super_admin"]
+          : accessLevel === "admin"
+          ? ["admin"]
+          : (previewRoles.filter((r) => r !== "admin" && r !== "super_admin") as UserRole[]);
       const { error: roleErr } = await supabase.rpc("save_user_roles" as any, {
         _target_user_id: user.id,
-        _roles: previewRoles,
+        _roles: rolesToSave,
       });
       if (roleErr) throw roleErr;
 
-      // 2. Function permissions: replace
+      // 2. Function permissions: Admin/Super Admin ได้อัตโนมัติ ไม่ต้องเก็บรายเมนู
       await supabase.from("user_function_permissions").delete().eq("user_id", user.id);
-      if (previewFunctions.length > 0) {
+      if (accessLevel === "user" && previewFunctions.length > 0) {
         const { error: fErr } = await supabase.from("user_function_permissions").insert(
           previewFunctions.map((fn) => ({
             user_id: user.id,
@@ -391,7 +413,7 @@ export function PermissionWizard({ open, onOpenChange, user, onSaved }: Permissi
 
       // 3. Department permissions: replace
       await supabase.from("user_departments").delete().eq("user_id", user.id);
-      const isAdminLike = previewRoles.includes("admin") || previewRoles.includes("super_admin");
+      const isAdminLike = accessLevel !== "user";
       const deptRows = selectedDepartments.map((d) => ({
         user_id: user.id,
         department: d,
