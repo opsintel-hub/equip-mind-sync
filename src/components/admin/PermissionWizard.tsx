@@ -91,6 +91,15 @@ const ICON_MAP: Record<string, any> = {
   ShoppingCart,
   ShieldCheck,
   Wrench,
+  Truck,
+  Recycle,
+  ArrowLeftRight,
+  MapPin,
+  ImageIcon,
+  Send,
+  Database: DatabaseIcon,
+  BarChart3,
+  Shield,
 };
 
 export function PermissionWizard({ open, onOpenChange, user, onSaved }: PermissionWizardProps) {
