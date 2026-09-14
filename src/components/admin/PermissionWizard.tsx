@@ -52,6 +52,7 @@ import { cn } from "@/lib/utils";
 
 
 type UserRole = Database["public"]["Enums"]["app_role"];
+type AccessLevel = "user" | "admin" | "super_admin";
 
 interface PermissionTemplate {
   id: string;
