@@ -40,7 +40,7 @@ import { RoleDescriptions } from "@/components/admin/RoleDescriptions";
 import { FunctionDescriptions } from "@/components/admin/FunctionDescriptions";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { SYSTEM_FUNCTIONS } from "@/hooks/useFunctionPermissions";
+import { SYSTEM_FUNCTIONS, GROUPED_FUNCTIONS } from "@/hooks/useFunctionPermissions";
 import {
   DUTY_PACKS,
   APPROVAL_PERMISSIONS,
