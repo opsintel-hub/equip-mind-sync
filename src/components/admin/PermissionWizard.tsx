@@ -205,7 +205,11 @@ export function PermissionWizard({ open, onOpenChange, user, onSaved }: Permissi
       setPreviewFunctions(
         (((userFnRes as any).data || []) as any[]).filter((r) => r.can_access).map((r) => r.function_name),
       );
-      setPreviewRoles((((userRoleRes as any).data || []) as any[]).map((r) => r.role as UserRole));
+      const loadedRoles = (((userRoleRes as any).data || []) as any[]).map((r) => r.role as UserRole);
+      setPreviewRoles(loadedRoles);
+      setAccessLevel(
+        loadedRoles.includes("super_admin") ? "super_admin" : loadedRoles.includes("admin") ? "admin" : "user",
+      );
 
       // Prefill existing department access (supports users assigned to multiple departments)
       const existing = (userDeptRes as any)?.data || [];
