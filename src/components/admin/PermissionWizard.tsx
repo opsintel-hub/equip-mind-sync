@@ -477,7 +477,7 @@ export function PermissionWizard({ open, onOpenChange, user, onSaved }: Permissi
   };
 
   const stepTitle = useMemo(() => {
-    if (step === 1) return "ขั้นที่ 1: เลือกระดับผู้ใช้ และหน้าที่งาน";
+    if (step === 1) return "ขั้นที่ 1: เลือกระดับผู้ใช้";
     if (step === 2) return "ขั้นที่ 2: เลือกฝ่ายที่รับผิดชอบ";
     return "ขั้นที่ 3: ตรวจสอบและบันทึก";
   }, [step]);
