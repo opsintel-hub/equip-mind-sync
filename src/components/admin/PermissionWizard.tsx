@@ -159,7 +159,7 @@ export function PermissionWizard({ open, onOpenChange, user, onSaved }: Permissi
   const loadData = async () => {
     setLoading(true);
     try {
-      const [tplRes, deptRes, userDeptRes, sectionRes, userSecRes] = await Promise.all([
+      const [tplRes, deptRes, userDeptRes, sectionRes, userSecRes, userFnRes, userRoleRes] = await Promise.all([
         (supabase as any)
           .from("permission_templates")
           .select("*")
@@ -177,6 +177,12 @@ export function PermissionWizard({ open, onOpenChange, user, onSaved }: Permissi
         user?.id
           ? (supabase as any).from("user_sections").select("section_id").eq("user_id", user.id)
           : Promise.resolve({ data: [], error: null } as any),
+        user?.id
+          ? supabase.from("user_function_permissions").select("function_name, can_access").eq("user_id", user.id)
+          : Promise.resolve({ data: [], error: null } as any),
+        user?.id
+          ? supabase.from("user_roles").select("role").eq("user_id", user.id)
+          : Promise.resolve({ data: [], error: null } as any),
       ]);
       if (tplRes.error) throw tplRes.error;
       setTemplates((tplRes.data || []) as PermissionTemplate[]);
@@ -190,6 +196,12 @@ export function PermissionWizard({ open, onOpenChange, user, onSaved }: Permissi
       );
       setSelectedSectionIds((((userSecRes as any).data || []) as any[]).map((r) => r.section_id));
 
+      // Prefill existing function permissions + roles so the wizard shows the CURRENT state
+      setPreviewFunctions(
+        (((userFnRes as any).data || []) as any[]).filter((r) => r.can_access).map((r) => r.function_name),
+      );
+      setPreviewRoles((((userRoleRes as any).data || []) as any[]).map((r) => r.role as UserRole));
+
       // Prefill existing department access (supports users assigned to multiple departments)
       const existing = (userDeptRes as any)?.data || [];
       if (existing.length > 0) {
@@ -201,6 +213,7 @@ export function PermissionWizard({ open, onOpenChange, user, onSaved }: Permissi
           delete: existing.some((r: any) => r.can_delete),
         });
       }
+
 
     } catch (e: any) {
       console.error(e);
