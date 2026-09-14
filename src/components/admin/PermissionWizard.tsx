@@ -850,163 +850,70 @@ export function PermissionWizard({ open, onOpenChange, user, onSaved }: Permissi
               <div className="bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg p-3 flex gap-2 text-sm">
                 <AlertCircle className="h-4 w-4 text-blue-600 flex-shrink-0 mt-0.5" />
                 <div className="text-blue-800 dark:text-blue-200">
-                  {accessLevel === "super_admin"
-                    ? "Super Admin — ได้ทุกเมนูและทุกฝ่ายโดยอัตโนมัติ"
-                    : accessLevel === "admin"
-                    ? `Admin — ได้ทุกเมนูงานโดยอัตโนมัติ (ยกเว้น 4 เรื่องที่สงวน) เฉพาะ ${selectedDepartments.length} ฝ่ายที่เลือก`
-                    : "ระบบคำนวณสิทธิ์ตามหน้าที่งานที่เลือกแล้ว — แก้ไขรายเมนูก่อนบันทึกได้"}
+                  ตรวจสอบก่อนบันทึก — ระดับผู้ใช้: <strong>{levelDef ? levelDef.label : "ปรับแต่งเอง"}</strong>
                 </div>
               </div>
 
-              {accessLevel !== "user" && (
-                <div className="rounded-lg border p-3 space-y-2 text-sm">
-                  <div className="font-semibold">สรุปสิทธิ์</div>
-                  <div className="text-muted-foreground text-xs">
-                    เมนู: {accessLevel === "super_admin" ? "ทุกเมนูในระบบ" : "ทุกเมนูงาน ยกเว้นจัดการผู้ใช้, นำเข้าข้อมูลเริ่มต้น, ทดสอบระบบ/คู่มือ Database และแก้คู่มือสิทธิ์"}
-                  </div>
-                  <div className="flex flex-wrap gap-1">
-                    <span className="text-xs text-muted-foreground mr-1">ฝ่าย:</span>
-                    {accessLevel === "super_admin" ? (
-                      <Badge variant="secondary" className="text-xs">ทุกฝ่าย</Badge>
-                    ) : selectedDepartments.length > 0 ? (
-                      selectedDepartments.map((d) => <Badge key={d} variant="secondary" className="text-xs">{d}</Badge>)
-                    ) : (
-                      <span className="text-xs text-destructive">ยังไม่ได้เลือกฝ่าย — ย้อนกลับไปขั้นที่ 2</span>
-                    )}
-                  </div>
+              <div className="rounded-lg border p-3 space-y-3 text-sm">
+                <div className="font-semibold">สรุปสิทธิ์</div>
+
+                <div className="flex flex-wrap gap-1 items-center">
+                  <span className="text-xs text-muted-foreground mr-1">ฝ่าย/คลังที่เห็น:</span>
+                  {isAllDept ? (
+                    <Badge variant="secondary" className="text-xs">ทุกฝ่าย / ทุกคลัง</Badge>
+                  ) : selectedDepartments.length > 0 ? (
+                    selectedDepartments.map((d) => <Badge key={d} variant="secondary" className="text-xs">{d}</Badge>)
+                  ) : (
+                    <span className="text-xs text-destructive">ยังไม่ได้เลือกฝ่าย — ย้อนกลับไปขั้นที่ 2</span>
+                  )}
                 </div>
-              )}
 
-              {/* Roles */}
-              {accessLevel === "user" && (
-              <>
-              <div>
+                {selectedSectionIds.length > 0 && (
+                  <div className="flex flex-wrap gap-1 items-center">
+                    <span className="text-xs text-muted-foreground mr-1">แผนก:</span>
+                    {sections
+                      .filter((s) => selectedSectionIds.includes(s.id))
+                      .map((s) => <Badge key={s.id} variant="outline" className="text-xs">{s.name}</Badge>)}
+                  </div>
+                )}
 
-                <Label className="text-sm font-semibold">บทบาท (Roles)</Label>
-                <div className="flex flex-wrap gap-2 mt-2">
-                  {(["super_admin", "admin", "manager", "warehouse_staff", "receiver", "requester"] as UserRole[]).map((r) => {
-                    const active = previewRoles.includes(r);
-                    return (
-                      <Badge
-                        key={r}
-                        variant={active ? "default" : "outline"}
-                        className="cursor-pointer"
-                        onClick={() => togglePreviewRole(r)}
-                      >
-                        {active && <Check className="h-3 w-3 mr-1" />}
-                        {r}
-                      </Badge>
-                    );
-                  })}
+                <div className="text-xs text-muted-foreground">
+                  สิทธิ์ในข้อมูล: {[
+                    deptPerm.view && "ดู",
+                    deptPerm.create && "สร้าง",
+                    deptPerm.edit && "แก้ไข",
+                    deptPerm.delete && "ลบ",
+                  ].filter(Boolean).join(" · ") || "ไม่มี"}
                 </div>
               </div>
 
-              <Separator />
-
-              {/* Functions — เรียงตามลำดับเมนูจริงในแถบข้าง */}
-              <div>
+              <div className="rounded-lg border p-3 space-y-3">
                 <Label className="text-sm font-semibold">
-                  สิทธิ์ฟังก์ชัน ({previewFunctions.length}/{SYSTEM_FUNCTIONS.length}) — เรียงตามลำดับเมนูจริง
+                  เมนูที่จะเข้าได้ ({isAllDept ? previewFunctions.length : previewFunctions.length}/{SYSTEM_FUNCTIONS.length})
                 </Label>
-                <div className="space-y-4 mt-2">
-                  {GROUPED_FUNCTIONS.map((grp) => {
-                    const onCount = grp.functions.filter((f) => previewFunctions.includes(f.name)).length;
-                    const allOn = onCount === grp.functions.length;
-                    return (
-                      <div key={grp.group}>
-                        <div className="flex items-center justify-between mb-1.5">
-                          <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                            {grp.group} <span className="normal-case">({onCount}/{grp.functions.length})</span>
-                          </div>
-                          <button
-                            type="button"
-                            className="text-xs text-primary hover:underline"
-                            onClick={() =>
-                              grp.functions.forEach((f) => {
-                                const on = previewFunctions.includes(f.name);
-                                if (allOn ? on : !on) togglePreviewFunction(f.name);
-                              })
-                            }
-                          >
-                            {allOn ? "ปิดทั้งกลุ่ม" : "เปิดทั้งกลุ่ม"}
-                          </button>
-                        </div>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                          {grp.functions.map((fn) => {
-                            const active = previewFunctions.includes(fn.name);
-                            return (
-                              <label
-                                key={fn.name}
-                                className={cn(
-                                  "flex items-start gap-2 p-2 rounded-md border cursor-pointer text-sm transition-colors",
-                                  active ? "bg-primary/5 border-primary/40" : "hover:bg-muted/50"
-                                )}
-                              >
-                                <Checkbox
-                                  checked={active}
-                                  onCheckedChange={() => togglePreviewFunction(fn.name)}
-                                  className="mt-0.5"
-                                />
-                                <div className="flex-1 min-w-0">
-                                  <div className="font-medium">{fn.label}</div>
-                                  <div className="text-xs text-muted-foreground line-clamp-1">เมนู: {fn.menu}</div>
-                                </div>
-                              </label>
-                            );
-                          })}
-                        </div>
+                {GROUPED_FUNCTIONS.map((grp) => {
+                  const on = grp.functions.filter((f) => previewFunctions.includes(f.name));
+                  if (on.length === 0) return null;
+                  return (
+                    <div key={grp.group}>
+                      <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">
+                        {grp.group} ({on.length}/{grp.functions.length})
                       </div>
-                    );
-                  })}
-                </div>
-              </div>
-
-
-              <Separator />
-
-              {/* Department perms */}
-              <div>
-                <Label className="text-sm font-semibold">
-                  สิทธิ์ในฝ่ายที่เลือก ({selectedDepartments.length} ฝ่าย)
-                </Label>
-                <div className="flex flex-wrap gap-1 my-2">
-                  {selectedDepartments.map((d) => (
-                    <Badge key={d} variant="secondary" className="text-xs">{d}</Badge>
-                  ))}
-                </div>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-2">
-                  {[
-                    { key: "view", label: "ดู", icon: Eye },
-                    { key: "create", label: "สร้าง", icon: Plus },
-                    { key: "edit", label: "แก้ไข", icon: Pencil },
-                    { key: "delete", label: "ลบ", icon: Trash2 },
-                  ].map((p) => {
-                    const Icon = p.icon;
-                    const active = (deptPerm as any)[p.key];
-                    return (
-                      <button
-                        key={p.key}
-                        type="button"
-                        onClick={() => setDeptPerm((prev) => ({ ...prev, [p.key]: !(prev as any)[p.key] }))}
-                        className={cn(
-                          "flex items-center gap-2 p-2 rounded-md border-2 text-sm",
-                          active ? "border-primary bg-primary/5" : "border-border"
-                        )}
-                      >
-                        <Icon className={cn("h-4 w-4", active ? "text-primary" : "text-muted-foreground")} />
-                        <span>{p.label}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-                <p className="text-xs text-muted-foreground mt-2">
-                  * สิทธิ์ "ลบ" จะถูกบันทึกเฉพาะกรณีผู้ใช้มีบทบาท Admin/Super Admin
+                      <div className="flex flex-wrap gap-1">
+                        {on.map((f) => (
+                          <Badge key={f.name} variant="outline" className="text-[11px]">{f.label}</Badge>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
+                <p className="text-[11px] text-muted-foreground">
+                  ต้องการเปลี่ยน? ย้อนกลับไปขั้นที่ 1 เลือกระดับใหม่ หรือกด "ปรับละเอียด"
                 </p>
               </div>
-              </>
-              )}
             </div>
           )}
+
         </div>
         </div>
 
