@@ -2,7 +2,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TestDataGenerator } from "@/components/testing/TestDataGenerator";
 import { EdgeFunctionTester } from "@/components/testing/EdgeFunctionTester";
-import { FlaskConical, Database, Bell, ClipboardList } from "lucide-react";
+import { ClearTestData } from "@/components/testing/ClearTestData";
+import { FlaskConical, Database, Bell, ClipboardList, Trash2 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 
