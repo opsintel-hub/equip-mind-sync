@@ -137,15 +137,20 @@ export default function ImportPageShell({
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">ขั้นตอนที่ 1 — ดาวน์โหลด Template</CardTitle>
+          <CardTitle className="text-base flex items-center gap-2 flex-wrap">
+            ขั้นตอนที่ 1 — ดาวน์โหลด Template
+            <Badge variant="outline">เวอร์ชันล่าสุด {currentVersion}</Badge>
+            <Badge variant="secondary">{TEMPLATE_DEFS[templateKind].headers.length} คอลัมน์</Badge>
+          </CardTitle>
           <CardDescription>
-            Template จะมีชีต Instructions, ชีตข้อมูลหลัก และชีตอ้างอิง (_ref_*) — กรอกข้อมูลโดยอ้างอิงค่าที่อยู่ในชีต _ref_ เท่านั้น
+            Template สร้างสดจากโครงสร้างข้อมูลปัจจุบันทุกครั้งที่กดดาวน์โหลด (ชีต Instructions, ชีตข้อมูลหลัก, ชีตอ้างอิง _ref_* และชีตเวอร์ชัน _template_meta)
+            — ระบบจะตรวจเวอร์ชันของไฟล์ที่อัปโหลดเสมอ ถ้าใช้ไฟล์เก่าที่คอลัมน์ไม่ตรงจะถูกบล็อกก่อนนำเข้า
           </CardDescription>
         </CardHeader>
         <CardContent>
           <Button onClick={handleDownloadTemplate} disabled={loadingRefs}>
             {loadingRefs ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Download className="w-4 h-4 mr-2" />}
-            ดาวน์โหลด Template
+            ดาวน์โหลด Template นำเข้าข้อมูล (อัพเดทล่าสุด)
           </Button>
         </CardContent>
       </Card>
