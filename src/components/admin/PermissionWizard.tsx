@@ -740,6 +740,12 @@ export function PermissionWizard({ open, onOpenChange, user, onSaved }: Permissi
                                     checked={active}
                                     onCheckedChange={() => {
                                       togglePreviewFunction(fn.name);
+                                      // คงบทบาทของระดับเดิมไว้ (เช่น Admin) ไม่ให้หลุดสิทธิ์เมื่อปรับละเอียด
+                                      if (levelDef) {
+                                        setPreviewRoles((prev) =>
+                                          Array.from(new Set([...prev, ...levelDef.roles])) as UserRole[],
+                                        );
+                                      }
                                       setAccessLevel("custom");
                                     }}
                                     className="mt-0.5"
