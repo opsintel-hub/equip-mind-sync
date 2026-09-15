@@ -62,6 +62,7 @@ export default function ImportPageShell({
     const file = event.target.files?.[0];
     if (!file) return;
     setResults([]);
+    setCheck(null);
     try {
       const r = await ensureRefs();
       const buf = await file.arrayBuffer();
@@ -73,6 +74,16 @@ export default function ImportPageShell({
         setRows([]);
         return;
       }
+      const headerRow = (XLSX.utils.sheet_to_json<any>(ws, { header: 1 })[0] || []) as any[];
+      const fileHeaders = headerRow.map((h) => String(h ?? "").trim()).filter(Boolean);
+      const verdict = verifyWorkbook(wb, templateKind, fileHeaders);
+      setCheck(verdict);
+      if (verdict.blocking) {
+        setRows([]);
+        toast.error(verdict.message);
+        return;
+      }
+      if (verdict.status !== "ok") toast.warning(verdict.message);
       const validated = await validator(json, r);
       setRows(validated);
       const errCount = validated.filter((v) => v.errors.length > 0).length;
