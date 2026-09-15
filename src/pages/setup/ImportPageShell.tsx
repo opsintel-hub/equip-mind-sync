@@ -11,11 +11,13 @@ import { toast } from "sonner";
 import { fetchAllRefs, type RefLookups } from "@/lib/importTemplates/refData";
 import { type ValidatedRow } from "@/lib/importTemplates/validators";
 import { supabase } from "@/integrations/supabase/client";
+import { templateVersion, verifyWorkbook, TEMPLATE_DEFS, type TemplateKind, type TemplateCheck } from "@/lib/importTemplates/templateVersion";
 
 interface ImportPageShellProps {
   title: string;
   description: string;
   sheetName: string;
+  templateKind: TemplateKind;
   templateDownloader: (refs: RefLookups) => void;
   validator: (rows: any[], refs: RefLookups) => Promise<ValidatedRow[]>;
   rpcName: "import_equipment_row" | "import_media_player_row" | "import_tool_row";
@@ -23,8 +25,10 @@ interface ImportPageShellProps {
 }
 
 export default function ImportPageShell({
-  title, description, sheetName, templateDownloader, validator, rpcName, columnHints,
+  title, description, sheetName, templateKind, templateDownloader, validator, rpcName, columnHints,
 }: ImportPageShellProps) {
+  const [check, setCheck] = useState<TemplateCheck | null>(null);
+  const currentVersion = templateVersion(templateKind);
   const [loadingRefs, setLoadingRefs] = useState(false);
   const [refs, setRefs] = useState<RefLookups | null>(null);
   const [rows, setRows] = useState<ValidatedRow[]>([]);
@@ -58,6 +62,7 @@ export default function ImportPageShell({
     const file = event.target.files?.[0];
     if (!file) return;
     setResults([]);
+    setCheck(null);
     try {
       const r = await ensureRefs();
       const buf = await file.arrayBuffer();
@@ -69,6 +74,16 @@ export default function ImportPageShell({
         setRows([]);
         return;
       }
+      const headerRow = (XLSX.utils.sheet_to_json<any>(ws, { header: 1 })[0] || []) as any[];
+      const fileHeaders = headerRow.map((h) => String(h ?? "").trim()).filter(Boolean);
+      const verdict = verifyWorkbook(wb, templateKind, fileHeaders);
+      setCheck(verdict);
+      if (verdict.blocking) {
+        setRows([]);
+        toast.error(verdict.message);
+        return;
+      }
+      if (verdict.status !== "ok") toast.warning(verdict.message);
       const validated = await validator(json, r);
       setRows(validated);
       const errCount = validated.filter((v) => v.errors.length > 0).length;
@@ -122,15 +137,20 @@ export default function ImportPageShell({
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">ขั้นตอนที่ 1 — ดาวน์โหลด Template</CardTitle>
+          <CardTitle className="text-base flex items-center gap-2 flex-wrap">
+            ขั้นตอนที่ 1 — ดาวน์โหลด Template
+            <Badge variant="outline">เวอร์ชันล่าสุด {currentVersion}</Badge>
+            <Badge variant="secondary">{TEMPLATE_DEFS[templateKind].headers.length} คอลัมน์</Badge>
+          </CardTitle>
           <CardDescription>
-            Template จะมีชีต Instructions, ชีตข้อมูลหลัก และชีตอ้างอิง (_ref_*) — กรอกข้อมูลโดยอ้างอิงค่าที่อยู่ในชีต _ref_ เท่านั้น
+            Template สร้างสดจากโครงสร้างข้อมูลปัจจุบันทุกครั้งที่กดดาวน์โหลด (ชีต Instructions, ชีตข้อมูลหลัก, ชีตอ้างอิง _ref_* และชีตเวอร์ชัน _template_meta)
+            — ระบบจะตรวจเวอร์ชันของไฟล์ที่อัปโหลดเสมอ ถ้าใช้ไฟล์เก่าที่คอลัมน์ไม่ตรงจะถูกบล็อกก่อนนำเข้า
           </CardDescription>
         </CardHeader>
         <CardContent>
           <Button onClick={handleDownloadTemplate} disabled={loadingRefs}>
             {loadingRefs ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Download className="w-4 h-4 mr-2" />}
-            ดาวน์โหลด Template
+            ดาวน์โหลด Template นำเข้าข้อมูล (อัพเดทล่าสุด)
           </Button>
         </CardContent>
       </Card>
@@ -150,6 +170,26 @@ export default function ImportPageShell({
             disabled={importing}
             className="block w-full text-sm file:mr-3 file:py-2 file:px-4 file:rounded-md file:border-0 file:bg-primary file:text-primary-foreground hover:file:bg-primary/90 file:cursor-pointer"
           />
+
+          {check && (
+            <Alert variant={check.blocking ? "destructive" : "default"}>
+              {check.status === "ok" ? <CheckCircle className="w-4 h-4" /> : <AlertTriangle className="w-4 h-4" />}
+              <AlertDescription className="space-y-1">
+                <div>
+                  <strong>ตรวจสอบเวอร์ชัน Template:</strong> {check.message}
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  ไฟล์: {check.fileVersion || "ไม่ระบุ"} • ล่าสุด: {check.currentVersion}
+                  {check.extra.length > 0 && ` • คอลัมน์เกิน: ${check.extra.join(", ")}`}
+                </div>
+                {check.blocking && (
+                  <Button size="sm" variant="outline" className="mt-2" onClick={handleDownloadTemplate}>
+                    <Download className="w-4 h-4 mr-2" /> ดาวน์โหลด Template อัพเดทล่าสุด
+                  </Button>
+                )}
+              </AlertDescription>
+            </Alert>
+          )}
 
           {rows.length > 0 && (
             <Alert variant={errorCount > 0 ? "destructive" : "default"}>
