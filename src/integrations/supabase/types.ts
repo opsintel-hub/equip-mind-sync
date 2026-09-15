@@ -6604,6 +6604,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      clear_test_operational_data: {
+        Args: { _scopes: string[] }
+        Returns: Json
+      }
       create_pr_from_shortage: {
         Args: {
           _available_qty: number
