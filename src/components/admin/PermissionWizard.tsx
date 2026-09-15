@@ -216,7 +216,13 @@ export function PermissionWizard({ open, onOpenChange, user, onSaved }: Permissi
       const loadedFns = (((userFnRes as any).data || []) as any[])
         .filter((r) => r.can_access)
         .map((r) => r.function_name as string);
-      setAccessLevel(detectAccessLevel(loadedRoles, loadedFns));
+      const detected = detectAccessLevel(loadedRoles, loadedFns);
+      setAccessLevel(detected);
+      // ระดับที่ได้สิทธิ์จากบทบาท (Admin/Super Admin) ไม่มีแถวรายเมนู — เติมจากนิยามระดับ
+      if (loadedFns.length === 0) {
+        const def = getAccessLevel(detected as any);
+        if (def) setPreviewFunctions([...def.fns]);
+      }
 
 
       // Prefill existing department access (supports users assigned to multiple departments)
@@ -397,9 +403,7 @@ export function PermissionWizard({ open, onOpenChange, user, onSaved }: Permissi
       if (pfErr) throw pfErr;
 
       // 1. Roles via RPC — ระดับผู้ใช้เป็นตัวกำหนดบทบาท
-      const rolesToSave: UserRole[] = levelDef
-        ? levelDef.roles
-        : (previewRoles.filter((r) => r !== "admin" && r !== "super_admin") as UserRole[]);
+      const rolesToSave: UserRole[] = levelDef ? levelDef.roles : (previewRoles as UserRole[]);
       const { error: roleErr } = await supabase.rpc("save_user_roles" as any, {
         _target_user_id: user.id,
         _roles: rolesToSave,
@@ -736,6 +740,12 @@ export function PermissionWizard({ open, onOpenChange, user, onSaved }: Permissi
                                     checked={active}
                                     onCheckedChange={() => {
                                       togglePreviewFunction(fn.name);
+                                      // คงบทบาทของระดับเดิมไว้ (เช่น Admin) ไม่ให้หลุดสิทธิ์เมื่อปรับละเอียด
+                                      if (levelDef) {
+                                        setPreviewRoles((prev) =>
+                                          Array.from(new Set([...prev, ...levelDef.roles])) as UserRole[],
+                                        );
+                                      }
                                       setAccessLevel("custom");
                                     }}
                                     className="mt-0.5"
