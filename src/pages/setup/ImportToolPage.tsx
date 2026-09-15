@@ -9,6 +9,7 @@ export default function ImportToolPage() {
       title="นำเข้าเครื่องมือ"
       description="สร้างเครื่องมือใหม่พร้อมรับเข้าคลัง — ใช้ Template Excel ที่มีชีตอ้างอิงในตัว"
       sheetName="Tools"
+      templateKind="tool"
       templateDownloader={downloadToolTemplate}
       rpcName="import_tool_row"
       columnHints={["code", "name", "tool_category", "department", "quantity", "unit_price", "warranty_expiry_date"]}

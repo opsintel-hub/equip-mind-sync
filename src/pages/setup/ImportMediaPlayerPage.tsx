@@ -9,6 +9,7 @@ export default function ImportMediaPlayerPage() {
       title="นำเข้าข้อมูล Media Player เริ่มต้น"
       description="สร้าง Media Player 1 บรรทัด = 1 เครื่อง พร้อมรับเข้าคลัง และผูกป้ายโฆษณา (ถ้าระบุ)"
       sheetName="MediaPlayer"
+      templateKind="media_player"
       templateDownloader={downloadMediaPlayerTemplate}
       rpcName="import_media_player_row"
       columnHints={["code", "name", "serial_number_1", "serial_number_2", "unit_price", "date_of_receipt", "billboard_id", "install_date"]}

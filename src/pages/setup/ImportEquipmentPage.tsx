@@ -9,6 +9,7 @@ export default function ImportEquipmentPage() {
       title="นำเข้าข้อมูลอุปกรณ์เริ่มต้น"
       description="สร้างอุปกรณ์ใหม่ พร้อมเพิ่มจำนวนคงคลัง และผูกกับป้ายโฆษณา (ถ้าระบุ) — ครบจบในไฟล์เดียว"
       sheetName="Equipment"
+      templateKind="equipment"
       templateDownloader={downloadEquipmentTemplate}
       rpcName="import_equipment_row"
       columnHints={["code", "name", "category", "quantity_in_stock", "unit_price", "warehouse_entry_date", "billboard_id", "install_quantity"]}
