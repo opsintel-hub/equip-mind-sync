@@ -21,7 +21,7 @@ const Testing = () => {
       </div>
 
       <Tabs defaultValue="generate" className="w-full">
-        <TabsList className="grid w-full grid-cols-2 max-w-md">
+        <TabsList className="grid w-full grid-cols-3 max-w-2xl">
           <TabsTrigger value="generate" className="gap-2">
             <Database className="h-4 w-4" />
             สร้างข้อมูลทดสอบ
@@ -29,6 +29,10 @@ const Testing = () => {
           <TabsTrigger value="functions" className="gap-2">
             <Bell className="h-4 w-4" />
             ทดสอบ Edge Function
+          </TabsTrigger>
+          <TabsTrigger value="clear" className="gap-2">
+            <Trash2 className="h-4 w-4" />
+            ล้างข้อมูลทดสอบ
           </TabsTrigger>
         </TabsList>
 
@@ -38,6 +42,10 @@ const Testing = () => {
 
         <TabsContent value="functions" className="space-y-4 mt-6">
           <EdgeFunctionTester />
+        </TabsContent>
+
+        <TabsContent value="clear" className="space-y-4 mt-6">
+          <ClearTestData />
         </TabsContent>
       </Tabs>
 
