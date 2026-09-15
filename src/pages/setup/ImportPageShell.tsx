@@ -171,6 +171,26 @@ export default function ImportPageShell({
             className="block w-full text-sm file:mr-3 file:py-2 file:px-4 file:rounded-md file:border-0 file:bg-primary file:text-primary-foreground hover:file:bg-primary/90 file:cursor-pointer"
           />
 
+          {check && (
+            <Alert variant={check.blocking ? "destructive" : "default"}>
+              {check.status === "ok" ? <CheckCircle className="w-4 h-4" /> : <AlertTriangle className="w-4 h-4" />}
+              <AlertDescription className="space-y-1">
+                <div>
+                  <strong>ตรวจสอบเวอร์ชัน Template:</strong> {check.message}
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  ไฟล์: {check.fileVersion || "ไม่ระบุ"} • ล่าสุด: {check.currentVersion}
+                  {check.extra.length > 0 && ` • คอลัมน์เกิน: ${check.extra.join(", ")}`}
+                </div>
+                {check.blocking && (
+                  <Button size="sm" variant="outline" className="mt-2" onClick={handleDownloadTemplate}>
+                    <Download className="w-4 h-4 mr-2" /> ดาวน์โหลด Template อัพเดทล่าสุด
+                  </Button>
+                )}
+              </AlertDescription>
+            </Alert>
+          )}
+
           {rows.length > 0 && (
             <Alert variant={errorCount > 0 ? "destructive" : "default"}>
               {errorCount > 0 ? <AlertTriangle className="w-4 h-4" /> : <CheckCircle className="w-4 h-4" />}
