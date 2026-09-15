@@ -1,18 +1,6 @@
 import * as XLSX from "xlsx";
 import type { RefLookups } from "./refData";
-
-const HEADERS = [
-  "code", "name", "description", "category", "subcategory", "unit",
-  "brand", "supplier_code", "company_name", "department", "location_code",
-  "quantity_in_stock", "min_stock_level", "unit_price", "item_condition",
-  "warehouse_entry_date", "warranty_expiry_date", "warranty_years",
-  "serial_number", "asset_code", "equipment_id_code", "is_asset", "depreciation_months",
-  "volt", "amp", "watt", "lumen", "lux",
-  "width_cm", "height_cm", "depth_cm",
-  "po_number", "pr_number", "invoice_number", "po_item_no",
-  "notes",
-  "install_billboard_old_code", "install_date", "install_quantity",
-];
+import { EQUIPMENT_HEADERS as HEADERS, appendTemplateMeta } from "./templateVersion";
 
 export function downloadEquipmentTemplate(refs: RefLookups) {
   const wb = XLSX.utils.book_new();
@@ -107,6 +95,8 @@ export function downloadEquipmentTemplate(refs: RefLookups) {
     refs.billboards.filter((b) => b.old_code).map((b) => ({
       old_code: b.old_code, location_name: b.location_name || "", equipment_id: b.equipment_id,
     })));
+
+  appendTemplateMeta(wb, "equipment");
 
   XLSX.writeFile(wb, `equipment_import_template_${new Date().toISOString().slice(0, 10)}.xlsx`);
 }

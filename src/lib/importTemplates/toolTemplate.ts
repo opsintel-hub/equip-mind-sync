@@ -1,17 +1,6 @@
 import * as XLSX from "xlsx";
 import type { RefLookups } from "./refData";
-
-const HEADERS = [
-  "code", "name", "description", "tool_category", "tool_subcategory",
-  "brand", "supplier_code", "company_name", "department", "location_code",
-  "unit", "quantity", "unit_price",
-  "serial_number", "warehouse_entry_date",
-  "warranty_expiry_date", "has_warranty",
-  "pm_interval_days",
-  "is_asset", "asset_code",
-  "is_personal_tool", "requires_approval", "return_required",
-  "notes",
-];
+import { TOOL_HEADERS as HEADERS, appendTemplateMeta } from "./templateVersion";
 
 export function downloadToolTemplate(refs: RefLookups) {
   const wb = XLSX.utils.book_new();
@@ -87,6 +76,8 @@ export function downloadToolTemplate(refs: RefLookups) {
   appendRef(wb, "_ref_departments", ["name"], refs.departments);
   appendRef(wb, "_ref_locations", ["code", "name", "department"],
     refs.locations.map((l) => ({ code: l.code, name: l.name, department: l.department || "" })));
+
+  appendTemplateMeta(wb, "tool");
 
   XLSX.writeFile(wb, `tool_import_template_${new Date().toISOString().slice(0, 10)}.xlsx`);
 }

@@ -1,19 +1,7 @@
 import * as XLSX from "xlsx";
 import type { RefLookups } from "./refData";
 import { SUB_MEDIA_TYPES, SEVEN_ELEVEN_DEPT_NAME } from "@/lib/mediaPlayerSubTypes";
-
-const HEADERS = [
-  "code", "name", "device_type", "brand", "model", "cms_type", "specification",
-  "serial_number_1", "serial_number_2", "asset_code", "equipment_id_code",
-  "remote_name", "activate_windows",
-  "company_name", "department", "sub_media_type", "location_code", "supplier_code",
-  "item_condition", "unit_price",
-  "depreciation_months", "usage_lifespan_months",
-  "date_of_receipt", "warranty_expiry_date", "warranty_years",
-  "po_number", "pr_number", "invoice_number", "po_item_no",
-  "order_for_project", "asset_caretaker", "planned_install_location", "notes",
-  "install_billboard_old_code", "install_date",
-];
+import { MEDIA_PLAYER_HEADERS as HEADERS, appendTemplateMeta } from "./templateVersion";
 
 export function downloadMediaPlayerTemplate(refs: RefLookups) {
   const wb = XLSX.utils.book_new();
@@ -113,6 +101,8 @@ export function downloadMediaPlayerTemplate(refs: RefLookups) {
     refs.billboards.filter((b) => b.old_code).map((b) => ({
       old_code: b.old_code, location_name: b.location_name || "", equipment_id: b.equipment_id,
     })));
+
+  appendTemplateMeta(wb, "media_player");
 
   XLSX.writeFile(wb, `media_player_import_template_${new Date().toISOString().slice(0, 10)}.xlsx`);
 }
