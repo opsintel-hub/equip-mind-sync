@@ -216,7 +216,13 @@ export function PermissionWizard({ open, onOpenChange, user, onSaved }: Permissi
       const loadedFns = (((userFnRes as any).data || []) as any[])
         .filter((r) => r.can_access)
         .map((r) => r.function_name as string);
-      setAccessLevel(detectAccessLevel(loadedRoles, loadedFns));
+      const detected = detectAccessLevel(loadedRoles, loadedFns);
+      setAccessLevel(detected);
+      // ระดับที่ได้สิทธิ์จากบทบาท (Admin/Super Admin) ไม่มีแถวรายเมนู — เติมจากนิยามระดับ
+      if (loadedFns.length === 0) {
+        const def = getAccessLevel(detected as any);
+        if (def) setPreviewFunctions([...def.fns]);
+      }
 
 
       // Prefill existing department access (supports users assigned to multiple departments)
