@@ -11,11 +11,13 @@ import { toast } from "sonner";
 import { fetchAllRefs, type RefLookups } from "@/lib/importTemplates/refData";
 import { type ValidatedRow } from "@/lib/importTemplates/validators";
 import { supabase } from "@/integrations/supabase/client";
+import { templateVersion, verifyWorkbook, TEMPLATE_DEFS, type TemplateKind, type TemplateCheck } from "@/lib/importTemplates/templateVersion";
 
 interface ImportPageShellProps {
   title: string;
   description: string;
   sheetName: string;
+  templateKind: TemplateKind;
   templateDownloader: (refs: RefLookups) => void;
   validator: (rows: any[], refs: RefLookups) => Promise<ValidatedRow[]>;
   rpcName: "import_equipment_row" | "import_media_player_row" | "import_tool_row";
@@ -23,8 +25,10 @@ interface ImportPageShellProps {
 }
 
 export default function ImportPageShell({
-  title, description, sheetName, templateDownloader, validator, rpcName, columnHints,
+  title, description, sheetName, templateKind, templateDownloader, validator, rpcName, columnHints,
 }: ImportPageShellProps) {
+  const [check, setCheck] = useState<TemplateCheck | null>(null);
+  const currentVersion = templateVersion(templateKind);
   const [loadingRefs, setLoadingRefs] = useState(false);
   const [refs, setRefs] = useState<RefLookups | null>(null);
   const [rows, setRows] = useState<ValidatedRow[]>([]);
