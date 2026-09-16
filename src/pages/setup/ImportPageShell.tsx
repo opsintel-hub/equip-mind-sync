@@ -277,7 +277,7 @@ export default function ImportPageShell({
                         {(p.currentNext ?? 1) <= p.maxNum && ` → จะปรับเป็น ${String(p.maxNum + 1).padStart(4, "0")}`}
                       </span>
                     ) : (
-                      <span className="text-warning-foreground">
+                      <span className="text-warning">
                         • ยังไม่มีในทะเบียน — ระบบจะสร้างให้อัตโนมัติ แล้วตั้งเลขรันถัดไปเป็น {String(p.maxNum + 1).padStart(4, "0")}
                       </span>
                     )}
