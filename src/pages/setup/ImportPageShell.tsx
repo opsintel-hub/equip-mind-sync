@@ -12,6 +12,21 @@ import { fetchAllRefs, type RefLookups } from "@/lib/importTemplates/refData";
 import { type ValidatedRow } from "@/lib/importTemplates/validators";
 import { supabase } from "@/integrations/supabase/client";
 import { templateVersion, verifyWorkbook, TEMPLATE_DEFS, type TemplateKind, type TemplateCheck } from "@/lib/importTemplates/templateVersion";
+import { parseCode, syncPrefixCounters } from "@/lib/codePrefix";
+
+const PREFIX_TABLE = {
+  equipment: "equipment_code_prefixes",
+  media_player: "media_player_code_prefixes",
+  tool: "tool_code_prefixes",
+} as const;
+
+interface PrefixLine {
+  prefix: string;
+  rows: number;
+  maxNum: number;
+  existing: boolean;
+  currentNext: number | null;
+}
 
 interface ImportPageShellProps {
   title: string;
