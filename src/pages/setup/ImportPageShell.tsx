@@ -263,6 +263,55 @@ export default function ImportPageShell({
             </Alert>
           )}
 
+          {prefixLines.length > 0 && (
+            <div className="rounded-lg border p-3 space-y-2">
+              <div className="text-sm font-medium">สรุป Prefix รหัสในไฟล์</div>
+              <ul className="text-sm space-y-1">
+                {prefixLines.map((p) => (
+                  <li key={p.prefix} className="flex flex-wrap items-center gap-2">
+                    <Badge variant="outline">{p.prefix}</Badge>
+                    <span className="text-muted-foreground">{p.rows} แถว</span>
+                    {p.existing ? (
+                      <span className="text-muted-foreground">
+                        • มีในทะเบียนแล้ว (เลขรันปัจจุบัน {String(p.currentNext ?? 1).padStart(4, "0")})
+                        {(p.currentNext ?? 1) <= p.maxNum && ` → จะปรับเป็น ${String(p.maxNum + 1).padStart(4, "0")}`}
+                      </span>
+                    ) : (
+                      <span className="text-warning-foreground">
+                        • ยังไม่มีในทะเบียน — ระบบจะสร้างให้อัตโนมัติ แล้วตั้งเลขรันถัดไปเป็น {String(p.maxNum + 1).padStart(4, "0")}
+                      </span>
+                    )}
+                  </li>
+                ))}
+              </ul>
+              <p className="text-xs text-muted-foreground">
+                รูปแบบรหัสมาตรฐานของระบบคือ "PREFIX 0000" (เว้นวรรค) — รหัสเดิมที่ไม่เว้นวรรคยังใช้งานได้ตามปกติ
+              </p>
+            </div>
+          )}
+
+          {errorCount > 0 && (
+            <div className="rounded-lg border border-destructive/40 p-3 space-y-2">
+              <div className="flex items-center justify-between gap-2">
+                <div className="text-sm font-medium text-destructive">
+                  รายการที่ต้องแก้ก่อนนำเข้า ({errorCount} แถว)
+                </div>
+                <Button size="sm" variant="outline" onClick={copyIssues}>คัดลอกรายการปัญหา</Button>
+              </div>
+              <ul className="text-xs space-y-1 max-h-60 overflow-y-auto">
+                {rows.filter((r) => r.errors.length > 0).map((r) => (
+                  <li key={r.rowNumber}>
+                    <span className="font-medium">แถวที่ {r.rowNumber}</span>
+                    {" "}(code: {String(r.payload.code || "-")}) — {r.errors.join(" | ")}
+                  </li>
+                ))}
+              </ul>
+              <p className="text-xs text-muted-foreground">
+                วิธีแก้: เปิดไฟล์ Excel ไปที่แถวตามเลขด้านบน แก้ค่าตามข้อความที่ระบุ (เช่น เปลี่ยนรหัสที่ซ้ำ หรือแก้ค่าที่ไม่อยู่ในชีตอ้างอิง) แล้วอัปโหลดไฟล์ใหม่อีกครั้ง
+              </p>
+            </div>
+          )}
+
           {importing && (
             <div className="space-y-2">
               <Progress value={(progress.done / progress.total) * 100} />
