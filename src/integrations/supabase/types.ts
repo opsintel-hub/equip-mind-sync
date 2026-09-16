@@ -2121,6 +2121,7 @@ export type Database = {
           expiry_date: string | null
           height_cm: number | null
           id: string
+          invoice_number: string | null
           is_active: boolean | null
           is_asset: boolean | null
           is_consumable: boolean
@@ -2132,6 +2133,8 @@ export type Database = {
           name: string
           notes: string | null
           po_item_no: string | null
+          po_number: string | null
+          pr_number: string | null
           quantity_in_stock: number
           return_policy_note: string | null
           serial_number: string | null
@@ -2167,6 +2170,7 @@ export type Database = {
           expiry_date?: string | null
           height_cm?: number | null
           id?: string
+          invoice_number?: string | null
           is_active?: boolean | null
           is_asset?: boolean | null
           is_consumable?: boolean
@@ -2178,6 +2182,8 @@ export type Database = {
           name: string
           notes?: string | null
           po_item_no?: string | null
+          po_number?: string | null
+          pr_number?: string | null
           quantity_in_stock?: number
           return_policy_note?: string | null
           serial_number?: string | null
@@ -2213,6 +2219,7 @@ export type Database = {
           expiry_date?: string | null
           height_cm?: number | null
           id?: string
+          invoice_number?: string | null
           is_active?: boolean | null
           is_asset?: boolean | null
           is_consumable?: boolean
@@ -2224,6 +2231,8 @@ export type Database = {
           name?: string
           notes?: string | null
           po_item_no?: string | null
+          po_number?: string | null
+          pr_number?: string | null
           quantity_in_stock?: number
           return_policy_note?: string | null
           serial_number?: string | null
