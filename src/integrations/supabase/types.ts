@@ -6820,6 +6820,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      sync_code_prefix_counters: { Args: { _kind: string }; Returns: Json }
       user_has_section: {
         Args: { _section_id: string; _user_id: string }
         Returns: boolean
