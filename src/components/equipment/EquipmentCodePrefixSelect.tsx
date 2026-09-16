@@ -30,6 +30,7 @@ export function EquipmentCodePrefixSelect({ value, onChange, disabled, onCodeGen
   const [editPrefix, setEditPrefix] = useState("");
   const [editDescription, setEditDescription] = useState("");
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [usage, setUsage] = useState<PrefixUsage | null>(null);
   const [isAdding, setIsAdding] = useState(false);
   const [newPrefix, setNewPrefix] = useState("");
   const [newDescription, setNewDescription] = useState("");
