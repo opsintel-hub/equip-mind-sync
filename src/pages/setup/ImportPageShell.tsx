@@ -50,6 +50,44 @@ export default function ImportPageShell({
   const [importing, setImporting] = useState(false);
   const [progress, setProgress] = useState<{ done: number; total: number }>({ done: 0, total: 0 });
   const [results, setResults] = useState<Array<{ rowNumber: number; success: boolean; error?: string }>>([]);
+  const [prefixLines, setPrefixLines] = useState<PrefixLine[]>([]);
+
+  const buildPrefixSummary = async (validated: ValidatedRow[]) => {
+    const agg = new Map<string, { rows: number; maxNum: number }>();
+    validated.forEach((r) => {
+      const parsed = parseCode(String(r.payload.code ?? ""));
+      if (!parsed) return;
+      const cur = agg.get(parsed.prefix) || { rows: 0, maxNum: 0 };
+      agg.set(parsed.prefix, { rows: cur.rows + 1, maxNum: Math.max(cur.maxNum, parsed.num) });
+    });
+    if (agg.size === 0) { setPrefixLines([]); return; }
+    const { data } = await supabase.from(PREFIX_TABLE[templateKind]).select("prefix,next_number");
+    const existing = new Map((data || []).map((d: any) => [d.prefix, d.next_number as number]));
+    setPrefixLines(
+      Array.from(agg.entries())
+        .map(([prefix, v]) => ({
+          prefix,
+          rows: v.rows,
+          maxNum: v.maxNum,
+          existing: existing.has(prefix),
+          currentNext: existing.get(prefix) ?? null,
+        }))
+        .sort((a, b) => a.prefix.localeCompare(b.prefix))
+    );
+  };
+
+  const copyIssues = async () => {
+    const text = rows
+      .filter((r) => r.errors.length > 0)
+      .map((r) => `แถวที่ ${r.rowNumber} (code: ${r.payload.code || "-"}) → ${r.errors.join(" | ")}`)
+      .join("\n");
+    try {
+      await navigator.clipboard.writeText(text);
+      toast.success("คัดลอกรายการปัญหาแล้ว");
+    } catch {
+      toast.error("คัดลอกไม่สำเร็จ");
+    }
+  };
 
   const ensureRefs = async (): Promise<RefLookups> => {
     if (refs) return refs;
@@ -78,6 +116,7 @@ export default function ImportPageShell({
     if (!file) return;
     setResults([]);
     setCheck(null);
+    setPrefixLines([]);
     try {
       const r = await ensureRefs();
       const buf = await file.arrayBuffer();
