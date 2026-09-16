@@ -140,6 +140,7 @@ export default function ImportPageShell({
       if (verdict.status !== "ok") toast.warning(verdict.message);
       const validated = await validator(json, r);
       setRows(validated);
+      await buildPrefixSummary(validated);
       const errCount = validated.filter((v) => v.errors.length > 0).length;
       if (errCount > 0) toast.warning(`พบ ${errCount} แถวที่มี error — กรุณาแก้ไขก่อนนำเข้า`);
       else toast.success(`ตรวจสอบผ่าน ${validated.length} แถว — พร้อมนำเข้า`);
@@ -175,7 +176,15 @@ export default function ImportPageShell({
     setImporting(false);
     const ok = out.filter((o) => o.success).length;
     const fail = out.length - ok;
-    if (fail === 0) toast.success(`นำเข้าสำเร็จ ${ok} แถว`);
+    if (ok > 0) {
+      try {
+        await syncPrefixCounters(templateKind);
+        await buildPrefixSummary(rows);
+      } catch (e: any) {
+        toast.warning("นำเข้าสำเร็จ แต่ปรับเลขรัน Prefix ไม่สำเร็จ: " + (e?.message || ""));
+      }
+    }
+    if (fail === 0) toast.success(`นำเข้าสำเร็จ ${ok} แถว — ปรับเลขรัน Prefix ให้อัตโนมัติแล้ว`);
     else toast.error(`สำเร็จ ${ok} แถว / ล้มเหลว ${fail} แถว`);
   };
 
