@@ -7,6 +7,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { checkPrefixUsage, removeCodePrefix, type PrefixUsage } from "@/lib/codePrefix";
 
 interface ToolCodePrefix {
   id: string;
@@ -29,6 +30,7 @@ export function ToolCodePrefixSelect({ value, onChange, disabled, onCodeGenerate
   const [editPrefix, setEditPrefix] = useState("");
   const [editDescription, setEditDescription] = useState("");
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [usage, setUsage] = useState<PrefixUsage | null>(null);
   const [isAdding, setIsAdding] = useState(false);
   const [newPrefix, setNewPrefix] = useState("");
   const [newDescription, setNewDescription] = useState("");
@@ -127,24 +129,29 @@ export function ToolCodePrefixSelect({ value, onChange, disabled, onCodeGenerate
     }
   };
 
-  const handleDelete = async () => {
-    const { error } = await supabase
-      .from("tool_code_prefixes")
-      .update({ is_active: false })
-      .eq("id", deleteId);
+  const requestDelete = async (p: ToolCodePrefix) => {
+    setDeleteId(p.id);
+    setUsage(null);
+    try {
+      setUsage(await checkPrefixUsage("tool", p.prefix));
+    } catch (e: any) {
+      toast.error("ตรวจสอบการใช้งาน Prefix ไม่สำเร็จ: " + (e?.message || ""));
+    }
+  };
 
-    if (error) {
-      toast.error("ไม่สามารถลบ Prefix ได้");
-    } else {
-      toast.success("ลบ Prefix สำเร็จ");
+  const handleDelete = async () => {
+    const target = prefixes.find((p) => p.id === deleteId);
+    if (!target) return;
+    const inUse = (usage?.count ?? 0) > 0;
+    try {
+      await removeCodePrefix("tool", target.id, !inUse);
+      toast.success(inUse ? `ปิดการใช้งาน Prefix ${target.prefix} แล้ว` : `ลบ Prefix ${target.prefix} แล้ว`);
       setDeleteId(null);
-      if (value) {
-        const deletedPrefix = prefixes.find(p => p.id === deleteId);
-        if (deletedPrefix && deletedPrefix.prefix === value) {
-          onChange("");
-        }
-      }
+      setUsage(null);
+      if (value === target.prefix) onChange("");
       fetchPrefixes();
+    } catch (e: any) {
+      toast.error(e?.message || "ไม่สามารถลบ Prefix ได้");
     }
   };
 
@@ -280,7 +287,7 @@ export function ToolCodePrefixSelect({ value, onChange, disabled, onCodeGenerate
                         >
                           <Pencil className="h-4 w-4" />
                         </Button>
-                        <Button variant="ghost" size="icon" onClick={() => setDeleteId(prefix.id)}>
+                        <Button variant="ghost" size="icon" onClick={() => requestDelete(prefix)}>
                           <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
@@ -298,15 +305,23 @@ export function ToolCodePrefixSelect({ value, onChange, disabled, onCodeGenerate
         </DialogContent>
       </Dialog>
 
-      <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
+      <AlertDialog open={!!deleteId} onOpenChange={(o) => { if (!o) { setDeleteId(null); setUsage(null); } }}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>ยืนยันการลบ</AlertDialogTitle>
-            <AlertDialogDescription>คุณแน่ใจหรือไม่ว่าต้องการลบ Prefix นี้?</AlertDialogDescription>
+            <AlertDialogTitle>{(usage?.count ?? 0) > 0 ? "Prefix นี้ถูกใช้งานอยู่" : "ยืนยันการลบ"}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {usage === null
+                ? "กำลังตรวจสอบการใช้งาน..."
+                : usage.count > 0
+                ? `มี ${usage.count} รายการที่ใช้ Prefix นี้ (เช่น ${usage.samples.join(", ")}) จึงลบออกไม่ได้ — ระบบจะปิดการใช้งานแทน รหัสเดิมยังใช้งานได้ตามปกติ`
+                : "ยังไม่มีรายการใดใช้ Prefix นี้ — จะลบออกจากระบบถาวร"}
+            </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>ยกเลิก</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete}>ลบ</AlertDialogAction>
+            <AlertDialogAction onClick={handleDelete} disabled={usage === null}>
+              {(usage?.count ?? 0) > 0 ? "ปิดการใช้งาน" : "ลบ"}
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

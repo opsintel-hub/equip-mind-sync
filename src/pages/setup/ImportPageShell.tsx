@@ -12,6 +12,21 @@ import { fetchAllRefs, type RefLookups } from "@/lib/importTemplates/refData";
 import { type ValidatedRow } from "@/lib/importTemplates/validators";
 import { supabase } from "@/integrations/supabase/client";
 import { templateVersion, verifyWorkbook, TEMPLATE_DEFS, type TemplateKind, type TemplateCheck } from "@/lib/importTemplates/templateVersion";
+import { parseCode, syncPrefixCounters } from "@/lib/codePrefix";
+
+const PREFIX_TABLE = {
+  equipment: "equipment_code_prefixes",
+  media_player: "media_player_code_prefixes",
+  tool: "tool_code_prefixes",
+} as const;
+
+interface PrefixLine {
+  prefix: string;
+  rows: number;
+  maxNum: number;
+  existing: boolean;
+  currentNext: number | null;
+}
 
 interface ImportPageShellProps {
   title: string;
@@ -35,6 +50,44 @@ export default function ImportPageShell({
   const [importing, setImporting] = useState(false);
   const [progress, setProgress] = useState<{ done: number; total: number }>({ done: 0, total: 0 });
   const [results, setResults] = useState<Array<{ rowNumber: number; success: boolean; error?: string }>>([]);
+  const [prefixLines, setPrefixLines] = useState<PrefixLine[]>([]);
+
+  const buildPrefixSummary = async (validated: ValidatedRow[]) => {
+    const agg = new Map<string, { rows: number; maxNum: number }>();
+    validated.forEach((r) => {
+      const parsed = parseCode(String(r.payload.code ?? ""));
+      if (!parsed) return;
+      const cur = agg.get(parsed.prefix) || { rows: 0, maxNum: 0 };
+      agg.set(parsed.prefix, { rows: cur.rows + 1, maxNum: Math.max(cur.maxNum, parsed.num) });
+    });
+    if (agg.size === 0) { setPrefixLines([]); return; }
+    const { data } = await supabase.from(PREFIX_TABLE[templateKind]).select("prefix,next_number");
+    const existing = new Map((data || []).map((d: any) => [d.prefix, d.next_number as number]));
+    setPrefixLines(
+      Array.from(agg.entries())
+        .map(([prefix, v]) => ({
+          prefix,
+          rows: v.rows,
+          maxNum: v.maxNum,
+          existing: existing.has(prefix),
+          currentNext: existing.get(prefix) ?? null,
+        }))
+        .sort((a, b) => a.prefix.localeCompare(b.prefix))
+    );
+  };
+
+  const copyIssues = async () => {
+    const text = rows
+      .filter((r) => r.errors.length > 0)
+      .map((r) => `แถวที่ ${r.rowNumber} (code: ${r.payload.code || "-"}) → ${r.errors.join(" | ")}`)
+      .join("\n");
+    try {
+      await navigator.clipboard.writeText(text);
+      toast.success("คัดลอกรายการปัญหาแล้ว");
+    } catch {
+      toast.error("คัดลอกไม่สำเร็จ");
+    }
+  };
 
   const ensureRefs = async (): Promise<RefLookups> => {
     if (refs) return refs;
@@ -63,6 +116,7 @@ export default function ImportPageShell({
     if (!file) return;
     setResults([]);
     setCheck(null);
+    setPrefixLines([]);
     try {
       const r = await ensureRefs();
       const buf = await file.arrayBuffer();
@@ -86,6 +140,7 @@ export default function ImportPageShell({
       if (verdict.status !== "ok") toast.warning(verdict.message);
       const validated = await validator(json, r);
       setRows(validated);
+      await buildPrefixSummary(validated);
       const errCount = validated.filter((v) => v.errors.length > 0).length;
       if (errCount > 0) toast.warning(`พบ ${errCount} แถวที่มี error — กรุณาแก้ไขก่อนนำเข้า`);
       else toast.success(`ตรวจสอบผ่าน ${validated.length} แถว — พร้อมนำเข้า`);
@@ -121,7 +176,15 @@ export default function ImportPageShell({
     setImporting(false);
     const ok = out.filter((o) => o.success).length;
     const fail = out.length - ok;
-    if (fail === 0) toast.success(`นำเข้าสำเร็จ ${ok} แถว`);
+    if (ok > 0) {
+      try {
+        await syncPrefixCounters(templateKind);
+        await buildPrefixSummary(rows);
+      } catch (e: any) {
+        toast.warning("นำเข้าสำเร็จ แต่ปรับเลขรัน Prefix ไม่สำเร็จ: " + (e?.message || ""));
+      }
+    }
+    if (fail === 0) toast.success(`นำเข้าสำเร็จ ${ok} แถว — ปรับเลขรัน Prefix ให้อัตโนมัติแล้ว`);
     else toast.error(`สำเร็จ ${ok} แถว / ล้มเหลว ${fail} แถว`);
   };
 
@@ -198,6 +261,55 @@ export default function ImportPageShell({
                 ทั้งหมด {rows.length} แถว • ผ่าน {rows.length - errorCount} แถว • Error {errorCount} แถว
               </AlertDescription>
             </Alert>
+          )}
+
+          {prefixLines.length > 0 && (
+            <div className="rounded-lg border p-3 space-y-2">
+              <div className="text-sm font-medium">สรุป Prefix รหัสในไฟล์</div>
+              <ul className="text-sm space-y-1">
+                {prefixLines.map((p) => (
+                  <li key={p.prefix} className="flex flex-wrap items-center gap-2">
+                    <Badge variant="outline">{p.prefix}</Badge>
+                    <span className="text-muted-foreground">{p.rows} แถว</span>
+                    {p.existing ? (
+                      <span className="text-muted-foreground">
+                        • มีในทะเบียนแล้ว (เลขรันปัจจุบัน {String(p.currentNext ?? 1).padStart(4, "0")})
+                        {(p.currentNext ?? 1) <= p.maxNum && ` → จะปรับเป็น ${String(p.maxNum + 1).padStart(4, "0")}`}
+                      </span>
+                    ) : (
+                      <span className="text-warning">
+                        • ยังไม่มีในทะเบียน — ระบบจะสร้างให้อัตโนมัติ แล้วตั้งเลขรันถัดไปเป็น {String(p.maxNum + 1).padStart(4, "0")}
+                      </span>
+                    )}
+                  </li>
+                ))}
+              </ul>
+              <p className="text-xs text-muted-foreground">
+                รูปแบบรหัสมาตรฐานของระบบคือ "PREFIX 0000" (เว้นวรรค) — รหัสเดิมที่ไม่เว้นวรรคยังใช้งานได้ตามปกติ
+              </p>
+            </div>
+          )}
+
+          {errorCount > 0 && (
+            <div className="rounded-lg border border-destructive/40 p-3 space-y-2">
+              <div className="flex items-center justify-between gap-2">
+                <div className="text-sm font-medium text-destructive">
+                  รายการที่ต้องแก้ก่อนนำเข้า ({errorCount} แถว)
+                </div>
+                <Button size="sm" variant="outline" onClick={copyIssues}>คัดลอกรายการปัญหา</Button>
+              </div>
+              <ul className="text-xs space-y-1 max-h-60 overflow-y-auto">
+                {rows.filter((r) => r.errors.length > 0).map((r) => (
+                  <li key={r.rowNumber}>
+                    <span className="font-medium">แถวที่ {r.rowNumber}</span>
+                    {" "}(code: {String(r.payload.code || "-")}) — {r.errors.join(" | ")}
+                  </li>
+                ))}
+              </ul>
+              <p className="text-xs text-muted-foreground">
+                วิธีแก้: เปิดไฟล์ Excel ไปที่แถวตามเลขด้านบน แก้ค่าตามข้อความที่ระบุ (เช่น เปลี่ยนรหัสที่ซ้ำ หรือแก้ค่าที่ไม่อยู่ในชีตอ้างอิง) แล้วอัปโหลดไฟล์ใหม่อีกครั้ง
+              </p>
+            </div>
           )}
 
           {importing && (
