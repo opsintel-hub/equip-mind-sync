@@ -7,6 +7,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { checkPrefixUsage, removeCodePrefix, type PrefixUsage } from "@/lib/codePrefix";
 
 interface EquipmentCodePrefix {
   id: string;
@@ -130,25 +131,30 @@ export function EquipmentCodePrefixSelect({ value, onChange, disabled, onCodeGen
     }
   };
 
-  const handleDelete = async () => {
-    const { error } = await supabase
-      .from("equipment_code_prefixes")
-      .update({ is_active: false })
-      .eq("id", deleteId);
+  const requestDelete = async (p: EquipmentCodePrefix) => {
+    setDeleteId(p.id);
+    setUsage(null);
+    try {
+      setUsage(await checkPrefixUsage("equipment", p.prefix));
+    } catch (e: any) {
+      toast.error("ตรวจสอบการใช้งาน Prefix ไม่สำเร็จ: " + (e?.message || ""));
+    }
+  };
 
-    if (error) {
-      console.error("Error deleting prefix:", error);
-      toast.error("ไม่สามารถลบ Prefix ได้");
-    } else {
-      toast.success("ลบ Prefix สำเร็จ");
+  const handleDelete = async () => {
+    const target = prefixes.find((p) => p.id === deleteId);
+    if (!target) return;
+    const inUse = (usage?.count ?? 0) > 0;
+    try {
+      await removeCodePrefix("equipment", target.id, !inUse);
+      toast.success(inUse ? `ปิดการใช้งาน Prefix ${target.prefix} แล้ว` : `ลบ Prefix ${target.prefix} แล้ว`);
       setDeleteId(null);
-      if (value) {
-        const deletedPrefix = prefixes.find(p => p.id === deleteId);
-        if (deletedPrefix && deletedPrefix.prefix === value) {
-          onChange("");
-        }
-      }
+      setUsage(null);
+      if (value === target.prefix) onChange("");
       fetchPrefixes();
+    } catch (e: any) {
+      console.error("Error deleting prefix:", e);
+      toast.error(e?.message || "ไม่สามารถลบ Prefix ได้");
     }
   };
 
