@@ -51,6 +51,8 @@ export function SupplierImport({ onSuccess }: SupplierImportProps) {
     errors: string[];
   } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [templateLoading, setTemplateLoading] = useState(false);
+  const [check, setCheck] = useState<TemplateCheck | null>(null);
 
   const downloadTemplate = async () => {
     setTemplateLoading(true);
