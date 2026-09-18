@@ -503,8 +503,7 @@ export default function InventoryReport() {
           billboard_id,
           requester_name,
           issued_quantity,
-          quantity,
-          billboards:billboard_id (id, equipment_id)
+          quantity
         `)
         .in("status", ["issued", "approved", "partial", "waiting_stock"]);
 
@@ -525,22 +524,7 @@ export default function InventoryReport() {
     },
   });
 
-  // Fetch equipment for billboard codes
-  const { data: billboardEquipment = [] } = useQuery({
-    queryKey: ["billboard-equipment-codes"],
-    queryFn: async () => {
-      const billboardEquipmentIds = billboards.map((b) => b.equipment_id);
-      if (billboardEquipmentIds.length === 0) return [];
-      
-      const { data, error } = await supabase
-        .from("equipment")
-        .select("id, code")
-        .in("id", billboardEquipmentIds);
-      if (error) throw error;
-      return data || [];
-    },
-    enabled: billboards.length > 0,
-  });
+  // billboards.equipment_id is the billboard code itself (text), no extra lookup needed
 
   // Create a map of equipment ID to issue info
   const issueMap = useMemo(() => {
@@ -559,10 +543,7 @@ export default function InventoryReport() {
       let billboardCode: string | null = null;
       if (issue.billboard_id) {
         const billboard = billboards.find((b) => b.id === issue.billboard_id);
-        if (billboard) {
-          const eqCode = billboardEquipment.find((e) => e.id === billboard.equipment_id);
-          billboardCode = eqCode?.code || null;
-        }
+        billboardCode = billboard?.equipment_id || null;
       }
 
       // Aggregate issued quantities per equipment
@@ -581,7 +562,7 @@ export default function InventoryReport() {
     });
 
     return map;
-  }, [issueData, billboards, billboardEquipment]);
+  }, [issueData, billboards]);
 
   // Combine equipment, tools and media player data with issue information + serial from equipment_serial_numbers
   // Items with multiple S/Ns are expanded into separate rows (one per S/N)

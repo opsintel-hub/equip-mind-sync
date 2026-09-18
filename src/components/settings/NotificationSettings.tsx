@@ -151,7 +151,7 @@ export function NotificationSettings() {
     setIsLoading(true);
     try {
       const [settingsRes, deptRes] = await Promise.all([
-        supabase.from("notification_settings").select("*").limit(1).single(),
+        supabase.from("notification_settings").select("*").limit(1).maybeSingle(),
         supabase.from("departments").select("id, name").eq("is_active", true).order("name"),
       ]);
 

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import { useTablePagination } from "@/hooks/useTablePagination";
 import { TablePagination } from "@/components/TablePagination";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -723,25 +723,42 @@ const IssueGoods = () => {
       const anyIssued = (latestItems || []).some(item => (item.issued_quantity || 0) > 0);
       const anyWaiting = (latestItems || []).some(item => item.status === "waiting_stock");
 
+      // Legacy header-only requests have no item rows: derive totals/status from the
+      // header itself instead of zeroing everything out.
+      const hasItemRows = (latestItems || []).length > 0;
+
       let parentStatus = "pending";
-      if (allRejected) {
-        parentStatus = "rejected";
-      } else if (allIssued) {
-        parentStatus = "issued";
-      } else if (anyIssued || anyWaiting) {
-        parentStatus = "waiting_stock";
+      if (hasItemRows) {
+        if (allRejected) {
+          parentStatus = "rejected";
+        } else if (allIssued) {
+          parentStatus = "issued";
+        } else if (anyIssued || anyWaiting) {
+          parentStatus = "waiting_stock";
+        }
+      } else {
+        parentStatus = remainingQty > 0 ? "waiting_stock" : "issued";
       }
+
+      const headerAnyIssued = hasItemRows ? anyIssued : totalIssued > 0;
 
       await supabase
         .from("goods_issue_pending")
         .update({
           status: parentStatus,
-          issued_at: anyIssued ? new Date().toISOString() : null,
-          issued_by: anyIssued ? user.id : null,
-          quantity: headerQuantity,
-          issued_quantity: headerIssued,
-          remaining_quantity: headerRemaining,
-          total_items: latestItems?.length || 0,
+          issued_at: headerAnyIssued ? new Date().toISOString() : null,
+          issued_by: headerAnyIssued ? user.id : null,
+          ...(hasItemRows
+            ? {
+                quantity: headerQuantity,
+                issued_quantity: headerIssued,
+                remaining_quantity: headerRemaining,
+                total_items: latestItems.length,
+              }
+            : {
+                issued_quantity: totalIssued,
+                remaining_quantity: Math.max(0, remainingQty),
+              }),
         })
         .eq("id", selectedItem.pending_id);
 
@@ -1108,9 +1125,8 @@ const IssueGoods = () => {
                       } as PendingItem];
 
                       return (
-                        <>
+                        <Fragment key={req.id}>
                           <TableRow
-                            key={req.id}
                             className={`${req.status === "pending" ? "bg-yellow-50" : req.status === "waiting_stock" ? "bg-orange-50" : ""} cursor-pointer hover:bg-muted/50`}
                             onClick={() => hasExpandableData && toggleRequestExpand(req.id)}
                           >
@@ -1336,7 +1352,7 @@ const IssueGoods = () => {
                               </TableCell>
                             </TableRow>
                           )}
-                        </>
+                        </Fragment>
                       );
                     })
                   )}

@@ -1,0 +1,1 @@
+REVOKE EXECUTE ON FUNCTION public.validate_goods_issue_quantity() FROM anon, authenticated;

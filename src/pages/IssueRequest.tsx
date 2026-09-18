@@ -207,7 +207,7 @@ const IssueRequest = () => {
         .from("notification_settings")
         .select("advance_days")
         .limit(1)
-        .single();
+        .maybeSingle();
       if (error && error.code !== "PGRST116") throw error;
       return data;
     },
