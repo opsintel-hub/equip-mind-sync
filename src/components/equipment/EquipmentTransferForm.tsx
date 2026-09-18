@@ -48,6 +48,9 @@ export function EquipmentTransferForm({ equipment, onSuccess }: EquipmentTransfe
     transfer_date: new Date().toISOString().split("T")[0],
     notes: "",
   });
+  const [sourceAllocations, setSourceAllocations] = useState<LocationAllocation[]>([]);
+  const [destAllocations, setDestAllocations] = useState<LocationAllocation[]>([]);
+  const [destLocations, setDestLocations] = useState<AllocationLocationInfo[]>([]);
 
   useEffect(() => {
     if (open) {
@@ -60,8 +63,40 @@ export function EquipmentTransferForm({ equipment, onSuccess }: EquipmentTransfe
         transfer_date: new Date().toISOString().split("T")[0],
         notes: "",
       });
+      setSourceAllocations([]);
+      setDestAllocations([]);
+      setDestLocations([]);
     }
   }, [open]);
+
+  // โหลดช่องจัดเก็บของคลังปลายทาง
+  useEffect(() => {
+    const load = async () => {
+      if (!formData.to_warehouse_id) {
+        setDestLocations([]);
+        return;
+      }
+      const { data } = await supabase
+        .from("locations")
+        .select("id, code, name, warehouse_id, volume_cm3, used_volume_cm3, zones:zone_id(code, name)")
+        .eq("is_active", true)
+        .eq("warehouse_id", formData.to_warehouse_id)
+        .order("code");
+      setDestLocations(
+        (data || []).map((l: any) => ({
+          id: l.id,
+          code: l.code,
+          name: l.name,
+          warehouse_id: l.warehouse_id,
+          zone_code: l.zones?.code ?? null,
+          zone_name: l.zones?.name ?? null,
+          volume_cm3: l.volume_cm3,
+          used_volume_cm3: l.used_volume_cm3,
+        }))
+      );
+    };
+    load();
+  }, [formData.to_warehouse_id]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
