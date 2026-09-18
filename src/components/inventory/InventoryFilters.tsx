@@ -482,6 +482,11 @@ export function InventoryFilters({ filters, onFiltersChange }: InventoryFiltersP
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">คลังทั้งหมด</SelectItem>
+              {warehouses.length === 0 && (
+                <div className="px-2 py-3 text-xs text-muted-foreground text-center">
+                  ไม่มีข้อมูลในฝ่ายนี้
+                </div>
+              )}
               {warehouses.map((wh) => (
                 <SelectItem key={wh.id} value={wh.id}>
                   {wh.code} - {wh.name}
