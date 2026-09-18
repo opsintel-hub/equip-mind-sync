@@ -1,5 +1,6 @@
 import type { RefLookups } from "./refData";
 import type { ValidatedRow } from "./validators";
+import { parseLocationCodes } from "./locationCodes";
 
 const truthy = (v: any) => v !== undefined && v !== null && String(v).trim() !== "";
 const s = (v: any) => (truthy(v) ? String(v).trim() : "");
@@ -134,6 +135,7 @@ export function validateToolRows(rows: any[], refs: RefLookups, existingCodes: S
       company_id: companyId,
       department: department || null,
       location_id: locationId,
+      location_allocations: locationAllocations,
       unit,
       quantity: qty,
       unit_price: price ?? 0,
