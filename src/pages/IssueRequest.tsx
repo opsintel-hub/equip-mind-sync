@@ -736,7 +736,7 @@ const IssueRequest = () => {
             .from("equipment")
             .select("is_asset")
             .eq("id", item.equipment_id)
-            .single();
+            .maybeSingle();
           if (eqData?.is_asset) {
             requiresApproval = true;
             break;
