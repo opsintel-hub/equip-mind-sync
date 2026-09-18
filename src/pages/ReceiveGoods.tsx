@@ -679,13 +679,15 @@ const ReceiveGoods = () => {
     setIsLoading(true);
 
     try {
-      const { data: freshReceipt, error: freshReceiptError } = await supabase
+      const { data: claimedReceipt, error: claimError } = await supabase
         .from("goods_receipt_pending")
-        .select("status")
+        .update({ status: "processing" })
         .eq("id", selectedReceipt.id)
-        .single();
-      if (freshReceiptError) throw freshReceiptError;
-      if (freshReceipt.status !== "pending") {
+        .eq("status", "pending")
+        .select("id")
+        .maybeSingle();
+      if (claimError) throw claimError;
+      if (!claimedReceipt) {
         throw new Error("รายการนี้ถูกรับเข้าหรือดำเนินการไปแล้ว กรุณาโหลดหน้าใหม่");
       }
 
@@ -950,7 +952,7 @@ const ReceiveGoods = () => {
             : {}),
         })
         .eq("id", selectedReceipt.id)
-        .eq("status", "pending")
+        .eq("status", "processing")
         .select("id")
         .maybeSingle();
 
@@ -961,7 +963,15 @@ const ReceiveGoods = () => {
       fetchPendingReceipts();
     } catch (error) {
       console.error("Error:", error);
-      toast.error("เกิดข้อผิดพลาดในการรับสินค้า");
+      if (selectedReceipt) {
+        await supabase
+          .from("goods_receipt_pending")
+          .update({ status: "pending" })
+          .eq("id", selectedReceipt.id)
+          .eq("status", "processing");
+      }
+      const message = error instanceof Error ? error.message : "เกิดข้อผิดพลาดในการรับสินค้า";
+      toast.error(message);
     } finally {
       setIsLoading(false);
     }
