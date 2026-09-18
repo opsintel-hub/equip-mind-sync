@@ -18,7 +18,7 @@ export function downloadEquipmentTemplate(refs: RefLookups) {
     ["supplier_code", "", "ใช้ code ของ supplier จากชีต _ref_suppliers"],
     ["company_name", "", "ใช้ name จากชีต _ref_companies"],
     ["department", "", "ดูชีต _ref_departments"],
-    ["location_code", "✅", "ใช้ code จากชีต _ref_locations (คลังเริ่มต้น)"],
+    ["location_code", "✅", "ใช้ code จากชีต _ref_locations — เก็บหลายช่องได้ คั่นด้วย , เช่น \"S02,BA10\" (แบ่งจำนวนเท่า ๆ กัน) หรือระบุจำนวนเอง \"S02:5,BA10:3\""],
     ["quantity_in_stock", "✅", "จำนวนรับเข้าครั้งแรก (ตัวเลข ≥ 0)"],
     ["min_stock_level", "", "จุดสั่งซื้อขั้นต่ำ"],
     ["unit_price", "✅", "ราคาต่อหน่วย (บาท)"],
