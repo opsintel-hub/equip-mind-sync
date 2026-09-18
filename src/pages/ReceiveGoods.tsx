@@ -1009,12 +1009,30 @@ const ReceiveGoods = () => {
     try {
       let successCount = 0;
       let errorCount = 0;
+      const remainingAllocationQuantities = allocations.map((allocation) => ({ ...allocation }));
+      const takeAllocationsForQuantity = (quantity: number): LocationAllocation[] => {
+        let remaining = quantity;
+        const result: LocationAllocation[] = [];
+        for (const allocation of remainingAllocationQuantities) {
+          if (remaining <= 0) break;
+          const available = Math.max(0, Number(allocation.quantity) || 0);
+          const taken = Math.min(available, remaining);
+          if (taken > 0) {
+            result.push({ locationId: allocation.locationId, quantity: taken });
+            allocation.quantity = available - taken;
+            remaining -= taken;
+          }
+        }
+        return result;
+      };
 
       for (const receipt of batchReceipts) {
         try {
           const selectedSupp = suppliers.find(s => s.id === receipt.supplier_id);
           const isMediaPlayer = (receipt as any).is_media_player;
           const receivedQuantity = receipt.quantity;
+          const receiptAllocations = takeAllocationsForQuantity(receivedQuantity);
+          let receivedMediaPlayerId: string | null = null;
 
           // Update pending receipt status
           const { error: updateError } = await supabase
@@ -1037,6 +1055,7 @@ const ReceiveGoods = () => {
               receipt.id
             );
             const targetMpId = resolved.mpId;
+            receivedMediaPlayerId = targetMpId;
 
             const batchMpDept = getDepartmentName(receipt.department_id);
             const batchMpPayload: Record<string, any> = {
@@ -1203,6 +1222,17 @@ const ReceiveGoods = () => {
             }
           }
 
+          await saveLocationAllocations({
+            allocations: receiptAllocations,
+            warehouseId: selectedWarehouseId,
+            equipmentId: isMediaPlayer ? null : receipt.equipment_id,
+            mediaPlayerId: isMediaPlayer ? receivedMediaPlayerId : null,
+            referenceType: "goods_receipt",
+            referenceId: receipt.id,
+            referenceDocument: receipt.document_no,
+            createdBy: user?.id || null,
+          });
+
           successCount++;
         } catch (error) {
           console.error("Error receiving item:", receipt.document_no, error);
@@ -1215,17 +1245,6 @@ const ReceiveGoods = () => {
       }
       if (errorCount > 0) {
         toast.warning(`ไม่สามารถรับสินค้าได้ ${errorCount} รายการ`);
-      }
-
-      if (successCount > 0) {
-        await saveLocationAllocations({
-          allocations,
-          warehouseId: selectedWarehouseId,
-          equipmentId: batchReceipts.find((r) => !(r as any).is_media_player)?.equipment_id || null,
-          referenceType: "goods_receipt_batch",
-          referenceDocument: batchReceipts.map((r) => r.document_no).join(", ").slice(0, 200),
-          createdBy: user?.id || null,
-        });
       }
 
       setIsBatchDialogOpen(false);
