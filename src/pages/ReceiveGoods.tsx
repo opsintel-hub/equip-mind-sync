@@ -499,6 +499,9 @@ const ReceiveGoods = () => {
     const { warehouseId, locationId } = resolveDefaultStorage(receipts[0]);
     setSelectedWarehouseId(warehouseId);
     setStorageLocation({ locationId });
+    setAllocations(
+      locationId ? [{ locationId, quantity: receipts.reduce((s, r) => s + (r.quantity || 0), 0) }] : []
+    );
     if (locationId) fetchLocationCapacity(locationId);
     setItemCondition("normal");
     setIsBatchDialogOpen(true);
