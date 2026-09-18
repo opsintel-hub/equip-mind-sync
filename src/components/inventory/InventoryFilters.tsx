@@ -97,12 +97,12 @@ export function InventoryFilters({ filters, onFiltersChange }: InventoryFiltersP
   const [localSnSearch, setLocalSnSearch] = useState(filters.snSearch || "");
 
   // Fetch companies
-  const { data: companies = [] } = useQuery({
-    queryKey: ["companies"],
+  const { data: allCompanies = [] } = useQuery({
+    queryKey: ["companies", "with-dept"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("companies")
-        .select("id, name, code")
+        .select("id, name, code, department_id")
         .eq("is_active", true)
         .order("name");
       if (error) throw error;
@@ -123,6 +123,12 @@ export function InventoryFilters({ filters, onFiltersChange }: InventoryFiltersP
       return data;
     },
   });
+
+  const selectedDeptId = departments.find((d) => d.name === filters.department)?.id || null;
+
+  const companies = selectedDeptId
+    ? allCompanies.filter((c: any) => c.department_id === selectedDeptId)
+    : allCompanies;
 
   // Fetch categories
   const { data: categories = [] } = useQuery({
@@ -159,18 +165,22 @@ export function InventoryFilters({ filters, onFiltersChange }: InventoryFiltersP
   });
 
   // Fetch warehouses
-  const { data: warehouses = [] } = useQuery({
-    queryKey: ["warehouses"],
+  const { data: allWarehouses = [] } = useQuery({
+    queryKey: ["warehouses", "with-dept"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("warehouses")
-        .select("id, name, code")
+        .select("id, name, code, department, departments")
         .eq("is_active", true)
         .order("name");
       if (error) throw error;
       return data;
     },
   });
+
+  const warehouses = filters.department
+    ? allWarehouses.filter((w: any) => warehouseHasDept(w, filters.department))
+    : allWarehouses;
 
   // Fetch locations based on selected warehouse
   const { data: locations = [] } = useQuery({
@@ -205,6 +215,20 @@ export function InventoryFilters({ filters, onFiltersChange }: InventoryFiltersP
       onFiltersChange({ ...filters, locationId: "" });
     }
   }, [filters.warehouseId]);
+
+  // Clear company / warehouse when they fall outside the selected department
+  useEffect(() => {
+    if (!filters.department) return;
+    const patch: Partial<InventoryFiltersState> = {};
+    if (filters.companyId && !companies.some((c) => c.id === filters.companyId)) {
+      patch.companyId = "";
+    }
+    if (filters.warehouseId && !warehouses.some((w) => w.id === filters.warehouseId)) {
+      patch.warehouseId = "";
+      patch.locationId = "";
+    }
+    if (Object.keys(patch).length > 0) onFiltersChange({ ...filters, ...patch });
+  }, [filters.department, companies.length, warehouses.length]);
 
   const handleSearchSubmit = () => {
     onFiltersChange({ ...filters, search: localSearch, snSearch: localSnSearch });
