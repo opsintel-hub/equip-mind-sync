@@ -124,6 +124,8 @@ export function PermissionWizard({ open, onOpenChange, user, onSaved }: Permissi
 
   // ระดับผู้ใช้ — ที่เดียวที่ใช้กำหนดสิทธิ์
   const [accessLevel, setAccessLevel] = useState<AccessLevel>("general");
+  /** true = ผู้ใช้อยู่ระดับ Admin/Super Admin และยังไม่ถูกเปลี่ยนระดับในรอบนี้ */
+  const [keepElevated, setKeepElevated] = useState(false);
 
   // Selections
   const [selectedTemplateKeys, setSelectedTemplateKeys] = useState<string[]>([]);
