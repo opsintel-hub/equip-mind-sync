@@ -383,6 +383,9 @@ export function InventoryFilters({ filters, onFiltersChange }: InventoryFiltersP
               {companies.map((company) => (
                 <SelectItem key={company.id} value={company.id}>
                   {company.code} - {company.name}
+                  {!company.department_id && (
+                    <span className="text-muted-foreground"> (ทุกฝ่าย)</span>
+                  )}
                 </SelectItem>
               ))}
             </SelectContent>
