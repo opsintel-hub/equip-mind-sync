@@ -5263,6 +5263,96 @@ export type Database = {
           },
         ]
       }
+      stock_location_allocations: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          equipment_id: string | null
+          id: string
+          location_id: string
+          media_player_id: string | null
+          notes: string | null
+          quantity: number
+          reference_document: string | null
+          reference_id: string | null
+          reference_type: string | null
+          tool_id: string | null
+          updated_at: string
+          volume_cm3: number | null
+          warehouse_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          equipment_id?: string | null
+          id?: string
+          location_id: string
+          media_player_id?: string | null
+          notes?: string | null
+          quantity?: number
+          reference_document?: string | null
+          reference_id?: string | null
+          reference_type?: string | null
+          tool_id?: string | null
+          updated_at?: string
+          volume_cm3?: number | null
+          warehouse_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          equipment_id?: string | null
+          id?: string
+          location_id?: string
+          media_player_id?: string | null
+          notes?: string | null
+          quantity?: number
+          reference_document?: string | null
+          reference_id?: string | null
+          reference_type?: string | null
+          tool_id?: string | null
+          updated_at?: string
+          volume_cm3?: number | null
+          warehouse_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stock_location_allocations_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "equipment"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_location_allocations_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_location_allocations_media_player_id_fkey"
+            columns: ["media_player_id"]
+            isOneToOne: false
+            referencedRelation: "media_players"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_location_allocations_tool_id_fkey"
+            columns: ["tool_id"]
+            isOneToOne: false
+            referencedRelation: "tools"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_location_allocations_warehouse_id_fkey"
+            columns: ["warehouse_id"]
+            isOneToOne: false
+            referencedRelation: "warehouses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       stock_movements: {
         Row: {
           company_id: string | null

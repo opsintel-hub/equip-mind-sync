@@ -56,6 +56,13 @@ import { useDeptScope } from "@/hooks/useDeptScope";
 import { warehouseHasDept } from "@/lib/warehouseDepartments";
 import { useSectionScope } from "@/hooks/useSectionScope";
 import { logStockMovement } from "@/lib/stockMovement";
+import { LocationAllocationEditor } from "@/components/location/LocationAllocationEditor";
+import {
+  LocationAllocation,
+  allocationTotal,
+  primaryLocationId,
+  saveLocationAllocations,
+} from "@/lib/locationAllocations";
 
 interface Equipment {
   id: string;
@@ -245,6 +252,8 @@ const ReceiveGoods = () => {
     storageSlotId?: string;
     subStorageSlotId?: string;
   }>({ locationId: "" });
+  // กระจายของลงหลายช่องจัดเก็บ (ช่อง + จำนวน)
+  const [allocations, setAllocations] = useState<LocationAllocation[]>([]);
 
   useEffect(() => {
     fetchEquipment();
@@ -468,6 +477,7 @@ const ReceiveGoods = () => {
     const { warehouseId, locationId } = resolveDefaultStorage(receipt);
     setSelectedWarehouseId(warehouseId);
     setStorageLocation({ locationId });
+    setAllocations(locationId ? [{ locationId, quantity: receipt.quantity || 0 }] : []);
     if (locationId) fetchLocationCapacity(locationId);
     setItemCondition("normal");
     setEditAssetCode(receipt.asset_code || "");
@@ -490,6 +500,9 @@ const ReceiveGoods = () => {
     const { warehouseId, locationId } = resolveDefaultStorage(receipts[0]);
     setSelectedWarehouseId(warehouseId);
     setStorageLocation({ locationId });
+    setAllocations(
+      locationId ? [{ locationId, quantity: receipts.reduce((s, r) => s + (r.quantity || 0), 0) }] : []
+    );
     if (locationId) fetchLocationCapacity(locationId);
     setItemCondition("normal");
     setIsBatchDialogOpen(true);
@@ -588,13 +601,20 @@ const ReceiveGoods = () => {
   const handleWarehouseChange = (warehouseId: string) => {
     setSelectedWarehouseId(warehouseId);
     setStorageLocation({ locationId: "" });
+    setAllocations([]);
     setLocationCapacity(null);
   };
 
-  // Handle location change within warehouse
-  const handleLocationChange = (locationId: string) => {
-    setStorageLocation({ locationId });
-    fetchLocationCapacity(locationId);
+  // จำนวนรวมของการรับเข้าแบบหลายรายการ
+  const batchTotalQuantity = batchReceipts.reduce((sum, r) => sum + (r.quantity || 0), 0);
+
+  // อัปเดตการกระจายของลงหลายช่อง + ตั้งช่องหลัก (ใช้กับฟิลด์เดิม)
+  const applyAllocations = (next: LocationAllocation[]) => {
+    setAllocations(next);
+    const primary = primaryLocationId(next);
+    setStorageLocation({ locationId: primary });
+    if (primary) fetchLocationCapacity(primary);
+    else setLocationCapacity(null);
   };
 
   // Fetch location capacity when location is selected
@@ -651,6 +671,11 @@ const ReceiveGoods = () => {
       return;
     }
 
+    if (allocationTotal(allocations) !== (selectedReceipt.quantity || 0)) {
+      toast.error(`กรุณากระจายจำนวนลงช่องจัดเก็บให้ครบ ${selectedReceipt.quantity} หน่วย`);
+      return;
+    }
+
     setIsLoading(true);
 
     try {
@@ -696,22 +721,7 @@ const ReceiveGoods = () => {
 
       if (updateError) throw updateError;
 
-      // Update location used_volume_cm3 if storage volume is provided
-      if (storageVolumeValue && storageVolumeValue > 0) {
-        const { data: locationData } = await supabase
-          .from("locations")
-          .select("used_volume_cm3")
-          .eq("id", storageLocation.locationId)
-          .single();
-
-        const currentUsed = locationData?.used_volume_cm3 || 0;
-        const newUsed = currentUsed + storageVolumeValue;
-
-        await supabase
-          .from("locations")
-          .update({ used_volume_cm3: newUsed })
-          .eq("id", storageLocation.locationId);
-      }
+      // หมายเหตุ: การหักพื้นที่ของแต่ละช่องทำใน saveLocationAllocations (แบ่งตามจำนวนจริง)
 
       // Handle differently based on whether it's Media Player or Equipment
       if (isMediaPlayer) {
@@ -919,6 +929,18 @@ const ReceiveGoods = () => {
         }
       }
 
+      await saveLocationAllocations({
+        allocations,
+        warehouseId: selectedWarehouseId,
+        equipmentId: isMediaPlayer ? null : selectedReceipt.equipment_id,
+        mediaPlayerId: isMediaPlayer ? (selectedReceipt as any).media_player_id : null,
+        referenceType: "goods_receipt",
+        referenceId: selectedReceipt.id,
+        referenceDocument: selectedReceipt.document_no,
+        totalVolumeCm3: storageVolumeValue,
+        createdBy: user?.id || null,
+      });
+
       setIsDialogOpen(false);
       fetchPendingReceipts();
     } catch (error) {
@@ -948,6 +970,11 @@ const ReceiveGoods = () => {
 
     if (!storageLocation.locationId) {
       toast.error("กรุณาเลือกตำแหน่งจัดเก็บ");
+      return;
+    }
+
+    if (allocationTotal(allocations) !== batchTotalQuantity) {
+      toast.error(`กรุณากระจายจำนวนลงช่องจัดเก็บให้ครบ ${batchTotalQuantity} รายการ`);
       return;
     }
 
@@ -1162,6 +1189,17 @@ const ReceiveGoods = () => {
       }
       if (errorCount > 0) {
         toast.warning(`ไม่สามารถรับสินค้าได้ ${errorCount} รายการ`);
+      }
+
+      if (successCount > 0) {
+        await saveLocationAllocations({
+          allocations,
+          warehouseId: selectedWarehouseId,
+          equipmentId: batchReceipts.find((r) => !(r as any).is_media_player)?.equipment_id || null,
+          referenceType: "goods_receipt_batch",
+          referenceDocument: batchReceipts.map((r) => r.document_no).join(", ").slice(0, 200),
+          createdBy: user?.id || null,
+        });
       }
 
       setIsBatchDialogOpen(false);
@@ -1845,43 +1883,14 @@ const ReceiveGoods = () => {
 
               {/* Location Selection (filtered by warehouse) */}
               {selectedWarehouseId && (
-                <div className="space-y-2">
-                  <Label>ตำแหน่งจัดเก็บ *</Label>
-                  <SearchableSelect
-                    options={filteredLocations.map((loc) => {
-                      const remaining = (loc.volume_cm3 || 0) - (loc.used_volume_cm3 || 0);
-                      return {
-                        value: loc.id,
-                        label: `${loc.zone_code ? `${loc.zone_code}${loc.code}` : loc.code} - ${loc.name}${loc.zone_name ? ` (โซน ${loc.zone_code} · ${loc.zone_name})` : ""}`,
-                        description: `คงเหลือ: ${remaining.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })} m³`,
-                      };
-                    })}
-                    value={storageLocation.locationId}
-                    onValueChange={handleLocationChange}
-                    placeholder="ค้นหาตำแหน่งจัดเก็บ..."
-                    searchPlaceholder="พิมพ์ค้นหา..."
-                    emptyMessage="ไม่มีตำแหน่งจัดเก็บในคลังนี้"
-                  />
-                  {locationCapacity && locationCapacity.volume_cm3 && (
-                    <div className="p-2 bg-muted/20 rounded text-sm">
-                      <div className="flex items-center justify-between">
-                        <span className="text-muted-foreground">พื้นที่คงเหลือของตำแหน่ง:</span>
-                        <span className={`font-medium ${
-                          locationCapacity.remaining_volume_cm3 !== null && 
-                          storageVolumeCm3 && 
-                          parseFloat(storageVolumeCm3) > locationCapacity.remaining_volume_cm3 
-                            ? 'text-destructive' 
-                            : 'text-success'
-                        }`}>
-                          {locationCapacity.remaining_volume_cm3?.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} m³
-                        </span>
-                      </div>
-                      {storageVolumeCm3 && parseFloat(storageVolumeCm3) > (locationCapacity.remaining_volume_cm3 || 0) && (
-                        <div className="text-destructive text-xs mt-1">⚠️ พื้นที่ไม่เพียงพอ กรุณาเลือกตำแหน่งอื่น</div>
-                      )}
-                    </div>
-                  )}
-                </div>
+                <LocationAllocationEditor
+                  locations={filteredLocations}
+                  value={allocations}
+                  onChange={applyAllocations}
+                  totalQuantity={selectedReceipt?.quantity ?? 0}
+                  unitLabel={(selectedReceipt as any)?.is_media_player ? "เครื่อง" : (selectedReceipt?.unit || "ชิ้น")}
+                  totalVolumeCm3={storageVolumeCm3 ? parseFloat(storageVolumeCm3) : null}
+                />
               )}
 
               {/* Storage Volume Input */}
@@ -1991,24 +2000,13 @@ const ReceiveGoods = () => {
 
             {/* Location Selection (filtered by warehouse) */}
             {selectedWarehouseId && (
-              <div className="space-y-2">
-                <Label>ตำแหน่งจัดเก็บ *</Label>
-                <SearchableSelect
-                  options={filteredLocations.map((loc) => {
-                    const remaining = (loc.volume_cm3 || 0) - (loc.used_volume_cm3 || 0);
-                    return {
-                      value: loc.id,
-                      label: `${loc.zone_code ? `${loc.zone_code}${loc.code}` : loc.code} - ${loc.name}${loc.zone_name ? ` (โซน ${loc.zone_code} · ${loc.zone_name})` : ""}`,
-                      description: `คงเหลือ: ${remaining.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })} m³`,
-                    };
-                  })}
-                  value={storageLocation.locationId}
-                  onValueChange={handleLocationChange}
-                  placeholder="ค้นหาตำแหน่งจัดเก็บ..."
-                  searchPlaceholder="พิมพ์ค้นหา..."
-                  emptyMessage="ไม่มีตำแหน่งจัดเก็บในคลังนี้"
-                />
-              </div>
+              <LocationAllocationEditor
+                locations={filteredLocations}
+                value={allocations}
+                onChange={applyAllocations}
+                totalQuantity={batchTotalQuantity}
+                unitLabel="รายการ"
+              />
             )}
 
             {/* Item Condition */}
