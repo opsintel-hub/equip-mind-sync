@@ -1383,6 +1383,21 @@ export default function StockCard() {
         </Card>
       )}
 
+      {/* ── ยอดคงเหลือรายช่องจัดเก็บ ── */}
+      {selectedItem && (
+        <LocationBalanceCard
+          filter={
+            selectedItemType === "media_player"
+              ? { mediaPlayerId: selectedItemId }
+              : selectedItemType === "tool"
+                ? { toolId: selectedItemId }
+                : { equipmentId: selectedItemId }
+          }
+          unitLabel={selectedItemType === "media_player" ? "เครื่อง" : "ชิ้น"}
+        />
+      )}
+
+
       {/* ── Section 4: Billboard Journey ── */}
       {selectedItem && journeys.length > 0 && (
         <Card>
