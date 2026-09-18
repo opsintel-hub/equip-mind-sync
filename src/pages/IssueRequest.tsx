@@ -922,6 +922,7 @@ const IssueRequest = () => {
   };
 
   const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
     if (!headerData.requester_name) {
       toast.error("กรุณากรอกชื่อผู้ขอเบิก");
       return;
