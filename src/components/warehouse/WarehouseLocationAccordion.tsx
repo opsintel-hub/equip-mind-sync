@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { warehouseDepts } from "@/lib/warehouseDepartments";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -407,21 +408,26 @@ export function WarehouseLocationAccordion({ canManageWarehouse, canManageLocati
                   <span className="font-medium shrink-0">{w.code}</span>
                   <span className="text-muted-foreground shrink-0">·</span>
                   <span className="truncate flex-1">{w.name}</span>
-                  {w.department ? (
-                    departments.includes(w.department) ? (
-                      <Badge variant="outline" className="shrink-0 gap-1">
-                        <span className="text-muted-foreground">ฝ่าย:</span>
-                        {w.department}
-                      </Badge>
-                    ) : (
-                      <Badge
-                        variant="outline"
-                        className="shrink-0 gap-1 border-destructive text-destructive"
-                        title="ชื่อฝ่ายนี้ไม่ตรงกับข้อมูลฝ่ายในระบบ"
-                      >
-                        ⚠ ฝ่าย: {w.department}
-                      </Badge>
-                    )
+                  {warehouseDepts(w).length > 0 ? (
+                    <span className="flex flex-wrap gap-1 shrink-0">
+                      {warehouseDepts(w).map((d) =>
+                        departments.includes(d) ? (
+                          <Badge key={d} variant="outline" className="shrink-0 gap-1">
+                            <span className="text-muted-foreground">ฝ่าย:</span>
+                            {d}
+                          </Badge>
+                        ) : (
+                          <Badge
+                            key={d}
+                            variant="outline"
+                            className="shrink-0 gap-1 border-destructive text-destructive"
+                            title="ชื่อฝ่ายนี้ไม่ตรงกับข้อมูลฝ่ายในระบบ"
+                          >
+                            ⚠ ฝ่าย: {d}
+                          </Badge>
+                        ),
+                      )}
+                    </span>
                   ) : (
                     <Badge variant="outline" className="shrink-0 text-muted-foreground italic">
                       ไม่ระบุฝ่าย
