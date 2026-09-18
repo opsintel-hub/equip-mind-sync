@@ -403,7 +403,13 @@ export function PermissionWizard({ open, onOpenChange, user, onSaved }: Permissi
       if (pfErr) throw pfErr;
 
       // 1. Roles via RPC — ระดับผู้ใช้เป็นตัวกำหนดบทบาท
-      const rolesToSave: UserRole[] = levelDef ? levelDef.roles : (previewRoles as UserRole[]);
+      // ระดับผู้ใช้เป็นตัวชี้ขาด — ถ้าไม่ได้เลือกระดับ Admin/Super Admin
+      // ต้องไม่หลงเหลือบทบาท admin/super_admin เดิมค้างอยู่
+      const baseRoles: UserRole[] = levelDef ? levelDef.roles : (previewRoles as UserRole[]);
+      const elevatedAllowed = accessLevel === "admin" || accessLevel === "super_admin";
+      const rolesToSave: UserRole[] = elevatedAllowed
+        ? baseRoles
+        : baseRoles.filter((r) => r !== "admin" && r !== "super_admin");
       const { error: roleErr } = await supabase.rpc("save_user_roles" as any, {
         _target_user_id: user.id,
         _roles: rolesToSave,
