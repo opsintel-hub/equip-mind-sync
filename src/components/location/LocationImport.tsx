@@ -187,6 +187,16 @@ export function LocationImport({ onSuccess }: LocationImportProps) {
         return;
       }
 
+      const headerRow = (name?: string) =>
+        name ? ((XLSX.utils.sheet_to_json<any[]>(wb.Sheets[name], { header: 1 })[0] || []) as any[]).map((h) => String(h).trim()) : [];
+      const verdict = verifyWorkbook(wb, "location", [...headerRow(whSheetName), ...headerRow(locSheetName)]);
+      setCheck(verdict);
+      if (verdict.blocking) {
+        toast.error(verdict.message);
+        return;
+      }
+
+
       const { data: userData } = await supabase.auth.getUser();
       const { data: depts } = await supabase.from("departments").select("name").eq("is_active", true);
       const deptNames = new Set((depts || []).map((d) => d.name));
