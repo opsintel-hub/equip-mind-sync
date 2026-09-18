@@ -716,22 +716,7 @@ const ReceiveGoods = () => {
 
       if (updateError) throw updateError;
 
-      // Update location used_volume_cm3 if storage volume is provided
-      if (storageVolumeValue && storageVolumeValue > 0) {
-        const { data: locationData } = await supabase
-          .from("locations")
-          .select("used_volume_cm3")
-          .eq("id", storageLocation.locationId)
-          .single();
-
-        const currentUsed = locationData?.used_volume_cm3 || 0;
-        const newUsed = currentUsed + storageVolumeValue;
-
-        await supabase
-          .from("locations")
-          .update({ used_volume_cm3: newUsed })
-          .eq("id", storageLocation.locationId);
-      }
+      // หมายเหตุ: การหักพื้นที่ของแต่ละช่องทำใน saveLocationAllocations (แบ่งตามจำนวนจริง)
 
       // Handle differently based on whether it's Media Player or Equipment
       if (isMediaPlayer) {
