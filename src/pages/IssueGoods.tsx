@@ -1195,7 +1195,7 @@ const IssueGoods = () => {
                                       </TableRow>
                                     </TableHeader>
                                     <TableBody>
-                                      {items.map((item) => {
+                                      {displayItems.map((item) => {
                                         const availableStock = getAvailableStock(item.equipment_id);
                                         const locationInfo = getLocationInfoForItem(item.equipment_id);
                                         return (
