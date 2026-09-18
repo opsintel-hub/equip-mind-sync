@@ -10,6 +10,16 @@ import { ArrowRightLeft } from "lucide-react";
 import { WarehouseLocationSelect } from "@/components/location/WarehouseLocationSelect";
 import { SimpleDepartmentSelect } from "@/components/equipment/SimpleDepartmentSelect";
 import { logStockMovement } from "@/lib/stockMovement";
+import { LocationAllocationEditor } from "@/components/location/LocationAllocationEditor";
+import { LocationPickEditor } from "@/components/location/LocationPickEditor";
+import {
+  AllocationLocationInfo,
+  LocationAllocation,
+  allocationTotal,
+  deductLocationAllocations,
+  primaryLocationId,
+  saveLocationAllocations,
+} from "@/lib/locationAllocations";
 
 interface Equipment {
   id: string;
@@ -38,6 +48,9 @@ export function EquipmentTransferForm({ equipment, onSuccess }: EquipmentTransfe
     transfer_date: new Date().toISOString().split("T")[0],
     notes: "",
   });
+  const [sourceAllocations, setSourceAllocations] = useState<LocationAllocation[]>([]);
+  const [destAllocations, setDestAllocations] = useState<LocationAllocation[]>([]);
+  const [destLocations, setDestLocations] = useState<AllocationLocationInfo[]>([]);
 
   useEffect(() => {
     if (open) {
@@ -50,8 +63,40 @@ export function EquipmentTransferForm({ equipment, onSuccess }: EquipmentTransfe
         transfer_date: new Date().toISOString().split("T")[0],
         notes: "",
       });
+      setSourceAllocations([]);
+      setDestAllocations([]);
+      setDestLocations([]);
     }
   }, [open]);
+
+  // โหลดช่องจัดเก็บของคลังปลายทาง
+  useEffect(() => {
+    const load = async () => {
+      if (!formData.to_warehouse_id) {
+        setDestLocations([]);
+        return;
+      }
+      const { data } = await supabase
+        .from("locations")
+        .select("id, code, name, warehouse_id, volume_cm3, used_volume_cm3, zones:zone_id(code, name)")
+        .eq("is_active", true)
+        .eq("warehouse_id", formData.to_warehouse_id)
+        .order("code");
+      setDestLocations(
+        (data || []).map((l: any) => ({
+          id: l.id,
+          code: l.code,
+          name: l.name,
+          warehouse_id: l.warehouse_id,
+          zone_code: l.zones?.code ?? null,
+          zone_name: l.zones?.name ?? null,
+          volume_cm3: l.volume_cm3,
+          used_volume_cm3: l.used_volume_cm3,
+        }))
+      );
+    };
+    load();
+  }, [formData.to_warehouse_id]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -70,6 +115,18 @@ export function EquipmentTransferForm({ equipment, onSuccess }: EquipmentTransfe
       toast.error("ตำแหน่งปลายทางต้องไม่เหมือนกับตำแหน่งเดิม");
       return;
     }
+
+    if (destAllocations.length > 0 && allocationTotal(destAllocations) !== formData.quantity) {
+      toast.error(`กรุณากระจายจำนวนลงช่องปลายทางให้ครบ ${formData.quantity}`);
+      return;
+    }
+
+    if (sourceAllocations.length > 0 && allocationTotal(sourceAllocations) !== formData.quantity) {
+      toast.error(`กรุณาเลือกช่องต้นทางให้ครบ ${formData.quantity}`);
+      return;
+    }
+
+
 
     try {
       setLoading(true);
@@ -122,6 +179,28 @@ export function EquipmentTransferForm({ equipment, onSuccess }: EquipmentTransfe
         notes: formData.notes || `ย้ายจาก ${equipment.locations?.name || "ไม่ระบุ"}`,
       });
 
+      // ตัดของออกจากช่องต้นทาง แล้วบันทึกการกระจายลงช่องปลายทาง
+      await deductLocationAllocations({
+        allocations: sourceAllocations,
+        equipmentId: equipment.id,
+        referenceType: "equipment_transfer_out",
+        referenceDocument: `Transfer ${formData.transfer_date}`,
+        createdBy: user.id,
+      });
+
+      await saveLocationAllocations({
+        allocations:
+          destAllocations.length > 0
+            ? destAllocations
+            : [{ locationId: formData.to_location_id, quantity: formData.quantity }],
+        warehouseId: formData.to_warehouse_id || null,
+        equipmentId: equipment.id,
+        referenceType: "equipment_transfer_in",
+        referenceDocument: `Transfer ${formData.transfer_date}`,
+        createdBy: user.id,
+      });
+
+
       toast.success("ย้ายอุปกรณ์สำเร็จ");
       setOpen(false);
       onSuccess();
@@ -167,9 +246,15 @@ export function EquipmentTransferForm({ equipment, onSuccess }: EquipmentTransfe
           <WarehouseLocationSelect
             department={formData.to_department}
             warehouseId={formData.to_warehouse_id}
-            onWarehouseChange={(value) => setFormData({ ...formData, to_warehouse_id: value, to_location_id: "" })}
+            onWarehouseChange={(value) => {
+              setFormData({ ...formData, to_warehouse_id: value, to_location_id: "" });
+              setDestAllocations([]);
+            }}
             locationId={formData.to_location_id}
-            onLocationChange={(value) => setFormData({ ...formData, to_location_id: value })}
+            onLocationChange={(value) => {
+              setFormData({ ...formData, to_location_id: value });
+              setDestAllocations(value ? [{ locationId: value, quantity: formData.quantity }] : []);
+            }}
           />
 
           <div>
@@ -191,6 +276,26 @@ export function EquipmentTransferForm({ equipment, onSuccess }: EquipmentTransfe
               คงคลัง: {equipment.quantity_in_stock} {equipment.code}
             </p>
           </div>
+
+          <LocationPickEditor
+            filter={{ equipmentId: equipment.id }}
+            value={sourceAllocations}
+            onChange={setSourceAllocations}
+            totalQuantity={formData.quantity}
+          />
+
+          {formData.to_warehouse_id && destLocations.length > 0 && (
+            <LocationAllocationEditor
+              locations={destLocations}
+              value={destAllocations}
+              onChange={(next) => {
+                setDestAllocations(next);
+                const primary = primaryLocationId(next);
+                if (primary) setFormData((prev) => ({ ...prev, to_location_id: primary }));
+              }}
+              totalQuantity={formData.quantity}
+            />
+          )}
 
           <div>
             <Label htmlFor="transfer_date">

@@ -679,7 +679,12 @@ export function WarehouseLocationAccordion({ canManageWarehouse, canManageLocati
   );
 
   function renderLocationRow(l: LocationData) {
-    const lRemain = (l.volume_cm3 || 0) - (l.used_volume_cm3 || 0);
+    const lTotal = l.volume_cm3 || 0;
+    const lUsed = l.used_volume_cm3 || 0;
+    const lRemain = lTotal - lUsed;
+    const pct = lTotal > 0 ? Math.min(100, Math.round((lUsed / lTotal) * 100)) : 0;
+    const barTone =
+      lTotal <= 0 ? "bg-muted-foreground/30" : pct >= 100 ? "bg-destructive" : pct >= 80 ? "bg-amber-500" : "bg-emerald-500";
     return (
       <div
         key={l.id}
@@ -695,10 +700,23 @@ export function WarehouseLocationAccordion({ canManageWarehouse, canManageLocati
             {l.storage_area}
           </Badge>
         )}
+        <div className="hidden md:flex items-center gap-2 shrink-0 w-40">
+          <div className="h-1.5 flex-1 rounded-full bg-muted overflow-hidden">
+            <div className={cn("h-full rounded-full", barTone)} style={{ width: `${pct}%` }} />
+          </div>
+          <span
+            className={cn(
+              "text-xs tabular-nums w-10 text-right",
+              pct >= 100 ? "text-destructive" : pct >= 80 ? "text-amber-600" : "text-muted-foreground"
+            )}
+          >
+            {lTotal > 0 ? `${pct}%` : "-"}
+          </span>
+        </div>
         <span className="hidden lg:flex items-center gap-1 text-xs text-muted-foreground shrink-0">
-          <span>{M3(l.used_volume_cm3 || 0)}</span>
+          <span>{M3(lUsed)}</span>
           <span>/</span>
-          <span>{M3(l.volume_cm3 || 0)} m³</span>
+          <span>{M3(lTotal)} m³</span>
           <span className={cn("ml-1", lRemain < 0 ? "text-destructive" : "text-emerald-600")}>
             (เหลือ {M3(lRemain)})
           </span>

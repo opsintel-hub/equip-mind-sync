@@ -22,6 +22,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { useDeptScope } from "@/hooks/useDeptScope";
 import { useSectionScope } from "@/hooks/useSectionScope";
 import BillboardDisplay from "@/components/billboard/BillboardDisplay";
+import { LocationPickEditor } from "@/components/location/LocationPickEditor";
+import { LocationAllocation, allocationTotal, deductLocationAllocations } from "@/lib/locationAllocations";
 import BillboardSelect from "@/components/billboard/BillboardSelect";
 import { SubMediaTypeSelect } from "@/components/media-player/SubMediaTypeSelect";
 import { requiresSubMediaType } from "@/lib/mediaPlayerSubTypes";
@@ -122,6 +124,7 @@ const IssueGoods = () => {
     billboard_id: string;
     sub_media_type: string | null;
   }>>([]);
+  const [pickAllocations, setPickAllocations] = useState<LocationAllocation[]>([]);
   const [rejectReason, setRejectReason] = useState("");
   const [imageDialogOpen, setImageDialogOpen] = useState(false);
   const [selectedEquipmentImages, setSelectedEquipmentImages] = useState<string[]>([]);
@@ -739,6 +742,19 @@ const IssueGoods = () => {
         })
         .eq("id", selectedItem.pending_id);
 
+      // ตัดของออกจากช่องจัดเก็บที่เลือกหยิบ
+      if (issuedQty > 0 && allocationTotal(pickAllocations) > 0) {
+        await deductLocationAllocations({
+          allocations: pickAllocations,
+          equipmentId: isMediaPlayer ? null : selectedItem.equipment_id,
+          mediaPlayerId: isMediaPlayer ? selectedItem.media_player_id : null,
+          referenceType: "goods_issue",
+          referenceId: selectedItem.id,
+          referenceDocument: parentRequest?.document_no || null,
+          createdBy: user.id,
+        });
+      }
+
       return { remainingQty, newStatus };
     },
     onSuccess: (result) => {
@@ -885,6 +901,7 @@ const IssueGoods = () => {
       }));
       setMpUnitAssignments(mpInitial);
     }
+    setPickAllocations([]);
     setItemIssueDialogOpen(true);
     // Always refetch MP units so newly-edited S/Ns appear without page reload
     if (item.is_media_player) refetchMpUnits();
@@ -1571,6 +1588,21 @@ const IssueGoods = () => {
                 หากจ่ายไม่ครบ ระบบจะเก็บจำนวนที่เหลือไว้รอสินค้าเข้าคลังแล้วจ่ายต่อ
               </p>
             </div>
+
+            {selectedItem && (parseInt(issueData.issued_quantity) || 0) > 0 && (
+              <LocationPickEditor
+                filter={
+                  selectedItem.is_media_player
+                    ? { mediaPlayerId: selectedItem.media_player_id }
+                    : { equipmentId: selectedItem.equipment_id }
+                }
+                value={pickAllocations}
+                onChange={setPickAllocations}
+                totalQuantity={parseInt(issueData.issued_quantity) || 0}
+                unitLabel={selectedItem.is_media_player ? "เครื่อง" : selectedItem.unit || "ชิ้น"}
+              />
+            )}
+
 
             {/* Per-unit S/N + Billboard assignments (Equipment only — Media Player handled above) */}
             {!selectedItem?.is_media_player && unitAssignments.length > 0 && (
