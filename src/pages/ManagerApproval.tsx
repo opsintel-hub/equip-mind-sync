@@ -84,7 +84,7 @@ const ManagerApproval = () => {
     queryFn: async () => {
       const { data } = await supabase
         .from("companies")
-        .select("id, name, departments:department_id(name)")
+        .select("id, name, department_id, departments:department_id(name)")
         .eq("is_active", true)
         .order("name");
       return (data || []) as any[];
@@ -94,7 +94,7 @@ const ManagerApproval = () => {
   // Scope companies to the selected departments, then dedupe by trimmed name
   const companies = useMemo(() => {
     const rows = (allCompanies || []).filter((c: any) =>
-      departmentFilter.length === 0 ? true : !c.departments?.name || departmentFilter.includes(c.departments.name),
+      departmentFilter.length === 0 || c.department_id == null || departmentFilter.includes(c.departments?.name),
     );
     const map = new Map<string, { ids: string[]; name: string }>();
     rows.forEach((c: any) => {

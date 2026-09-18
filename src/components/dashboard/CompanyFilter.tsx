@@ -1,6 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
+import { companyIsAvailableToDepartments } from "@/lib/companyDepartments";
 
 interface Company {
   id: string;
@@ -47,17 +48,19 @@ export function CompanyFilter({ value, onChange, departments = [] }: CompanyFilt
     setIsLoading(false);
   };
 
-  const filtered =
-    departments.length === 0 || deptIds.length === 0
+  const filtered = useMemo(
+    () => departments.length === 0 || deptIds.length === 0
       ? companies
-      : companies.filter((c) => c.department_id && deptIds.includes(c.department_id));
+      : companies.filter((c) => companyIsAvailableToDepartments(c, deptIds)),
+    [companies, departments.length, deptIds],
+  );
 
   // Reset selection when the chosen company is out of the current department scope
   useEffect(() => {
-    if (value !== "all" && filtered.length > 0 && !filtered.some((c) => c.id === value)) {
+    if (!isLoading && value !== "all" && !filtered.some((c) => c.id === value)) {
       onChange("all");
     }
-  }, [filtered.length, value]);
+  }, [filtered, isLoading, onChange, value]);
 
   return (
     <Select value={value} onValueChange={onChange}>
@@ -68,7 +71,7 @@ export function CompanyFilter({ value, onChange, departments = [] }: CompanyFilt
         <SelectItem value="all">ทุกบริษัท</SelectItem>
         {filtered.map((company) => (
           <SelectItem key={company.id} value={company.id}>
-            {company.code} - {company.name}
+            {company.code} - {company.name}{company.department_id == null ? " (ทุกฝ่าย)" : ""}
           </SelectItem>
         ))}
       </SelectContent>
