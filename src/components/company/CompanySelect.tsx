@@ -66,7 +66,7 @@ export function CompanySelect({
       const rows = data as unknown as Company[];
       const scoped =
         !departmentId && departmentName
-          ? rows.filter((c) => c.departments?.name === departmentName)
+          ? rows.filter((c) => !c.department_id || c.departments?.name === departmentName)
           : rows;
       setCompanies(scoped);
     }

@@ -127,8 +127,9 @@ export function InventoryFilters({ filters, onFiltersChange }: InventoryFiltersP
 
   const selectedDeptId = departments.find((d) => d.name === filters.department)?.id || null;
 
+  // Scope by department; companies not yet linked to any department stay visible
   const companies = selectedDeptId
-    ? allCompanies.filter((c: any) => c.department_id === selectedDeptId)
+    ? allCompanies.filter((c: any) => !c.department_id || c.department_id === selectedDeptId)
     : allCompanies;
 
   // Fetch categories

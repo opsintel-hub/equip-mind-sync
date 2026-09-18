@@ -94,7 +94,7 @@ const ManagerApproval = () => {
   // Scope companies to the selected departments, then dedupe by trimmed name
   const companies = useMemo(() => {
     const rows = (allCompanies || []).filter((c: any) =>
-      departmentFilter.length === 0 ? true : c.departments?.name && departmentFilter.includes(c.departments.name),
+      departmentFilter.length === 0 ? true : !c.departments?.name || departmentFilter.includes(c.departments.name),
     );
     const map = new Map<string, { ids: string[]; name: string }>();
     rows.forEach((c: any) => {
