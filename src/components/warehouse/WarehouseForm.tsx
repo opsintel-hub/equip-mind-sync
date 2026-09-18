@@ -17,7 +17,7 @@ const warehouseSchema = z.object({
   name: z.string().min(1, "กรุณากรอกชื่อคลัง").max(200, "ชื่อต้องไม่เกิน 200 ตัวอักษร"),
   description: z.string().max(500, "รายละเอียดต้องไม่เกิน 500 ตัวอักษร").optional(),
   storage_area: z.string().min(1, "กรุณาเลือกประเภทพื้นที่"),
-  department: z.string().optional(),
+  departments: z.array(z.string()).default([]),
 });
 
 type WarehouseFormValues = z.infer<typeof warehouseSchema>;
