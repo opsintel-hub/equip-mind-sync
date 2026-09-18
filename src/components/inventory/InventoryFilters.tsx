@@ -414,9 +414,10 @@ export function InventoryFilters({ filters, onFiltersChange }: InventoryFiltersP
             onValueChange={(value) =>
               onFiltersChange({ ...filters, department: value === "all" ? "" : value })
             }
+            disabled={isDeptLockedByCompany}
           >
             <SelectTrigger className="h-9 bg-background">
-              <SelectValue placeholder="ฝ่าย" />
+              <SelectValue placeholder={isDeptLockedByCompany ? "ฝ่าย (ล็อกตามบริษัท)" : "ฝ่าย"} />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">ฝ่ายทั้งหมด</SelectItem>
