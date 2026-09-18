@@ -377,7 +377,7 @@ export function ToolForm({ onSuccess }: ToolFormProps) {
                 <FormField control={form.control} name="company_id" render={({ field }) => (
                   <FormItem className="min-w-0">
                     <FormLabel>บริษัท</FormLabel>
-                    <FormControl><CompanySelect value={field.value || ""} onChange={field.onChange} /></FormControl>
+                    <FormControl><CompanySelect value={field.value || ""} onChange={field.onChange} departmentName={form.watch("department") || undefined} /></FormControl>
                   </FormItem>
                 )} />
 

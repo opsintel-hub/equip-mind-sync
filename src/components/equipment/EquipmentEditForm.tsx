@@ -336,6 +336,7 @@ export function EquipmentEditForm({ equipment, onSuccess }: EquipmentEditFormPro
                         value={field.value || ""}
                         onChange={field.onChange}
                         disabled={isLoading}
+                        departmentName={form.watch("department") || undefined}
                       />
                     </FormControl>
                     <FormMessage />

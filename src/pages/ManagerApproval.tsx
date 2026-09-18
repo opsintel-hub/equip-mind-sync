@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useTablePagination } from "@/hooks/useTablePagination";
 import { TablePagination } from "@/components/TablePagination";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -79,22 +79,39 @@ const ManagerApproval = () => {
   const pendingCol = (k: ApprovalColKey) => pendingVisible.includes(k);
   const historyCol = (k: ApprovalColKey) => historyVisible.includes(k);
 
-  const { data: companies } = useQuery({
+  const { data: allCompanies } = useQuery({
     queryKey: ["ma-companies"],
     queryFn: async () => {
-      const { data } = await supabase.from("companies").select("id, name").eq("is_active", true).order("name");
-      // Dedupe by trimmed name — keep first id, collect all duplicate ids for filter matching
-      const map = new Map<string, { ids: string[]; name: string }>();
-      (data || []).forEach((c: any) => {
-        const key = (c.name || "").trim();
-        if (!key) return;
-        const existing = map.get(key);
-        if (existing) existing.ids.push(c.id);
-        else map.set(key, { ids: [c.id], name: key });
-      });
-      return Array.from(map.values());
+      const { data } = await supabase
+        .from("companies")
+        .select("id, name, departments:department_id(name)")
+        .eq("is_active", true)
+        .order("name");
+      return (data || []) as any[];
     },
   });
+
+  // Scope companies to the selected departments, then dedupe by trimmed name
+  const companies = useMemo(() => {
+    const rows = (allCompanies || []).filter((c: any) =>
+      departmentFilter.length === 0 ? true : c.departments?.name && departmentFilter.includes(c.departments.name),
+    );
+    const map = new Map<string, { ids: string[]; name: string }>();
+    rows.forEach((c: any) => {
+      const key = (c.name || "").trim();
+      if (!key) return;
+      const existing = map.get(key);
+      if (existing) existing.ids.push(c.id);
+      else map.set(key, { ids: [c.id], name: key });
+    });
+    return Array.from(map.values());
+  }, [allCompanies, departmentFilter]);
+
+  useEffect(() => {
+    if (companyFilter !== "all" && !companies.some((c) => c.ids[0] === companyFilter)) {
+      setCompanyFilter("all");
+    }
+  }, [companies, companyFilter]);
 
   const { data: userRole } = useQuery({
     queryKey: ["user-manager-role", user?.id],

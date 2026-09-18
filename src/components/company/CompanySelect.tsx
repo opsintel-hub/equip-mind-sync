@@ -18,6 +18,8 @@ interface CompanySelectProps {
   onChange: (value: string) => void;
   disabled?: boolean;
   departmentId?: string;
+  /** Department name (when the form stores the name instead of the id) */
+  departmentName?: string;
   placeholder?: string;
   required?: boolean;
 }
@@ -27,6 +29,7 @@ export function CompanySelect({
   onChange,
   disabled,
   departmentId,
+  departmentName,
   placeholder = "เลือกบริษัท",
   required = false,
 }: CompanySelectProps) {
@@ -35,7 +38,7 @@ export function CompanySelect({
 
   useEffect(() => {
     fetchCompanies();
-  }, [departmentId]);
+  }, [departmentId, departmentName]);
 
   const fetchCompanies = async () => {
     setIsLoading(true);
@@ -60,15 +63,28 @@ export function CompanySelect({
     const { data, error } = await query;
 
     if (!error && data) {
-      setCompanies(data as Company[]);
+      const rows = data as unknown as Company[];
+      const scoped =
+        !departmentId && departmentName
+          ? rows.filter((c) => c.departments?.name === departmentName)
+          : rows;
+      setCompanies(scoped);
     }
     setIsLoading(false);
   };
 
+  const isScoped = Boolean(departmentId || departmentName);
+
+  // Clear a selection that falls outside the current department scope
+  useEffect(() => {
+    if (isLoading || !isScoped || !value) return;
+    if (!companies.some((c) => c.id === value)) onChange("");
+  }, [isLoading, isScoped, value, companies]);
+
   const options = companies.map((company) => ({
     value: company.id,
     label: `${company.code} - ${company.name}`,
-    description: company.departments && !departmentId ? company.departments.name : undefined,
+    description: company.departments && !isScoped ? company.departments.name : undefined,
   }));
 
   return (
@@ -78,7 +94,7 @@ export function CompanySelect({
       onValueChange={onChange}
       placeholder={placeholder}
       searchPlaceholder="ค้นหาบริษัท..."
-      emptyMessage="ไม่พบบริษัท"
+      emptyMessage={isScoped ? "ไม่มีข้อมูลในฝ่ายนี้" : "ไม่พบบริษัท"}
       disabled={disabled}
       isLoading={isLoading}
     />

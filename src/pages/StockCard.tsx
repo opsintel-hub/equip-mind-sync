@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from "react";
+import React, { useState, useMemo, useCallback, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { ProcessTracker, ProcessStep } from "@/components/ProcessTracker";
 import { LocationBalanceCard } from "@/components/location/LocationBalanceCard";
@@ -726,13 +726,30 @@ export default function StockCard() {
   }, [selectedItem, filteredTimeline, journeys]);
 
   // ── All Movements Tab Data ──
-  const { data: movCompaniesList } = useQuery({
+  const { data: movAllCompanies } = useQuery({
     queryKey: ["stock-card-mov-companies"],
     queryFn: async () => {
-      const { data } = await supabase.from("companies").select("id, name").eq("is_active", true).order("name");
+      const { data } = await supabase
+        .from("companies")
+        .select("id, name, departments:department_id(name)")
+        .eq("is_active", true)
+        .order("name");
       return data || [];
     },
   });
+
+  // Companies scoped to the selected departments
+  const movCompaniesList = useMemo(() => {
+    const list = (movAllCompanies || []) as any[];
+    if (!movDeptFilter || movDeptFilter.length === 0) return list;
+    return list.filter((c) => c.departments?.name && movDeptFilter.includes(c.departments.name));
+  }, [movAllCompanies, movDeptFilter]);
+
+  useEffect(() => {
+    if (movCompanyFilter !== "all" && !movCompaniesList.some((c: any) => c.id === movCompanyFilter)) {
+      setMovCompanyFilter("all");
+    }
+  }, [movCompaniesList, movCompanyFilter]);
 
   const { data: allMovements, isLoading: movLoading } = useQuery({
     queryKey: ["stock-card-all-movements", movSearchTerm, movTypeFilter],

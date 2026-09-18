@@ -436,6 +436,7 @@ export function EquipmentForm({ onSuccess, prefillData, triggerButton }: Equipme
                         value={field.value || ""}
                         onChange={field.onChange}
                         disabled={isLoading}
+                        departmentName={form.watch("department") || undefined}
                         placeholder="เลือกบริษัท..."
                       />
                     </FormControl>
