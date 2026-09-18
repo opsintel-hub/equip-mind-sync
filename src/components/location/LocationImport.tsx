@@ -142,8 +142,18 @@ export function LocationImport({ onSuccess }: LocationImportProps) {
     wsReadme["!cols"] = [{ wch: 90 }];
     XLSX.utils.book_append_sheet(wb, wsReadme, "README");
 
+    appendRefSheet(wb, "_ref_departments", departments.map((d: any) => ({ name: d.name })), [40]);
+    appendRefSheet(wb, "_ref_warehouses", existingWarehouses.map((w: any) => ({ code: w.code, name: w.name, storage_area: w.storage_area })), [18, 30, 18]);
+    appendRefSheet(wb, "_ref_zones", zones.map((z: any) => ({ code: z.code, name: z.name })), [15, 30]);
+    appendTemplateMeta(wb, "location");
+
     XLSX.writeFile(wb, "warehouse_location_template.xlsx");
-    toast.success("ดาวน์โหลด Template สำเร็จ");
+    toast.success("ดาวน์โหลด Template ล่าสุดสำเร็จ (ชีตอ้างอิงอัปเดตจากข้อมูลหลักปัจจุบัน)");
+    } catch (e: any) {
+      toast.error("ดาวน์โหลด Template ไม่สำเร็จ: " + e.message);
+    } finally {
+      setTemplateLoading(false);
+    }
   };
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
