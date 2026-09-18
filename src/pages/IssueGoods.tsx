@@ -122,6 +122,7 @@ const IssueGoods = () => {
     billboard_id: string;
     sub_media_type: string | null;
   }>>([]);
+  const [pickAllocations, setPickAllocations] = useState<LocationAllocation[]>([]);
   const [rejectReason, setRejectReason] = useState("");
   const [imageDialogOpen, setImageDialogOpen] = useState(false);
   const [selectedEquipmentImages, setSelectedEquipmentImages] = useState<string[]>([]);
