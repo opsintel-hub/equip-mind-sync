@@ -167,9 +167,15 @@ export function EquipmentTransferForm({ equipment, onSuccess }: EquipmentTransfe
           <WarehouseLocationSelect
             department={formData.to_department}
             warehouseId={formData.to_warehouse_id}
-            onWarehouseChange={(value) => setFormData({ ...formData, to_warehouse_id: value, to_location_id: "" })}
+            onWarehouseChange={(value) => {
+              setFormData({ ...formData, to_warehouse_id: value, to_location_id: "" });
+              setDestAllocations([]);
+            }}
             locationId={formData.to_location_id}
-            onLocationChange={(value) => setFormData({ ...formData, to_location_id: value })}
+            onLocationChange={(value) => {
+              setFormData({ ...formData, to_location_id: value });
+              setDestAllocations(value ? [{ locationId: value, quantity: formData.quantity }] : []);
+            }}
           />
 
           <div>
@@ -191,6 +197,26 @@ export function EquipmentTransferForm({ equipment, onSuccess }: EquipmentTransfe
               คงคลัง: {equipment.quantity_in_stock} {equipment.code}
             </p>
           </div>
+
+          <LocationPickEditor
+            filter={{ equipmentId: equipment.id }}
+            value={sourceAllocations}
+            onChange={setSourceAllocations}
+            totalQuantity={formData.quantity}
+          />
+
+          {formData.to_warehouse_id && destLocations.length > 0 && (
+            <LocationAllocationEditor
+              locations={destLocations}
+              value={destAllocations}
+              onChange={(next) => {
+                setDestAllocations(next);
+                const primary = primaryLocationId(next);
+                if (primary) setFormData((prev) => ({ ...prev, to_location_id: primary }));
+              }}
+              totalQuantity={formData.quantity}
+            />
+          )}
 
           <div>
             <Label htmlFor="transfer_date">
