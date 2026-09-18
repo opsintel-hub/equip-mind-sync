@@ -971,6 +971,11 @@ const ReceiveGoods = () => {
       return;
     }
 
+    if (allocationTotal(allocations) !== batchTotalQuantity) {
+      toast.error(`กรุณากระจายจำนวนลงช่องจัดเก็บให้ครบ ${batchTotalQuantity} รายการ`);
+      return;
+    }
+
     setIsLoading(true);
 
     try {
