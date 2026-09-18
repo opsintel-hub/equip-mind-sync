@@ -231,13 +231,23 @@ export function SupplierImport({ onSuccess }: SupplierImportProps) {
               <li>คอลัมน์ที่รองรับ: <b>Company, Vendor ID, Tax ID, Vendor Name, Description, Media Site Name</b></li>
               <li>ระบบจะ <b>ยุบซ้ำอัตโนมัติ</b> ตาม Vendor ID (จากไฟล์ 250k+ แถว → ~80 vendor)</li>
               <li>ถ้า Vendor ID ตรงกับที่มีอยู่ ระบบจะ <b>อัปเดต</b>; ถ้าไม่ตรงจะ <b>เพิ่มใหม่</b> (Upsert)</li>
+              <li>ไฟล์ Template มีชีตอ้างอิง <b>_ref_companies / _ref_media_sites / _ref_departments</b> ที่ดึงข้อมูลหลักล่าสุดทุกครั้งที่ดาวน์โหลด</li>
             </ol>
+            <div className="text-xs text-muted-foreground">เวอร์ชัน Template ล่าสุด: <b>{templateVersion("supplier")}</b></div>
           </div>
 
-          <Button onClick={downloadTemplate} variant="secondary" className="w-full">
+          <Button onClick={downloadTemplate} variant="secondary" className="w-full" disabled={templateLoading}>
             <Download className="h-4 w-4 mr-2" />
-            ดาวน์โหลด Template Excel
+            {templateLoading ? "กำลังสร้าง Template..." : "ดาวน์โหลด Template นำเข้าข้อมูล (อัพเดทล่าสุด)"}
           </Button>
+
+          {check && (
+            <Alert variant={check.blocking ? "destructive" : "default"}>
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription className="text-sm">{check.message}</AlertDescription>
+            </Alert>
+          )}
+
 
           <div className="border-t pt-4">
             <label className="block">
