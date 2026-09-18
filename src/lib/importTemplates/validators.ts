@@ -1,4 +1,5 @@
 import type { RefLookups } from "./refData";
+import { parseLocationCodes } from "./locationCodes";
 import { SUB_MEDIA_TYPES, requiresSubMediaType, isValidSubMediaType } from "@/lib/mediaPlayerSubTypes";
 
 export interface ValidatedRow {
@@ -95,18 +96,26 @@ export function validateEquipmentRows(rows: any[], refs: RefLookups, existingCod
     const department = s(row.department);
     if (department && !deptNames.has(department)) errors.push(`department "${department}" ไม่อยู่ใน master`);
 
-    const locationCode = s(row.location_code);
-    let locationId: string | null = null;
-    if (!locationCode) errors.push("location_code ว่าง");
-    else {
-      const id = locationByCode.get(locationCode);
-      if (!id) errors.push(`location_code "${locationCode}" ไม่อยู่ใน master`);
-      else locationId = id;
-    }
-
     const qty = n(row.quantity_in_stock);
     if (qty === null || Number.isNaN(qty) || qty < 0 || !Number.isInteger(qty))
       errors.push("quantity_in_stock ต้องเป็นจำนวนเต็ม ≥ 0");
+
+    const locationCode = s(row.location_code);
+    let locationId: string | null = null;
+    let locationAllocations: Array<{ location_id: string; quantity: number }> = [];
+    if (!locationCode) errors.push("location_code ว่าง");
+    else {
+      const parsed = parseLocationCodes(
+        locationCode,
+        locationByCode,
+        qty !== null && !Number.isNaN(qty) ? qty : null
+      );
+      if (parsed.errors.length > 0) errors.push(...parsed.errors);
+      else {
+        locationId = parsed.primaryLocationId;
+        locationAllocations = parsed.allocations.map((a) => ({ location_id: a.locationId, quantity: a.quantity }));
+      }
+    }
 
     const price = n(row.unit_price);
     if (price === null || Number.isNaN(price) || price < 0) errors.push("unit_price ต้องเป็นตัวเลข ≥ 0");
