@@ -1,5 +1,6 @@
 import type { RefLookups } from "./refData";
 import type { ValidatedRow } from "./validators";
+import { parseLocationCodes } from "./locationCodes";
 
 const truthy = (v: any) => v !== undefined && v !== null && String(v).trim() !== "";
 const s = (v: any) => (truthy(v) ? String(v).trim() : "");
@@ -89,18 +90,26 @@ export function validateToolRows(rows: any[], refs: RefLookups, existingCodes: S
     const department = s(row.department);
     if (department && !deptNames.has(department)) errors.push(`department "${department}" ไม่อยู่ใน master`);
 
-    const locationCode = s(row.location_code);
-    let locationId: string | null = null;
-    if (locationCode) {
-      const id = locationByCode.get(locationCode);
-      if (!id) errors.push(`location_code "${locationCode}" ไม่อยู่ใน master`);
-      else locationId = id;
-    }
-
     const unit = s(row.unit) || "ชิ้น";
     const qty = n(row.quantity);
     if (qty === null || Number.isNaN(qty) || qty < 1 || !Number.isInteger(qty))
       errors.push("quantity ต้องเป็นจำนวนเต็ม ≥ 1");
+
+    const locationCode = s(row.location_code);
+    let locationId: string | null = null;
+    let locationAllocations: Array<{ location_id: string; quantity: number }> = [];
+    if (locationCode) {
+      const parsed = parseLocationCodes(
+        locationCode,
+        locationByCode,
+        qty !== null && !Number.isNaN(qty) ? qty : null
+      );
+      if (parsed.errors.length > 0) errors.push(...parsed.errors);
+      else {
+        locationId = parsed.primaryLocationId;
+        locationAllocations = parsed.allocations.map((a) => ({ location_id: a.locationId, quantity: a.quantity }));
+      }
+    }
 
     const price = n(row.unit_price);
     if (price !== null && (Number.isNaN(price) || price < 0)) errors.push("unit_price ต้องเป็นตัวเลข ≥ 0");
@@ -126,6 +135,7 @@ export function validateToolRows(rows: any[], refs: RefLookups, existingCodes: S
       company_id: companyId,
       department: department || null,
       location_id: locationId,
+      location_allocations: locationAllocations,
       unit,
       quantity: qty,
       unit_price: price ?? 0,
