@@ -22,6 +22,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { useDeptScope } from "@/hooks/useDeptScope";
 import { useSectionScope } from "@/hooks/useSectionScope";
 import BillboardDisplay from "@/components/billboard/BillboardDisplay";
+import { LocationPickEditor } from "@/components/location/LocationPickEditor";
+import { LocationAllocation, allocationTotal, deductLocationAllocations } from "@/lib/locationAllocations";
 import BillboardSelect from "@/components/billboard/BillboardSelect";
 import { SubMediaTypeSelect } from "@/components/media-player/SubMediaTypeSelect";
 import { requiresSubMediaType } from "@/lib/mediaPlayerSubTypes";
