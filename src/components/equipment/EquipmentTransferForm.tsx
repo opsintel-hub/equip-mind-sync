@@ -116,6 +116,18 @@ export function EquipmentTransferForm({ equipment, onSuccess }: EquipmentTransfe
       return;
     }
 
+    if (destAllocations.length > 0 && allocationTotal(destAllocations) !== formData.quantity) {
+      toast.error(`กรุณากระจายจำนวนลงช่องปลายทางให้ครบ ${formData.quantity}`);
+      return;
+    }
+
+    if (sourceAllocations.length > 0 && allocationTotal(sourceAllocations) !== formData.quantity) {
+      toast.error(`กรุณาเลือกช่องต้นทางให้ครบ ${formData.quantity}`);
+      return;
+    }
+
+
+
     try {
       setLoading(true);
       const { data: { user } } = await supabase.auth.getUser();
