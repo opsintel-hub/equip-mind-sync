@@ -349,28 +349,6 @@ export function EquipmentCodePrefixSelect({ value, onChange, disabled, onCodeGen
         </DialogContent>
       </Dialog>
 
-      <AlertDialog open={!!deleteId} onOpenChange={(o) => { if (!o) { setDeleteId(null); setUsage(null); } }}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>
-              {(usage?.count ?? 0) > 0 ? "Prefix นี้ถูกใช้งานอยู่" : "ยืนยันการลบ"}
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              {usage === null
-                ? "กำลังตรวจสอบการใช้งาน..."
-                : usage.count > 0
-                ? `มี ${usage.count} รายการที่ใช้ Prefix นี้ (เช่น ${usage.samples.join(", ")}) จึงลบออกไม่ได้ — ระบบจะปิดการใช้งานแทน รหัสเดิมยังใช้งานได้ตามปกติ แต่จะไม่ถูกนำไปสร้างรหัสใหม่อีก`
-                : "ยังไม่มีรายการใดใช้ Prefix นี้ — จะลบออกจากระบบถาวร"}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>ยกเลิก</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} disabled={usage === null}>
-              {(usage?.count ?? 0) > 0 ? "ปิดการใช้งาน" : "ลบ"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </>
   );
 }
