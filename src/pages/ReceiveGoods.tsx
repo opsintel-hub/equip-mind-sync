@@ -595,13 +595,20 @@ const ReceiveGoods = () => {
   const handleWarehouseChange = (warehouseId: string) => {
     setSelectedWarehouseId(warehouseId);
     setStorageLocation({ locationId: "" });
+    setAllocations([]);
     setLocationCapacity(null);
   };
 
-  // Handle location change within warehouse
-  const handleLocationChange = (locationId: string) => {
-    setStorageLocation({ locationId });
-    fetchLocationCapacity(locationId);
+  // จำนวนรวมของการรับเข้าแบบหลายรายการ
+  const batchTotalQuantity = batchReceipts.reduce((sum, r) => sum + (r.quantity || 0), 0);
+
+  // อัปเดตการกระจายของลงหลายช่อง + ตั้งช่องหลัก (ใช้กับฟิลด์เดิม)
+  const applyAllocations = (next: LocationAllocation[]) => {
+    setAllocations(next);
+    const primary = primaryLocationId(next);
+    setStorageLocation({ locationId: primary });
+    if (primary) fetchLocationCapacity(primary);
+    else setLocationCapacity(null);
   };
 
   // Fetch location capacity when location is selected
