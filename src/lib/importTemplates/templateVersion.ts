@@ -44,7 +44,83 @@ export const TOOL_HEADERS = [
   "notes",
 ];
 
-export type TemplateKind = "equipment" | "media_player" | "tool";
+export const SUPPLIER_HEADERS = [
+  "Company", "Vendor ID", "Tax ID", "Vendor Name", "Description",
+  "Media Site Name", "Contact Person", "Phone", "Email", "Address", "Notes",
+];
+
+export const WAREHOUSE_SHEET_HEADERS = [
+  "รหัสคลัง (code)*",
+  "ชื่อคลัง (name)*",
+  "ประเภทพื้นที่ (storage_area) Indoor|Outdoor|Semi-outdoor*",
+  "ฝ่าย (department)",
+  "รายละเอียด (description)",
+];
+
+export const LOCATION_SHEET_HEADERS = [
+  "รหัสคลังสินค้า (warehouse_code)*",
+  "รหัสตำแหน่ง (code)*",
+  "ชื่อตำแหน่ง (name)*",
+  "รายละเอียด (description)",
+  "พื้นที่จัดเก็บ (storage_area)",
+  "รหัสโซน (zone_code)",
+  "ชื่อโซน (zone_name)",
+  "กว้าง cm (width_cm)",
+  "สูง cm (height_cm)",
+  "ลึก cm (depth_cm)",
+];
+
+/** Legacy in-dialog templates (simplified column sets) */
+export const EQUIPMENT_SIMPLE_HEADERS = [
+  "รหัสอุปกรณ์ (code)*",
+  "ชื่ออุปกรณ์ (name)*",
+  "หมวดหมู่ (category)*",
+  "ฝ่าย (department)",
+  "ยี่ห้อ (brand)",
+  "หน่วย (unit)*",
+  "จำนวน (quantity_in_stock)*",
+  "จุดสั่งซื้อ (min_stock_level)",
+  "ราคาต่อหน่วย (unit_price)",
+  "หมายเลขซีเรียล (serial_number)",
+  "โวลท์ (volt)",
+  "แอมป์ (amp)",
+  "วัตต์ (watt)",
+  "ลูเมน (lumen)",
+  "ลักซ์ (lux)",
+  "วันหมดอายุ (expiry_date)",
+  "วันหมดประกัน (warranty_expiry_date)",
+  "เป็นสินทรัพย์ (is_asset)",
+  "รหัสสินทรัพย์ (asset_code)",
+  "รหัส Equipment ID (equipment_id_code)",
+  "หมายเหตุ (notes)",
+];
+
+export const TOOL_SIMPLE_HEADERS = [
+  "รหัสเครื่องมือ*",
+  "ชื่อเครื่องมือ*",
+  "หมวดหมู่",
+  "ฝ่าย",
+  "บริษัท",
+  "ยี่ห้อ",
+  "หน่วย*",
+  "จำนวน*",
+  "Serial Number",
+  "ราคาต่อชิ้น (บาท)",
+  "ระยะเวลา PM (วัน)*",
+  "เป็นทรัพย์สิน",
+  "เลขที่ทรัพย์สิน",
+  "ผู้รับผิดชอบ",
+  "ประจำตัวช่าง",
+  "มีประกัน",
+  "วันหมดประกัน (yyyy-mm-dd)",
+  "วันหมดอายุ (yyyy-mm-dd)",
+  "วันที่นำเข้าคลัง (yyyy-mm-dd)",
+  "หมายเหตุ",
+];
+
+/** kinds ที่ใช้หน้า ImportPageShell (มี RPC + prefix counter) */
+export type ImportTemplateKind = "equipment" | "media_player" | "tool";
+export type TemplateKind = ImportTemplateKind | "supplier" | "location" | "equipment_simple" | "tool_simple";
 
 interface TemplateDef {
   kind: TemplateKind;
@@ -59,7 +135,15 @@ export const TEMPLATE_DEFS: Record<TemplateKind, TemplateDef> = {
   equipment: { kind: "equipment", label: "อุปกรณ์", sheetName: "Equipment", headers: EQUIPMENT_HEADERS, revision: 1 },
   media_player: { kind: "media_player", label: "Media Player / จอภาพ", sheetName: "MediaPlayer", headers: MEDIA_PLAYER_HEADERS, revision: 1 },
   tool: { kind: "tool", label: "เครื่องมือ", sheetName: "Tools", headers: TOOL_HEADERS, revision: 1 },
+  supplier: { kind: "supplier", label: "ผู้จำหน่าย", sheetName: "Vendor list-Store", headers: SUPPLIER_HEADERS, revision: 1 },
+  equipment_simple: { kind: "equipment_simple", label: "อุปกรณ์ (แบบย่อ)", sheetName: "Equipment", headers: EQUIPMENT_SIMPLE_HEADERS, revision: 1 },
+  tool_simple: { kind: "tool_simple", label: "เครื่องมือ (แบบย่อ)", sheetName: "เครื่องมือ", headers: TOOL_SIMPLE_HEADERS, revision: 1 },
+  location: {
+    kind: "location", label: "คลัง & ตำแหน่งจัดเก็บ", sheetName: "Locations",
+    headers: [...WAREHOUSE_SHEET_HEADERS, ...LOCATION_SHEET_HEADERS], revision: 1,
+  },
 };
+
 
 const META_SHEET = "_template_meta";
 

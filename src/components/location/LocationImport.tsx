@@ -7,6 +7,8 @@ import { toast } from "sonner";
 import { Upload, Download, FileSpreadsheet, AlertCircle, CheckCircle2 } from "lucide-react";
 import * as XLSX from "xlsx";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { fetchRefRows, appendRefSheet } from "@/lib/importTemplates/simpleRefs";
+import { appendTemplateMeta, verifyWorkbook, templateVersion, type TemplateCheck } from "@/lib/importTemplates/templateVersion";
 
 interface LocationImportProps {
   onSuccess: () => void;
@@ -60,8 +62,17 @@ export function LocationImport({ onSuccess }: LocationImportProps) {
     perWarehouse: WarehouseSummary[];
   } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [templateLoading, setTemplateLoading] = useState(false);
+  const [check, setCheck] = useState<TemplateCheck | null>(null);
 
-  const downloadTemplate = () => {
+  const downloadTemplate = async () => {
+    setTemplateLoading(true);
+    try {
+    const [departments, existingWarehouses, zones] = await Promise.all([
+      fetchRefRows("departments", "name"),
+      fetchRefRows("warehouses", "code,name,storage_area", "code"),
+      fetchRefRows("zones", "code,name", "code"),
+    ]);
     const warehousesData = [
       {
         "รหัสคลัง (code)*": "PB-01",
@@ -133,8 +144,18 @@ export function LocationImport({ onSuccess }: LocationImportProps) {
     wsReadme["!cols"] = [{ wch: 90 }];
     XLSX.utils.book_append_sheet(wb, wsReadme, "README");
 
+    appendRefSheet(wb, "_ref_departments", departments.map((d: any) => ({ name: d.name })), [40]);
+    appendRefSheet(wb, "_ref_warehouses", existingWarehouses.map((w: any) => ({ code: w.code, name: w.name, storage_area: w.storage_area })), [18, 30, 18]);
+    appendRefSheet(wb, "_ref_zones", zones.map((z: any) => ({ code: z.code, name: z.name })), [15, 30]);
+    appendTemplateMeta(wb, "location");
+
     XLSX.writeFile(wb, "warehouse_location_template.xlsx");
-    toast.success("ดาวน์โหลด Template สำเร็จ");
+    toast.success("ดาวน์โหลด Template ล่าสุดสำเร็จ (ชีตอ้างอิงอัปเดตจากข้อมูลหลักปัจจุบัน)");
+    } catch (e: any) {
+      toast.error("ดาวน์โหลด Template ไม่สำเร็จ: " + e.message);
+    } finally {
+      setTemplateLoading(false);
+    }
   };
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -142,6 +163,7 @@ export function LocationImport({ onSuccess }: LocationImportProps) {
     if (!file) return;
     setLoading(true);
     setResult(null);
+    setCheck(null);
 
     try {
       const buf = await file.arrayBuffer();
@@ -165,6 +187,17 @@ export function LocationImport({ onSuccess }: LocationImportProps) {
         toast.error("ไฟล์ไม่มีข้อมูล — กรุณากรอกใน sheet Warehouses หรือ Locations");
         return;
       }
+
+      const headerRow = (name?: string) =>
+        name ? ((XLSX.utils.sheet_to_json<any[]>(wb.Sheets[name], { header: 1 })[0] || []) as any[]).map((h) => String(h).trim()) : [];
+      const verdict = verifyWorkbook(wb, "location", [...headerRow(whSheetName), ...headerRow(locSheetName)]);
+      // ไฟล์นี้อาจกรอกเพียงชีทเดียว — บล็อกเฉพาะกรณีเป็น Template คนละชนิด
+      setCheck(verdict);
+      if (verdict.status === "wrong_kind") {
+        toast.error(verdict.message);
+        return;
+      }
+
 
       const { data: userData } = await supabase.auth.getUser();
       const { data: depts } = await supabase.from("departments").select("name").eq("is_active", true);
@@ -431,13 +464,23 @@ export function LocationImport({ onSuccess }: LocationImportProps) {
               <li>กรอกชีท <b>Locations</b> — อ้าง 'รหัสคลังสินค้า' ให้ตรงกับชีทแรก</li>
               <li>ระบุ กว้าง/สูง/ลึก (cm) → คำนวณ m³ อัตโนมัติ</li>
               <li>อัปโหลดไฟล์เดียว — ระบบสร้างคลังก่อน แล้วค่อยสร้างตำแหน่ง</li>
+              <li>มีชีตอ้างอิง <b>_ref_departments / _ref_warehouses / _ref_zones</b> ที่ดึงข้อมูลหลักล่าสุดทุกครั้งที่ดาวน์โหลด</li>
             </ol>
+            <div className="text-xs text-muted-foreground">เวอร์ชัน Template ล่าสุด: <b>{templateVersion("location")}</b></div>
           </div>
 
-          <Button onClick={downloadTemplate} variant="secondary" className="w-full">
+          <Button onClick={downloadTemplate} variant="secondary" className="w-full" disabled={templateLoading}>
             <Download className="h-4 w-4 mr-2" />
-            ดาวน์โหลด Template Excel
+            {templateLoading ? "กำลังสร้าง Template..." : "ดาวน์โหลด Template นำเข้าข้อมูล (อัพเดทล่าสุด)"}
           </Button>
+
+          {check && (
+            <Alert variant={check.status === "wrong_kind" ? "destructive" : "default"}>
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription className="text-sm">{check.message}</AlertDescription>
+            </Alert>
+          )}
+
 
           <div className="border-t pt-4">
             <label className="block">

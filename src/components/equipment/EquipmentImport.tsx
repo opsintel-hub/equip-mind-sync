@@ -7,6 +7,8 @@ import { toast } from "sonner";
 import { Upload, Download, FileSpreadsheet, AlertCircle, CheckCircle2 } from "lucide-react";
 import * as XLSX from "xlsx";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { fetchRefRows, appendRefSheet } from "@/lib/importTemplates/simpleRefs";
+import { appendTemplateMeta, verifyWorkbook, templateVersion, EQUIPMENT_SIMPLE_HEADERS, type TemplateCheck } from "@/lib/importTemplates/templateVersion";
 
 interface EquipmentImportProps {
   onSuccess: () => void;
@@ -45,8 +47,18 @@ export function EquipmentImport({ onSuccess }: EquipmentImportProps) {
     errors: string[];
   } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [templateLoading, setTemplateLoading] = useState(false);
+  const [check, setCheck] = useState<TemplateCheck | null>(null);
 
-  const downloadTemplate = () => {
+  const downloadTemplate = async () => {
+    setTemplateLoading(true);
+    try {
+    const [categories, departments, brands, units] = await Promise.all([
+      fetchRefRows("categories", "name"),
+      fetchRefRows("departments", "name"),
+      fetchRefRows("brands", "name"),
+      fetchRefRows("units", "name"),
+    ]);
     const templateData = [
       {
         "รหัสอุปกรณ์ (code)*": "EQ-001",
@@ -73,7 +85,7 @@ export function EquipmentImport({ onSuccess }: EquipmentImportProps) {
       },
     ];
 
-    const ws = XLSX.utils.json_to_sheet(templateData);
+    const ws = XLSX.utils.json_to_sheet(templateData, { header: EQUIPMENT_SIMPLE_HEADERS });
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Equipment");
 
@@ -84,8 +96,19 @@ export function EquipmentImport({ onSuccess }: EquipmentImportProps) {
       { wch: 18 }, { wch: 22 }, { wch: 30 },
     ];
 
+    appendRefSheet(wb, "_ref_categories", categories.map((c: any) => ({ name: c.name })), [40]);
+    appendRefSheet(wb, "_ref_departments", departments.map((d: any) => ({ name: d.name })), [40]);
+    appendRefSheet(wb, "_ref_brands", brands.map((b: any) => ({ name: b.name })), [30]);
+    appendRefSheet(wb, "_ref_units", units.map((u: any) => ({ name: u.name })), [20]);
+    appendTemplateMeta(wb, "equipment_simple");
+
     XLSX.writeFile(wb, "equipment_import_template.xlsx");
-    toast.success("ดาวน์โหลด Template สำเร็จ");
+    toast.success("ดาวน์โหลด Template ล่าสุดสำเร็จ (ชีตอ้างอิงอัปเดตจากข้อมูลหลักปัจจุบัน)");
+    } catch (e: any) {
+      toast.error("ดาวน์โหลด Template ไม่สำเร็จ: " + e.message);
+    } finally {
+      setTemplateLoading(false);
+    }
   };
 
   const parseDate = (value: any): string | undefined => {
@@ -108,12 +131,20 @@ export function EquipmentImport({ onSuccess }: EquipmentImportProps) {
 
     setLoading(true);
     setImportResult(null);
+    setCheck(null);
 
     try {
       const data = await file.arrayBuffer();
       const workbook = XLSX.read(data);
-      const sheetName = workbook.SheetNames[0];
+      const sheetName = workbook.SheetNames.find((n) => !n.startsWith("_ref_") && n !== "_template_meta") || workbook.SheetNames[0];
       const worksheet = workbook.Sheets[sheetName];
+      const fileHeaders = ((XLSX.utils.sheet_to_json<any[]>(worksheet, { header: 1 })[0] || []) as any[]).map((h) => String(h).trim());
+      const verdict = verifyWorkbook(workbook, "equipment_simple", fileHeaders);
+      setCheck(verdict);
+      if (verdict.blocking) {
+        toast.error(verdict.message);
+        return;
+      }
       const jsonData = XLSX.utils.sheet_to_json(worksheet);
 
       if (jsonData.length === 0) {
@@ -274,13 +305,22 @@ export function EquipmentImport({ onSuccess }: EquipmentImportProps) {
               <li>กรอกข้อมูลตาม Template (ห้ามเปลี่ยนชื่อหัวคอลัมน์)</li>
               <li>บันทึกไฟล์เป็น .xlsx หรือ .csv</li>
               <li>อัปโหลดไฟล์เพื่อนำเข้าข้อมูล</li>
+              <li>มีชีตอ้างอิง <b>_ref_categories / _ref_departments / _ref_brands / _ref_units</b> อัปเดตจากข้อมูลหลักล่าสุด</li>
             </ol>
+            <div className="text-xs text-muted-foreground">เวอร์ชัน Template ล่าสุด: <b>{templateVersion("equipment_simple")}</b></div>
           </div>
 
-          <Button onClick={downloadTemplate} variant="secondary" className="w-full">
+          <Button onClick={downloadTemplate} variant="secondary" className="w-full" disabled={templateLoading}>
             <Download className="h-4 w-4 mr-2" />
-            ดาวน์โหลด Template Excel
+            {templateLoading ? "กำลังสร้าง Template..." : "ดาวน์โหลด Template นำเข้าข้อมูล (อัพเดทล่าสุด)"}
           </Button>
+
+          {check && (
+            <Alert variant={check.blocking ? "destructive" : "default"}>
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription className="text-sm">{check.message}</AlertDescription>
+            </Alert>
+          )}
 
           <div className="border-t pt-4">
             <label className="block">

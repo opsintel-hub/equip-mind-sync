@@ -11,6 +11,8 @@ import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { fetchRefRows, appendRefSheet } from "@/lib/importTemplates/simpleRefs";
+import { appendTemplateMeta, verifyWorkbook, templateVersion, type TemplateCheck } from "@/lib/importTemplates/templateVersion";
 
 interface ToolImportProps {
   onSuccess: () => void;
@@ -47,6 +49,8 @@ export function ToolImport({ onSuccess }: ToolImportProps) {
     errors: string[];
   } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [templateLoading, setTemplateLoading] = useState(false);
+  const [check, setCheck] = useState<TemplateCheck | null>(null);
 
   const resetState = () => {
     setStep("upload");
@@ -58,7 +62,16 @@ export function ToolImport({ onSuccess }: ToolImportProps) {
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
-  const downloadTemplate = () => {
+  const downloadTemplate = async () => {
+    setTemplateLoading(true);
+    try {
+    const [categories, departments, companies, brands, units] = await Promise.all([
+      fetchRefRows("categories", "name"),
+      fetchRefRows("departments", "name"),
+      fetchRefRows("companies", "name"),
+      fetchRefRows("brands", "name"),
+      fetchRefRows("units", "name"),
+    ]);
     const templateData = [
       {
         "รหัสเครื่องมือ*": "TL-0001",
@@ -149,8 +162,20 @@ export function ToolImport({ onSuccess }: ToolImportProps) {
     wsInst["!cols"] = [{ wch: 25 }, { wch: 55 }, { wch: 10 }];
     XLSX.utils.book_append_sheet(wb, wsInst, "คำอธิบาย");
 
+    appendRefSheet(wb, "_ref_categories", categories.map((c: any) => ({ name: c.name })), [40]);
+    appendRefSheet(wb, "_ref_departments", departments.map((d: any) => ({ name: d.name })), [40]);
+    appendRefSheet(wb, "_ref_companies", companies.map((c: any) => ({ name: c.name })), [40]);
+    appendRefSheet(wb, "_ref_brands", brands.map((b: any) => ({ name: b.name })), [30]);
+    appendRefSheet(wb, "_ref_units", units.map((u: any) => ({ name: u.name })), [20]);
+    appendTemplateMeta(wb, "tool_simple");
+
     XLSX.writeFile(wb, "template_นำเข้าเครื่องมือ.xlsx");
-    toast.success("ดาวน์โหลด Template สำเร็จ");
+    toast.success("ดาวน์โหลด Template ล่าสุดสำเร็จ (ชีตอ้างอิงอัปเดตจากข้อมูลหลักปัจจุบัน)");
+    } catch (e: any) {
+      toast.error("ดาวน์โหลด Template ไม่สำเร็จ: " + e.message);
+    } finally {
+      setTemplateLoading(false);
+    }
   };
 
   const parseDate = (value: any): string | undefined => {
@@ -197,12 +222,21 @@ export function ToolImport({ onSuccess }: ToolImportProps) {
 
     setLoading(true);
     setImportResult(null);
+    setCheck(null);
 
     try {
       const data = await file.arrayBuffer();
       const workbook = XLSX.read(data);
-      const sheetName = workbook.SheetNames[0];
+      const sheetName = workbook.SheetNames.find((n) => !n.startsWith("_ref_") && n !== "_template_meta" && n !== "คำอธิบาย") || workbook.SheetNames[0];
       const worksheet = workbook.Sheets[sheetName];
+      const fileHeaders = ((XLSX.utils.sheet_to_json<any[]>(worksheet, { header: 1 })[0] || []) as any[]).map((h) => String(h).trim());
+      const verdict = verifyWorkbook(workbook, "tool_simple", fileHeaders);
+      setCheck(verdict);
+      if (verdict.blocking) {
+        toast.error(verdict.message);
+        setLoading(false);
+        return;
+      }
       const jsonData = XLSX.utils.sheet_to_json(worksheet);
 
       if (jsonData.length === 0) {
@@ -442,16 +476,25 @@ export function ToolImport({ onSuccess }: ToolImportProps) {
                 <li>กรอกข้อมูลตาม Template (ดูแท็บ "คำอธิบาย" ในไฟล์)</li>
                 <li>บันทึกไฟล์เป็น .xlsx</li>
                 <li>อัปโหลดไฟล์ → ระบบจะตรวจสอบก่อนนำเข้าจริง</li>
+                <li>มีชีตอ้างอิง <b>_ref_categories / _ref_departments / _ref_companies / _ref_brands / _ref_units</b> อัปเดตจากข้อมูลหลักล่าสุด</li>
               </ol>
               <p className="text-xs text-muted-foreground">
                 💡 ถ้ารหัสเครื่องมือซ้ำกับที่มีในระบบ จะอัปเดตข้อมูลเดิมให้อัตโนมัติ
               </p>
+              <div className="text-xs text-muted-foreground">เวอร์ชัน Template ล่าสุด: <b>{templateVersion("tool_simple")}</b></div>
             </div>
 
-            <Button onClick={downloadTemplate} variant="secondary" className="w-full gap-2">
+            <Button onClick={downloadTemplate} variant="secondary" className="w-full gap-2" disabled={templateLoading}>
               <Download className="h-4 w-4" />
-              ดาวน์โหลด Template Excel
+              {templateLoading ? "กำลังสร้าง Template..." : "ดาวน์โหลด Template นำเข้าข้อมูล (อัพเดทล่าสุด)"}
             </Button>
+
+            {check && (
+              <Alert variant={check.blocking ? "destructive" : "default"}>
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription className="text-sm">{check.message}</AlertDescription>
+              </Alert>
+            )}
 
             <div className="border-t pt-4">
               <label className="block">

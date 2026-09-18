@@ -7,6 +7,8 @@ import { toast } from "sonner";
 import { Upload, Download, FileSpreadsheet, AlertCircle, CheckCircle2 } from "lucide-react";
 import * as XLSX from "xlsx";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { fetchRefRows, appendRefSheet } from "@/lib/importTemplates/simpleRefs";
+import { appendTemplateMeta, verifyWorkbook, templateVersion, SUPPLIER_HEADERS, type TemplateCheck } from "@/lib/importTemplates/templateVersion";
 
 interface SupplierImportProps {
   onSuccess: () => void;
@@ -49,29 +51,50 @@ export function SupplierImport({ onSuccess }: SupplierImportProps) {
     errors: string[];
   } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [templateLoading, setTemplateLoading] = useState(false);
+  const [check, setCheck] = useState<TemplateCheck | null>(null);
 
-  const downloadTemplate = () => {
-    const templateData = [
-      {
-        Company: "ADS",
-        "Vendor ID": "000006",
-        "Tax ID": "0105549081490",
-        "Vendor Name": "บริษัท ตัวอย่าง จำกัด",
-        Description: "AL LED Strip 1.6 M, 24V CCT",
-        "Media Site Name": "Metro Poster",
-        "Contact Person": "คุณสมชาย",
-        Phone: "02-xxx-xxxx",
-        Email: "contact@example.com",
-        Address: "123 ถนนตัวอย่าง กรุงเทพฯ",
-        Notes: "หมายเหตุ",
-      },
-    ];
-    const ws = XLSX.utils.json_to_sheet(templateData);
-    ws["!cols"] = [{ wch: 10 }, { wch: 12 }, { wch: 18 }, { wch: 40 }, { wch: 35 }, { wch: 20 }, { wch: 20 }, { wch: 15 }, { wch: 25 }, { wch: 40 }, { wch: 30 }];
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Vendor list-Store");
-    XLSX.writeFile(wb, "supplier_import_template.xlsx");
-    toast.success("ดาวน์โหลด Template สำเร็จ");
+  const downloadTemplate = async () => {
+    setTemplateLoading(true);
+    try {
+      const [companies, mediaSites, departments] = await Promise.all([
+        fetchRefRows("companies", "code,name"),
+        fetchRefRows("media_sites", "name"),
+        fetchRefRows("departments", "name"),
+      ]);
+
+      const templateData = [
+        {
+          Company: companies[0]?.code || "ADS",
+          "Vendor ID": "000006",
+          "Tax ID": "0105549081490",
+          "Vendor Name": "บริษัท ตัวอย่าง จำกัด (ลบแถวนี้ก่อนนำเข้า)",
+          Description: "AL LED Strip 1.6 M, 24V CCT",
+          "Media Site Name": mediaSites[0]?.name || "Metro Poster",
+          "Contact Person": "คุณสมชาย",
+          Phone: "02-xxx-xxxx",
+          Email: "contact@example.com",
+          Address: "123 ถนนตัวอย่าง กรุงเทพฯ",
+          Notes: "หมายเหตุ",
+        },
+      ];
+      const ws = XLSX.utils.json_to_sheet(templateData, { header: SUPPLIER_HEADERS });
+      ws["!cols"] = [{ wch: 10 }, { wch: 12 }, { wch: 18 }, { wch: 40 }, { wch: 35 }, { wch: 20 }, { wch: 20 }, { wch: 15 }, { wch: 25 }, { wch: 40 }, { wch: 30 }];
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Vendor list-Store");
+
+      appendRefSheet(wb, "_ref_companies", companies.map((c: any) => ({ code: c.code, name: c.name })), [15, 50]);
+      appendRefSheet(wb, "_ref_media_sites", mediaSites.map((m: any) => ({ name: m.name })), [40]);
+      appendRefSheet(wb, "_ref_departments", departments.map((d: any) => ({ name: d.name })), [40]);
+      appendTemplateMeta(wb, "supplier");
+
+      XLSX.writeFile(wb, "supplier_import_template.xlsx");
+      toast.success("ดาวน์โหลด Template ล่าสุดสำเร็จ (ชีตอ้างอิงอัปเดตจากข้อมูลหลักปัจจุบัน)");
+    } catch (e: any) {
+      toast.error("ดาวน์โหลด Template ไม่สำเร็จ: " + e.message);
+    } finally {
+      setTemplateLoading(false);
+    }
   };
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -80,12 +103,13 @@ export function SupplierImport({ onSuccess }: SupplierImportProps) {
 
     setLoading(true);
     setImportResult(null);
+    setCheck(null);
     setProgress("กำลังอ่านไฟล์...");
 
     try {
       const data = await file.arrayBuffer();
       const workbook = XLSX.read(data);
-      const sheetName = workbook.SheetNames[0];
+      const sheetName = workbook.SheetNames.find((n) => !n.startsWith("_ref_") && n !== "_template_meta") || workbook.SheetNames[0];
       const worksheet = workbook.Sheets[sheetName];
       const jsonData = XLSX.utils.sheet_to_json<Record<string, any>>(worksheet, { defval: "" });
 
@@ -93,6 +117,15 @@ export function SupplierImport({ onSuccess }: SupplierImportProps) {
         toast.error("ไฟล์ไม่มีข้อมูล");
         return;
       }
+
+      const fileHeaders = (XLSX.utils.sheet_to_json<any[]>(worksheet, { header: 1 })[0] || []).map((h: any) => String(h).trim());
+      const verdict = verifyWorkbook(workbook, "supplier", fileHeaders);
+      setCheck(verdict);
+      if (verdict.blocking) {
+        toast.error(verdict.message);
+        return;
+      }
+
 
       setProgress(`พบ ${jsonData.length.toLocaleString()} แถว — กำลัง dedupe...`);
       await new Promise((r) => setTimeout(r, 10));
@@ -198,13 +231,23 @@ export function SupplierImport({ onSuccess }: SupplierImportProps) {
               <li>คอลัมน์ที่รองรับ: <b>Company, Vendor ID, Tax ID, Vendor Name, Description, Media Site Name</b></li>
               <li>ระบบจะ <b>ยุบซ้ำอัตโนมัติ</b> ตาม Vendor ID (จากไฟล์ 250k+ แถว → ~80 vendor)</li>
               <li>ถ้า Vendor ID ตรงกับที่มีอยู่ ระบบจะ <b>อัปเดต</b>; ถ้าไม่ตรงจะ <b>เพิ่มใหม่</b> (Upsert)</li>
+              <li>ไฟล์ Template มีชีตอ้างอิง <b>_ref_companies / _ref_media_sites / _ref_departments</b> ที่ดึงข้อมูลหลักล่าสุดทุกครั้งที่ดาวน์โหลด</li>
             </ol>
+            <div className="text-xs text-muted-foreground">เวอร์ชัน Template ล่าสุด: <b>{templateVersion("supplier")}</b></div>
           </div>
 
-          <Button onClick={downloadTemplate} variant="secondary" className="w-full">
+          <Button onClick={downloadTemplate} variant="secondary" className="w-full" disabled={templateLoading}>
             <Download className="h-4 w-4 mr-2" />
-            ดาวน์โหลด Template Excel
+            {templateLoading ? "กำลังสร้าง Template..." : "ดาวน์โหลด Template นำเข้าข้อมูล (อัพเดทล่าสุด)"}
           </Button>
+
+          {check && (
+            <Alert variant={check.blocking ? "destructive" : "default"}>
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription className="text-sm">{check.message}</AlertDescription>
+            </Alert>
+          )}
+
 
           <div className="border-t pt-4">
             <label className="block">

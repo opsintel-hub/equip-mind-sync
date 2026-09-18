@@ -11,7 +11,7 @@ import { toast } from "sonner";
 import { fetchAllRefs, type RefLookups } from "@/lib/importTemplates/refData";
 import { type ValidatedRow } from "@/lib/importTemplates/validators";
 import { supabase } from "@/integrations/supabase/client";
-import { templateVersion, verifyWorkbook, TEMPLATE_DEFS, type TemplateKind, type TemplateCheck } from "@/lib/importTemplates/templateVersion";
+import { templateVersion, verifyWorkbook, TEMPLATE_DEFS, type ImportTemplateKind, type TemplateCheck } from "@/lib/importTemplates/templateVersion";
 import { parseCode, syncPrefixCounters } from "@/lib/codePrefix";
 
 const PREFIX_TABLE = {
@@ -32,7 +32,7 @@ interface ImportPageShellProps {
   title: string;
   description: string;
   sheetName: string;
-  templateKind: TemplateKind;
+  templateKind: ImportTemplateKind;
   templateDownloader: (refs: RefLookups) => void;
   validator: (rows: any[], refs: RefLookups) => Promise<ValidatedRow[]>;
   rpcName: "import_equipment_row" | "import_media_player_row" | "import_tool_row";
