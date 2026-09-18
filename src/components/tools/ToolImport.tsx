@@ -158,8 +158,20 @@ export function ToolImport({ onSuccess }: ToolImportProps) {
     wsInst["!cols"] = [{ wch: 25 }, { wch: 55 }, { wch: 10 }];
     XLSX.utils.book_append_sheet(wb, wsInst, "คำอธิบาย");
 
+    appendRefSheet(wb, "_ref_categories", categories.map((c: any) => ({ name: c.name })), [40]);
+    appendRefSheet(wb, "_ref_departments", departments.map((d: any) => ({ name: d.name })), [40]);
+    appendRefSheet(wb, "_ref_companies", companies.map((c: any) => ({ name: c.name })), [40]);
+    appendRefSheet(wb, "_ref_brands", brands.map((b: any) => ({ name: b.name })), [30]);
+    appendRefSheet(wb, "_ref_units", units.map((u: any) => ({ name: u.name })), [20]);
+    appendTemplateMeta(wb, "tool_simple");
+
     XLSX.writeFile(wb, "template_นำเข้าเครื่องมือ.xlsx");
-    toast.success("ดาวน์โหลด Template สำเร็จ");
+    toast.success("ดาวน์โหลด Template ล่าสุดสำเร็จ (ชีตอ้างอิงอัปเดตจากข้อมูลหลักปัจจุบัน)");
+    } catch (e: any) {
+      toast.error("ดาวน์โหลด Template ไม่สำเร็จ: " + e.message);
+    } finally {
+      setTemplateLoading(false);
+    }
   };
 
   const parseDate = (value: any): string | undefined => {
