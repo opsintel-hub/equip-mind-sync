@@ -53,6 +53,7 @@ const getReceiptPoDocumentUrl = (r: any): string | null => {
 import { format } from "date-fns";
 import { useAuth } from "@/hooks/useAuth";
 import { useDeptScope } from "@/hooks/useDeptScope";
+import { warehouseHasDept } from "@/lib/warehouseDepartments";
 import { useSectionScope } from "@/hooks/useSectionScope";
 import { logStockMovement } from "@/lib/stockMovement";
 
@@ -88,6 +89,7 @@ interface Warehouse {
   code: string;
   name: string;
   department?: string | null;
+  departments?: string[] | null;
   total_volume_cm3: number;
   remaining_volume_cm3: number;
 }
@@ -389,7 +391,7 @@ const ReceiveGoods = () => {
   const fetchWarehouses = async () => {
     const { data: warehouseData, error: warehouseError } = await supabase
       .from("warehouses")
-      .select("id, code, name, department")
+      .select("id, code, name, department, departments")
       .eq("is_active", true)
       .order("code");
 
@@ -451,7 +453,7 @@ const ReceiveGoods = () => {
 
     let warehouseId = receipt?.warehouse_id || presetLoc?.warehouse_id || "";
     if (!warehouseId && deptName) {
-      const deptWarehouses = warehouses.filter((w) => w.department === deptName);
+      const deptWarehouses = warehouses.filter((w) => warehouseHasDept(w, deptName));
       if (deptWarehouses.length === 1) warehouseId = deptWarehouses[0].id;
     }
     const locationId = presetLoc && presetLoc.warehouse_id === warehouseId ? presetLoc.id : "";
@@ -575,12 +577,12 @@ const ReceiveGoods = () => {
     (selectedReceipt as any)?.department_id ?? (batchReceipts[0] as any)?.department_id
   );
   const deptWarehouses = activeReceiptDept
-    ? warehouses.filter((w) => w.department === activeReceiptDept)
+    ? warehouses.filter((w) => warehouseHasDept(w, activeReceiptDept))
     : [];
   const availableWarehouses = deptWarehouses.length > 0 ? deptWarehouses : warehouses;
   const selectedWarehouse = warehouses.find((w) => w.id === selectedWarehouseId);
   const warehouseDeptMismatch =
-    !!selectedWarehouse && !!activeReceiptDept && selectedWarehouse.department !== activeReceiptDept;
+    !!selectedWarehouse && !!activeReceiptDept && !warehouseHasDept(selectedWarehouse, activeReceiptDept);
 
   // Handle warehouse change
   const handleWarehouseChange = (warehouseId: string) => {

@@ -9,15 +9,18 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { warehouseDepts } from "@/lib/warehouseDepartments";
 
 const warehouseSchema = z.object({
   code: z.string().min(1, "กรุณากรอกรหัสคลัง").max(50, "รหัสต้องไม่เกิน 50 ตัวอักษร"),
   name: z.string().min(1, "กรุณากรอกชื่อคลัง").max(200, "ชื่อต้องไม่เกิน 200 ตัวอักษร"),
   description: z.string().max(500, "รายละเอียดต้องไม่เกิน 500 ตัวอักษร").optional(),
   storage_area: z.string().min(1, "กรุณาเลือกประเภทพื้นที่"),
-  department: z.string().optional(),
+  departments: z.array(z.string()).default([]),
 });
 
 type WarehouseFormValues = z.infer<typeof warehouseSchema>;
@@ -36,6 +39,7 @@ interface WarehouseFormProps {
     description: string | null;
     storage_area: string | null;
     department: string | null;
+    departments?: string[] | null;
   };
 }
 
@@ -70,7 +74,7 @@ export function WarehouseForm({ onSuccess, editData }: WarehouseFormProps) {
       name: editData?.name || "",
       description: editData?.description || "",
       storage_area: editData?.storage_area || "",
-      department: editData?.department || "",
+      departments: warehouseDepts(editData),
     },
   });
 
@@ -83,7 +87,8 @@ export function WarehouseForm({ onSuccess, editData }: WarehouseFormProps) {
         name: data.name.trim(),
         description: data.description?.trim() || null,
         storage_area: data.storage_area,
-        department: data.department || null,
+        departments: data.departments,
+        department: data.departments[0] || null,
         is_active: true,
       };
 
@@ -216,27 +221,49 @@ export function WarehouseForm({ onSuccess, editData }: WarehouseFormProps) {
 
             <FormField
               control={form.control}
-              name="department"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>ฝ่าย</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value} disabled={isLoading}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="เลือกฝ่าย (ถ้ามี)" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent position="popper" sideOffset={4} className="bg-background z-[200] max-h-60 overflow-y-auto">
+              name="departments"
+              render={({ field }) => {
+                const selected = field.value || [];
+                const toggle = (name: string) =>
+                  field.onChange(
+                    selected.includes(name) ? selected.filter((d) => d !== name) : [...selected, name],
+                  );
+                return (
+                  <FormItem>
+                    <FormLabel>ฝ่ายที่ใช้คลังนี้ (เลือกได้หลายฝ่าย)</FormLabel>
+                    <div className="flex flex-wrap gap-1 min-h-6">
+                      {selected.length === 0 ? (
+                        <span className="text-sm text-muted-foreground">ยังไม่เลือกฝ่าย — ทุกฝ่ายจะไม่เห็นคลังนี้ในรายการของฝ่าย</span>
+                      ) : (
+                        selected.map((d) => (
+                          <Badge key={d} variant="secondary">
+                            {d}
+                          </Badge>
+                        ))
+                      )}
+                    </div>
+                    <div className="border rounded-lg divide-y max-h-52 overflow-y-auto">
                       {departments.map((dept) => (
-                        <SelectItem key={dept.id} value={dept.name}>
-                          {dept.name}
-                        </SelectItem>
+                        <label
+                          key={dept.id}
+                          className="flex items-center gap-2 px-3 py-2 cursor-pointer hover:bg-muted/50"
+                        >
+                          <Checkbox
+                            checked={selected.includes(dept.name)}
+                            onCheckedChange={() => toggle(dept.name)}
+                            disabled={isLoading}
+                          />
+                          <span className="text-sm">{dept.name}</span>
+                        </label>
                       ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
+                      {departments.length === 0 && (
+                        <p className="px-3 py-2 text-sm text-muted-foreground">ยังไม่มีข้อมูลฝ่าย</p>
+                      )}
+                    </div>
+                    <FormMessage />
+                  </FormItem>
+                );
+              }}
             />
 
             <FormField

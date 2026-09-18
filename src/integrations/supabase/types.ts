@@ -6531,6 +6531,7 @@ export type Database = {
           created_at: string
           created_by: string | null
           department: string | null
+          departments: string[]
           description: string | null
           id: string
           is_active: boolean | null
@@ -6543,6 +6544,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           department?: string | null
+          departments?: string[]
           description?: string | null
           id?: string
           is_active?: boolean | null
@@ -6555,6 +6557,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           department?: string | null
+          departments?: string[]
           description?: string | null
           id?: string
           is_active?: boolean | null
