@@ -252,6 +252,8 @@ const ReceiveGoods = () => {
     storageSlotId?: string;
     subStorageSlotId?: string;
   }>({ locationId: "" });
+  // กระจายของลงหลายช่องจัดเก็บ (ช่อง + จำนวน)
+  const [allocations, setAllocations] = useState<LocationAllocation[]>([]);
 
   useEffect(() => {
     fetchEquipment();
