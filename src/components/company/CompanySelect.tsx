@@ -57,7 +57,8 @@ export function CompanySelect({
 
 
     if (departmentId) {
-      query = query.eq("department_id", departmentId);
+      // Include companies not yet linked to a department so they are not hidden
+      query = query.or(`department_id.eq.${departmentId},department_id.is.null`);
     }
 
     const { data, error } = await query;
