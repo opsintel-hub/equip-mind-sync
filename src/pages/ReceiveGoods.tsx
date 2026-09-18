@@ -671,6 +671,11 @@ const ReceiveGoods = () => {
       return;
     }
 
+    if (allocationTotal(allocations) !== (selectedReceipt.quantity || 0)) {
+      toast.error(`กรุณากระจายจำนวนลงช่องจัดเก็บให้ครบ ${selectedReceipt.quantity} หน่วย`);
+      return;
+    }
+
     setIsLoading(true);
 
     try {
