@@ -461,8 +461,9 @@ const IssueRequest = () => {
       toast.error("กรุณาเลือกสินค้า");
       return;
     }
-    if (!currentItem.quantity || parseInt(currentItem.quantity) < 1) {
-      toast.error("กรุณาระบุจำนวน");
+    const parsedQty = parseInt(currentItem.quantity);
+    if (!currentItem.quantity || !Number.isFinite(parsedQty) || parsedQty < 1) {
+      toast.error("จำนวนต้องมากกว่า 0");
       return;
     }
 
@@ -609,6 +610,11 @@ const IssueRequest = () => {
 
   // Accept suggested quantity from warning dialog
   const handleAcceptSuggestedQuantity = () => {
+    if (suggestedQuantity < 1) {
+      toast.error("สินค้านี้ไม่มีคงเหลือในคลัง ไม่สามารถเบิกได้");
+      setStockWarningOpen(false);
+      return;
+    }
     setCurrentItem(prev => ({ ...prev, quantity: suggestedQuantity.toString() }));
     setStockWarningOpen(false);
     
@@ -702,6 +708,14 @@ const IssueRequest = () => {
       const itemsToSubmit = cartItems.filter(item => selectedCartIds.has(item.id));
       if (itemsToSubmit.length === 0) {
         throw new Error("กรุณาเลือกรายการสินค้าอย่างน้อย 1 รายการ");
+      }
+
+      // Guard: no zero / invalid quantities may be submitted
+      const invalidItem = itemsToSubmit.find(
+        (item) => !Number.isFinite(item.quantity) || item.quantity < 1,
+      );
+      if (invalidItem) {
+        throw new Error(`จำนวนของ "${invalidItem.equipment_name}" ต้องมากกว่า 0`);
       }
 
       const purposeName = purposes?.find((p) => p.id === headerData.purpose_id)?.name || headerData.purpose;
