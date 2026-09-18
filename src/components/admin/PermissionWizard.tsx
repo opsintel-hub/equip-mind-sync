@@ -124,6 +124,8 @@ export function PermissionWizard({ open, onOpenChange, user, onSaved }: Permissi
 
   // ระดับผู้ใช้ — ที่เดียวที่ใช้กำหนดสิทธิ์
   const [accessLevel, setAccessLevel] = useState<AccessLevel>("general");
+  /** true = ผู้ใช้อยู่ระดับ Admin/Super Admin และยังไม่ถูกเปลี่ยนระดับในรอบนี้ */
+  const [keepElevated, setKeepElevated] = useState(false);
 
   // Selections
   const [selectedTemplateKeys, setSelectedTemplateKeys] = useState<string[]>([]);
@@ -157,6 +159,7 @@ export function PermissionWizard({ open, onOpenChange, user, onSaved }: Permissi
       setSelectedDepartments(user?.requested_department ? [user.requested_department] : []);
       setSelectedSectionIds([]);
       setPreviewRoles([]);
+      setKeepElevated(false);
       setPreviewFunctions([]);
       setAccessLevel("general");
       setShowAdvanced(false);
@@ -218,6 +221,7 @@ export function PermissionWizard({ open, onOpenChange, user, onSaved }: Permissi
         .map((r) => r.function_name as string);
       const detected = detectAccessLevel(loadedRoles, loadedFns);
       setAccessLevel(detected);
+      setKeepElevated(detected === "admin" || detected === "super_admin");
       // ระดับที่ได้สิทธิ์จากบทบาท (Admin/Super Admin) ไม่มีแถวรายเมนู — เติมจากนิยามระดับ
       if (loadedFns.length === 0) {
         const def = getAccessLevel(detected as any);
@@ -403,7 +407,14 @@ export function PermissionWizard({ open, onOpenChange, user, onSaved }: Permissi
       if (pfErr) throw pfErr;
 
       // 1. Roles via RPC — ระดับผู้ใช้เป็นตัวกำหนดบทบาท
-      const rolesToSave: UserRole[] = levelDef ? levelDef.roles : (previewRoles as UserRole[]);
+      // ระดับผู้ใช้เป็นตัวชี้ขาด — ถ้าไม่ได้เลือกระดับ Admin/Super Admin
+      // ต้องไม่หลงเหลือบทบาท admin/super_admin เดิมค้างอยู่
+      const baseRoles: UserRole[] = levelDef ? levelDef.roles : (previewRoles as UserRole[]);
+      const elevatedAllowed =
+        accessLevel === "admin" || accessLevel === "super_admin" || (accessLevel === "custom" && keepElevated);
+      const rolesToSave: UserRole[] = elevatedAllowed
+        ? baseRoles
+        : baseRoles.filter((r) => r !== "admin" && r !== "super_admin");
       const { error: roleErr } = await supabase.rpc("save_user_roles" as any, {
         _target_user_id: user.id,
         _roles: rolesToSave,
@@ -471,6 +482,8 @@ export function PermissionWizard({ open, onOpenChange, user, onSaved }: Permissi
 
   const chooseLevel = (lv: AccessLevel) => {
     setAccessLevel(lv);
+    // เลือกระดับใหม่ = ตัดสินใจใหม่ทั้งหมด ถ้าไม่ใช่ Admin/Super Admin ให้ถอดสิทธิ์สูงเดิมออก
+    setKeepElevated(lv === "admin" || lv === "super_admin");
     const def = getAccessLevel(lv as any);
     if (def) {
       setPreviewFunctions([...def.fns]);
@@ -742,9 +755,15 @@ export function PermissionWizard({ open, onOpenChange, user, onSaved }: Permissi
                                       togglePreviewFunction(fn.name);
                                       // คงบทบาทของระดับเดิมไว้ (เช่น Admin) ไม่ให้หลุดสิทธิ์เมื่อปรับละเอียด
                                       if (levelDef) {
-                                        setPreviewRoles((prev) =>
-                                          Array.from(new Set([...prev, ...levelDef.roles])) as UserRole[],
-                                        );
+                                        const keep = levelDef.roles;
+                                        const elevated =
+                                          accessLevel === "admin" || accessLevel === "super_admin" || keepElevated;
+                                        setPreviewRoles((prev) => {
+                                          const merged = Array.from(new Set([...prev, ...keep])) as UserRole[];
+                                          return elevated
+                                            ? merged
+                                            : merged.filter((r) => r !== "admin" && r !== "super_admin");
+                                        });
                                       }
                                       setAccessLevel("custom");
                                     }}
