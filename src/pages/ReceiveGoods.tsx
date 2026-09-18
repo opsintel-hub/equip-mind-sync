@@ -1991,24 +1991,13 @@ const ReceiveGoods = () => {
 
             {/* Location Selection (filtered by warehouse) */}
             {selectedWarehouseId && (
-              <div className="space-y-2">
-                <Label>ตำแหน่งจัดเก็บ *</Label>
-                <SearchableSelect
-                  options={filteredLocations.map((loc) => {
-                    const remaining = (loc.volume_cm3 || 0) - (loc.used_volume_cm3 || 0);
-                    return {
-                      value: loc.id,
-                      label: `${loc.zone_code ? `${loc.zone_code}${loc.code}` : loc.code} - ${loc.name}${loc.zone_name ? ` (โซน ${loc.zone_code} · ${loc.zone_name})` : ""}`,
-                      description: `คงเหลือ: ${remaining.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })} m³`,
-                    };
-                  })}
-                  value={storageLocation.locationId}
-                  onValueChange={handleLocationChange}
-                  placeholder="ค้นหาตำแหน่งจัดเก็บ..."
-                  searchPlaceholder="พิมพ์ค้นหา..."
-                  emptyMessage="ไม่มีตำแหน่งจัดเก็บในคลังนี้"
-                />
-              </div>
+              <LocationAllocationEditor
+                locations={filteredLocations}
+                value={allocations}
+                onChange={applyAllocations}
+                totalQuantity={batchTotalQuantity}
+                unitLabel="รายการ"
+              />
             )}
 
             {/* Item Condition */}
