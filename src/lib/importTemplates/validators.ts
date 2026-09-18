@@ -162,6 +162,7 @@ export function validateEquipmentRows(rows: any[], refs: RefLookups, existingCod
       company_id: companyId,
       department: department || null,
       location_id: locationId,
+      location_allocations: locationAllocations,
       quantity_in_stock: qty,
       min_stock_level: n(row.min_stock_level),
       unit_price: price,
@@ -295,9 +296,9 @@ export function validateMediaPlayerRows(rows: any[], refs: RefLookups, existingS
     let locationId: string | null = null;
     if (!locationCode) errors.push("location_code ว่าง");
     else {
-      const id = locationByCode.get(locationCode);
-      if (!id) errors.push(`location_code "${locationCode}" ไม่อยู่ใน master`);
-      else locationId = id;
+      const parsed = parseLocationCodes(locationCode, locationByCode, 1);
+      if (parsed.errors.length > 0) errors.push(...parsed.errors);
+      else locationId = parsed.primaryLocationId;
     }
 
     const condition = s(row.item_condition).toLowerCase();
