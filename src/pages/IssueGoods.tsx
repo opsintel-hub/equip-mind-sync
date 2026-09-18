@@ -1572,6 +1572,21 @@ const IssueGoods = () => {
               </p>
             </div>
 
+            {selectedItem && (parseInt(issueData.issued_quantity) || 0) > 0 && (
+              <LocationPickEditor
+                filter={
+                  selectedItem.is_media_player
+                    ? { mediaPlayerId: selectedItem.media_player_id }
+                    : { equipmentId: selectedItem.equipment_id }
+                }
+                value={pickAllocations}
+                onChange={setPickAllocations}
+                totalQuantity={parseInt(issueData.issued_quantity) || 0}
+                unitLabel={selectedItem.is_media_player ? "เครื่อง" : selectedItem.unit || "ชิ้น"}
+              />
+            )}
+
+
             {/* Per-unit S/N + Billboard assignments (Equipment only — Media Player handled above) */}
             {!selectedItem?.is_media_player && unitAssignments.length > 0 && (
               <div className="space-y-2">
