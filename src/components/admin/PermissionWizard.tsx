@@ -748,9 +748,14 @@ export function PermissionWizard({ open, onOpenChange, user, onSaved }: Permissi
                                       togglePreviewFunction(fn.name);
                                       // คงบทบาทของระดับเดิมไว้ (เช่น Admin) ไม่ให้หลุดสิทธิ์เมื่อปรับละเอียด
                                       if (levelDef) {
-                                        setPreviewRoles((prev) =>
-                                          Array.from(new Set([...prev, ...levelDef.roles])) as UserRole[],
-                                        );
+                                        const keep = levelDef.roles;
+                                        const elevated = accessLevel === "admin" || accessLevel === "super_admin";
+                                        setPreviewRoles((prev) => {
+                                          const merged = Array.from(new Set([...prev, ...keep])) as UserRole[];
+                                          return elevated
+                                            ? merged
+                                            : merged.filter((r) => r !== "admin" && r !== "super_admin");
+                                        });
                                       }
                                       setAccessLevel("custom");
                                     }}
