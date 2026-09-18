@@ -10,6 +10,16 @@ import { ArrowRightLeft } from "lucide-react";
 import { WarehouseLocationSelect } from "@/components/location/WarehouseLocationSelect";
 import { SimpleDepartmentSelect } from "@/components/equipment/SimpleDepartmentSelect";
 import { logStockMovement } from "@/lib/stockMovement";
+import { LocationAllocationEditor } from "@/components/location/LocationAllocationEditor";
+import { LocationPickEditor } from "@/components/location/LocationPickEditor";
+import {
+  AllocationLocationInfo,
+  LocationAllocation,
+  allocationTotal,
+  deductLocationAllocations,
+  primaryLocationId,
+  saveLocationAllocations,
+} from "@/lib/locationAllocations";
 
 interface Equipment {
   id: string;
