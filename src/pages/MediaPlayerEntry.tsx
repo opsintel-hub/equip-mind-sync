@@ -119,7 +119,7 @@ const MediaPlayerEntry = () => {
 
   // Filter data
   const [cmsTypesForFilter, setCmsTypesForFilter] = useState<{id: string; name: string}[]>([]);
-  const [companiesForFilter, setCompaniesForFilter] = useState<{id: string; name: string}[]>([]);
+  const [companiesForFilter, setCompaniesForFilter] = useState<{id: string; name: string; department_id: string | null}[]>([]);
   const [statusesForFilter, setStatusesForFilter] = useState<{value: string; label: string}[]>([]);
   const [modelsForFilter, setModelsForFilter] = useState<{id: string; name: string}[]>([]);
   const [departmentsForFilter, setDepartmentsForFilter] = useState<{id: string; name: string}[]>([]);
@@ -146,7 +146,7 @@ const MediaPlayerEntry = () => {
   const fetchFiltersData = async () => {
     const [cmsRes, compRes, statusRes, modelRes, deptRes] = await Promise.all([
       supabase.from("cms_types").select("id, name").eq("is_active", true).order("name"),
-      supabase.from("companies").select("id, name").eq("is_active", true).order("name"),
+      supabase.from("companies").select("id, name, department_id").eq("is_active", true).order("name"),
       supabase.from("media_player_statuses").select("value, label").eq("is_active", true).order("label"),
       supabase.from("media_player_models").select("id, name").eq("is_active", true).order("name"),
       supabase.from("departments").select("id, name").eq("is_active", true).order("name"),
@@ -157,6 +157,21 @@ const MediaPlayerEntry = () => {
     if (modelRes.data) setModelsForFilter(modelRes.data);
     if (deptRes.data) setDepartmentsForFilter(deptRes.data);
   };
+
+  const visibleCompaniesForFilter = useMemo(() => {
+    if (filterDepartment === "all") return companiesForFilter;
+    const departmentId = departmentsForFilter.find((d) => d.name === filterDepartment)?.id;
+    if (!departmentId) return companiesForFilter;
+    return companiesForFilter.filter((company) =>
+      company.department_id == null || company.department_id === departmentId
+    );
+  }, [companiesForFilter, departmentsForFilter, filterDepartment]);
+
+  useEffect(() => {
+    if (filterCompany !== "all" && !visibleCompaniesForFilter.some((company) => company.id === filterCompany)) {
+      setFilterCompany("all");
+    }
+  }, [filterCompany, visibleCompaniesForFilter]);
 
   // Fetch media_player_names for display in table
   const [mediaPlayerNames, setMediaPlayerNames] = useState<{id: string; name: string}[]>([]);
@@ -769,8 +784,8 @@ const MediaPlayerEntry = () => {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">ทุกบริษัท</SelectItem>
-                      {companiesForFilter.map((c) => (
-                        <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                      {visibleCompaniesForFilter.map((c) => (
+                        <SelectItem key={c.id} value={c.id}>{c.name}{c.department_id == null ? " (ทุกฝ่าย)" : ""}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
