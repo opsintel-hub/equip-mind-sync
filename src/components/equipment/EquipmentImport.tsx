@@ -83,7 +83,7 @@ export function EquipmentImport({ onSuccess }: EquipmentImportProps) {
       },
     ];
 
-    const ws = XLSX.utils.json_to_sheet(templateData);
+    const ws = XLSX.utils.json_to_sheet(templateData, { header: EQUIPMENT_SIMPLE_HEADERS });
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Equipment");
 
@@ -94,8 +94,19 @@ export function EquipmentImport({ onSuccess }: EquipmentImportProps) {
       { wch: 18 }, { wch: 22 }, { wch: 30 },
     ];
 
+    appendRefSheet(wb, "_ref_categories", categories.map((c: any) => ({ name: c.name })), [40]);
+    appendRefSheet(wb, "_ref_departments", departments.map((d: any) => ({ name: d.name })), [40]);
+    appendRefSheet(wb, "_ref_brands", brands.map((b: any) => ({ name: b.name })), [30]);
+    appendRefSheet(wb, "_ref_units", units.map((u: any) => ({ name: u.name })), [20]);
+    appendTemplateMeta(wb, "equipment_simple");
+
     XLSX.writeFile(wb, "equipment_import_template.xlsx");
-    toast.success("ดาวน์โหลด Template สำเร็จ");
+    toast.success("ดาวน์โหลด Template ล่าสุดสำเร็จ (ชีตอ้างอิงอัปเดตจากข้อมูลหลักปัจจุบัน)");
+    } catch (e: any) {
+      toast.error("ดาวน์โหลด Template ไม่สำเร็จ: " + e.message);
+    } finally {
+      setTemplateLoading(false);
+    }
   };
 
   const parseDate = (value: any): string | undefined => {
