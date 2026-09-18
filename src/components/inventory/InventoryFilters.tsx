@@ -16,6 +16,7 @@ import { Label } from "@/components/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Search, X, Filter, ChevronDown, Settings } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import { warehouseHasDept } from "@/lib/warehouseDepartments";
 import { companyIsAvailableToDepartment } from "@/lib/companyDepartments";
 
@@ -99,7 +100,7 @@ export function InventoryFilters({ filters, onFiltersChange }: InventoryFiltersP
   const [localSnSearch, setLocalSnSearch] = useState(filters.snSearch || "");
 
   // Fetch companies
-  const { data: allCompanies = [] } = useQuery({
+  const { data: allCompanies = [], isLoading: isLoadingCompanies } = useQuery({
     queryKey: ["companies", "with-dept"],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -365,32 +366,26 @@ export function InventoryFilters({ filters, onFiltersChange }: InventoryFiltersP
 
         {/* Row 1: Master data filters */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 xl:grid-cols-6 gap-3">
-          <Select
-            value={filters.companyId}
+          <SearchableSelect
+            value={filters.companyId || "all"}
             onValueChange={(value) =>
               onFiltersChange({ ...filters, companyId: value === "all" ? "" : value })
             }
-          >
-            <SelectTrigger className="h-9 bg-background">
-              <SelectValue placeholder="บริษัท" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">บริษัททั้งหมด</SelectItem>
-              {companies.length === 0 && (
-                <div className="px-2 py-3 text-xs text-muted-foreground text-center">
-                  ไม่มีข้อมูลในฝ่ายนี้
-                </div>
-              )}
-              {companies.map((company) => (
-                <SelectItem key={company.id} value={company.id}>
-                  {company.code} - {company.name}
-                  {!company.department_id && (
-                    <span className="text-muted-foreground"> (ทุกฝ่าย)</span>
-                  )}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+            options={[
+              { value: "all", label: "บริษัททั้งหมด" },
+              ...companies.map((company) => ({
+                value: company.id,
+                label: `${company.code} - ${company.name}`,
+                description: company.department_id == null ? "ทุกฝ่าย" : undefined,
+                searchableText: `${company.code} ${company.name}`,
+              })),
+            ]}
+            placeholder="บริษัท"
+            searchPlaceholder="ค้นหารหัสหรือชื่อบริษัท..."
+            emptyMessage={filters.department ? "ไม่พบบริษัทในฝ่ายนี้" : "ไม่พบบริษัท"}
+            isLoading={isLoadingCompanies}
+            triggerClassName="h-9 bg-background"
+          />
 
           <Select
             value={filters.department}
