@@ -679,6 +679,18 @@ const ReceiveGoods = () => {
     setIsLoading(true);
 
     try {
+      const { data: claimedReceipt, error: claimError } = await supabase
+        .from("goods_receipt_pending")
+        .update({ status: "processing" })
+        .eq("id", selectedReceipt.id)
+        .eq("status", "pending")
+        .select("id")
+        .maybeSingle();
+      if (claimError) throw claimError;
+      if (!claimedReceipt) {
+        throw new Error("รายการนี้ถูกรับเข้าหรือดำเนินการไปแล้ว กรุณาโหลดหน้าใหม่");
+      }
+
       // Get supplier from receipt
       const selectedSupp = suppliers.find(s => s.id === selectedReceipt.supplier_id);
       const storageVolumeValue = storageVolumeCm3 ? parseFloat(storageVolumeCm3) : null;
@@ -692,38 +704,10 @@ const ReceiveGoods = () => {
       const trimmedLot1 = editLot1.trim();
       const trimmedLot2 = editLot2.trim();
       const parsedUnitPrice = editUnitPrice.trim() === "" ? null : Number(editUnitPrice);
-      const { error: updateError } = await supabase
-        .from("goods_receipt_pending")
-        .update({
-          status: "received",
-          received_by: user?.id,
-          received_at: new Date().toISOString(),
-          received_location_id: storageLocation.locationId,
-          notes: editNotes || null,
-          storage_volume_cm3: storageVolumeValue,
-          serial_number: trimmedSerial1 || null,
-          serial_number_2: trimmedSerial2 || null,
-          lot_number: trimmedLot1 || null,
-          lot_number_2: trimmedLot2 || null,
-          unit_price: parsedUnitPrice,
-          asset_caretaker: editCaretaker.trim() || null,
-          planned_install_location: editPlannedLocation.trim() || null,
-          ...(selectedReceipt.is_asset
-            ? {
-                asset_code: trimmedAssetCode || null,
-                equipment_id_code: trimmedEquipmentIdCode || null,
-                waiting_asset_code: trimmedAssetCode ? false : selectedReceipt.waiting_asset_code,
-                waiting_equipment_id: trimmedEquipmentIdCode ? false : selectedReceipt.waiting_equipment_id,
-              }
-            : {}),
-        })
-        .eq("id", selectedReceipt.id);
-
-      if (updateError) throw updateError;
-
       // หมายเหตุ: การหักพื้นที่ของแต่ละช่องทำใน saveLocationAllocations (แบ่งตามจำนวนจริง)
 
       // Handle differently based on whether it's Media Player or Equipment
+      let receivedMediaPlayerId: string | null = null;
       if (isMediaPlayer) {
         // Resolve target row: reuse empty master, otherwise clone a new unit row
         const resolved = await resolveMediaPlayerRowForReceipt(
@@ -731,6 +715,7 @@ const ReceiveGoods = () => {
           selectedReceipt.id
         );
         const targetMpId = resolved.mpId;
+        receivedMediaPlayerId = targetMpId;
 
         // Each MP receipt = 1 unit per row (One Code → Many Units rule)
         const mpDeptName = getDepartmentName(selectedReceipt.department_id);
@@ -933,7 +918,7 @@ const ReceiveGoods = () => {
         allocations,
         warehouseId: selectedWarehouseId,
         equipmentId: isMediaPlayer ? null : selectedReceipt.equipment_id,
-        mediaPlayerId: isMediaPlayer ? (selectedReceipt as any).media_player_id : null,
+        mediaPlayerId: isMediaPlayer ? receivedMediaPlayerId : null,
         referenceType: "goods_receipt",
         referenceId: selectedReceipt.id,
         referenceDocument: selectedReceipt.document_no,
@@ -941,11 +926,52 @@ const ReceiveGoods = () => {
         createdBy: user?.id || null,
       });
 
+      const { data: completedReceipt, error: updateError } = await supabase
+        .from("goods_receipt_pending")
+        .update({
+          status: "received",
+          received_by: user?.id,
+          received_at: new Date().toISOString(),
+          received_location_id: storageLocation.locationId,
+          notes: editNotes || null,
+          storage_volume_cm3: storageVolumeValue,
+          serial_number: trimmedSerial1 || null,
+          serial_number_2: trimmedSerial2 || null,
+          lot_number: trimmedLot1 || null,
+          lot_number_2: trimmedLot2 || null,
+          unit_price: parsedUnitPrice,
+          asset_caretaker: editCaretaker.trim() || null,
+          planned_install_location: editPlannedLocation.trim() || null,
+          ...(selectedReceipt.is_asset
+            ? {
+                asset_code: trimmedAssetCode || null,
+                equipment_id_code: trimmedEquipmentIdCode || null,
+                waiting_asset_code: trimmedAssetCode ? false : selectedReceipt.waiting_asset_code,
+                waiting_equipment_id: trimmedEquipmentIdCode ? false : selectedReceipt.waiting_equipment_id,
+              }
+            : {}),
+        })
+        .eq("id", selectedReceipt.id)
+        .eq("status", "processing")
+        .select("id")
+        .maybeSingle();
+
+      if (updateError) throw updateError;
+      if (!completedReceipt) throw new Error("รายการนี้ถูกรับเข้าไปแล้ว กรุณาโหลดหน้าใหม่");
+
       setIsDialogOpen(false);
       fetchPendingReceipts();
     } catch (error) {
       console.error("Error:", error);
-      toast.error("เกิดข้อผิดพลาดในการรับสินค้า");
+      if (selectedReceipt) {
+        await supabase
+          .from("goods_receipt_pending")
+          .update({ status: "pending" })
+          .eq("id", selectedReceipt.id)
+          .eq("status", "processing");
+      }
+      const message = error instanceof Error ? error.message : "เกิดข้อผิดพลาดในการรับสินค้า";
+      toast.error(message);
     } finally {
       setIsLoading(false);
     }
@@ -983,12 +1009,30 @@ const ReceiveGoods = () => {
     try {
       let successCount = 0;
       let errorCount = 0;
+      const remainingAllocationQuantities = allocations.map((allocation) => ({ ...allocation }));
+      const takeAllocationsForQuantity = (quantity: number): LocationAllocation[] => {
+        let remaining = quantity;
+        const result: LocationAllocation[] = [];
+        for (const allocation of remainingAllocationQuantities) {
+          if (remaining <= 0) break;
+          const available = Math.max(0, Number(allocation.quantity) || 0);
+          const taken = Math.min(available, remaining);
+          if (taken > 0) {
+            result.push({ locationId: allocation.locationId, quantity: taken });
+            allocation.quantity = available - taken;
+            remaining -= taken;
+          }
+        }
+        return result;
+      };
 
       for (const receipt of batchReceipts) {
         try {
           const selectedSupp = suppliers.find(s => s.id === receipt.supplier_id);
           const isMediaPlayer = (receipt as any).is_media_player;
           const receivedQuantity = receipt.quantity;
+          const receiptAllocations = takeAllocationsForQuantity(receivedQuantity);
+          let receivedMediaPlayerId: string | null = null;
 
           // Update pending receipt status
           const { error: updateError } = await supabase
@@ -1011,6 +1055,7 @@ const ReceiveGoods = () => {
               receipt.id
             );
             const targetMpId = resolved.mpId;
+            receivedMediaPlayerId = targetMpId;
 
             const batchMpDept = getDepartmentName(receipt.department_id);
             const batchMpPayload: Record<string, any> = {
@@ -1177,6 +1222,17 @@ const ReceiveGoods = () => {
             }
           }
 
+          await saveLocationAllocations({
+            allocations: receiptAllocations,
+            warehouseId: selectedWarehouseId,
+            equipmentId: isMediaPlayer ? null : receipt.equipment_id,
+            mediaPlayerId: isMediaPlayer ? receivedMediaPlayerId : null,
+            referenceType: "goods_receipt",
+            referenceId: receipt.id,
+            referenceDocument: receipt.document_no,
+            createdBy: user?.id || null,
+          });
+
           successCount++;
         } catch (error) {
           console.error("Error receiving item:", receipt.document_no, error);
@@ -1189,17 +1245,6 @@ const ReceiveGoods = () => {
       }
       if (errorCount > 0) {
         toast.warning(`ไม่สามารถรับสินค้าได้ ${errorCount} รายการ`);
-      }
-
-      if (successCount > 0) {
-        await saveLocationAllocations({
-          allocations,
-          warehouseId: selectedWarehouseId,
-          equipmentId: batchReceipts.find((r) => !(r as any).is_media_player)?.equipment_id || null,
-          referenceType: "goods_receipt_batch",
-          referenceDocument: batchReceipts.map((r) => r.document_no).join(", ").slice(0, 200),
-          createdBy: user?.id || null,
-        });
       }
 
       setIsBatchDialogOpen(false);
