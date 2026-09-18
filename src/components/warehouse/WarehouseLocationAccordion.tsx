@@ -63,6 +63,7 @@ interface WarehouseData {
   description: string | null;
   storage_area: string | null;
   department: string | null;
+  departments?: string[] | null;
   is_active: boolean | null;
 }
 
@@ -203,7 +204,7 @@ export function WarehouseLocationAccordion({ canManageWarehouse, canManageLocati
       const wMatch =
         w.code.toLowerCase().includes(q) ||
         w.name.toLowerCase().includes(q) ||
-        (w.department || "").toLowerCase().includes(q);
+        warehouseDepts(w).some((d) => d.toLowerCase().includes(q));
       const kids = locsByWh[w.id] || [];
       const zs = zonesByWh[w.id] || [];
       const kidMatch = kids.some(
