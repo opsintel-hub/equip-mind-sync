@@ -131,12 +131,20 @@ export function EquipmentImport({ onSuccess }: EquipmentImportProps) {
 
     setLoading(true);
     setImportResult(null);
+    setCheck(null);
 
     try {
       const data = await file.arrayBuffer();
       const workbook = XLSX.read(data);
-      const sheetName = workbook.SheetNames[0];
+      const sheetName = workbook.SheetNames.find((n) => !n.startsWith("_ref_") && n !== "_template_meta") || workbook.SheetNames[0];
       const worksheet = workbook.Sheets[sheetName];
+      const fileHeaders = ((XLSX.utils.sheet_to_json<any[]>(worksheet, { header: 1 })[0] || []) as any[]).map((h) => String(h).trim());
+      const verdict = verifyWorkbook(workbook, "equipment_simple", fileHeaders);
+      setCheck(verdict);
+      if (verdict.blocking) {
+        toast.error(verdict.message);
+        return;
+      }
       const jsonData = XLSX.utils.sheet_to_json(worksheet);
 
       if (jsonData.length === 0) {
