@@ -134,6 +134,30 @@ export function InventoryFilters({ filters, onFiltersChange }: InventoryFiltersP
     ? allCompanies.filter((c: any) => companyIsAvailableToDepartment(c, selectedDeptId))
     : allCompanies;
 
+  // When a company that is tied to a specific department is selected, lock the
+  // department filter to that department. Companies marked "ทุกฝ่าย"
+  // (department_id = null) do not lock the department.
+  const selectedCompany = allCompanies.find((c: any) => c.id === filters.companyId);
+  const isDeptLockedByCompany = !!(selectedCompany && selectedCompany.department_id);
+
+  const handleCompanyChange = (value: string) => {
+    if (value === "all") {
+      onFiltersChange({ ...filters, companyId: "" });
+      return;
+    }
+    const company = allCompanies.find((c: any) => c.id === value);
+    const deptId = company?.department_id;
+    if (deptId) {
+      const dept = departments.find((d) => d.id === deptId);
+      if (dept) {
+        onFiltersChange({ ...filters, companyId: value, department: dept.name });
+        return;
+      }
+    }
+    // "ทุกฝ่าย" company or unlinked — keep the current department untouched.
+    onFiltersChange({ ...filters, companyId: value });
+  };
+
   // Fetch categories
   const { data: categories = [] } = useQuery({
     queryKey: ["categories"],
@@ -368,9 +392,7 @@ export function InventoryFilters({ filters, onFiltersChange }: InventoryFiltersP
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 xl:grid-cols-6 gap-3">
           <SearchableSelect
             value={filters.companyId || "all"}
-            onValueChange={(value) =>
-              onFiltersChange({ ...filters, companyId: value === "all" ? "" : value })
-            }
+            onValueChange={handleCompanyChange}
             options={[
               { value: "all", label: "บริษัททั้งหมด" },
               ...companies.map((company) => ({
@@ -392,9 +414,10 @@ export function InventoryFilters({ filters, onFiltersChange }: InventoryFiltersP
             onValueChange={(value) =>
               onFiltersChange({ ...filters, department: value === "all" ? "" : value })
             }
+            disabled={isDeptLockedByCompany}
           >
             <SelectTrigger className="h-9 bg-background">
-              <SelectValue placeholder="ฝ่าย" />
+              <SelectValue placeholder={isDeptLockedByCompany ? "ฝ่าย (ล็อกตามบริษัท)" : "ฝ่าย"} />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">ฝ่ายทั้งหมด</SelectItem>
