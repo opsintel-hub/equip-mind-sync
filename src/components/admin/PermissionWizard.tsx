@@ -220,6 +220,7 @@ export function PermissionWizard({ open, onOpenChange, user, onSaved }: Permissi
         .map((r) => r.function_name as string);
       const detected = detectAccessLevel(loadedRoles, loadedFns);
       setAccessLevel(detected);
+      setKeepElevated(detected === "admin" || detected === "super_admin");
       // ระดับที่ได้สิทธิ์จากบทบาท (Admin/Super Admin) ไม่มีแถวรายเมนู — เติมจากนิยามระดับ
       if (loadedFns.length === 0) {
         const def = getAccessLevel(detected as any);
