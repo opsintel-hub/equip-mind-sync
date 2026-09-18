@@ -7,6 +7,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
 import DashboardLayout from "./components/DashboardLayout";
 import ProtectedRoute from "./components/ProtectedRoute";
+import FunctionRouteGuard from "./components/FunctionRouteGuard";
 
 // Eager: หน้าแรกที่เปิดบ่อย
 import Login from "./pages/Login";
@@ -110,7 +111,9 @@ const PageLoader = () => (
 const Protected = ({ children }: { children: React.ReactNode }) => (
   <ProtectedRoute>
     <DashboardLayout>
-      <Suspense fallback={<PageLoader />}>{children}</Suspense>
+      <FunctionRouteGuard>
+        <Suspense fallback={<PageLoader />}>{children}</Suspense>
+      </FunctionRouteGuard>
     </DashboardLayout>
   </ProtectedRoute>
 );
