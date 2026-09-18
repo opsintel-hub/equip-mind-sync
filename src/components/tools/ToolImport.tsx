@@ -58,7 +58,16 @@ export function ToolImport({ onSuccess }: ToolImportProps) {
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
-  const downloadTemplate = () => {
+  const downloadTemplate = async () => {
+    setTemplateLoading(true);
+    try {
+    const [categories, departments, companies, brands, units] = await Promise.all([
+      fetchRefRows("categories", "name"),
+      fetchRefRows("departments", "name"),
+      fetchRefRows("companies", "name"),
+      fetchRefRows("brands", "name"),
+      fetchRefRows("units", "name"),
+    ]);
     const templateData = [
       {
         "รหัสเครื่องมือ*": "TL-0001",
