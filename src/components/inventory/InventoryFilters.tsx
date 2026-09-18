@@ -374,6 +374,11 @@ export function InventoryFilters({ filters, onFiltersChange }: InventoryFiltersP
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">บริษัททั้งหมด</SelectItem>
+              {companies.length === 0 && (
+                <div className="px-2 py-3 text-xs text-muted-foreground text-center">
+                  ไม่มีข้อมูลในฝ่ายนี้
+                </div>
+              )}
               {companies.map((company) => (
                 <SelectItem key={company.id} value={company.id}>
                   {company.code} - {company.name}
