@@ -56,6 +56,13 @@ import { useDeptScope } from "@/hooks/useDeptScope";
 import { warehouseHasDept } from "@/lib/warehouseDepartments";
 import { useSectionScope } from "@/hooks/useSectionScope";
 import { logStockMovement } from "@/lib/stockMovement";
+import { LocationAllocationEditor } from "@/components/location/LocationAllocationEditor";
+import {
+  LocationAllocation,
+  allocationTotal,
+  primaryLocationId,
+  saveLocationAllocations,
+} from "@/lib/locationAllocations";
 
 interface Equipment {
   id: string;
