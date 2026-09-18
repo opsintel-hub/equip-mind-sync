@@ -901,6 +901,7 @@ const IssueGoods = () => {
       }));
       setMpUnitAssignments(mpInitial);
     }
+    setPickAllocations([]);
     setItemIssueDialogOpen(true);
     // Always refetch MP units so newly-edited S/Ns appear without page reload
     if (item.is_media_player) refetchMpUnits();
