@@ -141,8 +141,9 @@ export function ToolCodePrefixSelect({ value, onChange, disabled, onCodeGenerate
   const handleDelete = async () => {
     const target = prefixes.find((p) => p.id === deleteId);
     if (!target) return;
-    const inUse = (usage?.count ?? 0) > 0;
     try {
+      const u = usage ?? (await checkPrefixUsage("tool", target.prefix));
+      const inUse = u.count > 0;
       await removeCodePrefix("tool", target.id, !inUse);
       toast.success(inUse ? `ปิดการใช้งาน Prefix ${target.prefix} แล้ว` : `ลบ Prefix ${target.prefix} แล้ว`);
       setDeleteId(null);
