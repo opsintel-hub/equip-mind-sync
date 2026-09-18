@@ -190,8 +190,9 @@ export function LocationImport({ onSuccess }: LocationImportProps) {
       const headerRow = (name?: string) =>
         name ? ((XLSX.utils.sheet_to_json<any[]>(wb.Sheets[name], { header: 1 })[0] || []) as any[]).map((h) => String(h).trim()) : [];
       const verdict = verifyWorkbook(wb, "location", [...headerRow(whSheetName), ...headerRow(locSheetName)]);
+      // ไฟล์นี้อาจกรอกเพียงชีทเดียว — บล็อกเฉพาะกรณีเป็น Template คนละชนิด
       setCheck(verdict);
-      if (verdict.blocking) {
+      if (verdict.status === "wrong_kind") {
         toast.error(verdict.message);
         return;
       }
