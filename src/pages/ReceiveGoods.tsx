@@ -1184,6 +1184,17 @@ const ReceiveGoods = () => {
         toast.warning(`ไม่สามารถรับสินค้าได้ ${errorCount} รายการ`);
       }
 
+      if (successCount > 0) {
+        await saveLocationAllocations({
+          allocations,
+          warehouseId: selectedWarehouseId,
+          equipmentId: batchReceipts.find((r) => !(r as any).is_media_player)?.equipment_id || null,
+          referenceType: "goods_receipt_batch",
+          referenceDocument: batchReceipts.map((r) => r.document_no).join(", ").slice(0, 200),
+          createdBy: user?.id || null,
+        });
+      }
+
       setIsBatchDialogOpen(false);
       setBatchReceipts([]);
       fetchPendingReceipts();
