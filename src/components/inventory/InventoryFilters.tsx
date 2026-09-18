@@ -16,6 +16,7 @@ import { Label } from "@/components/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Search, X, Filter, ChevronDown, Settings } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { warehouseHasDept } from "@/lib/warehouseDepartments";
 
 export interface InventoryFiltersState {
   companyId: string;
