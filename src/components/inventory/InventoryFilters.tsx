@@ -17,6 +17,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Search, X, Filter, ChevronDown, Settings } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { warehouseHasDept } from "@/lib/warehouseDepartments";
+import { companyIsAvailableToDepartment } from "@/lib/companyDepartments";
 
 export interface InventoryFiltersState {
   companyId: string;
@@ -127,9 +128,9 @@ export function InventoryFilters({ filters, onFiltersChange }: InventoryFiltersP
 
   const selectedDeptId = departments.find((d) => d.name === filters.department)?.id || null;
 
-  // Scope by department; companies not yet linked to any department stay visible
+  // department_id=null is the explicit "ทุกฝ่าย" setting and remains visible in every department.
   const companies = selectedDeptId
-    ? allCompanies.filter((c: any) => !c.department_id || c.department_id === selectedDeptId)
+    ? allCompanies.filter((c: any) => companyIsAvailableToDepartment(c, selectedDeptId))
     : allCompanies;
 
   // Fetch categories

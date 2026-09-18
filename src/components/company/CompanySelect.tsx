@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { SearchableSelect } from "@/components/ui/searchable-select";
+import { companyIsAvailableToDepartment } from "@/lib/companyDepartments";
 
 interface Company {
   id: string;
@@ -57,7 +58,7 @@ export function CompanySelect({
 
 
     if (departmentId) {
-      // Include companies not yet linked to a department so they are not hidden
+      // department_id=null means the company is explicitly available to every department.
       query = query.or(`department_id.eq.${departmentId},department_id.is.null`);
     }
 
@@ -67,7 +68,7 @@ export function CompanySelect({
       const rows = data as unknown as Company[];
       const scoped =
         !departmentId && departmentName
-          ? rows.filter((c) => !c.department_id || c.departments?.name === departmentName)
+          ? rows.filter((c) => companyIsAvailableToDepartment(c) || c.departments?.name === departmentName)
           : rows;
       setCompanies(scoped);
     }
@@ -85,7 +86,11 @@ export function CompanySelect({
   const options = companies.map((company) => ({
     value: company.id,
     label: `${company.code} - ${company.name}`,
-    description: company.departments && !isScoped ? company.departments.name : undefined,
+    description: company.department_id == null
+      ? "ทุกฝ่าย"
+      : company.departments && !isScoped
+        ? company.departments.name
+        : undefined,
   }));
 
   return (

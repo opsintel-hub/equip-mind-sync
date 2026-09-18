@@ -24,6 +24,7 @@ import { DateRange } from "react-day-picker";
 import { DepartmentMultiFilter } from "@/components/DepartmentMultiFilter";
 import { ColumnChooser, useVisibleCols, type ColumnDef } from "@/components/ColumnChooser";
 import { useRealtimeInvalidate } from "@/hooks/useRealtimeInvalidate";
+import { companyIsAvailableToDepartments } from "@/lib/companyDepartments";
 
 type ApprovalColKey =
   | "expand" | "doc" | "date" | "company" | "requester" | "pickup" | "pickupDate"
@@ -84,7 +85,7 @@ const ManagerApproval = () => {
     queryFn: async () => {
       const { data } = await supabase
         .from("companies")
-        .select("id, name, departments:department_id(name)")
+        .select("id, name, department_id, departments:department_id(name)")
         .eq("is_active", true)
         .order("name");
       return (data || []) as any[];
@@ -93,8 +94,14 @@ const ManagerApproval = () => {
 
   // Scope companies to the selected departments, then dedupe by trimmed name
   const companies = useMemo(() => {
+    const departmentIds = departmentFilter.length === 0
+      ? []
+      : (allCompanies || [])
+          .filter((c: any) => c.departments?.name && departmentFilter.includes(c.departments.name))
+          .map((c: any) => c.department_id)
+          .filter(Boolean);
     const rows = (allCompanies || []).filter((c: any) =>
-      departmentFilter.length === 0 ? true : !c.departments?.name || departmentFilter.includes(c.departments.name),
+      departmentFilter.length === 0 || c.department_id == null || departmentIds.includes(c.department_id),
     );
     const map = new Map<string, { ids: string[]; name: string }>();
     rows.forEach((c: any) => {
