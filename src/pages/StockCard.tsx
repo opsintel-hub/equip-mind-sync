@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from "react";
+import React, { useState, useMemo, useCallback, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { ProcessTracker, ProcessStep } from "@/components/ProcessTracker";
 import { LocationBalanceCard } from "@/components/location/LocationBalanceCard";
