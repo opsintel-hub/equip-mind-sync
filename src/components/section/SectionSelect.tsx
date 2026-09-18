@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { SearchableSelect } from "@/components/ui/searchable-select";
@@ -18,6 +18,8 @@ interface SectionSelectProps {
   value: string;
   onChange: (value: string) => void;
   departmentId?: string; // Optional filter by department
+  /** Department name (when the form stores the name instead of the id) */
+  departmentName?: string;
   disabled?: boolean;
   placeholder?: string;
 }
@@ -26,11 +28,12 @@ export function SectionSelect({
   value, 
   onChange, 
   departmentId, 
+  departmentName,
   disabled, 
   placeholder = "เลือกแผนก" 
 }: SectionSelectProps) {
   const { data: sections = [], isLoading } = useQuery({
-    queryKey: ["sections-select", departmentId],
+    queryKey: ["sections-select", departmentId, departmentName],
     queryFn: async () => {
       let query = supabase
         .from("sections")
@@ -50,14 +53,25 @@ export function SectionSelect({
 
       const { data, error } = await query;
       if (error) throw error;
-      return (data as unknown as Section[]) || [];
+      const rows = (data as unknown as Section[]) || [];
+      return !departmentId && departmentName
+        ? rows.filter((s) => s.departments?.name === departmentName)
+        : rows;
     },
   });
+
+  const isScoped = Boolean(departmentId || departmentName);
+
+  // Clear a selection that falls outside the current department scope
+  useEffect(() => {
+    if (isLoading || !isScoped || !value) return;
+    if (!sections.some((s) => s.id === value)) onChange("");
+  }, [isLoading, isScoped, value, sections]);
 
   const options = sections.map((section) => ({
     value: section.id,
     label: section.name,
-    description: section.departments?.name || undefined,
+    description: isScoped ? undefined : section.departments?.name || undefined,
   }));
 
   return (
@@ -67,7 +81,7 @@ export function SectionSelect({
       onValueChange={onChange}
       placeholder={placeholder}
       searchPlaceholder="ค้นหาแผนก..."
-      emptyMessage="ไม่พบแผนก"
+      emptyMessage={isScoped ? "ไม่มีข้อมูลในฝ่ายนี้" : "ไม่พบแผนก"}
       disabled={disabled}
       isLoading={isLoading}
     />
