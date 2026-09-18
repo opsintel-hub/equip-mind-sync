@@ -16,7 +16,7 @@ export function downloadToolTemplate(refs: RefLookups) {
     ["supplier_code", "", "code จากชีต _ref_suppliers"],
     ["company_name", "", "name จากชีต _ref_companies"],
     ["department", "", "ดูชีต _ref_departments"],
-    ["location_code", "", "code จากชีต _ref_locations"],
+    ["location_code", "", "code จากชีต _ref_locations — เก็บหลายช่องได้ คั่นด้วย , เช่น \"S02,BA10\" หรือ \"S02:5,BA10:3\""],
     ["unit", "✅", "หน่วย เช่น ชิ้น / เครื่อง / ตัว"],
     ["quantity", "✅", "จำนวนที่รับเข้า (ตัวเลข ≥ 1)"],
     ["unit_price", "", "ราคาต่อหน่วย (บาท)"],
