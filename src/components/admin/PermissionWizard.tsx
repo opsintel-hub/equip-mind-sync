@@ -159,6 +159,7 @@ export function PermissionWizard({ open, onOpenChange, user, onSaved }: Permissi
       setSelectedDepartments(user?.requested_department ? [user.requested_department] : []);
       setSelectedSectionIds([]);
       setPreviewRoles([]);
+      setKeepElevated(false);
       setPreviewFunctions([]);
       setAccessLevel("general");
       setShowAdvanced(false);
@@ -409,7 +410,8 @@ export function PermissionWizard({ open, onOpenChange, user, onSaved }: Permissi
       // ระดับผู้ใช้เป็นตัวชี้ขาด — ถ้าไม่ได้เลือกระดับ Admin/Super Admin
       // ต้องไม่หลงเหลือบทบาท admin/super_admin เดิมค้างอยู่
       const baseRoles: UserRole[] = levelDef ? levelDef.roles : (previewRoles as UserRole[]);
-      const elevatedAllowed = accessLevel === "admin" || accessLevel === "super_admin";
+      const elevatedAllowed =
+        accessLevel === "admin" || accessLevel === "super_admin" || (accessLevel === "custom" && keepElevated);
       const rolesToSave: UserRole[] = elevatedAllowed
         ? baseRoles
         : baseRoles.filter((r) => r !== "admin" && r !== "super_admin");
@@ -480,6 +482,8 @@ export function PermissionWizard({ open, onOpenChange, user, onSaved }: Permissi
 
   const chooseLevel = (lv: AccessLevel) => {
     setAccessLevel(lv);
+    // เลือกระดับใหม่ = ตัดสินใจใหม่ทั้งหมด ถ้าไม่ใช่ Admin/Super Admin ให้ถอดสิทธิ์สูงเดิมออก
+    setKeepElevated(lv === "admin" || lv === "super_admin");
     const def = getAccessLevel(lv as any);
     if (def) {
       setPreviewFunctions([...def.fns]);
@@ -752,7 +756,8 @@ export function PermissionWizard({ open, onOpenChange, user, onSaved }: Permissi
                                       // คงบทบาทของระดับเดิมไว้ (เช่น Admin) ไม่ให้หลุดสิทธิ์เมื่อปรับละเอียด
                                       if (levelDef) {
                                         const keep = levelDef.roles;
-                                        const elevated = accessLevel === "admin" || accessLevel === "super_admin";
+                                        const elevated =
+                                          accessLevel === "admin" || accessLevel === "super_admin" || keepElevated;
                                         setPreviewRoles((prev) => {
                                           const merged = Array.from(new Set([...prev, ...keep])) as UserRole[];
                                           return elevated
