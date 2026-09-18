@@ -171,7 +171,7 @@ export default function ImportPageShell({
         const allocs = (r.payload.location_allocations || []) as Array<{ location_id: string; quantity: number }>;
         const valid = allocs.filter((a) => a.location_id && Number(a.quantity) > 0);
         if (valid.length > 1) {
-          const rows = valid.map((a) => ({
+          const allocRows = valid.map((a) => ({
             equipment_id: rpcName === "import_equipment_row" ? data?.equipment_id ?? null : null,
             media_player_id: rpcName === "import_media_player_row" ? data?.media_player_id ?? null : null,
             tool_id: rpcName === "import_tool_row" ? data?.tool_id ?? null : null,
@@ -181,10 +181,11 @@ export default function ImportPageShell({
             reference_document: "INITIAL-IMPORT",
             notes: "นำเข้าข้อมูลเริ่มต้น (หลายช่องจัดเก็บ)",
           }));
-          const { error: allocError } = await (supabase as any).from("stock_location_allocations").insert(rows);
+          const { error: allocError } = await (supabase as any).from("stock_location_allocations").insert(allocRows);
           if (allocError) {
             out.push({ rowNumber: r.rowNumber, success: true, error: "บันทึกช่องจัดเก็บหลายช่องไม่สำเร็จ: " + allocError.message });
             setProgress({ done: i + 1, total: rows.length });
+            setResults([...out]);
             continue;
           }
         }
