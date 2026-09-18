@@ -60,8 +60,17 @@ export function LocationImport({ onSuccess }: LocationImportProps) {
     perWarehouse: WarehouseSummary[];
   } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [templateLoading, setTemplateLoading] = useState(false);
+  const [check, setCheck] = useState<TemplateCheck | null>(null);
 
-  const downloadTemplate = () => {
+  const downloadTemplate = async () => {
+    setTemplateLoading(true);
+    try {
+    const [departments, existingWarehouses, zones] = await Promise.all([
+      fetchRefRows("departments", "name"),
+      fetchRefRows("warehouses", "code,name,storage_area", "code"),
+      fetchRefRows("zones", "code,name", "code"),
+    ]);
     const warehousesData = [
       {
         "รหัสคลัง (code)*": "PB-01",
