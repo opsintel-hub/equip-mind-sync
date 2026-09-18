@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { companyIsAvailableToDepartments } from "@/lib/companyDepartments";
@@ -48,10 +48,12 @@ export function CompanyFilter({ value, onChange, departments = [] }: CompanyFilt
     setIsLoading(false);
   };
 
-  const filtered =
-    departments.length === 0 || deptIds.length === 0
+  const filtered = useMemo(
+    () => departments.length === 0 || deptIds.length === 0
       ? companies
-      : companies.filter((c) => companyIsAvailableToDepartments(c, deptIds));
+      : companies.filter((c) => companyIsAvailableToDepartments(c, deptIds)),
+    [companies, departments.length, deptIds],
+  );
 
   // Reset selection when the chosen company is out of the current department scope
   useEffect(() => {
