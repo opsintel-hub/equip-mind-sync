@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { SearchableSelect } from "@/components/ui/searchable-select";
-import { companyIsAvailableToDepartment } from "@/lib/companyDepartments";
 
 interface Company {
   id: string;
