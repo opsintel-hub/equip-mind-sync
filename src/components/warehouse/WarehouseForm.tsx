@@ -9,8 +9,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { warehouseDepts } from "@/lib/warehouseDepartments";
 
 const warehouseSchema = z.object({
   code: z.string().min(1, "กรุณากรอกรหัสคลัง").max(50, "รหัสต้องไม่เกิน 50 ตัวอักษร"),
@@ -36,6 +39,7 @@ interface WarehouseFormProps {
     description: string | null;
     storage_area: string | null;
     department: string | null;
+    departments?: string[] | null;
   };
 }
 
@@ -70,7 +74,7 @@ export function WarehouseForm({ onSuccess, editData }: WarehouseFormProps) {
       name: editData?.name || "",
       description: editData?.description || "",
       storage_area: editData?.storage_area || "",
-      department: editData?.department || "",
+      departments: warehouseDepts(editData),
     },
   });
 
@@ -83,7 +87,8 @@ export function WarehouseForm({ onSuccess, editData }: WarehouseFormProps) {
         name: data.name.trim(),
         description: data.description?.trim() || null,
         storage_area: data.storage_area,
-        department: data.department || null,
+        departments: data.departments,
+        department: data.departments[0] || null,
         is_active: true,
       };
 
