@@ -477,6 +477,7 @@ const ReceiveGoods = () => {
     const { warehouseId, locationId } = resolveDefaultStorage(receipt);
     setSelectedWarehouseId(warehouseId);
     setStorageLocation({ locationId });
+    setAllocations(locationId ? [{ locationId, quantity: receipt.quantity || 0 }] : []);
     if (locationId) fetchLocationCapacity(locationId);
     setItemCondition("normal");
     setEditAssetCode(receipt.asset_code || "");
