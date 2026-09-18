@@ -132,6 +132,28 @@ export function EquipmentTransferForm({ equipment, onSuccess }: EquipmentTransfe
         notes: formData.notes || `ย้ายจาก ${equipment.locations?.name || "ไม่ระบุ"}`,
       });
 
+      // ตัดของออกจากช่องต้นทาง แล้วบันทึกการกระจายลงช่องปลายทาง
+      await deductLocationAllocations({
+        allocations: sourceAllocations,
+        equipmentId: equipment.id,
+        referenceType: "equipment_transfer_out",
+        referenceDocument: `Transfer ${formData.transfer_date}`,
+        createdBy: user.id,
+      });
+
+      await saveLocationAllocations({
+        allocations:
+          destAllocations.length > 0
+            ? destAllocations
+            : [{ locationId: formData.to_location_id, quantity: formData.quantity }],
+        warehouseId: formData.to_warehouse_id || null,
+        equipmentId: equipment.id,
+        referenceType: "equipment_transfer_in",
+        referenceDocument: `Transfer ${formData.transfer_date}`,
+        createdBy: user.id,
+      });
+
+
       toast.success("ย้ายอุปกรณ์สำเร็จ");
       setOpen(false);
       onSuccess();
