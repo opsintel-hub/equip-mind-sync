@@ -44,7 +44,35 @@ export const TOOL_HEADERS = [
   "notes",
 ];
 
-export type TemplateKind = "equipment" | "media_player" | "tool";
+export const SUPPLIER_HEADERS = [
+  "Company", "Vendor ID", "Tax ID", "Vendor Name", "Description",
+  "Media Site Name", "Contact Person", "Phone", "Email", "Address", "Notes",
+];
+
+export const WAREHOUSE_SHEET_HEADERS = [
+  "รหัสคลัง (code)*",
+  "ชื่อคลัง (name)*",
+  "ประเภทพื้นที่ (storage_area) Indoor|Outdoor|Semi-outdoor*",
+  "ฝ่าย (department)",
+  "รายละเอียด (description)",
+];
+
+export const LOCATION_SHEET_HEADERS = [
+  "รหัสคลังสินค้า (warehouse_code)*",
+  "รหัสตำแหน่ง (code)*",
+  "ชื่อตำแหน่ง (name)*",
+  "รายละเอียด (description)",
+  "พื้นที่จัดเก็บ (storage_area)",
+  "รหัสโซน (zone_code)",
+  "ชื่อโซน (zone_name)",
+  "กว้าง cm (width_cm)",
+  "สูง cm (height_cm)",
+  "ลึก cm (depth_cm)",
+];
+
+/** kinds ที่ใช้หน้า ImportPageShell (มี RPC + prefix counter) */
+export type ImportTemplateKind = "equipment" | "media_player" | "tool";
+export type TemplateKind = ImportTemplateKind | "supplier" | "location";
 
 interface TemplateDef {
   kind: TemplateKind;
@@ -59,7 +87,13 @@ export const TEMPLATE_DEFS: Record<TemplateKind, TemplateDef> = {
   equipment: { kind: "equipment", label: "อุปกรณ์", sheetName: "Equipment", headers: EQUIPMENT_HEADERS, revision: 1 },
   media_player: { kind: "media_player", label: "Media Player / จอภาพ", sheetName: "MediaPlayer", headers: MEDIA_PLAYER_HEADERS, revision: 1 },
   tool: { kind: "tool", label: "เครื่องมือ", sheetName: "Tools", headers: TOOL_HEADERS, revision: 1 },
+  supplier: { kind: "supplier", label: "ผู้จำหน่าย", sheetName: "Vendor list-Store", headers: SUPPLIER_HEADERS, revision: 1 },
+  location: {
+    kind: "location", label: "คลัง & ตำแหน่งจัดเก็บ", sheetName: "Locations",
+    headers: [...WAREHOUSE_SHEET_HEADERS, ...LOCATION_SHEET_HEADERS], revision: 1,
+  },
 };
+
 
 const META_SHEET = "_template_meta";
 
