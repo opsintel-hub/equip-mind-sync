@@ -1606,6 +1606,11 @@ const DeliveryEntry = () => {
 
     if (newCartItems.length > 0) {
       setCartItems((prev) => [...prev, ...newCartItems]);
+      setSelectedCartIds((prev) => {
+        const next = new Set(prev);
+        newCartItems.forEach((item) => next.add(item.id));
+        return next;
+      });
     }
 
     // Upload PO PDF to storage (ตั้งชื่อตามมาตรฐานเดียวกับ flow กรอกเลขก่อน)
@@ -3281,12 +3286,7 @@ const DeliveryEntry = () => {
             <Button
               type="button"
               className="w-full"
-              disabled={
-                isLoading ||
-                isUploadingFile ||
-                cartItems.length === 0 ||
-                (selectedCartIds.size === 0 && cartItems.length > 0)
-              }
+              disabled={isLoading || isUploadingFile || cartItems.length === 0}
               onClick={handleSubmitAll}
             >
               {isUploadingFile ? (
@@ -3303,8 +3303,8 @@ const DeliveryEntry = () => {
                 <>
                   <Send className="w-4 h-4 mr-2" />
                   {selectedCartIds.size > 0
-                    ? `ส่งรายการที่เลือก (${selectedCartIds.size} รายการ)`
-                    : `กรุณาเลือกรายการในตะกร้า`}
+                    ? `สร้างเอกสารรับเข้า (${selectedCartIds.size} รายการ)`
+                    : `สร้างเอกสารรับเข้า (ทั้งหมด ${cartItems.length} รายการ)`}
                 </>
               )}
             </Button>
