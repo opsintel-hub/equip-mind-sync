@@ -7,6 +7,8 @@ import { toast } from "sonner";
 import { Upload, Download, FileSpreadsheet, AlertCircle, CheckCircle2 } from "lucide-react";
 import * as XLSX from "xlsx";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { fetchRefRows, appendRefSheet } from "@/lib/importTemplates/simpleRefs";
+import { appendTemplateMeta, verifyWorkbook, templateVersion, SUPPLIER_HEADERS, type TemplateCheck } from "@/lib/importTemplates/templateVersion";
 
 interface SupplierImportProps {
   onSuccess: () => void;
