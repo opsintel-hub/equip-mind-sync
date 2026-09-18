@@ -939,6 +939,18 @@ const ReceiveGoods = () => {
         }
       }
 
+      await saveLocationAllocations({
+        allocations,
+        warehouseId: selectedWarehouseId,
+        equipmentId: isMediaPlayer ? null : selectedReceipt.equipment_id,
+        mediaPlayerId: isMediaPlayer ? (selectedReceipt as any).media_player_id : null,
+        referenceType: "goods_receipt",
+        referenceId: selectedReceipt.id,
+        referenceDocument: selectedReceipt.document_no,
+        totalVolumeCm3: storageVolumeValue,
+        createdBy: user?.id || null,
+      });
+
       setIsDialogOpen(false);
       fetchPendingReceipts();
     } catch (error) {
