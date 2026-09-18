@@ -742,7 +742,7 @@ export default function StockCard() {
   const movCompaniesList = useMemo(() => {
     const list = (movAllCompanies || []) as any[];
     if (!movDeptFilter || movDeptFilter.length === 0) return list;
-    return list.filter((c) => c.departments?.name && movDeptFilter.includes(c.departments.name));
+    return list.filter((c) => !c.departments?.name || movDeptFilter.includes(c.departments.name));
   }, [movAllCompanies, movDeptFilter]);
 
   useEffect(() => {
