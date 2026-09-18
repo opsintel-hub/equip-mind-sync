@@ -299,11 +299,11 @@ export default function DirectShippingEntry() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>บริษัท</Label>
-              <CompanySelect value={companyId} onChange={setCompanyId} />
+              <CompanySelect value={companyId} onChange={setCompanyId} departmentName={selectedDepartment || undefined} />
             </div>
             <div className="space-y-2">
               <Label>แผนก</Label>
-              <SectionSelect value={sectionId} onChange={setSectionId} />
+              <SectionSelect value={sectionId} onChange={setSectionId} departmentName={selectedDepartment || undefined} />
             </div>
           </div>
 
