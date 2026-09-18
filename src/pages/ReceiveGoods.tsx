@@ -1845,43 +1845,14 @@ const ReceiveGoods = () => {
 
               {/* Location Selection (filtered by warehouse) */}
               {selectedWarehouseId && (
-                <div className="space-y-2">
-                  <Label>ตำแหน่งจัดเก็บ *</Label>
-                  <SearchableSelect
-                    options={filteredLocations.map((loc) => {
-                      const remaining = (loc.volume_cm3 || 0) - (loc.used_volume_cm3 || 0);
-                      return {
-                        value: loc.id,
-                        label: `${loc.zone_code ? `${loc.zone_code}${loc.code}` : loc.code} - ${loc.name}${loc.zone_name ? ` (โซน ${loc.zone_code} · ${loc.zone_name})` : ""}`,
-                        description: `คงเหลือ: ${remaining.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })} m³`,
-                      };
-                    })}
-                    value={storageLocation.locationId}
-                    onValueChange={handleLocationChange}
-                    placeholder="ค้นหาตำแหน่งจัดเก็บ..."
-                    searchPlaceholder="พิมพ์ค้นหา..."
-                    emptyMessage="ไม่มีตำแหน่งจัดเก็บในคลังนี้"
-                  />
-                  {locationCapacity && locationCapacity.volume_cm3 && (
-                    <div className="p-2 bg-muted/20 rounded text-sm">
-                      <div className="flex items-center justify-between">
-                        <span className="text-muted-foreground">พื้นที่คงเหลือของตำแหน่ง:</span>
-                        <span className={`font-medium ${
-                          locationCapacity.remaining_volume_cm3 !== null && 
-                          storageVolumeCm3 && 
-                          parseFloat(storageVolumeCm3) > locationCapacity.remaining_volume_cm3 
-                            ? 'text-destructive' 
-                            : 'text-success'
-                        }`}>
-                          {locationCapacity.remaining_volume_cm3?.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} m³
-                        </span>
-                      </div>
-                      {storageVolumeCm3 && parseFloat(storageVolumeCm3) > (locationCapacity.remaining_volume_cm3 || 0) && (
-                        <div className="text-destructive text-xs mt-1">⚠️ พื้นที่ไม่เพียงพอ กรุณาเลือกตำแหน่งอื่น</div>
-                      )}
-                    </div>
-                  )}
-                </div>
+                <LocationAllocationEditor
+                  locations={filteredLocations}
+                  value={allocations}
+                  onChange={applyAllocations}
+                  totalQuantity={selectedReceipt?.quantity ?? 0}
+                  unitLabel={(selectedReceipt as any)?.is_media_player ? "เครื่อง" : (selectedReceipt?.unit || "ชิ้น")}
+                  totalVolumeCm3={storageVolumeCm3 ? parseFloat(storageVolumeCm3) : null}
+                />
               )}
 
               {/* Storage Volume Input */}
