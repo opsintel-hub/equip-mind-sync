@@ -263,6 +263,25 @@ export function ToolCodePrefixSelect({ value, onChange, disabled, onCodeGenerate
                         </Button>
                       </div>
                     </div>
+                  ) : deleteId === prefix.id ? (
+                    <div className="space-y-3">
+                      <div className="font-medium">{prefix.prefix}</div>
+                      <p className="text-sm text-muted-foreground">
+                        {usage === null
+                          ? "กำลังตรวจสอบการใช้งาน..."
+                          : usage.count > 0
+                          ? `มี ${usage.count} รายการที่ใช้ Prefix นี้ (เช่น ${usage.samples.join(", ")}) จึงลบออกไม่ได้ — ระบบจะปิดการใช้งานแทน รหัสเดิมยังใช้งานได้ตามปกติ`
+                          : "ยังไม่มีรายการใดใช้ Prefix นี้ — จะลบออกจากระบบถาวร"}
+                      </p>
+                      <div className="flex gap-2">
+                        <Button variant="destructive" size="sm" className="flex-1" onClick={handleDelete}>
+                          {(usage?.count ?? 0) > 0 ? "ปิดการใช้งาน" : "ลบ"}
+                        </Button>
+                        <Button variant="outline" size="sm" className="flex-1" onClick={() => { setDeleteId(null); setUsage(null); }}>
+                          ยกเลิก
+                        </Button>
+                      </div>
+                    </div>
                   ) : (
                     <div className="flex items-center justify-between">
                       <div>
