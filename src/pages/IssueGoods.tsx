@@ -323,6 +323,12 @@ const IssueGoods = () => {
       const requestedQty = selectedItem.remaining_quantity && selectedItem.remaining_quantity > 0 
         ? selectedItem.remaining_quantity 
         : selectedItem.quantity;
+      if (selectedItem.status === "issued" || selectedItem.status === "rejected" || requestedQty < 1) {
+        throw new Error("รายการนี้ไม่มีจำนวนคงเหลือที่สามารถจ่ายได้");
+      }
+      if (issuedQty > requestedQty) {
+        throw new Error(`จำนวนที่จ่ายเกินจำนวนคงเหลือ (${requestedQty})`);
+      }
       const remainingQty = requestedQty - issuedQty;
       const previousIssued = selectedItem.issued_quantity || 0;
       const totalIssued = previousIssued + issuedQty;

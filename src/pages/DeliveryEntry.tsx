@@ -772,6 +772,10 @@ const DeliveryEntry = () => {
       toast.error("กรุณาเลือกฝ่ายก่อนเพิ่มสินค้า");
       return;
     }
+    if (!selectedCompanyId) {
+      toast.error("กรุณาเลือกบริษัทที่สั่งซื้อก่อนเพิ่มสินค้า");
+      return;
+    }
     if (!deliveryPersonName.trim()) {
       toast.error("กรุณากรอกชื่อผู้นำส่งก่อนเพิ่มสินค้า");
       return;

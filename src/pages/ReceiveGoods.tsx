@@ -679,6 +679,16 @@ const ReceiveGoods = () => {
     setIsLoading(true);
 
     try {
+      const { data: freshReceipt, error: freshReceiptError } = await supabase
+        .from("goods_receipt_pending")
+        .select("status")
+        .eq("id", selectedReceipt.id)
+        .single();
+      if (freshReceiptError) throw freshReceiptError;
+      if (freshReceipt.status !== "pending") {
+        throw new Error("รายการนี้ถูกรับเข้าหรือดำเนินการไปแล้ว กรุณาโหลดหน้าใหม่");
+      }
+
       // Get supplier from receipt
       const selectedSupp = suppliers.find(s => s.id === selectedReceipt.supplier_id);
       const storageVolumeValue = storageVolumeCm3 ? parseFloat(storageVolumeCm3) : null;
@@ -692,38 +702,10 @@ const ReceiveGoods = () => {
       const trimmedLot1 = editLot1.trim();
       const trimmedLot2 = editLot2.trim();
       const parsedUnitPrice = editUnitPrice.trim() === "" ? null : Number(editUnitPrice);
-      const { error: updateError } = await supabase
-        .from("goods_receipt_pending")
-        .update({
-          status: "received",
-          received_by: user?.id,
-          received_at: new Date().toISOString(),
-          received_location_id: storageLocation.locationId,
-          notes: editNotes || null,
-          storage_volume_cm3: storageVolumeValue,
-          serial_number: trimmedSerial1 || null,
-          serial_number_2: trimmedSerial2 || null,
-          lot_number: trimmedLot1 || null,
-          lot_number_2: trimmedLot2 || null,
-          unit_price: parsedUnitPrice,
-          asset_caretaker: editCaretaker.trim() || null,
-          planned_install_location: editPlannedLocation.trim() || null,
-          ...(selectedReceipt.is_asset
-            ? {
-                asset_code: trimmedAssetCode || null,
-                equipment_id_code: trimmedEquipmentIdCode || null,
-                waiting_asset_code: trimmedAssetCode ? false : selectedReceipt.waiting_asset_code,
-                waiting_equipment_id: trimmedEquipmentIdCode ? false : selectedReceipt.waiting_equipment_id,
-              }
-            : {}),
-        })
-        .eq("id", selectedReceipt.id);
-
-      if (updateError) throw updateError;
-
       // หมายเหตุ: การหักพื้นที่ของแต่ละช่องทำใน saveLocationAllocations (แบ่งตามจำนวนจริง)
 
       // Handle differently based on whether it's Media Player or Equipment
+      let receivedMediaPlayerId: string | null = null;
       if (isMediaPlayer) {
         // Resolve target row: reuse empty master, otherwise clone a new unit row
         const resolved = await resolveMediaPlayerRowForReceipt(
@@ -731,6 +713,7 @@ const ReceiveGoods = () => {
           selectedReceipt.id
         );
         const targetMpId = resolved.mpId;
+        receivedMediaPlayerId = targetMpId;
 
         // Each MP receipt = 1 unit per row (One Code → Many Units rule)
         const mpDeptName = getDepartmentName(selectedReceipt.department_id);
@@ -933,13 +916,46 @@ const ReceiveGoods = () => {
         allocations,
         warehouseId: selectedWarehouseId,
         equipmentId: isMediaPlayer ? null : selectedReceipt.equipment_id,
-        mediaPlayerId: isMediaPlayer ? (selectedReceipt as any).media_player_id : null,
+        mediaPlayerId: isMediaPlayer ? receivedMediaPlayerId : null,
         referenceType: "goods_receipt",
         referenceId: selectedReceipt.id,
         referenceDocument: selectedReceipt.document_no,
         totalVolumeCm3: storageVolumeValue,
         createdBy: user?.id || null,
       });
+
+      const { data: completedReceipt, error: updateError } = await supabase
+        .from("goods_receipt_pending")
+        .update({
+          status: "received",
+          received_by: user?.id,
+          received_at: new Date().toISOString(),
+          received_location_id: storageLocation.locationId,
+          notes: editNotes || null,
+          storage_volume_cm3: storageVolumeValue,
+          serial_number: trimmedSerial1 || null,
+          serial_number_2: trimmedSerial2 || null,
+          lot_number: trimmedLot1 || null,
+          lot_number_2: trimmedLot2 || null,
+          unit_price: parsedUnitPrice,
+          asset_caretaker: editCaretaker.trim() || null,
+          planned_install_location: editPlannedLocation.trim() || null,
+          ...(selectedReceipt.is_asset
+            ? {
+                asset_code: trimmedAssetCode || null,
+                equipment_id_code: trimmedEquipmentIdCode || null,
+                waiting_asset_code: trimmedAssetCode ? false : selectedReceipt.waiting_asset_code,
+                waiting_equipment_id: trimmedEquipmentIdCode ? false : selectedReceipt.waiting_equipment_id,
+              }
+            : {}),
+        })
+        .eq("id", selectedReceipt.id)
+        .eq("status", "pending")
+        .select("id")
+        .maybeSingle();
+
+      if (updateError) throw updateError;
+      if (!completedReceipt) throw new Error("รายการนี้ถูกรับเข้าไปแล้ว กรุณาโหลดหน้าใหม่");
 
       setIsDialogOpen(false);
       fetchPendingReceipts();
