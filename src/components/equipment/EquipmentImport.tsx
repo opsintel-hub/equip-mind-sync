@@ -305,13 +305,22 @@ export function EquipmentImport({ onSuccess }: EquipmentImportProps) {
               <li>กรอกข้อมูลตาม Template (ห้ามเปลี่ยนชื่อหัวคอลัมน์)</li>
               <li>บันทึกไฟล์เป็น .xlsx หรือ .csv</li>
               <li>อัปโหลดไฟล์เพื่อนำเข้าข้อมูล</li>
+              <li>มีชีตอ้างอิง <b>_ref_categories / _ref_departments / _ref_brands / _ref_units</b> อัปเดตจากข้อมูลหลักล่าสุด</li>
             </ol>
+            <div className="text-xs text-muted-foreground">เวอร์ชัน Template ล่าสุด: <b>{templateVersion("equipment_simple")}</b></div>
           </div>
 
-          <Button onClick={downloadTemplate} variant="secondary" className="w-full">
+          <Button onClick={downloadTemplate} variant="secondary" className="w-full" disabled={templateLoading}>
             <Download className="h-4 w-4 mr-2" />
-            ดาวน์โหลด Template Excel
+            {templateLoading ? "กำลังสร้าง Template..." : "ดาวน์โหลด Template นำเข้าข้อมูล (อัพเดทล่าสุด)"}
           </Button>
+
+          {check && (
+            <Alert variant={check.blocking ? "destructive" : "default"}>
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription className="text-sm">{check.message}</AlertDescription>
+            </Alert>
+          )}
 
           <div className="border-t pt-4">
             <label className="block">
