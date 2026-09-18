@@ -53,6 +53,7 @@ const getReceiptPoDocumentUrl = (r: any): string | null => {
 import { format } from "date-fns";
 import { useAuth } from "@/hooks/useAuth";
 import { useDeptScope } from "@/hooks/useDeptScope";
+import { warehouseHasDept } from "@/lib/warehouseDepartments";
 import { useSectionScope } from "@/hooks/useSectionScope";
 import { logStockMovement } from "@/lib/stockMovement";
 
