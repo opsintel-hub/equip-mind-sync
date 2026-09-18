@@ -317,6 +317,9 @@ const IssueGoods = () => {
       if (!selectedItem || !user) return;
 
       const issuedQty = parseInt(issueData.issued_quantity);
+      if (!Number.isFinite(issuedQty) || issuedQty < 1) {
+        throw new Error("จำนวนที่จ่ายจริงต้องมากกว่า 0");
+      }
       const requestedQty = selectedItem.remaining_quantity && selectedItem.remaining_quantity > 0 
         ? selectedItem.remaining_quantity 
         : selectedItem.quantity;
@@ -1679,7 +1682,7 @@ const IssueGoods = () => {
             </Button>
             <Button 
               onClick={() => issueItem.mutate()} 
-              disabled={issueItem.isPending}
+              disabled={issueItem.isPending || (parseInt(issueData.issued_quantity) || 0) < 1}
             >
               {issueItem.isPending ? "กำลังบันทึก..." : "ยืนยันการจ่าย"}
             </Button>
