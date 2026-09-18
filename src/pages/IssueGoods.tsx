@@ -742,6 +742,19 @@ const IssueGoods = () => {
         })
         .eq("id", selectedItem.pending_id);
 
+      // ตัดของออกจากช่องจัดเก็บที่เลือกหยิบ
+      if (issuedQty > 0 && allocationTotal(pickAllocations) > 0) {
+        await deductLocationAllocations({
+          allocations: pickAllocations,
+          equipmentId: isMediaPlayer ? null : selectedItem.equipment_id,
+          mediaPlayerId: isMediaPlayer ? selectedItem.media_player_id : null,
+          referenceType: "goods_issue",
+          referenceId: selectedItem.id,
+          referenceDocument: parentRequest?.document_no || null,
+          createdBy: user.id,
+        });
+      }
+
       return { remainingQty, newStatus };
     },
     onSuccess: (result) => {
