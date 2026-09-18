@@ -163,6 +163,7 @@ export function LocationImport({ onSuccess }: LocationImportProps) {
     if (!file) return;
     setLoading(true);
     setResult(null);
+    setCheck(null);
 
     try {
       const buf = await file.arrayBuffer();
