@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { ProcessTracker, ProcessStep } from "@/components/ProcessTracker";
+import { LocationBalanceCard } from "@/components/location/LocationBalanceCard";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
