@@ -1116,7 +1116,13 @@ const DeliveryEntry = () => {
       return;
     }
     if (!deliveryPersonName || !selectedCompanyId || !selectedDepartmentId) {
-      toast.error("กรุณากรอกข้อมูลให้ครบถ้วน (ฝ่าย, บริษัทที่สั่งซื้อ, ชื่อผู้ส่ง)");
+      const missingFields = [
+        !selectedDepartmentId ? "ฝ่าย" : null,
+        !selectedCompanyId ? "บริษัทที่สั่งซื้อ" : null,
+        !deliveryPersonName ? "ชื่อผู้ดำเนินการ" : null,
+      ].filter(Boolean);
+      toast.error(`ยังสร้างเอกสารไม่ได้: กรุณาระบุ ${missingFields.join(", ")}`);
+      document.getElementById("delivery-entry-header")?.scrollIntoView({ behavior: "smooth", block: "center" });
       return;
     }
 
@@ -1692,7 +1698,7 @@ const DeliveryEntry = () => {
         <CardContent>
           <div className="space-y-6">
             {/* Header Section - Shared Data */}
-            <div className="p-4 bg-primary/5 border border-primary/20 rounded-lg space-y-4">
+            <div id="delivery-entry-header" className="p-4 bg-primary/5 border border-primary/20 rounded-lg space-y-4">
               <h3 className="font-medium text-sm text-primary">ข้อมูลหลัก (ใช้ร่วมกันทุกรายการ) *</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
@@ -3281,6 +3287,24 @@ const DeliveryEntry = () => {
               selectedIds={selectedCartIds}
               onSelectedIdsChange={setSelectedCartIds}
             />
+
+            {cartItems.length > 0 && (() => {
+              const missingFields = [
+                !selectedDepartmentId ? "ฝ่าย" : null,
+                !selectedCompanyId ? "บริษัทที่สั่งซื้อ" : null,
+                !deliveryPersonName ? "ชื่อผู้ดำเนินการ" : null,
+                !selectedReceiptPurposeId ? "วัตถุประสงค์" : null,
+                isPurchaseReceipt && !poNumber && !prNumber && !invoiceNumber && !deliveryNoteNumber
+                  ? "เลข PO, PR, Invoice หรือใบส่งของ"
+                  : null,
+              ].filter(Boolean);
+              if (missingFields.length === 0) return null;
+              return (
+                <div className="rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
+                  ยังสร้างเอกสารไม่ได้ — กรุณาระบุ: {missingFields.join(", ")}
+                </div>
+              );
+            })()}
 
             {/* Submit Button */}
             <Button
