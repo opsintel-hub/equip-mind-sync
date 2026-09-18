@@ -1,0 +1,4 @@
+- [ ] Reproduce issue request failure as requester
+- [ ] Audit requester and warehouse-staff permissions end to end
+- [ ] Fix the confirmed root cause
+- [ ] Verify document creation and stock behavior
