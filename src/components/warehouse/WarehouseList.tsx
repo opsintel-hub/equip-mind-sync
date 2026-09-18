@@ -7,6 +7,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { WarehouseForm } from "./WarehouseForm";
+import { warehouseDeptLabel } from "@/lib/warehouseDepartments";
 
 interface LocationData {
   id: string;
@@ -24,6 +25,7 @@ interface WarehouseData {
   description: string | null;
   storage_area: string | null;
   department: string | null;
+  departments?: string[] | null;
   is_active: boolean | null;
   locations?: LocationData[];
   location_count?: number;
@@ -198,7 +200,7 @@ export function WarehouseList({ refresh }: WarehouseListProps) {
                       {warehouse.name}
                     </div>
                   </TableCell>
-                  <TableCell className="text-muted-foreground">{warehouse.department || "-"}</TableCell>
+                  <TableCell className="text-muted-foreground">{warehouseDeptLabel(warehouse)}</TableCell>
                   <TableCell>{getStorageAreaBadge(warehouse.storage_area)}</TableCell>
                   <TableCell className="text-center">{warehouse.location_count || 0}</TableCell>
                   <TableCell className="text-right font-medium">

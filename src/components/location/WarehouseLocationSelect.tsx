@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { Label } from "@/components/ui/label";
+import { warehouseHasDept } from "@/lib/warehouseDepartments";
 
 interface WarehouseLocationSelectProps {
   department: string;
@@ -35,11 +36,10 @@ export function WarehouseLocationSelect({
       setLoadingWarehouses(true);
       const { data, error } = await supabase
         .from("warehouses")
-        .select("id, code, name")
+        .select("id, code, name, department, departments")
         .eq("is_active", true)
-        .eq("department", department)
         .order("code");
-      if (!error) setWarehouses(data || []);
+      if (!error) setWarehouses((data || []).filter((w: any) => warehouseHasDept(w, department)));
       setLoadingWarehouses(false);
     };
     fetchWarehouses();
