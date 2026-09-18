@@ -464,13 +464,23 @@ export function LocationImport({ onSuccess }: LocationImportProps) {
               <li>กรอกชีท <b>Locations</b> — อ้าง 'รหัสคลังสินค้า' ให้ตรงกับชีทแรก</li>
               <li>ระบุ กว้าง/สูง/ลึก (cm) → คำนวณ m³ อัตโนมัติ</li>
               <li>อัปโหลดไฟล์เดียว — ระบบสร้างคลังก่อน แล้วค่อยสร้างตำแหน่ง</li>
+              <li>มีชีตอ้างอิง <b>_ref_departments / _ref_warehouses / _ref_zones</b> ที่ดึงข้อมูลหลักล่าสุดทุกครั้งที่ดาวน์โหลด</li>
             </ol>
+            <div className="text-xs text-muted-foreground">เวอร์ชัน Template ล่าสุด: <b>{templateVersion("location")}</b></div>
           </div>
 
-          <Button onClick={downloadTemplate} variant="secondary" className="w-full">
+          <Button onClick={downloadTemplate} variant="secondary" className="w-full" disabled={templateLoading}>
             <Download className="h-4 w-4 mr-2" />
-            ดาวน์โหลด Template Excel
+            {templateLoading ? "กำลังสร้าง Template..." : "ดาวน์โหลด Template นำเข้าข้อมูล (อัพเดทล่าสุด)"}
           </Button>
+
+          {check && (
+            <Alert variant={check.status === "wrong_kind" ? "destructive" : "default"}>
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription className="text-sm">{check.message}</AlertDescription>
+            </Alert>
+          )}
+
 
           <div className="border-t pt-4">
             <label className="block">
