@@ -19,15 +19,22 @@ export interface PrefixUsage {
   samples: string[];
 }
 
-/** นับจำนวนรายการที่ใช้ Prefix นี้อยู่ (รองรับทั้งรูปแบบเว้นวรรคและไม่เว้นวรรค) */
+/** นับจำนวนรายการที่ใช้ Prefix นี้อยู่ (ตรงตัวเท่านั้น เช่น "PB" จะไม่นับ "PBUS 0001") */
 export async function checkPrefixUsage(kind: CodePrefixKind, prefix: string): Promise<PrefixUsage> {
-  const { data, count, error } = await supabase
+  const { data, error } = await supabase
     .from(SOURCE_TABLE[kind])
-    .select("code", { count: "exact" })
+    .select("code")
     .ilike("code", `${prefix}%`)
-    .limit(3);
+    .limit(1000);
   if (error) throw error;
-  return { count: count ?? 0, samples: (data || []).map((d: any) => d.code).filter(Boolean) };
+  const target = prefix.trim().toUpperCase();
+  const matched = (data || [])
+    .map((d: any) => d.code as string)
+    .filter((code) => {
+      const parsed = parseCode(code || "");
+      return !!parsed && parsed.prefix.toUpperCase() === target;
+    });
+  return { count: matched.length, samples: matched.slice(0, 3) };
 }
 
 /** ลบจริงถ้ายังไม่ถูกใช้งาน / ปิดการใช้งานถ้ามีรหัสที่ใช้ Prefix นี้อยู่แล้ว */
