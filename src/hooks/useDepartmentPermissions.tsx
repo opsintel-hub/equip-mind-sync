@@ -82,6 +82,7 @@ export function useDepartmentPermissions() {
 
   return {
     permissions,
+    allDepartmentNames,
     isAdmin,
     isSuperAdmin,
     loading,
