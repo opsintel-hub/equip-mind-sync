@@ -15,7 +15,54 @@ export interface ActivityAuditRow {
   changed_fields: Record<string, { from: unknown; to: unknown }> | null;
   notes: string | null;
   created_at: string;
+  actor_email?: string | null;
+  ip_address?: string | null;
+  user_agent?: string | null;
 }
+
+/** Badge color class per action type (semantic tokens only) */
+export const AUDIT_ACTION_BADGE: Record<string, string> = {
+  created: "bg-success/15 text-success border-success/30",
+  approved: "bg-success/15 text-success border-success/30",
+  received: "bg-success/15 text-success border-success/30",
+  completed: "bg-success/15 text-success border-success/30",
+  updated: "bg-warning/15 text-warning border-warning/30",
+  status_changed: "bg-warning/15 text-warning border-warning/30",
+  deleted: "bg-destructive/15 text-destructive border-destructive/30",
+  rejected: "bg-destructive/15 text-destructive border-destructive/30",
+  cancelled: "bg-destructive/15 text-destructive border-destructive/30",
+  issued: "bg-primary/15 text-primary border-primary/30",
+  returned: "bg-primary/15 text-primary border-primary/30",
+};
+
+export const auditActionBadge = (a: string) =>
+  AUDIT_ACTION_BADGE[a] || "bg-muted text-muted-foreground border-border";
+
+/** Short, human readable device label from a user agent string */
+export const deviceLabel = (ua?: string | null): string => {
+  if (!ua) return "—";
+  const os = /iPhone|iPad/i.test(ua)
+    ? "iOS"
+    : /Android/i.test(ua)
+      ? "Android"
+      : /Mac OS X/i.test(ua)
+        ? "macOS"
+        : /Windows/i.test(ua)
+          ? "Windows"
+          : /Linux/i.test(ua)
+            ? "Linux"
+            : "อื่นๆ";
+  const browser = /Edg\//i.test(ua)
+    ? "Edge"
+    : /Chrome\//i.test(ua)
+      ? "Chrome"
+      : /Safari\//i.test(ua)
+        ? "Safari"
+        : /Firefox\//i.test(ua)
+          ? "Firefox"
+          : "Browser";
+  return `${os} · ${browser}`;
+};
 
 export const AUDIT_MODULE_LABEL: Record<string, string> = {
   goods_issue: "เบิก-จ่าย",

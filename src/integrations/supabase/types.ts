@@ -17,6 +17,7 @@ export type Database = {
       activity_audit: {
         Row: {
           action: string
+          actor_email: string | null
           actor_id: string | null
           actor_name: string | null
           actor_roles: string[]
@@ -27,14 +28,17 @@ export type Database = {
           entity_id: string | null
           entity_table: string
           id: string
+          ip_address: string | null
           is_super_admin_action: boolean
           module: string
           notes: string | null
           status_after: string | null
           status_before: string | null
+          user_agent: string | null
         }
         Insert: {
           action: string
+          actor_email?: string | null
           actor_id?: string | null
           actor_name?: string | null
           actor_roles?: string[]
@@ -45,14 +49,17 @@ export type Database = {
           entity_id?: string | null
           entity_table: string
           id?: string
+          ip_address?: string | null
           is_super_admin_action?: boolean
           module: string
           notes?: string | null
           status_after?: string | null
           status_before?: string | null
+          user_agent?: string | null
         }
         Update: {
           action?: string
+          actor_email?: string | null
           actor_id?: string | null
           actor_name?: string | null
           actor_roles?: string[]
@@ -63,11 +70,13 @@ export type Database = {
           entity_id?: string | null
           entity_table?: string
           id?: string
+          ip_address?: string | null
           is_super_admin_action?: boolean
           module?: string
           notes?: string | null
           status_after?: string | null
           status_before?: string | null
+          user_agent?: string | null
         }
         Relationships: []
       }
@@ -6896,6 +6905,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      purge_old_activity_audit: { Args: never; Returns: number }
       save_equipment_compatibility: {
         Args: {
           _billboard_ids: string[]
