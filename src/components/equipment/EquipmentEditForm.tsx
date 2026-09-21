@@ -21,6 +21,7 @@ import { BrandSelect } from "./BrandSelect";
 import { WarehouseLocationSelect } from "@/components/location/WarehouseLocationSelect";
 import { CompanySelect } from "@/components/company/CompanySelect";
 import { SupplierSelect } from "@/components/supplier/SupplierSelect";
+import { EquipmentImageUpload } from "./EquipmentImageUpload";
 import {
   BillboardCompatibilityField,
   CompatibilityValue,
@@ -100,6 +101,7 @@ export function EquipmentEditForm({ equipment, onSuccess }: EquipmentEditFormPro
   const [isLoading, setIsLoading] = useState(false);
   const [warehouseId, setWarehouseId] = useState("");
   const [compat, setCompat] = useState<CompatibilityValue>({ mode: "unrestricted", packageIds: [], billboardIds: [], notes: "" });
+  const [images, setImages] = useState<string[]>([]);
 
   const form = useForm<EquipmentFormValues>({
 
@@ -179,6 +181,14 @@ export function EquipmentEditForm({ equipment, onSuccess }: EquipmentEditFormPro
       };
       preloadWarehouseId();
       loadEquipmentCompatibility(equipment.id).then(setCompat).catch(() => {});
+
+      // Load existing images
+      supabase
+        .from("equipment_images")
+        .select("image_url")
+        .eq("equipment_id", equipment.id)
+        .order("display_order")
+        .then(({ data }) => setImages((data || []).map((r: any) => r.image_url)));
     }
   }, [open, equipment, form]);
 
@@ -227,6 +237,18 @@ export function EquipmentEditForm({ equipment, onSuccess }: EquipmentEditFormPro
         throw new Error("กรุณาเลือก Package หรือป้ายรายตัวอย่างน้อย 1 เมื่อไม่ได้เลือก 'ใช้ได้ทุกป้าย'");
       }
       await saveEquipmentCompatibility(equipment.id, compat);
+
+      // Sync images
+      await supabase.from("equipment_images").delete().eq("equipment_id", equipment.id);
+      if (images.length > 0) {
+        await supabase.from("equipment_images").insert(
+          images.map((url, index) => ({
+            equipment_id: equipment.id,
+            image_url: url,
+            display_order: index,
+          }))
+        );
+      }
 
       toast.success("อัพเดทอุปกรณ์สำเร็จ");
       setOpen(false);
@@ -812,6 +834,10 @@ export function EquipmentEditForm({ equipment, onSuccess }: EquipmentEditFormPro
                 </FormItem>
               )}
             />
+
+            <div className="rounded-lg border p-3">
+              <EquipmentImageUpload images={images} onChange={setImages} disabled={isLoading} maxImages={5} />
+            </div>
 
             {!form.watch("is_consumable") && (
               <BillboardCompatibilityField value={compat} onChange={setCompat} disabled={isLoading} department={form.watch("department") || ""} />
