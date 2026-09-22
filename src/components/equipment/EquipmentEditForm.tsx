@@ -248,7 +248,7 @@ export function EquipmentEditForm({ equipment, onSuccess }: EquipmentEditFormPro
       if (imagesLoaded) {
         const { data: existing, error: exErr } = await supabase
           .from("equipment_images")
-          .select("id, image_url, is_primary")
+          .select("id, image_url, is_primary, display_order")
           .eq("equipment_id", equipment.id);
         if (exErr) throw exErr;
 
