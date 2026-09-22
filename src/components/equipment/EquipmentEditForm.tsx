@@ -183,12 +183,17 @@ export function EquipmentEditForm({ equipment, onSuccess }: EquipmentEditFormPro
       loadEquipmentCompatibility(equipment.id).then(setCompat).catch(() => {});
 
       // Load existing images
+      setImagesLoaded(false);
       supabase
         .from("equipment_images")
         .select("image_url")
         .eq("equipment_id", equipment.id)
         .order("display_order")
-        .then(({ data }) => setImages((data || []).map((r: any) => r.image_url)));
+        .then(({ data, error }) => {
+          if (error) { setImagesLoaded(false); return; }
+          setImages((data || []).map((r: any) => r.image_url));
+          setImagesLoaded(true);
+        });
     }
   }, [open, equipment, form]);
 
