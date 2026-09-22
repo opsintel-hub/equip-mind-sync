@@ -102,6 +102,7 @@ export function EquipmentEditForm({ equipment, onSuccess }: EquipmentEditFormPro
   const [warehouseId, setWarehouseId] = useState("");
   const [compat, setCompat] = useState<CompatibilityValue>({ mode: "unrestricted", packageIds: [], billboardIds: [], notes: "" });
   const [images, setImages] = useState<string[]>([]);
+  const [imagesLoaded, setImagesLoaded] = useState(false);
 
   const form = useForm<EquipmentFormValues>({
 
@@ -183,12 +184,17 @@ export function EquipmentEditForm({ equipment, onSuccess }: EquipmentEditFormPro
       loadEquipmentCompatibility(equipment.id).then(setCompat).catch(() => {});
 
       // Load existing images
+      setImagesLoaded(false);
       supabase
         .from("equipment_images")
         .select("image_url")
         .eq("equipment_id", equipment.id)
         .order("display_order")
-        .then(({ data }) => setImages((data || []).map((r: any) => r.image_url)));
+        .then(({ data, error }) => {
+          if (error) { setImagesLoaded(false); return; }
+          setImages((data || []).map((r: any) => r.image_url));
+          setImagesLoaded(true);
+        });
     }
   }, [open, equipment, form]);
 
@@ -238,16 +244,56 @@ export function EquipmentEditForm({ equipment, onSuccess }: EquipmentEditFormPro
       }
       await saveEquipmentCompatibility(equipment.id, compat);
 
-      // Sync images
-      await supabase.from("equipment_images").delete().eq("equipment_id", equipment.id);
-      if (images.length > 0) {
-        await supabase.from("equipment_images").insert(
-          images.map((url, index) => ({
-            equipment_id: equipment.id,
-            image_url: url,
-            display_order: index,
-          }))
-        );
+      // Sync images (diff-based, preserves is_primary)
+      if (imagesLoaded) {
+        const { data: existing, error: exErr } = await supabase
+          .from("equipment_images")
+          .select("id, image_url, is_primary, display_order")
+          .eq("equipment_id", equipment.id);
+        if (exErr) throw exErr;
+
+        const existingRows = (existing || []) as any[];
+        const keep = new Set(images);
+        const removed = existingRows.filter((r) => !keep.has(r.image_url));
+        if (removed.length > 0) {
+          const { error: delErr } = await supabase
+            .from("equipment_images")
+            .delete()
+            .in("id", removed.map((r) => r.id));
+          if (delErr) throw delErr;
+        }
+
+        const byUrl = new Map(existingRows.map((r) => [r.image_url, r]));
+        const newRows = images
+          .map((url, index) => ({ url, index }))
+          .filter((x) => !byUrl.has(x.url));
+        if (newRows.length > 0) {
+          const { error: insErr } = await supabase.from("equipment_images").insert(
+            newRows.map((x) => ({
+              equipment_id: equipment.id,
+              image_url: x.url,
+              display_order: x.index,
+            }))
+          );
+          if (insErr) throw insErr;
+        }
+
+        // Update display_order for kept rows if changed
+        for (let i = 0; i < images.length; i++) {
+          const row = byUrl.get(images[i]);
+          if (row && row.display_order !== i) {
+            await supabase.from("equipment_images").update({ display_order: i }).eq("id", row.id);
+          }
+        }
+
+        // Ensure a primary image still exists
+        const stillPrimary = existingRows.some((r) => r.is_primary && keep.has(r.image_url));
+        if (!stillPrimary && images.length > 0) {
+          const firstRow = byUrl.get(images[0]);
+          if (firstRow) {
+            await supabase.from("equipment_images").update({ is_primary: true }).eq("id", firstRow.id);
+          }
+        }
       }
 
       toast.success("อัพเดทอุปกรณ์สำเร็จ");
