@@ -103,6 +103,7 @@ export function EquipmentEditForm({ equipment, onSuccess }: EquipmentEditFormPro
   const [compat, setCompat] = useState<CompatibilityValue>({ mode: "unrestricted", packageIds: [], billboardIds: [], notes: "" });
   const [images, setImages] = useState<string[]>([]);
   const [imagesLoaded, setImagesLoaded] = useState(false);
+  const [imagesError, setImagesError] = useState(false);
 
   const form = useForm<EquipmentFormValues>({
 
@@ -185,13 +186,20 @@ export function EquipmentEditForm({ equipment, onSuccess }: EquipmentEditFormPro
 
       // Load existing images
       setImagesLoaded(false);
+      setImagesError(false);
+      setImages([]);
       supabase
         .from("equipment_images")
         .select("image_url")
         .eq("equipment_id", equipment.id)
         .order("display_order")
         .then(({ data, error }) => {
-          if (error) { setImagesLoaded(false); return; }
+          if (error) {
+            setImagesLoaded(false);
+            setImagesError(true);
+            toast.error("โหลดรูปภาพเดิมไม่สำเร็จ กรุณาปิดแล้วเปิดหน้าแก้ไขใหม่");
+            return;
+          }
           setImages((data || []).map((r: any) => r.image_url));
           setImagesLoaded(true);
         });
@@ -202,6 +210,10 @@ export function EquipmentEditForm({ equipment, onSuccess }: EquipmentEditFormPro
   const selectedCategory = form.watch("category");
 
   const onSubmit = async (data: EquipmentFormValues) => {
+    if (!imagesLoaded) {
+      toast.error("ยังโหลดรูปภาพเดิมไม่สำเร็จ กรุณาปิดแล้วเปิดหน้าแก้ไขใหม่ก่อนบันทึก");
+      return;
+    }
     setIsLoading(true);
     try {
       const { error } = await supabase
@@ -245,7 +257,10 @@ export function EquipmentEditForm({ equipment, onSuccess }: EquipmentEditFormPro
       await saveEquipmentCompatibility(equipment.id, compat);
 
       // Sync images (diff-based, preserves is_primary)
-      if (imagesLoaded) {
+      if (!imagesLoaded) {
+        throw new Error("ยังโหลดรูปภาพเดิมไม่สำเร็จ จึงไม่สามารถบันทึกรูปได้ กรุณาปิดแล้วเปิดหน้าแก้ไขใหม่");
+      }
+      {
         const { data: existing, error: exErr } = await supabase
           .from("equipment_images")
           .select("id, image_url, is_primary, display_order")
@@ -882,7 +897,17 @@ export function EquipmentEditForm({ equipment, onSuccess }: EquipmentEditFormPro
             />
 
             <div className="rounded-lg border p-3">
-              <EquipmentImageUpload images={images} onChange={setImages} disabled={isLoading} maxImages={5} />
+              {imagesError && (
+                <p className="text-sm text-destructive">
+                  โหลดรูปภาพเดิมไม่สำเร็จ กรุณาปิดแล้วเปิดหน้าแก้ไขใหม่ก่อนบันทึก
+                </p>
+              )}
+              <EquipmentImageUpload
+                images={images}
+                onChange={setImages}
+                disabled={isLoading || !imagesLoaded}
+                maxImages={5}
+              />
             </div>
 
             {!form.watch("is_consumable") && (
