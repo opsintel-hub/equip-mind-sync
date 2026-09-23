@@ -84,6 +84,7 @@ const StockReconciliation = lazyRetry(() => import("./pages/StockReconciliation"
 const ImportEquipmentPage = lazyRetry(() => import("./pages/setup/ImportEquipmentPage"));
 const ImportMediaPlayerPage = lazyRetry(() => import("./pages/setup/ImportMediaPlayerPage"));
 const ImportToolPage = lazyRetry(() => import("./pages/setup/ImportToolPage"));
+const BulkImageImportPage = lazyRetry(() => import("./pages/setup/BulkImageImportPage"));
 const ToolLoans = lazyRetry(() => import("./pages/ToolLoans"));
 const ToolLoansReport = lazyRetry(() => import("./pages/ToolLoansReport"));
 
@@ -200,6 +201,7 @@ const App = () => (
             <Route path="/setup/import-equipment" element={<Protected><ImportEquipmentPage /></Protected>} />
             <Route path="/setup/import-media-player" element={<Protected><ImportMediaPlayerPage /></Protected>} />
             <Route path="/setup/import-tools" element={<Protected><ImportToolPage /></Protected>} />
+            <Route path="/setup/import-images" element={<Protected><BulkImageImportPage /></Protected>} />
             <Route path="/tool-loans" element={<Protected><ToolLoans mode="all" /></Protected>} />
             <Route path="/tool-loans/request" element={<Protected><ToolLoans mode="request" /></Protected>} />
             <Route path="/tool-loans/issue" element={<Protected><ToolLoans mode="issue" /></Protected>} />

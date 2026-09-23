@@ -309,6 +309,7 @@ const menuGroups: MenuGroup[] = [
           { title: "Import อุปกรณ์", url: "/setup/import-equipment", icon: Package, functionName: "setup_import", superAdminOnly: true },
           { title: "Import MP / จอภาพ", url: "/setup/import-media-player", icon: Monitor, functionName: "setup_import", superAdminOnly: true },
           { title: "Import เครื่องมือ", url: "/setup/import-tools", icon: Wrench, functionName: "setup_import", superAdminOnly: true },
+          { title: "Import รูปภาพจำนวนมาก", url: "/setup/import-images", icon: Upload, functionName: "setup_import", superAdminOnly: true },
         ],
       },
     ],
