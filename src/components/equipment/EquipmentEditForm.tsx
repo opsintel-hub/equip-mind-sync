@@ -253,7 +253,10 @@ export function EquipmentEditForm({ equipment, onSuccess }: EquipmentEditFormPro
       await saveEquipmentCompatibility(equipment.id, compat);
 
       // Sync images (diff-based, preserves is_primary)
-      if (imagesLoaded) {
+      if (!imagesLoaded) {
+        throw new Error("ยังโหลดรูปภาพเดิมไม่สำเร็จ จึงไม่สามารถบันทึกรูปได้ กรุณาปิดแล้วเปิดหน้าแก้ไขใหม่");
+      }
+      {
         const { data: existing, error: exErr } = await supabase
           .from("equipment_images")
           .select("id, image_url, is_primary, display_order")
