@@ -210,6 +210,10 @@ export function EquipmentEditForm({ equipment, onSuccess }: EquipmentEditFormPro
   const selectedCategory = form.watch("category");
 
   const onSubmit = async (data: EquipmentFormValues) => {
+    if (!imagesLoaded) {
+      toast.error("ยังโหลดรูปภาพเดิมไม่สำเร็จ กรุณาปิดแล้วเปิดหน้าแก้ไขใหม่ก่อนบันทึก");
+      return;
+    }
     setIsLoading(true);
     try {
       const { error } = await supabase
