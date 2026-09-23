@@ -96,6 +96,7 @@ export const ROUTE_PERMISSIONS: Record<string, RoutePermissionRule> = {
   "/setup/import-equipment": { fns: ["setup_import"], superAdminOnly: true },
   "/setup/import-media-player": { fns: ["setup_import"], superAdminOnly: true },
   "/setup/import-tools": { fns: ["setup_import"], superAdminOnly: true },
+  "/setup/import-images": { fns: ["setup_import"], superAdminOnly: true },
   "/testing": { fns: ["system_testing"], superAdminOnly: true },
 };
 
