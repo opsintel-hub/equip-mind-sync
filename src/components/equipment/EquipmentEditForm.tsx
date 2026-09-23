@@ -897,7 +897,17 @@ export function EquipmentEditForm({ equipment, onSuccess }: EquipmentEditFormPro
             />
 
             <div className="rounded-lg border p-3">
-              <EquipmentImageUpload images={images} onChange={setImages} disabled={isLoading} maxImages={5} />
+              {imagesError && (
+                <p className="text-sm text-destructive">
+                  โหลดรูปภาพเดิมไม่สำเร็จ กรุณาปิดแล้วเปิดหน้าแก้ไขใหม่ก่อนบันทึก
+                </p>
+              )}
+              <EquipmentImageUpload
+                images={images}
+                onChange={setImages}
+                disabled={isLoading || !imagesLoaded}
+                maxImages={5}
+              />
             </div>
 
             {!form.watch("is_consumable") && (
