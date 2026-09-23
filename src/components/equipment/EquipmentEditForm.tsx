@@ -185,13 +185,20 @@ export function EquipmentEditForm({ equipment, onSuccess }: EquipmentEditFormPro
 
       // Load existing images
       setImagesLoaded(false);
+      setImagesError(false);
+      setImages([]);
       supabase
         .from("equipment_images")
         .select("image_url")
         .eq("equipment_id", equipment.id)
         .order("display_order")
         .then(({ data, error }) => {
-          if (error) { setImagesLoaded(false); return; }
+          if (error) {
+            setImagesLoaded(false);
+            setImagesError(true);
+            toast.error("โหลดรูปภาพเดิมไม่สำเร็จ กรุณาปิดแล้วเปิดหน้าแก้ไขใหม่");
+            return;
+          }
           setImages((data || []).map((r: any) => r.image_url));
           setImagesLoaded(true);
         });
