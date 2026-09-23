@@ -84,6 +84,7 @@ const StockReconciliation = lazyRetry(() => import("./pages/StockReconciliation"
 const ImportEquipmentPage = lazyRetry(() => import("./pages/setup/ImportEquipmentPage"));
 const ImportMediaPlayerPage = lazyRetry(() => import("./pages/setup/ImportMediaPlayerPage"));
 const ImportToolPage = lazyRetry(() => import("./pages/setup/ImportToolPage"));
+const BulkImageImportPage = lazyRetry(() => import("./pages/setup/BulkImageImportPage"));
 const ToolLoans = lazyRetry(() => import("./pages/ToolLoans"));
 const ToolLoansReport = lazyRetry(() => import("./pages/ToolLoansReport"));
 
