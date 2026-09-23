@@ -11,7 +11,7 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Loader2, ShieldAlert, Trash2, CheckCircle } from "lucide-react";
+import { Loader2, ShieldAlert, Trash2, CheckCircle, Images } from "lucide-react";
 import { toast } from "sonner";
 
 const SCOPES = [
@@ -48,6 +48,9 @@ export function ClearTestData() {
   const [open, setOpen] = useState(false);
   const [running, setRunning] = useState(false);
   const [result, setResult] = useState<Record<string, number> | null>(null);
+  const [imageDialogOpen, setImageDialogOpen] = useState(false);
+  const [imageConfirmText, setImageConfirmText] = useState("");
+  const [clearingImages, setClearingImages] = useState(false);
 
   if (loading) return null;
 
@@ -81,6 +84,26 @@ export function ClearTestData() {
   };
 
   const totalDeleted = result ? Object.values(result).reduce((a, b) => a + Number(b), 0) : 0;
+
+  const handleClearImages = async () => {
+    setClearingImages(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("clear-test-images");
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      const deleted = (data?.deleted || {}) as Record<string, number>;
+      const fileCount = Object.entries(deleted)
+        .filter(([key]) => key.endsWith("_files"))
+        .reduce((sum, [, count]) => sum + Number(count), 0);
+      toast.success(`ล้างรูปภาพเรียบร้อย ${fileCount.toLocaleString()} ไฟล์`);
+      setImageDialogOpen(false);
+      setImageConfirmText("");
+    } catch (e: any) {
+      toast.error("ล้างรูปภาพไม่สำเร็จ: " + (e?.message || ""));
+    } finally {
+      setClearingImages(false);
+    }
+  };
 
   return (
     <div className="space-y-4">
@@ -117,6 +140,23 @@ export function ClearTestData() {
 
           <Button variant="destructive" disabled={selected.length === 0} onClick={() => setOpen(true)}>
             <Trash2 className="w-4 h-4 mr-2" /> ล้างข้อมูลทดสอบที่เลือก
+          </Button>
+        </CardContent>
+      </Card>
+
+      <Card className="border-destructive/40">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-destructive">
+            <Images className="w-5 h-5" />
+            ล้างรูปภาพทดสอบเท่านั้น
+          </CardTitle>
+          <CardDescription>
+            ลบเฉพาะรูปอุปกรณ์, Media Player / จอภาพ และเครื่องมือ ทั้งไฟล์และรายการรูป โดยไม่ลบสินค้า S/N ธุรกรรม หรือข้อมูลหลัก
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Button variant="destructive" onClick={() => setImageDialogOpen(true)}>
+            <Trash2 className="w-4 h-4 mr-2" /> ล้างเฉพาะรูปภาพ
           </Button>
         </CardContent>
       </Card>
@@ -172,6 +212,29 @@ export function ClearTestData() {
             >
               {running ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Trash2 className="w-4 h-4 mr-2" />}
               ล้างข้อมูล
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={imageDialogOpen} onOpenChange={(v) => { setImageDialogOpen(v); if (!v) setImageConfirmText(""); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>ยืนยันล้างเฉพาะรูปภาพ</AlertDialogTitle>
+            <AlertDialogDescription>
+              รูปอุปกรณ์, Media Player / จอภาพ และเครื่องมือทั้งหมดจะถูกลบถาวร แต่ข้อมูลรายการและธุรกรรมจะไม่ถูกลบ พิมพ์คำว่า IMAGES เพื่อยืนยัน
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <Input value={imageConfirmText} onChange={(e) => setImageConfirmText(e.target.value)} placeholder="IMAGES" />
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={clearingImages}>ยกเลิก</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={imageConfirmText.trim().toUpperCase() !== "IMAGES" || clearingImages}
+              onClick={(e) => { e.preventDefault(); handleClearImages(); }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {clearingImages ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Trash2 className="w-4 h-4 mr-2" />}
+              ล้างเฉพาะรูปภาพ
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
