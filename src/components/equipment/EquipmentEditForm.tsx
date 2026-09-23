@@ -103,6 +103,7 @@ export function EquipmentEditForm({ equipment, onSuccess }: EquipmentEditFormPro
   const [compat, setCompat] = useState<CompatibilityValue>({ mode: "unrestricted", packageIds: [], billboardIds: [], notes: "" });
   const [images, setImages] = useState<string[]>([]);
   const [imagesLoaded, setImagesLoaded] = useState(false);
+  const [imagesError, setImagesError] = useState(false);
 
   const form = useForm<EquipmentFormValues>({
 
