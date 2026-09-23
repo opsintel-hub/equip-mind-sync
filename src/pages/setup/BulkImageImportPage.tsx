@@ -1,5 +1,4 @@
 import { useMemo, useRef, useState } from "react";
-import DashboardLayout from "@/components/DashboardLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -279,8 +278,7 @@ export default function BulkImageImportPage() {
   };
 
   return (
-    <DashboardLayout>
-      <div className="space-y-6">
+    <div className="space-y-6">
         <div className="flex items-center gap-3">
           <Images className="h-7 w-7 text-primary" />
           <div>
@@ -401,7 +399,6 @@ export default function BulkImageImportPage() {
             <p>จากนั้นเลือกโฟลเดอร์นั้นในปุ่มด้านบนได้เลย ไม่ต้องดาวน์โหลดทีละไฟล์</p>
           </CardContent>
         </Card>
-      </div>
-    </DashboardLayout>
+    </div>
   );
 }
