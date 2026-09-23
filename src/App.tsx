@@ -201,6 +201,7 @@ const App = () => (
             <Route path="/setup/import-equipment" element={<Protected><ImportEquipmentPage /></Protected>} />
             <Route path="/setup/import-media-player" element={<Protected><ImportMediaPlayerPage /></Protected>} />
             <Route path="/setup/import-tools" element={<Protected><ImportToolPage /></Protected>} />
+            <Route path="/setup/import-images" element={<Protected><BulkImageImportPage /></Protected>} />
             <Route path="/tool-loans" element={<Protected><ToolLoans mode="all" /></Protected>} />
             <Route path="/tool-loans/request" element={<Protected><ToolLoans mode="request" /></Protected>} />
             <Route path="/tool-loans/issue" element={<Protected><ToolLoans mode="issue" /></Protected>} />
