@@ -54,13 +54,33 @@ export function DepartmentForm({ onSuccess, editData }: DepartmentFormProps) {
         if (error) throw error;
         toast.success("แก้ไขฝ่ายสำเร็จ");
       } else {
-        const { error } = await supabase.from("departments").insert({
-          name: data.name,
-          description: data.description || null,
-        });
+        // ชื่อฝ่ายห้ามซ้ำ — ถ้ามีฝ่ายชื่อเดียวกันที่ถูกปิดใช้งานอยู่ ให้เปิดใช้งานกลับมาแทนการสร้างใหม่
+        const { data: existing } = await supabase
+          .from("departments")
+          .select("id, is_active")
+          .eq("name", data.name)
+          .maybeSingle();
 
-        if (error) throw error;
-        toast.success("เพิ่มฝ่ายสำเร็จ");
+        if (existing) {
+          if (existing.is_active) {
+            toast.error("มีฝ่ายชื่อนี้อยู่แล้ว กรุณาใช้ชื่ออื่น");
+            return;
+          }
+          const { error } = await supabase
+            .from("departments")
+            .update({ is_active: true, description: data.description || null })
+            .eq("id", existing.id);
+          if (error) throw error;
+          toast.success("เปิดใช้งานฝ่ายที่เคยปิดไว้เรียบร้อย");
+        } else {
+          const { error } = await supabase.from("departments").insert({
+            name: data.name,
+            description: data.description || null,
+          });
+
+          if (error) throw error;
+          toast.success("เพิ่มฝ่ายสำเร็จ");
+        }
       }
 
       form.reset();
