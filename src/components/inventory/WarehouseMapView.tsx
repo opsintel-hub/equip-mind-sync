@@ -165,6 +165,7 @@ export function WarehouseMapView({ items }: { items: MapItem[] }) {
     const condOk = conditionFilter === "all" || (e.item_condition || "good") === conditionFilter;
     if (!condOk) return false;
     if (categoryFilter !== "all" && (e.category || "") !== categoryFilter) return false;
+    if (serialOnly && !e.serial_number) return false;
     if (!q) return true;
     return (
       e.code.toLowerCase().includes(q) ||
