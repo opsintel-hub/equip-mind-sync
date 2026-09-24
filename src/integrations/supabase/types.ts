@@ -6715,6 +6715,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      adjust_equipment_quantity: {
+        Args: { _equipment_id: string; _new_qty: number; _reason: string }
+        Returns: Json
+      }
       clear_test_operational_data: {
         Args: { _scopes: string[] }
         Returns: Json

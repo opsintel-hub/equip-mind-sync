@@ -22,6 +22,7 @@ import { WarehouseLocationSelect } from "@/components/location/WarehouseLocation
 import { CompanySelect } from "@/components/company/CompanySelect";
 import { SupplierSelect } from "@/components/supplier/SupplierSelect";
 import { EquipmentImageUpload } from "./EquipmentImageUpload";
+import { useIsSuperAdmin } from "@/hooks/useIsSuperAdmin";
 import {
   BillboardCompatibilityField,
   CompatibilityValue,
@@ -209,13 +210,32 @@ export function EquipmentEditForm({ equipment, onSuccess }: EquipmentEditFormPro
 
   const selectedCategory = form.watch("category");
 
+  const { isSuperAdmin } = useIsSuperAdmin();
+  const [adjustReason, setAdjustReason] = useState("");
   const onSubmit = async (data: EquipmentFormValues) => {
     if (!imagesLoaded) {
       toast.error("ยังโหลดรูปภาพเดิมไม่สำเร็จ กรุณาปิดแล้วเปิดหน้าแก้ไขใหม่ก่อนบันทึก");
       return;
     }
+    const qtyChanged = Number(data.quantity_in_stock) !== Number(equipment.quantity_in_stock);
+    if (qtyChanged && !isSuperAdmin) {
+      toast.error("เฉพาะ Super Admin เท่านั้นที่แก้ไขจำนวนในคลังได้");
+      return;
+    }
+    if (qtyChanged && !adjustReason.trim()) {
+      toast.error("กรุณาระบุเหตุผลการปรับยอดจำนวนในคลัง");
+      return;
+    }
     setIsLoading(true);
     try {
+      if (qtyChanged) {
+        const { error: adjErr } = await supabase.rpc("adjust_equipment_quantity" as any, {
+          _equipment_id: equipment.id,
+          _new_qty: data.quantity_in_stock,
+          _reason: adjustReason.trim(),
+        });
+        if (adjErr) throw adjErr;
+      }
       const { error } = await supabase
         .from("equipment")
           .update({
@@ -229,7 +249,6 @@ export function EquipmentEditForm({ equipment, onSuccess }: EquipmentEditFormPro
             department: data.department || null,
             brand: data.brand || null,
             unit: data.unit,
-            quantity_in_stock: data.quantity_in_stock,
             min_stock_level: data.min_stock_level,
             location_id: data.location_id,
             serial_number: data.serial_number || null,
@@ -632,9 +651,22 @@ export function EquipmentEditForm({ equipment, onSuccess }: EquipmentEditFormPro
                           const value = e.target.value.replace(/[^0-9]/g, "");
                           field.onChange(value ? parseInt(value, 10) : 0);
                         }}
-                        disabled={isLoading}
+                        disabled={isLoading || !isSuperAdmin}
                       />
                     </FormControl>
+                    {!isSuperAdmin ? (
+                      <p className="text-xs text-muted-foreground">แก้ไขได้เฉพาะ Super Admin (ใช้เมนูรับเข้า/เบิกจ่ายเพื่อเปลี่ยนยอด)</p>
+                    ) : Number(field.value) !== Number(equipment.quantity_in_stock) ? (
+                      <div className="space-y-1">
+                        <p className="text-xs text-warning">ปรับยอด {equipment.quantity_in_stock} → {field.value} จะถูกบันทึกใน Stock Card และ Audit Trail</p>
+                        <Input
+                          placeholder="เหตุผลการปรับยอด * (เช่น นับสต็อกจริง)"
+                          value={adjustReason}
+                          onChange={(e) => setAdjustReason(e.target.value)}
+                          disabled={isLoading}
+                        />
+                      </div>
+                    ) : null}
                     <FormMessage />
                   </FormItem>
                 )}
