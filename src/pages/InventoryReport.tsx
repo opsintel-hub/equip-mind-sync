@@ -1086,6 +1086,7 @@ export default function InventoryReport() {
               item_type: i.item_type,
               item_condition: i.item_condition,
               location_id: i.location_id,
+              category: i.category,
             }))}
           />
         )}
