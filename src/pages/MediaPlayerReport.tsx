@@ -17,6 +17,7 @@ import {
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
+import { WarehouseMapView } from "@/components/inventory/WarehouseMapView";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { ProcessTracker, ProcessStep } from "@/components/ProcessTracker";
@@ -403,6 +404,7 @@ export default function MediaPlayerReport() {
   }, [expandedRows]);
 
   // Filter expanded rows
+  const [mainTab, setMainTab] = useState<"list" | "map">("list");
   const filtered = useMemo(() => {
     return expandedRows.filter((r) => {
       if (conditionFilter !== "all" && r.condition !== conditionFilter) return false;
@@ -451,6 +453,7 @@ export default function MediaPlayerReport() {
       return true;
     });
   }, [expandedRows, search, snSearch, conditionFilter, departmentFilter, statusFilter, companyFilter, brandFilter, codePrefixFilter, projectFilter, allReceiptSerialsMap, subMediaTypeFilter, deviceTypeFilter]);
+  const filteredIds = useMemo(() => new Set(filtered.map((r) => r.playerId)), [filtered]);
 
   const {
     paginatedData,
@@ -542,6 +545,7 @@ export default function MediaPlayerReport() {
           </h1>
           <p className="text-muted-foreground">แสดงรายการ Media Player แบบ 1 เครื่องต่อ 1 แถว โดยรวม S/N 1 และ S/N 2 ไว้ในแถวเดียว</p>
         </div>
+        {mainTab === "list" && (
         <div className="flex items-center gap-2">
           <ViewModeToggle value={viewMode} onChange={setViewMode} />
           <Button variant="outline" onClick={handleExport}>
@@ -549,8 +553,36 @@ export default function MediaPlayerReport() {
             Export Excel
           </Button>
         </div>
+        )}
       </div>
 
+      <Tabs value={mainTab} onValueChange={(v) => setMainTab(v as "list" | "map")}>
+        <TabsList>
+          <TabsTrigger value="list">📋 รายการตาราง</TabsTrigger>
+          <TabsTrigger value="map">🗺️ ผังตำแหน่งจัดเก็บ</TabsTrigger>
+        </TabsList>
+      </Tabs>
+
+      {mainTab === "map" && (
+        <WarehouseMapView
+          items={players
+            .filter((p) => filteredIds.has(p.id))
+            .map((p) => ({
+              id: p.id,
+              code: p.code,
+              name: p.name,
+              serial_number: [p.serial_number_1, p.serial_number_2].filter(Boolean).join("\n") || null,
+              quantity_in_stock: p.quantity ?? 0,
+              unit: p.unit,
+              item_type: "media_player" as const,
+              item_condition: p.item_condition,
+              location_id: p.location_id,
+              category: (p as any).device_type || "Media Player",
+            }))}
+        />
+      )}
+
+      <div className={mainTab === "map" ? "hidden" : "space-y-6"}>
       {/* Summary Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
         <Card><CardContent className="p-4 flex items-center gap-3">
@@ -966,6 +998,7 @@ export default function MediaPlayerReport() {
           </DialogContent>
         </Dialog>
       )}
+      </div>
     </div>
   );
 }
