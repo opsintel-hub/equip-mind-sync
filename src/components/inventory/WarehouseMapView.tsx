@@ -189,8 +189,14 @@ export function WarehouseMapView({ items }: { items: MapItem[] }) {
       }
       zoneMap.get(key)!.locs.push(l);
     });
-    return Array.from(zoneMap.entries()).map(([id, v]) => ({ id, ...v }));
-  }, [visibleLocations, zones]);
+    return Array.from(zoneMap.entries())
+      .map(([id, v]) => ({
+        id,
+        ...v,
+        occupied: v.locs.filter((l) => (bySlot.get(l.id) || []).length > 0).length,
+      }))
+      .sort((a, b) => b.occupied - a.occupied || a.code.localeCompare(b.code));
+  }, [visibleLocations, zones, bySlot]);
 
   const fillPct = (l: LocationRow) => {
     if (!l.volume_cm3 || l.volume_cm3 <= 0) return null;
