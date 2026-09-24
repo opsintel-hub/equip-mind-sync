@@ -37,6 +37,8 @@ import { ViewModeToggle, useViewMode } from "@/components/common/ViewModeToggle"
 import { EntityCardGrid, CardItem } from "@/components/common/EntityCardGrid";
 import { EntityCalendarView, CalendarItem } from "@/components/common/EntityCalendarView";
 import { usePrimaryImages } from "@/hooks/usePrimaryImages";
+import { WarehouseMapView } from "@/components/inventory/WarehouseMapView";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 
 // Removed hardcoded ITEMS_PER_PAGE - now using useTablePagination hook
