@@ -957,13 +957,20 @@ export default function InventoryReport() {
             </p>
           </div>
           <div className="flex items-center gap-2">
-            <ViewModeToggle value={viewMode} onChange={setViewMode} />
+            {mainTab === "list" && <ViewModeToggle value={viewMode} onChange={setViewMode} />}
             <Button onClick={handleExport} disabled={filteredData.length === 0}>
               <Download className="mr-2 h-4 w-4" />
               Export Excel
             </Button>
           </div>
         </div>
+
+        <Tabs value={mainTab} onValueChange={(v) => setMainTab(v as "list" | "map")}>
+          <TabsList>
+            <TabsTrigger value="list">📋 รายการตาราง</TabsTrigger>
+            <TabsTrigger value="map">🗺️ ผังตำแหน่งจัดเก็บ</TabsTrigger>
+          </TabsList>
+        </Tabs>
 
         {/* Summary Cards */}
         <div className="grid gap-4 grid-cols-2 md:grid-cols-5">
