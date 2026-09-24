@@ -262,6 +262,8 @@ export function IssuePurposeList({ refresh }: IssuePurposeListProps) {
           })}
         </TableBody>
       </Table>
+    </div>
+      <TablePagination currentPage={pg.currentPage} totalPages={pg.totalPages} totalItems={pg.totalItems} pageSize={pg.pageSize} onPageChange={pg.handlePageChange} onPageSizeChange={pg.handlePageSizeChange} />
 
       <IssuePurposeEditDialog
         purpose={editingPurpose}
