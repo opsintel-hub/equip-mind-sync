@@ -17,6 +17,9 @@ import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { CompanyForm } from "./CompanyForm";
+import { MasterDataFilterBar, ALL, matchText } from "@/components/master-data/MasterDataFilterBar";
+import { useTablePagination } from "@/hooks/useTablePagination";
+import { TablePagination } from "@/components/TablePagination";
 import { Badge } from "@/components/ui/badge";
 
 interface Department {
@@ -45,6 +48,7 @@ export function CompanyList({ refresh }: CompanyListProps) {
   const [deleteCompany, setDeleteCompany] = useState<CompanyData | null>(null);
   const [showHidden, setShowHidden] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+  const [deptFilter, setDeptFilter] = useState(ALL);
 
   useEffect(() => {
     fetchCompanies();
@@ -135,29 +139,25 @@ export function CompanyList({ refresh }: CompanyListProps) {
   }
 
   const hiddenCount = companies.filter((c) => c.is_hidden).length;
-  const term = searchTerm.trim().toLowerCase();
+  const deptOptions = [{ value: "__alldept__", label: "(ทุกฝ่าย)" }, ...Array.from(new Map(companies.filter((c) => c.departments).map((c) => [c.departments!.id, c.departments!.name])).entries()).map(([value, label]) => ({ value, label }))];
   const visibleCompanies = (showHidden ? companies : companies.filter((c) => !c.is_hidden)).filter((c) => {
-    if (!term) return true;
-    return (
-      (c.code || "").toLowerCase().includes(term) ||
-      (c.name || "").toLowerCase().includes(term) ||
-      (c.description || "").toLowerCase().includes(term) ||
-      (c.departments?.name || "").toLowerCase().includes(term)
-    );
+    if (deptFilter === "__alldept__" && c.department_id) return false;
+    if (deptFilter !== ALL && deptFilter !== "__alldept__" && c.department_id !== deptFilter) return false;
+    return matchText(searchTerm, c.code, c.name, c.description, c.departments?.name);
   });
-
   return (
     <>
       <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-3">
-        <input
-          type="search"
-          placeholder="ค้นหา รหัส / ชื่อบริษัท / ฝ่าย / รายละเอียด..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="flex-1 h-9 px-3 rounded-md border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-        />
-        <div className="text-xs text-muted-foreground whitespace-nowrap">
-          พบ {visibleCompanies.length} / {companies.length} รายการ
+        <div className="flex-1">
+          <MasterDataFilterBar
+            search={searchTerm}
+            onSearchChange={setSearchTerm}
+            placeholder="ค้นหา รหัส / ชื่อบริษัท / ฝ่าย / รายละเอียด..."
+            preview={visibleCompanies.map((c) => ({ id: c.id, title: c.name, subtitle: [c.code, c.departments?.name || "ทุกฝ่าย"].join(" • ") }))}
+            resultCount={visibleCompanies.length}
+            totalCount={companies.length}
+            filters={[{ key: "dept", label: "ฝ่าย", value: deptFilter, onChange: setDeptFilter, options: deptOptions }]}
+          />
         </div>
         <div className="flex items-center gap-2">
           <Label htmlFor="show-hidden" className="text-sm text-muted-foreground">

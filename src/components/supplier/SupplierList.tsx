@@ -26,6 +26,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Trash2, Download, Search } from "lucide-react";
 import { SupplierForm } from "./SupplierForm";
+import { MasterDataFilterBar, ALL, uniqOptions } from "@/components/master-data/MasterDataFilterBar";
 import * as XLSX from "xlsx";
 
 interface Supplier {
@@ -56,7 +57,8 @@ export function SupplierList({ refresh }: SupplierListProps) {
   const [loading, setLoading] = useState(true);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
-  const [companyFilter, setCompanyFilter] = useState<string>("");
+  const [companyFilter, setCompanyFilter] = useState<string>(ALL);
+  const [statusFilter, setStatusFilter] = useState<string>(ALL);
   const pagination = useTablePagination(filteredSuppliers);
 
   useEffect(() => {
@@ -93,7 +95,8 @@ export function SupplierList({ refresh }: SupplierListProps) {
   useEffect(() => {
     const q = searchTerm.trim().toLowerCase();
     let list = suppliers;
-    if (companyFilter) list = list.filter((s) => (s.company_code || "") === companyFilter);
+    if (companyFilter !== ALL) list = list.filter((s) => (s.company_code || "") === companyFilter);
+    if (statusFilter !== ALL) list = list.filter((s) => (statusFilter === "active") === !!s.is_active);
     if (q) {
       list = list.filter((s) => {
         return (
@@ -110,7 +113,7 @@ export function SupplierList({ refresh }: SupplierListProps) {
       });
     }
     setFilteredSuppliers(list);
-  }, [searchTerm, companyFilter, suppliers]);
+  }, [searchTerm, companyFilter, statusFilter, suppliers]);
 
   const companies = Array.from(new Set(suppliers.map((s) => s.company_code).filter(Boolean))) as string[];
 
@@ -145,31 +148,19 @@ export function SupplierList({ refresh }: SupplierListProps) {
 
   return (
     <>
-      <div className="flex flex-wrap items-center gap-2 mb-4">
-        <div className="relative flex-1 min-w-[240px]">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="ค้นหา Vendor ID, Tax ID, ชื่อ, Description, Media Site, ผู้ติดต่อ..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10"
-          />
-        </div>
-        <select
-          value={companyFilter}
-          onChange={(e) => setCompanyFilter(e.target.value)}
-          className="h-9 rounded-md border bg-background px-3 text-sm"
-        >
-          <option value="">ทุก Company</option>
-          {companies.map((c) => (
-            <option key={c} value={c}>{c}</option>
-          ))}
-        </select>
-        <Button onClick={handleExport} variant="outline" size="sm">
-          <Download className="h-4 w-4 mr-2" />
-          ส่งออก Excel ({filteredSuppliers.length.toLocaleString()})
-        </Button>
-      </div>
+      <MasterDataFilterBar
+        search={searchTerm}
+        onSearchChange={setSearchTerm}
+        placeholder="ค้นหา Vendor ID, Tax ID, ชื่อ, Description, Media Site, ผู้ติดต่อ..."
+        preview={filteredSuppliers.map((s) => ({ id: s.id, title: s.name, subtitle: [s.vendor_code || s.code, s.company_code, s.contact_person].filter(Boolean).join(" • ") }))}
+        resultCount={filteredSuppliers.length}
+        totalCount={suppliers.length}
+        filters={[
+          { key: "company", label: "Company", value: companyFilter, onChange: setCompanyFilter, options: uniqOptions(companies) },
+          { key: "status", label: "สถานะ", value: statusFilter, onChange: setStatusFilter, width: "w-[140px]", options: [{ value: "active", label: "ใช้งาน" }, { value: "inactive", label: "ไม่ใช้งาน" }] },
+        ]}
+        actions={<Button onClick={handleExport} variant="outline" size="sm"><Download className="h-4 w-4 mr-2" />ส่งออก Excel ({filteredSuppliers.length.toLocaleString()})</Button>}
+      />
       <div className="overflow-x-auto border rounded-md">
         <Table className="min-w-[1600px]">
           <TableHeader>
