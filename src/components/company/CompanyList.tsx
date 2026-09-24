@@ -121,6 +121,15 @@ export function CompanyList({ refresh }: CompanyListProps) {
     setDeleteCompany(null);
   };
 
+  const hiddenCount = companies.filter((c) => c.is_hidden).length;
+  const deptOptions = [{ value: "__alldept__", label: "(ทุกฝ่าย)" }, ...Array.from(new Map(companies.filter((c) => c.departments).map((c) => [c.departments!.id, c.departments!.name])).entries()).map(([value, label]) => ({ value, label }))];
+  const visibleCompanies = (showHidden ? companies : companies.filter((c) => !c.is_hidden)).filter((c) => {
+    if (deptFilter === "__alldept__" && c.department_id) return false;
+    if (deptFilter !== ALL && deptFilter !== "__alldept__" && c.department_id !== deptFilter) return false;
+    return matchText(searchTerm, c.code, c.name, c.description, c.departments?.name);
+  });
+  const pg = useTablePagination(visibleCompanies, 20);
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center p-8">
@@ -138,13 +147,6 @@ export function CompanyList({ refresh }: CompanyListProps) {
     );
   }
 
-  const hiddenCount = companies.filter((c) => c.is_hidden).length;
-  const deptOptions = [{ value: "__alldept__", label: "(ทุกฝ่าย)" }, ...Array.from(new Map(companies.filter((c) => c.departments).map((c) => [c.departments!.id, c.departments!.name])).entries()).map(([value, label]) => ({ value, label }))];
-  const visibleCompanies = (showHidden ? companies : companies.filter((c) => !c.is_hidden)).filter((c) => {
-    if (deptFilter === "__alldept__" && c.department_id) return false;
-    if (deptFilter !== ALL && deptFilter !== "__alldept__" && c.department_id !== deptFilter) return false;
-    return matchText(searchTerm, c.code, c.name, c.description, c.departments?.name);
-  });
   return (
     <>
       <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-3">
@@ -177,7 +179,7 @@ export function CompanyList({ refresh }: CompanyListProps) {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {visibleCompanies.map((company) => (
+          {pg.paginatedData.map((company) => (
             <TableRow key={company.id} className={company.is_hidden ? "opacity-60 bg-muted/30" : ""}>
               <TableCell className="font-medium">{company.code}</TableCell>
               <TableCell>
@@ -231,6 +233,7 @@ export function CompanyList({ refresh }: CompanyListProps) {
           ))}
         </TableBody>
       </Table>
+      <TablePagination currentPage={pg.currentPage} totalPages={pg.totalPages} totalItems={pg.totalItems} pageSize={pg.pageSize} onPageChange={pg.handlePageChange} onPageSizeChange={pg.handlePageSizeChange} />
 
       <AlertDialog open={!!deleteCompany} onOpenChange={() => setDeleteCompany(null)}>
         <AlertDialogContent>
