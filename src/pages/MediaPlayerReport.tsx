@@ -17,6 +17,7 @@ import {
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
+import { WarehouseMapView } from "@/components/inventory/WarehouseMapView";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { ProcessTracker, ProcessStep } from "@/components/ProcessTracker";
@@ -404,7 +405,6 @@ export default function MediaPlayerReport() {
 
   // Filter expanded rows
   const [mainTab, setMainTab] = useState<"list" | "map">("list");
-  const filteredIds = useMemo(() => new Set(filtered.map((r) => r.playerId)), [filtered]);
   const filtered = useMemo(() => {
     return expandedRows.filter((r) => {
       if (conditionFilter !== "all" && r.condition !== conditionFilter) return false;
@@ -453,6 +453,7 @@ export default function MediaPlayerReport() {
       return true;
     });
   }, [expandedRows, search, snSearch, conditionFilter, departmentFilter, statusFilter, companyFilter, brandFilter, codePrefixFilter, projectFilter, allReceiptSerialsMap, subMediaTypeFilter, deviceTypeFilter]);
+  const filteredIds = useMemo(() => new Set(filtered.map((r) => r.playerId)), [filtered]);
 
   const {
     paginatedData,
